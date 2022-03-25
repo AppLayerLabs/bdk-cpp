@@ -1,4 +1,4 @@
-
+build/
 *.o
 *.gch
 proto/metrics.pb.cc
