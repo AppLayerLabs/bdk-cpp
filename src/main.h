@@ -29,7 +29,7 @@ std::mutex log_lock;
 
 void logToFile(std::string str) {
   log_lock.lock();
-  std::ofstream log("log.txt");
+  std::ofstream log("log.txt", std::ios::app);
   log << str << std::endl;
   log.close();
   log_lock.unlock();
