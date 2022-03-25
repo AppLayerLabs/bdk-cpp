@@ -40,11 +40,39 @@ class VMServiceImplementation final : public vmproto::VM::Service {
   Status Initialize(ServerContext* context, const vmproto::InitializeRequest* request,
                   vmproto::InitializeResponse* reply) override {
     logToFile("Initialized Called");
+
+    json debugJson;
+    debugJson["call"] = "Initialize";
+    json initializeRequest;
+    initializeRequest["network_id"] = boost::lexical_cast<std::string>(request->network_id());
+    initializeRequest["subnet_id"] = request->subnet_id().c_str();
+    initializeRequest["chain_id"] = request->chain_id().c_str();
+    initializeRequest["node_id"] = request->node_id().c_str();
+    initializeRequest["x_chain_id"] = request->x_chain_id().c_str();
+    initializeRequest["avax_asset_id"] = request->avax_asset_id().c_str();
+    initializeRequest["genesis_bytes"] = request->genesis_bytes().c_str();
+    initializeRequest["upgrade_bytes"] = request->upgrade_bytes().c_str();
+    initializeRequest["config_bytes"] = request->config_bytes().c_str();
+    initializeRequest["VersionedDBServer"] = json::array();
+    for (auto dbServer : request->db_servers()) {
+      json dbJson;
+      dbJson["db_server"] = boost::lexical_cast<std::string>(dbServer.db_server());
+      dbJson["version"] = dbServer.version();
+    }
+    initializeRequest["init_server"] = boost::lexical_cast<std::string>(request->init_server());
+    debugJson["request"] = initializeRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
   Status SetState(ServerContext* context, const vmproto::SetStateRequest* request, google::protobuf::Empty* reply) override {
     logToFile("SetState called");
+    json debugJson;
+    debugJson["call"] = "SetState";
+    json setStateRequest;
+    setStateRequest["state"] = boost::lexical_cast<std::string>(request->state());
+    debugJson["request"] = setStateRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
@@ -65,6 +93,13 @@ class VMServiceImplementation final : public vmproto::VM::Service {
 
   Status Connected(ServerContext* context, const vmproto::ConnectedRequest* request, google::protobuf::Empty* reply) override {
     logToFile("Connected Called");
+    json debugJson;
+    debugJson["call"] = "Connected";
+    json connectedRequest;
+    connectedRequest["node_id"] = request->node_id().c_str();
+    connectedRequest["version"] = request->version();
+    debugJson["request"] = connectedRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
@@ -80,16 +115,35 @@ class VMServiceImplementation final : public vmproto::VM::Service {
 
   Status ParseBlock(ServerContext* context, const vmproto::ParseBlockRequest* request, vmproto::ParseBlockResponse* reply) override {
     logToFile("ParseBlock called");
+    json debugJson;
+    debugJson["call"] = "ParseBlock";
+    json parseBlockRequest;
+    parseBlockRequest["bytes"] = request->bytes().c_str();
+    debugJson["request"] = parseBlockRequest;
+    logToFile(debugJson.dump(2));
+
     return Status::OK;
   }
 
   Status GetBlock(ServerContext* context, const vmproto::GetBlockRequest* request, vmproto::GetBlockResponse* reply) override {
     logToFile("GetBlock called");
-    return Status::OK;
+    json debugJson;
+    debugJson["call"] = "GetBlock";
+    json getBlockRequest;
+    getBlockRequest["id"] = request->id().c_str();
+    debugJson["request"] = getBlockRequest;
+    logToFile(debugJson.dump(2));
+    return Status::OK; 
   }
 
   Status SetPreference(ServerContext* context, const vmproto::SetPreferenceRequest* request, google::protobuf::Empty* reply) override {
     logToFile("SetPreference Called");
+    json debugJson;
+    debugJson["call"] = "SetPreference";
+    json setPreferenceRequest;
+    setPreferenceRequest["id"] = request->id().c_str();
+    debugJson["request"] = setPreferenceRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
@@ -105,21 +159,53 @@ class VMServiceImplementation final : public vmproto::VM::Service {
 
   Status AppRequest(ServerContext* context, const vmproto::AppRequestMsg* request, google::protobuf::Empty* reply) override {
     logToFile("AppRequest called");
+    json debugJson;
+    debugJson["call"] = "AppRequest";
+    json appRequest;
+    appRequest["node_id"] = request->node_id().c_str();
+    appRequest["request_id"] = boost::lexical_cast<std::string>(request->request_id());
+    appRequest["deadline"] = request->deadline().c_str();
+    appRequest["request"] = request->request().c_str();
+    debugJson["request"] = appRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
   Status AppRequestFailed(ServerContext* context, const vmproto::AppRequestFailedMsg* request, google::protobuf::Empty* reply) override {
     logToFile("AppRequestFailed called");
+    json debugJson; 
+    debugJson["call"] = "AppRequestFailed";
+    json appRequestFailedRequest;
+    appRequestFailedRequest["node_id"] = request->node_id().c_str();
+    appRequestFailedRequest["request_id"] = boost::lexical_cast<std::string>(request->request_id());
+    debugJson["request"] = appRequestFailedRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
   Status AppResponse(ServerContext* context, const vmproto::AppResponseMsg* request, google::protobuf::Empty* reply) override {
     logToFile("AppResponse called");
+    json debugJson;
+    debugJson["call"] = "AppResponse";
+    json appResponseRequest;
+    appResponseRequest["node_id"] = request->node_id().c_str();
+    appResponseRequest["request_id"] = boost::lexical_cast<std::string>(request->request_id());
+    appResponseRequest["response"] = request->response().c_str();
+    debugJson["request"] = appResponseRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
   Status AppGossip(ServerContext* context, const vmproto::AppGossipMsg* request, google::protobuf::Empty* reply) override {
     logToFile("AppGossip called");
+    json debugJson;
+    debugJson["call"] = "AppGossip";
+    json appGossipRequest;
+    appGossipRequest["node_id"] = request->node_id().c_str();
+    appGossipRequest["msg"] = request->msg().c_str();
+    debugJson["request"] = appGossipRequest;
+    logToFile(debugJson.dump(2));
+    
     return Status::OK;
   }
 
@@ -130,26 +216,64 @@ class VMServiceImplementation final : public vmproto::VM::Service {
 
   Status BlockVerify(ServerContext* context, const vmproto::BlockVerifyRequest* request, vmproto::BlockVerifyResponse* reply) override {
     logToFile("BlockVerify called");
+    json debugJson;
+    debugJson["call"] = "BlockVerify";
+    json blockVerifyRequest;
+    blockVerifyRequest["bytes"] = request->bytes().c_str();
+    debugJson["request"] = blockVerifyRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
   Status BlockAccept(ServerContext* context, const vmproto::BlockAcceptRequest* request, google::protobuf::Empty* reply) override {
     logToFile("BlockAccept called");
+    json debugJson;
+    debugJson["call"] = "BlockAccept";
+    json blockAcceptRequest;
+    blockAcceptRequest["id"] = request->id().c_str();
+    debugJson["request"] = blockAcceptRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
   Status BlockReject(ServerContext* context, const vmproto::BlockRejectRequest* request, google::protobuf::Empty* reply) override {
     logToFile("BlockReject called");
+    json debugJson;
+    debugJson["call"] = "BlockReject";
+    json blockRejectRequest;
+    blockRejectRequest["id"] = request->id().c_str();
+    debugJson["request"] = blockRejectRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
   Status GetAncestors(ServerContext* context, const vmproto::GetAncestorsRequest* request, vmproto::GetAncestorsResponse* reply) override {
     logToFile("GetAncestors called");
+    json debugJson;
+    debugJson["call"] = "GetAncestors";
+    json getAncestorsRequest;
+    getAncestorsRequest["blk_id"] = request->blk_id().c_str();
+    getAncestorsRequest["max_blocks_num"] = boost::lexical_cast<std::string>(request->max_blocks_num());
+    getAncestorsRequest["max_blocks_size"] = boost::lexical_cast<std::string>(request->max_blocks_size());
+    getAncestorsRequest["max_blocks_retrival_time"] = boost::lexical_cast<std::string>(request->max_blocks_retrival_time());
+    debugJson["request"] = getAncestorsRequest;
+    logToFile(debugJson.dump(2));
     return Status::OK;
   }
 
   Status BatchedParseBlock(ServerContext* context, const vmproto::BatchedParseBlockRequest* request, vmproto::BatchedParseBlockResponse* reply) override {
     logToFile("BatchedParseBlock called");
+    json debugJson;
+    debugJson["call"] = "BatchedParseBlock";
+    json batchedParseBlockRequest = json::array();
+    for (auto req : request->request()) {
+      json tmp;
+      tmp["bytes"] = req.c_str();
+      batchedParseBlockRequest.push_back(tmp);
+    }
+    debugJson["request"] = batchedParseBlockRequest;
+    logToFile(debugJson.dump(2));
+    
     return Status::OK;
   }
 
@@ -159,7 +283,12 @@ class VMServiceImplementation final : public vmproto::VM::Service {
   }
 
   Status GetBlockIDAtHeight(ServerContext* context, const vmproto::GetBlockIDAtHeightRequest* request, vmproto::GetBlockIDAtHeightResponse* reply) override {
-    logToFile("GetBlokcIDAtHeight called");
+    logToFile("GetBlockIDAtHeight called");
+    json debugJson;
+    debugJson["call"] = "GetBlockIDAtHeight";
+    json getBlockIDAtHeight;
+    getBlockIDAtHeight["height"] = boost::lexical_cast<std::string>(request->height());
+    debugJson["request"] = getBlockIDAtHeight;
     return Status::OK;
   }
 };
