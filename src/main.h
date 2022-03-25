@@ -78,8 +78,21 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     // EXAMPLE
     // t := time.Date(2001, 2, 1, 14, 30, 12, 05, time.UTC)
     // 0x010000000eb20b69F400000005ffff
+    // 0x01
+    // 0000000eb20b69F4 
+    // 00000005 
+    // ffff
 
-    // i64 (8 bytes)
+    // THIS IS A NIGHTMARE:
+    // Golang's Zero time is January 1, year 1, 00:00:00.000000000 UTC
+    // https://cs.opensource.google/go/go/+/refs/tags/go1.17.6:src/time/time.go;l=97
+    // init that as an OffsetDateTime for future use
+    // COMPLETE PEPEGA
+
+    // i8 (1 byte) version
+    // i64 (8 bytes) seconds
+    // i32 (4 bytes) nanos
+    // i16 (2 bytes) minute offset (?)
 
     timestampStr.resize(15);
     timestampStr[0] = 0x01;
