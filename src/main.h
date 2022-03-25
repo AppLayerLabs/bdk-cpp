@@ -12,6 +12,12 @@
 #include "../proto/vm.grpc.pb.h"
 #include "libs/CommonData.h"
 
+#include <boost/lexical_cast.hpp>
+#include "json.hpp"
+
+using json = nlohmann::json;
+
+
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;
 using grpc::ServerBuilder;
@@ -33,24 +39,17 @@ void logToFile(std::string str) {
 class VMServiceImplementation final : public vmproto::VM::Service {
   Status Initialize(ServerContext* context, const vmproto::InitializeRequest* request,
                   vmproto::InitializeResponse* reply) override {
-    std::string chainID = dev::toHex(request->chainid());
-    std::cout << chainID << std::endl;
-    reply->set_height(100);
+    logToFile("Initialized Called");
     return Status::OK;
   }
 
-  Status Bootstrapping(ServerContext* context, const google::protobuf::Empty* request, google::protobuf::Empty* reply) override {
-    logToFile("Bootstrapping Called");
-    return Status::OK;
-  }
-
-  Status Bootstrapped(ServerContext* context, const google::protobuf::Empty* request, google::protobuf::Empty* reply) override {
-    logToFile("Bootstrapped Called");
+  Status SetState(ServerContext* context, const vmproto::SetStateRequest* request, google::protobuf::Empty* reply) override {
+    logToFile("SetState called");
     return Status::OK;
   }
 
   Status Shutdown(ServerContext* context, const google::protobuf::Empty* request, google::protobuf::Empty* reply) override {
-    logToFile("Shutdown called");
+    logToFile("Shutdown Called");
     return Status::OK;
   }
 
@@ -60,7 +59,7 @@ class VMServiceImplementation final : public vmproto::VM::Service {
   }
 
   Status CreateStaticHandlers(ServerContext* context, const google::protobuf::Empty* request, vmproto::CreateStaticHandlersResponse* reply) override {
-    logToFile("CreateStaticHandlers called");
+    logToFile("CreateStaticHandlers Called");
     return Status::OK;
   }
 
@@ -75,7 +74,7 @@ class VMServiceImplementation final : public vmproto::VM::Service {
   }
 
   Status BuildBlock(ServerContext* context, const google::protobuf::Empty* request, vmproto::BuildBlockResponse* reply) override {
-    logToFile("BuildBlock Called");
+    logToFile("BuildBlock called");
     return Status::OK;
   }
 
@@ -90,7 +89,7 @@ class VMServiceImplementation final : public vmproto::VM::Service {
   }
 
   Status SetPreference(ServerContext* context, const vmproto::SetPreferenceRequest* request, google::protobuf::Empty* reply) override {
-    logToFile("SetPreference called");
+    logToFile("SetPreference Called");
     return Status::OK;
   }
 
@@ -100,7 +99,7 @@ class VMServiceImplementation final : public vmproto::VM::Service {
   }
 
   Status Version(ServerContext* context, const google::protobuf::Empty* request, vmproto::VersionResponse* reply) override {
-    logToFile("Version called");
+    logToFile("Version Called");
     return Status::OK;
   }
 
@@ -123,7 +122,7 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     logToFile("AppGossip called");
     return Status::OK;
   }
-  
+
   Status Gather(ServerContext* context, const google::protobuf::Empty* request, vmproto::GatherResponse* reply) override {
     logToFile("Gather called");
     return Status::OK;
@@ -144,13 +143,23 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     return Status::OK;
   }
 
-  Status GetAncestors(ServerContext* context, const vmproto::GetAncestorsRequest* request, vmproto::GetAncestorsResponse* response) override {
+  Status GetAncestors(ServerContext* context, const vmproto::GetAncestorsRequest* request, vmproto::GetAncestorsResponse* reply) override {
     logToFile("GetAncestors called");
     return Status::OK;
   }
 
-  Status BatchedParseBlock(ServerContext* context, const vmproto::BatchedParseBlockRequest* request, vmproto::BatchedParseBlockResponse* response) override {
+  Status BatchedParseBlock(ServerContext* context, const vmproto::BatchedParseBlockRequest* request, vmproto::BatchedParseBlockResponse* reply) override {
     logToFile("BatchedParseBlock called");
+    return Status::OK;
+  }
+
+  Status VerifyHeightIndex(ServerContext* context, const google::protobuf::Empty* request, vmproto::VerifyHeightIndexResponse* reply) override {
+    logToFile("VerifyHeightIndex called");
+    return Status::OK;
+  }
+
+  Status GetBlockIDAtHeight(ServerContext* context, const vmproto::GetBlockIDAtHeightRequest* request, vmproto::GetBlockIDAtHeightResponse* reply) override {
+    logToFile("GetBlokcIDAtHeight called");
     return Status::OK;
   }
 };
@@ -169,7 +178,7 @@ void RunServer() {
   builder.RegisterService(&service);
   // Finally assemble the server.
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "1|9|tcp|" << server_address << "|grpc\n"<< std::flush;
+  std::cout << "1|11|tcp|" << server_address << "|grpc\n"<< std::flush;
 
   // Wait for the server to shutdown. Note that some other thread must be
   // responsible for shutting down the server for this call to ever return.
