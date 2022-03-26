@@ -3,18 +3,24 @@
 
 #include <include/web3cpp/devcore/Common.h>
 #include <include/web3cpp/ethcore/TransactionBase.h>
+#include "utils.h"
 
 class Block {
     private:
 
+        // Block header = 32 * 6 == 192 Bytes.
+        // _blockHash itself is not incuded in header
         dev::u256 _blockHash;
         dev::u256 _prevBlockHash;
         dev::u256 _timestamp;
         dev::u256 _txCount;
-        dev::u256 _merkleRootHash;
         dev::u256 _nHeight;
         // Data should be at max 32 bytes.
         dev::u256 _blockData;
+        // Serialized block size in bytes.
+        dev::u256 _blockSize;
+        // Block contents.
+        std::vector<dev::eth::TransactionBase> _transactions;
 
     public:
 
@@ -22,16 +28,18 @@ class Block {
         dev::u256 prevBlockHash()   { return _prevBlockHash; };
         dev::u256 timestamp()       { return _timestamp; };
         dev::u256 txCount()         { return _txCount; };
-        dev::u256 merkleRootHash()  { return _merkleRootHash; };
         dev::u256 nHeight()         { return _nHeight; };
         dev::u256 blockData()       { return _blockData; };
+        std::vector<dev::eth::TransactionBase> transactions() { return _transactions; };
 
         // Serialize to protobuf string.
         std::string serializeToString();
         // Serialize from protobufstring.
         bool serializeFromString(std::string blockBytes);
 
-        bool addTx(dev::eth::TransactionSkeleton tx);
+        bool addTx(dev::eth::TransactionBase tx);
+
+        void submitBlock();
 
         Block(std::string blockBytes);
 };
