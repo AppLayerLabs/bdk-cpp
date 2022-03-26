@@ -45,7 +45,7 @@ bool Database::putKeyValue(std::string key, std::string value) {
   return this->dbStatus.ok();
 }
 
-bool Database::deleteKeyValue(std::string &key) {
+bool Database::deleteKeyValue(std::string key) {
   this->dbStatus = this->db->Delete(leveldb::WriteOptions(), key);
   if(!this->dbStatus.ok()) {
     throw std::string("Error deleting at ") + databaseName + " database at key "

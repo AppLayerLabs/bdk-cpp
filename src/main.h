@@ -49,8 +49,12 @@ class VMServiceImplementation final : public vmproto::VM::Service {
   Database blocksDb; // Key -> blockHash()
                       // Value -> json block
  
+  Database confirmedTxs;
   Database accountsDb; // Key -> underscored user address "0x..."
                         // Value -> balance in wei.
+
+
+  std::vector<dev::eth::TransactionBase> mempool;
 
   Status Initialize(ServerContext* context, const vmproto::InitializeRequest* request,
                   vmproto::InitializeResponse* reply) override {
@@ -65,6 +69,7 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     dbName = req["nodeId"];
     blocksDb.setAndOpenDB(dbName + "-blocks");
     accountsDb.setAndOpenDB(dbName + "-balances");
+    confirmedTxs.setAndOpenDB(dbName + "-txs");
     if (blocksDb.isEmpty()) {
       blocksDb.putKeyValue(genesis.blockHash(), genesis.serializeToString());
       blocksDb.putKeyValue("latest", genesis.serializeToString());
@@ -133,7 +138,31 @@ class VMServiceImplementation final : public vmproto::VM::Service {
 
   Status BuildBlock(ServerContext* context, const google::protobuf::Empty* request, vmproto::BuildBlockResponse* reply) override {
     Utils::logToFile("BuildBlock called");
+    Block pastBlock(blocksDb.getKeyValue("latest"));
+    const auto p1 = std::chrono::system_clock::now();
+    uint64_t now = std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count();
+    auto nextHeight = pastBlock.nHeight() + 1;
+    Block newBestBlock(pastBlock.blockHash(),
+                       boost::lexical_cast<dev::u256>(now),
+                       0,
+                       nextHeight,
+                       "");
+    for (auto tx : mempool) {
+      newBestBlock.addTx(tx);
+      confirmedTxs.putKeyValue(dev::toHex(tx.sha3()), dev::toHex(tx.rlp()));
+    }
+
+    reply->set_id(Utils::hashToBytes(newBestBlock.blockHash()));
+    reply->set_parent_id(Utils::hashToBytes(newBestBlock.prevBlockHash()));
+    reply->set_bytes(newBestBlock.serializeToString());
+    reply->set_height(boost::lexical_cast<uint64_t>(newBestBlock.nHeight()));
+    reply->set_timestamp(Utils::secondsToGoTimeStamp(boost::lexical_cast<uint64_t>(newBestBlock.timestamp())));
+
+    blocksDb.deleteKeyValue("latest");
+    blocksDb.putKeyValue(newBestBlock.blockHash(), newBestBlock.serializeToString());
+    blocksDb.putKeyValue("latest", newBestBlock.serializeToString());
     Utils::logToFile(request->DebugString());
+    Utils::logToFile(reply->DebugString());
     return Status::OK;
   }
 

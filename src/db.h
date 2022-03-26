@@ -37,7 +37,7 @@ class Database {
     bool keyExists(std::string &key);
     std::string getKeyValue(std::string key);
     bool putKeyValue(std::string key, std::string value);
-    bool deleteKeyValue(std::string &key);
+    bool deleteKeyValue(std::string key);
     std::vector<std::string> getAllKeys();
     std::vector<std::string> getAllValues();
     bool isEmpty() {
