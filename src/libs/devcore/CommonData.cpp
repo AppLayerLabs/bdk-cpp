@@ -3,10 +3,11 @@
 // Licensed under the GNU General Public License, Version 3.
 
 
-#include "CommonData.h"
+#include <web3cpp/devcore/CommonData.h>
 #include <random>
 
-using namespace std;
+#include <web3cpp/devcore/Exceptions.h>
+
 using namespace dev;
 
 namespace
@@ -23,7 +24,7 @@ int fromHexChar(char _i) noexcept
 }
 }
 
-bool dev::isHex(string const& _s) noexcept
+bool dev::isHex(std::string const& _s) noexcept
 {
 	auto it = _s.begin();
 	if (_s.compare(0, 2, "0x") == 0)
@@ -33,7 +34,7 @@ bool dev::isHex(string const& _s) noexcept
 
 std::string dev::escaped(std::string const& _s, bool _all)
 {
-	static const map<char, char> prettyEscapes{{'\r', 'r'}, {'\n', 'n'}, {'\t', 't'}, {'\v', 'v'}};
+	static const std::map<char, char> prettyEscapes{{'\r', 'r'}, {'\n', 'n'}, {'\t', 't'}, {'\v', 'v'}};
 	std::string ret;
 	ret.reserve(_s.size() + 2);
 	ret.push_back('"');
@@ -72,6 +73,7 @@ bytes dev::fromHex(std::string const& _s, WhenError _throw)
 		if (h != -1)
 			ret.push_back(h);
 		else if (_throw == WhenError::Throw)
+			BOOST_THROW_EXCEPTION(BadHexCharacter());
 		else
 			return bytes();
 	}
@@ -82,6 +84,7 @@ bytes dev::fromHex(std::string const& _s, WhenError _throw)
 		if (h != -1 && l != -1)
 			ret.push_back((byte)(h * 16 + l));
 		else if (_throw == WhenError::Throw)
+			BOOST_THROW_EXCEPTION(BadHexCharacter());
 		else
 			return bytes();
 	}

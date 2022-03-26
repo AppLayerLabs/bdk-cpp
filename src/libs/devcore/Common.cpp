@@ -2,19 +2,18 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-#include "Common.h"
+#include <web3cpp/devcore/Common.h>
+#include <web3cpp/devcore/Exceptions.h>
 
 #if defined(_WIN32)
 #include <windows.h>
 #endif
 
-#include <avme_wallet/buildinfo.h>
-
-using namespace std;
-
+#include <subnetooor/buildinfo.h>
+// TODO: stop relying on buildinfo hardcoded strings (the ones with "subnetooor")
 namespace dev
 {
-char const* Version = avme_wallet_get_buildinfo()->project_version;
+char const* Version = subnetooor_get_buildinfo()->project_version;
 bytes const NullBytes;
 std::string const EmptyString;
 
@@ -23,6 +22,7 @@ void InvariantChecker::checkInvariants(HasInvariants const* _this, char const* _
     if (!_this->invariants())
     {
         // cwarn << (_pre ? "Pre" : "Post") << "invariant failed in" << _fn << "at" << _file << ":" << _line;
+        BOOST_THROW_EXCEPTION(FailedInvariant() << errinfo_comment(std::string("_fn: ") + _fn + " _file: " + _file + " _line: " + std::to_string(_line))); 
     }
 }
 
@@ -42,9 +42,9 @@ int64_t utcTime()
     return time(0);
 }
 
-string inUnits(bigint const& _b, strings const& _units)
+std::string inUnits(bigint const& _b, strings const& _units)
 {
-    ostringstream ret;
+    std::ostringstream ret;
     u256 b;
     if (_b < 0)
     {
@@ -63,7 +63,7 @@ string inUnits(bigint const& _b, strings const& _units)
         ret << (b / biggest) << " " << _units.back();
         return ret.str();
     }
-    ret << setprecision(3);
+    ret << std::setprecision(3);
 
     u256 unit = biggest;
     for (auto it = _units.rbegin(); it != _units.rend(); ++it)

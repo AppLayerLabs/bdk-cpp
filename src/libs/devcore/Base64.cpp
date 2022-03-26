@@ -26,9 +26,8 @@
 /// Adapted from code found on http://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
 /// Originally by René Nyffenegger, modified by some other guy and then devified by Gav Wood.
 
-#include "Base64.h"
+#include <web3cpp/devcore/Base64.h>
 
-using namespace std;
 using namespace dev;
 
 static inline bool is_base64(byte c)
@@ -46,9 +45,9 @@ static inline byte find_base64_char_index(byte c)
     else return 1 + find_base64_char_index('/');
 }
 
-string toBase64Encoding(bytesConstRef _in, char const* _base64_chars, bool _pad)
+std::string toBase64Encoding(bytesConstRef _in, char const* _base64_chars, bool _pad)
 {
-    string ret;
+    std::string ret;
     int i = 0;
     int j = 0;
     byte char_array_3[3];
@@ -93,7 +92,7 @@ string toBase64Encoding(bytesConstRef _in, char const* _base64_chars, bool _pad)
     return ret;
 }
 
-string dev::toBase64(bytesConstRef _in)
+std::string dev::toBase64(bytesConstRef _in)
 {
     static char const c_base64_chars[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -103,7 +102,7 @@ string dev::toBase64(bytesConstRef _in)
     return toBase64Encoding(_in, c_base64_chars, pad);
 }
 
-string dev::toBase64URLSafe(bytesConstRef _in)
+std::string dev::toBase64URLSafe(bytesConstRef _in)
 {
     static char const c_base64_chars[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -113,7 +112,7 @@ string dev::toBase64URLSafe(bytesConstRef _in)
     return toBase64Encoding(_in, c_base64_chars, pad);
 }
 
-bytes dev::fromBase64(string const& encoded_string)
+bytes dev::fromBase64(std::string const& encoded_string)
 {
     auto in_len = encoded_string.size();
     int i = 0;
