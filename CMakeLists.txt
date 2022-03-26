@@ -49,6 +49,8 @@ find_package(Threads)
 include(FindProtobuf)
 include(cmake/FindGRPC.cmake)
 find_package(Protobuf REQUIRED)
+find_package(absl CONFIG REQUIRED)
+find_package(gRPC REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -110,5 +112,5 @@ add_executable(storageVM src/main.cpp src/main.h
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
 )
 add_dependencies(storageVM gen-grpc)
-target_link_libraries(storageVM aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES})
+target_link_libraries(storageVM aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} gRPC::grpc++)
 
