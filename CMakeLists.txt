@@ -42,6 +42,8 @@ find_package(libscrypt CONFIG REQUIRED)
 include(cmake/ProjectEthash.cmake)
 include(cmake/ProjectSecp256k1.cmake)
 include(cmake/ProjectToolbox.cmake)
+include(ProjectSnappy)
+include(ProjectLevelDB)
 find_package(Threads)
 
 # Include Protobuf
@@ -120,5 +122,5 @@ add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
 add_dependencies(subnetooord gen-grpc)
 # Add include folder to subnetooor
 target_include_directories(subnetooord PRIVATE aleth)
-target_link_libraries(subnetooord aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} gRPC::grpc++ ${Boost_LIBRARIES})
+target_link_libraries(subnetooord aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} gRPC::grpc++ ${Boost_LIBRARIES} LevelDB snappy)
 
