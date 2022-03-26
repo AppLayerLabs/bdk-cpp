@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <include/web3cpp/devcore/Common.h>
+#include "../include/web3cpp/devcore/Common.h"
 
 #include <iostream>
 #include <memory>
