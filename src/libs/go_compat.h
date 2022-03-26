@@ -1,5 +1,5 @@
 #pragma once
-#include "Common.h"
+#include "../../include/web3cpp/devcore/Common.h"
 #include <string>
 #include <chrono>
 
@@ -31,8 +31,13 @@ namespace go {
         time() {
             // Convert current timestamp to golang Marshal bullshittery
 
+            namespace chrono = std::chrono;
+
+            chrono::system_clock::time_point now = chrono::system_clock::now();
+            auto since_year_1 = dev::u256(chrono::duration_cast<chrono::nanoseconds>(now.time_since_epoch()).count()) + dev::u256(chrono::duration<long, chrono::nanoseconds>(6.21355968e+19));
+            // discard most significant bytes
+            uint16_t nanos = since_year_1;
         }
 
-        uint8_t version()
-    }
+    };
 }
