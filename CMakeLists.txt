@@ -106,7 +106,10 @@ protobuf_generate_cpp(PROTO_VM_SRCS PROTO_VM_HDRS proto/vm.proto)
 protobuf_generate_cpp(PROTO_METRICS_SRCS PROTO_METRICS_HDRS proto/metrics.proto)
 
 # Compile and link the executable
-add_executable(subnetooord src/main.cpp src/main.h
+file(GLOB SUBNETOOOR_HEADERS "src/*.h")
+file(GLOB SUBNETOOOR_SOURCES "src/*.cpp")
+
+add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
   ${PROTO_VM_SRCS} ${PROTO_VM_HDRS} ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"

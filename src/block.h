@@ -8,7 +8,7 @@
 class Block {
     private:
 
-        // Block header = 32 * 6 == 192 Bytes.
+        // Block header = 32 * 6 == 224 Bytes.
         // _blockHash itself is not incuded in header
         dev::u256 _blockHash;
         dev::u256 _prevBlockHash;
@@ -17,8 +17,6 @@ class Block {
         dev::u256 _nHeight;
         // Data should be at max 32 bytes.
         dev::u256 _blockData;
-        // Serialized block size in bytes.
-        dev::u256 _blockSize;
         // Block contents.
         std::vector<dev::eth::TransactionBase> _transactions;
 

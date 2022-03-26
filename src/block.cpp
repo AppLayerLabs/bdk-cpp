@@ -4,17 +4,17 @@
 
 bool Block::addTx(dev::eth::TransactionBase tx) {
     if (!tx.hasSignature()) {
-        logToFile("Block::addTx error: submitted transaction has no signature");
+        Utils::logToFile("Block::addTx error: submitted transaction has no signature");
         return false;
     }
 
-    if (tx.safeSender() == NULL) {
-        logToFile("Block::addTx error: invalid Tx!");
+    if (tx.safeSender() == dev::ZeroAddress) {
+        Utils::logToFile("Block::addTx error: invalid Tx!");
         return false;
     }
 
-    this->transactions.push_back(tx);
-    this->txCount = this->txCount + 1;
+    this->_transactions.push_back(tx);
+    this->_txCount = this->_txCount + 1;
     return true;
 }
 
@@ -26,11 +26,11 @@ std::string Block::serializeToString() {
 
     // Load transactions to string.
     // Before each transaction, there is a 4 bytes value telling how many bytes a given tranasction has.
-    blockSize = blockSize + (this->txCount * 4);
+    blockSize = blockSize + (boost::lexical_cast<uint32_t>(this->_txCount) * 4);
 
     std::vector<dev::bytes> transactionsRLPs;
 
-    for (auto tx : this->transactions) {
+    for (auto tx : this->_transactions) {
         transactionsRLPs.push_back(tx.rlp());
         blockSize = blockSize + tx.rlp().size();
     }
@@ -83,5 +83,64 @@ std::string Block::serializeToString() {
         }
     }
 
-    return ret;s
+    return ret;
+}
+
+
+bool Block::serializeFromString(std::string blockBytes) {
+    // First 192 bytes == Block Header.
+    // Remaining == txCount * (4 + txSize);
+
+    size_t strIndex;
+
+
+    // Read block header;
+    for (uint i = 0; i < 32; ++i) {
+        _prevBlockHash >> (8 * i) = blockBytes[strIndex];
+        ++strIndex;
+    }
+
+    for (uint i = 0; i < 32; ++i) {
+        _timestamp >> (8 * i) = blockBytes[strIndex];
+        ++strIndex;
+    }
+
+    for (uint i = 0; i < 32; ++i) {
+        _nHeight >> (8 * i) = blockBytes[strIndex];
+        ++strIndex;
+    }
+
+    for (uint i = 0; i < 32; ++i) {
+        _blockData >> (8 * i) = blockBytes[strIndex];
+        ++strIndex;
+    }
+
+    // Read transactions.
+    while (true) {
+        if (strIndex == blockBytes.size()) { break; };
+        // Read the first 4 bytes (tx size).
+        uint32_t txSize = 0;
+        txSize = uint32_t(
+            (unsigned char)(blockBytes[strIndex])   << 24 |
+            (unsigned char)(blockBytes[strIndex+1]) << 16 |
+            (unsigned char)(blockBytes[strIndex+2]) << 8  |
+            (unsigned char)(blockBytes[strIndex+3])
+        );
+
+
+        strIndex = strIndex + 4;
+        dev::bytes txRLP;
+        for (auto i = 0; i < txSize; ++i) {
+            txRLP.push_back(blockBytes[strIndex]);
+            ++strIndex;
+        }
+        dev::eth::TransactionBase tx(txRLP, dev::eth::CheckTransaction::Everything);
+        _transactions.push_back(tx);
+    }
+
+    auto hash = dev::sha3(blockBytes.data());
+
+    this->_blockHash = Utils::bytesTou256(hash.asBytes());
+
+    return true;
 }
