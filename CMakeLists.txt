@@ -47,9 +47,11 @@ find_package(Threads)
 
 # Include Protobuf
 include(FindProtobuf)
+include(FindZLIB)
 include(cmake/FindGRPC.cmake)
 find_package(Protobuf REQUIRED)
 find_package(absl CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 find_package(gRPC REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
