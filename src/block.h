@@ -8,16 +8,16 @@
 class Block {
     private:
 
-        // Block header = 48 * 5 == 240 Bytes.
+        // Block header == 224 Bytes.
         // _blockHash itself is not incuded in header
         std::string _blockHash;
         // HEADER
-        dev::u256 _prevBlockHash;
-        dev::u256 _timestamp;
-        dev::u256 _txCount;
-        dev::u256 _nHeight;
+        std::string _prevBlockHash; // Size == 32
+        dev::u256 _timestamp;       // Size == 48
+        dev::u256 _txCount;         // Size == 48
+        dev::u256 _nHeight;         // Size == 48
         // Data should be at max 32 bytes.
-        dev::u256 _blockData;
+        dev::u256 _blockData;       // Size == 48
         // HEADER END
         // Block contents.
         std::vector<dev::eth::TransactionBase> _transactions;
@@ -25,7 +25,7 @@ class Block {
     public:
 
         std::string blockHash()       { return _blockHash; };
-        dev::u256 prevBlockHash()   { return _prevBlockHash; };
+        std::string prevBlockHash()   { return _prevBlockHash; };
         dev::u256 timestamp()       { return _timestamp; };
         dev::u256 txCount()         { return _txCount; };
         dev::u256 nHeight()         { return _nHeight; };
