@@ -13,9 +13,9 @@
 
 namespace Utils {
     
-   // u256 to 32 bytes
+   // u256 to 48 bytes
    dev::bytes u256toBytes(dev::u256 value);
-   // 32 bytes to u256
+   // 48 bytes to u256
    dev::u256 bytesTou256(dev::bytes value);
 
    void logToFile(std::string str);

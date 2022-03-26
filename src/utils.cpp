@@ -26,7 +26,6 @@ void Utils::logToFile(std::string str) {
 
 dev::u256 Utils::bytesTou256(dev::bytes value) {
     dev::u256 ret;
-    // 
     unsigned char bytes[sizeof(value)];
 
     for (uint64_t i = 0; i < sizeof(value); ++i) {

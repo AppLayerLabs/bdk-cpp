@@ -22,7 +22,7 @@ std::string Block::serializeToString() {
     std::string ret;
     size_t blockSize = 0;
     uint64_t strIndex = 0;
-    blockSize = blockSize + 192; // 192 bytes from blockheader.
+    blockSize = blockSize + 240; // 240 bytes from blockheader.
 
     // Load transactions to string.
     // Before each transaction, there is a 4 bytes value telling how many bytes a given tranasction has.
@@ -72,17 +72,21 @@ std::string Block::serializeToString() {
     // Serialize transactions to string.
     for (auto tx : transactionsRLPs) {
         uint32_t transactionSize = tx.size(); // 4 Bytes
-        for (uint i = 0; i < 4; ++i) {
-            ret[strIndex] = (transactionSize >> (i * 8));
-            ++strIndex;
-        }
+        unsigned char txSizeBytes[4];
+        std::memcpy(&txSizeBytes, &transactionSize, sizeof(transactionSize));
 
+        ret[strIndex] = txSizeBytes[0];
+        ret[strIndex+1] = txSizeBytes[1];
+        ret[strIndex+2] = txSizeBytes[2];
+        ret[strIndex+3] = txSizeBytes[3];
+        strIndex = strIndex + 4;
         for (auto byte : tx) {
             ret[strIndex] = byte;
             ++strIndex;
         }
     }
 
+    this->_blockHash = dev::toHex(dev::sha3(ret));
     return ret;
 }
 
@@ -93,41 +97,59 @@ bool Block::serializeFromString(std::string blockBytes) {
 
     size_t strIndex;
 
+    unsigned char prevBlockHashBytes[48];
+    unsigned char timestampBytes[48];
+    unsigned char txCountBytes[48];
+    unsigned char nHeightBytes[48];
+    unsigned char blockDataBytes[48];
 
-    // Read block header;
-    for (uint i = 0; i < 32; ++i) {
-        _prevBlockHash >> (8 * i) = blockBytes[strIndex];
+    // Read block headers
+
+    for (uint64_t i = 0; i < 48; ++i) {
+        prevBlockHashBytes[i] = blockBytes[strIndex];
         ++strIndex;
     }
+    std::memcpy(&this->_prevBlockHash, &prevBlockHashBytes, sizeof(prevBlockHashBytes));
 
-    for (uint i = 0; i < 32; ++i) {
-        _timestamp >> (8 * i) = blockBytes[strIndex];
+    for (uint64_t i = 0; i < 48; ++i) {
+        timestampBytes[i] = blockBytes[strIndex];
         ++strIndex;
     }
+    std::memcpy(&this->_timestamp, &timestampBytes, sizeof(timestampBytes));
 
-    for (uint i = 0; i < 32; ++i) {
-        _nHeight >> (8 * i) = blockBytes[strIndex];
+    for (uint64_t i = 0; i < 48; ++i) {
+        txCountBytes[i] = blockBytes[strIndex];
         ++strIndex;
     }
+    std::memcpy(&this->_txCount, &txCountBytes, sizeof(txCountBytes));
 
-    for (uint i = 0; i < 32; ++i) {
-        _blockData >> (8 * i) = blockBytes[strIndex];
+    for (uint64_t i = 0; i < 48; ++i) {
+        nHeightBytes[i] = blockBytes[strIndex];
         ++strIndex;
     }
+    std::memcpy(&this->_nHeight, &nHeightBytes, sizeof(nHeightBytes));
+
+    for (uint64_t i = 0; i < 48; ++i) {
+        blockDataBytes[i] = blockBytes[strIndex];
+        ++strIndex;
+    }
+    std::memcpy(&this->_blockData, &blockDataBytes, sizeof(blockDataBytes));
+
 
     // Read transactions.
     while (true) {
         if (strIndex == blockBytes.size()) { break; };
         // Read the first 4 bytes (tx size).
         uint32_t txSize = 0;
-        txSize = uint32_t(
-            (unsigned char)(blockBytes[strIndex])   << 24 |
-            (unsigned char)(blockBytes[strIndex+1]) << 16 |
-            (unsigned char)(blockBytes[strIndex+2]) << 8  |
-            (unsigned char)(blockBytes[strIndex+3])
-        );
+        
+        unsigned char txSizeBytes[sizeof(txSize)];
 
+        txSizeBytes[0] = blockBytes[strIndex];
+        txSizeBytes[1] = blockBytes[strIndex+1];
+        txSizeBytes[2] = blockBytes[strIndex+2];
+        txSizeBytes[3] = blockBytes[strIndex+3];
 
+        std::memcpy(&txSize, &txSizeBytes, sizeof(txSizeBytes));
         strIndex = strIndex + 4;
         dev::bytes txRLP;
         for (auto i = 0; i < txSize; ++i) {
@@ -138,9 +160,7 @@ bool Block::serializeFromString(std::string blockBytes) {
         _transactions.push_back(tx);
     }
 
-    auto hash = dev::sha3(blockBytes.data());
-
-    this->_blockHash = Utils::bytesTou256(hash.asBytes());
+    this->_blockHash = dev::toHex(dev::sha3(blockBytes));
 
     return true;
 }
