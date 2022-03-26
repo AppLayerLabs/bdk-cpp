@@ -22,7 +22,7 @@ std::string Block::serializeToString() {
     std::string ret;
     size_t blockSize = 0;
     uint64_t strIndex = 0;
-    blockSize = blockSize + 240; // 240 bytes from blockheader.
+    blockSize = blockSize + 224; // 224 bytes from blockheader.
 
     // Load transactions to string.
     // Before each transaction, there is a 4 bytes value telling how many bytes a given tranasction has.
@@ -38,13 +38,12 @@ std::string Block::serializeToString() {
     // Resize string to fit block
     ret.resize(blockSize);
     // Serialize block header to string.
-    auto prevBlockHashBytes = Utils::u256toBytes(_prevBlockHash);
     auto timestampBytes = Utils::u256toBytes(_timestamp);
     auto txCountBytes = Utils::u256toBytes(_txCount);
     auto nHeightBytes = Utils::u256toBytes(_nHeight);
     auto blockDataBytes = Utils::u256toBytes(_blockData);
     
-    for (auto byte : prevBlockHashBytes) {
+    for (auto byte : this->_prevBlockHash) {
         ret[strIndex] = byte;
         ++strIndex;
     }
@@ -92,12 +91,11 @@ std::string Block::serializeToString() {
 
 
 bool Block::serializeFromString(std::string blockBytes) {
-    // First 192 bytes == Block Header.
+    // First 224 bytes == Block Header.
     // Remaining == txCount * (4 + txSize);
 
     size_t strIndex;
 
-    unsigned char prevBlockHashBytes[48];
     unsigned char timestampBytes[48];
     unsigned char txCountBytes[48];
     unsigned char nHeightBytes[48];
@@ -105,11 +103,10 @@ bool Block::serializeFromString(std::string blockBytes) {
 
     // Read block headers
 
-    for (uint64_t i = 0; i < 48; ++i) {
-        prevBlockHashBytes[i] = blockBytes[strIndex];
+    for (uint64_t i = 0; i < 32; ++i) {
+        _prevBlockHash[i] = blockBytes[strIndex];
         ++strIndex;
     }
-    std::memcpy(&this->_prevBlockHash, &prevBlockHashBytes, sizeof(prevBlockHashBytes));
 
     for (uint64_t i = 0; i < 48; ++i) {
         timestampBytes[i] = blockBytes[strIndex];
