@@ -42,7 +42,6 @@ find_package(libscrypt CONFIG REQUIRED)
 include(cmake/ProjectEthash.cmake)
 include(cmake/ProjectSecp256k1.cmake)
 include(cmake/ProjectToolbox.cmake)
-include(cmake/ProjectBip3x.cmake)
 find_package(Threads)
 
 # Include Protobuf
@@ -85,7 +84,7 @@ add_library(aleth STATIC
 )
 target_include_directories(aleth PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(aleth PRIVATE
-  cryptopp-static libscrypt::scrypt Secp256k1 bip39 toolbox ${ETHASH_BYPRODUCTS} Ethash
+  cryptopp-static libscrypt::scrypt Secp256k1 toolbox ${ETHASH_BYPRODUCTS} Ethash
 )
 
 # Generate gRPC files
