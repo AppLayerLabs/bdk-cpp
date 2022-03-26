@@ -112,5 +112,7 @@ add_executable(subnetooord src/main.cpp src/main.h
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
 )
 add_dependencies(subnetooord gen-grpc)
+# Add include folder to subnetooor
+target_include_directories(subnetooord PRIVATE aleth)
 target_link_libraries(subnetooord aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} gRPC::grpc++)
 

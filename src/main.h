@@ -1,3 +1,6 @@
+#ifndef MAIN_H
+#define MAIN_H
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -15,10 +18,11 @@
 #include <google/protobuf/util/json_util.h>
 #include <google/protobuf/message.h>
 #include "../proto/vm.grpc.pb.h"
-#include "libs/CommonData.h"
 
 #include <boost/lexical_cast.hpp>
 #include "json.hpp"
+
+#include "block.h"
 
 using json = nlohmann::json;
 
@@ -283,3 +287,5 @@ void RunServer() {
   // responsible for shutting down the server for this call to ever return.
   server->Wait();
 }
+
+#endif // MAIN_H
