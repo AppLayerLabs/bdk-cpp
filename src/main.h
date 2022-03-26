@@ -32,6 +32,13 @@ using grpc::ServerCompletionQueue;
 using grpc::ServerContext;
 using grpc::Status;
 
+Block genesis("0000000000000000000000000000000000000000000000000000000000000000",
+  1648317800,
+  0, // 0 tx's
+  0,
+  ""
+);
+
 // Logic and data behind the server's behavior.
 class VMServiceImplementation final : public vmproto::VM::Service {
   Status Initialize(ServerContext* context, const vmproto::InitializeRequest* request,
@@ -41,69 +48,14 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     google::protobuf::util::JsonOptions options;
     google::protobuf::util::MessageToJsonString(*request, &jsonRequest, options);
     Utils::logToFile(jsonRequest);
-    // We only have the genesis for now, answer it
-
-    std::string zeroStr;
-    // last_accepted_id == 32 bytes, last blockhash
-    // last_accepted_parent_id == 32 bytes, last block parent blockhash
-    for (uint64_t i = 0; i < 32; ++i) {
-      zeroStr += "0";
-    }
-    Utils::logToFile(zeroStr);
-    Utils::logToFile(boost::lexical_cast<std::string>(sizeof(zeroStr)));
-    reply->set_last_accepted_id(zeroStr);
-    reply->set_last_accepted_parent_id(zeroStr);
+    // We only have the genesis, answer it.
+    reply->set_last_accepted_id(genesis.blockHash());
+    reply->set_last_accepted_parent_id(genesis.prevBlockHash());
     reply->set_status(1);
     reply->set_height(1);
     // bytes -> last block bytes.
-    reply->set_bytes(std::string("aaa")); 
-    const auto p1 = std::chrono::system_clock::now();
-    std::string timestampStr;
-    // HEX timestamp (bytes->hex) 15 bytes.
-    // 0x010000000ed9d0262f3b11354aff10
-    // 0x01 -- Version
-    // not sure if the below information is correct, more testing and check with the rust code needed.
-    // 00 00 00 0e d9 d0 26 2f -- Seconds
-    // 3b 11 35 4a -- Milliseconds 
-    // ff 10 -- Nanoseconds
-    // information took from here: https://github.com/archisgore/landslide/blob/main/src/timestampvm/state.rs#L383
-    // EXAMPLE
-    // t := time.Date(2001, 2, 1, 14, 30, 12, 05, time.UTC)
-    // 0x010000000eb20b69F400000005ffff
-    // 0x01
-    // 0000000eb20b69F4 
-    // 00000005 
-    // ffff
-
-    // THIS IS A NIGHTMARE:
-    // Golang's Zero time is January 1, year 1, 00:00:00.000000000 UTC
-    // https://cs.opensource.google/go/go/+/refs/tags/go1.17.6:src/time/time.go;l=97
-    // init that as an OffsetDateTime for future use
-    // COMPLETE PEPEGA
-
-    // i8 (1 byte) version
-    // i64 (8 bytes) seconds
-    // i32 (4 bytes) nanos
-    // i16 (2 bytes) minute offset (?)
-
-    timestampStr.resize(15);
-    timestampStr[0] = 0x01;
-    timestampStr[1] = 0x00;
-    timestampStr[2] = 0x00;
-    timestampStr[3] = 0x00;
-    timestampStr[4] = 0x0e;
-    timestampStr[5] = 0xd9;
-    timestampStr[6] = 0xd0;
-    timestampStr[7] = 0x26;
-    timestampStr[8] = 0x2f;
-    timestampStr[9] = 0x3b;
-    timestampStr[10] = 0x11;
-    timestampStr[11] = 0x35;
-    timestampStr[12] = 0x4a;
-    timestampStr[13] = 0xff;
-    timestampStr[14] = 0x10;
-
-    reply->set_timestamp(timestampStr);
+    reply->set_bytes(genesis.serializeToString()); 
+    reply->set_timestamp(Utils::secondsToGoTimeStamp(boost::lexical_cast<uint64_t>(genesis.timestamp())));
     std::string jsonAnswer;
     google::protobuf::util::MessageToJsonString(*reply, &jsonAnswer, options);
     Utils::logToFile(jsonAnswer);
