@@ -35,3 +35,31 @@ dev::u256 Utils::bytesTou256(dev::bytes value) {
     std::memcpy(&ret, &bytes, sizeof(bytes));
     return ret;
 }
+
+std::string Utils::secondsToGoTimeStamp(uint64_t seconds) {
+    std::string ret;
+    ret.resize(15);
+    // First byte is version. 0x01
+    ret[0] = 0x01;
+    // Next 8 bytes is timestamp in seconds.   
+    seconds += 62135596800; // Sum year 1 to 1970, stupid Go lol
+    uint8_t timestamp[8];
+    std::memcpy(&timestamp, &seconds, sizeof(seconds));
+    ret[1] = timestamp[7];
+    ret[2] = timestamp[6];
+    ret[3] = timestamp[5];
+    ret[4] = timestamp[4];
+    ret[5] = timestamp[3];
+    ret[6] = timestamp[2];
+    ret[7] = timestamp[1];
+    ret[8] = timestamp[0];
+    // Remaining timestamp is nanoseconds, we ignore it for ease of implementation. I only have 18 hours to "finish" this
+    ret[9] = 0x00;
+    ret[10] = 0x00;
+    ret[11] = 0x00;
+    ret[12] = 0x00;
+    ret[13] = 0x00;
+    ret[14] = 0x00;
+
+    return ret;
+}
