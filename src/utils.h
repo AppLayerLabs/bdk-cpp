@@ -20,6 +20,8 @@ namespace Utils {
 
    std::string secondsToGoTimeStamp(uint64_t seconds);
 
+   std::string hashToBytes(std::string hash);
+
    void logToFile(std::string str);
 
 }

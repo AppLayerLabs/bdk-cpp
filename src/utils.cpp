@@ -63,3 +63,22 @@ std::string Utils::secondsToGoTimeStamp(uint64_t seconds) {
 
     return ret;
 }
+
+std::string Utils::hashToBytes(std::string hash) {
+    std::string ret;
+    ret.resize(32);
+    uint64_t index = 0;
+
+    for (int i = 0; i < 32; ++i) {
+        // fkin C++ uint16_t and them get the first byte, completely pepega
+        std::stringstream strm;
+        std::string byteStr = std::string("") + hash[index] + hash[index+1];
+        uint16_t byteInt;
+        strm << std::hex << byteStr;
+        strm >> byteInt;
+        uint8_t byte = byteInt >> 0;
+        ret[i] = byte;
+        index += 2;
+    }
+    return ret;
+}

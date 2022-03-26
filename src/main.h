@@ -8,6 +8,7 @@
 #include <sstream>
 #include <fstream>
 #include <chrono>
+#include <csignal>
 
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpc/support/log.h>
@@ -20,10 +21,12 @@
 #include "../proto/vm.grpc.pb.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/hex.hpp>
 #include "json.hpp"
 
 #include "block.h"
 #include "utils.h"
+#include "db.h"
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;
@@ -41,24 +44,50 @@ Block genesis("0000000000000000000000000000000000000000000000000000000000000000"
 
 // Logic and data behind the server's behavior.
 class VMServiceImplementation final : public vmproto::VM::Service {
+  std::string dbName;
+  bool initialized = false;
+  Database blocksDb; // Key -> blockHash()
+                      // Value -> json block
+ 
+  Database accountsDb; // Key -> underscored user address "0x..."
+                        // Value -> balance in wei.
+
   Status Initialize(ServerContext* context, const vmproto::InitializeRequest* request,
                   vmproto::InitializeResponse* reply) override {
     Utils::logToFile("Initialized Called");
+    initialized = true;
     std::string jsonRequest;
     google::protobuf::util::JsonOptions options;
     google::protobuf::util::MessageToJsonString(*request, &jsonRequest, options);
     Utils::logToFile(jsonRequest);
-    // We only have the genesis, answer it.
-    reply->set_last_accepted_id(genesis.blockHash());
-    reply->set_last_accepted_parent_id(genesis.prevBlockHash());
+    // Open database with the nodeID as folder name.
+    json req = json::parse(jsonRequest);
+    dbName = req["nodeId"];
+    blocksDb.setAndOpenDB(dbName + "-blocks");
+    accountsDb.setAndOpenDB(dbName + "-balances");
+    if (blocksDb.isEmpty()) {
+      blocksDb.putKeyValue(genesis.blockHash(), genesis.serializeToString());
+      blocksDb.putKeyValue("latest", genesis.serializeToString());
+    }
+    if(accountsDb.isEmpty()) {
+      accountsDb.putKeyValue("0x24ff7cb43b80a5fb44c5ddeb5510d2a4b62ae26d", "10000000000000000000000000000000000000");
+    }
+    Block bestBlock(blocksDb.getKeyValue("latest"));
+    Utils::logToFile(blocksDb.getKeyValue("latest"));
+
+    auto hash = bestBlock.blockHash();
+    Utils::logToFile(std::string("size: ") + boost::lexical_cast<std::string>(hash.size()));
+    Utils::logToFile(bestBlock.blockHash());
+    reply->set_last_accepted_id(Utils::hashToBytes(bestBlock.blockHash()));
+    reply->set_last_accepted_parent_id(Utils::hashToBytes(bestBlock.prevBlockHash()));
     reply->set_status(1);
     reply->set_height(1);
     // bytes -> last block bytes.
-    reply->set_bytes(genesis.serializeToString()); 
-    reply->set_timestamp(Utils::secondsToGoTimeStamp(boost::lexical_cast<uint64_t>(genesis.timestamp())));
+    reply->set_bytes(bestBlock.serializeToString()); 
+    reply->set_timestamp(Utils::secondsToGoTimeStamp(boost::lexical_cast<uint64_t>(bestBlock.timestamp())));
     std::string jsonAnswer;
     google::protobuf::util::MessageToJsonString(*reply, &jsonAnswer, options);
-    Utils::logToFile(jsonAnswer);
+    Utils::logToFile(std::string("jsonAnswer:" + jsonAnswer));
     return Status::OK;
   }
 
@@ -71,6 +100,10 @@ class VMServiceImplementation final : public vmproto::VM::Service {
   Status Shutdown(ServerContext* context, const google::protobuf::Empty* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("Shutdown Called");
     Utils::logToFile(request->DebugString());
+    if (initialized) {
+      blocksDb.cleanCloseDB();
+      accountsDb.cleanCloseDB();
+    }
     return Status::OK;
   }
 
@@ -224,7 +257,7 @@ void RunServer() {
   std::cout << "1|11|tcp|" << server_address << "|grpc\n"<< std::flush;
 
   // Wait for the server to shutdown. Note that some other thread must be
-  // responsible for shutting down the server for this call to ever return.
+  // responsible for shutting down the server for this call to ever return
   server->Wait();
 }
 

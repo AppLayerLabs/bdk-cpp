@@ -6,6 +6,8 @@
 #include "json.hpp"
 #include <boost/filesystem.hpp>
 #include <leveldb/db.h>
+#include <boost/algorithm/string.hpp>
+#include "utils.h"
 
 using json = nlohmann::ordered_json;
 
@@ -19,35 +21,28 @@ class Database {
     leveldb::Options dbOpts;
     leveldb::Status dbStatus;
     std::string tmpValue;
-    std::mutex mutable dbMutex;
 
   public:
-    // Constructor.
-    Database(std::string _databaseName, boost::filesystem::path rootPath)
-    : databaseName(_databaseName), databasePath(rootPath.string() + databaseName) {
-      this->dbOpts.create_if_missing = true;
+    
+    void setAndOpenDB(std::string name) {
+      boost::replace_all(name, "/", "");
+      databaseName = name;
+      databasePath = boost::filesystem::current_path().string() + std::string("/") + name;
       openDB();
+      return;
     }
-
-    // Copy constructor.
-    Database(Database&& other) noexcept :
-      databaseName(std::move(other.databaseName)),
-      databasePath(std::move(other.databasePath)),
-      db(std::move(other.db)),
-      dbOpts(std::move(other.dbOpts)),
-      dbStatus(std::move(other.dbStatus)),
-      tmpValue(std::move(other.tmpValue))
-    {}
-
     // Functions.
     bool cleanCloseDB() { return closeDB(); };
     bool isDBOpen() { return (this->db != NULL); }
     bool keyExists(std::string &key);
-    std::string getKeyValue(std::string &key);
-    bool putKeyValue(std::string &key, std::string &value);
+    std::string getKeyValue(std::string key);
+    bool putKeyValue(std::string key, std::string value);
     bool deleteKeyValue(std::string &key);
     std::vector<std::string> getAllKeys();
     std::vector<std::string> getAllValues();
+    bool isEmpty() {
+      return (this->getAllKeys().size() == 0);
+    }
     std::map<std::string, std::string> getAllPairs();
     void dropDatabase();
 };
