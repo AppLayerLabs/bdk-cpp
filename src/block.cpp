@@ -161,3 +161,16 @@ bool Block::serializeFromString(std::string blockBytes) {
 
     return true;
 }
+
+Block::Block(std::string blockBytes) {
+    this->serializeFromString(blockBytes);
+}
+
+Block::Block(std::string __prevBlockHash, dev::u256 __timestamp, dev::u256 __txCount, dev::u256 __nHeight, dev::u256 __blockData) {
+    this->_prevBlockHash = __prevBlockHash;
+    this->_timestamp = __timestamp;
+    this->_txCount = __txCount;
+    this->_nHeight = __nHeight;
+    this->_blockData = __blockData;
+    this->serializeToString();
+}

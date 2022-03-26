@@ -43,6 +43,8 @@ class Block {
         void submitBlock();
 
         Block(std::string blockBytes);
+
+        Block(std::string __prevBlockHash, dev::u256 __timestamp, dev::u256 __txCount, dev::u256 __nHeight, dev::u256 __blockData);
 };
 
 
