@@ -4,22 +4,21 @@
 #include <include/web3cpp/devcore/Common.h>
 #include <include/web3cpp/ethcore/TransactionBase.h>
 #include "utils.h"
+#include "json.hpp"
+
+// the json is used to encode the block to a string of bytes
+// Order is extremely important to make this work!!!
+
+using json = nlohmann::ordered_json;
 
 class Block {
     private:
-
-        // Block header == 224 Bytes.
-        // _blockHash itself is not incuded in header
         std::string _blockHash;
-        // HEADER
-        std::string _prevBlockHash; // Size == 32
-        dev::u256 _timestamp;       // Size == 48
-        dev::u256 _txCount;         // Size == 48
-        dev::u256 _nHeight;         // Size == 48
-        // Data should be at max 32 bytes.
-        dev::u256 _blockData;       // Size == 48
-        // HEADER END
-        // Block contents.
+        std::string _prevBlockHash;
+        dev::u256 _timestamp;      
+        dev::u256 _txCount;        
+        dev::u256 _nHeight;        
+        std::string _blockData;
         std::vector<dev::eth::TransactionBase> _transactions;
 
     public:
@@ -29,10 +28,21 @@ class Block {
         dev::u256 timestamp()       { return _timestamp; };
         dev::u256 txCount()         { return _txCount; };
         dev::u256 nHeight()         { return _nHeight; };
-        dev::u256 blockData()       { return _blockData; };
+        std::string blockData()       { return _blockData; };
         std::vector<dev::eth::TransactionBase> transactions() { return _transactions; };
 
         // Serialize to protobuf string.
+        // Our block information is actually a json which contains the following:
+        // {
+        //    prevBlockHash : ""
+        //    timestamp : ""
+        //    txCount : ""
+        //    nHeight : ""
+        //    blockData : ""
+        //    transactions : [
+        //       "rlphash"
+        //      }
+        //    }
         // serializeToString() also creates the blockhash! so we call it for both purposes.
         std::string serializeToString();
         // Serialize from protobufstring.
@@ -44,7 +54,7 @@ class Block {
 
         Block(std::string blockBytes);
 
-        Block(std::string __prevBlockHash, dev::u256 __timestamp, dev::u256 __txCount, dev::u256 __nHeight, dev::u256 __blockData);
+        Block(std::string __prevBlockHash, dev::u256 __timestamp, dev::u256 __txCount, dev::u256 __nHeight, std::string __blockData);
 };
 
 

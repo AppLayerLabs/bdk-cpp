@@ -25,9 +25,6 @@
 #include "block.h"
 #include "utils.h"
 
-using json = nlohmann::json;
-
-
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;
 using grpc::ServerBuilder;
