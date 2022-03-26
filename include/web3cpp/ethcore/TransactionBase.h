@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include <web3cpp/ethcore/Common.h>
-#include <web3cpp/devcrypto/Common.h>
-#include <web3cpp/devcore/RLP.h>
-#include <web3cpp/devcore/SHA3.h>
+#include <include/web3cpp/ethcore/Common.h>
+#include <include/web3cpp/devcrypto/Common.h>
+#include <include/web3cpp/devcore/RLP.h>
+#include <include/web3cpp/devcore/SHA3.h>
 
 #include <boost/optional.hpp>
 

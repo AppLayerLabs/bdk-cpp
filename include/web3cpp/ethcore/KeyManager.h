@@ -7,9 +7,9 @@
 
 #include <functional>
 #include <mutex>
-#include <web3cpp/devcore/FileSystem.h>
-#include <web3cpp/devcore/CommonData.h>
-#include <web3cpp/devcrypto/SecretStore.h>
+#include <include/web3cpp/devcore/FileSystem.h>
+#include <include/web3cpp/devcore/CommonData.h>
+#include <include/web3cpp/devcrypto/SecretStore.h>
 
 #include <boost/filesystem.hpp>
 

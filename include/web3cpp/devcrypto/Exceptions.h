@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <web3cpp/devcore/Exceptions.h>
+#include <include/web3cpp/devcore/Exceptions.h>
 
 namespace dev
 {

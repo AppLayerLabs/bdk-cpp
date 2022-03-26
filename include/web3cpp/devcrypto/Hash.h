@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "web3cpp/devcore/FixedHash.h"
-#include "web3cpp/devcore/vector_ref.h"
+#include <include/web3cpp/devcore/FixedHash.h>
+#include <include/web3cpp/devcore/vector_ref.h>
 
 namespace dev
 {

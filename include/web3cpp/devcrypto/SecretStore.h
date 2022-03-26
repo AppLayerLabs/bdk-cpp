@@ -6,9 +6,9 @@
 
 #include <functional>
 #include <mutex>
-#include <web3cpp/devcore/FixedHash.h>
-#include <web3cpp/devcore/FileSystem.h>
-#include <web3cpp/devcore/CommonIO.h>
+#include <include/web3cpp/devcore/FixedHash.h>
+#include <include/web3cpp/devcore/FileSystem.h>
+#include <include/web3cpp/devcore/CommonIO.h>
 #include "Common.h"
 
 #include <boost/filesystem.hpp>

@@ -3,10 +3,10 @@
 // Licensed under the GNU General Public License, Version 3.
 #pragma once
 
-#include <web3cpp/devcore/Address.h>
-#include <web3cpp/devcore/Common.h>
-#include <web3cpp/devcore/Exceptions.h>
-#include <web3cpp/devcore/FixedHash.h>
+#include <include/web3cpp/devcore/Address.h>
+#include <include/web3cpp/devcore/Common.h>
+#include <include/web3cpp/devcore/Exceptions.h>
+#include <include/web3cpp/devcore/FixedHash.h>
 
 #include <functional>
 #include <string>
