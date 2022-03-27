@@ -28,8 +28,9 @@ function loadBalances(account) {
     ethereum.request({method: 'eth_getBalance', params: [account, 'latest']})
         .then(balance => {
             const bal = document.getElementById("balance");
+            const utils = Web3.utils;
 
-            bal.innerHTML = balance + " AEV";
+            bal.innerHTML = utils.fromWei(utils.hexToNumberString(balance), "ether") + " AEV";
         })
         .catch(error => {
             console.error(error.message);
@@ -46,7 +47,7 @@ function walletChange(accounts) {
 
     if (accounts.length === 0) {
         // Metamask not connected
-        request_button.innerHTML = "Connect Metamask";
+        request_button.innerHTML = "Connect Wallet";
         request_button.addEventListener("click", connectWallet);
         return;
     }
@@ -85,7 +86,7 @@ function onLoad() {
 
     if (typeof window.ethereum == "undefined") {
         request_button.disabled = true;
-        request_button.innerHTML = "Metamask not detected";
+        request_button.innerHTML = "Wallet provider not found";
         return;
     } else {
         let ethereum = window.ethereum;
