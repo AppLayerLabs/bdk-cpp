@@ -468,7 +468,12 @@ class VMServiceImplementation final : public vmproto::VM::Service {
         Utils::logToFile("error 2");
         accountsDb.putKeyValue(address, boost::lexical_cast<std::string>(userBalance));
         Utils::logToFile("error 3");
-        accountsDb.putKeyValue(targetAddress, boost::lexical_cast<std::string>(txValue));
+        std::string pastBalanceStr = accountsDb.getKeyValue(targetAddress);
+        dev::u256 newBal = txValue;
+        if (pastBalanceStr != "") {
+          newBal = newBal + boost::lexical_cast<dev::u256>(pastBalanceStr);
+        }
+        accountsDb.putKeyValue(targetAddress, boost::lexical_cast<std::string>(newBal));
         Utils::logToFile("error 4");
         std::string oldNonce = nonceDb.getKeyValue(address);
         Utils::logToFile("error 5");
