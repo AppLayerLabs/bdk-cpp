@@ -35,10 +35,31 @@ function loadBalances(account) {
         .catch(error => {
             console.error(error.message);
         });
+
 }
 
 function requestAEV() {
-
+    ethereum
+        .request({ method: "eth_accounts" })
+        .then((accounts) => {
+            fetch('http://52.49.50.218', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    method: "FAUCET",
+                    address: accounts[0].toLowerCase()
+                }),
+            })
+            .then(response => {
+                console.log("MAKE IT RAIN");
+                loadBalances(accounts[0]);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
 }
 
 function walletChange(accounts) {
