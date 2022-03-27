@@ -22,11 +22,13 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/hex.hpp>
+#include <boost/thread.hpp>
 #include "json.hpp"
 
 #include "block.h"
 #include "utils.h"
 #include "db.h"
+#include "httpServer.h"
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;
@@ -43,7 +45,7 @@ Block genesis("0000000000000000000000000000000000000000000000000000000000000000"
 );
 
 // Logic and data behind the server's behavior.
-class VMServiceImplementation final : public vmproto::VM::Service {
+class VMServiceImplementation final : public vmproto::VM::Service, public std::enable_shared_from_this<VMServiceImplementation> {
   std::string dbName;
   bool initialized = false;
   Database blocksDb; // Key -> blockHash()
@@ -93,6 +95,9 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     std::string jsonAnswer;
     google::protobuf::util::MessageToJsonString(*reply, &jsonAnswer, options);
     Utils::logToFile(std::string("jsonAnswer:" + jsonAnswer));
+
+    boost::thread p(&startServer, shared_from_this());
+    p.detach();
     return Status::OK;
   }
 
@@ -266,6 +271,11 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     Utils::logToFile("GetBlockIDAtHeight called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
+  }
+  
+  void processRPCMessage(std::string message) {
+    Utils::logToFile(message);
+    return;
   }
 };
 
