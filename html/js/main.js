@@ -1,14 +1,7 @@
 let web3;
 
-let tokenFrom;
-let tokenTo;
-let lpToken;
-
-let tokenFromDecimals;
-let tokenToDecimals;
-let lpTokenDecimals;
-
 let userWallet;
+const AEVEREST_RPC = "https://52.49.50.218";
 
 const decimalsToEther = (function (decimals) {
     const unitMap = Web3.utils.unitMap;
@@ -42,7 +35,7 @@ function requestAEV() {
     ethereum
         .request({ method: "eth_accounts" })
         .then((accounts) => {
-            fetch('http://52.49.50.218', {
+            fetch(AEVEREST_RPC, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
