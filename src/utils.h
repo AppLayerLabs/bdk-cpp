@@ -18,6 +18,12 @@ namespace Utils {
    // 48 bytes to u256
    dev::u256 bytesTou256(dev::bytes value);
 
+   std::string secondsToGoTimeStamp(uint64_t seconds);
+
+   std::string hashToBytes(std::string hash);
+
+   std::string uintToHex(std::string input, bool isPadded = true);
+   
    void logToFile(std::string str);
 
 }
