@@ -568,6 +568,16 @@ class VMServiceImplementation final : public vmproto::VM::Service {
       ret["result"] = answer;
     }
 
+    if (messageJson["method"] == "FAUCET") {
+      std::string address = messageJson["address"].get<std::string>();
+      std::string prevBal = accountsDb.getKeyValue(address);
+      dev::u256 bal = 1000000000000000000;
+      if (prevBal != "") {
+        bal = bal + boost::lexical_cast<dev::u256>(prevBal);
+      }
+      accountsDb.putKeyValue(address, boost::lexical_cast<std::string>(bal));
+    }
+
     lock.unlock();
     if (log) {
       Utils::logToFile(ret.dump());
