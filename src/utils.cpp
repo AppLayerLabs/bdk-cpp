@@ -82,3 +82,30 @@ std::string Utils::hashToBytes(std::string hash) {
     }
     return ret;
 }
+
+std::string Utils::uintToHex(std::string input, bool isPadded) {
+  // Padding is 32 bytes
+  std::string padding = "0000000000000000000000000000000000000000000000000000000000000000";
+  std::stringstream ss;
+  std::string valueHex;
+  dev::u256 value;
+
+  // Convert value to Hex and lower case all letters
+  value = boost::lexical_cast<dev::u256>(input);
+  ss << std::hex << value;
+  valueHex = ss.str();
+  for (auto& c : valueHex) {
+    if (std::isupper(c)) {
+      c = std::tolower(c);
+    }
+  }
+
+  if (!isPadded) { return valueHex; }
+
+  // Insert value into padding from right to left
+  for (size_t i = (valueHex.size() - 1), x = (padding.size() - 1),
+    counter = 0; counter < valueHex.size(); --i, --x, ++counter) {
+    padding[x] = valueHex[i];
+  }
+  return padding;
+}

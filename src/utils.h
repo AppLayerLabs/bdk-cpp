@@ -22,6 +22,8 @@ namespace Utils {
 
    std::string hashToBytes(std::string hash);
 
+   std::string uintToHex(std::string input, bool isPadded = true);
+   
    void logToFile(std::string str);
 
 }

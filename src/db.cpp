@@ -30,8 +30,7 @@ bool Database::keyExists(std::string &key) {
 std::string Database::getKeyValue(std::string key) {
   this->dbStatus = this->db->Get(leveldb::ReadOptions(), key, &this->tmpValue);
   if (!this->dbStatus.ok()) {
-    throw std::string("Error reading at ") + databaseName + " database at key "
-      + key + this->dbStatus.ToString();
+    return("");
   }
   return this->tmpValue;
 }

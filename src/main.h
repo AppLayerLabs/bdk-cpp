@@ -67,19 +67,29 @@ Block genesis("0000000000000000000000000000000000000000000000000000000000000000"
 
 class VMServiceImplementation;
 
-void startServer(std::shared_ptr<VMServiceImplementation> service_pointer);
+// global pointer, this is stupid but shared_from_this is returning a bad_weak_ptr
+// as far I researched, shared_from_this can be only used inside the class constructor
+// which is stupid, as the server doesn't start before it is initialized, I don't see a reason to not
+// have a global pointer... but still, stupid stupid stupid.
+
+VMServiceImplementation *globalPointer;
+
+void startServer();
+
+
+std::mutex lock;
 
 // Logic and data behind the server's behavior.
-class VMServiceImplementation final : public vmproto::VM::Service, public std::enable_shared_from_this<VMServiceImplementation> {
+class VMServiceImplementation final : public vmproto::VM::Service {
+  public:
   std::string dbName;
   bool initialized = false;
   Database blocksDb; // Key -> blockHash()
                       // Value -> json block
- 
+  
   Database confirmedTxs;
   Database accountsDb; // Key -> underscored user address "0x..."
                         // Value -> balance in wei.
-
 
   std::vector<dev::eth::TransactionBase> mempool;
 
@@ -99,6 +109,7 @@ class VMServiceImplementation final : public vmproto::VM::Service, public std::e
     confirmedTxs.setAndOpenDB(dbName + "-txs");
     if (blocksDb.isEmpty()) {
       blocksDb.putKeyValue(genesis.blockHash(), genesis.serializeToString());
+      blocksDb.putKeyValue(boost::lexical_cast<std::string>(genesis.nHeight()), genesis.serializeToString());
       blocksDb.putKeyValue("latest", genesis.serializeToString());
     }
     if(accountsDb.isEmpty()) {
@@ -121,8 +132,14 @@ class VMServiceImplementation final : public vmproto::VM::Service, public std::e
     google::protobuf::util::MessageToJsonString(*reply, &jsonAnswer, options);
     Utils::logToFile(std::string("jsonAnswer:" + jsonAnswer));
 
-    boost::thread p(&startServer, shared_from_this());
-    p.detach();
+    try {
+      boost::thread p(&startServer);
+      p.detach();
+    } catch (std::exception &e) {
+      Utils::logToFile(std::string("HTTP: ") + e.what());
+    }
+
+    Utils::logToFile("server started");
     return Status::OK;
   }
 
@@ -167,6 +184,7 @@ class VMServiceImplementation final : public vmproto::VM::Service, public std::e
   }
 
   Status BuildBlock(ServerContext* context, const google::protobuf::Empty* request, vmproto::BuildBlockResponse* reply) override {
+    lock.lock();
     Utils::logToFile("BuildBlock called");
     Block pastBlock(blocksDb.getKeyValue("latest"));
     const auto p1 = std::chrono::system_clock::now();
@@ -181,6 +199,8 @@ class VMServiceImplementation final : public vmproto::VM::Service, public std::e
       newBestBlock.addTx(tx);
       confirmedTxs.putKeyValue(dev::toHex(tx.sha3()), dev::toHex(tx.rlp()));
     }
+    // All transaction added, clear mempool.
+    mempool.clear();
 
     reply->set_id(Utils::hashToBytes(newBestBlock.blockHash()));
     reply->set_parent_id(Utils::hashToBytes(newBestBlock.prevBlockHash()));
@@ -190,9 +210,11 @@ class VMServiceImplementation final : public vmproto::VM::Service, public std::e
 
     blocksDb.deleteKeyValue("latest");
     blocksDb.putKeyValue(newBestBlock.blockHash(), newBestBlock.serializeToString());
+    blocksDb.putKeyValue(boost::lexical_cast<std::string>(newBestBlock.nHeight()), newBestBlock.serializeToString());
     blocksDb.putKeyValue("latest", newBestBlock.serializeToString());
     Utils::logToFile(request->DebugString());
     Utils::logToFile(reply->DebugString());
+    lock.unlock();
     return Status::OK;
   }
 
@@ -298,10 +320,75 @@ class VMServiceImplementation final : public vmproto::VM::Service, public std::e
     return Status::OK;
   }
   
-  public:
-  void processRPCMessage(std::string message) {
+  std::string processRPCMessage(std::string message) {
+    lock.lock();
+    json ret;
+    json messageJson = json::parse(message);
+    bool log = true;
     Utils::logToFile(message);
-    return;
+    ret["id"] = messageJson["id"];
+    ret["jsonrpc"] = "2.0";
+    if (messageJson["method"] == "eth_blockNumber") {
+      Block bestBlockHash(blocksDb.getKeyValue("latest"));
+      std::string blockHeight = boost::lexical_cast<std::string>(bestBlockHash.nHeight());
+      std::string blockHeightHex = "0x";
+      blockHeightHex += Utils::uintToHex(blockHeight, false);
+      ret["result"] = blockHeightHex;
+      log = false;
+    }
+
+    if(messageJson["method"] == "eth_chainId") {
+      log = false;
+      ret["result"] = "0x2290";
+    }
+
+    if(messageJson["method"] == "net_version") {
+      log = false;
+      ret["result"] = "8848";
+    }
+
+    if(messageJson["method"] == "eth_getBalance") {
+      log = false;
+      Utils::logToFile("error 1");
+      std::string address = messageJson["params"][0].get<std::string>();
+      Utils::logToFile("error 2");
+      Utils::logToFile(address);
+      std::string balance;
+      try {
+        balance = accountsDb.getKeyValue(address);
+      } catch (std::exception &e) {
+        Utils::logToFile(std::string("eth_getBalance_error: ") + e.what());
+        balance = "";
+      }
+      Utils::logToFile("error 3");
+      Utils::logToFile(balance);
+      std::string hexValue = "0x";
+      Utils::logToFile("error 4");
+      if (balance != "") { 
+        Utils::logToFile("error 5");
+        hexValue += Utils::uintToHex(balance, false);
+        Utils::logToFile("error 6");
+      } else {
+        Utils::logToFile("error 7");
+        hexValue += "0";
+      }
+      Utils::logToFile("error 8");
+      ret["result"] = hexValue;
+    }
+
+    if(messageJson["method"] == "eth_getBlockByNumber") {
+      try {
+        ret["error"]["code"] = -32601;
+        ret["error"]["message"] = "Method not found";
+        log = false;
+      } catch (std::exception &e) {
+        Utils::logToFile(std::string("getblockerror: ") + e.what());
+      }
+    }
+
+    lock.unlock();
+    Utils::logToFile(ret.dump());
+    return ret.dump();
   }
 };
 
@@ -312,8 +399,7 @@ void
 handle_request(
     beast::string_view doc_root,
     http::request<Body, http::basic_fields<Allocator>>&& req,
-    Send&& send,
-    std::shared_ptr<VMServiceImplementation> service_pointer)
+    Send&& send)
 {
     // Returns a bad request response
     auto const bad_request =
@@ -379,12 +465,26 @@ handle_request(
         return send(std::move(res));
     }
     // Respond to POST
-    service_pointer->processRPCMessage(request);
+    std::string answer = globalPointer->processRPCMessage(request);
     http::response<http::string_body> res{http::status::ok, req.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::access_control_allow_origin, "*");
+    res.set(http::field::access_control_allow_methods, "POST, GET");
+    res.set(http::field::access_control_allow_headers, "content-type");
     res.set(http::field::content_type, "application/json");
+    res.set(http::field::connection, "keep-alive");
+    res.set(http::field::strict_transport_security, "max-age=0");
+    res.set(http::field::vary, "Origin");
+    res.set(http::field::access_control_allow_credentials, "true");
+    res.body() = answer;
     res.keep_alive(req.keep_alive());
     res.prepare_payload();
+    std::stringstream strm;
+    strm << res << std::endl;
+    std::stringstream strm2;
+    strm2 << req << std::endl;
+    Utils::logToFile(strm2.str());
+    Utils::logToFile(strm.str());
     return send(std::move(res));
 }
 
@@ -430,8 +530,7 @@ fail(beast::error_code ec, char const* what)
 void
 do_session(
     tcp::socket& socket,
-    std::shared_ptr<std::string const> const& doc_root,
-    std::shared_ptr<VMServiceImplementation> service_pointer)
+    std::shared_ptr<std::string const> const& doc_root)
 {
     bool close = false;
     beast::error_code ec;
@@ -453,7 +552,7 @@ do_session(
             return fail(ec, "read");
 
         // Send the response
-        handle_request(*doc_root, std::move(req), lambda, service_pointer);
+        handle_request(*doc_root, std::move(req), lambda);
         if(ec)
             return fail(ec, "write");
         if(close)
@@ -470,7 +569,7 @@ do_session(
     // At this point the connection is closed gracefully
 }
 
-void startServer(std::shared_ptr<VMServiceImplementation> service_pointer)
+void startServer()
 {
     try
     {
@@ -496,8 +595,7 @@ void startServer(std::shared_ptr<VMServiceImplementation> service_pointer)
             std::thread{std::bind(
                 &do_session,
                 std::move(socket),
-                doc_root,
-                service_pointer)}.detach();
+                doc_root)}.detach();
         }
     }
     catch (const std::exception& e)
@@ -511,6 +609,7 @@ void RunServer() {
   std::string server_address("0.0.0.0:50051");
   VMServiceImplementation service;
 
+  globalPointer = &service;
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
   ServerBuilder builder;
