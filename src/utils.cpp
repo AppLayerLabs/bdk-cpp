@@ -109,3 +109,11 @@ std::string Utils::uintToHex(std::string input, bool isPadded) {
   }
   return padding;
 }
+
+std::string Utils::uintFromHex(std::string hex) {
+  std::string ret;
+  if (hex.substr(0, 2) == "0x") { hex = hex.substr(2); } // Remove the "0x"
+  unsigned int number = boost::lexical_cast<HexTo<unsigned int>>(hex);
+  ret = boost::lexical_cast<std::string>(number);
+  return ret;
+}

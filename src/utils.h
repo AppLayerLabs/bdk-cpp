@@ -11,6 +11,16 @@
 #include <fstream>
 #include <chrono>
 
+template <typename ElemT>
+struct HexTo {
+  ElemT value;
+  operator ElemT() const { return value; }
+  friend std::istream& operator>>(std::istream& in, HexTo& out) {
+    in >> std::hex >> out.value;
+    return in;
+  }
+};
+
 namespace Utils {
     
    // u256 to 48 bytes
@@ -23,7 +33,9 @@ namespace Utils {
    std::string hashToBytes(std::string hash);
 
    std::string uintToHex(std::string input, bool isPadded = true);
-   
+
+   std::string uintFromHex(std::string hex);
+
    void logToFile(std::string str);
 
 }
