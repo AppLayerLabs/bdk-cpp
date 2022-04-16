@@ -2,7 +2,8 @@
 
 int main() {
   std::signal(SIGINT, SIG_IGN);
-  RunServer();
+  Subnet subnet;
+  subnet.start();
   Utils::logToFile("returned");
   return 0;
 }
