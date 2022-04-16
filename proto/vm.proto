@@ -3,7 +3,7 @@ syntax = "proto3";
 package vm;
 
 import "google/protobuf/empty.proto";
-import "io/prometheus/client/metrics.proto";
+import "metrics.proto";
 
 option go_package = "github.com/ava-labs/avalanchego/proto/pb/vm";
 

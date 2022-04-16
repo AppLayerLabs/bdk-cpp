@@ -80,7 +80,7 @@ void startServer();
 std::mutex lock;
 
 // Logic and data behind the server's behavior.
-class VMServiceImplementation final : public vmproto::VM::Service {
+class VMServiceImplementation final : public vm::VM::Service {
   public:
   std::string dbName;
   bool initialized = false;
@@ -101,8 +101,8 @@ class VMServiceImplementation final : public vmproto::VM::Service {
 
   std::vector<dev::eth::TransactionBase> mempool;
 
-  Status Initialize(ServerContext* context, const vmproto::InitializeRequest* request,
-                  vmproto::InitializeResponse* reply) override {
+  Status Initialize(ServerContext* context, const vm::InitializeRequest* request,
+                  vm::InitializeResponse* reply) override {
     Utils::logToFile("Initialized Called");
     initialized = true;
     std::string jsonRequest;
@@ -153,7 +153,7 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     return Status::OK;
   }
 
-  Status SetState(ServerContext* context, const vmproto::SetStateRequest* request, google::protobuf::Empty* reply) override {
+  Status SetState(ServerContext* context, const vm::SetStateRequest* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("SetState called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
@@ -169,31 +169,31 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     return Status::OK;
   }
 
-  Status CreateHandlers(ServerContext* context, const google::protobuf::Empty* request, vmproto::CreateHandlersResponse* reply) override {
+  Status CreateHandlers(ServerContext* context, const google::protobuf::Empty* request, vm::CreateHandlersResponse* reply) override {
     Utils::logToFile("CreateHandlers Called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status CreateStaticHandlers(ServerContext* context, const google::protobuf::Empty* request, vmproto::CreateStaticHandlersResponse* reply) override {
+  Status CreateStaticHandlers(ServerContext* context, const google::protobuf::Empty* request, vm::CreateStaticHandlersResponse* reply) override {
     Utils::logToFile("CreateStaticHandlers Called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status Connected(ServerContext* context, const vmproto::ConnectedRequest* request, google::protobuf::Empty* reply) override {
+  Status Connected(ServerContext* context, const vm::ConnectedRequest* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("Connected Called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status Disconnected(ServerContext* context, const vmproto::DisconnectedRequest* request, google::protobuf::Empty* reply) override {
+  Status Disconnected(ServerContext* context, const vm::DisconnectedRequest* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("Disconnected Called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status BuildBlock(ServerContext* context, const google::protobuf::Empty* request, vmproto::BuildBlockResponse* reply) override {
+  Status BuildBlock(ServerContext* context, const google::protobuf::Empty* request, vm::BuildBlockResponse* reply) override {
     lock.lock();
     Utils::logToFile("BuildBlock called");
     Block pastBlock(blocksDb.getKeyValue("latest"));
@@ -237,103 +237,103 @@ class VMServiceImplementation final : public vmproto::VM::Service {
     return Status::OK;
   }
 
-  Status ParseBlock(ServerContext* context, const vmproto::ParseBlockRequest* request, vmproto::ParseBlockResponse* reply) override {
+  Status ParseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply) override {
     Utils::logToFile("ParseBlock called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status GetBlock(ServerContext* context, const vmproto::GetBlockRequest* request, vmproto::GetBlockResponse* reply) override {
+  Status GetBlock(ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply) override {
     Utils::logToFile("GetBlock called");
     Utils::logToFile(request->DebugString());
     return Status::OK; 
   }
 
-  Status SetPreference(ServerContext* context, const vmproto::SetPreferenceRequest* request, google::protobuf::Empty* reply) override {
+  Status SetPreference(ServerContext* context, const vm::SetPreferenceRequest* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("SetPreference Called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status Health(ServerContext* context, const google::protobuf::Empty* request, vmproto::HealthResponse* reply) override {
+  Status Health(ServerContext* context, const vm::HealthRequest* request, vm::HealthResponse* reply) override {
     Utils::logToFile("Health called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status Version(ServerContext* context, const google::protobuf::Empty* request, vmproto::VersionResponse* reply) override {
+  Status Version(ServerContext* context, const google::protobuf::Empty* request, vm::VersionResponse* reply) override {
     Utils::logToFile("Version Called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status AppRequest(ServerContext* context, const vmproto::AppRequestMsg* request, google::protobuf::Empty* reply) override {
+  Status AppRequest(ServerContext* context, const vm::AppRequestMsg* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("AppRequest called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status AppRequestFailed(ServerContext* context, const vmproto::AppRequestFailedMsg* request, google::protobuf::Empty* reply) override {
+  Status AppRequestFailed(ServerContext* context, const vm::AppRequestFailedMsg* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("AppRequestFailed called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status AppResponse(ServerContext* context, const vmproto::AppResponseMsg* request, google::protobuf::Empty* reply) override {
+  Status AppResponse(ServerContext* context, const vm::AppResponseMsg* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("AppResponse called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status AppGossip(ServerContext* context, const vmproto::AppGossipMsg* request, google::protobuf::Empty* reply) override {
+  Status AppGossip(ServerContext* context, const vm::AppGossipMsg* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("AppGossip called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status Gather(ServerContext* context, const google::protobuf::Empty* request, vmproto::GatherResponse* reply) override {
+  Status Gather(ServerContext* context, const google::protobuf::Empty* request, vm::GatherResponse* reply) override {
     Utils::logToFile("Gather called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status BlockVerify(ServerContext* context, const vmproto::BlockVerifyRequest* request, vmproto::BlockVerifyResponse* reply) override {
+  Status BlockVerify(ServerContext* context, const vm::BlockVerifyRequest* request, vm::BlockVerifyResponse* reply) override {
     Utils::logToFile("BlockVerify called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status BlockAccept(ServerContext* context, const vmproto::BlockAcceptRequest* request, google::protobuf::Empty* reply) override {
+  Status BlockAccept(ServerContext* context, const vm::BlockAcceptRequest* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("BlockAccept called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status BlockReject(ServerContext* context, const vmproto::BlockRejectRequest* request, google::protobuf::Empty* reply) override {
+  Status BlockReject(ServerContext* context, const vm::BlockRejectRequest* request, google::protobuf::Empty* reply) override {
     Utils::logToFile("BlockReject called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status GetAncestors(ServerContext* context, const vmproto::GetAncestorsRequest* request, vmproto::GetAncestorsResponse* reply) override {
+  Status GetAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply) override {
     Utils::logToFile("GetAncestors called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status BatchedParseBlock(ServerContext* context, const vmproto::BatchedParseBlockRequest* request, vmproto::BatchedParseBlockResponse* reply) override {
+  Status BatchedParseBlock(ServerContext* context, const vm::BatchedParseBlockRequest* request, vm::BatchedParseBlockResponse* reply) override {
     Utils::logToFile("BatchedParseBlock called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status VerifyHeightIndex(ServerContext* context, const google::protobuf::Empty* request, vmproto::VerifyHeightIndexResponse* reply) override {
+  Status VerifyHeightIndex(ServerContext* context, const google::protobuf::Empty* request, vm::VerifyHeightIndexResponse* reply) override {
     Utils::logToFile("VerifyHeightIndex called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
 
-  Status GetBlockIDAtHeight(ServerContext* context, const vmproto::GetBlockIDAtHeightRequest* request, vmproto::GetBlockIDAtHeightResponse* reply) override {
+  Status GetBlockIDAtHeight(ServerContext* context, const vm::GetBlockIDAtHeightRequest* request, vm::GetBlockIDAtHeightResponse* reply) override {
     Utils::logToFile("GetBlockIDAtHeight called");
     Utils::logToFile(request->DebugString());
     return Status::OK;
