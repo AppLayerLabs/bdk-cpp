@@ -93,6 +93,66 @@ target_link_libraries(aleth PRIVATE
 
 # Generate gRPC files
 add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
+       --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
+       --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
+       --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
+       --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/metrics.grpc.pb.cc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/proto/metrics.grpc.pb.h"
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
+       --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       "${CMAKE_CURRENT_SOURCE_DIR}/proto/metrics.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
+       --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.proto"
+)
+
+add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
   COMMAND ${Protobuf_PROTOC_EXECUTABLE}
@@ -101,14 +161,30 @@ add_custom_command(
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.proto"
 )
-add_custom_target(gen-grpc ALL DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
-)
 
 # Compile and link the protobuf files
 protobuf_generate_cpp(PROTO_VM_SRCS PROTO_VM_HDRS proto/vm.proto)
 protobuf_generate_cpp(PROTO_METRICS_SRCS PROTO_METRICS_HDRS proto/metrics.proto)
+protobuf_generate_cpp(PROTO_ALIASREADER_SRCS PROTO_ALIASREADER_HDRS proto/aliasreader.proto)
+protobuf_generate_cpp(PROTO_APPSENDER_SRCS PROTO_APPSENDER_HDRS proto/appsender.proto)
+protobuf_generate_cpp(PROTO_KEYSTORE_SRCS PROTO_KEYSTORE_HDRS proto/keystore.proto)
+protobuf_generate_cpp(PROTO_MESSENGER_SRCS PROTO_MESSENGER_HDRS proto/messenger.proto)
+protobuf_generate_cpp(PROTO_SHAREDMEMORY_SRCS PROTO_SHAREDMEMORY_HDRS proto/sharedmemory.proto)
+
+add_custom_target(gen-grpc ALL DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
+)
 
 # Compile and link the executable
 file(GLOB SUBNETOOOR_HEADERS "src/*.h")
@@ -116,8 +192,24 @@ file(GLOB SUBNETOOOR_SOURCES "src/*.cpp")
 
 add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
   ${PROTO_VM_SRCS} ${PROTO_VM_HDRS} ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
+  ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
+  ${PROTO_ALIASREADER_SRCS} ${PROTO_ALIASREADER_HDRS}
+  ${PROTO_APPSENDER_SRCS} ${PROTO_APPSENDER_HDRS}
+  ${PROTO_KEYSTORE_SRCS} ${PROTO_KEYSTORE_HDRS}
+  ${PROTO_MESSENGER_SRCS} ${PROTO_MESSENGER_HDRS}
+  ${PROTO_SHAREDMEMORY_SRCS} ${PROTO_SHAREDMEMORY_HDRS}
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
 )
 add_dependencies(subnetooord gen-grpc)
 # Add include folder to subnetooor

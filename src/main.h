@@ -263,6 +263,7 @@ class VMServiceImplementation final : public vm::VM::Service {
 
   Status Version(ServerContext* context, const google::protobuf::Empty* request, vm::VersionResponse* reply) override {
     Utils::logToFile("Version Called");
+    reply->set_version("1");
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
@@ -808,7 +809,7 @@ void RunServer() {
   builder.RegisterService(&service);
   // Finally assemble the server.
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "1|11|tcp|" << server_address << "|grpc\n"<< std::flush;
+  std::cout << "1|12|tcp|" << server_address << "|grpc\n"<< std::flush;
 
   // Wait for the server to shutdown. Note that some other thread must be
   // responsible for shutting down the server for this call to ever return
