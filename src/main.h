@@ -19,6 +19,7 @@
 #include <google/protobuf/util/json_util.h>
 #include <google/protobuf/message.h>
 #include "../proto/vm.grpc.pb.h"
+#include "grpcclient.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/hex.hpp>
@@ -84,6 +85,8 @@ class VMServiceImplementation final : public vm::VM::Service {
   public:
   std::string dbName;
   bool initialized = false;
+  std::unique_ptr<VMCommClient> commClient;
+
   Database blocksDb; // Key -> blockHash()
                       // Value -> json block
   
@@ -100,6 +103,11 @@ class VMServiceImplementation final : public vm::VM::Service {
                       // value -> nonce. (string).
 
   std::vector<dev::eth::TransactionBase> mempool;
+
+  void blockRequester() {
+    commClient->requestBlock();
+    return;
+  }
 
   Status Initialize(ServerContext* context, const vm::InitializeRequest* request,
                   vm::InitializeResponse* reply) override {
@@ -123,7 +131,7 @@ class VMServiceImplementation final : public vm::VM::Service {
       blocksDb.putKeyValue("latest", genesis.serializeToString());
     }
     if(accountsDb.isEmpty()) {
-      accountsDb.putKeyValue("0x2993d9eadb91c588bebbc1da7179b607ac3ff699", "1000000000000000000000000000");
+      accountsDb.putKeyValue("0x9Ef72cF1180C279589ACb06b3bA14700A022e220", "10000000000000000000000");
     }
     Block bestBlock(blocksDb.getKeyValue("latest"));
     Utils::logToFile(blocksDb.getKeyValue("latest"));
@@ -142,6 +150,7 @@ class VMServiceImplementation final : public vm::VM::Service {
     google::protobuf::util::MessageToJsonString(*reply, &jsonAnswer, options);
     Utils::logToFile(std::string("jsonAnswer:" + jsonAnswer));
 
+    commClient.reset(new VMCommClient(grpc::CreateChannel(request->server_addr(), grpc::InsecureChannelCredentials())));
     try {
       boost::thread p(&startServer);
       p.detach();
@@ -493,6 +502,8 @@ class VMServiceImplementation final : public vm::VM::Service {
         Utils::logToFile("error 10");
         ret["result"] = std::string("0x") + tx.sha3().hex();
         Utils::logToFile("error 11");
+        boost::thread miner(boost::bind(&VMServiceImplementation::blockRequester, this));
+        miner.detach();
       } catch (std::exception &e) {
         Utils::logToFile(std::string("sendRawTransaction failed! ") + e.what());
       }
