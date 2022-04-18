@@ -50,7 +50,6 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 #include "block.h"
 #include "utils.h"
-#include "httpserver.h"
 #include "db.h"
 
 using grpc::Server;
@@ -59,8 +58,6 @@ using grpc::ServerBuilder;
 using grpc::ServerCompletionQueue;
 using grpc::ServerContext;
 using grpc::Status;
-
-// Forward declaration.
 
 class Subnet;
 
