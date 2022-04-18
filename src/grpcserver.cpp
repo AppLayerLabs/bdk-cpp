@@ -30,7 +30,7 @@ Status VMServiceImplementation::Initialize(ServerContext* context, const vm::Ini
       blocksDb.putKeyValue("latest", genesis.serializeToString());
     }
     if(accountsDb.isEmpty()) {
-      accountsDb.putKeyValue("0x9Ef72cF1180C279589ACb06b3bA14700A022e220", "10000000000000000000000");
+      accountsDb.putKeyValue("0xcc95a9aad79c390167cd59b951d3e43d959bf2c4", "10000000000000000000000");
     }
     Block bestBlock(blocksDb.getKeyValue("latest"));
     Utils::logToFile(blocksDb.getKeyValue("latest"));

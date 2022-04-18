@@ -428,7 +428,7 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
         }
 
         Utils::logToFile("error 9");
-        //globalPointer->mempool.push_back(tx);
+        this->mempool.push_back(tx);
         Utils::logToFile("error 10");
         ret["result"] = std::string("0x") + tx.sha3().hex();
         Utils::logToFile("error 11");
