@@ -19,7 +19,6 @@
 #include <google/protobuf/util/json_util.h>
 #include <google/protobuf/message.h>
 #include "../proto/vm.grpc.pb.h"
-#include "grpcclient.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/hex.hpp>
@@ -51,7 +50,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 #include "block.h"
 #include "utils.h"
 #include "grpcserver.h"
-#include "httpserver.h"
+#include "grpcclient.h"
 #include "db.h"
 
 using grpc::Server;
@@ -90,12 +89,6 @@ class Subnet : public std::enable_shared_from_this<Subnet> {
     // responsible for shutting down the server for this call to ever return
     server->Wait();
   }
-
-
-
-
-
-
 };
 
 #endif // MAIN_H

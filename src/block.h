@@ -57,6 +57,4 @@ class Block {
         Block(std::string __prevBlockHash, dev::u256 __timestamp, dev::u256 __txCount, dev::u256 __nHeight, std::string __blockData);
 };
 
-
-
 #endif // BLOCK_H

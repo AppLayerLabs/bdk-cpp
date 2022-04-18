@@ -1,5 +1,13 @@
 #include "grpcserver.h"
 
+
+Block genesis("0000000000000000000000000000000000000000000000000000000000000000",
+  1648317800,
+  0, // 0 tx's
+  0,
+  ""
+);
+
 Status VMServiceImplementation::Initialize(ServerContext* context, const vm::InitializeRequest* request,
                   vm::InitializeResponse* reply) {
     Utils::logToFile("Initialized Called");
@@ -43,8 +51,8 @@ Status VMServiceImplementation::Initialize(ServerContext* context, const vm::Ini
 
     commClient.reset(new VMCommClient(grpc::CreateChannel(request->server_addr(), grpc::InsecureChannelCredentials())));
     try {
-      // boost::thread p(&startServer);
-      // p.detach();
+      //boost::thread p(&startServer);
+      //p.detach();
     } catch (std::exception &e) {
       Utils::logToFile(std::string("HTTP: ") + e.what());
     }

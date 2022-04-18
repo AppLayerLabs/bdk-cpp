@@ -187,10 +187,37 @@ add_custom_target(gen-grpc ALL DEPENDS
 )
 
 # Compile and link the executable
-file(GLOB SUBNETOOOR_HEADERS "src/*.h")
-file(GLOB SUBNETOOOR_SOURCES "src/*.cpp")
+#file(GLOB SUBNETOOOR_HEADERS "src/*.h")
+#file(GLOB SUBNETOOOR_SOURCES "src/*.cpp")
 
-add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES} "src/grpcserver.cpp"
+set(SUBNETOOOR_HEADERS
+  src/main.h
+  src/block.h
+  src/db.h
+  src/httpserver.h
+  src/grpcclient.h
+  src/grpcserver.h
+  src/json.hpp
+  src/utils.h
+  src/validation.h
+)
+
+set(SUBNETOOOR_SOURCES
+  src/main.cpp
+  src/block.cpp
+  src/db.cpp
+  src/httpserver.cpp
+  src/grpcclient.cpp
+  src/grpcserver.cpp
+  src/utils.cpp
+  src/validation.cpp
+)
+
+
+message(STATUS ${SUBNETOOOR_HEADERS})
+message(STATUS ${SUBNETOOOR_SOURCES})
+
+add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
   ${PROTO_VM_SRCS} ${PROTO_VM_HDRS} ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
   ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
   ${PROTO_ALIASREADER_SRCS} ${PROTO_ALIASREADER_HDRS}

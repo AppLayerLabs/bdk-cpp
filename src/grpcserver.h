@@ -50,6 +50,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 #include "block.h"
 #include "utils.h"
+#include "httpserver.h"
 #include "db.h"
 
 using grpc::Server;
@@ -58,13 +59,6 @@ using grpc::ServerBuilder;
 using grpc::ServerCompletionQueue;
 using grpc::ServerContext;
 using grpc::Status;
-
-Block genesis("0000000000000000000000000000000000000000000000000000000000000000",
-  1648317800,
-  0, // 0 tx's
-  0,
-  ""
-);
 
 // Forward declaration.
 
