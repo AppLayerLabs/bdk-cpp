@@ -54,7 +54,7 @@ using grpc::CompletionQueue;
 using grpc::Status;
 
 
-class VMCommClient {
+class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
 
     public:
     explicit VMCommClient(std::shared_ptr<Channel> channel)

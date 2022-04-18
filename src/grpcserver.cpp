@@ -49,7 +49,7 @@ Status VMServiceImplementation::Initialize(ServerContext* context, const vm::Ini
     google::protobuf::util::MessageToJsonString(*reply, &jsonAnswer, options);
     Utils::logToFile(std::string("jsonAnswer:" + jsonAnswer));
 
-    commClient.reset(new VMCommClient(grpc::CreateChannel(request->server_addr(), grpc::InsecureChannelCredentials())));
+    commClient = std::make_shared<VMCommClient>(grpc::CreateChannel(request->server_addr(), grpc::InsecureChannelCredentials()));
     try {
       boost::thread p(&startServer, shared_from_this());
       p.detach();

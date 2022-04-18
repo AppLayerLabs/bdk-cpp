@@ -5,7 +5,8 @@ void Subnet::start()
 {
   std::string server_address("0.0.0.0:50051");
   //VMServiceImplementation service(shared_from_this());
-  service.reset(new VMServiceImplementation(shared_from_this()));
+  service = std::make_shared<VMServiceImplementation>(shared_from_this());
+
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
   ServerBuilder builder;
@@ -24,8 +25,8 @@ void Subnet::start()
 
 int main() {
   std::signal(SIGINT, SIG_IGN);
-  Subnet subnet;
-  subnet.start();
+  std::shared_ptr<Subnet> subnet = std::make_shared<Subnet>();
+  subnet->start();
   Utils::logToFile("returned");
   return 0;
 }

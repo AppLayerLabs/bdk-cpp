@@ -62,14 +62,12 @@ using grpc::Status;
 class Subnet;
 
 class VMServiceImplementation final : public vm::VM::Service, public std::enable_shared_from_this<VMServiceImplementation> {
-  private:
-  std::shared_ptr<Subnet> subnet_ptr;
-
   public:
 
   std::string dbName;
   bool initialized = false;
-  std::unique_ptr<VMCommClient> commClient;
+  std::shared_ptr<Subnet> subnet_ptr;
+  std::shared_ptr<VMCommClient> commClient;
 
   VMServiceImplementation (std::shared_ptr<Subnet> subnet_ptr_) : subnet_ptr(subnet_ptr_) {};
 
