@@ -61,7 +61,7 @@ using grpc::Status;
 
 class Subnet;
 
-class VMServiceImplementation final : public vm::VM::Service {
+class VMServiceImplementation final : public vm::VM::Service, public std::enable_shared_from_this<VMServiceImplementation> {
   private:
   std::shared_ptr<Subnet> subnet_ptr;
 
@@ -70,6 +70,8 @@ class VMServiceImplementation final : public vm::VM::Service {
   std::string dbName;
   bool initialized = false;
   std::unique_ptr<VMCommClient> commClient;
+
+  VMServiceImplementation (std::shared_ptr<Subnet> subnet_ptr_) : subnet_ptr(subnet_ptr_) {};
 
   Database blocksDb; // Key -> blockHash()
                       // Value -> json block
@@ -91,10 +93,6 @@ class VMServiceImplementation final : public vm::VM::Service {
   void blockRequester() {
     commClient->requestBlock();
     return;
-  }
-
-  void setSubnetPointer(std::shared_ptr<Subnet> subnet_ptr_) {
-    this->subnet_ptr = subnet_ptr_;
   }
 
   Status Initialize(ServerContext* context, const vm::InitializeRequest* request, vm::InitializeResponse* reply) override;

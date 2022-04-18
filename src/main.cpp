@@ -5,8 +5,7 @@ void Subnet::start()
 {
   std::string server_address("0.0.0.0:50051");
   //VMServiceImplementation service(shared_from_this());
-  service.reset(new VMServiceImplementation());
-  service->setSubnetPointer(shared_from_this());
+  service.reset(new VMServiceImplementation(shared_from_this()));
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
   ServerBuilder builder;
