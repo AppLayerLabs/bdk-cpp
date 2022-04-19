@@ -28,7 +28,7 @@ Block Validation::initialize() {
     }
     Block bestBlock(blocksDb.getKeyValue("latest"));
     Utils::logToFile("I think it is here...");
-    this->tokens = ERC20::loadAllERC20(tokenDB);
+    ERC20::loadAllERC20(tokenDB, tokens);
     Utils::logToFile("Not here?");
 
     return bestBlock;

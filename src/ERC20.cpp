@@ -2,35 +2,33 @@
 
 
 
-std::map<std::string,ERC20> ERC20::loadAllERC20(Database &token_db) {
-    std::map<std::string,ERC20> ret;
+void ERC20::loadAllERC20(Database &token_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens) {
     auto erc20Pairs = token_db.getAllPairs();
 
     for (auto erc20Info : erc20Pairs) {
-        json tmp = json::parse(erc20Info.second);
-        ERC20 tmpErc(tmp);
-        ret.emplace(erc20Info.first, tmpErc);
+        auto jsonInfo = json::parse(erc20Info.second);
+        tokens[erc20Info.first] = std::make_shared<ERC20>(jsonInfo);
     }
-    return ret;
+    return;
 }
 
-bool ERC20::saveAllERC20(std::map<std::string,ERC20> &tokens, Database &token_db) {
+bool ERC20::saveAllERC20(std::map<std::string,std::shared_ptr<ERC20>> &tokens, Database &token_db) {
     for (auto token : tokens) {
         json jsonData;
-        jsonData["name"] = token.second.name();
-        jsonData["symbol"] = token.second.symbol();
-        jsonData["decimals"] = token.second.decimals();
-        jsonData["totalSupply"] = boost::lexical_cast<std::string>(token.second.totalSupply());
+        jsonData["name"] = token.second->name();
+        jsonData["symbol"] = token.second->symbol();
+        jsonData["decimals"] = token.second->decimals();
+        jsonData["totalSupply"] = boost::lexical_cast<std::string>(token.second->totalSupply());
         jsonData["address"] = token.first;
         jsonData["balances"] = json::array();
-        for (auto balance : token.second.allBalances()) {
+        for (auto balance : token.second->allBalances()) {
             json tmp;
             tmp["address"] = balance.first;
             tmp["value"] = boost::lexical_cast<std::string>(balance.second);
             jsonData["balances"].push_back(tmp);
         }
 
-        for (auto allowanc : token.second.allAllowances()) {
+        for (auto allowanc : token.second->allAllowances()) {
             json tmp;
             tmp["address"] = allowanc.first;
             tmp["spender"] = allowanc.second.spender;
@@ -60,5 +58,13 @@ ERC20::ERC20(json &data) {
         tmp.allowed = boost::lexical_cast<dev::u256>(allowances["allowed"].get<std::string>());
         //this->allowance_[allowances["address"].get<std::string>() = tmp;
         this->allowance_.emplace(allowances["address"].get<std::string>(), tmp);
+    }
+}
+
+dev::u256 ERC20::balanceOf(std::string address) {
+    if (this->balances_.count(address)) {
+        return this->balances_["address"];
+    } else {
+        return 0;
     }
 }

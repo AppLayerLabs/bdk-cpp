@@ -212,6 +212,7 @@ set(SUBNETOOOR_SOURCES
   src/grpcserver.cpp
   src/utils.cpp
   src/validation.cpp
+  src/EthCall.cpp
   src/ERC20.cpp
 )
 

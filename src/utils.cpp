@@ -110,10 +110,61 @@ std::string Utils::uintToHex(std::string input, bool isPadded) {
   return padding;
 }
 
+std::string Utils::bytesToHex(std::string input, bool isUint) {
+  std::string ret;
+  if (!isUint) {
+    ret += uintToHex(boost::lexical_cast<std::string>(input.size()));
+  }
+  std::stringstream ss;
+  for (auto c : input) {
+    ss << std::hex << int(c);
+  }
+  ret += ss.str();
+  // Bytes are left padded
+  while ((ret.size() % 64) != 0) {
+    ret += "0";
+  }
+  return ret;
+}
+
 std::string Utils::uintFromHex(std::string hex) {
   std::string ret;
   if (hex.substr(0, 2) == "0x") { hex = hex.substr(2); } // Remove the "0x"
   unsigned int number = boost::lexical_cast<HexTo<unsigned int>>(hex);
   ret = boost::lexical_cast<std::string>(number);
+  return ret;
+}
+
+std::vector<std::string> Utils::parseHex(std::string hexStr, std::vector<std::string> types) {
+  std::vector<std::string> ret;
+  try {
+
+    // Get rid of the "0x" before converting and lowercase all letters
+    hexStr = (hexStr.substr(0, 2) == "0x") ? hexStr.substr(2) : hexStr;
+
+    // Parse each type and erase it from the hex string until it is empty
+    for (std::string type : types) {
+      if (type == "uint" || type == "bool") {
+        // All uints are 32 bytes and each hex char is half a byte, so 32 bytes = 64 chars.
+        dev::u256 value = boost::lexical_cast<HexTo<dev::u256>>(hexStr.substr(0, 64));
+        ret.push_back(boost::lexical_cast<std::string>(value));
+      } else if (type == "bool") {
+        // Bools are treated as uints, so the same logic applies, but returning a proper bool.
+        bool value = boost::lexical_cast<HexTo<bool>>(hexStr.substr(0, 64));
+        ret.push_back(boost::lexical_cast<std::string>(value));
+      } else if (type == "address") {
+        // Addresses are always 20 bytes (40 chars) but are treated as uints, so we
+        // take all 64 chars, get rid of the first 24 chars and add "0x" at the start
+        std::string value = hexStr.substr(0, 64);
+        value.erase(0, 24);
+        ret.push_back("0x" + value);
+      }
+      hexStr.erase(0, 64);
+    }
+
+  } catch (std::exception &e) {
+    Utils::logToFile(std::string("parseHex error: ") + e.what() + " value: " + hexStr);
+  }
+
   return ret;
 }

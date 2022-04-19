@@ -29,7 +29,7 @@ class Validation : std::enable_shared_from_this<Validation> {
         Database tokenDB; // key -> token address
                           // value -> ERC20 info in json.
 
-        std::map<std::string,ERC20> tokens; // Key -> contract address
+        std::map<std::string,std::shared_ptr<ERC20>> tokens; // Key -> contract address
                                             // value -> erc20 contract info. 
         
         std::map<std::string,dev::eth::TransactionBase> mempool; // Tx hash -> tx data.
@@ -57,6 +57,7 @@ class Validation : std::enable_shared_from_this<Validation> {
 
 
     std::string getAccountBalanceFromDB(std::string address);
+    std::string processEthCall(json &methods);
     void cleanAndClose();
 };
 

@@ -248,6 +248,9 @@ std::string VMServiceImplementation::processRPCMessage(std::string message) {
     answer["uncles"] = json::array();
     ret["result"] = answer;
   }
+  if (messageJson["method"] == "eth_call") {
+    ret["result"] = validation->processEthCall(messageJson["params"]);
+  }
   if (messageJson["method"] == "FAUCET") {
     std::string address = messageJson["address"].get<std::string>();
     validation->faucet(address);

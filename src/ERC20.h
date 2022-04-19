@@ -8,7 +8,7 @@
 using json = nlohmann::ordered_json;
 
 
-class ERC20 {
+class ERC20 : public std::enable_shared_from_this<ERC20> {
     private:
         struct allowanceInfo {
             std::string spender;
@@ -54,8 +54,8 @@ class ERC20 {
     dev::u256 balanceOf(std::string address);
 
 
-    static std::map<std::string,ERC20> loadAllERC20(Database &token_db);
-    static bool saveAllERC20(std::map<std::string,ERC20> &tokens, Database &token_db);
+    static void loadAllERC20(Database &token_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens);
+    static bool saveAllERC20(std::map<std::string,std::shared_ptr<ERC20>> &tokens, Database &token_db);
 };
 
 #endif // ERC20_H
