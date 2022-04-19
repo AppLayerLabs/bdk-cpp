@@ -41,7 +41,7 @@ class Validation : std::enable_shared_from_this<Validation> {
     // Returns best block to answer avalanchego.
     Block initialize();
 
-    Validation(std::string nodeID_) : nodeID(nodeID_) { initialize(); }
+    Validation(std::string nodeID_) : nodeID(nodeID_) { }
 
     std::string getTxToBlock(std::string txHash);
     std::string getAccountNonce(std::string address);

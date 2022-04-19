@@ -12,12 +12,11 @@ Status VMServiceImplementation::Initialize(ServerContext* context, const vm::Ini
     // Open database with the nodeID as folder name.
     json req = json::parse(jsonRequest);
     std::string nodeID = req["nodeId"];
+    Utils::logToFile("Creating validation pointer");
     validation = std::make_shared<Validation>(nodeID);
-    initialized = true;
-    validation->initialize();
-
-
     auto bestBlock = validation->initialize();
+    initialized = true;
+    Utils::logToFile("Validation initialize completed");
     auto hash = bestBlock.blockHash();
     Utils::logToFile(std::string("size: ") + boost::lexical_cast<std::string>(hash.size()));
     Utils::logToFile(bestBlock.blockHash());
@@ -62,7 +61,6 @@ Status VMServiceImplementation::BuildBlock(ServerContext* context, const google:
 std::string VMServiceImplementation::processRPCMessage(std::string message) {
   json ret;
   json messageJson = json::parse(message);
-  return "";
   bool log = true;
   ret["id"] = messageJson["id"];
   Utils::logToFile(message);

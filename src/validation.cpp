@@ -10,23 +10,26 @@ Block genesis("0000000000000000000000000000000000000000000000000000000000000000"
 
 Block Validation::initialize() {
 
+    Utils::logToFile("validation nodeID: " + nodeID);
     blocksDb.setAndOpenDB(nodeID + "-blocks");
     accountsDb.setAndOpenDB(nodeID + "-balances");
     confirmedTxs.setAndOpenDB(nodeID + "-txs");
     nonceDb.setAndOpenDB(nodeID + "-nonces");
     txToBlock.setAndOpenDB(nodeID + "-txToBlocks");
     tokenDB.setAndOpenDB(nodeID + "-tokens");
+    Utils::logToFile("DB created");
     if (blocksDb.isEmpty()) {
       blocksDb.putKeyValue(genesis.blockHash(), genesis.serializeToString());
       blocksDb.putKeyValue(boost::lexical_cast<std::string>(genesis.nHeight()), genesis.serializeToString());
       blocksDb.putKeyValue("latest", genesis.serializeToString());
     }
     if(accountsDb.isEmpty()) {
-      accountsDb.putKeyValue("0xcc95a9aad79c390167cd59b951d3e43d959bf2c4", "10000000000000000000000");
+      accountsDb.putKeyValue("0xe6a2d1ef7d7129d2a422af0a725629a0a1fbdec4", "10000000000000000000000");
     }
     Block bestBlock(blocksDb.getKeyValue("latest"));
-
+    Utils::logToFile("I think it is here...");
     this->tokens = ERC20::loadAllERC20(tokenDB);
+    Utils::logToFile("Not here?");
 
     return bestBlock;
 }
@@ -57,8 +60,16 @@ Block pastBlock(blocksDb.getKeyValue("latest"));
       // Save changes to DB.
       std::string from = std::string("0x") + tx.second.from().hex();
       std::string to   = std::string("0x") + tx.second.to().hex();
-      dev::u256 fromBalance = boost::lexical_cast<dev::u256>(accountsDb.getKeyValue(from));
-      dev::u256 toBalance = boost::lexical_cast<dev::u256>(accountsDb.getKeyValue(to));
+      std::string fromBalanceStr = accountsDb.getKeyValue(from);
+      std::string toBalanceStr = accountsDb.getKeyValue(to);
+      dev::u256 fromBalance = 0;
+      dev::u256 toBalance = 0;
+      if (fromBalanceStr != "") {
+        fromBalance = boost::lexical_cast<dev::u256>(fromBalanceStr);
+      }
+      if (toBalanceStr != "") {
+        toBalance = boost::lexical_cast<dev::u256>(toBalanceStr);
+      }
       dev::u256 transactionValue = tx.second.value();
       fromBalance = fromBalance - transactionValue;
       toBalance = toBalance + transactionValue;
@@ -66,9 +77,17 @@ Block pastBlock(blocksDb.getKeyValue("latest"));
       accountsDb.putKeyValue(from, boost::lexical_cast<std::string>(fromBalance));
       accountsDb.putKeyValue(to, boost::lexical_cast<std::string>(toBalance));
 
+      auto nonce = nonceDb.getKeyValue(from);
+      if (nonce == "") {
+        nonceDb.putKeyValue(from, boost::lexical_cast<std::string>(1));
+      } else {
+        std::string newNonce = boost::lexical_cast<std::string>(uint64_t(1 + boost::lexical_cast<uint64_t>(nonce)));
+        nonceDb.putKeyValue(from, newNonce);
+      }
+
       newBestBlock.addTx(tx.second);
-      confirmedTxs.putKeyValue(std::string("0x") + tx.first, dev::toHex(tx.second.rlp()));
-      transactionHexes.push_back(std::string("0x") + tx.first);
+      confirmedTxs.putKeyValue(tx.first, dev::toHex(tx.second.rlp()));
+      transactionHexes.push_back(tx.first);
     }
     // Hash blockheader again
     newBestBlock.serializeToString();

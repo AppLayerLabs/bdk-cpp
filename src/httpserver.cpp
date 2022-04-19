@@ -75,7 +75,7 @@ handle_request(
         return send(std::move(res));
     }
     // Respond to POST
-    // todo: process the response.
+
     std::string answer = service->processRPCMessage(request);
     http::response<http::string_body> res{http::status::ok, req.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
@@ -172,7 +172,7 @@ void startServer(std::shared_ptr<VMServiceImplementation> service)
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        Utils::logToFile(std::string("HTTP Error: ") + e.what());
         return;
     }
 }
