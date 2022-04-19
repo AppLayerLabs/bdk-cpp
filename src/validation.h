@@ -15,7 +15,7 @@ class Validation : std::enable_shared_from_this<Validation> {
                             // Value -> json block
         
         Database confirmedTxs; // key -> txHash.
-                                // value -> "" (if exists == confirmed);
+                                // value -> transaction RLP
         
         Database txToBlock; // key -> txhash.
                             // value -> blockHash.
@@ -31,7 +31,10 @@ class Validation : std::enable_shared_from_this<Validation> {
 
         std::map<std::string,ERC20> tokens; // Key -> contract address
                                             // value -> erc20 contract info. 
+        
+        std::map<std::string,dev::eth::TransactionBase> mempool; // Tx hash -> tx data.
 
+        std::mutex lock;
     public:
 
     // Initialize the validation class
@@ -40,10 +43,20 @@ class Validation : std::enable_shared_from_this<Validation> {
 
     Validation(std::string nodeID_) : nodeID(nodeID_) { initialize(); }
 
-    bool validateBlock();
+    std::string getTxToBlock(std::string txHash);
+    std::string getAccountNonce(std::string address);
+    std::string getConfirmedTx(std::string txHash);
+    Block getBlock(std::string blockKey);
+    Block getLatestBlock();
+    Block createNewBlock();
+    bool validateBlock(Block block);
     bool validateTransaction(dev::eth::TransactionBase tx);
+    bool addTxToMempool(dev::eth::TransactionBase tx);
+
+    void faucet(std::string address);
 
 
+    std::string getAccountBalanceFromDB(std::string address);
     void cleanAndClose();
 };
 
