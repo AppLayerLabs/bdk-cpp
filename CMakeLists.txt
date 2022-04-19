@@ -200,6 +200,7 @@ set(SUBNETOOOR_HEADERS
   src/json.hpp
   src/utils.h
   src/validation.h
+  src/ERC20.h
 )
 
 set(SUBNETOOOR_SOURCES
@@ -211,6 +212,7 @@ set(SUBNETOOOR_SOURCES
   src/grpcserver.cpp
   src/utils.cpp
   src/validation.cpp
+  src/ERC20.cpp
 )
 
 

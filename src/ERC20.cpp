@@ -7,8 +7,10 @@ std::map<std::string,ERC20> ERC20::loadAllERC20(Database &token_db) {
     auto erc20Pairs = token_db.getAllPairs();
 
     for (auto erc20Info : erc20Pairs) {
-        ret[erc20Info.first] = ERC20(json::parse(erc20Info.second));
-    } 
+        json tmp = json::parse(erc20Info.second);
+        ERC20 tmpErc(tmp);
+        ret.emplace(erc20Info.first, tmpErc);
+    }
     return ret;
 }
 
@@ -20,15 +22,15 @@ bool ERC20::saveAllERC20(std::map<std::string,ERC20> &tokens, Database &token_db
         jsonData["decimals"] = token.second.decimals();
         jsonData["totalSupply"] = boost::lexical_cast<std::string>(token.second.totalSupply());
         jsonData["address"] = token.first;
-        jsonData["balances"] = json::array;
-        for (auto balance : this->balances_) {
+        jsonData["balances"] = json::array();
+        for (auto balance : token.second.allBalances()) {
             json tmp;
             tmp["address"] = balance.first;
             tmp["value"] = boost::lexical_cast<std::string>(balance.second);
             jsonData["balances"].push_back(tmp);
         }
 
-        for (auto allowanc : this->allowance_ ) {
+        for (auto allowanc : token.second.allAllowances()) {
             json tmp;
             tmp["address"] = allowanc.first;
             tmp["spender"] = allowanc.second.spender;
@@ -37,6 +39,8 @@ bool ERC20::saveAllERC20(std::map<std::string,ERC20> &tokens, Database &token_db
         }
         token_db.putKeyValue(token.first, jsonData.dump());
     }
+
+    return true;
 }
 
 ERC20::ERC20(json &data) {
@@ -51,9 +55,10 @@ ERC20::ERC20(json &data) {
     }
 
     for (auto allowances : data["allowacens"]) {
-        this->allowance_[allowances["address"].get<std::string()>] = allowanceInfo(
-            .spender = allowances["spender"].get<std::string()>,    
-            .allowed = boost::lexical_cast<dev::u256>(allowances["allowed"].get<std::string>())
-        );
+        allowanceInfo tmp;
+        tmp.spender = allowances["spender"].get<std::string>();
+        tmp.allowed = boost::lexical_cast<dev::u256>(allowances["allowed"].get<std::string>());
+        //this->allowance_[allowances["address"].get<std::string>() = tmp;
+        this->allowance_.emplace(allowances["address"].get<std::string>(), tmp);
     }
 }

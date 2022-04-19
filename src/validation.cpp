@@ -15,6 +15,7 @@ Block Validation::initialize() {
     confirmedTxs.setAndOpenDB(nodeID + "-txs");
     nonceDb.setAndOpenDB(nodeID + "-nonces");
     txToBlock.setAndOpenDB(nodeID + "-txToBlocks");
+    tokenDB.setAndOpenDB(nodeID + "-tokens");
     if (blocksDb.isEmpty()) {
       blocksDb.putKeyValue(genesis.blockHash(), genesis.serializeToString());
       blocksDb.putKeyValue(boost::lexical_cast<std::string>(genesis.nHeight()), genesis.serializeToString());
@@ -24,6 +25,8 @@ Block Validation::initialize() {
       accountsDb.putKeyValue("0xcc95a9aad79c390167cd59b951d3e43d959bf2c4", "10000000000000000000000");
     }
     Block bestBlock(blocksDb.getKeyValue("latest"));
+
+    this->tokens = ERC20::loadAllERC20(tokenDB);
 
     return bestBlock;
 }

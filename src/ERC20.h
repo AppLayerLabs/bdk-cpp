@@ -2,7 +2,6 @@
 #define ERC20_H
 
 #include <string>
-#include <memory>
 #include "db.h"
 #include "json.hpp"
 
@@ -26,11 +25,23 @@ class ERC20 {
     public:
     ERC20(json &data);
 
-    std::string name()          { return name_; };
-    std::string symbol()        { return symbol_; };
-    uint64_t decimals()         { return decimals_; };
-    dev::u256 totalSupply()     { return totalSupply_; };
-    std::string ercAddress()    { return ercAddress_; };
+    ERC20(const ERC20& other) {
+        name_ = other.name_;
+        symbol_ = other.symbol_;
+        decimals_ = other.decimals_;
+        totalSupply_ = other.totalSupply_;
+        ercAddress_ = other.ercAddress_;
+        balances_ = other.balances_;
+        allowance_ = other.allowance_;
+    }
+
+    std::string name()                                  { return name_; };
+    std::string symbol()                                { return symbol_; };
+    uint64_t decimals()                                 { return decimals_; };
+    dev::u256 totalSupply()                             { return totalSupply_; };
+    std::string ercAddress()                            { return ercAddress_; };
+    std::map<std::string,dev::u256> allBalances()       { return balances_; };
+    std::map<std::string,allowanceInfo> allAllowances() { return allowance_; };
     
     // Write functions.
     // Commit == save changes to contract, if false: only check validity of such transaction.
