@@ -1,40 +1,23 @@
-#include "grpcserver.h"
 #include "httpserver.h"
-
-Block genesis("0000000000000000000000000000000000000000000000000000000000000000",
-  1648317800,
-  0, // 0 tx's
-  0,
-  ""
-);
+#include "validation.h"
+#include "grpcserver.h"
 
 Status VMServiceImplementation::Initialize(ServerContext* context, const vm::InitializeRequest* request,
                   vm::InitializeResponse* reply) {
     Utils::logToFile("Initialized Called");
-    initialized = true;
     std::string jsonRequest;
     google::protobuf::util::JsonOptions options;
     google::protobuf::util::MessageToJsonString(*request, &jsonRequest, options);
     Utils::logToFile(jsonRequest);
     // Open database with the nodeID as folder name.
     json req = json::parse(jsonRequest);
-    dbName = req["nodeId"];
-    blocksDb.setAndOpenDB(dbName + "-blocks");
-    accountsDb.setAndOpenDB(dbName + "-balances");
-    confirmedTxs.setAndOpenDB(dbName + "-txs");
-    nonceDb.setAndOpenDB(dbName + "-nonces");
-    txToBlock.setAndOpenDB(dbName + "-txToBlocks");
-    if (blocksDb.isEmpty()) {
-      blocksDb.putKeyValue(genesis.blockHash(), genesis.serializeToString());
-      blocksDb.putKeyValue(boost::lexical_cast<std::string>(genesis.nHeight()), genesis.serializeToString());
-      blocksDb.putKeyValue("latest", genesis.serializeToString());
-    }
-    if(accountsDb.isEmpty()) {
-      accountsDb.putKeyValue("0xcc95a9aad79c390167cd59b951d3e43d959bf2c4", "10000000000000000000000");
-    }
-    Block bestBlock(blocksDb.getKeyValue("latest"));
-    Utils::logToFile(blocksDb.getKeyValue("latest"));
+    std::string nodeID = req["nodeId"];
+    validation = std::make_shared<Validation>(nodeID);
+    initialized = true;
+    validation->initialize();
 
+
+    auto bestBlock = validation->initialize();
     auto hash = bestBlock.blockHash();
     Utils::logToFile(std::string("size: ") + boost::lexical_cast<std::string>(hash.size()));
     Utils::logToFile(bestBlock.blockHash());

@@ -59,32 +59,20 @@ using grpc::ServerCompletionQueue;
 using grpc::ServerContext;
 using grpc::Status;
 
+// Forward declaration.
 class Subnet;
+class Validation;
+
 
 class VMServiceImplementation final : public vm::VM::Service, public std::enable_shared_from_this<VMServiceImplementation> {
   public:
 
-  std::string dbName;
   bool initialized = false;
-  std::shared_ptr<Subnet> subnet_ptr;
+  std::shared_ptr<Subnet> subnet;
   std::shared_ptr<VMCommClient> commClient;
+  std::shared_ptr<Validation> validation;
 
-  VMServiceImplementation (std::shared_ptr<Subnet> subnet_ptr_) : subnet_ptr(subnet_ptr_) {};
-
-  Database blocksDb; // Key -> blockHash()
-                      // Value -> json block
-  
-  Database confirmedTxs; // key -> txHash.
-                          // value -> "" (if exists == confirmed);
-
-  Database txToBlock; // key -> txhash.
-                      // value -> blockHash.
-
-  Database accountsDb; // Key -> underscored user address "0x..."
-                        // Value -> balance in wei.
-
-  Database nonceDb;  // key -> address
-                      // value -> nonce. (string).
+  VMServiceImplementation (std::shared_ptr<Subnet> subnet_ptr_) : subnet(subnet_ptr_) {};
 
   std::vector<dev::eth::TransactionBase> mempool;
 
@@ -105,8 +93,8 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
     Utils::logToFile("Shutdown Called");
     Utils::logToFile(request->DebugString());
     if (initialized) {
-      blocksDb.cleanCloseDB();
-      accountsDb.cleanCloseDB();
+      //blocksDb.cleanCloseDB();
+      //accountsDb.cleanCloseDB();
     }
     return Status::OK;
   }
@@ -136,7 +124,7 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
   }
 
   Status BuildBlock(ServerContext* context, const google::protobuf::Empty* request, vm::BuildBlockResponse* reply) override {
-    Utils::logToFile("BuildBlock called");
+    /* Utils::logToFile("BuildBlock called");
     Block pastBlock(blocksDb.getKeyValue("latest"));
     const auto p1 = std::chrono::system_clock::now();
     uint64_t now = std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count();
@@ -173,7 +161,7 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
     blocksDb.putKeyValue(boost::lexical_cast<std::string>(newBestBlock.nHeight()), newBestBlock.serializeToString());
     blocksDb.putKeyValue("latest", newBestBlock.serializeToString());
     Utils::logToFile(request->DebugString());
-    Utils::logToFile(reply->DebugString());
+    Utils::logToFile(reply->DebugString()); */
     return Status::OK;
   }
 
@@ -283,6 +271,7 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
   std::string processRPCMessage(std::string message) {
     json ret;
     json messageJson = json::parse(message);
+    return ""; /*
     bool log = true;
     ret["id"] = messageJson["id"];
     Utils::logToFile(message);
@@ -394,7 +383,7 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
       std::string txRlp = messageJson["params"][0].get<std::string>();
       try {
         dev::eth::TransactionBase tx(dev::fromHex(txRlp), dev::eth::CheckTransaction::Everything);
-        std::string address = std::string("0x") + tx.from().hex();
+        std::string address = std::string("0x") + tx.from().hex();pastBlock
         std::string targetAddress = std::string("0x") + tx.to().hex();
         dev::u256 userBalance = boost::lexical_cast<dev::u256>(accountsDb.getKeyValue(address));
         Utils::logToFile("error 1");
@@ -523,7 +512,7 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
     if (log) {
       Utils::logToFile(ret.dump());
     }
-    return ret.dump();
+    return ret.dump(); */
   }
 };
 
