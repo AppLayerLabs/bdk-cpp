@@ -59,6 +59,7 @@ class Validation : std::enable_shared_from_this<Validation> {
     std::string getAccountBalanceFromDB(std::string address);
     std::string processEthCall(json &methods);
     void cleanAndClose();
+    void createNewERC20(json &methods);
 };
 
 

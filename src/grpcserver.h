@@ -89,16 +89,7 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
     return Status::OK;
   }
 
-  Status Shutdown(ServerContext* context, const google::protobuf::Empty* request, google::protobuf::Empty* reply) override {
-    Utils::logToFile("Shutdown Called");
-    Utils::logToFile(request->DebugString());
-    if (initialized) {
-      //blocksDb.cleanCloseDB();
-      //accountsDb.cleanCloseDB();
-    }
-    return Status::OK;
-  }
-
+  Status Shutdown(ServerContext* context, const google::protobuf::Empty* request, google::protobuf::Empty* reply) override;
   Status CreateHandlers(ServerContext* context, const google::protobuf::Empty* request, vm::CreateHandlersResponse* reply) override {
     Utils::logToFile("CreateHandlers Called");
     Utils::logToFile(request->DebugString());

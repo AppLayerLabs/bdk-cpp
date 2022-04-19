@@ -58,6 +58,15 @@ Status VMServiceImplementation::BuildBlock(ServerContext* context, const google:
     return Status::OK;
 }
 
+Status VMServiceImplementation::Shutdown(ServerContext* context, const google::protobuf::Empty* request, google::protobuf::Empty* reply) {
+  Utils::logToFile("Shutdown Called");
+  Utils::logToFile(request->DebugString());
+  if (initialized) {
+    validation->cleanAndClose();
+  }
+  return Status::OK;
+}
+
 std::string VMServiceImplementation::processRPCMessage(std::string message) {
   json ret;
   json messageJson = json::parse(message);
@@ -254,6 +263,10 @@ std::string VMServiceImplementation::processRPCMessage(std::string message) {
   if (messageJson["method"] == "FAUCET") {
     std::string address = messageJson["address"].get<std::string>();
     validation->faucet(address);
+  }
+
+  if (messageJson["method"] == "createNewToken") {
+    validation->createNewERC20(messageJson["params"]);
   }
   if (log) {
     Utils::logToFile(ret.dump());

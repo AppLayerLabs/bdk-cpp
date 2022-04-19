@@ -71,11 +71,25 @@ Block pastBlock(blocksDb.getKeyValue("latest"));
         toBalance = boost::lexical_cast<dev::u256>(toBalanceStr);
       }
       dev::u256 transactionValue = tx.second.value();
-      fromBalance = fromBalance - transactionValue;
-      toBalance = toBalance + transactionValue;
 
-      accountsDb.putKeyValue(from, boost::lexical_cast<std::string>(fromBalance));
-      accountsDb.putKeyValue(to, boost::lexical_cast<std::string>(toBalance));
+
+      // Normal Transfer
+      if (transactionValue != 0) {
+        fromBalance = fromBalance - transactionValue;
+        toBalance = toBalance + transactionValue;
+  
+        accountsDb.putKeyValue(from, boost::lexical_cast<std::string>(fromBalance));
+        accountsDb.putKeyValue(to, boost::lexical_cast<std::string>(toBalance));
+      }
+      // ERC20 Transfer!
+      if (tokens.count(to)) {
+        std::string data = dev::toHex(tx.second.data());
+        std::string abiSelector = data.substr(0,8);
+        std::string abiStr = data.substr(abiSelector.size(),data.size());
+        Utils::logToFile(std::string("ERC20 Transfer: ") + abiStr);
+        std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint"});
+        tokens[to]->transfer(from, abi[0], boost::lexical_cast<dev::u256>(abi[1]), true);
+      }
 
       auto nonce = nonceDb.getKeyValue(from);
       if (nonce == "") {
@@ -142,11 +156,22 @@ void Validation::faucet(std::string address) {
 
 bool Validation::validateTransaction(dev::eth::TransactionBase tx) {
   std::string from = std::string("0x") + tx.from().hex();
+  std::string to = std::string("0x") + tx.to().hex();
   dev::u256 userBalance = boost::lexical_cast<dev::u256>(accountsDb.getKeyValue(from));
   auto txValue = tx.value();
   if (txValue > userBalance) {
     Utils::logToFile("validateTransaction: insuficient balance");
     return false;
+  }
+
+  if (tokens.count(to)) { // ERC20 Transfer!
+    std::string data = dev::toHex(tx.data());
+    std::string abiSelector = data.substr(0,8);
+    std::string abiStr = data.substr(abiSelector.size(),data.size());
+    Utils::logToFile(std::string("ERC20 Transfer Check: ") + abiStr);
+    std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint"});
+    bool result = tokens[to]->transfer(from, abi[0], boost::lexical_cast<dev::u256>(abi[1]), false);
+    return result;
   }
 
   return true;
@@ -168,4 +193,9 @@ bool Validation::addTxToMempool(dev::eth::TransactionBase tx) {
   lock.unlock();
 
   return true;
+}
+
+void Validation::createNewERC20(json &methods) {
+  tokens[methods["address"].get<std::string>()] = std::make_shared<ERC20>(methods);
+  return;
 }

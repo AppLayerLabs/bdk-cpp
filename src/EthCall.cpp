@@ -9,11 +9,10 @@ enum ContractType {
     UNISWAP_LP
 };
 
-
 std::string Validation::processEthCall(json &methods) {
     std::string ret = "0x";
-    std::string contract = methods["to"].get<std::string>();
-    std::string data = methods["data"].get<std::string>();
+    std::string contract = methods[0]["to"].get<std::string>();
+    std::string data = methods[0]["data"].get<std::string>();
 
     std::string abiSelector = data.substr(0,10);
     std::string abi = data.substr(abiSelector.size(), data.size());
@@ -45,9 +44,11 @@ std::string Validation::processEthCall(json &methods) {
         }
         if (abiSelector == "0x70a08231") { // balanceOf(address)
             auto address = Utils::parseHex(abi, { "address" });
-            ret = Utils::uintToHex(boost::lexical_cast<std::string>(tokens[contract]->balanceOf(address[0])));
+            Utils::logToFile(std::string(address[0] + " " + boost::lexical_cast<std::string>(address.size())));
+            Utils::logToFile(abi);
+            ret += Utils::uintToHex(boost::lexical_cast<std::string>(tokens[contract]->balanceOf(address[0])));
             return ret;
         }
     }
-    
+    return "0x";
 }
