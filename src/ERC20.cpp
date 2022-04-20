@@ -41,6 +41,11 @@ bool ERC20::saveAllERC20(std::map<std::string,std::shared_ptr<ERC20>> &tokens, D
     return true;
 }
 
+bool ERC20::mint(std::string to, dev::u256 value) {
+    this->totalSupply_ = this->totalSupply_ + value;
+    balances_[to] = balances_[to] + value;
+    return true;
+}
 
 ERC20::ERC20(json &data) {
     this->name_ = data["name"].get<std::string>();

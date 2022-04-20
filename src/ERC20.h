@@ -49,6 +49,9 @@ class ERC20 : public std::enable_shared_from_this<ERC20> {
     bool transferFrom(std::string from, std::string to, dev::u256 value, bool commit = false);
     bool approve(std::string owner, std::string spender, dev::u256 value, bool commit = false);
 
+    // Mint
+    bool mint(std::string to, dev::u256 value);
+
     // View functions
     dev::u256 allowance(std::string owner, std::string spender);
     dev::u256 balanceOf(std::string address);

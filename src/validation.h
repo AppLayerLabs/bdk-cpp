@@ -6,6 +6,7 @@
 #include "db.h"
 #include "block.h"
 #include "ERC20.h"
+#include "Uniswap.h"
 
 class Validation : std::enable_shared_from_this<Validation> {
     private:
@@ -29,8 +30,13 @@ class Validation : std::enable_shared_from_this<Validation> {
         Database tokenDB; // key -> token address
                           // value -> ERC20 info in json.
 
+        Database uniswapDB; // key -> pair address
+                            // value -> p
+
         std::map<std::string,std::shared_ptr<ERC20>> tokens; // Key -> contract address
                                             // value -> erc20 contract info. 
+
+        std::shared_ptr<Uniswap> uniswap; 
         
         std::map<std::string,dev::eth::TransactionBase> mempool; // Tx hash -> tx data.
 
