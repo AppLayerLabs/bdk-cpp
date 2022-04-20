@@ -38,3 +38,29 @@ void Uniswap::loadUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db
     uniswap = std::make_shared<Uniswap>(uniswapInfo, tokens_list);
     return;
 }
+
+void Uniswap::saveUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db) {
+    auto allTokenPairs = uniswap->getAllTokenPairs();
+    auto allNativePairs = uniswap->getAllNativePairs();
+
+    for (auto tokenPair : allTokenPairs) {
+        json tokenInfo;
+        tokenInfo["lp_address"] = tokenPair.first;
+        tokenInfo["token_first"] = tokenPair.second->firstToken.first->ercAddress();
+        tokenInfo["token_second"] = tokenPair.second->secondToken.first->ercAddress();
+        tokenInfo["token_first_bal"] = boost::lexical_cast<std::string>(tokenPair.second->firstToken.second);
+        tokenInfo["token_second_bal"] = boost::lexical_cast<std::string>(tokenPair.second->secondToken.second); 
+        uniswap_db.putKeyValue(tokenPair.first, tokenInfo.dump());
+    }
+
+    for (auto nativePair : allNativePairs) {
+        json tokenInfo;
+        tokenInfo["lp_address"] = nativePair.first;
+        tokenInfo["token_first"] = "0x0066616b65206e61746976652077726170706572"; // 
+        tokenInfo["token_second"] = nativePair.second->second.first->ercAddress();
+        tokenInfo["token_first_bal"] = boost::lexical_cast<std::string>(nativePair.second->second.second);
+        tokenInfo["token_second_bal"] = boost::lexical_cast<std::string>(nativePair.second->first);
+        uniswap_db.putKeyValue(nativePair.first, tokenInfo.dump());
+    }
+    return;
+} 

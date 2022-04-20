@@ -36,6 +36,7 @@ Block Validation::initialize() {
 }
 
 void Validation::cleanAndClose() {
+    Uniswap::saveUniswap(uniswap, uniswapDB);
     ERC20::saveAllERC20(tokens, tokenDB);
     blocksDb.cleanCloseDB();
     confirmedTxs.cleanCloseDB();

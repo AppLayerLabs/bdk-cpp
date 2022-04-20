@@ -11,13 +11,13 @@ class Uniswap {
          
     struct TokenPair {
         std::shared_ptr<ERC20> LP;
-        std::pair<std::shared_ptr<ERC20>,dev::u256> first;
-        std::pair<std::shared_ptr<ERC20>,dev::u256> second;
+        std::pair<std::shared_ptr<ERC20>,dev::u256> firstToken;
+        std::pair<std::shared_ptr<ERC20>,dev::u256> secondToken;
 
-        TokenPair(std::shared_ptr<ERC20> _LP, std::pair<std::shared_ptr<ERC20>,dev::u256> _first, std::pair<std::shared_ptr<ERC20>,dev::u256> _second) {
+        TokenPair(std::shared_ptr<ERC20> _LP, std::pair<std::shared_ptr<ERC20>,dev::u256> _firstToken, std::pair<std::shared_ptr<ERC20>,dev::u256> _secondToken) {
             LP = _LP;
-            first = _first;
-            second = _second;
+            firstToken = _firstToken;
+            secondToken = _secondToken;
         }
     };
     
@@ -39,6 +39,11 @@ class Uniswap {
 
     std::map<std::string,std::shared_ptr<ERC20>> &tokens; // Reference to token list.
     public:
+    // view functions
+
+    std::map<std::string,std::shared_ptr<TokenPair>> const getAllTokenPairs() { return tokenPairs; }
+    std::map<std::string,std::shared_ptr<NativePair>> const getAllNativePairs() { return nativePairs; }
+
     // Constructor
 
     Uniswap(std::vector<std::string> &pairDataArr, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list);    
