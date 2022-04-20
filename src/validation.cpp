@@ -29,6 +29,7 @@ Block Validation::initialize() {
     Block bestBlock(blocksDb.getKeyValue("latest"));
     Utils::logToFile("I think it is here...");
     ERC20::loadAllERC20(tokenDB, tokens);
+    Uniswap::loadUniswap(uniswap, uniswapDB, tokens);
     Utils::logToFile("Not here?");
 
     return bestBlock;

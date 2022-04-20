@@ -201,6 +201,7 @@ set(SUBNETOOOR_HEADERS
   src/utils.h
   src/validation.h
   src/ERC20.h
+  src/Uniswap.h
 )
 
 set(SUBNETOOOR_SOURCES
@@ -214,6 +215,7 @@ set(SUBNETOOOR_SOURCES
   src/validation.cpp
   src/EthCall.cpp
   src/ERC20.cpp
+  src/Uniswap.cpp
 )
 
 

@@ -7,12 +7,18 @@
 class Uniswap {
     private:
     std::string uniswapAddress = "0x00000000000000000000000000756e6973776170"; // uniswap in hex.
-    std::string nativeWrapper = "0x0066616b65206e61746976652077726170706572"; // Only used for generating the LP token address.
+    std::string nativeWrapper = "0x0066616b65206e61746976652077726170706572"; // Only used for generating the LP token address. and saving to json.
          
     struct TokenPair {
         std::shared_ptr<ERC20> LP;
         std::pair<std::shared_ptr<ERC20>,dev::u256> first;
         std::pair<std::shared_ptr<ERC20>,dev::u256> second;
+
+        TokenPair(std::shared_ptr<ERC20> _LP, std::pair<std::shared_ptr<ERC20>,dev::u256> _first, std::pair<std::shared_ptr<ERC20>,dev::u256> _second) {
+            LP = _LP;
+            first = _first;
+            second = _second;
+        }
     };
     
     struct NativePair {
@@ -20,6 +26,12 @@ class Uniswap {
         std::shared_ptr<ERC20> LP;
 
         std::pair<std::shared_ptr<ERC20>,dev::u256> second;
+
+        NativePair(dev::u256 _first, std::shared_ptr<ERC20> _LP, std::pair<std::shared_ptr<ERC20>,dev::u256> _second) {
+            first = _first;
+            LP = _LP;
+            second = _second;
+        }
     };
 
     std::map<std::string,std::shared_ptr<TokenPair>> tokenPairs;
@@ -27,28 +39,19 @@ class Uniswap {
 
     std::map<std::string,std::shared_ptr<ERC20>> &tokens; // Reference to token list.
     public:
+    // Constructor
+
+    Uniswap(std::vector<std::string> &pairDataArr, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list);    
+    
     /*
     JSON FILE STRUCTURE:
 
     {
-      "tokenPairs" : [ 
-        {
-          "lp_address" : "",
-          "token_first" : "",
-          "token_second" : "",
-          "token_first_bal" : "",
-          "token_second_bal" : ""
-        }
-      ],
-
-      "nativePairs" : [
-        {
-          "lp_address" : "",
-          "token_second" : "",
-          "native_bal" : "",
-          "token_second_bal" : ""
-        }
-      ]
+        "lp_address" : "",
+        "token_first" : "", // Always Native Wrapper if native pair.
+        "token_second" : "",
+        "token_first_bal" : "",
+        "token_second_bal" : ""
     }
     */
 
