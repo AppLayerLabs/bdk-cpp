@@ -47,6 +47,12 @@ bool ERC20::mint(std::string to, dev::u256 value) {
     return true;
 }
 
+bool ERC20::burn(std::string from, dev::u256 value) {
+    this->totalSupply_ = this->totalSupply_ - value;
+    balances_[from] = balances_[from] - value;
+    return true;
+}
+
 ERC20::ERC20(json &data) {
     this->name_ = data["name"].get<std::string>();
     this->symbol_ = data["symbol"].get<std::string>();

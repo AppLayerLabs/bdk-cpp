@@ -4,6 +4,9 @@
 #include "ERC20.h"
 #include "db.h"
 
+#include <boost/multiprecision/integer.hpp>
+#include <include/web3cpp/devcore/CommonData.h>
+#include <include/web3cpp/devcore/SHA3.h>
 class Uniswap {
     private:
     std::string uniswapAddress = "0x00000000000000000000000000756e6973776170"; // uniswap in hex.
@@ -38,6 +41,10 @@ class Uniswap {
     std::map<std::string,std::shared_ptr<NativePair>> nativePairs;
 
     std::map<std::string,std::shared_ptr<ERC20>> &tokens; // Reference to token list.
+    Database &nativeDb; // Reference to native balances.
+
+    dev::u256 quote(dev::u256 amountA, dev::u256 reserveA, dev::u256 reserveB);
+    
     public:
     // view functions
 
@@ -46,7 +53,7 @@ class Uniswap {
 
     // Constructor
 
-    Uniswap(std::vector<std::string> &pairDataArr, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list);    
+    Uniswap(std::vector<std::string> &pairDataArr, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list, Database &nativeDb_ );    
     
     /*
     JSON FILE STRUCTURE:
@@ -60,13 +67,16 @@ class Uniswap {
     }
     */
 
-    static void loadUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list);
+    static void loadUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list, Database &nativeDb_);
     static void saveUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db);
 
-    bool addTokenPairLiquidity(std::string first, std::string second, dev::u256 firstValue, dev::u256 secondValue);
-    bool addNativePairLiquidity(dev::u256 nativeValue, std::string second, dev::u256 secondValue);
-    bool removeTokenLiquidity(std::string first, std::string second, dev::u256 lpValue);
-    bool removeNativeLiquidity(dev::u256 nativeValue, std::string second, dev::u256 lpValue);
+    bool addTokenPairLiquidity(std::string from, std::string first, std::string second, dev::u256 firstValue, dev::u256 secondValue, bool commit = false);
+    bool addNativePairLiquidity(std::string from, dev::u256 nativeValue, std::string second, dev::u256 secondValue, bool commit = false);
+    bool removeTokenLiquidity(std::string from, std::string first, std::string second, dev::u256 lpValue, bool commit = false);
+    bool removeNativeLiquidity(std::string from, dev::u256 nativeValue, std::string second, dev::u256 lpValue, bool commit = false);
+    bool swapNativeToToken(std::string from, dev::u256 nativeValue, std::string second, bool commit = false);
+    bool swapTokenToNative(std::string from, dev::u256 tokenValue, std::string second, bool commit = false);
+    bool swapTokenToToken(std::string from, dev::u256 firstValue, std::string first, std::string second, bool commit = false);
     bool tokenPairExists(std::string token_first, std::string token_second);
     bool nativePairExists(std::string token);
 
