@@ -73,7 +73,7 @@ class Uniswap : public std::enable_shared_from_this<Uniswap> {
     bool addTokenPairLiquidity(std::string from, std::string first, std::string second, dev::u256 firstValue, dev::u256 secondValue, bool commit = false);
     bool addNativePairLiquidity(std::string from, dev::u256 nativeValue, std::string second, dev::u256 secondValue, bool commit = false);
     bool removeTokenLiquidity(std::string from, std::string first, std::string second, dev::u256 lpValue, bool commit = false);
-    bool removeNativeLiquidity(std::string from, dev::u256 nativeValue, std::string second, dev::u256 lpValue, bool commit = false);
+    bool removeNativeLiquidity(std::string from, std::string second, dev::u256 lpValue, bool commit = false);
     bool swapNativeToToken(std::string from, dev::u256 nativeValue, std::string second, bool commit = false);
     bool swapTokenToNative(std::string from, dev::u256 tokenValue, std::string second, bool commit = false);
     bool swapTokenToToken(std::string from, dev::u256 firstValue, std::string first, std::string second, bool commit = false);

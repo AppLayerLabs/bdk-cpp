@@ -19,6 +19,7 @@ bool Validation::validateUniswapTransaction(dev::eth::TransactionBase tx, bool c
     // [4]:  0000000000000000000000002e913a79206280b3882860b3ef4df8204a62c8b1 // to.
     // [5]:  0000000000000000000000000000000000000000000000000000000062613e5c // deadline (ignored)
     if (abiSelector == "f91b3f72") { // addLiquidityAVAX
+        Utils::logToFile("UniswapValidation: addLiquidityAVAX");
         Utils::logToFile(abiStr);
         auto transactionValue = tx.value();
         std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint", "uint", "uint", "address", "uint"});
@@ -28,6 +29,26 @@ bool Validation::validateUniswapTransaction(dev::eth::TransactionBase tx, bool c
         dev::u256 txValue = tx.value();
 
         return this->uniswap->addNativePairLiquidity(from, txValue, tokenAddr, tokenValue, commit);
+    }
+
+    // Function: removeLiquidityAVAX(address token, uint256 liquidity, uint256 amountTokenMin, uint256 amountAVAXMin, address to, uint256 deadline)
+// 
+    // MethodID: 0x33c6b725
+    // [0]:  0000000000000000000000001650ac39bb84dfb04cbbbdbecd645f5b17148821 // Token
+    // [1]:  0000000000000000000000000000000000000000000000002be2aac7077d59cf // LP token quantity.
+    // [2]:  0000000000000000000000000000000000000000000000008a1580485b22f9d9 // min token acceptable (Ignored)
+    // [3]:  0000000000000000000000000000000000000000000000000dcef33a6f837f61 // min native acceptable (ignored)
+    // [4]:  0000000000000000000000002e913a79206280b3882860b3ef4df8204a62c8b1 // to
+    // [5]:  000000000000000000000000000000000000000000000000000000006261a4e0 // deadline (ignored);
+
+    if (abiSelector == "33c6b725") {
+        Utils::logToFile("UniswapValidation: removeLiquidityAVAX");
+        Utils::logToFile(abiStr);
+        std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint", "uint", "uint", "address", "uint"});
+        std::string tokenAddr = abi[0];
+        dev::u256 lpValue = boost::lexical_cast<dev::u256>(abi[1]);
+
+        return this->uniswap->removeNativeLiquidity(from, tokenAddr, lpValue, commit);
     }
 
     return false;

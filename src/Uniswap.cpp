@@ -86,14 +86,70 @@ dev::u256 Uniswap::quote(dev::u256 amountA, dev::u256 reserveA, dev::u256 reserv
     return amountB;
 }
 
+bool Uniswap::removeNativeLiquidity(std::string from, std::string second, dev::u256 lpValue, bool commit) {
+    Utils::logToFile(std::string("removeNativeLiquidity: from: " + from));
+    Utils::logToFile(std::string("removeNativeLiquidity: second: " + second));
+    Utils::logToFile(std::string("removeNativeLiquidity: lpValue: ") + boost::lexical_cast<std::string>(lpValue));
+
+    std::string lpTokenAddress = std::string("0x") + dev::toHex(dev::sha3(this->nativeWrapper() + second)).substr(0,40);
+
+    if (!nativePairs.count(lpTokenAddress)) {
+        Utils::logToFile("removeNativeLiquidity: lp token not found");
+        return false;
+    }
+
+    if (lpValue > tokens[lpTokenAddress]->balanceOf(from)) {
+        Utils::logToFile("removeNativeLiquidity: not enough LP balance");
+        return false;
+    }
+
+    dev::u256 balanceNative = nativePairs[lpTokenAddress]->first;
+    dev::u256 balanceToken = nativePairs[lpTokenAddress]->second.second;
+    dev::u256 lpTotalSupply = tokens[lpTokenAddress]->totalSupply();
+
+    dev::u256 amountNative = (lpValue * balanceNative) / lpTotalSupply;
+    dev::u256 amountToken = (lpValue * balanceToken) / lpTotalSupply;
+
+    if (amountNative == 0 && amountToken == 0) {
+        Utils::logToFile("removeNativeLiquidity: insufficient liquidity burned");
+        return false;
+    }
+
+    if (commit) {
+        // wtf too many variables lol
+        dev::u256 userPrevNativeBalance = boost::lexical_cast<dev::u256>(nativeDb.getKeyValue(from));
+        dev::u256 contractPrevNativeBalance = boost::lexical_cast<dev::u256>(nativeDb.getKeyValue(lpTokenAddress));
+        dev::u256 userPrevTokenBalance = tokens[second]->balanceOf(from);
+        dev::u256 contractPrevTokenBalance = tokens[second]->balanceOf(lpTokenAddress);;
+        dev::u256 userNativeBalance = userPrevNativeBalance + amountNative;
+        // dev::u256 userTokenBalance = userPrevTokenBalance + amountToken;
+        dev::u256 contractNativeBalance = contractPrevNativeBalance - amountNative;
+        dev::u256 contractTokenBalance = contractPrevTokenBalance - amountToken;
+
+        // Move tokens...
+        tokens[lpTokenAddress]->burn(from, lpValue);
+        tokens[second]->transfer(lpTokenAddress, from, amountToken, true);
+
+        // Update balances...
+        nativeDb.putKeyValue(from, boost::lexical_cast<std::string>(userNativeBalance));
+        nativeDb.putKeyValue(lpTokenAddress, boost::lexical_cast<std::string>(contractNativeBalance));
+        // Update internal contract state.
+
+        nativePairs[lpTokenAddress]->first = contractNativeBalance;
+        nativePairs[lpTokenAddress]->second.second = contractTokenBalance;
+    }
+
+    return true;
+}
+
 bool Uniswap::addNativePairLiquidity(std::string from, dev::u256 nativeValue, std::string second, dev::u256 secondValue, bool commit) {
     // Check if LP Token already exists.
-    Utils::logToFile(std::string("from: ") + from);
-    Utils::logToFile(std::string("nativeValue: ") + boost::lexical_cast<std::string>(nativeValue));
-    Utils::logToFile(std::string("second: ") + second);
-    Utils::logToFile(std::string("secondValue: ") + boost::lexical_cast<std::string>(secondValue));
+    Utils::logToFile(std::string("addNativePairLiquidity: from: ") + from);
+    Utils::logToFile(std::string("addNativePairLiquidity: nativeValue: ") + boost::lexical_cast<std::string>(nativeValue));
+    Utils::logToFile(std::string("addNativePairLiquidity: second: ") + second);
+    Utils::logToFile(std::string("addNativePairLiquidity: secondValue: ") + boost::lexical_cast<std::string>(secondValue));
 
-    std::string lpTokenAddr = std::string ("0x") + dev::toHex(dev::sha3(this->uniswapAddress() + second)).substr(0,40);
+    std::string lpTokenAddr = std::string ("0x") + dev::toHex(dev::sha3(this->nativeWrapper() + second)).substr(0,40);
     Utils::logToFile(lpTokenAddr);
     if (tokens.count(lpTokenAddr)) {
         dev::u256 nativeBalance = nativeValue;
