@@ -131,7 +131,10 @@ bool Uniswap::addNativePairLiquidity(std::string from, dev::u256 nativeValue, st
             dev::u256 contractFinalBal = lpNativeBal + amountA;
             nativeDb.putKeyValue(from, boost::lexical_cast<std::string>(userFinalNativeBal));
             nativeDb.putKeyValue(lpTokenAddr, boost::lexical_cast<std::string>(contractFinalBal));
-            tokens[second]->transfer(from, lpTokenAddr, amountB);
+
+            tokens[second]->transfer(from, lpTokenAddr, amountB, true);
+            nativePairs[lpTokenAddr]->first = nativePairs[lpTokenAddr]->first + amountA;
+            nativePairs[lpTokenAddr]->second.second = nativePairs[lpTokenAddr]->second.second + amountB;
 
             dev::u256 lpValue = std::min(
                 amountA * totalSupply / reservesFirst,
