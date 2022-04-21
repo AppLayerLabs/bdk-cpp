@@ -18,7 +18,8 @@ bool Validation::validateUniswapTransaction(dev::eth::TransactionBase tx, bool c
     // [3]:  0000000000000000000000000000000000000000000000000de0b6b3a7640000 // AVAX Min
     // [4]:  0000000000000000000000002e913a79206280b3882860b3ef4df8204a62c8b1 // to.
     // [5]:  0000000000000000000000000000000000000000000000000000000062613e5c // deadline (ignored)
-    if (abiSelector == "0xf91b3f72") { // addLiquidityAVAX
+    if (abiSelector == "f91b3f72") { // addLiquidityAVAX
+        Utils::logToFile(abiStr);
         auto transactionValue = tx.value();
         std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint", "uint", "uint", "address", "uint"});
 

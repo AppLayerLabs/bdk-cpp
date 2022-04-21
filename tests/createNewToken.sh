@@ -9,7 +9,7 @@ curl --location --request POST 'localhost:30000/' --header 'Content-Type: applic
         "address" : "0x010101010101010101010174657374746f6b656e", 
         "balances": [
           {
-            "address" : "0x2e913a79206280b3882860b3ef4df8204a62c8b1",
+            "address" : "0xe6a2d1ef7d7129d2a422af0a725629a0a1fbdec4",
             "value" : "10000000000000000000000"
           }
         ],

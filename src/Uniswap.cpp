@@ -4,6 +4,7 @@ Uniswap::Uniswap(std::vector<std::string> &pairDataArr, std::map<std::string,std
                                                                                                                                           nativeDb(nativeDb_) {
     Utils::logToFile("Loading Uniswap");                                                                                                                                         
     for (auto pairDataStr : pairDataArr) {
+        Utils::logToFile(pairDataStr);
         json pairData = json::parse(pairDataStr);
         // Native token
         if(pairData["token_first"].get<std::string>() == this->nativeWrapper()) { // Native token.
@@ -37,7 +38,7 @@ Uniswap::Uniswap(std::vector<std::string> &pairDataArr, std::map<std::string,std
 
 
 void Uniswap::loadUniswap(std::shared_ptr<Uniswap> &uniswap, Database &uniswap_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list, Database &nativeDb_) {
-    std::vector<std::string> uniswapInfo = uniswap_db.getAllKeys();
+    std::vector<std::string> uniswapInfo = uniswap_db.getAllValues();
     Utils::logToFile("Got all keys...");
     try {
         uniswap = std::make_shared<Uniswap>(uniswapInfo, tokens_list, nativeDb_);
@@ -48,26 +49,32 @@ void Uniswap::loadUniswap(std::shared_ptr<Uniswap> &uniswap, Database &uniswap_d
 }
 
 void Uniswap::saveUniswap(std::shared_ptr<Uniswap> &uniswap, Database &uniswap_db) {
+    Utils::logToFile("saveUniswap: started");
     auto allTokenPairs = uniswap->getAllTokenPairs();
     auto allNativePairs = uniswap->getAllNativePairs();
+    Utils::logToFile("Token/Native Pair loaded");
 
     for (auto tokenPair : allTokenPairs) {
         json tokenInfo;
+        Utils::logToFile(std::string("Saving token pair at: ") + tokenPair.first);
         tokenInfo["lp_address"] = tokenPair.first;
         tokenInfo["token_first"] = tokenPair.second->firstToken.first->ercAddress();
         tokenInfo["token_second"] = tokenPair.second->secondToken.first->ercAddress();
         tokenInfo["token_first_bal"] = boost::lexical_cast<std::string>(tokenPair.second->firstToken.second);
-        tokenInfo["token_second_bal"] = boost::lexical_cast<std::string>(tokenPair.second->secondToken.second); 
+        tokenInfo["token_second_bal"] = boost::lexical_cast<std::string>(tokenPair.second->secondToken.second);
+        Utils::logToFile(tokenInfo.dump(2)); 
         uniswap_db.putKeyValue(tokenPair.first, tokenInfo.dump());
     }
 
     for (auto nativePair : allNativePairs) {
         json tokenInfo;
+        Utils::logToFile(std::string("Saving native pair at: ") + nativePair.first);
         tokenInfo["lp_address"] = nativePair.first;
         tokenInfo["token_first"] = "0x0066616b65206e61746976652077726170706572"; // 
         tokenInfo["token_second"] = nativePair.second->second.first->ercAddress();
-        tokenInfo["token_first_bal"] = boost::lexical_cast<std::string>(nativePair.second->second.second);
-        tokenInfo["token_second_bal"] = boost::lexical_cast<std::string>(nativePair.second->first);
+        tokenInfo["token_first_bal"] = boost::lexical_cast<std::string>(nativePair.second->first);
+        tokenInfo["token_second_bal"] = boost::lexical_cast<std::string>(nativePair.second->second.second);
+        Utils::logToFile(tokenInfo.dump(2));
         uniswap_db.putKeyValue(nativePair.first, tokenInfo.dump());
     }
     return;
@@ -81,7 +88,13 @@ dev::u256 Uniswap::quote(dev::u256 amountA, dev::u256 reserveA, dev::u256 reserv
 
 bool Uniswap::addNativePairLiquidity(std::string from, dev::u256 nativeValue, std::string second, dev::u256 secondValue, bool commit) {
     // Check if LP Token already exists.
-    std::string lpTokenAddr = std::string ("0x") + dev::toHex(dev::sha3(this->uniswapAddress() + second));
+    Utils::logToFile(std::string("from: ") + from);
+    Utils::logToFile(std::string("nativeValue: ") + boost::lexical_cast<std::string>(nativeValue));
+    Utils::logToFile(std::string("second: ") + second);
+    Utils::logToFile(std::string("secondValue: ") + boost::lexical_cast<std::string>(secondValue));
+
+    std::string lpTokenAddr = std::string ("0x") + dev::toHex(dev::sha3(this->uniswapAddress() + second)).substr(0,40);
+    Utils::logToFile(lpTokenAddr);
     if (tokens.count(lpTokenAddr)) {
         dev::u256 nativeBalance = nativeValue;
         dev::u256 tokenBalance = secondValue;
@@ -92,8 +105,8 @@ bool Uniswap::addNativePairLiquidity(std::string from, dev::u256 nativeValue, st
         if (lpNativeBalStr == "") { return false; }
         dev::u256 lpNativeBal = boost::lexical_cast<dev::u256>(lpNativeBalStr);
         dev::u256 userTokenBalance = tokens[second]->balanceOf(from);
-        if (userNativeBalance >= nativeBalance || userTokenBalance >= tokenBalance) {
-            // Insuficient balance;
+        if (userNativeBalance < nativeBalance || userTokenBalance < tokenBalance) {
+            Utils::logToFile("addLiquidityAvax: not enough bal");
             return false;
         }
         dev::u256 amountA;
@@ -127,38 +140,54 @@ bool Uniswap::addNativePairLiquidity(std::string from, dev::u256 nativeValue, st
             tokens[lpTokenAddr]->mint(from, lpValue);
         }
     } else {
+        Utils::logToFile("createNewLiquidityAvax: trying");
         dev::u256 nativeBalance = nativeValue;
         dev::u256 tokenBalance = secondValue;
         std::string userNativeBalStr = nativeDb.getKeyValue(from);
         if (userNativeBalStr == "") { return false; }
         dev::u256 userNativeBalance = boost::lexical_cast<dev::u256>(userNativeBalStr);
         dev::u256 userTokenBalance = tokens[second]->balanceOf(from);
-        if (userNativeBalance >= nativeBalance || userTokenBalance >= tokenBalance) {
-            // Insuficient balance;
+        if (userNativeBalance < nativeBalance || userTokenBalance < tokenBalance) {
+            Utils::logToFile("createNewLiquidityAvax: not enough bal");
             return false;
         }
 
         dev::u256 lpTokenValue = boost::multiprecision::sqrt(nativeBalance * tokenBalance);
         if (commit) {
+            Utils::logToFile("createNewLiquidityAvax: committing...");
             json newToken;
             newToken["name"] = "LPT"; // LP Token
             newToken["symbol"] = "LPT";
             newToken["decimals"] = 18;
             newToken["totalSupply"] = boost::lexical_cast<std::string>(lpTokenValue);
             newToken["balances"] = json::array();
+            newToken["address"] = lpTokenAddr;
             json tmpBalJson;
             tmpBalJson["address"] = from;
             tmpBalJson["value"] = boost::lexical_cast<std::string>(lpTokenValue);
             newToken["balances"].push_back(tmpBalJson);
             newToken["allowances"] = json::array();
             
+            Utils::logToFile("createNewLiquidityAvax: LP Json created");
             // Create the LP token.
             tokens[lpTokenAddr] = std::make_shared<ERC20>(newToken);
+            Utils::logToFile("createNewLiquidityAvax: added to tokens ptr");
             // Correct balances...
             userNativeBalance = userNativeBalance - nativeBalance;
             nativeDb.putKeyValue(from, boost::lexical_cast<std::string>(userNativeBalance));
             nativeDb.putKeyValue(lpTokenAddr, boost::lexical_cast<std::string>(nativeBalance));
-            tokens[second]->transfer(from, lpTokenAddr, tokenBalance);
+            tokens[second]->transfer(from, lpTokenAddr, tokenBalance, true);
+            // Create native pair...
+            nativePairs[lpTokenAddr] = std::make_shared<NativePair>(
+                nativeBalance,
+                tokens[lpTokenAddr],
+                std::make_pair(
+                    tokens[second],
+                    tokenBalance
+                )
+            );
+
+            Utils::logToFile("createNewLiquidityAvax: Updated balances");
         }
     }
 

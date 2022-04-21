@@ -112,7 +112,11 @@ std::string VMServiceImplementation::processRPCMessage(std::string message) {
   }
   if(messageJson["method"] == "eth_getBlockByNumber") {
     log = true;
-    std::string blockNumber = Utils::uintFromHex(messageJson["params"][0].get<std::string>());
+    std::string blockNumber = messageJson["params"][0].get<std::string>();
+    if (blockNumber != "latest") {
+      Utils::logToFile(std::string("blockNumber: ") + blockNumber + " " + boost::lexical_cast<std::string>(blockNumber.size()));
+      blockNumber = Utils::uintFromHex(blockNumber);
+    }
     Utils::logToFile(std::string("getblockbynumber: ") + blockNumber);
     Block block = validation->getBlock(blockNumber);
     json answer;

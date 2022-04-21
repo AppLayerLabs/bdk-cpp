@@ -13,3 +13,4 @@ info.txt
 vmInfo.txt
 *.pb.h
 *.pb.cc
+tests/node_modules

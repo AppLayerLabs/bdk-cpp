@@ -54,9 +54,12 @@ bool ERC20::burn(std::string from, dev::u256 value) {
 }
 
 ERC20::ERC20(json &data) {
+    Utils::logToFile("ERC20: Constructor Starting");
+    Utils::logToFile(data.dump(2));
     this->name_ = data["name"].get<std::string>();
     this->symbol_ = data["symbol"].get<std::string>();
     this->decimals_ = data["decimals"].get<uint64_t>();
+    Utils::logToFile("ERC20: Basic information added");
     this->totalSupply_ = boost::lexical_cast<dev::u256>(data["totalSupply"].get<std::string>());
     this->ercAddress_ = data["address"].get<std::string>();
 
@@ -71,6 +74,7 @@ ERC20::ERC20(json &data) {
         //this->allowance_[allowances["address"].get<std::string>() = tmp;
         this->allowance_.emplace(allowances["address"].get<std::string>(), tmp);
     }
+    Utils::logToFile("ERC20: Constructor finished");
 }
 
 dev::u256 ERC20::balanceOf(std::string address) {

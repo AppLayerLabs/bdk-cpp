@@ -82,14 +82,7 @@ Block pastBlock(blocksDb.getKeyValue("latest"));
       dev::u256 transactionValue = tx.second.value();
 
 
-      // Normal Transfer
-      if (transactionValue != 0) {
-        fromBalance = fromBalance - transactionValue;
-        toBalance = toBalance + transactionValue;
-  
-        accountsDb.putKeyValue(from, boost::lexical_cast<std::string>(fromBalance));
-        accountsDb.putKeyValue(to, boost::lexical_cast<std::string>(toBalance));
-      }
+      bool isCall = false;  
       // ERC20 Transfer!
       if (tokens.count(to)) {
         std::string data = dev::toHex(tx.second.data());
@@ -98,10 +91,21 @@ Block pastBlock(blocksDb.getKeyValue("latest"));
         Utils::logToFile(std::string("ERC20 Transfer: ") + abiStr);
         std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint"});
         tokens[to]->transfer(from, abi[0], boost::lexical_cast<dev::u256>(abi[1]), true);
+        isCall = true;
       }
       // Uniswap!
       if (to == uniswap->uniswapAddress()) {
         this->validateUniswapTransaction(tx.second, true);
+        isCall = true;
+      }
+
+      if (transactionValue != 0 && !isCall) {
+        // Uniswap automatically adjust user native balance accordingly.
+        fromBalance = fromBalance - transactionValue;
+        toBalance = toBalance + transactionValue;
+  
+        accountsDb.putKeyValue(from, boost::lexical_cast<std::string>(fromBalance));
+        accountsDb.putKeyValue(to, boost::lexical_cast<std::string>(toBalance));
       }
 
       auto nonce = nonceDb.getKeyValue(from);
