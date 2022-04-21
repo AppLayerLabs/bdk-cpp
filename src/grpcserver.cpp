@@ -263,6 +263,7 @@ std::string VMServiceImplementation::processRPCMessage(std::string message) {
   }
   if (messageJson["method"] == "eth_call") {
     ret["result"] = validation->processEthCall(messageJson["params"]);
+    Utils::logToFile(std::string("EthCall: ") + ret["result"].get<std::string>());
   }
   if (messageJson["method"] == "FAUCET") {
     std::string address = messageJson["address"].get<std::string>();

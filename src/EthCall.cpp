@@ -3,6 +3,7 @@
 // This function will become too big to be in one file one.
 
 enum ContractType {
+    NONE,
     ERC20,
     UNISWAP
 };
@@ -19,19 +20,27 @@ std::string Validation::processEthCall(json &methods) {
     }
 
     std::string abiSelector = data.substr(0,10);
+    Utils::logToFile("processEthCall: abiSelector selected");
     std::string abi = data.substr(abiSelector.size(), data.size());
+    Utils::logToFile("processEthCall: abi selected");
 
-    ContractType type;
+    ContractType type = ContractType::NONE;
 
+    Utils::logToFile("processEthCall: Counting tokens...");
     if (this->tokens.count(contract)) {
+        Utils::logToFile("processEthCall: Found...");
         type = ContractType::ERC20;
     }
-
+    
+    Utils::logToFile("processEthCall: Checking agains't uniswap");
     if (contract == this->uniswap->uniswapAddress()) {
+        Utils::logToFile("processEthCall: Uniswap found");
         type = UNISWAP;
     }
 
+    Utils::logToFile("processEthCall: ERC20?");
     if (type == ContractType::ERC20) {
+        Utils::logToFile("processEthCall: Call is ERC20");
         if (abiSelector == "0x95d89b41") { // symbol().
             ret += Utils::uintToHex(boost::lexical_cast<std::string>(tokens[contract]->symbol().size()));
             ret += Utils::bytesToHex(tokens[contract]->symbol(), false);
@@ -60,7 +69,9 @@ std::string Validation::processEthCall(json &methods) {
     }
 
     if (type == ContractType::UNISWAP) {
-
+        Utils::logToFile("processEthCall: contract is uniswap");
     }
+
+    Utils::logToFile("processEthCall: returning");
     return "0x";
 }
