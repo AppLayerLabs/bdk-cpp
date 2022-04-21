@@ -212,10 +212,11 @@ set(SUBNETOOOR_SOURCES
   src/grpcclient.cpp
   src/grpcserver.cpp
   src/utils.cpp
+  src/Uniswap.cpp
+  src/UniswapValidation.cpp
   src/validation.cpp
   src/EthCall.cpp
   src/ERC20.cpp
-  src/Uniswap.cpp
 )
 
 

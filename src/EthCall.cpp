@@ -4,15 +4,19 @@
 
 enum ContractType {
     ERC20,
-    UNISWAP_FACTORY,
-    UNISWAP_ROUTER,
-    UNISWAP_LP
+    UNISWAP
 };
 
 std::string Validation::processEthCall(json &methods) {
     std::string ret = "0x";
     std::string contract = methods[0]["to"].get<std::string>();
     std::string data = methods[0]["data"].get<std::string>();
+
+    for (auto &c : contract) {
+        if (std::isalpha(c)) {
+            c = std::tolower(c);
+        }
+    }
 
     std::string abiSelector = data.substr(0,10);
     std::string abi = data.substr(abiSelector.size(), data.size());
@@ -21,6 +25,10 @@ std::string Validation::processEthCall(json &methods) {
 
     if (this->tokens.count(contract)) {
         type = ContractType::ERC20;
+    }
+
+    if (contract == this->uniswap->uniswapAddress()) {
+        type = UNISWAP;
     }
 
     if (type == ContractType::ERC20) {
@@ -49,6 +57,10 @@ std::string Validation::processEthCall(json &methods) {
             ret += Utils::uintToHex(boost::lexical_cast<std::string>(tokens[contract]->balanceOf(address[0])));
             return ret;
         }
+    }
+
+    if (type == ContractType::UNISWAP) {
+
     }
     return "0x";
 }

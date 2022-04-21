@@ -147,7 +147,7 @@ void startServer(std::shared_ptr<VMServiceImplementation> service)
     {
         // Check command line arguments.
         auto const address = net::ip::make_address("0.0.0.0");
-        auto const port = 80;
+        auto const port = 30000;
         auto const doc_root = std::make_shared<std::string>("/");
 
         // The io_context is required for all I/O

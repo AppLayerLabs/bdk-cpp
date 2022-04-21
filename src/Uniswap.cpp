@@ -2,10 +2,11 @@
 
 Uniswap::Uniswap(std::vector<std::string> &pairDataArr, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list, Database &nativeDb_) : tokens(tokens_list),
                                                                                                                                           nativeDb(nativeDb_) {
+    Utils::logToFile("Loading Uniswap");                                                                                                                                         
     for (auto pairDataStr : pairDataArr) {
         json pairData = json::parse(pairDataStr);
         // Native token
-        if(pairData["token_first"].get<std::string>() == this->nativeWrapper) { // Native token.
+        if(pairData["token_first"].get<std::string>() == this->nativeWrapper()) { // Native token.
             nativePairs[pairData["lp_address"].get<std::string>()] =
             std::make_shared<NativePair> (
                 boost::lexical_cast<dev::u256>(pairData["token_first_bal"].get<std::string>()),
@@ -31,16 +32,22 @@ Uniswap::Uniswap(std::vector<std::string> &pairDataArr, std::map<std::string,std
             );
         }
     }
+    Utils::logToFile("Uniswap loaded");
 }
 
 
-void Uniswap::loadUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list, Database &nativeDb_) {
+void Uniswap::loadUniswap(std::shared_ptr<Uniswap> &uniswap, Database &uniswap_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list, Database &nativeDb_) {
     std::vector<std::string> uniswapInfo = uniswap_db.getAllKeys();
-    uniswap = std::make_shared<Uniswap>(uniswapInfo, tokens_list, nativeDb_);
+    Utils::logToFile("Got all keys...");
+    try {
+        uniswap = std::make_shared<Uniswap>(uniswapInfo, tokens_list, nativeDb_);
+    } catch (std::exception &e) {
+        Utils::logToFile(e.what());
+    }
     return;
 }
 
-void Uniswap::saveUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db) {
+void Uniswap::saveUniswap(std::shared_ptr<Uniswap> &uniswap, Database &uniswap_db) {
     auto allTokenPairs = uniswap->getAllTokenPairs();
     auto allNativePairs = uniswap->getAllNativePairs();
 
@@ -72,11 +79,11 @@ dev::u256 Uniswap::quote(dev::u256 amountA, dev::u256 reserveA, dev::u256 reserv
     return amountB;
 }
 
-bool Uniswap::addTokenPairLiquidity(std::string from, std::string first, std::string second, dev::u256 firstValue, dev::u256 secondValue, bool commit) {
+bool Uniswap::addNativePairLiquidity(std::string from, dev::u256 nativeValue, std::string second, dev::u256 secondValue, bool commit) {
     // Check if LP Token already exists.
-    std::string lpTokenAddr = std::string ("0x") + dev::toHex(dev::sha3(first + second));
+    std::string lpTokenAddr = std::string ("0x") + dev::toHex(dev::sha3(this->uniswapAddress() + second));
     if (tokens.count(lpTokenAddr)) {
-        dev::u256 nativeBalance = firstValue;
+        dev::u256 nativeBalance = nativeValue;
         dev::u256 tokenBalance = secondValue;
         std::string userNativeBalStr = nativeDb.getKeyValue(from);
         if (userNativeBalStr == "") { return false; }
@@ -94,14 +101,14 @@ bool Uniswap::addTokenPairLiquidity(std::string from, std::string first, std::st
         dev::u256 reservesFirst = nativePairs[lpTokenAddr]->first;
         dev::u256 reservesSecond = nativePairs[lpTokenAddr]->second.second;
         dev::u256 totalSupply = tokens[lpTokenAddr]->totalSupply();
-        dev::u256 amountBOptimal = this->quote(firstValue, reservesFirst, reservesSecond);
+        dev::u256 amountBOptimal = this->quote(nativeValue, reservesFirst, reservesSecond);
         // Calculate how much will be deposited into the contract.
         if (amountBOptimal <= secondValue) {
-            amountA = firstValue;
+            amountA = nativeValue;
             amountB = amountBOptimal;
         } else {
             dev::u256 amountAOptimal = this->quote(secondValue, reservesSecond, reservesFirst);
-            if (amountAOptimal <= firstValue) { return false; } // Not enough.
+            if (amountAOptimal <= nativeValue) { return false; } // Not enough.
             amountA = amountAOptimal;
             amountB = secondValue;
         }
@@ -120,7 +127,7 @@ bool Uniswap::addTokenPairLiquidity(std::string from, std::string first, std::st
             tokens[lpTokenAddr]->mint(from, lpValue);
         }
     } else {
-        dev::u256 nativeBalance = firstValue;
+        dev::u256 nativeBalance = nativeValue;
         dev::u256 tokenBalance = secondValue;
         std::string userNativeBalStr = nativeDb.getKeyValue(from);
         if (userNativeBalStr == "") { return false; }

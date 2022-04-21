@@ -56,6 +56,7 @@ class Validation : std::enable_shared_from_this<Validation> {
     Block getLatestBlock();
     Block createNewBlock();
     bool validateBlock(Block block);
+    bool validateUniswapTransaction(dev::eth::TransactionBase tx, bool commit = false);
     bool validateTransaction(dev::eth::TransactionBase tx);
     bool addTxToMempool(dev::eth::TransactionBase tx);
 

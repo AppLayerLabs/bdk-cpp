@@ -17,6 +17,7 @@ Block Validation::initialize() {
     nonceDb.setAndOpenDB(nodeID + "-nonces");
     txToBlock.setAndOpenDB(nodeID + "-txToBlocks");
     tokenDB.setAndOpenDB(nodeID + "-tokens");
+    uniswapDB.setAndOpenDB(nodeID + "-uniswap");
     Utils::logToFile("DB created");
     if (blocksDb.isEmpty()) {
       blocksDb.putKeyValue(genesis.blockHash(), genesis.serializeToString());
@@ -29,7 +30,12 @@ Block Validation::initialize() {
     Block bestBlock(blocksDb.getKeyValue("latest"));
     Utils::logToFile("I think it is here...");
     ERC20::loadAllERC20(tokenDB, tokens);
-    Uniswap::loadUniswap(uniswap, uniswapDB, tokens, accountsDb);
+    Utils::logToFile("trying to load uniswap now");
+    try {
+      Uniswap::loadUniswap(uniswap, uniswapDB, tokens, accountsDb);
+    } catch (std::exception &e) {
+      Utils::logToFile(e.what());
+    }
     Utils::logToFile("Not here?");
 
     return bestBlock;
@@ -38,6 +44,7 @@ Block Validation::initialize() {
 void Validation::cleanAndClose() {
     Uniswap::saveUniswap(uniswap, uniswapDB);
     ERC20::saveAllERC20(tokens, tokenDB);
+    uniswapDB.cleanCloseDB();
     blocksDb.cleanCloseDB();
     confirmedTxs.cleanCloseDB();
     txToBlock.cleanCloseDB();
@@ -91,6 +98,10 @@ Block pastBlock(blocksDb.getKeyValue("latest"));
         Utils::logToFile(std::string("ERC20 Transfer: ") + abiStr);
         std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint"});
         tokens[to]->transfer(from, abi[0], boost::lexical_cast<dev::u256>(abi[1]), true);
+      }
+      // Uniswap!
+      if (to == uniswap->uniswapAddress()) {
+        this->validateUniswapTransaction(tx.second, true);
       }
 
       auto nonce = nonceDb.getKeyValue(from);
@@ -172,8 +183,13 @@ bool Validation::validateTransaction(dev::eth::TransactionBase tx) {
     std::string abiStr = data.substr(abiSelector.size(),data.size());
     Utils::logToFile(std::string("ERC20 Transfer Check: ") + abiStr);
     std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint"});
-    bool result = tokens[to]->transfer(from, abi[0], boost::lexical_cast<dev::u256>(abi[1]), false);
-    return result;
+    if (abiSelector == "0xa9059cbb") {
+      return tokens[to]->transfer(from, abi[0], boost::lexical_cast<dev::u256>(abi[1]), false);
+    } else { return false; }
+  }
+
+  if (to == uniswap->uniswapAddress()) {
+    return this->validateUniswapTransaction(tx);
   }
 
   return true;

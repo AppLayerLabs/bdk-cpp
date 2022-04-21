@@ -7,10 +7,8 @@
 #include <boost/multiprecision/integer.hpp>
 #include <include/web3cpp/devcore/CommonData.h>
 #include <include/web3cpp/devcore/SHA3.h>
-class Uniswap {
+class Uniswap : public std::enable_shared_from_this<Uniswap> {
     private:
-    std::string uniswapAddress = "0x00000000000000000000000000756e6973776170"; // uniswap in hex.
-    std::string nativeWrapper = "0x0066616b65206e61746976652077726170706572"; // Only used for generating the LP token address. and saving to json.
          
     struct TokenPair {
         std::shared_ptr<ERC20> LP;
@@ -47,6 +45,8 @@ class Uniswap {
     
     public:
     // view functions
+    const std::string uniswapAddress() { return "0x00000000000000000000000000756e6973776170"; } // uniswap in hex.
+    const std::string nativeWrapper() { return "0x0066616b65206e61746976652077726170706572"; }  // Only used for generating the LP token address. and saving to json.
 
     std::map<std::string,std::shared_ptr<TokenPair>> const getAllTokenPairs() { return tokenPairs; }
     std::map<std::string,std::shared_ptr<NativePair>> const getAllNativePairs() { return nativePairs; }
@@ -67,8 +67,8 @@ class Uniswap {
     }
     */
 
-    static void loadUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list, Database &nativeDb_);
-    static void saveUniswap(std::shared_ptr<Uniswap> uniswap, Database &uniswap_db);
+    static void loadUniswap(std::shared_ptr<Uniswap> &uniswap, Database &uniswap_db, std::map<std::string,std::shared_ptr<ERC20>> &tokens_list, Database &nativeDb_);
+    static void saveUniswap(std::shared_ptr<Uniswap> &uniswap, Database &uniswap_db);
 
     bool addTokenPairLiquidity(std::string from, std::string first, std::string second, dev::u256 firstValue, dev::u256 secondValue, bool commit = false);
     bool addNativePairLiquidity(std::string from, dev::u256 nativeValue, std::string second, dev::u256 secondValue, bool commit = false);
