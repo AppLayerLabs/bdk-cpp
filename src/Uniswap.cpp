@@ -86,6 +86,120 @@ dev::u256 Uniswap::quote(dev::u256 amountA, dev::u256 reserveA, dev::u256 reserv
     return amountB;
 }
 
+dev::u256 Uniswap::getAmountOut(dev::u256 amountIn, dev::u256 reserveIn, dev::u256 reserveOut) {
+    dev::u256 amountInWithFee = amountIn * 997;
+    dev::u256 numerator = amountInWithFee * reserveOut;
+    dev::u256 denominator = (reserveIn * 1000) + amountInWithFee;
+    return (numerator / denominator);
+}
+
+bool Uniswap::swapTokenToNative(std::string from, dev::u256 tokenValue, std::string second, bool commit) {
+    Utils::logToFile(std::string("swapTokenToNative: from: ") + from);
+    Utils::logToFile(std::string("swapTokenToNative: tokenValue: ") + boost::lexical_cast<std::string>(tokenValue));
+    Utils::logToFile(std::string("swapTokenToNative: second: ") + second);
+
+    std::string lpTokenAddress = std::string("0x") + dev::toHex(dev::sha3(this->nativeWrapper() + second)).substr(0,40);
+
+    if (!nativePairs.count(lpTokenAddress)) {
+        Utils::logToFile("swapTokenToNative: lp token not found");
+        return false;
+    }
+
+    if (tokenValue > tokens[second]->balanceOf(from)) {
+        Utils::logToFile("swapTokenToNative: insuficient token balance");
+        return false;
+    }
+
+    dev::u256 balanceNative = nativePairs[lpTokenAddress]->first;
+    dev::u256 balanceToken = nativePairs[lpTokenAddress]->second.second;
+
+    dev::u256 swapOutputAmount = getAmountOut(tokenValue, balanceToken, balanceNative);
+
+    if (swapOutputAmount == 0) {
+        Utils::logToFile("swapTokenToNative: insuficient amount");
+        return false;
+    }
+
+    if (commit) {
+        // wtf too many variables lol
+        dev::u256 contractPrevNativeBalance = boost::lexical_cast<dev::u256>(nativeDb.getKeyValue(lpTokenAddress));
+        dev::u256 userPrevNativeBalance = boost::lexical_cast<dev::u256>(nativeDb.getKeyValue(from));
+        dev::u256 userPrevTokenBalance = tokens[second]->balanceOf(from);
+        dev::u256 contractPrevTokenBalance = tokens[second]->balanceOf(lpTokenAddress);;
+        dev::u256 userNativeBalance = userPrevNativeBalance + swapOutputAmount;
+        // dev::u256 userTokenBalance = userPrevTokenBalance + amountToken;
+        dev::u256 contractNativeBalance = contractPrevNativeBalance - swapOutputAmount;
+        dev::u256 contractTokenBalance = contractPrevTokenBalance + tokenValue;
+
+        // Transfer tokens.
+        tokens[second]->transfer(from, lpTokenAddress, tokenValue, true);
+
+        // Update Native Balances.
+        nativeDb.putKeyValue(from, boost::lexical_cast<std::string>(userNativeBalance));
+        nativeDb.putKeyValue(lpTokenAddress, boost::lexical_cast<std::string>(contractNativeBalance));
+
+        // Update contract internal state.
+        nativePairs[lpTokenAddress]->first = contractNativeBalance;
+        nativePairs[lpTokenAddress]->second.second = contractTokenBalance;
+    }
+
+    return true;
+}
+
+bool Uniswap::swapNativeToToken(std::string from, dev::u256 nativeValue, std::string second, bool commit) {
+    Utils::logToFile(std::string("swapNativeToToken: from: " + from));
+    Utils::logToFile(std::string("swapNativeToToken: nativeValue: " + boost::lexical_cast<std::string>(nativeValue)));
+    Utils::logToFile(std::string("swapNativeToToken: second: " + second));
+
+    std::string lpTokenAddress = std::string("0x") + dev::toHex(dev::sha3(this->nativeWrapper() + second)).substr(0,40);
+
+    if (!nativePairs.count(lpTokenAddress)) {
+        Utils::logToFile("swapNativeToToken: lp token not found");
+        return false;
+    }
+
+    dev::u256 userPrevNativeBalance = boost::lexical_cast<dev::u256>(nativeDb.getKeyValue(from));
+
+    if (nativeValue > userPrevNativeBalance) {
+        Utils::logToFile("swapNativeToToken: Insuficient native balance");
+        return false;
+    }
+
+    dev::u256 balanceNative = nativePairs[lpTokenAddress]->first;
+    dev::u256 balanceToken = nativePairs[lpTokenAddress]->second.second;
+
+    dev::u256 swapOutputAmount = getAmountOut(nativeValue, balanceNative, balanceToken);
+
+    if (swapOutputAmount == 0) {
+        Utils::logToFile("swapNativeToToken: insuficient amount");
+        return false;
+    }
+
+    if (commit) {
+        // wtf too many variables lol
+        dev::u256 contractPrevNativeBalance = boost::lexical_cast<dev::u256>(nativeDb.getKeyValue(lpTokenAddress));
+        dev::u256 userPrevTokenBalance = tokens[second]->balanceOf(from);
+        dev::u256 contractPrevTokenBalance = tokens[second]->balanceOf(lpTokenAddress);;
+        dev::u256 userNativeBalance = userPrevNativeBalance - nativeValue;
+        // dev::u256 userTokenBalance = userPrevTokenBalance + amountToken;
+        dev::u256 contractNativeBalance = contractPrevNativeBalance + nativeValue;
+        dev::u256 contractTokenBalance = contractPrevTokenBalance - swapOutputAmount;
+
+        // Transfer tokens.
+        tokens[second]->transfer(lpTokenAddress, from, swapOutputAmount, true);
+
+        // Update Native Balances.
+        nativeDb.putKeyValue(from, boost::lexical_cast<std::string>(userNativeBalance));
+        nativeDb.putKeyValue(lpTokenAddress, boost::lexical_cast<std::string>(contractNativeBalance));
+
+        // Update contract internal state.
+        nativePairs[lpTokenAddress]->first = contractNativeBalance;
+        nativePairs[lpTokenAddress]->second.second = contractTokenBalance;
+    }
+
+    return true;
+}
+
 bool Uniswap::removeNativeLiquidity(std::string from, std::string second, dev::u256 lpValue, bool commit) {
     Utils::logToFile(std::string("removeNativeLiquidity: from: " + from));
     Utils::logToFile(std::string("removeNativeLiquidity: second: " + second));

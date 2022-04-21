@@ -42,6 +42,8 @@ class Uniswap : public std::enable_shared_from_this<Uniswap> {
     Database &nativeDb; // Reference to native balances.
 
     dev::u256 quote(dev::u256 amountA, dev::u256 reserveA, dev::u256 reserveB);
+
+    dev::u256 getAmountOut(dev::u256 amountIn, dev::u256 reserveIn, dev::u256 reserveOut);
     
     public:
     // view functions
