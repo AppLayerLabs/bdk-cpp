@@ -183,7 +183,7 @@ bool Validation::validateTransaction(dev::eth::TransactionBase tx) {
     std::string abiStr = data.substr(abiSelector.size(),data.size());
     Utils::logToFile(std::string("ERC20 Transfer Check: ") + abiStr);
     std::vector<std::string> abi = Utils::parseHex(abiStr, {"address", "uint"});
-    if (abiSelector == "0xa9059cbb") {
+    if (abiSelector == "a9059cbb") {
       return tokens[to]->transfer(from, abi[0], boost::lexical_cast<dev::u256>(abi[1]), false);
     } else { return false; }
   }
