@@ -42,6 +42,7 @@ find_package(libscrypt CONFIG REQUIRED)
 include(cmake/ProjectEthash.cmake)
 include(cmake/ProjectSecp256k1.cmake)
 include(cmake/ProjectToolbox.cmake)
+include(cmake/ProjectBoostCertify.cmake)
 include(ProjectSnappy)
 include(ProjectLevelDB)
 find_package(Threads)
@@ -53,7 +54,6 @@ include(cmake/FindGRPC.cmake)
 find_package(Protobuf REQUIRED)
 find_package(absl CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(gRPC REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options regex thread system chrono filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
@@ -93,6 +93,7 @@ target_link_libraries(aleth PRIVATE
 )
 
 # Generate gRPC files
+# TODO: force clean generation every time
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
@@ -224,7 +225,6 @@ set(SUBNETOOOR_SOURCES
   src/httpclient.cpp
 )
 
-
 message(STATUS ${SUBNETOOOR_HEADERS})
 message(STATUS ${SUBNETOOOR_SOURCES})
 
@@ -252,5 +252,7 @@ add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
 add_dependencies(subnetooord gen-grpc)
 # Add include folder to subnetooor
 target_include_directories(subnetooord PRIVATE aleth)
-target_link_libraries(subnetooord aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} gRPC::grpc++ ${Boost_LIBRARIES} LevelDB snappy crypto ssl)
+target_link_libraries(subnetooord aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES}
+  ${GRPC++_LIBRARY} ${Boost_LIBRARIES} LevelDB snappy crypto ssl
+)
 
