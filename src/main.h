@@ -52,6 +52,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 #include "grpcserver.h"
 #include "grpcclient.h"
 #include "db.h"
+#include "Bridge.h"
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;

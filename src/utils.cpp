@@ -168,3 +168,14 @@ std::vector<std::string> Utils::parseHex(std::string hexStr, std::vector<std::st
 
   return ret;
 }
+
+std::string Utils::hexToUtf8(std::string hex, uint32_t size) {
+  hex = hex.substr(2);  // Remove "0x"
+
+  std::string str;
+  for (int i = 0; i < hex.length() && i < (size*2); i += 2) {
+    str += std::stoul(hex.substr(i, 2), nullptr, 16);
+  }
+
+  return str;
+}

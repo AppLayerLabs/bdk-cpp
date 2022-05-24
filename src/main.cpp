@@ -24,6 +24,10 @@ void Subnet::start()
 }
 
 int main() {
+
+  auto result = Bridge::getBridgeRequest("0x75d504ecd66378269de9a6ec10a984370de3a2e98af39682e1e0825760d4f2ae");
+
+  return 0;
   std::signal(SIGINT, SIG_IGN);
   std::shared_ptr<Subnet> subnet = std::make_shared<Subnet>();
   subnet->start();

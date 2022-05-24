@@ -32,6 +32,7 @@ namespace Utils {
   std::string uintToHex(std::string input, bool isPadded = true);
   std::string uintFromHex(std::string hex);
   std::string bytesToHex(std::string input, bool isUint);
+  std::string hexToUtf8(std::string hex, uint32_t size);
   void logToFile(std::string str);
   std::vector<std::string> parseHex(std::string hexStr, std::vector<std::string> types);
 

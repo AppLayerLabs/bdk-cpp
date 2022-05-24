@@ -54,6 +54,7 @@ find_package(Protobuf REQUIRED)
 find_package(absl CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(gRPC REQUIRED)
+find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options regex thread system chrono filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${Protobuf_INCLUDE_DIR})
@@ -202,6 +203,8 @@ set(SUBNETOOOR_HEADERS
   src/validation.h
   src/ERC20.h
   src/Uniswap.h
+  src/Bridge.h
+  src/httpclient.h
 )
 
 set(SUBNETOOOR_SOURCES
@@ -217,6 +220,8 @@ set(SUBNETOOOR_SOURCES
   src/validation.cpp
   src/EthCall.cpp
   src/ERC20.cpp
+  src/Bridge.cpp
+  src/httpclient.cpp
 )
 
 
@@ -247,5 +252,5 @@ add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
 add_dependencies(subnetooord gen-grpc)
 # Add include folder to subnetooor
 target_include_directories(subnetooord PRIVATE aleth)
-target_link_libraries(subnetooord aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} gRPC::grpc++ ${Boost_LIBRARIES} LevelDB snappy)
+target_link_libraries(subnetooord aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} gRPC::grpc++ ${Boost_LIBRARIES} LevelDB snappy crypto ssl)
 
