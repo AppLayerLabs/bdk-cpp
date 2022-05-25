@@ -283,3 +283,19 @@ std::string VMServiceImplementation::processRPCMessage(std::string message) {
   }
   return ret.dump();
 }
+
+Status VMServiceImplementation::SetState(ServerContext* context, const vm::SetStateRequest* request, vm::SetStateResponse* reply) {
+  Utils::logToFile("SetState called");
+  Utils::logToFile(request->DebugString());
+
+  auto bestBlock = validation->getLatestBlock();
+  reply->set_last_accepted_id(Utils::hashToBytes(bestBlock.blockHash()));
+  reply->set_last_accepted_parent_id(Utils::hashToBytes(bestBlock.prevBlockHash()));
+  reply->set_height(boost::lexical_cast<uint64_t>(bestBlock.nHeight()));
+  // bytes -> last block bytes.
+  reply->set_bytes(bestBlock.serializeToString()); 
+  auto timestamp = reply->mutable_timestamp();
+  timestamp->set_seconds(boost::lexical_cast<uint64_t>(bestBlock.timestamp()));
+
+  return Status::OK;
+}

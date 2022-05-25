@@ -90,6 +90,8 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
     return Status::OK;
   }
 
+  Status SetState(ServerContext* context, const vm::SetStateRequest* request, vm::SetStateResponse* reply) override;
+
   Status CreateStaticHandlers(ServerContext* context, const google::protobuf::Empty* request, vm::CreateStaticHandlersResponse* reply) override {
     Utils::logToFile("CreateStaticHandlers Called");
     Utils::logToFile(request->DebugString());
