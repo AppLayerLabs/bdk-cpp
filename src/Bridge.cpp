@@ -60,3 +60,51 @@ Bridge::bridgeUserRequest Bridge::getBridgeRequest(std::string txId) {
 
     return ret;
 };
+
+
+void Bridge::processBridgeRequest(std::string user, std::string token, dev::u256 value) {
+
+    dev::eth::TransactionSkeleton txSkl;
+    // Get nonce.
+    auto nonceStr = HTTPClient::getNonce(Bridge::bridgeAdminAddress);
+    nonceStr = Utils::parseHex(nonceStr, {"uint"})[0];
+    // Get gas fees.
+    auto gasFeesStr = HTTPClient::getGasFees();
+    gasFeesStr = Utils::parseHex(gasFeesStr, {"uint"})[0];
+    // Create the transaction data.
+    // 0x6eb56fa1 <- call.
+    // 00000000000000000000000096dd1f16dc8a5d2d21040dd018d9d6b90039a4ac <- token
+    // 000000000000000000000000798333f07163eb62d1e22cc2df1acfe597567882 <- user
+    // 0000000000000000000000000000000000000000000000000000000000002710 <- value
+    std::string abi = "0x6eb56fa1";
+    abi += Utils::addressToHex(token);
+    abi += Utils::addressToHex(user);
+    abi += Utils::uintToHex(boost::lexical_cast<std::string>(value));
+
+    dev::u256 gasFees = boost::lexical_cast<dev::u256>(gasFeesStr);
+    dev::u256 nonce = boost::lexical_cast<dev::u256>(nonceStr);
+
+    // add 25 GWEI to make it confirm.
+    gasFees += 25000000000;
+
+    txSkl.from = dev::eth::toAddress(std::string(Bridge::bridgeAdminAddress));
+    txSkl.to = dev::eth::toAddress(std::string(Bridge::bridgeFujiContract));
+    txSkl.value = 0;
+    txSkl.data = dev::fromHex(abi);
+    txSkl.chainId = 43113;
+    txSkl.nonce = nonce;
+    txSkl.gasPrice = gasFees;
+    txSkl.gas = 100000;
+    
+    // Sign the transaction.
+    dev::Secret s(dev::fromHex(Bridge::bridgePrivKey));
+    dev::eth::TransactionBase tx = dev::eth::TransactionBase(txSkl);
+    tx.setNonce(txSkl.nonce);
+    tx.sign(s);
+
+    std::string transactionHex = dev::toHex(tx.rlp());
+    Utils::logToFile(std::string("processBridgeRequest tx: ") + transactionHex);
+
+    HTTPClient::submitTransaction(transactionHex);
+    return;
+}

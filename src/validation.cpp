@@ -101,6 +101,11 @@ Block pastBlock(blocksDb.getKeyValue("latest"));
         isCall = true;
       }
 
+      if (to == Bridge::bridgeNativeContract) {
+        this->validateBridgeTransaction(tx.second, true);
+        isCall = true;
+      }
+
       if (transactionValue != 0 && !isCall) {
         // Uniswap automatically adjust user native balance accordingly.
         fromBalance = fromBalance - transactionValue;
@@ -196,6 +201,10 @@ bool Validation::validateTransaction(dev::eth::TransactionBase tx) {
 
   if (to == uniswap->uniswapAddress()) {
     return this->validateUniswapTransaction(tx);
+  }
+
+  if (to == Bridge::bridgeNativeContract) {
+    return this->validateBridgeTransaction(tx);
   }
 
   return true;

@@ -223,6 +223,7 @@ set(SUBNETOOOR_SOURCES
   src/ERC20.cpp
   src/Bridge.cpp
   src/httpclient.cpp
+  src/BridgeValidation.cpp
 )
 
 message(STATUS ${SUBNETOOOR_HEADERS})

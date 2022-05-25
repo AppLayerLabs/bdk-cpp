@@ -190,3 +190,23 @@ std::string Utils::stripHexPrefix(std::string str) {
     !str.empty() && isHex(str) && (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X")
   ) ? str.substr(2) : str;
 }
+
+std::string Utils::addressToHex(std::string input) {
+  // Padding is 32 bytes
+  std::string padding = "0000000000000000000000000000000000000000000000000000000000000000";
+
+  // Get rid of the "0x" before converting and lowercase all letters
+  input = (input.substr(0, 2) == "0x") ? input.substr(2) : input;
+  for (auto& c : input) {
+    if (std::isupper(c)) {
+      c = std::tolower(c);
+    }
+  }
+
+  // Address is already in Hex so we just insert it into padding from right to left
+  for (size_t i = (input.size() - 1), x = (padding.size() - 1),
+    counter = 0; counter < input.size(); --i, --x, ++counter) {
+    padding[x] = input[i];
+  }
+  return padding;
+}

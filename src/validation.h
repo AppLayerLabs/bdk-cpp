@@ -8,6 +8,7 @@
 #include "ERC20.h"
 #include "Uniswap.h"
 #include "Bridge.h"
+#include <boost/thread.hpp>
 
 class Validation : std::enable_shared_from_this<Validation> {
     private:
@@ -61,6 +62,7 @@ class Validation : std::enable_shared_from_this<Validation> {
     Block createNewBlock();
     bool validateBlock(Block block);
     bool validateUniswapTransaction(dev::eth::TransactionBase tx, bool commit = false);
+    bool validateBridgeTransaction(dev::eth::TransactionBase tx, bool commit = false);
     bool validateTransaction(dev::eth::TransactionBase tx);
     bool addTxToMempool(dev::eth::TransactionBase tx);
 

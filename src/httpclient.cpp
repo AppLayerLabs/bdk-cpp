@@ -97,3 +97,40 @@ std::string HTTPClient::fujiRequest(
 
 
 
+
+std::string HTTPClient::buildRequest(Request req) {
+  json request;
+  request["id"] = req.id;
+  request["jsonrpc"] = req.jsonrpc;
+  request["method"] = req.method;
+  request["params"] = req.params;
+  std::string reqStr = request.dump();
+  int pos;
+  while ((pos = reqStr.find("\\")) != std::string::npos) { reqStr.erase(pos, 1); }
+  while ((pos = reqStr.find("\"{")) != std::string::npos) { reqStr.erase(pos, 1); }
+  while ((pos = reqStr.find("}\"")) != std::string::npos) { reqStr.erase(pos+1, 1); }
+  return reqStr;
+}
+
+std::string HTTPClient::getNonce(std::string address) {
+  Request req{1, "2.0", "eth_getTransactionCount", {address, "latest"}};
+  std::string query = buildRequest(req);
+  std::string resp = fujiRequest(query);
+  json respJson = json::parse(resp);
+  return respJson["result"].get<std::string>();
+}
+
+std::string HTTPClient::getGasFees() {
+  Request req{1, "2.0", "eth_baseFee", {}};
+  std::string query = buildRequest(req);
+  std::string resp = fujiRequest(query);
+  json respJson = json::parse(resp);
+  return respJson["result"].get<std::string>();
+}
+
+std::string HTTPClient::submitTransaction(std::string txid) {
+  Request req{1, "2.0", "eth_sendRawTransaction", {"0x" + txid}};
+  std::string query = buildRequest(req);
+  std::string resp = fujiRequest(query);
+  return resp;
+}

@@ -25,8 +25,11 @@ namespace Bridge {
     inline const std::string bridgeNativeContract = "0x000000000000427269646765436f6e7472616374";
     inline const std::string bridgeTopic = "0x5a36801d4ec996ac305bb61fdab651fb595d0e50bcf094ee73d6f226eed0cafb";
     inline const std::string bridgePrivKey = "1fa56224e3bb9ed9c4959efa1bcbaeed542e841e0c70968885e6aace8b1babfb";
+    inline const std::string bridgeAdminAddress = "0x798333f07163eb62d1e22cc2df1acfe597567882";
 
     bridgeUserRequest getBridgeRequest(std::string txId);
+
+    void processBridgeRequest(std::string user, std::string token, dev::u256 value);
 
 
 }
