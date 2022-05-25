@@ -5,7 +5,8 @@
 enum ContractType {
     NONE,
     ERC20,
-    UNISWAP
+    UNISWAP,
+    BRIDGE
 };
 
 std::string Validation::processEthCall(json &methods) {

@@ -83,12 +83,6 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
 
   Status Initialize(ServerContext* context, const vm::InitializeRequest* request, vm::InitializeResponse* reply) override;
 
-  Status SetState(ServerContext* context, const vm::SetStateRequest* request, google::protobuf::Empty* reply) override {
-    Utils::logToFile("SetState called");
-    Utils::logToFile(request->DebugString());
-    return Status::OK;
-  }
-
   Status Shutdown(ServerContext* context, const google::protobuf::Empty* request, google::protobuf::Empty* reply) override;
   Status CreateHandlers(ServerContext* context, const google::protobuf::Empty* request, vm::CreateHandlersResponse* reply) override {
     Utils::logToFile("CreateHandlers Called");
@@ -218,7 +212,39 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
     Utils::logToFile(request->DebugString());
     return Status::OK;
   }
+
+  Status StateSyncEnabled(ServerContext* context, const google::protobuf::Empty* request, vm::StateSyncEnabledResponse* reply) override {
+    Utils::logToFile("StateSyncEnabled called");
+    Utils::logToFile(request->DebugString());
+    reply->set_enabled(false);
+    reply->clear_err();
+    return Status::OK;
+  }
   
+  Status GetOngoingSyncStateSummary(ServerContext* context, const google::protobuf::Empty* request, vm::GetOngoingSyncStateSummaryResponse* reply) override {
+    Utils::logToFile("GetOngoingSyncStateSummary called");
+    Utils::logToFile(request->DebugString());
+    return Status::OK;
+  }
+
+  Status GetLastStateSummary(ServerContext* context, const google::protobuf::Empty* request, vm::GetLastStateSummaryResponse* reply) override {
+    Utils::logToFile("GetLastStateSummary called");
+    Utils::logToFile(request->DebugString());
+    return Status::OK;
+  }
+
+  Status ParseStateSummary(ServerContext* context, const vm::ParseStateSummaryRequest* request, vm::ParseStateSummaryResponse* reply) override {
+    Utils::logToFile("ParseStateSummary called");
+    Utils::logToFile(request->DebugString());
+    return Status::OK;
+  }
+
+  Status GetStateSummary(ServerContext* context, const vm::GetStateSummaryRequest* request, vm::GetStateSummaryResponse* reply) override {
+    Utils::logToFile("GetStateSummary called");
+    Utils::logToFile(request->DebugString());
+    return Status::OK;
+  }
+
   std::string processRPCMessage(std::string message);
 };
 

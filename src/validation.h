@@ -7,6 +7,7 @@
 #include "block.h"
 #include "ERC20.h"
 #include "Uniswap.h"
+#include "Bridge.h"
 
 class Validation : std::enable_shared_from_this<Validation> {
     private:
@@ -32,6 +33,9 @@ class Validation : std::enable_shared_from_this<Validation> {
 
         Database uniswapDB; // key -> pair address
                             // value -> p
+
+        Database BridgedTx; // Key -> txid
+                            // if key exists, tx was already bridged.
 
         std::map<std::string,std::shared_ptr<ERC20>> tokens; // Key -> contract address
                                             // value -> erc20 contract info. 
@@ -61,6 +65,7 @@ class Validation : std::enable_shared_from_this<Validation> {
     bool addTxToMempool(dev::eth::TransactionBase tx);
 
     void faucet(std::string address);
+    void processBridgeFrom(std::string txid);
 
 
     std::string getAccountBalanceFromDB(std::string address);

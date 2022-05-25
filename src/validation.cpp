@@ -18,6 +18,7 @@ Block Validation::initialize() {
     txToBlock.setAndOpenDB(nodeID + "-txToBlocks");
     tokenDB.setAndOpenDB(nodeID + "-tokens");
     uniswapDB.setAndOpenDB(nodeID + "-uniswap");
+    BridgedTx.setAndOpenDB(nodeID + "-BridgedTx");
     Utils::logToFile("DB created");
     if (blocksDb.isEmpty()) {
       blocksDb.putKeyValue(genesis.blockHash(), genesis.serializeToString());
@@ -25,7 +26,7 @@ Block Validation::initialize() {
       blocksDb.putKeyValue("latest", genesis.serializeToString());
     }
     if(accountsDb.isEmpty()) {
-      accountsDb.putKeyValue("0xe6a2d1ef7d7129d2a422af0a725629a0a1fbdec4", "10000000000000000000000");
+      accountsDb.putKeyValue("0x798333f07163eb62d1e22cc2df1acfe597567882", "10000000000000000000000");
     }
     Block bestBlock(blocksDb.getKeyValue("latest"));
     Utils::logToFile("I think it is here...");
@@ -44,6 +45,7 @@ Block Validation::initialize() {
 void Validation::cleanAndClose() {
     Uniswap::saveUniswap(uniswap, uniswapDB);
     ERC20::saveAllERC20(tokens, tokenDB);
+    BridgedTx.cleanCloseDB();
     uniswapDB.cleanCloseDB();
     blocksDb.cleanCloseDB();
     confirmedTxs.cleanCloseDB();
@@ -219,5 +221,37 @@ bool Validation::addTxToMempool(dev::eth::TransactionBase tx) {
 
 void Validation::createNewERC20(json &methods) {
   tokens[methods["address"].get<std::string>()] = std::make_shared<ERC20>(methods);
+  return;
+}
+
+void Validation::processBridgeFrom(std::string txid) {
+
+  for (auto &c : txid) {
+    if (std::isupper(c)) {
+      c = std::tolower(c);
+    }
+  }
+
+  if (BridgedTx.keyExists(txid)) {
+    Utils::logToFile(std::string("Attempt to double-bridge txid: ") + txid);
+    return;
+  }
+
+  auto bridgeInformation = Bridge::getBridgeRequest(txid);
+
+  if (!this->tokens.count(bridgeInformation.token)) {
+    json newToken;
+    newToken["name"] = bridgeInformation.tokenName;
+    newToken["symbol"] = bridgeInformation.tokenSymbol;
+    newToken["decimals"] = bridgeInformation.tokenDecimals;
+    newToken["totalSupply"] = "0";
+    newToken["address"] = bridgeInformation.token;
+    newToken["balances"] = json::array();
+    newToken["allowances"] = json::array();
+    this->createNewERC20(newToken);
+  }
+
+  tokens[bridgeInformation.token]->mint(bridgeInformation.user, bridgeInformation.amount);
+
   return;
 }

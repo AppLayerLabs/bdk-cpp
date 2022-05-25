@@ -17,7 +17,7 @@ void Subnet::start()
   builder.RegisterService(service.get());
   // Finally assemble the server.
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "1|12|tcp|" << server_address << "|grpc\n"<< std::flush;
+  std::cout << "1|14|tcp|" << server_address << "|grpc\n"<< std::flush;
   // Wait for the server to shutdown. Note that some other thread must be
   // responsible for shutting down the server for this call to ever return
   server->Wait();

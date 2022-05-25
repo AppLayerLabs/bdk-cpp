@@ -22,11 +22,11 @@ Status VMServiceImplementation::Initialize(ServerContext* context, const vm::Ini
     Utils::logToFile(bestBlock.blockHash());
     reply->set_last_accepted_id(Utils::hashToBytes(bestBlock.blockHash()));
     reply->set_last_accepted_parent_id(Utils::hashToBytes(bestBlock.prevBlockHash()));
-    reply->set_status(1);
     reply->set_height(1);
     // bytes -> last block bytes.
     reply->set_bytes(bestBlock.serializeToString()); 
-    reply->set_timestamp(Utils::secondsToGoTimeStamp(boost::lexical_cast<uint64_t>(bestBlock.timestamp())));
+    auto timestamp = reply->mutable_timestamp();
+    timestamp->set_seconds(boost::lexical_cast<uint64_t>(bestBlock.timestamp()));
     std::string jsonAnswer;
     google::protobuf::util::MessageToJsonString(*reply, &jsonAnswer, options);
     Utils::logToFile(std::string("jsonAnswer:" + jsonAnswer));
@@ -51,7 +51,8 @@ Status VMServiceImplementation::BuildBlock(ServerContext* context, const google:
     reply->set_parent_id(Utils::hashToBytes(newBestBlock.prevBlockHash()));
     reply->set_bytes(newBestBlock.serializeToString());
     reply->set_height(boost::lexical_cast<uint64_t>(newBestBlock.nHeight()));
-    reply->set_timestamp(Utils::secondsToGoTimeStamp(boost::lexical_cast<uint64_t>(newBestBlock.timestamp())));
+    auto timestamp = reply->mutable_timestamp();
+    timestamp->set_seconds(boost::lexical_cast<uint64_t>(newBestBlock.timestamp()));
     Utils::logToFile(request->DebugString());
     Utils::logToFile(reply->DebugString());
     isMining = false;
@@ -268,6 +269,10 @@ std::string VMServiceImplementation::processRPCMessage(std::string message) {
   if (messageJson["method"] == "FAUCET") {
     std::string address = messageJson["address"].get<std::string>();
     validation->faucet(address);
+  }
+
+  if (messageJson["method"] == "BridgeFrom") {
+    validation->processBridgeFrom(messageJson["txid"].get<std::string>());
   }
 
   if (messageJson["method"] == "createNewToken") {
