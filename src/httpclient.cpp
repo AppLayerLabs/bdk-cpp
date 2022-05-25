@@ -48,7 +48,7 @@ std::string HTTPClient::fujiRequest(
 
     // Set up an HTTP POST/GET request message
     http::request<http::string_body> req{
-      http::verb::get, target, 11
+      http::verb::post, target, 11
     };
 
       req.set(http::field::host, url);

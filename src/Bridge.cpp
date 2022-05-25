@@ -13,9 +13,12 @@ Bridge::bridgeUserRequest Bridge::getBridgeRequest(std::string txId) {
     request["params"].push_back(txId);
 
     // Get transaction receipt and parse it to a json.
-    json answer = json::parse(HTTPClient::fujiRequest(request.dump()));
+    std::string answerStr = HTTPClient::fujiRequest(request.dump());
+
+    json answer = json::parse(answerStr);
 
     // Parse event from transaction receipt.
+
     std::string eventAbi;
 
     for (auto item : answer["result"]["logs"]) {
@@ -39,11 +42,14 @@ Bridge::bridgeUserRequest Bridge::getBridgeRequest(std::string txId) {
     // 8  0000000000000000000000000000000000000000000000000000000000000003 <- tokenSymbol size
     // 9  5454540000000000000000000000000000000000000000000000000000000000 <- tokenSymbol string (in hex)
 
+    eventAbi = Utils::stripHexPrefix(eventAbi);
+
     // Split ABI string to vector of 64 characters (32 bytes) each.
     std::vector<std::string> abi;
     for (size_t i = 0; i < eventAbi.size(); i += 64) {
         abi.push_back(eventAbi.substr(i, 64));
     }
+
 
     ret.token = Utils::parseHex(abi[0], {"address"})[0];
     ret.user = Utils::parseHex(abi[1], {"address"})[0];

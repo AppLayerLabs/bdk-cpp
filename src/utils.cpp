@@ -170,12 +170,23 @@ std::vector<std::string> Utils::parseHex(std::string hexStr, std::vector<std::st
 }
 
 std::string Utils::hexToUtf8(std::string hex, uint32_t size) {
-  hex = hex.substr(2);  // Remove "0x"
-
+  hex = stripHexPrefix(hex);
   std::string str;
   for (int i = 0; i < hex.length() && i < (size*2); i += 2) {
     str += std::stoul(hex.substr(i, 2), nullptr, 16);
   }
 
   return str;
+}
+
+bool Utils::isHex(std::string hex) {
+  if (hex.substr(0, 2) == "0x" || hex.substr(0, 2) == "0X") { hex = hex.substr(2); }
+  return (hex.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos);
+}
+
+
+std::string Utils::stripHexPrefix(std::string str) {
+  return (
+    !str.empty() && isHex(str) && (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X")
+  ) ? str.substr(2) : str;
 }

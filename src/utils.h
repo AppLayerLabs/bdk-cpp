@@ -35,6 +35,8 @@ namespace Utils {
   std::string hexToUtf8(std::string hex, uint32_t size);
   void logToFile(std::string str);
   std::vector<std::string> parseHex(std::string hexStr, std::vector<std::string> types);
+  std::string stripHexPrefix(std::string str);
+  bool isHex(std::string hex);
 
 }
 
