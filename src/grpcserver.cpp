@@ -64,6 +64,8 @@ Status VMServiceImplementation::Shutdown(ServerContext* context, const google::p
   Utils::logToFile(request->DebugString());
   if (initialized) {
     validation->cleanAndClose();
+    boost::thread t(boost::bind(&Subnet::stopServer, subnet));
+    t.detach();
   }
   return Status::OK;
 }

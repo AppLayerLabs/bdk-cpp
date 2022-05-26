@@ -16,11 +16,20 @@ void Subnet::start()
   // clients. In this case it corresponds to an *synchronous* service.
   builder.RegisterService(service.get());
   // Finally assemble the server.
-  std::unique_ptr<Server> server(builder.BuildAndStart());
+  // std::unique_ptr<Server> server(builder.BuildAndStart());
+
+  server = builder.BuildAndStart();
   std::cout << "1|14|tcp|" << server_address << "|grpc\n"<< std::flush;
   // Wait for the server to shutdown. Note that some other thread must be
   // responsible for shutting down the server for this call to ever return
   server->Wait();
+}
+
+void Subnet::stopServer() {
+  // Sleep for 2 seconds and wait for Server shutdown answer.
+  boost::this_thread::sleep_for(boost::chrono::seconds(2));
+  server->Shutdown();
+  return;
 }
 
 int main() {

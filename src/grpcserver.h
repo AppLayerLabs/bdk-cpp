@@ -72,7 +72,7 @@ class VMServiceImplementation final : public vm::VM::Service, public std::enable
   std::shared_ptr<Subnet> subnet;
   std::shared_ptr<VMCommClient> commClient;
   std::shared_ptr<Validation> validation;
-
+  
   VMServiceImplementation (std::shared_ptr<Subnet> subnet_ptr_) : subnet(subnet_ptr_) {};
 
   void blockRequester() {

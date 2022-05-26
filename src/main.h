@@ -67,7 +67,10 @@ class VMServiceImplementation;
 class Subnet : public std::enable_shared_from_this<Subnet> {
   private: 
   std::shared_ptr<VMServiceImplementation> service;
+  std::unique_ptr<Server> server;
   public:
+
+  void stopServer();
 
   void start();
 };
