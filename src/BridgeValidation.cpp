@@ -10,8 +10,10 @@ bool Validation::validateBridgeTransaction(dev::eth::TransactionBase tx, bool co
     std::string from = std::string("0x") + tx.from().hex();
 
 
-
-    if (abiStr == "0xc84bda75") {
+    Utils::logToFile("validateBridgeTransaction: start");
+    Utils::logToFile(dev::toHex(tx.data()));
+    if (abiSelector == "c84bda75") {
+        Utils::logToFile("validateBridgeTransaction: ABI match.");
         auto abi = Utils::parseHex(abiStr, {"address","uint"});
 
         if (!this->tokens.count(abi[0])) {
@@ -21,7 +23,7 @@ bool Validation::validateBridgeTransaction(dev::eth::TransactionBase tx, bool co
 
         auto requestedValue = boost::lexical_cast<dev::u256>(abi[1]);
 
-        if (this->tokens[abi[0]]->balanceOf(from) >= requestedValue) {
+        if (this->tokens[abi[0]]->balanceOf(from) <= requestedValue) {
             Utils::logToFile("validateBridgeTransaction failed, insuficient in-chain balance");
             return false;
         }
@@ -36,5 +38,7 @@ bool Validation::validateBridgeTransaction(dev::eth::TransactionBase tx, bool co
 
         return true;
     }
+
+    Utils::logToFile("validateBridgeTransaction: ended");
     return false;
 }

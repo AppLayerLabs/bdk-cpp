@@ -181,6 +181,7 @@ void Validation::faucet(std::string address) {
 bool Validation::validateTransaction(dev::eth::TransactionBase tx) {
   std::string from = std::string("0x") + tx.from().hex();
   std::string to = std::string("0x") + tx.to().hex();
+  Utils::logToFile(std::string("validateTransaction: to ") + to);
   dev::u256 userBalance = boost::lexical_cast<dev::u256>(accountsDb.getKeyValue(from));
   auto txValue = tx.value();
   if (txValue > userBalance) {
@@ -204,6 +205,7 @@ bool Validation::validateTransaction(dev::eth::TransactionBase tx) {
   }
 
   if (to == Bridge::bridgeNativeContract) {
+    Utils::logToFile("validateTransaction: calling validateBridgeTransaction");
     return this->validateBridgeTransaction(tx);
   }
 
