@@ -22,18 +22,18 @@ const uniswapAbi = [
     "function removeLiquidityAVAX(address,uint256,uint256,uint256,address,uint256) external",
     "function swapExactAVAXForTokens(uint256,address[],address,uint256) external payable"
 ]
-const erc20Token = new ethers.Contract("0x010101010101010101010174657374746f6b656e", erc20Abi, signer)
+const erc20Token = new ethers.Contract("0x96dd1f16dc8a5d2d21040dd018d9d6b90039a4ac", erc20Abi, signer)
 const uniswapContract = new ethers.Contract("0x00000000000000000000000000756e6973776170", uniswapAbi, signer)
 
 async function main() {
-    console.log(ethers.utils.formatUnits(await erc20Token.balanceOf("0xe6a2d1ef7d7129d2a422af0a725629a0a1fbdec4"),0))
+    console.log(ethers.utils.formatUnits(await erc20Token.balanceOf("0x798333f07163eb62d1e22cc2df1acfe597567882"),0))
 
 
     try {
         const txResponse = await uniswapContract.swapExactAVAXForTokens(
             0,
-            ["0x0066616b65206e61746976652077726170706572", "0x010101010101010101010174657374746f6b656e"],
-            "0xe6a2d1ef7d7129d2a422af0a725629a0a1fbdec4",
+            ["0x0066616b65206e61746976652077726170706572", "0x96dd1f16dc8a5d2d21040dd018d9d6b90039a4ac"],
+            "0x798333f07163eb62d1e22cc2df1acfe597567882",
             0,
             { value: ethers.utils.parseEther("0.1") }
         )

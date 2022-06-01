@@ -6,10 +6,10 @@ curl --location --request POST 'localhost:30000/' --header 'Content-Type: applic
         "symbol" : "SBTK",
         "decimals" : 18,
         "totalSupply" : "10000000000000000000000",
-        "address" : "0x010101010101010101010174657374746f6b656e", 
+        "address" : "0x96dd1f16dc8a5d2d21040dd018d9d6b90039a4ac", 
         "balances": [
           {
-            "address" : "0xe6a2d1ef7d7129d2a422af0a725629a0a1fbdec4",
+            "address" : "0x798333f07163eb62d1e22cc2df1acfe597567882",
             "value" : "10000000000000000000000"
           }
         ],

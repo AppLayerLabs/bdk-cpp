@@ -20,20 +20,20 @@ const erc20Abi = [
 const uniswapAbi = [
     "function addLiquidityAVAX(address,uint256,uint256,uint256,address,uint256) external payable"
 ]
-const erc20Token = new ethers.Contract("0x010101010101010101010174657374746f6b656e", erc20Abi, signer)
+const erc20Token = new ethers.Contract("0x96dd1f16dc8a5d2d21040dd018d9d6b90039a4ac", erc20Abi, signer)
 const uniswapContract = new ethers.Contract("0x00000000000000000000000000756e6973776170", uniswapAbi, signer)
 
 async function main() {
-    console.log(ethers.utils.formatUnits(await erc20Token.balanceOf("0xe6a2d1ef7d7129d2a422af0a725629a0a1fbdec4"),0))
+    console.log(ethers.utils.formatUnits(await erc20Token.balanceOf("0x798333f07163eb62d1e22cc2df1acfe597567882"),0))
 
 
     try {
         const txResponse = await uniswapContract.addLiquidityAVAX(
-            "0x010101010101010101010174657374746f6b656e",
+            "0x96dd1f16dc8a5d2d21040dd018d9d6b90039a4ac",
             BigNumber.from("10000000000000000000"),
             0, // Ignored for now
             0, // Ignored for now
-            "0xe6a2d1ef7d7129d2a422af0a725629a0a1fbdec4",
+            "0x798333f07163eb62d1e22cc2df1acfe597567882",
             0, // Ignored for now
             { value: ethers.utils.parseEther("1.0") }
         )

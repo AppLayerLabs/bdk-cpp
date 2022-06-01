@@ -24,7 +24,7 @@ async function main() {
     try {
         const txResponse = await bridgeContract.bridgeTo(
             "0x96dd1f16dc8a5d2d21040dd018d9d6b90039a4ac",
-            BigNumber.from("5000000000000000000")
+            BigNumber.from("100000000000000000000")
         )
 
         const result = txResponse.wait();
