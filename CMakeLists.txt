@@ -11,6 +11,34 @@ cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Debug;Release;RelWithDe
 set(CMAKE_MAP_IMPORTED_CONFIG_DEBUG Release)
 set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
 
+set(DEPENDS_PREFIX "")
+if("${TOOLCHAIN_PREFIX}" STREQUAL "x86_64-w64-mingw32")
+  set(DEPENDS_PREFIX "x86_64-w64-mingw32")
+  message("Toolchain: x86_64-w64-mingw32")
+  message("Loading Windows Libraries")
+  include("${CMAKE_SOURCE_DIR}/cmake/WindowsLibraries.cmake")
+else()  
+  if("${TOOLCHAIN_PREFIX}" STREQUAL "x86_64-apple-darwin20")
+    message("Toolchain: x86_64-apple-darwin20")
+    set(DEPENDS_PREFIX "x86_64-apple-darwin20.5.0")
+    message("Loading Darwin Libraries")
+    include("${CMAKE_SOURCE_DIR}/cmake/DarwinLibraries.cmake")
+  else()
+    if("${TOOLCHAIN_PREFIX}" STREQUAL "arm-apple-darwin21.2.0")
+      message("Toolchain: arm-apple-darwin21.2.0")
+      set(DEPENDS_PREFIX "arm-apple-darwin21.2.0")
+      include("${CMAKE_SOURCE_DIR}/cmake/DarwinArmLibraries.cmake")
+      message("Loading Darwin Libraries")
+    else() 
+      message("Toolchain: x86_64-pc-linux-gnu")
+      set(DEPENDS_PREFIX "x86_64-pc-linux-gnu")
+      include("${CMAKE_SOURCE_DIR}/cmake/LinuxLibraries.cmake")
+      message("Loading Linux Libraries")
+    endif()
+  endif()
+endif()
+
+
 # Get Hunter
 include("cmake/HunterGate.cmake")
 HunterGate(
@@ -43,22 +71,14 @@ include(cmake/ProjectEthash.cmake)
 include(cmake/ProjectSecp256k1.cmake)
 include(cmake/ProjectToolbox.cmake)
 include(cmake/ProjectBoostCertify.cmake)
-include(ProjectSnappy)
-include(ProjectLevelDB)
+include(cmake/ProjectSnappy.cmake)
+include(cmake/ProjectLevelDB.cmake)
 find_package(Threads)
 
 # Include Protobuf
-include(FindProtobuf)
-include(FindZLIB)
+include(cmake/ProjectProtobuf.cmake)
 include(cmake/FindGRPC.cmake)
-find_package(Protobuf REQUIRED)
 find_package(absl CONFIG REQUIRED)
-find_package(ZLIB REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options regex thread system chrono filesystem)
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(${Protobuf_INCLUDE_DIR})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # Include headers and libs
 include_directories(
@@ -66,12 +86,14 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/src"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/include"
+  "${CMAKE_SOURCE_DIR}/depends/${DEPENDS_PREFIX}/include"
 )
 link_directories(
   "${CMAKE_SOURCE_DIR}"
   "${CMAKE_SOURCE_DIR}/src"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/lib"
+  "${CMAKE_SOURCE_DIR}/depends/${DEPENDS_PREFIX}/lib"
 )
 
 # Organize, compile and link aleth libs
@@ -97,7 +119,7 @@ target_link_libraries(aleth PRIVATE
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -107,7 +129,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -117,7 +139,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -127,7 +149,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -137,7 +159,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/metrics.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/metrics.grpc.pb.h"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -147,7 +169,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -157,7 +179,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -253,7 +275,8 @@ add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
 add_dependencies(subnetooord gen-grpc)
 # Add include folder to subnetooor
 target_include_directories(subnetooord PRIVATE aleth)
-target_link_libraries(subnetooord aleth ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES}
-  ${GRPC++_LIBRARY} ${Boost_LIBRARIES} LevelDB snappy crypto ssl
+target_link_libraries(subnetooord aleth Protobuf ${GRPC_LIBRARIES}
+  ${GRPC++_LIBRARY} LevelDB snappy ${BOOST_LIBS} ${OPENSSL_LIBS} ${Z_LIBS} ${LIB_INCLUDE}
 )
+
 
