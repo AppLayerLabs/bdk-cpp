@@ -1,44 +1,28 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "../include/web3cpp/devcore/Common.h"
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/lexical_cast.hpp>
+#include <include/web3cpp/devcore/CommonData.h>
+#include "json.hpp"
 
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-#include <sstream>
-#include <fstream>
-#include <chrono>
 
-template <typename ElemT>
-struct HexTo {
-  ElemT value;
-  operator ElemT() const { return value; }
-  friend std::istream& operator>>(std::istream& in, HexTo& out) {
-    in >> std::hex >> out.value;
-    return in;
-  }
-};
+
+using json = nlohmann::ordered_json;
+using uint256_t = boost::multiprecision::uint256_t;
 
 namespace Utils {
-    
-  // u256 to 48 bytes
-  dev::bytes u256toBytes(dev::u256 value);
-  // 48 bytes to u256
-  dev::u256 bytesTou256(dev::bytes value);
-  std::string secondsToGoTimeStamp(uint64_t seconds);
-  std::string hashToBytes(std::string hash);
-  std::string uintToHex(std::string input, bool isPadded = true);
-  std::string uintFromHex(std::string hex);
-  std::string bytesToHex(std::string input, bool isUint);
-  std::string hexToUtf8(std::string hex, uint32_t size);
-  std::string addressToHex(std::string input);
-  void logToFile(std::string str);
-  std::vector<std::string> parseHex(std::string hexStr, std::vector<std::string> types);
-  std::string stripHexPrefix(std::string str);
-  bool isHex(std::string hex);
-
+    std::vector<uint8_t> uint256ToBytes(const uint256_t &i);
+    std::vector<uint8_t> uint64ToBytes(const uint64_t &i);
+    std::vector<uint8_t> uint32ToBytes(const uint32_t &i);
+    uint256_t bytesToUint256(const std::vector<uint8_t> &bytes);
+    uint64_t bytesToUint64(const std::vector<uint8_t> &bytes);
+    uint32_t bytesToUint32(const std::vector<uint8_t> &bytes);
 }
+
+
+
+
 
 #endif // UTILS_H

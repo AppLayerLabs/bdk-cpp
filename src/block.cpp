@@ -1,69 +1,79 @@
 #include "block.h"
 
+Block::Block(const std::vector<uint8_t> &blockData) {
+  // Split the block data into different vectors.
 
+  std::vector<uint8_t> prevBlockHashBytes; // uint256_t
+  std::vector<uint8_t> timestampBytes;     // uint64_t
+  std::vector<uint8_t> nHeightBytes;       // uint64_t
+  std::vector<uint8_t> txArraySizeBytes;   // uint32_t
+  std::vector<uint8_t> rawTransactions;    // N
 
-bool Block::addTx(dev::eth::TransactionBase tx) {
-    if (!tx.hasSignature()) {
-        Utils::logToFile("Block::addTx error: submitted transaction has no signature");
-        return false;
-    }
+  std::copy(blockData.begin(), blockData.begin() + 32, std::back_inserter(prevBlockHashBytes));
+  std::copy(blockData.begin() + 32, blockData.begin() + 32 + 8, std::back_inserter(timestampBytes));
+  std::copy(blockData.begin() + 32 + 8, blockData.begin() + 32 + 8 + 8, std::back_inserter(nHeightBytes));
+  std::copy(blockData.begin() + 32 + 8 + 8, blockData.begin() + 32 + 8 + 8 + 4, std::back_inserter(txArraySizeBytes));
+  std::copy(blockData.begin() + 32 + 8 + 8 + 4, blockData.end(), std::back_inserter(rawTransactions));
 
-    if (tx.safeSender() == dev::ZeroAddress) {
-        Utils::logToFile("Block::addTx error: invalid Tx!");
-        return false;
-    }
+  this->_prevBlockHash = Utils::bytesToUint256(prevBlockHashBytes);
+  this->_timestamp = Utils::bytesToUint64(timestampBytes);
+  this->_nHeight = Utils::bytesToUint64(nHeightBytes);
+  this->_txCount = Utils::bytesToUint32(txArraySizeBytes);
 
-    this->_transactions.push_back(tx);
-    this->_txCount = this->_txCount + 1;
-    return true;
+  // Parse and push transactions into block.
+  uint64_t nextTx = 0;
+  for (uint32_t i = 0; i < this->_txCount; ++i) {
+    std::vector<uint8_t> txBytes; 
+    std::vector<uint8_t> txSizeBytes;
+    // Copy transaction size.
+    std::copy(rawTransactions.begin() + nextTx, rawTransactions.begin() + nextTx + 4, std::back_inserter(txSizeBytes));
+    uint32_t txSize = Utils::bytesToUint32(txSizeBytes);
+    // Copy transacion itself.
+    std::copy(rawTransactions.begin() + nextTx + 4, rawTransactions.begin() + nextTx + 4 + txSize, std::back_inserter(txBytes));
+    nextTx = nextTx + 4 + txSize;
+
+    this->_transactions.push_back(dev::eth::TransactionBase(txBytes, dev::eth::CheckTransaction::None));
+  }
 }
 
-std::string Block::serializeToString() {
-    std::string ret;
-    json blockJson;
-    blockJson["prevBlockHash"] = this->_prevBlockHash;
-    blockJson["timestamp"] = boost::lexical_cast<std::string>(this->_timestamp);
-    blockJson["txCount"] = boost::lexical_cast<std::string>(this->_txCount);
-    blockJson["nHeight"] = boost::lexical_cast<std::string>(this->_nHeight);
-    blockJson["blockData"] = this->_blockData;
-    blockJson["transactions"] = json::array();
-    for (auto tx : this->_transactions) {
-        blockJson["transactions"].push_back(dev::toHex(tx.rlp()));
-    }
-    ret = blockJson.dump();
-    this->_blockHash = dev::toHex(dev::sha3(ret));
-    return ret;
+std::vector<uint8_t> Block::serializeToBytes() {
+  // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ...]
+  std::vector<uint8_t> ret;
+  std::vector<uint8_t> prevBlockHashBytes = Utils::uint256ToBytes(this->_prevBlockHash);
+  std::vector<uint8_t> timestampBytes = Utils::uint64ToBytes(this->_timestamp);
+  std::vector<uint8_t> nHeightBytes = Utils::uint64ToBytes(this->_nHeight);
+  std::vector<uint8_t> txCountBytes = Utils::uint32ToBytes(this->_txCount);
+  // Append Header.
+  std::copy(prevBlockHashBytes.begin(), prevBlockHashBytes.end(), std::back_inserter(ret));
+  std::copy(timestampBytes.begin(), timestampBytes.end(), std::back_inserter(ret));
+  std::copy(nHeightBytes.begin(), nHeightBytes.end(), std::back_inserter(ret));
+  std::copy(txCountBytes.begin(), txCountBytes.end(), std::back_inserter(ret));
+
+  // Append Transactions
+  // For each transaction, we need to parse both their size and their data.
+  for (auto transaction : this->_transactions) {
+    std::vector<uint8_t> txBytes = transaction.rlp(dev::eth::IncludeSignature::WithSignature);
+    std::vector<uint8_t> txSizeBytes = Utils::uint32ToBytes(txBytes.size());
+    std::copy(txSizeBytes.begin(), txSizeBytes.end(), std::back_inserter(ret));
+    std::copy(txBytes.begin(), txBytes.end(), std::back_inserter(ret));
+  }
+
+  return ret;
 }
 
-
-bool Block::serializeFromString(std::string blockBytes) {
-    json blockJson = json::parse(blockBytes);
-
-    this->_prevBlockHash = blockJson["prevBlockHash"];
-    this->_timestamp = boost::lexical_cast<dev::u256>(blockJson["timestamp"].get<std::string>());
-    this->_txCount = boost::lexical_cast<dev::u256>(blockJson["txCount"].get<std::string>());
-    this->_nHeight = boost::lexical_cast<dev::u256>(blockJson["nHeight"].get<std::string>());
-    this->_blockData = blockJson["blockData"].get<std::string>();
-
-    for (auto tx : blockJson["transactions"].items()) {
-        dev::eth::TransactionBase transaction(dev::fromHex(tx.value()), dev::eth::CheckTransaction::Everything);
-        this->_transactions.push_back(transaction);
-    }
-
-    this->_blockHash = dev::toHex(dev::sha3(blockJson.dump()));
-
-    return true;
+std::array<uint8_t,32> Block::getBlockHash() {
+  return dev::sha3(this->serializeToBytes()).asArray();
 }
 
-Block::Block(std::string blockBytes) {
-    this->serializeFromString(blockBytes);
-}
-
-Block::Block(std::string __prevBlockHash, dev::u256 __timestamp, dev::u256 __txCount, dev::u256 __nHeight, std::string __blockData) {
-    this->_prevBlockHash = __prevBlockHash;
-    this->_timestamp = __timestamp;
-    this->_txCount = __txCount;
-    this->_nHeight = __nHeight;
-    this->_blockData = __blockData;
-    this->serializeToString();
+const uint64_t Block::blockSize() {
+  uint64_t ret = 0;
+  // Prev Block Hash + Timestamp + nHeight + txCount + [ txSize, tx, ...]
+  // 32 + 8 + 8 + 4 + Nx[4 + Ny]
+  ret = ret + 32 + 8 + 8 + 4;
+  // Append tx's size.
+  for (auto transaction : this->_transactions) {
+    // This is not optimized, it will be fixed later.
+    ret = ret + 4 + transaction.rlp(dev::eth::IncludeSignature::WithSignature).size();
+  }
+  return ret;
 }

@@ -1,60 +1,91 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include <include/web3cpp/devcore/Common.h>
+#include <array>
+#include <stdint.h>
+#include <vector>
+
+
 #include <include/web3cpp/ethcore/TransactionBase.h>
 #include "utils.h"
-#include "json.hpp"
 
-// the json is used to encode the block to a string of bytes
-// Order is extremely important to make this work!!!
+// The block class only contains the structure and some utilities when dealing with blocks
+// It does **NOT** check transaction logic/signature.
+// It is meant to be a fast way to parse from/into the network and disk.
 
-using json = nlohmann::ordered_json;
 
+// BLOCK STRUCTURE:
+//
+//  32 BYTES - PREV BLOCK HASH
+//  8 BYTES - TIMESTAMP
+//  8 BYTES - NHEIGHT
+//  4 BYTES - TX_COUNT
+//  4 BYTES - TX ARRAY SIZE.
+//  [
+//    4 BYTES - TX SIZE
+//    X BYTES - TX
+//    ,
+//    4 BYTES - TX SIZE
+//    X BYTES - TX
+//    ...
+//  ]
+//
+// EXAMPLE (In hex):
+//
+// prevBlockHash:                   5c 37 d5 04 e9 41 5c 3b 75 af aa 3a d2 44 84 38 22 74 bb a3 1f 10 dc d2 68 e5 54 78 5d 5b 80 75
+// timestamp:                       00 00 01 81 81 0E B6 50
+// nHeight:                         7a 8b 54 df bf e9 f2 1d
+// txCount:                         00 00 00 01
+// [
+//  TxSize: 350 Chars (175 Bytes)   00 00 00 af 
+//  TxRaw:                          f8ad81be850c92a69c0082e18c94d586e7f844cea2f87f50152665bcbc2c279d8d7080b844a9059cbb00000000000000000000000026548521f99d0709f615aa0f766a7df60f99250b00000000000000000000000000000000000000000000002086ac351052600000830150f7a07e16328b7f3823abeb13d0cab11cdffaf967c9b2eaf3757c42606d6f2ecd8ce6a040684c94b289cdda22822e5cb374ea374d7a3ba581a9014faf35b19e5345ab92
+// ]
+//
+// Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ...]
+// 5c37d504e9415c3b75afaa3ad24484382274bba31f10dcd268e554785d5b8075
+// 00000181810EB650
+// 7a8b54dfbfe9f21d
+// 00000001
+// 000000af
+// f8ad81be850c92a69c0082e18c94d586e7f844cea2f87f50152665bcbc2c279d8d7080b844a9059cbb00000000000000000000000026548521f99d0709f615aa0f766a7df60f99250b00000000000000000000000000000000000000000000002086ac351052600000830150f7a07e16328b7f3823abeb13d0cab11cdffaf967c9b2eaf3757c42606d6f2ecd8ce6a040684c94b289cdda22822e5cb374ea374d7a3ba581a9014faf35b19e5345ab92
+// 
+// rawBlock:
+//
+// 5c37d504e9415c3b75afaa3ad24484382274bba31f10dcd268e554785d5b807500000181810EB6507a8b54dfbfe9f21d00000001000000aff8ad81be850c92a69c0082e18c94d586e7f844cea2f87f50152665bcbc2c279d8d7080b844a9059cbb00000000000000000000000026548521f99d0709f615aa0f766a7df60f99250b00000000000000000000000000000000000000000000002086ac351052600000830150f7a07e16328b7f3823abeb13d0cab11cdffaf967c9b2eaf3757c42606d6f2ecd8ce6a040684c94b289cdda22822e5cb374ea374d7a3ba581a9014faf35b19e5345ab92
+//
+//
 class Block {
-    private:
-        std::string _blockHash;
-        std::string _prevBlockHash;
-        dev::u256 _timestamp;      
-        dev::u256 _txCount;        
-        dev::u256 _nHeight;        
-        std::string _blockData;
-        std::vector<dev::eth::TransactionBase> _transactions;
+  private:
+    uint256_t _prevBlockHash;
+    uint64_t _timestamp;
+    uint64_t _nHeight;
+    uint32_t _txCount;
+    std::vector<dev::eth::TransactionBase> _transactions;
+    bool finalize = false;
 
-    public:
+  public:
 
-        std::string blockHash()       { return _blockHash; };
-        std::string prevBlockHash()   { return _prevBlockHash; };
-        dev::u256 timestamp()       { return _timestamp; };
-        dev::u256 txCount()         { return _txCount; };
-        dev::u256 nHeight()         { return _nHeight; };
-        std::string blockData()       { return _blockData; };
-        std::vector<dev::eth::TransactionBase> transactions() { return _transactions; };
+  // Constructors.
+  // From network/rpc...
+  Block(const std::vector<uint8_t> &blockData);
 
-        // Serialize to protobuf string.
-        // Our block information is actually a json which contains the following:
-        // {
-        //    prevBlockHash : ""
-        //    timestamp : ""
-        //    txCount : ""
-        //    nHeight : ""
-        //    blockData : ""
-        //    transactions : [
-        //       "rlphash"
-        //      }
-        //    }
-        // serializeToString() also creates the blockhash! so we call it for both purposes.
-        std::string serializeToString();
-        // Serialize from protobufstring.
-        bool serializeFromString(std::string blockBytes);
+  // Creation...
+  Block(const uint256_t &_prevBlockHashC, 
+        const uint32_t &_timestampC,
+        const uint32_t &_nHeightC) : _prevBlockHash(_prevBlockHashC), _timestamp(_timestampC), _nHeight(_nHeightC), _txCount(0) {};
+  
 
-        bool addTx(dev::eth::TransactionBase tx);
+  // Getter funcions
 
-        void submitBlock();
+  const uint256_t& prevBlockHash() { return this->_prevBlockHash; };
+  const uint64_t& timestamp() { return this->_timestamp; };
+  const uint64_t& nHeight() { return this->_nHeight; };
+  const uint32_t& txCount() { return this->_txCount; };
+  const std::vector<dev::eth::TransactionBase>& transactions() { return this->_transactions; };
+  const uint64_t blockSize();
+  std::array<uint8_t,32> getBlockHash();
+  std::vector<uint8_t> serializeToBytes();
 
-        Block(std::string blockBytes);
-
-        Block(std::string __prevBlockHash, dev::u256 __timestamp, dev::u256 __txCount, dev::u256 __nHeight, std::string __blockData);
 };
 
-#endif // BLOCK_H
+#endif

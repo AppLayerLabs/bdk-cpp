@@ -216,36 +216,17 @@ add_custom_target(gen-grpc ALL DEPENDS
 
 set(SUBNETOOOR_HEADERS
   src/main.h
-  src/block.h
-  src/db.h
-  src/httpserver.h
-  src/grpcclient.h
-  src/grpcserver.h
+  src/subnet.h
   src/json.hpp
   src/utils.h
-  src/validation.h
-  src/ERC20.h
-  src/Uniswap.h
-  src/Bridge.h
-  src/httpclient.h
+  src/block.h
 )
 
 set(SUBNETOOOR_SOURCES
   src/main.cpp
-  src/block.cpp
-  src/db.cpp
-  src/httpserver.cpp
-  src/grpcclient.cpp
-  src/grpcserver.cpp
+  src/subnet.cpp
   src/utils.cpp
-  src/Uniswap.cpp
-  src/UniswapValidation.cpp
-  src/validation.cpp
-  src/EthCall.cpp
-  src/ERC20.cpp
-  src/Bridge.cpp
-  src/httpclient.cpp
-  src/BridgeValidation.cpp
+  src/block.cpp
 )
 
 message(STATUS ${SUBNETOOOR_HEADERS})
