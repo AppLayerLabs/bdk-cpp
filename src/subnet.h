@@ -3,8 +3,22 @@
 
 
 #include "block.h"
+#include "grpcserver.h"
+#include "db.h"
 
-#endif // SUBNET_H
+struct InitializeRequest {
+    uint32_t networkId;
+    bytes subnetId;
+    bytes chainId;
+    bytes nodeId;
+    bytes xChainId;
+    bytes avaxAssetId;
+    bytes genesisBytes;
+    bytes upgradeBytes;
+    bytes configBytes;
+    std::vector<DBServer> dbServers;
+    std::string gRPCServerAddress; // <- gRPC server address to connect into.
+};
 
 // The subnet class acts as being the middleman of every "module" of the subnet
 // Every class originating from this, being the gRPC server/client or the inner
@@ -16,8 +30,19 @@
 
 class Subnet {
   private:
+    std::shared_ptr<VMServiceImplementation> service;
+    std::shared_ptr<DBService> dbServer;
+    std::unique_ptr<Server> server;
+
+    // From initialization request.
+    InitializeRequest initParams;
 
   public:
     void start();
     void stop();
+
+    // To be called by the gRPC server. Initialize the subnet services when AvalancheGo requests for it.
+    void initialize(const vm::InitializeRequest* request, vm::InitializeResponse* reply);
 };
+
+#endif // SUBNET_H

@@ -177,6 +177,16 @@ add_custom_command(
 )
 
 add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
+  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
+  ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
+       --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.proto"
+)
+
+add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
   COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
@@ -194,6 +204,7 @@ protobuf_generate_cpp(PROTO_APPSENDER_SRCS PROTO_APPSENDER_HDRS proto/appsender.
 protobuf_generate_cpp(PROTO_KEYSTORE_SRCS PROTO_KEYSTORE_HDRS proto/keystore.proto)
 protobuf_generate_cpp(PROTO_MESSENGER_SRCS PROTO_MESSENGER_HDRS proto/messenger.proto)
 protobuf_generate_cpp(PROTO_SHAREDMEMORY_SRCS PROTO_SHAREDMEMORY_HDRS proto/sharedmemory.proto)
+protobuf_generate_cpp(PROTO_RPCDB_SRCS PROTO_RPCDB_HDRS proto/rpcdb.proto)
 
 add_custom_target(gen-grpc ALL DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
@@ -202,12 +213,14 @@ add_custom_target(gen-grpc ALL DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
 )
 
 # Compile and link the executable
@@ -220,6 +233,8 @@ set(SUBNETOOOR_HEADERS
   src/json.hpp
   src/utils.h
   src/block.h
+  src/grpcserver.h
+  src/db.h
 )
 
 set(SUBNETOOOR_SOURCES
@@ -227,6 +242,8 @@ set(SUBNETOOOR_SOURCES
   src/subnet.cpp
   src/utils.cpp
   src/block.cpp
+  src/grpcserver.cpp
+  src/db.cpp
 )
 
 message(STATUS ${SUBNETOOOR_HEADERS})
@@ -240,18 +257,21 @@ add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
   ${PROTO_KEYSTORE_SRCS} ${PROTO_KEYSTORE_HDRS}
   ${PROTO_MESSENGER_SRCS} ${PROTO_MESSENGER_HDRS}
   ${PROTO_SHAREDMEMORY_SRCS} ${PROTO_SHAREDMEMORY_HDRS}
+  ${PROTO_RPCDB_SRCS} ${PROTO_RPCDB_HDRS}
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
 )
 add_dependencies(subnetooord gen-grpc)
 # Add include folder to subnetooor

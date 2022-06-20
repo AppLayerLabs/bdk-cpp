@@ -1,8 +1,15 @@
 #include "utils.h"
 
 
+std::mutex log_lock;
 
-
+void Utils::logToFile(std::string str) {
+  log_lock.lock();
+  std::ofstream log("log.txt", std::ios::app);
+  log << str << std::endl;
+  log.close();
+  log_lock.unlock();
+}
 
 std::vector<uint8_t> Utils::uint256ToBytes(const uint256_t &i) {
   std::vector<uint8_t> ret(32, 0x00);
