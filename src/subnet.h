@@ -4,6 +4,7 @@
 
 #include "block.h"
 #include "grpcserver.h"
+#include "grpcclient.h"
 #include "db.h"
 
 struct InitializeRequest {
@@ -30,7 +31,8 @@ struct InitializeRequest {
 
 class Subnet {
   private:
-    std::shared_ptr<VMServiceImplementation> service;
+    std::shared_ptr<VMServiceImplementation> grpcServer;
+    std::shared_ptr<VMCommClient> grpcClient;
     std::shared_ptr<DBService> dbServer;
     std::unique_ptr<Server> server;
 

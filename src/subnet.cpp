@@ -5,7 +5,7 @@ void Subnet::start() {
   // As the AvalancheGo Daemon node will be waiting for the gRPC server to answer on the terminal.
   // Start GRPC Server.
   std::string server_address("0.0.0.0:50051");
-  service = std::make_shared<VMServiceImplementation>(*this);
+  grpcServer = std::make_shared<VMServiceImplementation>(*this);
 
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -14,7 +14,7 @@ void Subnet::start() {
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   // Register "service" as the instance through which we'll communicate with
   // clients. In this case it corresponds to an *synchronous* service.
-  builder.RegisterService(service.get());
+  builder.RegisterService(grpcServer.get());
   // Finally assemble the server.
   // std::unique_ptr<Server> server(builder.BuildAndStart());
 
@@ -69,8 +69,11 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
     auto db_Server  = this->initParams.dbServers[0];
     dbServer = std::make_shared<DBService>(grpc::CreateChannel(db_Server.host, grpc::InsecureChannelCredentials()));
   }
-  // Initialize the subnet.
 
-// Initialize the gRPC client, to be used for DB and other services.
+
+  // Initialize the gRPC client to communicate back with AvalancheGo
+  grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()));
+  
+  // Initialize the gRPC client, to be used for DB and other services.
 
 }

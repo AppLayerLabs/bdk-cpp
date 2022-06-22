@@ -235,6 +235,7 @@ set(SUBNETOOOR_HEADERS
   src/block.h
   src/grpcserver.h
   src/db.h
+  src/grpcclient.h
 )
 
 set(SUBNETOOOR_SOURCES
@@ -244,6 +245,7 @@ set(SUBNETOOOR_SOURCES
   src/block.cpp
   src/grpcserver.cpp
   src/db.cpp
+  src/grpcclient.cpp
 )
 
 message(STATUS ${SUBNETOOOR_HEADERS})
