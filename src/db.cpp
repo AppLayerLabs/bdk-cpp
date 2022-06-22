@@ -1,11 +1,12 @@
 #include "db.h"
 
 
-bool DBService::has(std::string key) {
+bool DBService::has(std::string key, std::string prefix) {
   rpcdb::HasRequest request;
   rpcdb::HasResponse response;
   ClientContext context;
 
+  key = prefix + key;
   request.set_key(key);
 
   Status status = db_stub_->Has(&context, request, &response);
@@ -17,11 +18,12 @@ bool DBService::has(std::string key) {
   }
 }
 
-std::string DBService::get(std::string key) {
+std::string DBService::get(std::string key, std::string prefix) {
   rpcdb::GetRequest request;
   rpcdb::GetResponse response;
   ClientContext context;
 
+  key = prefix + key;
   request.set_key(key);
   Status status = db_stub_->Get(&context, request, &response);
   if (status.ok()) {
@@ -32,11 +34,12 @@ std::string DBService::get(std::string key) {
   }
 }
 
-bool DBService::put(std::string key, std::string value) {
+bool DBService::put(std::string key, std::string value, std::string prefix) {
   rpcdb::PutRequest request;
   rpcdb::PutResponse response;
   ClientContext context;
 
+  key = prefix + key;
   request.set_key(key);
   request.set_value(value);
   Status status = db_stub_->Put(&context, request, &response);
@@ -48,11 +51,12 @@ bool DBService::put(std::string key, std::string value) {
   }
 }
 
-bool DBService::del(std::string key) {
+bool DBService::del(std::string key, std::string prefix) {
   rpcdb::DeleteRequest request;
   rpcdb::DeleteResponse response;
   ClientContext context;
 
+  key = prefix + key;
   request.set_key(key);
   Status status = db_stub_->Delete(&context, request, &response);
   if (status.ok()) {
@@ -77,3 +81,72 @@ bool DBService::close() {
   }
 }
 
+std::vector<DBEntry> DBService::readBatch(std::string prefix) {
+  std::vector<DBEntry> entries;
+  rpcdb::NewIteratorWithStartAndPrefixRequest requestNewIterator;
+  rpcdb::NewIteratorWithStartAndPrefixResponse responseNewIterator;
+  ClientContext contextNewIterator;
+
+  requestNewIterator.set_start("");
+  requestNewIterator.set_prefix(prefix);
+
+  Status status = db_stub_->NewIteratorWithStartAndPrefix(&contextNewIterator, requestNewIterator, &responseNewIterator);
+
+  if (status.ok()) {
+    auto id = responseNewIterator.id();
+    while (true) {
+      rpcdb::IteratorNextRequest requestIteratorNext;
+      rpcdb::IteratorNextResponse responseIteratorNext;
+      ClientContext contextIteratorNext;
+      requestIteratorNext.set_id(id);
+
+      db_stub_->IteratorNext(&contextIteratorNext, requestIteratorNext, &responseIteratorNext);
+
+      if (responseIteratorNext.data().size() == 0) { Utils::logToFile("Breaking"); break; };
+      for (auto entry : responseIteratorNext.data()) {
+        entries.push_back({entry.key(), entry.value()});
+      }
+    }
+
+    rpcdb::IteratorReleaseRequest requestRelease;
+    rpcdb::IteratorReleaseResponse responseRelease;
+    ClientContext contextRelease;
+    requestRelease.set_id(id);
+
+    db_stub_->IteratorRelease(&contextRelease, requestRelease, &responseRelease);    
+  } else {
+    Utils::logToFile("DB readBatch Comm Failed");
+    throw "";
+  }
+  return entries;
+}
+
+
+bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
+  rpcdb::WriteBatchRequest requestWriteBatch;
+  rpcdb::WriteBatchResponse responseWriteBatch;
+  ClientContext contextWriteBatch;
+
+  for (auto &entry : request.puts) {
+    auto putRequest = requestWriteBatch.add_puts();
+    putRequest->set_key(entry.key);
+    putRequest->set_value(entry.value);
+  }
+
+  for (auto &entry : request.dels) {
+    auto delRequest = requestWriteBatch.add_deletes();
+    delRequest->set_key(entry.key);
+  }
+
+  requestWriteBatch.set_id(0);
+  requestWriteBatch.set_continues(false);
+
+  Status status = db_stub_->WriteBatch(&contextWriteBatch, requestWriteBatch, &responseWriteBatch);
+
+  if (status.ok()) {
+    return true;
+  } else {
+    Utils::logToFile("DB WriteBatch Comm Failed");
+    throw "";
+  }
+}
