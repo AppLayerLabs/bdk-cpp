@@ -21,6 +21,10 @@ namespace Utils {
     uint256_t bytesToUint256(const std::vector<uint8_t> &bytes);
     uint64_t bytesToUint64(const std::vector<uint8_t> &bytes);
     uint32_t bytesToUint32(const std::vector<uint8_t> &bytes);
+    // These functions are literal copies of input into output.
+    // In usage to convert bytes into gRPC strings.
+    std::string bytesToByteString(const std::vector<uint8_t> &bytes);
+    std::vector<uint8_t> stringToBytes(const std::string &str);
 }
 
 

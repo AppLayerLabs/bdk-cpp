@@ -68,10 +68,11 @@ class Block {
   // Constructors.
   // From network/rpc...
   Block(const std::vector<uint8_t> &blockData);
+  Block(const char* blockData) : Block(std::vector<uint8_t>(blockData, blockData + strlen(blockData))) {}
 
   // Creation...
   Block(const uint256_t &_prevBlockHashC, 
-        const uint32_t &_timestampC,
+        const uint64_t &_timestampC,
         const uint32_t &_nHeightC) : _prevBlockHash(_prevBlockHashC), _timestamp(_timestampC), _nHeight(_nHeightC), _txCount(0) {};
   
 
@@ -83,7 +84,7 @@ class Block {
   const uint32_t& txCount() { return this->_txCount; };
   const std::vector<dev::eth::TransactionBase>& transactions() { return this->_transactions; };
   const uint64_t blockSize();
-  std::array<uint8_t,32> getBlockHash();
+  std::vector<uint8_t> getBlockHash();
   std::vector<uint8_t> serializeToBytes();
 
 };

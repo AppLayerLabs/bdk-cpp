@@ -61,8 +61,8 @@ std::vector<uint8_t> Block::serializeToBytes() {
   return ret;
 }
 
-std::array<uint8_t,32> Block::getBlockHash() {
-  return dev::sha3(this->serializeToBytes()).asArray();
+std::vector<uint8_t> Block::getBlockHash() {
+  return dev::sha3(this->serializeToBytes()).asBytes();
 }
 
 const uint64_t Block::blockSize() {

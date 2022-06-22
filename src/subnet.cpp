@@ -69,11 +69,55 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
     auto db_Server  = this->initParams.dbServers[0];
     dbServer = std::make_shared<DBService>(grpc::CreateChannel(db_Server.host, grpc::InsecureChannelCredentials()));
   }
-
-
   // Initialize the gRPC client to communicate back with AvalancheGo
   grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()));
-  
-  // Initialize the gRPC client, to be used for DB and other services.
+
+  if (!dbServer->has("latest", DBPrefix::blocks)) {
+    // Create genesis if it doesn't exist.
+    this->createGenesis();
+  }
+
+  // Parse the latest block to answer AvalancheGo.
+  auto blockStr = dbServer->get("latest", DBPrefix::blocks);
+  auto latestBlock = Block(Utils::stringToBytes(dbServer->get("latest", DBPrefix::blocks)));
+  reply->set_last_accepted_id(Utils::bytesToByteString(latestBlock.getBlockHash()));
+  reply->set_last_accepted_parent_id(Utils::bytesToByteString(Utils::uint256ToBytes(latestBlock.prevBlockHash())));
+  reply->set_height(latestBlock.nHeight());
+  reply->set_bytes(Utils::bytesToByteString(latestBlock.serializeToBytes()));
+  auto timestamp = reply->mutable_timestamp();
+  timestamp->set_seconds(latestBlock.timestamp() / 1000000000);
+  timestamp->set_nanos(latestBlock.timestamp() % 1000000000); 
+  Utils::logToFile(std::to_string(latestBlock.timestamp()));
+  std::string jsonReply;
+  google::protobuf::util::MessageToJsonString(*reply, &jsonReply, options);
+  Utils::logToFile(jsonReply);
+}
+
+void Subnet::createGenesis() {
+  Block genesisBlock(
+    0,
+    1655905500000000000,
+    0
+  );
+  // Append genesis to DB.
+
+  Utils::logToFile(dev::toHex(genesisBlock.serializeToBytes()));
+  dbServer->put("latest", Utils::bytesToByteString(genesisBlock.serializeToBytes()), DBPrefix::blocks);
+  dbServer->put("0", Utils::bytesToByteString(genesisBlock.serializeToBytes()), DBPrefix::blocks);
+}
+
+void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply) {
+  // See vm.proto for more information.
+  // See https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111
+  // for more information about the SetState request.
+  // TODO: DO NOT READ FROM DB DIRECTLY
+  Block bestBlock(Utils::stringToBytes(dbServer->get("latest", DBPrefix::blocks)));
+  reply->set_last_accepted_id(Utils::bytesToByteString(bestBlock.getBlockHash()));
+  reply->set_last_accepted_parent_id(Utils::bytesToByteString(Utils::uint256ToBytes(bestBlock.prevBlockHash())));
+  reply->set_height(bestBlock.nHeight());
+  reply->set_bytes(Utils::bytesToByteString(bestBlock.serializeToBytes()));
+  auto timestamp = reply->mutable_timestamp();
+  timestamp->set_seconds(bestBlock.timestamp() / 1000000000);
+  timestamp->set_nanos(bestBlock.timestamp() % 1000000000); 
 
 }

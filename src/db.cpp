@@ -9,7 +9,9 @@ bool DBService::has(std::string key, std::string prefix) {
   key = prefix + key;
   request.set_key(key);
 
+  lock.lock();
   Status status = db_stub_->Has(&context, request, &response);
+  lock.unlock();
   if (status.ok()) {
     return response.has();
   } else { 
@@ -25,7 +27,9 @@ std::string DBService::get(std::string key, std::string prefix) {
 
   key = prefix + key;
   request.set_key(key);
+  lock.lock();
   Status status = db_stub_->Get(&context, request, &response);
+  lock.unlock();
   if (status.ok()) {
     return response.value();
   } else { 
@@ -42,7 +46,9 @@ bool DBService::put(std::string key, std::string value, std::string prefix) {
   key = prefix + key;
   request.set_key(key);
   request.set_value(value);
+  lock.lock();
   Status status = db_stub_->Put(&context, request, &response);
+  lock.unlock();
   if (status.ok()) {
     return true;
   } else { 
@@ -58,7 +64,9 @@ bool DBService::del(std::string key, std::string prefix) {
 
   key = prefix + key;
   request.set_key(key);
+  lock.lock();
   Status status = db_stub_->Delete(&context, request, &response);
+  lock.unlock();
   if (status.ok()) {
     return true;
   } else {
@@ -72,7 +80,9 @@ bool DBService::close() {
   rpcdb::CloseResponse response;
   ClientContext context;;
 
+  lock.lock();
   Status status = db_stub_->Close(&context, request, &response);
+  lock.unlock();
   if (status.ok()) {
     return true;
   } else {
@@ -87,6 +97,8 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix) {
   rpcdb::NewIteratorWithStartAndPrefixResponse responseNewIterator;
   ClientContext contextNewIterator;
 
+
+  lock.lock();
   requestNewIterator.set_start("");
   requestNewIterator.set_prefix(prefix);
 
@@ -102,7 +114,7 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix) {
 
       db_stub_->IteratorNext(&contextIteratorNext, requestIteratorNext, &responseIteratorNext);
 
-      if (responseIteratorNext.data().size() == 0) { Utils::logToFile("Breaking"); break; };
+      if (responseIteratorNext.data().size() == 0) { break; };
       for (auto entry : responseIteratorNext.data()) {
         entries.push_back({entry.key(), entry.value()});
       }
@@ -118,6 +130,8 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix) {
     Utils::logToFile("DB readBatch Comm Failed");
     throw "";
   }
+
+  lock.unlock();
   return entries;
 }
 
@@ -141,7 +155,9 @@ bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
   requestWriteBatch.set_id(0);
   requestWriteBatch.set_continues(false);
 
+  lock.lock();
   Status status = db_stub_->WriteBatch(&contextWriteBatch, requestWriteBatch, &responseWriteBatch);
+  lock.unlock();
 
   if (status.ok()) {
     return true;

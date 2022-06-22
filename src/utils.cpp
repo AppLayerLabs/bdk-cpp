@@ -83,3 +83,15 @@ uint32_t Utils::bytesToUint32(const std::vector<uint8_t> &bytes) {
   ret |= bytes[3];
   return ret;
 }
+
+std::string Utils::bytesToByteString(const std::vector<uint8_t> &bytes) {
+  std::string ret;
+  std::copy(bytes.begin(), bytes.end(), std::back_inserter(ret));
+  return ret;
+}
+
+std::vector<uint8_t> Utils::stringToBytes(const std::string &str) {
+  std::vector<uint8_t> ret;
+  std::copy(str.begin(), str.end(), std::back_inserter(ret));
+  return ret;
+}

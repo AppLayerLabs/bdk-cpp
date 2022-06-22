@@ -45,6 +45,9 @@ class Subnet {
 
     // To be called by the gRPC server. Initialize the subnet services when AvalancheGo requests for it.
     void initialize(const vm::InitializeRequest* request, vm::InitializeResponse* reply);
+    void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
+    // To be called by initialize if no info is found on DB.
+    void createGenesis();
 };
 
 #endif // SUBNET_H
