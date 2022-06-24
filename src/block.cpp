@@ -1,19 +1,19 @@
 #include "block.h"
 
-Block::Block(const std::vector<uint8_t> &blockData) {
-  // Split the block data into different vectors.
+Block::Block(const std::string &blockData) {
+  // Split the block data into different byte arrays.
 
-  std::vector<uint8_t> prevBlockHashBytes; // uint256_t
-  std::vector<uint8_t> timestampBytes;     // uint64_t
-  std::vector<uint8_t> nHeightBytes;       // uint64_t
-  std::vector<uint8_t> txArraySizeBytes;   // uint32_t
-  std::vector<uint8_t> rawTransactions;    // N
+  std::string prevBlockHashBytes; // uint256_t
+  std::string timestampBytes;     // uint64_t
+  std::string nHeightBytes;       // uint64_t
+  std::string txArraySizeBytes;   // uint32_t
+  std::string rawTransactions;    // N
 
-  std::copy(blockData.begin(), blockData.begin() + 32, std::back_inserter(prevBlockHashBytes));
-  std::copy(blockData.begin() + 32, blockData.begin() + 32 + 8, std::back_inserter(timestampBytes));
-  std::copy(blockData.begin() + 32 + 8, blockData.begin() + 32 + 8 + 8, std::back_inserter(nHeightBytes));
-  std::copy(blockData.begin() + 32 + 8 + 8, blockData.begin() + 32 + 8 + 8 + 4, std::back_inserter(txArraySizeBytes));
-  std::copy(blockData.begin() + 32 + 8 + 8 + 4, blockData.end(), std::back_inserter(rawTransactions));
+  prevBlockHashBytes = blockData.substr(0, 32);
+  timestampBytes = blockData.substr(32, 8);
+  nHeightBytes = blockData.substr(32 + 8, 8);
+  txArraySizeBytes = blockData.substr(32 + 8 + 8, 4);
+  rawTransactions = blockData.substr(32 + 8 + 8 + 4);
 
   this->_prevBlockHash = Utils::bytesToUint256(prevBlockHashBytes);
   this->_timestamp = Utils::bytesToUint64(timestampBytes);
@@ -23,46 +23,48 @@ Block::Block(const std::vector<uint8_t> &blockData) {
   // Parse and push transactions into block.
   uint64_t nextTx = 0;
   for (uint32_t i = 0; i < this->_txCount; ++i) {
-    std::vector<uint8_t> txBytes; 
-    std::vector<uint8_t> txSizeBytes;
+    std::string txBytes; 
+    std::string txSizeBytes;
     // Copy transaction size.
-    std::copy(rawTransactions.begin() + nextTx, rawTransactions.begin() + nextTx + 4, std::back_inserter(txSizeBytes));
+    txSizeBytes = rawTransactions.substr(nextTx, 4);
     uint32_t txSize = Utils::bytesToUint32(txSizeBytes);
     // Copy transacion itself.
-    std::copy(rawTransactions.begin() + nextTx + 4, rawTransactions.begin() + nextTx + 4 + txSize, std::back_inserter(txBytes));
+    txBytes = txBytes.substr(nextTx + 4, txSize);
     nextTx = nextTx + 4 + txSize;
-
     this->_transactions.push_back(dev::eth::TransactionBase(txBytes, dev::eth::CheckTransaction::None));
   }
 }
 
-std::vector<uint8_t> Block::serializeToBytes() {
+std::string Block::serializeToBytes() {
   // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ...]
-  std::vector<uint8_t> ret;
-  std::vector<uint8_t> prevBlockHashBytes = Utils::uint256ToBytes(this->_prevBlockHash);
-  std::vector<uint8_t> timestampBytes = Utils::uint64ToBytes(this->_timestamp);
-  std::vector<uint8_t> nHeightBytes = Utils::uint64ToBytes(this->_nHeight);
-  std::vector<uint8_t> txCountBytes = Utils::uint32ToBytes(this->_txCount);
+  std::string ret;
+  std::string prevBlockHashBytes = Utils::uint256ToBytes(this->_prevBlockHash);
+  std::string timestampBytes = Utils::uint64ToBytes(this->_timestamp);
+  std::string nHeightBytes = Utils::uint64ToBytes(this->_nHeight);
+  std::string txCountBytes = Utils::uint32ToBytes(this->_txCount);
   // Append Header.
-  std::copy(prevBlockHashBytes.begin(), prevBlockHashBytes.end(), std::back_inserter(ret));
-  std::copy(timestampBytes.begin(), timestampBytes.end(), std::back_inserter(ret));
-  std::copy(nHeightBytes.begin(), nHeightBytes.end(), std::back_inserter(ret));
-  std::copy(txCountBytes.begin(), txCountBytes.end(), std::back_inserter(ret));
+  ret += prevBlockHashBytes;
+  ret += timestampBytes;
+  ret += nHeightBytes;
+  ret += txCountBytes;
 
   // Append Transactions
   // For each transaction, we need to parse both their size and their data.
   for (auto transaction : this->_transactions) {
-    std::vector<uint8_t> txBytes = transaction.rlp(dev::eth::IncludeSignature::WithSignature);
-    std::vector<uint8_t> txSizeBytes = Utils::uint32ToBytes(txBytes.size());
-    std::copy(txSizeBytes.begin(), txSizeBytes.end(), std::back_inserter(ret));
+    bytes txBytes = transaction.rlp(dev::eth::IncludeSignature::WithSignature);
+    std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
+    ret += txSizeBytes;
     std::copy(txBytes.begin(), txBytes.end(), std::back_inserter(ret));
   }
 
   return ret;
 }
 
-std::vector<uint8_t> Block::getBlockHash() {
-  return dev::sha3(this->serializeToBytes()).asBytes();
+std::string Block::getBlockHash() {
+  auto blockHash = dev::sha3(this->serializeToBytes());
+  std::string ret;
+  std::copy(blockHash.begin(), blockHash.end(), std::back_inserter(ret));
+  return ret;
 }
 
 const uint64_t Block::blockSize() {

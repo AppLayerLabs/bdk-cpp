@@ -15,16 +15,16 @@ using bytes = std::vector<uint8_t>;
 
 namespace Utils {
     void logToFile(std::string str);
-    std::vector<uint8_t> uint256ToBytes(const uint256_t &i);
-    std::vector<uint8_t> uint64ToBytes(const uint64_t &i);
-    std::vector<uint8_t> uint32ToBytes(const uint32_t &i);
-    uint256_t bytesToUint256(const std::vector<uint8_t> &bytes);
-    uint64_t bytesToUint64(const std::vector<uint8_t> &bytes);
-    uint32_t bytesToUint32(const std::vector<uint8_t> &bytes);
+    std::string uint256ToBytes(const uint256_t &i);
+    std::string uint64ToBytes(const uint64_t &i);
+    std::string uint32ToBytes(const uint32_t &i);
+    uint256_t bytesToUint256(const std::string &bytes);
+    uint64_t bytesToUint64(const std::string &bytes);
+    uint32_t bytesToUint32(const std::string &bytes);
     // These functions are literal copies of input into output.
     // In usage to convert bytes into gRPC strings.
-    std::string bytesToByteString(const std::vector<uint8_t> &bytes);
-    std::vector<uint8_t> stringToBytes(const std::string &str);
+    std::string bytesToByteString(const std::string &bytes);
+    std::string stringToBytes(const std::string &str);
 }
 
 

@@ -11,9 +11,9 @@ void Utils::logToFile(std::string str) {
   log_lock.unlock();
 }
 
-std::vector<uint8_t> Utils::uint256ToBytes(const uint256_t &i) {
-  std::vector<uint8_t> ret(32, 0x00);
-  std::vector<uint8_t> tmp;
+std::string Utils::uint256ToBytes(const uint256_t &i) {
+  std::string ret(32, 0x00);
+  std::string tmp;
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);  
 
   // Replace the bytes from tmp into ret, to make it 32 bytes in size.
@@ -24,8 +24,8 @@ std::vector<uint8_t> Utils::uint256ToBytes(const uint256_t &i) {
   return ret;
 }
 
-std::vector<uint8_t> Utils::uint64ToBytes(const uint64_t &i) {
-  std::vector<uint8_t> ret(8, 0x00);
+std::string Utils::uint64ToBytes(const uint64_t &i) {
+  std::string ret(8, 0x00);
   ret[0] = i >> 56;
   ret[1] = i >> 48;
   ret[2] = i >> 40;
@@ -37,8 +37,8 @@ std::vector<uint8_t> Utils::uint64ToBytes(const uint64_t &i) {
   return ret;
 }
 
-std::vector<uint8_t> Utils::uint32ToBytes(const uint32_t &i) {
-  std::vector<uint8_t> ret(4, 0x00);
+std::string Utils::uint32ToBytes(const uint32_t &i) {
+  std::string ret(4, 0x00);
   ret[0] = i >> 24;
   ret[1] = i >> 16;
   ret[2] = i >> 8;
@@ -47,7 +47,7 @@ std::vector<uint8_t> Utils::uint32ToBytes(const uint32_t &i) {
 }
 
 
-uint256_t Utils::bytesToUint256(const std::vector<uint8_t> &bytes) {
+uint256_t Utils::bytesToUint256(const std::string &bytes) {
   if (bytes.size() != 32) {
     throw; // Invalid size.
   }
@@ -56,7 +56,7 @@ uint256_t Utils::bytesToUint256(const std::vector<uint8_t> &bytes) {
   return ret;
 }
 
-uint64_t Utils::bytesToUint64(const std::vector<uint8_t> &bytes) {
+uint64_t Utils::bytesToUint64(const std::string &bytes) {
   if (bytes.size() != 8) {
     throw; // Invalid size;
   }
@@ -72,7 +72,7 @@ uint64_t Utils::bytesToUint64(const std::vector<uint8_t> &bytes) {
   return ret;
 }
 
-uint32_t Utils::bytesToUint32(const std::vector<uint8_t> &bytes) {
+uint32_t Utils::bytesToUint32(const std::string &bytes) {
   if (bytes.size() != 4) {
     throw; // Invalid size
   }
@@ -81,17 +81,5 @@ uint32_t Utils::bytesToUint32(const std::vector<uint8_t> &bytes) {
   ret |= bytes[1] << 16;
   ret |= bytes[2] << 8;
   ret |= bytes[3];
-  return ret;
-}
-
-std::string Utils::bytesToByteString(const std::vector<uint8_t> &bytes) {
-  std::string ret;
-  std::copy(bytes.begin(), bytes.end(), std::back_inserter(ret));
-  return ret;
-}
-
-std::vector<uint8_t> Utils::stringToBytes(const std::string &str) {
-  std::vector<uint8_t> ret;
-  std::copy(str.begin(), str.end(), std::back_inserter(ret));
   return ret;
 }

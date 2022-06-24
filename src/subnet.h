@@ -9,14 +9,14 @@
 
 struct InitializeRequest {
     uint32_t networkId;
-    bytes subnetId;
-    bytes chainId;
-    bytes nodeId;
-    bytes xChainId;
-    bytes avaxAssetId;
-    bytes genesisBytes;
-    bytes upgradeBytes;
-    bytes configBytes;
+    std::string subnetId;
+    std::string chainId;
+    std::string nodeId;
+    std::string xChainId;
+    std::string avaxAssetId;
+    std::string genesisBytes;
+    std::string upgradeBytes;
+    std::string configBytes;
     std::vector<DBServer> dbServers;
     std::string gRPCServerAddress; // <- gRPC server address to connect into.
 };

@@ -45,14 +45,15 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   Utils::logToFile(jsonRequest);
 
   this->initParams.networkId = request->network_id();
-  std::copy(request->subnet_id().begin(), request->subnet_id().end(), std::back_inserter(this->initParams.subnetId));
-  std::copy(request->chain_id().begin(), request->chain_id().end(), std::back_inserter(this->initParams.chainId));
-  std::copy(request->node_id().begin(), request->node_id().end(), std::back_inserter(this->initParams.nodeId));
-  std::copy(request->x_chain_id().begin(), request->x_chain_id().end(), std::back_inserter(this->initParams.xChainId));
-  std::copy(request->avax_asset_id().begin(), request->avax_asset_id().end(), std::back_inserter(this->initParams.avaxAssetId));
-  std::copy(request->genesis_bytes().begin(), request->genesis_bytes().end(), std::back_inserter(this->initParams.genesisBytes));
-  std::copy(request->upgrade_bytes().begin(), request->upgrade_bytes().end(), std::back_inserter(this->initParams.upgradeBytes));
-  std::copy(request->config_bytes().begin(), request->config_bytes().end(), std::back_inserter(this->initParams.configBytes));
+  this->initParams.subnetId = request->subnet_id();
+  this->initParams.chainId = request->chain_id();
+  this->initParams.nodeId = request->node_id();
+  this->initParams.xChainId = request->x_chain_id();
+  this->initParams.avaxAssetId = request->avax_asset_id();
+  this->initParams.genesisBytes = request->genesis_bytes();
+  this->initParams.upgradeBytes = request->upgrade_bytes();
+  this->initParams.configBytes = request->config_bytes();
+  
   bool hasDBServer = false;
   for (int i = 0; i < request->db_servers_size(); i++) {
     auto db_server = request->db_servers(i);
@@ -79,11 +80,11 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   // Parse the latest block to answer AvalancheGo.
   auto blockStr = dbServer->get("latest", DBPrefix::blocks);
-  auto latestBlock = Block(Utils::stringToBytes(dbServer->get("latest", DBPrefix::blocks)));
-  reply->set_last_accepted_id(Utils::bytesToByteString(latestBlock.getBlockHash()));
-  reply->set_last_accepted_parent_id(Utils::bytesToByteString(Utils::uint256ToBytes(latestBlock.prevBlockHash())));
+  auto latestBlock = Block(dbServer->get("latest", DBPrefix::blocks));
+  reply->set_last_accepted_id(latestBlock.getBlockHash());
+  reply->set_last_accepted_parent_id(Utils::uint256ToBytes(latestBlock.prevBlockHash()));
   reply->set_height(latestBlock.nHeight());
-  reply->set_bytes(Utils::bytesToByteString(latestBlock.serializeToBytes()));
+  reply->set_bytes(latestBlock.serializeToBytes());
   auto timestamp = reply->mutable_timestamp();
   timestamp->set_seconds(latestBlock.timestamp() / 1000000000);
   timestamp->set_nanos(latestBlock.timestamp() % 1000000000); 
@@ -102,8 +103,8 @@ void Subnet::createGenesis() {
   // Append genesis to DB.
 
   Utils::logToFile(dev::toHex(genesisBlock.serializeToBytes()));
-  dbServer->put("latest", Utils::bytesToByteString(genesisBlock.serializeToBytes()), DBPrefix::blocks);
-  dbServer->put("0", Utils::bytesToByteString(genesisBlock.serializeToBytes()), DBPrefix::blocks);
+  dbServer->put("latest", genesisBlock.serializeToBytes(), DBPrefix::blocks);
+  dbServer->put("0", genesisBlock.serializeToBytes(), DBPrefix::blocks);
 }
 
 void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply) {
@@ -111,13 +112,12 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
   // See https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111
   // for more information about the SetState request.
   // TODO: DO NOT READ FROM DB DIRECTLY
-  Block bestBlock(Utils::stringToBytes(dbServer->get("latest", DBPrefix::blocks)));
-  reply->set_last_accepted_id(Utils::bytesToByteString(bestBlock.getBlockHash()));
-  reply->set_last_accepted_parent_id(Utils::bytesToByteString(Utils::uint256ToBytes(bestBlock.prevBlockHash())));
+  Block bestBlock(dbServer->get("latest", DBPrefix::blocks));
+  reply->set_last_accepted_id(bestBlock.getBlockHash());
+  reply->set_last_accepted_parent_id(Utils::uint256ToBytes(bestBlock.prevBlockHash()));
   reply->set_height(bestBlock.nHeight());
-  reply->set_bytes(Utils::bytesToByteString(bestBlock.serializeToBytes()));
+  reply->set_bytes(bestBlock.serializeToBytes());
   auto timestamp = reply->mutable_timestamp();
   timestamp->set_seconds(bestBlock.timestamp() / 1000000000);
   timestamp->set_nanos(bestBlock.timestamp() % 1000000000); 
-
 }
