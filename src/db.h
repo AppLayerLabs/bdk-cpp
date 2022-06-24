@@ -60,21 +60,23 @@ using grpc::Status;
 // 0x0005 -- ERC721 Tokens/State
 
 namespace DBPrefix {
-  const std::string blocks = "0x0001";
-  const std::string transactions = "0x0002";
-  const std::string nativeBalance = "0x0003";
-  const std::string erc20Tokens = "0x0004";
-  const std::string erc721Tokens = "0x0005";
+  const std::string blocks = "0001";
+  const std::string transactions = "0002";
+  const std::string nativeAccounts = "0003";
+  const std::string erc20Tokens = "0004";
+  const std::string erc721Tokens = "0005";
 }
 
 struct DBServer {
     std::string host;
     std::string version;
+    DBServer(std::string host, std::string version) : host(host), version(version) {};
 };
 
 struct DBEntry {
     std::string key;
     std::string value;
+    DBEntry(std::string key, std::string value) : key(key), value(value) {};
 };
 
 struct DBKey {

@@ -1,11 +1,11 @@
 #ifndef SUBNET_H
 #define SUBNET_H
 
-
 #include "block.h"
 #include "grpcserver.h"
 #include "grpcclient.h"
 #include "db.h"
+#include "state.h"
 
 struct InitializeRequest {
     uint32_t networkId;
@@ -35,6 +35,7 @@ class Subnet {
     std::shared_ptr<VMCommClient> grpcClient;
     std::shared_ptr<DBService> dbServer;
     std::unique_ptr<Server> server;
+    std::unique_ptr<State> headState;
 
     // From initialization request.
     InitializeRequest initParams;
@@ -47,7 +48,6 @@ class Subnet {
     void initialize(const vm::InitializeRequest* request, vm::InitializeResponse* reply);
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
     // To be called by initialize if no info is found on DB.
-    void createGenesis();
 };
 
 #endif // SUBNET_H

@@ -57,10 +57,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   bool hasDBServer = false;
   for (int i = 0; i < request->db_servers_size(); i++) {
     auto db_server = request->db_servers(i);
-    DBServer db_Server;
-    db_Server.host = db_server.server_addr();
-    db_Server.version = db_server.version();
-    this->initParams.dbServers.push_back(db_Server);
+    this->initParams.dbServers.emplace_back(db_server.server_addr(), db_server.version());
     hasDBServer = true;
   }
   this->initParams.gRPCServerAddress = request->server_addr();
@@ -73,10 +70,9 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   // Initialize the gRPC client to communicate back with AvalancheGo
   grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()));
 
-  if (!dbServer->has("latest", DBPrefix::blocks)) {
-    // Create genesis if it doesn't exist.
-    this->createGenesis();
-  }
+  // Initialize the State
+
+  this->headState = std::make_unique<State>(this->dbServer);
 
   // Parse the latest block to answer AvalancheGo.
   auto blockStr = dbServer->get("latest", DBPrefix::blocks);
@@ -92,19 +88,6 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   std::string jsonReply;
   google::protobuf::util::MessageToJsonString(*reply, &jsonReply, options);
   Utils::logToFile(jsonReply);
-}
-
-void Subnet::createGenesis() {
-  Block genesisBlock(
-    0,
-    1655905500000000000,
-    0
-  );
-  // Append genesis to DB.
-
-  Utils::logToFile(dev::toHex(genesisBlock.serializeToBytes()));
-  dbServer->put("latest", genesisBlock.serializeToBytes(), DBPrefix::blocks);
-  dbServer->put("0", genesisBlock.serializeToBytes(), DBPrefix::blocks);
 }
 
 void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply) {
