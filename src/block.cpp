@@ -2,36 +2,40 @@
 
 Block::Block(const std::string &blockData) {
   // Split the block data into different byte arrays.
+  try {
+    std::string prevBlockHashBytes; // uint256_t
+    std::string timestampBytes;     // uint64_t
+    std::string nHeightBytes;       // uint64_t
+    std::string txArraySizeBytes;   // uint32_t
+    std::string rawTransactions;    // N
 
-  std::string prevBlockHashBytes; // uint256_t
-  std::string timestampBytes;     // uint64_t
-  std::string nHeightBytes;       // uint64_t
-  std::string txArraySizeBytes;   // uint32_t
-  std::string rawTransactions;    // N
+    prevBlockHashBytes = blockData.substr(0, 32);
+    timestampBytes = blockData.substr(32, 8);
+    nHeightBytes = blockData.substr(32 + 8, 8);
+    txArraySizeBytes = blockData.substr(32 + 8 + 8, 4);
+    rawTransactions = blockData.substr(32 + 8 + 8 + 4);
 
-  prevBlockHashBytes = blockData.substr(0, 32);
-  timestampBytes = blockData.substr(32, 8);
-  nHeightBytes = blockData.substr(32 + 8, 8);
-  txArraySizeBytes = blockData.substr(32 + 8 + 8, 4);
-  rawTransactions = blockData.substr(32 + 8 + 8 + 4);
+    this->_prevBlockHash = Utils::bytesToUint256(prevBlockHashBytes);
+    this->_timestamp = Utils::bytesToUint64(timestampBytes);
+    this->_nHeight = Utils::bytesToUint64(nHeightBytes);
+    this->_txCount = Utils::bytesToUint32(txArraySizeBytes);
 
-  this->_prevBlockHash = Utils::bytesToUint256(prevBlockHashBytes);
-  this->_timestamp = Utils::bytesToUint64(timestampBytes);
-  this->_nHeight = Utils::bytesToUint64(nHeightBytes);
-  this->_txCount = Utils::bytesToUint32(txArraySizeBytes);
-
-  // Parse and push transactions into block.
-  uint64_t nextTx = 0;
-  for (uint32_t i = 0; i < this->_txCount; ++i) {
-    std::string txBytes; 
-    std::string txSizeBytes;
-    // Copy transaction size.
-    txSizeBytes = rawTransactions.substr(nextTx, 4);
-    uint32_t txSize = Utils::bytesToUint32(txSizeBytes);
-    // Copy transacion itself.
-    txBytes = txBytes.substr(nextTx + 4, txSize);
-    nextTx = nextTx + 4 + txSize;
-    this->_transactions.push_back(dev::eth::TransactionBase(txBytes, dev::eth::CheckTransaction::None));
+    // Parse and push transactions into block.
+    uint64_t nextTx = 0;
+    for (uint32_t i = 0; i < this->_txCount; ++i) {
+      std::string txBytes; 
+      std::string txSizeBytes;
+      // Copy transaction size.
+      txSizeBytes = rawTransactions.substr(nextTx, 4);
+      uint32_t txSize = Utils::bytesToUint32(txSizeBytes);
+      // Copy transacion itself.
+      txBytes = txBytes.substr(nextTx + 4, txSize);
+      nextTx = nextTx + 4 + txSize;
+      this->_transactions.push_back(dev::eth::TransactionBase(txBytes, dev::eth::CheckTransaction::None));
+    }
+  } catch (std::exception &e) {
+    Utils::logToFile(std::string("Block constructor failed: ") + e.what());
+    Utils::logToFile(std::string("Block Raw: " + dev::toHex(blockData)));
   }
 }
 

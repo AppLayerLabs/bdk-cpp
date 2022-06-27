@@ -91,7 +91,7 @@ bool DBService::close() {
   }
 }
 
-std::vector<DBEntry> DBService::readBatch(std::string prefix) {
+std::vector<DBEntry> DBService::readBatch(std::string prefix, std::string start) {
   std::vector<DBEntry> entries;
   rpcdb::NewIteratorWithStartAndPrefixRequest requestNewIterator;
   rpcdb::NewIteratorWithStartAndPrefixResponse responseNewIterator;
@@ -99,7 +99,7 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix) {
 
 
   lock.lock();
-  requestNewIterator.set_start("");
+  requestNewIterator.set_start(start);
   requestNewIterator.set_prefix(prefix);
 
   Status status = db_stub_->NewIteratorWithStartAndPrefix(&contextNewIterator, requestNewIterator, &responseNewIterator);

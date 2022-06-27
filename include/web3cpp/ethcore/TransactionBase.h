@@ -119,6 +119,10 @@ public:
     /// @returns the transaction-count of the sender.
     u256 nonce() const { return m_nonce; }
 
+    /// @returns the transaction 32 bytes hash.
+
+    std::string hash() const { return dev::toHex(dev::sha3(this->rlp())); };
+
     /// Sets the nonce to the given value. Clears any signature.
     void setNonce(u256 const& _n) { clearSignature(); m_nonce = _n; }
 

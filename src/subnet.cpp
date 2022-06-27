@@ -60,6 +60,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
     this->initParams.dbServers.emplace_back(db_server.server_addr(), db_server.version());
     hasDBServer = true;
   }
+
   this->initParams.gRPCServerAddress = request->server_addr();
 
   // Initialize the DB Server to get information about the subnet there, we are assuming that we are running inside a sandbox.
@@ -73,10 +74,10 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   // Initialize the State
 
   this->headState = std::make_unique<State>(this->dbServer);
+  this->chainHead = std::make_unique<ChainHead>(this->dbServer);
 
   // Parse the latest block to answer AvalancheGo.
-  auto blockStr = dbServer->get("latest", DBPrefix::blocks);
-  auto latestBlock = Block(dbServer->get("latest", DBPrefix::blocks));
+  Block latestBlock = chainHead->latest();
   reply->set_last_accepted_id(latestBlock.getBlockHash());
   reply->set_last_accepted_parent_id(Utils::uint256ToBytes(latestBlock.prevBlockHash()));
   reply->set_height(latestBlock.nHeight());
@@ -95,7 +96,7 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
   // See https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111
   // for more information about the SetState request.
   // TODO: DO NOT READ FROM DB DIRECTLY
-  Block bestBlock(dbServer->get("latest", DBPrefix::blocks));
+  Block bestBlock = chainHead->latest();
   reply->set_last_accepted_id(bestBlock.getBlockHash());
   reply->set_last_accepted_parent_id(Utils::uint256ToBytes(bestBlock.prevBlockHash()));
   reply->set_height(bestBlock.nHeight());

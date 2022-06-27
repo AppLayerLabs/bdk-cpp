@@ -104,8 +104,8 @@ class DBService : public std::enable_shared_from_this<DBService> {
   bool del(std::string key, std::string prefix = "");
   bool close();
   bool writeBatch(WriteBatchRequest &request, std::string prefix = "");
-  // Read all keys starting with prefix
-  std::vector<DBEntry> readBatch(std::string prefix);
+  // Read all keys starting with prefix and start.
+  std::vector<DBEntry> readBatch(std::string prefix, std::string start = "");
   void testDB();
 };
 

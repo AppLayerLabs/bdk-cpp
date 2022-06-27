@@ -32,10 +32,12 @@ struct InitializeRequest {
 class Subnet {
   private:
     std::shared_ptr<VMServiceImplementation> grpcServer;
+    
     std::shared_ptr<VMCommClient> grpcClient;
     std::shared_ptr<DBService> dbServer;
     std::unique_ptr<Server> server;
     std::unique_ptr<State> headState;
+    std::unique_ptr<ChainHead> chainHead;
 
     // From initialization request.
     InitializeRequest initParams;
