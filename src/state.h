@@ -6,6 +6,7 @@
 #include <include/web3cpp/ethcore/TransactionBase.h>
 #include <atomic>
 #include <deque>
+#include <chrono>
 
 #include "utils.h"
 #include "block.h"
@@ -31,18 +32,20 @@ class State {
     std::unordered_map<std::string, dev::eth::TransactionBase> latestConfirmedTransactions;
     std::mutex stateLock;
 
+    // Process a new transaction from a given block (only used by processNewBlock).
+    bool processNewTransaction(const dev::eth::TransactionBase &tx);
+
   public:
     State(std::shared_ptr<DBService> &dbServer);
 
     uint256_t getNativeBalance(const std::string& address) { return nativeAccount[address].balance; };
-    uint256_t getNativeNonce(const std::string& address) { return nativeAccount[address].balance; };
+    uint256_t getNativeNonce(const std::string& address) { return nativeAccount[address].nonce; };
     const std::unordered_map<std::string, dev::eth::TransactionBase>& getMempool() { return mempool; };
 
     // State changing functions
     // Process a new block from the network and update the local state.
     bool processNewBlock(Block &newBlock, std::unique_ptr<ChainHead>& chainHead);
-    // Process a new transaction from a given block (only used by processNewBlock).
-    bool processNewTransaction(dev::eth::TransactionBase &tx, std::unique_ptr<ChainHead>& chainHead);
+
     bool createNewBlock(std::unique_ptr<ChainHead>& chainHead);
 
     // State querying functions

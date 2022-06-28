@@ -83,3 +83,20 @@ const uint64_t Block::blockSize() {
   }
   return ret;
 }
+
+bool Block::appendTx(dev::eth::TransactionBase &tx) {
+  if (this->finalized) {
+    Utils::LogPrint(Log::block, __func__, " Block is finalized.");
+    return false;
+  }
+  this->_transactions.emplace_back(tx);
+  return true;
+}
+
+bool Block::finalizeBlock() {
+  if (this->finalized) {
+    return false;
+  }
+  this->finalized = true;
+  return true;
+}

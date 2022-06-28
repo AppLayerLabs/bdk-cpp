@@ -56,12 +56,13 @@
 //
 class Block {
   private:
+    // TODO: Add creator Header.
     uint256_t _prevBlockHash;
     uint64_t _timestamp;
     uint64_t _nHeight;
     uint32_t _txCount;
     std::vector<dev::eth::TransactionBase> _transactions;
-    bool finalize = false;
+    bool finalized = false;
 
   public:
 
@@ -77,14 +78,19 @@ class Block {
 
   // Getter funcions
 
-  const uint256_t& prevBlockHash() { return this->_prevBlockHash; };
+  const std::string prevBlockHash() { return Utils::uint256ToBytes(this->_prevBlockHash); };
   const uint64_t& timestamp() { return this->_timestamp; };
   const uint64_t& nHeight() { return this->_nHeight; };
   const uint32_t& txCount() { return this->_txCount; };
   const std::vector<dev::eth::TransactionBase>& transactions() { return this->_transactions; };
   const uint64_t blockSize();
-  std::string getBlockHash();
+  // Should we add a block hash variable and store it instead of serializing every time getBlockHash is called?
+  // This might be a good idea if blocks get too big.
+  std::string getBlockHash(); // Hash (in Bytes)
   std::string serializeToBytes();
+
+  bool appendTx(dev::eth::TransactionBase &tx);
+  bool finalizeBlock();
 
 };
 

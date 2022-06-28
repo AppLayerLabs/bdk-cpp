@@ -62,8 +62,77 @@ bool State::validateTransaction(dev::eth::TransactionBase& tx) {
     return false;
   }
 
-  this->mempool[dev::toHex(dev::sha3(tx.rlp()))] = tx;
+  this->mempool[tx.hash()] = tx;
   stateLock.unlock();
   return true;
 }
 
+bool State::processNewTransaction(const dev::eth::TransactionBase& tx) {
+  bool isContractCall = false;
+  // Remove Tx from Mempool (if found)
+  if (this->mempool.count(tx.hash()) != 0)
+    this->mempool.erase(tx.hash());
+  // Update Balances.
+  this->nativeAccount[dev::toHex(tx.from())].balance -= tx.value();
+  this->nativeAccount[dev::toHex(tx.to())].balance += tx.value();
+  // Update nonce.
+  this->nativeAccount[dev::toHex(tx.from())].nonce++;
+  // Burn gas fees.
+  this->nativeAccount[dev::toHex(tx.from())].balance -= (tx.gasPrice() * tx.gas());
+  return true;
+}
+
+bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHead) {
+  stateLock.lock();
+  // Check block previous hash.
+  Block bestBlock = chainHead->latest();
+  if (bestBlock.getBlockHash() != newBlock.prevBlockHash()) {
+    stateLock.unlock();
+    Utils::LogPrint(Log::state, __func__, "Block previous hash does not match.");
+    Utils::LogPrint(Log::state, __func__, "newBlock previous hash: " + newBlock.prevBlockHash());
+    Utils::LogPrint(Log::state, __func__, "bestBlock hash: " + bestBlock.getBlockHash());
+    return false;
+  }
+
+  if (newBlock.nHeight() != (bestBlock.nHeight() + 1)) {
+    stateLock.unlock();
+    Utils::LogPrint(Log::state, __func__, "Block height does not match.");
+    Utils::LogPrint(Log::state, __func__, "newBlock height: " + std::to_string(newBlock.nHeight()));
+    Utils::LogPrint(Log::state, __func__, "bestBlock height: " + std::to_string(bestBlock.nHeight()));
+    return false;
+  }
+
+  // TODO: Check creator.
+
+  for (auto &tx : newBlock.transactions()) {
+    this->processNewTransaction(tx);
+  }
+
+  // Append block to chainHead
+  chainHead->push_back(newBlock);
+
+  stateLock.unlock();
+  return true;
+}
+
+bool State::createNewBlock(std::unique_ptr<ChainHead>& chainHead) {
+  stateLock.lock();
+  Block bestBlock = chainHead->latest();
+  // TODO: Is this cast wasting memory?
+  Block newBestBlock(
+    Utils::bytesToUint256(bestBlock.getBlockHash()),
+    // the block cast one one the time looool.
+    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count(), 
+    bestBlock.nHeight() + 1
+  );
+  // Lock state to load transactions from mempool
+
+  for (auto &tx : this->mempool) {
+    newBestBlock.appendTx(tx.second);
+  }
+
+  newBestBlock.finalizeBlock();
+  // Unlock mutex as processNewBlock will lock it again.
+  stateLock.unlock();
+  return this->processNewBlock(newBestBlock, chainHead);
+}

@@ -87,7 +87,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   // Parse the latest block to answer AvalancheGo.
   Block latestBlock = chainHead->latest();
   reply->set_last_accepted_id(latestBlock.getBlockHash());
-  reply->set_last_accepted_parent_id(Utils::uint256ToBytes(latestBlock.prevBlockHash()));
+  reply->set_last_accepted_parent_id(latestBlock.prevBlockHash());
   reply->set_height(latestBlock.nHeight());
   reply->set_bytes(latestBlock.serializeToBytes());
   auto timestamp = reply->mutable_timestamp();
@@ -106,7 +106,7 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
   // TODO: DO NOT READ FROM DB DIRECTLY
   Block bestBlock = chainHead->latest();
   reply->set_last_accepted_id(bestBlock.getBlockHash());
-  reply->set_last_accepted_parent_id(Utils::uint256ToBytes(bestBlock.prevBlockHash()));
+  reply->set_last_accepted_parent_id(bestBlock.prevBlockHash());
   reply->set_height(bestBlock.nHeight());
   reply->set_bytes(bestBlock.serializeToBytes());
   auto timestamp = reply->mutable_timestamp();
