@@ -34,8 +34,8 @@ Block::Block(const std::string &blockData) {
       this->_transactions.push_back(dev::eth::TransactionBase(txBytes, dev::eth::CheckTransaction::None));
     }
   } catch (std::exception &e) {
-    Utils::logToFile(std::string("Block constructor failed: ") + e.what());
-    Utils::logToFile(std::string("Block Raw: " + dev::toHex(blockData)));
+    Utils::LogPrint(Log::block, __func__, "Error: " + std::string(e.what()) + " " + dev::toHex(blockData));
+    throw "";
   }
 }
 

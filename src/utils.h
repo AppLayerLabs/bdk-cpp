@@ -26,7 +26,7 @@ namespace Log {
 
 namespace Utils {
     void logToFile(std::string str);
-    void LogPrint(std::string& prefix, std::string& function, std::string& data);
+    void LogPrint(std::string prefix, std::string function, std::string data);
     std::string uint256ToBytes(const uint256_t &i);
     std::string uint64ToBytes(const uint64_t &i);
     std::string uint32ToBytes(const uint32_t &i);

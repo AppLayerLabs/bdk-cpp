@@ -85,7 +85,7 @@ uint32_t Utils::bytesToUint32(const std::string &bytes) {
   return ret;
 }
 
-void Utils::LogPrint(std::string& prefix, std::string& function, std::string& data) {
+void Utils::LogPrint(std::string prefix, std::string function, std::string data) {
   debug_mutex.lock();
   std::ofstream log("debug.txt", std::ios::app);
   log << prefix << function << " " << data << std::endl;

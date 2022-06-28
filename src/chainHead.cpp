@@ -203,32 +203,40 @@ void ChainHead::loadFromDB(std::shared_ptr<DBService> &dbServer) {
         1656356645000000,
         0);
     dbServer->put("latest", genesis.serializeToBytes(), DBPrefix::blocks);
-    dbServer->put(Utils::uint64ToBytes(0), genesis.serializeToBytes(), DBPrefix::blocks);
+    dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash(), DBPrefix::blockHeightMaps);
+    dbServer->put(genesis.getBlockHash(), genesis.serializeToBytes(), DBPrefix::blocks);
   }
+
   Block latestBlock = Block(dbServer->get("latest", DBPrefix::blocks));
 
   uint64_t depth = latestBlock.nHeight();
 
+  this->internalChainHeadLock.lock();
+
+  // Load block mappings (hash -> height and height -> hash) from DB.
+  std::vector<DBEntry> blockMaps = dbServer->readBatch(DBPrefix::blockHeightMaps);
+  for (auto &blockMap : blockMaps) {
+    this->diskChainHeadLookupTableByHeight[Utils::bytesToUint64(blockMap.key)] = blockMap.value;
+    this->diskChainHeadLookupTableByHash[blockMap.value] = Utils::bytesToUint64(blockMap.key);
+  }
+
   if (depth < 1001) {
-    // Chain is too short to load from DB.
+    // Chain is too short to load from DB. Push back at least latest.
+    this->internalChainHead.push_back(latestBlock);
+    this->internalChainHeadLock.unlock();
     return;
   }
+  
   depth = depth - 1000;
   std::vector<DBKey> blocksToRead;
   for (uint64_t i = 0; i <= 1000; ++i) {
-    blocksToRead.emplace_back(DBKey(Utils::uint64ToBytes(depth + i)));
+    blocksToRead.emplace_back(DBKey(this->diskChainHeadLookupTableByHeight[depth + i]));
   }
   std::vector<DBEntry> blocks = dbServer->readBatch(blocksToRead, DBPrefix::blocks);
   this->internalChainHeadLock.lock();
   for (auto &block : blocks) {
     Block newBlock(block.value);
     this->push_back(newBlock);
-  }
-
-  std::vector<DBEntry> blockMaps = dbServer->readBatch(DBPrefix::blockHeightMaps);
-  for (auto &blockMap : blockMaps) {
-    this->diskChainHeadLookupTableByHeight[Utils::bytesToUint64(blockMap.key)] = blockMap.value;
-    this->diskChainHeadLookupTableByHash[blockMap.value] = Utils::bytesToUint64(blockMap.key);
   }
 
   this->internalChainHeadLock.unlock();
@@ -243,7 +251,7 @@ void ChainHead::dumpToDB(std::shared_ptr<DBService> &dbServer) {
   WriteBatchRequest txToBlockBatch;
   this->internalChainHeadLock.lock();
   while (!this->internalChainHead.empty()) {
-    Block& blockToDelete = this->internalChainHead.back();
+    Block& blockToDelete = this->internalChainHead.front();
     blockBatch.puts.emplace_back(DBEntry(blockToDelete.getBlockHash(), blockToDelete.serializeToBytes()));
     heightBatch.puts.emplace_back(DBEntry(Utils::uint64ToBytes(blockToDelete.nHeight()), blockToDelete.getBlockHash()));
     // We cannot call this->pop_back() because of the std::mutex.
@@ -266,7 +274,7 @@ void ChainHead::dumpToDB(std::shared_ptr<DBService> &dbServer) {
     this->internalChainHeadLookupTableByHash.erase(blockHash);
 
     // Delete the block from the internal deque.
-    this->internalChainHead.pop_back();
+    this->internalChainHead.pop_front();
   }
 
   this->internalChainHeadLock.unlock();

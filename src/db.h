@@ -53,7 +53,7 @@ using grpc::Status;
 // It is a simple key/value store database, similar to leveldb.
 // But it allows for writing in batch and reading all keys using a given prefix.
 // The database structure is as follows:
-// 0001 -- Key: Block Hash            Value: Blocks
+// 0001 -- Key: Block Hash            Value: Block
 // 0002 -- Key: Block nHeight         Value: Block Hash
 // 0003 -- Key: Tx Hash               Value: Transactions
 // 0004 -- Key: Address               Value: Native Balance + nNonce

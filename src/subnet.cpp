@@ -44,7 +44,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
     throw "";
     // Subnet was already initialized. This shouldn't be allowed.
   }
-  if (this->!initialized) {
+  if (!this->initialized) {
     this->initialized = true;
   }
 
@@ -84,7 +84,6 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   this->headState = std::make_unique<State>(this->dbServer);
   this->chainHead = std::make_unique<ChainHead>(this->dbServer);
-
   // Parse the latest block to answer AvalancheGo.
   Block latestBlock = chainHead->latest();
   reply->set_last_accepted_id(latestBlock.getBlockHash());
