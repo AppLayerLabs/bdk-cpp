@@ -168,7 +168,7 @@ namespace HTTPServer {
                 std::thread{std::bind(
                     &do_session,
                     std::move(socket),
-                    doc_root, std::move(subnet))}.detach();
+                    doc_root, std::ref(subnet))}.detach();
             }
         }
         catch (const std::exception& e)
