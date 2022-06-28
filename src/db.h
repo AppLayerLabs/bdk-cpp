@@ -53,18 +53,22 @@ using grpc::Status;
 // It is a simple key/value store database, similar to leveldb.
 // But it allows for writing in batch and reading all keys using a given prefix.
 // The database structure is as follows:
-// 0x0001 -- Blocks
-// 0x0002 -- Transactions
-// 0x0003 -- Native Balance
-// 0x0004 -- ERC20 Tokens/State
-// 0x0005 -- ERC721 Tokens/State
+// 0001 -- Key: Block Hash            Value: Blocks
+// 0002 -- Key: Block nHeight         Value: Block Hash
+// 0003 -- Key: Tx Hash               Value: Transactions
+// 0004 -- Key: Address               Value: Native Balance + nNonce
+// 0005 -- ERC20 Tokens/State         
+// 0006 -- ERC721 Tokens/State
+// 0007 -- Key: Tx Hash               Value: Block Hash
 
 namespace DBPrefix {
-  const std::string blocks = "0001";
-  const std::string transactions = "0002";
-  const std::string nativeAccounts = "0003";
-  const std::string erc20Tokens = "0004";
-  const std::string erc721Tokens = "0005";
+  const std::string blocks = "0001"; 
+  const std::string blockHeightMaps = "0002";
+  const std::string transactions = "0003";
+  const std::string nativeAccounts = "0004";
+  const std::string erc20Tokens = "0005";
+  const std::string erc721Tokens = "0006";
+  const std::string TxToBlocks = "0007";
 }
 
 struct DBServer {
@@ -81,6 +85,7 @@ struct DBEntry {
 
 struct DBKey {
     std::string key;
+    DBKey(std::string key) : key(key) {};
 };
 
 struct WriteBatchRequest {
@@ -106,7 +111,8 @@ class DBService : public std::enable_shared_from_this<DBService> {
   bool writeBatch(WriteBatchRequest &request, std::string prefix = "");
   // Read all keys starting with prefix and start.
   std::vector<DBEntry> readBatch(std::string prefix, std::string start = "");
-  void testDB();
+  // Read all keys from key vector.
+  std::vector<DBEntry> readBatch(std::vector<DBKey>& keys, std::string prefix);
 };
 
 #endif

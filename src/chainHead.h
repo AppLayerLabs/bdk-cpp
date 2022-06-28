@@ -14,14 +14,28 @@
 class ChainHead {
   private:
     std::deque<Block> internalChainHead;
-    std::map<std::string,std::shared_ptr<Block>> internalChainHeadLookupTableByHash; // Hash   -> block (pointer to std::deque)
-    std::map<uint64_t,std::shared_ptr<Block>> internalChainHeadLookupTableByHeight; // Height -> block (pointer to std::deque)
+    std::unordered_map<std::string,std::shared_ptr<Block>> internalChainHeadLookupTableByHash; // Hash   -> block (pointer to std::deque)
 
-    std::map<std::string,std::shared_ptr<dev::eth::TransactionBase>> internalLatestConfirmedTransactions; // Hash -> Tx (Pointer to tx in std::deque block)
+    // We keep a table of already kown blocks in memory, the reasoning for that is to mittigate any possible
+    // problem by using the (slow) gRPC DB service that AvalancheGo already knows.
+    // Unfortunately, storing a map for all the transactions would be too expensive
+    // because of that, we only store a small history of transactions in memory, and the rest in the DB.
 
-    std::map<std::string, std::shared_ptr<Block> > internalTxToBlocksLookupTable; // Tx Hash -> Block (Pointer to std::deque)
+    std::unordered_map<uint64_t,std::string> diskChainHeadLookupTableByHeight; // Height -> block hash (Used to speed up block lookup)
+                                                                               // Indexes all blocks know by the node.
+
+    std::unordered_map<std::string,uint64_t> diskChainHeadLookupTableByHash;   // Hash -> block Height (Used to speed up block lookup)
+                                                                               // Indexes all blocks know by the node.
+
+
+    std::unordered_map<std::string,std::shared_ptr<dev::eth::TransactionBase>> internalLatestConfirmedTransactions; // Hash -> Tx (Pointer to tx in std::deque block)
+    std::unordered_map<std::string,std::shared_ptr<Block>> internalTxToBlocksLookupTable;                         // Tx Hash -> Block (Pointer to std::deque)
 
     std::mutex internalChainHeadLock;
+
+    // Checkers to see if block is found in memory or disk.
+    bool hasBlock(std::string &blockHash);
+    bool hasBlock(uint64_t &blockHeight);
 
   public:
 
@@ -33,8 +47,8 @@ class ChainHead {
     void pop_back();
     void pop_front();
 
-    bool hasBlock(std::string &blockHash);
-    bool hasBlock(uint64_t &blockHeight);
+    bool exists(std::string &blockHash);
+    bool exists(uint64_t &blockHeight);
 
     Block getBlock(std::string &blockHash);
     Block getBlock(uint64_t &blockHeight);

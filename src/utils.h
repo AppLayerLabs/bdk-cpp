@@ -13,8 +13,20 @@ using json = nlohmann::ordered_json;
 using uint256_t = boost::multiprecision::uint256_t;
 using bytes = std::vector<uint8_t>;
 
+namespace Log {
+    const std::string subnet = "Subnet::";
+    const std::string chainHead = "ChainHead::";
+    const std::string block = "Block::";
+    const std::string dbService = "DBService::";
+    const std::string state = "State::";
+    const std::string grpcServer = "VMServiceImplementation::";
+    const std::string grpcClient = "VMCommClient::";
+    const std::string utils = "Utils::";
+};
+
 namespace Utils {
     void logToFile(std::string str);
+    void LogPrint(std::string& prefix, std::string& function, std::string& data);
     std::string uint256ToBytes(const uint256_t &i);
     std::string uint64ToBytes(const uint64_t &i);
     std::string uint32ToBytes(const uint32_t &i);

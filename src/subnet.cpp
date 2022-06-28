@@ -39,6 +39,15 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   // See vm.proto for more information.
   // The initialization request is made by the AvalancheGo Daemon.
 
+  if (this->initialized) {
+    Utils::LogPrint(Log::subnet, __func__, "Subnet already initialized.");
+    throw "";
+    // Subnet was already initialized. This shouldn't be allowed.
+  }
+  if (this->!initialized) {
+    this->initialized = true;
+  }
+
   std::string jsonRequest;
   google::protobuf::util::JsonOptions options;
   google::protobuf::util::MessageToJsonString(*request, &jsonRequest, options);

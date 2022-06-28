@@ -166,3 +166,11 @@ bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
     throw "";
   }
 }
+
+std::vector<DBEntry> DBService::readBatch(std::vector<DBKey>& keys, std::string prefix) {
+  std::vector<DBEntry> ret;
+  for (auto &key : keys) {
+    ret.push_back({key.key, get(key.key, prefix)});
+  }
+  return ret;
+}

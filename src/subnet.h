@@ -31,12 +31,26 @@ struct InitializeRequest {
 
 class Subnet {
   private:
+    bool initialized = false;
+    // gRPC Server Implementation.
+    // vm.proto calls from AvalancheGo can be found here
     std::shared_ptr<VMServiceImplementation> grpcServer;
-    
+    // gRPC Client Implementation.
+    // aliasreader.proto, appsender.proto, keystore.proto, messenger.proto, metrics.proto and sharedmemory.proto calls to AvalancheGo can be found here.
     std::shared_ptr<VMCommClient> grpcClient;
+    // DB Server Implementation.
+    // rpcdb.proto calls to AvalancheGo can be found here.
+    // Implements a basic key/value DB provided by the AvalancheGo node, Similar to leveldb but with a gRPC interface.
     std::shared_ptr<DBService> dbServer;
+    // gRPC Server.
     std::unique_ptr<Server> server;
+    // State.
+    // Keep track of balances and the inner variables of the blockchain.
+    // Memory pool, block parsing/creation 
     std::unique_ptr<State> headState;
+    // ChainHead.
+    // Keeps track of the blockchain, the blocks/confirmed transactions are stored here.
+    // Information can be requested to it.
     std::unique_ptr<ChainHead> chainHead;
 
     // From initialization request.

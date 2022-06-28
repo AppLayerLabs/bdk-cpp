@@ -2,6 +2,7 @@
 
 
 std::mutex log_lock;
+std::mutex debug_mutex;
 
 void Utils::logToFile(std::string str) {
   log_lock.lock();
@@ -82,4 +83,12 @@ uint32_t Utils::bytesToUint32(const std::string &bytes) {
   ret |= bytes[2] << 8;
   ret |= bytes[3];
   return ret;
+}
+
+void Utils::LogPrint(std::string& prefix, std::string& function, std::string& data) {
+  debug_mutex.lock();
+  std::ofstream log("debug.txt", std::ios::app);
+  log << prefix << function << " " << data << std::endl;
+  log.close();
+  debug_mutex.unlock();
 }
