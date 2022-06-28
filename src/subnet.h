@@ -6,6 +6,7 @@
 #include "grpcclient.h"
 #include "db.h"
 #include "state.h"
+#include "httpserver.h"
 
 struct InitializeRequest {
     uint32_t networkId;
@@ -64,6 +65,10 @@ class Subnet {
     void initialize(const vm::InitializeRequest* request, vm::InitializeResponse* reply);
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
     // To be called by initialize if no info is found on DB.
+
+
+    // To be called by HTTP Server, from RPC clients (such as Metamask)
+    std::string processRPCMessage(std::string &req);
 };
 
 #endif // SUBNET_H

@@ -92,7 +92,10 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   reply->set_bytes(latestBlock.serializeToBytes());
   auto timestamp = reply->mutable_timestamp();
   timestamp->set_seconds(latestBlock.timestamp() / 1000000000);
-  timestamp->set_nanos(latestBlock.timestamp() % 1000000000); 
+  timestamp->set_nanos(latestBlock.timestamp() % 1000000000);
+  // Start the HTTP Server.
+  HTTPServer::startServer(*this);
+
   Utils::logToFile(std::to_string(latestBlock.timestamp()));
   std::string jsonReply;
   google::protobuf::util::MessageToJsonString(*reply, &jsonReply, options);
