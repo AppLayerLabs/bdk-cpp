@@ -21,7 +21,7 @@ ExternalProject_Add(
              -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
              -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
              -DZLIB_INCLUDE_DIR=${LIB_INCLUDE}
-             -DZLIB_LIB=${Z_LIBS}
+             -DZLIB_LIB=${ZLIB_LIBRARIES}
              -Dprotobuf_BUILD_TESTS=OFF
              -Dprotobuf_BUILD_BENCHMARKS=OFF
              ${_only_release_configuration}

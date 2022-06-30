@@ -40,5 +40,5 @@ file(MAKE_DIRECTORY "${BIP3X_INCLUDE_DIR}")  # Must exist.
 set_property(TARGET bip39 PROPERTY IMPORTED_CONFIGURATIONS Release)
 set_property(TARGET bip39 PROPERTY IMPORTED_LOCATION_RELEASE "${BIP3X_LIBRARY}")
 set_property(TARGET bip39 PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${BIP3X_INCLUDE_DIR}")
-add_dependencies(bip39 toolbox bip3x ${OPENSSL_LIBS})
+add_dependencies(bip39 toolbox bip3x ${OPENSSL_LIBRARIES})
 
