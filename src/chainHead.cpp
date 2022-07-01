@@ -1,7 +1,7 @@
 #include "chainHead.h"
 
-ChainHead::ChainHead(std::shared_ptr<DBService> &dbServer) {
-  this->loadFromDB(dbServer);
+ChainHead::ChainHead(std::shared_ptr<DBService> &dbService) : dbServer(dbService) {
+  this->loadFromDB();
 };
 
 void ChainHead::push_back(Block& block) {
@@ -104,46 +104,50 @@ bool ChainHead::hasBlock(uint64_t &blockHeight) {
 }
 
 bool ChainHead::exists(std::string &blockHash) {
-  this->internalChainHeadLock.lock();
-  bool result = this->diskChainHeadLookupTableByHash.count(blockHash) > 0;
-  this->internalChainHeadLock.unlock();
-  return result;
+  if (this->hasBlock(blockHash)) {
+    return true;
+  }
+  // Check DB.
+  return this->dbServer->has(blockHash, DBPrefix::blocks);
 }
 
 bool ChainHead::exists(uint64_t &blockHeight) {
-  this->internalChainHeadLock.lock();
-  bool result = this->diskChainHeadLookupTableByHeight.count(blockHeight) > 0;
-  this->internalChainHeadLock.unlock();
-  return result;
+  if (this->hasBlock(blockHeight)) {
+    return true;
+  }
+  // Check DB.
+  return this->dbServer->has(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps);
 }
 
 Block ChainHead::getBlock(std::string &blockHash) {
-  this->internalChainHeadLock.lock();
   if (this->exists(blockHash)) {
     if (this->hasBlock(blockHash)) {
+      this->internalChainHeadLock.lock();
       Block result = *this->internalChainHeadLookupTableByHash[blockHash];
       this->internalChainHeadLock.unlock();
       return result;
     } else {
       // TODO: Load block from DB
-      throw "";
+      Block result(dbServer->get(blockHash, DBPrefix::blocks));
+      return result;
     }
   } else {
-    this->internalChainHeadLock.unlock();
     throw std::runtime_error("Block doesn't exists");
   }
 }
 
 Block ChainHead::getBlock(uint64_t &blockHeight) {
-  this->internalChainHeadLock.lock();
   if (this->exists(blockHeight)) {
     if (this->hasBlock(blockHeight)) {
+      this->internalChainHeadLock.lock();
       Block result = *this->internalChainHeadLookupTableByHash[this->diskChainHeadLookupTableByHeight[blockHeight]];
       this->internalChainHeadLock.unlock();
       return result;
     } else {
-      // TODO: Load block from DB.
-      throw "";
+      std::string blockHash = dbServer->get(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps);
+      Utils::LogPrint(Log::chainHead, __func__, "blockHash: " + blockHash);
+      Block result(dbServer->get(blockHash, DBPrefix::blocks));
+      return result;
     }
   } else {
     this->internalChainHeadLock.unlock();
@@ -159,25 +163,29 @@ bool ChainHead::hasTransaction(std::string &txHash) {
 }
 
 dev::eth::TransactionBase ChainHead::getTransaction(std::string &txHash) {
-  this->internalChainHeadLock.lock();
   if (this->hasTransaction(txHash)) {
+    this->internalChainHeadLock.lock();
     dev::eth::TransactionBase result = *this->internalLatestConfirmedTransactions[txHash];
     this->internalChainHeadLock.unlock();
     return result;
+  } 
+
+  // Check DB
+  if (this->dbServer->has(txHash, DBPrefix::transactions)) {
+    dev::eth::TransactionBase result(dev::fromHex(dbServer->get(txHash, DBPrefix::transactions)), dev::eth::CheckTransaction::None); // No need to check a tx again.
+    return result;
   } else {
-    this->internalChainHeadLock.unlock();
-    throw std::runtime_error("Transaction not found");
+    throw std::runtime_error("Transaction doesn't exists");
   }
 }
 
 Block ChainHead::getBlockFromTx(std::string &txHash) {
-  this->internalChainHeadLock.lock();
   if (this->hasTransaction(txHash)) {
+      this->internalChainHeadLock.lock();
     Block result = *this->internalTxToBlocksLookupTable[txHash];
     this->internalChainHeadLock.unlock();
     return result;
   } else {
-    this->internalChainHeadLock.unlock();
     throw std::runtime_error("Transaction not found");
   }
 }
@@ -196,37 +204,42 @@ uint64_t ChainHead::blockSize() {
   return result;
 }
 
-void ChainHead::loadFromDB(std::shared_ptr<DBService> &dbServer) {
+void ChainHead::loadFromDB() {
   if (!dbServer->has("latest", DBPrefix::blocks)) {
     Block genesis(
         0,
         1656356645000000,
         0);
+
     dbServer->put("latest", genesis.serializeToBytes(), DBPrefix::blocks);
     dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash(), DBPrefix::blockHeightMaps);
     dbServer->put(genesis.getBlockHash(), genesis.serializeToBytes(), DBPrefix::blocks);
   }
 
+  Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: Getting Latest Block");
   Block latestBlock = Block(dbServer->get("latest", DBPrefix::blocks));
 
   uint64_t depth = latestBlock.nHeight();
 
   this->internalChainHeadLock.lock();
 
+  Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: Parsing block mappings");
   // Load block mappings (hash -> height and height -> hash) from DB.
   std::vector<DBEntry> blockMaps = dbServer->readBatch(DBPrefix::blockHeightMaps);
   for (auto &blockMap : blockMaps) {
     this->diskChainHeadLookupTableByHeight[Utils::bytesToUint64(blockMap.key)] = blockMap.value;
     this->diskChainHeadLookupTableByHash[blockMap.value] = Utils::bytesToUint64(blockMap.key);
   }
-
+  
   if (depth < 1001) {
     // Chain is too short to load from DB. Push back at least latest.
     this->internalChainHead.push_back(latestBlock);
     this->internalChainHeadLock.unlock();
+    Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: Done");
     return;
   }
   
+  Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: Parsing blocks");
   depth = depth - 1000;
   std::vector<DBKey> blocksToRead;
   for (uint64_t i = 0; i <= 1000; ++i) {
@@ -238,12 +251,13 @@ void ChainHead::loadFromDB(std::shared_ptr<DBService> &dbServer) {
     Block newBlock(block.value);
     this->push_back(newBlock);
   }
-
+  
+  Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: Done");
   this->internalChainHeadLock.unlock();
   return;
 }
 
-void ChainHead::dumpToDB(std::shared_ptr<DBService> &dbServer) {
+void ChainHead::dumpToDB() {
   // Emplace all blocks into a DB vector.
   WriteBatchRequest blockBatch;
   WriteBatchRequest heightBatch;

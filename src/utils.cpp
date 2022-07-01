@@ -92,3 +92,38 @@ void Utils::LogPrint(std::string prefix, std::string function, std::string data)
   log.close();
   debug_mutex.unlock();
 }
+
+void Utils::patchHex(std::string& str) {
+  if (str[0] == '0' && str[1] == 'x') {
+    str = str.substr(2);
+  }
+
+  for (auto &c : str) {
+    if (std::isupper(c))
+      c = std::tolower(c);
+  }
+  return;
+}
+
+uint256_t Utils::hexToUint(std::string &hex) {
+  patchHex(hex);
+  return boost::lexical_cast<HexTo<uint256_t>>(hex);
+}
+
+std::string Utils::hexToBytes(std::string hex) {
+  std::string ret;
+  for (uint64_t i = 0; i < hex.size(); i += 2) {
+    std::stringstream ss;
+    std::string byteStr = std::string("") + hex[i] + hex[i+1];
+    uint16_t byteInt;
+    ss << std::hex << byteStr;
+    ss >> byteInt;
+    uint8_t byte = byteInt >> 0;
+    ret += byte;
+  }
+  return ret;
+}
+
+std::string Utils::bytesToHex(std::string bytes) {
+  return dev::toHex(bytes);
+}

@@ -81,7 +81,6 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()));
 
   // Initialize the State
-
   this->headState = std::make_unique<State>(this->dbServer);
   this->chainHead = std::make_unique<ChainHead>(this->dbServer);
   // Parse the latest block to answer AvalancheGo.
@@ -95,8 +94,6 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   timestamp->set_nanos(latestBlock.timestamp() % 1000000000);
   // Start the HTTP Server.
   HTTPServer::startServer(*this);
-
-  Utils::logToFile(std::to_string(latestBlock.timestamp()));
   std::string jsonReply;
   google::protobuf::util::MessageToJsonString(*reply, &jsonReply, options);
   Utils::logToFile(jsonReply);

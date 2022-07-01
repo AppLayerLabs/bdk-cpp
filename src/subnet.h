@@ -7,6 +7,9 @@
 #include "db.h"
 #include "state.h"
 #include "httpserver.h"
+#include "json.hpp"
+
+using json = nlohmann::ordered_json;
 
 struct InitializeRequest {
     uint32_t networkId;

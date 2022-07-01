@@ -98,6 +98,7 @@ struct WriteBatchRequest {
 class DBService : public std::enable_shared_from_this<DBService> {
   private:
     std::unique_ptr<rpcdb::Database::Stub> db_stub_;
+    std::string removeKeyPrefix(const std::string &key);
     std::mutex lock;
   public:
     explicit DBService(std::shared_ptr<Channel> channel)

@@ -38,8 +38,8 @@ class State {
   public:
     State(std::shared_ptr<DBService> &dbServer);
 
-    uint256_t getNativeBalance(const std::string& address) { return nativeAccount[address].balance; };
-    uint256_t getNativeNonce(const std::string& address) { return nativeAccount[address].nonce; };
+    uint256_t getNativeBalance(const std::string& address);
+    uint256_t getNativeNonce(const std::string& address);
     const std::unordered_map<std::string, dev::eth::TransactionBase>& getMempool() { return mempool; };
 
     // State changing functions
@@ -51,6 +51,11 @@ class State {
     // State querying functions
     // Asks the state if a given transaction is valid, add to mempool if it is.
     bool validateTransaction(dev::eth::TransactionBase &tx);
+
+
+    // TEST ONLY FUNCTIONS.
+
+    void addBalance(std::string &address);
 };
 
 #endif // STATE_H

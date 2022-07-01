@@ -1,5 +1,9 @@
 #include "db.h"
 
+std::string DBService::removeKeyPrefix(const std::string &key) {
+  // Return string except initial 4 chars.
+  return key.substr(4);
+}
 
 bool DBService::has(std::string key, std::string prefix) {
   rpcdb::HasRequest request;
@@ -116,7 +120,7 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix, std::string start)
 
       if (responseIteratorNext.data().size() == 0) { break; };
       for (auto entry : responseIteratorNext.data()) {
-        entries.push_back({entry.key(), entry.value()});
+        entries.push_back({removeKeyPrefix(entry.key()), entry.value()});
       }
     }
 

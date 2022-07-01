@@ -13,6 +13,16 @@ using json = nlohmann::ordered_json;
 using uint256_t = boost::multiprecision::uint256_t;
 using bytes = std::vector<uint8_t>;
 
+template <typename ElemT>
+struct HexTo {
+  ElemT value;
+  operator ElemT() const { return value; }
+  friend std::istream& operator>>(std::istream& in, HexTo& out) {
+    in >> std::hex >> out.value;
+    return in;
+  }
+};
+
 namespace Log {
     const std::string subnet = "Subnet::";
     const std::string chainHead = "ChainHead::";
@@ -37,10 +47,26 @@ namespace Utils {
     // In usage to convert bytes into gRPC strings.
     std::string bytesToByteString(const std::string &bytes);
     std::string stringToBytes(const std::string &str);
+    // Simple function to remove "0x" and lowercase everything from a hex string.
+    void patchHex(std::string& str);
+    // Simple uint > hex, does not handle paddings or 0x prefix.
+    // TODO: Make is use referencing instead of copying T.
+    template <typename T> std::string uintToHex(T i) {
+      std::stringstream ss;
+      std::string ret;
+      ss << std::hex << i;
+      ret = ss.str();
+      for (auto &c : ret) {
+        if (std::isupper(c))
+          c = std::tolower(c);
+      }
+      return ret;
+    }
+    // Simple hex > uint, return as uint256_t
+    uint256_t hexToUint(std::string &hex);
+    // Hex <-> Bytes (using string containers)
+    std::string hexToBytes(std::string hex);
+    std::string bytesToHex(std::string bytes);
 }
-
-
-
-
 
 #endif // UTILS_H
