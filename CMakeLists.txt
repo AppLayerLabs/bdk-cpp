@@ -11,11 +11,8 @@ cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Debug;Release;RelWithDe
 set(CMAKE_MAP_IMPORTED_CONFIG_DEBUG Release)
 set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
 
-# Set CMake module path
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-
 # Project data
-project(subnetooor VERSION 0.0.1 DESCRIPTION "")
+project(subnetooor VERSION 0.0.1 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -36,7 +33,6 @@ set(Protobuf_USE_STATIC_LIBS ON)
 
 # Find system packages (built-in)
 find_package(Threads)
-find_package(absl REQUIRED)
 find_package(Boost 1.74.0 REQUIRED COMPONENTS
   chrono filesystem program_options system thread nowide
 )
@@ -46,6 +42,7 @@ find_package(Snappy REQUIRED)
 find_package(ZLIB REQUIRED)
 
 # Find system packages (custom)
+find_package(Absl REQUIRED) # Built-in is hardcoded to SHARED, this one to STATIC
 find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(Cares REQUIRED)
 find_package(GRPC REQUIRED)
