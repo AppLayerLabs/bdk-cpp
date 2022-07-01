@@ -11,6 +11,8 @@
 // This is used to help the state process new blocks and transactions, and to help answering RPC queries.
 // ChainHead periodically dumps to DB to keep the history of blocks and transactions lightweight.
 
+
+// TODO: getBlock/getTransaction is only accessing memory, should use DB in case of not found.
 class ChainHead {
   private:
     std::deque<Block> internalChainHead;

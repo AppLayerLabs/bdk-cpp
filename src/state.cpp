@@ -136,3 +136,25 @@ bool State::createNewBlock(std::unique_ptr<ChainHead>& chainHead) {
   stateLock.unlock();
   return this->processNewBlock(newBestBlock, chainHead);
 }
+
+uint256_t State::getNativeBalance(const std::string& address) { 
+  uint256_t ret;
+  this->stateLock.lock();
+  ret = this->nativeAccount[address].balance; 
+  this->stateLock.unlock();
+  return ret;
+};
+
+uint256_t State::getNativeNonce(const std::string& address) { 
+  uint256_t ret;
+  this->stateLock.lock();
+  ret = this->nativeAccount[address].nonce;
+  this->stateLock.unlock();
+  return ret;
+};
+
+void State::addBalance(std::string &address) {
+  this->stateLock.lock();
+  this->nativeAccount[address].balance += 1000000000000000000;  
+  this->stateLock.unlock();
+}

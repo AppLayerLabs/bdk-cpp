@@ -92,3 +92,20 @@ void Utils::LogPrint(std::string prefix, std::string function, std::string data)
   log.close();
   debug_mutex.unlock();
 }
+
+void Utils::patchHex(std::string& str) {
+  if (str[0] == '0' && str[1] == 'x') {
+    str = str.substr(2);
+  }
+
+  for (auto &c : str) {
+    if (std::isupper(c))
+      c = std::tolower(c);
+  }
+  return;
+}
+
+uint256_t Utils::hexToUint(std::string &hex) {
+  patchHex(hex);
+  return boost::lexical_cast<HexTo<uint256_t>>(hex);
+}

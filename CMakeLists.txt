@@ -239,12 +239,12 @@ set(SUBNETOOOR_HEADERS
   src/state.h
   src/chainHead.h
   src/httpserver.h
+  src/json.hpp
 )
 
 set(SUBNETOOOR_SOURCES
   src/main.cpp
   src/subnet.cpp
-  src/utils.cpp
   src/block.cpp
   src/grpcserver.cpp
   src/db.cpp
@@ -253,6 +253,7 @@ set(SUBNETOOOR_SOURCES
   src/chainHead.cpp
   src/httpserver.cpp
   src/subnetRPC.cpp
+  src/utils.cpp
 )
 
 message(STATUS ${SUBNETOOOR_HEADERS})
