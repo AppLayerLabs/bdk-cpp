@@ -38,22 +38,19 @@ find_package(Boost 1.74.0 REQUIRED COMPONENTS
 )
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(Protobuf 3.12 REQUIRED)
-find_package(Snappy REQUIRED)
 find_package(ZLIB REQUIRED)
 
 # Find system packages (custom)
 find_package(Absl REQUIRED) # Built-in is hardcoded to SHARED, this one to STATIC
-find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(Cares REQUIRED)
+find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(GRPC REQUIRED)
-find_package(LevelDB REQUIRED)
 find_package(Scrypt REQUIRED)
 
 # Add external modules
 include(cmake/ProjectBoostCertify.cmake)
 include(cmake/ProjectEthash.cmake)
 include(cmake/ProjectSecp256k1.cmake) # Itamar's fork which includes secp256k1_sha256.h
-include(cmake/ProjectToolbox.cmake)
 
 # Include headers and libs
 include_directories(
@@ -86,7 +83,7 @@ add_library(aleth STATIC
 )
 target_include_directories(aleth PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(aleth PRIVATE
-  cryptopp scrypt Secp256k1 toolbox Ethash ${ETHASH_BYPRODUCTS}
+  cryptopp scrypt Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
 )
 
 # Generate gRPC files
@@ -268,6 +265,6 @@ target_include_directories(subnetooord PRIVATE aleth)
 target_link_libraries(subnetooord aleth
   ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
   ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-  Snappy::snappy-static absl::flags
+  absl::flags
 )
 
