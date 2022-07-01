@@ -64,6 +64,9 @@ namespace Utils {
     }
     // Simple hex > uint, return as uint256_t
     uint256_t hexToUint(std::string &hex);
+    // Hex <-> Bytes (using string containers)
+    std::string hexToBytes(std::string hex);
+    std::string bytesToHex(std::string bytes);
 }
 
 #endif // UTILS_H

@@ -15,6 +15,9 @@
 // TODO: getBlock/getTransaction is only accessing memory, should use DB in case of not found.
 class ChainHead {
   private:
+    // Pointer to DB Service, ChainHead access it when needed.
+    std::shared_ptr<DBService> &dbServer;
+
     std::deque<Block> internalChainHead;
     std::unordered_map<std::string,std::shared_ptr<Block>> internalChainHeadLookupTableByHash; // Hash   -> block (pointer to std::deque)
 
@@ -41,7 +44,7 @@ class ChainHead {
 
   public:
 
-    ChainHead(std::shared_ptr<DBService> &dbServer);
+    ChainHead(std::shared_ptr<DBService> &_dbService);
 
     void push_back(Block& block);
     void push_front(Block& block);
@@ -63,13 +66,13 @@ class ChainHead {
     Block latest();
 
     // Load at max 1000 Blocks from DB. Always latest blocks.
-    void loadFromDB(std::shared_ptr<DBService> &dbServer);
+    void loadFromDB();
 
     // Dump the entire local state to DB.
-    void dumpToDB(std::shared_ptr<DBService> &dbServer);
+    void dumpToDB();
 
     // Function for periodically save the blocks into DB.
-    void periodicSaveToDB(std::shared_ptr<DBService> &dbServer);
+    void periodicSaveToDB();
 
     uint64_t blockSize();
 };

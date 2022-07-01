@@ -2,7 +2,9 @@
 
 // Process a Metamask RPC message
 // There are multiple edge cases that need to be handled.
-std::string Subnet::processRPCMessage(std::string &req) { 
+std::string Subnet::processRPCMessage(std::string &req) {
+
+  Utils::LogPrint(Log::subnet, "processRPCMessage", "Received RPC message: " + req);
   json ret;
   json messageJson = json::parse(req);
   ret["id"] = messageJson["id"];
@@ -12,18 +14,20 @@ std::string Subnet::processRPCMessage(std::string &req) {
     ret["result"] = "0x" + Utils::uintToHex(bestBlock.nHeight());
   }
   if(messageJson["method"] == "eth_chainId") {
-    ret["result"] = "0x" + dev::toHex(this->initParams.chainId);
+    ret["result"] = "0x2290";
   }
   if(messageJson["method"] == "net_version") {
-    ret["result"] = std::to_string(this->initParams.networkId);
+    ret["result"] = "8848";
   }
   if(messageJson["method"] == "eth_getBalance") {
     std::string address = messageJson["params"][0].get<std::string>();
     Utils::patchHex(address);
+    Utils::LogPrint(Log::subnet, "eth_getBalance address: ", address);
     auto balance = this->headState->getNativeBalance(address);
     std::string hexValue = "0x";
     hexValue += Utils::uintToHex(balance);
     ret["result"] = hexValue;
+    Utils::LogPrint(Log::subnet, "eth_getBalance: ", ret.dump());
   }
   if(messageJson["method"] == "eth_getBlockByNumber") {
     std::string blockString = messageJson["params"][0].get<std::string>();
@@ -32,12 +36,13 @@ std::string Subnet::processRPCMessage(std::string &req) {
       block = std::make_unique<Block>(chainHead->latest());
     } else {
       uint64_t blockNumber = boost::lexical_cast<uint64_t>(Utils::hexToUint(blockString));
+      Utils::LogPrint(Log::subnet, "eth_getBlockByNumber blockNumber: ", std::to_string(blockNumber));
       block = std::make_unique<Block>(chainHead->getBlock(blockNumber));
     }
 
     json answer;
     answer["number"] = std::string("0x") + Utils::uintToHex(block->nHeight());
-    answer["hash"] = std::string("0x") + block->getBlockHash();
+    answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash());
     answer["parentHash"] = std::string("0x") + block->prevBlockHash();
     answer["nonce"] = "0x00000000000000"; // any nonce should be good, metamask is not checking block validity.
     answer["sha3Uncles"] = "0x";
@@ -97,7 +102,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     ret["result"]["transactionIndex"] = "0x1";
     Block block = chainHead->getBlockFromTx(txHash);
     ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block.nHeight());
-    ret["result"]["blockHash"] = std::string("0x") + block.getBlockHash();
+    ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block.getBlockHash());
     ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx.gas());
     ret["result"]["gasUsed"] = "0x" + Utils::uintToHex(tx.gas());
     // Does metamask checks if we called a contract?
@@ -109,10 +114,11 @@ std::string Subnet::processRPCMessage(std::string &req) {
   if(messageJson["method"] == "eth_getBlockByHash") {
     std::string blockHash = messageJson["params"][0].get<std::string>();
     Utils::patchHex(blockHash);
+    blockHash = Utils::hexToBytes(blockHash);
     Block block = chainHead->getBlock(blockHash);
     json answer;
     answer["number"] = std::string("0x") + Utils::uintToHex(block.nHeight());
-    answer["hash"] = std::string("0x") + block.getBlockHash();
+    answer["hash"] = std::string("0x") + dev::toHex(block.getBlockHash());
     answer["parentHash"] = std::string("0x") + block.prevBlockHash();
     answer["nonce"] = "0x00000000000000"; // any nonce should be good, metamask is not checking block validity.
     answer["sha3Uncles"] = "0x";
