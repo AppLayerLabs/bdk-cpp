@@ -56,6 +56,8 @@ class State {
     // TEST ONLY FUNCTIONS.
 
     void addBalance(std::string &address);
+
+    friend class Subnet;
 };
 
 #endif // STATE_H

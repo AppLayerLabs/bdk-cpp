@@ -28,8 +28,17 @@ void Subnet::start() {
 
 
 void Subnet::stop() {
+  Utils::LogPrint(Log::subnet, __func__, "Stopping subnet...");
   // Sleep for 2 seconds and wait for Server shutdown answer.
+  if (this->initialized) {
+    this->chainHead->dumpToDB();
+    Utils::LogPrint(Log::subnet, __func__, "chainHead saved to DB...");
+    this->headState->saveState(this->dbServer);
+    Utils::LogPrint(Log::subnet, __func__, "headState saved to DB...");
+  }
+  this->dbServer->close();
   boost::this_thread::sleep_for(boost::chrono::seconds(2));
+  Utils::LogPrint(Log::subnet, __func__, "Shutdown Done");
   server->Shutdown();
   return;
 }
@@ -72,11 +81,9 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   this->initParams.gRPCServerAddress = request->server_addr();
 
-  // Initialize the DB Server to get information about the subnet there, we are assuming that we are running inside a sandbox.
-  if(hasDBServer) {
-    auto db_Server  = this->initParams.dbServers[0];
-    dbServer = std::make_shared<DBService>(grpc::CreateChannel(db_Server.host, grpc::InsecureChannelCredentials()));
-  }
+  // Initialize the DB to get information about the subnet there, we are assuming that we are NOT running inside a sandbox.
+  dbServer = std::make_shared<DBService>(this->initParams.nodeId);
+  
   // Initialize the gRPC client to communicate back with AvalancheGo
   grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()));
 

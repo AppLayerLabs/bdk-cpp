@@ -2,50 +2,13 @@
 #define DB_H
 
 #include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-#include <sstream>
-#include <fstream>
-#include <chrono>
-#include <csignal>
 
-#include <grpcpp/ext/proto_server_reflection_plugin.h>
-#include <grpc/support/log.h>
-#include <grpcpp/grpcpp.h>
-
-
-#include <google/protobuf/text_format.h>
-#include <google/protobuf/util/json_util.h>
-#include <google/protobuf/message.h>
-#include "../proto/rpcdb.grpc.pb.h"
 #include "utils.h"
 
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/hex.hpp>
-#include <boost/thread.hpp>
+#include <leveldb/db.h>
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
-#include <boost/asio.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/config.hpp>
-#include <cstdlib>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-
-using grpc::Channel;
-using grpc::ClientAsyncResponseReader;
-using grpc::ClientContext;
-using grpc::CompletionQueue;
-using grpc::Status;
 
 
 // As Subnets are meant to be run inside a sandbox, we cannot create our own DB.
@@ -95,14 +58,24 @@ struct WriteBatchRequest {
   bool continues;
 };
 
-class DBService : public std::enable_shared_from_this<DBService> {
+class DBService {
   private:
-    std::unique_ptr<rpcdb::Database::Stub> db_stub_;
-    std::string removeKeyPrefix(const std::string &key);
-    std::mutex lock;
+    leveldb::DB* db;
+    leveldb::Options options;
+    std::mutex batchLock;
+    boost::filesystem::path dbPath;
+
   public:
-    explicit DBService(std::shared_ptr<Channel> channel)
-      : db_stub_(rpcdb::Database::NewStub(channel)) {};
+
+  DBService(std::string path) {
+    boost::replace_all(path, "/", "");
+    options.create_if_missing = true;
+    dbPath = boost::filesystem::current_path().string() + std::string("/") + path;
+    auto status = leveldb::DB::Open(this->options, dbPath.string(), &db);
+    if (!status.ok()) {
+      Utils::LogPrint(Log::db, __func__, "Failed to open DB: " + status.ToString());
+    }
+  }
 
   bool has(std::string key, std::string prefix = "");
   std::string get(std::string key, std::string prefix = "");
@@ -111,9 +84,11 @@ class DBService : public std::enable_shared_from_this<DBService> {
   bool close();
   bool writeBatch(WriteBatchRequest &request, std::string prefix = "");
   // Read all keys starting with prefix and start.
-  std::vector<DBEntry> readBatch(std::string prefix, std::string start = "");
+  std::vector<DBEntry> readBatch(std::string prefix);
   // Read all keys from key vector.
   std::vector<DBEntry> readBatch(std::vector<DBKey>& keys, std::string prefix);
+  
+  std::string removeKeyPrefix(const std::string &key);
 };
 
 #endif

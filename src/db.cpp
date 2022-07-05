@@ -6,169 +6,80 @@ std::string DBService::removeKeyPrefix(const std::string &key) {
 }
 
 bool DBService::has(std::string key, std::string prefix) {
-  rpcdb::HasRequest request;
-  rpcdb::HasResponse response;
-  ClientContext context;
-
-  key = prefix + key;
-  request.set_key(key);
-
-  lock.lock();
-  Status status = db_stub_->Has(&context, request, &response);
-  lock.unlock();
-  if (status.ok()) {
-    return response.has();
-  } else { 
-    Utils::logToFile("DB Has Comm Failed");
-    throw "";
+  leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
+  for (it->Seek(prefix+key); it->Valid(); it->Next()) {
+    if (it->key().ToString() == prefix+key) {
+      delete it;
+      return true;
+    }
   }
+  delete it;
+  return false;
 }
 
 std::string DBService::get(std::string key, std::string prefix) {
-  rpcdb::GetRequest request;
-  rpcdb::GetResponse response;
-  ClientContext context;
-
-  key = prefix + key;
-  request.set_key(key);
-  lock.lock();
-  Status status = db_stub_->Get(&context, request, &response);
-  lock.unlock();
-  if (status.ok()) {
-    return response.value();
-  } else { 
-    Utils::logToFile("DB Get Comm Failed");
-    throw "";
+  leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
+  for (it->Seek(prefix+key); it->Valid(); it->Next()) {
+    if (it->key().ToString() == prefix+key) {
+      std::string value = it->value().ToString();
+      delete it;
+      return value;
+    }
   }
+  delete it;
+  return "";
 }
 
 bool DBService::put(std::string key, std::string value, std::string prefix) {
-  rpcdb::PutRequest request;
-  rpcdb::PutResponse response;
-  ClientContext context;
-
-  key = prefix + key;
-  request.set_key(key);
-  request.set_value(value);
-  lock.lock();
-  Status status = db_stub_->Put(&context, request, &response);
-  lock.unlock();
-  if (status.ok()) {
-    return true;
-  } else { 
-    Utils::logToFile("DB Put Comm Failed");
-    throw "";
+  auto status = this->db->Put(leveldb::WriteOptions(), prefix+key, value);
+  if (!status.ok()) {
+    Utils::LogPrint(Log::db, __func__, "Failed to put key: " + key);
+    return false;
   }
+  return true;
 }
 
 bool DBService::del(std::string key, std::string prefix) {
-  rpcdb::DeleteRequest request;
-  rpcdb::DeleteResponse response;
-  ClientContext context;
-
-  key = prefix + key;
-  request.set_key(key);
-  lock.lock();
-  Status status = db_stub_->Delete(&context, request, &response);
-  lock.unlock();
-  if (status.ok()) {
-    return true;
-  } else {
-    Utils::logToFile("DB Delete Comm Failed");
-    throw "";;
+  auto status = this->db->Delete(leveldb::WriteOptions(), prefix+key);
+  if (!status.ok()) {
+    Utils::LogPrint(Log::db, __func__, "Failed to delete key: " + key);
+    return false;
   }
+  return true;
 }
 
 bool DBService::close() { 
-  rpcdb::CloseRequest request;
-  rpcdb::CloseResponse response;
-  ClientContext context;;
-
-  lock.lock();
-  Status status = db_stub_->Close(&context, request, &response);
-  lock.unlock();
-  if (status.ok()) {
-    return true;
-  } else {
-    Utils::logToFile("DB Close Comm Failed");
-    throw "";
-  }
+  delete this->db;
+  this->db = NULL;
+  return true;
 }
 
-std::vector<DBEntry> DBService::readBatch(std::string prefix, std::string start) {
+std::vector<DBEntry> DBService::readBatch(std::string prefix) {
   std::vector<DBEntry> entries;
-  rpcdb::NewIteratorWithStartAndPrefixRequest requestNewIterator;
-  rpcdb::NewIteratorWithStartAndPrefixResponse responseNewIterator;
-  ClientContext contextNewIterator;
-
-
-  lock.lock();
-  requestNewIterator.set_start(start);
-  requestNewIterator.set_prefix(prefix);
-
-  Status status = db_stub_->NewIteratorWithStartAndPrefix(&contextNewIterator, requestNewIterator, &responseNewIterator);
-
-  if (status.ok()) {
-    auto id = responseNewIterator.id();
-    while (true) {
-      rpcdb::IteratorNextRequest requestIteratorNext;
-      rpcdb::IteratorNextResponse responseIteratorNext;
-      ClientContext contextIteratorNext;
-      requestIteratorNext.set_id(id);
-
-      db_stub_->IteratorNext(&contextIteratorNext, requestIteratorNext, &responseIteratorNext);
-
-      if (responseIteratorNext.data().size() == 0) { break; };
-      for (auto entry : responseIteratorNext.data()) {
-        entries.push_back({removeKeyPrefix(entry.key()), entry.value()});
-      }
+  leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
+  for (it->Seek(prefix); it->Valid(); it->Next()) {
+    if (it->key().ToString().substr(0, 4) == prefix) {
+      DBEntry entry(removeKeyPrefix(it->key().ToString()), it->value().ToString());
+      entries.push_back(entry);
     }
-
-    rpcdb::IteratorReleaseRequest requestRelease;
-    rpcdb::IteratorReleaseResponse responseRelease;
-    ClientContext contextRelease;
-    requestRelease.set_id(id);
-
-    db_stub_->IteratorRelease(&contextRelease, requestRelease, &responseRelease);    
-  } else {
-    Utils::logToFile("DB readBatch Comm Failed");
-    throw "";
   }
-
-  lock.unlock();
+  delete it;
   return entries;
 }
 
-
+// Implement proper batch functions
 bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
-  rpcdb::WriteBatchRequest requestWriteBatch;
-  rpcdb::WriteBatchResponse responseWriteBatch;
-  ClientContext contextWriteBatch;
-
   for (auto &entry : request.puts) {
-    auto putRequest = requestWriteBatch.add_puts();
-    putRequest->set_key(entry.key);
-    putRequest->set_value(entry.value);
+    if (!this->put(entry.key, entry.value, prefix)) {
+      return false;
+    }
   }
-
   for (auto &entry : request.dels) {
-    auto delRequest = requestWriteBatch.add_deletes();
-    delRequest->set_key(entry.key);
+    if (!this->del(entry.key, prefix)) {
+      return false;
+    }
   }
-
-  requestWriteBatch.set_id(0);
-  requestWriteBatch.set_continues(false);
-
-  lock.lock();
-  Status status = db_stub_->WriteBatch(&contextWriteBatch, requestWriteBatch, &responseWriteBatch);
-  lock.unlock();
-
-  if (status.ok()) {
-    return true;
-  } else {
-    Utils::logToFile("DB WriteBatch Comm Failed");
-    throw "";
-  }
+  return true;
 }
 
 std::vector<DBEntry> DBService::readBatch(std::vector<DBKey>& keys, std::string prefix) {

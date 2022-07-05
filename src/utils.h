@@ -27,7 +27,7 @@ namespace Log {
     const std::string subnet = "Subnet::";
     const std::string chainHead = "ChainHead::";
     const std::string block = "Block::";
-    const std::string dbService = "DBService::";
+    const std::string db = "DBService::";
     const std::string state = "State::";
     const std::string grpcServer = "VMServiceImplementation::";
     const std::string grpcClient = "VMCommClient::";
