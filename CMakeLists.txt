@@ -58,16 +58,16 @@ include(cmake/ProjectSecp256k1.cmake) # Itamar's fork which includes secp256k1_s
 include_directories(
   "${CMAKE_SOURCE_DIR}"
   "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/include"
-  "${CMAKE_SOURCE_DIR}/depends/${DEPENDS_PREFIX}/include"
 )
 link_directories(
   "${CMAKE_SOURCE_DIR}"
   "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/lib"
-  "${CMAKE_SOURCE_DIR}/depends/${DEPENDS_PREFIX}/lib"
 )
 
 # Organize, compile and link aleth libs
@@ -220,7 +220,7 @@ add_custom_target(gen-grpc ALL DEPENDS
 
 # Set project headers and sources
 set(SUBNETOOOR_HDRS
-  src/main.h src/subnet.h src/json.hpp src/utils.h src/block.h src/grpcserver.h
+  src/main.h src/subnet.h src/utils.h src/block.h src/grpcserver.h
   src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h
 )
 

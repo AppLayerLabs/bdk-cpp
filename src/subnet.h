@@ -1,13 +1,14 @@
 #ifndef SUBNET_H
 #define SUBNET_H
 
+#include <nlohmann/json.hpp>
+
 #include "block.h"
 #include "grpcserver.h"
 #include "grpcclient.h"
 #include "db.h"
 #include "state.h"
 #include "httpserver.h"
-#include "json.hpp"
 
 using json = nlohmann::ordered_json;
 
@@ -29,7 +30,7 @@ struct InitializeRequest {
 // Every class originating from this, being the gRPC server/client or the inner
 // validation status of the system.
 // A given sub-module (let's say, the gRPC Server) does a request.
-// the gRPC server will call a function on the Subnet class (as it has a reference for it) 
+// the gRPC server will call a function on the Subnet class (as it has a reference for it)
 // And then the Subnet class will process the request, this means that the gRPC server cannot access directly
 // another sub-module, it has to go through Subnet first.
 
@@ -50,7 +51,7 @@ class Subnet {
     std::unique_ptr<Server> server;
     // State.
     // Keep track of balances and the inner variables of the blockchain.
-    // Memory pool, block parsing/creation 
+    // Memory pool, block parsing/creation
     std::unique_ptr<State> headState;
     // ChainHead.
     // Keeps track of the blockchain, the blocks/confirmed transactions are stored here.

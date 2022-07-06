@@ -6,8 +6,8 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/lexical_cast.hpp>
-#include <include/web3cpp/devcore/CommonData.h>
-#include "json.hpp"
+#include <web3cpp/devcore/CommonData.h>
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::ordered_json;
 using uint256_t = boost::multiprecision::uint256_t;
