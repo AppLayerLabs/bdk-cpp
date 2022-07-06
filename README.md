@@ -9,6 +9,7 @@ Sparq subnet source code.
 * **Boost 1.74** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
 * **CryptoPP 8.2.0** or higher
 * **gRPC** + **Protobuf 3.12** or higher + **libc-ares**
+* **LevelDB** + **libsnappy**
 * **libscrypt**
 * **OpenSSL 1.1.1**
 * **zlib**
@@ -16,7 +17,7 @@ Sparq subnet source code.
 ### One-liners
 
 For **Debian 11 Bullseye or newer**:
-* `sudo apt install build-essential cmake autoconf libtool pkg-config libabsl-dev libboost-{chrono,filesystem,program-options,system,thread,nowide}-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libscrypt-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
+* `sudo apt install build-essential cmake autoconf libtool pkg-config libabsl-dev libboost-{chrono,filesystem,program-options,system,thread,nowide}-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libleveldb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
 
 #### Caveats
 
