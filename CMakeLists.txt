@@ -46,11 +46,14 @@ find_package(Cares REQUIRED)
 find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(GRPC REQUIRED)
 find_package(Scrypt REQUIRED)
+find_package(Snappy REQUIRED)
+find_package(LevelDB REQUIRED)
 
 # Add external modules
 include(cmake/ProjectBoostCertify.cmake)
 include(cmake/ProjectEthash.cmake)
 include(cmake/ProjectSecp256k1.cmake) # Itamar's fork which includes secp256k1_sha256.h
+
 
 # Include headers and libs
 include_directories(
@@ -263,7 +266,7 @@ add_dependencies(subnetooord gen-grpc)
 # Add include folder and link libraries to the executable
 target_include_directories(subnetooord PRIVATE aleth)
 target_link_libraries(subnetooord aleth
-  ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
+  ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY}
   ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
   absl::flags
 )
