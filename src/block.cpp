@@ -23,37 +23,40 @@ Block::Block(const std::string &blockData) {
     // Parse and push transactions into block.
     uint64_t nextTx = 0;
     for (uint32_t i = 0; i < this->_txCount; ++i) {
-      std::string txBytes; 
+      std::string txBytes;
       std::string txSizeBytes;
-      // Copy transaction size.
+      // Copy the transaction size.
       txSizeBytes = rawTransactions.substr(nextTx, 4);
       uint32_t txSize = Utils::bytesToUint32(txSizeBytes);
-      // Copy transacion itself.
+      // Copy the transaction itself.
       txBytes = txBytes.substr(nextTx + 4, txSize);
       nextTx = nextTx + 4 + txSize;
       this->_transactions.push_back(dev::eth::TransactionBase(txBytes, dev::eth::CheckTransaction::None));
     }
   } catch (std::exception &e) {
     Utils::LogPrint(Log::block, __func__, "Error: " + std::string(e.what()) + " " + dev::toHex(blockData));
-    throw "";
+    throw;
   }
 }
 
 std::string Block::serializeToBytes() {
-  // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ...]
+  // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ... ]
   std::string ret;
   std::string prevBlockHashBytes = Utils::uint256ToBytes(this->_prevBlockHash);
   std::string timestampBytes = Utils::uint64ToBytes(this->_timestamp);
   std::string nHeightBytes = Utils::uint64ToBytes(this->_nHeight);
   std::string txCountBytes = Utils::uint32ToBytes(this->_txCount);
-  // Append Header.
+
+  // Append header.
   ret += prevBlockHashBytes;
   ret += timestampBytes;
   ret += nHeightBytes;
   ret += txCountBytes;
 
-  // Append Transactions
-  // For each transaction, we need to parse both their size and their data.
+  /**
+   * Append transactions.
+   * For each transaction we need to parse both their size and their data.
+   */
   for (auto transaction : this->_transactions) {
     bytes txBytes = transaction.rlp(dev::eth::IncludeSignature::WithSignature);
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
@@ -73,12 +76,14 @@ std::string Block::getBlockHash() {
 
 const uint64_t Block::blockSize() {
   uint64_t ret = 0;
-  // Prev Block Hash + Timestamp + nHeight + txCount + [ txSize, tx, ...]
+
+  // Prev Block Hash + Timestamp + nHeight + txCount + [ txSize, tx, ... ]
   // 32 + 8 + 8 + 4 + Nx[4 + Ny]
   ret = ret + 32 + 8 + 8 + 4;
-  // Append tx's size.
+
+  // Append transaction sizes.
   for (auto transaction : this->_transactions) {
-    // This is not optimized, it will be fixed later.
+    // TODO: this is not optimized, will be fixed later.
     ret = ret + 4 + transaction.rlp(dev::eth::IncludeSignature::WithSignature).size();
   }
   return ret;
@@ -94,9 +99,8 @@ bool Block::appendTx(dev::eth::TransactionBase &tx) {
 }
 
 bool Block::finalizeBlock() {
-  if (this->finalized) {
-    return false;
-  }
+  if (this->finalized) return false;
   this->finalized = true;
   return true;
 }
+

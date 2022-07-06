@@ -5,9 +5,7 @@ State::State(std::shared_ptr<DBService> &dbServer) {
 }
 
 bool State::loadState(std::shared_ptr<DBService> &dbServer) {
-  // Load chainHead
   stateLock.lock();
-  // Load accounts.
   auto accounts = dbServer->readBatch(DBPrefix::nativeAccounts);
   for (auto account : accounts) {
     this->nativeAccount[account.key].balance = Utils::bytesToUint256(account.value.substr(0,32));
@@ -18,8 +16,6 @@ bool State::loadState(std::shared_ptr<DBService> &dbServer) {
 }
 
 bool State::saveState(std::shared_ptr<DBService> &dbServer) {
-  // Save accounts.
-  // Use DB batch methods.
   stateLock.lock();
   WriteBatchRequest accountsBatch;
   for (auto &account : this->nativeAccount) {
@@ -37,8 +33,9 @@ bool State::validateTransaction(dev::eth::TransactionBase& tx) {
   // TODO: Handle error conditions to report at RPC level.
   // TODO: Handle transaction override (if the transaction is already in the mempool).
   // TODO: Handle transaction queue for multiple tx's from single user.
-  // Replay Protection.
   stateLock.lock();
+
+  // Replay protection.
   if (!tx.isReplayProtected()) {
     stateLock.unlock();
     return false;
@@ -50,13 +47,13 @@ bool State::validateTransaction(dev::eth::TransactionBase& tx) {
     return false;
   }
 
-  // Check if the sender has enough balance.
+  // Check if sender has enough balance.
   if (this->nativeAccount[tx.hash()].balance < tx.value()) {
     stateLock.unlock();
     return false;
   }
 
-  // Check if already exists.
+  // Check if transaction already exists in mempool.
   if (this->mempool.count(tx.hash())) {
     stateLock.unlock();
     return false;
@@ -69,21 +66,26 @@ bool State::validateTransaction(dev::eth::TransactionBase& tx) {
 
 bool State::processNewTransaction(const dev::eth::TransactionBase& tx) {
   bool isContractCall = false;
-  // Remove Tx from Mempool (if found)
-  if (this->mempool.count(tx.hash()) != 0)
-    this->mempool.erase(tx.hash());
+
+  // Remove transaction from mempool if found there.
+  if (this->mempool.count(tx.hash()) != 0) this->mempool.erase(tx.hash());
+
   // Update Balances.
   this->nativeAccount[dev::toHex(tx.from())].balance -= tx.value();
   this->nativeAccount[dev::toHex(tx.to())].balance += tx.value();
+
   // Update nonce.
   this->nativeAccount[dev::toHex(tx.from())].nonce++;
+
   // Burn gas fees.
   this->nativeAccount[dev::toHex(tx.from())].balance -= (tx.gasPrice() * tx.gas());
+
   return true;
 }
 
 bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHead) {
   stateLock.lock();
+
   // Check block previous hash.
   Block bestBlock = chainHead->latest();
   if (bestBlock.getBlockHash() != newBlock.prevBlockHash()) {
@@ -108,7 +110,7 @@ bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHe
     this->processNewTransaction(tx);
   }
 
-  // Append block to chainHead
+  // Append block to chainHead.
   chainHead->push_back(newBlock);
 
   stateLock.unlock();
@@ -122,7 +124,7 @@ bool State::createNewBlock(std::unique_ptr<ChainHead>& chainHead) {
   Block newBestBlock(
     Utils::bytesToUint256(bestBlock.getBlockHash()),
     // the block cast one one the time looool.
-    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count(), 
+    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count(),
     bestBlock.nHeight() + 1
   );
   // Lock state to load transactions from mempool
@@ -137,15 +139,15 @@ bool State::createNewBlock(std::unique_ptr<ChainHead>& chainHead) {
   return this->processNewBlock(newBestBlock, chainHead);
 }
 
-uint256_t State::getNativeBalance(const std::string& address) { 
+uint256_t State::getNativeBalance(const std::string& address) {
   uint256_t ret;
   this->stateLock.lock();
-  ret = this->nativeAccount[address].balance; 
+  ret = this->nativeAccount[address].balance;
   this->stateLock.unlock();
   return ret;
 };
 
-uint256_t State::getNativeNonce(const std::string& address) { 
+uint256_t State::getNativeNonce(const std::string& address) {
   uint256_t ret;
   this->stateLock.lock();
   ret = this->nativeAccount[address].nonce;
@@ -155,6 +157,7 @@ uint256_t State::getNativeNonce(const std::string& address) {
 
 void State::addBalance(std::string &address) {
   this->stateLock.lock();
-  this->nativeAccount[address].balance += 1000000000000000000;  
+  this->nativeAccount[address].balance += 1000000000000000000;
   this->stateLock.unlock();
 }
+

@@ -13,24 +13,30 @@
 #include "db.h"
 #include "chainHead.h"
 
-// The State Class.
-// This class is used to store the state of the system, such as native balances.
-// Contract status, mempool transactions, token balances, and the shared inner variables of the blockchain.
-// State can only be updated with blocks, it can create the block itself or receive one from the network.
-
 struct Account {
   uint256_t balance = 0;
   uint32_t nonce = 0;
 };
 
+/**
+ * The State class is used to store the state of the system, such as
+ * native balances, contract statuses, mempool transactions, token balances
+ * and the shared inner variables of the blockchain.
+ * State can only be updated with blocks, either by creating one itself
+ * or receiving one from the network.
+ */
 class State {
   private:
     std::unordered_map<std::string, Account> nativeAccount;             // Address -> Account
-    std::unordered_map<std::string, dev::eth::TransactionBase> mempool; // Tx Hash -> Tx 
-    bool saveState(std::shared_ptr<DBService>  &dbServer);
-    bool loadState(std::shared_ptr<DBService>  &dbServer);
+    std::unordered_map<std::string, dev::eth::TransactionBase> mempool; // Tx Hash -> Tx
     std::unordered_map<std::string, dev::eth::TransactionBase> latestConfirmedTransactions;
     std::mutex stateLock;
+
+    // Save accounts from memory to DB. Does a batch operation.
+    bool saveState(std::shared_ptr<DBService> &dbServer);
+
+    // Load accounts from DB to memory.
+    bool loadState(std::shared_ptr<DBService> &dbServer);
 
     // Process a new transaction from a given block (only used by processNewBlock).
     bool processNewTransaction(const dev::eth::TransactionBase &tx);
@@ -43,15 +49,16 @@ class State {
     const std::unordered_map<std::string, dev::eth::TransactionBase>& getMempool() { return mempool; };
 
     // State changing functions
+
     // Process a new block from the network and update the local state.
     bool processNewBlock(Block &newBlock, std::unique_ptr<ChainHead>& chainHead);
 
     bool createNewBlock(std::unique_ptr<ChainHead>& chainHead);
 
     // State querying functions
-    // Asks the state if a given transaction is valid, add to mempool if it is.
-    bool validateTransaction(dev::eth::TransactionBase &tx);
 
+    // Asks the state if a given transaction is valid, and add it to the mempool if it is.
+    bool validateTransaction(dev::eth::TransactionBase &tx);
 
     // TEST ONLY FUNCTIONS.
 

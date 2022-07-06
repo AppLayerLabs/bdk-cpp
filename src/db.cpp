@@ -1,7 +1,6 @@
 #include "db.h"
 
 std::string DBService::removeKeyPrefix(const std::string &key) {
-  // Return string except initial 4 chars.
   return key.substr(4);
 }
 
@@ -48,7 +47,7 @@ bool DBService::del(std::string key, std::string prefix) {
   return true;
 }
 
-bool DBService::close() { 
+bool DBService::close() {
   delete this->db;
   this->db = NULL;
   return true;
@@ -67,7 +66,7 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix) {
   return entries;
 }
 
-// Implement proper batch functions
+// TODO: implement proper batch functions
 bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
   for (auto &entry : request.puts) {
     if (!this->put(entry.key, entry.value, prefix)) {
@@ -89,3 +88,4 @@ std::vector<DBEntry> DBService::readBatch(std::vector<DBKey>& keys, std::string 
   }
   return ret;
 }
+

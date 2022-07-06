@@ -1,9 +1,7 @@
 #include "subnet.h"
 
-// Process a Metamask RPC message
-// There are multiple edge cases that need to be handled.
+// Process a Metamask RPC message. There are multiple edge cases that need to be handled.
 std::string Subnet::processRPCMessage(std::string &req) {
-
   Utils::LogPrint(Log::subnet, "processRPCMessage", "Received RPC message: " + req);
   json ret;
   json messageJson = json::parse(req);
@@ -44,7 +42,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     answer["number"] = std::string("0x") + Utils::uintToHex(block->nHeight());
     answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash());
     answer["parentHash"] = std::string("0x") + block->prevBlockHash();
-    answer["nonce"] = "0x00000000000000"; // any nonce should be good, metamask is not checking block validity.
+    answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
     answer["sha3Uncles"] = "0x";
     answer["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
     answer["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000"; // No equivalent
@@ -56,8 +54,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     answer["size"] = "0xfffff";
     answer["gasLimit"] = "0xfffff";
     answer["gasUsed"] = "0xfffff";
-    // Timestamp here is in seconds since epoch
-    answer["timestamp"] = std::string("0x") + Utils::uintToHex(block->timestampInSeconds());
+    answer["timestamp"] = std::string("0x") + Utils::uintToHex(block->timestampInSeconds());  // Seconds since epoch
     answer["transactions"] = json::array();
     for (auto tx : block->transactions()) {
       answer["transactions"].push_back(std::string("0x") + tx.hash());
@@ -69,7 +66,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     ret["result"] = "0x";
   }
   if(messageJson["method"] == "eth_gasPrice") {
-    ret["result"] = "0x12a05f200"; // force to 5 gwet
+    ret["result"] = "0x12a05f200"; // Force to 5 Gwei
   }
   if(messageJson["method"] == "eth_estimateGas") {
     ret["result"] = "0x5208";
@@ -105,11 +102,10 @@ std::string Subnet::processRPCMessage(std::string &req) {
     ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block.getBlockHash());
     ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx.gas());
     ret["result"]["gasUsed"] = "0x" + Utils::uintToHex(tx.gas());
-    // Does metamask checks if we called a contract?
-    ret["result"]["contractAddress"] = "0x";
+    ret["result"]["contractAddress"] = "0x";  // TODO: does MetaMask check if we called a contract?
     ret["logs"] = json::array();
     ret["result"]["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-    ret["result"]["status"] = "0x1"; 
+    ret["result"]["status"] = "0x1";
   }
   if(messageJson["method"] == "eth_getBlockByHash") {
     std::string blockHash = messageJson["params"][0].get<std::string>();
@@ -120,7 +116,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     answer["number"] = std::string("0x") + Utils::uintToHex(block.nHeight());
     answer["hash"] = std::string("0x") + dev::toHex(block.getBlockHash());
     answer["parentHash"] = std::string("0x") + block.prevBlockHash();
-    answer["nonce"] = "0x00000000000000"; // any nonce should be good, metamask is not checking block validity.
+    answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
     answer["sha3Uncles"] = "0x";
     answer["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
     answer["transactionsRoot"] = "0x0000000000000000000000000000000000000000000000000000000000000000"; // No equivalent
@@ -132,7 +128,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     answer["size"] = "0xfffff";
     answer["gasLimit"] = "0xfffff";
     answer["gasUsed"] = "0xfffff";
-    answer["timestamp"] = std::string("0x") + Utils::uintToHex(block.timestampInSeconds());
+    answer["timestamp"] = std::string("0x") + Utils::uintToHex(block.timestampInSeconds()); // Seconds since epoch
     answer["transactions"] = json::array();
     for (auto tx : block.transactions()) {
       answer["transactions"].push_back(std::string("0x") + tx.hash());
@@ -147,7 +143,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
 
   //
   // {
-  //   "method" = "IncreaseBalance" 
+  //   "method" = "IncreaseBalance"
   //   "address" = "0x..."
   // }
   // Will increase the balance in 1 SUBS.
@@ -159,3 +155,4 @@ std::string Subnet::processRPCMessage(std::string &req) {
   }
   return ret.dump();
 }
+

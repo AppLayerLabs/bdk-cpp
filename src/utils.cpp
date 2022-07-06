@@ -1,6 +1,5 @@
 #include "utils.h"
 
-
 std::mutex log_lock;
 std::mutex debug_mutex;
 
@@ -15,13 +14,10 @@ void Utils::logToFile(std::string str) {
 std::string Utils::uint256ToBytes(const uint256_t &i) {
   std::string ret(32, 0x00);
   std::string tmp;
-  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);  
-
-  // Replace the bytes from tmp into ret, to make it 32 bytes in size.
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
   for (uint16_t i = 0; i < tmp.size(); ++i) {
-    ret[31-i] = tmp[31-i];
+    ret[31-i] = tmp[31-i];  // Replace bytes from tmp to ret to make it 32 bytes in size.
   }
-
   return ret;
 }
 
@@ -47,20 +43,15 @@ std::string Utils::uint32ToBytes(const uint32_t &i) {
   return ret;
 }
 
-
 uint256_t Utils::bytesToUint256(const std::string &bytes) {
-  if (bytes.size() != 32) {
-    throw; // Invalid size.
-  }
+  if (bytes.size() != 32) throw; // Invalid size.
   uint256_t ret;
   boost::multiprecision::import_bits(ret, bytes.begin(), bytes.end(), 8);
   return ret;
 }
 
 uint64_t Utils::bytesToUint64(const std::string &bytes) {
-  if (bytes.size() != 8) {
-    throw; // Invalid size;
-  }
+  if (bytes.size() != 8) throw; // Invalid size;
   uint64_t ret;
   ret |= uint64_t(bytes[0]) << 56;
   ret |= uint64_t(bytes[1]) << 48;
@@ -74,9 +65,7 @@ uint64_t Utils::bytesToUint64(const std::string &bytes) {
 }
 
 uint32_t Utils::bytesToUint32(const std::string &bytes) {
-  if (bytes.size() != 4) {
-    throw; // Invalid size
-  }
+  if (bytes.size() != 4) throw; // Invalid size
   uint32_t ret;
   ret |= bytes[0] << 24;
   ret |= bytes[1] << 16;
@@ -97,10 +86,10 @@ void Utils::patchHex(std::string& str) {
   if (str[0] == '0' && str[1] == 'x') {
     str = str.substr(2);
   }
-
   for (auto &c : str) {
-    if (std::isupper(c))
+    if (std::isupper(c)) {
       c = std::tolower(c);
+    }
   }
   return;
 }
@@ -127,3 +116,4 @@ std::string Utils::hexToBytes(std::string hex) {
 std::string Utils::bytesToHex(std::string bytes) {
   return dev::toHex(bytes);
 }
+

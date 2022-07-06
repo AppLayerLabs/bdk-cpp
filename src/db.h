@@ -9,23 +9,23 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
-
-
-// As Subnets are meant to be run inside a sandbox, we cannot create our own DB.
-// We have to use the DB that AvalancheGo provides for us through gRPC.
-// It is a simple key/value store database, similar to leveldb.
-// But it allows for writing in batch and reading all keys using a given prefix.
-// The database structure is as follows:
-// 0001 -- Key: Block Hash            Value: Block
-// 0002 -- Key: Block nHeight         Value: Block Hash
-// 0003 -- Key: Tx Hash               Value: Transactions
-// 0004 -- Key: Address               Value: Native Balance + nNonce
-// 0005 -- ERC20 Tokens/State         
-// 0006 -- ERC721 Tokens/State
-// 0007 -- Key: Tx Hash               Value: Block Hash
+/**
+ * As subnets are meant to be run inside a sandbox, we can't create our own DB.
+ * We have to use the DB that AvalancheGo provides for us through gRPC.
+ * It's a simple key/value store database, similar to LevelDB, but it allows
+ * for writing in batch and reading all keys using a given prefix.
+ * Database structure is as follows:
+ * 0001 -- Key: Block Hash            Value: Block
+ * 0002 -- Key: Block nHeight         Value: Block Hash
+ * 0003 -- Key: Tx Hash               Value: Transactions
+ * 0004 -- Key: Address               Value: Native Balance + nNonce
+ * 0005 -- ERC20 Tokens/State
+ * 0006 -- ERC721 Tokens/State
+ * 0007 -- Key: Tx Hash               Value: Block Hash
+ */
 
 namespace DBPrefix {
-  const std::string blocks = "0001"; 
+  const std::string blocks = "0001";
   const std::string blockHeightMaps = "0002";
   const std::string transactions = "0003";
   const std::string nativeAccounts = "0004";
@@ -35,20 +35,20 @@ namespace DBPrefix {
 }
 
 struct DBServer {
-    std::string host;
-    std::string version;
-    DBServer(std::string host, std::string version) : host(host), version(version) {};
+  std::string host;
+  std::string version;
+  DBServer(std::string host, std::string version) : host(host), version(version) {};
 };
 
 struct DBEntry {
-    std::string key;
-    std::string value;
-    DBEntry(std::string key, std::string value) : key(key), value(value) {};
+  std::string key;
+  std::string value;
+  DBEntry(std::string key, std::string value) : key(key), value(value) {};
 };
 
 struct DBKey {
-    std::string key;
-    DBKey(std::string key) : key(key) {};
+  std::string key;
+  DBKey(std::string key) : key(key) {};
 };
 
 struct WriteBatchRequest {
@@ -66,29 +66,31 @@ class DBService {
     boost::filesystem::path dbPath;
 
   public:
-
-  DBService(std::string path) {
-    boost::replace_all(path, "/", "");
-    options.create_if_missing = true;
-    dbPath = boost::filesystem::current_path().string() + std::string("/") + path;
-    auto status = leveldb::DB::Open(this->options, dbPath.string(), &db);
-    if (!status.ok()) {
-      Utils::LogPrint(Log::db, __func__, "Failed to open DB: " + status.ToString());
+    DBService(std::string path) {
+      boost::replace_all(path, "/", "");
+      options.create_if_missing = true;
+      dbPath = boost::filesystem::current_path().string() + std::string("/") + path;
+      auto status = leveldb::DB::Open(this->options, dbPath.string(), &db);
+      if (!status.ok()) {
+        Utils::LogPrint(Log::db, __func__, "Failed to open DB: " + status.ToString());
+      }
     }
-  }
 
-  bool has(std::string key, std::string prefix = "");
-  std::string get(std::string key, std::string prefix = "");
-  bool put(std::string key, std::string data, std::string prefix = "");
-  bool del(std::string key, std::string prefix = "");
-  bool close();
-  bool writeBatch(WriteBatchRequest &request, std::string prefix = "");
-  // Read all keys starting with prefix and start.
-  std::vector<DBEntry> readBatch(std::string prefix);
-  // Read all keys from key vector.
-  std::vector<DBEntry> readBatch(std::vector<DBKey>& keys, std::string prefix);
-  
-  std::string removeKeyPrefix(const std::string &key);
+    bool has(std::string key, std::string prefix = "");
+    std::string get(std::string key, std::string prefix = "");
+    bool put(std::string key, std::string data, std::string prefix = "");
+    bool del(std::string key, std::string prefix = "");
+    bool close();
+    bool writeBatch(WriteBatchRequest &request, std::string prefix = "");
+
+    // Read all keys starting with prefix and start.
+    std::vector<DBEntry> readBatch(std::string prefix);
+
+    // Read all keys from key vector.
+    std::vector<DBEntry> readBatch(std::vector<DBKey>& keys, std::string prefix);
+
+    // Remove the first 4 chars (the key) from a string.
+    std::string removeKeyPrefix(const std::string &key);
 };
 
-#endif
+#endif  // DB_H

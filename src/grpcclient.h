@@ -1,5 +1,5 @@
-#ifndef GRPC_CLIENT
-#define GRPC_CLIENT
+#ifndef GRPC_CLIENT_H
+#define GRPC_CLIENT_H
 
 #include <iostream>
 #include <memory>
@@ -13,7 +13,6 @@
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpc/support/log.h>
 #include <grpcpp/grpcpp.h>
-
 
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
@@ -45,31 +44,28 @@
 #include <string>
 #include <thread>
 
-
 using grpc::Channel;
 using grpc::ClientAsyncResponseReader;
 using grpc::ClientContext;
 using grpc::CompletionQueue;
 using grpc::Status;
 
-
 class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
+  public:
+    explicit VMCommClient(std::shared_ptr<Channel> channel) :
+      aliasreader_stub_(aliasreader::AliasReader::NewStub(channel)),
+      appsender_stub_(appsender::AppSender::NewStub(channel)),
+      keystore_stub_(keystore::Keystore::NewStub(channel)),
+      messenger_stub_(messenger::Messenger::NewStub(channel)),
+      sharedmemory_stub_(sharedmemory::SharedMemory::NewStub(channel))
+    {}
 
-    public:
-    explicit VMCommClient(std::shared_ptr<Channel> channel)
-        : aliasreader_stub_(aliasreader::AliasReader::NewStub(channel)),
-          appsender_stub_(appsender::AppSender::NewStub(channel)),
-          keystore_stub_(keystore::Keystore::NewStub(channel)),
-          messenger_stub_(messenger::Messenger::NewStub(channel)),
-          sharedmemory_stub_(sharedmemory::SharedMemory::NewStub(channel)) {}
-      
-    private: 
+  private:
     std::unique_ptr<aliasreader::AliasReader::Stub> aliasreader_stub_;
     std::unique_ptr<appsender::AppSender::Stub> appsender_stub_;
     std::unique_ptr<keystore::Keystore::Stub> keystore_stub_;
     std::unique_ptr<messenger::Messenger::Stub> messenger_stub_;
     std::unique_ptr<sharedmemory::SharedMemory::Stub> sharedmemory_stub_;
-  };
+};
 
-
-#endif // GRPC_CLIENT.
+#endif // GRPC_CLIENT_H
