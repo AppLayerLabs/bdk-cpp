@@ -39,6 +39,7 @@ struct InitializeRequest {
 class Subnet {
   private:
     bool initialized = false;
+    bool shutdown = false;
 
     // gRPC Server Implementation. vm.proto calls from AvalancheGo can be found here.
     std::shared_ptr<VMServiceImplementation> grpcServer;
@@ -77,6 +78,7 @@ class Subnet {
   public:
     void start(); // Start the subnet.
     void stop();  // Stop the subnet.
+    bool isShutdown() { return this->shutdown; }; // Used by the http server to know if it should stop.
 
     // To be called by the gRPC server. Initialize the subnet services when AvalancheGo requests for it.
     void initialize(const vm::InitializeRequest* request, vm::InitializeResponse* reply);

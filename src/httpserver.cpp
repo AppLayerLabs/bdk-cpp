@@ -126,6 +126,9 @@ void HTTPServer::fail(beast::error_code ec, char const* what) {
   std::cerr << what << ": " << ec.message() << "\n";
 }
 
+// Acceptor pointer
+std::unique_ptr<tcp::acceptor> acceptor;
+
 void HTTPServer::startServer(Subnet &subnet) {
   try {
     // Check command line arguments.
@@ -133,11 +136,17 @@ void HTTPServer::startServer(Subnet &subnet) {
     auto const port = 30000;
     auto const doc_root = std::make_shared<std::string>("/");
     net::io_context ioc{1}; // io_context is required for all I/O.
-    tcp::acceptor acceptor{ioc, {address, port}}; // The acceptor receives incoming connections.
-
+    acceptor = std::make_unique<tcp::acceptor>(ioc); // The acceptor receives incoming connections.
+    auto ep = boost::asio::ip::tcp::endpoint(address, port);
+    acceptor->open(ep.protocol());
+    acceptor->bind(ep);
+    acceptor->listen();
     for (;;) {
       tcp::socket socket{ioc};  // Receive the new connection
-      acceptor.accept(socket);  // Block until we get a connection
+      acceptor->accept(socket);  // Block until we get a connection
+      if(subnet.isShutdown()) {
+        break;
+      }
       // Launch the session in a thread, transferring ownership of the socket.
       std::thread{std::bind(
         &do_session, std::move(socket), doc_root, std::ref(subnet)
@@ -149,3 +158,11 @@ void HTTPServer::startServer(Subnet &subnet) {
   }
 }
 
+void HTTPServer::shutdownServer() {
+  if (acceptor->is_open()) {
+    Utils::logToFile("Trying to shutdown HTTP server");
+    acceptor->cancel();
+    acceptor->close();
+    Utils::logToFile("HTTP server shutdown");
+  }
+}

@@ -85,7 +85,7 @@ namespace HTTPServer {
     Subnet& subnet
   );
   void startServer(Subnet& subnet);
-
+  void shutdownServer();
 };
 
 #endif // HTTPSERVER_H

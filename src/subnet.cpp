@@ -40,7 +40,7 @@ void Subnet::start() {
 
 void Subnet::stop() {
   Utils::LogPrint(Log::subnet, __func__, "Stopping subnet...");
-  
+  this->shutdown = true;
   // Dump State and ChainHead from memory to the database.
   if (this->initialized) {
     this->chainHead->dumpToDB();
@@ -50,6 +50,8 @@ void Subnet::stop() {
   }
   this->dbServer->close();
 
+  // Kill HTTP Server if is still running;
+  HTTPServer::shutdownServer();
   // Sleep for 2 seconds and wait for Server shutdown answer.
   boost::this_thread::sleep_for(boost::chrono::seconds(2));
   Utils::LogPrint(Log::subnet, __func__, "Shutdown Done");
