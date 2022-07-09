@@ -77,19 +77,15 @@ uint32_t Utils::bytesToUint32(const std::string &bytes) {
 void Utils::LogPrint(std::string prefix, std::string function, std::string data) {
   debug_mutex.lock();
   std::ofstream log("debug.txt", std::ios::app);
-  log << prefix << function << " " << data << std::endl;
+  log << prefix << function << " - " << data << std::endl;
   log.close();
   debug_mutex.unlock();
 }
 
 void Utils::patchHex(std::string& str) {
-  if (str[0] == '0' && str[1] == 'x') {
-    str = str.substr(2);
-  }
+  if (str[0] == '0' && str[1] == 'x') str = str.substr(2);
   for (auto &c : str) {
-    if (std::isupper(c)) {
-      c = std::tolower(c);
-    }
+    if (std::isupper(c)) c = std::tolower(c);
   }
   return;
 }

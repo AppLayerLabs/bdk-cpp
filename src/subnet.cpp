@@ -7,6 +7,7 @@ void Subnet::start() {
    * as the AvalancheGo Daemon node will be waiting for the gRPC server
    * to answer on the terminal.
    */
+  Utils::LogPrint(Log::subnet, __func__, "Starting subnet...");
   std::string server_address("0.0.0.0:50051");
   grpcServer = std::make_shared<VMServiceImplementation>(*this);
   grpc::EnableDefaultHealthCheckService(true);
@@ -21,12 +22,11 @@ void Subnet::start() {
    * clients. In this case it corresponds to a *synchronous* service.
    */
   builder.RegisterService(grpcServer.get());
-  
+
   /**
    * Assemble the server and send the address of the gRPC server
    * to the AvalancheGo Daemon.
    */
-  // std::unique_ptr<Server> server(builder.BuildAndStart());
   server = builder.BuildAndStart();
   std::cout << "1|15|tcp|" << server_address << "|grpc\n" << std::flush;
 
@@ -34,6 +34,7 @@ void Subnet::start() {
    * Wait for the server to shutdown. Note that some other thread must be
    * responsible for shutting down the server for this call to ever return.
    */
+  Utils::LogPrint(Log::subnet, __func__, "Startup Done");
   server->Wait();
   return;
 }
@@ -50,8 +51,8 @@ void Subnet::stop() {
   }
   this->dbServer->close();
 
-  // Kill HTTP Server if is still running;
-  HTTPServer::shutdownServer();
+  HTTPServer::shutdownServer(); // Kill HTTP Server if is still running
+
   // Sleep for 2 seconds and wait for Server shutdown answer.
   boost::this_thread::sleep_for(boost::chrono::seconds(2));
   Utils::LogPrint(Log::subnet, __func__, "Shutdown Done");

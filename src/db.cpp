@@ -47,6 +47,7 @@ bool DBService::del(std::string key, std::string prefix) {
   return true;
 }
 
+// TODO: fix segfault when starting subnet and terminating it with SIGTERM
 bool DBService::close() {
   delete this->db;
   this->db = NULL;
