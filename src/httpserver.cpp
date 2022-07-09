@@ -165,4 +165,5 @@ void HTTPServer::shutdownServer() {
     acceptor->close();
     Utils::logToFile("HTTP server shutdown");
   }
+  Utils::LogPrint(Log::subnet, __func__, "Print 3");
 }

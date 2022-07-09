@@ -47,7 +47,6 @@ bool DBService::del(std::string key, std::string prefix) {
   return true;
 }
 
-// TODO: fix segfault when starting subnet and terminating it with SIGTERM
 bool DBService::close() {
   delete this->db;
   this->db = NULL;
@@ -70,14 +69,10 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix) {
 // TODO: implement proper batch functions
 bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
   for (auto &entry : request.puts) {
-    if (!this->put(entry.key, entry.value, prefix)) {
-      return false;
-    }
+    if (!this->put(entry.key, entry.value, prefix)) return false;
   }
   for (auto &entry : request.dels) {
-    if (!this->del(entry.key, prefix)) {
-      return false;
-    }
+    if (!this->del(entry.key, prefix)) return false;
   }
   return true;
 }

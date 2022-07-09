@@ -1,6 +1,5 @@
 #include "subnet.h"
 
-// TODO: maybe Utils::LogPrint() each step here? stop() is doing it, maybe start() should too just in case
 void Subnet::start() {
   /**
    * When starting the binary, the first thing to setup is the gRPC server,
@@ -42,19 +41,19 @@ void Subnet::start() {
 void Subnet::stop() {
   Utils::LogPrint(Log::subnet, __func__, "Stopping subnet...");
   this->shutdown = true;
-  // Dump State and ChainHead from memory to the database.
   if (this->initialized) {
+    // Dump State and ChainHead from memory to the database, then close it
     this->chainHead->dumpToDB();
-    Utils::LogPrint(Log::subnet, __func__, "chainHead saved to DB...");
+    Utils::LogPrint(Log::subnet, __func__, "chainHead saved to DB");
     this->headState->saveState(this->dbServer);
-    Utils::LogPrint(Log::subnet, __func__, "headState saved to DB...");
+    Utils::LogPrint(Log::subnet, __func__, "headState saved to DB");
+    this->dbServer->close();
+    Utils::LogPrint(Log::subnet, __func__, "DB closed successfully");
+    HTTPServer::shutdownServer(); // Kill HTTP Server if is still running
+    // Sleep for 2 seconds and wait for Server shutdown answer
+    Utils::LogPrint(Log::subnet, __func__, "Waiting for Server to shutdown...");
+    boost::this_thread::sleep_for(boost::chrono::seconds(2));
   }
-  this->dbServer->close();
-
-  HTTPServer::shutdownServer(); // Kill HTTP Server if is still running
-
-  // Sleep for 2 seconds and wait for Server shutdown answer.
-  boost::this_thread::sleep_for(boost::chrono::seconds(2));
   Utils::LogPrint(Log::subnet, __func__, "Shutdown Done");
   server->Shutdown();
   return;
