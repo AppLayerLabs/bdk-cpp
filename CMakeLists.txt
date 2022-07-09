@@ -8,8 +8,8 @@ include(GNUInstallDirs)
 cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Debug;Release;RelWithDebInfo)
 
 # Map current configuration to configurations of imported targets.
-set(CMAKE_MAP_IMPORTED_CONFIG_DEBUG Release)
-set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
+set(CMAKE_MAP_IMPORTED_CONFIG_Debug Release)
+set(CMAKE_MAP_IMPORTED_CONFIG_RelWithDebInfo Release)
 
 # Project data
 project(subnetooor VERSION 0.0.1 DESCRIPTION "Sparq subnet")
