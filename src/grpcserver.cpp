@@ -20,3 +20,52 @@ Status VMServiceImplementation::SetState(
   return Status::OK;
 }
 
+Status VMServiceImplementation::BuildBlock(
+  ServerContext* context,
+  const google::protobuf::Empty* request,
+  vm::BuildBlockResponse* reply
+) {
+  if (!subnet.blockRequest()) {
+    // TODO: Handle errors
+    Utils::LogPrint(Log::grpcServer, __func__, "BuildBlock: block request FAILED");
+  }
+  return Status::OK;
+}
+
+Status VMServiceImplementation::VerifyHeightIndex(
+  ServerContext* context,
+  const google::protobuf::Empty* request,
+  vm::VerifyHeightIndexResponse* reply
+) {
+  reply->set_err(0);
+  return Status::OK;
+}
+
+Status VMServiceImplementation::StateSyncEnabled(
+  ServerContext* context,
+  const google::protobuf::Empty* request,
+  vm::StateSyncEnabledResponse* reply
+) {
+  reply->set_enabled(false);
+  reply->set_err(0);
+  return Status::OK;
+}
+
+Status VMServiceImplementation::SetPreference(
+      ServerContext* context,
+      const vm::SetPreferenceRequest* request,
+      google::protobuf::Empty* reply
+) {
+  Utils::logToFile("SetPreference called!!");
+  Utils::logToFile(request->DebugString());
+  return Status::OK;
+}
+
+Status VMServiceImplementation::Version(
+  ServerContext* context,
+  const google::protobuf::Empty* request,
+  vm::VersionResponse* reply
+) {
+  reply->set_version("0.0.1");
+  return Status::OK;
+}

@@ -39,6 +39,7 @@
 #include <string>
 #include <thread>
 #include <atomic>
+#include "utils.h"
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;
@@ -76,6 +77,7 @@ class VMServiceImplementation final :
       const google::protobuf::Empty* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("Shutdown called!!");
       return Status::OK;
     }
 
@@ -84,6 +86,8 @@ class VMServiceImplementation final :
       const google::protobuf::Empty* request,
       vm::CreateHandlersResponse* reply
     ) override {
+      // TODO: Create http handlers, see https://github.com/ava-labs/avalanchego/tree/master/proto/http for example.
+      // Yes, we need to create another gRPC Server that answers http requests routed through avalancheGo.
       return Status::OK;
     }
 
@@ -100,6 +104,7 @@ class VMServiceImplementation final :
       const vm::ConnectedRequest* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("Connected called!!");
       return Status::OK;
     }
 
@@ -108,6 +113,7 @@ class VMServiceImplementation final :
       const vm::DisconnectedRequest* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("Disconnected called!!");
       return Status::OK;
     }
 
@@ -115,15 +121,14 @@ class VMServiceImplementation final :
       ServerContext* context,
       const google::protobuf::Empty* request,
       vm::BuildBlockResponse* reply
-    ) override {
-      return Status::OK;
-    }
+    ) override;
 
     Status ParseBlock(
       ServerContext* context,
       const vm::ParseBlockRequest* request,
       vm::ParseBlockResponse* reply
     ) override {
+      Utils::logToFile("ParseBlock called!!");
       return Status::OK;
     }
 
@@ -132,6 +137,7 @@ class VMServiceImplementation final :
       const vm::GetBlockRequest* request,
       vm::GetBlockResponse* reply
     ) override {
+      Utils::logToFile("GetBlock called!!");
       return Status::OK;
     }
 
@@ -139,15 +145,14 @@ class VMServiceImplementation final :
       ServerContext* context,
       const vm::SetPreferenceRequest* request,
       google::protobuf::Empty* reply
-    ) override {
-      return Status::OK;
-    }
+    ) override;
 
     Status Health(
       ServerContext* context,
       const google::protobuf::Empty* request,
       vm::HealthResponse* reply
     ) override {
+      Utils::logToFile("Health called!!");
       return Status::OK;
     }
 
@@ -155,15 +160,14 @@ class VMServiceImplementation final :
       ServerContext* context,
       const google::protobuf::Empty* request,
       vm::VersionResponse* reply
-    ) override {
-      return Status::OK;
-    }
+    ) override;
 
     Status AppRequest(
       ServerContext* context,
       const vm::AppRequestMsg* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("AppRequest called!!");
       return Status::OK;
     }
 
@@ -172,6 +176,7 @@ class VMServiceImplementation final :
       const vm::AppRequestFailedMsg* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("AppRequestFailed called!!");
       return Status::OK;
     }
 
@@ -180,6 +185,7 @@ class VMServiceImplementation final :
       const vm::AppResponseMsg* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("AppResponse called!!");
       return Status::OK;
     }
 
@@ -188,6 +194,7 @@ class VMServiceImplementation final :
       const vm::AppGossipMsg* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("AppGossip called!!");
       return Status::OK;
     }
 
@@ -196,6 +203,7 @@ class VMServiceImplementation final :
       const google::protobuf::Empty* request,
       vm::GatherResponse* reply
     ) override {
+      Utils::logToFile("Gather called!!");
       return Status::OK;
     }
 
@@ -204,6 +212,7 @@ class VMServiceImplementation final :
       const vm::BlockVerifyRequest* request,
       vm::BlockVerifyResponse* reply
     ) override {
+      Utils::logToFile("BlockVerify called");
       return Status::OK;
     }
 
@@ -212,6 +221,7 @@ class VMServiceImplementation final :
       const vm::BlockAcceptRequest* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("BlockAccept called!!");
       return Status::OK;
     }
 
@@ -220,6 +230,7 @@ class VMServiceImplementation final :
       const vm::BlockRejectRequest* request,
       google::protobuf::Empty* reply
     ) override {
+      Utils::logToFile("BlockReject called!!");
       return Status::OK;
     }
 
@@ -228,6 +239,7 @@ class VMServiceImplementation final :
       const vm::GetAncestorsRequest* request,
       vm::GetAncestorsResponse* reply
     ) override {
+      Utils::logToFile("GetAncestors called!!");
       return Status::OK;
     }
 
@@ -236,6 +248,7 @@ class VMServiceImplementation final :
       const vm::BatchedParseBlockRequest* request,
       vm::BatchedParseBlockResponse* reply
     ) override {
+      Utils::logToFile("BatchedParseBlock called!!");
       return Status::OK;
     }
 
@@ -243,31 +256,30 @@ class VMServiceImplementation final :
       ServerContext* context,
       const google::protobuf::Empty* request,
       vm::VerifyHeightIndexResponse* reply
-    ) override {
-      return Status::OK;
-    }
+    ) override;
 
     Status GetBlockIDAtHeight(
       ServerContext* context,
       const vm::GetBlockIDAtHeightRequest* request,
       vm::GetBlockIDAtHeightResponse* reply
     ) override {
+      Utils::logToFile("GetBlockIDAtHeight called!!");
       return Status::OK;
     }
 
+    // TODO: Enable StateSync, awaiting for avalanche documentation (already requested)
     Status StateSyncEnabled(
       ServerContext* context,
       const google::protobuf::Empty* request,
       vm::StateSyncEnabledResponse* reply
-    ) override {
-      return Status::OK;
-    }
+    ) override;
 
     Status GetOngoingSyncStateSummary(
       ServerContext* context,
       const google::protobuf::Empty* request,
       vm::GetOngoingSyncStateSummaryResponse* reply
     ) override {
+      Utils::logToFile("GetOngoingSyncStateSummary called!!");
       return Status::OK;
     }
 
@@ -276,6 +288,7 @@ class VMServiceImplementation final :
       const google::protobuf::Empty* request,
       vm::GetLastStateSummaryResponse* reply
     ) override {
+      Utils::logToFile("GetLastStateSummary called!!");
       return Status::OK;
     }
 
@@ -284,6 +297,7 @@ class VMServiceImplementation final :
       const vm::ParseStateSummaryRequest* request,
       vm::ParseStateSummaryResponse* reply
     ) override {
+      Utils::logToFile("ParseStateSummary called!!");
       return Status::OK;
     }
 
@@ -292,6 +306,7 @@ class VMServiceImplementation final :
       const vm::GetStateSummaryRequest* request,
       vm::GetStateSummaryResponse* reply
     ) override {
+      Utils::logToFile("GetStateSummary called!!");
       return Status::OK;
     }
 };
