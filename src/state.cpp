@@ -1,6 +1,7 @@
 #include "state.h"
+#include "grpcclient.h"
 
-State::State(std::shared_ptr<DBService> &dbServer) {
+State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
   this->loadState(dbServer);
 }
 
@@ -37,30 +38,35 @@ bool State::validateTransaction(dev::eth::TransactionBase& tx) {
 
   // Replay protection.
   if (!tx.isReplayProtected()) {
+    Utils::LogPrint(Log::subnet, "validateTransaction", "Replay protection failed.");
     stateLock.unlock();
     return false;
   }
 
   // Check if sender nonce matches.
   if (this->nativeAccount[tx.hash()].nonce != tx.nonce()) {
+    Utils::LogPrint(Log::subnet, "validateTransaction", "Nonce mismatch.");
     stateLock.unlock();
     return false;
   }
 
   // Check if sender has enough balance.
   if (this->nativeAccount[tx.hash()].balance < tx.value()) {
+    Utils::LogPrint(Log::subnet, "validateTransaction", "Insufficient balance.");
     stateLock.unlock();
     return false;
   }
 
   // Check if transaction already exists in mempool.
   if (this->mempool.count(tx.hash())) {
+    Utils::LogPrint(Log::subnet, "validateTransaction", "Transaction already exists in mempool.");
     stateLock.unlock();
     return false;
   }
 
   this->mempool[tx.hash()] = tx;
   stateLock.unlock();
+  grpcClient->requestBlock();
   return true;
 }
 
@@ -123,7 +129,7 @@ bool State::createNewBlock(std::unique_ptr<ChainHead>& chainHead) {
   // TODO: Is this cast wasting memory?
   Block newBestBlock(
     Utils::bytesToUint256(bestBlock.getBlockHash()),
-    // the block cast one one the time looool.
+    // the block cast not the time one.
     std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count(),
     bestBlock.nHeight() + 1
   );

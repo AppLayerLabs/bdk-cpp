@@ -18,6 +18,8 @@ struct Account {
   uint32_t nonce = 0;
 };
 
+// Forward declaration
+class VMCommClient;
 /**
  * The State class is used to store the state of the system, such as
  * native balances, contract statuses, mempool transactions, token balances
@@ -32,6 +34,9 @@ class State {
     std::unordered_map<std::string, dev::eth::TransactionBase> latestConfirmedTransactions;
     std::mutex stateLock;
 
+    // used to notify avalancheGo when to create new blocks.
+    std::shared_ptr<VMCommClient> &grpcClient;
+
     // Save accounts from memory to DB. Does a batch operation.
     bool saveState(std::shared_ptr<DBService> &dbServer);
 
@@ -42,7 +47,7 @@ class State {
     bool processNewTransaction(const dev::eth::TransactionBase &tx);
 
   public:
-    State(std::shared_ptr<DBService> &dbServer);
+    State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
 
     uint256_t getNativeBalance(const std::string& address);
     uint256_t getNativeNonce(const std::string& address);

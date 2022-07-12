@@ -86,6 +86,10 @@ class Subnet {
     // To be called by initialize if no info is found on DB.
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
 
+    // To be called by the grpcServer when avalancheGo requests a block
+
+    bool blockRequest();
+
     // To be called by HTTP Server, from RPC clients (such as Metamask).
     std::string processRPCMessage(std::string &req);
 };

@@ -105,7 +105,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()));
 
   // Initialize the State and ChainHead.
-  this->headState = std::make_unique<State>(this->dbServer);
+  this->headState = std::make_unique<State>(this->dbServer, this->grpcClient);
   this->chainHead = std::make_unique<ChainHead>(this->dbServer);
 
   // Parse the latest block to answer AvalancheGo.
@@ -130,7 +130,6 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
    * See vm.proto and https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111
    * for more information about the SetState request.
    */
-  // TODO: DO NOT READ FROM DB DIRECTLY
   Block bestBlock = chainHead->latest();
   reply->set_last_accepted_id(bestBlock.getBlockHash());
   reply->set_last_accepted_parent_id(bestBlock.prevBlockHash());
@@ -141,3 +140,6 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
   timestamp->set_nanos(bestBlock.timestamp() % 1000000000);
 }
 
+bool Subnet::blockRequest() {
+  return this->headState->createNewBlock(this->chainHead);
+}

@@ -83,7 +83,11 @@ std::string Subnet::processRPCMessage(std::string &req) {
     std::string txRlp = messageJson["params"][0].get<std::string>();
     try {
       dev::eth::TransactionBase tx(dev::fromHex(txRlp), dev::eth::CheckTransaction::Everything);
-      this->headState->validateTransaction(tx);
+      if (!this->headState->validateTransaction(tx)) {
+        // TODO: Proper error handling (invalid nonce, insufficient funds, etc.)
+        ret["error"] = json({{"code", -3}, {"message", "Transaction is invalid"}});
+      }
+      ret["result"] = std::string("0x") + tx.hash();
     } catch (std::exception &e) {
       Utils::logToFile(std::string("sendRawTransaction failed! ") + e.what());
     }

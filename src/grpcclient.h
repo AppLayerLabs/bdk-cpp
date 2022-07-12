@@ -60,6 +60,7 @@ class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
       sharedmemory_stub_(sharedmemory::SharedMemory::NewStub(channel))
     {}
 
+  void requestBlock();
   private:
     std::unique_ptr<aliasreader::AliasReader::Stub> aliasreader_stub_;
     std::unique_ptr<appsender::AppSender::Stub> appsender_stub_;
