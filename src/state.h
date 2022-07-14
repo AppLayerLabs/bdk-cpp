@@ -31,7 +31,6 @@ class State {
   private:
     std::unordered_map<std::string, Account> nativeAccount;             // Address -> Account
     std::unordered_map<std::string, dev::eth::TransactionBase> mempool; // Tx Hash -> Tx
-    std::unordered_map<std::string, dev::eth::TransactionBase> latestConfirmedTransactions;
     std::mutex stateLock;
 
     // used to notify avalancheGo when to create new blocks.

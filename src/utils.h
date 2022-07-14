@@ -43,14 +43,9 @@ namespace Utils {
   uint256_t bytesToUint256(const std::string &bytes);
   uint64_t bytesToUint64(const std::string &bytes);
   uint32_t bytesToUint32(const std::string &bytes);
-  // These functions are literal copies of input into output.
-  // In usage to convert bytes into gRPC strings.
-  std::string bytesToByteString(const std::string &bytes);
-  std::string stringToBytes(const std::string &str);
   // Simple function to remove "0x" and lowercase everything from a hex string.
   void patchHex(std::string& str);
   // Simple uint > hex, does not handle paddings or 0x prefix.
-  // TODO: use T& instead of T (references instead of copies).
   template <typename T> std::string uintToHex(T i) {
     std::stringstream ss;
     std::string ret;

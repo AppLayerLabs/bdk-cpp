@@ -71,7 +71,7 @@ class ChainHead {
 
     void loadFromDB();        // Load up to 1000 latest blocks from DB.
     void dumpToDB();          // Dump the entire local state to DB.
-    void periodicSaveToDB();  // Periodically save blocks to DB.
+    void periodicSaveToDB();  // Periodically save blocks to DB. // TODO: implement this
 
     uint64_t blockSize();
 };

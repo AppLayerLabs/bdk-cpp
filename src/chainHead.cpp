@@ -239,9 +239,9 @@ void ChainHead::loadFromDB() {
 
   Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: parsing blocks");
   depth = depth - 1000;
-  std::vector<DBKey> blocksToRead;
+  std::vector<std::string> blocksToRead;
   for (uint64_t i = 0; i <= 1000; ++i) {
-    blocksToRead.emplace_back(DBKey(this->diskChainHeadLookupTableByHeight[depth + i]));
+    blocksToRead.emplace_back(this->diskChainHeadLookupTableByHeight[depth + i]);
   }
   std::vector<DBEntry> blocks = dbServer->readBatch(blocksToRead, DBPrefix::blocks);
   this->internalChainHeadLock.lock();

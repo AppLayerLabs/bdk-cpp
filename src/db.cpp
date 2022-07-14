@@ -71,16 +71,16 @@ bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
   for (auto &entry : request.puts) {
     if (!this->put(entry.key, entry.value, prefix)) return false;
   }
-  for (auto &entry : request.dels) {
-    if (!this->del(entry.key, prefix)) return false;
+  for (std::string &key : request.dels) {
+    if (!this->del(key, prefix)) return false;
   }
   return true;
 }
 
-std::vector<DBEntry> DBService::readBatch(std::vector<DBKey>& keys, std::string prefix) {
+std::vector<DBEntry> DBService::readBatch(std::vector<std::string>& keys, std::string prefix) {
   std::vector<DBEntry> ret;
-  for (auto &key : keys) {
-    ret.push_back({key.key, get(key.key, prefix)});
+  for (std::string &key : keys) {
+    ret.push_back({key, get(key, prefix)});
   }
   return ret;
 }

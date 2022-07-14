@@ -46,14 +46,9 @@ struct DBEntry {
   DBEntry(std::string key, std::string value) : key(key), value(value) {};
 };
 
-struct DBKey {
-  std::string key;
-  DBKey(std::string key) : key(key) {};
-};
-
 struct WriteBatchRequest {
   std::vector<DBEntry> puts;
-  std::vector<DBKey> dels;
+  std::vector<std::string> dels;
   int64_t id;
   bool continues;
 };
@@ -87,7 +82,7 @@ class DBService {
     std::vector<DBEntry> readBatch(std::string prefix);
 
     // Read all keys from key vector.
-    std::vector<DBEntry> readBatch(std::vector<DBKey>& keys, std::string prefix);
+    std::vector<DBEntry> readBatch(std::vector<std::string>& keys, std::string prefix);
 
     // Remove the first 4 chars (the key) from a string.
     std::string removeKeyPrefix(const std::string &key);
