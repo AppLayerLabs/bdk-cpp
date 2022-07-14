@@ -9,13 +9,13 @@ void ChainHead::push_back(Block& block) {
   this->internalChainHead.push_back(block);
 
   auto latestBlock = std::make_shared<Block>(internalChainHead.back());
-  this->internalChainHeadLookupTableByHash[latestBlock->getBlockHash()] = latestBlock;
-  this->diskChainHeadLookupTableByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
-  this->diskChainHeadLookupTableByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
+  this->lookupBlockByHash[latestBlock->getBlockHash()] = latestBlock;
+  this->lookupBlockHashByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
+  this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
 
   for (auto &tx : latestBlock->transactions()) {
-    this->internalLatestConfirmedTransactions[tx.hash()] = std::make_shared<dev::eth::TransactionBase>(tx);
-    this->internalTxToBlocksLookupTable[tx.hash()] = latestBlock;
+    this->lookupTxByHash[tx.hash()] = std::make_shared<dev::eth::TransactionBase>(tx);
+    this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
 
   this->internalChainHeadLock.unlock();
@@ -27,13 +27,13 @@ void ChainHead::push_front(Block& block) {
   this->internalChainHead.push_front(block);
 
   auto latestBlock = std::make_shared<Block>(internalChainHead.front());
-  this->internalChainHeadLookupTableByHash[latestBlock->getBlockHash()] = latestBlock;
-  this->diskChainHeadLookupTableByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
-  this->diskChainHeadLookupTableByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
+  this->lookupBlockByHash[latestBlock->getBlockHash()] = latestBlock;
+  this->lookupBlockHashByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
+  this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
 
   for (auto &tx : latestBlock->transactions()) {
-    this->internalLatestConfirmedTransactions[tx.hash()] = std::make_shared<dev::eth::TransactionBase>(tx);
-    this->internalTxToBlocksLookupTable[tx.hash()] = latestBlock;
+    this->lookupTxByHash[tx.hash()] = std::make_shared<dev::eth::TransactionBase>(tx);
+    this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
 
   this->internalChainHeadLock.unlock();
@@ -53,12 +53,12 @@ void ChainHead::pop_back() {
 
   // Delete all tx references from mappings.
   for (auto &tx : blockToDelete.transactions()) {
-    this->internalLatestConfirmedTransactions.erase(tx.hash());
-    this->internalTxToBlocksLookupTable.erase(tx.hash());
+    this->lookupTxByHash.erase(tx.hash());
+    this->lookupBlockByTxHash.erase(tx.hash());
   }
 
   // Delete the block from the internal mappings.
-  this->internalChainHeadLookupTableByHash.erase(blockHash);
+  this->lookupBlockByHash.erase(blockHash);
 
   // Delete the block from the internal deque.
   this->internalChainHead.pop_back();
@@ -79,12 +79,12 @@ void ChainHead::pop_front() {
 
   // Delete all tx references from mappings.
   for (auto &tx : blockToDelete.transactions()) {
-    this->internalLatestConfirmedTransactions.erase(tx.hash());
-    this->internalTxToBlocksLookupTable.erase(tx.hash());
+    this->lookupTxByHash.erase(tx.hash());
+    this->lookupBlockByTxHash.erase(tx.hash());
   }
 
   // Delete the block from the internal mappings.
-  this->internalChainHeadLookupTableByHash.erase(blockHash);
+  this->lookupBlockByHash.erase(blockHash);
 
   // Delete the block from the internal deque.
   this->internalChainHead.pop_front();
@@ -96,15 +96,15 @@ void ChainHead::pop_front() {
 
 bool ChainHead::hasBlock(std::string &blockHash) {
   this->internalChainHeadLock.lock();
-  bool result = this->internalChainHeadLookupTableByHash.count(blockHash) > 0;
+  bool result = this->lookupBlockByHash.count(blockHash) > 0;
   this->internalChainHeadLock.unlock();
   return result;
 }
 
 bool ChainHead::hasBlock(uint64_t &blockHeight) {
   this->internalChainHeadLock.lock();
-  bool result = this->internalChainHeadLookupTableByHash.count(
-    this->diskChainHeadLookupTableByHeight[blockHeight]
+  bool result = this->lookupBlockByHash.count(
+    this->lookupBlockHashByHeight[blockHeight]
   ) > 0;
   this->internalChainHeadLock.unlock();
   return result;
@@ -124,7 +124,7 @@ Block ChainHead::getBlock(std::string &blockHash) {
   if (this->exists(blockHash)) {
     if (this->hasBlock(blockHash)) {
       this->internalChainHeadLock.lock();
-      Block result = *this->internalChainHeadLookupTableByHash[blockHash];
+      Block result = *this->lookupBlockByHash[blockHash];
       this->internalChainHeadLock.unlock();
       return result;
     } else {
@@ -141,7 +141,7 @@ Block ChainHead::getBlock(uint64_t &blockHeight) {
   if (this->exists(blockHeight)) {
     if (this->hasBlock(blockHeight)) {
       this->internalChainHeadLock.lock();
-      Block result = *this->internalChainHeadLookupTableByHash[this->diskChainHeadLookupTableByHeight[blockHeight]];
+      Block result = *this->lookupBlockByHash[this->lookupBlockHashByHeight[blockHeight]];
       this->internalChainHeadLock.unlock();
       return result;
     } else {
@@ -158,7 +158,7 @@ Block ChainHead::getBlock(uint64_t &blockHeight) {
 
 bool ChainHead::hasTransaction(std::string &txHash) {
   this->internalChainHeadLock.lock();
-  bool result = this->internalLatestConfirmedTransactions.count(txHash) > 0;
+  bool result = this->lookupTxByHash.count(txHash) > 0;
   this->internalChainHeadLock.unlock();
   return result;
 }
@@ -166,7 +166,7 @@ bool ChainHead::hasTransaction(std::string &txHash) {
 dev::eth::TransactionBase ChainHead::getTransaction(std::string &txHash) {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock();
-    dev::eth::TransactionBase result = *this->internalLatestConfirmedTransactions[txHash];
+    dev::eth::TransactionBase result = *this->lookupTxByHash[txHash];
     this->internalChainHeadLock.unlock();
     return result;
   }
@@ -183,7 +183,7 @@ dev::eth::TransactionBase ChainHead::getTransaction(std::string &txHash) {
 Block ChainHead::getBlockFromTx(std::string &txHash) {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock();
-    Block result = *this->internalTxToBlocksLookupTable[txHash];
+    Block result = *this->lookupBlockByTxHash[txHash];
     this->internalChainHeadLock.unlock();
     return result;
   } else {
@@ -225,8 +225,8 @@ void ChainHead::loadFromDB() {
   // Load block mappings (hash -> height and height -> hash) from DB.
   std::vector<DBEntry> blockMaps = dbServer->readBatch(DBPrefix::blockHeightMaps);
   for (auto &blockMap : blockMaps) {
-    this->diskChainHeadLookupTableByHeight[Utils::bytesToUint64(blockMap.key)] = blockMap.value;
-    this->diskChainHeadLookupTableByHash[blockMap.value] = Utils::bytesToUint64(blockMap.key);
+    this->lookupBlockHashByHeight[Utils::bytesToUint64(blockMap.key)] = blockMap.value;
+    this->lookupBlockHeightByHash[blockMap.value] = Utils::bytesToUint64(blockMap.key);
   }
 
   // If chain is too short to load from DB, push back at least the latest block.
@@ -241,7 +241,7 @@ void ChainHead::loadFromDB() {
   depth = depth - 1000;
   std::vector<std::string> blocksToRead;
   for (uint64_t i = 0; i <= 1000; ++i) {
-    blocksToRead.emplace_back(this->diskChainHeadLookupTableByHeight[depth + i]);
+    blocksToRead.emplace_back(this->lookupBlockHashByHeight[depth + i]);
   }
   std::vector<DBEntry> blocks = dbServer->readBatch(blocksToRead, DBPrefix::blocks);
   this->internalChainHeadLock.lock();
@@ -279,12 +279,12 @@ void ChainHead::dumpToDB() {
     for (auto &tx : blockToDelete.transactions()) {
       txBatch.puts.emplace_back(DBEntry(tx.hash(), dev::toHex(tx.rlp())));
       txToBlockBatch.puts.emplace_back(DBEntry(tx.hash(), blockToDelete.getBlockHash()));
-      this->internalLatestConfirmedTransactions.erase(tx.hash());
-      this->internalTxToBlocksLookupTable.erase(tx.hash());
+      this->lookupTxByHash.erase(tx.hash());
+      this->lookupBlockByTxHash.erase(tx.hash());
     }
 
     // Delete the block from the internal mappings.
-    this->internalChainHeadLookupTableByHash.erase(blockHash);
+    this->lookupBlockByHash.erase(blockHash);
 
     // Delete the block from the internal deque.
     this->internalChainHead.pop_front();
