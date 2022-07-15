@@ -128,7 +128,6 @@ Block ChainHead::getBlock(std::string &blockHash) {
       this->internalChainHeadLock.unlock();
       return result;
     } else {
-      // TODO: Load block from DB
       Block result(dbServer->get(blockHash, DBPrefix::blocks));
       return result;
     }
@@ -187,7 +186,7 @@ Block ChainHead::getBlockFromTx(std::string &txHash) {
     this->internalChainHeadLock.unlock();
     return result;
   } else {
-    throw std::runtime_error("Transaction not found");
+    throw std::runtime_error("Block not found");
   }
 }
 

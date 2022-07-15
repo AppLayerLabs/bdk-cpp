@@ -7,7 +7,6 @@
 #include <include/web3cpp/ethcore/TransactionBase.h>
 
 class ChainHead {
-  // TODO: getBlock/getTransaction is only accessing memory, should use DB in case of not found.
   // TODO: find a way to merge lookupBlockHeightByHash and lookupBlockHashByHeight into one and cut those tables' RAM usage in half
   private:
     std::shared_ptr<DBService> &dbServer;

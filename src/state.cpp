@@ -32,7 +32,6 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
 
 bool State::validateTransaction(dev::eth::TransactionBase& tx) {
   // TODO: Handle error conditions to report at RPC level.
-  // TODO: Handle transaction override (if the transaction is already in the mempool).
   // TODO: Handle transaction queue for multiple tx's from single user.
   stateLock.lock();
 
@@ -126,22 +125,16 @@ bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHe
 bool State::createNewBlock(std::unique_ptr<ChainHead>& chainHead) {
   stateLock.lock();
   Block bestBlock = chainHead->latest();
-  // TODO: Is this cast wasting memory?
   Block newBestBlock(
     Utils::bytesToUint256(bestBlock.getBlockHash()),
-    // the block cast not the time one.
-    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count(),
+    std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::high_resolution_clock::now().time_since_epoch()
+    ).count(),
     bestBlock.nHeight() + 1
   );
-  // Lock state to load transactions from mempool
-
-  for (auto &tx : this->mempool) {
-    newBestBlock.appendTx(tx.second);
-  }
-
+  for (auto &tx : this->mempool) newBestBlock.appendTx(tx.second);
   newBestBlock.finalizeBlock();
-  // Unlock mutex as processNewBlock will lock it again.
-  stateLock.unlock();
+  stateLock.unlock(); // processNewBlock() will lock it again
   return this->processNewBlock(newBestBlock, chainHead);
 }
 
