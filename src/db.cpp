@@ -53,7 +53,22 @@ bool DBService::close() {
   return true;
 }
 
+bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
+  batchLock.lock();
+  for (auto &entry : request.puts) {
+    auto status = this->db->Put(leveldb::WriteOptions(), entry.key, entry.value);
+    if (!status.ok()) return false;
+  }
+  for (std::string &key : request.dels) {
+    auto status = this->db->Delete(leveldb::WriteOptions(), key);
+    if (status.ok()) return false;
+  }
+  batchLock.unlock();
+  return true;
+}
+
 std::vector<DBEntry> DBService::readBatch(std::string prefix) {
+  batchLock.lock();
   std::vector<DBEntry> entries;
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
   for (it->Seek(prefix); it->Valid(); it->Next()) {
@@ -63,25 +78,27 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix) {
     }
   }
   delete it;
+  batchLock.unlock();
   return entries;
 }
 
-// TODO: implement proper batch functions
-bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
-  for (auto &entry : request.puts) {
-    if (!this->put(entry.key, entry.value, prefix)) return false;
-  }
-  for (std::string &key : request.dels) {
-    if (!this->del(key, prefix)) return false;
-  }
-  return true;
-}
-
 std::vector<DBEntry> DBService::readBatch(std::vector<std::string>& keys, std::string prefix) {
+  batchLock.lock();
   std::vector<DBEntry> ret;
-  for (std::string &key : keys) {
-    ret.push_back({key, get(key, prefix)});
+  leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
+  for (it->Seek(prefix); it->Valid(); it->Next()) {
+    if (it->key().ToString().substr(0, 4) == prefix) {
+      std::string strippedKey = removeKeyPrefix(it->key().ToString());
+      for (std::string& key : keys) {
+        if (strippedKey == key) {
+          DBEntry entry(strippedKey, it->value().ToString());
+          ret.push_back(entry);
+        }
+      }
+    }
   }
+  delete it;
+  batchLock.unlock();
   return ret;
 }
 
