@@ -75,16 +75,10 @@ std::string Block::getBlockHash() {
 }
 
 const uint64_t Block::blockSize() {
-  uint64_t ret = 0;
-
-  // Prev Block Hash + Timestamp + nHeight + txCount + [ txSize, tx, ... ]
-  // 32 + 8 + 8 + 4 + Nx[4 + Ny]
-  ret = ret + 32 + 8 + 8 + 4;
-
-  // Append transaction sizes.
-  for (auto transaction : this->_transactions) {
-    // TODO: this is not optimized, will be fixed later.
-    ret = ret + 4 + transaction.rlp(dev::eth::IncludeSignature::WithSignature).size();
+  uint64_t ret = 32 + 8 + 8 + 4; // prevBlockHash + timestamp + nHeight + txCount
+  for (auto transaction : this->_transactions) { // + [ txSize, tx, ... ]
+    // TODO: rlp() is not optimized, will be fixed later.
+    ret += 4 + transaction.rlp(dev::eth::IncludeSignature::WithSignature).size();
   }
   return ret;
 }
