@@ -18,8 +18,8 @@ struct Account {
   uint32_t nonce = 0;
 };
 
-// Forward declaration
-class VMCommClient;
+class VMCommClient; // Forward declaration.
+
 /**
  * The State class is used to store the state of the system, such as
  * native balances, contract statuses, mempool transactions, token balances
@@ -62,7 +62,7 @@ class State {
     // State querying functions
 
     // Asks the state if a given transaction is valid, and add it to the mempool if it is.
-    bool validateTransaction(dev::eth::TransactionBase &tx);
+    std::pair<int, std::string> validateTransaction(dev::eth::TransactionBase &tx);
 
     // TEST ONLY FUNCTIONS.
 

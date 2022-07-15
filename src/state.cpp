@@ -30,43 +30,35 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
   return true;
 }
 
-bool State::validateTransaction(dev::eth::TransactionBase& tx) {
-  // TODO: Handle error conditions to report at RPC level.
+std::pair<int, std::string> State::validateTransaction(dev::eth::TransactionBase& tx) {
+  // TODO: Handle error conditions to report at RPC level:
+  // https://www.jsonrpc.org/specification#error_object
+  // https://eips.ethereum.org/EIPS/eip-1474#error-codes
   // TODO: Handle transaction queue for multiple tx's from single user.
   stateLock.lock();
 
-  // Replay protection.
+  int err = 0;
+  std::string errMsg = "";
   if (!tx.isReplayProtected()) {
-    Utils::LogPrint(Log::subnet, "validateTransaction", "Replay protection failed.");
-    stateLock.unlock();
-    return false;
+    err = -32003; errMsg = "Replay protection failed";
+  } else if (this->nativeAccount[tx.hash()].nonce != tx.nonce()) {
+    err = -32003; errMsg = "Nonce mismatch";
+  } else if (this->nativeAccount[tx.hash()].balance < tx.value()) {
+    err = -32003; errMsg = "Insufficient balance";
+  } else if (this->mempool.count(tx.hash())) {
+    err = -32003; errMsg = "Transaction already exists in mempool";
   }
 
-  // Check if sender nonce matches.
-  if (this->nativeAccount[tx.hash()].nonce != tx.nonce()) {
-    Utils::LogPrint(Log::subnet, "validateTransaction", "Nonce mismatch.");
-    stateLock.unlock();
-    return false;
+  if (err != 0) {
+    errMsg.insert(0, "Transaction rejected: ");
+    Utils::LogPrint(Log::subnet, "validateTransaction", errMsg);
+  } else {
+    this->mempool[tx.hash()] = tx;
+    grpcClient->requestBlock();
   }
 
-  // Check if sender has enough balance.
-  if (this->nativeAccount[tx.hash()].balance < tx.value()) {
-    Utils::LogPrint(Log::subnet, "validateTransaction", "Insufficient balance.");
-    stateLock.unlock();
-    return false;
-  }
-
-  // Check if transaction already exists in mempool.
-  if (this->mempool.count(tx.hash())) {
-    Utils::LogPrint(Log::subnet, "validateTransaction", "Transaction already exists in mempool.");
-    stateLock.unlock();
-    return false;
-  }
-
-  this->mempool[tx.hash()] = tx;
   stateLock.unlock();
-  grpcClient->requestBlock();
-  return true;
+  return std::make_pair(err, errMsg);
 }
 
 bool State::processNewTransaction(const dev::eth::TransactionBase& tx) {
