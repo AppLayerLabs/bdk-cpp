@@ -11,13 +11,13 @@ std::string Subnet::processRPCMessage(std::string &req) {
     Block bestBlock = chainHead->latest();
     ret["result"] = "0x" + Utils::uintToHex(bestBlock.nHeight());
   }
-  if(messageJson["method"] == "eth_chainId") {
+  if (messageJson["method"] == "eth_chainId") {
     ret["result"] = "0x2290";
   }
-  if(messageJson["method"] == "net_version") {
+  if (messageJson["method"] == "net_version") {
     ret["result"] = "8848";
   }
-  if(messageJson["method"] == "eth_getBalance") {
+  if (messageJson["method"] == "eth_getBalance") {
     std::string address = messageJson["params"][0].get<std::string>();
     Utils::patchHex(address);
     Utils::LogPrint(Log::subnet, "eth_getBalance address: ", address);
@@ -27,7 +27,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     ret["result"] = hexValue;
     Utils::LogPrint(Log::subnet, "eth_getBalance: ", ret.dump());
   }
-  if(messageJson["method"] == "eth_getBlockByNumber") {
+  if (messageJson["method"] == "eth_getBlockByNumber") {
     std::string blockString = messageJson["params"][0].get<std::string>();
     std::unique_ptr<Block> block;
     if (blockString == "latest") {
@@ -64,23 +64,23 @@ std::string Subnet::processRPCMessage(std::string &req) {
     answer["uncles"] = json::array();
     ret["result"] = answer;
   }
-  if(messageJson["method"] == "eth_getCode") {
+  if (messageJson["method"] == "eth_getCode") {
     ret["result"] = "0x";
   }
-  if(messageJson["method"] == "eth_gasPrice") {
+  if (messageJson["method"] == "eth_gasPrice") {
     ret["result"] = "0x12a05f200"; // Force to 5 Gwei
   }
-  if(messageJson["method"] == "eth_estimateGas") {
+  if (messageJson["method"] == "eth_estimateGas") {
     ret["result"] = "0x5208";
   }
-  if(messageJson["method"] == "eth_getTransactionCount") {
+  if (messageJson["method"] == "eth_getTransactionCount") {
     std::string address = messageJson["params"][0].get<std::string>();
     Utils::patchHex(address);
     auto addressNonce = this->headState->getNativeNonce(address);
 
     ret["result"] = std::string("0x") + Utils::uintToHex(addressNonce);
   }
-  if(messageJson["method"] == "eth_sendRawTransaction") {
+  if (messageJson["method"] == "eth_sendRawTransaction") {
     std::string txRlp = messageJson["params"][0].get<std::string>();
     try {
       dev::eth::TransactionBase tx(dev::fromHex(txRlp), dev::eth::CheckTransaction::Everything);
@@ -93,7 +93,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
       Utils::logToFile(std::string("sendRawTransaction failed! ") + e.what());
     }
   }
-  if(messageJson["method"] == "eth_getTransactionReceipt") {
+  if (messageJson["method"] == "eth_getTransactionReceipt") {
     std::string txHash = messageJson["params"][0].get<std::string>();
     Utils::patchHex(txHash);
     try {
@@ -116,7 +116,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
       Utils::LogPrint(Log::subnet, "eth_getTransactionReceipt: tx not found ", e.what());
     }
   }
-  if(messageJson["method"] == "eth_getBlockByHash") {
+  if (messageJson["method"] == "eth_getBlockByHash") {
     std::string blockHash = messageJson["params"][0].get<std::string>();
     Utils::patchHex(blockHash);
     blockHash = Utils::hexToBytes(blockHash);
