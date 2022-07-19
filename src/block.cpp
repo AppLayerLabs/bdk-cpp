@@ -14,7 +14,6 @@ Block::Block(const std::string &blockData) {
     nHeightBytes = blockData.substr(32 + 8, 8);
     txArraySizeBytes = blockData.substr(32 + 8 + 8, 4);
     rawTransactions = blockData.substr(32 + 8 + 8 + 4);
-
     this->_prevBlockHash = Utils::bytesToUint256(prevBlockHashBytes);
     this->_timestamp = Utils::bytesToUint64(timestampBytes);
     this->_nHeight = Utils::bytesToUint64(nHeightBytes);
@@ -29,7 +28,8 @@ Block::Block(const std::string &blockData) {
       txSizeBytes = rawTransactions.substr(nextTx, 4);
       uint32_t txSize = Utils::bytesToUint32(txSizeBytes);
       // Copy the transaction itself.
-      txBytes = txBytes.substr(nextTx + 4, txSize);
+      txBytes = rawTransactions.substr(nextTx + 4, txSize);
+
       nextTx = nextTx + 4 + txSize;
       this->_transactions.push_back(dev::eth::TransactionBase(txBytes, dev::eth::CheckTransaction::None));
     }
@@ -63,7 +63,6 @@ std::string Block::serializeToBytes() {
     ret += txSizeBytes;
     std::copy(txBytes.begin(), txBytes.end(), std::back_inserter(ret));
   }
-
   return ret;
 }
 
@@ -89,6 +88,7 @@ bool Block::appendTx(dev::eth::TransactionBase &tx) {
     return false;
   }
   this->_transactions.emplace_back(tx);
+  ++_txCount;
   return true;
 }
 

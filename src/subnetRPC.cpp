@@ -36,12 +36,14 @@ std::string Subnet::processRPCMessage(std::string &req) {
       uint64_t blockNumber = boost::lexical_cast<uint64_t>(Utils::hexToUint(blockString));
       Utils::LogPrint(Log::subnet, "eth_getBlockByNumber blockNumber: ", std::to_string(blockNumber));
       block = std::make_unique<Block>(chainHead->getBlock(blockNumber));
+      Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes()));
     }
 
     json answer;
     answer["number"] = std::string("0x") + Utils::uintToHex(block->nHeight());
     answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash());
-    answer["parentHash"] = std::string("0x") + block->prevBlockHash();
+
+    answer["parentHash"] = std::string("0x") + dev::toHex(block->prevBlockHash());
     answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
     answer["sha3Uncles"] = "0x";
     answer["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
@@ -72,7 +74,6 @@ std::string Subnet::processRPCMessage(std::string &req) {
     ret["result"] = "0x5208";
   }
   if(messageJson["method"] == "eth_getTransactionCount") {
-    Utils::logToFile("txCount 1");
     std::string address = messageJson["params"][0].get<std::string>();
     Utils::patchHex(address);
     auto addressNonce = this->headState->getNativeNonce(address);
@@ -95,21 +96,25 @@ std::string Subnet::processRPCMessage(std::string &req) {
   if(messageJson["method"] == "eth_getTransactionReceipt") {
     std::string txHash = messageJson["params"][0].get<std::string>();
     Utils::patchHex(txHash);
-    dev::eth::TransactionBase tx = chainHead->getTransaction(txHash);
+    try {
+      dev::eth::TransactionBase tx = chainHead->getTransaction(txHash);
+      ret["result"]["transactionHash"] = std::string("0x") + tx.hash();
 
-    ret["result"]["transactionHash"] = std::string("0x") + tx.hash();
-
-    // TODO: Implement block transaction index (requires rewriting TransactionBase)
-    ret["result"]["transactionIndex"] = "0x1";
-    Block block = chainHead->getBlockFromTx(txHash);
-    ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block.nHeight());
-    ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block.getBlockHash());
-    ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx.gas());
-    ret["result"]["gasUsed"] = "0x" + Utils::uintToHex(tx.gas());
-    ret["result"]["contractAddress"] = "0x";  // TODO: does MetaMask check if we called a contract?
-    ret["logs"] = json::array();
-    ret["result"]["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-    ret["result"]["status"] = "0x1";
+      // TODO: Implement block transaction index (requires rewriting TransactionBase)
+      ret["result"]["transactionIndex"] = "0x1";
+      Block block = chainHead->getBlockFromTx(txHash);
+      ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block.nHeight());
+      ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block.getBlockHash());
+      ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx.gas());
+      ret["result"]["gasUsed"] = "0x" + Utils::uintToHex(tx.gas());
+      ret["result"]["contractAddress"] = "0x";  // TODO: does MetaMask check if we called a contract?
+      ret["logs"] = json::array();
+      ret["result"]["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+      ret["result"]["status"] = "0x1";
+    } catch (std::exception &e) {
+      // TODO: proper error handling
+      Utils::LogPrint(Log::subnet, "eth_getTransactionReceipt: tx not found ", e.what());
+    }
   }
   if(messageJson["method"] == "eth_getBlockByHash") {
     std::string blockHash = messageJson["params"][0].get<std::string>();
@@ -119,7 +124,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     json answer;
     answer["number"] = std::string("0x") + Utils::uintToHex(block.nHeight());
     answer["hash"] = std::string("0x") + dev::toHex(block.getBlockHash());
-    answer["parentHash"] = std::string("0x") + block.prevBlockHash();
+    answer["parentHash"] = std::string("0x") + dev::toHex(block.prevBlockHash());
     answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
     answer["sha3Uncles"] = "0x";
     answer["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";

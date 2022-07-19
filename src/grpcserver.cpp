@@ -25,6 +25,7 @@ Status VMServiceImplementation::BuildBlock(
   const google::protobuf::Empty* request,
   vm::BuildBlockResponse* reply
 ) {
+  Utils::LogPrint(Log::grpcServer, __func__, "BuildBlock: Block Requested");
   if (!subnet.blockRequest()) {
     // TODO: Handle errors
     Utils::LogPrint(Log::grpcServer, __func__, "BuildBlock: block request FAILED");

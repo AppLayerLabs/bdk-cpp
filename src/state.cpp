@@ -41,11 +41,12 @@ std::pair<int, std::string> State::validateTransaction(dev::eth::TransactionBase
   std::string errMsg = "";
   if (!tx.isReplayProtected()) {
     err = -32003; errMsg = "Replay protection failed";
-  } else if (this->nativeAccount[tx.hash()].nonce != tx.nonce()) {
+  } else if (this->nativeAccount[dev::toHex(tx.from())].nonce != tx.nonce()) {
     err = -32003; errMsg = "Nonce mismatch";
-  } else if (this->nativeAccount[tx.hash()].balance < tx.value()) {
-    err = -32003; errMsg = "Insufficient balance";
-  } else if (this->mempool.count(tx.hash())) {
+  } else if (this->nativeAccount[dev::toHex(tx.from())].balance < tx.value()) {
+    err = -32003; errMsg = "Insufficient balance: required: " + boost::lexical_cast<std::string>(tx.value()) 
+                         + " available: " + boost::lexical_cast<std::string>(this->nativeAccount[dev::toHex(tx.from())].balance);
+  } else if (this->mempool.count(dev::toHex(tx.from()))) {
     err = -32003; errMsg = "Transaction already exists in mempool";
   }
 
