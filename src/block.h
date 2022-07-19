@@ -52,9 +52,9 @@
  * rawBlock: 5c37d504e9415c3b75afaa3ad24484382274bba31f10dcd268e554785d5b807500000181810EB6507a8b54dfbfe9f21d00000001000000aff8ad81be850c92a69c0082e18c94d586e7f844cea2f87f50152665bcbc2c279d8d7080b844a9059cbb00000000000000000000000026548521f99d0709f615aa0f766a7df60f99250b00000000000000000000000000000000000000000000002086ac351052600000830150f7a07e16328b7f3823abeb13d0cab11cdffaf967c9b2eaf3757c42606d6f2ecd8ce6a040684c94b289cdda22822e5cb374ea374d7a3ba581a9014faf35b19e5345ab92
  */
 class Block {
-  // TODO: Implement block transaction index.
+  // TODO: Implement block transaction index (requires rewriting TransactionBase)
   private:
-    // TODO: Add creator Header.
+    // TODO: Add creator Header (might require writing a secp256k1 wrapper)
     uint256_t _prevBlockHash;
     uint64_t _timestamp;
     uint64_t _nHeight;
@@ -85,8 +85,10 @@ class Block {
     const std::vector<dev::eth::TransactionBase>& transactions() { return this->_transactions; };
     const uint64_t blockSize();
     /**
-     * TODO: should we add a block hash variable and store it instead of
-     * serializing every time getBlockHash is called?
+     * TODO: TransactionBase (more specifically rlp()) is too slow,
+     * we should try and refactor that first before thinking about
+     * adding the block hash as a variable instead of serializing it
+     * every time getBlockHash() is called.
      * This might be a good idea if blocks get too big.
      */
     std::string getBlockHash(); // Hash (in bytes)
