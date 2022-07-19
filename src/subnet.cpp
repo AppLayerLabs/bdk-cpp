@@ -49,7 +49,14 @@ void Subnet::stop() {
     Utils::LogPrint(Log::subnet, __func__, "headState saved to DB");
     this->dbServer->close();
     Utils::LogPrint(Log::subnet, __func__, "DB closed successfully");
-    HTTPServer::shutdownServer(); // Kill HTTP Server if is still running
+    this->httpServer->stop();
+    for (;;) {
+      if (!this->httpServer->isRunning()) {
+        break;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    Utils::LogPrint(Log::subnet, __func__, "HTTP Server stopped");
     // Sleep for 2 seconds and wait for Server shutdown answer
     Utils::LogPrint(Log::subnet, __func__, "Waiting for Server to shutdown...");
     boost::this_thread::sleep_for(boost::chrono::seconds(2));
@@ -60,6 +67,7 @@ void Subnet::stop() {
 }
 
 void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResponse* reply) {
+  Utils::logToFile("Initialize");
   /**
    * The initialization request is made by the AvalancheGo Daemon.
    * See vm.proto for more information.
@@ -119,7 +127,14 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   timestamp->set_nanos(latestBlock.timestamp() % 1000000000);
 
   // Start the HTTP Server.
-  HTTPServer::startServer(*this);
+  Utils::logToFile("Starting HTTP");
+  this->httpServer = std::make_unique<HTTPServer>(*this);
+  std::thread httpServerThread = std::thread([&]
+  {
+    this->httpServer->run();
+  });
+  httpServerThread.detach();
+  Utils::logToFile("HTTP Started");
   std::string jsonReply;
   google::protobuf::util::MessageToJsonString(*reply, &jsonReply, options);
   Utils::logToFile(jsonReply);

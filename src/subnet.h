@@ -73,6 +73,12 @@ class Subnet {
      */
     std::unique_ptr<ChainHead> chainHead;
 
+    /**
+     * HTTP Server for JSON-RPC Requests
+     */
+
+    std::unique_ptr<HTTPServer> httpServer;
+
     InitializeRequest initParams; // From initialization request.
 
   public:

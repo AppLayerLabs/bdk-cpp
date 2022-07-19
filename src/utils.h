@@ -32,6 +32,7 @@ namespace Log {
   const std::string grpcServer = "VMServiceImplementation::";
   const std::string grpcClient = "VMCommClient::";
   const std::string utils = "Utils::";
+  const std::string httpServer = "HTTPServer::";
 };
 
 namespace Utils {
