@@ -21,7 +21,7 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
   WriteBatchRequest accountsBatch;
   for (auto &account : this->nativeAccount) {
     accountsBatch.puts.emplace_back(
-      account.first,
+      account.first.innerAddress,
       Utils::uint256ToBytes(account.second.balance) + Utils::uint32ToBytes(account.second.nonce)
     );
   }
@@ -131,7 +131,7 @@ bool State::createNewBlock(std::unique_ptr<ChainHead>& chainHead) {
   return this->processNewBlock(newBestBlock, chainHead);
 }
 
-uint256_t State::getNativeBalance(const std::string& address) {
+uint256_t State::getNativeBalance(const Address& address) {
   uint256_t ret;
   this->stateLock.lock();
   ret = this->nativeAccount[address].balance;
@@ -139,7 +139,7 @@ uint256_t State::getNativeBalance(const std::string& address) {
   return ret;
 };
 
-uint256_t State::getNativeNonce(const std::string& address) {
+uint256_t State::getNativeNonce(const Address& address) {
   uint256_t ret;
   this->stateLock.lock();
   ret = this->nativeAccount[address].nonce;
@@ -147,7 +147,7 @@ uint256_t State::getNativeNonce(const std::string& address) {
   return ret;
 };
 
-void State::addBalance(std::string &address) {
+void State::addBalance(Address &address) {
   this->stateLock.lock();
   this->nativeAccount[address].balance += 1000000000000000000;
   this->stateLock.unlock();

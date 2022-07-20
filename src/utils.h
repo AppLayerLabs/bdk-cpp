@@ -65,4 +65,22 @@ namespace Utils {
   std::string bytesToHex(std::string bytes);
 }
 
+class Address {
+  public:
+    const std::string innerAddress;
+    // Lambda so we can patch the hex before initializing innerAddress
+    Address(std::string address) : innerAddress(([&]() -> std::string { Utils::patchHex(address); return address; })()) {}
+
+    bool operator==(const Address& rAddress) const {
+      return bool(innerAddress == rAddress.innerAddress);
+    }
+};
+
+
+template <>
+struct std::hash<Address> {
+  size_t operator() (const Address& address) const {
+    return std::hash<std::string>()(address.innerAddress);
+  }
+};
 #endif // UTILS_H

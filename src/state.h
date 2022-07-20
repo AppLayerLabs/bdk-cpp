@@ -29,7 +29,7 @@ class VMCommClient; // Forward declaration.
  */
 class State {
   private:
-    std::unordered_map<std::string, Account> nativeAccount;             // Address -> Account
+    std::unordered_map<Address, Account> nativeAccount;             // Address -> Account
     std::unordered_map<std::string, dev::eth::TransactionBase> mempool; // Tx Hash -> Tx
     std::mutex stateLock;
 
@@ -48,8 +48,8 @@ class State {
   public:
     State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
 
-    uint256_t getNativeBalance(const std::string& address);
-    uint256_t getNativeNonce(const std::string& address);
+    uint256_t getNativeBalance(const Address& address);
+    uint256_t getNativeNonce(const Address& address);
     const std::unordered_map<std::string, dev::eth::TransactionBase>& getMempool() { return mempool; };
 
     // State changing functions
@@ -66,7 +66,7 @@ class State {
 
     // TEST ONLY FUNCTIONS.
 
-    void addBalance(std::string &address);
+    void addBalance(Address &address);
 
     friend class Subnet;
 };
