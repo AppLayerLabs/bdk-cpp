@@ -19,7 +19,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
   }
   if(messageJson["method"] == "eth_getBalance") {
     Address address(messageJson["params"][0].get<std::string>());
-    Utils::LogPrint(Log::subnet, "eth_getBalance address: ", address.innerAddress);
+    Utils::LogPrint(Log::subnet, "eth_getBalance address: ", address.hex());
     auto balance = this->headState->getNativeBalance(address);
     std::string hexValue = "0x";
     hexValue += Utils::uintToHex(balance);
@@ -72,7 +72,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
   if (messageJson["method"] == "eth_estimateGas") {
     ret["result"] = "0x5208";
   }
-  if(messageJson["method"] == "eth_getTransactionCount") {
+  if (messageJson["method"] == "eth_getTransactionCount") {
     Address address(messageJson["params"][0].get<std::string>());
     auto addressNonce = this->headState->getNativeNonce(address);
 

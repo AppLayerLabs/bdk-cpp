@@ -9,8 +9,9 @@ bool State::loadState(std::shared_ptr<DBService> &dbServer) {
   stateLock.lock();
   auto accounts = dbServer->readBatch(DBPrefix::nativeAccounts);
   for (auto account : accounts) {
-    this->nativeAccount[account.key].balance = Utils::bytesToUint256(account.value.substr(0,32));
-    this->nativeAccount[account.key].nonce = Utils::bytesToUint32(account.value.substr(32,32));
+    Address address(account.key, false);
+    this->nativeAccount[address].balance = Utils::bytesToUint256(account.value.substr(0,32));
+    this->nativeAccount[address].nonce = Utils::bytesToUint32(account.value.substr(32,account.value.size()));
   }
   stateLock.unlock();
   return true;
@@ -21,7 +22,7 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
   WriteBatchRequest accountsBatch;
   for (auto &account : this->nativeAccount) {
     accountsBatch.puts.emplace_back(
-      account.first.innerAddress,
+      account.first.get(),
       Utils::uint256ToBytes(account.second.balance) + Utils::uint32ToBytes(account.second.nonce)
     );
   }

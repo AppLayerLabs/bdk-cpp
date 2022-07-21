@@ -66,10 +66,22 @@ namespace Utils {
 }
 
 class Address {
+  private:
+    // Stored in bytes.
+    std::string innerAddress;
   public:
-    const std::string innerAddress;
-    // Lambda so we can patch the hex before initializing innerAddress
-    Address(std::string address) : innerAddress(([&]() -> std::string { Utils::patchHex(address); return address; })()) {}
+    // RPC Requests address are in hex format
+    Address(std::string address, bool fromRPC = true) {
+      if (fromRPC) {
+        Utils::patchHex(address);
+        innerAddress = Utils::hexToBytes(innerAddress);
+      } else {
+        innerAddress = address;
+      }
+    }
+
+    std::string get() const { return innerAddress; };
+    std::string hex() const { return Utils::bytesToHex(innerAddress); }
 
     bool operator==(const Address& rAddress) const {
       return bool(innerAddress == rAddress.innerAddress);
@@ -80,7 +92,7 @@ class Address {
 template <>
 struct std::hash<Address> {
   size_t operator() (const Address& address) const {
-    return std::hash<std::string>()(address.innerAddress);
+    return std::hash<std::string>()(address.get());
   }
 };
 #endif // UTILS_H
