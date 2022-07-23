@@ -1,44 +1,24 @@
-#include "main.h"
-#include "grpcserver.h"
+#include <iostream>
+#include <vector>
 
-void Subnet::start()
-{
-  std::string server_address("0.0.0.0:50051");
-  //VMServiceImplementation service(shared_from_this());
-  service = std::make_shared<VMServiceImplementation>(shared_from_this());
+#include "subnet.h"
 
-  grpc::EnableDefaultHealthCheckService(true);
-  grpc::reflection::InitProtoReflectionServerBuilderPlugin();
-  ServerBuilder builder;
-  // Listen on the given address without any authentication mechanism.
-  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  // Register "service" as the instance through which we'll communicate with
-  // clients. In this case it corresponds to an *synchronous* service.
-  builder.RegisterService(service.get());
-  // Finally assemble the server.
-  // std::unique_ptr<Server> server(builder.BuildAndStart());
+std::unique_ptr<Subnet> subnet;
 
-  server = builder.BuildAndStart();
-  std::cout << "1|14|tcp|" << server_address << "|grpc\n"<< std::flush;
-  // Wait for the server to shutdown. Note that some other thread must be
-  // responsible for shutting down the server for this call to ever return
-  server->Wait();
-}
+/**
+ * As of July 5th 2022, the AvalancheGo daemon simply kills the subnet,
+ * not letting it know through the grpcserver or any other means...
+ * This stop function is a workaround to allow our subnet to be stopped
+ * without the need of AvalancheGo letting it know.
+ */
+void shutdown_handler(int sig) { subnet->stop(); }
 
-void Subnet::stopServer() {
-  // Sleep for 2 seconds and wait for Server shutdown answer.
-  boost::this_thread::sleep_for(boost::chrono::seconds(2));
-  server->Shutdown();
-  return;
-}
-
+// Let that good boi run
 int main() {
-
   std::signal(SIGINT, SIG_IGN);
-  std::shared_ptr<Subnet> subnet = std::make_shared<Subnet>();
+  std::signal(SIGTERM, shutdown_handler);
+  subnet = std::make_unique<Subnet>();
   subnet->start();
-  Utils::logToFile("returned");
   return 0;
 }
-
 

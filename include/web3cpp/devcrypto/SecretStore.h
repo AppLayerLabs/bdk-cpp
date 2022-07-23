@@ -1,17 +1,30 @@
 // Aleth: Ethereum C++ client, tools and libraries.
 // Copyright 2015-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
-
 #pragma once
 
 #include <functional>
 #include <mutex>
-#include <include/web3cpp/devcore/FixedHash.h>
-#include <include/web3cpp/devcore/FileSystem.h>
-#include <include/web3cpp/devcore/CommonIO.h>
+#include <thread>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+
+#include <nlohmann/json.hpp>
+
+#include <web3cpp/devcore/CommonIO.h>
+#include <web3cpp/devcore/FileSystem.h>
+#include <web3cpp/devcore/FileSystem.h>
+#include <web3cpp/devcore/FixedHash.h>
+#include <web3cpp/devcore/Guards.h>
+#include <web3cpp/devcore/SHA3.h>
+#include <web3cpp/devcrypto/Exceptions.h>
+
 #include "Common.h"
 
-#include <boost/filesystem.hpp>
+using namespace dev;
+using json = nlohmann::ordered_json;
+namespace fs = boost::filesystem;
 
 // Boost 1.73 deprecated Bind placeholder declarations on global namespace.
 // Defining this macro retains current behaviour.
@@ -34,6 +47,10 @@ enum class KDF {
  * @note that most of the functions here affect the filesystem and throw exceptions on failure,
  * and they also throw exceptions upon rare malfunction in the cryptographic functions.
  */
+
+// Export special functions.
+bytesSec deriveNewKey(std::string const& _pass, KDF _kdf, json &jsonObj);
+
 class SecretStore
 {
 public:
@@ -111,15 +128,15 @@ public:
 
 	/// @returns the default path for the managed directory.
 	static boost::filesystem::path defaultPath() { return getDataDir("web3") / boost::filesystem::path("keys"); }
+	/// Encrypts @a _v with a key derived from @a _pass or the empty string on error.
+	static std::string encrypt(bytesConstRef _v, std::string const& _pass, KDF _kdf = KDF::Scrypt);
+	/// Decrypts @a _v with a key derived from @a _pass or the empty byte array on error.
+	static bytesSec decrypt(std::string const& _v, std::string const& _pass);
 
 private:
 	/// Loads all keys in the given directory.
 	void load(boost::filesystem::path const& _keysPath);
 	void load() { load(m_path); }
-	/// Encrypts @a _v with a key derived from @a _pass or the empty string on error.
-	static std::string encrypt(bytesConstRef _v, std::string const& _pass, KDF _kdf = KDF::Scrypt);
-	/// Decrypts @a _v with a key derived from @a _pass or the empty byte array on error.
-	static bytesSec decrypt(std::string const& _v, std::string const& _pass);
 	/// @returns the key given the @a _address.
 	std::pair<h128 const, EncryptedKey> const* key(Address const& _address) const;
 	std::pair<h128 const, EncryptedKey>* key(Address const& _address);

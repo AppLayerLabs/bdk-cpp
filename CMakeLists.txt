@@ -8,92 +8,66 @@ include(GNUInstallDirs)
 cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Debug;Release;RelWithDebInfo)
 
 # Map current configuration to configurations of imported targets.
-set(CMAKE_MAP_IMPORTED_CONFIG_DEBUG Release)
-set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
-
-set(DEPENDS_PREFIX "")
-if("${TOOLCHAIN_PREFIX}" STREQUAL "x86_64-w64-mingw32")
-  set(DEPENDS_PREFIX "x86_64-w64-mingw32")
-  message("Toolchain: x86_64-w64-mingw32")
-  message("Loading Windows Libraries")
-  include("${CMAKE_SOURCE_DIR}/cmake/WindowsLibraries.cmake")
-else()  
-  if("${TOOLCHAIN_PREFIX}" STREQUAL "x86_64-apple-darwin20")
-    message("Toolchain: x86_64-apple-darwin20")
-    set(DEPENDS_PREFIX "x86_64-apple-darwin20.5.0")
-    message("Loading Darwin Libraries")
-    include("${CMAKE_SOURCE_DIR}/cmake/DarwinLibraries.cmake")
-  else()
-    if("${TOOLCHAIN_PREFIX}" STREQUAL "arm-apple-darwin21.2.0")
-      message("Toolchain: arm-apple-darwin21.2.0")
-      set(DEPENDS_PREFIX "arm-apple-darwin21.2.0")
-      include("${CMAKE_SOURCE_DIR}/cmake/DarwinArmLibraries.cmake")
-      message("Loading Darwin Libraries")
-    else() 
-      message("Toolchain: x86_64-pc-linux-gnu")
-      set(DEPENDS_PREFIX "x86_64-pc-linux-gnu")
-      include("${CMAKE_SOURCE_DIR}/cmake/LinuxLibraries.cmake")
-      message("Loading Linux Libraries")
-    endif()
-  endif()
-endif()
-
-
-# Get Hunter
-include("cmake/HunterGate.cmake")
-HunterGate(
-  URL "https://github.com/cpp-pm/hunter/archive/v0.23.288.tar.gz"
-  SHA1 "6c9b2bc606d86ae31f96a62fc68f0a593024815b"
-  LOCAL # Load config from `${CMAKE_CURRENT_LIST_DIR}/cmake/Hunter/config.cmake`
-)
+set(CMAKE_MAP_IMPORTED_CONFIG_Debug Release)
+set(CMAKE_MAP_IMPORTED_CONFIG_RelWithDebInfo Release)
 
 # Project data
-project(subnetooor VERSION 0.0.1 DESCRIPTION "")
+project(subnetooor VERSION 0.0.1 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-message("C++ Standard: ${CMAKE_CXX_STANDARD}")
-message("C++ Standard is required: ${CMAKE_CXX_STANDARD_REQUIRED}")
-message("C++ extensions: ${CMAKE_CXX_EXTENSIONS}")
-message("Using PIC: ${CMAKE_POSITION_INDEPENDENT_CODE}")
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # "ZLIB_USE_STATIC_LIBS" was added in 3.24
+set(LEVELDB_USE_STATIC_LIBS ON)
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "C++ Standard is required: ${CMAKE_CXX_STANDARD_REQUIRED}")
+message(STATUS "C++ extensions: ${CMAKE_CXX_EXTENSIONS}")
+message(STATUS "Using PIC: ${CMAKE_POSITION_INDEPENDENT_CODE}")
+message(STATUS "Find libs with suffix: ${CMAKE_FIND_LIBRARY_SUFFIXES}")
 
 cable_add_buildinfo_library(PROJECT_NAME subnetooor)
 
-# Add Hunter packages
-hunter_add_package(cryptopp)
-find_package(cryptopp CONFIG REQUIRED)
-hunter_add_package(libscrypt)
-find_package(libscrypt CONFIG REQUIRED)
+# System package configs (built-in)
+set(Boost_USE_STATIC_LIBS ON)
+set(OPENSSL_USE_STATIC_LIBS ON)
+set(Protobuf_USE_STATIC_LIBS ON)
+
+# Find system packages (built-in)
+find_package(Threads)
+find_package(Boost 1.74.0 REQUIRED COMPONENTS
+  chrono filesystem program_options system thread nowide
+)
+find_package(OpenSSL 1.1.1 REQUIRED)
+find_package(Protobuf 3.12 REQUIRED)
+find_package(ZLIB REQUIRED)
+
+# Find system packages (custom)
+find_package(Absl REQUIRED) # Built-in is hardcoded to SHARED, this one to STATIC
+find_package(Cares REQUIRED)
+find_package(CryptoPP 8.2.0 REQUIRED)
+find_package(GRPC REQUIRED)
+find_package(Scrypt REQUIRED)
+find_package(LevelDB REQUIRED)
 
 # Add external modules
-include(cmake/ProjectEthash.cmake)
-include(cmake/ProjectSecp256k1.cmake)
-include(cmake/ProjectToolbox.cmake)
 include(cmake/ProjectBoostCertify.cmake)
-include(cmake/ProjectSnappy.cmake)
-include(cmake/ProjectLevelDB.cmake)
-find_package(Threads)
-
-# Include Protobuf
-include(cmake/ProjectProtobuf.cmake)
-include(cmake/FindGRPC.cmake)
-find_package(absl CONFIG REQUIRED)
+include(cmake/ProjectEthash.cmake)
+include(cmake/ProjectSecp256k1.cmake) # Itamar's fork which includes secp256k1_sha256.h
 
 # Include headers and libs
 include_directories(
   "${CMAKE_SOURCE_DIR}"
   "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/include"
-  "${CMAKE_SOURCE_DIR}/depends/${DEPENDS_PREFIX}/include"
 )
 link_directories(
   "${CMAKE_SOURCE_DIR}"
   "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/lib"
-  "${CMAKE_SOURCE_DIR}/depends/${DEPENDS_PREFIX}/lib"
 )
 
 # Organize, compile and link aleth libs
@@ -111,15 +85,33 @@ add_library(aleth STATIC
 )
 target_include_directories(aleth PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(aleth PRIVATE
-  cryptopp-static libscrypt::scrypt Secp256k1 toolbox ${ETHASH_BYPRODUCTS} Ethash
+  cryptopp scrypt Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
 )
 
 # Generate gRPC files
-# TODO: force clean generation every time
+# Headers/sources are always cleaned at configure stage
+# so they can be regenerated at build stage
+file(REMOVE
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
+)
+
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
-  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
+  COMMAND "protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -129,7 +121,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
-  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
+  COMMAND "protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -139,7 +131,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
-  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
+  COMMAND "protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -149,7 +141,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
-  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
+  COMMAND "protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -159,7 +151,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/metrics.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/metrics.grpc.pb.h"
-  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
+  COMMAND "protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -169,7 +161,7 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
-  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
+  COMMAND "protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -177,9 +169,19 @@ add_custom_command(
 )
 
 add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
+         "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
+  COMMAND "protoc"
+  ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
+       --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
+       "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.proto"
+)
+
+add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
          "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
-  COMMAND "${CMAKE_BINARY_DIR}/deps/bin/protoc"
+  COMMAND "protoc"
   ARGS --grpc_out="${CMAKE_CURRENT_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_CURRENT_SOURCE_DIR}/proto"
@@ -194,6 +196,7 @@ protobuf_generate_cpp(PROTO_APPSENDER_SRCS PROTO_APPSENDER_HDRS proto/appsender.
 protobuf_generate_cpp(PROTO_KEYSTORE_SRCS PROTO_KEYSTORE_HDRS proto/keystore.proto)
 protobuf_generate_cpp(PROTO_MESSENGER_SRCS PROTO_MESSENGER_HDRS proto/messenger.proto)
 protobuf_generate_cpp(PROTO_SHAREDMEMORY_SRCS PROTO_SHAREDMEMORY_HDRS proto/sharedmemory.proto)
+protobuf_generate_cpp(PROTO_RPCDB_SRCS PROTO_RPCDB_HDRS proto/rpcdb.proto)
 
 add_custom_target(gen-grpc ALL DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
@@ -202,81 +205,68 @@ add_custom_target(gen-grpc ALL DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
 )
+
+#file(GLOB SUBNETOOOR_HDRS "src/*.h")
+#file(GLOB SUBNETOOOR_SRCS "src/*.cpp")
+
+# Set project headers and sources
+set(SUBNETOOOR_HDRS
+  src/subnet.h src/utils.h src/block.h src/grpcserver.h
+  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h
+)
+
+set(SUBNETOOOR_SRCS
+  src/main.cpp src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp
+  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp
+  src/httpserver.cpp src/subnetRPC.cpp
+)
+
+#message(STATUS ${SUBNETOOOR_HDRS})
+#message(STATUS ${SUBNETOOOR_SRCS})
 
 # Compile and link the executable
-#file(GLOB SUBNETOOOR_HEADERS "src/*.h")
-#file(GLOB SUBNETOOOR_SOURCES "src/*.cpp")
-
-set(SUBNETOOOR_HEADERS
-  src/main.h
-  src/block.h
-  src/db.h
-  src/httpserver.h
-  src/grpcclient.h
-  src/grpcserver.h
-  src/json.hpp
-  src/utils.h
-  src/validation.h
-  src/ERC20.h
-  src/Uniswap.h
-  src/Bridge.h
-  src/httpclient.h
-)
-
-set(SUBNETOOOR_SOURCES
-  src/main.cpp
-  src/block.cpp
-  src/db.cpp
-  src/httpserver.cpp
-  src/grpcclient.cpp
-  src/grpcserver.cpp
-  src/utils.cpp
-  src/Uniswap.cpp
-  src/UniswapValidation.cpp
-  src/validation.cpp
-  src/EthCall.cpp
-  src/ERC20.cpp
-  src/Bridge.cpp
-  src/httpclient.cpp
-  src/BridgeValidation.cpp
-)
-
-message(STATUS ${SUBNETOOOR_HEADERS})
-message(STATUS ${SUBNETOOOR_SOURCES})
-
-add_executable(subnetooord ${SUBNETOOOR_HEADERS} ${SUBNETOOOR_SOURCES}
-  ${PROTO_VM_SRCS} ${PROTO_VM_HDRS} ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
+add_executable(subnetooord
+  ${SUBNETOOOR_SRCS} ${SUBNETOOOR_HDRS}
+  ${PROTO_VM_SRCS} ${PROTO_VM_HDRS}
+  ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
   ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
   ${PROTO_ALIASREADER_SRCS} ${PROTO_ALIASREADER_HDRS}
   ${PROTO_APPSENDER_SRCS} ${PROTO_APPSENDER_HDRS}
   ${PROTO_KEYSTORE_SRCS} ${PROTO_KEYSTORE_HDRS}
   ${PROTO_MESSENGER_SRCS} ${PROTO_MESSENGER_HDRS}
   ${PROTO_SHAREDMEMORY_SRCS} ${PROTO_SHAREDMEMORY_HDRS}
+  ${PROTO_RPCDB_SRCS} ${PROTO_RPCDB_HDRS}
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
 )
 add_dependencies(subnetooord gen-grpc)
-# Add include folder to subnetooor
-target_include_directories(subnetooord PRIVATE aleth)
-target_link_libraries(subnetooord aleth Protobuf ${GRPC_LIBRARIES}
-  ${GRPC++_LIBRARY} LevelDB snappy ${BOOST_LIBS} ${OPENSSL_LIBS} ${Z_LIBS} ${LIB_INCLUDE}
-)
 
+# Add include folder and link libraries to the executable
+target_include_directories(subnetooord PRIVATE aleth)
+target_link_libraries(subnetooord aleth
+  ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
+  ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
+  absl::flags
+)
 

@@ -519,23 +519,18 @@ if(MSVC)
     find_path(GRPC_SRC_ROOT_FOLDER grpc.def)
 endif()
 
-# The Protobuf library
-_protobuf_find_libraries(PROTOBUF protobuf)
-#DOC "The Google Protocol Buffers RELEASE Library"
-
-_protobuf_find_libraries(PROTOBUF_LITE protobuf-lite)
-
-# The Protobuf Protoc Library
-_protobuf_find_libraries(PROTOBUF_PROTOC protoc)
+_protobuf_find_libraries(PROTOBUF libprotobuf.a)  # Protobuf library
+_protobuf_find_libraries(PROTOBUF_LITE libprotobuf-lite.a)  # Protobuf library (lite)
+_protobuf_find_libraries(PROTOBUF_PROTOC libprotoc.a) # Protoc library
 
 # Restore original find library prefixes
 if(MSVC)
     set(CMAKE_FIND_LIBRARY_PREFIXES "${PROTOBUF_ORIG_FIND_LIBRARY_PREFIXES}")
 endif()
 
-_grpc_find_libraries(GRPC grpc)
-_grpc_find_libraries(GRPC++ grpc++)
-_grpc_find_libraries(GRPC++_REFLECTION grpc++_reflection)
+_grpc_find_libraries(GRPC libgrpc.a)  # gRPC library (C)
+_grpc_find_libraries(GRPC++ libgrpc++.a)  # gRPC library (C++)
+_grpc_find_libraries(GRPC++_REFLECTION libgrpc++_reflection.a) # gRPC Reflection library (C++)
 
 if(UNIX)
     _protobuf_find_threads()
@@ -591,7 +586,8 @@ find_package(PackageHandleStandardArgs)
 
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(GRPC DEFAULT_MSG
   GRPC_LIBRARY GRPC_INCLUDE_DIR PROTOBUF_INCLUDE_DIR 
-  GRPC_PYTHON_PLUGIN GRPC_CPP_PLUGIN)
+  GRPC_PYTHON_PLUGIN GRPC_CPP_PLUGIN
+)
 
 if(PROTOBUF_FOUND)
     set(PROTOBUF_INCLUDE_DIRS ${PROTOBUF_INCLUDE_DIR})
@@ -599,3 +595,4 @@ endif()
 if(GRPC_FOUND)
     set(GRPC_INCLUDE_DIRS ${GRPC_INCLUDE_DIR})
 endif()
+
