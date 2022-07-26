@@ -7,6 +7,7 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/lexical_cast.hpp>
 #include <web3cpp/devcore/CommonData.h>
+#include <web3cpp/devcore/FixedHash.h>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::ordered_json;
@@ -41,6 +42,7 @@ namespace Utils {
   std::string uint256ToBytes(const uint256_t &i);
   std::string uint64ToBytes(const uint64_t &i);
   std::string uint32ToBytes(const uint32_t &i);
+  std::string uint8ToBytes(const uint8_t &i);
   uint256_t bytesToUint256(const std::string &bytes);
   uint64_t bytesToUint64(const std::string &bytes);
   uint32_t bytesToUint32(const std::string &bytes);
@@ -63,6 +65,7 @@ namespace Utils {
   // Hex <-> Bytes (using string containers)
   std::string hexToBytes(std::string hex);
   std::string bytesToHex(std::string bytes);
+  bool verifySignature(uint256_t v, uint256_t r, uint256_t s);
 }
 
 class Address {
@@ -70,6 +73,9 @@ class Address {
     // Stored in bytes.
     std::string innerAddress;
   public:
+    // Empty Address;
+    Address() {};
+
     // RPC Requests address are in hex format
     Address(std::string address, bool fromRPC = true) {
       if (fromRPC) {
@@ -82,6 +88,19 @@ class Address {
 
     std::string get() const { return innerAddress; };
     std::string hex() const { return Utils::bytesToHex(innerAddress); }
+
+
+    dev::h160 toHash() const {
+      return dev::h160(innerAddress, dev::FixedHash<20>::ConstructFromStringType::FromBinary);
+    }
+
+    Address operator=(const Address& address) {
+      return Address(address.innerAddress, false);
+    }
+
+    Address operator=(const dev::h160 &address) {
+      return Address(address.byteStr(), false);
+    }
 
     bool operator==(const Address& rAddress) const {
       return bool(innerAddress == rAddress.innerAddress);

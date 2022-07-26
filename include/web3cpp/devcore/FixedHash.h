@@ -116,6 +116,9 @@ public:
     /// @returns a constant byte vector_ref to the object's data.
     bytesConstRef ref() const { return bytesConstRef(m_data.data(), N); }
 
+    /// @returns a byte string
+    std::string byteStr() const { std::string ret; std::copy(m_data.begin(), m_data.end(), std::back_inserter(ret)); return ret; }
+
     /// @returns a mutable byte pointer to the object's data.
     byte* data() { return m_data.data(); }
 

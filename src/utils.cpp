@@ -43,6 +43,12 @@ std::string Utils::uint32ToBytes(const uint32_t &i) {
   return ret;
 }
 
+std::string Utils::uint8ToBytes(const uint8_t &i) {
+  std::string ret(1, 0x00);
+  ret[0] = i;
+  return ret;
+}
+
 uint256_t Utils::bytesToUint256(const std::string &bytes) {
   if (bytes.size() != 32) throw; // Invalid size.
   uint256_t ret;
@@ -113,3 +119,9 @@ std::string Utils::bytesToHex(std::string bytes) {
   return dev::toHex(bytes);
 }
 
+bool Utils::verifySignature(uint256_t v, uint256_t r, uint256_t s) {
+                                 // 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+    static const uint256_t s_max("115792089237316195423570985008687907852837564279074904382605163141518161494337");
+    static const uint256_t s_zero = 0;
+    return (v <= 1 && r > s_zero && s > s_zero && r < s_max && s < s_max);
+}

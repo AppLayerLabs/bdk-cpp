@@ -221,12 +221,12 @@ add_custom_target(gen-grpc ALL DEPENDS
 # Set project headers and sources
 set(SUBNETOOOR_HDRS
   src/subnet.h src/utils.h src/block.h src/grpcserver.h
-  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h
+  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h src/transaction.h src/secp256k1Wrapper.h
 )
 
 set(SUBNETOOOR_SRCS
   src/main.cpp src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp
-  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp
+  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp src/secp256k1Wrapper.cpp
   src/httpserver.cpp src/subnetRPC.cpp
 )
 
@@ -267,6 +267,6 @@ target_include_directories(subnetooord PRIVATE aleth)
 target_link_libraries(subnetooord aleth
   ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
   ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-  absl::flags
+  absl::flags Secp256k1
 )
 
