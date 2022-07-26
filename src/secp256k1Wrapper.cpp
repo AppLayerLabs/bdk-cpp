@@ -35,32 +35,3 @@ std::string Secp256k1::recover(std::string sig, std::string messageHash) {
   // return pubkey without the 0x04 header.
   return std::string(serializedPubkey.begin() + 1, serializedPubkey.end());
 }
-
-//
-//Public dev::recover(Signature const& _sig, h256 const& _message)
-//{
-//    int v = _sig[64];
-//    if (v > 3)
-//        return {};
-//
-//    auto* ctx = getCtx();
-//    secp256k1_ecdsa_recoverable_signature rawSig;
-//    if (!secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &rawSig, _sig.data(), v))
-//        return {};
-//
-//    secp256k1_pubkey rawPubkey;
-//    if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig, _message.data()))
-//        return {};
-//
-//    std::array<byte, 65> serializedPubkey;
-//    size_t serializedPubkeySize = serializedPubkey.size();
-//    secp256k1_ec_pubkey_serialize(
-//            ctx, serializedPubkey.data(), &serializedPubkeySize,
-//            &rawPubkey, SECP256K1_EC_UNCOMPRESSED
-//    );
-//    assert(serializedPubkeySize == serializedPubkey.size());
-//    // Expect single byte header of value 0x04 -- uncompressed public key.
-//    assert(serializedPubkey[0] == 0x04);
-//    // Create the Public skipping the header.
-//    return Public{&serializedPubkey[1], Public::ConstructFromPointer};
-//}

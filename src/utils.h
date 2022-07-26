@@ -94,12 +94,16 @@ class Address {
       return dev::h160(innerAddress, dev::FixedHash<20>::ConstructFromStringType::FromBinary);
     }
 
-    Address operator=(const Address& address) {
-      return Address(address.innerAddress, false);
+    void operator=(const std::string& address) {
+      this->innerAddress = address;
     }
 
-    Address operator=(const dev::h160 &address) {
-      return Address(address.byteStr(), false);
+    void operator=(const Address& address) {
+      this->innerAddress = address.innerAddress;
+    }
+
+    void operator=(const dev::h160 &address) {
+      this->innerAddress = address.byteStr();
     }
 
     bool operator==(const Address& rAddress) const {

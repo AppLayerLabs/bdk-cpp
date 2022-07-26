@@ -37,29 +37,33 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
       }
       this->_chainId = static_cast<uint64_t>(chainId);
     } else if ( v != 27 && v != 28 ) {
-      throw std::runtime_error("Transaction signature invalid");
+      throw std::runtime_error("Transaction signature invalid, v is not 27 or 28");
     }
 
     auto const recoveryId = uint8_t{v - (uint256_t(this->_chainId) * 2 + 35)};
     
-    if (Utils::verifySignature(recoveryId, r, s)) {
-      throw std::runtime_error("Transaction Signature invalid");;
+    if (!Utils::verifySignature(recoveryId, r, s)) {
+      throw std::runtime_error("Transaction Signature invalid, signature doesn't fit elliptic curve");;
     }
 
     // A signature: 65 bytes: r: [0, 32), s: [32, 64), v: 64.
     std::string sig = Utils::uint256ToBytes(r) + Utils::uint256ToBytes(s) + Utils::uint8ToBytes(recoveryId);
-    this->hasSig = true;
+    this->_hasSig = true;
     std::string messageHash = dev::sha3(this->rlpSerialize(false), false);
 
     auto pubKey = Secp256k1::recover(sig, messageHash);
-    this->_from = dev::sha3(pubKey, false).substr(12,32);
+    this->_from = dev::sha3(pubKey, false).substr(12);
+    this->_verified = true;
 
     if (rlp.itemCount() > 9) {
       throw std::runtime_error("too many fields in the transaction RLP");
     }
 
   } else {
+    // Simply read the information from the extra bytes.
+    // There is no need to redo the expensive secp256k1 calculation. and tx is also included in a block.
     std::string rlpBytes = bytes.substr(0,bytes.size() - 40);
+    std::string appendedBytes = bytes.substr(bytes.size() - 40, 40);
     dev::RLP rlp(bytes);
 
   }
