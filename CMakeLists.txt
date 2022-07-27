@@ -16,6 +16,7 @@ project(subnetooor VERSION 0.0.1 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_FLAGS "-O2")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # "ZLIB_USE_STATIC_LIBS" was added in 3.24
 set(LEVELDB_USE_STATIC_LIBS ON)
@@ -226,8 +227,8 @@ set(SUBNETOOOR_HDRS
 
 set(SUBNETOOOR_SRCS
   src/main.cpp src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp
-  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp src/secp256k1Wrapper.cpp
-  src/httpserver.cpp src/subnetRPC.cpp
+  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp
+  src/httpserver.cpp src/subnetRPC.cpp src/secp256k1Wrapper.cpp
 )
 
 #message(STATUS ${SUBNETOOOR_HDRS})

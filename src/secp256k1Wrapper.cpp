@@ -11,7 +11,7 @@ secp256k1_context const* getCtx()
     return s_ctx.get();
 }
 
-std::string Secp256k1::recover(std::string sig, std::string messageHash) {
+std::string Secp256k1::recover(std::string& sig, std::string& messageHash) {
   int v = sig[64];
   if (v > 3)
     return "";
@@ -34,4 +34,24 @@ std::string Secp256k1::recover(std::string sig, std::string messageHash) {
   assert(serializedPubkey[0] == "0x04");
   // return pubkey without the 0x04 header.
   return std::string(serializedPubkey.begin() + 1, serializedPubkey.end());
+}
+
+void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const uint8_t &v, std::string &signature) {
+      // A signature: 65 bytes: r: [0, 32), s: [32, 64), v: 64.
+  signature = std::string(65, 0x00);
+
+  std::string tmpR;
+  boost::multiprecision::export_bits(r, std::back_inserter(tmpR), 8);
+  for (uint16_t i = 0; i < tmpR.size(); ++i) {
+    signature[31-i] = tmpR[31-i];  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  }
+
+  std::string tmpS;
+  boost::multiprecision::export_bits(s, std::back_inserter(tmpS), 8);
+  for (uint16_t i = 0; i < tmpS.size(); ++i) {
+    signature[63-i] = tmpS[31-i];  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  }
+
+  signature[64] = v;
+  return;
 }

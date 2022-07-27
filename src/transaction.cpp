@@ -1,6 +1,8 @@
 #include "transaction.h"
 
 
+
+// TODO: I believe there is multiple unecessary copies with
 // It might repeat the same code inside the conditions, but I believe it is better oganized this way.
 Tx::Base::Base(std::string &bytes, bool fromDB) {
   if (!fromDB) {
@@ -10,15 +12,16 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
       throw std::runtime_error("transaction RLP is not a list");
     }
     
-    this->_nonce = rlp[0].toInt<uint256_t>();
-    this->_gasPrice = rlp[1].toInt<uint256_t>();
-    this->_gas = rlp[2].toInt<uint256_t>();
+    rlp[0].toIntRef<uint256_t>(this->_nonce);
+    rlp[1].toIntRef<uint256_t>(this->_gasPrice);
+    rlp[2].toIntRef<uint256_t>(this->_gas);
     if (!rlp[3].isData()) {
       throw std::runtime_error("recepient RLP must be a byte array");
     }
 
-    this->_to = rlp[3].toHash<dev::h160>(dev::RLP::VeryStrict);
-    this->_value = rlp[4].toInt<uint256_t>();
+
+    this->_to = rlp[3].toInt<uint160_t>();
+    rlp[4].toIntRef<uint256_t>(this->_value);
 
 
     if (!rlp[5].isData()) {
@@ -26,33 +29,36 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
     }
 
     this->_data = rlp[5].toString();
-    uint256_t const v = rlp[6].toInt<uint256_t>();
-    uint256_t const r = rlp[7].toInt<uint256_t>();
-    uint256_t const s = rlp[8].toInt<uint256_t>();
+    rlp[6].toIntRef<uint256_t>(this->_v);
+    rlp[7].toIntRef<uint256_t>(this->_r);
+    rlp[8].toIntRef<uint256_t>(this->_s);
 
-    if (v > 36) {
-      auto const chainId = (v - 35) / 2;
-      if (chainId > std::numeric_limits<uint64_t>::max()) {
+    if (_v > 36) {
+      this->_chainId = static_cast<uint64_t>((this->_v - 35) / 2);
+      if (this->_chainId > std::numeric_limits<uint64_t>::max()) {
         throw std::runtime_error("transaction chainId too high.");
       }
-      this->_chainId = static_cast<uint64_t>(chainId);
-    } else if ( v != 27 && v != 28 ) {
+    } else if (this->_v != 27 && this->_v != 28 ) {
       throw std::runtime_error("Transaction signature invalid, v is not 27 or 28");
     }
 
-    auto const recoveryId = uint8_t{v - (uint256_t(this->_chainId) * 2 + 35)};
+    uint8_t recoveryId = uint8_t{this->_v - (uint256_t(this->_chainId) * 2 + 35)};
     
-    if (!Utils::verifySignature(recoveryId, r, s)) {
+    if (!Utils::verifySignature(recoveryId, this->_r, this->_s)) {
       throw std::runtime_error("Transaction Signature invalid, signature doesn't fit elliptic curve");;
-    }
+    } 
 
-    // A signature: 65 bytes: r: [0, 32), s: [32, 64), v: 64.
-    std::string sig = Utils::uint256ToBytes(r) + Utils::uint256ToBytes(s) + Utils::uint8ToBytes(recoveryId);
+    std::string sig;
+    Secp256k1::appendSignature(this->_r, this->_s, recoveryId, sig);
     this->_hasSig = true;
-    std::string messageHash = dev::sha3(this->rlpSerialize(false), false);
+    std::string messageHash;
+    Utils::sha3(this->rlpSerialize(false), messageHash);
 
     auto pubKey = Secp256k1::recover(sig, messageHash);
-    this->_from = dev::sha3(pubKey, false).substr(12);
+    // Address = pubkey[12...32]
+    std::string pubKeyHash;
+    Utils::sha3(pubKey, pubKeyHash);
+    this->_from = pubKeyHash.substr(12);
     this->_verified = true;
 
     if (rlp.itemCount() > 9) {
@@ -84,10 +90,7 @@ std::string Tx::Base::rlpSerialize(bool includeSig) {
     rlpStrm << this->_chainId << 0 << 0;
   }
 
-  auto rlpBytes = rlpStrm.out();
-  return [&]() -> std::string {
-    std::string ret;
-    std::copy(rlpBytes.begin(), rlpBytes.end(), std::back_inserter(ret));
-    return ret;
-  }();
+  std::string ret;
+  rlpStrm.exportBytesString(ret);
+  return ret;
 }

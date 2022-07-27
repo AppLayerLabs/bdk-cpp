@@ -10,20 +10,20 @@ namespace Tx {
     protected:
       // Inside RLP, TxSkeleton:
   	  Address _to;
-  	  uint256_t _value;
-  	  std::string _data;
-  	  uint64_t _chainId;
-  	  uint256_t _nonce;
-  	  uint256_t _gas;
-  	  uint256_t _gasPrice;
+  	  uint256_t _value = 0;
+  	  std::string _data = "";
+  	  uint64_t _chainId = 0;
+  	  uint256_t _nonce = 0;
+  	  uint256_t _gas = 0;
+  	  uint256_t _gasPrice = 0;
 
       // Secp256k1 in RLP
-      uint8_t _v;
-      uint256_t _r;
-      uint256_t _s;
+      uint256_t _v = 0;
+      uint256_t _r = 0;
+      uint256_t _s = 0;
 
       // Outside RLP
-      uint32_t _blockIndex;          // RLP + 4 BYTES Where on the block the TX is located.
+      uint32_t _blockIndex = 0;          // RLP + 4 BYTES Where on the block the TX is located.
       Address _from;                 // RLP + 4 BYTES + 32 BYTES
       bool _callsContract = false;   // RLP + 4 BYTES + 32 BYTES + 1 BYTE
       bool _inBlock = false;         // RLP + 4 BYTES + 32 BYTES + 1 BYTE + 1 BYTE
@@ -36,7 +36,7 @@ namespace Tx {
       // Directly from RLP (Ethereum rawTransaction), which requires to run secp256k1 to check validity and derive _from. and it is not included in a block
       // From database (RLP bytes + Outside RLP section), input from database is trusted as data will be only saved there if included in a block and is already checked.
       Base(std::string &bytes, bool fromDB);
-     
+    
 
       // You can also build your own Tx by inputting the values within the RLP Skeleton
       Base(Address &from, Address &to, uint256_t &value, std::string &data, uint64_t &chainId, uint256_t &nonce, uint256_t &gas, uint256_t &gasPrice) :
@@ -51,7 +51,7 @@ namespace Tx {
       const uint256_t& nonce() { return _nonce; };
       const uint256_t& gas() { return _gas; };
       const uint256_t& gasPrice() { return _gasPrice; };
-      const uint8_t& v() { return _v; };
+      const uint256_t& v() { return _v; };
       const uint256_t& r() { return _r; };
       const uint256_t& s() { return _s; };
       const uint32_t& blockIndex() { return _blockIndex; };

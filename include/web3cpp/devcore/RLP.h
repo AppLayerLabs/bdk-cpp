@@ -273,6 +273,34 @@ public:
         return fromBigEndian<_T>(p);
     }
 
+    /// Converts to int of type given, returns on reference. uses boost::multiprecision.
+    template <class _T = unsigned> 
+    void toIntRef(_T& _out, int _flags = Strict) const
+    {
+        requireGood();
+        if ((!isInt() && !(_flags & AllowNonCanon)) || isList() || isNull())
+        {
+            if (_flags & ThrowOnFail)
+                BOOST_THROW_EXCEPTION(BadCast());
+            else
+                _out = 0;
+                return;
+        }
+
+        auto p = payload();
+        if (p.size() > intTraits<_T>::maxSize && (_flags & FailIfTooBig))
+        {
+            if (_flags & ThrowOnFail)
+                BOOST_THROW_EXCEPTION(BadCast());
+            else
+                _out = 0;
+                return;
+        }
+
+        fromBigEndianRef(p, _out);
+        return;
+    }
+
     int64_t toPositiveInt64(int _flags = Strict) const
     {
         int64_t i = toInt<int64_t>(_flags);
@@ -416,6 +444,9 @@ public:
 
     /// Read the byte stream.
     bytes const& out() const { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); return m_out; }
+
+    /// export to a string reference.
+    void const exportBytesString(std::string& _out) const { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); std::copy(m_out.begin(), m_out.end(), std::back_inserter(_out)); }
 
     /// Invalidate the object and steal the output byte stream.
     bytes&& invalidate() { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); return std::move(m_out); }

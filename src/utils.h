@@ -9,9 +9,11 @@
 #include <web3cpp/devcore/CommonData.h>
 #include <web3cpp/devcore/FixedHash.h>
 #include <nlohmann/json.hpp>
+#include <ethash/keccak.hpp>
 
 using json = nlohmann::ordered_json;
-using uint256_t = boost::multiprecision::uint256_t;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>   uint256_t;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>   uint160_t;
 using bytes = std::vector<uint8_t>;
 
 template <typename ElemT>
@@ -40,9 +42,11 @@ namespace Utils {
   void logToFile(std::string str);
   void LogPrint(std::string prefix, std::string function, std::string data);
   std::string uint256ToBytes(const uint256_t &i);
+  std::string uint160ToBytes(const uint160_t &i);
   std::string uint64ToBytes(const uint64_t &i);
   std::string uint32ToBytes(const uint32_t &i);
   std::string uint8ToBytes(const uint8_t &i);
+  void sha3(const std::string &input, std::string &output);
   uint256_t bytesToUint256(const std::string &bytes);
   uint64_t bytesToUint64(const std::string &bytes);
   uint32_t bytesToUint32(const std::string &bytes);
@@ -65,13 +69,13 @@ namespace Utils {
   // Hex <-> Bytes (using string containers)
   std::string hexToBytes(std::string hex);
   std::string bytesToHex(std::string bytes);
-  bool verifySignature(uint256_t v, uint256_t r, uint256_t s);
+  bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
 }
 
 class Address {
   private:
     // Stored in bytes.
-    std::string innerAddress;
+    std::string innerAddress = "";
   public:
     // Empty Address;
     Address() {};
@@ -104,6 +108,10 @@ class Address {
 
     void operator=(const dev::h160 &address) {
       this->innerAddress = address.byteStr();
+    }
+
+    void operator=(const uint160_t &address) {
+      this->innerAddress = Utils::uint160ToBytes(address);
     }
 
     bool operator==(const Address& rAddress) const {
