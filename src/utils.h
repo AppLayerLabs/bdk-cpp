@@ -10,6 +10,7 @@
 #include <web3cpp/devcore/FixedHash.h>
 #include <nlohmann/json.hpp>
 #include <ethash/keccak.hpp>
+#include "keccak.hpp"
 
 using json = nlohmann::ordered_json;
 typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>   uint256_t;

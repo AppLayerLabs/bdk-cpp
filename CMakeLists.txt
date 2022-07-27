@@ -222,7 +222,7 @@ add_custom_target(gen-grpc ALL DEPENDS
 # Set project headers and sources
 set(SUBNETOOOR_HDRS
   src/subnet.h src/utils.h src/block.h src/grpcserver.h
-  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h src/transaction.h src/secp256k1Wrapper.h
+  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h src/transaction.h src/secp256k1Wrapper.h src/keccak.hpp
 )
 
 set(SUBNETOOOR_SRCS

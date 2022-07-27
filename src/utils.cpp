@@ -137,9 +137,6 @@ bool Utils::verifySignature(uint8_t const &v, uint256_t const &r, uint256_t cons
 }
 
 void Utils::sha3(const std::string &input, std::string &output) {
-  ethash::hash256 h = ethash::keccak256(reinterpret_cast<const unsigned char*>(input.data()), input.size());
-  output = "";
-  for (auto i = 0; i < 32; ++i) {
-    output += h.bytes[i];
-  }
+  output.resize(32);
+  keccakUint8(reinterpret_cast<unsigned char*>(output.data()), 256, reinterpret_cast<const unsigned char*>(input.data()), input.size());
 }
