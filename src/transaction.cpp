@@ -3,34 +3,42 @@
 // TODO: I believe there is multiple unecessary copies with
 // It might repeat the same code inside the conditions, but I believe it is better organized this way.
 Tx::Base::Base(std::string &bytes, bool fromDB) {
-  if (!fromDB) {
-    dev::RLP rlp(bytes);
-    if (!rlp.isList()) {
-      throw std::runtime_error("transaction RLP is not a list");
-    }
-    rlp[0].toIntRef<uint256_t>(this->_nonce);
-    rlp[1].toIntRef<uint256_t>(this->_gasPrice);
-    rlp[2].toIntRef<uint256_t>(this->_gas);
-    if (!rlp[3].isData()) {
-      throw std::runtime_error("recepient RLP must be a byte array");
-    }
-    this->_to = rlp[3].toInt<uint160_t>();
-    rlp[4].toIntRef<uint256_t>(this->_value);
-    if (!rlp[5].isData()) {
-      throw std::runtime_error("transaction data RLP must be a byte array");
-    }
-    this->_data = rlp[5].toString();
-    rlp[6].toIntRef<uint256_t>(this->_v);
-    rlp[7].toIntRef<uint256_t>(this->_r);
-    rlp[8].toIntRef<uint256_t>(this->_s);
-    if (_v > 36) {
-      this->_chainId = static_cast<uint64_t>((this->_v - 35) / 2);
-      if (this->_chainId > std::numeric_limits<uint64_t>::max()) {
+  // Parse RLP
+  std::string appendedBytes;
+  if (fromDB) {
+    appendedBytes = bytes.substr(bytes.size() - 26);
+    bytes = bytes.substr(0, bytes.size() - 26);
+  }
+
+  dev::RLP rlp(bytes);
+  if (!rlp.isList()) {
+    throw std::runtime_error("transaction RLP is not a list");
+  }
+  rlp[0].toIntRef<uint256_t>(this->_nonce);
+  rlp[1].toIntRef<uint256_t>(this->_gasPrice);
+  rlp[2].toIntRef<uint256_t>(this->_gas);
+  if (!rlp[3].isData()) {
+    throw std::runtime_error("recepient RLP must be a byte array");
+  }
+  this->_to = rlp[3].toInt<uint160_t>();
+  rlp[4].toIntRef<uint256_t>(this->_value);
+  if (!rlp[5].isData()) {
+    throw std::runtime_error("transaction data RLP must be a byte array");
+  }
+  this->_data = rlp[5].toString();
+  rlp[6].toIntRef<uint256_t>(this->_v);
+  rlp[7].toIntRef<uint256_t>(this->_r);
+  rlp[8].toIntRef<uint256_t>(this->_s);
+  if (_v > 36) {
+    this->_chainId = static_cast<uint64_t>((this->_v - 35) / 2);
+    if (this->_chainId > std::numeric_limits<uint64_t>::max()) {
         throw std::runtime_error("transaction chainId too high.");
-      }
-    } else if (this->_v != 27 && this->_v != 28 ) {
-      throw std::runtime_error("Transaction signature invalid, v is not 27 or 28");
     }
+  } else if (this->_v != 27 && this->_v != 28 ) {
+    throw std::runtime_error("Transaction signature invalid, v is not 27 or 28");
+  }
+  // Not from DB? Has to have it's signature verified.
+  if (!fromDB) {
     uint8_t recoveryId = uint8_t{this->_v - (uint256_t(this->_chainId) * 2 + 35)};
     if (!Utils::verifySignature(recoveryId, this->_r, this->_s)) {
       throw std::runtime_error("Transaction Signature invalid, signature doesn't fit elliptic curve");;
@@ -45,16 +53,20 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
     Utils::sha3(pubKey, pubKeyHash);
     this->_from = pubKeyHash.substr(12);  // Address = pubkey[12...32]
     this->_verified = true;
-    if (rlp.itemCount() > 9) {
+    if (rlp.itemCount() > 9) { 
       throw std::runtime_error("too many fields in the transaction RLP");
     }
+    return;
   } else {
     // Simply read the information from the extra bytes.
-    // There is no need to redo the expensive secp256k1 calculation,
-    // since the tx is already included in a block, thus already valid and verified.
-    std::string rlpBytes = bytes.substr(0,bytes.size() - 40);
-    std::string appendedBytes = bytes.substr(bytes.size() - 40, 40);
-    dev::RLP rlp(bytes);
+    // There is no need to redo the expensive secp256k1 calculation. and tx is also included in a block.
+    // FROM DB == TX IN BLOCK (maybe dangerous?)
+    this->_blockIndex = Utils::bytesToUint32(appendedBytes.substr(0, 4));
+    this->_from = appendedBytes.substr(4, 20);
+    this->_callsContract = bool(char(appendedBytes[24]));
+    this->_hasSig = true;
+    this->_inBlock = true;
+    this->_verified = true;
   }
 }
 
@@ -67,7 +79,7 @@ std::string Tx::Base::rlpSerialize(bool includeSig) {
   rlpStrm << this->_nonce << this->_gasPrice << this->_gas <<
     this->_to.toHash() << this->_value << this->_data;
   if (includeSig) {
-    rlpStrm << (this->_v + (this->_chainId * 2 + 35)) << this->_r << this->_s;
+    rlpStrm << (this->recoverId() + (this->_chainId * 2 + 35)) << this->_r << this->_s;
   } else {
     rlpStrm << this->_chainId << 0 << 0;
   }
@@ -76,3 +88,11 @@ std::string Tx::Base::rlpSerialize(bool includeSig) {
   return ret;
 }
 
+std::string Tx::Base::serialize() {
+  if (!this->_hasSig && !this->_verified) {
+    throw std::runtime_error("Transaction has no signature/not verified to serialize");
+  }
+  std::string ret = this->rlpSerialize(true);
+  ret += Utils::uint32ToBytes(this->_blockIndex) + _from.get() + char(this->_callsContract);
+  return ret;
+}

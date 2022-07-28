@@ -24,13 +24,13 @@ namespace Tx {
 
       // Outside RLP
       uint32_t _blockIndex = 0;          // RLP + 4 BYTES Where on the block the TX is located.
-      Address _from;                 // RLP + 4 BYTES + 32 BYTES
-      bool _callsContract = false;   // RLP + 4 BYTES + 32 BYTES + 1 BYTE
-      bool _inBlock = false;         // RLP + 4 BYTES + 32 BYTES + 1 BYTE + 1 BYTE
-      bool _hasSig = false;          // RLP + 4 BYTES + 32 BYTES + 1 BYTE + 1 BYTE + 1 BYTE 
-      bool _verified = false;        // RLP + 4 BYTES + 32 BYTES + 1 BYTE + 1 BYTE + 1 BYTE + 1 BYTE
-                                     // TOTAL: 40 Bytes.
-
+      Address _from;                 // RLP + 4 BYTES + 20 BYTES (byte string)
+      bool _callsContract = false;   // RLP + 4 BYTES + 20 BYTES + 1 BYTE
+                                     // TOTAL: 25 Bytes.
+      // Not stored in disk (only used for Tx Creation)
+      bool _hasSig = false;
+      bool _inBlock = false;
+      bool _verified = false;
     public:
       // There are two ways transactions can be parsed fully from a byte string:
       // Directly from RLP (Ethereum rawTransaction), which requires to run secp256k1 to check validity and derive _from. and it is not included in a block
@@ -54,6 +54,7 @@ namespace Tx {
       const uint256_t& v() { return _v; };
       const uint256_t& r() { return _r; };
       const uint256_t& s() { return _s; };
+      const uint256_t recoverId() { return uint256_t(uint8_t(this->_v - (uint256_t(this->_chainId) * 2 + 35))); };
       const uint32_t& blockIndex() { return _blockIndex; };
       const Address& from() { return _from; };
       const bool& callsContract() { return _callsContract; };
@@ -61,6 +62,7 @@ namespace Tx {
       const bool& hasSig() { return _hasSig; };
       const bool& verified() { return _verified; };
 
+      const std::string hash() { std::string ret; Utils::sha3(this->rlpSerialize(true), ret); return ret; };
       std::string rlpSerialize(bool includeSig);
       std::string serialize();
 

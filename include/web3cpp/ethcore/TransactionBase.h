@@ -107,6 +107,10 @@ public:
     /// @returns the receiving address of the message-call transaction (undefined for contract-creation transactions).
     Address receiveAddress() const { return m_receiveAddress; }
 
+    /// @returns chainId.
+
+    uint64_t chainId() const { return m_chainId.get(); }
+
     /// Synonym for receiveAddress().
     Address to() const { return m_receiveAddress; }
 
