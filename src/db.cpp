@@ -56,11 +56,11 @@ bool DBService::close() {
 bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
   batchLock.lock();
   for (auto &entry : request.puts) {
-    auto status = this->db->Put(leveldb::WriteOptions(), entry.key, entry.value);
+    auto status = this->db->Put(leveldb::WriteOptions(), prefix+entry.key, entry.value);
     if (!status.ok()) return false;
   }
   for (std::string &key : request.dels) {
-    auto status = this->db->Delete(leveldb::WriteOptions(), key);
+    auto status = this->db->Delete(leveldb::WriteOptions(), prefix+key);
     if (status.ok()) return false;
   }
   batchLock.unlock();
