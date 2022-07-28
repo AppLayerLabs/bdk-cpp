@@ -4,8 +4,7 @@ ChainHead::ChainHead(std::shared_ptr<DBService> &dbService) : dbServer(dbService
   this->loadFromDB();
 };
 
-void ChainHead::push_back(Block& block) {
-  this->internalChainHeadLock.lock();
+void ChainHead::_push_back(Block& block) {
   this->internalChainHead.push_back(block);
 
   auto latestBlock = std::make_shared<Block>(internalChainHead.back());
@@ -18,12 +17,10 @@ void ChainHead::push_back(Block& block) {
     this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
 
-  this->internalChainHeadLock.unlock();
   return;
 }
 
-void ChainHead::push_front(Block& block) {
-  this->internalChainHeadLock.lock();
+void ChainHead::_push_front(Block& block) {
   this->internalChainHead.push_front(block);
 
   auto latestBlock = std::make_shared<Block>(internalChainHead.front());
@@ -36,8 +33,19 @@ void ChainHead::push_front(Block& block) {
     this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
 
-  this->internalChainHeadLock.unlock();
   return;
+}
+
+void ChainHead::push_front(Block& block) {
+  this->internalChainHeadLock.lock();
+  this->_push_front(block);
+  this->internalChainHeadLock.unlock();
+}
+
+void ChainHead::push_back(Block& block) {
+  this->internalChainHeadLock.lock();
+  this->_push_back(block);
+  this->internalChainHeadLock.unlock();
 }
 
 void ChainHead::pop_back() {
@@ -228,25 +236,10 @@ void ChainHead::loadFromDB() {
     this->lookupBlockHeightByHash[blockMap.value] = Utils::bytesToUint64(blockMap.key);
   }
 
-  // If chain is too short to load from DB, push back at least the latest block.
-  if (depth < 1001) {
-    this->internalChainHead.push_back(latestBlock);
-    this->internalChainHeadLock.unlock();
-    Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: done");
-    return;
-  }
-
-  Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: parsing blocks");
-  depth = depth - 1000;
-  std::vector<std::string> blocksToRead;
-  for (uint64_t i = 0; i <= 1000; ++i) {
-    blocksToRead.emplace_back(this->lookupBlockHashByHeight[depth + i]);
-  }
-  std::vector<DBEntry> blocks = dbServer->readBatch(blocksToRead, DBPrefix::blocks);
-  this->internalChainHeadLock.lock();
-  for (auto &block : blocks) {
-    Block newBlock(block.value);
-    this->push_back(newBlock);
+  // Append up to 1000 blocks from history.
+  for (uint64_t i = 0; i <= 1000 && i <= depth; ++i) {
+    Block block(dbServer->get(this->lookupBlockHashByHeight[depth-i], DBPrefix::blocks));
+    this->internalChainHead.push_front(block);
   }
 
   Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: done");

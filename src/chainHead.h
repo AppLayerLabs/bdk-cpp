@@ -19,9 +19,14 @@ class ChainHead {
     std::mutex internalChainHeadLock;
     bool hasBlock(std::string &blockHash);
     bool hasBlock(uint64_t &blockHeight);
+    // Only access these functions if you are absolute sure that internalChainHeadLock is locked.
+    void _push_back(Block& block);
+    void _push_front(Block& block);
+
 
   public:
     ChainHead(std::shared_ptr<DBService> &_dbService);
+    // Mutex locked.
     void push_back(Block& block);
     void push_front(Block& block);
     void pop_back();
