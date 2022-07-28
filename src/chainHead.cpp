@@ -239,7 +239,7 @@ void ChainHead::loadFromDB() {
   // Append up to 1000 blocks from history.
   for (uint64_t i = 0; i <= 1000 && i <= depth; ++i) {
     Block block(dbServer->get(this->lookupBlockHashByHeight[depth-i], DBPrefix::blocks));
-    this->internalChainHead.push_front(block);
+    this->internalChainHead._push_front(block);
   }
 
   Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: done");
