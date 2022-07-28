@@ -11,12 +11,6 @@ void Utils::logToFile(std::string str) {
   log_lock.unlock();
 }
 
-void Utils::sha3(const std::string &input, std::string &output) {
-  ethash::hash256 h = ethash::keccak256(reinterpret_cast<const unsigned char*>(input.data()), input.size());
-  output = "";
-  for (auto i = 0; i < 32; ++i) output += h.bytes[i];
-}
-
 std::string Utils::uint256ToBytes(const uint256_t &i) {
   std::string ret(32, 0x00);
   std::string tmp;
