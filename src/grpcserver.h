@@ -76,10 +76,7 @@ class VMServiceImplementation final :
       ServerContext* context,
       const google::protobuf::Empty* request,
       google::protobuf::Empty* reply
-    ) override {
-      Utils::logToFile("Shutdown called!!");
-      return Status::OK;
-    }
+    ) override;
 
     Status CreateHandlers(
       ServerContext* context,

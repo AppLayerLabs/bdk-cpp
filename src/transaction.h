@@ -65,6 +65,7 @@ namespace Tx {
       const std::string hash() { std::string ret; Utils::sha3(this->rlpSerialize(true), ret); return ret; };
       std::string rlpSerialize(bool includeSig);
       std::string serialize();
+      std::string hash();
 
   };
 }

@@ -35,12 +35,12 @@ void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const ui
   std::string tmpR;
   boost::multiprecision::export_bits(r, std::back_inserter(tmpR), 8);
   for (uint16_t i = 0; i < tmpR.size(); ++i) {
-    signature[31-i] = tmpR[31-i];  // Replace bytes from tmp to ret to make it 32 bytes in size.
+    signature[31-i] = tmpR[tmpR.size()-i-1];  // Replace bytes from tmp to ret to make it 32 bytes in size.
   }
   std::string tmpS;
   boost::multiprecision::export_bits(s, std::back_inserter(tmpS), 8);
   for (uint16_t i = 0; i < tmpS.size(); ++i) {
-    signature[63-i] = tmpS[31-i];  // Replace bytes from tmp to ret to make it 32 bytes in size.
+    signature[63-i] = tmpS[tmpS.size()-i-1];  // Replace bytes from tmp to ret to make it 32 bytes in size.
   }
   signature[64] = v;
   return;

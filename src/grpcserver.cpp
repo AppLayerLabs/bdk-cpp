@@ -70,3 +70,17 @@ Status VMServiceImplementation::Version(
   reply->set_version("0.0.1");
   return Status::OK;
 }
+
+Status VMServiceImplementation::Shutdown(
+  ServerContext* context,
+  const google::protobuf::Empty* request,
+  google::protobuf::Empty* reply
+) {
+  Utils::logToFile("Shutdown called!!");
+  subnet.stop();
+  std::thread t(&Subnet::shutdownServer, &subnet);
+  // Detach thread so we can return this function before gRPC server closes.
+  t.detach();
+  return Status::OK;
+}
+
