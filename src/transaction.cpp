@@ -94,3 +94,19 @@ std::string Tx::Base::rlpSerialize(bool includeSig) {
   rlpStrm.exportBytesString(ret);
   return ret;
 }
+
+std::string Tx::Base::hash() {
+  std::string rlpBytes = this->rlpSerialize(this->_hasSig);
+  std::string ret;
+  Utils::sha3(rlpBytes, ret);
+  return ret;
+}
+
+std::string Tx::Base::serialize() {
+  if (!this->_hasSig && !this->_verified) {
+    throw std::runtime_error("Transaction has no signature/not verified to serialize");
+  }
+  std::string ret = this->rlpSerialize(true);
+  ret += Utils::uint32ToBytes(this->_blockIndex) + _from.get() + char(this->_callsContract) + char(this->_inBlock) + char(this->_hasSig) + char(this->_verified);
+  return ret;
+}

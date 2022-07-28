@@ -63,6 +63,7 @@ namespace Tx {
 
       std::string rlpSerialize(bool includeSig);
       std::string serialize();
+      std::string hash();
 
   };
 }
