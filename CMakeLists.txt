@@ -16,6 +16,7 @@ project(subnetooor VERSION 0.0.1 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_FLAGS "-O2")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # "ZLIB_USE_STATIC_LIBS" was added in 3.24
 set(LEVELDB_USE_STATIC_LIBS ON)
@@ -221,13 +222,13 @@ add_custom_target(gen-grpc ALL DEPENDS
 # Set project headers and sources
 set(SUBNETOOOR_HDRS
   src/subnet.h src/utils.h src/block.h src/grpcserver.h
-  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h
+  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h src/transaction.h src/secp256k1Wrapper.h src/keccak.hpp
 )
 
 set(SUBNETOOOR_SRCS
   src/main.cpp src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp
-  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp
-  src/httpserver.cpp src/subnetRPC.cpp
+  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp
+  src/httpserver.cpp src/subnetRPC.cpp src/secp256k1Wrapper.cpp
 )
 
 #message(STATUS ${SUBNETOOOR_HDRS})
@@ -267,6 +268,6 @@ target_include_directories(subnetooord PRIVATE aleth)
 target_link_libraries(subnetooord aleth
   ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
   ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-  absl::flags
+  absl::flags Secp256k1
 )
 

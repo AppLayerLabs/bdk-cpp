@@ -7,10 +7,14 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/lexical_cast.hpp>
 #include <web3cpp/devcore/CommonData.h>
+#include <web3cpp/devcore/FixedHash.h>
 #include <nlohmann/json.hpp>
+#include <ethash/keccak.hpp>
+#include "keccak.hpp"
 
 using json = nlohmann::ordered_json;
-using uint256_t = boost::multiprecision::uint256_t;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>   uint256_t;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>   uint160_t;
 using bytes = std::vector<uint8_t>;
 
 template <typename ElemT>
@@ -39,8 +43,11 @@ namespace Utils {
   void logToFile(std::string str);
   void LogPrint(std::string prefix, std::string function, std::string data);
   std::string uint256ToBytes(const uint256_t &i);
+  std::string uint160ToBytes(const uint160_t &i);
   std::string uint64ToBytes(const uint64_t &i);
   std::string uint32ToBytes(const uint32_t &i);
+  std::string uint8ToBytes(const uint8_t &i);
+  void sha3(const std::string &input, std::string &output);
   uint256_t bytesToUint256(const std::string &bytes);
   uint64_t bytesToUint64(const std::string &bytes);
   uint32_t bytesToUint32(const std::string &bytes);
@@ -63,13 +70,50 @@ namespace Utils {
   // Hex <-> Bytes (using string containers)
   std::string hexToBytes(std::string hex);
   std::string bytesToHex(std::string bytes);
+  bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
 }
 
 class Address {
+  private:
+    // Stored in bytes.
+    std::string innerAddress = "";
   public:
-    const std::string innerAddress;
-    // Lambda so we can patch the hex before initializing innerAddress
-    Address(std::string address) : innerAddress(([&]() -> std::string { Utils::patchHex(address); return address; })()) {}
+    // Empty Address;
+    Address() {};
+
+    // RPC Requests address are in hex format
+    Address(std::string address, bool fromRPC = true) {
+      if (fromRPC) {
+        Utils::patchHex(address);
+        innerAddress = Utils::hexToBytes(innerAddress);
+      } else {
+        innerAddress = address;
+      }
+    }
+
+    std::string get() const { return innerAddress; };
+    std::string hex() const { return Utils::bytesToHex(innerAddress); }
+
+
+    dev::h160 toHash() const {
+      return dev::h160(innerAddress, dev::FixedHash<20>::ConstructFromStringType::FromBinary);
+    }
+
+    void operator=(const std::string& address) {
+      this->innerAddress = address;
+    }
+
+    void operator=(const Address& address) {
+      this->innerAddress = address.innerAddress;
+    }
+
+    void operator=(const dev::h160 &address) {
+      this->innerAddress = address.byteStr();
+    }
+
+    void operator=(const uint160_t &address) {
+      this->innerAddress = Utils::uint160ToBytes(address);
+    }
 
     bool operator==(const Address& rAddress) const {
       return bool(innerAddress == rAddress.innerAddress);
@@ -80,7 +124,7 @@ class Address {
 template <>
 struct std::hash<Address> {
   size_t operator() (const Address& address) const {
-    return std::hash<std::string>()(address.innerAddress);
+    return std::hash<std::string>()(address.get());
   }
 };
 #endif // UTILS_H

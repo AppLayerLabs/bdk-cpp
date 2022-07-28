@@ -7,6 +7,19 @@
 
 #include <ethash/keccak.hpp>
 
+
+std::string uint64ToBytes(const uint64_t &i) {
+  std::string ret(8, 0x00);
+  ret[0] = i >> 56;
+  ret[1] = i >> 48;
+  ret[2] = i >> 40;
+  ret[3] = i >> 32;
+  ret[4] = i >> 24;
+  ret[5] = i >> 16;
+  ret[6] = i >> 8;
+  ret[7] = i;
+  return ret;
+}
 namespace dev
 {
 h256 const EmptySHA3 = sha3(bytesConstRef());

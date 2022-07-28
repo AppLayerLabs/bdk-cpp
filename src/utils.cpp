@@ -21,6 +21,16 @@ std::string Utils::uint256ToBytes(const uint256_t &i) {
   return ret;
 }
 
+std::string Utils::uint160ToBytes(const uint160_t &i) {
+  std::string ret(20, 0x00);
+  std::string tmp;
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  for (uint16_t i = 0; i < tmp.size(); ++i) {
+    ret[19-i] = tmp[19-i];  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  }
+  return ret;
+}
+
 std::string Utils::uint64ToBytes(const uint64_t &i) {
   std::string ret(8, 0x00);
   ret[0] = i >> 56;
@@ -40,6 +50,12 @@ std::string Utils::uint32ToBytes(const uint32_t &i) {
   ret[1] = i >> 16;
   ret[2] = i >> 8;
   ret[3] = i;
+  return ret;
+}
+
+std::string Utils::uint8ToBytes(const uint8_t &i) {
+  std::string ret(1, 0x00);
+  ret[0] = i;
   return ret;
 }
 
@@ -113,3 +129,14 @@ std::string Utils::bytesToHex(std::string bytes) {
   return dev::toHex(bytes);
 }
 
+bool Utils::verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s) {
+                                 // 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+    static const uint256_t s_max("115792089237316195423570985008687907852837564279074904382605163141518161494337");
+    static const uint256_t s_zero = 0;
+    return (v <= 1 && r > s_zero && s > s_zero && r < s_max && s < s_max);
+}
+
+void Utils::sha3(const std::string &input, std::string &output) {
+  output.resize(32);
+  keccakUint8(reinterpret_cast<unsigned char*>(output.data()), 256, reinterpret_cast<const unsigned char*>(input.data()), input.size());
+}

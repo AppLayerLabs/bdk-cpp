@@ -103,17 +103,17 @@ PublicCompressed dev::toPublicCompressed(Secret const& _secret)
     return serializedPubkey;
 }
 
-Address dev::toAddress(Public const& _public)
+dev::Address dev::toAddress(Public const& _public)
 {
     return right160(sha3(_public.ref()));
 }
 
-Address dev::toAddress(Secret const& _secret)
+dev::Address dev::toAddress(Secret const& _secret)
 {
     return toAddress(toPublic(_secret));
 }
 
-Address dev::toAddress(Address const& _from, u256 const& _nonce)
+dev::Address dev::toAddress(Address const& _from, u256 const& _nonce)
 {
     return right160(sha3(rlpList(_from, _nonce)));
 }
