@@ -11,7 +11,7 @@ bool State::loadState(std::shared_ptr<DBService> &dbServer) {
   for (auto account : accounts) {
     Address address(account.key, false);
     this->nativeAccount[address].balance = Utils::bytesToUint256(account.value.substr(0,32));
-    this->nativeAccount[address].nonce = Utils::bytesToUint32(account.value.substr(32,account.value.size()));
+    this->nativeAccount[address].nonce = Utils::bytesToUint32(account.value.substr(32,4));
   }
   stateLock.unlock();
   return true;
