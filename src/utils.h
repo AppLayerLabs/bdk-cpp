@@ -85,7 +85,7 @@ class Address {
     Address(std::string address, bool fromRPC = true) {
       if (fromRPC) {
         Utils::patchHex(address);
-        innerAddress = Utils::hexToBytes(innerAddress);
+        innerAddress = Utils::hexToBytes(address);
       } else {
         innerAddress = address;
       }
