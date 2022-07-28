@@ -5,9 +5,9 @@ ChainHead::ChainHead(std::shared_ptr<DBService> &dbService) : dbServer(dbService
 };
 
 void ChainHead::_push_back(Block& block) {
-  this->internalChainHead.push_back(block);
+  this->internalChainHead.emplace_back(std::make_shared<Block>(block));
 
-  auto latestBlock = std::make_shared<Block>(internalChainHead.back());
+  auto latestBlock = internalChainHead.back();
   this->lookupBlockByHash[latestBlock->getBlockHash()] = latestBlock;
   this->lookupBlockHashByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
@@ -21,9 +21,9 @@ void ChainHead::_push_back(Block& block) {
 }
 
 void ChainHead::_push_front(Block& block) {
-  this->internalChainHead.push_front(block);
+  this->internalChainHead.emplace_front(std::make_shared<Block>(block));
 
-  auto latestBlock = std::make_shared<Block>(internalChainHead.front());
+  auto latestBlock = this->internalChainHead.front();
   this->lookupBlockByHash[latestBlock->getBlockHash()] = latestBlock;
   this->lookupBlockHashByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
@@ -50,17 +50,17 @@ void ChainHead::push_back(Block& block) {
 
 void ChainHead::pop_back() {
   this->internalChainHeadLock.lock();
-  Block& blockToDelete = this->internalChainHead.back();
+  auto blockToDelete = this->internalChainHead.back();
 
   /**
    * Gather information about the block to delete references to it on internal mappings.
    * We have to collect: blockHash, blockHeight, all tx hashes.
    */
-  std::string blockHash = blockToDelete.getBlockHash();
-  uint64_t blockHeight = blockToDelete.nHeight();
+  std::string blockHash = blockToDelete->getBlockHash();
+  uint64_t blockHeight = blockToDelete->nHeight();
 
   // Delete all tx references from mappings.
-  for (auto &tx : blockToDelete.transactions()) {
+  for (auto &tx : blockToDelete->transactions()) {
     this->lookupTxByHash.erase(tx.hash());
     this->lookupBlockByTxHash.erase(tx.hash());
   }
@@ -77,16 +77,16 @@ void ChainHead::pop_back() {
 
 void ChainHead::pop_front() {
   this->internalChainHeadLock.lock();
-  Block& blockToDelete = this->internalChainHead.front();
+  auto blockToDelete = this->internalChainHead.front();
   /**
    * Gather information about the block to delete references to it on internal mappings.
    * We have to collect: blockHash, blockHeight, all tx hashes.
    */
-  std::string blockHash = blockToDelete.getBlockHash();
-  uint64_t blockHeight = blockToDelete.nHeight();
+  std::string blockHash = blockToDelete->getBlockHash();
+  uint64_t blockHeight = blockToDelete->nHeight();
 
   // Delete all tx references from mappings.
-  for (auto &tx : blockToDelete.transactions()) {
+  for (auto &tx : blockToDelete->transactions()) {
     this->lookupTxByHash.erase(tx.hash());
     this->lookupBlockByTxHash.erase(tx.hash());
   }
@@ -200,7 +200,7 @@ Block ChainHead::getBlockFromTx(std::string &txHash) {
 
 Block ChainHead::latest() {
   this->internalChainHeadLock.lock();
-  Block result = this->internalChainHead.back();
+  Block result = *this->internalChainHead.back();
   this->internalChainHeadLock.unlock();
   return result;
 }
@@ -254,24 +254,24 @@ void ChainHead::dumpToDB() {
   WriteBatchRequest txBatch;
   WriteBatchRequest txToBlockBatch;
   this->internalChainHeadLock.lock();
-  Block latest = this->internalChainHead.back();
+  auto latest = this->internalChainHead.back();
   while (!this->internalChainHead.empty()) {
     // We can't call this->pop_back() because of std::mutex.
-    Block& blockToDelete = this->internalChainHead.front();
-    blockBatch.puts.emplace_back(DBEntry(blockToDelete.getBlockHash(), blockToDelete.serializeToBytes()));
-    heightBatch.puts.emplace_back(DBEntry(Utils::uint64ToBytes(blockToDelete.nHeight()), blockToDelete.getBlockHash()));
+    auto blockToDelete = this->internalChainHead.front();
+    blockBatch.puts.emplace_back(DBEntry(blockToDelete->getBlockHash(), blockToDelete->serializeToBytes()));
+    heightBatch.puts.emplace_back(DBEntry(Utils::uint64ToBytes(blockToDelete->nHeight()), blockToDelete->getBlockHash()));
 
     /**
      * Gather information about the block to delete references to it on internal mappings.
      * We have to collect: blockHash, blockHeight, all tx hashes.
      */
-    std::string blockHash = blockToDelete.getBlockHash();
-    uint64_t blockHeight = blockToDelete.nHeight();
+    std::string blockHash = blockToDelete->getBlockHash();
+    uint64_t blockHeight = blockToDelete->nHeight();
 
     // Delete all tx references from mappingsand append them to the DB.
-    for (auto &tx : blockToDelete.transactions()) {
+    for (auto &tx : blockToDelete->transactions()) {
       txBatch.puts.emplace_back(DBEntry(tx.hash(), dev::toHex(tx.rlp())));
-      txToBlockBatch.puts.emplace_back(DBEntry(tx.hash(), blockToDelete.getBlockHash()));
+      txToBlockBatch.puts.emplace_back(DBEntry(tx.hash(), blockToDelete->getBlockHash()));
       this->lookupTxByHash.erase(tx.hash());
       this->lookupBlockByTxHash.erase(tx.hash());
     }
@@ -288,7 +288,7 @@ void ChainHead::dumpToDB() {
   dbServer->writeBatch(txBatch, DBPrefix::transactions);
   dbServer->writeBatch(txToBlockBatch, DBPrefix::TxToBlocks);
 
-  dbServer->put("latest", latest.serializeToBytes(), DBPrefix::blocks);
+  dbServer->put("latest", latest->serializeToBytes(), DBPrefix::blocks);
 
   this->internalChainHeadLock.unlock();
   return;
