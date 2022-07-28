@@ -10,6 +10,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
   if (messageJson["method"] == "eth_blockNumber") {
     Block bestBlock = chainHead->latest();
     ret["result"] = "0x" + Utils::uintToHex(bestBlock.nHeight());
+    Utils::logToFile("eth_blockNumber: " + ret["result"].get<std::string>());
   }
   if (messageJson["method"] == "eth_chainId") {
     ret["result"] = "0x2290";
@@ -34,6 +35,14 @@ std::string Subnet::processRPCMessage(std::string &req) {
     } else {
       uint64_t blockNumber = boost::lexical_cast<uint64_t>(Utils::hexToUint(blockString));
       Utils::LogPrint(Log::subnet, "eth_getBlockByNumber blockNumber: ", std::to_string(blockNumber));
+      if (!chainHead->exists(blockNumber)) {
+        ret["error"] = json{
+          {"code", -32000},
+          {"message", "Block not found"}
+        };
+        // TODO: this return here is very ugly
+        return ret.dump();;
+      }
       block = std::make_unique<Block>(chainHead->getBlock(blockNumber));
       Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes()));
     }
