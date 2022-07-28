@@ -35,13 +35,14 @@ void Subnet::start() {
    */
   Utils::LogPrint(Log::subnet, __func__, "Startup Done");
   server->Wait();
+  Utils::LogPrint(Log::subnet, __func__, "Server Thread Returning...");
   return;
 }
 
 void Subnet::stop() {
-  Utils::LogPrint(Log::subnet, __func__, "Stopping subnet...");
-  this->shutdown = true;
   if (this->initialized) {
+    Utils::LogPrint(Log::subnet, __func__, "Stopping subnet...");
+    this->shutdown = true;
     // Dump State and ChainHead from memory to the database, then close it
     this->chainHead->dumpToDB();
     Utils::LogPrint(Log::subnet, __func__, "chainHead saved to DB");
@@ -58,12 +59,21 @@ void Subnet::stop() {
     }
     Utils::LogPrint(Log::subnet, __func__, "HTTP Server stopped");
     // Sleep for 2 seconds and wait for Server shutdown answer
-    Utils::LogPrint(Log::subnet, __func__, "Waiting for Server to shutdown...");
-    boost::this_thread::sleep_for(boost::chrono::seconds(2));
+    Utils::LogPrint(Log::subnet, __func__, "Waiting for Server to shutdown..."); 
+    // Subnet::stop() is called from the gRPC Server, so we cannot stop the server here.
+    // A thread is created and detached there calling the function below.
   }
-  Utils::LogPrint(Log::subnet, __func__, "Shutdown Done");
-  server->Shutdown();
   return;
+}
+
+
+void Subnet::shutdownServer() {
+  if (this->initialized) {
+    if (this->shutdown) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      server->Shutdown();
+    }
+  }
 }
 
 void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResponse* reply) {

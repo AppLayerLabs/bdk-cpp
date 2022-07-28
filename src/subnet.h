@@ -96,6 +96,10 @@ class Subnet {
 
     bool blockRequest();
 
+    // To be called by grpcServer after a shutdown call.
+
+    void shutdownServer();
+
     // To be called by HTTP Server, from RPC clients (such as Metamask).
     std::string processRPCMessage(std::string &req);
 };
