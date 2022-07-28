@@ -214,7 +214,7 @@ void ChainHead::loadFromDB() {
 
   Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: getting latest block");
   Block latestBlock = Block(dbServer->get("latest", DBPrefix::blocks));
-
+  Utils::LogPrint(Log::chainHead, __func__, std::string("Loading chain head from DB: ") + dev::toHex(latestBlock.getBlockHash()) + " " + std::to_string(latestBlock.nHeight()));
   uint64_t depth = latestBlock.nHeight();
 
   this->internalChainHeadLock.lock();
@@ -261,6 +261,7 @@ void ChainHead::dumpToDB() {
   WriteBatchRequest txBatch;
   WriteBatchRequest txToBlockBatch;
   this->internalChainHeadLock.lock();
+  Block latest = this->internalChainHead.back();
   while (!this->internalChainHead.empty()) {
     // We can't call this->pop_back() because of std::mutex.
     Block& blockToDelete = this->internalChainHead.front();
@@ -288,6 +289,13 @@ void ChainHead::dumpToDB() {
     // Delete the block from the internal deque.
     this->internalChainHead.pop_front();
   }
+
+  dbServer->writeBatch(blockBatch, DBPrefix::blocks);
+  dbServer->writeBatch(heightBatch, DBPrefix::blockHeightMaps);
+  dbServer->writeBatch(txBatch, DBPrefix::transactions);
+  dbServer->writeBatch(txToBlockBatch, DBPrefix::TxToBlocks);
+
+  dbServer->put("latest", latest.serializeToBytes(), DBPrefix::blocks);
 
   this->internalChainHeadLock.unlock();
   return;
