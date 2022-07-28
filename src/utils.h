@@ -42,32 +42,27 @@ namespace Log {
 namespace Utils {
   void logToFile(std::string str);
   void LogPrint(std::string prefix, std::string function, std::string data);
+  void sha3(const std::string &input, std::string &output);
   std::string uint256ToBytes(const uint256_t &i);
   std::string uint160ToBytes(const uint160_t &i);
   std::string uint64ToBytes(const uint64_t &i);
   std::string uint32ToBytes(const uint32_t &i);
   std::string uint8ToBytes(const uint8_t &i);
-  void sha3(const std::string &input, std::string &output);
   uint256_t bytesToUint256(const std::string &bytes);
+  uint160_t bytesToUint160(const std::string &bytes);
   uint64_t bytesToUint64(const std::string &bytes);
   uint32_t bytesToUint32(const std::string &bytes);
-  // Simple function to remove "0x" and lowercase everything from a hex string.
+  uint8_t bytesToUint8(const std::string &bytes);
   void patchHex(std::string& str);
-  // Simple uint > hex, does not handle paddings or 0x prefix.
   template <typename T> std::string uintToHex(T i) {
     std::stringstream ss;
     std::string ret;
     ss << std::hex << i;
     ret = ss.str();
-    for (auto &c : ret) {
-      if (std::isupper(c))
-        c = std::tolower(c);
-    }
+    for (auto &c : ret) if (std::isupper(c)) c = std::tolower(c);
     return ret;
   }
-  // Simple hex > uint, return as uint256_t
   uint256_t hexToUint(std::string &hex);
-  // Hex <-> Bytes (using string containers)
   std::string hexToBytes(std::string hex);
   std::string bytesToHex(std::string bytes);
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
@@ -75,13 +70,10 @@ namespace Utils {
 
 class Address {
   private:
-    // Stored in bytes.
     std::string innerAddress = "";
-  public:
-    // Empty Address;
-    Address() {};
 
-    // RPC Requests address are in hex format
+  public:
+    Address() {}
     Address(std::string address, bool fromRPC = true) {
       if (fromRPC) {
         Utils::patchHex(address);
@@ -90,34 +82,16 @@ class Address {
         innerAddress = address;
       }
     }
-
     std::string get() const { return innerAddress; };
     std::string hex() const { return Utils::bytesToHex(innerAddress); }
-
-
     dev::h160 toHash() const {
       return dev::h160(innerAddress, dev::FixedHash<20>::ConstructFromStringType::FromBinary);
     }
-
-    void operator=(const std::string& address) {
-      this->innerAddress = address;
-    }
-
-    void operator=(const Address& address) {
-      this->innerAddress = address.innerAddress;
-    }
-
-    void operator=(const dev::h160 &address) {
-      this->innerAddress = address.byteStr();
-    }
-
-    void operator=(const uint160_t &address) {
-      this->innerAddress = Utils::uint160ToBytes(address);
-    }
-
-    bool operator==(const Address& rAddress) const {
-      return bool(innerAddress == rAddress.innerAddress);
-    }
+    void operator=(const std::string& address) { this->innerAddress = address; }
+    void operator=(const Address& address) { this->innerAddress = address.innerAddress; }
+    void operator=(const dev::h160 &address) { this->innerAddress = address.byteStr(); }
+    void operator=(const uint160_t &address) { this->innerAddress = Utils::uint160ToBytes(address); }
+    bool operator==(const Address& rAddress) const { return bool(innerAddress == rAddress.innerAddress); }
 };
 
 

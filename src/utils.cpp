@@ -11,6 +11,12 @@ void Utils::logToFile(std::string str) {
   log_lock.unlock();
 }
 
+void Utils::sha3(const std::string &input, std::string &output) {
+  ethash::hash256 h = ethash::keccak256(reinterpret_cast<const unsigned char*>(input.data()), input.size());
+  output = "";
+  for (auto i = 0; i < 32; ++i) output += h.bytes[i];
+}
+
 std::string Utils::uint256ToBytes(const uint256_t &i) {
   std::string ret(32, 0x00);
   std::string tmp;
@@ -66,6 +72,13 @@ uint256_t Utils::bytesToUint256(const std::string &bytes) {
   return ret;
 }
 
+uint160_t Utils::bytesToUint160(const std::string &bytes) {
+  if (bytes.size() != 20) throw; // Invalid size.
+  uint160_t ret;
+  boost::multiprecision::import_bits(ret, bytes.begin(), bytes.end(), 8);
+  return ret;
+}
+
 uint64_t Utils::bytesToUint64(const std::string &bytes) {
   if (bytes.size() != 8) throw; // Invalid size;
   uint64_t ret;
@@ -90,6 +103,13 @@ uint32_t Utils::bytesToUint32(const std::string &bytes) {
   return ret;
 }
 
+uint8_t Utils::bytesToUint8(const std::string &bytes) {
+  if (bytes.size() != 1) throw; // Invalid size
+  uint8_t ret;
+  ret |= bytes[0];
+  return ret;
+}
+
 void Utils::LogPrint(std::string prefix, std::string function, std::string data) {
   debug_mutex.lock();
   std::ofstream log("debug.txt", std::ios::app);
@@ -100,9 +120,7 @@ void Utils::LogPrint(std::string prefix, std::string function, std::string data)
 
 void Utils::patchHex(std::string& str) {
   if (str[0] == '0' && str[1] == 'x') str = str.substr(2);
-  for (auto &c : str) {
-    if (std::isupper(c)) c = std::tolower(c);
-  }
+  for (auto &c : str) if (std::isupper(c)) c = std::tolower(c);
   return;
 }
 
@@ -125,15 +143,13 @@ std::string Utils::hexToBytes(std::string hex) {
   return ret;
 }
 
-std::string Utils::bytesToHex(std::string bytes) {
-  return dev::toHex(bytes);
-}
+std::string Utils::bytesToHex(std::string bytes) { return dev::toHex(bytes); }
 
 bool Utils::verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s) {
-                                 // 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
-    static const uint256_t s_max("115792089237316195423570985008687907852837564279074904382605163141518161494337");
-    static const uint256_t s_zero = 0;
-    return (v <= 1 && r > s_zero && s > s_zero && r < s_max && s < s_max);
+  // s_max = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+  static const uint256_t s_max("115792089237316195423570985008687907852837564279074904382605163141518161494337");
+  static const uint256_t s_zero = 0;
+  return (v <= 1 && r > s_zero && s > s_zero && r < s_max && s < s_max);
 }
 
 void Utils::sha3(const std::string &input, std::string &output) {
