@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <vector>
 
-#include <include/web3cpp/ethcore/TransactionBase.h>
 #include "utils.h"
+#include "transaction.h"
 
 /**
  * The Block class only contains the structure of blocks and some utilities
@@ -59,7 +59,7 @@ class Block {
     uint64_t _timestamp;
     uint64_t _nHeight;
     uint32_t _txCount;
-    std::vector<dev::eth::TransactionBase> _transactions;
+    std::vector<Tx::Base> _transactions;
     bool finalized = false;
 
   public:
@@ -82,10 +82,10 @@ class Block {
     const uint64_t timestampInSeconds() { return this->_timestamp / 1000000000; };
     const uint64_t& nHeight() { return this->_nHeight; };
     const uint32_t& txCount() { return this->_txCount; };
-    const std::vector<dev::eth::TransactionBase>& transactions() { return this->_transactions; };
+    const std::vector<Tx::Base>& transactions() { return this->_transactions; };
     const uint64_t blockSize();
     /**
-     * TODO: TransactionBase (more specifically rlp()) is too slow,
+     * TODO: TransactionBase (more specifically rlp()) is too slow (maybe not too slow lol),
      * we should try and refactor that first before thinking about
      * adding the block hash as a variable instead of serializing it
      * every time getBlockHash() is called.
@@ -94,7 +94,7 @@ class Block {
     std::string getBlockHash(); // Hash (in bytes)
     std::string serializeToBytes();
 
-    bool appendTx(dev::eth::TransactionBase &tx);
+    bool appendTx(Tx::Base &tx);
     bool finalizeBlock();
 };
 

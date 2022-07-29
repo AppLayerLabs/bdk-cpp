@@ -31,7 +31,8 @@ Block::Block(const std::string &blockData) {
       txBytes = rawTransactions.substr(nextTx + 4, txSize);
 
       nextTx = nextTx + 4 + txSize;
-      this->_transactions.push_back(dev::eth::TransactionBase(txBytes, dev::eth::CheckTransaction::None));
+      // We consider loading transactions from the block the same as reading from DB
+      this->_transactions.push_back(Tx::Base(txBytes, true));
     }
   } catch (std::exception &e) {
     Utils::LogPrint(Log::block, __func__, "Error: " + std::string(e.what()) + " " + dev::toHex(blockData));
@@ -58,7 +59,7 @@ std::string Block::serializeToBytes() {
    * For each transaction we need to parse both their size and their data.
    */
   for (auto transaction : this->_transactions) {
-    bytes txBytes = transaction.rlp(dev::eth::IncludeSignature::WithSignature);
+    std::string txBytes = transaction.serialize();
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
     ret += txSizeBytes;
     std::copy(txBytes.begin(), txBytes.end(), std::back_inserter(ret));
@@ -67,9 +68,8 @@ std::string Block::serializeToBytes() {
 }
 
 std::string Block::getBlockHash() {
-  auto blockHash = dev::sha3(this->serializeToBytes());
   std::string ret;
-  std::copy(blockHash.begin(), blockHash.end(), std::back_inserter(ret));
+  Utils::sha3(this->serializeToBytes(), ret);
   return ret;
 }
 
@@ -77,12 +77,12 @@ const uint64_t Block::blockSize() {
   uint64_t ret = 32 + 8 + 8 + 4; // prevBlockHash + timestamp + nHeight + txCount
   for (auto transaction : this->_transactions) { // + [ txSize, tx, ... ]
     // TODO: rlp() is not optimized, will be fixed later.
-    ret += 4 + transaction.rlp(dev::eth::IncludeSignature::WithSignature).size();
+    ret += 4 + transaction.serialize().size();
   }
   return ret;
 }
 
-bool Block::appendTx(dev::eth::TransactionBase &tx) {
+bool Block::appendTx(Tx::Base &tx) {
   if (this->finalized) {
     Utils::LogPrint(Log::block, __func__, " Block is finalized.");
     return false;

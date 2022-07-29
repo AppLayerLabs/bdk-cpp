@@ -13,7 +13,7 @@ void ChainHead::_push_back(Block& block) {
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
 
   for (auto &tx : latestBlock->transactions()) {
-    this->lookupTxByHash[tx.hash()] = std::make_shared<dev::eth::TransactionBase>(tx);
+    this->lookupTxByHash[tx.hash()] = std::make_shared<Tx::Base>(tx);
     this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
 
@@ -29,7 +29,7 @@ void ChainHead::_push_front(Block& block) {
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
 
   for (auto &tx : latestBlock->transactions()) {
-    this->lookupTxByHash[tx.hash()] = std::make_shared<dev::eth::TransactionBase>(tx);
+    this->lookupTxByHash[tx.hash()] = std::make_shared<Tx::Base>(tx);
     this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
 
@@ -170,17 +170,18 @@ bool ChainHead::hasTransaction(std::string &txHash) {
   return result;
 }
 
-dev::eth::TransactionBase ChainHead::getTransaction(std::string &txHash) {
+Tx::Base ChainHead::getTransaction(std::string &txHash) {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock();
-    dev::eth::TransactionBase result = *this->lookupTxByHash[txHash];
+    Tx::Base result = *this->lookupTxByHash[txHash];
     this->internalChainHeadLock.unlock();
     return result;
   }
 
   // Check DB.
   if (this->dbServer->has(txHash, DBPrefix::transactions)) {
-    dev::eth::TransactionBase result(dev::fromHex(dbServer->get(txHash, DBPrefix::transactions)), dev::eth::CheckTransaction::None); // No need to check a tx again.
+    std::string txBytes = dbServer->get(txHash, DBPrefix::transactions);
+    Tx::Base result(txBytes, true); // No need to check a tx again.
     return result;
   } else {
     throw std::runtime_error("Transaction doesn't exist");
@@ -270,7 +271,7 @@ void ChainHead::dumpToDB() {
 
     // Delete all tx references from mappingsand append them to the DB.
     for (auto &tx : blockToDelete->transactions()) {
-      txBatch.puts.emplace_back(DBEntry(tx.hash(), dev::toHex(tx.rlp())));
+      txBatch.puts.emplace_back(DBEntry(tx.hash(), dev::toHex(tx.serialize())));
       txToBlockBatch.puts.emplace_back(DBEntry(tx.hash(), blockToDelete->getBlockHash()));
       this->lookupTxByHash.erase(tx.hash());
       this->lookupBlockByTxHash.erase(tx.hash());

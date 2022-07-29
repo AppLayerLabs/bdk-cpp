@@ -1,8 +1,8 @@
 #ifndef TRANSACTION_H
 #define TRANSACTION_H
 #include "utils.h"
-#include <include/web3cpp/ethcore/TransactionBase.h>
 #include <secp256k1Wrapper.h>
+#include <include/web3cpp/devcore/RLP.h>
 // TODO: Error handling
 
 namespace Tx {
@@ -35,6 +35,7 @@ namespace Tx {
       // There are two ways transactions can be parsed fully from a byte string:
       // Directly from RLP (Ethereum rawTransaction), which requires to run secp256k1 to check validity and derive _from. and it is not included in a block
       // From database (RLP bytes + Outside RLP section), input from database is trusted as data will be only saved there if included in a block and is already checked.
+      // !!! BYTES IS CHANGED IF COMES FROM DB. !!!
       Base(std::string &bytes, bool fromDB);
     
 
@@ -42,30 +43,49 @@ namespace Tx {
       Base(Address &from, Address &to, uint256_t &value, std::string &data, uint64_t &chainId, uint256_t &nonce, uint256_t &gas, uint256_t &gasPrice) :
         _from(from), _to(to), _value(value), _data(data), _chainId(chainId), _nonce(nonce), _gas(gas), _gasPrice(gasPrice) { }
       
+      // You can also create a empty transaction.
+      Base() {};
       
       // Getters
-      const Address& to() { return _to; };
-      const uint256_t& value() { return _value; };
-      const std::string& data() { return _data; };
-      const uint64_t& chainId() { return _chainId; };
-      const uint256_t& nonce() { return _nonce; };
-      const uint256_t& gas() { return _gas; };
-      const uint256_t& gasPrice() { return _gasPrice; };
-      const uint256_t& v() { return _v; };
-      const uint256_t& r() { return _r; };
-      const uint256_t& s() { return _s; };
-      const uint256_t recoverId() { return uint256_t(uint8_t(this->_v - (uint256_t(this->_chainId) * 2 + 35))); };
-      const uint32_t& blockIndex() { return _blockIndex; };
-      const Address& from() { return _from; };
-      const bool& callsContract() { return _callsContract; };
-      const bool& inBlock() { return _inBlock; };
-      const bool& hasSig() { return _hasSig; };
-      const bool& verified() { return _verified; };
+      Address& to()          const { return const_cast<Address&>(_to); };
+      uint256_t& value()     const { return const_cast<uint256_t&>(_value); };
+      std::string& data()    const { return const_cast<std::string&>(_data); };
+      uint64_t& chainId()    const { return const_cast<uint64_t&>(_chainId); };
+      uint256_t& nonce()     const { return const_cast<uint256_t&>(_nonce); };
+      uint256_t& gas()       const { return const_cast<uint256_t&>(_gas); };
+      uint256_t& gasPrice()  const { return const_cast<uint256_t&>(_gasPrice); };
+      uint256_t& v()         const { return const_cast<uint256_t&>(_v); };
+      uint256_t& r()         const { return const_cast<uint256_t&>(_r); };
+      uint256_t& s()         const { return const_cast<uint256_t&>(_s); };
+      uint256_t recoverId()  const { return uint256_t(uint8_t(this->_v - (uint256_t(this->_chainId) * 2 + 35))); };
+      uint32_t& blockIndex() const { return const_cast<uint32_t&>(_blockIndex); };
+      Address& from()        const { return const_cast<Address&>(_from); };
+      bool& callsContract()  const { return const_cast<bool&>(_callsContract); };
+      bool& inBlock()        const { return const_cast<bool&>(_inBlock); };
+      bool& hasSig()         const { return const_cast<bool&>(_hasSig); };
+      bool& verified()       const { return const_cast<bool&>(_verified); };
+  
+      // TODO: Setters.
 
-      const std::string hash() { std::string ret; Utils::sha3(this->rlpSerialize(true), ret); return ret; };
-      std::string rlpSerialize(bool includeSig);
-      std::string serialize();
+      
+      // Hash in bytes not hex!
+      
+      std::string hash() const { std::string ret; Utils::sha3(this->rlpSerialize(this->_hasSig), ret); return ret; };
+      std::string rlpSerialize(bool includeSig) const;
+      std::string serialize() const;
+
+      // Check equality, needed by std::unordered_map
+      bool operator!=(Tx::Base const& tx) const { return this->hash() != tx.hash(); };
+      bool operator==(Tx::Base const& tx) const { return this->hash() == tx.hash(); };
   };
 }
+
+// Hash function for std::unordered_map
+template <>
+struct std::hash<Tx::Base> {
+  size_t operator() (const Tx::Base& address) const {
+    return std::hash<std::string>()(address.hash());
+  }
+};
 
 #endif // TRANSACTION_H

@@ -67,7 +67,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     answer["timestamp"] = std::string("0x") + Utils::uintToHex(block->timestampInSeconds());  // Seconds since epoch
     answer["transactions"] = json::array();
     for (auto tx : block->transactions()) {
-      answer["transactions"].push_back(std::string("0x") + tx.hash());
+      answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.hash()));
     }
     answer["uncles"] = json::array();
     ret["result"] = answer;
@@ -89,13 +89,15 @@ std::string Subnet::processRPCMessage(std::string &req) {
   }
   if (messageJson["method"] == "eth_sendRawTransaction") {
     std::string txRlp = messageJson["params"][0].get<std::string>();
+    Utils::patchHex(txRlp);
     try {
-      dev::eth::TransactionBase tx(dev::fromHex(txRlp), dev::eth::CheckTransaction::Everything);
+      std::string txStr = Utils::hexToBytes(txRlp);
+      Tx::Base tx(txStr, false);
       std::pair<int, std::string> txRet = this->headState->validateTransaction(tx);
       if (txRet.first != 0) {
         ret["error"] = json({{"code", txRet.first}, {"message", txRet.second}});
       }
-      ret["result"] = std::string("0x") + tx.hash();
+      ret["result"] = std::string("0x") + Utils::bytesToHex(tx.hash());
     } catch (std::exception &e) {
       Utils::logToFile(std::string("sendRawTransaction failed! ") + e.what());
     }
@@ -104,12 +106,13 @@ std::string Subnet::processRPCMessage(std::string &req) {
     std::string txHash = messageJson["params"][0].get<std::string>();
     Utils::patchHex(txHash);
     try {
-      dev::eth::TransactionBase tx = chainHead->getTransaction(txHash);
-      ret["result"]["transactionHash"] = std::string("0x") + tx.hash();
+      std::string txStr = Utils::hexToBytes(txHash);
+      Tx::Base tx = chainHead->getTransaction(txStr);
+      ret["result"]["transactionHash"] = std::string("0x") + Utils::bytesToHex(tx.hash());
 
       // TODO: Implement block transaction index (requires rewriting TransactionBase)
       ret["result"]["transactionIndex"] = "0x1";
-      Block block = chainHead->getBlockFromTx(txHash);
+      Block block = chainHead->getBlockFromTx(txStr);
       ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block.nHeight());
       ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block.getBlockHash());
       ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx.gas());
@@ -147,7 +150,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     answer["timestamp"] = std::string("0x") + Utils::uintToHex(block.timestampInSeconds()); // Seconds since epoch
     answer["transactions"] = json::array();
     for (auto tx : block.transactions()) {
-      answer["transactions"].push_back(std::string("0x") + tx.hash());
+      answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.hash()));
     }
     answer["uncles"] = json::array();
     ret["result"] = answer;

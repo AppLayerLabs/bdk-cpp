@@ -31,7 +31,7 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
   return true;
 }
 
-std::pair<int, std::string> State::validateTransaction(dev::eth::TransactionBase& tx) {
+std::pair<int, std::string> State::validateTransaction(Tx::Base& tx) {
   // TODO: Handle error conditions to report at RPC level:
   // https://www.jsonrpc.org/specification#error_object
   // https://eips.ethereum.org/EIPS/eip-1474#error-codes
@@ -40,14 +40,12 @@ std::pair<int, std::string> State::validateTransaction(dev::eth::TransactionBase
 
   int err = 0;
   std::string errMsg = "";
-  if (!tx.isReplayProtected()) {
-    err = -32003; errMsg = "Replay protection failed";
-  } else if (this->nativeAccount[dev::toHex(tx.from())].nonce != tx.nonce()) {
+  if (this->nativeAccount[tx.from()].nonce != tx.nonce()) {
     err = -32003; errMsg = "Nonce mismatch";
-  } else if (this->nativeAccount[dev::toHex(tx.from())].balance < tx.value()) {
+  } else if (this->nativeAccount[tx.from()].balance < tx.value()) {
     err = -32003; errMsg = "Insufficient balance: required: " + boost::lexical_cast<std::string>(tx.value()) 
-                         + " available: " + boost::lexical_cast<std::string>(this->nativeAccount[dev::toHex(tx.from())].balance);
-  } else if (this->mempool.count(dev::toHex(tx.from()))) {
+                         + " available: " + boost::lexical_cast<std::string>(this->nativeAccount[tx.from()].balance);
+  } else if (this->mempool.count(tx.hash())) {
     err = -32003; errMsg = "Transaction already exists in mempool";
   }
 
@@ -63,21 +61,21 @@ std::pair<int, std::string> State::validateTransaction(dev::eth::TransactionBase
   return std::make_pair(err, errMsg);
 }
 
-bool State::processNewTransaction(const dev::eth::TransactionBase& tx) {
+bool State::processNewTransaction(const Tx::Base& tx) {
   bool isContractCall = false;
 
   // Remove transaction from mempool if found there.
   if (this->mempool.count(tx.hash()) != 0) this->mempool.erase(tx.hash());
 
   // Update Balances.
-  this->nativeAccount[dev::toHex(tx.from())].balance -= tx.value();
-  this->nativeAccount[dev::toHex(tx.to())].balance += tx.value();
+  this->nativeAccount[tx.from()].balance -= tx.value();
+  this->nativeAccount[tx.to()].balance += tx.value();
 
   // Update nonce.
-  this->nativeAccount[dev::toHex(tx.from())].nonce++;
+  this->nativeAccount[tx.from()].nonce++;
 
   // Burn gas fees.
-  this->nativeAccount[dev::toHex(tx.from())].balance -= (tx.gasPrice() * tx.gas());
+  this->nativeAccount[tx.from()].balance -= (tx.gasPrice() * tx.gas());
 
   return true;
 }

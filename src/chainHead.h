@@ -4,16 +4,17 @@
 #include "utils.h"
 #include "block.h"
 #include "db.h"
-#include <include/web3cpp/ethcore/TransactionBase.h>
 
 class ChainHead {
   // TODO: find a way to merge lookupBlockHeightByHash and lookupBlockHashByHeight into one and cut those tables' RAM usage in half
+  // TODO: We are storing txs in the block, but we are also storing the tx itself on the database. We should place the tx only one location, preferable on blocks.
+  //       It is possible to use DBPrefix::txToBlocks to catch the block that the tx is included.
   private:
     std::shared_ptr<DBService> &dbServer;
     std::deque<std::shared_ptr<Block>> internalChainHead;
     std::unordered_map<std::string,std::shared_ptr<Block>> lookupBlockByHash;
     std::unordered_map<std::string,std::shared_ptr<Block>> lookupBlockByTxHash;
-    std::unordered_map<std::string,std::shared_ptr<dev::eth::TransactionBase>> lookupTxByHash;
+    std::unordered_map<std::string,std::shared_ptr<Tx::Base>> lookupTxByHash;
     std::unordered_map<std::string,uint64_t> lookupBlockHeightByHash;
     std::unordered_map<uint64_t,std::string> lookupBlockHashByHeight;
     std::mutex internalChainHeadLock;
@@ -36,7 +37,7 @@ class ChainHead {
     Block getBlock(std::string &blockHash);
     Block getBlock(uint64_t &blockHeight);
     bool hasTransaction(std::string &txHash);
-    dev::eth::TransactionBase getTransaction(std::string &txHash);
+    Tx::Base getTransaction(std::string &txHash);
     Block getBlockFromTx(std::string &txHash);
     Block latest();
     uint64_t blockSize();

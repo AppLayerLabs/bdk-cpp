@@ -6,8 +6,8 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
   // Parse RLP
   std::string appendedBytes;
   if (fromDB) {
-    appendedBytes = bytes.substr(bytes.size() - 26);
-    bytes = bytes.substr(0, bytes.size() - 26);
+    appendedBytes = bytes.substr(bytes.size() - 25);
+    bytes = bytes.substr(0, bytes.size() - 25);
   }
 
   dev::RLP rlp(bytes);
@@ -70,7 +70,7 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
   }
 }
 
-std::string Tx::Base::rlpSerialize(bool includeSig) {
+std::string Tx::Base::rlpSerialize(bool includeSig) const {
   // EIP-155 Compatible.
   // instead of hashing six rlp encoded elements (nonce, gasprice, startgas, to, value, data)
   // hash nine rlp encoded elements (nonce, gasprice, startgas, to, value, data, chainid, 0, 0) before signing.
@@ -88,7 +88,7 @@ std::string Tx::Base::rlpSerialize(bool includeSig) {
   return ret;
 }
 
-std::string Tx::Base::serialize() {
+std::string Tx::Base::serialize() const {
   if (!this->_hasSig && !this->_verified) {
     throw std::runtime_error("Transaction has no signature/not verified to serialize");
   }

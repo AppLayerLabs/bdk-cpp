@@ -82,8 +82,8 @@ class Address {
         innerAddress = address;
       }
     }
-    std::string get() const { return innerAddress; };
-    std::string hex() const { return Utils::bytesToHex(innerAddress); }
+    const std::string& get() const { return innerAddress; };
+    const std::string hex() const { return Utils::bytesToHex(innerAddress); }
     dev::h160 toHash() const {
       return dev::h160(innerAddress, dev::FixedHash<20>::ConstructFromStringType::FromBinary);
     }

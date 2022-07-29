@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <unordered_map>
-#include <include/web3cpp/ethcore/TransactionBase.h>
 #include <atomic>
 #include <deque>
 #include <chrono>
@@ -12,6 +11,7 @@
 #include "block.h"
 #include "db.h"
 #include "chainHead.h"
+#include "transaction.h"
 
 struct Account {
   uint256_t balance = 0;
@@ -30,7 +30,7 @@ class VMCommClient; // Forward declaration.
 class State {
   private:
     std::unordered_map<Address, Account> nativeAccount;             // Address -> Account
-    std::unordered_map<std::string, dev::eth::TransactionBase> mempool; // Tx Hash -> Tx
+    std::unordered_map<std::string, Tx::Base> mempool; // Tx Hash (bytes) -> Tx
     std::mutex stateLock;
 
     // used to notify avalancheGo when to create new blocks.
@@ -43,14 +43,14 @@ class State {
     bool loadState(std::shared_ptr<DBService> &dbServer);
 
     // Process a new transaction from a given block (only used by processNewBlock).
-    bool processNewTransaction(const dev::eth::TransactionBase &tx);
+    bool processNewTransaction(const Tx::Base &tx);
 
   public:
     State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
 
     uint256_t getNativeBalance(const Address& address);
     uint256_t getNativeNonce(const Address& address);
-    const std::unordered_map<std::string, dev::eth::TransactionBase>& getMempool() { return mempool; };
+    const std::unordered_map<std::string, Tx::Base>& getMempool() { return mempool; };
 
     // State changing functions
 
@@ -62,7 +62,7 @@ class State {
     // State querying functions
 
     // Asks the state if a given transaction is valid, and add it to the mempool if it is.
-    std::pair<int, std::string> validateTransaction(dev::eth::TransactionBase &tx);
+    std::pair<int, std::string> validateTransaction(Tx::Base &tx);
 
     // TEST ONLY FUNCTIONS.
 

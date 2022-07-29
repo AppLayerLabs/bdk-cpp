@@ -4,11 +4,16 @@
 #include <secp256k1.h>
 #include <secp256k1_ecdh.h>
 #include <secp256k1_recovery.h>
-#include <secp256k1_sha256.h>
 #include <memory>
 #include "utils.h"
 #include <string>
 
+
+// TODO: Replace secp256k1 library with the most recent one.
+// It **has** performance improvements, so this is a good idea.
+// Will require compatibility patches to compile with old Aleth library
+// But TransationBase will be deprecated soon, meaning the replacement will be easier
+// https://github.com/bitcoin-core/secp256k1
 namespace Secp256k1 {
   secp256k1_context const* getCtx();
   std::string recover(std::string& sig, std::string& messageHash);
