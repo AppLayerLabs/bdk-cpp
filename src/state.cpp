@@ -77,6 +77,8 @@ bool State::processNewTransaction(const Tx::Base& tx) {
   // Burn gas fees.
   this->nativeAccount[tx.from()].balance -= (tx.gasPrice() * tx.gas());
 
+  // TODO: Handle contract calls.
+
   return true;
 }
 
@@ -101,9 +103,8 @@ bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHe
     return false;
   }
 
-  // TODO: Check creator.
-
   for (auto &tx : newBlock.transactions()) {
+    this->includeBlock(newBlock.nHeight());
     this->processNewTransaction(tx);
   }
 

@@ -23,12 +23,14 @@ namespace Tx {
       uint256_t _s = 0;
 
       // Outside RLP
-      uint32_t _blockIndex = 0;          // RLP + 4 BYTES Where on the block the TX is located.
+      uint32_t _blockIndex = 0;      // RLP + 4 BYTES Where on the block the TX is located.
       Address _from;                 // RLP + 4 BYTES + 20 BYTES (byte string)
       bool _callsContract = false;   // RLP + 4 BYTES + 20 BYTES + 1 BYTE
                                      // TOTAL: 25 Bytes.
+      // _blockIndex and _inBlock is setted on State::processNewBlock and State::processNewTransaction.
       // Not stored in disk (only used for Tx Creation)
       bool _hasSig = false;
+      // will only be considered _inBlock is block is confirmed.
       bool _inBlock = false;
       bool _verified = false;
     public:
@@ -67,6 +69,7 @@ namespace Tx {
   
       // TODO: Setters.
 
+      void setBlockIndex (uint32_t &blockIndex) { if(_inBlock) { throw std::runtime_error("Transaction already included in a block") { _blockIndex = blockIndex; _inBlock = true; };
       
       // Hash in bytes not hex!
       
