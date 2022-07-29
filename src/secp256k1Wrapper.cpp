@@ -1,6 +1,8 @@
 #include "secp256k1Wrapper.h"
 
 secp256k1_context const* Secp256k1::getCtx() {
+  // TODO: warning: ignoring attributes on template argument ‘void (*)(secp256k1_context*)’ {aka ‘void (*)(secp256k1_context_struct*)’} [-Wignored-attributes]
+  // I have no idea why the warning is throwing, the struct arguments are fine.
   static std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)> s_ctx {
     secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY),
     &secp256k1_context_destroy

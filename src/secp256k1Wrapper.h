@@ -1,5 +1,5 @@
-#ifndef SECP256K1_H
-#define SECP256K1_H
+#ifndef SECP256K1_WRAPPER_H
+#define SECP256K1_WRAPPER_H
 
 #include <secp256k1.h>
 #include <secp256k1_ecdh.h>
@@ -23,4 +23,4 @@ namespace Secp256k1 {
   );
 }
 
-#endif  // SECP256K1_H
+#endif  // SECP256K1_WRAPPER_H
