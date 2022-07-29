@@ -104,10 +104,11 @@ bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHe
   }
 
   for (auto &tx : newBlock.transactions()) {
-    this->includeBlock(newBlock.nHeight());
     this->processNewTransaction(tx);
   }
 
+  // When the block is included in the chain, the transactions are indexed.
+  newBlock.indexTxs();
   // Append block to chainHead.
   chainHead->push_back(newBlock);
 

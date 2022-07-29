@@ -92,6 +92,20 @@ bool Block::appendTx(Tx::Base &tx) {
   return true;
 }
 
+void Block::indexTxs() {
+  if (this->finalized) {
+    if (this->inChain) {
+      Utils::LogPrint(Log::block, __func__, " Block is in chain and txs are indexed.");
+    }
+    uint64_t index = 0;
+    for (auto &tx : this->_transactions) {
+      tx.setBlockIndex(index);
+    }
+  } else {
+    Utils::LogPrint(Log::block, __func__, " Block is not finalized. cannot index transactions");
+  }
+}
+
 bool Block::finalizeBlock() {
   if (this->finalized) return false;
   this->finalized = true;

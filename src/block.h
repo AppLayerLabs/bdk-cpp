@@ -60,6 +60,7 @@ class Block {
     uint32_t _txCount;
     std::vector<Tx::Base> _transactions;
     bool finalized = false;
+    bool inChain = false;
 
   public:
     Block(const std::string &blockData);  // Constructor from network/rpc.
@@ -68,7 +69,7 @@ class Block {
     Block(
       const uint256_t &_prevBlockHashC,
       const uint64_t &_timestampC,
-      const uint32_t &_nHeightC
+      const uint64_t &_nHeightC
     ) : _prevBlockHash(_prevBlockHashC),
         _timestamp(_timestampC),
         _nHeight(_nHeightC),
@@ -93,6 +94,9 @@ class Block {
     std::string getBlockHash(); // Hash (in bytes)
     std::string serializeToBytes();
 
+
+    // When transactions are indexed. the block is considered to be on the chain.
+    void indexTxs();
     bool appendTx(Tx::Base &tx);
     bool finalizeBlock();
 };

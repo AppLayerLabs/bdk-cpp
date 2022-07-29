@@ -179,8 +179,9 @@ Tx::Base ChainHead::getTransaction(std::string &txHash) {
   }
 
   // Check DB.
-  if (this->dbServer->has(txHash, DBPrefix::transactions)) {
-    std::string txBytes = dbServer->get(txHash, DBPrefix::transactions);
+  if (this->dbServer->has(txHash, DBPrefix::TxToBlocks)) {
+    std::string blockHash = dbServer->get(txHash, DBPrefix::TxToBlocks);
+    std::string txBytes = dbServer->get(blockHash, DBPrefix::blocks);
     Tx::Base result(txBytes, true); // No need to check a tx again.
     return result;
   } else {
@@ -252,7 +253,6 @@ void ChainHead::dumpToDB() {
   // Emplace all blocks into a DB vector.
   WriteBatchRequest blockBatch;
   WriteBatchRequest heightBatch;
-  WriteBatchRequest txBatch;
   WriteBatchRequest txToBlockBatch;
   this->internalChainHeadLock.lock();
   auto latest = this->internalChainHead.back();
@@ -271,7 +271,6 @@ void ChainHead::dumpToDB() {
 
     // Delete all tx references from mappingsand append them to the DB.
     for (auto &tx : blockToDelete->transactions()) {
-      txBatch.puts.emplace_back(DBEntry(tx.hash(), dev::toHex(tx.serialize())));
       txToBlockBatch.puts.emplace_back(DBEntry(tx.hash(), blockToDelete->getBlockHash()));
       this->lookupTxByHash.erase(tx.hash());
       this->lookupBlockByTxHash.erase(tx.hash());
@@ -286,7 +285,6 @@ void ChainHead::dumpToDB() {
 
   dbServer->writeBatch(blockBatch, DBPrefix::blocks);
   dbServer->writeBatch(heightBatch, DBPrefix::blockHeightMaps);
-  dbServer->writeBatch(txBatch, DBPrefix::transactions);
   dbServer->writeBatch(txToBlockBatch, DBPrefix::TxToBlocks);
 
   dbServer->put("latest", latest->serializeToBytes(), DBPrefix::blocks);

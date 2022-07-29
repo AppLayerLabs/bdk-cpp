@@ -69,7 +69,7 @@ namespace Tx {
   
       // TODO: Setters.
 
-      void setBlockIndex (uint32_t &blockIndex) { if(_inBlock) { throw std::runtime_error("Transaction already included in a block") { _blockIndex = blockIndex; _inBlock = true; };
+      void setBlockIndex (uint64_t &blockIndex) { if(_inBlock) { throw std::runtime_error("Transaction already included in a block"); }; _blockIndex = blockIndex; _inBlock = true; };
       
       // Hash in bytes not hex!
       
