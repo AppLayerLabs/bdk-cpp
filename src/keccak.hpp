@@ -71,18 +71,20 @@ static INLINE ALWAYS_INLINE uint64_t load_le(const uint8_t* data)
     return to_le64(word);
 }
 
-static INLINE ALWAYS_INLINE void keccakUint8(
-    uint8_t* out, size_t bits, const uint8_t* data, size_t size)
+// This is for 256 bits **only**
+static INLINE ALWAYS_INLINE void keccakUint8_256(
+    uint8_t* out, const uint8_t* data, size_t size)
 {
     static const size_t word_size = sizeof(uint64_t);
-    const size_t hash_size = bits / 8;
-    const size_t block_size = (1600 - bits * 2) / 8;
+    const size_t hash_size = 256 / 8;
+    const size_t block_size = (1600 - 256 * 2) / 8;
 
     size_t i;
     uint64_t* state_iter;
     uint64_t last_word = 0;
     uint8_t* last_word_iter = (uint8_t*)&last_word;
 
+    // We don't use out here because state has to be a *25* uint64_t array
     uint64_t state[25] = {0};
 
     while (size >= block_size)
@@ -123,6 +125,9 @@ static INLINE ALWAYS_INLINE void keccakUint8(
     ethash_keccakf1600(state);
     
     for (int i,x = 0; i < (hash_size / word_size); ++i, x+= 8) {
+        // Instead of copying to a uint64_t* out like the old Ethereum library. we cast the state directly to uint8_t* out.
+        // This makes mandatory the usage of a wrapper that enforces the string used as a parameter to be 32 bytes in size and this function to be 256 bits.
+        // Be aware of to_le64 being a macro and not a function.
         out[x] = to_le64(state[i]);
         out[x+1] = to_le64(state[i]) >> 8;
         out[x+2] = to_le64(state[i]) >> 16;
