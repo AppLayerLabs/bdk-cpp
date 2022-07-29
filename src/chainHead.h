@@ -7,8 +7,6 @@
 
 class ChainHead {
   // TODO: find a way to merge lookupBlockHeightByHash and lookupBlockHashByHeight into one and cut those tables' RAM usage in half
-  // TODO: We are storing txs in the block, but we are also storing the tx itself on the database. We should place the tx only one location, preferable on blocks.
-  //       It is possible to use DBPrefix::txToBlocks to catch the block that the tx is included.
   private:
     std::shared_ptr<DBService> &dbServer;
     std::deque<std::shared_ptr<Block>> internalChainHead;
