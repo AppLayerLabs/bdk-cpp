@@ -109,9 +109,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
       std::string txStr = Utils::hexToBytes(txHash);
       Tx::Base tx = chainHead->getTransaction(txStr);
       ret["result"]["transactionHash"] = std::string("0x") + Utils::bytesToHex(tx.hash());
-
-      // TODO: Implement block transaction index (requires rewriting TransactionBase)
-      ret["result"]["transactionIndex"] = "0x1";
+      ret["result"]["transactionIndex"] = "0x" + dev::toHex(Utils::uint32ToBytes(tx.blockIndex()));
       Block block = chainHead->getBlockFromTx(txStr);
       ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block.nHeight());
       ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block.getBlockHash());
