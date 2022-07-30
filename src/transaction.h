@@ -1,21 +1,23 @@
 #ifndef TRANSACTION_H
 #define TRANSACTION_H
+
 #include "utils.h"
 #include <secp256k1Wrapper.h>
 #include <include/web3cpp/devcore/RLP.h>
+
 // TODO: Error handling
 
 namespace Tx {
   class Base {
     protected:
       // Inside RLP, TxSkeleton:
-  	  Address _to;
-  	  uint256_t _value = 0;
-  	  std::string _data = "";
-  	  uint64_t _chainId = 0;
-  	  uint256_t _nonce = 0;
-  	  uint256_t _gas = 0;
-  	  uint256_t _gasPrice = 0;
+      Address _to;
+      uint256_t _value = 0;
+      std::string _data = "";
+      uint64_t _chainId = 0;
+      uint256_t _nonce = 0;
+      uint256_t _gas = 0;
+      uint256_t _gasPrice = 0;
 
       // Secp256k1 in RLP
       uint256_t _v = 0;
@@ -39,15 +41,15 @@ namespace Tx {
       // From database (RLP bytes + Outside RLP section), input from database is trusted as data will be only saved there if included in a block and is already checked.
       // !!! BYTES IS CHANGED IF COMES FROM DB. !!!
       Base(std::string &bytes, bool fromDB);
-    
+
 
       // You can also build your own Tx by inputting the values within the RLP Skeleton
       Base(Address &from, Address &to, uint256_t &value, std::string &data, uint64_t &chainId, uint256_t &nonce, uint256_t &gas, uint256_t &gasPrice) :
         _from(from), _to(to), _value(value), _data(data), _chainId(chainId), _nonce(nonce), _gas(gas), _gasPrice(gasPrice) { }
-      
+
       // You can also create a empty transaction.
       Base() {};
-      
+
       // Getters
       Address& to()          const { return const_cast<Address&>(_to); };
       uint256_t& value()     const { return const_cast<uint256_t&>(_value); };
@@ -66,13 +68,30 @@ namespace Tx {
       bool& inBlock()        const { return const_cast<bool&>(_inBlock); };
       bool& hasSig()         const { return const_cast<bool&>(_hasSig); };
       bool& verified()       const { return const_cast<bool&>(_verified); };
-  
-      // TODO: Setters.
 
-      void setBlockIndex (uint64_t &blockIndex) { if(_inBlock) { throw std::runtime_error("Transaction already included in a block"); }; _blockIndex = blockIndex; _inBlock = true; };
-      
+      // Setters
+      void setTo(Address& to) { this->_to = to; }
+      void setValue(uint256_t& value) { this->_value = value; }
+      void setData(std::string& data) { this->_data = data; }
+      void setChainId(uint64_t& chainId) { this->_chainId = chainId; }
+      void setNonce(uint256_t& nonce) { this->_nonce = nonce; }
+      void setGas(uint256_t& gas) { this->_gas = gas; }
+      void setGasPrice(uint256_t gasPrice) { this->_gasPrice = gasPrice; }
+      void setV(uint256_t& v) { this->_v = v; }
+      void setR(uint256_t& r) { this->_r = r; }
+      void setS(uint256_t& s) { this->_s = s; }
+      void setBlockIndex (uint64_t& blockIndex) {
+        if (_inBlock) throw std::runtime_error("Transaction already included in a block");
+        this->_blockIndex = blockIndex;
+        this->_inBlock = true;
+      };
+      void setFrom(Address& from) { this->_from = from; }
+      void setCallsContract(bool& callsContract) { this->_callsContract = callsContract; }
+      void setInBlock(bool& inBlock) { this->_inBlock = inBlock; }
+      void setHasSig(bool& hasSig) { this->_hasSig = hasSig; }
+      void setVerified(bool& verified) { this->_verified = verified; }
+
       // Hash in bytes not hex!
-      
       std::string hash() const { std::string ret; Utils::sha3(this->rlpSerialize(this->_hasSig), ret); return ret; };
       std::string rlpSerialize(bool includeSig) const;
       std::string serialize() const;

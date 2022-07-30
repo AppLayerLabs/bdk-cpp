@@ -53,7 +53,7 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
     Utils::sha3(pubKey, pubKeyHash);
     this->_from = pubKeyHash.substr(12);  // Address = pubkey[12...32]
     this->_verified = true;
-    if (rlp.itemCount() > 9) { 
+    if (rlp.itemCount() > 9) {
       throw std::runtime_error("too many fields in the transaction RLP");
     }
     return;
@@ -96,3 +96,4 @@ std::string Tx::Base::serialize() const {
   ret += Utils::uint32ToBytes(this->_blockIndex) + _from.get() + char(this->_callsContract);
   return ret;
 }
+

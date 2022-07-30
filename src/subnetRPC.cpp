@@ -36,12 +36,8 @@ std::string Subnet::processRPCMessage(std::string &req) {
       uint64_t blockNumber = boost::lexical_cast<uint64_t>(Utils::hexToUint(blockString));
       Utils::LogPrint(Log::subnet, "eth_getBlockByNumber blockNumber: ", std::to_string(blockNumber));
       if (!chainHead->exists(blockNumber)) {
-        ret["error"] = json{
-          {"code", -32000},
-          {"message", "Block not found"}
-        };
-        // TODO: this return here is very ugly
-        return ret.dump();;
+        ret["error"] = { {"code", -32000}, {"message", "Block not found"} };
+        return ret.dump();
       }
       block = std::make_unique<Block>(chainHead->getBlock(blockNumber));
       Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes()));

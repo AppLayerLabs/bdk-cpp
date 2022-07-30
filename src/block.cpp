@@ -76,7 +76,6 @@ std::string Block::getBlockHash() {
 const uint64_t Block::blockSize() {
   uint64_t ret = 32 + 8 + 8 + 4; // prevBlockHash + timestamp + nHeight + txCount
   for (auto transaction : this->_transactions) { // + [ txSize, tx, ... ]
-    // TODO: rlp() is not optimized, will be fixed later.
     ret += 4 + transaction.serialize().size();
   }
   return ret;

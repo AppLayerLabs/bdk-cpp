@@ -84,16 +84,8 @@ class Block {
     const uint32_t& txCount() { return this->_txCount; };
     const std::vector<Tx::Base>& transactions() { return this->_transactions; };
     const uint64_t blockSize();
-    /**
-     * TODO: TransactionBase (more specifically rlp()) is too slow (maybe not too slow lol),
-     * we should try and refactor that first before thinking about
-     * adding the block hash as a variable instead of serializing it
-     * every time getBlockHash() is called.
-     * This might be a good idea if blocks get too big.
-     */
     std::string getBlockHash(); // Hash (in bytes)
     std::string serializeToBytes();
-
 
     // When transactions are indexed. the block is considered to be on the chain.
     void indexTxs();

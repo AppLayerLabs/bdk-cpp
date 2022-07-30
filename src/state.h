@@ -13,11 +13,6 @@
 #include "chainHead.h"
 #include "transaction.h"
 
-struct Account {
-  uint256_t balance = 0;
-  uint32_t nonce = 0;
-};
-
 class VMCommClient; // Forward declaration.
 
 /**

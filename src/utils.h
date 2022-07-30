@@ -13,8 +13,8 @@
 #include "keccak.hpp"
 
 using json = nlohmann::ordered_json;
-typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>   uint256_t;
-typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>   uint160_t;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>> uint256_t;
+typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>> uint160_t;
 using bytes = std::vector<uint8_t>;
 
 template <typename ElemT>
@@ -68,6 +68,11 @@ namespace Utils {
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
 }
 
+struct Account {
+  uint256_t balance = 0;
+  uint32_t nonce = 0;
+};
+
 class Address {
   private:
     std::string innerAddress = "";
@@ -94,11 +99,11 @@ class Address {
     bool operator==(const Address& rAddress) const { return bool(innerAddress == rAddress.innerAddress); }
 };
 
-
 template <>
 struct std::hash<Address> {
   size_t operator() (const Address& address) const {
     return std::hash<std::string>()(address.get());
   }
 };
+
 #endif // UTILS_H
