@@ -86,8 +86,8 @@ namespace Tx {
 // Hash function for std::unordered_map
 template <>
 struct std::hash<Tx::Base> {
-  size_t operator() (const Tx::Base& address) const {
-    return std::hash<std::string>()(address.hash());
+  size_t operator() (const Tx::Base& tx) const {
+    return std::hash<std::string>()(tx.hash());
   }
 };
 
