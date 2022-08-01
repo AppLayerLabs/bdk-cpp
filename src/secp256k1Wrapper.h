@@ -9,7 +9,6 @@
 #include <string>
 
 namespace Secp256k1 {
-  secp256k1_context const* getCtx();
   std::string recover(std::string& sig, std::string& messageHash);
   void appendSignature(
     const uint256_t &r, const uint256_t &s, const uint8_t &v,
