@@ -76,31 +76,29 @@ uint160_t Utils::bytesToUint160(const std::string &bytes) {
 uint64_t Utils::bytesToUint64(const std::string &bytes) {
   if (bytes.size() != 8) throw; // Invalid size;
   uint64_t ret;
-  ret |= uint64_t(bytes[0]) << 56;
-  ret |= uint64_t(bytes[1]) << 48;
-  ret |= uint64_t(bytes[2]) << 40;
-  ret |= uint64_t(bytes[3]) << 32;
-  ret |= uint64_t(bytes[4]) << 24;
-  ret |= uint64_t(bytes[5]) << 16;
-  ret |= uint64_t(bytes[6]) << 8;
-  ret |= uint64_t(bytes[7]);
-  return ret;
+  std::memcpy(&ret, bytes.data(), 8);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    return __builtin_bswap64(ret);
+  #else 
+    return ret;
+  #endif
 }
 
 uint32_t Utils::bytesToUint32(const std::string &bytes) {
   if (bytes.size() != 4) throw; // Invalid size
   uint32_t ret;
-  ret |= bytes[0] << 24;
-  ret |= bytes[1] << 16;
-  ret |= bytes[2] << 8;
-  ret |= bytes[3];
-  return ret;
+  std::memcpy(&ret, bytes.data(), 4);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    return __builtin_bswap32(ret);
+  #else
+    return ret;
+  #endif
 }
 
 uint8_t Utils::bytesToUint8(const std::string &bytes) {
   if (bytes.size() != 1) throw; // Invalid size
   uint8_t ret;
-  ret |= bytes[0];
+  ret = bytes[0];
   return ret;
 }
 
