@@ -20,11 +20,13 @@ set(CMAKE_CXX_FLAGS "-O2")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # "ZLIB_USE_STATIC_LIBS" was added in 3.24
 set(LEVELDB_USE_STATIC_LIBS ON)
+set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "C++ Standard is required: ${CMAKE_CXX_STANDARD_REQUIRED}")
 message(STATUS "C++ extensions: ${CMAKE_CXX_EXTENSIONS}")
 message(STATUS "Using PIC: ${CMAKE_POSITION_INDEPENDENT_CODE}")
 message(STATUS "Find libs with suffix: ${CMAKE_FIND_LIBRARY_SUFFIXES}")
+message("Building tests: ${BUILD_TESTS}")
 
 cable_add_buildinfo_library(PROJECT_NAME subnetooor)
 
@@ -271,3 +273,57 @@ target_link_libraries(subnetooord aleth
   absl::flags Secp256k1
 )
 
+# Required sources for test from src/ (different folder)
+
+
+set(SUBNETOOOR_TESTS_HDRS
+  src/subnet.h src/utils.h src/block.h src/grpcserver.h
+  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h src/transaction.h src/secp256k1Wrapper.h src/keccak.hpp
+)
+
+set(SUBNETOOOR_TESTS_SRCS
+  src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp
+  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp
+  src/httpserver.cpp src/subnetRPC.cpp src/secp256k1Wrapper.cpp
+)
+
+
+
+# Build helper test program
+if(BUILD_TESTS)
+  add_executable(subnetooord-tests
+    "tests/main.cpp"
+    "tests/tests.h"
+    "tests/transaction.cpp"
+    ${SUBNETOOOR_TESTS_HDRS}
+    ${SUBNETOOOR_TESTS_SRCS}
+    ${PROTO_VM_SRCS} ${PROTO_VM_HDRS}
+    ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
+    ${PROTO_METRICS_SRCS} ${PROTO_METRICS_HDRS}
+    ${PROTO_ALIASREADER_SRCS} ${PROTO_ALIASREADER_HDRS}
+    ${PROTO_APPSENDER_SRCS} ${PROTO_APPSENDER_HDRS}
+    ${PROTO_KEYSTORE_SRCS} ${PROTO_KEYSTORE_HDRS}
+    ${PROTO_MESSENGER_SRCS} ${PROTO_MESSENGER_HDRS}
+    ${PROTO_SHAREDMEMORY_SRCS} ${PROTO_SHAREDMEMORY_HDRS}
+    ${PROTO_RPCDB_SRCS} ${PROTO_RPCDB_HDRS}
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/vm.grpc.pb.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/appsender.grpc.pb.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/keystore.grpc.pb.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/messenger.grpc.pb.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
+  )
+  target_include_directories(subnetooord-tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_link_libraries(subnetooord-tests aleth
+    ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
+    ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
+    absl::flags Secp256k1)
+endif()
