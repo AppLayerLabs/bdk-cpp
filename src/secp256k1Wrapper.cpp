@@ -18,7 +18,7 @@ std::string Secp256k1::recover(std::string& sig, std::string& messageHash) {
   secp256k1_context_destroy(ctx);
   assert (serializedPubkeySize == serializedPubkey.size());
   // Expect single byte header of value 0x04 -- uncompressed pubkey.
-  assert(serializedPubkey[0] == "0x04");
+  assert(serializedPubkey[0] == 0x04);
   // return pubkey without the 0x04 header.
   return std::string(serializedPubkey.begin() + 1, serializedPubkey.end());
 }

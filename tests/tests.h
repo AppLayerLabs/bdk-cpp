@@ -2,6 +2,7 @@
 #define TESTS_H
 
 #include <iostream>
+#include <cassert>
 
 namespace Tests {
 

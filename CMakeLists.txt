@@ -5,11 +5,11 @@ include(cmake/cable/bootstrap.cmake)
 include(CableBuildInfo)
 include(CableBuildType)
 include(GNUInstallDirs)
-cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Debug;Release;RelWithDebInfo)
+cable_set_build_type(DEFAULT Debug CONFIGURATION_TYPES Debug;Release;RelWithDebInfo)
 
 # Map current configuration to configurations of imported targets.
-set(CMAKE_MAP_IMPORTED_CONFIG_Debug Release)
-set(CMAKE_MAP_IMPORTED_CONFIG_RelWithDebInfo Release)
+set(CMAKE_MAP_IMPORTED_CONFIG_Debug Debug)
+set(CMAKE_MAP_IMPORTED_CONFIG_RelWithDebInfo Debug)
 
 # Project data
 project(subnetooor VERSION 0.0.1 DESCRIPTION "Sparq subnet")
