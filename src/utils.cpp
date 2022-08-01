@@ -124,17 +124,43 @@ uint256_t Utils::hexToUint(std::string &hex) {
 }
 
 std::string Utils::hexToBytes(std::string hex) {
+  patchHex(hex);
   std::string ret;
-  for (uint64_t i = 0; i < hex.size(); i += 2) {
-    std::stringstream ss;
-    std::string byteStr = std::string("") + hex[i] + hex[i+1];
-    uint16_t byteInt;
-    ss << std::hex << byteStr;
-    ss >> byteInt;
-    uint8_t byte = byteInt >> 0;
-    ret += byte;
+  uint32_t index = 0;
+  
+  if(hex.size() % 2 != 0) {
+    int h = fromHexChar(hex[index]);
+    if (h != -1) {
+      ret += uint8_t(h);
+    } else {
+      throw;
+    }
+    ++index;
+  }
+
+  while (index < hex.size()) {
+    int h = fromHexChar(hex[index]);
+    int l = fromHexChar(hex[index+1]);
+    if (h != -1 && l != -1) {
+      ret += uint8_t(h * 16 + l);
+    } else {
+      // TODO: Error handling, error handling everywhere;
+      return "";
+    }
+    index += 2;
   }
   return ret;
+}
+
+int Utils::fromHexChar(char _i) noexcept
+{
+	if (_i >= '0' && _i <= '9')
+		return _i - '0';
+	if (_i >= 'a' && _i <= 'f')
+		return _i - 'a' + 10;
+	if (_i >= 'A' && _i <= 'F')
+		return _i - 'A' + 10;
+	return -1;
 }
 
 std::string Utils::bytesToHex(std::string bytes) { return dev::toHex(bytes); }

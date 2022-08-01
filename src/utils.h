@@ -53,6 +53,7 @@ namespace Utils {
   uint64_t bytesToUint64(const std::string &bytes);
   uint32_t bytesToUint32(const std::string &bytes);
   uint8_t bytesToUint8(const std::string &bytes);
+  int fromHexChar(char c) noexcept;
   void patchHex(std::string& str);
   template <typename T> std::string uintToHex(T i) {
     std::stringstream ss;
