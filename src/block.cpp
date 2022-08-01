@@ -92,16 +92,21 @@ bool Block::appendTx(Tx::Base &tx) {
 }
 
 void Block::indexTxs() {
+  Utils::LogPrint(Log::block, __func__, "Indexing transactions...");
   if (this->finalized) {
     if (this->inChain) {
-      Utils::LogPrint(Log::block, __func__, " Block is in chain and txs are indexed.");
+      Utils::LogPrint(Log::block, __func__, " Block is in chain and txs are already indexed.");
+      return;
     }
     uint64_t index = 0;
     for (auto &tx : this->_transactions) {
       tx.setBlockIndex(index);
+      ++index;
     }
+    this->inChain = true;
+    Utils::LogPrint(Log::block, __func__, "Indexing transactions... done");
   } else {
-    Utils::LogPrint(Log::block, __func__, " Block is not finalized. cannot index transactions");
+    Utils::LogPrint(Log::block, __func__, " Block is not finalized. cannot index transactions, ignoring call.");
   }
 }
 
