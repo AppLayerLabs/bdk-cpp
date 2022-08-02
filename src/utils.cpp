@@ -79,7 +79,7 @@ uint64_t Utils::bytesToUint64(const std::string &bytes) {
   std::memcpy(&ret, bytes.data(), 8);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     return __builtin_bswap64(ret);
-  #else 
+  #else
     return ret;
   #endif
 }
@@ -125,8 +125,8 @@ std::string Utils::hexToBytes(std::string hex) {
   patchHex(hex);
   std::string ret;
   uint32_t index = 0;
-  
-  if(hex.size() % 2 != 0) {
+
+  if (hex.size() % 2 != 0) {
     int h = fromHexChar(hex[index]);
     if (h != -1) {
       ret += uint8_t(h);
@@ -150,15 +150,11 @@ std::string Utils::hexToBytes(std::string hex) {
   return ret;
 }
 
-int Utils::fromHexChar(char _i) noexcept
-{
-	if (_i >= '0' && _i <= '9')
-		return _i - '0';
-	if (_i >= 'a' && _i <= 'f')
-		return _i - 'a' + 10;
-	if (_i >= 'A' && _i <= 'F')
-		return _i - 'A' + 10;
-	return -1;
+int Utils::fromHexChar(char c) noexcept {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F')	return c - 'A' + 10;
+  return -1;
 }
 
 std::string Utils::bytesToHex(std::string bytes) { return dev::toHex(bytes); }
@@ -174,3 +170,4 @@ void Utils::sha3(const std::string &input, std::string &output) {
   output.resize(32);
   keccakUint8_256(reinterpret_cast<unsigned char*>(output.data()), reinterpret_cast<const unsigned char*>(input.data()), input.size());
 }
+
