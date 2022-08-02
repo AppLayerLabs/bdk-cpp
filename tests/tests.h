@@ -5,8 +5,10 @@
 #include <cassert>
 
 namespace Tests {
-
+  // Tx::Base
   void transactions();
+
+  // Utils
   void uint256ToBytes();
   void uint160ToBytes();
   void uint64ToBytes();
@@ -17,7 +19,6 @@ namespace Tests {
   void bytesToUint64();
   void bytesToUint32();
   void bytesToUint8();
-
 }
 
 #endif // TESTS_H

@@ -273,24 +273,19 @@ target_link_libraries(subnetooord aleth
   absl::flags Secp256k1
 )
 
-# Required sources for test from src/ (different folder)
-
-
-set(SUBNETOOOR_TESTS_HDRS
-  src/subnet.h src/utils.h src/block.h src/grpcserver.h
-  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h src/transaction.h src/secp256k1Wrapper.h src/keccak.hpp
-)
-
-set(SUBNETOOOR_TESTS_SRCS
-  src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp
-  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp
-  src/httpserver.cpp src/subnetRPC.cpp src/secp256k1Wrapper.cpp
-)
-
-
-
 # Build helper test program
 if(BUILD_TESTS)
+  # Required sources for test from src/ (different folder)
+  set(SUBNETOOOR_TESTS_HDRS
+    src/subnet.h src/utils.h src/block.h src/grpcserver.h src/db.h
+    src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h
+    src/transaction.h src/secp256k1Wrapper.h src/keccak.hpp
+  )
+  set(SUBNETOOOR_TESTS_SRCS
+    src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp src/db.cpp
+    src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp
+    src/httpserver.cpp src/subnetRPC.cpp src/secp256k1Wrapper.cpp
+  )
   add_executable(subnetooord-tests
     "tests/main.cpp"
     "tests/tests.h"
@@ -326,5 +321,7 @@ if(BUILD_TESTS)
   target_link_libraries(subnetooord-tests aleth
     ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
     ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-    absl::flags Secp256k1)
+    absl::flags Secp256k1
+  )
 endif()
+

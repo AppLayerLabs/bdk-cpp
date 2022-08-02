@@ -1,6 +1,7 @@
 #include "tests.h"
 #include "../src/utils.h"
 #include <include/web3cpp/devcore/CommonData.h>
+
 void Tests::uint256ToBytes() {
   std::string expected = Utils::hexToBytes("0x00000000000000000000000000000000000000000000000011234d578edbdd73");
   uint256_t number(1234915761283915123);
@@ -71,7 +72,7 @@ void Tests::bytesToUint32() {
   uint32_t actual = Utils::bytesToUint32(bytes);
   assert(expected == actual);
   std::cout << __func__ << " OK" << std::endl;
-};
+}
 
 void Tests::bytesToUint8() {
   uint32_t expected(115);
@@ -79,4 +80,5 @@ void Tests::bytesToUint8() {
   uint8_t actual = Utils::bytesToUint8(bytes);
   assert(expected == actual);
   std::cout << __func__ << " OK" << std::endl;
-};
+}
+
