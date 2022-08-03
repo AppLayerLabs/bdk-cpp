@@ -59,9 +59,9 @@ std::string Secp256k1::toPub(std::string &privKey) {
 }
 
 std::string Secp256k1::toAddress(std::string &pubKey) {
-  std::string pubkeyHash;
-  Utils::sha3(pubkey, pubkeyHash);
-  return pubkeyHash.substr(12); // Address = pubkeyHash[12..32], no "0x"
+  std::string pubKeyHash;
+  Utils::sha3(pubKey, pubKeyHash);
+  return pubKeyHash.substr(12); // Address = pubKeyHash[12..32], no "0x"
 }
 
 std::string Secp256k1::sign(std::string &privKey, std::string &hash) {
