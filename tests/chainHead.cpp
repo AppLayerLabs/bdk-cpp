@@ -18,7 +18,6 @@ void Tests::doBlocks(uint32_t quantity, std::unique_ptr<ChainHead> &chainHead, s
     Block newBestBlock = chainHead->getBlock(nextBlock);
     assert(newBestBlock.prevBlockHash() == latest.getBlockHash());
     assert(newBestBlock.nHeight() == (latest.nHeight() + 1));
-    assert(newBestBlock.transactions().empty());
   }
 
   std::cout << __func__ << " with " << quantity << " blocks OK" << std::endl;
