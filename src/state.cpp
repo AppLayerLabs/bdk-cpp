@@ -1,9 +1,16 @@
 #include "state.h"
-#include "grpcclient.h"
 
-State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
-  this->loadState(dbServer);
-}
+#if !IS_LOCAL_TESTS
+  #include "grpcclient.h"
+  
+  State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
+    this->loadState(dbServer);
+  }
+#else 
+  State::State(std::shared_ptr<DBService> &dbServer) {
+    this->loadState(dbServer);
+  }
+#endif
 
 bool State::loadState(std::shared_ptr<DBService> &dbServer) {
   stateLock.lock();
@@ -54,7 +61,9 @@ std::pair<int, std::string> State::validateTransaction(Tx::Base& tx) {
     Utils::LogPrint(Log::subnet, "validateTransaction", errMsg);
   } else {
     this->mempool[tx.hash()] = tx;
-    grpcClient->requestBlock();
+    #if !IS_LOCAL_TESTS 
+      grpcClient->requestBlock();
+    #endif
   }
 
   stateLock.unlock();

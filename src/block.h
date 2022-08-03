@@ -84,13 +84,29 @@ class Block {
     const uint32_t& txCount() { return this->_txCount; };
     const std::vector<Tx::Base>& transactions() { return this->_transactions; };
     const uint64_t blockSize();
-    std::string getBlockHash(); // Hash (in bytes)
-    std::string serializeToBytes();
+    std::string getBlockHash() const; // Hash (in bytes)
+    std::string serializeToBytes() const;
 
     // When transactions are indexed. the block is considered to be on the chain.
     void indexTxs();
     bool appendTx(Tx::Base &tx);
     bool finalizeBlock();
+
+    bool operator==(const Block& rBlock) const {
+      return bool(
+        this->getBlockHash() == rBlock.getBlockHash()
+      );
+    }
+
+    void operator=(const Block& block) {
+      this->_prevBlockHash = block._prevBlockHash;
+      this->_timestamp = block._timestamp;
+      this->_nHeight = block._nHeight;
+      this->_txCount = block._txCount;
+      this->_transactions = block._transactions;
+      this->finalized = block.finalized;
+      this->inChain = block.inChain;
+    }
 };
 
 #endif  // BLOCK_H

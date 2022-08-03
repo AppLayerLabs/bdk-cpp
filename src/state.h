@@ -29,7 +29,9 @@ class State {
     std::mutex stateLock;
 
     // used to notify avalancheGo when to create new blocks.
-    std::shared_ptr<VMCommClient> &grpcClient;
+    #if !IS_LOCAL_TESTS
+      std::shared_ptr<VMCommClient> &grpcClient;
+    #endif
 
     // Save accounts from memory to DB. Does a batch operation.
     bool saveState(std::shared_ptr<DBService> &dbServer);
@@ -41,7 +43,12 @@ class State {
     bool processNewTransaction(const Tx::Base &tx);
 
   public:
-    State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
+
+    #if !IS_LOCAL_TESTS
+      State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
+    #else
+      State(std::shared_ptr<DBService> &dbServer);
+    #endif
 
     uint256_t getNativeBalance(const Address& address);
     uint256_t getNativeNonce(const Address& address);

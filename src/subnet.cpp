@@ -123,7 +123,11 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()));
 
   // Initialize the State and ChainHead.
-  this->headState = std::make_unique<State>(this->dbServer, this->grpcClient);
+  #if !IS_LOCAL_TESTS
+    this->headState = std::make_unique<State>(this->dbServer, this->grpcClient);
+  #else 
+    this->headState = std::make_unique<State>(this->dbServer);
+  #endif
   this->chainHead = std::make_unique<ChainHead>(this->dbServer);
 
   // Parse the latest block to answer AvalancheGo.

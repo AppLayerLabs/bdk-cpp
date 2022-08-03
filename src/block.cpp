@@ -40,7 +40,7 @@ Block::Block(const std::string &blockData) {
   }
 }
 
-std::string Block::serializeToBytes() {
+std::string Block::serializeToBytes() const {
   // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ... ]
   std::string ret;
   std::string prevBlockHashBytes = Utils::uint256ToBytes(this->_prevBlockHash);
@@ -67,7 +67,7 @@ std::string Block::serializeToBytes() {
   return ret;
 }
 
-std::string Block::getBlockHash() {
+std::string Block::getBlockHash() const {
   std::string ret;
   Utils::sha3(this->serializeToBytes(), ret);
   return ret;

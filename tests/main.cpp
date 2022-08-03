@@ -16,6 +16,9 @@ int main() {
   Tests::bytesToUint32();
   Tests::bytesToUint8();
 
+
+  // Create a simulation of running network, without the gRPC dependencies.
+  Tests::testBlockchain();
   std::cout << "UNIT TESTING FINISHED" << std::endl;
   return 0;
 }

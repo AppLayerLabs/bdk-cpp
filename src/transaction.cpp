@@ -97,3 +97,29 @@ std::string Tx::Base::serialize() const {
   return ret;
 }
 
+void Tx::Base::sign(std::string &privKey) {
+  if (privKey.size() != 32) { throw std::runtime_error("Tx::Base::sign privateKey invalid size"); }
+  auto pubkey = Secp256k1::toPub(privKey);
+  std::string pubkeyHash;
+  Utils::sha3(pubkey, pubkeyHash);
+  Address address(pubkeyHash.substr(12), false); // Address = hash(pubkey)[12] ... [32]
+  std::cout << address.hex() << std::endl;
+  std::cout << this->_from.hex() << std::endl;
+  if (address != this->_from) { throw std::runtime_error("Tx::Base::sign different privateKey"); }
+  std::string messageHash;
+  Utils::sha3(this->rlpSerialize(false), messageHash);
+  std::string signature = Secp256k1::sign(privKey, messageHash);
+  std::cout << Utils::bytesToHex(signature) << std::endl;
+  this->_r = Utils::bytesToUint256(signature.substr(0,32));
+  this->_s = Utils::bytesToUint256(signature.substr(32,32));
+  uint8_t recoveryIds = signature[64];
+  this->_v = recoveryIds + (this->_chainId * 2 + 35);
+  if (!Utils::verifySignature(recoveryIds, this->_r, this->_s)) {
+    throw std::runtime_error("Transaction Signature invalid, signature doesn't fit elliptic curve");
+  }
+
+  this->_verified = true;
+  this->_hasSig = true;
+
+  return;
+}

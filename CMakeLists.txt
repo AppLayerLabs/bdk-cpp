@@ -273,6 +273,8 @@ target_link_libraries(subnetooord aleth
   absl::flags Secp256k1
 )
 
+set_target_properties(subnetooord PROPERTIES COMPILE_FLAGS "-DIS_LOCAL_TESTS=0")
+
 # Build helper test program
 if(BUILD_TESTS)
   # Required sources for test from src/ (different folder)
@@ -291,6 +293,8 @@ if(BUILD_TESTS)
     "tests/tests.h"
     "tests/transaction.cpp"
     "tests/utils.cpp"
+    "tests/state.cpp"
+    "tests/chainHead.cpp"
     ${SUBNETOOOR_TESTS_HDRS}
     ${SUBNETOOOR_TESTS_SRCS}
     ${PROTO_VM_SRCS} ${PROTO_VM_HDRS}
@@ -323,5 +327,6 @@ if(BUILD_TESTS)
     ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
     absl::flags Secp256k1
   )
+  set_target_properties(subnetooord-tests PROPERTIES COMPILE_FLAGS "-DIS_LOCAL_TESTS=1")
 endif()
 

@@ -39,3 +39,48 @@ void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const ui
   return;
 }
 
+
+std::string Secp256k1::toPub(std::string &privKey) {
+  if (privKey.size() != 32) { return ""; }
+  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  secp256k1_pubkey rawPubkey;
+  if (!secp256k1_ec_pubkey_create(ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(privKey.data()))) {
+    return "";
+  }
+
+  std::array<byte, 65> serializedPubkey;
+  auto serializedPubkeySize = serializedPubkey.size();
+
+  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
+  assert (serializedPubkey.size() == serializedPubkeySize);
+  // Expect single byte header of value 0x04 -- uncompressed pubkey.
+  assert(serializedPubkey[0] == 0x04);
+  // return pubkey without the 0x04 header.
+  return std::string(serializedPubkey.begin() + 1, serializedPubkey.end());
+}
+
+std::string Secp256k1::sign(std::string &privKey, std::string &hash) {
+  if (privKey.size() != 32 && hash.size() != 32) { return ""; }
+  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  secp256k1_ecdsa_recoverable_signature rawSig;
+  if (!secp256k1_ecdsa_sign_recoverable(ctx, &rawSig, reinterpret_cast<const unsigned char*>(hash.data()), reinterpret_cast<const unsigned char*>(privKey.data()), nullptr, nullptr)) {
+    return "";
+  }
+
+  int v = 0;
+  std::string signature(65, 0x00);
+  secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, reinterpret_cast<unsigned char*>(signature.data()), &v, &rawSig);
+
+  uint8_t rawV = static_cast<uint8_t>(v);
+  uint256_t r = Utils::bytesToUint256(signature.substr(0,32));
+  uint256_t s = Utils::bytesToUint256(signature.substr(32,32));
+
+  if (s > c_secp256k1n / 2 ) {
+    rawV = static_cast<uint8_t>(rawV ^ 1);
+    s = uint256_t(c_secp256k1n - uint256_t(s));
+  }
+
+  assert (s <= c_secp256k1n / 2);
+  Secp256k1::appendSignature(r, s, v, signature);
+  return signature;
+}

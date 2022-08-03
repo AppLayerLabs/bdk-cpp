@@ -14,6 +14,12 @@ namespace Secp256k1 {
     const uint256_t &r, const uint256_t &s, const uint8_t &v,
     std::string &signature
   );
+
+  std::string toPub(std::string &privKey);
+  std::string toAddress(std::string &pubKey);
+  std::string sign(std::string &privKey, std::string &hash);
 }
+
+
 
 #endif  // SECP256K1_WRAPPER_H
