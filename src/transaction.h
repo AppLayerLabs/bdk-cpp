@@ -35,6 +35,7 @@ namespace Tx {
       // will only be considered _inBlock is block is confirmed.
       bool _inBlock = false;
       bool _verified = false;
+
     public:
       // There are two ways transactions can be parsed fully from a byte string:
       // Directly from RLP (Ethereum rawTransaction), which requires to run secp256k1 to check validity and derive _from. and it is not included in a block
@@ -43,12 +44,11 @@ namespace Tx {
       // TODO: figure out a better way to split non-db and db loading.
       Base(std::string &bytes, bool fromDB);
 
-
       // You can also build your own Tx by inputting the values within the RLP Skeleton
       Base(Address &from, Address &to, uint256_t &value, std::string &data, uint64_t &chainId, uint256_t &nonce, uint256_t &gas, uint256_t &gasPrice) :
         _from(from), _to(to), _value(value), _data(data), _chainId(chainId), _nonce(nonce), _gas(gas), _gasPrice(gasPrice) { }
 
-      // You can also create a empty transaction.
+      // You can also create an empty transaction.
       Base() {};
 
       // Getters

@@ -39,7 +39,6 @@ void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const ui
   return;
 }
 
-
 std::string Secp256k1::toPub(std::string &privKey) {
   if (privKey.size() != 32) { return ""; }
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
@@ -57,6 +56,12 @@ std::string Secp256k1::toPub(std::string &privKey) {
   assert(serializedPubkey[0] == 0x04);
   // return pubkey without the 0x04 header.
   return std::string(serializedPubkey.begin() + 1, serializedPubkey.end());
+}
+
+std::string Secp256k1::toAddress(std::string &pubKey) {
+  std::string pubkeyHash;
+  Utils::sha3(pubkey, pubkeyHash);
+  return pubkeyHash.substr(12); // Address = pubkeyHash[12..32], no "0x"
 }
 
 std::string Secp256k1::sign(std::string &privKey, std::string &hash) {
@@ -84,3 +89,4 @@ std::string Secp256k1::sign(std::string &privKey, std::string &hash) {
   Secp256k1::appendSignature(r, s, v, signature);
   return signature;
 }
+
