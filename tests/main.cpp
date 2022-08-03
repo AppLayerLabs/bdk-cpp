@@ -5,6 +5,7 @@ int main() {
   std::cout << "UNIT TESTING STARTED" << std::endl;
 
   Tests::transactions();
+  Tests::transactionSign();
   Tests::uint256ToBytes();
   Tests::uint160ToBytes();
   Tests::uint64ToBytes();

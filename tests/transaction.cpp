@@ -53,3 +53,33 @@ void Tests::transactions() {
   std::cout << __func__ << " OK" << std::endl;
 }
 
+void Tests::transactionSign() {
+  // Derive private key and address.
+  uint256_t keyI = uint256_t("172381824912738179852131");
+  std::string privKey = Utils::uint256ToBytes(keyI);
+  std::string pubkey = Secp256k1::toPub(privKey);
+  std::string pubkeyHash;
+  Utils::sha3(pubkey, pubkeyHash);
+  Address address(pubkeyHash.substr(12), false);
+
+  // Create tx.
+  Address to("0x1544920afDc2D6de7BbAc245170789D498320498", true);
+  uint256_t value("1000000000000000000");
+  std::string data = "";
+  uint64_t chainId = 8848;
+  uint256_t nonce = 0;
+  uint256_t gas = 21000;
+  uint256_t gasPrice("5000000000");
+  Tx::Base transaction(
+    address,
+    to,
+    value,
+    data,
+    chainId,
+    nonce,
+    gas,
+    gasPrice
+  );
+  transaction.sign(privKey);
+  assert(transaction.rlpSerialize(true) == Utils::hexToBytes("f86e8085012a05f200825208941544920afdc2d6de7bbac245170789d498320498880de0b6b3a764000080824543a05f91b0ac9ad0a00b58d84a0aeda315f9ec5461a1bd899ae26009484df639a13ea035eea065998809fa87d3a7eeed3c330efdae35f5da7113ad1e45c24ce401cc40"));
+}

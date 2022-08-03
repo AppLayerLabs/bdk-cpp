@@ -15,6 +15,8 @@ class Address;
 namespace Tests {
   // Tx::Base
   void transactions();
+  // Tx::Base::Sign
+  void transactionSign();
 
   // Utils 
   void uint256ToBytes();
