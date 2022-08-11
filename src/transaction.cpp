@@ -12,18 +12,24 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
 
   dev::RLP rlp(bytes);
   if (!rlp.isList()) {
-    throw std::runtime_error("transaction RLP is not a list");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("RLP: Transaction is not a list")
+    );
   }
   rlp[0].toIntRef<uint256_t>(this->_nonce);
   rlp[1].toIntRef<uint256_t>(this->_gasPrice);
   rlp[2].toIntRef<uint256_t>(this->_gas);
   if (!rlp[3].isData()) {
-    throw std::runtime_error("recepient RLP must be a byte array");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("RLP: Receiver must be a byte array")
+    );
   }
   this->_to = rlp[3].toInt<uint160_t>();
   rlp[4].toIntRef<uint256_t>(this->_value);
   if (!rlp[5].isData()) {
-    throw std::runtime_error("transaction data RLP must be a byte array");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("RLP: Transaction data must be a byte array")
+    );
   }
   this->_data = rlp[5].toString();
   rlp[6].toIntRef<uint256_t>(this->_v);
@@ -32,16 +38,22 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
   if (_v > 36) {
     this->_chainId = static_cast<uint64_t>((this->_v - 35) / 2);
     if (this->_chainId > std::numeric_limits<uint64_t>::max()) {
-        throw std::runtime_error("transaction chainId too high.");
+      throw std::runtime_error(std::string(__func__) + ": " +
+        std::string("RLP: Transaction chainId too high")
+      );
     }
   } else if (this->_v != 27 && this->_v != 28 ) {
-    throw std::runtime_error("Transaction signature invalid, v is not 27 or 28");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("RLP: Invalid transaction signature - v is not 27 or 28")
+    );
   }
   // Not from DB? Has to have it's signature verified.
   if (!fromDB) {
     uint8_t recoveryId = uint8_t{this->_v - (uint256_t(this->_chainId) * 2 + 35)};
     if (!Utils::verifySignature(recoveryId, this->_r, this->_s)) {
-      throw std::runtime_error("Transaction Signature invalid, signature doesn't fit elliptic curve");;
+      throw std::runtime_error(std::string(__func__) + ": " +
+        std::string("RLP: Invalid transaction signature - doesn't fit elliptic curve verification")
+      );
     }
     std::string sig;
     Secp256k1::appendSignature(this->_r, this->_s, recoveryId, sig);
@@ -54,7 +66,9 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
     this->_from = pubKeyHash.substr(12);  // Address = pubkey[12...32]
     this->_verified = true;
     if (rlp.itemCount() > 9) {
-      throw std::runtime_error("too many fields in the transaction RLP");
+      throw std::runtime_error(std::string(__func__) + ": " +
+        std::string("RLP: Too many fields")
+      );
     }
     return;
   } else {
@@ -90,7 +104,9 @@ std::string Tx::Base::rlpSerialize(bool includeSig) const {
 
 std::string Tx::Base::serialize() const {
   if (!this->_hasSig && !this->_verified) {
-    throw std::runtime_error("Transaction has no signature/not verified to serialize");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Transaction has no signature and/or is not verified")
+    );
   }
   std::string ret = this->rlpSerialize(true);
   ret += Utils::uint32ToBytes(this->_blockIndex) + _from.get() + char(this->_callsContract);
@@ -98,12 +114,20 @@ std::string Tx::Base::serialize() const {
 }
 
 void Tx::Base::sign(std::string &privKey) {
-  if (privKey.size() != 32) { throw std::runtime_error("Tx::Base::sign privateKey invalid size"); }
+  if (privKey.size() != 32) {
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Invalid private key size - expected 32, got ") + std::to_string(privKey.size())
+    );
+  }
   auto pubkey = Secp256k1::toPub(privKey);
   std::string pubkeyHash;
   Utils::sha3(pubkey, pubkeyHash);
   Address address(pubkeyHash.substr(12), false); // Address = hash(pubkey)[12] ... [32]
-  if (address != this->_from) { throw std::runtime_error("Tx::Base::sign different privateKey"); }
+  if (address != this->_from) {
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Private key does not match sender address")
+    );
+  }
   std::string messageHash;
   Utils::sha3(this->rlpSerialize(false), messageHash);
   std::string signature = Secp256k1::sign(privKey, messageHash);
@@ -112,7 +136,9 @@ void Tx::Base::sign(std::string &privKey) {
   uint8_t recoveryIds = signature[64];
   this->_v = recoveryIds + (this->_chainId * 2 + 35);
   if (!Utils::verifySignature(recoveryIds, this->_r, this->_s)) {
-    throw std::runtime_error("Transaction Signature invalid, signature doesn't fit elliptic curve");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Invalid transaction signature - doesn't fit elliptic curve verification")
+    );
   }
 
   this->_verified = true;
