@@ -36,7 +36,7 @@ Block::Block(const std::string &blockData) {
     }
   } catch (std::exception &e) {
     Utils::LogPrint(Log::block, __func__, "Error: " + std::string(e.what()) + " " + dev::toHex(blockData));
-    throw;
+    throw std::runtime_error(std::string(__func__) + ": " + e.what());
   }
 }
 

@@ -82,7 +82,9 @@ namespace Tx {
       void setR(uint256_t& r) { this->_r = r; }
       void setS(uint256_t& s) { this->_s = s; }
       void setBlockIndex (uint64_t& blockIndex) {
-        if (_inBlock) throw std::runtime_error("Transaction already included in a block");
+        if (_inBlock) throw std::runtime_error(std::string(__func__) + ": " +
+          std::string("Transaction already included in a block")
+        );
         this->_blockIndex = blockIndex;
         this->_inBlock = true;
       };
