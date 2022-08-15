@@ -5,8 +5,6 @@
 #include <secp256k1Wrapper.h>
 #include <include/web3cpp/devcore/RLP.h>
 
-// TODO: Error handling
-
 namespace Tx {
   class Base {
     protected:
@@ -41,7 +39,6 @@ namespace Tx {
       // Directly from RLP (Ethereum rawTransaction), which requires to run secp256k1 to check validity and derive _from. and it is not included in a block
       // From database (RLP bytes + Outside RLP section), input from database is trusted as data will be only saved there if included in a block and is already checked.
       // !!! BYTES IS CHANGED IF COMES FROM DB. !!!
-      // TODO: figure out a better way to split non-db and db loading.
       Base(std::string &bytes, bool fromDB);
 
       // You can also build your own Tx by inputting the values within the RLP Skeleton

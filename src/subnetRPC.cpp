@@ -42,11 +42,9 @@ std::string Subnet::processRPCMessage(std::string &req) {
       block = std::make_unique<Block>(chainHead->getBlock(blockNumber));
       Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes()));
     }
-
     json answer;
     answer["number"] = std::string("0x") + Utils::uintToHex(block->nHeight());
     answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash());
-
     answer["parentHash"] = std::string("0x") + dev::toHex(block->prevBlockHash());
     answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
     answer["sha3Uncles"] = "0x";
@@ -80,7 +78,6 @@ std::string Subnet::processRPCMessage(std::string &req) {
   if (messageJson["method"] == "eth_getTransactionCount") {
     Address address(messageJson["params"][0].get<std::string>());
     auto addressNonce = this->headState->getNativeNonce(address);
-
     ret["result"] = std::string("0x") + Utils::uintToHex(addressNonce);
   }
   if (messageJson["method"] == "eth_sendRawTransaction") {
@@ -116,8 +113,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
       ret["result"]["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
       ret["result"]["status"] = "0x1";
     } catch (std::exception &e) {
-      // TODO: proper error handling
-      Utils::LogPrint(Log::subnet, "eth_getTransactionReceipt: tx not found ", e.what());
+      Utils::LogPrint(Log::subnet, "eth_getTransactionReceipt: tx not found: ", e.what());
     }
   }
   if (messageJson["method"] == "eth_getBlockByHash") {

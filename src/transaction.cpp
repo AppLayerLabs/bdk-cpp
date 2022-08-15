@@ -1,9 +1,6 @@
 #include "transaction.h"
 
-// TODO: I believe there is multiple unecessary copies with
-// It might repeat the same code inside the conditions, but I believe it is better organized this way.
 Tx::Base::Base(std::string &bytes, bool fromDB) {
-  // Parse RLP
   std::string appendedBytes;
   if (fromDB) {
     appendedBytes = bytes.substr(bytes.size() - 25);
@@ -42,13 +39,13 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
         std::string("RLP: Transaction chainId too high")
       );
     }
-  } else if (this->_v != 27 && this->_v != 28 ) {
+  } else if (this->_v != 27 && this->_v != 28) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("RLP: Invalid transaction signature - v is not 27 or 28")
     );
   }
-  // Not from DB? Has to have it's signature verified.
   if (!fromDB) {
+    // If tx is not coming from DB, we have to verify its signature
     uint8_t recoveryId = uint8_t{this->_v - (uint256_t(this->_chainId) * 2 + 35)};
     if (!Utils::verifySignature(recoveryId, this->_r, this->_s)) {
       throw std::runtime_error(std::string(__func__) + ": " +
@@ -72,9 +69,10 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
     }
     return;
   } else {
-    // Simply read the information from the extra bytes.
-    // There is no need to redo the expensive secp256k1 calculation. and tx is also included in a block.
-    // FROM DB == TX IN BLOCK (maybe dangerous?)
+    // If tx is coming from DB, we simply read the information from the extra bytes.
+    // Txs that come from DB are included in a block, which means they are
+    // already verified, so we don't have to redo the expensive secp256k1 calculation
+    // to verify their signature.
     this->_blockIndex = Utils::bytesToUint32(appendedBytes.substr(0, 4));
     this->_from = appendedBytes.substr(4, 20);
     this->_callsContract = bool(char(appendedBytes[24]));
@@ -122,7 +120,7 @@ void Tx::Base::sign(std::string &privKey) {
   auto pubkey = Secp256k1::toPub(privKey);
   std::string pubkeyHash;
   Utils::sha3(pubkey, pubkeyHash);
-  Address address(pubkeyHash.substr(12), false); // Address = hash(pubkey)[12] ... [32]
+  Address address(pubkeyHash.substr(12), false); // Address = hash(pubkey)[12]...[32]
   if (address != this->_from) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Private key does not match sender address")
@@ -140,9 +138,8 @@ void Tx::Base::sign(std::string &privKey) {
       std::string("Invalid transaction signature - doesn't fit elliptic curve verification")
     );
   }
-
   this->_verified = true;
   this->_hasSig = true;
-
   return;
 }
+

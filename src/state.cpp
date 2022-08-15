@@ -2,11 +2,11 @@
 
 #if !IS_LOCAL_TESTS
   #include "grpcclient.h"
-  
+
   State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
     this->loadState(dbServer);
   }
-#else 
+#else
   State::State(std::shared_ptr<DBService> &dbServer) {
     this->loadState(dbServer);
   }
@@ -50,8 +50,9 @@ std::pair<int, std::string> State::validateTransaction(Tx::Base& tx) {
   if (this->nativeAccount[tx.from()].nonce != tx.nonce()) {
     err = -32003; errMsg = "Nonce mismatch";
   } else if (this->nativeAccount[tx.from()].balance < tx.value()) {
-    err = -32003; errMsg = "Insufficient balance: required: " + boost::lexical_cast<std::string>(tx.value()) 
-                         + " available: " + boost::lexical_cast<std::string>(this->nativeAccount[tx.from()].balance);
+    err = -32003; errMsg = "Insufficient balance - required: " +
+      boost::lexical_cast<std::string>(tx.value()) + " available: " +
+      boost::lexical_cast<std::string>(this->nativeAccount[tx.from()].balance);
   } else if (this->mempool.count(tx.hash())) {
     err = -32003; errMsg = "Transaction already exists in mempool";
   }
@@ -61,7 +62,7 @@ std::pair<int, std::string> State::validateTransaction(Tx::Base& tx) {
     Utils::LogPrint(Log::subnet, "validateTransaction", errMsg);
   } else {
     this->mempool[tx.hash()] = tx;
-    #if !IS_LOCAL_TESTS 
+    #if !IS_LOCAL_TESTS
       grpcClient->requestBlock();
     #endif
   }
