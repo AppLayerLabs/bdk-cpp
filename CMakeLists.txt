@@ -223,14 +223,39 @@ add_custom_target(gen-grpc ALL DEPENDS
 
 # Set project headers and sources
 set(SUBNETOOOR_HDRS
-  src/subnet.h src/utils.h src/block.h src/grpcserver.h
-  src/db.h src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h src/transaction.h src/secp256k1Wrapper.h src/keccak.hpp
+  src/abi.h
+  src/block.h
+  src/chainHead.h
+  src/contract.h
+  src/db.h
+  src/erc20.h
+  src/erc721.h
+  src/grpcclient.h
+  src/grpcserver.h
+  src/httpserver.h
+  src/keccak.hpp
+  src/secp256k1Wrapper.h
+  src/state.h
+  src/subnet.h
+  src/transaction.h
+  src/utils.h
 )
 
 set(SUBNETOOOR_SRCS
-  src/main.cpp src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp
-  src/db.cpp src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp
-  src/httpserver.cpp src/subnetRPC.cpp src/secp256k1Wrapper.cpp
+  src/block.cpp
+  src/chainHead.cpp
+  src/db.cpp
+  src/erc20.cpp
+  src/grpcclient.cpp
+  src/grpcserver.cpp
+  src/httpserver.cpp
+  src/secp256k1Wrapper.cpp
+  src/state.cpp
+  src/subnet.cpp
+  src/subnetRPC.cpp
+  src/transaction.cpp
+  src/utils.cpp
+  src/main.cpp
 )
 
 #message(STATUS ${SUBNETOOOR_HDRS})
