@@ -1,6 +1,6 @@
 #include "tests.h"
-#include "../src/chainHead.h"
-#include "../src/state.h"
+#include "../src/core/chainHead.h"
+#include "../src/core/state.h"
 
 void Tests::doBlocks(uint32_t quantity, std::unique_ptr<ChainHead> &chainHead, std::unique_ptr<State> &state) {
   auto latest = chainHead->latest();

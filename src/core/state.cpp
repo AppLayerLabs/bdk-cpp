@@ -1,15 +1,13 @@
 #include "state.h"
 
 #if !IS_LOCAL_TESTS
-  #include "grpcclient.h"
-
-  State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
-    this->loadState(dbServer);
-  }
+State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
+  this->loadState(dbServer);
+}
 #else
-  State::State(std::shared_ptr<DBService> &dbServer) {
-    this->loadState(dbServer);
-  }
+State::State(std::shared_ptr<DBService> &dbServer) {
+  this->loadState(dbServer);
+}
 #endif
 
 bool State::loadState(std::shared_ptr<DBService> &dbServer) {

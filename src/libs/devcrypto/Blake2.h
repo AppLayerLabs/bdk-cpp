@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <include/web3cpp/devcore/Common.h>
+#include "../devcore/Common.h"
 
 namespace dev
 {

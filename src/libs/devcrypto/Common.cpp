@@ -2,19 +2,20 @@
 // Copyright 2013-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-
-#include <web3cpp/devcore/Guards.h>  // <boost/thread> conflicts with <thread>
-#include <web3cpp/devcrypto/Common.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/pwdbased.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/modes.h>
 #include <libscrypt.h>
-#include <web3cpp/devcore/SHA3.h>
-#include <web3cpp/devcore/RLP.h>
-#include <web3cpp/devcrypto/AES.h>
-#include <web3cpp/devcrypto/CryptoPP.h>
-#include <web3cpp/devcrypto/Exceptions.h>
+
+#include "../devcore/Guards.h"  // <boost/thread> conflicts with <thread>
+#include "../devcore/RLP.h"
+#include "../devcore/SHA3.h"
+#include "AES.h"
+#include "Common.h"
+#include "CryptoPP.h"
+#include "Exceptions.h"
+
 using namespace dev;
 using namespace dev::crypto;
 
@@ -34,7 +35,6 @@ bool dev::decrypt(Secret const& _k, bytesConstRef _cipher, bytes& o_plaintext)
     o_plaintext = std::move(io);
     return true;
 }
-
 void dev::encryptECIES(Public const& _k, bytesConstRef _plain, bytes& o_cipher)
 {
     encryptECIES(_k, bytesConstRef(), _plain, o_cipher);
@@ -185,7 +185,7 @@ h256 crypto::kdf(Secret const& _priv, h256 const& _hash)
     sha3mac(Secret::random().ref(), _priv.ref(), s.ref());
     s ^= _hash;
     sha3(s.ref(), s.ref());
-    
+
     if (!s || !_hash || !_priv)
         BOOST_THROW_EXCEPTION(InvalidState());
     return s;

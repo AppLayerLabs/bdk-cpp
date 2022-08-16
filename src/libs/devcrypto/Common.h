@@ -8,10 +8,11 @@
 #pragma once
 
 #include <mutex>
-#include <include/web3cpp/devcore/Address.h>
-#include <include/web3cpp/devcore/Common.h>
-#include <include/web3cpp/devcore/Exceptions.h>
-#include <include/web3cpp/devcore/FixedHash.h>
+
+#include "../devcore/Address.h"
+#include "../devcore/Common.h"
+#include "../devcore/Exceptions.h"
+#include "../devcore/FixedHash.h"
 
 namespace dev
 {

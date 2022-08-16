@@ -10,17 +10,15 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
-#include <nlohmann/json.hpp>
-
-#include <web3cpp/devcore/CommonIO.h>
-#include <web3cpp/devcore/FileSystem.h>
-#include <web3cpp/devcore/FileSystem.h>
-#include <web3cpp/devcore/FixedHash.h>
-#include <web3cpp/devcore/Guards.h>
-#include <web3cpp/devcore/SHA3.h>
-#include <web3cpp/devcrypto/Exceptions.h>
-
+#include "../devcore/CommonIO.h"
+#include "../devcore/FileSystem.h"
+#include "../devcore/FileSystem.h"
+#include "../devcore/FixedHash.h"
+#include "../devcore/Guards.h"
+#include "../devcore/SHA3.h"
+#include "../json.hpp"
 #include "Common.h"
+#include "Exceptions.h"
 
 using namespace dev;
 using json = nlohmann::ordered_json;

@@ -2,8 +2,7 @@
 // Copyright 2015-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-
-#include <web3cpp/devcrypto/Hash.h>
+#include "Hash.h"
 
 using namespace dev;
 

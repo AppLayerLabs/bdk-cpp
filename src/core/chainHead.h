@@ -1,9 +1,9 @@
 #ifndef CHAINHEAD_H
 #define CHAINHEAD_H
 
-#include "utils.h"
 #include "block.h"
 #include "db.h"
+#include "utils.h"
 
 class ChainHead {
   private:

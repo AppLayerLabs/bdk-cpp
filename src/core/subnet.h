@@ -1,16 +1,20 @@
 #ifndef SUBNET_H
 #define SUBNET_H
 
-#include <nlohmann/json.hpp>
-
+#include "../libs/json.hpp"
+#include "../net/grpcclient.h"
+#include "../net/grpcserver.h"
+#include "../net/httpserver.h"
 #include "block.h"
-#include "grpcserver.h"
-#include "grpcclient.h"
 #include "db.h"
 #include "state.h"
-#include "httpserver.h"
 
 using json = nlohmann::ordered_json;
+using grpc::Server;
+
+// Forward declarations.
+class HTTPServer;
+class VMServiceImplementation;
 
 struct InitializeRequest {
   uint32_t networkId;

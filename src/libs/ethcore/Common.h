@@ -1,15 +1,16 @@
 // Aleth: Ethereum C++ client, tools and libraries.
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
-#pragma once
 
-#include <include/web3cpp/devcore/Address.h>
-#include <include/web3cpp/devcore/Common.h>
-#include <include/web3cpp/devcore/Exceptions.h>
-#include <include/web3cpp/devcore/FixedHash.h>
+#pragma once
 
 #include <functional>
 #include <string>
+
+#include "../devcore/Address.h"
+#include "../devcore/Common.h"
+#include "../devcore/Exceptions.h"
+#include "../devcore/FixedHash.h"
 
 namespace dev
 {

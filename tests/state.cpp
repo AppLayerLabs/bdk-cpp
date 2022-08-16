@@ -1,9 +1,9 @@
 #include "tests.h"
-#include "../src/db.h"
-#include "../src/chainHead.h"
-#include "../src/state.h"
-#include "../src/block.h"
-#include "../src/secp256k1Wrapper.h"
+#include "../src/core/db.h"
+#include "../src/core/chainHead.h"
+#include "../src/core/state.h"
+#include "../src/core/block.h"
+#include "../src/core/secp256k1Wrapper.h"
 
 void Tests::testBlockchain() {
   // Start DB.

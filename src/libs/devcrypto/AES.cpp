@@ -2,12 +2,13 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-#include <web3cpp/devcrypto/AES.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/filters.h>
 #include <cryptopp/pwdbased.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/sha.h>
+
+#include "AES.h"
 
 using namespace dev;
 using namespace dev::crypto;

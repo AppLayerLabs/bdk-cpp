@@ -2,9 +2,9 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-#include <web3cpp/devcore/TrieHash.h>
-#include <web3cpp/devcore/TrieCommon.h>
-#include <web3cpp/devcore/TrieDB.h>	// @TODO replace ASAP!
+#include "TrieCommon.h"
+#include "TrieDB.h"	// @TODO replace ASAP!
+#include "TrieHash.h"
 
 namespace dev
 {

@@ -2,8 +2,6 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-#include <web3cpp/devcore/CommonIO.h>
-#include <web3cpp/devcore/FileSystem.h>
 #include <iostream>
 #include <cstdlib>
 #include <fstream>
@@ -13,8 +11,13 @@
 #else
 #include <termios.h>
 #endif
-#include <web3cpp/devcore/Exceptions.h>
+
 #include <boost/filesystem.hpp>
+
+#include "CommonIO.h"
+#include "Exceptions.h"
+#include "FileSystem.h"
+
 using namespace dev;
 
 namespace fs = boost::filesystem;

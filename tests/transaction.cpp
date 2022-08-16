@@ -1,6 +1,6 @@
 #include "tests.h"
-#include "../src/utils.h"
-#include "../src/transaction.h"
+#include "../src/core/utils.h"
+#include "../src/core/transaction.h"
 
 void Tests::transactions() {
   std::string tx1Bytes = Utils::hexToBytes("0xf86e8085012a05f20082520894da3ef932f6c1dc41055f7c196c416be5c3c34fe788016345785d8a000080824544a00177cae5d48dcc8750f0647d18797b083ab5ab8ac1ea6e6c5c5ebdc3692533eea008574e6559f910a452af89db94a336d2c402bd27a03404c7f1e2ca5172fb4dec");

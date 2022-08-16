@@ -1,9 +1,11 @@
 // Aleth: Ethereum C++ client, tools and libraries.
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
-#include <web3cpp/devcore/StateCacheDB.h>
-#include <web3cpp/devcore/Common.h>
-#include <web3cpp/devcore/CommonData.h>
+
+#include "Common.h"
+#include "CommonData.h"
+#include "StateCacheDB.h"
+
 using namespace dev;
 
 namespace dev

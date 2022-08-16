@@ -2,10 +2,9 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-
 #pragma once
 
-#include <include/web3cpp/devcore/Exceptions.h>
+#include "../devcore/Exceptions.h"
 
 namespace dev
 {

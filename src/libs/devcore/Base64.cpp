@@ -26,7 +26,7 @@
 /// Adapted from code found on http://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
 /// Originally by René Nyffenegger, modified by some other guy and then devified by Gav Wood.
 
-#include <web3cpp/devcore/Base64.h>
+#include "Base64.h"
 
 using namespace dev;
 

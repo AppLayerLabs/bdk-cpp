@@ -1,6 +1,4 @@
 #include "grpcserver.h"
-#include "subnet.h"
-#include "utils.h"
 
 Status VMServiceImplementation::Initialize(
   ServerContext* context,

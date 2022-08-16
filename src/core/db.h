@@ -3,11 +3,11 @@
 
 #include <iostream>
 
-#include "utils.h"
-
 #include <leveldb/db.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+
+#include "utils.h"
 
 /**
  * As subnets are meant to be run inside a sandbox, we can't create our own DB.

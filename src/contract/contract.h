@@ -5,11 +5,11 @@
 #include <string>
 
 #include <boost/lexical_cast.hpp>
-#include <nlohmann/json.hpp>
-#include <web3cpp/devcore/CommonData.h>
-#include <web3cpp/devcore/FixedHash.h>
 
-#include "db.h"
+#include "../core/db.h"
+#include "../libs/devcore/CommonData.h"
+#include "../libs/devcore/FixedHash.h"
+#include "../libs/json.hpp"
 
 class Contract {
   private:

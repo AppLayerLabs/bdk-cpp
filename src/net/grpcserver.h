@@ -1,23 +1,24 @@
 #ifndef GRPCSERVER_H
 #define GRPCSERVER_H
 
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-#include <sstream>
-#include <fstream>
+#include <atomic>
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <thread>
 
-#include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpc/support/log.h>
+#include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
 
+#include <google/protobuf/message.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
-#include <google/protobuf/message.h>
-#include "../proto/vm.grpc.pb.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/hex.hpp>
@@ -27,19 +28,12 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
-
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/config.hpp>
-#include <cstdlib>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-#include <atomic>
-#include "utils.h"
+
+#include "../../proto/vm.grpc.pb.h"
+#include "../core/subnet.h"
+#include "../core/utils.h"
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;

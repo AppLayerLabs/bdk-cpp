@@ -1,9 +1,9 @@
 #ifndef TRANSACTION_H
 #define TRANSACTION_H
 
+#include "../libs/devcore/RLP.h"
+#include "secp256k1Wrapper.h"
 #include "utils.h"
-#include <secp256k1Wrapper.h>
-#include <include/web3cpp/devcore/RLP.h>
 
 namespace Tx {
   class Base {

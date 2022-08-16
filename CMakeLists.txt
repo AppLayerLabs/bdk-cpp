@@ -61,24 +61,22 @@ include(cmake/ProjectSecp256k1.cmake) # Itamar's fork which includes secp256k1_s
 include_directories(
   "${CMAKE_SOURCE_DIR}"
   "${CMAKE_SOURCE_DIR}/src"
-  "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/include"
 )
 link_directories(
   "${CMAKE_SOURCE_DIR}"
   "${CMAKE_SOURCE_DIR}/src"
-  "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/lib"
 )
 
 # Organize, compile and link aleth libs
-file(GLOB DEVCORE_HEADERS "include/web3cpp/devcore/*.h")
+file(GLOB DEVCORE_HEADERS "src/libs/devcore/*.h")
 file(GLOB DEVCORE_SOURCES "src/libs/devcore/*.cpp")
-file(GLOB DEVCRYPTO_HEADERS "include/web3cpp/devcrypto/*.h")
+file(GLOB DEVCRYPTO_HEADERS "src/libs/devcrypto/*.h")
 file(GLOB DEVCRYPTO_SOURCES "src/libs/devcrypto/*.cpp")
-file(GLOB ETHCORE_HEADERS "include/web3cpp/ethcore/*.h")
+file(GLOB ETHCORE_HEADERS "src/libs/ethcore/*.h")
 file(GLOB ETHCORE_SOURCES "src/libs/ethcore/*.cpp")
 
 add_library(aleth STATIC
@@ -223,38 +221,38 @@ add_custom_target(gen-grpc ALL DEPENDS
 
 # Set project headers and sources
 set(SUBNETOOOR_HDRS
-  src/abi.h
-  src/block.h
-  src/chainHead.h
-  src/contract.h
-  src/db.h
-  src/erc20.h
-  src/erc721.h
-  src/grpcclient.h
-  src/grpcserver.h
-  src/httpserver.h
-  src/keccak.hpp
-  src/secp256k1Wrapper.h
-  src/state.h
-  src/subnet.h
-  src/transaction.h
-  src/utils.h
+  src/contract/abi.h
+  src/contract/contract.h
+  src/contract/erc20.h
+  src/contract/erc721.h
+  src/core/block.h
+  src/core/chainHead.h
+  src/core/db.h
+  src/core/secp256k1Wrapper.h
+  src/core/state.h
+  src/core/subnet.h
+  src/core/transaction.h
+  src/core/utils.h
+  src/libs/keccak.hpp
+  src/net/grpcclient.h
+  src/net/grpcserver.h
+  src/net/httpserver.h
 )
 
 set(SUBNETOOOR_SRCS
-  src/block.cpp
-  src/chainHead.cpp
-  src/db.cpp
-  src/erc20.cpp
-  src/grpcclient.cpp
-  src/grpcserver.cpp
-  src/httpserver.cpp
-  src/secp256k1Wrapper.cpp
-  src/state.cpp
-  src/subnet.cpp
-  src/subnetRPC.cpp
-  src/transaction.cpp
-  src/utils.cpp
+  src/contract/erc20.cpp
+  src/core/block.cpp
+  src/core/chainHead.cpp
+  src/core/db.cpp
+  src/core/secp256k1Wrapper.cpp
+  src/core/state.cpp
+  src/core/subnet.cpp
+  src/core/subnetRPC.cpp
+  src/core/transaction.cpp
+  src/core/utils.cpp
+  src/net/grpcclient.cpp
+  src/net/grpcserver.cpp
+  src/net/httpserver.cpp
   src/main.cpp
 )
 
@@ -304,14 +302,32 @@ set_target_properties(subnetooord PROPERTIES COMPILE_FLAGS "-DIS_LOCAL_TESTS=0")
 if(BUILD_TESTS)
   # Required sources for test from src/ (different folder)
   set(SUBNETOOOR_TESTS_HDRS
-    src/subnet.h src/utils.h src/block.h src/grpcserver.h src/db.h
-    src/grpcclient.h src/state.h src/chainHead.h src/httpserver.h
-    src/transaction.h src/secp256k1Wrapper.h src/keccak.hpp
+    src/core/block.h
+    src/core/chainHead.h
+    src/core/db.h
+    src/core/secp256k1Wrapper.h
+    src/core/state.h
+    src/core/subnet.h
+    src/core/transaction.h
+    src/core/utils.h
+    src/libs/keccak.hpp
+    src/net/grpcclient.h
+    src/net/grpcserver.h
+    src/net/httpserver.h
   )
   set(SUBNETOOOR_TESTS_SRCS
-    src/subnet.cpp src/utils.cpp src/block.cpp src/grpcserver.cpp src/db.cpp
-    src/grpcclient.cpp src/state.cpp src/chainHead.cpp src/transaction.cpp
-    src/httpserver.cpp src/subnetRPC.cpp src/secp256k1Wrapper.cpp
+    src/core/block.cpp
+    src/core/chainHead.cpp
+    src/core/db.cpp
+    src/core/secp256k1Wrapper.cpp
+    src/core/state.cpp
+    src/core/subnet.cpp
+    src/core/subnetRPC.cpp
+    src/core/transaction.cpp
+    src/core/utils.cpp
+    src/net/grpcclient.cpp
+    src/net/grpcserver.cpp
+    src/net/httpserver.cpp
   )
   add_executable(subnetooord-tests
     "tests/main.cpp"

@@ -2,13 +2,12 @@
 // Copyright 2013-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-
-#include <web3cpp/ethcore/Common.h>
-#include <web3cpp/devcore/Base64.h>
-#include <web3cpp/devcore/Terminal.h>
-#include <web3cpp/devcore/CommonIO.h>
-#include <web3cpp/devcore/SHA3.h>
-#include <web3cpp/ethcore/Exceptions.h>
+#include "../devcore/Base64.h"
+#include "../devcore/CommonIO.h"
+#include "../devcore/SHA3.h"
+#include "../devcore/Terminal.h"
+#include "../ethcore/Exceptions.h"
+#include "Common.h"
 
 using namespace dev;
 using namespace dev::eth;

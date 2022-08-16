@@ -2,11 +2,10 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-
-#include <web3cpp/devcore/CommonData.h>
 #include <random>
 
-#include <web3cpp/devcore/Exceptions.h>
+#include "CommonData.h"
+#include "Exceptions.h"
 
 using namespace dev;
 

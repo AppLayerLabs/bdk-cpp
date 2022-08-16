@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <vector>
 
-#include "utils.h"
 #include "transaction.h"
+#include "utils.h"
 
 /**
  * The Block class only contains the structure of blocks and some utilities

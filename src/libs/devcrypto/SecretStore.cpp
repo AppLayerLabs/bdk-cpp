@@ -1,7 +1,8 @@
 // Aleth: Ethereum C++ client, tools and libraries.
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
-#include <web3cpp/devcrypto/SecretStore.h>
+
+#include "SecretStore.h"
 
 static const int c_keyFileVersion = 3;
 

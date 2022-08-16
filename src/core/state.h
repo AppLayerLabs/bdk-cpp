@@ -1,17 +1,20 @@
 #ifndef STATE_H
 #define STATE_H
 
-#include <vector>
-#include <unordered_map>
 #include <atomic>
-#include <deque>
 #include <chrono>
+#include <deque>
+#include <unordered_map>
+#include <vector>
 
-#include "utils.h"
 #include "block.h"
-#include "db.h"
 #include "chainHead.h"
+#include "db.h"
 #include "transaction.h"
+#include "utils.h"
+#if !IS_LOCAL_TESTS
+#include "../net/grpcclient.h"
+#endif
 
 class VMCommClient; // Forward declaration.
 

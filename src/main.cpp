@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 
-#include "subnet.h"
-#include "transaction.h"
+#include "core/subnet.h"
+#include "core/transaction.h"
 
 std::unique_ptr<Subnet> subnet;
 

@@ -2,10 +2,6 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-
-#include <web3cpp/devcore/FileSystem.h>
-#include <web3cpp/devcore/Common.h>
-
 #if defined(_WIN32)
 #include <shlobj.h>
 #else
@@ -14,7 +10,12 @@
 #include <pwd.h>
 #include <unistd.h>
 #endif
+
 #include <boost/filesystem.hpp>
+
+#include "Common.h"
+#include "FileSystem.h"
+
 using namespace dev;
 
 namespace fs = boost::filesystem;
@@ -79,12 +80,12 @@ fs::path dev::getDefaultDataDir(std::string _prefix)
 		if (pwd)
 			homeDir = pwd->pw_dir;
 	}
-	
+
 	if (!homeDir || strlen(homeDir) == 0)
 		dataDirPath = fs::path("/");
 	else
 		dataDirPath = fs::path(homeDir);
-	
+
 	return dataDirPath / ("." + _prefix);
 #endif
 }

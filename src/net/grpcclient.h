@@ -1,48 +1,40 @@
 #ifndef GRPC_CLIENT_H
 #define GRPC_CLIENT_H
 
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-#include <sstream>
-#include <fstream>
 #include <chrono>
 #include <csignal>
-
-#include <grpcpp/ext/proto_server_reflection_plugin.h>
-#include <grpc/support/log.h>
-#include <grpcpp/grpcpp.h>
-
-#include <google/protobuf/text_format.h>
-#include <google/protobuf/util/json_util.h>
-#include <google/protobuf/message.h>
-#include "../proto/aliasreader.grpc.pb.h"
-#include "../proto/appsender.grpc.pb.h"
-#include "../proto/keystore.grpc.pb.h"
-#include "../proto/messenger.grpc.pb.h"
-#include "../proto/sharedmemory.grpc.pb.h"
-#include "db.h"
-
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/hex.hpp>
-#include <boost/thread.hpp>
-
-#include <boost/asio.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/config.hpp>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <thread>
+
+#include <grpc/support/log.h>
+#include <grpcpp/ext/proto_server_reflection_plugin.h>
+#include <grpcpp/grpcpp.h>
+
+#include <google/protobuf/message.h>
+#include <google/protobuf/text_format.h>
+#include <google/protobuf/util/json_util.h>
+
+#include <boost/algorithm/hex.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/config.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
+
+#include "../../proto/aliasreader.grpc.pb.h"
+#include "../../proto/appsender.grpc.pb.h"
+#include "../../proto/keystore.grpc.pb.h"
+#include "../../proto/messenger.grpc.pb.h"
+#include "../../proto/sharedmemory.grpc.pb.h"
+#include "../core/db.h"
 
 using grpc::Channel;
 using grpc::ClientAsyncResponseReader;

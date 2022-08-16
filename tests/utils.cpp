@@ -1,6 +1,6 @@
 #include "tests.h"
-#include "../src/utils.h"
-#include <include/web3cpp/devcore/CommonData.h>
+#include "../src/core/utils.h"
+#include "../src/libs/devcore/CommonData.h"
 
 void Tests::uint256ToBytes() {
   std::string expected = Utils::hexToBytes("0x00000000000000000000000000000000000000000000000011234d578edbdd73");

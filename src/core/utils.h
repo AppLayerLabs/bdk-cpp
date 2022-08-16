@@ -3,14 +3,15 @@
 
 #include <fstream>
 
-#include <boost/multiprecision/cpp_int.hpp>
-#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/lexical_cast.hpp>
-#include <web3cpp/devcore/CommonData.h>
-#include <web3cpp/devcore/FixedHash.h>
-#include <nlohmann/json.hpp>
-#include <ethash/keccak.hpp>
-#include "keccak.hpp"
+#include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
+
+#include "../libs/devcore/CommonData.h"
+#include "../libs/devcore/FixedHash.h"
+#include "../libs/json.hpp"
+#include "../libs/keccak.hpp"
+#include "../libs/keccak.hpp"
 
 using json = nlohmann::ordered_json;
 typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>> uint256_t;

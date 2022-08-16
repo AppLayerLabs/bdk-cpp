@@ -2,8 +2,8 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-#include <web3cpp/devcore/Common.h>
-#include <web3cpp/devcore/Exceptions.h>
+#include "Common.h"
+#include "Exceptions.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -22,7 +22,7 @@ void InvariantChecker::checkInvariants(HasInvariants const* _this, char const* _
     if (!_this->invariants())
     {
         // cwarn << (_pre ? "Pre" : "Post") << "invariant failed in" << _fn << "at" << _file << ":" << _line;
-        BOOST_THROW_EXCEPTION(FailedInvariant() << errinfo_comment(std::string("_fn: ") + _fn + " _file: " + _file + " _line: " + std::to_string(_line))); 
+        BOOST_THROW_EXCEPTION(FailedInvariant() << errinfo_comment(std::string("_fn: ") + _fn + " _file: " + _file + " _line: " + std::to_string(_line)));
     }
 }
 

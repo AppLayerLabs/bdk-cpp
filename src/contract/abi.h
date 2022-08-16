@@ -2,7 +2,8 @@
 #define ABI_H
 
 #include <string>
-#include <nlohmann/json.hpp>
+
+#include "../libs/json.hpp"
 
 class ABI {
   private:

@@ -2,9 +2,8 @@
 // Copyright 2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-#include <web3cpp/devcrypto/Blake2.h>
-
-#include <web3cpp/devcore/Exceptions.h>
+#include "Blake2.h"
+#include "../devcore/Exceptions.h"
 
 // The Blake 2 F compression function implemenation is based on the reference implementation,
 // see https://github.com/BLAKE2/BLAKE2/blob/master/ref/blake2b-ref.c
