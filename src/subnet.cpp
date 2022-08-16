@@ -59,7 +59,7 @@ void Subnet::stop() {
     }
     Utils::LogPrint(Log::subnet, __func__, "HTTP Server stopped");
     // Sleep for 2 seconds and wait for Server shutdown answer
-    Utils::LogPrint(Log::subnet, __func__, "Waiting for Server to shutdown..."); 
+    Utils::LogPrint(Log::subnet, __func__, "Waiting for Server to shutdown...");
     // Subnet::stop() is called from the gRPC Server, so we cannot stop the server here.
     // A thread is created and detached there calling the function below.
   }
@@ -82,9 +82,11 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
    * The initialization request is made by the AvalancheGo Daemon.
    * See vm.proto for more information.
    */
-  if (this->initialized) {
-    Utils::LogPrint(Log::subnet, __func__, "Subnet already initialized.");
-    throw ""; // Subnet was already initialized. This shouldn't be allowed.
+  if (this->initialized) {  // Subnet was already initialized. This is not allowed.
+    Utils::LogPrint(Log::subnet, __func__, "Subnet already initialized");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Subnet already initialized")
+    );
   } else {
     this->initialized = true;
   }
@@ -125,7 +127,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   // Initialize the State and ChainHead.
   #if !IS_LOCAL_TESTS
     this->headState = std::make_unique<State>(this->dbServer, this->grpcClient);
-  #else 
+  #else
     this->headState = std::make_unique<State>(this->dbServer);
   #endif
   this->chainHead = std::make_unique<ChainHead>(this->dbServer);

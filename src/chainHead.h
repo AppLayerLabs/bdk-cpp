@@ -6,7 +6,6 @@
 #include "db.h"
 
 class ChainHead {
-  // TODO: find a way to merge lookupBlockHeightByHash and lookupBlockHashByHeight into one and cut those tables' RAM usage in half
   private:
     std::shared_ptr<DBService> &dbServer;
     std::deque<std::shared_ptr<Block>> internalChainHead;

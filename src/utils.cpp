@@ -60,21 +60,33 @@ std::string Utils::uint8ToBytes(const uint8_t &i) {
 }
 
 uint256_t Utils::bytesToUint256(const std::string &bytes) {
-  if (bytes.size() != 32) throw; // Invalid size.
+  if (bytes.size() != 32) {
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Invalid bytes size - expected 32, got ") + std::to_string(bytes.size())
+    );
+  }
   uint256_t ret;
   boost::multiprecision::import_bits(ret, bytes.begin(), bytes.end(), 8);
   return ret;
 }
 
 uint160_t Utils::bytesToUint160(const std::string &bytes) {
-  if (bytes.size() != 20) throw; // Invalid size.
+  if (bytes.size() != 20) {
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Invalid bytes size - expected 20, got ") + std::to_string(bytes.size())
+    );
+  }
   uint160_t ret;
   boost::multiprecision::import_bits(ret, bytes.begin(), bytes.end(), 8);
   return ret;
 }
 
 uint64_t Utils::bytesToUint64(const std::string &bytes) {
-  if (bytes.size() != 8) throw; // Invalid size;
+  if (bytes.size() != 8) {
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Invalid bytes size - expected 8, got ") + std::to_string(bytes.size())
+    );
+  }
   uint64_t ret;
   std::memcpy(&ret, bytes.data(), 8);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -85,7 +97,11 @@ uint64_t Utils::bytesToUint64(const std::string &bytes) {
 }
 
 uint32_t Utils::bytesToUint32(const std::string &bytes) {
-  if (bytes.size() != 4) throw; // Invalid size
+  if (bytes.size() != 4) {
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Invalid bytes size - expected 4, got ") + std::to_string(bytes.size())
+    );
+  }
   uint32_t ret;
   std::memcpy(&ret, bytes.data(), 4);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -96,7 +112,11 @@ uint32_t Utils::bytesToUint32(const std::string &bytes) {
 }
 
 uint8_t Utils::bytesToUint8(const std::string &bytes) {
-  if (bytes.size() != 1) throw; // Invalid size
+  if (bytes.size() != 1) {
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Invalid bytes size - expected 1, got ") + std::to_string(bytes.size())
+    );
+  }
   uint8_t ret;
   ret = bytes[0];
   return ret;
@@ -126,24 +146,31 @@ std::string Utils::hexToBytes(std::string hex) {
   std::string ret;
   uint32_t index = 0;
 
+  // If odd hex (e.g. "abc"), parse only one char first ("a")
+  // so we don't go out of range later
   if (hex.size() % 2 != 0) {
     int h = fromHexChar(hex[index]);
     if (h != -1) {
       ret += uint8_t(h);
     } else {
-      throw;
+      throw std::runtime_error(std::string(__func__) + ": " +
+        std::string("Invalid hex char: ") + hex[index]
+      );
     }
-    ++index;
+    index++;
   }
 
+  // Parse two by two chars until the end
   while (index < hex.size()) {
     int h = fromHexChar(hex[index]);
     int l = fromHexChar(hex[index+1]);
     if (h != -1 && l != -1) {
       ret += uint8_t(h * 16 + l);
     } else {
-      // TODO: Error handling, error handling everywhere;
-      return "";
+      throw std::runtime_error(std::string(__func__) + ": " +
+        std::string("One or more invalid hex chars: ") +
+        hex[index] + hex[index + 1]
+      );
     }
     index += 2;
   }

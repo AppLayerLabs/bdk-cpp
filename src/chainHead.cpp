@@ -140,7 +140,9 @@ Block ChainHead::getBlock(std::string &blockHash) {
       return result;
     }
   } else {
-    throw std::runtime_error("Block doesn't exist");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Block does not exist")
+    );
   }
 }
 
@@ -159,7 +161,9 @@ Block ChainHead::getBlock(uint64_t &blockHeight) {
     }
   } else {
     this->internalChainHeadLock.unlock();
-    throw std::runtime_error("Block doesn't exist");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Block does not exist")
+    );
   }
 }
 
@@ -185,7 +189,9 @@ Tx::Base ChainHead::getTransaction(std::string &txHash) {
     Tx::Base result(txBytes, true); // No need to check a tx again.
     return result;
   } else {
-    throw std::runtime_error("Transaction doesn't exist");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Transaction does not exist")
+    );
   }
 }
 
@@ -196,7 +202,9 @@ Block ChainHead::getBlockFromTx(std::string &txHash) {
     this->internalChainHeadLock.unlock();
     return result;
   } else {
-    throw std::runtime_error("Block not found");
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Block does not exist")
+    );
   }
 }
 

@@ -106,7 +106,6 @@ std::string Subnet::processRPCMessage(std::string &req) {
   if (messageJson["method"] == "eth_getTransactionCount") {
     Address address(messageJson["params"][0].get<std::string>());
     auto addressNonce = this->headState->getNativeNonce(address);
-
     ret["result"] = std::string("0x") + Utils::uintToHex(addressNonce);
   }
   if (messageJson["method"] == "eth_sendRawTransaction") {
@@ -142,8 +141,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
       ret["result"]["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
       ret["result"]["status"] = "0x1";
     } catch (std::exception &e) {
-      // TODO: proper error handling
-      Utils::LogPrint(Log::subnet, "eth_getTransactionReceipt: tx not found ", e.what());
+      Utils::LogPrint(Log::subnet, "eth_getTransactionReceipt: tx not found: ", e.what());
     }
   }
   if (messageJson["method"] == "eth_getBlockByHash") {

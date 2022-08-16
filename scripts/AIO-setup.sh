@@ -4,32 +4,70 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Anti-sudo prevention
+if [ $(id -u) -eq 0 ]; then
+  echo "Please run this script as a normal user."
+  exit
+fi
 
-LOGFILE=($(pwd)/AIO-setup.log)
-SUBNETOOORD=($(dirname $(pwd))/build/subnetooord)
-# Build subnetooord.
+# Check dependencies before starting
+LIB_DEPS=""
+EXE_DEPS=""
+if ! [ "$(/sbin/ldconfig -p | grep libabsl)" ]; then LIB_DEPS+="libabsl "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libboost_chrono)" ]; then LIB_DEPS+="libboost-chrono "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libboost_filesystem)" ]; then LIB_DEPS+="libboost-filesystem "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libboost_nowide)" ]; then LIB_DEPS+="libboost-nowide "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libboost_program_options)" ]; then LIB_DEPS+="libboost-program-options "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libboost_system)" ]; then LIB_DEPS+="libboost-system "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libboost_thread)" ]; then LIB_DEPS+="libboost-thread "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libcares)" ]; then LIB_DEPS+="libcares "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libcrypto++)" ]; then LIB_DEPS+="libcrypto++ "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libgrpc)" ]; then LIB_DEPS+="libgrpc "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libgrpc++)" ]; then LIB_DEPS+="libgrpc++ "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libleveldb)" ]; then LIB_DEPS+="libleveldb "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libscrypt)" ]; then LIB_DEPS+="libscrypt "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libsnappy)" ]; then LIB_DEPS+="libsnappy "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libssl)" ]; then LIB_DEPS+="libssl "; fi
+if ! [ "$(/sbin/ldconfig -p | grep libz)" ]; then LIB_DEPS+="zlib "; fi
+if ! [ $(command -v autoconf) ]; then EXE_DEPS+="autoconf "; fi
+if ! [ $(command -v cmake) ]; then EXE_DEPS+="cmake "; fi
+if ! [ $(command -v curl) ]; then EXE_DEPS+="curl "; fi
+if ! [ $(command -v g++) ]; then EXE_DEPS+="g++ "; fi
+if ! [ $(command -v gcc) ]; then EXE_DEPS+="gcc "; fi
+if ! [ $(command -v git) ]; then EXE_DEPS+="git "; fi
+if ! [ $(command -v go) ]; then EXE_DEPS+="go "; fi
+if ! [ $(command -v grpc_cpp_plugin) ]; then EXE_DEPS+="protobuf-compiler-grpc "; fi
+if ! [ $(command -v jq) ]; then EXE_DEPS+="jq "; fi
+if ! [ $(command -v libtoolize) ]; then EXE_DEPS+="libtool "; fi
+if ! [ $(command -v make) ]; then EXE_DEPS+="make "; fi
+if ! [ $(command -v openssl) ]; then EXE_DEPS+="openssl "; fi
+if ! [ $(command -v pkg-config) ]; then EXE_DEPS+="pkg-config "; fi
+if ! [ $(command -v protoc) ]; then EXE_DEPS+="protobuf-compiler "; fi
+if ! [ $(command -v tmux) ]; then EXE_DEPS+="tmux "; fi
+if [ -n "$LIB_DEPS" ] || [ -n "$EXE_DEPS" ]; then
+  echo "Please install the missing dependencies for the script to run:"
+  if [ -n "$LIB_DEPS" ]; then echo -e "Libraries:\n$LIB_DEPS"; fi
+  if [ -n "$EXE_DEPS" ]; then echo -e "Programs:\n$EXE_DEPS"; fi
+  exit
+fi
 
+LOGFILE=($(pwd)/AIO-setup.log)                          # Output log file for the script
+SUBNETOOORD=($(dirname $(pwd))/build/subnetooord)       # subnetooord executable path
+AVALANCHE_ROOT_PATH="$HOME/go/src/github.com/ava-labs"  # AvalancheGo root folder
+
+# Build subnetooord
 cd ../build/
 cmake .. && make -j$(nproc)
 
-# Avalanchego root folder
-AVALANCHE_ROOT_PATH="$HOME/go/src/github.com/ava-labs"
-
+# Clone and build latest AvalancheGo
 mkdir -p $AVALANCHE_ROOT_PATH
 cd $AVALANCHE_ROOT_PATH
-
-# Clone latest Avalanchego
 git clone https://github.com/ava-labs/avalanchego
-
-
-# Build latest AvalancheGo
 cd avalanchego
 chmod +x scripts/build.sh
 ./scripts/build.sh
 
-
-# Setup 5 local nodes script files.
-
+# Setup script files for 5 local nodes
 echo -n "./build/avalanchego --public-ip=127.0.0.1 --http-port=9650 --staking-port=9651 --db-dir=db/node1 --network-id=local --staking-tls-cert-file=$(pwd)/staking/local/staker1.crt --staking-tls-key-file=$(pwd)/staking/local/staker1.key" >> start1.sh
 echo "./build/avalanchego --public-ip=127.0.0.1 --http-port=9652 --staking-port=9653 --db-dir=db/node2 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker2.crt --staking-tls-key-file=$(pwd)/staking/local/staker2.key" >> start2.sh
 echo "./build/avalanchego --public-ip=127.0.0.1 --http-port=9654 --staking-port=9655 --db-dir=db/node3 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker3.crt --staking-tls-key-file=$(pwd)/staking/local/staker3.key" >> start3.sh
@@ -37,184 +75,156 @@ echo "./build/avalanchego --public-ip=127.0.0.1 --http-port=9656 --staking-port=
 echo "./build/avalanchego --public-ip=127.0.0.1 --http-port=9658 --staking-port=9659 --db-dir=db/node5 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker5.crt --staking-tls-key-file=$(pwd)/staking/local/staker5.key" >> start5.sh
 chmod +x start1.sh start2.sh start3.sh start4.sh start5.sh
 
-# Start 5 local nodes using tmux.
-
+# Start the local nodes using tmux and wait 30 seconds for bootstrapping
 tmux new-session -d -s avalanchego-1 "./start1.sh"
 tmux new-session -d -s avalanchego-2 "./start2.sh"
 tmux new-session -d -s avalanchego-3 "./start3.sh"
 tmux new-session -d -s avalanchego-4 "./start4.sh"
 tmux new-session -d -s avalanchego-5 "./start5.sh"
-
-# Wait 30 seconds for bootstrap
-
 sleep 30
 
-# Create the user.
-
-
+# Create a user with random data (username and password)
 USERNAME=$(openssl rand -base64 16)
 PASSWORD=$(openssl rand -base64 32)
-
 echo "USERNAME: $USERNAME --- PASSWORD: $PASSWORD" >> $LOGFILE
+SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9650/ext/keystore' --header 'Content-Type: application/json' \
+--data-raw '{
+  "jsonrpc": "2.0",
+  "id"     : 1,
+  "method" : "keystore.createUser",
+  "params" : {
+    "username": "'$USERNAME'",
+    "password": "'$PASSWORD'"
+  }
+}')
 
-
-SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9650/ext/keystore' \
-                                    --header 'Content-Type: application/json' \
-                                    --data-raw '{
-                                      "jsonrpc": "2.0",
-                                      "id"     : 1,
-                                      "method" : "keystore.createUser",
-                                      "params" : {
-                                        "username": "'$USERNAME'",
-                                        "password": "'$PASSWORD'"
-                                      }
-                                    }')
-
-# Fund network.
-
-FUND_NETWORK_OUTPUT=$(curl --location --request POST '127.0.0.1:9650/ext/bc/P' \
-                                      --header 'Content-Type: application/json' \
-                                      --data-raw '{
-                                        "jsonrpc": "2.0",
-                                        "id"     : 1,
-                                        "method" : "platform.importKey",
-                                        "params" : {
-                                          "username"  : "'$USERNAME'",
-                                          "password"  : "'$PASSWORD'",
-                                          "privateKey": "PrivateKey-ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN"
-                                        }
-                                      }')
-
+# Fund the network
+FUND_NETWORK_OUTPUT=$(curl --location --request POST '127.0.0.1:9650/ext/bc/P' --header 'Content-Type: application/json' \
+--data-raw '{
+  "jsonrpc": "2.0",
+  "id"     : 1,
+  "method" : "platform.importKey",
+  "params" : {
+    "username"  : "'$USERNAME'",
+    "password"  : "'$PASSWORD'",
+    "privateKey": "PrivateKey-ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN"
+  }
+}')
 FUNDING_ADDRESS=$(echo $FUND_NETWORK_OUTPUT | jq '.result.address' | sed 's/^"//' | sed 's/"$//')
-
 echo "Funding Address: " $FUNDING_ADDRESS >> $LOGFILE
 
-
 # Create Validator Addresses
+CREATE_ADDRESS_1_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "method" : "platform.createAddress",
+  "params" : {
+    "username": "'$USERNAME'",
+    "password": "'$PASSWORD'"
+    },
+  "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
-CREATE_ADDRESS_1_OUTPUT=$(curl -X POST --data '{
-                                                "jsonrpc": "2.0",
-                                                "method" : "platform.createAddress",
-                                                "params" : {
-                                                  "username": "'$USERNAME'",
-                                                  "password": "'$PASSWORD'"
-                                                  },
-                                                "id": 1
-                                                }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
-
-
-CREATE_ADDRESS_2_OUTPUT=$(curl -X POST --data '{
-                                                "jsonrpc": "2.0",
-                                                "method" : "platform.createAddress",
-                                                "params" : {
-                                                  "username": "'$USERNAME'",
-                                                  "password": "'$PASSWORD'"
-                                                  },
-                                                "id": 1
-                                                }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)      
-
+CREATE_ADDRESS_2_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "method" : "platform.createAddress",
+  "params" : {
+    "username": "'$USERNAME'",
+    "password": "'$PASSWORD'"
+    },
+  "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 VALIDATOR_ADDRESS_1=$(echo $CREATE_ADDRESS_1_OUTPUT | jq '.result.address' | sed 's/^"//' | sed 's/"$//')
 VALIDATOR_ADDRESS_2=$(echo $CREATE_ADDRESS_2_OUTPUT | jq '.result.address' | sed 's/^"//' | sed 's/"$//')
-
 echo "VALIDATOR 1 ADDRESS: " $VALIDATOR_ADDRESS_1 >> $LOGFILE
 echo "VALIDATOR 2 ADDRESS: " $VALIDATOR_ADDRESS_2 >> $LOGFILE
 
 # Create Subnet
-
-CREATE_SUBNET_OUTPUT=$(curl -X POST --data '{
-                                            "jsonrpc": "2.0",
-                                            "method" : "platform.createSubnet",
-                                            "params" : {
-                                              "controlKeys": [
-                                                "'$VALIDATOR_ADDRESS_1'",
-                                                "'$VALIDATOR_ADDRESS_2'"
-                                              ],
-                                              "threshold": 2,
-                                              "username" : "'$USERNAME'",
-                                              "password" : "'$PASSWORD'"
-                                              },
-                                            "id": 1
-                                        }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
+CREATE_SUBNET_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "method" : "platform.createSubnet",
+  "params" : {
+    "controlKeys": [
+      "'$VALIDATOR_ADDRESS_1'",
+      "'$VALIDATOR_ADDRESS_2'"
+    ],
+    "threshold": 2,
+    "username" : "'$USERNAME'",
+    "password" : "'$PASSWORD'"
+    },
+  "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 SUBNET_ID=$(echo $CREATE_SUBNET_OUTPUT | jq '.result.txID' | sed 's/^"//' | sed 's/"$//')
-
-
 echo "SUBNET ID: " $SUBNET_ID >> $LOGFILE
 
-
 # Get Node ID
-
-NODE_ID_OUTPUT=$(curl -X POST --data '{
-                                        "jsonrpc": "2.0",
-                                        "id"     : 1,
-                                        "method" : "info.getNodeID"
-                                      }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info)
+NODE_ID_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "id"     : 1,
+  "method" : "info.getNodeID"
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info)
 
 NODE_ID=$(echo $NODE_ID_OUTPUT | jq '.result.nodeID' | sed 's/^"//' | sed 's/"$//')
 
-
-# Place subnetooord into plugins folder using subnet ID as filename.
-
+# Copy the subnetooord executable to the AvalancheGo plugins folder using subnet ID as filename
 cp $SUBNETOOORD $AVALANCHE_ROOT_PATH/avalanchego/build/plugins/$SUBNET_ID
 
-
-# Stop AvalancheGo-1 and update script to include subnet.
-
+# Stop AvalancheGo-1 and update script to include the subnet
 while [ -n "$(tmux ls | grep -i "avalanchego-1")" ]
 do
   tmux send-keys -t avalanchego-1 C-c
   sleep 1
 done
-
 echo " --whitelisted-subnets="$SUBNET_ID >> $AVALANCHE_ROOT_PATH/avalanchego/start1.sh
 
-# Start avalanchego-1 back again.
-
+# Start AvalancheGo-1 again ad wait 10 seconds for initialization
 tmux new-session -d -s avalanchego-1 "./start1.sh"
-
 sleep 10
 
-# Add subnet validator
-
+# Add subnet validator and wait 10 minutes to start the subnet
 START_TIME=$(date --date="10 minutes" +%s)
 END_TIME=$(date --date="10 days" +%s)
-
-SUBNET_VALIDATOR_OUTPUT=$(curl -X POST --data '{
-        "jsonrpc": "2.0",
-        "method" : "platform.addSubnetValidator",
-        "params" : {
-            "nodeID"    : "'$NODE_ID'",
-            "subnetID"  : "'$SUBNET_ID'",
-            "startTime" : '$START_TIME',
-            "endTime"   : '$END_TIME',
-            "weight"    : 30,
-            "changeAddr": "'$FUNDING_ADDRESS'",
-            "username"  : "'$USERNAME'",
-            "password"  : "'$PASSWORD'"
-        },
-        "id": 1
-    }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
+SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "method" : "platform.addSubnetValidator",
+  "params" : {
+      "nodeID"    : "'$NODE_ID'",
+      "subnetID"  : "'$SUBNET_ID'",
+      "startTime" : '$START_TIME',
+      "endTime"   : '$END_TIME',
+      "weight"    : 30,
+      "changeAddr": "'$FUNDING_ADDRESS'",
+      "username"  : "'$USERNAME'",
+      "password"  : "'$PASSWORD'"
+  },
+  "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
 echo "Waiting 10 minutes to start subnet..."
-
 sleep 630
-# Create Subnet Blockchain.
 
-
-CREATE_SUBNET_OUTPUT=$(curl -X POST --data '{
-        "jsonrpc": "2.0",
-        "method": "platform.createBlockchain",
-        "params" : {
-            "subnetID"   : "'$SUBNET_ID'",
-            "vmID"       : "'$SUBNET_ID'",
-            "name"       : "Subnetooor",
-            "genesisData": "0x68656c6c6f776f726c648f8f07af",
-            "username"   : "'$USERNAME'",
-            "password"   : "'$PASSWORD'"
-        },
-        "id": 1
-    }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
+# Create Subnet Blockchain
+CREATE_SUBNET_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "method": "platform.createBlockchain",
+  "params" : {
+      "subnetID"   : "'$SUBNET_ID'",
+      "vmID"       : "'$SUBNET_ID'",
+      "name"       : "Subnetooor",
+      "genesisData": "0x68656c6c6f776f726c648f8f07af",
+      "username"   : "'$USERNAME'",
+      "password"   : "'$PASSWORD'"
+  },
+  "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "CREATE SUBNET OUTPUT: " $CREATE_SUBNET_OUTPUT >> $LOGFILE
+
