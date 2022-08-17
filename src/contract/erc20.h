@@ -41,8 +41,8 @@ class ERC20Contract : public Contract {
     bool burn(std::string from, dev::u256 value);
     dev::u256 allowance(std::string owner, std::string spender);
     dev::u256 balanceOf(std::string address);
-    //static void loadAllERC20(Database &token_db, std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens);
-    //static bool saveAllERC20(std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens, Database &token_db);
+    static void loadAllERC20(DBService &token_db, std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens);
+    static bool saveAllERC20(std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens, DBService &token_db);
 };
 
 #endif  // ERC20_H

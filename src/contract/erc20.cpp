@@ -1,21 +1,20 @@
 #include "erc20.h"
 
-// TODO: database has a different structure
-/*
 void ERC20Contract::loadAllERC20(
-  Database &token_db, std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens
+  DBService &token_db, std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens
 ) {
-  auto pairs = token_db.getAllPairs();
-  for (auto info : pairs) {
-    auto infoJson = json::parse(info.second);
-    tokens[into.first] = std::make_shared<ERC20Contract>(infoJson);
+  std::vector<DBEntry> pairs = token_db.readBatch(DBPrefix::erc20Tokens);
+  for (DBEntry info : pairs) {
+    json infoJson = json::parse(info.value);
+    tokens[info.key] = std::make_shared<ERC20Contract>(infoJson);
   }
 }
 
 bool ERC20Contract::saveAllERC20(
-  std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens, Database &token_db
+  std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens, DBService &token_db
 ) {
-  for (auto token : tokens) {
+  WriteBatchRequest erc20Batch;
+  for (std::pair<std::string, std::shared_ptr<ERC20Contract>> token : tokens) {
     json jsonData;
     jsonData["name"] = token.second->name();
     jsonData["symbol"] = token.second->symbol();
@@ -37,11 +36,10 @@ bool ERC20Contract::saveAllERC20(
       tmp["allowed"] = boost::lexical_cast<std::string>(allowance.second.allowed);
       jsonData["allowances"].push_back(tmp);
     }
-    token_db.putKeyValue(token.first, jsonData.dump());
+    token_db.put(token.first, jsonData.dump(), DBPrefix::erc20Tokens);
   }
   return true;
 }
-*/
 
 // TODO: do these functions really need to return bool?
 // TODO: handle over/underflows? (e.g. burn 10 tokens from an address that only has 2)
