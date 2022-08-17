@@ -13,7 +13,6 @@ void ERC20Contract::loadAllERC20(
 bool ERC20Contract::saveAllERC20(
   std::map<std::string, std::shared_ptr<ERC20Contract>> &tokens, DBService &token_db
 ) {
-  WriteBatchRequest erc20Batch;
   for (std::pair<std::string, std::shared_ptr<ERC20Contract>> token : tokens) {
     json jsonData;
     jsonData["name"] = token.second->name();
@@ -22,36 +21,34 @@ bool ERC20Contract::saveAllERC20(
     jsonData["totalSupply"] = boost::lexical_cast<std::string>(token.second->totalSupply());
     jsonData["address"] = token.first;
     jsonData["balances"] = json::array();
-    jsonData["allowances"] = json::array();
     for (auto balance : token.second->balances()) {
       json tmp;
       tmp["address"] = balance.first;
       tmp["value"] = boost::lexical_cast<std::string>(balance.second);
       jsonData["balances"].push_back(tmp);
     }
-    for (auto allowance : token.second->allowances()) {
-      json tmp;
-      tmp["address"] = allowance.first;
-      tmp["spender"] = allowance.second.spender;
-      tmp["allowed"] = boost::lexical_cast<std::string>(allowance.second.allowed);
-      jsonData["allowances"].push_back(tmp);
-    }
     token_db.put(token.first, jsonData.dump(), DBPrefix::erc20Tokens);
   }
   return true;
 }
 
-// TODO: do these functions really need to return bool?
-// TODO: handle over/underflows? (e.g. burn 10 tokens from an address that only has 2)
-bool ERC20Contract::mint(std::string to, dev::u256 value) {
-  this->_totalSupply += value;
-  _balances[to] += value;
+bool ERC20Contract::mint(std::string to, dev::u256 value, bool commit) {
+  if ((this->_totalSupply + value) < this->_totalSupply) return false;
+  if ((_balances[to] + value) < _balances[to]) return false;
+  if (commit) {
+    this->_totalSupply += value;
+    _balances[to] += value;
+  }
   return true;
 }
 
-bool ERC20Contract::burn(std::string from, dev::u256 value) {
-  this->_totalSupply -= value;
-  _balances[from] -= value;
+bool ERC20Contract::burn(std::string from, dev::u256 value, bool commit) {
+  if ((this->_totalSupply - value) > this->_totalSupply) return false;
+  if ((_balances[from] - value) > _balances[from]) return false;
+  if (commit) {
+    this->_totalSupply -= value;
+    _balances[from] -= value;
+  }
   return true;
 }
 
@@ -68,12 +65,6 @@ ERC20Contract::ERC20Contract(json &data) {
     std::string add = balance["address"].get<std::string>();
     dev::u256 bal = boost::lexical_cast<dev::u256>(balance["value"].get<std::string>());
     this->_balances[add] = bal;
-  }
-  for (auto allowance : data["allowances"]) {
-    allowanceInfo tmp;
-    tmp.spender = allowance["spender"].get<std::string>();
-    tmp.allowed = boost::lexical_cast<dev::u256>(allowance["allowed"].get<std::string>());
-    this->_allowances.emplace(allowance["address"].get<std::string>(), tmp);
   }
   Utils::logToFile("ERC20: Constructor finished");
 }
