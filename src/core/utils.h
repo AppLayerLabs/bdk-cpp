@@ -41,6 +41,14 @@ namespace Log {
   const std::string httpServer = "HTTPServer::";
 };
 
+
+enum BlockStatus {
+  Unknown,
+  Processing,
+  Rejected,
+  Accepted
+};
+
 namespace Utils {
   void logToFile(std::string str);
   void LogPrint(std::string prefix, std::string function, std::string data);

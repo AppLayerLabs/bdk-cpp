@@ -8,6 +8,7 @@ Block::Block(const std::string &blockData) {
     std::string nHeightBytes;       // uint64_t
     std::string txArraySizeBytes;   // uint32_t
     std::string rawTransactions;    // N
+    this->finalized = true;
 
     prevBlockHashBytes = blockData.substr(0, 32);
     timestampBytes = blockData.substr(32, 8);
@@ -73,7 +74,7 @@ std::string Block::getBlockHash() const {
   return ret;
 }
 
-const uint64_t Block::blockSize() {
+const uint64_t Block::blockSize() const {
   uint64_t ret = 32 + 8 + 8 + 4; // prevBlockHash + timestamp + nHeight + txCount
   for (auto transaction : this->_transactions) { // + [ txSize, tx, ... ]
     ret += 4 + transaction.serialize().size();

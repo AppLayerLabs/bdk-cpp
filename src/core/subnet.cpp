@@ -6,8 +6,13 @@ void Subnet::start() {
    * as the AvalancheGo Daemon node will be waiting for the gRPC server
    * to answer on the terminal.
    */
-  Utils::LogPrint(Log::subnet, __func__, "Starting subnet...");
-  std::string server_address("0.0.0.0:50051");
+  // Get a random number between 50000 and 60000
+  std::random_device rd; // obtain a random number from hardware
+  std::mt19937 gen(rd()); // seed the generator
+  std::uniform_int_distribution<> distr(50000, 60000);
+  unsigned short port = distr(gen);  
+  Utils::LogPrint(Log::subnet, __func__, std::string("Starting subnet at port: ") + std::to_string(port));
+  std::string server_address(std::string("0.0.0.0:") + std::to_string(port));
   grpcServer = std::make_shared<VMServiceImplementation>(*this);
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -133,14 +138,14 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   this->chainHead = std::make_unique<ChainHead>(this->dbServer);
 
   // Parse the latest block to answer AvalancheGo.
-  Block latestBlock = chainHead->latest();
-  reply->set_last_accepted_id(latestBlock.getBlockHash());
-  reply->set_last_accepted_parent_id(latestBlock.prevBlockHash());
-  reply->set_height(latestBlock.nHeight());
-  reply->set_bytes(latestBlock.serializeToBytes());
+  auto latestBlock = chainHead->latest();
+  reply->set_last_accepted_id(latestBlock->getBlockHash());
+  reply->set_last_accepted_parent_id(latestBlock->prevBlockHash());
+  reply->set_height(latestBlock->nHeight());
+  reply->set_bytes(latestBlock->serializeToBytes());
   auto timestamp = reply->mutable_timestamp();
-  timestamp->set_seconds(latestBlock.timestamp() / 1000000000);
-  timestamp->set_nanos(latestBlock.timestamp() % 1000000000);
+  timestamp->set_seconds(latestBlock->timestamp() / 1000000000);
+  timestamp->set_nanos(latestBlock->timestamp() % 1000000000);
 
   // Start the HTTP Server.
   Utils::logToFile("Starting HTTP");
@@ -161,16 +166,114 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
    * See vm.proto and https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111
    * for more information about the SetState request.
    */
-  Block bestBlock = chainHead->latest();
-  reply->set_last_accepted_id(bestBlock.getBlockHash());
-  reply->set_last_accepted_parent_id(bestBlock.prevBlockHash());
-  reply->set_height(bestBlock.nHeight());
-  reply->set_bytes(bestBlock.serializeToBytes());
+  auto bestBlock = chainHead->latest();
+  reply->set_last_accepted_id(bestBlock->getBlockHash());
+  reply->set_last_accepted_parent_id(bestBlock->prevBlockHash());
+  reply->set_height(bestBlock->nHeight());
+  reply->set_bytes(bestBlock->serializeToBytes());
   auto timestamp = reply->mutable_timestamp();
-  timestamp->set_seconds(bestBlock.timestamp() / 1000000000);
-  timestamp->set_nanos(bestBlock.timestamp() % 1000000000);
+  timestamp->set_seconds(bestBlock->timestamp() / 1000000000);
+  timestamp->set_nanos(bestBlock->timestamp() % 1000000000);
 }
 
-bool Subnet::blockRequest() {
-  return this->headState->createNewBlock(this->chainHead);
+void Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) {
+  if (!this->headState->createNewBlock(this->chainHead)) {
+    Utils::LogPrint(Log::subnet, __func__, "Could not create new block");
+    // TODO: handle not being able to create a block.
+    throw;
+  }
+  // Answer back avalanchego.
+  Utils::LogPrint(Log::subnet, __func__, "Trying to answer AvalancheGo");
+  auto block = this->chainHead->latest();
+  Utils::LogPrint(Log::subnet, __func__, std::string("New block created: ") + Utils::bytesToHex(block->getBlockHash()));
+  reply->set_id(block->getBlockHash());
+  reply->set_parent_id(block->prevBlockHash());
+  reply->set_height(block->nHeight());
+  reply->set_bytes(block->serializeToBytes());
+  auto timestamp = reply->mutable_timestamp();
+  timestamp->set_seconds(block->timestamp() / 1000000000);
+  timestamp->set_nanos(block->timestamp() % 1000000000);
+  Utils::LogPrint(Log::subnet, __func__, "New block broadcasted.");
+  return;
+}
+
+
+void Subnet::parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply) {
+  try {
+    Block block(request->bytes());
+
+    // Check if block already exists...
+    if (chainHead->exists(block.getBlockHash())) {
+      reply->set_id(block.getBlockHash());
+      reply->set_parent_id(block.prevBlockHash());
+      reply->set_status(BlockStatus::Accepted);
+      reply->set_height(block.nHeight());
+      auto timestamp = reply->mutable_timestamp();
+      timestamp->set_seconds(block.timestamp() / 1000000000);
+      timestamp->set_nanos(block.timestamp() % 1000000000);
+      Utils::LogPrint(Log::subnet, __func__, std::string("Block ") + std::to_string(block.nHeight()) + "already exists, returning Accepted");
+      return;
+    }
+    // Try parsing block into chain.
+    if (!headState->processNewBlock(block, this->chainHead)) {
+      // Check if the block is far in the future (unknown).
+      if (block.nHeight() > chainHead->latest()->nHeight() + 1) {
+        reply->set_status(BlockStatus::Unknown);
+        Utils::LogPrint(Log::subnet, __func__, "Block is far in the future, returning Unknown");
+        return;
+      }
+      Utils::LogPrint(Log::subnet, __func__, "Block is not valid, returning Rejected");
+      reply->set_status(BlockStatus::Rejected);
+      return;
+    } 
+    reply->set_id(block.getBlockHash());
+    reply->set_parent_id(block.prevBlockHash());
+    reply->set_status(BlockStatus::Accepted);
+    reply->set_height(block.nHeight());
+    auto timestamp = reply->mutable_timestamp();
+    timestamp->set_seconds(block.timestamp() / 1000000000);
+    timestamp->set_nanos(block.timestamp() % 1000000000);
+    Utils::LogPrint(Log::subnet, __func__, "Block is valid, returning Accepted");
+  } catch (std::exception &e) {
+    Utils::LogPrint(Log::subnet, __func__, std::string("Error parsing block") + e.what());
+    reply->set_status(BlockStatus::Unknown);
+  }
+  return;
+}
+
+void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply) {
+  if (!chainHead->exists(request->id())) {
+    Utils::LogPrint(Log::subnet, __func__, "Block does not exist");
+    reply->set_status(BlockStatus::Unknown);
+    reply->set_err(2); // https://github.com/ava-labs/avalanchego/blob/559ce151a6b6f28d8115e0189627d8deaf00d9fb/vms/rpcchainvm/errors.go#L21
+    return;
+  }
+
+  auto block = chainHead->getBlock(request->id());
+
+  reply->set_parent_id(block->prevBlockHash());
+  reply->set_bytes(block->serializeToBytes());
+  reply->set_status(BlockStatus::Accepted);
+  reply->set_height(block->nHeight());
+  auto timestamp = reply->mutable_timestamp();
+  timestamp->set_seconds(block->timestamp() / 1000000000);
+  timestamp->set_nanos(block->timestamp() % 1000000000);
+  Utils::LogPrint(Log::subnet, __func__, "Block found");
+  return;
+}
+
+void Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply) {
+  // TODO: check vm.proto and implement max_blocks_size/max_blocks_retrival_time
+  Utils::LogPrint(Log::subnet, __func__, std::string("getAncestors of: ") + Utils::hexToBytes(request->blk_id()) + " with depth: " + std::to_string(request->max_blocks_num()));
+  if (!chainHead->exists(request->blk_id())) {
+    return;
+  }
+  auto headBlock = chainHead->getBlock(request->blk_id());
+  uint64_t depth = request->max_blocks_num();
+
+  for (uint64_t index = (headBlock->nHeight() - 1); index >= (headBlock->nHeight() - depth); --index) {
+    auto block = chainHead->getBlock(index);
+    reply->add_blks_bytes(block->serializeToBytes());
+  }
+  return;
 }

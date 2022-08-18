@@ -77,13 +77,13 @@ class Block {
     {};
 
     // Getters.
-    const std::string prevBlockHash() { return Utils::uint256ToBytes(this->_prevBlockHash); };
-    const uint64_t& timestamp() { return this->_timestamp; };
-    const uint64_t timestampInSeconds() { return this->_timestamp / 1000000000; };
-    const uint64_t& nHeight() { return this->_nHeight; };
-    const uint32_t& txCount() { return this->_txCount; };
-    const std::vector<Tx::Base>& transactions() { return this->_transactions; };
-    const uint64_t blockSize();
+    const std::string prevBlockHash() const { return Utils::uint256ToBytes(this->_prevBlockHash); };
+    const uint64_t& timestamp() const { return this->_timestamp; };
+    const uint64_t timestampInSeconds() const { return this->_timestamp / 1000000000; };
+    const uint64_t& nHeight() const { return this->_nHeight; };
+    const uint32_t& txCount() const { return this->_txCount; };
+    const std::vector<Tx::Base>& transactions() const { return this->_transactions; };
+    const uint64_t blockSize() const;
     std::string getBlockHash() const; // Hash (in bytes)
     std::string serializeToBytes() const;
 

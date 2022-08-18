@@ -118,19 +118,13 @@ class VMServiceImplementation final :
       ServerContext* context,
       const vm::ParseBlockRequest* request,
       vm::ParseBlockResponse* reply
-    ) override {
-      Utils::logToFile("ParseBlock called!!");
-      return Status::OK;
-    }
+    ) override;
 
     Status GetBlock(
       ServerContext* context,
       const vm::GetBlockRequest* request,
       vm::GetBlockResponse* reply
-    ) override {
-      Utils::logToFile("GetBlock called!!");
-      return Status::OK;
-    }
+    ) override;
 
     Status SetPreference(
       ServerContext* context,
@@ -202,37 +196,25 @@ class VMServiceImplementation final :
       ServerContext* context,
       const vm::BlockVerifyRequest* request,
       vm::BlockVerifyResponse* reply
-    ) override {
-      Utils::logToFile("BlockVerify called");
-      return Status::OK;
-    }
+    ) override;
 
     Status BlockAccept(
       ServerContext* context,
       const vm::BlockAcceptRequest* request,
       google::protobuf::Empty* reply
-    ) override {
-      Utils::logToFile("BlockAccept called!!");
-      return Status::OK;
-    }
+    ) override;
 
     Status BlockReject(
       ServerContext* context,
       const vm::BlockRejectRequest* request,
       google::protobuf::Empty* reply
-    ) override {
-      Utils::logToFile("BlockReject called!!");
-      return Status::OK;
-    }
+    ) override;
 
     Status GetAncestors(
       ServerContext* context,
       const vm::GetAncestorsRequest* request,
       vm::GetAncestorsResponse* reply
-    ) override {
-      Utils::logToFile("GetAncestors called!!");
-      return Status::OK;
-    }
+    ) override;
 
     Status BatchedParseBlock(
       ServerContext* context,

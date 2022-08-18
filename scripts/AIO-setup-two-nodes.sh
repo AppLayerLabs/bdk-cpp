@@ -70,7 +70,7 @@ chmod +x scripts/build.sh
 # Setup script files for 5 local nodes
 mkdir node1 node2 node3 node4 node5
 echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9650 --staking-port=9651 --db-dir=db/node1 --network-id=local --staking-tls-cert-file=$(pwd)/staking/local/staker1.crt --staking-tls-key-file=$(pwd)/staking/local/staker1.key" >> node1/start1.sh
-echo "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9652 --staking-port=9653 --db-dir=db/node2 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker2.crt --staking-tls-key-file=$(pwd)/staking/local/staker2.key" >> node2/start2.sh
+echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9652 --staking-port=9653 --db-dir=db/node2 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker2.crt --staking-tls-key-file=$(pwd)/staking/local/staker2.key" >> node2/start2.sh
 echo "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9654 --staking-port=9655 --db-dir=db/node3 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker3.crt --staking-tls-key-file=$(pwd)/staking/local/staker3.key" >> node3/start3.sh
 echo "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9656 --staking-port=9657 --db-dir=db/node4 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker4.crt --staking-tls-key-file=$(pwd)/staking/local/staker4.key" >> node4/start4.sh
 echo "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9658 --staking-port=9659 --db-dir=db/node5 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker5.crt --staking-tls-key-file=$(pwd)/staking/local/staker5.key" >> node5/start5.sh
@@ -89,6 +89,17 @@ USERNAME=$(openssl rand -base64 16)
 PASSWORD=$(openssl rand -base64 32)
 echo "USERNAME: $USERNAME --- PASSWORD: $PASSWORD" >> $LOGFILE
 SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9650/ext/keystore' --header 'Content-Type: application/json' \
+--data-raw '{
+  "jsonrpc": "2.0",
+  "id"     : 1,
+  "method" : "keystore.createUser",
+  "params" : {
+    "username": "'$USERNAME'",
+    "password": "'$PASSWORD'"
+  }
+}')
+
+SECOND_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9652/ext/keystore' --header 'Content-Type: application/json' \
 --data-raw '{
   "jsonrpc": "2.0",
   "id"     : 1,
@@ -137,10 +148,38 @@ CREATE_ADDRESS_2_OUTPUT=$(curl -X POST \
   "id": 1
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
+CREATE_ADDRESS_3_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "method" : "platform.createAddress",
+  "params" : {
+    "username": "'$USERNAME'",
+    "password": "'$PASSWORD'"
+    },
+  "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9652/ext/P)
+
+
+CREATE_ADDRESS_4_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "method" : "platform.createAddress",
+  "params" : {
+    "username": "'$USERNAME'",
+    "password": "'$PASSWORD'"
+    },
+  "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9652/ext/P)
+
+
 VALIDATOR_ADDRESS_1=$(echo $CREATE_ADDRESS_1_OUTPUT | jq '.result.address' | sed 's/^"//' | sed 's/"$//')
 VALIDATOR_ADDRESS_2=$(echo $CREATE_ADDRESS_2_OUTPUT | jq '.result.address' | sed 's/^"//' | sed 's/"$//')
+VALIDATOR_ADDRESS_3=$(echo $CREATE_ADDRESS_3_OUTPUT | jq '.result.address' | sed 's/^"//' | sed 's/"$//')
+VALIDATOR_ADDRESS_4=$(echo $CREATE_ADDRESS_4_OUTPUT | jq '.result.address' | sed 's/^"//' | sed 's/"$//')
 echo "VALIDATOR 1 ADDRESS: " $VALIDATOR_ADDRESS_1 >> $LOGFILE
 echo "VALIDATOR 2 ADDRESS: " $VALIDATOR_ADDRESS_2 >> $LOGFILE
+echo "VALIDATOR 3 ADDRESS: " $VALIDATOR_ADDRESS_3 >> $LOGFILE
+echo "VALIDATOR 4 ADDRESS: " $VALIDATOR_ADDRESS_4 >> $LOGFILE
 
 # Create Subnet
 CREATE_SUBNET_OUTPUT=$(curl -X POST \
@@ -150,7 +189,9 @@ CREATE_SUBNET_OUTPUT=$(curl -X POST \
   "params" : {
     "controlKeys": [
       "'$VALIDATOR_ADDRESS_1'",
-      "'$VALIDATOR_ADDRESS_2'"
+      "'$VALIDATOR_ADDRESS_2'",
+      "'$VALIDATOR_ADDRESS_3'",
+      "'$VALIDATOR_ADDRESS_4'"
     ],
     "threshold": 2,
     "username" : "'$USERNAME'",
@@ -172,6 +213,15 @@ NODE_ID_OUTPUT=$(curl -X POST \
 
 NODE_ID=$(echo $NODE_ID_OUTPUT | jq '.result.nodeID' | sed 's/^"//' | sed 's/"$//')
 
+SECOND_NODE_ID_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "id"     : 1,
+  "method" : "info.getNodeID"
+}' -H 'content-type:application/json;' 127.0.0.1:9652/ext/info)
+
+SECOND_NODE_ID=$(echo $SECOND_NODE_ID_OUTPUT | jq '.result.nodeID' | sed 's/^"//' | sed 's/"$//')
+
 # Copy the subnetooord executable to the AvalancheGo plugins folder using subnet ID as filename
 cp $SUBNETOOORD $AVALANCHE_ROOT_PATH/avalanchego/build/plugins/$SUBNET_ID
 
@@ -181,10 +231,19 @@ do
   tmux send-keys -t avalanchego-1 C-c
   sleep 1
 done
+
+while [ -n "$(tmux ls | grep -i "avalanchego-2")" ]
+do
+  tmux send-keys -t avalanchego-2 C-c
+  sleep 1
+done
+
 echo " --whitelisted-subnets="$SUBNET_ID >> $AVALANCHE_ROOT_PATH/avalanchego/node1/start1.sh
+echo " --whitelisted-subnets="$SUBNET_ID >> $AVALANCHE_ROOT_PATH/avalanchego/node2/start2.sh
 
 # Start AvalancheGo-1 again ad wait 10 seconds for initialization
 tmux new-session -d -s avalanchego-1 "cd node1 && ./start1.sh"
+tmux new-session -d -s avalanchego-2 "cd node2 && ./start2.sh"
 sleep 10
 
 # Add subnet validator and wait 10 minutes to start the subnet
@@ -208,6 +267,26 @@ SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
+
+SECOND_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
+--data '{
+  "jsonrpc": "2.0",
+  "method" : "platform.addSubnetValidator",
+  "params" : {
+      "nodeID"    : "'$SECOND_NODE_ID'",
+      "subnetID"  : "'$SUBNET_ID'",
+      "startTime" : '$START_TIME',
+      "endTime"   : '$END_TIME',
+      "weight"    : 30,
+      "changeAddr": "'$FUNDING_ADDRESS'",
+      "username"  : "'$USERNAME'",
+      "password"  : "'$PASSWORD'"
+  },
+  "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
+
+echo "SUBNET VALIDATOR OUTPUT: " $SECOND_SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
+
 echo "Waiting 1 minute to start subnet..."
 sleep 70
 

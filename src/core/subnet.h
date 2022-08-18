@@ -11,6 +11,7 @@
 
 using json = nlohmann::ordered_json;
 using grpc::Server;
+using grpc::ServerContext;
 
 // Forward declarations.
 class HTTPServer;
@@ -93,12 +94,24 @@ class Subnet {
     // To be called by the gRPC server. Initialize the subnet services when AvalancheGo requests for it.
     void initialize(const vm::InitializeRequest* request, vm::InitializeResponse* reply);
 
+    // To be called by the gRPC server. Parse a given block, if necessary push it to the blockchain.
+    // Answers back with block status and a pointer to the block, if exists.
+    void parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply);
+
     // To be called by initialize if no info is found on DB.
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
 
-    // To be called by the grpcServer when avalancheGo requests a block
+    // To be called by the grpcServer when avalancheGo requests a block to be created
 
-    bool blockRequest();
+    void blockRequest(ServerContext* context, vm::BuildBlockResponse* reply);
+
+    // To be called by the grpcServer when avalancheGo requests a block to be loaded.
+
+    void getBlock(ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply);
+
+    // To be called by the grpcServer when avalancheGo requests a given number of ancestors of a block
+
+    void getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply);
 
     // To be called by grpcServer after a shutdown call.
 

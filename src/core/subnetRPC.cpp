@@ -8,8 +8,8 @@ std::string Subnet::processRPCMessage(std::string &req) {
   ret["id"] = messageJson["id"];
   ret["jsonrpc"] = "2.0";
   if (messageJson["method"] == "eth_blockNumber") {
-    Block bestBlock = chainHead->latest();
-    ret["result"] = "0x" + Utils::uintToHex(bestBlock.nHeight());
+    auto bestBlock = chainHead->latest();
+    ret["result"] = "0x" + Utils::uintToHex(bestBlock->nHeight());
     Utils::logToFile("eth_blockNumber: " + ret["result"].get<std::string>());
   }
   if (messageJson["method"] == "eth_chainId") {
@@ -29,20 +29,23 @@ std::string Subnet::processRPCMessage(std::string &req) {
   }
   if (messageJson["method"] == "eth_getBlockByNumber") {
     std::string blockString = messageJson["params"][0].get<std::string>();
-    std::unique_ptr<Block> block;
     bool includeTxs = false;
+    bool latest = false;
+    uint64_t height = 0;
     if (blockString == "latest") {
-      block = std::make_unique<Block>(chainHead->latest());
+      latest = true;
     } else {
-      uint64_t blockNumber = boost::lexical_cast<uint64_t>(Utils::hexToUint(blockString));
-      Utils::LogPrint(Log::subnet, "eth_getBlockByNumber blockNumber: ", std::to_string(blockNumber));
-      if (!chainHead->exists(blockNumber)) {
+      height = boost::lexical_cast<uint64_t>(Utils::hexToUint(blockString));
+      Utils::LogPrint(Log::subnet, "eth_getBlockByNumber blockNumber: ", std::to_string(height));
+      if (!chainHead->exists(height)) {
         ret["error"] = { {"code", -32000}, {"message", "Block not found"} };
         return ret.dump();
       }
-      block = std::make_unique<Block>(chainHead->getBlock(blockNumber));
-      Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes()));
     }
+
+    auto block = (latest ? chainHead->latest() : chainHead->getBlock(height));
+
+    Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes()));
     if (messageJson["params"].size() > 1) {
       includeTxs = messageJson["params"][1].get<bool>();
     }
@@ -148,15 +151,15 @@ std::string Subnet::processRPCMessage(std::string &req) {
     std::string blockHash = messageJson["params"][0].get<std::string>();
     Utils::patchHex(blockHash);
     blockHash = Utils::hexToBytes(blockHash);
-    Block block = chainHead->getBlock(blockHash);
+    auto block = chainHead->getBlock(blockHash);
     json answer;
     bool includeTxs = false;
     if (messageJson["params"].size() > 1) {
       includeTxs = messageJson["params"][1].get<bool>();
     }    
-    answer["number"] = std::string("0x") + Utils::uintToHex(block.nHeight());
-    answer["hash"] = std::string("0x") + dev::toHex(block.getBlockHash());
-    answer["parentHash"] = std::string("0x") + dev::toHex(block.prevBlockHash());
+    answer["number"] = std::string("0x") + Utils::uintToHex(block->nHeight());
+    answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash());
+    answer["parentHash"] = std::string("0x") + dev::toHex(block->prevBlockHash());
     answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
     answer["sha3Uncles"] = "0x";
     answer["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
@@ -169,16 +172,16 @@ std::string Subnet::processRPCMessage(std::string &req) {
     answer["size"] = "0xfffff";
     answer["gasLimit"] = "0xfffff";
     answer["gasUsed"] = "0xfffff";
-    answer["timestamp"] = std::string("0x") + Utils::uintToHex(block.timestampInSeconds()); // Seconds since epoch
+    answer["timestamp"] = std::string("0x") + Utils::uintToHex(block->timestampInSeconds()); // Seconds since epoch
     answer["transactions"] = json::array();
-    for (auto tx : block.transactions()) {
+    for (auto tx : block->transactions()) {
       if (includeTxs) {
         // https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash
         json transaction;
         transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.hash());
         transaction["nonce"] = std::string("0x") + Utils::uintToHex(tx.nonce());
-        transaction["blockHash"] = std::string("0x") + Utils::bytesToHex(block.getBlockHash());
-        transaction["blockNumber"] = std::string("0x") + Utils::uintToHex(block.nHeight());
+        transaction["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash());
+        transaction["blockNumber"] = std::string("0x") + Utils::uintToHex(block->nHeight());
         transaction["transactionIndex"] = std::string("0x") + Utils::uintToHex(tx.blockIndex());
         transaction["from"] = std::string("0x") + tx.from().hex();
         transaction["to"] = std::string("0x") + tx.to().hex();

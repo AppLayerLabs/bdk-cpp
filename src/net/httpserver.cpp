@@ -179,7 +179,11 @@ void listener::on_accept(beast::error_code ec, tcp::socket socket) {
 void HTTPServer::run() {
   // Create and launch a listening port
   auto const address = net::ip::make_address("0.0.0.0");
-  unsigned short port = 30000;
+  // Get a random number between 25000 and 30000
+  std::random_device rd; // obtain a random number from hardware
+  std::mt19937 gen(rd()); // seed the generator
+  std::uniform_int_distribution<> distr(25000, 30000);
+  unsigned short port = distr(gen);
   auto const doc_root = std::make_shared<std::string>(".");
   this->_listener = std::make_shared<listener>(
     ioc, tcp::endpoint{address, port}, doc_root, this->subnet
@@ -190,7 +194,7 @@ void HTTPServer::run() {
   std::vector<std::thread> v;
   v.reserve(4 - 1);
   for (auto i = 4 - 1; i > 0; --i) v.emplace_back([&]{ this->ioc.run(); });
-  Utils::LogPrint(Log::httpServer, __func__, "HTTP Server Started");
+  Utils::LogPrint(Log::httpServer, __func__, std::string("HTTP Server Started at port: ") + std::to_string(port));
   ioc.run();
 
   // If we get here, it means we got a SIGINT or SIGTERM. Block until all the threads exit

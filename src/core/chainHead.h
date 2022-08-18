@@ -15,8 +15,8 @@ class ChainHead {
     std::unordered_map<std::string,uint64_t> lookupBlockHeightByHash;
     std::unordered_map<uint64_t,std::string> lookupBlockHashByHeight;
     std::mutex internalChainHeadLock;
-    bool hasBlock(std::string &blockHash);
-    bool hasBlock(uint64_t &blockHeight);
+    bool hasBlock(std::string const &blockHash);
+    bool hasBlock(uint64_t const &blockHeight);
     // Only access these functions if you are absolute sure that internalChainHeadLock is locked.
     void _push_back(Block& block);
     void _push_front(Block& block);
@@ -29,14 +29,14 @@ class ChainHead {
     void push_front(Block& block);
     void pop_back();
     void pop_front();
-    bool exists(std::string &blockHash);
-    bool exists(uint64_t &blockHeight);
-    Block getBlock(std::string &blockHash);
-    Block getBlock(uint64_t &blockHeight);
+    bool exists(std::string const &blockHash);
+    bool exists(uint64_t const &blockHeight);
+    const std::shared_ptr<const Block> getBlock(std::string const &blockHash);
+    const std::shared_ptr<const Block> getBlock(uint64_t const &blockHeight);
     bool hasTransaction(std::string &txHash);
     Tx::Base getTransaction(std::string &txHash);
     Block getBlockFromTx(std::string &txHash);
-    Block latest();
+    const std::shared_ptr<const Block> latest();
     uint64_t blockSize();
     void loadFromDB();
     void dumpToDB();

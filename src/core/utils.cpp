@@ -153,6 +153,7 @@ std::string Utils::hexToBytes(std::string hex) {
     if (h != -1) {
       ret += uint8_t(h);
     } else {
+      Utils::LogPrint(Log::utils ,__func__, "Invalid Hex");
       throw std::runtime_error(std::string(__func__) + ": " +
         std::string("Invalid hex char: ") + hex[index]
       );

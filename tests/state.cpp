@@ -16,7 +16,7 @@ void Tests::testBlockchain() {
 
   // Test simply running the blockchain for 1000 blocks.
   Tests::doBlocks(1000, chainHead, headState);
-  assert(chainHead->latest().nHeight() == 1000);
+  assert(chainHead->latest()->nHeight() == 1000);
 
   // Create multiple accounts in order to do transactions inside the network.
 
@@ -32,7 +32,7 @@ void Tests::testBlockchain() {
   Tests::doBlocks(1, chainHead, headState);
 
   auto latest = chainHead->latest();
-  for (auto transaction : latest.transactions()) {
+  for (auto transaction : latest->transactions()) {
     if (mempoolCopy.count(transaction.hash()) == 0) {
       throw std::runtime_error("Missing Transactions in block");
     }

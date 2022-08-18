@@ -13,6 +13,13 @@ State::State(std::shared_ptr<DBService> &dbServer) {
 bool State::loadState(std::shared_ptr<DBService> &dbServer) {
   stateLock.lock();
   auto accounts = dbServer->readBatch(DBPrefix::nativeAccounts);
+
+  if (accounts.size() == 0) {
+    Address ("0x21B782f9BF82418A42d034517CB6Bf00b4C17612", true);
+    dbServer->put(, )
+    stateLock.unlock();
+    return false;
+  }
   for (auto account : accounts) {
     Address address(account.key, false);
     this->nativeAccount[address].balance = Utils::bytesToUint256(account.value.substr(0,32));
@@ -72,6 +79,8 @@ std::pair<int, std::string> State::validateTransaction(Tx::Base& tx) {
 bool State::processNewTransaction(const Tx::Base& tx) {
   bool isContractCall = false;
 
+  // TODO: Check Balance.
+
   // Remove transaction from mempool if found there.
   if (this->mempool.count(tx.hash()) != 0) this->mempool.erase(tx.hash());
 
@@ -92,25 +101,22 @@ bool State::processNewTransaction(const Tx::Base& tx) {
 
 bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHead) {
   stateLock.lock();
-
   // Check block previous hash.
-  Block bestBlock = chainHead->latest();
-  if (bestBlock.getBlockHash() != newBlock.prevBlockHash()) {
+  auto bestBlock = chainHead->latest();
+  if (bestBlock->getBlockHash() != newBlock.prevBlockHash()) {
     stateLock.unlock();
     Utils::LogPrint(Log::state, __func__, "Block previous hash does not match.");
     Utils::LogPrint(Log::state, __func__, "newBlock previous hash: " + newBlock.prevBlockHash());
-    Utils::LogPrint(Log::state, __func__, "bestBlock hash: " + bestBlock.getBlockHash());
+    Utils::LogPrint(Log::state, __func__, "bestBlock hash: " + bestBlock->getBlockHash());
     return false;
   }
-
-  if (newBlock.nHeight() != (bestBlock.nHeight() + 1)) {
+  if (newBlock.nHeight() != (1 + bestBlock->nHeight())) {
     stateLock.unlock();
     Utils::LogPrint(Log::state, __func__, "Block height does not match.");
     Utils::LogPrint(Log::state, __func__, "newBlock height: " + std::to_string(newBlock.nHeight()));
-    Utils::LogPrint(Log::state, __func__, "bestBlock height: " + std::to_string(bestBlock.nHeight()));
+    Utils::LogPrint(Log::state, __func__, "bestBlock height: " + std::to_string(bestBlock->nHeight()));
     return false;
   }
-
   for (auto &tx : newBlock.transactions()) {
     this->processNewTransaction(tx);
   }
@@ -118,21 +124,22 @@ bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHe
   // When the block is included in the chain, the transactions are indexed.
   newBlock.indexTxs();
   // Append block to chainHead.
+  Utils::LogPrint(Log::state, __func__, "Appending block to chainHead.");
   chainHead->push_back(newBlock);
-
+  Utils::LogPrint(Log::state, __func__, "Appended.");
   stateLock.unlock();
   return true;
 }
 
 bool State::createNewBlock(std::unique_ptr<ChainHead>& chainHead) {
   stateLock.lock();
-  Block bestBlock = chainHead->latest();
+  auto bestBlock = chainHead->latest();
   Block newBestBlock(
-    Utils::bytesToUint256(bestBlock.getBlockHash()),
+    Utils::bytesToUint256(bestBlock->getBlockHash()),
     std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::high_resolution_clock::now().time_since_epoch()
     ).count(),
-    bestBlock.nHeight() + 1
+    bestBlock->nHeight() + 1
   );
   for (auto &tx : this->mempool) newBestBlock.appendTx(tx.second);
   newBestBlock.finalizeBlock();
