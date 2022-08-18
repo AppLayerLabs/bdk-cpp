@@ -16,3 +16,4 @@ vmInfo.txt
 tests/node_modules
 depends/x86_64-pc-linux-gnu/
 scripts/AIO-setup.log
+compile_commands.json
