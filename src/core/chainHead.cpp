@@ -118,12 +118,12 @@ bool ChainHead::hasBlock(uint64_t const &blockHeight) {
   return result;
 }
 
-bool ChainHead::exists(std::string const &blockHash) {
+const bool ChainHead::exists(std::string const &blockHash) {
   if (this->hasBlock(blockHash)) return true;
   return this->dbServer->has(blockHash, DBPrefix::blocks);  // Check DB.
 }
 
-bool ChainHead::exists(uint64_t const &blockHeight) {
+const bool ChainHead::exists(uint64_t const &blockHeight) {
   if (this->hasBlock(blockHeight)) return true;
   return this->dbServer->has(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps); // Check DB.
 }
@@ -174,10 +174,10 @@ bool ChainHead::hasTransaction(std::string &txHash) {
   return result;
 }
 
-Tx::Base ChainHead::getTransaction(std::string &txHash) {
+const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(std::string &txHash) {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock();
-    Tx::Base result = *this->lookupTxByHash[txHash];
+    auto result = this->lookupTxByHash[txHash];
     this->internalChainHeadLock.unlock();
     return result;
   }
@@ -186,7 +186,7 @@ Tx::Base ChainHead::getTransaction(std::string &txHash) {
   if (this->dbServer->has(txHash, DBPrefix::TxToBlocks)) {
     std::string blockHash = dbServer->get(txHash, DBPrefix::TxToBlocks);
     std::string txBytes = dbServer->get(blockHash, DBPrefix::blocks);
-    Tx::Base result(txBytes, true); // No need to check a tx again.
+    auto result = std::make_shared<Tx::Base>(txBytes, true); // No need to check a tx again.
     return result;
   } else {
     throw std::runtime_error(std::string(__func__) + ": " +
@@ -195,10 +195,10 @@ Tx::Base ChainHead::getTransaction(std::string &txHash) {
   }
 }
 
-Block ChainHead::getBlockFromTx(std::string &txHash) {
+const std::shared_ptr<const Block> ChainHead::getBlockFromTx(std::string &txHash) {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock();
-    Block result = *this->lookupBlockByTxHash[txHash];
+    auto result = this->lookupBlockByTxHash[txHash];
     this->internalChainHeadLock.unlock();
     return result;
   } else {

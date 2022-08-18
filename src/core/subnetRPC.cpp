@@ -131,14 +131,14 @@ std::string Subnet::processRPCMessage(std::string &req) {
     Utils::patchHex(txHash);
     try {
       std::string txStr = Utils::hexToBytes(txHash);
-      Tx::Base tx = chainHead->getTransaction(txStr);
-      ret["result"]["transactionHash"] = std::string("0x") + Utils::bytesToHex(tx.hash());
-      ret["result"]["transactionIndex"] = "0x" + dev::toHex(Utils::uint32ToBytes(tx.blockIndex()));
-      Block block = chainHead->getBlockFromTx(txStr);
-      ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block.nHeight());
-      ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block.getBlockHash());
-      ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx.gas());
-      ret["result"]["gasUsed"] = "0x" + Utils::uintToHex(tx.gas());
+      auto tx = chainHead->getTransaction(txStr);
+      ret["result"]["transactionHash"] = std::string("0x") + Utils::bytesToHex(tx->hash());
+      ret["result"]["transactionIndex"] = "0x" + dev::toHex(Utils::uint32ToBytes(tx->blockIndex()));
+      auto block = chainHead->getBlockFromTx(txStr);
+      ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block->nHeight());
+      ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block->getBlockHash());
+      ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx->gas());
+      ret["result"]["gasUsed"] = "0x" + Utils::uintToHex(tx->gas());
       ret["result"]["contractAddress"] = "0x";  // TODO: does MetaMask check if we called a contract?
       ret["logs"] = json::array();
       ret["result"]["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";

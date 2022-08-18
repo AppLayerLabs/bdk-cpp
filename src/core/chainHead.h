@@ -29,13 +29,13 @@ class ChainHead {
     void push_front(Block& block);
     void pop_back();
     void pop_front();
-    bool exists(std::string const &blockHash);
-    bool exists(uint64_t const &blockHeight);
+    const bool exists(std::string const &blockHash);
+    const bool exists(uint64_t const &blockHeight);
     const std::shared_ptr<const Block> getBlock(std::string const &blockHash);
     const std::shared_ptr<const Block> getBlock(uint64_t const &blockHeight);
     bool hasTransaction(std::string &txHash);
-    Tx::Base getTransaction(std::string &txHash);
-    Block getBlockFromTx(std::string &txHash);
+    const std::shared_ptr<const Tx::Base> getTransaction(std::string &txHash);
+    const std::shared_ptr<const Block> getBlockFromTx(std::string &txHash);
     const std::shared_ptr<const Block> latest();
     uint64_t blockSize();
     void loadFromDB();

@@ -49,23 +49,23 @@ namespace Tx {
       Base() {};
 
       // Getters
-      const Address& to()          const { return const_cast<Address&>(_to); };
-      const uint256_t& value()     const { return const_cast<uint256_t&>(_value); };
-      const std::string& data()    const { return const_cast<std::string&>(_data); };
-      const uint64_t& chainId()    const { return const_cast<uint64_t&>(_chainId); };
-      const uint256_t& nonce()     const { return const_cast<uint256_t&>(_nonce); };
-      const uint256_t& gas()       const { return const_cast<uint256_t&>(_gas); };
-      const uint256_t& gasPrice()  const { return const_cast<uint256_t&>(_gasPrice); };
-      const uint256_t& v()         const { return const_cast<uint256_t&>(_v); };
-      const uint256_t& r()         const { return const_cast<uint256_t&>(_r); };
-      const uint256_t& s()         const { return const_cast<uint256_t&>(_s); };
+      const Address& to()          const { return _to; };
+      const uint256_t& value()     const { return _value; };
+      const std::string& data()    const { return _data; };
+      const uint64_t& chainId()    const { return _chainId; };
+      const uint256_t& nonce()     const { return _nonce; };
+      const uint256_t& gas()       const { return _gas; };
+      const uint256_t& gasPrice()  const { return _gasPrice; };
+      const uint256_t& v()         const { return _v; };
+      const uint256_t& r()         const { return _r; };
+      const uint256_t& s()         const { return _s; };
       const uint256_t recoverId()  const { return uint256_t(uint8_t(this->_v - (uint256_t(this->_chainId) * 2 + 35))); };
-      const uint32_t& blockIndex() const { return const_cast<uint32_t&>(_blockIndex); };
-      const Address& from()        const { return const_cast<Address&>(_from); };
-      const bool& callsContract()  const { return const_cast<bool&>(_callsContract); };
-      const bool& inBlock()        const { return const_cast<bool&>(_inBlock); };
-      const bool& hasSig()         const { return const_cast<bool&>(_hasSig); };
-      const bool& verified()       const { return const_cast<bool&>(_verified); };
+      const uint32_t& blockIndex() const { return _blockIndex; };
+      const Address& from()        const { return _from; };
+      const bool& callsContract()  const { return _callsContract; };
+      const bool& inBlock()        const { return _inBlock; };
+      const bool& hasSig()         const { return _hasSig; };
+      const bool& verified()       const { return _verified; };
 
       // Setters
       void setTo(Address& to) { this->_to = to; }
@@ -93,7 +93,7 @@ namespace Tx {
 
       // Hash in bytes not hex!
       std::string hash() const { std::string ret; Utils::sha3(this->rlpSerialize(this->_hasSig), ret); return ret; };
-      std::string rlpSerialize(bool includeSig) const;
+      std::string rlpSerialize(const bool &includeSig) const;
       std::string serialize() const;
 
       // Signer

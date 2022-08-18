@@ -89,7 +89,9 @@ class Block {
 
     // When transactions are indexed. the block is considered to be on the chain.
     void indexTxs();
-    bool appendTx(Tx::Base &tx);
+    // This is *copying* the transaction into the block.
+    // there should be a special function for *move* the transaction into the block.
+    bool appendTx(const Tx::Base &tx);
     bool finalizeBlock();
 
     bool operator==(const Block& rBlock) const {

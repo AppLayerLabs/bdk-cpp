@@ -79,10 +79,10 @@ class DBService {
     bool writeBatch(WriteBatchRequest &request, std::string prefix = "");
 
     // Read all keys starting with prefix and start.
-    std::vector<DBEntry> readBatch(std::string prefix);
+    std::vector<DBEntry> readBatch(const std::string prefix);
 
     // Read all keys from key vector.
-    std::vector<DBEntry> readBatch(std::vector<std::string>& keys, std::string prefix);
+    std::vector<DBEntry> readBatch(const std::vector<std::string>& keys, const std::string prefix);
 
     // Remove the first 4 chars (the key) from a string.
     std::string removeKeyPrefix(const std::string &key);

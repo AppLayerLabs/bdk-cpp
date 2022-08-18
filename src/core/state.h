@@ -55,6 +55,7 @@ class State {
 
     uint256_t getNativeBalance(const Address& address);
     uint256_t getNativeNonce(const Address& address);
+    
     const std::unordered_map<std::string, Tx::Base>& getMempool() { return mempool; };
 
     // State changing functions
@@ -71,7 +72,7 @@ class State {
 
     // TEST ONLY FUNCTIONS.
 
-    void addBalance(Address &address);
+    void addBalance(const Address &address);
 
     friend class Subnet;
 };

@@ -65,7 +65,7 @@ namespace Utils {
   uint8_t bytesToUint8(const std::string &bytes);
   int fromHexChar(char c) noexcept;
   void patchHex(std::string& str);
-  template <typename T> std::string uintToHex(T i) {
+  template <typename T> std::string uintToHex(const T &i) {
     std::stringstream ss;
     std::string ret;
     ss << std::hex << i;
@@ -75,7 +75,7 @@ namespace Utils {
   }
   uint256_t hexToUint(std::string &hex);
   std::string hexToBytes(std::string hex);
-  std::string bytesToHex(std::string bytes);
+  std::string bytesToHex(const std::string& bytes);
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
 }
 

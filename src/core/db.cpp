@@ -67,7 +67,7 @@ bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
   return true;
 }
 
-std::vector<DBEntry> DBService::readBatch(std::string prefix) {
+std::vector<DBEntry> DBService::readBatch(std::string const prefix) {
   batchLock.lock();
   std::vector<DBEntry> entries;
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
@@ -82,14 +82,14 @@ std::vector<DBEntry> DBService::readBatch(std::string prefix) {
   return entries;
 }
 
-std::vector<DBEntry> DBService::readBatch(std::vector<std::string>& keys, std::string prefix) {
+std::vector<DBEntry> DBService::readBatch(const std::vector<std::string>& keys, const std::string prefix) {
   batchLock.lock();
   std::vector<DBEntry> ret;
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
   for (it->Seek(prefix); it->Valid(); it->Next()) {
     if (it->key().ToString().substr(0, 4) == prefix) {
       std::string strippedKey = removeKeyPrefix(it->key().ToString());
-      for (std::string& key : keys) {
+      for (const std::string& key : keys) {
         if (strippedKey == key) {
           DBEntry entry(strippedKey, it->value().ToString());
           ret.push_back(entry);

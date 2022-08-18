@@ -82,7 +82,7 @@ const uint64_t Block::blockSize() const {
   return ret;
 }
 
-bool Block::appendTx(Tx::Base &tx) {
+bool Block::appendTx(const Tx::Base &tx) {
   if (this->finalized) {
     Utils::LogPrint(Log::block, __func__, " Block is finalized.");
     return false;

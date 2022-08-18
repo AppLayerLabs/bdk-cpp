@@ -15,8 +15,8 @@ bool State::loadState(std::shared_ptr<DBService> &dbServer) {
   auto accounts = dbServer->readBatch(DBPrefix::nativeAccounts);
 
   if (accounts.size() == 0) {
-    Address ("0x21B782f9BF82418A42d034517CB6Bf00b4C17612", true);
-    dbServer->put(, )
+    Address dev("0x21B782f9BF82418A42d034517CB6Bf00b4C17612", true);
+    dbServer->put(dev.get(),Utils::uint256ToBytes(uint256_t("100000000000000000000")) + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts);
     stateLock.unlock();
     return false;
   }
@@ -163,7 +163,7 @@ uint256_t State::getNativeNonce(const Address& address) {
   return ret;
 };
 
-void State::addBalance(Address &address) {
+void State::addBalance(const Address &address) {
   this->stateLock.lock();
   this->nativeAccount[address].balance += 1000000000000000000;
   this->stateLock.unlock();
