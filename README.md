@@ -34,3 +34,18 @@ For **Debian 11 Bullseye or newer**:
 * Build the executable: `cmake --build . -- -j$(nproc)`
   * If using the linter, pipe the stderr output to a file, e.g. `cmake --build . -- -j$(nproc) 2> log.txt`
 
+## Deploying
+
+If you want a **manual** deploy, check [DEPLOY_SUBNET.md](DEPLOY_SUBNET.md).
+
+If you want an **assisted/automatic** deploy, or you don't care about the details and just want to get it running ASAP, use one of the scripts in the `scripts` folder:
+
+* **AIO-setup.sh** - Setup the Subnet with a single node.
+* **AIO-setup-two-nodes.sh** - Setup the Subnet with two nodes.
+
+After the Subnet is deployed, use the scripts under the `scripts/helpers` subfolder to manage it:
+
+* **startAll.sh** - Start the Subnet.
+* **killAll.sh** - Stop the Subnet.
+* **cleanAll.sh** - Clean the Subnet logs.
+

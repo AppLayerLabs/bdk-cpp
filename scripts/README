@@ -1,4 +1,0 @@
--- AIO-setup.sh
-
-Setups envirionment from scratch, including avalanchego, assuming you have all dependencies installed.
-Outputs info to AIO-setup.log
