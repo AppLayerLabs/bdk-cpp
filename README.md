@@ -13,7 +13,7 @@ Sparq subnet source code.
 * **libscrypt**
 * **OpenSSL 1.1.1**
 * **zlib**
-* **clang-tidy** for linting
+* (optional) **clang-tidy** for linting
 
 ### One-liners
 
@@ -30,5 +30,7 @@ For **Debian 11 Bullseye or newer**:
   * `cd subnetooor && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
   * Use `-DCMAKE_BUILD_TYPE=RelWithDebInfo` to build with debug symbols
+  * Use `-DUSE_LINT=ON` to run clang-tidy along the build (this is off by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
 * Build the executable: `cmake --build . -- -j$(nproc)`
+  * If using the linter, pipe the stderr output to a file, e.g. `cmake --build . -- -j$(nproc) 2> log.txt`
 

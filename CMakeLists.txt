@@ -20,9 +20,12 @@ set(CMAKE_CXX_FLAGS "-O2")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # "ZLIB_USE_STATIC_LIBS" was added in 3.24
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
-set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-checks=-*,abseil-*,boost-*,bugprone-*,cert-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*")
 set(LEVELDB_USE_STATIC_LIBS ON)
 set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
+set(USE_LINT OFF CACHE BOOL "Run linter on compile (clang-tidy)")
+if(USE_LINT)
+  set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-checks=-*,abseil-*,boost-*,bugprone-*,cert-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*")
+endif()
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "C++ Standard is required: ${CMAKE_CXX_STANDARD_REQUIRED}")
 message(STATUS "C++ extensions: ${CMAKE_CXX_EXTENSIONS}")
