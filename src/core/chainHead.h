@@ -21,9 +21,10 @@ class ChainHead {
     void _push_back(Block& block);
     void _push_front(Block& block);
 
-
   public:
-    ChainHead(std::shared_ptr<DBService> &_dbService);
+    ChainHead(std::shared_ptr<DBService> &_dbService) : dbServer(_dbService) {
+      this->loadFromDB();
+    }
     // Mutex locked.
     void push_back(Block& block);
     void push_front(Block& block);
