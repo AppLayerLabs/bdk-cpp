@@ -83,7 +83,6 @@ struct Account {
   uint32_t nonce = 0;
 };
 
-// TODO: Missing destructor, copy, move and move assignment
 class Address {
   private:
     std::string innerAddress;
@@ -98,6 +97,19 @@ class Address {
         innerAddress = address;
       }
     }
+
+    // Copy constructor.
+    Address(const Address& other) {
+      this->innerAddress = other.innerAddress;
+    }
+
+    // Move constructor.
+    Address(Address&& other) noexcept :
+      innerAddress(std::move(other.innerAddress)) {}
+
+    // Destructor.
+    ~Address() { this->innerAddress = ""; }
+
     const std::string& get() const { return innerAddress; };
     const std::string hex() const { return Utils::bytesToHex(innerAddress); }
     dev::h160 toHash() const {
@@ -107,6 +119,10 @@ class Address {
     void operator=(const Address& address) { this->innerAddress = address.innerAddress; }
     void operator=(const dev::h160 &address) { this->innerAddress = address.byteStr(); }
     void operator=(const uint160_t &address) { this->innerAddress = Utils::uint160ToBytes(address); }
+    Address& operator=(Address&& other) {
+      this->innerAddress = std::move(other.innerAddress);
+      return *this;
+    }
     bool operator==(const Address& rAddress) const { return bool(innerAddress == rAddress.innerAddress); }
     bool operator!=(const Address& rAddress) const { return bool(innerAddress != rAddress.innerAddress); }
 };
