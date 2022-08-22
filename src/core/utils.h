@@ -56,11 +56,13 @@ namespace Utils {
   std::string uint160ToBytes(const uint160_t &i);
   std::string uint64ToBytes(const uint64_t &i);
   std::string uint32ToBytes(const uint32_t &i);
+  std::string uint16ToBytes(const uint16_t &i);
   std::string uint8ToBytes(const uint8_t &i);
   uint256_t bytesToUint256(const std::string &bytes);
   uint160_t bytesToUint160(const std::string &bytes);
   uint64_t bytesToUint64(const std::string &bytes);
   uint32_t bytesToUint32(const std::string &bytes);
+  uint16_t bytesToUint16(const std::string &bytes);
   uint8_t bytesToUint8(const std::string &bytes);
   int fromHexChar(char c) noexcept;
   void patchHex(std::string& str);
