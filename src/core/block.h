@@ -2,7 +2,7 @@
 #define BLOCK_H
 
 #include <array>
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 
 #include "transaction.h"
@@ -63,7 +63,9 @@ class Block {
     bool inChain = false;
 
   public:
-    Block(const std::string &blockData);  // Constructor from network/rpc.
+
+    // TODO: Copy constructor, move constructor, move assignment operator, copy assignment operator.
+    explicit Block(const std::string &blockData);  // Constructor from network/rpc.
 
     // Constructor from creation.
     Block(
@@ -83,7 +85,7 @@ class Block {
     const uint64_t& nHeight() const { return this->_nHeight; };
     const uint32_t& txCount() const { return this->_txCount; };
     const std::vector<Tx::Base>& transactions() const { return this->_transactions; };
-    const uint64_t blockSize() const;
+    uint64_t blockSize() const;
     std::string getBlockHash() const; // Hash (in bytes)
     std::string serializeToBytes() const;
 
@@ -100,7 +102,7 @@ class Block {
       );
     }
 
-    void operator=(const Block& block) {
+    Block& operator=(const Block& block) {
       this->_prevBlockHash = block._prevBlockHash;
       this->_timestamp = block._timestamp;
       this->_nHeight = block._nHeight;
@@ -108,6 +110,7 @@ class Block {
       this->_transactions = block._transactions;
       this->finalized = block.finalized;
       this->inChain = block.inChain;
+      return *this;
     }
 };
 

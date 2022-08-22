@@ -11,11 +11,10 @@
 #include "../libs/devcore/FixedHash.h"
 #include "../libs/json.hpp"
 #include "../libs/keccak.hpp"
-#include "../libs/keccak.hpp"
 
 using json = nlohmann::ordered_json;
-typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>> uint256_t;
-typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>> uint160_t;
+using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
+using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 static const uint256_t c_secp256k1n("115792089237316195423570985008687907852837564279074904382605163141518161494337");
 using bytes = std::vector<uint8_t>;
 
@@ -51,7 +50,7 @@ enum BlockStatus {
 
 namespace Utils {
   void logToFile(std::string str);
-  void LogPrint(std::string prefix, std::string function, std::string data);
+  void LogPrint(const std::string &prefix, std::string function, std::string data);
   void sha3(const std::string &input, std::string &output);
   std::string uint256ToBytes(const uint256_t &i);
   std::string uint160ToBytes(const uint160_t &i);
@@ -77,16 +76,17 @@ namespace Utils {
   std::string hexToBytes(std::string hex);
   std::string bytesToHex(const std::string& bytes);
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
-}
+} // Utils
 
 struct Account {
   uint256_t balance = 0;
   uint32_t nonce = 0;
 };
 
+// TODO: Missing destructor, copy, move and move assignment
 class Address {
   private:
-    std::string innerAddress = "";
+    std::string innerAddress;
 
   public:
     Address() {}

@@ -12,7 +12,7 @@ void ChainHead::_push_back(Block& block) {
   this->lookupBlockHashByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
 
-  for (auto &tx : latestBlock->transactions()) {
+  for (const auto &tx : latestBlock->transactions()) {
     this->lookupTxByHash[tx.hash()] = std::make_shared<Tx::Base>(tx);
     this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
@@ -28,7 +28,7 @@ void ChainHead::_push_front(Block& block) {
   this->lookupBlockHashByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
 
-  for (auto &tx : latestBlock->transactions()) {
+  for (const auto &tx : latestBlock->transactions()) {
     this->lookupTxByHash[tx.hash()] = std::make_shared<Tx::Base>(tx);
     this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
@@ -60,7 +60,7 @@ void ChainHead::pop_back() {
   uint64_t blockHeight = blockToDelete->nHeight();
 
   // Delete all tx references from mappings.
-  for (auto &tx : blockToDelete->transactions()) {
+  for (const auto &tx : blockToDelete->transactions()) {
     this->lookupTxByHash.erase(tx.hash());
     this->lookupBlockByTxHash.erase(tx.hash());
   }
@@ -86,7 +86,7 @@ void ChainHead::pop_front() {
   uint64_t blockHeight = blockToDelete->nHeight();
 
   // Delete all tx references from mappings.
-  for (auto &tx : blockToDelete->transactions()) {
+  for (const auto &tx : blockToDelete->transactions()) {
     this->lookupTxByHash.erase(tx.hash());
     this->lookupBlockByTxHash.erase(tx.hash());
   }
@@ -135,15 +135,15 @@ const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockH
       auto result = this->lookupBlockByHash[blockHash];
       this->internalChainHeadLock.unlock();
       return result;
-    } else {
-      auto result = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
-      return result;
     }
-  } else {
-    throw std::runtime_error(std::string(__func__) + ": " +
-      std::string("Block does not exist")
-    );
+
+    auto result = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
+    return result;
   }
+
+  throw std::runtime_error(std::string(__func__) + ": " +
+    std::string("Block does not exist")
+  );
 }
 
 const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeight) {
@@ -153,18 +153,16 @@ const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeig
       auto result = this->lookupBlockByHash[this->lookupBlockHashByHeight[blockHeight]];
       this->internalChainHeadLock.unlock();
       return result;
-    } else {
-      std::string blockHash = dbServer->get(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps);
-      Utils::LogPrint(Log::chainHead, __func__, "blockHash: " + blockHash);
-      auto result = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
-      return result;
     }
-  } else {
-    this->internalChainHeadLock.unlock();
-    throw std::runtime_error(std::string(__func__) + ": " +
-      std::string("Block does not exist")
-    );
+    std::string blockHash = dbServer->get(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps);
+    Utils::LogPrint(Log::chainHead, __func__, "blockHash: " + blockHash);
+    auto result = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
+    return result;
   }
+  this->internalChainHeadLock.unlock();
+  throw std::runtime_error(std::string(__func__) + ": " +
+    std::string("Block does not exist")
+  );
 }
 
 bool ChainHead::hasTransaction(std::string &txHash) {
@@ -188,11 +186,11 @@ const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(std::string &txH
     std::string txBytes = dbServer->get(blockHash, DBPrefix::blocks);
     auto result = std::make_shared<Tx::Base>(txBytes, true); // No need to check a tx again.
     return result;
-  } else {
-    throw std::runtime_error(std::string(__func__) + ": " +
-      std::string("Transaction does not exist")
-    );
   }
+
+  throw std::runtime_error(std::string(__func__) + ": " +
+    std::string("Transaction does not exist")
+  );
 }
 
 const std::shared_ptr<const Block> ChainHead::getBlockFromTx(std::string &txHash) {
@@ -201,11 +199,10 @@ const std::shared_ptr<const Block> ChainHead::getBlockFromTx(std::string &txHash
     auto result = this->lookupBlockByTxHash[txHash];
     this->internalChainHeadLock.unlock();
     return result;
-  } else {
-    throw std::runtime_error(std::string(__func__) + ": " +
-      std::string("Block does not exist")
-    );
   }
+  throw std::runtime_error(std::string(__func__) + ": " +
+    std::string("Block does not exist")
+  );
 }
 
 const std::shared_ptr<const Block> ChainHead::latest() {
@@ -281,7 +278,7 @@ void ChainHead::dumpToDB() {
     uint64_t blockHeight = blockToDelete->nHeight();
 
     // Delete all tx references from mappingsand append them to the DB.
-    for (auto &tx : blockToDelete->transactions()) {
+    for (const auto &tx : blockToDelete->transactions()) {
       txToBlockBatch.puts.emplace_back(DBEntry(tx.hash(), blockToDelete->getBlockHash()));
       this->lookupTxByHash.erase(tx.hash());
       this->lookupBlockByTxHash.erase(tx.hash());

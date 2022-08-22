@@ -68,18 +68,18 @@ Tx::Base::Base(std::string &bytes, bool fromDB) {
       );
     }
     return;
-  } else {
-    // If tx is coming from DB, we simply read the information from the extra bytes.
-    // Txs that come from DB are included in a block, which means they are
-    // already verified, so we don't have to redo the expensive secp256k1 calculation
-    // to verify their signature.
-    this->_blockIndex = Utils::bytesToUint32(appendedBytes.substr(0, 4));
-    this->_from = appendedBytes.substr(4, 20);
-    this->_callsContract = bool(char(appendedBytes[24]));
-    this->_hasSig = true;
-    this->_inBlock = true;
-    this->_verified = true;
   }
+  // If tx is coming from DB, we simply read the information from the extra bytes.
+  // Txs that come from DB are included in a block, which means they are
+  // already verified, so we don't have to redo the expensive secp256k1 calculation
+  // to verify their signature.
+  this->_blockIndex = Utils::bytesToUint32(appendedBytes.substr(0, 4));
+  this->_from = appendedBytes.substr(4, 20);
+  this->_callsContract = static_cast<bool>(static_cast<char>(appendedBytes[24]));
+  this->_hasSig = true;
+  this->_inBlock = true;
+  this->_verified = true;
+
 }
 
 std::string Tx::Base::rlpSerialize(const bool &includeSig) const {
@@ -107,7 +107,7 @@ std::string Tx::Base::serialize() const {
     );
   }
   std::string ret = this->rlpSerialize(true);
-  ret += Utils::uint32ToBytes(this->_blockIndex) + _from.get() + char(this->_callsContract);
+  ret += Utils::uint32ToBytes(this->_blockIndex) + _from.get() + static_cast<char>(this->_callsContract);
   return ret;
 }
 

@@ -31,6 +31,7 @@ std::string Utils::uint160ToBytes(const uint160_t &i) {
   return ret;
 }
 
+// TODO: Update uint64/32/16/8 to bytes conversions to use memcpy.
 std::string Utils::uint64ToBytes(const uint64_t &i) {
   std::string ret(8, 0x00);
   ret[0] = i >> 56;
@@ -87,7 +88,7 @@ uint64_t Utils::bytesToUint64(const std::string &bytes) {
       std::string("Invalid bytes size - expected 8, got ") + std::to_string(bytes.size())
     );
   }
-  uint64_t ret;
+  uint64_t ret = 0;
   std::memcpy(&ret, bytes.data(), 8);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     return __builtin_bswap64(ret);
@@ -102,7 +103,7 @@ uint32_t Utils::bytesToUint32(const std::string &bytes) {
       std::string("Invalid bytes size - expected 4, got ") + std::to_string(bytes.size())
     );
   }
-  uint32_t ret;
+  uint32_t ret = 0;
   std::memcpy(&ret, bytes.data(), 4);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     return __builtin_bswap32(ret);
@@ -117,12 +118,12 @@ uint8_t Utils::bytesToUint8(const std::string &bytes) {
       std::string("Invalid bytes size - expected 1, got ") + std::to_string(bytes.size())
     );
   }
-  uint8_t ret;
+  uint8_t ret = 0;
   ret = bytes[0];
   return ret;
 }
 
-void Utils::LogPrint(std::string prefix, std::string function, std::string data) {
+void Utils::LogPrint(const std::string &prefix, std::string function, std::string data) {
   debug_mutex.lock();
   std::ofstream log("debug.txt", std::ios::app);
   log << prefix << function << " - " << data << std::endl;
@@ -196,6 +197,6 @@ bool Utils::verifySignature(uint8_t const &v, uint256_t const &r, uint256_t cons
 
 void Utils::sha3(const std::string &input, std::string &output) {
   output.resize(32);
-  keccakUint8_256(reinterpret_cast<unsigned char*>(output.data()), reinterpret_cast<const unsigned char*>(input.data()), input.size());
+  keccakUint8_256(reinterpret_cast<unsigned char*>(&output[0]), reinterpret_cast<const unsigned char*>(input.data()), input.size());
 }
 

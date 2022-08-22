@@ -14,13 +14,13 @@ bool State::loadState(std::shared_ptr<DBService> &dbServer) {
   stateLock.lock();
   auto accounts = dbServer->readBatch(DBPrefix::nativeAccounts);
 
-  if (accounts.size() == 0) {
+  if (accounts.empty()) {
     Address dev("0x21B782f9BF82418A42d034517CB6Bf00b4C17612", true);
     dbServer->put(dev.get(),Utils::uint256ToBytes(uint256_t("100000000000000000000")) + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts);
     stateLock.unlock();
     return false;
   }
-  for (auto account : accounts) {
+  for (const auto account : accounts) {
     Address address(account.key, false);
     this->nativeAccount[address].balance = Utils::bytesToUint256(account.value.substr(0,32));
     this->nativeAccount[address].nonce = Utils::bytesToUint32(account.value.substr(32,4));
@@ -51,7 +51,7 @@ std::pair<int, std::string> State::validateTransaction(Tx::Base& tx) {
   stateLock.lock();
 
   int err = 0;
-  std::string errMsg = "";
+  std::string errMsg;
   if (this->nativeAccount[tx.from()].nonce != tx.nonce()) {
     err = -32003; errMsg = "Nonce mismatch";
   } else if (this->nativeAccount[tx.from()].balance < tx.value()) {
@@ -117,7 +117,7 @@ bool State::processNewBlock(Block& newBlock, std::unique_ptr<ChainHead>& chainHe
     Utils::LogPrint(Log::state, __func__, "bestBlock height: " + std::to_string(bestBlock->nHeight()));
     return false;
   }
-  for (auto &tx : newBlock.transactions()) {
+  for (const auto &tx : newBlock.transactions()) {
     this->processNewTransaction(tx);
   }
 

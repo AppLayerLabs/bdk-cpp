@@ -4,14 +4,15 @@
 #include "../libs/devcore/RLP.h"
 #include "secp256k1Wrapper.h"
 #include "utils.h"
+#include <utility>
 
 namespace Tx {
   class Base {
-    protected:
+    private:
       // Inside RLP, TxSkeleton:
       Address _to;
       uint256_t _value = 0;
-      std::string _data = "";
+      std::string _data;
       uint64_t _chainId = 0;
       uint256_t _nonce = 0;
       uint256_t _gas = 0;
@@ -46,7 +47,7 @@ namespace Tx {
         _from(from), _to(to), _value(value), _data(data), _chainId(chainId), _nonce(nonce), _gas(gas), _gasPrice(gasPrice) { }
 
       // You can also create an empty transaction.
-      Base() {};
+      Base() {}
 
       // Getters
       const Address& to()          const { return _to; };
@@ -68,28 +69,28 @@ namespace Tx {
       const bool& verified()       const { return _verified; };
 
       // Setters
-      void setTo(Address& to) { this->_to = to; }
-      void setValue(uint256_t& value) { this->_value = value; }
-      void setData(std::string& data) { this->_data = data; }
-      void setChainId(uint64_t& chainId) { this->_chainId = chainId; }
-      void setNonce(uint256_t& nonce) { this->_nonce = nonce; }
-      void setGas(uint256_t& gas) { this->_gas = gas; }
-      void setGasPrice(uint256_t gasPrice) { this->_gasPrice = gasPrice; }
-      void setV(uint256_t& v) { this->_v = v; }
-      void setR(uint256_t& r) { this->_r = r; }
-      void setS(uint256_t& s) { this->_s = s; }
-      void setBlockIndex (uint64_t& blockIndex) {
+      void setTo(const Address& to) { this->_to = to; }
+      void setValue(const uint256_t& value) { this->_value = value; }
+      void setData(const std::string& data) { this->_data = data; }
+      void setChainId(const uint64_t& chainId) { this->_chainId = chainId; }
+      void setNonce(const uint256_t& nonce) { this->_nonce = nonce; }
+      void setGas(const uint256_t& gas) { this->_gas = gas; }
+      void setGasPrice(const uint256_t &gasPrice) { this->_gasPrice = gasPrice; }
+      void setV(const uint256_t& v) { this->_v = v; }
+      void setR(const uint256_t& r) { this->_r = r; }
+      void setS(const uint256_t& s) { this->_s = s; }
+      void setBlockIndex (const uint64_t& blockIndex) {
         if (_inBlock) throw std::runtime_error(std::string(__func__) + ": " +
           std::string("Transaction already included in a block")
         );
         this->_blockIndex = blockIndex;
         this->_inBlock = true;
       };
-      void setFrom(Address& from) { this->_from = from; }
-      void setCallsContract(bool& callsContract) { this->_callsContract = callsContract; }
-      void setInBlock(bool& inBlock) { this->_inBlock = inBlock; }
-      void setHasSig(bool& hasSig) { this->_hasSig = hasSig; }
-      void setVerified(bool& verified) { this->_verified = verified; }
+      void setFrom(const Address& from) { this->_from = from; }
+      void setCallsContract(const bool& callsContract) { this->_callsContract = callsContract; }
+      void setInBlock(const bool& inBlock) { this->_inBlock = inBlock; }
+      void setHasSig(const bool& hasSig) { this->_hasSig = hasSig; }
+      void setVerified(const bool& verified) { this->_verified = verified; }
 
       // Hash in bytes not hex!
       std::string hash() const { std::string ret; Utils::sha3(this->rlpSerialize(this->_hasSig), ret); return ret; };

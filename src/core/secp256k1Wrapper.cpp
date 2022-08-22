@@ -20,7 +20,7 @@ std::string Secp256k1::recover(std::string& sig, std::string& messageHash) {
   // Expect single byte header of value 0x04 -- uncompressed pubkey.
   assert(serializedPubkey[0] == 0x04);
   // return pubkey without the 0x04 header.
-  return std::string(serializedPubkey.begin() + 1, serializedPubkey.end());
+  return { serializedPubkey.begin() + 1, serializedPubkey.end() };
 }
 
 void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const uint8_t &v, std::string &signature) {
@@ -35,7 +35,7 @@ void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const ui
   for (uint16_t i = 0; i < tmpS.size(); ++i) {
     signature[63-i] = tmpS[tmpS.size()-i-1];  // Replace bytes from tmp to ret to make it 32 bytes in size.
   }
-  signature[64] = v;
+  std::memcpy(&signature[64], &v, 1);
   return;
 }
 
@@ -55,7 +55,7 @@ std::string Secp256k1::toPub(std::string &privKey) {
   // Expect single byte header of value 0x04 -- uncompressed pubkey.
   assert(serializedPubkey[0] == 0x04);
   // return pubkey without the 0x04 header.
-  return std::string(serializedPubkey.begin() + 1, serializedPubkey.end());
+  return { serializedPubkey.begin() + 1, serializedPubkey.end() };
 }
 
 std::string Secp256k1::toAddress(std::string &pubKey) {
@@ -74,7 +74,7 @@ std::string Secp256k1::sign(std::string &privKey, std::string &hash) {
 
   int v = 0;
   std::string signature(65, 0x00);
-  secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, reinterpret_cast<unsigned char*>(signature.data()), &v, &rawSig);
+  secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, reinterpret_cast<unsigned char*>(&signature[0]), &v, &rawSig);
 
   uint8_t rawV = static_cast<uint8_t>(v);
   uint256_t r = Utils::bytesToUint256(signature.substr(0,32));

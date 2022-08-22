@@ -33,7 +33,7 @@ Block::Block(const std::string &blockData) {
 
       nextTx = nextTx + 4 + txSize;
       // We consider loading transactions from the block the same as reading from DB
-      this->_transactions.push_back(Tx::Base(txBytes, true));
+      this->_transactions.emplace_back(Tx::Base(txBytes, true));
     }
   } catch (std::exception &e) {
     Utils::LogPrint(Log::block, __func__, "Error: " + std::string(e.what()) + " " + dev::toHex(blockData));
@@ -59,7 +59,7 @@ std::string Block::serializeToBytes() const {
    * Append transactions.
    * For each transaction we need to parse both their size and their data.
    */
-  for (auto transaction : this->_transactions) {
+  for (auto const &transaction : this->_transactions) {
     std::string txBytes = transaction.serialize();
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
     ret += txSizeBytes;
@@ -74,9 +74,9 @@ std::string Block::getBlockHash() const {
   return ret;
 }
 
-const uint64_t Block::blockSize() const {
+uint64_t Block::blockSize() const {
   uint64_t ret = 32 + 8 + 8 + 4; // prevBlockHash + timestamp + nHeight + txCount
-  for (auto transaction : this->_transactions) { // + [ txSize, tx, ... ]
+  for (Tx::Base const &transaction : this->_transactions) { // + [ txSize, tx, ... ]
     ret += 4 + transaction.serialize().size();
   }
   return ret;
@@ -112,7 +112,9 @@ void Block::indexTxs() {
 }
 
 bool Block::finalizeBlock() {
-  if (this->finalized) return false;
+  if (this->finalized) {
+    return false;
+  }
   this->finalized = true;
   return true;
 }

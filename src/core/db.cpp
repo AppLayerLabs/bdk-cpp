@@ -49,7 +49,7 @@ bool DBService::del(std::string key, std::string prefix) {
 
 bool DBService::close() {
   delete this->db;
-  this->db = NULL;
+  this->db = nullptr;
   return true;
 }
 
