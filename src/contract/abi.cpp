@@ -1,34 +1,31 @@
 #include "abi.h"
 
-uint256_t ABIDecoder::decodeUint256(const std::string &data, uint64_t &start) {
+uint256_t ABIDecoder::decodeUint256(const std::string &data, const uint64_t &start) {
   if (start + 32 > data.size()) {
     throw std::runtime_error("Data too short");
   }
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
   uint256_t ret = Utils::bytesToUint256(tmp);
-  start += 32;
   return ret;
 }
 
-Address ABIDecoder::decodeAddress(const std::string &data, uint64_t &start) {
+Address ABIDecoder::decodeAddress(const std::string &data, const uint64_t &start) {
   if (start + 32 > data.size()) {
     throw std::runtime_error("Data too short");
   }
   std::string tmp;
   std::copy(data.begin() + start + 12, data.begin() + start + 32, std::back_inserter(tmp)); // Skip first 12 bytes
   Address ret(tmp, false);
-  start += 32;
   return ret;
 }
 
-bool ABIDecoder::decodeBool(const std::string &data, uint64_t &start) {
+bool ABIDecoder::decodeBool(const std::string &data, const uint64_t &start) {
   bool ret = (data[start + 31] == 0x00) ? false : true; // Bool value is at the very end
-  start += 32;
   return ret;
 }
 
-std::string ABIDecoder::decodeBytes(const std::string &data, uint64_t &start) {
+std::string ABIDecoder::decodeBytes(const std::string &data, const uint64_t &start) {
   // Get bytes offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -42,30 +39,10 @@ std::string ABIDecoder::decodeBytes(const std::string &data, uint64_t &start) {
   // Get bytes data
   tmp.clear();
   std::copy(data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength, std::back_inserter(tmp));
-  start += 32;
   return tmp;
 }
 
-std::string ABIDecoder::decodeString(const std::string &data, uint64_t &start) {
-  // Strings are very similar to bytes, but instead of using string to store bytes, we use string to store a normal string.
-  // Get string offset
-  std::string tmp;
-  std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
-  uint64_t stringStart = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
-
-  // Get string size
-  tmp.clear();
-  std::copy(data.begin() + stringStart, data.begin() + stringStart + 32, std::back_inserter(tmp));
-  uint64_t stringLength = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
-
-  // Get string data
-  tmp.clear();
-  std::copy(data.begin() + stringStart + 32, data.begin() + stringStart + 32 + stringLength, std::back_inserter(tmp));
-  start += 32;
-  return tmp;
-}
-
-std::vector<uint256_t> ABIDecoder::decodeUint256Arr(const std::string &data, uint64_t &start) {
+std::vector<uint256_t> ABIDecoder::decodeUint256Arr(const std::string &data, const uint64_t &start) {
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -91,11 +68,10 @@ std::vector<uint256_t> ABIDecoder::decodeUint256Arr(const std::string &data, uin
     tmpArr.emplace_back(value);
   }
 
-  start += 32;
   return tmpArr;
 }
 
-std::vector<Address> ABIDecoder::decodeAddressArr(const std::string &data, uint64_t &start) {
+std::vector<Address> ABIDecoder::decodeAddressArr(const std::string &data, const uint64_t &start) {
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -121,11 +97,10 @@ std::vector<Address> ABIDecoder::decodeAddressArr(const std::string &data, uint6
     tmpArr.emplace_back(address);
   }
 
-  start += 32;
   return tmpArr;
 }
 
-std::vector<bool> ABIDecoder::decodeBoolArr(const std::string &data, uint64_t &start) {
+std::vector<bool> ABIDecoder::decodeBoolArr(const std::string &data, const uint64_t &start) {
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -148,11 +123,10 @@ std::vector<bool> ABIDecoder::decodeBoolArr(const std::string &data, uint64_t &s
     tmpArr.emplace_back(value);
   }
 
-  start += 32 + 32 + (32 * tmpArr.size()); // offset + length + data -> TODO: is this right?
   return tmpArr;
 }
 
-std::vector<std::string> ABIDecoder::decodeBytesArr(const std::string &data, uint64_t &start) {
+std::vector<std::string> ABIDecoder::decodeBytesArr(const std::string &data, const uint64_t &start) {
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -180,43 +154,7 @@ std::vector<std::string> ABIDecoder::decodeBytesArr(const std::string &data, uin
     std::copy(data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength, std::back_inserter(tmp));
     tmpVec.emplace_back(tmp);
   }
-
-  start += 32;
-  return tmpVec;
-}
-
-std::vector<std::string> ABIDecoder::decodeStringArr(const std::string &data, uint64_t &start) {
-  // Same thing as bytes...
-  // Get array offset
-  std::string tmp;
-  std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
-  uint64_t arrayStart = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
-
-  // Get array length
-  tmp.clear();
-  std::copy(data.begin() + arrayStart, data.begin() + arrayStart + 32, std::back_inserter(tmp));
-  uint64_t arrayLength = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
-
-  // Get array data
-  std::vector<std::string> tmpVec;
-  for (uint64_t i = 0; i < arrayLength; ++i) {
-    // Get string offset
-    tmp.clear();
-    std::copy(data.begin() + arrayStart + 32 + (i * 32), data.begin() + arrayStart + 32 + (i * 32) + 32, std::back_inserter(tmp));
-    uint64_t stringStart = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp)) + arrayStart + 32;
-
-    // Get string length
-    tmp.clear();
-    std::copy(data.begin() + stringStart, data.begin() + stringStart + 32, std::back_inserter(tmp));
-    uint64_t stringLength = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
-
-    // Get string data
-    tmp.clear();
-    std::copy(data.begin() + stringStart + 32, data.begin() + stringStart + 32 + stringLength, std::back_inserter(tmp));
-    tmpVec.emplace_back(tmp);
-  }
-
-  start += 32;
+  
   return tmpVec;
 }
 
@@ -237,15 +175,12 @@ ABIDecoder::ABIDecoder(std::vector<ABITypes> const &types, std::string const &ab
       this->data.emplace_back(decodeBool(abiData, dataIndex));
     } else if (types[argsIndex] == ABITypes::booleanArr) {
       this->data.emplace_back(decodeBoolArr(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::bytes) {
+    } else if (types[argsIndex] == ABITypes::string || types[argsIndex] == ABITypes::bytes) {
       this->data.emplace_back(decodeBytes(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::bytesArr) {
+    } else if (types[argsIndex] == ABITypes::stringArr || types[argsIndex] == ABITypes::bytesArr) {
       this->data.emplace_back(decodeBytesArr(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::string) {
-      this->data.emplace_back(decodeString(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::stringArr) {
-      this->data.emplace_back(decodeStringArr(abiData, dataIndex));
     }
+    dataIndex += 32;
     ++argsIndex;
   }
 }

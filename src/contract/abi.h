@@ -29,16 +29,16 @@ class ABIDecoder {
     >> data;  // Both bytes and string are stored as std::string
 
     // Helper functions to parse each type
-    uint256_t decodeUint256(const std::string &data, uint64_t &start);
-    Address decodeAddress(const std::string &data, uint64_t &start);
-    bool decodeBool(const std::string &data, uint64_t &start);
-    std::string decodeBytes(const std::string &data, uint64_t &start);
-    std::string decodeString(const std::string &data, uint64_t &start);
-    std::vector<uint256_t> decodeUint256Arr(const std::string &data, uint64_t &start);
-    std::vector<Address> decodeAddressArr(const std::string &data, uint64_t &start);
-    std::vector<bool> decodeBoolArr(const std::string &data, uint64_t &start);
-    std::vector<std::string> decodeBytesArr(const std::string &data, uint64_t &start);
-    std::vector<std::string> decodeStringArr(const std::string &data, uint64_t &start);
+    uint256_t decodeUint256(const std::string &data, const uint64_t &start);
+    Address decodeAddress(const std::string &data, const uint64_t &start);
+    bool decodeBool(const std::string &data, const uint64_t &start);
+    // As we are dealing with data as raw bytes, interpreting a solidity byte/string is the same, so we can use the same function for both.
+    // A solidity string would return a UTF-8 encoded string, but a solidity bytes would return a byte string.
+    std::string decodeBytes(const std::string &data, const uint64_t &start);
+    std::vector<uint256_t> decodeUint256Arr(const std::string &data, const uint64_t &start);
+    std::vector<Address> decodeAddressArr(const std::string &data, const uint64_t &start);
+    std::vector<bool> decodeBoolArr(const std::string &data, const uint64_t &start);
+    std::vector<std::string> decodeBytesArr(const std::string &data, const uint64_t &start);
 
   public:
     ABIDecoder(std::vector<ABITypes> const &types, std::string const &abiData); // Data as *bytes*
