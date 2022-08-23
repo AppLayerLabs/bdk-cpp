@@ -16,7 +16,6 @@ using json = nlohmann::ordered_json;
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 static const uint256_t c_secp256k1n("115792089237316195423570985008687907852837564279074904382605163141518161494337");
-using bytes = std::vector<uint8_t>;
 
 template <typename ElemT>
 struct HexTo {

@@ -245,6 +245,7 @@ set(SUBNETOOOR_HDRS
 )
 
 set(SUBNETOOOR_SRCS
+  src/contract/abi.cpp
   src/contract/erc20.cpp
   src/core/block.cpp
   src/core/chainHead.cpp
@@ -307,6 +308,7 @@ set_target_properties(subnetooord PROPERTIES COMPILE_FLAGS "-DIS_LOCAL_TESTS=0")
 if(BUILD_TESTS)
   # Required sources for test from src/ (different folder)
   set(SUBNETOOOR_TESTS_HDRS
+    src/contract/abi.h
     src/core/block.h
     src/core/chainHead.h
     src/core/db.h
@@ -321,6 +323,7 @@ if(BUILD_TESTS)
     src/net/httpserver.h
   )
   set(SUBNETOOOR_TESTS_SRCS
+    src/contract/abi.cpp
     src/core/block.cpp
     src/core/chainHead.cpp
     src/core/db.cpp
@@ -341,6 +344,7 @@ if(BUILD_TESTS)
     "tests/utils.cpp"
     "tests/state.cpp"
     "tests/chainHead.cpp"
+    "tests/abi.cpp"
     ${SUBNETOOOR_TESTS_HDRS}
     ${SUBNETOOOR_TESTS_SRCS}
     ${PROTO_VM_SRCS} ${PROTO_VM_HDRS}

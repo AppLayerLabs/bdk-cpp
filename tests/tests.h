@@ -38,6 +38,8 @@ namespace Tests {
   void doTransactions(uint32_t txs, std::unique_ptr<ChainHead> &chainHead, std::unique_ptr<State> &state, std::vector<std::pair<Address,std::string>> accounts);
   void doBlocksAndTxs(uint32_t blocks, uint32_t txsPerBlock, std::unique_ptr<ChainHead> &chainHead, std::unique_ptr<State> &state);
   void addBalance(std::vector<std::pair<Address,std::string>> &accounts, std::unique_ptr<State> &state);
+
+  void testABIDecoder();
 }
 
 #endif // TESTS_H
