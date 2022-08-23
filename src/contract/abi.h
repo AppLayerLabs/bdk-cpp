@@ -14,8 +14,7 @@ enum ABITypes {
   string, stringArr
 };
 
-// ABI Encoder.
-class ABI {
+class ABIEncoder {
   private:
     // TODO
   public:
@@ -24,40 +23,37 @@ class ABI {
 
 class ABIDecoder {
   private:
-    // All currently compatible solidity types:
-    // uint256_t, uint256_t[]
-    // address, address[]
-    // bool, bool[]
-    // bytes, bytes[]
-    // string, string[]
-    // Both bytes and string are stored as std::string.
+    std::vector<std::variant<
+      uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
+      bool, std::vector<bool>, std::string, std::vector<std::string>
+    >> data;  // Both bytes and string are stored as std::string
 
-
-    std::vector<std::variant<uint256_t, std::vector<uint256_t>,
-                  Address, std::vector<Address>,
-                  bool, std::vector<bool>,
-                  std::string, std::vector<std::string>>> data;
-
+    // Helper functions to parse each type
+    uint256_t decodeUint256(const std::string &data, uint64_t &start);
+    Address decodeAddress(const std::string &data, uint64_t &start);
+    bool decodeBool(const std::string &data, uint64_t &start);
+    std::string decodeBytes(const std::string &data, uint64_t &start);
+    std::string decodeString(const std::string &data, uint64_t &start);
+    std::vector<uint256_t> decodeUint256Arr(const std::string &data, uint64_t &start);
+    std::vector<Address> decodeAddressArr(const std::string &data, uint64_t &start);
+    std::vector<bool> decodeBoolArr(const std::string &data, uint64_t &start);
+    std::vector<std::string> decodeBytesArr(const std::string &data, uint64_t &start);
+    std::vector<std::string> decodeStringArr(const std::string &data, uint64_t &start);
 
   public:
+    ABIDecoder(std::vector<ABITypes> const &types, std::string const &abiData); // Data as *bytes*
 
-  // Data as *bytes*
-  ABIDecoder(std::vector<ABITypes> const &types, std::string const &abiData);
-
-
-  template <typename T>
-  T get(uint64_t const &index) {
-    if (index >= data.size()) {
-      throw std::out_of_range("Index out of range");
+    template <typename T> T get(uint64_t const &index) {
+      if (index >= data.size()) {
+        throw std::out_of_range("Index out of range");
+      }
+      if (std::holds_alternative<T>(data[index])) {
+        return std::get<T>(data[index]);
+      }
+      throw std::runtime_error("Type mismatch");
     }
-    if (std::holds_alternative<T>(data[index])) {
-      return std::get<T>(data[index]);
-    }
-    throw std::runtime_error("Type mismatch");
-  }
-  
-  size_t size() { return data.size(); }
 
+    size_t size() { return data.size(); }
 };
 
 #endif  // ABI_H
