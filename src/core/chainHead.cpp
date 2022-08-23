@@ -1,9 +1,5 @@
 #include "chainHead.h"
 
-ChainHead::ChainHead(std::shared_ptr<DBService> &dbService) : dbServer(dbService) {
-  this->loadFromDB();
-};
-
 void ChainHead::_push_back(Block& block) {
   this->internalChainHead.emplace_back(std::make_shared<Block>(block));
 
@@ -16,8 +12,6 @@ void ChainHead::_push_back(Block& block) {
     this->lookupTxByHash[tx.hash()] = std::make_shared<Tx::Base>(tx);
     this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
-
-  return;
 }
 
 void ChainHead::_push_front(Block& block) {
@@ -32,19 +26,17 @@ void ChainHead::_push_front(Block& block) {
     this->lookupTxByHash[tx.hash()] = std::make_shared<Tx::Base>(tx);
     this->lookupBlockByTxHash[tx.hash()] = latestBlock;
   }
-
-  return;
-}
-
-void ChainHead::push_front(Block& block) {
-  this->internalChainHeadLock.lock();
-  this->_push_front(block);
-  this->internalChainHeadLock.unlock();
 }
 
 void ChainHead::push_back(Block& block) {
   this->internalChainHeadLock.lock();
   this->_push_back(block);
+  this->internalChainHeadLock.unlock();
+}
+
+void ChainHead::push_front(Block& block) {
+  this->internalChainHeadLock.lock();
+  this->_push_front(block);
   this->internalChainHeadLock.unlock();
 }
 
@@ -72,7 +64,6 @@ void ChainHead::pop_back() {
   this->internalChainHead.pop_back();
 
   this->internalChainHeadLock.unlock();
-  return;
 }
 
 void ChainHead::pop_front() {
@@ -98,9 +89,7 @@ void ChainHead::pop_front() {
   this->internalChainHead.pop_front();
 
   this->internalChainHeadLock.unlock();
-  return;
 }
-
 
 bool ChainHead::hasBlock(std::string const &blockHash) {
   this->internalChainHeadLock.lock();
@@ -254,7 +243,6 @@ void ChainHead::loadFromDB() {
 
   Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: done");
   this->internalChainHeadLock.unlock();
-  return;
 }
 
 void ChainHead::dumpToDB() {
@@ -298,6 +286,5 @@ void ChainHead::dumpToDB() {
   dbServer->put("latest", latest->serializeToBytes(), DBPrefix::blocks);
 
   this->internalChainHeadLock.unlock();
-  return;
 }
 

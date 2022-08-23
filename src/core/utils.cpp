@@ -31,32 +31,36 @@ std::string Utils::uint160ToBytes(const uint160_t &i) {
   return ret;
 }
 
-// TODO: Update uint64/32/16/8 to bytes conversions to use memcpy.
 std::string Utils::uint64ToBytes(const uint64_t &i) {
   std::string ret(8, 0x00);
-  ret[0] = i >> 56;
-  ret[1] = i >> 48;
-  ret[2] = i >> 40;
-  ret[3] = i >> 32;
-  ret[4] = i >> 24;
-  ret[5] = i >> 16;
-  ret[6] = i >> 8;
-  ret[7] = i;
+  std::memcpy(&ret[0], &i, 8);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    std::reverse(ret.begin(), ret.end());
+  #endif
   return ret;
 }
 
 std::string Utils::uint32ToBytes(const uint32_t &i) {
   std::string ret(4, 0x00);
-  ret[0] = i >> 24;
-  ret[1] = i >> 16;
-  ret[2] = i >> 8;
-  ret[3] = i;
+  std::memcpy(&ret[0], &i, 4);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    std::reverse(ret.begin(), ret.end());
+  #endif
+  return ret;
+}
+
+std::string Utils::uint16ToBytes(const uint16_t &i) {
+  std::string ret(2, 0x00);
+  std::memcpy(&ret[0], &i, 2);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    std::reverse(ret.begin(), ret.end());
+  #endif
   return ret;
 }
 
 std::string Utils::uint8ToBytes(const uint8_t &i) {
   std::string ret(1, 0x00);
-  ret[0] = i;
+  std::memcpy(&ret[0], &i, 1);
   return ret;
 }
 
@@ -107,6 +111,21 @@ uint32_t Utils::bytesToUint32(const std::string &bytes) {
   std::memcpy(&ret, bytes.data(), 4);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     return __builtin_bswap32(ret);
+  #else
+    return ret;
+  #endif
+}
+
+uint16_t Utils::bytesToUint16(const std::string &bytes) {
+  if (bytes.size() != 2) {
+    throw std::runtime_error(std::string(__func__) + ": " +
+      std::string("Invalid bytes size - expected 2, got ") + std::to_string(bytes.size())
+    );
+  }
+  uint16_t ret = 0;
+  std::memcpy(&ret, bytes.data(), 2);
+  #if __BYTE_ORDER == __LITTLE_ENDIAN
+    return __builtin_bswap16(ret);
   #else
     return ret;
   #endif

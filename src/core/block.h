@@ -63,20 +63,35 @@ class Block {
     bool inChain = false;
 
   public:
-
-    // TODO: Copy constructor, move constructor, move assignment operator, copy assignment operator.
     explicit Block(const std::string &blockData);  // Constructor from network/rpc.
 
     // Constructor from creation.
     Block(
-      const uint256_t &_prevBlockHashC,
-      const uint64_t &_timestampC,
-      const uint64_t &_nHeightC
-    ) : _prevBlockHash(_prevBlockHashC),
-        _timestamp(_timestampC),
-        _nHeight(_nHeightC),
-        _txCount(0)
-    {};
+      const uint256_t &_prevBlockHashC, const uint64_t &_timestampC, const uint64_t &_nHeightC
+    ) : _prevBlockHash(_prevBlockHashC), _timestamp(_timestampC), _nHeight(_nHeightC), _txCount(0)
+    {}
+
+    // Copy constructor.
+    Block(const Block& other) {
+      this->_prevBlockHash = other._prevBlockHash;
+      this->_timestamp = other._timestamp;
+      this->_nHeight = other._nHeight;
+      this->_txCount = other._txCount;
+      this->_transactions = other._transactions;
+      this->finalized = other.finalized;
+      this->inChain = other.inChain;
+    }
+
+    // Move constructor.
+    Block(Block&& other) noexcept :
+      _prevBlockHash(std::move(other._prevBlockHash)),
+      _timestamp(std::move(other._timestamp)),
+      _nHeight(std::move(other._nHeight)),
+      _txCount(std::move(other._txCount)),
+      _transactions(std::move(other._transactions)),
+      finalized(std::move(other.finalized)),
+      inChain(std::move(other.inChain))
+    {}
 
     // Getters.
     const std::string prevBlockHash() const { return Utils::uint256ToBytes(this->_prevBlockHash); };
@@ -91,17 +106,20 @@ class Block {
 
     // When transactions are indexed. the block is considered to be on the chain.
     void indexTxs();
+
     // This is *copying* the transaction into the block.
     // there should be a special function for *move* the transaction into the block.
     bool appendTx(const Tx::Base &tx);
     bool finalizeBlock();
 
+    // Equality operator.
     bool operator==(const Block& rBlock) const {
       return bool(
         this->getBlockHash() == rBlock.getBlockHash()
       );
     }
 
+    // Copy assignment operator.
     Block& operator=(const Block& block) {
       this->_prevBlockHash = block._prevBlockHash;
       this->_timestamp = block._timestamp;
@@ -110,6 +128,18 @@ class Block {
       this->_transactions = block._transactions;
       this->finalized = block.finalized;
       this->inChain = block.inChain;
+      return *this;
+    }
+
+    // Move assignment operator.
+    Block& operator=(Block&& other) {
+      this->_prevBlockHash = std::move(other._prevBlockHash);
+      this->_timestamp = std::move(other._timestamp);
+      this->_nHeight = std::move(other._nHeight);
+      this->_txCount = std::move(other._txCount);
+      this->_transactions = std::move(other._transactions);
+      this->finalized = std::move(other.finalized);
+      this->inChain = std::move(other.inChain);
       return *this;
     }
 };

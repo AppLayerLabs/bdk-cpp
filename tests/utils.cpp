@@ -34,6 +34,14 @@ void Tests::uint32ToBytes() {
   std::cout << __func__ << " OK" << std::endl;
 }
 
+void Tests::uint16ToBytes() {
+  std::string expected = Utils::hexToBytes("0x0fc9");
+  uint16_t number(4041);
+  std::string actual = Utils::uint16ToBytes(number);
+  assert(expected == actual);
+  std::cout << __func__ << " OK" << std::endl;
+};
+
 void Tests::uint8ToBytes() {
   std::string expected = Utils::hexToBytes("0x73");
   uint8_t number(115);
@@ -74,8 +82,16 @@ void Tests::bytesToUint32() {
   std::cout << __func__ << " OK" << std::endl;
 }
 
+void Tests::bytesToUint16() {
+  uint16_t expected(4041);
+  std::string bytes = Utils::hexToBytes("0x0fc9");
+  uint16_t actual = Utils::bytesToUint16(bytes);
+  assert(expected == actual);
+  std::cout << __func__ << " OK" << std::endl;
+}
+
 void Tests::bytesToUint8() {
-  uint32_t expected(115);
+  uint8_t expected(115);
   std::string bytes = Utils::hexToBytes("0x73");
   uint8_t actual = Utils::bytesToUint8(bytes);
   assert(expected == actual);
