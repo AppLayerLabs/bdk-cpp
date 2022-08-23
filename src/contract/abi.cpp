@@ -42,7 +42,7 @@ std::string ABIDecoder::decodeBytes(const std::string &data, uint64_t &start) {
   // Get bytes data
   tmp.clear();
   std::copy(data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength, std::back_inserter(tmp));
-  start += 32 + 32 + bytesLength; // offset + length + data -> TODO: is this right?
+  start += 32;
   return tmp;
 }
 
@@ -61,7 +61,7 @@ std::string ABIDecoder::decodeString(const std::string &data, uint64_t &start) {
   // Get string data
   tmp.clear();
   std::copy(data.begin() + stringStart + 32, data.begin() + stringStart + 32 + stringLength, std::back_inserter(tmp));
-  start += 32 + 32 + stringLength; // offset + length + data -> TODO: is this right?
+  start += 32;
   return tmp;
 }
 
@@ -91,7 +91,7 @@ std::vector<uint256_t> ABIDecoder::decodeUint256Arr(const std::string &data, uin
     tmpArr.emplace_back(value);
   }
 
-  start += 32 + 32 + (32 * tmpArr.size()); // offset + length + data -> TODO: is this right?
+  start += 32;
   return tmpArr;
 }
 
@@ -121,7 +121,7 @@ std::vector<Address> ABIDecoder::decodeAddressArr(const std::string &data, uint6
     tmpArr.emplace_back(address);
   }
 
-  start += 32 + 32 + (32 * tmpArr.size()); // offset + length + data -> TODO: is this right?
+  start += 32;
   return tmpArr;
 }
 
@@ -164,7 +164,6 @@ std::vector<std::string> ABIDecoder::decodeBytesArr(const std::string &data, uin
   uint64_t arrayLength = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
 
   std::vector<std::string> tmpVec;
-  uint64_t tmpIndex = 0;
   for (uint64_t i = 0; i < arrayLength; ++i) {
     // Get bytes offset
     tmp.clear();
@@ -180,12 +179,9 @@ std::vector<std::string> ABIDecoder::decodeBytesArr(const std::string &data, uin
     tmp.clear();
     std::copy(data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength, std::back_inserter(tmp));
     tmpVec.emplace_back(tmp);
-
-    // Add to final offset
-    tmpIndex += 32 + 32 + bytesLength; // offset + length + data -> TODO: is this right?
   }
 
-  start += 32 + 32 + tmpIndex; // offset + length + (offset + length + data) -> TODO: is this right?
+  start += 32;
   return tmpVec;
 }
 
@@ -203,7 +199,6 @@ std::vector<std::string> ABIDecoder::decodeStringArr(const std::string &data, ui
 
   // Get array data
   std::vector<std::string> tmpVec;
-  uint64_t tmpIndex = 0;
   for (uint64_t i = 0; i < arrayLength; ++i) {
     // Get string offset
     tmp.clear();
@@ -219,12 +214,9 @@ std::vector<std::string> ABIDecoder::decodeStringArr(const std::string &data, ui
     tmp.clear();
     std::copy(data.begin() + stringStart + 32, data.begin() + stringStart + 32 + stringLength, std::back_inserter(tmp));
     tmpVec.emplace_back(tmp);
-
-    // Add to final offset
-    tmpIndex += 32 + 32 + stringLength; // offset + length + data -> TODO: is this right?
   }
 
-  start += 32 + 32 + tmpIndex; // offset + length + (offset + length + data) -> TODO: is this right?
+  start += 32;
   return tmpVec;
 }
 
