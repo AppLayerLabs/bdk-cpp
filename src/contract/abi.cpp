@@ -21,6 +21,9 @@ Address ABIDecoder::decodeAddress(const std::string &data, const uint64_t &start
 }
 
 bool ABIDecoder::decodeBool(const std::string &data, const uint64_t &start) {
+  if (start + 32 > data.size()) {
+    throw std::runtime_error("Data too short");
+  }
   bool ret = (data[start + 31] == 0x00) ? false : true; // Bool value is at the very end
   return ret;
 }
@@ -36,6 +39,11 @@ std::string ABIDecoder::decodeBytes(const std::string &data, const uint64_t &sta
   std::copy(data.begin() + bytesStart, data.begin() + bytesStart + 32, std::back_inserter(tmp));
   uint64_t bytesLength = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
 
+  // Size sanity check
+  if (start + 32 + 32 + bytesLength > data.size()) {
+    throw std::runtime_error("Data too short");
+  }
+
   // Get bytes data
   tmp.clear();
   std::copy(data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength, std::back_inserter(tmp));
@@ -46,7 +54,6 @@ std::vector<uint256_t> ABIDecoder::decodeUint256Arr(const std::string &data, con
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
-  // TODO: do not rely on boost::lexical_cast?
   uint64_t arrayStart = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
 
   // Get array length
@@ -149,16 +156,20 @@ std::vector<std::string> ABIDecoder::decodeBytesArr(const std::string &data, con
     std::copy(data.begin() + bytesStart, data.begin() + bytesStart + 32, std::back_inserter(tmp));
     uint64_t bytesLength = boost::lexical_cast<uint64_t>(Utils::bytesToUint256(tmp));
 
+    // Individual size sanity check
+    if (bytesStart + 32 + bytesLength > data.size()) {
+      throw std::runtime_error("Data too short");
+    }
+
     // Get bytes data
     tmp.clear();
     std::copy(data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength, std::back_inserter(tmp));
     tmpVec.emplace_back(tmp);
   }
-  
+
   return tmpVec;
 }
 
-// TODO: Proper size checking and error handling.
 ABIDecoder::ABIDecoder(std::vector<ABITypes> const &types, std::string const &abiData) {
   uint64_t argsIndex = 0;
   uint64_t dataIndex = 0;
