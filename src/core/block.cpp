@@ -88,7 +88,7 @@ bool Block::appendTx(const Tx::Base &tx) {
     Utils::LogPrint(Log::block, __func__, " Block is finalized.");
     return false;
   }
-  this->_transactions.emplace_back(tx);
+  this->_transactions.emplace_back(std::move(tx));
   _txCount++;
   return true;
 }

@@ -1,5 +1,18 @@
 #include "chainTip.h"
 
+void ChainTip::setBlockStatus(const std::string &blockHash, const BlockStatus &status) {
+  internalChainTipLock.lock();
+  this->cachedBlockStatus[blockHash] = status;
+  internalChainTipLock.unlock();
+}
+
+BlockStatus ChainTip::getBlockStatus(const std::string &blockHash) {
+  internalChainTipLock.lock();
+  BlockStatus ret = this->cachedBlockStatus[blockHash];
+  internalChainTipLock.unlock();
+  return ret;
+}
+
 bool ChainTip::isProcessing(const std::string &blockHash) {
   internalChainTipLock.lock();
   bool ret = (this->cachedBlockStatus[blockHash] == BlockStatus::Processing) ? true : false;

@@ -103,12 +103,7 @@ class Block {
     uint64_t blockSize() const;
     std::string getBlockHash() const; // Hash (in bytes)
     std::string serializeToBytes() const;
-
-    // When transactions are indexed. the block is considered to be on the chain.
-    void indexTxs();
-
-    // This is *copying* the transaction into the block.
-    // TODO: There should be a special function for *moving* the transaction into the block.
+    void indexTxs();  // When transactions are indexed, the block is considered to be on chain
     bool appendTx(const Tx::Base &tx);
     bool finalizeBlock();
 
