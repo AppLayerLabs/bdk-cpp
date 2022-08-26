@@ -1,7 +1,7 @@
 #include "chainHead.h"
 
-void ChainHead::_push_back(Block& block) {
-  this->internalChainHead.emplace_back(std::make_shared<Block>(block));
+void ChainHead::_push_back(const std::shared_ptr<const Block> block) {
+  this->internalChainHead.emplace_back(block);
 
   auto latestBlock = internalChainHead.back();
   this->lookupBlockByHash[latestBlock->getBlockHash()] = latestBlock;
@@ -28,7 +28,7 @@ void ChainHead::_push_front(Block& block) {
   }
 }
 
-void ChainHead::push_back(Block& block) {
+void ChainHead::push_back(const std::shared_ptr<const Block> block) {
   this->internalChainHeadLock.lock();
   this->_push_back(block);
   this->internalChainHeadLock.unlock();
@@ -217,6 +217,8 @@ void ChainHead::loadFromDB() {
     dbServer->put("latest", genesis.serializeToBytes(), DBPrefix::blocks);
     dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash(), DBPrefix::blockHeightMaps);
     dbServer->put(genesis.getBlockHash(), genesis.serializeToBytes(), DBPrefix::blocks);
+    Utils::LogPrint(Log::chainHead, __func__, "Created genesis block");
+    Utils::LogPrint(Log::chainHead, __func__, std::string("Created genesis block: ") + Utils::bytesToHex(genesis.getBlockHash()));
   }
 
   Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: getting latest block");

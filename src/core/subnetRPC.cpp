@@ -204,7 +204,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
   }
   if (messageJson["method"] == "eth_call") {
     // TODO: Implement eth_call
-    Utils::logToFile(std::string("EthCall: ") + ret["result"].get<std::string>());
+    ret["result"] = "0x";
   }
 
   //

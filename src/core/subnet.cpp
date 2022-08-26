@@ -1,4 +1,5 @@
 #include "subnet.h"
+#include "chainTip.h"
 
 void Subnet::start() {
   /**
@@ -136,6 +137,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
     this->headState = std::make_unique<State>(this->dbServer);
   #endif
   this->chainHead = std::make_unique<ChainHead>(this->dbServer);
+  this->chainTip = std::make_unique<ChainTip>();
 
   // Parse the latest block to answer AvalancheGo.
   auto latestBlock = chainHead->latest();
@@ -177,68 +179,73 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
 }
 
 void Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) {
-  if (!this->headState->createNewBlock(this->chainHead)) {
+  auto newBlock = this->headState->createNewBlock(this->chainHead, this->chainTip);
+  if (newBlock == nullptr) {
     Utils::LogPrint(Log::subnet, __func__, "Could not create new block");
     // TODO: handle not being able to create a block.
     throw;
   }
   // Answer back avalanchego.
   Utils::LogPrint(Log::subnet, __func__, "Trying to answer AvalancheGo");
-  auto block = this->chainHead->latest();
-  Utils::LogPrint(Log::subnet, __func__, std::string("New block created: ") + Utils::bytesToHex(block->getBlockHash()));
-  reply->set_id(block->getBlockHash());
-  reply->set_parent_id(block->prevBlockHash());
-  reply->set_height(block->nHeight());
-  reply->set_bytes(block->serializeToBytes());
+  Utils::LogPrint(Log::subnet, __func__, std::string("New block created: ") + Utils::bytesToHex(newBlock->getBlockHash()));
+  reply->set_id(newBlock->getBlockHash());
+  reply->set_parent_id(newBlock->prevBlockHash());
+  reply->set_height(newBlock->nHeight());
+  reply->set_bytes(newBlock->serializeToBytes());
   auto timestamp = reply->mutable_timestamp();
-  timestamp->set_seconds(block->timestamp() / 1000000000);
-  timestamp->set_nanos(block->timestamp() % 1000000000);
-  Utils::LogPrint(Log::subnet, __func__, "New block broadcasted.");
+  timestamp->set_seconds(newBlock->timestamp() / 1000000000);
+  timestamp->set_nanos(newBlock->timestamp() % 1000000000);
+  Utils::LogPrint(Log::subnet, __func__, "New block broadcasted, but not enforced.");
   return;
 }
 
 
-void Subnet::parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply) {
+bool Subnet::parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply) {
   try {
-    Block block(request->bytes());
+    auto block = std::make_shared<Block>(request->bytes());
 
     // Check if block already exists...
-    if (chainHead->exists(block.getBlockHash())) {
-      reply->set_id(block.getBlockHash());
-      reply->set_parent_id(block.prevBlockHash());
+    if (chainHead->exists(block->getBlockHash())) {
+      reply->set_id(block->getBlockHash());
+      reply->set_parent_id(block->prevBlockHash());
       reply->set_status(BlockStatus::Accepted);
-      reply->set_height(block.nHeight());
+      reply->set_height(block->nHeight());
       auto timestamp = reply->mutable_timestamp();
-      timestamp->set_seconds(block.timestamp() / 1000000000);
-      timestamp->set_nanos(block.timestamp() % 1000000000);
-      Utils::LogPrint(Log::subnet, __func__, std::string("Block ") + std::to_string(block.nHeight()) + "already exists, returning Accepted");
-      return;
+      timestamp->set_seconds(block->timestamp() / 1000000000);
+      timestamp->set_nanos(block->timestamp() % 1000000000);
+      Utils::LogPrint(Log::subnet, __func__, std::string("Block ") + std::to_string(block->nHeight()) + "already exists, returning Accepted");
+      return true;
     }
-    // Try parsing block into chain.
-    if (!headState->processNewBlock(block, this->chainHead)) {
-      // Check if the block is far in the future (unknown).
-      if (block.nHeight() > chainHead->latest()->nHeight() + 1) {
-        reply->set_status(BlockStatus::Unknown);
-        Utils::LogPrint(Log::subnet, __func__, "Block is far in the future, returning Unknown");
-        return;
-      }
-      Utils::LogPrint(Log::subnet, __func__, "Block is not valid, returning Rejected");
+
+    // Check if block is on chainTip.
+    // TODO.
+
+    // Get latest accepted block as reference.
+    auto latestBlock = chainHead->latest();
+
+    // Parse block.
+    reply->set_id(block->getBlockHash());
+    reply->set_parent_id(block->prevBlockHash());
+    reply->set_height(block->nHeight());
+    if (block->nHeight() <= latestBlock->nHeight()) {
       reply->set_status(BlockStatus::Rejected);
-      return;
-    } 
-    reply->set_id(block.getBlockHash());
-    reply->set_parent_id(block.prevBlockHash());
-    reply->set_status(BlockStatus::Accepted);
-    reply->set_height(block.nHeight());
+      Utils::LogPrint(Log::subnet, __func__, std::string("Block: ") + Utils::bytesToHex(block->getBlockHash()) + " is not higher than latest block, returning Rejected, raw byte");
+    // https://github.com/ava-labs/avalanchego/blob/master/vms/README.md#processing-blocks
+    } else if (block->nHeight() > latestBlock->nHeight()) {
+      // We don't know anything about a future block, so we just say we are processing it.
+      Utils::LogPrint(Log::subnet, __func__, std::string("Block: " + Utils::bytesToHex(block->getBlockHash())) + " is higher than latest block, returning Unknown");
+      reply->set_status(BlockStatus::Processing);
+      this->chainTip->processBlock(block);
+    }
     auto timestamp = reply->mutable_timestamp();
-    timestamp->set_seconds(block.timestamp() / 1000000000);
-    timestamp->set_nanos(block.timestamp() % 1000000000);
-    Utils::LogPrint(Log::subnet, __func__, "Block is valid, returning Accepted");
+    timestamp->set_seconds(block->timestamp() / 1000000000);
+    timestamp->set_nanos(block->timestamp() % 1000000000);
+    Utils::LogPrint(Log::subnet, __func__, "Block is valid");
   } catch (std::exception &e) {
     Utils::LogPrint(Log::subnet, __func__, std::string("Error parsing block") + e.what());
-    reply->set_status(BlockStatus::Unknown);
+    return false;
   }
-  return;
+  return true;
 }
 
 void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply) {
@@ -264,7 +271,7 @@ void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request
 
 void Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply) {
   // TODO: check vm.proto and implement max_blocks_size/max_blocks_retrival_time
-  Utils::LogPrint(Log::subnet, __func__, std::string("getAncestors of: ") + Utils::hexToBytes(request->blk_id()) + " with depth: " + std::to_string(request->max_blocks_num()));
+  Utils::LogPrint(Log::subnet, __func__, std::string("getAncestors of: ") + Utils::bytesToHex(request->blk_id()) + " with depth: " + std::to_string(request->max_blocks_num()));
   if (!chainHead->exists(request->blk_id())) {
     return;
   }
@@ -276,4 +283,48 @@ void Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest*
     reply->add_blks_bytes(block->serializeToBytes());
   }
   return;
+}
+
+void Subnet::setPreference(ServerContext* context, const vm::SetPreferenceRequest* request) {
+  this->chainTip->setPreference(request->id());
+  return;
+}
+
+const std::shared_ptr<const Block> Subnet::verifyBlock(const std::string &blockBytes) {
+  Block block(blockBytes);
+  // Check if block can be attached to top of the chain.
+  if (!this->headState->validateNewBlock(block, this->chainHead)) {
+    return nullptr;
+  }
+
+  // Add block to processing.
+  this->chainTip->processBlock(std::make_shared<Block>(block));
+  
+  return this->chainTip->getBlock(block.getBlockHash());
+}
+
+bool Subnet::acceptBlock(const std::string &blockHash) {
+  // The block submitted from Accept is located in the chainTip, stored from when
+  // avalancheGo submitted verifyBlock.
+  Utils::LogPrint(Log::subnet, __func__, "Getting block: " + Utils::bytesToHex(blockHash) + " from chainTip");
+  auto block = this->chainTip->getBlock(blockHash);
+  if (block == nullptr) {
+    Utils::LogPrint(Log::subnet, __func__, "Block not found");
+    return false;
+  }
+
+  // Check if block is processing...
+  if (!this->chainTip->isProcessing(blockHash)) {
+    Utils::LogPrint(Log::subnet, __func__, "Block is not processing");
+    return false;
+  }
+
+  // Accept block in state first then append to chainHead.
+  // After block being accept on chainTip, it will be erased from it.
+  Utils::LogPrint(Log::subnet, __func__, "Processing block: " + Utils::bytesToHex(blockHash));
+  this->headState->processNewBlock(block, this->chainHead);
+  Utils::LogPrint(Log::subnet, __func__, "Accepting block: " + Utils::bytesToHex(blockHash));
+  this->chainTip->accept(block->getBlockHash());
+  Utils::LogPrint(Log::subnet, __func__, "Block " + Utils::bytesToHex(block->getBlockHash()) + ", height: " + boost::lexical_cast<std::string>(block->nHeight()) + " accepted");
+  return true;
 }

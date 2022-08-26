@@ -17,6 +17,7 @@
 #endif
 
 class VMCommClient; // Forward declaration.
+class ChainTip;
 
 /**
  * The State class is used to store the state of the system, such as
@@ -60,15 +61,21 @@ class State {
 
     // State changing functions
 
+    // Validates if a given block is valid and the transactions within.
+    // it *does not** update the state.
+    bool validateNewBlock(const Block &newBlock, std::unique_ptr<ChainHead>& chainHead);
+    
     // Process a new block from the network and update the local state.
-    bool processNewBlock(Block &newBlock, std::unique_ptr<ChainHead>& chainHead);
+    bool processNewBlock(const std::shared_ptr<const Block> newBlock, std::unique_ptr<ChainHead>& chainHead);
 
-    bool createNewBlock(std::unique_ptr<ChainHead>& chainHead);
+    // Create a new block using setPreference or latest in case of not found,
+    // does NOT update state.
+    std::shared_ptr<Block> createNewBlock(std::unique_ptr<ChainHead>& chainHead, std::unique_ptr<ChainTip> &chainTip);
 
     // State querying functions
 
     // Asks the state if a given transaction is valid, and add it to the mempool if it is.
-    std::pair<int, std::string> validateTransaction(Tx::Base &tx);
+    std::pair<int, std::string> validateTransaction(const Tx::Base &tx);
 
     // TEST ONLY FUNCTIONS.
 

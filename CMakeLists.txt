@@ -238,6 +238,7 @@ set(SUBNETOOOR_HDRS
   src/core/subnet.h
   src/core/transaction.h
   src/core/utils.h
+  src/core/chainTip.h
   src/libs/keccak.hpp
   src/net/grpcclient.h
   src/net/grpcserver.h
@@ -256,6 +257,7 @@ set(SUBNETOOOR_SRCS
   src/core/subnetRPC.cpp
   src/core/transaction.cpp
   src/core/utils.cpp
+  src/core/chainTip.cpp
   src/net/grpcclient.cpp
   src/net/grpcserver.cpp
   src/net/httpserver.cpp
@@ -317,6 +319,7 @@ if(BUILD_TESTS)
     src/core/subnet.h
     src/core/transaction.h
     src/core/utils.h
+    src/core/chainTip.h
     src/libs/keccak.hpp
     src/net/grpcclient.h
     src/net/grpcserver.h
@@ -333,6 +336,7 @@ if(BUILD_TESTS)
     src/core/subnetRPC.cpp
     src/core/transaction.cpp
     src/core/utils.cpp
+    src/core/chainTip.cpp
     src/net/grpcclient.cpp
     src/net/grpcserver.cpp
     src/net/httpserver.cpp

@@ -9,6 +9,7 @@ Block::Block(const std::string &blockData) {
     std::string txArraySizeBytes;   // uint32_t
     std::string rawTransactions;    // N
     this->finalized = true;
+    this->indexed = true;
 
     prevBlockHashBytes = blockData.substr(0, 32);
     timestampBytes = blockData.substr(32, 8);
@@ -95,7 +96,7 @@ bool Block::appendTx(const Tx::Base &tx) {
 void Block::indexTxs() {
   Utils::LogPrint(Log::block, __func__, "Indexing transactions...");
   if (this->finalized) {
-    if (this->inChain) {
+    if (this->indexed) {
       Utils::LogPrint(Log::block, __func__, " Block is in chain and txs are already indexed.");
       return;
     }
@@ -104,7 +105,7 @@ void Block::indexTxs() {
       tx.setBlockIndex(index);
       ++index;
     }
-    this->inChain = true;
+    this->indexed = true;
     Utils::LogPrint(Log::block, __func__, "Indexing transactions... done");
   } else {
     Utils::LogPrint(Log::block, __func__, " Block is not finalized. cannot index transactions, ignoring call.");

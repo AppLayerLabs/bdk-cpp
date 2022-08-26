@@ -30,6 +30,7 @@ struct HexTo {
 namespace Log {
   const std::string subnet = "Subnet::";
   const std::string chainHead = "ChainHead::";
+  const std::string chainTip = "ChainTip::";
   const std::string block = "Block::";
   const std::string db = "DBService::";
   const std::string state = "State::";

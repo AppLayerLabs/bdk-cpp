@@ -8,17 +8,17 @@
 class ChainHead {
   private:
     std::shared_ptr<DBService> &dbServer;
-    std::deque<std::shared_ptr<Block>> internalChainHead;
-    std::unordered_map<std::string,std::shared_ptr<Block>> lookupBlockByHash;
-    std::unordered_map<std::string,std::shared_ptr<Block>> lookupBlockByTxHash;
-    std::unordered_map<std::string,std::shared_ptr<Tx::Base>> lookupTxByHash;
+    std::deque<std::shared_ptr<const Block>> internalChainHead;
+    std::unordered_map<std::string,std::shared_ptr<const Block>> lookupBlockByHash;
+    std::unordered_map<std::string,std::shared_ptr<const Block>> lookupBlockByTxHash;
+    std::unordered_map<std::string,std::shared_ptr<const Tx::Base>> lookupTxByHash;
     std::unordered_map<std::string,uint64_t> lookupBlockHeightByHash;
     std::unordered_map<uint64_t,std::string> lookupBlockHashByHeight;
     std::mutex internalChainHeadLock;
     bool hasBlock(std::string const &blockHash);
     bool hasBlock(uint64_t const &blockHeight);
     // Only access these functions if you are absolute sure that internalChainHeadLock is locked.
-    void _push_back(Block& block);
+    void _push_back(const std::shared_ptr<const Block> block);
     void _push_front(Block& block);
 
   public:
@@ -26,7 +26,7 @@ class ChainHead {
       this->loadFromDB();
     }
     // Mutex locked.
-    void push_back(Block& block);
+    void push_back(const std::shared_ptr<const Block> block);
     void push_front(Block& block);
     void pop_back();
     void pop_front();
@@ -41,7 +41,7 @@ class ChainHead {
     uint64_t blockSize();
     void loadFromDB();
     void dumpToDB();
-    void periodicSaveToDB();  // TODO: implement this
+    void periodicSaveToDB();  // TODO: implement this, do not forget that blocks are stored as shared_ptr, if you erase the item inside the map, all remaining pointers will be undefined.
 };
 
 #endif  // CHAINHEAD_H

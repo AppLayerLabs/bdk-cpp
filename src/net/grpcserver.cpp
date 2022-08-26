@@ -34,17 +34,20 @@ Status VMServiceImplementation::ParseBlock(
   vm::ParseBlockResponse* reply
 ) {
   Utils::logToFile("Parse block called!");
-  subnet.parseBlock(context, request, reply);
+  if (!subnet.parseBlock(context, request, reply)) {
+    return Status::CANCELLED;
+  }
   return Status::OK;
 }
 
+// VerifyHeightIndex not supported.
 Status VMServiceImplementation::VerifyHeightIndex(
   ServerContext* context,
   const google::protobuf::Empty* request,
   vm::VerifyHeightIndexResponse* reply
 ) {
   Utils::logToFile("VerifyHeightIndex called!");
-  reply->set_err(0);
+  reply->set_err(1);
   return Status::OK;
 }
 
@@ -64,7 +67,8 @@ Status VMServiceImplementation::SetPreference(
       google::protobuf::Empty* reply
 ) {
   Utils::logToFile("SetPreference called!!");
-  Utils::logToFile(request->DebugString());
+  Utils::logToFile(Utils::bytesToHex(request->id()));
+  subnet.setPreference(context, request);
   return Status::OK;
 }
 
@@ -104,6 +108,7 @@ Status VMServiceImplementation::GetAncestors(
   const vm::GetAncestorsRequest* request,
   vm::GetAncestorsResponse* reply
 ) { 
+  Utils::logToFile("GetAncestors called!!");
   subnet.getAncestors(context, request, reply);
   return Status::OK;
 }
@@ -112,19 +117,28 @@ Status VMServiceImplementation::GetAncestors(
 // https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/README.md
 // https://github.com/ava-labs/avalanchego/blob/master/vms/README.md
 
+// When BlockVerify is called, it verifies if the block is valid as the next block of the chain.
+// If it is valid, It is placed in chainTip as processing.
 Status VMServiceImplementation::BlockVerify(
   ServerContext* context,
   const vm::BlockVerifyRequest* request,
   vm::BlockVerifyResponse* reply
 ) {
-
   Utils::logToFile("BlockVerify called!!");
-  Block block(request->bytes());
-  auto timestamp = reply->mutable_timestamp();
-  timestamp->set_seconds(block.timestamp() / 1000000000);
-  timestamp->set_nanos(block.timestamp() % 1000000000);
 
-  return Status::OK;
+
+  auto block = subnet.verifyBlock(request->bytes());
+
+  if (block != nullptr) {
+    Block block(request->bytes());
+    auto timestamp = reply->mutable_timestamp();
+    timestamp->set_seconds(block.timestamp() / 1000000000);
+    timestamp->set_nanos(block.timestamp() % 1000000000);
+    Utils::logToFile("BlockVerify success, block is valid");
+    return Status::OK;
+  }
+
+  return Status::CANCELLED;
 }
 
 Status VMServiceImplementation::BlockAccept(
@@ -132,8 +146,10 @@ Status VMServiceImplementation::BlockAccept(
   const vm::BlockAcceptRequest* request,
   google::protobuf::Empty *reply
 ) {
-  Utils::logToFile("BlockAccept called!!");  
-
+  Utils::logToFile(std::string("BlockAccept called!! ") + Utils::bytesToHex(request->id()));
+  if (!subnet.acceptBlock(request->id())) {
+    return Status::CANCELLED;
+  }
   return Status::OK;
 }
 

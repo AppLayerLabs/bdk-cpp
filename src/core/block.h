@@ -60,7 +60,7 @@ class Block {
     uint32_t _txCount;
     std::vector<Tx::Base> _transactions;
     bool finalized = false;
-    bool inChain = false;
+    bool indexed = false;
 
   public:
     explicit Block(const std::string &blockData);  // Constructor from network/rpc.
@@ -79,7 +79,7 @@ class Block {
       this->_txCount = other._txCount;
       this->_transactions = other._transactions;
       this->finalized = other.finalized;
-      this->inChain = other.inChain;
+      this->indexed = other.indexed;
     }
 
     // Move constructor.
@@ -90,7 +90,7 @@ class Block {
       _txCount(std::move(other._txCount)),
       _transactions(std::move(other._transactions)),
       finalized(std::move(other.finalized)),
-      inChain(std::move(other.inChain))
+      indexed(std::move(other.indexed))
     {}
 
     // Getters.
@@ -127,7 +127,7 @@ class Block {
       this->_txCount = block._txCount;
       this->_transactions = block._transactions;
       this->finalized = block.finalized;
-      this->inChain = block.inChain;
+      this->indexed = block.indexed;
       return *this;
     }
 
@@ -139,7 +139,7 @@ class Block {
       this->_txCount = std::move(other._txCount);
       this->_transactions = std::move(other._transactions);
       this->finalized = std::move(other.finalized);
-      this->inChain = std::move(other.inChain);
+      this->indexed = std::move(other.indexed);
       return *this;
     }
 };

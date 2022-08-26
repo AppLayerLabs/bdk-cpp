@@ -8,6 +8,7 @@
 #include "block.h"
 #include "db.h"
 #include "state.h"
+#include "chainTip.h"
 
 using json = nlohmann::ordered_json;
 using grpc::Server;
@@ -84,6 +85,13 @@ class Subnet {
 
     std::unique_ptr<HTTPServer> httpServer;
 
+    /**
+     * ChainTip. Keeps track of processing blocks and refused blocks.
+     * also keeps track of the prefered block to be accepted.
+     */
+
+    std::unique_ptr<ChainTip> chainTip;
+
     InitializeRequest initParams; // From initialization request.
 
   public:
@@ -96,7 +104,7 @@ class Subnet {
 
     // To be called by the gRPC server. Parse a given block, if necessary push it to the blockchain.
     // Answers back with block status and a pointer to the block, if exists.
-    void parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply);
+    bool parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply);
 
     // To be called by initialize if no info is found on DB.
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
@@ -113,9 +121,20 @@ class Subnet {
 
     void getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply);
 
+    // To be called by the grpcServer when avalancheGo requests a block to be verified.
+    // Returns a const pointer to the block, or nullptr in case of error.
+    const std::shared_ptr<const Block> verifyBlock(const std::string &blockBytes);
+
+    // To be called by the grpcServer when avalancheGo sends a block for us to accept.
+    bool acceptBlock(const std::string &blockHash);
+
     // To be called by grpcServer after a shutdown call.
 
     void shutdownServer();
+
+    // To be called by grpcServer, when avalancheGo sets the current preference for block acceptance.
+
+    void setPreference(ServerContext* context, const vm::SetPreferenceRequest* request);
 
     // To be called by HTTP Server, from RPC clients (such as Metamask).
     std::string processRPCMessage(std::string &req);

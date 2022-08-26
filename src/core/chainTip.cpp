@@ -1,38 +1,54 @@
 #include "chainTip.h"
 
-void ChainTip::_push_back(Block& block) {
-  this->internalChainTip.emplace_back(std::make_shared<Block>(block));
+
+std::string ChainTip::getPreference() { 
+  internalChainTipLock.lock(); 
+  std::string ret = preferedBlockHash; 
+  internalChainTipLock.unlock(); 
+  return ret; 
 }
 
-void ChainTip::_push_front(Block& block) {
-  this->internalChainTip.emplace_front(std::make_shared<Block>(block));
+void ChainTip::setPreference(const std::string &blockHash) {
+  internalChainTipLock.lock();
+  preferedBlockHash = blockHash;
+  internalChainTipLock.unlock();
 }
 
-void ChainTip::push_back(Block& block) {
+bool ChainTip::isProcessing (const std::string &blockHash) {
+  internalChainTipLock.lock();
+  bool ret = (this->cachedBlockStatus[blockHash] == BlockStatus::Processing) ? true : false;
+  internalChainTipLock.unlock();
+  return ret;
+};
+
+bool ChainTip::processBlock(std::shared_ptr<Block> block) {
   this->internalChainTipLock.lock();
-  this->_push_back(block);
+  this->internalChainTip[block->getBlockHash()] = block;
+  this->cachedBlockStatus[block->getBlockHash()] = BlockStatus::Processing;
   this->internalChainTipLock.unlock();
+  return true;
 }
 
-void ChainTip::push_front(Block& block) {
-  this->internalChainTipLock.lock();
-  this->_push_front(block);
-  this->internalChainTipLock.unlock();
+// TODO: handle block not being found and similar errors.
+const std::shared_ptr<const Block> ChainTip::getBlock(const std::string &blockHash) {
+  internalChainTipLock.lock();
+  auto ret = internalChainTip[blockHash];
+  internalChainTipLock.unlock();
+  return ret;
+};
+
+void ChainTip::accept(const std::string &blockHash) {
+  internalChainTipLock.lock();
+  this->internalChainTip.erase(blockHash);
+  this->cachedBlockStatus[blockHash] = BlockStatus::Accepted;
+  internalChainTipLock.unlock();
+  return;
 }
 
-void ChainTip::pop_back() {
-  this->internalChainTipLock.lock();
-  this->internalChainTip.pop_back();
-  this->internalChainTipLock.unlock();
+void ChainTip::reject(const std::string &blockHash) {
+  internalChainTipLock.lock();
+  this->internalChainTip.erase(blockHash);
+  this->cachedBlockStatus[blockHash] = BlockStatus::Rejected;
+  internalChainTipLock.unlock();
+  return;
 }
-
-void ChainTip::pop_front() {
-  this->internalChainTipLock.lock();
-  this->internalChainTip.pop_front();
-  this->internalChainTipLock.unlock();
-}
-
-void ChainTip::dumpToChainHead() {
-  ; // TODO
-}
-
