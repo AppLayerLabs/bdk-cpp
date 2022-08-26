@@ -108,7 +108,7 @@ class Block {
     void indexTxs();
 
     // This is *copying* the transaction into the block.
-    // there should be a special function for *move* the transaction into the block.
+    // TODO: There should be a special function for *moving* the transaction into the block.
     bool appendTx(const Tx::Base &tx);
     bool finalizeBlock();
 

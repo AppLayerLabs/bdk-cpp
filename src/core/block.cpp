@@ -89,7 +89,7 @@ bool Block::appendTx(const Tx::Base &tx) {
     return false;
   }
   this->_transactions.emplace_back(tx);
-  ++_txCount;
+  _txCount++;
   return true;
 }
 

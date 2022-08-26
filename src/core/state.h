@@ -28,7 +28,7 @@ class ChainTip;
  */
 class State {
   private:
-    std::unordered_map<Address, Account> nativeAccount;             // Address -> Account
+    std::unordered_map<Address, Account> nativeAccount; // Address -> Account
     std::unordered_map<std::string, Tx::Base> mempool; // Tx Hash (bytes) -> Tx
     std::mutex stateLock;
 
@@ -47,29 +47,24 @@ class State {
     bool processNewTransaction(const Tx::Base &tx);
 
   public:
-
     #if !IS_LOCAL_TESTS
       State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
     #else
       State(std::shared_ptr<DBService> &dbServer);
     #endif
-
     uint256_t getNativeBalance(const Address& address);
     uint256_t getNativeNonce(const Address& address);
-    
     const std::unordered_map<std::string, Tx::Base>& getMempool() { return mempool; };
 
     // State changing functions
 
-    // Validates if a given block is valid and the transactions within.
-    // it *does not** update the state.
+    // Validates if a given block is valid and the transactions within. Does *not* update the state.
     bool validateNewBlock(const Block &newBlock, std::unique_ptr<ChainHead>& chainHead);
-    
+
     // Process a new block from the network and update the local state.
     bool processNewBlock(const std::shared_ptr<const Block> newBlock, std::unique_ptr<ChainHead>& chainHead);
 
-    // Create a new block using setPreference or latest in case of not found,
-    // does NOT update state.
+    // Create a new block using setPreference or latest in case of not found. Does *not* update the state.
     std::shared_ptr<Block> createNewBlock(std::unique_ptr<ChainHead>& chainHead, std::unique_ptr<ChainTip> &chainTip);
 
     // State querying functions

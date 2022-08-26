@@ -110,15 +110,12 @@ class Subnet {
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
 
     // To be called by the grpcServer when avalancheGo requests a block to be created
-
     void blockRequest(ServerContext* context, vm::BuildBlockResponse* reply);
 
     // To be called by the grpcServer when avalancheGo requests a block to be loaded.
-
     void getBlock(ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply);
 
     // To be called by the grpcServer when avalancheGo requests a given number of ancestors of a block
-
     void getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply);
 
     // To be called by the grpcServer when avalancheGo requests a block to be verified.
@@ -129,11 +126,9 @@ class Subnet {
     bool acceptBlock(const std::string &blockHash);
 
     // To be called by grpcServer after a shutdown call.
-
     void shutdownServer();
 
     // To be called by grpcServer, when avalancheGo sets the current preference for block acceptance.
-
     void setPreference(ServerContext* context, const vm::SetPreferenceRequest* request);
 
     // To be called by HTTP Server, from RPC clients (such as Metamask).

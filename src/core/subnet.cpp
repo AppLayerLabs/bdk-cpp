@@ -11,7 +11,7 @@ void Subnet::start() {
   std::random_device rd; // obtain a random number from hardware
   std::mt19937 gen(rd()); // seed the generator
   std::uniform_int_distribution<> distr(50000, 60000);
-  unsigned short port = distr(gen);  
+  unsigned short port = distr(gen);
   Utils::LogPrint(Log::subnet, __func__, std::string("Starting subnet at port: ") + std::to_string(port));
   std::string server_address(std::string("0.0.0.0:") + std::to_string(port));
   grpcServer = std::make_shared<VMServiceImplementation>(*this);
@@ -199,12 +199,11 @@ void Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
   return;
 }
 
-
 bool Subnet::parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply) {
   try {
     auto block = std::make_shared<Block>(request->bytes());
 
-    // Check if block already exists...
+    // Check if block already exists
     if (chainHead->exists(block->getBlockHash())) {
       reply->set_id(block->getBlockHash());
       reply->set_parent_id(block->prevBlockHash());
@@ -217,13 +216,12 @@ bool Subnet::parseBlock(ServerContext* context, const vm::ParseBlockRequest* req
       return true;
     }
 
-    // Check if block is on chainTip.
-    // TODO.
+    // TODO: check if block is on chainTip
 
-    // Get latest accepted block as reference.
+    // Get latest accepted block as reference
     auto latestBlock = chainHead->latest();
 
-    // Parse block.
+    // Parse block
     reply->set_id(block->getBlockHash());
     reply->set_parent_id(block->prevBlockHash());
     reply->set_height(block->nHeight());
@@ -255,9 +253,7 @@ void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request
     reply->set_err(2); // https://github.com/ava-labs/avalanchego/blob/559ce151a6b6f28d8115e0189627d8deaf00d9fb/vms/rpcchainvm/errors.go#L21
     return;
   }
-
   auto block = chainHead->getBlock(request->id());
-
   reply->set_parent_id(block->prevBlockHash());
   reply->set_bytes(block->serializeToBytes());
   reply->set_status(BlockStatus::Accepted);
@@ -299,7 +295,7 @@ const std::shared_ptr<const Block> Subnet::verifyBlock(const std::string &blockB
 
   // Add block to processing.
   this->chainTip->processBlock(std::make_shared<Block>(block));
-  
+
   return this->chainTip->getBlock(block.getBlockHash());
 }
 

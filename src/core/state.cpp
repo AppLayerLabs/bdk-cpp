@@ -1,5 +1,5 @@
 #include "state.h"
-#include "chainTip.h"  
+#include "chainTip.h"
 
 #if !IS_LOCAL_TESTS
 State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
@@ -14,9 +14,7 @@ State::State(std::shared_ptr<DBService> &dbServer) {
 bool State::loadState(std::shared_ptr<DBService> &dbServer) {
   stateLock.lock();
   auto accounts = dbServer->readBatch(DBPrefix::nativeAccounts);
-
   if (accounts.empty()) {
-
     Address dev("0x21B782f9BF82418A42d034517CB6Bf00b4C17612", true);
     dbServer->put(dev.get(),Utils::uint256ToBytes(uint256_t("100000000000000000000")) + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts);
     accounts = dbServer->readBatch(DBPrefix::nativeAccounts);
@@ -64,7 +62,7 @@ std::pair<int, std::string> State::validateTransaction(const Tx::Base& tx) {
       boost::lexical_cast<std::string>(tx.value()) + " available: " +
       boost::lexical_cast<std::string>(this->nativeAccount[tx.from()].balance);
   } else if (this->mempool.count(tx.hash())) {
-    err = 0; errMsg = "NAN, Transaction already exists in mempool"; // Not really considered a failure.
+    err = 0; errMsg = "NAN, Transaction already exists in mempool"; // Not really considered a failure
   }
 
   if (err != 0) {
@@ -182,7 +180,7 @@ std::shared_ptr<Block> State::createNewBlock(std::unique_ptr<ChainHead>& chainHe
     ).count(),
     bestBlock->nHeight() + 1
   );
-  
+
   stateLock.lock();
   for (auto &tx : this->mempool) newBestBlock->appendTx(tx.second);
   newBestBlock->finalizeBlock();

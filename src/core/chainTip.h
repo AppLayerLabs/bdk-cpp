@@ -7,8 +7,6 @@
 #include "utils.h"
 #include "../net/grpcserver.h"
 
-
-
 class ChainTip {
   private:
     // do we need to keep preferedBlockHash always updated?
@@ -22,19 +20,16 @@ class ChainTip {
   public:
     ChainTip() = default;
     ~ChainTip() = default;
-    
+ 
+    // TODO: implement those
     bool setBlockStatus(const std::string &blockHash, const BlockStatus &status);
     BlockStatus getBlockStatus(const std::string &blockHash);
 
-    bool isProcessing (const std::string &blockHash);
-
-    void accept (const std::string &blockHash);
-    void reject (const std::string &blockHash);
-
-    bool processBlock (std::shared_ptr<Block> block);
-
-    const std::shared_ptr<const Block> getBlock (const std::string &blockHash);
-
+    bool isProcessing(const std::string &blockHash);
+    void accept(const std::string &blockHash);
+    void reject(const std::string &blockHash);
+    void processBlock(std::shared_ptr<Block> block);
+    const std::shared_ptr<const Block> getBlock(const std::string &blockHash);
     std::string getPreference();
     void setPreference(const std::string& blockHash);
 };
