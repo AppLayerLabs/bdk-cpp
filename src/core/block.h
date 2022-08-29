@@ -137,6 +137,31 @@ class Block {
       this->indexed = std::move(other.indexed);
       return *this;
     }
+
+    // It is safe to use reference here because the constructor does not create another thread using the data.
+    // Copy assignment operator.
+    Block& operator=(const std::shared_ptr<const Block>& block) {
+      this->_prevBlockHash = block->_prevBlockHash;
+      this->_timestamp = block->_timestamp;
+      this->_nHeight = block->_nHeight;
+      this->_txCount = block->_txCount;
+      this->_transactions = block->_transactions;
+      this->finalized = block->finalized;
+      this->indexed = block->indexed;
+      return *this;
+    }
+
+    // Move assignment operator.
+    Block& operator=(std::shared_ptr<const Block>&& other) {
+      this->_prevBlockHash = std::move(other->_prevBlockHash);
+      this->_timestamp = std::move(other->_timestamp);
+      this->_nHeight = std::move(other->_nHeight);
+      this->_txCount = std::move(other->_txCount);
+      this->_transactions = std::move(other->_transactions);
+      this->finalized = std::move(other->finalized);
+      this->indexed = std::move(other->indexed);
+      return *this;
+    }
 };
 
 #endif  // BLOCK_H

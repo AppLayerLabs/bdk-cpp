@@ -1,6 +1,6 @@
 #include "secp256k1Wrapper.h"
 
-std::string Secp256k1::recover(std::string& sig, std::string& messageHash) {
+std::string Secp256k1::recover(const std::string& sig, const std::string& messageHash) {
   int v = sig[64];
   if (v > 3) return "";
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
@@ -39,7 +39,7 @@ void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const ui
   return;
 }
 
-std::string Secp256k1::toPub(std::string &privKey) {
+std::string Secp256k1::toPub(const std::string &privKey) {
   if (privKey.size() != 32) { return ""; }
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   secp256k1_pubkey rawPubkey;
@@ -58,13 +58,13 @@ std::string Secp256k1::toPub(std::string &privKey) {
   return { serializedPubkey.begin() + 1, serializedPubkey.end() };
 }
 
-std::string Secp256k1::toAddress(std::string &pubKey) {
+std::string Secp256k1::toAddress(const std::string &pubKey) {
   std::string pubKeyHash;
   Utils::sha3(pubKey, pubKeyHash);
   return pubKeyHash.substr(12); // Address = pubKeyHash[12..32], no "0x"
 }
 
-std::string Secp256k1::sign(std::string &privKey, std::string &hash) {
+std::string Secp256k1::sign(const std::string &privKey, const std::string &hash) {
   if (privKey.size() != 32 && hash.size() != 32) { return ""; }
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   secp256k1_ecdsa_recoverable_signature rawSig;

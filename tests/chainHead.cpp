@@ -2,7 +2,7 @@
 #include "../src/core/chainHead.h"
 #include "../src/core/state.h"
 
-void Tests::doBlocks(uint32_t quantity, std::unique_ptr<ChainHead> &chainHead, std::unique_ptr<State> &state) {
+void Tests::doBlocks(uint32_t quantity, std::shared_ptr<ChainHead> &chainHead, std::shared_ptr<State> &state) {
   // TODO: Fix tests as chainHead and state now operates with a third class, ChainTip.
   auto latest = chainHead->latest();
   for (uint32_t i = 0; i < quantity; ++i) {

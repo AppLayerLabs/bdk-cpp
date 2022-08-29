@@ -87,11 +87,7 @@ namespace Tx {
         this->_inBlock = true;
       };
       void setFrom(const Address& from) { this->_from = from; }
-      void setCallsContract(const bool& callsContract) { this->_callsContract = callsContract; }
-      void setInBlock(const bool& inBlock) { this->_inBlock = inBlock; }
-      void setHasSig(const bool& hasSig) { this->_hasSig = hasSig; }
-      void setVerified(const bool& verified) { this->_verified = verified; }
-
+      
       // Hash in bytes not hex!
       std::string hash() const { std::string ret; Utils::sha3(this->rlpSerialize(this->_hasSig), ret); return ret; };
       std::string rlpSerialize(const bool &includeSig) const;

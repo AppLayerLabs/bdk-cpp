@@ -64,33 +64,33 @@ class Subnet {
      */
     std::shared_ptr<DBService> dbServer;
 
-    std::unique_ptr<Server> server; // gRPC Server.
+    std::shared_ptr<Server> server; // gRPC Server.
 
     /**
      * State. Keeps track of balances and the inner variables of the blockchain
      * (e.g. memory pool, block parsing/creation, etc.).
      */
-    std::unique_ptr<State> headState;
+    std::shared_ptr<State> headState;
 
     /**
      * ChainHead. Keeps track of the blockchain itself.
      * The blocks/confirmed transactions are stored here.
      * Information can be requested to it.
      */
-    std::unique_ptr<ChainHead> chainHead;
+    std::shared_ptr<ChainHead> chainHead;
 
     /**
      * HTTP Server for JSON-RPC Requests
      */
 
-    std::unique_ptr<HTTPServer> httpServer;
+    std::shared_ptr<HTTPServer> httpServer;
 
     /**
      * ChainTip. Keeps track of processing blocks and refused blocks.
      * also keeps track of the prefered block to be accepted.
      */
 
-    std::unique_ptr<ChainTip> chainTip;
+    std::shared_ptr<ChainTip> chainTip;
 
     InitializeRequest initParams; // From initialization request.
 

@@ -11,8 +11,8 @@ void Tests::testBlockchain() {
 
   // Start State
 
-  auto headState = std::make_unique<State>(dbServer);
-  auto chainHead = std::make_unique<ChainHead>(dbServer);
+  auto headState = std::make_shared<State>(dbServer);
+  auto chainHead = std::make_shared<ChainHead>(dbServer);
 
   // Test simply running the blockchain for 1000 blocks.
   Tests::doBlocks(1000, chainHead, headState);
@@ -60,7 +60,7 @@ std::vector<std::pair<Address,std::string>> Tests::generateAddresses(uint64_t qu
   return addresses;
 }
 
-void Tests::addBalance(std::vector<std::pair<Address,std::string>> &accounts, std::unique_ptr<State> &state) {
+void Tests::addBalance(std::vector<std::pair<Address,std::string>> &accounts, std::shared_ptr<State> &state) {
   for (auto &item : accounts ) {
     state->addBalance(item.first);
   }
@@ -71,7 +71,7 @@ void Tests::addBalance(std::vector<std::pair<Address,std::string>> &accounts, st
   std::cout << __func__ << " with " << accounts.size() << " addresses OK" << std::endl;
 }
 
-void Tests::doTransactions(uint32_t txs, std::unique_ptr<ChainHead> &chainHead, std::unique_ptr<State> &state, std::vector<std::pair<Address,std::string>> accounts) {
+void Tests::doTransactions(uint32_t txs, std::shared_ptr<ChainHead> &chainHead, std::shared_ptr<State> &state, std::vector<std::pair<Address,std::string>> accounts) {
   if (txs > accounts.size()) { throw std::runtime_error("Invalid size"); }
   Address to("0x0000000000000000000000000000000000000000", true);
   uint256_t value("1000000000000000000");

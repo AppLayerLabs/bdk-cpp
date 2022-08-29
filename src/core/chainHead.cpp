@@ -1,7 +1,7 @@
 #include "chainHead.h"
 
-void ChainHead::_push_back(const std::shared_ptr<const Block> block) {
-  this->internalChainHead.emplace_back(block);
+void ChainHead::_push_back(const std::shared_ptr<const Block>&& block) {
+  this->internalChainHead.emplace_back(std::move(block));
 
   auto latestBlock = internalChainHead.back();
   this->lookupBlockByHash[latestBlock->getBlockHash()] = latestBlock;
@@ -14,8 +14,8 @@ void ChainHead::_push_back(const std::shared_ptr<const Block> block) {
   }
 }
 
-void ChainHead::_push_front(Block& block) {
-  this->internalChainHead.emplace_front(std::make_shared<Block>(block));
+void ChainHead::_push_front(const std::shared_ptr<const Block>&& block) {
+  this->internalChainHead.emplace_front(std::move(block));
 
   auto latestBlock = this->internalChainHead.front();
   this->lookupBlockByHash[latestBlock->getBlockHash()] = latestBlock;
@@ -28,15 +28,15 @@ void ChainHead::_push_front(Block& block) {
   }
 }
 
-void ChainHead::push_back(const std::shared_ptr<const Block> block) {
+void ChainHead::push_back(const std::shared_ptr<const Block> &&block) {
   this->internalChainHeadLock.lock();
-  this->_push_back(block);
+  this->_push_back(std::move(block));
   this->internalChainHeadLock.unlock();
 }
 
-void ChainHead::push_front(Block& block) {
+void ChainHead::push_front(const std::shared_ptr<const Block> &&block) {
   this->internalChainHeadLock.lock();
-  this->_push_front(block);
+  this->_push_front(std::move(block));
   this->internalChainHeadLock.unlock();
 }
 
@@ -91,43 +91,51 @@ void ChainHead::pop_front() {
   this->internalChainHeadLock.unlock();
 }
 
-bool ChainHead::hasBlock(std::string const &blockHash) {
+bool ChainHead::hasBlock(std::string const &blockHash) const {
   this->internalChainHeadLock.lock();
   bool result = this->lookupBlockByHash.count(blockHash) > 0;
   this->internalChainHeadLock.unlock();
   return result;
 }
 
-bool ChainHead::hasBlock(uint64_t const &blockHeight) {
+bool ChainHead::hasBlock(uint64_t const &blockHeight) const {
   this->internalChainHeadLock.lock();
-  bool result = this->lookupBlockByHash.count(
-    this->lookupBlockHashByHeight[blockHeight]
-  ) > 0;
+  bool result = this->lookupBlockHashByHeight.count(blockHeight) > 0;
   this->internalChainHeadLock.unlock();
   return result;
 }
 
-const bool ChainHead::exists(std::string const &blockHash) {
+const bool ChainHead::exists(std::string const &blockHash) const{
   if (this->hasBlock(blockHash)) return true;
   return this->dbServer->has(blockHash, DBPrefix::blocks);  // Check DB.
 }
 
-const bool ChainHead::exists(uint64_t const &blockHeight) {
+const bool ChainHead::exists(uint64_t const &blockHeight) const {
   if (this->hasBlock(blockHeight)) return true;
   return this->dbServer->has(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps); // Check DB.
 }
 
-const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockHash) {
+const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockHash) const {
   if (this->exists(blockHash)) {
     if (this->hasBlock(blockHash)) {
       this->internalChainHeadLock.lock();
-      auto result = this->lookupBlockByHash[blockHash];
+      const std::shared_ptr<const Block> result = this->lookupBlockByHash.find(blockHash)->second;
       this->internalChainHeadLock.unlock();
       return result;
     }
 
-    auto result = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
-    return result;
+    this->internalChainHeadLock.lock();
+    // Check if exists in cache, if does return it.
+    if (this->cachedBlocks.count(blockHash) > 0) {
+      const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
+      this->internalChainHeadLock.unlock();
+      return result;
+    }
+
+    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
+    auto result = this->cachedBlocks[blockHash];
+    this->internalChainHeadLock.unlock();
+    return this->cachedBlocks[blockHash];
   }
 
   throw std::runtime_error(std::string(__func__) + ": " +
@@ -135,45 +143,70 @@ const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockH
   );
 }
 
-const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeight) {
+const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeight) const {
   if (this->exists(blockHeight)) {
     if (this->hasBlock(blockHeight)) {
       this->internalChainHeadLock.lock();
-      auto result = this->lookupBlockByHash[this->lookupBlockHashByHeight[blockHeight]];
+      const std::shared_ptr<const Block> result = this->lookupBlockByHash.find(this->lookupBlockHashByHeight.find(blockHeight)->second)->second;
       this->internalChainHeadLock.unlock();
       return result;
     }
     std::string blockHash = dbServer->get(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps);
     Utils::LogPrint(Log::chainHead, __func__, "blockHash: " + blockHash);
-    auto result = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
+    this->internalChainHeadLock.lock();
+    // Check if block exists in cache, if does return it.
+    if (this->cachedBlocks.count(blockHash) > 0) {
+      const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
+      this->internalChainHeadLock.unlock();
+      return result;
+    }
+
+    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
+    const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
+    this->internalChainHeadLock.unlock();
     return result;
   }
-  this->internalChainHeadLock.unlock();
+
   throw std::runtime_error(std::string(__func__) + ": " +
     std::string("Block does not exist")
   );
 }
 
-bool ChainHead::hasTransaction(std::string &txHash) {
+bool ChainHead::hasTransaction(const std::string &txHash) const {
   this->internalChainHeadLock.lock();
   bool result = this->lookupTxByHash.count(txHash) > 0;
   this->internalChainHeadLock.unlock();
   return result;
 }
 
-const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(std::string &txHash) {
+const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(const std::string &txHash) const {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock();
-    auto result = this->lookupTxByHash[txHash];
+    const std::shared_ptr<const Tx::Base> result = this->lookupTxByHash.find(txHash)->second;
     this->internalChainHeadLock.unlock();
     return result;
   }
+
+
+  // Check if cache has it first.
+  this->internalChainHeadLock.lock();
+  if (this->cachedTxs.count(txHash) > 0) {
+    const std::shared_ptr<const Tx::Base> result = this->cachedTxs[txHash];
+    this->internalChainHeadLock.unlock();
+    return result;
+  }
+  this->internalChainHeadLock.unlock();
 
   // Check DB.
   if (this->dbServer->has(txHash, DBPrefix::TxToBlocks)) {
     std::string blockHash = dbServer->get(txHash, DBPrefix::TxToBlocks);
     std::string txBytes = dbServer->get(blockHash, DBPrefix::blocks);
-    auto result = std::make_shared<Tx::Base>(txBytes, true); // No need to check a tx again.
+    this->internalChainHeadLock.lock();
+    // TODO: Is this the right way to do this? is it copying the data the pointer points to?
+
+    this->cachedTxs[txHash] = std::make_shared<Tx::Base>(txBytes, true);
+    const std::shared_ptr<const Tx::Base> result = this->cachedTxs[txHash]; // No need to check a tx again.
+    this->internalChainHeadLock.lock();
     return result;
   }
 
@@ -182,10 +215,10 @@ const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(std::string &txH
   );
 }
 
-const std::shared_ptr<const Block> ChainHead::getBlockFromTx(std::string &txHash) {
+const std::shared_ptr<const Block> ChainHead::getBlockFromTx(const std::string &txHash) const {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock();
-    auto result = this->lookupBlockByTxHash[txHash];
+    const std::shared_ptr<const Block> result = this->lookupBlockByTxHash.find(txHash)->second;
     this->internalChainHeadLock.unlock();
     return result;
   }
@@ -194,12 +227,9 @@ const std::shared_ptr<const Block> ChainHead::getBlockFromTx(std::string &txHash
   );
 }
 
-const std::shared_ptr<const Block> ChainHead::latest() {
+const std::shared_ptr<const Block> ChainHead::latest() const {
   this->internalChainHeadLock.lock();
-  Utils::LogPrint(Log::chainHead, __func__, "Getting latest...");
-  Utils::LogPrint(Log::chainHead, __func__, std::string("ChainHead size: ") + std::to_string(this->internalChainHead.size()));
   const std::shared_ptr<const Block> result = this->internalChainHead.back();
-  Utils::LogPrint(Log::chainHead, __func__, std::string("Got latest"));
   this->internalChainHeadLock.unlock();
   return result;
 }
@@ -239,7 +269,7 @@ void ChainHead::loadFromDB() {
 
   // Append up to 1000 blocks from history.
   for (uint64_t i = 0; i <= 1000 && i <= depth; ++i) {
-    Block block(dbServer->get(this->lookupBlockHashByHeight[depth-i], DBPrefix::blocks));
+    auto block = std::make_shared<Block>(dbServer->get(this->lookupBlockHashByHeight[depth-i], DBPrefix::blocks));
     this->_push_front(block);
   }
 
