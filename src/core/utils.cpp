@@ -11,6 +11,19 @@ void Utils::logToFile(std::string str) {
   log_lock.unlock();
 }
 
+void Utils::LogPrint(const std::string &prefix, std::string function, std::string data) {
+  debug_mutex.lock();
+  std::ofstream log("debug.txt", std::ios::app);
+  log << prefix << function << " - " << data << std::endl;
+  log.close();
+  debug_mutex.unlock();
+}
+
+void Utils::sha3(const std::string &input, std::string &output) {
+  output.resize(32);
+  keccakUint8_256(reinterpret_cast<unsigned char*>(&output[0]), reinterpret_cast<const unsigned char*>(input.data()), input.size());
+}
+
 std::string Utils::uint256ToBytes(const uint256_t &i) {
   std::string ret(32, 0x00);
   std::string tmp;
@@ -142,14 +155,6 @@ uint8_t Utils::bytesToUint8(const std::string &bytes) {
   return ret;
 }
 
-void Utils::LogPrint(const std::string &prefix, std::string function, std::string data) {
-  debug_mutex.lock();
-  std::ofstream log("debug.txt", std::ios::app);
-  log << prefix << function << " - " << data << std::endl;
-  log.close();
-  debug_mutex.unlock();
-}
-
 void Utils::patchHex(std::string& str) {
   if (str[0] == '0' && str[1] == 'x') str = str.substr(2);
   for (auto &c : str) if (std::isupper(c)) c = std::tolower(c);
@@ -214,8 +219,19 @@ bool Utils::verifySignature(uint8_t const &v, uint256_t const &r, uint256_t cons
   return (v <= 1 && r > s_zero && s > s_zero && r < s_max && s < s_max);
 }
 
-void Utils::sha3(const std::string &input, std::string &output) {
-  output.resize(32);
-  keccakUint8_256(reinterpret_cast<unsigned char*>(&output[0]), reinterpret_cast<const unsigned char*>(input.data()), input.size());
+std::string Utils::padLeft(std::string str, unsigned int charAmount, char sign = '0') {
+  bool hasPrefix = (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X");
+  if (hasPrefix) { str = str.substr(2); }
+  size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
+  std::str padded = (padding != 0) ? std::str(padding, sign) : "";
+  return (hasPrefix ? "0x" : "") + padded + str;
+}
+
+std::string Utils::padRight(std::string str, unsigned int charAmount, char sign = '0') {
+  bool hasPrefix = (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X");
+  if (hasPrefix) { str = str.substr(2); }
+  size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
+  std::str padded = (padding != 0) ? std::str(padding, sign) : "";
+  return (hasPrefix ? "0x" : "") + str + padded;
 }
 

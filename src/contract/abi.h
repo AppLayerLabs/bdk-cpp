@@ -16,9 +16,22 @@ enum ABITypes {
 
 class ABIEncoder {
   private:
-    // TODO
+    std::string data;
+
+    std::string encodeFunction(std::string func);
+    std::string encodeUint256(uint256_t num);
+    std::string encodeAddress(Address add);
+    std::string encodeBool(bool b);
+    std::string encodeBytes(std::string bytes);
+    std::string encodeUint256Arr(std::vector<uint256_t> numV);
+    std::string encodeAddressArr(std::vector<Address> addV);
+    std::string encodeBoolArr(std::vector<bool> bV);
+    std::string encodeBytesArr(std::vector<std::string> bytesV);
+
   public:
-    // TODO
+    ABIEncoder();
+    const std::string& get() { return this->data; }
+    size_t size() { return this->data.length(); }
 };
 
 class ABIDecoder {

@@ -1,5 +1,42 @@
 #include "abi.h"
 
+std::string ABIEncoder::encodeFunction(std::string func) {
+  return dev::toHex(dev::sha3(func)).substr(0, 8);
+}
+
+std::string ABIEncoder::encodeUint256(uint256_t num) {
+  // TODO: padding
+  //return Utils::padLeft(Utils::toHex(num), 64);
+}
+
+std::string ABIEncoder::encodeAddress(Address add) {
+  
+}
+
+std::string ABIEncoder::encodeBool(bool b) {
+  
+}
+
+std::string ABIEncoder::encodeBytes(std::string bytes) {
+  
+}
+
+std::string ABIEncoder::encodeUint256Arr(std::vector<uint256_t> numV) {
+  
+}
+
+std::string ABIEncoder::encodeAddressArr(std::vector<Address> addV) {
+  
+}
+
+std::string ABIEncoder::encodeBoolArr(std::vector<bool> bV) {
+  
+}
+
+std::string ABIEncoder::encodeBytesArr(std::vector<std::string> bytesV) {
+  
+}
+
 uint256_t ABIDecoder::decodeUint256(const std::string &data, const uint64_t &start) {
   if (start + 32 > data.size()) {
     throw std::runtime_error("Data too short");

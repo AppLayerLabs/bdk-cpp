@@ -72,6 +72,8 @@ namespace Utils {
   std::string hexToBytes(std::string hex);
   std::string bytesToHex(const std::string& bytes);
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
+  std::string padLeft(std::string str, unsigned int charAmount, char sign = '0');
+  std::string padRight(std::string str, unsigned int charAmount, char sign = '0');
 } // Utils
 
 struct Account {
