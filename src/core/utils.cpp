@@ -219,19 +219,19 @@ bool Utils::verifySignature(uint8_t const &v, uint256_t const &r, uint256_t cons
   return (v <= 1 && r > s_zero && s > s_zero && r < s_max && s < s_max);
 }
 
-std::string Utils::padLeft(std::string str, unsigned int charAmount, char sign = '0') {
+std::string Utils::padLeft(std::string str, unsigned int charAmount, char sign) {
   bool hasPrefix = (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X");
   if (hasPrefix) { str = str.substr(2); }
   size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
-  std::str padded = (padding != 0) ? std::str(padding, sign) : "";
+  std::string padded = (padding != 0) ? std::string(padding, sign) : "";
   return (hasPrefix ? "0x" : "") + padded + str;
 }
 
-std::string Utils::padRight(std::string str, unsigned int charAmount, char sign = '0') {
+std::string Utils::padRight(std::string str, unsigned int charAmount, char sign) {
   bool hasPrefix = (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X");
   if (hasPrefix) { str = str.substr(2); }
   size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
-  std::str padded = (padding != 0) ? std::str(padding, sign) : "";
+  std::string padded = (padding != 0) ? std::string(padding, sign) : "";
   return (hasPrefix ? "0x" : "") + str + padded;
 }
 

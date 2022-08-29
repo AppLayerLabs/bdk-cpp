@@ -34,7 +34,7 @@ Status VMServiceImplementation::ParseBlock(
   vm::ParseBlockResponse* reply
 ) {
   Utils::logToFile("Parse block called!");
-  if (!subnet.parseBlock(context, request, reply)) {
+  if (!subnet.parseBlock(context, request->bytes(), reply)) {
     return Status::CANCELLED;
   }
   return Status::OK;
@@ -162,3 +162,17 @@ Status VMServiceImplementation::BlockReject(
   return Status::OK;
 }
 
+Status VMServiceImplementation::BatchedParseBlock(
+  ServerContext* context,
+  const vm::BatchedParseBlockRequest* request,
+  vm::BatchedParseBlockResponse* reply
+) {
+  Utils::logToFile("BatchedParseBlock called!!");
+  for (uint64_t i = 0; i < request->request_size(); ++i) {
+    auto response = reply->add_response();
+    if (!subnet.parseBlock(context, request->request(i), response)) {
+      return Status::CANCELLED;
+    }
+  }
+  return Status::OK;
+}

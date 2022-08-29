@@ -29,8 +29,13 @@ class ABIEncoder {
     std::string encodeBytesArr(std::vector<std::string> bytesV);
 
   public:
-    ABIEncoder();
+    ABIEncoder(std::vector<std::variant<
+      uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
+      bool, std::vector<bool>, std::string, std::vector<std::string>
+    >> data, std::string func = "");  // Both bytes and string are stored as std::string
+
     const std::string& get() { return this->data; }
+
     size_t size() { return this->data.length(); }
 };
 

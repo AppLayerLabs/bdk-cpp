@@ -64,33 +64,33 @@ class Subnet {
      */
     std::shared_ptr<DBService> dbServer;
 
-    std::unique_ptr<Server> server; // gRPC Server.
+    std::shared_ptr<Server> server; // gRPC Server.
 
     /**
      * State. Keeps track of balances and the inner variables of the blockchain
      * (e.g. memory pool, block parsing/creation, etc.).
      */
-    std::unique_ptr<State> headState;
+    std::shared_ptr<State> headState;
 
     /**
      * ChainHead. Keeps track of the blockchain itself.
      * The blocks/confirmed transactions are stored here.
      * Information can be requested to it.
      */
-    std::unique_ptr<ChainHead> chainHead;
+    std::shared_ptr<ChainHead> chainHead;
 
     /**
      * HTTP Server for JSON-RPC Requests
      */
 
-    std::unique_ptr<HTTPServer> httpServer;
+    std::shared_ptr<HTTPServer> httpServer;
 
     /**
      * ChainTip. Keeps track of processing blocks and refused blocks.
      * also keeps track of the prefered block to be accepted.
      */
 
-    std::unique_ptr<ChainTip> chainTip;
+    std::shared_ptr<ChainTip> chainTip;
 
     InitializeRequest initParams; // From initialization request.
 
@@ -104,7 +104,7 @@ class Subnet {
 
     // To be called by the gRPC server. Parse a given block, if necessary push it to the blockchain.
     // Answers back with block status and a pointer to the block, if exists.
-    bool parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply);
+    bool parseBlock(ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply);
 
     // To be called by initialize if no info is found on DB.
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);

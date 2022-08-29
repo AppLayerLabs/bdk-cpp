@@ -29,8 +29,8 @@ class ChainTip;
 class State {
   private:
     std::unordered_map<Address, Account> nativeAccount; // Address -> Account
-    std::unordered_map<std::string, Tx::Base> mempool; // Tx Hash (bytes) -> Tx
-    std::mutex stateLock;
+    mutable std::unordered_map<std::string, Tx::Base> mempool; // Tx Hash (bytes) -> Tx
+    mutable std::mutex stateLock;
 
     // used to notify avalancheGo when to create new blocks.
     #if !IS_LOCAL_TESTS
@@ -59,18 +59,21 @@ class State {
     // State changing functions
 
     // Validates if a given block is valid and the transactions within. Does *not* update the state.
-    bool validateNewBlock(const Block &newBlock, std::unique_ptr<ChainHead>& chainHead);
+    bool validateNewBlock(const Block &newBlock, const std::shared_ptr<const ChainHead>& chainHead) const;
 
-    // Process a new block from the network and update the local state.
-    bool processNewBlock(const std::shared_ptr<const Block> newBlock, std::unique_ptr<ChainHead>& chainHead);
+    // Process a new block from the network and update the local state. to be called by chainTip.
+    // The block is moved to this function because it will move the block into the chainHead if succeeds.
+    void processNewBlock(const std::shared_ptr<const Block> &&newBlock, const std::shared_ptr<ChainHead>& chainHead);
 
     // Create a new block using setPreference or latest in case of not found. Does *not* update the state.
-    std::shared_ptr<Block> createNewBlock(std::unique_ptr<ChainHead>& chainHead, std::unique_ptr<ChainTip> &chainTip);
+    const std::shared_ptr<const Block> createNewBlock(std::shared_ptr<ChainHead>& chainHead, std::shared_ptr<ChainTip> &chainTip) const;
 
     // State querying functions
 
     // Asks the state if a given transaction is valid, and add it to the mempool if it is.
-    std::pair<int, std::string> validateTransaction(const Tx::Base &tx);
+    // TODO: Maybe split this function into two functions, one for actually verifying a tx inside a block, and one for adding it to mempool.
+    // Transaction multithreadification can be achieved at the block and RPC level, as the expensive part is the Tx constructor which runs secp256k1.
+    std::pair<int, std::string> validateTransaction(const Tx::Base &tx) const;
 
     // TEST ONLY FUNCTIONS.
 

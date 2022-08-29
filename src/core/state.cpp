@@ -42,7 +42,7 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
   return true;
 }
 
-std::pair<int, std::string> State::validateTransaction(const Tx::Base& tx) {
+std::pair<int, std::string> State::validateTransaction(const Tx::Base& tx) const {
   // TODO: Handle error conditions to report at RPC level:
   // https://www.jsonrpc.org/specification#error_object
   // https://eips.ethereum.org/EIPS/eip-1474#error-codes
@@ -55,14 +55,30 @@ std::pair<int, std::string> State::validateTransaction(const Tx::Base& tx) {
   }
   int err = 0;
   std::string errMsg;
-  if (this->nativeAccount[tx.from()].nonce != tx.nonce()) {
-    err = -32003; errMsg = "Nonce mismatch";
-  } else if (this->nativeAccount[tx.from()].balance < tx.value()) {
-    err = -32003; errMsg = "Insufficient balance - required: " +
-      boost::lexical_cast<std::string>(tx.value()) + " available: " +
-      boost::lexical_cast<std::string>(this->nativeAccount[tx.from()].balance);
-  } else if (this->mempool.count(tx.hash())) {
+  // Check if transaction is valid.
+  // TX already exists...
+  if (this->mempool.count(tx.hash())) {
     err = 0; errMsg = "NAN, Transaction already exists in mempool"; // Not really considered a failure
+
+  } else if (this->nativeAccount.count(tx.from()) > 0) {
+    // Account already exists.
+    // Use find() and count() instead of operator[] for const correctness and performance.
+    if (this->nativeAccount.find(tx.from())->second.balance < tx.value()) {
+      // Insufficient balance.
+      err = -32002;
+      errMsg = "Insufficient balance- required: " +
+      boost::lexical_cast<std::string>(tx.value()) + " available: " +
+      boost::lexical_cast<std::string>(this->nativeAccount.find(tx.from())->second.balance);
+    }
+    if (this->nativeAccount.find(tx.from())->second.nonce != tx.nonce()) {
+      // Invalid nonce.
+      err = -32001;
+      errMsg = "Invalid nonce";
+    }
+  } else {
+    // Account doesn't exists, meaning zero balance, meaning no balance to pay fees.
+    err = -32003; errMsg = "Insufficient balance - required: " +
+    boost::lexical_cast<std::string>(tx.value()) + " available: 0";
   }
 
   if (err != 0) {
@@ -103,7 +119,7 @@ bool State::processNewTransaction(const Tx::Base& tx) {
 
 // Check block header, validation and transactions within.
 // Invalid transactions (such as invalid signatures, account having min balance for min fees), if included in a block, the block will be rejected.
-bool State::validateNewBlock(const Block &newBlock, std::unique_ptr<ChainHead>& chainHead) {
+bool State::validateNewBlock(const Block &newBlock, const std::shared_ptr<const ChainHead>& chainHead) const {
   // Check block previous hash.
   auto bestBlock = chainHead->latest();
   if (bestBlock->getBlockHash() != newBlock.prevBlockHash()) {
@@ -133,32 +149,19 @@ bool State::validateNewBlock(const Block &newBlock, std::unique_ptr<ChainHead>& 
 }
 
 
-bool State::processNewBlock(const std::shared_ptr<const Block> newBlock, std::unique_ptr<ChainHead>& chainHead) {
+void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const std::shared_ptr<ChainHead>& chainHead) {
   // Check block previous hash.
   Utils::LogPrint(Log::state, __func__, "Processing new block " + Utils::bytesToHex(newBlock->getBlockHash()) + ", height " + boost::lexical_cast<std::string>(newBlock->nHeight()));
   auto bestBlock = chainHead->latest();
 
-  if (bestBlock->getBlockHash() != newBlock->prevBlockHash()) {
-    Utils::LogPrint(Log::state, __func__, "Block previous hash does not match.");
-    Utils::LogPrint(Log::state, __func__, "newBlock previous hash: " + newBlock->prevBlockHash());
-    Utils::LogPrint(Log::state, __func__, "bestBlock hash: " + bestBlock->getBlockHash());
-    return false;
-  }
-  if (newBlock->nHeight() != (1 + bestBlock->nHeight())) {
-    Utils::LogPrint(Log::state, __func__, "Block height does not match.");
-    Utils::LogPrint(Log::state, __func__, "newBlock height: " + std::to_string(newBlock->nHeight()));
-    Utils::LogPrint(Log::state, __func__, "bestBlock height: " + std::to_string(bestBlock->nHeight()));
-    return false;
-  }
   for (const auto &tx : newBlock->transactions()) {
     this->processNewTransaction(tx);
   }
   // Append block to chainHead.
-  chainHead->push_back(newBlock);
-  return true;
+  chainHead->push_back(std::move(newBlock));
 }
 
-std::shared_ptr<Block> State::createNewBlock(std::unique_ptr<ChainHead>& chainHead, std::unique_ptr<ChainTip> &chainTip) {
+const std::shared_ptr<const Block> State::createNewBlock(std::shared_ptr<ChainHead>& chainHead, std::shared_ptr<ChainTip> &chainTip) const {
   Utils::LogPrint(Log::state, __func__, "Creating new block.");
   auto bestBlockHash = chainTip->getPreference();
   std::shared_ptr<const Block> bestBlock;
