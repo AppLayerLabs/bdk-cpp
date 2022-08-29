@@ -104,10 +104,31 @@ std::string ABIEncoder::encodeBytesArr(std::vector<std::string> bytesV) {
     ret += bytesLen[i] + bytesData[i];
   }
   return ret;
-}ABI: implement ABIEncoder
-￼
-Jean-Lessa
+}
 
+ABIEncoder::ABIEncoder(std::vector<std::variant<
+  uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
+  bool, std::vector<bool>, std::string, std::vector<std::string>
+>> data, std::string func) {
+  // Handle function ID first if it exists.
+  // We have to check the existence of "()", every type inside it, *and* if
+  // the type positions on both header and data vector are the same
+  // (e.g. arg 0 on header is a string, arg 0 on data vector has to be a string too).
+  this->data = "0x";
+  if (!func.empty()) {
+    if (func.find("(") == std::string::npos || func.find(")") == std::string::npos) {
+      throw std::runtime_error("Invalid function header");
+    }
+    std::string funcTmp = func;
+    funcTmp.erase(0, func.find("(") + 1);
+    funcTmp.replace(func.find(")"), 1, ",");
+    int pos, posct = 0;
+    while ((pos = funcTmp.find(",")) != std::string::npos) {
+      std::string funcType = funcTmp.substr(0, pos);
+      if (
+        funcType != "uint256" && funcType != "address" &&
+        funcType != "bool" && funcType != "bytes" &&
+        funcType != "string" && funcType != "uint256[]" &&
         funcType != "address[]" && funcType != "bool[]" &&
         funcType != "bytes[]" && funcType != "string[]"
       ) {
