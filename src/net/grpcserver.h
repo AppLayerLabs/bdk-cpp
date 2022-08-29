@@ -220,11 +220,8 @@ class VMServiceImplementation final :
       ServerContext* context,
       const vm::BatchedParseBlockRequest* request,
       vm::BatchedParseBlockResponse* reply
-    ) override {
-      Utils::logToFile("BatchedParseBlock called!!");
-      return Status::OK;
-    }
-
+    ) override;
+    
     Status VerifyHeightIndex(
       ServerContext* context,
       const google::protobuf::Empty* request,

@@ -199,9 +199,9 @@ void Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
   return;
 }
 
-bool Subnet::parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply) {
+bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply) {
   try {
-    auto block = std::make_shared<Block>(request->bytes());
+    auto block = std::make_shared<Block>(blockBytes);
 
     // Check if block already exists
     if (chainHead->exists(block->getBlockHash())) {
@@ -272,12 +272,22 @@ void Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest*
     return;
   }
   auto headBlock = chainHead->getBlock(request->blk_id());
+  auto bestBlock = chainHead->latest();
   uint64_t depth = request->max_blocks_num();
 
-  for (uint64_t index = (headBlock->nHeight() - 1); index >= (headBlock->nHeight() - depth); --index) {
+  // Depth can be actually higher than chain height, so we need to set it the chain height.
+  if (depth > bestBlock->nHeight()) {
+    Utils::LogPrint(Log::subnet, __func__, "Depth is higher than chain height, setting depth to chain height");
+    depth = bestBlock->nHeight();
+  }
+                                                                                          // funny overflow moment.
+  for (uint64_t index = (headBlock->nHeight()); index >= (headBlock->nHeight() - depth) && index <= headBlock->nHeight(); --index) {
     auto block = chainHead->getBlock(index);
     reply->add_blks_bytes(block->serializeToBytes());
   }
+
+  Utils::LogPrint(Log::subnet, __func__, "Ancestors found, answering...");
+
   return;
 }
 

@@ -104,7 +104,7 @@ class Subnet {
 
     // To be called by the gRPC server. Parse a given block, if necessary push it to the blockchain.
     // Answers back with block status and a pointer to the block, if exists.
-    bool parseBlock(ServerContext* context, const vm::ParseBlockRequest* request, vm::ParseBlockResponse* reply);
+    bool parseBlock(ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply);
 
     // To be called by initialize if no info is found on DB.
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
