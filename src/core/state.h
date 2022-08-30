@@ -6,6 +6,7 @@
 #include <deque>
 #include <unordered_map>
 #include <vector>
+#include <shared_mutex>
 
 #include "block.h"
 #include "chainHead.h"
@@ -30,7 +31,7 @@ class State {
   private:
     std::unordered_map<Address, Account> nativeAccount; // Address -> Account
     mutable std::unordered_map<std::string, Tx::Base> mempool; // Tx Hash (bytes) -> Tx
-    mutable std::mutex stateLock;
+    mutable std::shared_mutex stateLock;
 
     // used to notify avalancheGo when to create new blocks.
     #if !IS_LOCAL_TESTS
@@ -44,6 +45,7 @@ class State {
     bool loadState(std::shared_ptr<DBService> &dbServer);
 
     // Process a new transaction from a given block (only used by processNewBlock).
+    // Not threadified, can be only called by one thread.
     bool processNewTransaction(const Tx::Base &tx);
 
   public:

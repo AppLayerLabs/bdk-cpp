@@ -17,7 +17,7 @@ class ChainTip {
     std::string preferedBlockHash; // SetPreference from gRPC.
     std::unordered_map<std::string,std::shared_ptr<const Block>> internalChainTip; // Mempool, block hash -> block.
     std::unordered_map<std::string,BlockStatus> cachedBlockStatus;
-    mutable std::mutex internalChainTipLock;
+    mutable std::shared_mutex internalChainTipLock;
 
   public:
     ChainTip() = default;

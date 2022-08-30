@@ -1,6 +1,7 @@
 #ifndef CHAINHEAD_H
 #define CHAINHEAD_H
 
+#include <shared_mutex>
 #include "block.h"
 #include "db.h"
 #include "utils.h"
@@ -22,7 +23,7 @@ class ChainHead {
     mutable std::unordered_map<std::string,std::shared_ptr<const Block>> cachedBlocks;
     mutable std::unordered_map<std::string,std::shared_ptr<const Tx::Base>> cachedTxs;
     // Mutable to provide better const correctness for getBlock and other functions. its use is accaptable for mutexes and cache.
-    mutable std::mutex internalChainHeadLock;
+    mutable std::shared_mutex internalChainHeadLock;
     bool hasBlock(std::string const &blockHash) const;
     bool hasBlock(uint64_t const &blockHeight) const;
     // Only access these functions if you are absolute sure that internalChainHeadLock is locked.

@@ -8,24 +8,24 @@ void ChainTip::setBlockStatus(const std::string &blockHash, const BlockStatus &s
 }
 
 BlockStatus ChainTip::getBlockStatus(const std::string &blockHash) const {
-  internalChainTipLock.lock();
+  internalChainTipLock.lock_shared();
   if (this->cachedBlockStatus.count(blockHash) > 0) {
     auto ret = this->cachedBlockStatus.find(blockHash)->second;
-    internalChainTipLock.unlock();
+    internalChainTipLock.unlock_shared();
     return ret;
   }
-  internalChainTipLock.unlock();
+  internalChainTipLock.unlock_shared();
   return BlockStatus::Unknown;
 }
 
 bool ChainTip::isProcessing(const std::string &blockHash) const {
-  internalChainTipLock.lock();
+  internalChainTipLock.lock_shared();
   if (this->cachedBlockStatus.count(blockHash) > 0) {
     bool ret = (this->cachedBlockStatus.find(blockHash)->second == BlockStatus::Processing) ? true : false;
-    internalChainTipLock.unlock();
+    internalChainTipLock.unlock_shared();
     return ret;
   }
-  internalChainTipLock.unlock();
+  internalChainTipLock.unlock_shared();
   return false;
 };  
 
@@ -64,16 +64,16 @@ void ChainTip::processBlock(std::shared_ptr<Block> block) {
 
 // TODO: handle block not found and similar errors
 const std::shared_ptr<const Block> ChainTip::getBlock(const std::string &blockHash) const {
-  internalChainTipLock.lock();
+  internalChainTipLock.lock_shared();
   const std::shared_ptr<const Block>& ret = internalChainTip.find(blockHash)->second;
-  internalChainTipLock.unlock();
+  internalChainTipLock.unlock_shared();
   return ret;
 };
 
 std::string ChainTip::getPreference() const {
-  internalChainTipLock.lock();
+  internalChainTipLock.lock_shared();
   std::string ret = preferedBlockHash;
-  internalChainTipLock.unlock();
+  internalChainTipLock.unlock_shared();
   return ret;
 }
 
