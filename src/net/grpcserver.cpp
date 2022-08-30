@@ -158,7 +158,8 @@ Status VMServiceImplementation::BlockReject(
   const vm::BlockRejectRequest* request,
   google::protobuf::Empty *reply
 ) {
-  Utils::logToFile("BlockReject called!!");
+  Utils::logToFile(std::string("BlockReject called!! ") + Utils::bytesToHex(request->id()));
+  subnet.rejectBlock(request->id());
   return Status::OK;
 }
 
@@ -192,5 +193,27 @@ Status VMServiceImplementation::AppGossip(
     Utils::LogPrint(Log::grpcServer, __func__, "Tx Processed");
   }
 
+  return Status::OK;
+}
+
+
+Status VMServiceImplementation::Connected(
+  ServerContext* context,
+  const vm::ConnectedRequest* request,
+  google::protobuf::Empty* reply
+) {
+  Utils::logToFile("Connected called!!");
+  subnet.connectNode(request->node_id());
+  return Status::OK;
+}
+
+
+Status VMServiceImplementation::Disconnected(
+  ServerContext* context,
+  const vm::DisconnectedRequest* request,
+  google::protobuf::Empty* reply
+) {
+  Utils::logToFile("Disconnected called!!");
+  subnet.disconnectNode(request->node_id());
   return Status::OK;
 }

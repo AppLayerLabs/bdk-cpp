@@ -28,6 +28,7 @@ class ChainTip {
     void accept(const std::string &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead);
     void reject(const std::string &blockHash);
     void processBlock(std::shared_ptr<Block> block);
+    bool exists(const std::string &blockHash) const;
     const std::shared_ptr<const Block> getBlock(const std::string &blockHash) const;
     std::string getPreference() const;
     void setPreference(const std::string& blockHash);

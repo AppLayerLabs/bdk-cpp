@@ -77,6 +77,13 @@ std::string ChainTip::getPreference() const {
   return ret;
 }
 
+bool ChainTip::exists(const std::string &blockHash) const {
+  internalChainTipLock.lock_shared();
+  bool ret = (internalChainTip.count(blockHash) > 0) ? true : false;
+  internalChainTipLock.unlock_shared();
+  return ret;
+}
+
 void ChainTip::setPreference(const std::string &blockHash) {
   internalChainTipLock.lock();
   preferedBlockHash = blockHash;

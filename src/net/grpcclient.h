@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <shared_mutex>
 
 #include <grpc/support/log.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
@@ -45,19 +46,24 @@ using grpc::Status;
 
 class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
   public:
-    explicit VMCommClient(std::shared_ptr<Channel> channel) :
+    explicit VMCommClient(std::shared_ptr<Channel> channel, const std::vector<std::string> &nodeList, std::shared_mutex &nodeListLock) :
       aliasreader_stub_(aliasreader::AliasReader::NewStub(channel)),
       appsender_stub_(appsender::AppSender::NewStub(channel)),
       keystore_stub_(keystore::Keystore::NewStub(channel)),
       messenger_stub_(messenger::Messenger::NewStub(channel)),
-      sharedmemory_stub_(sharedmemory::SharedMemory::NewStub(channel))
-    {}
+      sharedmemory_stub_(sharedmemory::SharedMemory::NewStub(channel)),
+      nodeList(nodeList),
+      nodeListLock(nodeListLock) {}
 
   void requestBlock();
   // Copy because we don't actually know if mempool is keeping the transaction alive.
   // Subnet may receive a block that clears a given tx from mempool, making a reference to that tx null.
   void relayTransaction(const Tx::Base tx);
-  private:
+  private: 
+    // TODO: having nodeList here as a refenrence is not ideal.
+    // We should create a new class (Relayer) that actively relay transactions and messages to the network.
+    const std::vector<std::string>& nodeList;
+    std::shared_mutex &nodeListLock;
     std::unique_ptr<aliasreader::AliasReader::Stub> aliasreader_stub_;
     std::unique_ptr<appsender::AppSender::Stub> appsender_stub_;
     std::unique_ptr<keystore::Keystore::Stub> keystore_stub_;

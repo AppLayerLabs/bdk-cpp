@@ -94,19 +94,13 @@ class VMServiceImplementation final :
       ServerContext* context,
       const vm::ConnectedRequest* request,
       google::protobuf::Empty* reply
-    ) override {
-      Utils::logToFile("Connected called!!");
-      return Status::OK;
-    }
-
+    ) override;
+    
     Status Disconnected(
       ServerContext* context,
       const vm::DisconnectedRequest* request,
       google::protobuf::Empty* reply
-    ) override {
-      Utils::logToFile("Disconnected called!!");
-      return Status::OK;
-    }
+    ) override;;
 
     Status BuildBlock(
       ServerContext* context,

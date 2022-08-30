@@ -138,7 +138,7 @@ std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx
         // TODO: figure out why and fix it
         this->grpcClient->relayTransaction(this->mempool[txHash]);
       } 
-      //grpcClient->requestBlock();
+      grpcClient->requestBlock();
     #endif
     stateLock.unlock();
   }
@@ -227,7 +227,7 @@ const std::shared_ptr<const Block> State::createNewBlock(std::shared_ptr<ChainHe
   }
   auto newBestBlock = std::make_shared<Block>(
     Utils::bytesToUint256(bestBlock->getBlockHash()),
-    std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::high_resolution_clock::now().time_since_epoch()
     ).count(),
     bestBlock->nHeight() + 1

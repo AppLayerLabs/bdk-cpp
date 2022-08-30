@@ -128,7 +128,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   dbServer = std::make_shared<DBService>(this->initParams.nodeId);
 
   // Initialize the gRPC client to communicate back with AvalancheGo.
-  grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()));
+  grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()), this->connectedNodes, this->connectedNodesLock);
 
   // Initialize the State and ChainHead.
   #if !IS_LOCAL_TESTS
@@ -247,21 +247,33 @@ bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, v
 }
 
 void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply) {
-  if (!chainHead->exists(request->id())) {
-    Utils::LogPrint(Log::subnet, __func__, "Block does not exist");
-    reply->set_status(BlockStatus::Unknown);
-    reply->set_err(2); // https://github.com/ava-labs/avalanchego/blob/559ce151a6b6f28d8115e0189627d8deaf00d9fb/vms/rpcchainvm/errors.go#L21
+  if (chainHead->exists(request->id())) {
+    auto block = chainHead->getBlock(request->id());
+    reply->set_parent_id(block->prevBlockHash());
+    reply->set_bytes(block->serializeToBytes());
+    reply->set_status(BlockStatus::Accepted);
+    reply->set_height(block->nHeight());
+    auto timestamp = reply->mutable_timestamp();
+    timestamp->set_seconds(block->timestamp() / 1000000000);
+    timestamp->set_nanos(block->timestamp() % 1000000000);
+    Utils::LogPrint(Log::subnet, __func__, "Block found in chainHead: " + Utils::bytesToHex(block->serializeToBytes()));
+    return;
+  } else if (chainTip->exists(request->id())) {
+    auto block = chainTip->getBlock(request->id());
+    reply->set_parent_id(block->prevBlockHash());
+    reply->set_bytes(block->serializeToBytes());
+    reply->set_status(chainTip->getBlockStatus(request->id()));
+    reply->set_height(block->nHeight());
+    auto timestamp = reply->mutable_timestamp();
+    timestamp->set_seconds(block->timestamp() / 1000000000);
+    timestamp->set_nanos(block->timestamp() % 1000000000);
+    Utils::LogPrint(Log::subnet, __func__, "Block found in chainTip: " + Utils::bytesToHex(block->serializeToBytes()));
     return;
   }
-  auto block = chainHead->getBlock(request->id());
-  reply->set_parent_id(block->prevBlockHash());
-  reply->set_bytes(block->serializeToBytes());
-  reply->set_status(BlockStatus::Accepted);
-  reply->set_height(block->nHeight());
-  auto timestamp = reply->mutable_timestamp();
-  timestamp->set_seconds(block->timestamp() / 1000000000);
-  timestamp->set_nanos(block->timestamp() % 1000000000);
-  Utils::LogPrint(Log::subnet, __func__, "Block found");
+
+  Utils::LogPrint(Log::subnet, __func__, "Block " + Utils::bytesToHex(request->id()) + " does not exist");
+  reply->set_status(BlockStatus::Unknown);
+  reply->set_err(2); // https://github.com/ava-labs/avalanchego/blob/559ce151a6b6f28d8115e0189627d8deaf00d9fb/vms/rpcchainvm/errors.go#L21
   return;
 }
 
@@ -338,6 +350,27 @@ bool Subnet::acceptBlock(const std::string &blockHash) {
   return true;
 }
 
+void Subnet::rejectBlock(const std::string &blockHash) {
+  this->chainTip->reject(blockHash);
+}
+
 void Subnet::validateTransaction(const Tx::Base &&tx) {
   this->headState->validateTransactionForRPC(std::move(tx), false);
+}
+
+void Subnet::connectNode(const std::string &nodeId) {
+  this->connectedNodesLock.lock();
+  this->connectedNodes.emplace_back(nodeId);
+  this->connectedNodesLock.unlock();
+}
+
+void Subnet::disconnectNode(const std::string &nodeId) {
+  this->connectedNodesLock.lock();
+  for (uint64_t i = 0; i < this->connectedNodes.size();  ++i) {
+    if (this->connectedNodes[i] == nodeId) {
+        this->connectedNodes.erase(this->connectedNodes.begin() + i);
+      break;
+    }
+  }
+  this->connectedNodesLock.unlock();
 }

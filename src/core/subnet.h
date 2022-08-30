@@ -1,6 +1,7 @@
 #ifndef SUBNET_H
 #define SUBNET_H
 
+#include <shared_mutex>
 #include "../libs/json.hpp"
 #include "../net/grpcclient.h"
 #include "../net/grpcserver.h"
@@ -94,6 +95,13 @@ class Subnet {
 
     InitializeRequest initParams; // From initialization request.
 
+    /**
+     * All current connected nodes within avalancheGo.
+     */ 
+
+    std::vector<std::string> connectedNodes;
+    std::shared_mutex connectedNodesLock;
+
   public:
     void start(); // Start the subnet.
     void stop();  // Stop the subnet.
@@ -125,6 +133,9 @@ class Subnet {
     // To be called by the grpcServer when avalancheGo sends a block for us to accept.
     bool acceptBlock(const std::string &blockHash);
 
+    // To be called by the grpcServer when avalancheGo sends a block for us to reject and remove from chainTip.
+    void rejectBlock(const std::string &blockHash);
+
     // To be called by grpcServer after a shutdown call.
     void shutdownServer();
 
@@ -136,6 +147,11 @@ class Subnet {
 
     // To be called by grpcServer, when avalancheGo receives a transaction through gossip.
     void validateTransaction (const Tx::Base&& txBytes);
+
+    // To be called by grpcServer, when avalancheGo tells that a new node connected.
+    void connectNode(const std::string &nodeId);
+
+    void disconnectNode(const std::string &nodeId);
 };
 
 #endif // SUBNET_H

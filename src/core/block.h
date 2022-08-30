@@ -55,7 +55,7 @@ class Block {
   private:
     // TODO: Add creator Header (might require writing a secp256k1 wrapper)
     uint256_t _prevBlockHash;
-    uint64_t _timestamp;
+    uint64_t _timestamp; // Timestamp in nanoseconds
     uint64_t _nHeight;
     uint32_t _txCount;
     std::vector<Tx::Base> _transactions;
