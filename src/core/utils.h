@@ -40,6 +40,11 @@ namespace Log {
   const std::string httpServer = "HTTPServer::";
 };
 
+namespace MessagePrefix {
+  const char tx = 0x01;
+  const char batchedTx = 0x02;
+}
+
 enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
 namespace Utils {

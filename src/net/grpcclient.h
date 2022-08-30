@@ -35,6 +35,7 @@
 #include "../../proto/messenger.grpc.pb.h"
 #include "../../proto/sharedmemory.grpc.pb.h"
 #include "../core/db.h"
+#include "../core/transaction.h"
 
 using grpc::Channel;
 using grpc::ClientAsyncResponseReader;
@@ -53,12 +54,16 @@ class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
     {}
 
   void requestBlock();
+  // Copy because we don't actually know if mempool is keeping the transaction alive.
+  // Subnet may receive a block that clears a given tx from mempool, making a reference to that tx null.
+  void relayTransaction(const Tx::Base tx);
   private:
     std::unique_ptr<aliasreader::AliasReader::Stub> aliasreader_stub_;
     std::unique_ptr<appsender::AppSender::Stub> appsender_stub_;
     std::unique_ptr<keystore::Keystore::Stub> keystore_stub_;
     std::unique_ptr<messenger::Messenger::Stub> messenger_stub_;
     std::unique_ptr<sharedmemory::SharedMemory::Stub> sharedmemory_stub_;
+    std::mutex lock;
 };
 
 #endif // GRPC_CLIENT_H

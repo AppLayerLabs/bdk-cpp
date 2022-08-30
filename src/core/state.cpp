@@ -42,14 +42,53 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
   return true;
 }
 
-std::pair<int, std::string> State::validateTransaction(const Tx::Base& tx) const {
+bool State::validateTransactionForBlock(const Tx::Base& tx) const {
   // TODO: Handle error conditions to report at RPC level:
   // https://www.jsonrpc.org/specification#error_object
   // https://eips.ethereum.org/EIPS/eip-1474#error-codes
   // TODO: Handle transaction queue for multiple tx's from single user.
 
   if (!tx.verified()) {
-    stateLock.unlock();
+    return false;
+  }
+  int err = 0;
+  std::string errMsg;
+  // Check if transaction is valid.
+  // TX already exists...
+  stateLock.lock_shared();
+  if (this->mempool.count(tx.hash())) {
+    stateLock.unlock_shared();
+    return true;
+  } else if (this->nativeAccount.count(tx.from()) > 0) {
+    // Account already exists.
+    // Use find() and count() instead of operator[] for const correctness and performance.
+    if (this->nativeAccount.find(tx.from())->second.balance < tx.value()) {
+      // Insufficient balance.
+      stateLock.unlock_shared();
+      return false;
+    }
+    if (this->nativeAccount.find(tx.from())->second.nonce != tx.nonce()) {
+      // Invalid nonce.
+      stateLock.unlock_shared();
+      return false;
+    }
+  } else {
+    // Account doesn't exists, meaning zero balance, meaning no balance to pay fees.
+    stateLock.unlock_shared();
+    return false;
+  }
+  stateLock.unlock_shared();
+
+  return true;
+}
+
+std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx, const bool &broadcast) const {
+  // TODO: Handle error conditions to report at RPC level:
+  // https://www.jsonrpc.org/specification#error_object
+  // https://eips.ethereum.org/EIPS/eip-1474#error-codes
+  // TODO: Handle transaction queue for multiple tx's from single user.
+
+  if (!tx.verified()) {
     return std::make_pair(-32003, "Transaction signature not verified when TX was constructed: " + Utils::bytesToHex(tx.rlpSerialize(true)));
   }
   int err = 0;
@@ -84,12 +123,22 @@ std::pair<int, std::string> State::validateTransaction(const Tx::Base& tx) const
 
   if (err != 0) {
     errMsg.insert(0, "Transaction rejected: ");
-    Utils::LogPrint(Log::subnet, "validateTransaction", errMsg);
+    Utils::LogPrint(Log::subnet, "validateTransactionForRPC: ", errMsg);
   } else {
     stateLock.lock();
-    this->mempool[tx.hash()] = tx;
+    std::string txHash = tx.hash();
+    this->mempool[txHash] = std::move(tx);
     #if !IS_LOCAL_TESTS
-      grpcClient->requestBlock();
+      // Broadcast tx.
+      if (broadcast) {
+        // if I do
+        // std::thread t(&grpcClient::relayTransaction, this->grpcClient, this->mempool[tx.hash()]);
+        // t.detach()
+        // It will only work half of the time.
+        // TODO: figure out why and fix it
+        this->grpcClient->relayTransaction(this->mempool[txHash]);
+      } 
+      //grpcClient->requestBlock();
     #endif
     stateLock.unlock();
   }
@@ -136,9 +185,7 @@ bool State::validateNewBlock(const Block &newBlock, const std::shared_ptr<const 
   }
 
   for (const auto &tx : newBlock.transactions()) {
-    auto result = this->validateTransaction(tx);
-    if (result.first != 0) {
-      Utils::LogPrint(Log::state, __func__, "Transaction rejected: " + result.second);
+    if (!this->validateTransactionForBlock(tx)) {
       Utils::LogPrint(Log::state, __func__, "Block rejected due to invalid transaction");
       return false;
     }
@@ -159,6 +206,7 @@ void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const
   }
   // Append block to chainHead.
   chainHead->push_back(std::move(newBlock));
+  this->mempool.clear();
   this->stateLock.unlock();
 }
 

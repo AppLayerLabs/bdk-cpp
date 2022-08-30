@@ -31,6 +31,8 @@ class State {
   private:
     std::unordered_map<Address, Account> nativeAccount; // Address -> Account
     mutable std::unordered_map<std::string, Tx::Base> mempool; // Tx Hash (bytes) -> Tx
+    // TODO: improve mempool structure, for example verify transactions in mempool that are not included in a block after accepting another block.
+    // As we need to keep every transaction valid.
     mutable std::shared_mutex stateLock;
 
     // used to notify avalancheGo when to create new blocks.
@@ -56,7 +58,7 @@ class State {
     #endif
     uint256_t getNativeBalance(const Address& address);
     uint256_t getNativeNonce(const Address& address);
-    const std::unordered_map<std::string, Tx::Base>& getMempool() { return mempool; };
+    const std::unordered_map<std::string, Tx::Base>& getMempool() const { return mempool; };
 
     // State changing functions
 
@@ -72,10 +74,13 @@ class State {
 
     // State querying functions
 
-    // Asks the state if a given transaction is valid, and add it to the mempool if it is.
-    // TODO: Maybe split this function into two functions, one for actually verifying a tx inside a block, and one for adding it to mempool.
-    // Transaction multithreadification can be achieved at the block and RPC level, as the expensive part is the Tx constructor which runs secp256k1.
-    std::pair<int, std::string> validateTransaction(const Tx::Base &tx) const;
+    // Validates a transaction inside a block, does not update the state. If returns false block is considered invalid.
+    // Does **not** move tx, as it is already included in a given block.
+    bool validateTransactionForBlock(const Tx::Base &tx) const;
+
+    // Validates a transaction from RPC, moving the transaction to the mempool. does not update the state, returns error handling for RPC.
+    // Add transaction to mempool if valid. moves tx to itself.
+    std::pair<int, std::string> validateTransactionForRPC(const Tx::Base &&tx, const bool &broadcast) const;
 
     // TEST ONLY FUNCTIONS.
 

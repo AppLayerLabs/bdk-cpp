@@ -337,3 +337,7 @@ bool Subnet::acceptBlock(const std::string &blockHash) {
   Utils::LogPrint(Log::subnet, __func__, "Block " + Utils::bytesToHex(blockHash) + ", height: " + boost::lexical_cast<std::string>(blockHeight) + " accepted");
   return true;
 }
+
+void Subnet::validateTransaction(const Tx::Base &&tx) {
+  this->headState->validateTransactionForRPC(std::move(tx), false);
+}

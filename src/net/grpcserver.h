@@ -178,10 +178,7 @@ class VMServiceImplementation final :
       ServerContext* context,
       const vm::AppGossipMsg* request,
       google::protobuf::Empty* reply
-    ) override {
-      Utils::logToFile("AppGossip called!!");
-      return Status::OK;
-    }
+    ) override;
 
     Status Gather(
       ServerContext* context,

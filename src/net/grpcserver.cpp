@@ -176,3 +176,21 @@ Status VMServiceImplementation::BatchedParseBlock(
   }
   return Status::OK;
 }
+
+
+Status VMServiceImplementation::AppGossip(
+  ServerContext* context,
+  const vm::AppGossipMsg* request,
+  google::protobuf::Empty* reply
+) {
+  Utils::logToFile("AppGossip called!");
+  if (request->msg()[0] == MessagePrefix::tx) {
+    // Process tx from network broadcast.
+    Utils::LogPrint(Log::grpcServer, __func__, "Processing tx: " + Utils::bytesToHex(request->msg()));
+    auto tx = Tx::Base(request->msg().substr(1), false);
+    subnet.validateTransaction(std::move(tx));
+    Utils::LogPrint(Log::grpcServer, __func__, "Tx Processed");
+  }
+
+  return Status::OK;
+}

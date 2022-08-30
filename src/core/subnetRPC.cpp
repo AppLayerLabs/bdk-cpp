@@ -117,7 +117,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     try {
       std::string txStr = Utils::hexToBytes(txRlp);
       Tx::Base tx(txStr, false);
-      std::pair<int, std::string> txRet = this->headState->validateTransaction(tx);
+      std::pair<int, std::string> txRet = this->headState->validateTransactionForRPC(std::move(tx), true);
       if (txRet.first != 0) {
         ret["error"] = json({{"code", txRet.first}, {"message", txRet.second}});
       }

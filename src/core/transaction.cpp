@@ -1,13 +1,15 @@
 #include "transaction.h"
 
-Tx::Base::Base(std::string &bytes, bool fromDB) {
+Tx::Base::Base(const std::string &bytes, bool fromDB) {
   std::string appendedBytes;
+  std::string substr;
+  // Copy from bytes if necessary.
   if (fromDB) {
     appendedBytes = bytes.substr(bytes.size() - 25);
-    bytes = bytes.substr(0, bytes.size() - 25);
+    substr = bytes.substr(0, bytes.size() - 25);
   }
 
-  dev::RLP rlp(bytes);
+  dev::RLP rlp((fromDB) ? substr : bytes);
   if (!rlp.isList()) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("RLP: Transaction is not a list")

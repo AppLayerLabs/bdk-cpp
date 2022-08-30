@@ -40,7 +40,7 @@ namespace Tx {
       // Directly from RLP (Ethereum rawTransaction), which requires to run secp256k1 to check validity and derive _from. and it is not included in a block
       // From database (RLP bytes + Outside RLP section), input from database is trusted as data will be only saved there if included in a block and is already checked.
       // !!! BYTES IS CHANGED IF COMES FROM DB. !!!
-      Base(std::string &bytes, bool fromDB);
+      Base(const std::string &bytes, bool fromDB);
 
       // You can also build your own Tx by inputting the values within the RLP Skeleton
       Base(Address &from, Address &to, uint256_t &value, std::string &data, uint64_t &chainId, uint256_t &nonce, uint256_t &gas, uint256_t &gasPrice) :
@@ -48,6 +48,88 @@ namespace Tx {
 
       // You can also create an empty transaction.
       Base() {}
+
+      // Copy constructor.
+      Base(const Base& other) {
+        _to = other._to;
+        _value = other._value;
+        _data = other._data;
+        _chainId = other._chainId;
+        _nonce = other._nonce;
+        _gas = other._gas;
+        _gasPrice = other._gasPrice;
+        _v = other._v;
+        _r = other._r;
+        _s = other._s;
+        _blockIndex = other._blockIndex;
+        _from = other._from;
+        _callsContract = other._callsContract;
+        _hasSig = other._hasSig;
+        _inBlock = other._inBlock;
+        _verified = other._verified;
+      }
+      
+      // Move constructor.
+      Base(const Base&& other) noexcept :
+        _to(std::move(other._to)),
+        _value(std::move(other._value)),
+        _data(std::move(other._data)),
+        _chainId(std::move(other._chainId)),
+        _nonce(std::move(other._nonce)),
+        _gas(std::move(other._gas)),
+        _gasPrice(std::move(other._gasPrice)),
+        _v(std::move(other._v)),
+        _r(std::move(other._r)),
+        _s(std::move(other._s)),
+        _blockIndex(std::move(other._blockIndex)),
+        _from(std::move(other._from)),
+        _callsContract(std::move(other._callsContract)),
+        _hasSig(std::move(other._hasSig)),
+        _inBlock(std::move(other._inBlock)),
+        _verified(std::move(other._verified))
+      {}
+
+          // Copy assignment operator.
+      Base& operator=(const Base& other) {
+        this->_to = other._to;
+        this->_value = other._value;
+        this->_data = other._data;
+        this->_chainId = other._chainId;
+        this->_nonce = other._nonce;
+        this->_gas = other._gas;
+        this->_gasPrice = other._gasPrice;
+        this->_v = other._v;
+        this->_r = other._r;
+        this->_s = other._s;
+        this->_blockIndex = other._blockIndex;
+        this->_from = other._from;
+        this->_callsContract = other._callsContract;
+        this->_hasSig = other._hasSig;
+        this->_inBlock = other._inBlock;
+        this->_verified = other._verified;
+        return *this;
+      }
+  
+      // Move assignment operator.
+      Base& operator=(Base&& other) {
+        this->_to = std::move(other._to);
+        this->_value = std::move(other._value);
+        this->_data = std::move(other._data);
+        this->_chainId = std::move(other._chainId);
+        this->_nonce = std::move(other._nonce);
+        this->_gas = std::move(other._gas);
+        this->_gasPrice = std::move(other._gasPrice);
+        this->_v = std::move(other._v);
+        this->_r = std::move(other._r);
+        this->_s = std::move(other._s);
+        this->_blockIndex = std::move(other._blockIndex);
+        this->_from = std::move(other._from);
+        this->_callsContract = std::move(other._callsContract);
+        this->_hasSig = std::move(other._hasSig);
+        this->_inBlock = std::move(other._inBlock);
+        this->_verified = std::move(other._verified);;
+        return *this;
+      }
 
       // Getters
       const Address& to()          const { return _to; };
