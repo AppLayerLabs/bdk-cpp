@@ -30,7 +30,8 @@ For **Debian 11 Bullseye or newer**:
   * `cd subnetooor && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
   * Use `-DCMAKE_BUILD_TYPE=RelWithDebInfo` to build with debug symbols
-  * Use `-DUSE_LINT=ON` to run clang-tidy along the build (this is off by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
+  * Use `-DBUILD_TESTS=OFF` to disable unit testing compilation (this is ON by default)
+  * Use `-DUSE_LINT=ON` to run clang-tidy along the build (this is OFF by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
 * Build the executable: `cmake --build . -- -j$(nproc)`
   * If using the linter, pipe the stderr output to a file, e.g. `cmake --build . -- -j$(nproc) 2> log.txt`
 
@@ -40,8 +41,9 @@ If you want a **manual** deploy, check [DEPLOY_SUBNET.md](DEPLOY_SUBNET.md).
 
 If you want an **assisted/automatic** deploy, or you don't care about the details and just want to get it running ASAP, use one of the scripts in the `scripts` folder:
 
-* **AIO-setup.sh** - Setup the Subnet with a single node.
-* **AIO-setup-two-nodes.sh** - Setup the Subnet with two nodes.
+* **AIO-setup.sh** - Setup the Subnet with a single node acting as a validator.
+* **AIO-setup-two-nodes.sh** - Setup the Subnet with two nodes acting as validators.
+* **AIO-setup-five-nodes.sh** - Setup the Subnet with all five nodes acting as validators.
 
 After the Subnet is deployed, use the scripts under the `scripts/helpers` subfolder to manage it:
 
