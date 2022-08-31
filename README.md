@@ -45,9 +45,13 @@ If you want an **assisted/automatic** deploy, or you don't care about the detail
 * **AIO-setup-two-nodes.sh** - Setup the Subnet with two nodes acting as validators.
 * **AIO-setup-five-nodes.sh** - Setup the Subnet with all five nodes acting as validators.
 
+You can still get the details from the automatic deploy from the `AIO-setup.log` file.
+
 After the Subnet is deployed, use the scripts under the `scripts/helpers` subfolder to manage it:
 
 * **startAll.sh** - Start the Subnet.
 * **killAll.sh** - Stop the Subnet.
 * **cleanAll.sh** - Clean the Subnet logs.
+
+If you have to re-deploy the Subnet, remember to stop it and `rm -rf ~/go/src` beforehand.
 
