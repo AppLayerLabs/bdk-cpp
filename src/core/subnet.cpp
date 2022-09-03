@@ -201,10 +201,13 @@ void Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
 
 bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply) {
   try {
-    auto block = std::make_shared<Block>(blockBytes);
-
-    // Check if block already exists
-    if (chainHead->exists(block->getBlockHash())) {
+    // Check if block already exists on chain head or chain tip
+    std::string blockHash = "";
+    Utils::sha3(blockBytes, blockHash);
+    bool onHead = chainHead->exists(blockHash);
+    bool onTip = chainTip->exists(blockHash);
+    if (onHead || onTip) {
+      auto block = ((onHead) ? chainHead->getBlock(blockHash) : chainTip->getBlock(blockHash));
       reply->set_id(block->getBlockHash());
       reply->set_parent_id(block->prevBlockHash());
       reply->set_status(BlockStatus::Accepted);
@@ -216,9 +219,8 @@ bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, v
       return true;
     }
 
-    // TODO: check if block is on chainTip
-
-    // Get latest accepted block as reference
+    // Build block and get latest accepted block as reference
+    auto block = std::make_shared<Block>(blockBytes);
     auto latestBlock = chainHead->latest();
 
     // Parse block
@@ -340,7 +342,7 @@ bool Subnet::acceptBlock(const std::string &blockHash) {
     }
     blockHeight = block->nHeight();
   }  // scope because auto block is going to be deleted and chainTip->accept prefers that its block to be unique as block is *moved* into chainHead.
-  
+
   // Accept block in chainTip, move it to chainState which after being processed,
   // it is finally moved to chainHead.
 
