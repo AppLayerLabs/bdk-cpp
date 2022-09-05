@@ -24,7 +24,7 @@ Status VMServiceImplementation::BuildBlock(
   vm::BuildBlockResponse* reply
 ) {
   Utils::LogPrint(Log::grpcServer, __func__, "BuildBlock: Block Requested");
-  subnet.blockRequest(context, reply);
+  if (!subnet.blockRequest(context, reply)) return Status::CANCELLED;
   return Status::OK;
 }
 
@@ -107,13 +107,13 @@ Status VMServiceImplementation::GetAncestors(
   ServerContext* context,
   const vm::GetAncestorsRequest* request,
   vm::GetAncestorsResponse* reply
-) { 
+) {
   Utils::logToFile("GetAncestors called!!");
-  subnet.getAncestors(context, request, reply);
+  if (!subnet.getAncestors(context, request, reply)) return Status::CANCELLED;
   return Status::OK;
 }
 
-// TODO in order to fully enable multi node support: 
+// TODO in order to fully enable multi node support:
 // https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/README.md
 // https://github.com/ava-labs/avalanchego/blob/master/vms/README.md
 

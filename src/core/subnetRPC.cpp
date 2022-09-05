@@ -44,6 +44,10 @@ std::string Subnet::processRPCMessage(std::string &req) {
     }
 
     auto block = (latest ? chainHead->latest() : chainHead->getBlock(height));
+    if (block == nullptr) {
+      ret["error"] = { {"code", -32000}, {"message", "Block not found"} };
+      return ret.dump();
+    }
 
     Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes()));
     if (messageJson["params"].size() > 1) {
@@ -152,11 +156,15 @@ std::string Subnet::processRPCMessage(std::string &req) {
     Utils::patchHex(blockHash);
     blockHash = Utils::hexToBytes(blockHash);
     auto block = chainHead->getBlock(blockHash);
+    if (block == nullptr) {
+      ret["error"] = { {"code", -32000}, {"message", "Block not found"} };
+      return ret.dump();
+    }
     json answer;
     bool includeTxs = false;
     if (messageJson["params"].size() > 1) {
       includeTxs = messageJson["params"][1].get<bool>();
-    }    
+    }
     answer["number"] = std::string("0x") + Utils::uintToHex(block->nHeight());
     answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash());
     answer["parentHash"] = std::string("0x") + dev::toHex(block->prevBlockHash());

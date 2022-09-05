@@ -123,9 +123,8 @@ const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockH
       this->internalChainHeadLock.unlock_shared();
       return result;
     }
-
+    Utils::LogPrint(Log::chainHead, __func__, "blockHash: " + blockHash);
     this->internalChainHeadLock.lock_shared();
-    // Check if exists in cache, if does return it.
     if (this->cachedBlocks.count(blockHash) > 0) {
       const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
       this->internalChainHeadLock.unlock_shared();
@@ -136,11 +135,9 @@ const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockH
     auto result = this->cachedBlocks[blockHash];
     this->internalChainHeadLock.unlock_shared();
     return this->cachedBlocks[blockHash];
+  } else {
+    return nullptr;
   }
-
-  throw std::runtime_error(std::string(__func__) + ": " +
-    std::string("Block does not exist")
-  );
 }
 
 const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeight) const {
@@ -152,9 +149,8 @@ const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeig
       return result;
     }
     std::string blockHash = dbServer->get(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps);
-    Utils::LogPrint(Log::chainHead, __func__, "blockHash: " + blockHash);
+    Utils::LogPrint(Log::chainHead, __func__, "blockHeight: " + blockHeight);
     this->internalChainHeadLock.lock_shared();
-    // Check if block exists in cache, if does return it.
     if (this->cachedBlocks.count(blockHash) > 0) {
       const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
       this->internalChainHeadLock.unlock_shared();
@@ -165,11 +161,9 @@ const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeig
     const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
     this->internalChainHeadLock.unlock_shared();
     return result;
+  } else {
+    return nullptr;
   }
-
-  throw std::runtime_error(std::string(__func__) + ": " +
-    std::string("Block does not exist")
-  );
 }
 
 bool ChainHead::hasTransaction(const std::string &txHash) const {

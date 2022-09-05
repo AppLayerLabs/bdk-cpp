@@ -62,10 +62,14 @@ void ChainTip::processBlock(std::shared_ptr<Block> block) {
   this->internalChainTipLock.unlock();
 }
 
-// TODO: handle block not found and similar errors
 const std::shared_ptr<const Block> ChainTip::getBlock(const std::string &blockHash) const {
   internalChainTipLock.lock_shared();
-  const std::shared_ptr<const Block>& ret = internalChainTip.find(blockHash)->second;
+  auto it = internalChainTip.find(blockHash);
+  if (it == internalChainTip.end()) { // Block not found
+    internalChainTipLock.unlock_shared();
+    return nullptr;
+  }
+  const std::shared_ptr<const Block>& ret = it->second;
   internalChainTipLock.unlock_shared();
   return ret;
 };
