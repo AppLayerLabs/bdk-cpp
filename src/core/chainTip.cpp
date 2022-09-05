@@ -27,24 +27,28 @@ bool ChainTip::isProcessing(const std::string &blockHash) const {
   }
   internalChainTipLock.unlock_shared();
   return false;
-};  
+};
 
-void ChainTip::accept(const std::string &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead) {
+bool ChainTip::accept(const std::string &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead) {
   internalChainTipLock.lock();
-  // TODO: Error handling: block not processing (not found).
-  if (this->internalChainTip.find(blockHash)->second.unique()) {
-  Utils::LogPrint(Log::chainTip, __func__, "Block is unique, moving to processNewBlock.");
-  state->processNewBlock(std::move(this->internalChainTip.find(blockHash)->second), chainHead);
-  this->internalChainTip.erase(blockHash);
+  auto it = this->internalChainTip.find(blockHash);
+  if (it == this->internalChainTip.end()) {
+    Utils::LogPrint(Log::chainTip, __func__, "Block not found");
+    return false;
+  }
+  if (it->second.unique()) {
+    Utils::LogPrint(Log::chainTip, __func__, "Block is unique, moving to processNewBlock.");
+    state->processNewBlock(std::move(it->second), chainHead);
+    this->internalChainTip.erase(blockHash);
   } else {
     // We have to create a copy of the block to process it.
     Utils::LogPrint(Log::chainTip, __func__, "Block not unique, creating copy to processNewBlock.");
-    auto block = std::make_shared<Block>(*this->internalChainTip.find(blockHash)->second);
+    auto block = std::make_shared<Block>(*it->second);
     state->processNewBlock(std::move(block), chainHead);
   }
   this->cachedBlockStatus[blockHash] = BlockStatus::Accepted;
   internalChainTipLock.unlock();
-  return;
+  return true;
 }
 
 void ChainTip::reject(const std::string &blockHash) {

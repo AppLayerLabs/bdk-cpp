@@ -196,8 +196,6 @@ const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(const std::strin
     std::string blockHash = dbServer->get(txHash, DBPrefix::TxToBlocks);
     std::string txBytes = dbServer->get(blockHash, DBPrefix::blocks);
     this->internalChainHeadLock.lock_shared();
-    // TODO: Is this the right way to do this? is it copying the data the pointer points to?
-
     this->cachedTxs[txHash] = std::make_shared<Tx::Base>(txBytes, true);
     const std::shared_ptr<const Tx::Base> result = this->cachedTxs[txHash]; // No need to check a tx again.
     this->internalChainHeadLock.lock_shared();

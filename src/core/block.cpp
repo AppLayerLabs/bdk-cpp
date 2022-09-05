@@ -49,7 +49,7 @@ Block::Block(const std::string &blockData) {
       uint64_t index = 0;
       for (uint64_t i = 0; i < processor_count; ++i) {
         txThreads.emplace_back([&,i,nextTx,index] () mutable {
-          for (uint64_t j = 0; j < workPerThread[i]; ++j) { 
+          for (uint64_t j = 0; j < workPerThread[i]; ++j) {
             std::string txSizeBytes;
             // Get tx size.
             uint32_t txSize = Utils::bytesToUint32(rawTransactions.substr(nextTx, 4));
@@ -99,11 +99,7 @@ std::string Block::serializeToBytes() const {
   ret += nHeightBytes;
   ret += txCountBytes;
 
-  /**
-   * Append transactions.
-   * For each transaction we need to parse both their size and their data.
-   * TODO: there two uneeded copies here, we can optimize this.
-   */
+  // Append transactions - parse both size and data for each transaction.
   for (uint64_t i = 0; i < this->_txCount; ++i) {
     std::string txBytes = _transactions.find(i)->second.rlpSerialize(true);
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());

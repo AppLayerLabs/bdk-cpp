@@ -18,11 +18,11 @@ class ChainHead {
     // Used for cacheing blocks and transactions when they are used to load from a DB.
     // See that functions getBlock returns a reference to a shared_ptr.
     // We need to make sure that the reference exists after the scope of the function.
-    // TODO: figure out a way to clean up the shared_ptr after the scope of parent function or after X unused time.
+    // TODO: figure out a way to clean up shared_ptr after scope of parent function or after X unused time.
     // shared_ptr::use_count can be used for this.
     mutable std::unordered_map<std::string,std::shared_ptr<const Block>> cachedBlocks;
     mutable std::unordered_map<std::string,std::shared_ptr<const Tx::Base>> cachedTxs;
-    // Mutable to provide better const correctness for getBlock and other functions. its use is accaptable for mutexes and cache.
+    // Mutable provides better const correctness for getBlock and other functions. Its use is acceptable for mutexes and cache.
     mutable std::shared_mutex internalChainHeadLock;
     bool hasBlock(std::string const &blockHash) const;
     bool hasBlock(uint64_t const &blockHeight) const;

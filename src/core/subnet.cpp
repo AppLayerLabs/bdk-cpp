@@ -335,15 +335,14 @@ bool Subnet::acceptBlock(const std::string &blockHash) {
       return false;
     }
     blockHeight = block->nHeight();
-  }  // scope because auto block is going to be deleted and chainTip->accept prefers that its block to be unique as block is *moved* into chainHead.
+  } // scope because auto block is going to be deleted and chainTip->accept prefers that its block be unique as it's *moved* into chainHead.
 
-  // Accept block in chainTip, move it to chainState which after being processed,
-  // it is finally moved to chainHead.
-
+  // Accept block in chainTip, move it to chainState and after being processed,
+  // finally move it to chainHead.
   Utils::LogPrint(Log::subnet, __func__, "Processing block: " + Utils::bytesToHex(blockHash));
-  this->chainTip->accept(blockHash, this->headState, this->chainHead);
+  bool ret = this->chainTip->accept(blockHash, this->headState, this->chainHead);
   Utils::LogPrint(Log::subnet, __func__, "Block " + Utils::bytesToHex(blockHash) + ", height: " + boost::lexical_cast<std::string>(blockHeight) + " accepted");
-  return true;
+  return ret;
 }
 
 void Subnet::rejectBlock(const std::string &blockHash) {

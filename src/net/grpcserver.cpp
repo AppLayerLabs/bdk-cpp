@@ -147,9 +147,7 @@ Status VMServiceImplementation::BlockAccept(
   google::protobuf::Empty *reply
 ) {
   Utils::logToFile(std::string("BlockAccept called!! ") + Utils::bytesToHex(request->id()));
-  if (!subnet.acceptBlock(request->id())) {
-    return Status::CANCELLED;
-  }
+  if (!subnet.acceptBlock(request->id())) return Status::CANCELLED;
   return Status::OK;
 }
 
