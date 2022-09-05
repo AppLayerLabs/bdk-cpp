@@ -9,8 +9,8 @@ void ChainHead::_push_back(const std::shared_ptr<const Block>&& block) {
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
 
   for (const auto &tx : latestBlock->transactions()) {
-    this->lookupTxByHash[tx.hash()] = std::make_shared<Tx::Base>(tx);
-    this->lookupBlockByTxHash[tx.hash()] = latestBlock;
+    this->lookupTxByHash[tx.second.hash()] = std::make_shared<Tx::Base>(tx.second);
+    this->lookupBlockByTxHash[tx.second.hash()] = latestBlock;
   }
 }
 
@@ -23,8 +23,8 @@ void ChainHead::_push_front(const std::shared_ptr<const Block>&& block) {
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
 
   for (const auto &tx : latestBlock->transactions()) {
-    this->lookupTxByHash[tx.hash()] = std::make_shared<Tx::Base>(tx);
-    this->lookupBlockByTxHash[tx.hash()] = latestBlock;
+    this->lookupTxByHash[tx.second.hash()] = std::make_shared<Tx::Base>(tx.second);
+    this->lookupBlockByTxHash[tx.second.hash()] = latestBlock;
   }
 }
 
@@ -53,8 +53,8 @@ void ChainHead::pop_back() {
 
   // Delete all tx references from mappings.
   for (const auto &tx : blockToDelete->transactions()) {
-    this->lookupTxByHash.erase(tx.hash());
-    this->lookupBlockByTxHash.erase(tx.hash());
+    this->lookupTxByHash.erase(tx.second.hash());
+    this->lookupBlockByTxHash.erase(tx.second.hash());
   }
 
   // Delete the block from the internal mappings.
@@ -78,8 +78,8 @@ void ChainHead::pop_front() {
 
   // Delete all tx references from mappings.
   for (const auto &tx : blockToDelete->transactions()) {
-    this->lookupTxByHash.erase(tx.hash());
-    this->lookupBlockByTxHash.erase(tx.hash());
+    this->lookupTxByHash.erase(tx.second.hash());
+    this->lookupBlockByTxHash.erase(tx.second.hash());
   }
 
   // Delete the block from the internal mappings.
@@ -299,9 +299,9 @@ void ChainHead::dumpToDB() {
 
     // Delete all tx references from mappingsand append them to the DB.
     for (const auto &tx : blockToDelete->transactions()) {
-      txToBlockBatch.puts.emplace_back(DBEntry(tx.hash(), blockToDelete->getBlockHash()));
-      this->lookupTxByHash.erase(tx.hash());
-      this->lookupBlockByTxHash.erase(tx.hash());
+      txToBlockBatch.puts.emplace_back(DBEntry(tx.second.hash(), blockToDelete->getBlockHash()));
+      this->lookupTxByHash.erase(tx.second.hash());
+      this->lookupBlockByTxHash.erase(tx.second.hash());
     }
 
     // Delete the block from the internal mappings.

@@ -77,7 +77,7 @@ std::string Utils::uint8ToBytes(const uint8_t &i) {
   return ret;
 }
 
-uint256_t Utils::bytesToUint256(const std::string &bytes) {
+uint256_t Utils::bytesToUint256(const std::string_view &bytes) {
   if (bytes.size() != 32) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Invalid bytes size - expected 32, got ") + std::to_string(bytes.size())
@@ -88,7 +88,7 @@ uint256_t Utils::bytesToUint256(const std::string &bytes) {
   return ret;
 }
 
-uint160_t Utils::bytesToUint160(const std::string &bytes) {
+uint160_t Utils::bytesToUint160(const std::string_view &bytes) {
   if (bytes.size() != 20) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Invalid bytes size - expected 20, got ") + std::to_string(bytes.size())
@@ -99,7 +99,7 @@ uint160_t Utils::bytesToUint160(const std::string &bytes) {
   return ret;
 }
 
-uint64_t Utils::bytesToUint64(const std::string &bytes) {
+uint64_t Utils::bytesToUint64(const std::string_view &bytes) {
   if (bytes.size() != 8) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Invalid bytes size - expected 8, got ") + std::to_string(bytes.size())
@@ -114,7 +114,7 @@ uint64_t Utils::bytesToUint64(const std::string &bytes) {
   #endif
 }
 
-uint32_t Utils::bytesToUint32(const std::string &bytes) {
+uint32_t Utils::bytesToUint32(const std::string_view &bytes) {
   if (bytes.size() != 4) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Invalid bytes size - expected 4, got ") + std::to_string(bytes.size())
@@ -129,7 +129,7 @@ uint32_t Utils::bytesToUint32(const std::string &bytes) {
   #endif
 }
 
-uint16_t Utils::bytesToUint16(const std::string &bytes) {
+uint16_t Utils::bytesToUint16(const std::string_view &bytes) {
   if (bytes.size() != 2) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Invalid bytes size - expected 2, got ") + std::to_string(bytes.size())
@@ -144,7 +144,7 @@ uint16_t Utils::bytesToUint16(const std::string &bytes) {
   #endif
 }
 
-uint8_t Utils::bytesToUint8(const std::string &bytes) {
+uint8_t Utils::bytesToUint8(const std::string_view &bytes) {
   if (bytes.size() != 1) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Invalid bytes size - expected 1, got ") + std::to_string(bytes.size())

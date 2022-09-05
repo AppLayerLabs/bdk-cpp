@@ -6,6 +6,7 @@
 #include "utils.h"
 #include <utility>
 
+
 namespace Tx {
   class Base {
     private:
@@ -39,8 +40,7 @@ namespace Tx {
       // There are two ways transactions can be parsed fully from a byte string:
       // Directly from RLP (Ethereum rawTransaction), which requires to run secp256k1 to check validity and derive _from. and it is not included in a block
       // From database (RLP bytes + Outside RLP section), input from database is trusted as data will be only saved there if included in a block and is already checked.
-      // !!! BYTES IS CHANGED IF COMES FROM DB. !!!
-      Base(const std::string &bytes, bool fromDB);
+      Base(const std::string_view &bytes, bool fromDB);
 
       // You can also build your own Tx by inputting the values within the RLP Skeleton
       Base(Address &from, Address &to, uint256_t &value, std::string &data, uint64_t &chainId, uint256_t &nonce, uint256_t &gas, uint256_t &gasPrice) :

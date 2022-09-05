@@ -1,6 +1,6 @@
 #include "transaction.h"
 
-Tx::Base::Base(const std::string &bytes, bool fromDB) {
+Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
   std::string appendedBytes;
   std::string substr;
   // Copy from bytes if necessary.

@@ -70,7 +70,7 @@ public:
     RLP(byte const* _b, unsigned _s, Strictness _st = VeryStrict): RLP(bytesConstRef(_b, _s), _st) {}
 
     /// Construct a node to read RLP data in the string.
-    explicit RLP(std::string const& _s, Strictness _st = VeryStrict): RLP(bytesConstRef((byte const*)_s.data(), _s.size()), _st) {}
+    explicit RLP(std::string_view const& _s, Strictness _st = VeryStrict): RLP(bytesConstRef((byte const*)_s.data(), _s.size()), _st) {}
 
     /// The bare data of the RLP.
     bytesConstRef data() const { return m_data; }

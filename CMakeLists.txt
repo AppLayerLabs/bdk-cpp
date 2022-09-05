@@ -60,7 +60,7 @@ find_package(LevelDB REQUIRED)
 # Add external modules
 include(cmake/ProjectBoostCertify.cmake)
 include(cmake/ProjectEthash.cmake)
-include(cmake/ProjectSecp256k1.cmake) # Itamar's fork which includes secp256k1_sha256.h
+include(cmake/ProjectSecp256k1.cmake) # Bitcoin core fast implementation
 
 # Include headers and libs
 include_directories(
@@ -261,6 +261,7 @@ set(SUBNETOOOR_SRCS
   src/net/grpcclient.cpp
   src/net/grpcserver.cpp
   src/net/httpserver.cpp
+  bench/block.h
   src/main.cpp
 )
 

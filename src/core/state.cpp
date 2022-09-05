@@ -187,7 +187,7 @@ bool State::validateNewBlock(const Block &newBlock, const std::shared_ptr<const 
   }
 
   for (const auto &tx : newBlock.transactions()) {
-    if (!this->validateTransactionForBlock(tx)) {
+    if (!this->validateTransactionForBlock(tx.second)) {
       Utils::LogPrint(Log::state, __func__, "Block rejected due to invalid transaction");
       return false;
     }
@@ -204,7 +204,7 @@ void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const
   auto bestBlock = chainHead->latest();
 
   for (const auto &tx : newBlock->transactions()) {
-    this->processNewTransaction(tx);
+    this->processNewTransaction(tx.second);
   }
   // Append block to chainHead.
   chainHead->push_back(std::move(newBlock));

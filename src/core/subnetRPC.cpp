@@ -72,25 +72,25 @@ std::string Subnet::processRPCMessage(std::string &req) {
       if(includeTxs) {
         // https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash
         json transaction;
-        transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.hash());
-        transaction["nonce"] = std::string("0x") + Utils::uintToHex(tx.nonce());
+        transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.second.hash());
+        transaction["nonce"] = std::string("0x") + Utils::uintToHex(tx.second.nonce());
         transaction["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash());
         transaction["blockNumber"] = std::string("0x") + Utils::uintToHex(block->nHeight());
-        transaction["transactionIndex"] = std::string("0x") + Utils::uintToHex(tx.blockIndex());
-        transaction["from"] = std::string("0x") + tx.from().hex();
-        transaction["to"] = std::string("0x") + tx.to().hex();
-        transaction["value"] = std::string("0x") + Utils::uintToHex(tx.value());
-        transaction["gasPrice"] = std::string("0x") + Utils::uintToHex(tx.gasPrice());
-        transaction["gas"] = std::string("0x") + Utils::uintToHex(tx.gas());
-        transaction["input"] = std::string("0x") + Utils::bytesToHex(tx.data());
-        transaction["v"] = std::string("0x") + Utils::uintToHex(tx.v());
-        transaction["standardV"] = std::string("0x") + Utils::uintToHex(tx.recoverId());
-        transaction["r"] = std::string("0x") + Utils::uintToHex(tx.r());
-        transaction["raw"] = std::string("0x") + Utils::bytesToHex(tx.rlpSerialize(true));
-        transaction["chainid"] = std::string("0x") + Utils::uintToHex(tx.chainId());
+        transaction["transactionIndex"] = std::string("0x") + Utils::uintToHex(tx.second.blockIndex());
+        transaction["from"] = std::string("0x") + tx.second.from().hex();
+        transaction["to"] = std::string("0x") + tx.second.to().hex();
+        transaction["value"] = std::string("0x") + Utils::uintToHex(tx.second.value());
+        transaction["gasPrice"] = std::string("0x") + Utils::uintToHex(tx.second.gasPrice());
+        transaction["gas"] = std::string("0x") + Utils::uintToHex(tx.second.gas());
+        transaction["input"] = std::string("0x") + Utils::bytesToHex(tx.second.data());
+        transaction["v"] = std::string("0x") + Utils::uintToHex(tx.second.v());
+        transaction["standardV"] = std::string("0x") + Utils::uintToHex(tx.second.recoverId());
+        transaction["r"] = std::string("0x") + Utils::uintToHex(tx.second.r());
+        transaction["raw"] = std::string("0x") + Utils::bytesToHex(tx.second.rlpSerialize(true));
+        transaction["chainid"] = std::string("0x") + Utils::uintToHex(tx.second.chainId());
         answer["transactions"].push_back(transaction);
       } else {
-        answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.hash()));
+        answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.second.hash()));
       }
     }
     answer["uncles"] = json::array();
@@ -178,25 +178,25 @@ std::string Subnet::processRPCMessage(std::string &req) {
       if (includeTxs) {
         // https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash
         json transaction;
-        transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.hash());
-        transaction["nonce"] = std::string("0x") + Utils::uintToHex(tx.nonce());
+        transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.second.hash());
+        transaction["nonce"] = std::string("0x") + Utils::uintToHex(tx.second.nonce());
         transaction["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash());
         transaction["blockNumber"] = std::string("0x") + Utils::uintToHex(block->nHeight());
-        transaction["transactionIndex"] = std::string("0x") + Utils::uintToHex(tx.blockIndex());
-        transaction["from"] = std::string("0x") + tx.from().hex();
-        transaction["to"] = std::string("0x") + tx.to().hex();
-        transaction["value"] = std::string("0x") + Utils::uintToHex(tx.value());
-        transaction["gasPrice"] = std::string("0x") + Utils::uintToHex(tx.gasPrice());
-        transaction["gas"] = std::string("0x") + Utils::uintToHex(tx.gas());
-        transaction["input"] = std::string("0x") + Utils::bytesToHex(tx.data());
-        transaction["v"] = std::string("0x") + Utils::uintToHex(tx.v());
-        transaction["standardV"] = std::string("0x") + Utils::uintToHex(tx.recoverId());
-        transaction["r"] = std::string("0x") + Utils::uintToHex(tx.r());
-        transaction["raw"] = std::string("0x") + Utils::bytesToHex(tx.rlpSerialize(true));
-        transaction["chainid"] = std::string("0x") + Utils::uintToHex(tx.chainId());
+        transaction["transactionIndex"] = std::string("0x") + Utils::uintToHex(tx.second.blockIndex());
+        transaction["from"] = std::string("0x") + tx.second.from().hex();
+        transaction["to"] = std::string("0x") + tx.second.to().hex();
+        transaction["value"] = std::string("0x") + Utils::uintToHex(tx.second.value());
+        transaction["gasPrice"] = std::string("0x") + Utils::uintToHex(tx.second.gasPrice());
+        transaction["gas"] = std::string("0x") + Utils::uintToHex(tx.second.gas());
+        transaction["input"] = std::string("0x") + Utils::bytesToHex(tx.second.data());
+        transaction["v"] = std::string("0x") + Utils::uintToHex(tx.second.v());
+        transaction["standardV"] = std::string("0x") + Utils::uintToHex(tx.second.recoverId());
+        transaction["r"] = std::string("0x") + Utils::uintToHex(tx.second.r());
+        transaction["raw"] = std::string("0x") + Utils::bytesToHex(tx.second.rlpSerialize(true));
+        transaction["chainid"] = std::string("0x") + Utils::uintToHex(tx.second.chainId());
         answer["transactions"].push_back(transaction);
       } else {
-        answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.hash()));
+        answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.second.hash()));
       }
     }
     answer["uncles"] = json::array();
