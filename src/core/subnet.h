@@ -97,7 +97,7 @@ class Subnet {
 
     /**
      * All current connected nodes within avalancheGo.
-     */ 
+     */
 
     std::vector<std::string> connectedNodes;
     std::shared_mutex connectedNodesLock;
@@ -118,13 +118,13 @@ class Subnet {
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
 
     // To be called by the grpcServer when avalancheGo requests a block to be created
-    void blockRequest(ServerContext* context, vm::BuildBlockResponse* reply);
+    bool blockRequest(ServerContext* context, vm::BuildBlockResponse* reply);
 
     // To be called by the grpcServer when avalancheGo requests a block to be loaded.
     void getBlock(ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply);
 
     // To be called by the grpcServer when avalancheGo requests a given number of ancestors of a block
-    void getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply);
+    bool getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply);
 
     // To be called by the grpcServer when avalancheGo requests a block to be verified.
     // Returns a const pointer to the block, or nullptr in case of error.

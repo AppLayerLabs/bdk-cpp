@@ -154,13 +154,11 @@ bool State::processNewTransaction(const Tx::Base& tx) {
   // Remove transaction from mempool if found there.
   if (this->mempool.count(tx.hash()) != 0) this->mempool.erase(tx.hash());
 
-  // Update Balances.s
+  // Update balances and nonce.
   this->nativeAccount[tx.from()].balance -= tx.value();
   this->nativeAccount[tx.from()].balance -= uint256_t(tx.gasPrice() * tx.gas());
   this->nativeAccount[tx.to()].balance += tx.value();
-  // Update nonce.
   this->nativeAccount[tx.from()].nonce++;
-
 
   // TODO: Handle contract calls.
   return true;
@@ -196,7 +194,6 @@ bool State::validateNewBlock(const Block &newBlock, const std::shared_ptr<const 
   return true;
 }
 
-
 void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const std::shared_ptr<ChainHead>& chainHead) {
   // Check block previous hash.
   this->stateLock.lock();
@@ -217,16 +214,17 @@ const std::shared_ptr<const Block> State::createNewBlock(std::shared_ptr<ChainHe
   auto bestBlockHash = chainTip->getPreference();
   std::shared_ptr<const Block> bestBlock;
   if (bestBlockHash.empty()) {
-    // No prefered block found, use latest from chainHead.
-    Utils::LogPrint(Log::state, __func__, "No prefered block found, using latest from chainHead.");
-    bestBlock = chainHead->latest();
-  } else {
-    Utils::LogPrint(Log::state, __func__, std::string("Got preference: ") + Utils::bytesToHex(bestBlockHash));
-    // TODO: Error handling if a block is not found.
-    // Maybe refactor chainHead to return nullptrs if a block is not found?
-    bestBlock = chainHead->getBlock(bestBlockHash);
-    Utils::LogPrint(Log::state, __func__, "Got best block.");
+    Utils::LogPrint(Log::state, __func__, "No prefered block found");
+    return nullptr;
   }
+  Utils::LogPrint(Log::state, __func__, std::string("Got preference: ") + Utils::bytesToHex(bestBlockHash));
+  bestBlock = chainHead->getBlock(bestBlockHash);
+  if (bestBlock == nullptr) { // Prefered block not found
+    Utils::LogPrint(Log::state, __func__, "Prefered block does not exist");
+    return nullptr;
+  }
+  Utils::LogPrint(Log::state, __func__, "Got best block.");
+
   auto newBestBlock = std::make_shared<Block>(
     Utils::bytesToUint256(bestBlock->getBlockHash()),
     std::chrono::duration_cast<std::chrono::nanoseconds>(

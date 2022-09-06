@@ -178,12 +178,11 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
   timestamp->set_nanos(bestBlock->timestamp() % 1000000000);
 }
 
-void Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) {
+bool Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) {
   auto newBlock = this->headState->createNewBlock(this->chainHead, this->chainTip);
   if (newBlock == nullptr) {
     Utils::LogPrint(Log::subnet, __func__, "Could not create new block");
-    // TODO: handle not being able to create a block.
-    throw;
+    return false;
   }
   // Answer back avalanchego.
   Utils::LogPrint(Log::subnet, __func__, "Trying to answer AvalancheGo");
@@ -196,7 +195,7 @@ void Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
   timestamp->set_seconds(newBlock->timestamp() / 1000000000);
   timestamp->set_nanos(newBlock->timestamp() % 1000000000);
   Utils::LogPrint(Log::subnet, __func__, "New block broadcasted, but not enforced.");
-  return;
+  return true;
 }
 
 bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply) {
@@ -279,12 +278,10 @@ void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request
   return;
 }
 
-void Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply) {
+bool Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply) {
   // TODO: check vm.proto and implement max_blocks_size/max_blocks_retrival_time
   Utils::LogPrint(Log::subnet, __func__, std::string("getAncestors of: ") + Utils::bytesToHex(request->blk_id()) + " with depth: " + std::to_string(request->max_blocks_num()));
-  if (!chainHead->exists(request->blk_id())) {
-    return;
-  }
+  if (!chainHead->exists(request->blk_id())) return false;
   auto headBlock = chainHead->getBlock(request->blk_id());
   auto bestBlock = chainHead->latest();
   uint64_t depth = request->max_blocks_num();
@@ -294,15 +291,12 @@ void Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest*
     Utils::LogPrint(Log::subnet, __func__, "Depth is higher than chain height, setting depth to chain height");
     depth = bestBlock->nHeight();
   }
-                                                                                          // funny overflow moment.
   for (uint64_t index = (headBlock->nHeight()); index >= (headBlock->nHeight() - depth) && index <= headBlock->nHeight(); --index) {
     auto block = chainHead->getBlock(index);
     reply->add_blks_bytes(block->serializeToBytes());
   }
-
   Utils::LogPrint(Log::subnet, __func__, "Ancestors found, answering...");
-
-  return;
+  return true;
 }
 
 void Subnet::setPreference(ServerContext* context, const vm::SetPreferenceRequest* request) {
@@ -341,15 +335,14 @@ bool Subnet::acceptBlock(const std::string &blockHash) {
       return false;
     }
     blockHeight = block->nHeight();
-  }  // scope because auto block is going to be deleted and chainTip->accept prefers that its block to be unique as block is *moved* into chainHead.
+  } // scope because auto block is going to be deleted and chainTip->accept prefers that its block be unique as it's *moved* into chainHead.
 
-  // Accept block in chainTip, move it to chainState which after being processed,
-  // it is finally moved to chainHead.
-
+  // Accept block in chainTip, move it to chainState and after being processed,
+  // finally move it to chainHead.
   Utils::LogPrint(Log::subnet, __func__, "Processing block: " + Utils::bytesToHex(blockHash));
-  this->chainTip->accept(blockHash, this->headState, this->chainHead);
+  bool ret = this->chainTip->accept(blockHash, this->headState, this->chainHead);
   Utils::LogPrint(Log::subnet, __func__, "Block " + Utils::bytesToHex(blockHash) + ", height: " + boost::lexical_cast<std::string>(blockHeight) + " accepted");
-  return true;
+  return ret;
 }
 
 void Subnet::rejectBlock(const std::string &blockHash) {
