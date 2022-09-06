@@ -16,7 +16,7 @@ void benchmarkBlock() {
     Block block(0, 1656356645000000, 0);
   
   
-    for (uint64_t i = 0; i < 1000000; ++i) {
+    for (uint64_t i = 0; i < 200000; ++i) {
       if (i % 10000 == 0) {
         std::cout << i << " transactions appended" << std::endl;
       }

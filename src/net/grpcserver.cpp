@@ -188,7 +188,7 @@ Status VMServiceImplementation::AppGossip(
   if (request->msg()[0] == MessagePrefix::tx) {
     // Process tx from network broadcast.
     Utils::LogPrint(Log::grpcServer, __func__, "Processing tx: " + Utils::bytesToHex(request->msg()));
-    auto tx = Tx::Base(request->msg().substr(1), false);
+    auto tx = Tx::Base(std::string_view(&request->msg()[1], request->msg().size() - 1), false);
     subnet.validateTransaction(std::move(tx));
     Utils::LogPrint(Log::grpcServer, __func__, "Tx Processed");
   }

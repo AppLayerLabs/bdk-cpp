@@ -33,7 +33,7 @@ void Subnet::start() {
    * to the AvalancheGo Daemon.
    */
   server = builder.BuildAndStart();
-  std::cout << "1|15|tcp|" << server_address << "|grpc\n" << std::flush;
+  std::cout << "1|16|tcp|" << server_address << "|grpc\n" << std::flush;
 
   /**
    * Wait for the server to shutdown. Note that some other thread must be

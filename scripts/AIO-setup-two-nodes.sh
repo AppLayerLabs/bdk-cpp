@@ -57,7 +57,7 @@ AVALANCHE_ROOT_PATH="$HOME/go/src/github.com/ava-labs"  # AvalancheGo root folde
 
 # Build subnetooord
 cd ../build/
-cmake .. && make -j$(nproc)
+cmake .. -DBUILD_TESTS=OFF && make -j$(nproc)
 
 # Clone and build latest AvalancheGo
 mkdir -p $AVALANCHE_ROOT_PATH
