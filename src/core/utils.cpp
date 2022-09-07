@@ -210,7 +210,7 @@ int Utils::fromHexChar(char c) noexcept {
   return -1;
 }
 
-std::string Utils::bytesToHex(const std::string &bytes) { return dev::toHex(bytes); }
+std::string Utils::bytesToHex(const std::string_view &bytes) { return dev::toHex(bytes); }
 
 bool Utils::verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s) {
   // s_max = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141

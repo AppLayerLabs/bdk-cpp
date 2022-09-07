@@ -47,6 +47,12 @@ Block::Block(const std::string &blockData) {
 
       uint64_t nextTx = 0;
       uint64_t index = 0;
+
+      this->_transactions.rehash(this->_txCount);
+      this->_transactions.reserve(this->_txCount);
+
+      // TODO: What happens if a thread fails? 
+      // Figure out a way to stop the other threads if one fails. 
       for (uint64_t i = 0; i < processor_count; ++i) {
         txThreads.emplace_back([&,i,nextTx,index] () mutable {
           for (uint64_t j = 0; j < workPerThread[i]; ++j) {

@@ -8,6 +8,8 @@ void benchmarkBlock() {
   std::string transactionBytes = Utils::hexToBytes("0xf86e8085012a05f20082520894798333f07163eb62d1e22cc2df1acfe597567882880de0b6b3a764000080824544a0cc7fb28c74b12a47910a97156b0485119856db37040a27ce1fcb7889744d78baa05ebf6d6ff721d1d86c33e652f4ba493a36079cf85ed01d870fe29dd93237a78f");
 
   Tx::Base tx(transactionBytes, false);
+
+  std::cout << Utils::bytesToHex(tx.rlpSerialize(true)) << std::endl;
   std::string blockBytes;
 
   // Scope so we free block memory.

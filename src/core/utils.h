@@ -76,10 +76,22 @@ namespace Utils {
   }
   uint256_t hexToUint(std::string &hex);
   std::string hexToBytes(std::string hex);
-  std::string bytesToHex(const std::string& bytes);
+  std::string bytesToHex(const std::string_view& bytes);
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
   std::string padLeft(std::string str, unsigned int charAmount, char sign = '0');
   std::string padRight(std::string str, unsigned int charAmount, char sign = '0');
+  
+  /// Converts a big-endian byte-stream represented on a templated collection to a templated integer value.
+  /// @a _In will typically be either std::string or bytes.
+  /// @a T will typically by unsigned, u160, u256 or bigint.
+  template <class T, class _In>
+  inline T fromBigEndian(_In const& _bytes)
+  {
+  	T ret = (T)0;
+  	for (auto i: _bytes)
+  		ret = (T)((ret << 8) | (byte)(typename std::make_unsigned<decltype(i)>::type)i);
+  	return ret;
+  }
 } // Utils
 
 struct Account {
@@ -100,6 +112,11 @@ class Address {
       } else {
         innerAddress = address;
       }
+    }
+    // Move from iterators. used in Tx::Base string move constructor
+    template<class It>
+    Address(const It&& _begin,const It&& _end) {
+      std::move(_begin, _end, std::back_inserter(innerAddress));
     }
 
     // Copy constructor.
