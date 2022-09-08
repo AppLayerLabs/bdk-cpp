@@ -131,7 +131,7 @@ const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockH
       return result;
     }
 
-    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
+    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks), true);
     auto result = this->cachedBlocks[blockHash];
     this->internalChainHeadLock.unlock_shared();
     return this->cachedBlocks[blockHash];
@@ -157,7 +157,7 @@ const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeig
       return result;
     }
 
-    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks));
+    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks), true);
     const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
     this->internalChainHeadLock.unlock_shared();
     return result;
@@ -236,15 +236,15 @@ uint64_t ChainHead::blockSize() {
 void ChainHead::loadFromDB() {
   if (!dbServer->has("latest", DBPrefix::blocks)) {
     Block genesis(0, 1656356645000000, 0);
-    dbServer->put("latest", genesis.serializeToBytes(), DBPrefix::blocks);
+    dbServer->put("latest", genesis.serializeToBytes(false), DBPrefix::blocks);
     dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash(), DBPrefix::blockHeightMaps);
-    dbServer->put(genesis.getBlockHash(), genesis.serializeToBytes(), DBPrefix::blocks);
+    dbServer->put(genesis.getBlockHash(), genesis.serializeToBytes(false), DBPrefix::blocks);
     Utils::LogPrint(Log::chainHead, __func__, "Created genesis block");
     Utils::LogPrint(Log::chainHead, __func__, std::string("Created genesis block: ") + Utils::bytesToHex(genesis.getBlockHash()));
   }
 
   Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: getting latest block");
-  Block latestBlock = Block(dbServer->get("latest", DBPrefix::blocks));
+  Block latestBlock = Block(dbServer->get("latest", DBPrefix::blocks), true);
   Utils::LogPrint(Log::chainHead, __func__, std::string("Loading chain head from DB: ") + dev::toHex(latestBlock.getBlockHash()) + " " + std::to_string(latestBlock.nHeight()));
   uint64_t depth = latestBlock.nHeight();
 
@@ -261,7 +261,7 @@ void ChainHead::loadFromDB() {
 
   // Append up to 1000 blocks from history.
   for (uint64_t i = 0; i <= 1000 && i <= depth; ++i) {
-    auto block = std::make_shared<Block>(dbServer->get(this->lookupBlockHashByHeight[depth-i], DBPrefix::blocks));
+    auto block = std::make_shared<Block>(dbServer->get(this->lookupBlockHashByHeight[depth-i], DBPrefix::blocks), true);
     this->_push_front(block);
   }
 
@@ -279,7 +279,7 @@ void ChainHead::dumpToDB() {
   while (!this->internalChainHead.empty()) {
     // We can't call this->pop_back() because of std::mutex.
     auto blockToDelete = this->internalChainHead.front();
-    blockBatch.puts.emplace_back(DBEntry(blockToDelete->getBlockHash(), blockToDelete->serializeToBytes()));
+    blockBatch.puts.emplace_back(DBEntry(blockToDelete->getBlockHash(), blockToDelete->serializeToBytes(true)));
     heightBatch.puts.emplace_back(DBEntry(Utils::uint64ToBytes(blockToDelete->nHeight()), blockToDelete->getBlockHash()));
 
     /**
@@ -307,7 +307,7 @@ void ChainHead::dumpToDB() {
   dbServer->writeBatch(heightBatch, DBPrefix::blockHeightMaps);
   dbServer->writeBatch(txToBlockBatch, DBPrefix::TxToBlocks);
 
-  dbServer->put("latest", latest->serializeToBytes(), DBPrefix::blocks);
+  dbServer->put("latest", latest->serializeToBytes(true), DBPrefix::blocks);
 
   this->internalChainHeadLock.unlock();
 }

@@ -65,7 +65,9 @@ class Block {
     bool indexed = false;
 
   public:
-    explicit Block(const std::string &blockData);  // Constructor from network/rpc.
+    explicit Block(const std::string &blockData, bool fromDB);  // Constructor. bool flag takes advantage of not running secp256k1 for 40x performance
+                                                                // tradeoff: having to store extra 25 bytes per tx.
+
 
     // Constructor from creation.
     Block(
@@ -104,7 +106,7 @@ class Block {
     const std::unordered_map<uint64_t, Tx::Base>& transactions() const { return this->_transactions; };
     uint64_t blockSize() const;
     std::string getBlockHash() const; // Hash (in bytes)
-    std::string serializeToBytes() const;
+    std::string serializeToBytes(bool db) const; // Tells tx's to be serialized using secp256k1 for extra calculation or not on deserialization.
     void indexTxs();  // When transactions are indexed, the block is considered to be on chain
     bool appendTx(const Tx::Base &tx);
     bool finalizeBlock();

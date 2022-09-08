@@ -130,10 +130,9 @@ Status VMServiceImplementation::BlockVerify(
   auto block = subnet.verifyBlock(request->bytes());
 
   if (block != nullptr) {
-    Block block(request->bytes());
     auto timestamp = reply->mutable_timestamp();
-    timestamp->set_seconds(block.timestamp() / 1000000000);
-    timestamp->set_nanos(block.timestamp() % 1000000000);
+    timestamp->set_seconds(block->timestamp() / 1000000000);
+    timestamp->set_nanos(block->timestamp() % 1000000000);
     Utils::logToFile("BlockVerify success, block is valid");
     return Status::OK;
   }

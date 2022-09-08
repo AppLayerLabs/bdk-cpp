@@ -3,14 +3,8 @@
 
 // custom implementation (no RLP abstraction) 
 Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
-  std::string appendedBytes;
-  std::string substr;
+  std::string_view appendedBytes;
   uint64_t index = 0;
-  // Copy from bytes if necessary.
-  if (fromDB) {
-    appendedBytes = bytes.substr(bytes.size() - 25);
-    substr = bytes.substr(0, bytes.size() - 25);
-  }
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list
   if (uint8_t(bytes[0]) < 0xf7) {
@@ -24,7 +18,7 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
   uint64_t listLenght = Utils::fromBigEndian<uint64_t>(std::string_view(&bytes[index], listLenghtSize));
   index += listLenghtSize; // Index is now at rlp[0] size.
   // Size sanity check.
-  if (listLenght < bytes.size() - listLenghtSize - 1) {
+  if (listLenght < ((fromDB) ? (bytes.size() - 25) : bytes.size()) - listLenghtSize - 1) {
     throw std::runtime_error("Transaction RLP reports a size, returns smaller.");
   }
   const uint8_t nonceLenght = bytes[index] - 0x80; // Nonce is a small string.
@@ -121,6 +115,7 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
       std::string("RLP: Invalid transaction signature - v is not 27 or 28")
     );
   }
+
   if (!fromDB) {
     // If tx is not coming from DB, we have to verify its signature
     uint8_t recoveryId = uint8_t{this->_v - (uint256_t(this->_chainId) * 2 + 35)};
@@ -137,10 +132,12 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
     auto pubKey = Secp256k1::recover(sig, messageHash);
     std::string pubKeyHash;
     Utils::sha3(pubKey, pubKeyHash);
-    this->_from = pubKeyHash.substr(12);  // Address = pubkey[12...32]
+    this->_from = std::string_view(&pubKeyHash[11],20);  // Address = pubkey[12...32]
     this->_verified = true;
     return;
   }
+  appendedBytes = bytes.substr(bytes.size() - 25);
+
   // If tx is coming from DB, we simply read the information from the extra bytes.
   // Txs that come from DB are included in a block, which means they are
   // already verified, so we don't have to redo the expensive secp256k1 calculation
