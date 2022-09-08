@@ -279,21 +279,34 @@ void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request
 }
 
 bool Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply) {
-  // TODO: check vm.proto and implement max_blocks_size/max_blocks_retrival_time
-  Utils::LogPrint(Log::subnet, __func__, std::string("getAncestors of: ") + Utils::bytesToHex(request->blk_id()) + " with depth: " + std::to_string(request->max_blocks_num()));
+  Utils::LogPrint(Log::subnet, __func__,
+    std::string("getAncestors of: ") + Utils::bytesToHex(request->blk_id())
+    + " with depth: " + std::to_string(request->max_blocks_num())
+    + " up to " + std::to_string(request->max_blocks_size())
+    + " bytes and/or for " + std::to_string(request->max_blocks_retrival_time()) + " nanosseconds"
+  );
   if (!chainHead->exists(request->blk_id())) return false;
   auto headBlock = chainHead->getBlock(request->blk_id());
   auto bestBlock = chainHead->latest();
   uint64_t depth = request->max_blocks_num();
+  uint64_t maxSize = request->max_blocks_size(); // Bytes
+  uint64_t maxTime = request->max_blocks_retrival_time(); // Nanosseconds
 
-  // Depth can be actually higher than chain height, so we need to set it the chain height.
+  // Depth can be actually higher than chain height, so we need to set it to the chain height.
   if (depth > bestBlock->nHeight()) {
     Utils::LogPrint(Log::subnet, __func__, "Depth is higher than chain height, setting depth to chain height");
     depth = bestBlock->nHeight();
   }
+  auto timeStart = std::chrono::system_clock::now();
   for (uint64_t index = (headBlock->nHeight()); index >= (headBlock->nHeight() - depth) && index <= headBlock->nHeight(); --index) {
     auto block = chainHead->getBlock(index);
     reply->add_blks_bytes(block->serializeToBytes());
+    auto timeEnd = std::chrono::system_clock::now();
+    auto timeDiff = std::chrono::duration_cast<std::chrono::nanoseconds>(timeEnd - timeStart).count();
+    if (reply->blks_bytes().size() > maxSize || timeDiff > maxTime) {
+      Utils::LogPrint(Log::subnet, __func__, "Max block byte size reached or time ran out");
+      return false;
+    }
   }
   Utils::LogPrint(Log::subnet, __func__, "Ancestors found, answering...");
   return true;
