@@ -167,30 +167,30 @@ bool State::processNewTransaction(const Tx::Base& tx) {
 
 // Check block header, validation and transactions within.
 // Invalid transactions (such as invalid signatures, account having min balance for min fees), if included in a block, the block will be rejected.
-bool State::validateNewBlock(const Block &newBlock, const std::shared_ptr<const ChainHead>& chainHead) const {
+bool State::validateNewBlock(const std::shared_ptr<const Block> &newBlock, const std::shared_ptr<const ChainHead>& chainHead) const {
   // Check block previous hash.
   auto bestBlock = chainHead->latest();
-  if (bestBlock->getBlockHash() != newBlock.prevBlockHash()) {
+  if (bestBlock->getBlockHash() != newBlock->prevBlockHash()) {
     Utils::LogPrint(Log::state, __func__, "Block previous hash does not match.");
-    Utils::LogPrint(Log::state, __func__, "newBlock previous hash: " + newBlock.prevBlockHash());
+    Utils::LogPrint(Log::state, __func__, "newBlock previous hash: " + newBlock->prevBlockHash());
     Utils::LogPrint(Log::state, __func__, "bestBlock hash: " + bestBlock->getBlockHash());
     return false;
   }
 
-  if (newBlock.nHeight() != (1 + bestBlock->nHeight())) {
+  if (newBlock->nHeight() != (1 + bestBlock->nHeight())) {
     Utils::LogPrint(Log::state, __func__, "Block height does not match.");
-    Utils::LogPrint(Log::state, __func__, "newBlock height: " + std::to_string(newBlock.nHeight()));
+    Utils::LogPrint(Log::state, __func__, "newBlock height: " + std::to_string(newBlock->nHeight()));
     Utils::LogPrint(Log::state, __func__, "bestBlock height: " + std::to_string(bestBlock->nHeight()));
     return false;
   }
 
-  for (const auto &tx : newBlock.transactions()) {
+  for (const auto &tx : newBlock->transactions()) {
     if (!this->validateTransactionForBlock(tx.second)) {
       Utils::LogPrint(Log::state, __func__, "Block rejected due to invalid transaction");
       return false;
     }
   }
-  Utils::LogPrint(Log::state, __func__, "Block " + Utils::bytesToHex(newBlock.getBlockHash()) + ", height " + boost::lexical_cast<std::string>(newBlock.nHeight()) + " validated.");
+  Utils::LogPrint(Log::state, __func__, "Block " + Utils::bytesToHex(newBlock->getBlockHash()) + ", height " + boost::lexical_cast<std::string>(newBlock->nHeight()) + " validated.");
   return true;
 }
 

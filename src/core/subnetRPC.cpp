@@ -49,7 +49,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
       return ret.dump();
     }
 
-    Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes()));
+    Utils::LogPrint(Log::subnet, "eth_getBlockByNumber block: ", dev::toHex(block->serializeToBytes(true)));
     if (messageJson["params"].size() > 1) {
       includeTxs = messageJson["params"][1].get<bool>();
     }

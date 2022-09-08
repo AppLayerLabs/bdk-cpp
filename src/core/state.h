@@ -63,7 +63,7 @@ class State {
     // State changing functions
 
     // Validates if a given block is valid and the transactions within. Does *not* update the state.
-    bool validateNewBlock(const Block &newBlock, const std::shared_ptr<const ChainHead>& chainHead) const;
+    bool validateNewBlock(const std::shared_ptr<const Block> &newBlock, const std::shared_ptr<const ChainHead>& chainHead) const;
 
     // Process a new block from the network and update the local state. to be called by chainTip.
     // The block is moved to this function because it will move the block into the chainHead if succeeds.

@@ -136,6 +136,7 @@ class Address {
     dev::h160 toHash() const {
       return dev::h160(innerAddress, dev::FixedHash<20>::ConstructFromStringType::FromBinary);
     }
+    void operator=(const std::string_view& address) { this->innerAddress = address; }
     void operator=(const std::string& address) { this->innerAddress = address; }
     void operator=(const Address& address) { this->innerAddress = address.innerAddress; }
     void operator=(const dev::h160 &address) { this->innerAddress = address.byteStr(); }

@@ -1,6 +1,6 @@
 #include "block.h"
 
-Block::Block(const std::string &blockData) {
+Block::Block(const std::string &blockData, bool fromDB) {
   // Split the block data into different byte arrays.
   try {
     std::string prevBlockHashBytes; // uint256_t
@@ -62,7 +62,7 @@ Block::Block(const std::string &blockData) {
             // String view so we don't copy.
             std::string_view txBytes(&rawTransactions.data()[nextTx + 4], txSize);
             // push tx to block.
-            auto transaction = Tx::Base(txBytes, false);
+            auto transaction = Tx::Base(txBytes, fromDB);
             transactionLock.lock();
             this->_transactions[index] = std::move(transaction);
             transactionLock.unlock();
@@ -91,7 +91,7 @@ Block::Block(const std::string &blockData) {
   }
 }
 
-std::string Block::serializeToBytes() const {
+std::string Block::serializeToBytes(bool db) const {
   // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ... ]
   std::string ret;
   std::string prevBlockHashBytes = Utils::uint256ToBytes(this->_prevBlockHash);
@@ -107,7 +107,7 @@ std::string Block::serializeToBytes() const {
 
   // Append transactions - parse both size and data for each transaction.
   for (uint64_t i = 0; i < this->_txCount; ++i) {
-    std::string txBytes = _transactions.find(i)->second.rlpSerialize(true);
+    std::string txBytes = (db) ? this->_transactions.find(i)->second.serialize() : this->_transactions.find(i)->second.rlpSerialize(true);
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
     ret += std::move(txSizeBytes);
     ret += std::move(txBytes);
@@ -117,7 +117,7 @@ std::string Block::serializeToBytes() const {
 
 std::string Block::getBlockHash() const {
   std::string ret;
-  Utils::sha3(this->serializeToBytes(), ret);
+  Utils::sha3(this->serializeToBytes(false), ret);
   return ret;
 }
 

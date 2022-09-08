@@ -144,7 +144,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   reply->set_last_accepted_id(latestBlock->getBlockHash());
   reply->set_last_accepted_parent_id(latestBlock->prevBlockHash());
   reply->set_height(latestBlock->nHeight());
-  reply->set_bytes(latestBlock->serializeToBytes());
+  reply->set_bytes(latestBlock->serializeToBytes(false));
   auto timestamp = reply->mutable_timestamp();
   timestamp->set_seconds(latestBlock->timestamp() / 1000000000);
   timestamp->set_nanos(latestBlock->timestamp() % 1000000000);
@@ -172,7 +172,7 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
   reply->set_last_accepted_id(bestBlock->getBlockHash());
   reply->set_last_accepted_parent_id(bestBlock->prevBlockHash());
   reply->set_height(bestBlock->nHeight());
-  reply->set_bytes(bestBlock->serializeToBytes());
+  reply->set_bytes(bestBlock->serializeToBytes(false));
   auto timestamp = reply->mutable_timestamp();
   timestamp->set_seconds(bestBlock->timestamp() / 1000000000);
   timestamp->set_nanos(bestBlock->timestamp() % 1000000000);
@@ -190,7 +190,7 @@ bool Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
   reply->set_id(newBlock->getBlockHash());
   reply->set_parent_id(newBlock->prevBlockHash());
   reply->set_height(newBlock->nHeight());
-  reply->set_bytes(newBlock->serializeToBytes());
+  reply->set_bytes(newBlock->serializeToBytes(false));
   auto timestamp = reply->mutable_timestamp();
   timestamp->set_seconds(newBlock->timestamp() / 1000000000);
   timestamp->set_nanos(newBlock->timestamp() % 1000000000);
@@ -219,7 +219,7 @@ bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, v
     }
 
     // Build block and get latest accepted block as reference
-    auto block = std::make_shared<Block>(blockBytes);
+    auto block = std::make_shared<Block>(blockBytes, false);
     auto latestBlock = chainHead->latest();
 
     // Parse block
@@ -251,24 +251,24 @@ void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request
   if (chainHead->exists(request->id())) {
     auto block = chainHead->getBlock(request->id());
     reply->set_parent_id(block->prevBlockHash());
-    reply->set_bytes(block->serializeToBytes());
+    reply->set_bytes(block->serializeToBytes(false));
     reply->set_status(BlockStatus::Accepted);
     reply->set_height(block->nHeight());
     auto timestamp = reply->mutable_timestamp();
     timestamp->set_seconds(block->timestamp() / 1000000000);
     timestamp->set_nanos(block->timestamp() % 1000000000);
-    Utils::LogPrint(Log::subnet, __func__, "Block found in chainHead: " + Utils::bytesToHex(block->serializeToBytes()));
+    Utils::LogPrint(Log::subnet, __func__, "Block found in chainHead: " + Utils::bytesToHex(block->serializeToBytes(false)));
     return;
   } else if (chainTip->exists(request->id())) {
     auto block = chainTip->getBlock(request->id());
     reply->set_parent_id(block->prevBlockHash());
-    reply->set_bytes(block->serializeToBytes());
+    reply->set_bytes(block->serializeToBytes(false));
     reply->set_status(chainTip->getBlockStatus(request->id()));
     reply->set_height(block->nHeight());
     auto timestamp = reply->mutable_timestamp();
     timestamp->set_seconds(block->timestamp() / 1000000000);
     timestamp->set_nanos(block->timestamp() % 1000000000);
-    Utils::LogPrint(Log::subnet, __func__, "Block found in chainTip: " + Utils::bytesToHex(block->serializeToBytes()));
+    Utils::LogPrint(Log::subnet, __func__, "Block found in chainTip: " + Utils::bytesToHex(block->serializeToBytes(false)));
     return;
   }
 
@@ -293,7 +293,7 @@ bool Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest*
   }
   for (uint64_t index = (headBlock->nHeight()); index >= (headBlock->nHeight() - depth) && index <= headBlock->nHeight(); --index) {
     auto block = chainHead->getBlock(index);
-    reply->add_blks_bytes(block->serializeToBytes());
+    reply->add_blks_bytes(block->serializeToBytes(false));
   }
   Utils::LogPrint(Log::subnet, __func__, "Ancestors found, answering...");
   return true;
@@ -305,16 +305,16 @@ void Subnet::setPreference(ServerContext* context, const vm::SetPreferenceReques
 }
 
 const std::shared_ptr<const Block> Subnet::verifyBlock(const std::string &blockBytes) {
-  Block block(blockBytes);
+  auto block = std::make_shared<Block>(blockBytes, false);
   // Check if block can be attached to top of the chain.
   if (!this->headState->validateNewBlock(block, this->chainHead)) {
     return nullptr;
   }
 
   // Add block to processing.
-  this->chainTip->processBlock(std::make_shared<Block>(block));
+  this->chainTip->processBlock(block);
 
-  return this->chainTip->getBlock(block.getBlockHash());
+  return this->chainTip->getBlock(block->getBlockHash());
 }
 
 bool Subnet::acceptBlock(const std::string &blockHash) {
