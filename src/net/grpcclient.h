@@ -53,14 +53,17 @@ class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
       messenger_stub_(messenger::Messenger::NewStub(channel)),
       sharedmemory_stub_(sharedmemory::SharedMemory::NewStub(channel)),
       nodeList(nodeList),
-      nodeListLock(nodeListLock) {}
+      nodeListLock(nodeListLock)
+    {}
 
   void requestBlock();
+
   // Copy because we don't actually know if mempool is keeping the transaction alive.
   // Subnet may receive a block that clears a given tx from mempool, making a reference to that tx null.
   void relayTransaction(const Tx::Base tx);
-  private: 
-    // TODO: having nodeList here as a refenrence is not ideal.
+
+  private:
+    // TODO: having nodeList here as a reference is not ideal.
     // We should create a new class (Relayer) that actively relay transactions and messages to the network.
     const std::vector<std::string>& nodeList;
     std::shared_mutex &nodeListLock;
