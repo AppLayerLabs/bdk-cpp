@@ -132,7 +132,7 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
     auto pubKey = Secp256k1::recover(sig, messageHash);
     std::string pubKeyHash;
     Utils::sha3(pubKey, pubKeyHash);
-    this->_from = std::string_view(&pubKeyHash[11],20);  // Address = pubkey[12...32]
+    this->_from = std::string_view(&pubKeyHash[12],20);  // Address = pubkey[12...32]
     this->_verified = true;
     return;
   }
