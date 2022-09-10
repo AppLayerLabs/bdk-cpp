@@ -355,6 +355,7 @@ void Subnet::validateTransaction(const Tx::Base &&tx) {
 
 void Subnet::connectNode(const std::string &nodeId) {
   this->connectedNodesLock.lock();
+  Utils::LogPrint(Log::subnet, __func__, "Connecting node: " + Utils::bytesToHex(nodeId));
   this->connectedNodes.emplace_back(nodeId);
   this->connectedNodesLock.unlock();
 }

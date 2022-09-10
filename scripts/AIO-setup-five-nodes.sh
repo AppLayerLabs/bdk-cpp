@@ -98,6 +98,7 @@ SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9650/ext/keystore'
     "password": "'$PASSWORD'"
   }
 }')
+sleep 1
 
 SECOND_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9652/ext/keystore' --header 'Content-Type: application/json' \
 --data-raw '{
@@ -109,6 +110,7 @@ SECOND_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9652/ext/ke
     "password": "'$PASSWORD'"
   }
 }')
+sleep 1
 
 THIRD_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9654/ext/keystore' --header 'Content-Type: application/json' \
 --data-raw '{
@@ -120,6 +122,7 @@ THIRD_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9654/ext/key
     "password": "'$PASSWORD'"
   }
 }')
+sleep 1
 
 FORTH_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9656/ext/keystore' --header 'Content-Type: application/json' \
 --data-raw '{
@@ -131,6 +134,7 @@ FORTH_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9656/ext/key
     "password": "'$PASSWORD'"
   }
 }')
+sleep 1
 
 FIFTH_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9658/ext/keystore' --header 'Content-Type: application/json' \
 --data-raw '{
@@ -142,6 +146,7 @@ FIFTH_SETUP_USER_OUTPUT=$(curl --location --request POST '127.0.0.1:9658/ext/key
     "password": "'$PASSWORD'"
   }
 }')
+sleep 1
 
 # Fund the network
 FUND_NETWORK_OUTPUT=$(curl --location --request POST '127.0.0.1:9650/ext/bc/P' --header 'Content-Type: application/json' \
@@ -157,6 +162,7 @@ FUND_NETWORK_OUTPUT=$(curl --location --request POST '127.0.0.1:9650/ext/bc/P' -
 }')
 FUNDING_ADDRESS=$(echo $FUND_NETWORK_OUTPUT | jq '.result.address' | sed 's/^"//' | sed 's/"$//')
 echo "Funding Address: " $FUNDING_ADDRESS >> $LOGFILE
+sleep 1
 
 # Create Validator Addresses
 CREATE_ADDRESS_1_OUTPUT=$(curl -X POST \
@@ -326,7 +332,7 @@ CREATE_SUBNET_OUTPUT=$(curl -X POST \
 
 SUBNET_ID=$(echo $CREATE_SUBNET_OUTPUT | jq '.result.txID' | sed 's/^"//' | sed 's/"$//')
 echo "SUBNET ID: " $SUBNET_ID >> $LOGFILE
-
+sleep 1
 # Get Node ID
 NODE_ID_OUTPUT=$(curl -X POST \
 --data '{
@@ -442,7 +448,7 @@ SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
-
+sleep 1
 SECOND_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 --data '{
   "jsonrpc": "2.0",
@@ -461,7 +467,7 @@ SECOND_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $SECOND_SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
-
+sleep 1
 THIRD_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 --data '{
   "jsonrpc": "2.0",
@@ -480,7 +486,7 @@ THIRD_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $THIRD_SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
-
+sleep 1
 FORTH_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 --data '{
   "jsonrpc": "2.0",
@@ -499,7 +505,7 @@ FORTH_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $FORTH_SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
-
+sleep 1
 FIFTH_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 --data '{
   "jsonrpc": "2.0",

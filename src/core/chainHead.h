@@ -29,6 +29,7 @@ class ChainHead {
     // Only access these functions if you are absolute sure that internalChainHeadLock is locked.
     void _push_back(const std::shared_ptr<const Block> &&block);
     void _push_front(const std::shared_ptr<const Block> &&block);
+    void loadFromDB();
 
   public:
     ChainHead(std::shared_ptr<DBService> &_dbService) : dbServer(_dbService) {
@@ -52,7 +53,6 @@ class ChainHead {
     const std::shared_ptr<const Block> getBlockFromTx(const std::string &txHash) const;
     const std::shared_ptr<const Block> latest() const;
     uint64_t blockSize();
-    void loadFromDB();
     void dumpToDB();
     void periodicSaveToDB();  // TODO: implement this, do not forget that blocks are stored as shared_ptr, if you erase the item inside the map, all remaining pointers will be undefined.
 };
