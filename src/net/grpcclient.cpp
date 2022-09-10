@@ -1,6 +1,5 @@
 #include "grpcclient.h"
 
-
 void VMCommClient::requestBlock() {
   Utils::logToFile("requestBlock: trying to request block");
   messenger::NotifyRequest req;
@@ -27,7 +26,6 @@ void VMCommClient::relayTransaction(const Tx::Base tx) {
     req.add_node_ids(node);
   }
   nodeListLock.unlock_shared();
-  // TODO: ugly serialization, is there a better way?
   req.set_msg(std::string("") + MessagePrefix::tx + tx.rlpSerialize(true));
   google::protobuf::Empty reply;
   ClientContext context;
@@ -36,7 +34,6 @@ void VMCommClient::relayTransaction(const Tx::Base tx) {
   google::protobuf::util::JsonOptions options;
   google::protobuf::util::MessageToJsonString(req, &jsonRequest, options);
   Utils::logToFile(jsonRequest);
-
 
   this->lock.lock();
   Status status = appsender_stub_->SendAppGossipSpecific(&context, req, &reply);
@@ -50,3 +47,4 @@ void VMCommClient::relayTransaction(const Tx::Base tx) {
     return;
   }
 }
+

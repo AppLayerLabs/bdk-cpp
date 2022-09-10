@@ -31,12 +31,10 @@ class State {
   private:
     std::unordered_map<Address, Account> nativeAccount; // Address -> Account
     mutable std::unordered_map<std::string, Tx::Base> mempool; // Tx Hash (bytes) -> Tx
-    // TODO: improve mempool structure, for example verify transactions in mempool that are not included in a block after accepting another block.
-    // As we need to keep every transaction valid.
+    // TODO: improve mempool structure (e.g. verify txs in mempool not included in a block after accepting another block, as we need to keep every tx valid)
     mutable std::shared_mutex stateLock;
-
-    // used to notify avalancheGo when to create new blocks.
     #if !IS_LOCAL_TESTS
+      // Used to notify AvalancheGo when creating new blocks.
       std::shared_ptr<VMCommClient> &grpcClient;
     #endif
 

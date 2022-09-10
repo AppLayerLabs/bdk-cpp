@@ -45,81 +45,54 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
 }
 
 bool State::validateTransactionForBlock(const Tx::Base& tx) const {
-  // TODO: Handle error conditions to report at RPC level:
-  // https://www.jsonrpc.org/specification#error_object
-  // https://eips.ethereum.org/EIPS/eip-1474#error-codes
-  // TODO: Handle transaction queue for multiple tx's from single user.
-
-  if (!tx.verified()) {
-    return false;
-  }
-  int err = 0;
-  std::string errMsg;
-  // Check if transaction is valid.
-  // TX already exists...
+  // TODO: Handle transaction queue for multiple txs from single user
+  if (!tx.verified()) return false; // Ignore unverified txs
+  bool ret = true;
   stateLock.lock_shared();
-  if (this->mempool.count(tx.hash())) {
-    stateLock.unlock_shared();
-    return true;
-  } else if (this->nativeAccount.count(tx.from()) > 0) {
-    // Account already exists.
-    // Use find() and count() instead of operator[] for const correctness and performance.
-    if (this->nativeAccount.find(tx.from())->second.balance < tx.value()) {
-      // Insufficient balance.
-      stateLock.unlock_shared();
-      return false;
+  if (this->mempool.count(tx.hash()) == 0) { // Ignore if tx already exists in mempool
+    if (this->nativeAccount.count(tx.from()) == 0) { // Account doesn't exist = zero balance = can't pay fees
+      ret = false;
+    } else {
+      Account acc = this->nativeAccount.find(tx.from())->second;
+      if (acc.balance < tx.value() || acc.nonce != tx.nonce()) { // Insufficient balance or invalid nonce
+        ret = false;
+      }
     }
-    if (this->nativeAccount.find(tx.from())->second.nonce != tx.nonce()) {
-      // Invalid nonce.
-      stateLock.unlock_shared();
-      return false;
-    }
-  } else {
-    // Account doesn't exists, meaning zero balance, meaning no balance to pay fees.
-    stateLock.unlock_shared();
-    return false;
   }
   stateLock.unlock_shared();
-
-  return true;
+  return ret;
 }
 
 std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx, const bool &broadcast) const {
+  // TODO: Handle transaction queue for multiple txs from single user
   // TODO: Handle error conditions to report at RPC level:
   // https://www.jsonrpc.org/specification#error_object
   // https://eips.ethereum.org/EIPS/eip-1474#error-codes
-  // TODO: Handle transaction queue for multiple tx's from single user.
-
-  if (!tx.verified()) {
-    return std::make_pair(-32003, "Transaction signature not verified when TX was constructed: " + Utils::bytesToHex(tx.rlpSerialize(true)));
-  }
   int err = 0;
   std::string errMsg;
-  // Check if transaction is valid.
-  // TX already exists...
-  stateLock.lock_shared();
-  if (this->mempool.count(tx.hash())) {
-    err = 0; errMsg = "NAN, Transaction already exists in mempool"; // Not really considered a failure
+  if (!tx.verified()) {
+    err = -32003;
+    errMsg = "Transaction signature not verified when TX was constructed: " + Utils::bytesToHex(tx.rlpSerialize(true));
+    return std::make_pair(err, errMsg);
+  }
 
-  } else if (this->nativeAccount.count(tx.from()) > 0) {
-    // Account already exists.
-    // Use find() and count() instead of operator[] for const correctness and performance.
-    if (this->nativeAccount.find(tx.from())->second.balance < tx.value()) {
-      // Insufficient balance.
+  stateLock.lock_shared();
+  if (this->mempool.count(tx.hash())) { // Not really considered a failure
+    errMsg = "Transaction already exists in mempool";
+  } else if (this->nativeAccount.count(tx.from()) == 0) { // Account doesn't exist = zero balance = can't pay fees
+    err = -32003;
+    errMsg = "Insufficient balance - required: " + boost::lexical_cast<std::string>(tx.value()) + ", available: 0";
+  } else {
+    Account acc = this->nativeAccount.find(tx.from())->second;
+    if (acc.balance < tx.value()) {
       err = -32002;
-      errMsg = "Insufficient balance- required: " +
-      boost::lexical_cast<std::string>(tx.value()) + " available: " +
-      boost::lexical_cast<std::string>(this->nativeAccount.find(tx.from())->second.balance);
-    }
-    if (this->nativeAccount.find(tx.from())->second.nonce != tx.nonce()) {
-      // Invalid nonce.
+      errMsg = "Insufficient balance - required: "
+      + boost::lexical_cast<std::string>(tx.value()) + ", available: "
+      + boost::lexical_cast<std::string>(acc.balance);
+    } else if (acc.nonce != tx.nonce()) {
       err = -32001;
       errMsg = "Invalid nonce";
     }
-  } else {
-    // Account doesn't exists, meaning zero balance, meaning no balance to pay fees.
-    err = -32003; errMsg = "Insufficient balance - required: " +
-    boost::lexical_cast<std::string>(tx.value()) + " available: 0";
   }
   stateLock.unlock_shared();
 
@@ -131,12 +104,12 @@ std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx
     std::string txHash = tx.hash();
     this->mempool[txHash] = std::move(tx);
     #if !IS_LOCAL_TESTS
-      // Broadcast tx.
       if (broadcast) {
-        // if I do
-        // std::thread t(&grpcClient::relayTransaction, this->grpcClient, this->mempool[tx.hash()]);
-        // t.detach()
-        // It will only work half of the time.
+        // Broadcast tx.
+        // If I do
+        //   std::thread t(&grpcClient::relayTransaction, this->grpcClient, this->mempool[tx.hash()]);
+        //   t.detach();
+        // it will only work half of the time.
         // TODO: figure out why and fix it
         this->grpcClient->relayTransaction(this->mempool[txHash]);
       }
@@ -149,10 +122,11 @@ std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx
 
 bool State::processNewTransaction(const Tx::Base& tx) {
   bool isContractCall = false;
-  Utils::LogPrint(Log::state, __func__, "tx.from(): " + tx.from().hex() + " tx.value(): " + boost::lexical_cast<std::string>(tx.value()));
-  // TODO: Check Balance.
-  // Remove transaction from mempool if found there.
-  if (this->mempool.count(tx.hash()) != 0) this->mempool.erase(tx.hash());
+  Utils::LogPrint(Log::state, __func__,
+    "tx.from(): " + tx.from().hex() +
+    " tx.value(): " + boost::lexical_cast<std::string>(tx.value())
+  );
+  if (this->mempool.count(tx.hash()) != 0) this->mempool.erase(tx.hash()); // Remove tx from mempool if found there
 
   // Update balances and nonce.
   this->nativeAccount[tx.from()].balance -= tx.value();

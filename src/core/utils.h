@@ -18,8 +18,7 @@ using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 static const uint256_t c_secp256k1n("115792089237316195423570985008687907852837564279074904382605163141518161494337");
 
-template <typename ElemT>
-struct HexTo {
+template <typename ElemT> struct HexTo {
   ElemT value;
   operator ElemT() const { return value; }
   friend std::istream& operator>>(std::istream& in, HexTo& out) {
@@ -80,19 +79,14 @@ namespace Utils {
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
   std::string padLeft(std::string str, unsigned int charAmount, char sign = '0');
   std::string padRight(std::string str, unsigned int charAmount, char sign = '0');
-  
-  /// Converts a big-endian byte-stream represented on a templated collection to a templated integer value.
-  /// @a _In will typically be either std::string or bytes.
-  /// @a T will typically by unsigned, u160, u256 or bigint.
-  template <class T, class _In>
-  inline T fromBigEndian(_In const& _bytes)
-  {
-  	T ret = (T)0;
-  	for (auto i: _bytes)
-  		ret = (T)((ret << 8) | (byte)(typename std::make_unsigned<decltype(i)>::type)i);
-  	return ret;
+  template <class T, class _In> inline T fromBigEndian(_In const& _bytes) {
+    T ret = (T)0;
+    for (auto i: _bytes) {
+      ret = (T)((ret << 8) | (byte)(typename std::make_unsigned<decltype(i)>::type)i);
+    }
+    return ret;
   }
-} // Utils
+};
 
 struct Account {
   uint256_t balance = 0;
@@ -149,8 +143,7 @@ class Address {
     bool operator!=(const Address& rAddress) const { return bool(innerAddress != rAddress.innerAddress); }
 };
 
-template <>
-struct std::hash<Address> {
+template <> struct std::hash<Address> {
   size_t operator() (const Address& address) const {
     return std::hash<std::string>()(address.get());
   }
