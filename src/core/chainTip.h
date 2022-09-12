@@ -12,8 +12,8 @@ class State; // Forward declaration.
 class ChainTip {
   private:
     std::string preferedBlockHash; // SetPreference from gRPC.
-    std::unordered_map<std::string,std::shared_ptr<const Block>> internalChainTip; // Mempool, block hash -> block.
-    std::unordered_map<std::string,BlockStatus> cachedBlockStatus;
+    std::unordered_map<std::string,std::shared_ptr<const Block>, SafeHash> internalChainTip; // Mempool, block hash -> block.
+    std::unordered_map<std::string,BlockStatus, SafeHash> cachedBlockStatus;
     mutable std::shared_mutex internalChainTipLock;
 
   public:

@@ -93,16 +93,19 @@ struct Account {
   uint32_t nonce = 0;
 };
 
+// TODO: this doesn't check if input is really an address (20 bytes)
 class Address {
   private:
     std::string innerAddress;
 
   public:
     Address() {}
-    Address(std::string address, bool fromRPC = true) {
+    // C++ can only differ std::string&& and const std::string& on function overloading.
+    Address(const std::string& address, bool fromRPC) {
       if (fromRPC) {
-        Utils::patchHex(address);
-        innerAddress = Utils::hexToBytes(address);
+        innerAddress = address;
+        Utils::patchHex(innerAddress);
+        innerAddress = Utils::hexToBytes(innerAddress);
       } else {
         innerAddress = address;
       }
@@ -121,6 +124,18 @@ class Address {
     // Move constructor.
     Address(Address&& other) noexcept :
       innerAddress(std::move(other.innerAddress)) {}
+
+    // Move string constructor.
+
+    Address(std::string&& address, bool fromRPC) noexcept
+      {
+        if (fromRPC) {
+          Utils::patchHex(address);
+          innerAddress = std::move(Utils::hexToBytes(address));
+        } else {
+          innerAddress = std::move(address);
+        }
+      }
 
     // Destructor.
     ~Address() { this->innerAddress = ""; }
@@ -149,4 +164,38 @@ template <> struct std::hash<Address> {
   }
 };
 
+// std::unordered_map uses uint64_t hashes, if we keep the hash the same accross multiple nodes, a issue appears
+// hash collisions are possible by having many Accounts and them being distributed in a way that they have the same hash accross all nodes.
+// this is a workaround for that issue, it's not perfect because it is still uint64_t but it's better than nothing now that nodes keeps different hashes.
+
+struct SafeHash {
+  static uint64_t splitmix(uint64_t x) {
+    // http://xorshift.di.unimi.it/splitmix64.c
+    x += 0x9e3779b97f4a7c15;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+    return x ^ (x >> 31);
+  }
+
+  size_t operator() (uint64_t x) const {
+    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix(x + FIXED_RANDOM);
+  }
+
+  size_t operator() (const Address& address) const {
+    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix(std::hash<std::string>()(address.get()) + FIXED_RANDOM);
+  }
+
+  size_t operator() (const std::string& str) const {
+    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix(std::hash<std::string>()(str) + FIXED_RANDOM);
+  }
+
+  template<typename T>
+  size_t operator() (const std::shared_ptr<T> &ptr) const {
+    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix(std::hash<std::shared_ptr<T>>()(ptr) + FIXED_RANDOM);
+  }
+};
 #endif // UTILS_H

@@ -60,7 +60,7 @@ class Block {
     uint64_t _nHeight;
     uint32_t _txCount;
     // The reason to have it as unordered_map is to be able to parse transactions asynchronously and index them without having to sync all into a vector.
-    std::unordered_map<uint64_t, Tx::Base> _transactions; // Tx Index > tx.
+    std::unordered_map<uint64_t, Tx::Base, SafeHash> _transactions; // Tx Index > tx.
     bool finalized = false;
     bool indexed = false;
 
@@ -103,7 +103,7 @@ class Block {
     const uint64_t timestampInSeconds() const { return this->_timestamp / 1000000000; };
     const uint64_t& nHeight() const { return this->_nHeight; };
     const uint32_t& txCount() const { return this->_txCount; };
-    const std::unordered_map<uint64_t, Tx::Base>& transactions() const { return this->_transactions; };
+    const std::unordered_map<uint64_t, Tx::Base, SafeHash>& transactions() const { return this->_transactions; };
     uint64_t blockSize() const;
     std::string getBlockHash() const; // Hash (in bytes)
     std::string serializeToBytes(bool db) const; // Tells tx's to be serialized using secp256k1 for extra calculation or not on deserialization.

@@ -19,7 +19,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     ret["result"] = "8848";
   }
   if(messageJson["method"] == "eth_getBalance") {
-    Address address(messageJson["params"][0].get<std::string>());
+    Address address(messageJson["params"][0].get<std::string>(), true);
     Utils::LogPrint(Log::subnet, "eth_getBalance address: ", address.hex());
     auto balance = this->headState->getNativeBalance(address);
     std::string hexValue = "0x";
@@ -111,7 +111,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     ret["result"] = "0x5208";
   }
   if (messageJson["method"] == "eth_getTransactionCount") {
-    Address address(messageJson["params"][0].get<std::string>());
+    Address address(messageJson["params"][0].get<std::string>(), true);
     auto addressNonce = this->headState->getNativeNonce(address);
     ret["result"] = std::string("0x") + Utils::uintToHex(addressNonce);
   }
@@ -222,7 +222,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
   // }
   // Will increase the balance in 1 SUBS.
   if(messageJson["method"] == "IncreaseBalance") {
-    Address address(messageJson["address"].get<std::string>());
+    Address address(messageJson["address"].get<std::string>(), true);
     this->headState->addBalance(address);
     ret["result"] = "SUCCESS";
   }

@@ -10,18 +10,18 @@ class ChainHead {
   private:
     std::shared_ptr<DBService> &dbServer;
     std::deque<std::shared_ptr<const Block>> internalChainHead;
-    std::unordered_map<std::string,std::shared_ptr<const Block>> lookupBlockByHash;
-    std::unordered_map<std::string,std::shared_ptr<const Block>> lookupBlockByTxHash;
+    std::unordered_map<std::string,std::shared_ptr<const Block>, SafeHash> lookupBlockByHash;
+    std::unordered_map<std::string,std::shared_ptr<const Block>, SafeHash> lookupBlockByTxHash;
     std::unordered_map<std::string,std::shared_ptr<const Tx::Base>> lookupTxByHash;
-    std::unordered_map<std::string,uint64_t> lookupBlockHeightByHash;
-    std::unordered_map<uint64_t,std::string> lookupBlockHashByHeight;
+    std::unordered_map<std::string,uint64_t, SafeHash> lookupBlockHeightByHash;
+    std::unordered_map<uint64_t,std::string, SafeHash> lookupBlockHashByHeight;
     // Used for cacheing blocks and transactions when they are used to load from a DB.
     // See that functions getBlock returns a reference to a shared_ptr.
     // We need to make sure that the reference exists after the scope of the function.
     // TODO: figure out a way to clean up shared_ptr after scope of parent function or after X unused time.
     // shared_ptr::use_count can be used for this.
-    mutable std::unordered_map<std::string,std::shared_ptr<const Block>> cachedBlocks;
-    mutable std::unordered_map<std::string,std::shared_ptr<const Tx::Base>> cachedTxs;
+    mutable std::unordered_map<std::string,std::shared_ptr<const Block>, SafeHash> cachedBlocks;
+    mutable std::unordered_map<std::string,std::shared_ptr<const Tx::Base>, SafeHash> cachedTxs;
     // Mutable provides better const correctness for getBlock and other functions. Its use is acceptable for mutexes and cache.
     mutable std::shared_mutex internalChainHeadLock;
     bool hasBlock(std::string const &blockHash) const;
