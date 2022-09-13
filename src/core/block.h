@@ -65,9 +65,10 @@ class Block {
     bool indexed = false;
 
   public:
-    explicit Block(const std::string &blockData, bool fromDB);  // Constructor. bool flag takes advantage of not running secp256k1 for 40x performance
-                                                                // tradeoff: having to store extra 25 bytes per tx.
-
+    // Constructor.
+    // bool flag takes advantage of not running secp256k1 for 40x performance
+    // tradeoff: having to store extra 25 bytes per tx
+    explicit Block(const std::string &blockData, bool fromDB);
 
     // Constructor from creation.
     Block(

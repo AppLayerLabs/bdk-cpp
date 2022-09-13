@@ -68,7 +68,7 @@ namespace Tx {
         _inBlock = other._inBlock;
         _verified = other._verified;
       }
-      
+
       // Move constructor.
       Base(const Base&& other) noexcept :
         _to(std::move(other._to)),
@@ -109,7 +109,7 @@ namespace Tx {
         this->_verified = other._verified;
         return *this;
       }
-  
+
       // Move assignment operator.
       Base& operator=(Base&& other) {
         this->_to = std::move(other._to);
@@ -169,7 +169,7 @@ namespace Tx {
         this->_inBlock = true;
       };
       void setFrom(const Address& from) { this->_from = from; }
-      
+
       // Hash in bytes not hex!
       std::string hash() const { std::string ret; Utils::sha3(this->rlpSerialize(this->_hasSig), ret); return ret; };
       std::string rlpSerialize(const bool &includeSig) const;
@@ -182,7 +182,6 @@ namespace Tx {
       bool operator!=(Tx::Base const& tx) const { return this->hash() != tx.hash(); };
       bool operator==(Tx::Base const& tx) const { return this->hash() == tx.hash(); };
   };
-}
-
+};
 
 #endif // TRANSACTION_H

@@ -98,3 +98,42 @@ void Tests::bytesToUint8() {
   std::cout << __func__ << " OK" << std::endl;
 }
 
+void Tests::toLowercaseAddress() {
+  std::string expected = "0x1a2b3c4d5e6f7e8d9c0b1a2b3c4d5e6f7e8d9c0b";
+  std::string actual = "0X1A2B3C4D5E6F7E8D9C0B1A2B3C4D5E6F7E8D9C0B";
+  Utils::toLowercaseAddress(actual);
+  assert(expected == actual);
+  std::cout << __func__ << " OK" << std::endl;
+}
+
+void Tests::toUppercaseAddress() {
+  std::string expected = "0X1A2B3C4D5E6F7E8D9C0B1A2B3C4D5E6F7E8D9C0B";
+  std::string actual = "0x1a2b3c4d5e6f7e8d9c0b1a2b3c4d5e6f7e8d9c0b";
+  Utils::toUppercaseAddress(actual);
+  assert(expected == actual);
+  std::cout << __func__ << " OK" << std::endl;
+}
+
+void Tests::toChecksumAddress() {
+  std::string expected = "0x1A2B3c4D5e6f7E8d9c0b1A2b3C4D5e6f7e8d9c0B";
+  std::string actual = "0x1A2B3C4D5E6F7E8D9C0B1A2B3C4D5E6F7E8D9C0B";
+  Utils::toChecksumAddress(actual);
+  assert(expected == actual);
+  std::cout << __func__ << " OK" << std::endl;
+}
+
+void Tests::isAddress() {
+  assert(Utils::isAddress("0x1a2b3c4d5e6f7e8d9c0b1a2b3c4d5e6f7e8d9c0b")); // Lower
+  assert(Utils::isAddress("0X1A2B3C4D5E6F7E8D9C0B1A2B3C4D5E6F7E8D9C0B")); // Upper
+  assert(Utils::isAddress("0x1A2B3c4D5e6f7E8d9c0b1A2b3C4D5e6f7e8d9c0B")); // Checksum
+  assert(!Utils::isAddress("0x1a2b3c4d5e6f7e8d9c0b1a2b3c4d5e6f7e8d9c0")); // != 20 bytes
+  assert(!Utils::isAddress("0x1A2B3C4D5E6F7E8D9C0B1a2b3c4d5e6f7e8d9c0b")); // Wrong checksum
+  std::cout << __func__ << " OK" << std::endl;
+}
+
+void Tests::checkAddressChecksum() {
+  assert(Utils::checkAddressChecksum("0x1A2B3c4D5e6f7E8d9c0b1A2b3C4D5e6f7e8d9c0B"));
+  assert(!Utils::checkAddressChecksum("0x1A2B3C4D5E6F7E8D9C0B1a2b3c4d5e6f7e8d9c0b"));
+  std::cout << __func__ << " OK" << std::endl;
+}
+

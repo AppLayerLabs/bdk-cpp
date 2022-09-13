@@ -235,3 +235,52 @@ std::string Utils::padRight(std::string str, unsigned int charAmount, char sign)
   return (hasPrefix ? "0x" : "") + str + padded;
 }
 
+void Utils::toLowercaseAddress(std::string& address) {
+  std::transform(address.begin(), address.end(), address.begin(), ::tolower);
+}
+
+void Utils::toUppercaseAddress(std::string& address) {
+  std::transform(address.begin(), address.end(), address.begin(), ::toupper);
+}
+
+void Utils::toChecksumAddress(std::string& address) {
+  // Hash requires lowercase address without "0x"
+  Utils::toLowercaseAddress(address);
+  bool hasPrefix = (address.substr(0, 2) == "0x" || address.substr(0, 2) == "0X");
+  int addIdx = (hasPrefix) ? 0 : 2;
+  int hashIdx = 0;
+  std::string hash;
+  Utils::sha3(address.substr(addIdx), hash);
+  while (addIdx < address.length()) {
+    if (!std::isdigit(address[addIdx])) {  // Only check letters (A-F)
+      // If character hash is 8-F then make it uppercase
+      int nibble = std::stoi(hash.substr(hashIdx, 1), nullptr, 16);
+      address[addIdx] = (nibble >= 8)
+        ? std::toupper(address[addIdx]) : std::tolower(address[addIdx]);
+    }
+    addIdx++;
+    hashIdx++;
+  }
+}
+
+bool Utils::isAddress(const std::string& address) {
+  // Regexes for checking the basic requirements of an address,
+  // all lower or all upper case, respectively.
+  std::regex addRegex = std::regex("^(0x|0X)?[0-9a-fA-F]{40}$");
+  std::regex lowRegex = std::regex("^(0x|0X)?[0-9a-f]{40}$");
+  std::regex uppRegex = std::regex("^(0x|0X)?[0-9A-F]{40}$");
+  if (!std::regex_match(address, addRegex)) {
+    return false;
+  } else if (std::regex_match(address, lowRegex) || std::regex_match(address, uppRegex)) {
+    return true;
+  } else {
+    return checkAddressChecksum(address);
+  }
+}
+
+bool Utils::checkAddressChecksum(const std::string& address) {
+  std::string addCpy = address;
+  Utils::toChecksumAddress(addCpy);
+  return address == addCpy;
+}
+
