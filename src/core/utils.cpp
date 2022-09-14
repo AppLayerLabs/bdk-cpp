@@ -245,22 +245,21 @@ void Utils::toUppercaseAddress(std::string& address) {
 
 void Utils::toChecksumAddress(std::string& address) {
   // Hash requires lowercase address without "0x"
-  Utils::toLowercaseAddress(address);
-  bool hasPrefix = (address.substr(0, 2) == "0x" || address.substr(0, 2) == "0X");
-  int addIdx = (hasPrefix) ? 0 : 2;
-  int hashIdx = 0;
-  std::string hash;
-  Utils::sha3(address.substr(addIdx), hash);
-  while (addIdx < address.length()) {
-    if (!std::isdigit(address[addIdx])) {  // Only check letters (A-F)
-      // If character hash is 8-F then make it uppercase
-      int nibble = std::stoi(hash.substr(hashIdx, 1), nullptr, 16);
-      address[addIdx] = (nibble >= 8)
-        ? std::toupper(address[addIdx]) : std::tolower(address[addIdx]);
-    }
-    addIdx++;
-    hashIdx++;
+  if (address.substr(0, 2) == "0x" || address.substr(0, 2) == "0X") {
+    address = address.substr(2);
   }
+  Utils::toLowercaseAddress(address);
+  std::string hash;
+  Utils::sha3(address, hash);
+  hash = Utils::bytesToHex(hash);
+  for (int i = 0; i < address.length(); i++) {
+    if (!std::isdigit(address[i])) {  // Only check letters (A-F)
+      // If character hash is 8-F then make it uppercase
+      int nibble = std::stoi(hash.substr(i, 1), nullptr, 16);
+      address[i] = (nibble >= 8) ? std::toupper(address[i]) : std::tolower(address[i]);
+    }
+  }
+  address.insert(0, "0x");
 }
 
 bool Utils::isAddress(const std::string& address) {
