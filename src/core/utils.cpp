@@ -262,18 +262,22 @@ void Utils::toChecksumAddress(std::string& address) {
   address.insert(0, "0x");
 }
 
-bool Utils::isAddress(const std::string& address) {
-  // Regexes for checking the basic requirements of an address,
-  // all lower or all upper case, respectively.
-  std::regex addRegex = std::regex("^(0x|0X)?[0-9a-fA-F]{40}$");
-  std::regex lowRegex = std::regex("^(0x|0X)?[0-9a-f]{40}$");
-  std::regex uppRegex = std::regex("^(0x|0X)?[0-9A-F]{40}$");
-  if (!std::regex_match(address, addRegex)) {
-    return false;
-  } else if (std::regex_match(address, lowRegex) || std::regex_match(address, uppRegex)) {
-    return true;
+bool Utils::isAddress(const std::string& address, bool fromRPC) {
+  if (fromRPC) {
+    // Regexes for checking the basic requirements of an address,
+    // all lower or all upper case, respectively.
+    std::regex addRegex = std::regex("^(0x|0X)?[0-9a-fA-F]{40}$");
+    std::regex lowRegex = std::regex("^(0x|0X)?[0-9a-f]{40}$");
+    std::regex uppRegex = std::regex("^(0x|0X)?[0-9A-F]{40}$");
+    if (!std::regex_match(address, addRegex)) {
+      return false;
+    } else if (std::regex_match(address, lowRegex) || std::regex_match(address, uppRegex)) {
+      return true;
+    } else {
+      return checkAddressChecksum(address);
+    }
   } else {
-    return checkAddressChecksum(address);
+    return address.size() == 20;
   }
 }
 

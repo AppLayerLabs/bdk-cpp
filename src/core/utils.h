@@ -91,7 +91,7 @@ namespace Utils {
   void toLowercaseAddress(std::string& address);
   void toUppercaseAddress(std::string& address);
   void toChecksumAddress(std::string& address);
-  bool isAddress(const std::string& address);
+  bool isAddress(const std::string& address, bool fromRPC);
   bool checkAddressChecksum(const std::string& address);
 };
 
@@ -109,7 +109,7 @@ class Address {
 
     // C++ can only differ std::string&& and const std::string& on function overloading.
     Address(const std::string& address, bool fromRPC) {
-      if (!Utils::isAddress(address)) {
+      if (!Utils::isAddress(address, fromRPC)) {
         throw std::runtime_error(address + " is not a valid address");
       }
       if (fromRPC) {
@@ -137,7 +137,7 @@ class Address {
 
     // Move string constructor.
     Address(std::string&& address, bool fromRPC) {
-      if (!Utils::isAddress(address)) {
+      if (!Utils::isAddress(address, fromRPC)) {
         throw std::runtime_error(address + " is not a valid address");
       }
       if (fromRPC) {
