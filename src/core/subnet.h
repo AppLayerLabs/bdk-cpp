@@ -10,6 +10,7 @@
 #include "db.h"
 #include "state.h"
 #include "chainTip.h"
+#include "blockmanager.h"
 
 using json = nlohmann::ordered_json;
 using grpc::Server;
@@ -94,6 +95,12 @@ class Subnet {
     std::shared_ptr<ChainTip> chainTip;
 
     InitializeRequest initParams; // From initialization request.
+
+    /**
+     * Block congestion and creation manager.
+     */
+
+    std::shared_ptr<BlockManager> blockManager;
 
     /**
      * All current connected nodes within avalancheGo.

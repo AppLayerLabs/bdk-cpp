@@ -138,6 +138,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   #endif
   this->chainHead = std::make_shared<ChainHead>(this->dbServer);
   this->chainTip = std::make_shared<ChainTip>();
+  this->blockManager = std::make_shared<BlockManager>(this->dbServer);
 
   // Parse the latest block to answer AvalancheGo.
   auto latestBlock = chainHead->latest();
@@ -201,8 +202,7 @@ bool Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
 bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply) {
   try {
     // Check if block already exists on chain head or chain tip
-    std::string blockHash = "";
-    Utils::sha3(blockBytes, blockHash);
+    std::string blockHash = Utils::sha3(blockBytes);
     bool onHead = chainHead->exists(blockHash);
     bool onTip = chainTip->exists(blockHash);
     if (onHead || onTip) {

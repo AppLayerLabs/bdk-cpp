@@ -12,6 +12,7 @@
 #include "../libs/devcore/FixedHash.h"
 #include "../libs/json.hpp"
 #include "../libs/keccak.hpp"
+#include <ethash/keccak.h>
 
 using json = nlohmann::ordered_json;
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
@@ -38,6 +39,7 @@ namespace Log {
   const std::string grpcClient = "VMCommClient::";
   const std::string utils = "Utils::";
   const std::string httpServer = "HTTPServer::";
+  const std::string blockManager = "BlockManager::";
 };
 
 namespace MessagePrefix {
@@ -50,7 +52,7 @@ enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 namespace Utils {
   void logToFile(std::string str);
   void LogPrint(const std::string &prefix, std::string function, std::string data);
-  void sha3(const std::string &input, std::string &output);
+  std::string sha3(const std::string_view &input);
   std::string uint256ToBytes(const uint256_t &i);
   std::string uint160ToBytes(const uint160_t &i);
   std::string uint64ToBytes(const uint64_t &i);

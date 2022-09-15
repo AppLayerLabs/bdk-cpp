@@ -239,6 +239,13 @@ void ChainHead::loadFromDB() {
     dbServer->put("latest", genesis.serializeToBytes(false), DBPrefix::blocks);
     dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash(), DBPrefix::blockHeightMaps);
     dbServer->put(genesis.getBlockHash(), genesis.serializeToBytes(false), DBPrefix::blocks);
+    // TODO: CHANGE THIS ON PUBLIC!!!
+    // Private keys are commented on the right for debugging.
+    dbServer->put(Utils::uint64ToBytes(0),Secp256k1::toPub(Utils::hexToBytes("0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759")), DBPrefix::validators);
+    dbServer->put(Utils::uint64ToBytes(1),Secp256k1::toPub(Utils::hexToBytes("0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4")), DBPrefix::validators);
+    dbServer->put(Utils::uint64ToBytes(2),Secp256k1::toPub(Utils::hexToBytes("0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751")), DBPrefix::validators);
+    dbServer->put(Utils::uint64ToBytes(3),Secp256k1::toPub(Utils::hexToBytes("0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7")), DBPrefix::validators);
+    dbServer->put(Utils::uint64ToBytes(4),Secp256k1::toPub(Utils::hexToBytes("0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6")), DBPrefix::validators); // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
     Utils::LogPrint(Log::chainHead, __func__, "Created genesis block");
     Utils::LogPrint(Log::chainHead, __func__, std::string("Created genesis block: ") + Utils::bytesToHex(genesis.getBlockHash()));
   }

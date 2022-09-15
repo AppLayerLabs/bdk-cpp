@@ -20,7 +20,7 @@ std::string Secp256k1::recover(const std::string& sig, const std::string& messag
   // Expect single byte header of value 0x04 -- uncompressed pubkey.
   assert(serializedPubkey[0] == 0x04);
   // return pubkey without the 0x04 header.
-  return { serializedPubkey.begin() + 1, serializedPubkey.end() };
+  return { serializedPubkey.begin(), serializedPubkey.end() };
 }
 
 void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const uint8_t &v, std::string &signature) {
@@ -37,6 +37,24 @@ void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const ui
   }
   std::memcpy(&signature[64], &v, 1);
   return;
+}
+
+bool Secp256k1::verify(const std::string& pubkey, const std::string& sig, const std::string msghash) {
+    auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+    secp256k1_ecdsa_signature rawSig;
+    if (!secp256k1_ecdsa_signature_parse_compact(ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.data()))) {
+        secp256k1_context_destroy(ctx);
+        return false;
+    }
+    secp256k1_pubkey rawPubkey;
+    if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(pubkey.data()), pubkey.size())) {
+        secp256k1_context_destroy(ctx);
+        return false;
+    }
+    secp256k1_ecdsa_signature_normalize(ctx, &rawSig, &rawSig);
+    int ret = secp256k1_ecdsa_verify(ctx, &rawSig, reinterpret_cast<const unsigned char*>(msghash.data()), &rawPubkey);
+    secp256k1_context_destroy(ctx);
+    return ret;
 }
 
 std::string Secp256k1::toPub(const std::string &privKey) {
@@ -59,9 +77,7 @@ std::string Secp256k1::toPub(const std::string &privKey) {
 }
 
 std::string Secp256k1::toAddress(const std::string &pubKey) {
-  std::string pubKeyHash;
-  Utils::sha3(pubKey, pubKeyHash);
-  return pubKeyHash.substr(12); // Address = pubKeyHash[12..32], no "0x"
+  return Utils::sha3(std::string_view(&pubKey[1], 64)).substr(12); // Address = pubKeyHash[12..32], no "0x"
 }
 
 std::string Secp256k1::sign(const std::string &privKey, const std::string &hash) {
@@ -79,7 +95,7 @@ std::string Secp256k1::sign(const std::string &privKey, const std::string &hash)
   uint8_t rawV = static_cast<uint8_t>(v);
   uint256_t r = Utils::bytesToUint256(signature.substr(0,32));
   uint256_t s = Utils::bytesToUint256(signature.substr(32,32));
-
+  
   if (s > c_secp256k1n / 2 ) {
     rawV = static_cast<uint8_t>(rawV ^ 1);
     s = uint256_t(c_secp256k1n - uint256_t(s));

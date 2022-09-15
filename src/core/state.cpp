@@ -18,6 +18,7 @@ bool State::loadState(std::shared_ptr<DBService> &dbServer) {
     Address dev("0x21B782f9BF82418A42d034517CB6Bf00b4C17612", true); // Ita's address
     Address dev2("0xb3Dc9ed7f450d188c9B5a44f679a1dDBb4Cbd6D2", true); // Supra's address
     dbServer->put(dev.get(),Utils::uint256ToBytes(uint256_t("100000000000000000000")) + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts);
+    Utils::logToFile("Added balance to: " + dev.hex());
     dbServer->put(dev2.get(),Utils::uint256ToBytes(uint256_t("100000000000000000000")) + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts);
     accounts = dbServer->readBatch(DBPrefix::nativeAccounts);
   }

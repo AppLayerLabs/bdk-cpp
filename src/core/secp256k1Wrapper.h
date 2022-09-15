@@ -19,6 +19,7 @@ namespace Secp256k1 {
   std::string toPub(const std::string &privKey);
   std::string toAddress(const std::string &pubKey);
   std::string sign(const std::string &privKey, const std::string &hash);
+  bool verify(const std::string& pubkey, const std::string& sig, const std::string msghash);
 }
 
 #endif  // SECP256K1_WRAPPER_H

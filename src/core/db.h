@@ -32,6 +32,7 @@ namespace DBPrefix {
   const std::string erc20Tokens = "0005";
   const std::string erc721Tokens = "0006";
   const std::string TxToBlocks = "0007";
+  const std::string validators = "0008";
 }
 
 struct DBServer {

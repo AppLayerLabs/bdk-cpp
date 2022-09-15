@@ -239,6 +239,7 @@ set(SUBNETOOOR_HDRS
   src/core/transaction.h
   src/core/utils.h
   src/core/chainTip.h
+  src/core/blockmanager.h
   src/libs/keccak.hpp
   src/net/grpcclient.h
   src/net/grpcserver.h
@@ -258,6 +259,7 @@ set(SUBNETOOOR_SRCS
   src/core/transaction.cpp
   src/core/utils.cpp
   src/core/chainTip.cpp
+  src/core/blockmanager.cpp
   src/net/grpcclient.cpp
   src/net/grpcserver.cpp
   src/net/httpserver.cpp
@@ -295,14 +297,14 @@ add_executable(subnetooord
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
 )
-add_dependencies(subnetooord gen-grpc)
+add_dependencies(subnetooord gen-grpc aleth)
 
 # Add include folder and link libraries to the executable
 target_include_directories(subnetooord PRIVATE aleth)
-target_link_libraries(subnetooord aleth
+target_link_libraries(subnetooord
   ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
   ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-  absl::flags Secp256k1
+  absl::flags Secp256k1 aleth
 )
 
 set_target_properties(subnetooord PROPERTIES COMPILE_FLAGS "-DIS_LOCAL_TESTS=0")

@@ -43,8 +43,22 @@ namespace Tx {
       Base(const std::string_view &bytes, bool fromDB);
 
       // You can also build your own Tx by inputting the values within the RLP Skeleton
-      Base(Address &from, Address &to, uint256_t &value, std::string &data, uint64_t &chainId, uint256_t &nonce, uint256_t &gas, uint256_t &gasPrice) :
-        _from(from), _to(to), _value(value), _data(data), _chainId(chainId), _nonce(nonce), _gas(gas), _gasPrice(gasPrice) { }
+      Base(const Address &from, 
+        const Address &to, 
+        const uint256_t &value, 
+        const std::string &data, 
+        const uint64_t &chainId, 
+        const uint256_t &nonce, 
+        const uint256_t &gas, 
+        const uint256_t &gasPrice) :
+          _from(from), 
+          _to(to), 
+          _value(value), 
+          _data(data), 
+          _chainId(chainId), 
+          _nonce(nonce), 
+          _gas(gas), 
+          _gasPrice(gasPrice) { }
 
       // You can also create an empty transaction.
       Base() {}
@@ -171,7 +185,7 @@ namespace Tx {
       void setFrom(const Address& from) { this->_from = from; }
       
       // Hash in bytes not hex!
-      std::string hash() const { std::string ret; Utils::sha3(this->rlpSerialize(this->_hasSig), ret); return ret; };
+      std::string hash() const { return Utils::sha3(this->rlpSerialize(this->_hasSig)); };
       std::string rlpSerialize(const bool &includeSig) const;
       std::string serialize() const;
 

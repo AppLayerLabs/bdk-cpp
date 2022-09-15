@@ -19,9 +19,13 @@ void Utils::LogPrint(const std::string &prefix, std::string function, std::strin
   debug_mutex.unlock();
 }
 
-void Utils::sha3(const std::string &input, std::string &output) {
-  output.resize(32);
-  keccakUint8_256(reinterpret_cast<unsigned char*>(&output[0]), reinterpret_cast<const unsigned char*>(input.data()), input.size());
+std::string Utils::sha3(const std::string_view &input) {
+  std::string ret;
+  ethash_hash256 h = ethash_keccak256(reinterpret_cast<const unsigned char*>(&input[0]), input.size());
+  for(int i = 0; i < 32; i++) {
+    ret.push_back(h.bytes[i]);
+  }
+  return ret;
 }
 
 std::string Utils::uint256ToBytes(const uint256_t &i) {
