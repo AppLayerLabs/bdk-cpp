@@ -18,6 +18,11 @@ int main() {
   Tests::bytesToUint32();
   Tests::bytesToUint16();
   Tests::bytesToUint8();
+  Tests::toLowercaseAddress();
+  Tests::toUppercaseAddress();
+  Tests::toChecksumAddress();
+  Tests::isAddress();
+  Tests::checkAddressChecksum();
   Tests::testABIDecoder();
 
   // Create a simulation of running network, without the gRPC dependencies.

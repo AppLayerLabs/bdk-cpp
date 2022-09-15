@@ -32,6 +32,11 @@ namespace Tests {
   void bytesToUint32();
   void bytesToUint16();
   void bytesToUint8();
+  void toLowercaseAddress();
+  void toUppercaseAddress();
+  void toChecksumAddress();
+  void isAddress();
+  void checkAddressChecksum();
 
   // testBlockchain uses generateAddress, doBlocks, doTransactions, doBlocksAndTxs and addBalance to run.
   void testBlockchain();
