@@ -253,8 +253,7 @@ void Utils::toChecksumAddress(std::string& address) {
     address = address.substr(2);
   }
   Utils::toLowercaseAddress(address);
-  std::string hash;
-  Utils::sha3(address, hash);
+  std::string hash = Utils::sha3(address);
   hash = Utils::bytesToHex(hash);
   for (int i = 0; i < address.length(); i++) {
     if (!std::isdigit(address[i])) {  // Only check letters (A-F)
