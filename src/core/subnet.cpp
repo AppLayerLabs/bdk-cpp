@@ -142,8 +142,8 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   // Parse the latest block to answer AvalancheGo.
   auto latestBlock = chainHead->latest();
-  reply->set_last_accepted_id(latestBlock->getBlockHash());
-  reply->set_last_accepted_parent_id(latestBlock->prevBlockHash());
+  reply->set_last_accepted_id(latestBlock->getBlockHash().get());
+  reply->set_last_accepted_parent_id(latestBlock->prevBlockHash().get());
   reply->set_height(latestBlock->nHeight());
   reply->set_bytes(latestBlock->serializeToBytes(false));
   auto timestamp = reply->mutable_timestamp();
@@ -170,8 +170,8 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
    * for more information about the SetState request.
    */
   auto bestBlock = chainHead->latest();
-  reply->set_last_accepted_id(bestBlock->getBlockHash());
-  reply->set_last_accepted_parent_id(bestBlock->prevBlockHash());
+  reply->set_last_accepted_id(bestBlock->getBlockHash().get());
+  reply->set_last_accepted_parent_id(bestBlock->prevBlockHash().get());
   reply->set_height(bestBlock->nHeight());
   reply->set_bytes(bestBlock->serializeToBytes(false));
   auto timestamp = reply->mutable_timestamp();
@@ -187,9 +187,9 @@ bool Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
   }
   // Answer back avalanchego.
   Utils::LogPrint(Log::subnet, __func__, "Trying to answer AvalancheGo");
-  Utils::LogPrint(Log::subnet, __func__, std::string("New block created: ") + Utils::bytesToHex(newBlock->getBlockHash()));
-  reply->set_id(newBlock->getBlockHash());
-  reply->set_parent_id(newBlock->prevBlockHash());
+  Utils::LogPrint(Log::subnet, __func__, std::string("New block created: ") + Utils::bytesToHex(newBlock->getBlockHash().get()));
+  reply->set_id(newBlock->getBlockHash().get());
+  reply->set_parent_id(newBlock->prevBlockHash().get());
   reply->set_height(newBlock->nHeight());
   reply->set_bytes(newBlock->serializeToBytes(false));
   auto timestamp = reply->mutable_timestamp();
@@ -202,13 +202,13 @@ bool Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
 bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply) {
   try {
     // Check if block already exists on chain head or chain tip
-    std::string blockHash = Utils::sha3(blockBytes);
+    Hash blockHash = Utils::sha3(blockBytes);
     bool onHead = chainHead->exists(blockHash);
     bool onTip = chainTip->exists(blockHash);
     if (onHead || onTip) {
       auto block = ((onHead) ? chainHead->getBlock(blockHash) : chainTip->getBlock(blockHash));
-      reply->set_id(block->getBlockHash());
-      reply->set_parent_id(block->prevBlockHash());
+      reply->set_id(block->getBlockHash().get());
+      reply->set_parent_id(block->prevBlockHash().get());
       reply->set_status(BlockStatus::Accepted);
       reply->set_height(block->nHeight());
       auto timestamp = reply->mutable_timestamp();
@@ -223,16 +223,16 @@ bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, v
     auto latestBlock = chainHead->latest();
 
     // Parse block
-    reply->set_id(block->getBlockHash());
-    reply->set_parent_id(block->prevBlockHash());
+    reply->set_id(block->getBlockHash().get());
+    reply->set_parent_id(block->prevBlockHash().get());
     reply->set_height(block->nHeight());
     if (block->nHeight() <= latestBlock->nHeight()) {
       reply->set_status(BlockStatus::Rejected);
-      Utils::LogPrint(Log::subnet, __func__, std::string("Block: ") + Utils::bytesToHex(block->getBlockHash()) + " is not higher than latest block, returning Rejected, raw byte");
+      Utils::LogPrint(Log::subnet, __func__, std::string("Block: ") + Utils::bytesToHex(block->getBlockHash().get()) + " is not higher than latest block, returning Rejected, raw byte");
     // https://github.com/ava-labs/avalanchego/blob/master/vms/README.md#processing-blocks
     } else if (block->nHeight() > latestBlock->nHeight()) {
       // We don't know anything about a future block, so we just say we are processing it.
-      Utils::LogPrint(Log::subnet, __func__, std::string("Block: " + Utils::bytesToHex(block->getBlockHash())) + " is higher than latest block, returning Unknown");
+      Utils::LogPrint(Log::subnet, __func__, std::string("Block: " + Utils::bytesToHex(block->getBlockHash().get())) + " is higher than latest block, returning Unknown");
       reply->set_status(BlockStatus::Processing);
       this->chainTip->processBlock(block);
     }
@@ -248,9 +248,10 @@ bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, v
 }
 
 void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply) {
-  if (chainHead->exists(request->id())) {
-    auto block = chainHead->getBlock(request->id());
-    reply->set_parent_id(block->prevBlockHash());
+  Hash blockHash(request->id());
+  if (chainHead->exists(blockHash)) {
+    auto block = chainHead->getBlock(blockHash);
+    reply->set_parent_id(block->prevBlockHash().get());
     reply->set_bytes(block->serializeToBytes(false));
     reply->set_status(BlockStatus::Accepted);
     reply->set_height(block->nHeight());
@@ -259,11 +260,11 @@ void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request
     timestamp->set_nanos(block->timestamp() % 1000000000);
     Utils::LogPrint(Log::subnet, __func__, "Block found in chainHead: " + Utils::bytesToHex(block->serializeToBytes(false)));
     return;
-  } else if (chainTip->exists(request->id())) {
-    auto block = chainTip->getBlock(request->id());
-    reply->set_parent_id(block->prevBlockHash());
+  } else if (chainTip->exists(blockHash)) {
+    auto block = chainTip->getBlock(blockHash);
+    reply->set_parent_id(block->prevBlockHash().get());
     reply->set_bytes(block->serializeToBytes(false));
-    reply->set_status(chainTip->getBlockStatus(request->id()));
+    reply->set_status(chainTip->getBlockStatus(blockHash));
     reply->set_height(block->nHeight());
     auto timestamp = reply->mutable_timestamp();
     timestamp->set_seconds(block->timestamp() / 1000000000);
@@ -279,14 +280,15 @@ void Subnet::getBlock(ServerContext* context, const vm::GetBlockRequest* request
 }
 
 bool Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply) {
+  Hash blockHash(request->blk_id());
   Utils::LogPrint(Log::subnet, __func__,
-    std::string("getAncestors of: ") + Utils::bytesToHex(request->blk_id())
+    std::string("getAncestors of: ") + Utils::bytesToHex(blockHash.get())
     + " with depth: " + std::to_string(request->max_blocks_num())
     + " up to " + std::to_string(request->max_blocks_size())
     + " bytes and/or for " + std::to_string(request->max_blocks_retrival_time()) + " nanosseconds"
   );
-  if (!chainHead->exists(request->blk_id())) return false;
-  auto headBlock = chainHead->getBlock(request->blk_id());
+  if (!chainHead->exists(blockHash)) return false;
+  auto headBlock = chainHead->getBlock(blockHash);
   auto bestBlock = chainHead->latest();
   uint64_t depth = request->max_blocks_num();
   uint64_t maxSize = request->max_blocks_size(); // Bytes
@@ -313,7 +315,7 @@ bool Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest*
 }
 
 void Subnet::setPreference(ServerContext* context, const vm::SetPreferenceRequest* request) {
-  this->chainTip->setPreference(request->id());
+  this->chainTip->setPreference(Hash(request->id()));
   return;
 }
 
@@ -330,10 +332,10 @@ const std::shared_ptr<const Block> Subnet::verifyBlock(const std::string &blockB
   return this->chainTip->getBlock(block->getBlockHash());
 }
 
-bool Subnet::acceptBlock(const std::string &blockHash) {
+bool Subnet::acceptBlock(const Hash &blockHash) {
   // The block submitted from Accept is located in the chainTip, stored from when
   // avalancheGo submitted verifyBlock.
-  Utils::LogPrint(Log::subnet, __func__, "Getting block: " + Utils::bytesToHex(blockHash) + " from chainTip");
+  Utils::LogPrint(Log::subnet, __func__, "Getting block: " + Utils::bytesToHex(blockHash.get()) + " from chainTip");
   uint64_t blockHeight = 0;
   {
     auto block = this->chainTip->getBlock(blockHash);
@@ -352,13 +354,13 @@ bool Subnet::acceptBlock(const std::string &blockHash) {
 
   // Accept block in chainTip, move it to chainState and after being processed,
   // finally move it to chainHead.
-  Utils::LogPrint(Log::subnet, __func__, "Processing block: " + Utils::bytesToHex(blockHash));
+  Utils::LogPrint(Log::subnet, __func__, "Processing block: " + Utils::bytesToHex(blockHash.get()));
   bool ret = this->chainTip->accept(blockHash, this->headState, this->chainHead);
-  Utils::LogPrint(Log::subnet, __func__, "Block " + Utils::bytesToHex(blockHash) + ", height: " + boost::lexical_cast<std::string>(blockHeight) + " accepted");
+  Utils::LogPrint(Log::subnet, __func__, "Block " + Utils::bytesToHex(blockHash.get()) + ", height: " + boost::lexical_cast<std::string>(blockHeight) + " accepted");
   return ret;
 }
 
-void Subnet::rejectBlock(const std::string &blockHash) {
+void Subnet::rejectBlock(const Hash &blockHash) {
   this->chainTip->reject(blockHash);
 }
 

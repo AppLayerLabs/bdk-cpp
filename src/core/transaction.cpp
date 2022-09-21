@@ -127,9 +127,9 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
     std::string sig;
     Secp256k1::appendSignature(this->_r, this->_s, recoveryId, sig);
     this->_hasSig = true;
-    std::string messageHash = Utils::sha3(this->rlpSerialize(false));
-    auto pubKey = Secp256k1::recover(sig, messageHash);
-    if (!Secp256k1::verify(pubKey, sig, messageHash)) {
+    Hash messageHash = Utils::sha3(this->rlpSerialize(false));
+    auto pubKey = Secp256k1::recover(sig, messageHash.get());
+    if (!Secp256k1::verify(pubKey, sig, messageHash.get())) {
       throw std::runtime_error(std::string(__func__) + ": " +
         std::string("RLP: Invalid transaction signature")
       );
@@ -274,15 +274,13 @@ void Tx::Base::sign(std::string &privKey) {
     );
   }
   auto pubkey = Secp256k1::toPub(privKey);
-  std::string pubkeyHash = Utils::sha3(pubkey);
-  Address address(pubkeyHash.substr(12), false); // Address = hash(pubkey)[12]...[32]
+  Address address(Secp256k1::toAddress(pubkey), false);
   if (address != this->_from) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Private key does not match sender address")
     );
   }
-  std::string messageHash = Utils::sha3(this->rlpSerialize(false));
-  std::string signature = Secp256k1::sign(privKey, messageHash);
+  std::string signature = Secp256k1::sign(privKey, Utils::sha3(this->rlpSerialize(false)).get());
   this->_r = Utils::bytesToUint256(signature.substr(0,32));
   this->_s = Utils::bytesToUint256(signature.substr(32,32));
   uint8_t recoveryIds = signature[64];

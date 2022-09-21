@@ -185,7 +185,7 @@ namespace Tx {
       void setFrom(const Address& from) { this->_from = from; }
 
       // Hash in bytes not hex!
-      std::string hash() const { return Utils::sha3(this->rlpSerialize(this->_hasSig)); };
+      inline Hash hash() const { return Utils::sha3(this->rlpSerialize(this->_hasSig)); };
       std::string rlpSerialize(const bool &includeSig) const;
       std::string serialize() const;
 

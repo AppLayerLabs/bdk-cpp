@@ -115,7 +115,7 @@ std::string Block::serializeToBytes(bool db) const {
   return ret;
 }
 
-std::string Block::getBlockHash() const {
+Hash Block::getBlockHash() const {
   return Utils::sha3(this->serializeToBytes(false));
 }
 

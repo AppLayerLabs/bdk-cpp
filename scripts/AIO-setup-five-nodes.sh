@@ -427,7 +427,7 @@ tmux new-session -d -s avalanchego-4 "cd node4 && ./start4.sh"
 tmux new-session -d -s avalanchego-5 "cd node5 && ./start5.sh"
 sleep 10
 
-# Add subnet validator and wait 10 minutes to start the subnet
+# Add subnet validator and wait 10 secs to start the subnet
 START_TIME=$(date --date="1 minutes" +%s)
 END_TIME=$(date --date="10 days" +%s)
 SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
@@ -448,7 +448,7 @@ SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
-sleep 1
+sleep 3
 SECOND_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 --data '{
   "jsonrpc": "2.0",
@@ -467,7 +467,7 @@ SECOND_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $SECOND_SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
-sleep 1
+sleep 3
 THIRD_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 --data '{
   "jsonrpc": "2.0",
@@ -486,7 +486,7 @@ THIRD_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $THIRD_SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
-sleep 1
+sleep 3
 FORTH_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 --data '{
   "jsonrpc": "2.0",
@@ -505,7 +505,7 @@ FORTH_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/P)
 
 echo "SUBNET VALIDATOR OUTPUT: " $FORTH_SUBNET_VALIDATOR_OUTPUT >> $LOGFILE
-sleep 1
+sleep 3
 FIFTH_SUBNET_VALIDATOR_OUTPUT=$(curl -X POST \
 --data '{
   "jsonrpc": "2.0",

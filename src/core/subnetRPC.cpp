@@ -55,9 +55,9 @@ std::string Subnet::processRPCMessage(std::string &req) {
     }
     json answer;
     answer["number"] = std::string("0x") + Utils::uintToHex(block->nHeight());
-    answer["hash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash());
+    answer["hash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash().get());
 
-    answer["parentHash"] = std::string("0x") + Utils::bytesToHex(block->prevBlockHash());
+    answer["parentHash"] = std::string("0x") + Utils::bytesToHex(block->prevBlockHash().get());
     answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
     answer["sha3Uncles"] = "0x";
     answer["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
@@ -76,9 +76,9 @@ std::string Subnet::processRPCMessage(std::string &req) {
       if(includeTxs) {
         // https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash
         json transaction;
-        transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.second.hash());
+        transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.second.hash().get());
         transaction["nonce"] = std::string("0x") + Utils::uintToHex(tx.second.nonce());
-        transaction["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash());
+        transaction["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash().get());
         transaction["blockNumber"] = std::string("0x") + Utils::uintToHex(block->nHeight());
         transaction["transactionIndex"] = std::string("0x") + Utils::uintToHex(tx.second.blockIndex());
         transaction["from"] = std::string("0x") + tx.second.from().hex();
@@ -94,7 +94,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
         transaction["chainid"] = std::string("0x") + Utils::uintToHex(tx.second.chainId());
         answer["transactions"].push_back(transaction);
       } else {
-        answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.second.hash()));
+        answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.second.hash().get()));
       }
     }
     answer["uncles"] = json::array();
@@ -125,22 +125,20 @@ std::string Subnet::processRPCMessage(std::string &req) {
       if (txRet.first != 0) {
         ret["error"] = json({{"code", txRet.first}, {"message", txRet.second}});
       }
-      ret["result"] = std::string("0x") + Utils::bytesToHex(tx.hash());
+      ret["result"] = std::string("0x") + Utils::bytesToHex(tx.hash().get());
     } catch (std::exception &e) {
       Utils::logToFile(std::string("sendRawTransaction failed! ") + e.what());
     }
   }
   if (messageJson["method"] == "eth_getTransactionReceipt") {
-    std::string txHash = messageJson["params"][0].get<std::string>();
-    Utils::patchHex(txHash);
+    Hash txHash = Hash(Utils::hexToBytes(messageJson["params"][0].get<std::string>()));
     try {
-      std::string txStr = Utils::hexToBytes(txHash);
-      auto tx = chainHead->getTransaction(txStr);
-      ret["result"]["transactionHash"] = std::string("0x") + Utils::bytesToHex(tx->hash());
+      auto tx = chainHead->getTransaction(txHash);
+      ret["result"]["transactionHash"] = std::string("0x") + Utils::bytesToHex(tx->hash().get());
       ret["result"]["transactionIndex"] = "0x" + dev::toHex(Utils::uint32ToBytes(tx->blockIndex()));
-      auto block = chainHead->getBlockFromTx(txStr);
+      auto block = chainHead->getBlockFromTx(txHash);
       ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block->nHeight());
-      ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block->getBlockHash());
+      ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block->getBlockHash().get());
       ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx->gas());
       ret["result"]["gasUsed"] = "0x" + Utils::uintToHex(tx->gas());
       ret["result"]["contractAddress"] = "0x";  // TODO: does MetaMask check if we called a contract?
@@ -152,9 +150,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
     }
   }
   if (messageJson["method"] == "eth_getBlockByHash") {
-    std::string blockHash = messageJson["params"][0].get<std::string>();
-    Utils::patchHex(blockHash);
-    blockHash = Utils::hexToBytes(blockHash);
+    Hash blockHash = Hash(Utils::hexToBytes(messageJson["params"][0].get<std::string>()));
     auto block = chainHead->getBlock(blockHash);
     if (block == nullptr) {
       ret["error"] = { {"code", -32000}, {"message", "Block not found"} };
@@ -166,8 +162,8 @@ std::string Subnet::processRPCMessage(std::string &req) {
       includeTxs = messageJson["params"][1].get<bool>();
     }
     answer["number"] = std::string("0x") + Utils::uintToHex(block->nHeight());
-    answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash());
-    answer["parentHash"] = std::string("0x") + dev::toHex(block->prevBlockHash());
+    answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash().get());
+    answer["parentHash"] = std::string("0x") + dev::toHex(block->prevBlockHash().get());
     answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
     answer["sha3Uncles"] = "0x";
     answer["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
@@ -186,9 +182,9 @@ std::string Subnet::processRPCMessage(std::string &req) {
       if (includeTxs) {
         // https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash
         json transaction;
-        transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.second.hash());
+        transaction["hash"] = std::string("0x") + Utils::bytesToHex(tx.second.hash().get());
         transaction["nonce"] = std::string("0x") + Utils::uintToHex(tx.second.nonce());
-        transaction["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash());
+        transaction["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash().get());
         transaction["blockNumber"] = std::string("0x") + Utils::uintToHex(block->nHeight());
         transaction["transactionIndex"] = std::string("0x") + Utils::uintToHex(tx.second.blockIndex());
         transaction["from"] = std::string("0x") + tx.second.from().hex();
@@ -204,7 +200,7 @@ std::string Subnet::processRPCMessage(std::string &req) {
         transaction["chainid"] = std::string("0x") + Utils::uintToHex(tx.second.chainId());
         answer["transactions"].push_back(transaction);
       } else {
-        answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.second.hash()));
+        answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.second.hash().get()));
       }
     }
     answer["uncles"] = json::array();

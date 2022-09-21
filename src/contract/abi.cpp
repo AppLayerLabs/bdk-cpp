@@ -1,7 +1,7 @@
 #include "abi.h"
 
 std::string ABIEncoder::encodeFunction(std::string func) {
-  std::string hash = Utils::sha3(func);
+  std::string hash = Utils::sha3(func).get();
   return hash.substr(0, 8);
 }
 

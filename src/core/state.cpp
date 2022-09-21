@@ -102,7 +102,7 @@ std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx
     Utils::LogPrint(Log::subnet, "validateTransactionForRPC: ", errMsg);
   } else {
     stateLock.lock();
-    std::string txHash = tx.hash();
+    Hash txHash = tx.hash();
     this->mempool[txHash] = std::move(tx);
     #if !IS_LOCAL_TESTS
       if (broadcast) {
@@ -147,8 +147,8 @@ bool State::validateNewBlock(const std::shared_ptr<const Block> &newBlock, const
   auto bestBlock = chainHead->latest();
   if (bestBlock->getBlockHash() != newBlock->prevBlockHash()) {
     Utils::LogPrint(Log::state, __func__, "Block previous hash does not match.");
-    Utils::LogPrint(Log::state, __func__, "newBlock previous hash: " + newBlock->prevBlockHash());
-    Utils::LogPrint(Log::state, __func__, "bestBlock hash: " + bestBlock->getBlockHash());
+    Utils::LogPrint(Log::state, __func__, "newBlock previous hash: " + newBlock->prevBlockHash().get());
+    Utils::LogPrint(Log::state, __func__, "bestBlock hash: " + bestBlock->getBlockHash().get());
     return false;
   }
 
@@ -165,14 +165,14 @@ bool State::validateNewBlock(const std::shared_ptr<const Block> &newBlock, const
       return false;
     }
   }
-  Utils::LogPrint(Log::state, __func__, "Block " + Utils::bytesToHex(newBlock->getBlockHash()) + ", height " + boost::lexical_cast<std::string>(newBlock->nHeight()) + " validated.");
+  Utils::LogPrint(Log::state, __func__, "Block " + Utils::bytesToHex(newBlock->getBlockHash().get()) + ", height " + boost::lexical_cast<std::string>(newBlock->nHeight()) + " validated.");
   return true;
 }
 
 void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const std::shared_ptr<ChainHead>& chainHead) {
   // Check block previous hash.
   this->stateLock.lock();
-  Utils::LogPrint(Log::state, __func__, "Processing new block " + Utils::bytesToHex(newBlock->getBlockHash()) + ", height " + boost::lexical_cast<std::string>(newBlock->nHeight()));
+  Utils::LogPrint(Log::state, __func__, "Processing new block " + Utils::bytesToHex(newBlock->getBlockHash().get()) + ", height " + boost::lexical_cast<std::string>(newBlock->nHeight()));
   auto bestBlock = chainHead->latest();
 
   for (const auto &tx : newBlock->transactions()) {
@@ -192,7 +192,7 @@ const std::shared_ptr<const Block> State::createNewBlock(std::shared_ptr<ChainHe
     Utils::LogPrint(Log::state, __func__, "No prefered block found");
     return nullptr;
   }
-  Utils::LogPrint(Log::state, __func__, std::string("Got preference: ") + Utils::bytesToHex(bestBlockHash));
+  Utils::LogPrint(Log::state, __func__, std::string("Got preference: ") + Utils::bytesToHex(bestBlockHash.get()));
   bestBlock = chainHead->getBlock(bestBlockHash);
   if (bestBlock == nullptr) { // Prefered block not found
     Utils::LogPrint(Log::state, __func__, "Prefered block does not exist");
@@ -201,7 +201,7 @@ const std::shared_ptr<const Block> State::createNewBlock(std::shared_ptr<ChainHe
   Utils::LogPrint(Log::state, __func__, "Got best block.");
 
   auto newBestBlock = std::make_shared<Block>(
-    Utils::bytesToUint256(bestBlock->getBlockHash()),
+    Utils::bytesToUint256(bestBlock->getBlockHash().get()),
     std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::high_resolution_clock::now().time_since_epoch()
     ).count(),

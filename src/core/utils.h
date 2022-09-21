@@ -51,10 +51,69 @@ namespace MessagePrefix {
 
 enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
+template <unsigned N>
+class StringContainer {
+  private:
+    std::string _data;
+  
+  public:
+    // TODO: when constructing the StringContainer, if the input string doesn't match the size, it will throw
+    // Add error handling for these throws, specially over places where the user can input data (such as subnetRPC.cpp).
+    enum { size = N };
+    StringContainer() { _data.resize(N, 0x00); }
+    StringContainer(const std::string_view& data) { if (data.size() != N) { throw std::runtime_error("Invalid StringContainer input size"); } _data = data; };
+    StringContainer(std::string&& data) { if (data.size() != N) { throw std::runtime_error("Invalid StringContainer input size"); } _data = std::move(data); };
+    StringContainer(const StringContainer& other) { if (other.size != N) { throw std::runtime_error("Invalid StringContainer input size");} _data = other._data; };
+    StringContainer(StringContainer&& other) { if (other.size != N) { throw std::runtime_error("Invalid StringContainer input size");} _data = std::move(other._data); };
+
+    inline const std::string& get() const { return _data; }
+    inline const std::string_view& get_view() const { return std::string_view(_data, N); }
+    inline const bool empty() const { return _data.empty(); }
+    bool operator==(const StringContainer& other) const { return (this->_data == other._data);}
+    bool operator!=(const StringContainer& other) const { return (this->_data != other._data); }
+    bool operator<(const StringContainer& other) const { return (this->_data < other._data); }
+    bool operator>=(const StringContainer& other) const { return (this->_data >= other._data); }
+    bool operator<=(const StringContainer& other) const { return (this->_data <= other._data); }
+    bool operator>(const StringContainer& other) const { return (this->_data > other._data); }
+
+    char& operator[](const size_t& pos) {
+      return _data[pos];
+    }
+
+    const char& operator[](const size_t& pos) const {
+      return _data[pos];
+    }
+
+    const std::string::const_iterator begin() const { return _data.cbegin(); }
+    const std::string::const_iterator end() const { return _data.cend(); }
+
+    /// @returns a constant byte pointer to the object's data.
+    const char* data() const { return _data.data(); }
+
+    StringContainer& operator=(StringContainer const &_c)
+    {
+        if (&_c == this)
+            return *this;
+        this->_data = _c.data();
+        return *this;
+    }
+
+    StringContainer& operator=(StringContainer &&_c)
+    {
+        if (&_c == this)
+            return *this;
+        this->_data = std::move(_c.data());
+        return *this;
+    }
+
+};
+
+using Hash = StringContainer<32>;
+
 namespace Utils {
   void logToFile(std::string str);
   void LogPrint(const std::string &prefix, std::string function, std::string data);
-  std::string sha3(const std::string_view &input);
+  Hash sha3(const std::string_view &input);
   std::string uint256ToBytes(const uint256_t &i);
   std::string uint160ToBytes(const uint160_t &i);
   std::string uint64ToBytes(const uint64_t &i);
@@ -208,6 +267,12 @@ struct SafeHash {
   size_t operator()(const std::shared_ptr<T> &ptr) const {
     static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
     return splitmix(std::hash<std::shared_ptr<T>>()(ptr) + FIXED_RANDOM);
+  }
+
+  template<unsigned N>
+  size_t operator()(const StringContainer<N> &strContainer) const {
+    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    return splitmix(std::hash<std::string>()(strContainer.get()) + FIXED_RANDOM);
   }
 };
 

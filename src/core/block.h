@@ -52,6 +52,7 @@
  *
  * rawBlock: 5c37d504e9415c3b75afaa3ad24484382274bba31f10dcd268e554785d5b807500000181810EB6507a8b54dfbfe9f21d00000001000000aff8ad81be850c92a69c0082e18c94d586e7f844cea2f87f50152665bcbc2c279d8d7080b844a9059cbb00000000000000000000000026548521f99d0709f615aa0f766a7df60f99250b00000000000000000000000000000000000000000000002086ac351052600000830150f7a07e16328b7f3823abeb13d0cab11cdffaf967c9b2eaf3757c42606d6f2ecd8ce6a040684c94b289cdda22822e5cb374ea374d7a3ba581a9014faf35b19e5345ab92
  */
+
 class Block {
   private:
     // TODO: Add creator Header (might require writing a secp256k1 wrapper)
@@ -99,14 +100,14 @@ class Block {
     {}
 
     // Getters.
-    const std::string prevBlockHash() const { return Utils::uint256ToBytes(this->_prevBlockHash); };
+    const Hash prevBlockHash() const { return Hash(Utils::uint256ToBytes(this->_prevBlockHash)); };
     const uint64_t& timestamp() const { return this->_timestamp; };
     const uint64_t timestampInSeconds() const { return this->_timestamp / 1000000000; };
     const uint64_t& nHeight() const { return this->_nHeight; };
     const uint32_t& txCount() const { return this->_txCount; };
     const std::unordered_map<uint64_t, Tx::Base, SafeHash>& transactions() const { return this->_transactions; };
     uint64_t blockSize() const;
-    std::string getBlockHash() const; // Hash (in bytes)
+    Hash getBlockHash() const; // Hash (in bytes)
     std::string serializeToBytes(bool db) const; // Tells tx's to be serialized using secp256k1 for extra calculation or not on deserialization.
     void indexTxs();  // When transactions are indexed, the block is considered to be on chain
     bool appendTx(const Tx::Base &tx);

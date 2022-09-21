@@ -19,7 +19,7 @@ void VMCommClient::requestBlock() {
 }
 
 void VMCommClient::relayTransaction(const Tx::Base tx) {
-  Utils::LogPrint(Log::grpcClient, __func__, "relayTransaction: trying to relay: " + Utils::bytesToHex(tx.hash()));
+  Utils::LogPrint(Log::grpcClient, __func__, "relayTransaction: trying to relay: " + Utils::bytesToHex(tx.hash().get()));
   appsender::SendAppGossipSpecificMsg req;
   nodeListLock.lock_shared();
   for (const auto &node : nodeList) {

@@ -4,6 +4,7 @@ void ChainHead::_push_back(const std::shared_ptr<const Block>&& block) {
   this->internalChainHead.emplace_back(std::move(block));
 
   auto latestBlock = internalChainHead.back();
+  auto hash = latestBlock->getBlockHash();
   this->lookupBlockByHash[latestBlock->getBlockHash()] = latestBlock;
   this->lookupBlockHashByHeight[latestBlock->nHeight()] = latestBlock->getBlockHash();
   this->lookupBlockHeightByHash[latestBlock->getBlockHash()] = latestBlock->nHeight();
@@ -48,7 +49,7 @@ void ChainHead::pop_back() {
    * Gather information about the block to delete references to it on internal mappings.
    * We have to collect: blockHash, blockHeight, all tx hashes.
    */
-  std::string blockHash = blockToDelete->getBlockHash();
+  Hash blockHash = blockToDelete->getBlockHash();
   uint64_t blockHeight = blockToDelete->nHeight();
 
   // Delete all tx references from mappings.
@@ -73,7 +74,7 @@ void ChainHead::pop_front() {
    * Gather information about the block to delete references to it on internal mappings.
    * We have to collect: blockHash, blockHeight, all tx hashes.
    */
-  std::string blockHash = blockToDelete->getBlockHash();
+  Hash blockHash = blockToDelete->getBlockHash();
   uint64_t blockHeight = blockToDelete->nHeight();
 
   // Delete all tx references from mappings.
@@ -91,7 +92,7 @@ void ChainHead::pop_front() {
   this->internalChainHeadLock.unlock();
 }
 
-bool ChainHead::hasBlock(std::string const &blockHash) const {
+bool ChainHead::hasBlock(Hash const &blockHash) const {
   this->internalChainHeadLock.lock_shared();
   bool result = this->lookupBlockByHash.count(blockHash) > 0;
   this->internalChainHeadLock.unlock_shared();
@@ -105,9 +106,9 @@ bool ChainHead::hasBlock(uint64_t const &blockHeight) const {
   return result;
 }
 
-const bool ChainHead::exists(std::string const &blockHash) const{
+const bool ChainHead::exists(Hash const &blockHash) const{
   if (this->hasBlock(blockHash)) return true;
-  return this->dbServer->has(blockHash, DBPrefix::blocks);  // Check DB.
+  return this->dbServer->has(blockHash.get(), DBPrefix::blocks);  // Check DB.
 }
 
 const bool ChainHead::exists(uint64_t const &blockHeight) const {
@@ -115,7 +116,7 @@ const bool ChainHead::exists(uint64_t const &blockHeight) const {
   return this->dbServer->has(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps); // Check DB.
 }
 
-const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockHash) const {
+const std::shared_ptr<const Block> ChainHead::getBlock(Hash const &blockHash) const {
   if (this->exists(blockHash)) {
     if (this->hasBlock(blockHash)) {
       this->internalChainHeadLock.lock_shared();
@@ -123,7 +124,7 @@ const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockH
       this->internalChainHeadLock.unlock_shared();
       return result;
     }
-    Utils::LogPrint(Log::chainHead, __func__, "blockHash: " + blockHash);
+    Utils::LogPrint(Log::chainHead, __func__, "blockHash: " + blockHash.get());
     this->internalChainHeadLock.lock_shared();
     if (this->cachedBlocks.count(blockHash) > 0) {
       const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
@@ -131,7 +132,7 @@ const std::shared_ptr<const Block> ChainHead::getBlock(std::string const &blockH
       return result;
     }
 
-    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks), true);
+    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash.get(), DBPrefix::blocks), true);
     auto result = this->cachedBlocks[blockHash];
     this->internalChainHeadLock.unlock_shared();
     return this->cachedBlocks[blockHash];
@@ -148,7 +149,7 @@ const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeig
       this->internalChainHeadLock.unlock_shared();
       return result;
     }
-    std::string blockHash = dbServer->get(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps);
+    Hash blockHash(dbServer->get(Utils::uint64ToBytes(blockHeight), DBPrefix::blockHeightMaps));
     Utils::LogPrint(Log::chainHead, __func__, "blockHeight: " + blockHeight);
     this->internalChainHeadLock.lock_shared();
     if (this->cachedBlocks.count(blockHash) > 0) {
@@ -157,7 +158,7 @@ const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeig
       return result;
     }
 
-    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash, DBPrefix::blocks), true);
+    this->cachedBlocks[blockHash] = std::make_shared<Block>(dbServer->get(blockHash.get(), DBPrefix::blocks), true);
     const std::shared_ptr<const Block> result = this->cachedBlocks[blockHash];
     this->internalChainHeadLock.unlock_shared();
     return result;
@@ -166,14 +167,14 @@ const std::shared_ptr<const Block> ChainHead::getBlock(uint64_t const &blockHeig
   }
 }
 
-bool ChainHead::hasTransaction(const std::string &txHash) const {
+bool ChainHead::hasTransaction(const Hash &txHash) const {
   this->internalChainHeadLock.lock_shared();
   bool result = this->lookupTxByHash.count(txHash) > 0;
   this->internalChainHeadLock.unlock_shared();
   return result;
 }
 
-const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(const std::string &txHash) const {
+const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(const Hash &txHash) const {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock_shared();
     const std::shared_ptr<const Tx::Base> result = this->lookupTxByHash.find(txHash)->second;
@@ -192,9 +193,9 @@ const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(const std::strin
   this->internalChainHeadLock.unlock_shared();
 
   // Check DB.
-  if (this->dbServer->has(txHash, DBPrefix::TxToBlocks)) {
-    std::string blockHash = dbServer->get(txHash, DBPrefix::TxToBlocks);
-    std::string txBytes = dbServer->get(blockHash, DBPrefix::blocks);
+  if (this->dbServer->has(txHash.get(), DBPrefix::TxToBlocks)) {
+    Hash blockHash(dbServer->get(txHash.get(), DBPrefix::TxToBlocks));
+    std::string txBytes = dbServer->get(blockHash.get(), DBPrefix::blocks);
     this->internalChainHeadLock.lock_shared();
     this->cachedTxs[txHash] = std::make_shared<Tx::Base>(txBytes, true);
     const std::shared_ptr<const Tx::Base> result = this->cachedTxs[txHash]; // No need to check a tx again.
@@ -207,7 +208,7 @@ const std::shared_ptr<const Tx::Base> ChainHead::getTransaction(const std::strin
   );
 }
 
-const std::shared_ptr<const Block> ChainHead::getBlockFromTx(const std::string &txHash) const {
+const std::shared_ptr<const Block> ChainHead::getBlockFromTx(const Hash &txHash) const {
   if (this->hasTransaction(txHash)) {
     this->internalChainHeadLock.lock_shared();
     const std::shared_ptr<const Block> result = this->lookupBlockByTxHash.find(txHash)->second;
@@ -237,8 +238,8 @@ void ChainHead::loadFromDB() {
   if (!dbServer->has("latest", DBPrefix::blocks)) {
     Block genesis(0, 1656356645000000, 0);
     dbServer->put("latest", genesis.serializeToBytes(false), DBPrefix::blocks);
-    dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash(), DBPrefix::blockHeightMaps);
-    dbServer->put(genesis.getBlockHash(), genesis.serializeToBytes(false), DBPrefix::blocks);
+    dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash().get(), DBPrefix::blockHeightMaps);
+    dbServer->put(genesis.getBlockHash().get(), genesis.serializeToBytes(false), DBPrefix::blocks);
     // TODO: CHANGE THIS ON PUBLIC!!!
     // Private keys are commented on the right for debugging.
     dbServer->put(Utils::uint64ToBytes(0),Secp256k1::toPub(Utils::hexToBytes("0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759")), DBPrefix::validators);
@@ -247,7 +248,7 @@ void ChainHead::loadFromDB() {
     dbServer->put(Utils::uint64ToBytes(3),Secp256k1::toPub(Utils::hexToBytes("0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7")), DBPrefix::validators);
     dbServer->put(Utils::uint64ToBytes(4),Secp256k1::toPub(Utils::hexToBytes("0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6")), DBPrefix::validators); // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
     Utils::LogPrint(Log::chainHead, __func__, "Created genesis block");
-    Utils::LogPrint(Log::chainHead, __func__, std::string("Created genesis block: ") + Utils::bytesToHex(genesis.getBlockHash()));
+    Utils::LogPrint(Log::chainHead, __func__, std::string("Created genesis block: ") + Utils::bytesToHex(genesis.getBlockHash().get()));
   }
 
   Utils::LogPrint(Log::chainHead, __func__, "Loading chain head from DB: getting latest block");
@@ -262,13 +263,15 @@ void ChainHead::loadFromDB() {
   // Load block mappings (hash -> height and height -> hash) from DB.
   std::vector<DBEntry> blockMaps = dbServer->readBatch(DBPrefix::blockHeightMaps);
   for (auto &blockMap : blockMaps) {
-    this->lookupBlockHashByHeight[Utils::bytesToUint64(blockMap.key)] = blockMap.value;
-    this->lookupBlockHeightByHash[blockMap.value] = Utils::bytesToUint64(blockMap.key);
+    // TODO: there are multiple places where we could replace the call into a std::move
+    // Problem is if you std::move blockMap.value, you can't use it anymore as the case here.
+    this->lookupBlockHashByHeight[Utils::bytesToUint64(blockMap.key)] = Hash(blockMap.value);
+    this->lookupBlockHeightByHash[Hash(blockMap.value)] = Utils::bytesToUint64(blockMap.key);
   }
 
   // Append up to 1000 blocks from history.
   for (uint64_t i = 0; i <= 1000 && i <= depth; ++i) {
-    auto block = std::make_shared<Block>(dbServer->get(this->lookupBlockHashByHeight[depth-i], DBPrefix::blocks), true);
+    auto block = std::make_shared<Block>(dbServer->get(this->lookupBlockHashByHeight[depth-i].get(), DBPrefix::blocks), true);
     this->_push_front(block);
   }
 
@@ -286,19 +289,19 @@ void ChainHead::dumpToDB() {
   while (!this->internalChainHead.empty()) {
     // We can't call this->pop_back() because of std::mutex.
     auto blockToDelete = this->internalChainHead.front();
-    blockBatch.puts.emplace_back(DBEntry(blockToDelete->getBlockHash(), blockToDelete->serializeToBytes(true)));
-    heightBatch.puts.emplace_back(DBEntry(Utils::uint64ToBytes(blockToDelete->nHeight()), blockToDelete->getBlockHash()));
+    blockBatch.puts.emplace_back(DBEntry(blockToDelete->getBlockHash().get(), blockToDelete->serializeToBytes(true)));
+    heightBatch.puts.emplace_back(DBEntry(Utils::uint64ToBytes(blockToDelete->nHeight()), blockToDelete->getBlockHash().get()));
 
     /**
      * Gather information about the block to delete references to it on internal mappings.
      * We have to collect: blockHash, blockHeight, all tx hashes.
      */
-    std::string blockHash = blockToDelete->getBlockHash();
+    Hash blockHash = blockToDelete->getBlockHash();
     uint64_t blockHeight = blockToDelete->nHeight();
 
     // Delete all tx references from mappingsand append them to the DB.
     for (const auto &tx : blockToDelete->transactions()) {
-      txToBlockBatch.puts.emplace_back(DBEntry(tx.second.hash(), blockToDelete->getBlockHash()));
+      txToBlockBatch.puts.emplace_back(DBEntry(tx.second.hash().get(), blockToDelete->getBlockHash().get()));
       this->lookupTxByHash.erase(tx.second.hash());
       this->lookupBlockByTxHash.erase(tx.second.hash());
     }

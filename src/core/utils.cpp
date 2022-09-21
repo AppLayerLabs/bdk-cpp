@@ -19,13 +19,14 @@ void Utils::LogPrint(const std::string &prefix, std::string function, std::strin
   debug_mutex.unlock();
 }
 
-std::string Utils::sha3(const std::string_view &input) {
+Hash Utils::sha3(const std::string_view &input) {
   std::string ret;
   ethash_hash256 h = ethash_keccak256(reinterpret_cast<const unsigned char*>(&input[0]), input.size());
   for(int i = 0; i < 32; i++) {
     ret.push_back(h.bytes[i]);
   }
-  return ret;
+  Hash retH(std::move(ret));
+  return retH;
 }
 
 std::string Utils::uint256ToBytes(const uint256_t &i) {
@@ -253,7 +254,7 @@ void Utils::toChecksumAddress(std::string& address) {
     address = address.substr(2);
   }
   Utils::toLowercaseAddress(address);
-  std::string hash = Utils::sha3(address);
+  std::string hash = Utils::sha3(address).get();
   hash = Utils::bytesToHex(hash);
   for (int i = 0; i < address.length(); i++) {
     if (!std::isdigit(address[i])) {  // Only check letters (A-F)

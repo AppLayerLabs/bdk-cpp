@@ -10,21 +10,21 @@ class ChainHead {
   private:
     std::shared_ptr<DBService> &dbServer;
     std::deque<std::shared_ptr<const Block>> internalChainHead;
-    std::unordered_map<std::string,std::shared_ptr<const Block>, SafeHash> lookupBlockByHash;
-    std::unordered_map<std::string,std::shared_ptr<const Block>, SafeHash> lookupBlockByTxHash;
-    std::unordered_map<std::string,std::shared_ptr<const Tx::Base>> lookupTxByHash;
-    std::unordered_map<std::string,uint64_t, SafeHash> lookupBlockHeightByHash;
-    std::unordered_map<uint64_t,std::string, SafeHash> lookupBlockHashByHeight;
+    std::unordered_map<Hash,std::shared_ptr<const Block>, SafeHash> lookupBlockByHash;
+    std::unordered_map<Hash,std::shared_ptr<const Block>, SafeHash> lookupBlockByTxHash;
+    std::unordered_map<Hash,std::shared_ptr<const Tx::Base>, SafeHash> lookupTxByHash;
+    std::unordered_map<Hash,uint64_t, SafeHash> lookupBlockHeightByHash;
+    std::unordered_map<uint64_t,Hash, SafeHash> lookupBlockHashByHeight;
     // Used for cacheing blocks and transactions when they are used to load from a DB.
     // See that functions getBlock returns a reference to a shared_ptr.
     // We need to make sure that the reference exists after the scope of the function.
     // TODO: figure out a way to clean up shared_ptr after scope of parent function or after X unused time.
     // shared_ptr::use_count can be used for this.
-    mutable std::unordered_map<std::string,std::shared_ptr<const Block>, SafeHash> cachedBlocks;
-    mutable std::unordered_map<std::string,std::shared_ptr<const Tx::Base>, SafeHash> cachedTxs;
+    mutable std::unordered_map<Hash,std::shared_ptr<const Block>, SafeHash> cachedBlocks;
+    mutable std::unordered_map<Hash,std::shared_ptr<const Tx::Base>, SafeHash> cachedTxs;
     // Mutable provides better const correctness for getBlock and other functions. Its use is acceptable for mutexes and cache.
     mutable std::shared_mutex internalChainHeadLock;
-    bool hasBlock(std::string const &blockHash) const;
+    bool hasBlock(Hash const &blockHash) const;
     bool hasBlock(uint64_t const &blockHeight) const;
     // Only access these functions if you are absolute sure that internalChainHeadLock is locked.
     void _push_back(const std::shared_ptr<const Block> &&block);
@@ -42,15 +42,15 @@ class ChainHead {
     void push_front(const std::shared_ptr<const Block> &&block);
     void pop_back();
     void pop_front();
-    const bool exists(std::string const &blockHash) const;
+    const bool exists(Hash const &blockHash) const;
     const bool exists(uint64_t const &blockHeight) const;
     // chainHead does not return a reference to the pointer
     // Because we need to make sure that the reference exists after the scope of the function.
-    const std::shared_ptr<const Block> getBlock(std::string const &blockHash) const;
+    const std::shared_ptr<const Block> getBlock(Hash const &blockHash) const;
     const std::shared_ptr<const Block> getBlock(uint64_t const &blockHeight) const;
-    bool hasTransaction(const std::string &txHash) const;
-    const std::shared_ptr<const Tx::Base> getTransaction(const std::string &txHash) const;
-    const std::shared_ptr<const Block> getBlockFromTx(const std::string &txHash) const;
+    bool hasTransaction(const Hash &txHash) const;
+    const std::shared_ptr<const Tx::Base> getTransaction(const Hash &txHash) const;
+    const std::shared_ptr<const Block> getBlockFromTx(const Hash &txHash) const;
     const std::shared_ptr<const Block> latest() const;
     uint64_t blockSize();
     void dumpToDB();

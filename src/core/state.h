@@ -30,7 +30,7 @@ class ChainTip;
 class State {
   private:
     std::unordered_map<Address, Account, SafeHash> nativeAccount; // Address -> Account
-    mutable std::unordered_map<std::string, Tx::Base, SafeHash> mempool; // Tx Hash (bytes) -> Tx
+    mutable std::unordered_map<Hash, Tx::Base, SafeHash> mempool; // Tx Hash (bytes) -> Tx
     // TODO: improve mempool structure (e.g. verify txs in mempool not included in a block after accepting another block, as we need to keep every tx valid)
     mutable std::shared_mutex stateLock;
     #if !IS_LOCAL_TESTS
@@ -56,7 +56,7 @@ class State {
     #endif
     uint256_t getNativeBalance(const Address& address);
     uint256_t getNativeNonce(const Address& address);
-    const std::unordered_map<std::string, Tx::Base, SafeHash>& getMempool() const { return mempool; };
+    const std::unordered_map<Hash, Tx::Base, SafeHash>& getMempool() const { return mempool; };
 
     // State changing functions
 

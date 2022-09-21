@@ -9,6 +9,7 @@
 class Validator {
   private:
     // TODO: We could possibly use secp256k1 compressed pubkeys.
+    // TODO: change string to StringContainer.
     std::string _pubkey;
 
   public:

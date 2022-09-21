@@ -138,10 +138,10 @@ class Subnet {
     const std::shared_ptr<const Block> verifyBlock(const std::string &blockBytes);
 
     // To be called by the grpcServer when avalancheGo sends a block for us to accept.
-    bool acceptBlock(const std::string &blockHash);
+    bool acceptBlock(const Hash &blockHash);
 
     // To be called by the grpcServer when avalancheGo sends a block for us to reject and remove from chainTip.
-    void rejectBlock(const std::string &blockHash);
+    void rejectBlock(const Hash &blockHash);
 
     // To be called by grpcServer after a shutdown call.
     void shutdownServer();

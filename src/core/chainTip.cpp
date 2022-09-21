@@ -1,13 +1,13 @@
 #include "chainTip.h"
 #include "state.h"
 
-void ChainTip::setBlockStatus(const std::string &blockHash, const BlockStatus &status) {
+void ChainTip::setBlockStatus(const Hash &blockHash, const BlockStatus &status) {
   internalChainTipLock.lock();
   this->cachedBlockStatus[blockHash] = status;
   internalChainTipLock.unlock();
 }
 
-BlockStatus ChainTip::getBlockStatus(const std::string &blockHash) const {
+BlockStatus ChainTip::getBlockStatus(const Hash &blockHash) const {
   internalChainTipLock.lock_shared();
   if (this->cachedBlockStatus.count(blockHash) > 0) {
     auto ret = this->cachedBlockStatus.find(blockHash)->second;
@@ -18,7 +18,7 @@ BlockStatus ChainTip::getBlockStatus(const std::string &blockHash) const {
   return BlockStatus::Unknown;
 }
 
-bool ChainTip::isProcessing(const std::string &blockHash) const {
+bool ChainTip::isProcessing(const Hash &blockHash) const {
   internalChainTipLock.lock_shared();
   if (this->cachedBlockStatus.count(blockHash) > 0) {
     bool ret = (this->cachedBlockStatus.find(blockHash)->second == BlockStatus::Processing) ? true : false;
@@ -29,7 +29,7 @@ bool ChainTip::isProcessing(const std::string &blockHash) const {
   return false;
 };
 
-bool ChainTip::accept(const std::string &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead) {
+bool ChainTip::accept(const Hash &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead) {
   internalChainTipLock.lock();
   auto it = this->internalChainTip.find(blockHash);
   if (it == this->internalChainTip.end()) {
@@ -51,7 +51,7 @@ bool ChainTip::accept(const std::string &blockHash, const std::shared_ptr<State>
   return true;
 }
 
-void ChainTip::reject(const std::string &blockHash) {
+void ChainTip::reject(const Hash &blockHash) {
   internalChainTipLock.lock();
   this->internalChainTip.erase(blockHash);
   this->cachedBlockStatus[blockHash] = BlockStatus::Rejected;
@@ -66,7 +66,7 @@ void ChainTip::processBlock(std::shared_ptr<Block> block) {
   this->internalChainTipLock.unlock();
 }
 
-const std::shared_ptr<const Block> ChainTip::getBlock(const std::string &blockHash) const {
+const std::shared_ptr<const Block> ChainTip::getBlock(const Hash &blockHash) const {
   internalChainTipLock.lock_shared();
   auto it = internalChainTip.find(blockHash);
   if (it == internalChainTip.end()) { // Block not found
@@ -78,21 +78,21 @@ const std::shared_ptr<const Block> ChainTip::getBlock(const std::string &blockHa
   return ret;
 };
 
-std::string ChainTip::getPreference() const {
+Hash ChainTip::getPreference() const {
   internalChainTipLock.lock_shared();
-  std::string ret = preferedBlockHash;
+  Hash ret = preferedBlockHash;
   internalChainTipLock.unlock_shared();
   return ret;
 }
 
-bool ChainTip::exists(const std::string &blockHash) const {
+bool ChainTip::exists(const Hash &blockHash) const {
   internalChainTipLock.lock_shared();
   bool ret = (internalChainTip.count(blockHash) > 0) ? true : false;
   internalChainTipLock.unlock_shared();
   return ret;
 }
 
-void ChainTip::setPreference(const std::string &blockHash) {
+void ChainTip::setPreference(const Hash &blockHash) {
   internalChainTipLock.lock();
   preferedBlockHash = blockHash;
   internalChainTipLock.unlock();

@@ -58,6 +58,7 @@ bool Secp256k1::verify(const std::string& pubkey, const std::string& sig, const 
 }
 
 std::string Secp256k1::toPub(const std::string &privKey) {
+  Utils::logToFile(std::string("Privkey: ") + Utils::bytesToHex(privKey) + std::to_string(privKey.size()));
   if (privKey.size() != 32) { return ""; }
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   secp256k1_pubkey rawPubkey;
@@ -77,7 +78,7 @@ std::string Secp256k1::toPub(const std::string &privKey) {
 }
 
 std::string Secp256k1::toAddress(const std::string &pubKey) {
-  return Utils::sha3(std::string_view(&pubKey[1], 64)).substr(12); // Address = pubKeyHash[12..32], no "0x"
+  return Utils::sha3(std::string_view(&pubKey[1], 64)).get().substr(12); // Address = pubKeyHash[12..32], no "0x"
 }
 
 std::string Secp256k1::sign(const std::string &privKey, const std::string &hash) {
