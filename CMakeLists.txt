@@ -351,8 +351,6 @@ if(BUILD_TESTS)
     "tests/tests.h"
     "tests/transaction.cpp"
     "tests/utils.cpp"
-    "tests/state.cpp"
-    "tests/chainHead.cpp"
     "tests/abi.cpp"
     ${SUBNETOOOR_TESTS_HDRS}
     ${SUBNETOOOR_TESTS_SRCS}

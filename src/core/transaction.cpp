@@ -81,14 +81,18 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
     index += dataLenght; // Index at rlp[6] size
   }
 
-  // Get v, small string.
+  // Get v, small string or byte itself.
 
-  uint8_t vLenght = bytes[index] - 0x80;
-  if (vLenght > 0x37) { throw std::runtime_error("V is not a small string"); }
-  ++index; // Index at rlp[6] payload.
-  this->_v = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], vLenght));
-  index += vLenght; // Index at rlp[7] size.
-
+  uint8_t vLenght = (uint8_t(bytes[index]) >= 0x80 ? uint8_t(bytes[index]) - 0x80 : 0);  // Nonce can be a small string or the byte itself.
+  if (vLenght != 0) {
+    if (vLenght > 0x37) { throw std::runtime_error("V is not a small string"); }
+    ++index; // Index at rlp[6] payload.
+    this->_v = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], vLenght));
+    index += vLenght; // Index at rlp[7] size.
+  } else {
+    this->_v = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1))  - (uint8_t(bytes[index]) == 0x80 ? 0x80 : 0);
+    ++index; // Index at rlp[7] size.
+  }
   // Get r, small string, 32 in size.
   if (uint8_t(bytes[index]) != 0xa0) { throw std::runtime_error("R is not a 32 byte string"); }
   ++index; // Index at rlp[7] payload.
@@ -272,7 +276,7 @@ void Tx::Base::sign(std::string &privKey) {
     );
   }
   auto pubkey = Secp256k1::toPub(privKey);
-  Address address(Secp256k1::toAddress(pubkey), false);
+  Address address = Secp256k1::toAddress(pubkey);
   if (address != this->_from) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Private key does not match sender address")

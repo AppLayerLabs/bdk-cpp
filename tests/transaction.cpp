@@ -58,8 +58,7 @@ void Tests::transactionSign() {
   uint256_t keyI = uint256_t("172381824912738179852131");
   std::string privKey = Utils::uint256ToBytes(keyI);
   std::string pubkey = Secp256k1::toPub(privKey);
-  Hash pubkeyHash = Utils::sha3(pubkey);
-  Address address(pubkeyHash.get().substr(12), false);
+  Address address = Secp256k1::toAddress(pubkey);
 
   // Create tx.
   Address to("0x1544920afDc2D6de7BbAc245170789D498320498", true);
@@ -81,4 +80,5 @@ void Tests::transactionSign() {
   );
   transaction.sign(privKey);
   assert(transaction.rlpSerialize(true) == Utils::hexToBytes("f86e8085012a05f200825208941544920afdc2d6de7bbac245170789d498320498880de0b6b3a764000080824543a05f91b0ac9ad0a00b58d84a0aeda315f9ec5461a1bd899ae26009484df639a13ea035eea065998809fa87d3a7eeed3c330efdae35f5da7113ad1e45c24ce401cc40"));
+  std::cout << __func__ << " OK" << std::endl;
 }

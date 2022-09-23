@@ -73,12 +73,11 @@ std::string Secp256k1::toPub(const std::string &privKey) {
   assert (serializedPubkey.size() == serializedPubkeySize);
   // Expect single byte header of value 0x04 -- uncompressed pubkey.
   assert(serializedPubkey[0] == 0x04);
-  // return pubkey without the 0x04 header.
-  return { serializedPubkey.begin() + 1, serializedPubkey.end() };
+  return { serializedPubkey.begin(), serializedPubkey.end() };
 }
 
-std::string Secp256k1::toAddress(const std::string &pubKey) {
-  return Utils::sha3(std::string_view(&pubKey[1], 64)).get().substr(12); // Address = pubKeyHash[12..32], no "0x"
+Address Secp256k1::toAddress(const std::string &pubKey) {
+  return Address(Utils::sha3(std::string_view(&pubKey[1], 64)).get().substr(12), false); // Address = pubKeyHash[12..32], no "0x"
 }
 
 std::string Secp256k1::sign(const std::string &privKey, const std::string &hash) {
