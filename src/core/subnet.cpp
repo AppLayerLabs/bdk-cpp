@@ -1,5 +1,4 @@
 #include "subnet.h"
-#include "chainTip.h"
 
 void Subnet::start() {
   /**

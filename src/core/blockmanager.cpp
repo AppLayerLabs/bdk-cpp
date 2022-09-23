@@ -1,7 +1,5 @@
 #include "blockmanager.h"
 
-
-
 BlockManager::BlockManager(std::shared_ptr<DBService> &db) {
   loadFromDB(db);
   Utils::logToFile("BlockManager Loaded " + std::to_string(validatorsList.size()) + " validators");
@@ -28,6 +26,5 @@ void BlockManager::loadFromDB(std::shared_ptr<DBService> &db) {
     validatorsList[Utils::bytesToUint64(validator.key)] = std::move(validator.value);
     Utils::logToFile("Loop End");
   }
-
 }
 

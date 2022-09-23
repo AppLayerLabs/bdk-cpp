@@ -315,6 +315,7 @@ if(BUILD_TESTS)
   set(SUBNETOOOR_TESTS_HDRS
     src/contract/abi.h
     src/core/block.h
+    src/core/blockmanager.h
     src/core/chainHead.h
     src/core/db.h
     src/core/secp256k1Wrapper.h
@@ -331,6 +332,7 @@ if(BUILD_TESTS)
   set(SUBNETOOOR_TESTS_SRCS
     src/contract/abi.cpp
     src/core/block.cpp
+    src/core/blockmanager.cpp
     src/core/chainHead.cpp
     src/core/db.cpp
     src/core/secp256k1Wrapper.cpp

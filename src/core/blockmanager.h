@@ -2,9 +2,9 @@
 #define BLOCKMANAGER_H
 
 #include <shared_mutex>
+
 #include "utils.h"
 #include "db.h"
-
 
 class Validator {
   private:
@@ -14,17 +14,11 @@ class Validator {
 
   public:
     Validator() = default;
-
     Validator(const std::string &pubkey) { _pubkey = pubkey; }
-
     Validator(std::string&& pubkey) { _pubkey = std::move(pubkey); }
-
     Validator(const std::string_view &pubkey) { _pubkey = pubkey; }
-
     Validator(const Validator& other) { this->_pubkey = other._pubkey; }
-
     Validator(Validator&& other) noexcept :_pubkey(std::move(other._pubkey)) {}
-
     ~Validator() { this->_pubkey = ""; }
 
     void operator=(const std::string_view& address) { this->_pubkey = address; }
@@ -40,11 +34,11 @@ class BlockManager {
     std::vector<Validator> validatorsList;
     void loadFromDB(std::shared_ptr<DBService> &db);
     mutable std::shared_mutex managerLock;
+
   public:
     BlockManager(std::shared_ptr<DBService> &db);
-
     bool isValidator(const Validator &validator) const;
-
     void saveToDB(std::shared_ptr<DBService> &db);
 };
-#endif
+
+#endif  // BLOCKMANAGER_H

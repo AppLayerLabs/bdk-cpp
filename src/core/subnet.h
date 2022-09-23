@@ -2,21 +2,23 @@
 #define SUBNET_H
 
 #include <shared_mutex>
+
 #include "../libs/json.hpp"
 #include "../net/grpcclient.h"
 #include "../net/grpcserver.h"
 #include "../net/httpserver.h"
 #include "block.h"
+#include "blockmanager.h"
 #include "db.h"
 #include "state.h"
 #include "chainTip.h"
-#include "blockmanager.h"
 
 using json = nlohmann::ordered_json;
 using grpc::Server;
 using grpc::ServerContext;
 
 // Forward declarations.
+class BlockManager;
 class HTTPServer;
 class VMServiceImplementation;
 

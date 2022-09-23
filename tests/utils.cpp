@@ -123,11 +123,11 @@ void Tests::toChecksumAddress() {
 }
 
 void Tests::isAddress() {
-  assert(Utils::isAddress("0x1a2b3c4d5e6f7e8d9c0b1a2b3c4d5e6f7e8d9c0b")); // Lower
-  assert(Utils::isAddress("0X1A2B3C4D5E6F7E8D9C0B1A2B3C4D5E6F7E8D9C0B")); // Upper
-  assert(Utils::isAddress("0x1A2B3c4D5e6f7E8d9c0b1A2b3C4D5e6f7e8d9c0B")); // Checksum
-  assert(!Utils::isAddress("0x1a2b3c4d5e6f7e8d9c0b1a2b3c4d5e6f7e8d9c0")); // != 20 bytes
-  assert(!Utils::isAddress("0x1A2B3C4D5E6F7E8D9C0B1a2b3c4d5e6f7e8d9c0b")); // Wrong checksum
+  assert(Utils::isAddress("0x1a2b3c4d5e6f7e8d9c0b1a2b3c4d5e6f7e8d9c0b", true)); // Lower
+  assert(Utils::isAddress("0X1A2B3C4D5E6F7E8D9C0B1A2B3C4D5E6F7E8D9C0B", true)); // Upper
+  assert(Utils::isAddress("0x1A2B3c4D5e6f7E8d9c0b1A2b3C4D5e6f7e8d9c0B", true)); // Checksum
+  assert(!Utils::isAddress("0x1a2b3c4d5e6f7e8d9c0b1a2b3c4d5e6f7e8d9c0", true)); // != 20 bytes
+  assert(!Utils::isAddress("0x1A2B3C4D5E6F7E8D9C0B1a2b3c4d5e6f7e8d9c0b", true)); // Wrong checksum
   std::cout << __func__ << " OK" << std::endl;
 }
 

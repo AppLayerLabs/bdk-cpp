@@ -58,9 +58,8 @@ void Tests::transactionSign() {
   uint256_t keyI = uint256_t("172381824912738179852131");
   std::string privKey = Utils::uint256ToBytes(keyI);
   std::string pubkey = Secp256k1::toPub(privKey);
-  std::string pubkeyHash;
-  Utils::sha3(pubkey, pubkeyHash);
-  Address address(pubkeyHash.substr(12), false);
+  Hash pubkeyHash = Utils::sha3(pubkey);
+  Address address(pubkeyHash.get().substr(12), false);
 
   // Create tx.
   Address to("0x1544920afDc2D6de7BbAc245170789D498320498", true);

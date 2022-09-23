@@ -2,11 +2,11 @@
 #include "../src/core/chainHead.h"
 #include "../src/core/state.h"
 
-void Tests::doBlocks(uint32_t quantity, std::shared_ptr<ChainHead> &chainHead, std::shared_ptr<State> &state) {
+void Tests::doBlocks(uint32_t quantity, std::shared_ptr<ChainHead> &chainHead, std::shared_ptr<ChainTip> &chainTip, std::shared_ptr<State> &state) {
   // TODO: Fix tests as chainHead and state now operates with a third class, ChainTip.
-  auto latest = chainHead->latest();
+  const std::shared_ptr<const Block> latest = chainHead->latest();
   for (uint32_t i = 0; i < quantity; ++i) {
-    if (!state->createNewBlock(chainHead)) {
+    if (!state->createNewBlock(chainHead, chainTip)) {
       std::runtime_error("doBlocks: createNewBlock failed!");
     }
   }
