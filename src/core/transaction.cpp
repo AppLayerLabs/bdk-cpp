@@ -13,7 +13,7 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
   }
 
   // Get list lenght.
-  uint8_t listLenghtSize = bytes[index] - 0xf7;
+  uint8_t listLenghtSize = uint8_t(bytes[index]) - 0xf7;
   ++index;
   uint64_t listLenght = Utils::fromBigEndian<uint64_t>(std::string_view(&bytes[index], listLenghtSize));
   index += listLenghtSize; // Index is now at rlp[0] size.
@@ -21,17 +21,15 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
   if (listLenght < ((fromDB) ? (bytes.size() - 25) : bytes.size()) - listLenghtSize - 1) {
     throw std::runtime_error("Transaction RLP reports a size, returns smaller.");
   }
-  const uint8_t nonceLenght = bytes[index] - 0x80; // Nonce is a small string.
-
-  // Nonce must be a small string.
-  if (nonceLenght > 0x37) { throw std::runtime_error("Nonce is not a small string"); }
+  const uint8_t nonceLenght = (uint8_t(bytes[index]) >= 0x80 ? uint8_t(bytes[index]) - 0x80 : 0);  // Nonce can be a small string or the byte itself.
+  // If string (nonceLenght > 0), get _nonce from string.
   if (nonceLenght != 0) {
-    ++index; // Index at rlp[0] payload.
+    ++index; // Index at rlp[0] payload. 
     uint64_t nonce = 0;
     this->_nonce = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], nonceLenght));
     index += nonceLenght; // Index at rlp[1] size.
   } else {
-    this->_nonce = 0;
+    this->_nonce = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1))  - (uint8_t(bytes[index]) == 0x80 ? 0x80 : 0);
     ++index; // Index at rlp[1] size.
   }
 
