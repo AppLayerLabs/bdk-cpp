@@ -90,22 +90,17 @@ class StringContainer {
     /// @returns a constant byte pointer to the object's data.
     const char* data() const { return _data.data(); }
 
-    StringContainer& operator=(StringContainer const &_c)
-    {
-        if (&_c == this)
-            return *this;
-        this->_data = _c.data();
-        return *this;
+    StringContainer& operator=(StringContainer const &_c) {
+      if (&_c == this) return *this;
+      this->_data = _c.data();
+      return *this;
     }
 
-    StringContainer& operator=(StringContainer &&_c)
-    {
-        if (&_c == this)
-            return *this;
-        this->_data = std::move(_c.data());
-        return *this;
+    StringContainer& operator=(StringContainer &&_c) {
+      if (&_c == this) return *this;
+      this->_data = std::move(_c.data());
+      return *this;
     }
-
 };
 
 using Hash = StringContainer<32>;
