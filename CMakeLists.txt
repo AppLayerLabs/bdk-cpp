@@ -233,6 +233,7 @@ set(SUBNETOOOR_HDRS
   src/core/block.h
   src/core/chainHead.h
   src/core/db.h
+  src/core/merkle.h
   src/core/secp256k1Wrapper.h
   src/core/state.h
   src/core/subnet.h
@@ -252,6 +253,7 @@ set(SUBNETOOOR_SRCS
   src/core/block.cpp
   src/core/chainHead.cpp
   src/core/db.cpp
+  src/core/merkle.cpp
   src/core/secp256k1Wrapper.cpp
   src/core/state.cpp
   src/core/subnet.cpp
@@ -318,6 +320,7 @@ if(BUILD_TESTS)
     src/core/blockmanager.h
     src/core/chainHead.h
     src/core/db.h
+    src/core/merkle.h
     src/core/secp256k1Wrapper.h
     src/core/state.h
     src/core/subnet.h
@@ -335,6 +338,7 @@ if(BUILD_TESTS)
     src/core/blockmanager.cpp
     src/core/chainHead.cpp
     src/core/db.cpp
+    src/core/merkle.cpp
     src/core/secp256k1Wrapper.cpp
     src/core/state.cpp
     src/core/subnet.cpp
