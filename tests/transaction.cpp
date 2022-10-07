@@ -11,6 +11,7 @@ void Tests::transactions() {
   assert(tx1.gas() == uint256_t("21000"));
   assert(tx1.to().hex() == "da3ef932f6c1dc41055f7c196c416be5c3c34fe7");
   assert(tx1.value() == uint256_t("100000000000000000"));
+  std::cout <<  tx1.from().hex() << std::endl;
   assert(tx1.from().hex() == "0c43aa7b1abc9355f4c6ad1c6c0881bc28f765f1");
   assert(tx1.data() == std::string(""));
   assert(tx1.r() == uint256_t("663967998266271129109389889062598836125705429943091786001113539763235009518"));
@@ -56,8 +57,8 @@ void Tests::transactions() {
 void Tests::transactionSign() {
   // Derive private key and address.
   uint256_t keyI = uint256_t("172381824912738179852131");
-  std::string privKey = Utils::uint256ToBytes(keyI);
-  std::string pubkey = Secp256k1::toPub(privKey);
+  PrivKey privKey(Utils::uint256ToBytes(keyI));
+  UncompressedPubkey pubkey = Secp256k1::toPub(privKey);
   Address address = Secp256k1::toAddress(pubkey);
 
   // Create tx.

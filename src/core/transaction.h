@@ -190,7 +190,7 @@ namespace Tx {
       std::string serialize() const;
 
       // Signer
-      void sign(std::string &privKey);
+      void sign(const PrivKey &privKey);
 
       // Check equality, needed by std::unordered_map
       bool operator!=(Tx::Base const& tx) const { return this->hash() != tx.hash(); };

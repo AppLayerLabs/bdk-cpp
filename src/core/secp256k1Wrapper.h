@@ -11,15 +11,12 @@
 #include "utils.h"
 
 namespace Secp256k1 {
-  std::string recover(const std::string& sig, const std::string& messageHash);
-  void appendSignature(
-    const uint256_t &r, const uint256_t &s, const uint8_t &v,
-    std::string &signature
-  );
-  std::string toPub(const std::string &privKey);
-  Address toAddress(const std::string &pubKey);
-  std::string sign(const std::string &privKey, const std::string &hash);
-  bool verify(const std::string& pubkey, const std::string& sig, const std::string msghash);
+  UncompressedPubkey recover(const Signature& sig, const Hash& messageHash);
+  Signature appendSignature(const uint256_t &r, const uint256_t &s, const uint8_t &v);
+  UncompressedPubkey toPub(const PrivKey &privKey);
+  Address toAddress(const UncompressedPubkey &pubKey);
+  Signature sign(const PrivKey &privKey, const Hash &hash);
+  bool verify(const UncompressedPubkey& pubkey, const Signature& sig, const Hash& msghash);
 }
 
 #endif  // SECP256K1_WRAPPER_H

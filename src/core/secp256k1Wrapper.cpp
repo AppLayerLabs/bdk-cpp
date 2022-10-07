@@ -1,30 +1,30 @@
 #include "secp256k1Wrapper.h"
 
-std::string Secp256k1::recover(const std::string& sig, const std::string& messageHash) {
+UncompressedPubkey Secp256k1::recover(const Signature& sig, const Hash& messageHash) {
   int v = sig[64];
-  if (v > 3) return "";
+  if (v > 3) return UncompressedPubkey();
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
     ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.data()), v)
-  ) return "";
+  ) return UncompressedPubkey();
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ecdsa_recover(
     ctx, &rawPubkey, &rawSig, reinterpret_cast<const unsigned char*>(messageHash.data()))
-  ) return "";
-  std::array<uint8_t,65> serializedPubkey;
+  ) return UncompressedPubkey();
+  UncompressedPubkey serializedPubkey;
   size_t serializedPubkeySize = serializedPubkey.size();
-  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
+  secp256k1_ec_pubkey_serialize(ctx, reinterpret_cast<unsigned char*>(&serializedPubkey[0]), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
   secp256k1_context_destroy(ctx);
   assert (serializedPubkeySize == serializedPubkey.size());
   // Expect single byte header of value 0x04 -- uncompressed pubkey.
   assert(serializedPubkey[0] == 0x04);
   // return pubkey without the 0x04 header.
-  return { serializedPubkey.begin(), serializedPubkey.end() };
+  return serializedPubkey;
 }
 
-void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const uint8_t &v, std::string &signature) {
-  signature = std::string(65, 0x00);  // r = [0, 32], s = [32, 64], v = 65
+Signature Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const uint8_t &v) {
+  std::string signature(65, 0x00);  // r = [0, 32], s = [32, 64], v = 65
   std::string tmpR;
   boost::multiprecision::export_bits(r, std::back_inserter(tmpR), 8);
   for (uint16_t i = 0; i < tmpR.size(); ++i) {
@@ -36,10 +36,11 @@ void Secp256k1::appendSignature(const uint256_t &r, const uint256_t &s, const ui
     signature[63-i] = tmpS[tmpS.size()-i-1];  // Replace bytes from tmp to ret to make it 32 bytes in size.
   }
   std::memcpy(&signature[64], &v, 1);
-  return;
+  Signature sig(std::move(signature));
+  return sig;
 }
 
-bool Secp256k1::verify(const std::string& pubkey, const std::string& sig, const std::string msghash) {
+bool Secp256k1::verify(const UncompressedPubkey& pubkey, const Signature& sig, const Hash& msghash) {
     auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
     secp256k1_ecdsa_signature rawSig;
     if (!secp256k1_ecdsa_signature_parse_compact(ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.data()))) {
@@ -57,35 +58,34 @@ bool Secp256k1::verify(const std::string& pubkey, const std::string& sig, const 
     return ret;
 }
 
-std::string Secp256k1::toPub(const std::string &privKey) {
-  Utils::logToFile(std::string("Privkey: ") + Utils::bytesToHex(privKey) + std::to_string(privKey.size()));
-  if (privKey.size() != 32) { return ""; }
+UncompressedPubkey Secp256k1::toPub(const PrivKey &privKey) {
+  if (privKey.size() != 32) { return UncompressedPubkey(); }
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_create(ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(privKey.data()))) {
-    return "";
+    return UncompressedPubkey();
   }
 
-  std::array<byte, 65> serializedPubkey;
+  UncompressedPubkey serializedPubkey;
   auto serializedPubkeySize = serializedPubkey.size();
 
-  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
+  secp256k1_ec_pubkey_serialize(ctx, reinterpret_cast<unsigned char*>(&serializedPubkey[0]), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
   assert (serializedPubkey.size() == serializedPubkeySize);
   // Expect single byte header of value 0x04 -- uncompressed pubkey.
   assert(serializedPubkey[0] == 0x04);
-  return { serializedPubkey.begin(), serializedPubkey.end() };
+  return serializedPubkey;
 }
 
-Address Secp256k1::toAddress(const std::string &pubKey) {
+Address Secp256k1::toAddress(const UncompressedPubkey &pubKey) {
   return Address(Utils::sha3(std::string_view(&pubKey[1], 64)).get().substr(12), false); // Address = pubKeyHash[12..32], no "0x"
 }
 
-std::string Secp256k1::sign(const std::string &privKey, const std::string &hash) {
-  if (privKey.size() != 32 && hash.size() != 32) { return ""; }
+Signature Secp256k1::sign(const PrivKey &privKey, const Hash &hash) {
+  if (privKey.size() != 32 && hash.size() != 32) { return Signature(); }
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_sign_recoverable(ctx, &rawSig, reinterpret_cast<const unsigned char*>(hash.data()), reinterpret_cast<const unsigned char*>(privKey.data()), nullptr, nullptr)) {
-    return "";
+    return Signature();
   }
 
   int v = 0;
@@ -102,7 +102,5 @@ std::string Secp256k1::sign(const std::string &privKey, const std::string &hash)
   }
 
   assert (s <= c_secp256k1n / 2);
-  Secp256k1::appendSignature(r, s, v, signature);
-  return signature;
+  return Secp256k1::appendSignature(r, s, v);
 }
-

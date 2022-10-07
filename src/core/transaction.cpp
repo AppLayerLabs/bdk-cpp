@@ -126,12 +126,11 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
         std::string("RLP: Invalid transaction signature - doesn't fit elliptic curve verification")
       );
     }
-    std::string sig;
-    Secp256k1::appendSignature(this->_r, this->_s, recoveryId, sig);
+    Signature sig = Secp256k1::appendSignature(this->_r, this->_s, recoveryId);
     this->_hasSig = true;
     Hash messageHash = Utils::sha3(this->rlpSerialize(false));
-    auto pubKey = Secp256k1::recover(sig, messageHash.get());
-    if (!Secp256k1::verify(pubKey, sig, messageHash.get())) {
+    auto pubKey = Secp256k1::recover(sig, messageHash);
+    if (!Secp256k1::verify(pubKey, sig, messageHash)) {
       throw std::runtime_error(std::string(__func__) + ": " +
         std::string("RLP: Invalid transaction signature")
       );
@@ -269,7 +268,7 @@ std::string Tx::Base::serialize() const {
   return ret;
 }
 
-void Tx::Base::sign(std::string &privKey) {
+void Tx::Base::sign(const PrivKey &privKey) {
   if (privKey.size() != 32) {
     throw std::runtime_error(std::string(__func__) + ": " +
       std::string("Invalid private key size - expected 32, got ") + std::to_string(privKey.size())
@@ -282,9 +281,9 @@ void Tx::Base::sign(std::string &privKey) {
       std::string("Private key does not match sender address")
     );
   }
-  std::string signature = Secp256k1::sign(privKey, Utils::sha3(this->rlpSerialize(false)).get());
-  this->_r = Utils::bytesToUint256(signature.substr(0,32));
-  this->_s = Utils::bytesToUint256(signature.substr(32,32));
+  Signature signature = Secp256k1::sign(privKey, Utils::sha3(this->rlpSerialize(false)));
+  this->_r = Utils::bytesToUint256(signature.get_view(0, 32));
+  this->_s = Utils::bytesToUint256(signature.get_view(32,32));
   uint8_t recoveryIds = signature[64];
   this->_v = recoveryIds + (this->_chainId * 2 + 35);
   if (!Utils::verifySignature(recoveryIds, this->_r, this->_s)) {
