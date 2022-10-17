@@ -1,9 +1,0 @@
-{
-    "C_Cpp.default.includePath": [
-        "/home/ita/GitHub/subnetooor/src/",
-        "/home/ita/GitHub/subnetooor/proto/",
-        "/home/ita/GitHub/subnetooor/src/libs/",
-        "/home/ita/GitHub/secp256k1/include/",
-        "/home/ita/GitHub/ethash/include/"
-    ]
-}
