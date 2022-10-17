@@ -13,7 +13,6 @@
 #include "../libs/devcore/CommonData.h"
 #include "../libs/devcore/FixedHash.h"
 #include "../libs/json.hpp"
-#include "../libs/keccak.hpp"
 #include <ethash/keccak.h>
 
 using json = nlohmann::ordered_json;

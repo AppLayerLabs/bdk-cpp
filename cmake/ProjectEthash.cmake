@@ -13,10 +13,10 @@ set(ETHASH_BYPRODUCTS "${prefix}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}keccak${CMAKE
 ExternalProject_Add(
     ethash
     PREFIX "${prefix}"
-    DOWNLOAD_NAME ethash-v0.5.0.tar.gz
+    DOWNLOAD_NAME ethash-v1.0.0.tar.gz
     DOWNLOAD_NO_PROGRESS 1
-    URL https://github.com/chfast/ethash/archive/v0.5.0.tar.gz
-    URL_HASH SHA256=16bce25f34b733a91530d22f31626fc1060f2fa5105165efdd9ba65e3e3e10ac
+    URL https://github.com/chfast/ethash/archive/refs/tags/v1.0.0.tar.gz
+    URL_HASH SHA256=36071d9c4aaf3fd9e43155d7c2604404d6ab70613e6978cff964c5814f461a1a
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                -DCMAKE_POSITION_INDEPENDENT_CODE=${BUILD_SHARED_LIBS}
                -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}

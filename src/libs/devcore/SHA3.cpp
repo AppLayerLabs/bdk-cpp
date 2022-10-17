@@ -2,7 +2,6 @@
 // Copyright 2014-2019 Aleth Authors.
 // Licensed under the GNU General Public License, Version 3.
 
-#include "../keccak.hpp"
 
 #include "RLP.h"
 #include "SHA3.h"
