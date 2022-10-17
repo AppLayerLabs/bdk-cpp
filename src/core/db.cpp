@@ -1,10 +1,6 @@
 #include "db.h"
 
-std::string DBService::removeKeyPrefix(const std::string &key) {
-  return key.substr(4);
-}
-
-bool DBService::has(std::string key, std::string prefix) {
+bool DBService::has(const std::string& key, const std::string& prefix) {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
   for (it->Seek(prefix+key); it->Valid(); it->Next()) {
     if (it->key().ToString() == prefix+key) {
@@ -16,7 +12,7 @@ bool DBService::has(std::string key, std::string prefix) {
   return false;
 }
 
-std::string DBService::get(std::string key, std::string prefix) {
+std::string DBService::get(const std::string& key, const std::string& prefix) {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
   for (it->Seek(prefix+key); it->Valid(); it->Next()) {
     if (it->key().ToString() == prefix+key) {
@@ -29,7 +25,7 @@ std::string DBService::get(std::string key, std::string prefix) {
   return "";
 }
 
-bool DBService::put(std::string key, std::string value, std::string prefix) {
+bool DBService::put(const std::string& key, const std::string& value, const std::string& prefix) {
   auto status = this->db->Put(leveldb::WriteOptions(), prefix+key, value);
   if (!status.ok()) {
     Utils::LogPrint(Log::db, __func__, "Failed to put key: " + key);
@@ -38,7 +34,7 @@ bool DBService::put(std::string key, std::string value, std::string prefix) {
   return true;
 }
 
-bool DBService::del(std::string key, std::string prefix) {
+bool DBService::del(const std::string& key, const std::string& prefix) {
   auto status = this->db->Delete(leveldb::WriteOptions(), prefix+key);
   if (!status.ok()) {
     Utils::LogPrint(Log::db, __func__, "Failed to delete key: " + key);
@@ -47,19 +43,13 @@ bool DBService::del(std::string key, std::string prefix) {
   return true;
 }
 
-bool DBService::close() {
-  delete this->db;
-  this->db = nullptr;
-  return true;
-}
-
-bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
+bool DBService::writeBatch(WriteBatchRequest& request, const std::string& prefix) {
   batchLock.lock();
   for (auto &entry : request.puts) {
     auto status = this->db->Put(leveldb::WriteOptions(), prefix+entry.key, entry.value);
     if (!status.ok()) return false;
   }
-  for (std::string &key : request.dels) {
+  for (std::string& key : request.dels) {
     auto status = this->db->Delete(leveldb::WriteOptions(), prefix+key);
     if (status.ok()) return false;
   }
@@ -67,7 +57,7 @@ bool DBService::writeBatch(WriteBatchRequest &request, std::string prefix) {
   return true;
 }
 
-std::vector<DBEntry> DBService::readBatch(std::string const prefix) {
+std::vector<DBEntry> DBService::readBatch(const std::string& prefix) {
   batchLock.lock();
   std::vector<DBEntry> entries;
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
@@ -82,7 +72,7 @@ std::vector<DBEntry> DBService::readBatch(std::string const prefix) {
   return entries;
 }
 
-std::vector<DBEntry> DBService::readBatch(const std::vector<std::string>& keys, const std::string prefix) {
+std::vector<DBEntry> DBService::readBatch(const std::vector<std::string>& keys, const std::string& prefix) {
   batchLock.lock();
   std::vector<DBEntry> ret;
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());

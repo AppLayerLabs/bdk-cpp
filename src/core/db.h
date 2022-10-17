@@ -71,22 +71,22 @@ class DBService {
         Utils::LogPrint(Log::db, __func__, "Failed to open DB: " + status.ToString());
       }
     }
+    inline bool close() { delete this->db; this->db = nullptr; return true; }
 
-    bool has(std::string key, std::string prefix = "");
-    std::string get(std::string key, std::string prefix = "");
-    bool put(std::string key, std::string data, std::string prefix = "");
-    bool del(std::string key, std::string prefix = "");
-    bool close();
-    bool writeBatch(WriteBatchRequest &request, std::string prefix = "");
+    bool has(const std::string& key, const std::string& prefix = "");
+    std::string get(const std::string& key, const std::string& prefix = "");
+    bool put(const std::string& key, const std::string& data, const std::string& prefix = "");
+    bool del(const std::string& key, const std::string& prefix = "");
+    bool writeBatch(WriteBatchRequest& request, const std::string& prefix = "");
 
     // Read all keys starting with prefix and start.
-    std::vector<DBEntry> readBatch(const std::string prefix);
+    std::vector<DBEntry> readBatch(const std::string& prefix);
 
     // Read all keys from key vector.
-    std::vector<DBEntry> readBatch(const std::vector<std::string>& keys, const std::string prefix);
+    std::vector<DBEntry> readBatch(const std::vector<std::string>& keys, const std::string& prefix);
 
     // Remove the first 4 chars (the key) from a string.
-    std::string removeKeyPrefix(const std::string &key);
+    inline std::string removeKeyPrefix(const std::string& key) { return key.substr(4); }
 };
 
 #endif  // DB_H
