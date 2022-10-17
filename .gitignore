@@ -9,7 +9,7 @@ proto/vm.pb.cc
 proto/vm.pb.h
 storageVM
 info.txt
-.vscode/settings.json
+.vscode/
 vmInfo.txt
 *.pb.h
 *.pb.cc
