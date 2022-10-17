@@ -24,6 +24,7 @@ int main() {
   Tests::isAddress();
   Tests::checkAddressChecksum();
   Tests::testABIDecoder();
+  Tests::testSecp256k1();
 
   std::cout << "UNIT TESTING FINISHED" << std::endl;
   return 0;

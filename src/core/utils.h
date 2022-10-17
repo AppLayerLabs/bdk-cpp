@@ -66,7 +66,7 @@ class StringContainer {
     StringContainer(StringContainer&& other) { if (other.sizeT != N) { throw std::runtime_error("Invalid StringContainer input size");} _data = std::move(other._data); };
 
     inline const std::string& get() const { return _data; }
-    inline const std::string_view get_view() const { return std::string_view(_data, N); }
+    inline const std::string_view get_view() const { return std::string_view(&_data[0], N); }
     inline const std::string_view get_view(const size_t& offset, const size_t& size) const { 
       if (offset > sizeT || size > sizeT) { throw std::runtime_error("Invalid get_view size"); } 
       return std::string_view(&_data[offset], size); 

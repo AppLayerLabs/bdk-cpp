@@ -39,6 +39,7 @@ namespace Tests {
   void isAddress();
   void checkAddressChecksum();
   void testABIDecoder();
+  void testSecp256k1();
 }
 
 #endif // TESTS_H

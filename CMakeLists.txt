@@ -354,6 +354,7 @@ if(BUILD_TESTS)
     "tests/transaction.cpp"
     "tests/utils.cpp"
     "tests/abi.cpp"
+    "tests/secp256k1.cpp"
     ${SUBNETOOOR_TESTS_HDRS}
     ${SUBNETOOOR_TESTS_SRCS}
     ${PROTO_VM_SRCS} ${PROTO_VM_HDRS}

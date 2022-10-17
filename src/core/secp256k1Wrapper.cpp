@@ -59,7 +59,6 @@ bool Secp256k1::verify(const UncompressedPubkey& pubkey, const Signature& sig, c
 }
 
 UncompressedPubkey Secp256k1::toPub(const PrivKey &privKey) {
-  if (privKey.size() != 32) { return UncompressedPubkey(); }
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_create(ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(privKey.data()))) {
@@ -76,12 +75,49 @@ UncompressedPubkey Secp256k1::toPub(const PrivKey &privKey) {
   return serializedPubkey;
 }
 
+UncompressedPubkey Secp256k1::toPub(const CompressedPubkey &pubKey) {
+  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  secp256k1_pubkey rawPubkey;
+  if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(pubKey.data()), 33)) {
+    return UncompressedPubkey();
+  }
+
+  UncompressedPubkey serializedPubkey;
+  auto serializedPubkeySize = serializedPubkey.size();
+
+  secp256k1_ec_pubkey_serialize(ctx, reinterpret_cast<unsigned char*>(&serializedPubkey[0]), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
+  assert (serializedPubkey.size() == serializedPubkeySize);
+  // Expect single byte header of value 0x04 -- uncompressed pubkey.
+  assert(serializedPubkey[0] == 0x04);
+  return serializedPubkey;
+}
+
+CompressedPubkey Secp256k1::toPubCompressed(const PrivKey &privKey) {
+  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  secp256k1_pubkey rawPubkey;
+  if (!secp256k1_ec_pubkey_create(ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(privKey.data()))) {
+    return CompressedPubkey();
+  }
+
+  CompressedPubkey serializedPubkey;
+  auto serializedPubkeySize = serializedPubkey.size();
+
+  secp256k1_ec_pubkey_serialize(ctx, reinterpret_cast<unsigned char*>(&serializedPubkey[0]), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_COMPRESSED);
+  assert (serializedPubkey.size() == serializedPubkeySize);
+  // Expect single byte header of value 0x02, 0x03 -- uncompressed pubkey.
+  assert(serializedPubkey[0] == 0x02 || serializedPubkey[0] == 0x03);
+  return serializedPubkey;
+}
+
 Address Secp256k1::toAddress(const UncompressedPubkey &pubKey) {
   return Address(Utils::sha3(std::string_view(&pubKey[1], 64)).get().substr(12), false); // Address = pubKeyHash[12..32], no "0x"
 }
 
+Address Secp256k1::toAddress(const CompressedPubkey &pubKey) {
+  return Secp256k1::toAddress(Secp256k1::toPub(pubKey));
+}
+
 Signature Secp256k1::sign(const PrivKey &privKey, const Hash &hash) {
-  if (privKey.size() != 32 && hash.size() != 32) { return Signature(); }
   auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_sign_recoverable(ctx, &rawSig, reinterpret_cast<const unsigned char*>(hash.data()), reinterpret_cast<const unsigned char*>(privKey.data()), nullptr, nullptr)) {

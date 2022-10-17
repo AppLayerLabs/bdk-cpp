@@ -14,7 +14,10 @@ namespace Secp256k1 {
   UncompressedPubkey recover(const Signature& sig, const Hash& messageHash);
   Signature appendSignature(const uint256_t &r, const uint256_t &s, const uint8_t &v);
   UncompressedPubkey toPub(const PrivKey &privKey);
+  UncompressedPubkey toPub(const CompressedPubkey &pubKey);
+  CompressedPubkey toPubCompressed(const PrivKey &privKey);
   Address toAddress(const UncompressedPubkey &pubKey);
+  Address toAddress(const CompressedPubkey &pubKey);
   Signature sign(const PrivKey &privKey, const Hash &hash);
   bool verify(const UncompressedPubkey& pubkey, const Signature& sig, const Hash& msghash);
 }
