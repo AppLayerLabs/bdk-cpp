@@ -16,6 +16,8 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include "../core/utils.h"
+
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
@@ -31,6 +33,26 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 // TODO: join this and fail() from httpserver
 void p2p_fail(beast::error_code ec, char const* what);
 
+class P2PInfo {
+  private:
+    std::string version;
+    uint64_t epoch;
+    uint64_t nHeight;
+    uint256_t nHash;
+
+  public:
+    P2PInfo(std::string version_, uint64_t epoch_, uint64_t nHeight_, uint256_t nHash_)
+      : version(version_), epoch(epoch_), nHeight(nHeight_), nHash(nHash_) {}
+
+    std::string dump() {
+      return std::string(
+        "Version: " + version + "\nEpoch: " + std::to_string(epoch) +
+        "\nnHeight: " + std::to_string(nHeight) +
+        "\nnHash: " + Utils::bytesToHex(Utils::uint256ToBytes(nHash))
+      );
+    }
+};
+
 // Client side of the P2P node.
 class P2PClient : public std::enable_shared_from_this<P2PClient> {
   std::vector<std::thread> ioc_threads;
@@ -39,10 +61,12 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
   websocket::stream<beast::tcp_stream> ws_;
   beast::flat_buffer buffer_;
   std::string host_;
+  P2PInfo info_;
 
   public:
     // Constructor.
-    P2PClient() : resolver_(net::make_strand(ioc)), ws_(net::make_strand(ioc)) {}
+    P2PClient(P2PInfo info) : resolver_(net::make_strand(ioc)),
+      ws_(net::make_strand(ioc)), info_(info) {}
 
     // Initialize the I/O context and resolve a given host and port.
     void resolve(std::string host, std::string port);
@@ -87,10 +111,12 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
 class P2PServer : public std::enable_shared_from_this<P2PServer> {
   websocket::stream<beast::tcp_stream> ws_;
   beast::flat_buffer buffer_;
+  P2PInfo info_;
 
   public:
     // Take ownership of the socket
-    explicit P2PServer(tcp::socket&& socket) : ws_(std::move(socket)) {}
+    explicit P2PServer(tcp::socket&& socket, P2PInfo info)
+      : ws_(std::move(socket)), info_(info) {}
 
     // Get on the correct executor. We need to execute within a strand
     // to perform async operations on I/O objects.
@@ -157,7 +183,10 @@ class P2PListener : public std::enable_shared_from_this<P2PListener> {
       if (ec) {
         p2p_fail(ec, "listener_accept");
       } else {
-        std::make_shared<P2PServer>(std::move(socket))->start();
+        // TODO: un-hardcode this
+        std::make_shared<P2PServer>(std::move(socket), P2PInfo(
+          "0.0.1s", std::time(NULL), 12345, 4983739826539483
+        ))->start();
       }
       acceptor_.async_accept(net::make_strand(ioc), beast::bind_front_handler(
         &P2PListener::on_accept, shared_from_this()

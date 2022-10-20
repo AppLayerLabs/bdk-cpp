@@ -10,22 +10,16 @@ std::unique_ptr<Subnet> subnet;
 
 // Let that good boi run
 int main() {
-  std::shared_ptr<P2PListener> p2pl1;
-  std::shared_ptr<P2PListener> p2pl2;
-  std::shared_ptr<P2PClient> p2pc1;
-  std::shared_ptr<P2PClient> p2pc2;
-  p2pl1 = std::make_shared<P2PListener>(tcp::endpoint{
+  std::shared_ptr<P2PListener> p2pl;
+  std::shared_ptr<P2PClient> p2pc;
+  p2pl = std::make_shared<P2PListener>(tcp::endpoint{
     net::ip::make_address("127.0.0.1"), 8080
   });
-  p2pl2 = std::make_shared<P2PListener>(tcp::endpoint{
-    net::ip::make_address("127.0.0.2"), 8080
-  });
-  p2pc1 = std::make_shared<P2PClient>();
-  p2pc2 = std::make_shared<P2PClient>();
-  p2pl1->start();
-  p2pl2->start();
-  p2pc1->resolve("127.0.0.2", "8080");
-  p2pc2->resolve("127.0.0.1", "8080");
+  p2pc = std::make_shared<P2PClient>(P2PInfo(
+    "0.0.1c", std::time(NULL), 10000, 94378248324932
+  ));
+  p2pl->start();
+  p2pc->resolve("127.0.0.1", "8080");
 
   while (true) {}
 
