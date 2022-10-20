@@ -226,6 +226,7 @@ add_custom_target(gen-grpc ALL DEPENDS
 
 # Set project headers and sources
 set(SUBNETOOOR_HDRS
+  bench/block.h
   src/contract/abi.h
   src/contract/contract.h
   src/contract/erc20.h
@@ -244,6 +245,7 @@ set(SUBNETOOOR_HDRS
   src/net/grpcclient.h
   src/net/grpcserver.h
   src/net/httpserver.h
+  src/net/p2p.h
 )
 
 set(SUBNETOOOR_SRCS
@@ -264,7 +266,7 @@ set(SUBNETOOOR_SRCS
   src/net/grpcclient.cpp
   src/net/grpcserver.cpp
   src/net/httpserver.cpp
-  bench/block.h
+  src/net/p2p.cpp
   src/main.cpp
 )
 
@@ -329,6 +331,7 @@ if(BUILD_TESTS)
     src/net/grpcclient.h
     src/net/grpcserver.h
     src/net/httpserver.h
+    src/net/p2p.h
   )
   set(SUBNETOOOR_TESTS_SRCS
     src/contract/abi.cpp
@@ -347,6 +350,7 @@ if(BUILD_TESTS)
     src/net/grpcclient.cpp
     src/net/grpcserver.cpp
     src/net/httpserver.cpp
+    src/net/p2p.cpp
   )
   add_executable(subnetooord-tests
     "tests/main.cpp"
