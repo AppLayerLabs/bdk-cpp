@@ -151,7 +151,8 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   // Start the HTTP Server.
   Utils::logToFile("Starting HTTP");
-  this->httpServer = std::make_unique<HTTPServer>(*this);
+  json config = Utils::readConfigFile();
+  this->httpServer = std::make_unique<HTTPServer>(*this, config["rpcport"].get<unsigned short>());
   std::thread httpServerThread = std::thread([&]
   {
     this->httpServer->run();

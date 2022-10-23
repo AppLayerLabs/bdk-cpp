@@ -159,9 +159,10 @@ class HTTPServer {
     net::io_context ioc{4};
     std::shared_ptr<listener> _listener;
     bool stopped = false;
+    const unsigned short port;
 
   public:
-    HTTPServer(Subnet& subnet) : subnet(subnet) {}
+    HTTPServer(Subnet& subnet, const unsigned short port) : subnet(subnet), port(port) {}
     void run();
     void stop() { ioc.stop(); }
     bool isRunning() { return !this->stopped; }

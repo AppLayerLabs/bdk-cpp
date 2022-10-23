@@ -179,14 +179,9 @@ void listener::on_accept(beast::error_code ec, tcp::socket socket) {
 void HTTPServer::run() {
   // Create and launch a listening port
   auto const address = net::ip::make_address("0.0.0.0");
-  // Get a random number between 25000 and 30000
-  std::random_device rd; // obtain a random number from hardware
-  std::mt19937 gen(rd()); // seed the generator
-  std::uniform_int_distribution<> distr(25000, 30000);
-  unsigned short port = distr(gen);
   auto const doc_root = std::make_shared<std::string>(".");
   this->_listener = std::make_shared<listener>(
-    ioc, tcp::endpoint{address, port}, doc_root, this->subnet
+    ioc, tcp::endpoint{address, this->port}, doc_root, this->subnet
   );
   this->_listener->run();
 

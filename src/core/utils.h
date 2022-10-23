@@ -14,6 +14,7 @@
 #include "../libs/devcore/FixedHash.h"
 #include "../libs/json.hpp"
 #include <ethash/keccak.h>
+#include <filesystem>
 
 using json = nlohmann::ordered_json;
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
@@ -168,6 +169,7 @@ namespace Utils {
   void toChecksumAddress(std::string& address);
   bool isAddress(const std::string& address, bool fromRPC);
   bool checkAddressChecksum(const std::string& address);
+  json readConfigFile();
 };
 
 struct Account {

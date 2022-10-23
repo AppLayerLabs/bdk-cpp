@@ -74,6 +74,12 @@ echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9652 --staking
 echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9654 --staking-port=9655 --db-dir=db/node3 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker3.crt --staking-tls-key-file=$(pwd)/staking/local/staker3.key" >> node3/start3.sh
 echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9656 --staking-port=9657 --db-dir=db/node4 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker4.crt --staking-tls-key-file=$(pwd)/staking/local/staker4.key" >> node4/start4.sh
 echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9658 --staking-port=9659 --db-dir=db/node5 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker5.crt --staking-tls-key-file=$(pwd)/staking/local/staker5.key" >> node5/start5.sh
+printf "{\n  \"rpcport\": 8080\n}" >> node1/config.json
+printf "{\n  \"rpcport\": 8081\n}" >> node2/config.json
+printf "{\n  \"rpcport\": 8082\n}" >> node3/config.json
+printf "{\n  \"rpcport\": 8083\n}" >> node4/config.json
+printf "{\n  \"rpcport\": 8084\n}" >> node5/config.json
+
 chmod +x node1/start1.sh node2/start2.sh node3/start3.sh node4/start4.sh node5/start5.sh
 
 # Start the local nodes using tmux and wait 30 seconds for bootstrapping
