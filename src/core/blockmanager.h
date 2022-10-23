@@ -8,22 +8,21 @@
 
 class Validator {
   private:
-    // TODO: We could possibly use secp256k1 compressed pubkeys.
-    StringContainer<64> _pubkey;
+    StringContainer<33> _pubkey;
 
   public:
     Validator() = default;
-    Validator(const std::string &pubkey) { _pubkey = StringContainer<64>(pubkey); }
-    Validator(std::string&& pubkey) { _pubkey = std::move(StringContainer<64>(pubkey)); }
-    Validator(const std::string_view &pubkey) { _pubkey = StringContainer<64>(pubkey); }
-    Validator(const Validator& other) { this->_pubkey = StringContainer<64>(other._pubkey); }
-    Validator(Validator&& other) noexcept :_pubkey(std::move(StringContainer<64>(other._pubkey))) {}
+    Validator(const std::string &pubkey) { _pubkey = StringContainer<33>(pubkey); }
+    Validator(std::string&& pubkey) { _pubkey = std::move(StringContainer<33>(pubkey)); }
+    Validator(const std::string_view &pubkey) { _pubkey = StringContainer<33>(pubkey); }
+    Validator(const Validator& other) { this->_pubkey = StringContainer<33>(other._pubkey); }
+    Validator(Validator&& other) noexcept :_pubkey(std::move(StringContainer<33>(other._pubkey))) {}
     ~Validator() = default;
 
-    void operator=(const std::string_view& address) { this->_pubkey = StringContainer<64>(address); }
-    void operator=(const std::string& address) { this->_pubkey = StringContainer<64>(address); }
-    void operator=(std::string&& address) { this->_pubkey = std::move(StringContainer<64>(address)); }
-    Validator& operator=(Validator&& other) { this->_pubkey = std::move(StringContainer<64>(other._pubkey)); return *this; }
+    void operator=(const std::string_view& address) { this->_pubkey = StringContainer<33>(address); }
+    void operator=(const std::string& address) { this->_pubkey = StringContainer<33>(address); }
+    void operator=(std::string&& address) { this->_pubkey = std::move(StringContainer<33>(address)); }
+    Validator& operator=(Validator&& other) { this->_pubkey = std::move(StringContainer<33>(other._pubkey)); return *this; }
     const std::string& get() const { return _pubkey.get(); };
     const std::string hex() const { return Utils::bytesToHex(_pubkey.get()); }
 };

@@ -12,18 +12,17 @@ BlockManager::BlockManager(std::shared_ptr<DBService> &db) {
 void BlockManager::loadFromDB(std::shared_ptr<DBService> &db) {
   auto validators = db->readBatch(DBPrefix::validators);
   validatorsList.resize(validators.size());
-  Utils::logToFile("Validatorlist size: " + std::to_string(validators.size()));
   for (auto &validator : validators) {
     if (validator.key.size() != 8) {
       Utils::LogPrint(Log::blockManager,__func__,"Validator key size is not 8 bytes");
       throw std::runtime_error("Validator key size is not 8 bytes");
     }
     Utils::LogPrint(Log::blockManager,__func__,std::to_string(validator.value.size()));
-    if (validator.value.size() != 64) {
-      Utils::LogPrint(Log::blockManager,__func__,"Validator value is not 64 bytes (pubkey)");
-      throw std::runtime_error("Validator value is not 64 bytes (pubkey)");
+    if (validator.value.size() != 33) {
+      Utils::LogPrint(Log::blockManager,__func__,"Validator value is not 33 bytes (pubkey)");
+      throw std::runtime_error("Validator value is not 33 bytes (pubkey)");
     }
-    validatorsList[Utils::bytesToUint64(validator.key)] = std::move(validator.value);
+    validatorsList[Utils::bytesToUint64(validator.key)] = validator.value;
     Utils::logToFile("Loop End");
   }
 }
