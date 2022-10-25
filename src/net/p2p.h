@@ -33,22 +33,30 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 // TODO: join this and fail() from httpserver
 void p2p_fail(beast::error_code ec, char const* what);
 
+// Information about the P2P client and/or server.
 class P2PInfo {
   private:
-    std::string version;
-    uint64_t epoch;
-    uint64_t nHeight;
-    uint256_t nHash;
+    std::string version;  // e.g. "0.0.0.1"
+    uint64_t epoch;       // from system, in nanosseconds
+    uint64_t nHeight;     // most recent block height
+    uint256_t nHash;      // most recent block hash
+    uint64_t nodes = 0;   // number of connected nodes
 
   public:
+    // TODO: get info from Subnet, update nodes on connect
     P2PInfo(std::string version_, uint64_t epoch_, uint64_t nHeight_, uint256_t nHash_)
       : version(version_), epoch(epoch_), nHeight(nHeight_), nHash(nHash_) {}
 
+    void addNode() { this->nodes++; }
+    void delNode() { this->nodes--; }
+
     std::string dump() {
-      return std::string(
-        "Version: " + version + "\nEpoch: " + std::to_string(epoch) +
+      epoch = std::time(NULL);
+      return std::string("Version: " + version +
+        "\nEpoch: " + std::to_string(epoch) +
         "\nnHeight: " + std::to_string(nHeight) +
-        "\nnHash: " + Utils::bytesToHex(Utils::uint256ToBytes(nHash))
+        "\nnHash: " + Utils::bytesToHex(Utils::uint256ToBytes(nHash)) +
+        "\nConnected nodes: " + std::to_string(nodes)
       );
     }
 };
@@ -62,6 +70,9 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
   beast::flat_buffer buffer_;
   std::string host_;
   P2PInfo info_;
+  const std::vector<std::string> cmds {
+    "info"
+  };
 
   public:
     // Constructor.
@@ -83,8 +94,8 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
     // Read a message from the connected host into the buffer.
     void read();
 
-    // Close the websocket connection.
-    void stop();
+    // Parse a given command.
+    std::string parse(std::string cmd);
 
   private:
     // Set timeout for operation and prepare for connecting to looked up host.
@@ -101,30 +112,35 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
 
     // Display the message in the buffer, clear it, wait a second and write again.
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
-
-    // Warn that the connection was closed.
-    // If we get here then the connection is closed gracefully.
-    void on_stop(beast::error_code ec);
 };
 
 // Server side of the P2P node.
 class P2PServer : public std::enable_shared_from_this<P2PServer> {
-  websocket::stream<beast::tcp_stream> ws_;
+  std::vector<std::thread> ioc_threads;
+  net::io_context ioc;
+  tcp::acceptor acceptor_;
+  std::shared_ptr<websocket::stream<beast::tcp_stream>> ws_;
   beast::flat_buffer buffer_;
   P2PInfo info_;
+  const std::vector<std::string> cmds {
+    "info"
+  };
 
   public:
-    // Take ownership of the socket
-    explicit P2PServer(tcp::socket&& socket, P2PInfo info)
-      : ws_(std::move(socket)), info_(info) {}
+    P2PServer(tcp::endpoint ep, P2PInfo info)
+    : acceptor_(ioc), info_(info) {
+      beast::error_code ec;
+      acceptor_.open(ep.protocol(), ec); // Open acceptor
+      if (ec) { p2p_fail(ec, "open"); return; }
+      acceptor_.set_option(net::socket_base::reuse_address(true), ec); // Allow address reuse
+      if (ec) { p2p_fail(ec, "set_option"); return; }
+      acceptor_.bind(ep, ec); // Bind to server address
+      if (ec) { p2p_fail(ec, "bind"); return; }
+      acceptor_.listen(net::socket_base::max_listen_connections, ec); // Listen for connections
+      if (ec) { p2p_fail(ec, "listen"); return; }
+    }
 
-    // Get on the correct executor. We need to execute within a strand
-    // to perform async operations on I/O objects.
-    // Although not strictly necessary for single-threaded contexts,
-    // this code is written to be thread-safe by default.
-    void start();
-
-    // Accept the websocket handshake.
+    // Start accepting connections.
     void accept();
 
     // Read a message into the buffer.
@@ -133,12 +149,18 @@ class P2PServer : public std::enable_shared_from_this<P2PServer> {
     // Write a message to the origin.
     void write(std::string msg);
 
+    // Parse a given command.
+    std::string parse(std::string cmd);
+
   private:
-    // Prepare for accepting a handshake from a given origin.
+    // Prepare for starting the server.
+    void on_accept(beast::error_code ec, tcp::socket socket);
+
+    // Prepare for accepting a handshake.
     void on_start();
 
     // Prepare for reading something after accepting the handshake.
-    void on_accept(beast::error_code ec);
+    void on_handshake(beast::error_code ec);
 
     // Prepare for writing a message to the origin.
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
@@ -147,50 +169,51 @@ class P2PServer : public std::enable_shared_from_this<P2PServer> {
     void on_write(beast::error_code ec, std::size_t bytes_transferred);
 };
 
-// Accepts incoming connections and launches the P2PServer
-// TODO: join this with P2PServer?
-class P2PListener : public std::enable_shared_from_this<P2PListener> {
-  std::vector<std::thread> ioc_threads;
-  net::io_context ioc;
-  tcp::acceptor acceptor_;
+// The P2P node itself.
+class P2PNode : public std::enable_shared_from_this<P2PNode> {
+  private:
+    std::shared_ptr<P2PServer> p2ps;
+    std::shared_ptr<P2PClient> p2pc;
+    // This thing goes so fast, we actually need to give some sort of
+    // delay/cooldown between actions so it doesn't choke on itself with
+    // throws/segfaults/cancelled operations/etc.
+    // 2 milliseconds would be a good safe spot.
+    // 1.5 milliseconds seems to be the limit, at least from what I've tested.
+    unsigned short cooldown = 2000; // in microseconds (1000 = 1ms)
+    void wait() {
+      std::this_thread::sleep_for(std::chrono::microseconds(cooldown));
+    }
 
   public:
-    P2PListener(tcp::endpoint endpoint) : acceptor_(ioc) {
-      beast::error_code ec;
-      acceptor_.open(endpoint.protocol(), ec); // Open acceptor
-      if (ec) { p2p_fail(ec, "open"); return; }
-      acceptor_.set_option(net::socket_base::reuse_address(true), ec); // Allow address reuse
-      if (ec) { p2p_fail(ec, "set_option"); return; }
-      acceptor_.bind(endpoint, ec); // Bind to server address
-      if (ec) { p2p_fail(ec, "bind"); return; }
-      acceptor_.listen(net::socket_base::max_listen_connections, ec); // Listen for connections
-      if (ec) { p2p_fail(ec, "listen"); return; }
-    }
-
-    // Accept an incoming connection into its own strand
-    void start() {
-      //std::cout << "Listener: running" << std::endl;
-      acceptor_.async_accept(net::make_strand(ioc), beast::bind_front_handler(
-        &P2PListener::on_accept, shared_from_this()
-      ));
-      ioc_threads.emplace_back([this]{ ioc.run(); }); // Always comes *after* async
-    }
-
-  private:
-    // Create the P2PServer, run it and accept another connection
-    void on_accept(beast::error_code ec, tcp::socket socket) {
-      //std::cout << "Listener: connection accepted" << std::endl;
-      if (ec) {
-        p2p_fail(ec, "listener_accept");
-      } else {
+    P2PNode(const std::string s_host, const unsigned short s_port) {
+      this->p2ps = std::make_shared<P2PServer>(
+        tcp::endpoint{net::ip::make_address(s_host), s_port},
         // TODO: un-hardcode this
-        std::make_shared<P2PServer>(std::move(socket), P2PInfo(
-          "0.0.1s", std::time(NULL), 12345, 4983739826539483
-        ))->start();
+        P2PInfo("0.0.0.1s", std::time(NULL), 10000, 94378248324932)
+      );
+      this->p2pc = std::make_shared<P2PClient>(
+        // TODO: un-hardcode this
+        P2PInfo("0.0.0.1c", std::time(NULL), 10000, 94378248324932)
+      );
+      this->wait(); this->p2ps->accept();
+    }
+
+    void connect(const std::string host, const unsigned short port) {
+      this->p2pc->resolve(host, std::to_string(port)); this->wait();
+    }
+
+    void c_send(const std::string msg) {
+      if (this->p2pc->parse(msg).empty()) {
+        std::cout << "Unknown command: " + msg << std::endl; return;
       }
-      acceptor_.async_accept(net::make_strand(ioc), beast::bind_front_handler(
-        &P2PListener::on_accept, shared_from_this()
-      ));
+      this->p2pc->write(msg); this->wait();
+    }
+
+    void s_send(const std::string msg) {
+      if (this->p2ps->parse(msg).empty()) {
+        std::cout << "Unknown command: " + msg << std::endl; return;
+      }
+      this->p2ps->write(msg); this->wait();
     }
 };
 
