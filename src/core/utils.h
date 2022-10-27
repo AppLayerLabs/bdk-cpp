@@ -51,6 +51,11 @@ namespace MessagePrefix {
 
 enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
+// Utils::bytesToHex should be located before StringContainer
+namespace Utils {
+    std::string bytesToHex(const std::string_view& bytes);
+};
+
 template <unsigned N>
 class StringContainer {
   protected:
@@ -67,6 +72,7 @@ class StringContainer {
     StringContainer(StringContainer&& other) { if (other.sizeT != N) { throw std::runtime_error("Invalid StringContainer input size");} _data = std::move(other._data); };
 
     inline const std::string& get() const { return _data; }
+    inline const std::string hex() const { return Utils::bytesToHex(_data); }
     inline const std::string_view get_view() const { return std::string_view(&_data[0], N); }
     inline const std::string_view get_view(const size_t& offset, const size_t& size) const { 
       if (offset > sizeT || size > sizeT) { throw std::runtime_error("Invalid get_view size"); } 
@@ -153,7 +159,6 @@ namespace Utils {
   }
   uint256_t hexToUint(std::string &hex);
   std::string hexToBytes(std::string hex);
-  std::string bytesToHex(const std::string_view& bytes);
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
   std::string padLeft(std::string str, unsigned int charAmount, char sign = '0');
   std::string padRight(std::string str, unsigned int charAmount, char sign = '0');
@@ -167,7 +172,7 @@ namespace Utils {
   void toLowercaseAddress(std::string& address);
   void toUppercaseAddress(std::string& address);
   void toChecksumAddress(std::string& address);
-  bool isAddress(const std::string& address, bool fromRPC);
+  bool isAddress(const std::string& address, const bool& fromRPC);
   bool checkAddressChecksum(const std::string& address);
   json readConfigFile();
 };
@@ -185,7 +190,7 @@ class Address {
     Address() {}
 
     // C++ can only differ std::string&& and const std::string& on function overloading.
-    Address(const std::string& address, bool fromRPC) {
+    Address(const std::string& address, const bool& fromRPC) {
       if (!Utils::isAddress(address, fromRPC)) {
         throw std::runtime_error(address + " is not a valid address");
       }
@@ -198,22 +203,8 @@ class Address {
       }
     }
 
-    // Move from iterators. used in Tx::Base string move constructor
-    template<class It> Address(const It&& _begin,const It&& _end) {
-      std::move(_begin, _end, std::back_inserter(innerAddress));
-    }
-
-    // Copy constructor.
-    Address(const Address& other) {
-      this->innerAddress = other.innerAddress;
-    }
-
-    // Move constructor.
-    Address(Address&& other) noexcept :
-      innerAddress(std::move(other.innerAddress)) {}
-
     // Move string constructor.
-    Address(std::string&& address, bool fromRPC) {
+    Address(std::string&& address, const bool& fromRPC) {
       if (!Utils::isAddress(address, fromRPC)) {
         throw std::runtime_error(address + " is not a valid address");
       }
@@ -224,6 +215,20 @@ class Address {
         innerAddress = std::move(address);
       }
     }
+
+    // Move from iterators. used in Tx::Base string move constructor
+   // template<class It> Address(const It&& _begin,const It&& _end) {
+   //   std::move(_begin, _end, std::back_inserter(innerAddress));
+   // }
+
+    // Copy constructor.
+    Address(const Address& other) {
+      this->innerAddress = other.innerAddress;
+    }
+
+    // Move constructor.
+    Address(Address&& other) noexcept :
+      innerAddress(std::move(other.innerAddress)) {}
 
     // Destructor.
     ~Address() { this->innerAddress = ""; }

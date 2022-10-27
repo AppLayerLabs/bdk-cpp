@@ -266,7 +266,7 @@ void Utils::toChecksumAddress(std::string& address) {
   address.insert(0, "0x");
 }
 
-bool Utils::isAddress(const std::string& address, bool fromRPC) {
+bool Utils::isAddress(const std::string& address, const bool &fromRPC) {
   if (fromRPC) {
     // Regexes for checking the basic requirements of an address,
     // all lower or all upper case, respectively.

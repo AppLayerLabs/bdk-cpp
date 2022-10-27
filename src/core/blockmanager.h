@@ -8,25 +8,26 @@
 
 class Validator {
   private:
-    StringContainer<33> _pubkey;
+    const Address _address;
 
   public:
     Validator() = default;
-    Validator(const std::string &pubkey) { _pubkey = StringContainer<33>(pubkey); }
-    Validator(std::string&& pubkey) { _pubkey = std::move(StringContainer<33>(pubkey)); }
-    Validator(const std::string_view &pubkey) { _pubkey = StringContainer<33>(pubkey); }
-    Validator(const Validator& other) { this->_pubkey = StringContainer<33>(other._pubkey); }
-    Validator(Validator&& other) noexcept :_pubkey(std::move(StringContainer<33>(other._pubkey))) {}
+    Validator(const std::string &pubkey, const bool &fromRPC) : _address(pubkey, fromRPC) {}
+    Validator(std::string&& pubkey, const bool &fromRPC) : _address(std::move(pubkey), fromRPC) {}
+
+    Validator(const Validator& other) : _address(other._address) {}
+    Validator(Validator&& other) noexcept : _address(std::move(other._address)) {}
     ~Validator() = default;
 
-    void operator=(const std::string_view& address) { this->_pubkey = StringContainer<33>(address); }
-    void operator=(const std::string& address) { this->_pubkey = StringContainer<33>(address); }
-    void operator=(std::string&& address) { this->_pubkey = std::move(StringContainer<33>(address)); }
-    Validator& operator=(Validator&& other) { this->_pubkey = std::move(StringContainer<33>(other._pubkey)); return *this; }
-    const std::string& get() const { return _pubkey.get(); };
-    const std::string hex() const { return Utils::bytesToHex(_pubkey.get()); }
+    const std::string& get() const { return _address.get(); };
+    const std::string hex() const { return Utils::bytesToHex(_address.get()); }
 };
 
+
+/*
+BlockManager contract: 0x0000000000000000626c6f636b4d616e61676572
+
+*/
 class BlockManager {
   private:
     std::vector<Validator> validatorsList;
