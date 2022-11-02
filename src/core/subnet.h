@@ -7,6 +7,7 @@
 #include "../net/grpcclient.h"
 #include "../net/grpcserver.h"
 #include "../net/httpserver.h"
+#include "../net/p2p.h"
 #include "block.h"
 #include "blockmanager.h"
 #include "db.h"
@@ -101,17 +102,21 @@ class Subnet {
     /**
      * Block congestion and creation manager.
      */
-
     std::shared_ptr<BlockManager> blockManager;
 
     /**
      * All current connected nodes within avalancheGo.
      */
-
     std::vector<std::string> connectedNodes;
     std::shared_mutex connectedNodesLock;
 
   public:
+    /**
+     * P2P node.
+     * TODO: make this private
+     */
+    std::shared_ptr<P2PNode> p2p;
+
     void start(); // Start the subnet.
     void stop();  // Stop the subnet.
     bool isShutdown() { return this->shutdown; }; // Used by the http server to know if it should stop.
@@ -157,9 +162,8 @@ class Subnet {
     // To be called by grpcServer, when avalancheGo receives a transaction through gossip.
     void validateTransaction (const Tx::Base&& txBytes);
 
-    // To be called by grpcServer, when avalancheGo tells that a new node connected.
+    // To be called by grpcServer, when avalancheGo tells that a new node connected or disconnected, respectively.
     void connectNode(const std::string &nodeId);
-
     void disconnectNode(const std::string &nodeId);
 };
 

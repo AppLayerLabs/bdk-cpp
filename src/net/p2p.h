@@ -16,6 +16,7 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include "../core/chainHead.h"
 #include "../core/utils.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -36,27 +37,30 @@ void p2p_fail(beast::error_code ec, char const* what);
 // Information about the P2P client and/or server.
 class P2PInfo {
   private:
+    std::shared_ptr<ChainHead> ch;
     std::string version;  // e.g. "0.0.0.1"
     uint64_t epoch;       // from system, in nanosseconds
     uint64_t nHeight;     // most recent block height
-    uint256_t nHash;      // most recent block hash
+    Hash nHash;           // most recent block hash
     uint64_t nodes = 0;   // number of connected nodes
 
   public:
-    // TODO: get info from Subnet, update nodes on connect
-    P2PInfo(std::string version_, uint64_t epoch_, uint64_t nHeight_, uint256_t nHash_)
-      : version(version_), epoch(epoch_), nHeight(nHeight_), nHash(nHash_) {}
+    // TODO: update nodes on connect
+    P2PInfo(std::string version_, std::shared_ptr<ChainHead> ch_)
+      : version(version_), ch(ch_) {}
 
     void addNode() { this->nodes++; }
     void delNode() { this->nodes--; }
 
     std::string dump() {
       epoch = std::time(NULL);
-      return std::string("Version: " + version +
-        "\nEpoch: " + std::to_string(epoch) +
-        "\nnHeight: " + std::to_string(nHeight) +
-        "\nnHash: " + Utils::bytesToHex(Utils::uint256ToBytes(nHash)) +
-        "\nConnected nodes: " + std::to_string(nodes)
+      nHeight = this->ch->latest()->nHeight();
+      nHash = this->ch->latest()->getBlockHash();
+      return std::string("Version: " + this->version +
+        "\nEpoch: " + std::to_string(this->epoch) +
+        "\nnHeight: " + std::to_string(this->nHeight) +
+        "\nnHash: " + this->nHash.get() +
+        "\nConnected nodes: " + std::to_string(this->nodes)
       );
     }
 };
@@ -185,24 +189,28 @@ class P2PNode : public std::enable_shared_from_this<P2PNode> {
     }
 
   public:
-    P2PNode(const std::string s_host, const unsigned short s_port) {
+    P2PNode(const std::string s_host, const unsigned short s_port, std::shared_ptr<ChainHead> ch) {
       this->p2ps = std::make_shared<P2PServer>(
         tcp::endpoint{net::ip::make_address(s_host), s_port},
         // TODO: un-hardcode this
-        P2PInfo("0.0.0.1s", std::time(NULL), 10000, 94378248324932)
+        P2PInfo("0.0.0.1s", ch)
       );
       this->p2pc = std::make_shared<P2PClient>(
         // TODO: un-hardcode this
-        P2PInfo("0.0.0.1c", std::time(NULL), 10000, 94378248324932)
+        P2PInfo("0.0.0.1c", ch)
       );
       this->wait(); this->p2ps->accept();
+      Utils::logToFile("P2P node running on " + s_host + ":" + std::to_string(s_port));
+      this->p2ps->accept(); this->wait();
     }
 
     void connect(const std::string host, const unsigned short port) {
+      Utils::logToFile("P2P client connecting to" + host + ":" + std::to_string(port));
       this->p2pc->resolve(host, std::to_string(port)); this->wait();
     }
 
     void c_send(const std::string msg) {
+      Utils::logToFile("P2P client sending message: " + msg);
       if (this->p2pc->parse(msg).empty()) {
         std::cout << "Unknown command: " + msg << std::endl; return;
       }
@@ -210,6 +218,7 @@ class P2PNode : public std::enable_shared_from_this<P2PNode> {
     }
 
     void s_send(const std::string msg) {
+      Utils::logToFile("P2P server sending message: " + msg);
       if (this->p2ps->parse(msg).empty()) {
         std::cout << "Unknown command: " + msg << std::endl; return;
       }
