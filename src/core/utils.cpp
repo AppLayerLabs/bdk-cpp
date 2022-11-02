@@ -306,3 +306,12 @@ json Utils::readConfigFile() {
   
   return config;
 }
+
+
+uint64_t Utils::splitmix(uint64_t i) {
+  // http://xorshift.di.unimi.it/splitmix64.c
+  i += 0x9e3779b97f4a7c15;
+  i = (i ^ (i >> 30)) * 0xbf58476d1ce4e5b9;
+  i = (i ^ (i >> 27)) * 0x94d049bb133111eb;
+  return i ^ (i >> 31);
+}
