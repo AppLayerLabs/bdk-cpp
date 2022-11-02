@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Anti-sudo prevention
+if [ $(id -u) -eq 0 ]; then
+  echo "Please run this script as a normal user."
+  exit
+fi
+
 isRunningAvalancheGo1=$(tmux ls | grep -i "avalanchego-1")
 isRunningAvalancheGo2=$(tmux ls | grep -i "avalanchego-2")
 isRunningAvalancheGo3=$(tmux ls | grep -i "avalanchego-3")

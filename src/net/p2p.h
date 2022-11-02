@@ -59,7 +59,7 @@ class P2PInfo {
       return std::string("Version: " + this->version +
         "\nEpoch: " + std::to_string(this->epoch) +
         "\nnHeight: " + std::to_string(this->nHeight) +
-        "\nnHash: " + this->nHash.get() +
+        "\nnHash: " + this->nHash.hex() +
         "\nConnected nodes: " + std::to_string(this->nodes)
       );
     }
@@ -190,20 +190,17 @@ class P2PNode : public std::enable_shared_from_this<P2PNode> {
 
   public:
     P2PNode(const std::string s_host, const unsigned short s_port, std::shared_ptr<ChainHead> ch) {
+      // TODO: un-hardcode versions
       this->p2ps = std::make_shared<P2PServer>(
-        tcp::endpoint{net::ip::make_address(s_host), s_port},
-        // TODO: un-hardcode this
-        P2PInfo("0.0.0.1s", ch)
+        tcp::endpoint{net::ip::make_address(s_host), s_port}, P2PInfo("0.0.0.1s", ch)
       );
-      this->p2pc = std::make_shared<P2PClient>(
-        // TODO: un-hardcode this
-        P2PInfo("0.0.0.1c", ch)
-      );
-      this->wait(); this->p2ps->accept();
+      this->p2pc = std::make_shared<P2PClient>(P2PInfo("0.0.0.1c", ch));
       Utils::logToFile("P2P node running on " + s_host + ":" + std::to_string(s_port));
       this->p2ps->accept(); this->wait();
     }
 
+    // TODO: remove those? they're virtually useless
+    /*
     void connect(const std::string host, const unsigned short port) {
       Utils::logToFile("P2P client connecting to" + host + ":" + std::to_string(port));
       this->p2pc->resolve(host, std::to_string(port)); this->wait();
@@ -224,6 +221,7 @@ class P2PNode : public std::enable_shared_from_this<P2PNode> {
       }
       this->p2ps->write(msg); this->wait();
     }
+    */
 };
 
 #endif  // P2P_H

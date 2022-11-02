@@ -52,6 +52,7 @@ After the Subnet is deployed, use the scripts under the `scripts/helpers` subfol
 * **startAll.sh** - Start the Subnet.
 * **killAll.sh** - Stop the Subnet.
 * **cleanAll.sh** - Clean the Subnet logs.
+* **rebuild.sh** - Refresh the Subnet executable without having to re-deploy it (stop it first!)
 
-If you have to re-deploy the Subnet, remember to stop it and `rm -rf ~/go/src` beforehand.
+If you have to re-deploy the Subnet, stop it, `rm -rf ~/go/src` and run the deploy script again.
 

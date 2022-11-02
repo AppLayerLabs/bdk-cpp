@@ -89,7 +89,9 @@ void P2PClient::on_read(beast::error_code ec, std::size_t bytes_transferred) {
   std::stringstream ss;
   ss << beast::make_printable(buffer_.data());
   Utils::logToFile("P2PClient: message read: " + ss.str());
-  std::cout << this->parse(ss.str()) << std::endl;
+  std::string resp = this->parse(ss.str());
+  if (resp.empty()) resp = "Unknown command: " + ss.str();
+  this->write(resp);
   buffer_.consume(buffer_.size());
   this->read();
 }
@@ -175,7 +177,9 @@ void P2PServer::on_read(beast::error_code ec, std::size_t bytes_transferred) {
   std::stringstream ss;
   ss << beast::make_printable(buffer_.data());
   Utils::logToFile("P2PServer: message read: " + ss.str());
-  std::cout << this->parse(ss.str()) << std::endl;
+  std::string resp = this->parse(ss.str());
+  if (resp.empty()) resp = "Unknown command: " + ss.str();
+  this->write(resp);
   buffer_.consume(buffer_.size());
   this->read();
 }
