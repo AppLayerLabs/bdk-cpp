@@ -1,6 +1,6 @@
 #include "tests.h"
-#include "../src/core/utils.h"
-#include "../src/core/secp256k1Wrapper.h"
+#include "../src/utils/utils.h"
+#include "../src/utils/secp256k1Wrapper.h"
 
 void Tests::testSecp256k1() {
     PrivKey privateKey (Utils::hexToBytes("c73926a5d7c6474d1190b866777276936a29639e24544fe09714354b05b1ef40"));

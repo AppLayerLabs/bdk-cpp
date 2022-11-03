@@ -3,8 +3,8 @@
 
 #include <shared_mutex>
 #include "block.h"
-#include "db.h"
-#include "utils.h"
+#include "../utils/db.h"
+#include "../utils/utils.h"
 
 class ChainHead {
   private:

@@ -10,7 +10,7 @@
 #include "../net/p2p.h"
 #include "block.h"
 #include "blockmanager.h"
-#include "db.h"
+#include "../utils/db.h"
 #include "state.h"
 #include "chainTip.h"
 

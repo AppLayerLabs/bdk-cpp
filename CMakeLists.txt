@@ -249,6 +249,7 @@ target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${
 
 # Set project headers and sources
 
+add_subdirectory(src/utils/)
 add_subdirectory(src/core/)
 add_subdirectory(src/net/)
 add_subdirectory(src/contract/)

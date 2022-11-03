@@ -2,8 +2,8 @@
 #define TRANSACTION_H
 
 #include "../libs/devcore/RLP.h"
-#include "secp256k1Wrapper.h"
-#include "utils.h"
+#include "../utils/secp256k1Wrapper.h"
+#include "../utils/utils.h"
 #include <utility>
 
 

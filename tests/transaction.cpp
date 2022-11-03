@@ -1,5 +1,5 @@
 #include "tests.h"
-#include "../src/core/utils.h"
+#include "../src/utils/utils.h"
 #include "../src/core/transaction.h"
 
 void Tests::transactions() {

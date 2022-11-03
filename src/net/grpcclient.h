@@ -35,7 +35,7 @@
 #include "../../proto/keystore.grpc.pb.h"
 #include "../../proto/messenger.grpc.pb.h"
 #include "../../proto/sharedmemory.grpc.pb.h"
-#include "../core/db.h"
+#include "../utils/db.h"
 #include "../core/transaction.h"
 
 using grpc::Channel;

@@ -7,7 +7,7 @@
 #include <thread>
 
 #include "transaction.h"
-#include "utils.h"
+#include "../utils/utils.h"
 
 /**
  * The Block class only contains the structure of blocks and some utilities

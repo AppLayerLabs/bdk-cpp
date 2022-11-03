@@ -10,9 +10,9 @@
 
 #include "block.h"
 #include "chainHead.h"
-#include "db.h"
+#include "../utils/db.h"
 #include "transaction.h"
-#include "utils.h"
+#include "../utils/utils.h"
 #include "../net/grpcclient.h"
 
 class VMCommClient; // Forward declaration.

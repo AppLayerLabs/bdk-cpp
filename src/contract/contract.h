@@ -6,7 +6,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "../core/db.h"
+#include "../utils/db.h"
 #include "../libs/devcore/CommonData.h"
 #include "../libs/devcore/FixedHash.h"
 #include "../libs/json.hpp"

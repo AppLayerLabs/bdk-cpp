@@ -33,7 +33,7 @@
 
 #include "../../proto/vm.grpc.pb.h"
 #include "../core/subnet.h"
-#include "../core/utils.h"
+#include "../utils/utils.h"
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;

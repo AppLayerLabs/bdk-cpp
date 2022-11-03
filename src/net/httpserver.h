@@ -36,7 +36,7 @@
 #include <boost/thread.hpp>
 
 #include "../core/subnet.h"
-#include "../core/utils.h"
+#include "../utils/utils.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>

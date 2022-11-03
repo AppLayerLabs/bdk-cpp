@@ -3,9 +3,9 @@
 
 #include <shared_mutex>
 
-#include "utils.h"
-#include "db.h"
-#include "random.h"
+#include "../utils/utils.h"
+#include "../utils/db.h"
+#include "../utils/random.h"
 
 class Validator {
   private:

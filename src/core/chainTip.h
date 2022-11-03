@@ -3,8 +3,8 @@
 
 #include "block.h"
 #include "chainHead.h"
-#include "db.h"
-#include "utils.h"
+#include "../utils/db.h"
+#include "../utils/utils.h"
 #include "../net/grpcserver.h"
 
 class State; // Forward declaration.
