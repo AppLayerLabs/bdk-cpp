@@ -13,9 +13,7 @@
 #include "db.h"
 #include "transaction.h"
 #include "utils.h"
-#if !IS_LOCAL_TESTS
 #include "../net/grpcclient.h"
-#endif
 
 class VMCommClient; // Forward declaration.
 class ChainTip;
@@ -33,10 +31,9 @@ class State {
     mutable std::unordered_map<Hash, Tx::Base, SafeHash> mempool; // Tx Hash (bytes) -> Tx
     // TODO: improve mempool structure (e.g. verify txs in mempool not included in a block after accepting another block, as we need to keep every tx valid)
     mutable std::shared_mutex stateLock;
-    #if !IS_LOCAL_TESTS
-      // Used to notify AvalancheGo when creating new blocks.
-      std::shared_ptr<VMCommClient> &grpcClient;
-    #endif
+    
+  // Used to notify AvalancheGo when creating new blocks.
+  std::shared_ptr<VMCommClient> &grpcClient;
 
     // Save accounts from memory to DB. Does a batch operation.
     bool saveState(std::shared_ptr<DBService> &dbServer);
@@ -49,11 +46,8 @@ class State {
     bool processNewTransaction(const Tx::Base &tx);
 
   public:
-    #if !IS_LOCAL_TESTS
-      State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
-    #else
-      State(std::shared_ptr<DBService> &dbServer);
-    #endif
+    State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
+
     uint256_t getNativeBalance(const Address& address);
     uint256_t getNativeNonce(const Address& address);
     const std::unordered_map<Hash, Tx::Base, SafeHash>& getMempool() const { return mempool; };

@@ -130,11 +130,8 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   grpcClient = std::make_shared<VMCommClient>(grpc::CreateChannel(this->initParams.gRPCServerAddress, grpc::InsecureChannelCredentials()), this->connectedNodes, this->connectedNodesLock);
 
   // Initialize the State and other parts of the Subnet.
-  #if !IS_LOCAL_TESTS
-    this->headState = std::make_shared<State>(this->dbServer, this->grpcClient);
-  #else
-    this->headState = std::make_shared<State>(this->dbServer);
-  #endif
+  this->headState = std::make_shared<State>(this->dbServer, this->grpcClient);
+
   this->chainHead = std::make_shared<ChainHead>(this->dbServer);
   this->chainTip = std::make_shared<ChainTip>();
   this->blockManager = std::make_shared<BlockManager>(this->dbServer);
