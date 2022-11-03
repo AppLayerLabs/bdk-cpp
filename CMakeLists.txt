@@ -242,6 +242,7 @@ set(SUBNETOOOR_HDRS
   src/core/utils.h
   src/core/chainTip.h
   src/core/blockmanager.h
+  src/core/random.h
   src/net/grpcclient.h
   src/net/grpcserver.h
   src/net/httpserver.h
@@ -328,6 +329,7 @@ if(BUILD_TESTS)
     src/core/transaction.h
     src/core/utils.h
     src/core/chainTip.h
+    src/core/random.h
     src/net/grpcclient.h
     src/net/grpcserver.h
     src/net/httpserver.h

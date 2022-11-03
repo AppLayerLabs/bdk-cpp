@@ -5,6 +5,7 @@
 
 #include "utils.h"
 #include "db.h"
+#include "random.h"
 
 class Validator {
   private:
