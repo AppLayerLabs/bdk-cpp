@@ -1,3 +1,6 @@
+#ifndef RANDOM_H
+#define RANDOM_H
+
 #include "utils.h"
 
 #include <boost/lexical_cast.hpp>
@@ -8,14 +11,12 @@
 #include <boost/random/uniform_int_distribution.hpp>
 
 
-// This uses mersenne twister as it's engine, it is 64 bits in size, not good for cryptographically secure applications.
-// TODO: Figure out a way to use uint256_t on the engine itself.
 class RandomGen {
   private:
-    std::mt19937_64 gen;
-    std::mutex gen_mutex;
+    Hash _seed;
+    std::mutex seed_mutex;
   public:
-    RandomGen(uint256_t seed) : gen(Utils::splitmix(std::hash<uint256_t>()(seed))) {};
+    RandomGen(const Hash& seed) : _seed(seed) {};
 
     typedef uint256_t result_type;
 
@@ -28,17 +29,32 @@ class RandomGen {
     }
  
     uint256_t operator()() {
-      boost::random::uniform_int_distribution<uint256_t> distr(this->min(), this->max());
-      gen_mutex.lock();
-      auto result = distr(gen);
-      gen_mutex.unlock();
+      seed_mutex.lock();
+      _seed = Utils::sha3(_seed.get());
+      auto result = _seed.toUint256();
+      seed_mutex.unlock();
       return result;
     }
  
     template <typename Vector>
     void shuffleVector(Vector& vector) {
-      std::shuffle(vector.begin(), vector.end(), this->gen);
+      seed_mutex.lock();
+      for (uint64_t i = 0; i < vector.size(); ++i) {
+        this->_seed = Utils::sha3(this->_seed.get());
+        std::cout << _seed.hex() << std::endl;
+        uint64_t n = i + this->_seed.toUint256() % (vector.size() - i);
+        std::swap(vector[n],vector[i]);
+      }
+      seed_mutex.unlock();
       return;
     };
+
+    void setSeed(const Hash& seed) {
+      seed_mutex.lock();
+      this->_seed = seed;
+      seed_mutex.unlock();
+      return;
+    }
 };
 
+#endif

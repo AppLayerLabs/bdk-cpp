@@ -51,9 +51,10 @@ namespace MessagePrefix {
 
 enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
-// Utils::bytesToHex should be located before StringContainer
+// Utils::bytesToHex and others should be located before StringContainer
 namespace Utils {
     std::string bytesToHex(const std::string_view& bytes);
+    uint256_t bytesToUint256(const std::string_view &bytes);
     uint64_t splitmix(uint64_t i);
 };
 
@@ -97,6 +98,7 @@ class StringContainer {
     const std::string::const_iterator end() const { return _data.cend(); }
 
     /// @returns a constant byte pointer to the object's data.
+    // Don't forget size() if data contains a 00 on it!
     const char* data() const { return _data.data(); }
 
     StringContainer& operator=(StringContainer const &_c) {
@@ -107,16 +109,23 @@ class StringContainer {
 
     StringContainer& operator=(StringContainer &&_c) {
       if (&_c == this) return *this;
-      this->_data = std::move(_c.data());
+      this->_data = std::move(_c._data);
       return *this;
     }
 };
 
-using Hash = StringContainer<32>;
 using PrivKey = StringContainer<32>;
 using UncompressedPubkey = StringContainer<65>;
 using CompressedPubkey = StringContainer<33>;
 
+class Hash : public StringContainer<32> {
+  public:
+    using StringContainer<32>::StringContainer;
+
+    uint256_t inline toUint256() const { return Utils::bytesToUint256(_data); };
+
+};
+    
 class Signature : public StringContainer<65> {
 
   public: 
@@ -142,7 +151,6 @@ namespace Utils {
   std::string uint32ToBytes(const uint32_t &i);
   std::string uint16ToBytes(const uint16_t &i);
   std::string uint8ToBytes(const uint8_t &i);
-  uint256_t bytesToUint256(const std::string_view &bytes);
   uint160_t bytesToUint160(const std::string_view &bytes);
   uint64_t bytesToUint64(const std::string_view &bytes);
   uint32_t bytesToUint32(const std::string_view &bytes);
