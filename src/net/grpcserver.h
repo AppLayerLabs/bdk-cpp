@@ -201,6 +201,33 @@ class VMServiceImplementation final :
       google::protobuf::Empty* reply
     ) override;
 
+    Status CrossChainAppRequest(
+      ServerContext* context,
+      const vm::CrossChainAppRequestMsg* request,
+      google::protobuf::Empty* reply
+    ) override {
+      Utils::logToFile("CrossChainAppRequestMsg called!!!");
+      return Status::OK;
+    }
+
+    Status CrossChainAppRequestFailed(
+      ServerContext* context,
+      const vm::CrossChainAppRequestFailedMsg* request,
+      google::protobuf::Empty* reply
+    ) override {
+      Utils::logToFile("CrossChainAppRequestFailedMsg called!!!");
+      return Status::OK;
+    }
+
+    Status CrossChainAppResponse(
+      ServerContext* context,
+      const vm::CrossChainAppResponseMsg* request,
+      google::protobuf::Empty* reply
+    ) override {
+      Utils::logToFile("CrossChainAppResponseMsg called!!!");
+      return Status::OK;
+    }
+
     Status GetAncestors(
       ServerContext* context,
       const vm::GetAncestorsRequest* request,
