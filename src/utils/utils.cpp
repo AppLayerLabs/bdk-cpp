@@ -296,6 +296,7 @@ json Utils::readConfigFile() {
     Utils::LogPrint(Log::utils, __func__, "No config file found, generating default");
     json config;
     config["rpcport"] = 8080;
+    config["p2pport"] = 8081;
     std::ofstream configFile("config.json");
     configFile << config.dump(2);
     configFile.close();

@@ -32,7 +32,7 @@ void Subnet::start() {
    * to the AvalancheGo Daemon.
    */
   server = builder.BuildAndStart();
-  std::cout << "1|18|tcp|" << server_address << "|grpc\n" << std::flush;
+  std::cout << "1|19|tcp|" << server_address << "|grpc\n" << std::flush;
 
   /**
    * Wait for the server to shutdown. Note that some other thread must be
@@ -134,13 +134,12 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   this->chainHead = std::make_shared<ChainHead>(this->dbServer);
   this->chainTip = std::make_shared<ChainTip>();
+
+  json config = Utils::readConfigFile();
+  Utils::logToFile("Starting blockManager");
   this->blockManager = std::make_shared<BlockManager>(this->dbServer);
-  // Get a random number between 25000 and 30000
-  std::random_device rd; // obtain a random number from hardware
-  std::mt19937 gen(rd()); // seed the generator
-  std::uniform_int_distribution<> distr(25000, 30000);
-  unsigned short port = distr(gen);
-  this->p2p = std::make_shared<P2PNode>("127.0.0.1", port, this->chainHead);
+  Utils::logToFile("Starting P2P");
+  this->p2p = std::make_shared<P2PNode>("127.0.0.1", config["p2pport"].get<unsigned short>(), this->chainHead);
 
   // Parse the latest block to answer AvalancheGo.
   auto latestBlock = chainHead->latest();
@@ -154,7 +153,6 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   // Start the HTTP Server.
   Utils::logToFile("Starting HTTP");
-  json config = Utils::readConfigFile();
   this->httpServer = std::make_unique<HTTPServer>(*this, config["rpcport"].get<unsigned short>());
   std::thread httpServerThread = std::thread([&]{this->httpServer->run();});
   httpServerThread.detach();
