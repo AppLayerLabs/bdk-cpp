@@ -9,7 +9,6 @@ std::unique_ptr<Subnet> subnet;
 
 // Let that good boi run
 int main() {
-
   std::vector<Hash> hashList {
     Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
     Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
@@ -32,24 +31,12 @@ int main() {
   }
 
   return 0;
-  std::vector<std::string> v = {"a", "b", "c", "d", "e", "f", "g", "h"};
+  std::vector<std::string> v = {"a", "b", "c", "d", "e"};
+  std::vector<std::string> v2 = {"a", "b", "c", "d", "e"};
   MPT mpt(v);
+  MPT mpt2(v2);
   std::cout << mpt.verify("a") << std::endl;
-  std::cout << mpt.verify("b") << std::endl;
-  std::cout << mpt.verify("c") << std::endl;
-  std::cout << mpt.verify("d") << std::endl;
-  std::cout << mpt.verify("e") << std::endl;
-  std::cout << mpt.verify("f") << std::endl;
-  std::cout << mpt.verify("g") << std::endl;
-  std::cout << mpt.verify("h") << std::endl;
-  std::cout << mpt.verify("1") << std::endl;
-  std::cout << mpt.verify("2") << std::endl;
-  std::cout << mpt.verify("3") << std::endl;
-  std::cout << mpt.verify("4") << std::endl;
-  std::cout << mpt.verify("5") << std::endl;
-  std::cout << mpt.verify("6") << std::endl;
-  std::cout << mpt.verify("7") << std::endl;
-  std::cout << mpt.verify("8") << std::endl;
+  std::cout << mpt2.verify("a") << std::endl;
   return 0;
 
   std::signal(SIGINT, SIG_IGN);

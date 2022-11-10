@@ -19,6 +19,7 @@ class MPT {
   public:
     MPT(std::vector<std::string> list);
     std::vector<std::string> get() { return this->merkle; }
+    std::string root() { return this->merkle[0]; }
     bool verify(std::string data);
 };
 
