@@ -58,11 +58,10 @@ namespace Utils {
     uint64_t splitmix(uint64_t i);
 };
 
-template <unsigned N>
-class StringContainer {
+template <unsigned N> class StringContainer {
   protected:
     std::string _data;
-  
+
   public:
     // TODO: when constructing the StringContainer, if the input string doesn't match the size, it will throw
     // Add error handling for these throws, specially over places where the user can input data (such as subnetRPC.cpp).
@@ -76,9 +75,9 @@ class StringContainer {
     inline const std::string& get() const { return _data; }
     inline const std::string hex() const { return Utils::bytesToHex(_data); }
     inline const std::string_view get_view() const { return std::string_view(&_data[0], N); }
-    inline const std::string_view get_view(const size_t& offset, const size_t& size) const { 
-      if (offset > sizeT || size > sizeT) { throw std::runtime_error("Invalid get_view size"); } 
-      return std::string_view(&_data[offset], size); 
+    inline const std::string_view get_view(const size_t& offset, const size_t& size) const {
+      if (offset > sizeT || size > sizeT) { throw std::runtime_error("Invalid get_view size"); }
+      return std::string_view(&_data[offset], size);
     }
     inline const bool empty() const { return _data.empty(); }
     bool operator==(const StringContainer& other) const { return (this->_data == other._data);}
@@ -121,24 +120,15 @@ using CompressedPubkey = StringContainer<33>;
 class Hash : public StringContainer<32> {
   public:
     using StringContainer<32>::StringContainer;
-
-    uint256_t inline toUint256() const { return Utils::bytesToUint256(_data); };
-
+    inline uint256_t toUint256() const { return Utils::bytesToUint256(_data); };
 };
-    
-class Signature : public StringContainer<65> {
 
-  public: 
+class Signature : public StringContainer<65> {
+  public:
     using StringContainer<65>::StringContainer;
-    StringContainer<32> r() {
-      return StringContainer<32>(this->_data.substr(0, 32));
-    };
-    StringContainer<32> s() {
-      return StringContainer<32>(this->_data.substr(32, 32));
-    };
-    StringContainer<1> v() {
-      return StringContainer<1>(this->_data.substr(64, 1));
-    };
+    StringContainer<32> r() { return StringContainer<32>(this->_data.substr(0, 32)); };
+    StringContainer<32> s() { return StringContainer<32>(this->_data.substr(32, 32)); };
+    StringContainer<1> v() { return StringContainer<1>(this->_data.substr(64, 1)); };
 };
 
 namespace Utils {

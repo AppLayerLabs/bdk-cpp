@@ -223,7 +223,7 @@ add_library(ProtoFiles
   ${PROTO_RPCDB_HDRS}
 )
 
-# you HAVE to set the file names,
+# You HAVE to set the file names
 add_library (gen-grpc
   "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.cc"
   "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
@@ -248,7 +248,6 @@ target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${
 #file(GLOB SUBNETOOOR_SRCS "src/*.cpp")
 
 # Set project headers and sources
-
 add_subdirectory(src/utils/)
 add_subdirectory(src/core/)
 add_subdirectory(src/net/)
@@ -260,6 +259,7 @@ add_executable(subnetooord
   "${CMAKE_SOURCE_DIR}/src/main.cpp"
 )
 add_dependencies(subnetooord gen-grpc ProtoFiles aleth subnetooor_core subnetooor_net subnetooor_contract)
+
 # Add include folder and link libraries to the executable
 target_include_directories(subnetooord PRIVATE aleth)
 target_link_libraries(subnetooord
@@ -274,8 +274,6 @@ set_target_properties(subnetooord PROPERTIES COMPILE_FLAGS "-DIS_LOCAL_TESTS=0")
 # Build helper test program
 if(BUILD_TESTS)
   # Required sources for test from src/ (different folder)
-
-
     file(GLOB SUBNETOOOR_TESTS_HDRS "tests/*.h")
     file(GLOB SUBNETOOOR_TESTS_SRCS "tests/*.cpp")
     add_executable(subnetooord-tests
