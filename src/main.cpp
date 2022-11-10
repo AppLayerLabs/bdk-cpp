@@ -3,11 +3,35 @@
 #include <iostream>
 #include <vector>
 #include "utils/mpt.h"
+#include "utils/merkle.h"
 
 std::unique_ptr<Subnet> subnet;
 
 // Let that good boi run
 int main() {
+
+  std::vector<Hash> hashList {
+    Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
+    Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
+    Utils::hexToBytes("0x2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"),
+    Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
+    Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
+    Utils::hexToBytes("0x2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"),
+    Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
+    Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
+    Utils::hexToBytes("0x2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6")
+  };
+
+  MerkleRoot merkleRoot(hashList);
+
+  for (const auto &layer : merkleRoot.layers()) {
+    std::cout << std::endl;
+    for (const auto &hash : layer) {
+      std::cout << hash.hex() << std::endl;
+    }
+  }
+
+  return 0;
   std::vector<std::string> v = {"a", "b", "c", "d", "e", "f", "g", "h"};
   MPT mpt(v);
   std::cout << mpt.verify("a") << std::endl;
