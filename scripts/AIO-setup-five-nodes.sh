@@ -74,11 +74,11 @@ echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9652 --staking
 echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9654 --staking-port=9655 --db-dir=db/node3 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker3.crt --staking-tls-key-file=$(pwd)/staking/local/staker3.key" >> node3/start3.sh
 echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9656 --staking-port=9657 --db-dir=db/node4 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker4.crt --staking-tls-key-file=$(pwd)/staking/local/staker4.key" >> node4/start4.sh
 echo -n "./../build/avalanchego --public-ip=127.0.0.1 --http-port=9658 --staking-port=9659 --db-dir=db/node5 --network-id=local --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg --staking-tls-cert-file=$(pwd)/staking/local/staker5.crt --staking-tls-key-file=$(pwd)/staking/local/staker5.key" >> node5/start5.sh
-printf "{\n  \"rpcport\": 8080,\n  \"p2pport\" : 8085\n }" >> node1/config.json
-printf "{\n  \"rpcport\": 8081,\n  \"p2pport\" : 8086\n }" >> node2/config.json
-printf "{\n  \"rpcport\": 8082,\n  \"p2pport\" : 8087\n }" >> node3/config.json
-printf "{\n  \"rpcport\": 8083,\n  \"p2pport\" : 8088\n }" >> node4/config.json
-printf "{\n  \"rpcport\": 8084,\n  \"p2pport\" : 8089\n }" >> node5/config.json
+printf "{\n  \"rpcport\": 8080,\n  \"p2pport\" : 8085,\n  \"validatorPrivKey\" : \"0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759\" }" >> node1/config.json
+printf "{\n  \"rpcport\": 8081,\n  \"p2pport\" : 8086,\n  \"validatorPrivKey\" : \"0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4\" }" >> node2/config.json
+printf "{\n  \"rpcport\": 8082,\n  \"p2pport\" : 8087,\n  \"validatorPrivKey\" : \"0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751\" }" >> node3/config.json
+printf "{\n  \"rpcport\": 8083,\n  \"p2pport\" : 8088,\n  \"validatorPrivKey\" : \"0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7\" }" >> node4/config.json
+printf "{\n  \"rpcport\": 8084,\n  \"p2pport\" : 8089,\n  \"validatorPrivKey\" : \"0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6\" }" >> node5/config.json
 
 chmod +x node1/start1.sh node2/start2.sh node3/start3.sh node4/start4.sh node5/start5.sh
 

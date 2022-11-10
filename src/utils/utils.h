@@ -13,6 +13,7 @@
 #include "../libs/devcore/CommonData.h"
 #include "../libs/devcore/FixedHash.h"
 #include "../libs/json.hpp"
+ #include <openssl/rand.h>
 #include <ethash/keccak.h>
 #include <filesystem>
 
@@ -42,6 +43,7 @@ namespace Log {
   const std::string utils = "Utils::";
   const std::string httpServer = "HTTPServer::";
   const std::string blockManager = "BlockManager::";
+  const std::string ABI = "ABI::";
 };
 
 namespace MessagePrefix {
@@ -51,10 +53,13 @@ namespace MessagePrefix {
 
 enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
+// Only LocalTestnet is supported for now.
+enum Networks { Mainnet, Testnet, LocalTestnet };
 // Utils::bytesToHex and others should be located before StringContainer
 namespace Utils {
     std::string bytesToHex(const std::string_view& bytes);
     uint256_t bytesToUint256(const std::string_view &bytes);
+    std::string uint256ToBytes(const uint256_t &i);
     uint64_t splitmix(uint64_t i);
 };
 
@@ -120,7 +125,16 @@ using CompressedPubkey = StringContainer<33>;
 class Hash : public StringContainer<32> {
   public:
     using StringContainer<32>::StringContainer;
-    inline uint256_t toUint256() const { return Utils::bytesToUint256(_data); };
+
+    Hash(uint256_t data) : StringContainer<32>(Utils::uint256ToBytes(data)) {};
+    uint256_t inline toUint256() const { return Utils::bytesToUint256(_data); };
+
+    static Hash random() { 
+      Hash h;
+      h._data.resize(32, 0x00);
+      RAND_bytes((unsigned char*)h._data.data(), 32);
+      return h;
+    }
 };
 
 class Signature : public StringContainer<65> {
@@ -135,12 +149,13 @@ namespace Utils {
   void logToFile(std::string str);
   void LogPrint(const std::string &prefix, std::string function, std::string data);
   Hash sha3(const std::string_view &input);
-  std::string uint256ToBytes(const uint256_t &i);
   std::string uint160ToBytes(const uint160_t &i);
   std::string uint64ToBytes(const uint64_t &i);
   std::string uint32ToBytes(const uint32_t &i);
   std::string uint16ToBytes(const uint16_t &i);
   std::string uint8ToBytes(const uint8_t &i);
+  bool isHex(const std::string_view &input);
+  std::string utf8ToHex(const std::string_view &input);
   uint160_t bytesToUint160(const std::string_view &bytes);
   uint64_t bytesToUint64(const std::string_view &bytes);
   uint32_t bytesToUint32(const std::string_view &bytes);
@@ -156,6 +171,7 @@ namespace Utils {
     for (auto &c : ret) if (std::isupper(c)) c = std::tolower(c);
     return ret;
   }
+  void stripHexPrefix(std::string& str);
   uint256_t hexToUint(std::string &hex);
   std::string hexToBytes(std::string hex);
   bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);

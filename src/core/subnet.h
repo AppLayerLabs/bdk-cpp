@@ -51,6 +51,7 @@ class Subnet {
   private:
     bool initialized = false;
     bool shutdown = false;
+    bool isValidator = false;
 
     // gRPC Server Implementation. vm.proto calls from AvalancheGo can be found here.
     std::shared_ptr<VMServiceImplementation> grpcServer;

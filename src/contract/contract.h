@@ -4,18 +4,29 @@
 #include <cstdint>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
 #include "../utils/db.h"
-#include "../libs/devcore/CommonData.h"
-#include "../libs/devcore/FixedHash.h"
-#include "../libs/json.hpp"
+#include "../utils/utils.h"
 
 class Contract {
   private:
-    // TODO
+    const Address _address;
+    const Address _owner;
+    static Hash currentBlockHash;
+    static uint64_t currentBlockHeight;
+    static uint64_t currentBlockTime;
+    // Setters
+    static void setCurrentBlockHash(const Hash &hash) { currentBlockHash = hash; }
+    static void setCurrentBlockHeight(const uint64_t &height) { currentBlockHeight = height; }
+    static void setCurrentBlockTime(const uint64_t &time) { currentBlockTime = time; }
   public:
-    // TODO
+  
+    Contract(const Address &address, const Address &owner) : _address(address), _owner(owner) {}
+
+    // Getters
+    const Address& address() const { return this->_address; }
+    const Address& owner() const { return this->_owner; }
+
+    friend class State;
 };
 
 #endif  // CONTRACT_H

@@ -1,27 +1,27 @@
 #include "abi.h"
 
-std::string ABIEncoder::encodeFunction(std::string func) {
+std::string ABI::Encoder::encodeFunction(std::string func) {
   std::string hash = Utils::sha3(func).get();
   return hash.substr(0, 8);
 }
 
-std::string ABIEncoder::encodeUint256(uint256_t num) {
+std::string ABI::Encoder::encodeUint256(uint256_t num) {
   std::stringstream ss;
   ss << std::hex << num;
   return Utils::padLeft(ss.str(), 64);
 }
 
-std::string ABIEncoder::encodeAddress(Address add) {
+std::string ABI::Encoder::encodeAddress(Address add) {
   std::string addStr = add.get();
   Utils::patchHex(addStr);
   return Utils::padLeft(addStr, 64);
 }
 
-std::string ABIEncoder::encodeBool(bool b) {
+std::string ABI::Encoder::encodeBool(bool b) {
   return Utils::padLeft(((b) ? "1" : "0"), 64);
 }
 
-std::string ABIEncoder::encodeBytes(std::string bytes) {
+std::string ABI::Encoder::encodeBytes(std::string bytes) {
   std::string strip, off, len, data = "";
   int pad = 0;
   std::stringstream offSS, lenSS;
@@ -36,7 +36,7 @@ std::string ABIEncoder::encodeBytes(std::string bytes) {
   return off + len + data;
 }
 
-std::string ABIEncoder::encodeUint256Arr(std::vector<uint256_t> numV) {
+std::string ABI::Encoder::encodeUint256Arr(std::vector<uint256_t> numV) {
   std::string arrOff, arrLen, arrData = "";
   std::stringstream offSS, lenSS;
   offSS << std::hex << 32;
@@ -47,7 +47,7 @@ std::string ABIEncoder::encodeUint256Arr(std::vector<uint256_t> numV) {
   return arrOff + arrLen + arrData;
 }
 
-std::string ABIEncoder::encodeAddressArr(std::vector<Address> addV) {
+std::string ABI::Encoder::encodeAddressArr(std::vector<Address> addV) {
   std::string arrOff, arrLen, arrData = "";
   std::stringstream offSS, lenSS;
   offSS << std::hex << 32;
@@ -58,7 +58,7 @@ std::string ABIEncoder::encodeAddressArr(std::vector<Address> addV) {
   return arrOff + arrLen + arrData;
 }
 
-std::string ABIEncoder::encodeBoolArr(std::vector<bool> bV) {
+std::string ABI::Encoder::encodeBoolArr(std::vector<bool> bV) {
   std::string arrOff, arrLen, arrData = "";
   std::stringstream offSS, lenSS;
   offSS << std::hex << 32;
@@ -69,7 +69,7 @@ std::string ABIEncoder::encodeBoolArr(std::vector<bool> bV) {
   return arrOff + arrLen + arrData;
 }
 
-std::string ABIEncoder::encodeBytesArr(std::vector<std::string> bytesV) {
+std::string ABI::Encoder::encodeBytesArr(std::vector<std::string> bytesV) {
   std::string arrOff, arrLen = "";
   std::vector<std::string> bytesStrip, bytesOff, bytesLen, bytesData = {};
   std::stringstream offSS, lenSS;
@@ -105,7 +105,7 @@ std::string ABIEncoder::encodeBytesArr(std::vector<std::string> bytesV) {
   return ret;
 }
 
-ABIEncoder::ABIEncoder(std::vector<std::variant<
+ABI::Encoder::Encoder(std::vector<std::variant<
   uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
   bool, std::vector<bool>, std::string, std::vector<std::string>
 >> data, std::string func) {
@@ -203,7 +203,7 @@ ABIEncoder::ABIEncoder(std::vector<std::variant<
   this->data += arrToAppend;
 }
 
-uint256_t ABIDecoder::decodeUint256(const std::string &data, const uint64_t &start) {
+uint256_t ABI::Decoder::decodeUint256(const std::string &data, const uint64_t &start) {
   if (start + 32 > data.size()) {
     throw std::runtime_error("Data too short");
   }
@@ -213,7 +213,7 @@ uint256_t ABIDecoder::decodeUint256(const std::string &data, const uint64_t &sta
   return ret;
 }
 
-Address ABIDecoder::decodeAddress(const std::string &data, const uint64_t &start) {
+Address ABI::Decoder::decodeAddress(const std::string &data, const uint64_t &start) {
   if (start + 32 > data.size()) {
     throw std::runtime_error("Data too short");
   }
@@ -223,7 +223,7 @@ Address ABIDecoder::decodeAddress(const std::string &data, const uint64_t &start
   return ret;
 }
 
-bool ABIDecoder::decodeBool(const std::string &data, const uint64_t &start) {
+bool ABI::Decoder::decodeBool(const std::string &data, const uint64_t &start) {
   if (start + 32 > data.size()) {
     throw std::runtime_error("Data too short");
   }
@@ -231,7 +231,7 @@ bool ABIDecoder::decodeBool(const std::string &data, const uint64_t &start) {
   return ret;
 }
 
-std::string ABIDecoder::decodeBytes(const std::string &data, const uint64_t &start) {
+std::string ABI::Decoder::decodeBytes(const std::string &data, const uint64_t &start) {
   // Get bytes offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -253,7 +253,7 @@ std::string ABIDecoder::decodeBytes(const std::string &data, const uint64_t &sta
   return tmp;
 }
 
-std::vector<uint256_t> ABIDecoder::decodeUint256Arr(const std::string &data, const uint64_t &start) {
+std::vector<uint256_t> ABI::Decoder::decodeUint256Arr(const std::string &data, const uint64_t &start) {
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -281,7 +281,7 @@ std::vector<uint256_t> ABIDecoder::decodeUint256Arr(const std::string &data, con
   return tmpArr;
 }
 
-std::vector<Address> ABIDecoder::decodeAddressArr(const std::string &data, const uint64_t &start) {
+std::vector<Address> ABI::Decoder::decodeAddressArr(const std::string &data, const uint64_t &start) {
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -310,7 +310,7 @@ std::vector<Address> ABIDecoder::decodeAddressArr(const std::string &data, const
   return tmpArr;
 }
 
-std::vector<bool> ABIDecoder::decodeBoolArr(const std::string &data, const uint64_t &start) {
+std::vector<bool> ABI::Decoder::decodeBoolArr(const std::string &data, const uint64_t &start) {
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -336,7 +336,7 @@ std::vector<bool> ABIDecoder::decodeBoolArr(const std::string &data, const uint6
   return tmpArr;
 }
 
-std::vector<std::string> ABIDecoder::decodeBytesArr(const std::string &data, const uint64_t &start) {
+std::vector<std::string> ABI::Decoder::decodeBytesArr(const std::string &data, const uint64_t &start) {
   // Get array offset
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
@@ -373,25 +373,25 @@ std::vector<std::string> ABIDecoder::decodeBytesArr(const std::string &data, con
   return tmpVec;
 }
 
-ABIDecoder::ABIDecoder(std::vector<ABITypes> const &types, std::string const &abiData) {
+ABI::Decoder::Decoder(std::vector<ABI::Types> const &types, std::string const &abiData) {
   uint64_t argsIndex = 0;
   uint64_t dataIndex = 0;
   while (argsIndex < types.size()) {
-    if (types[argsIndex] == ABITypes::uint256) {
+    if (types[argsIndex] == ABI::Types::uint256) {
       this->data.emplace_back(decodeUint256(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::uint256Arr) {
+    } else if (types[argsIndex] == ABI::Types::uint256Arr) {
       this->data.emplace_back(decodeUint256Arr(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::address) {
+    } else if (types[argsIndex] == ABI::Types::address) {
       this->data.emplace_back(decodeAddress(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::addressArr) {
+    } else if (types[argsIndex] == ABI::Types::addressArr) {
       this->data.emplace_back(decodeAddressArr(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::boolean) {
+    } else if (types[argsIndex] == ABI::Types::boolean) {
       this->data.emplace_back(decodeBool(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::booleanArr) {
+    } else if (types[argsIndex] == ABI::Types::booleanArr) {
       this->data.emplace_back(decodeBoolArr(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::string || types[argsIndex] == ABITypes::bytes) {
+    } else if (types[argsIndex] == ABI::Types::string || types[argsIndex] == ABI::Types::bytes) {
       this->data.emplace_back(decodeBytes(abiData, dataIndex));
-    } else if (types[argsIndex] == ABITypes::stringArr || types[argsIndex] == ABITypes::bytesArr) {
+    } else if (types[argsIndex] == ABI::Types::stringArr || types[argsIndex] == ABI::Types::bytesArr) {
       this->data.emplace_back(decodeBytesArr(abiData, dataIndex));
     }
     dataIndex += 32;
@@ -399,3 +399,96 @@ ABIDecoder::ABIDecoder(std::vector<ABITypes> const &types, std::string const &ab
   }
 }
 
+ABI::JSONEncoder::JSONEncoder(const json& jsonInterface) {
+  // Parse contract
+  for (auto item : jsonInterface) {
+    if (item["type"].get<std::string>() == "function") {
+      std::string functionName = item["name"].get<std::string>();
+      std::string functionAll = functionName + "(";
+      for (auto arguments : item["inputs"]) {
+        Types argType;
+        std::string argTypeStr = arguments["type"].get<std::string>();
+        functionAll += argTypeStr + ",";
+        if (argTypeStr == "uint256") argType = Types::uint256;
+        else if (argTypeStr == "uint256[]") argType = Types::uint256Arr;
+        else if (argTypeStr == "address") argType = Types::address;
+        else if (argTypeStr == "address[]") argType = Types::addressArr;
+        else if (argTypeStr == "bool") argType = Types::boolean;
+        else if (argTypeStr == "bool[]") argType = Types::booleanArr;
+        else if (argTypeStr == "bytes") argType = Types::bytes;
+        else if (argTypeStr == "bytes[]") argType = Types::bytesArr;
+        else if (argTypeStr == "string") argType = Types::string;
+        else if (argTypeStr == "string[]") argType = Types::stringArr;
+        else {
+          // All uints (128, 64, etc.) are encoded the same way
+          if (argTypeStr.find("uint") != std::string::npos) {
+            argType = (argTypeStr.find("[]") != std::string::npos)
+              ? Types::uint256Arr : Types::uint256;
+          } else if (argTypeStr.find("bytes") != std::string::npos) {
+            argType = (argTypeStr.find("[]") != std::string::npos)
+              ? Types::bytesArr : Types::bytes;
+          }
+        }
+        methods[functionName].push_back(argType);
+      }
+      functionAll.pop_back(); // Remove last ,
+      functionAll += ")";
+      functors[functionName] = Utils::sha3(functionAll).hex().substr(0,8);
+    }
+  }
+}
+
+bool ABI::JSONEncoder::isTypeArray(Types const &type) {
+  return (
+    type == Types::uint256Arr || type == Types::addressArr ||
+    type == Types::booleanArr || type == Types::bytesArr ||
+    type == Types::stringArr
+  );
+}
+
+std::string ABI::JSONEncoder::operator() (const std::string &function ,const json &arguments) {
+  if (!methods.count(function)) {
+    Utils::LogPrint(Log::ABI, __func__, " Error: ABI Functor Not Found");
+    throw std::runtime_error(std::string(__func__) + "ABI Functor Not Found");
+  }
+  
+  if (!arguments.is_array()) { 
+    Utils::LogPrint(Log::ABI, __func__, " Error: ABI Invalid JSON Array");
+    throw std::runtime_error(std::string(__func__) + "ABI Invalid JSON Array");
+  }
+
+  if (arguments.size() != methods[function].size()) { 
+    Utils::LogPrint(Log::ABI, __func__, " Error: ABI Invalid Arguments Length");
+    throw std::runtime_error(std::string(__func__) + "ABI Invalid Arguments Length");
+  }
+
+  // Streamline all types from function into a string
+  std::vector<std::string> funcTypes;
+  for (Types t : methods[function]) {
+    switch (t) {
+      case Types::uint256: funcTypes.push_back("uint256"); break;
+      case Types::uint256Arr: funcTypes.push_back("uint256[]"); break;
+      case Types::address: funcTypes.push_back("address"); break;
+      case Types::addressArr: funcTypes.push_back("address[]"); break;
+      case Types::boolean: funcTypes.push_back("bool"); break;
+      case Types::booleanArr: funcTypes.push_back("bool[]"); break;
+      case Types::bytes: funcTypes.push_back("bytes"); break;
+      case Types::bytesArr: funcTypes.push_back("bytes[]"); break;
+      case Types::string: funcTypes.push_back("string"); break;
+      case Types::stringArr: funcTypes.push_back("string[]"); break;
+    }
+  }
+
+  // Mount the function header and JSON arguments manually,
+  // with the proper formatting both need to go through packMulti()
+  std::string func = function + "(";
+  json args;
+  for (int i = 0; i < funcTypes.size(); i++) {
+    func += funcTypes[i] + ",";
+    args.push_back({{"t", funcTypes[i]}, {"v", arguments[i]}});
+  }
+  func.pop_back();  // Remove last ","
+  func += ")";
+
+  return Solidity::packMulti(args, func);
+}

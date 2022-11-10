@@ -11,6 +11,7 @@
 #include "block.h"
 #include "chainHead.h"
 #include "../utils/db.h"
+#include "../utils/random.h"
 #include "transaction.h"
 #include "../utils/utils.h"
 #include "../net/grpcclient.h"
@@ -46,6 +47,8 @@ class State {
     bool processNewTransaction(const Tx::Base &tx);
 
   public:
+    static RandomGen gen;
+
     State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
 
     uint256_t getNativeBalance(const Address& address);
@@ -55,7 +58,7 @@ class State {
     // State changing functions
 
     // Validates if a given block is valid and the transactions within. Does *not* update the state.
-    bool validateNewBlock(const std::shared_ptr<const Block> &newBlock, const std::shared_ptr<const ChainHead>& chainHead) const;
+    bool validateNewBlock(const std::shared_ptr<const Block> &newBlock, const std::shared_ptr<const ChainHead>& chainHead, const std::shared_ptr<const BlockManager>& blockManager) const;
 
     // Process a new block from the network and update the local state. to be called by chainTip.
     // The block is moved to this function because it will move the block into the chainHead if succeeds.
@@ -79,6 +82,7 @@ class State {
     void addBalance(const Address &address);
 
     friend class Subnet;
+
 };
 
 #endif // STATE_H

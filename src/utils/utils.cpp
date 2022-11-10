@@ -316,3 +316,25 @@ uint64_t Utils::splitmix(uint64_t i) {
   i = (i ^ (i >> 27)) * 0x94d049bb133111eb;
   return i ^ (i >> 31);
 }
+
+bool Utils::isHex(const std::string_view &input) {
+  uint64_t i = 0;
+  if (input.substr(0, 2) == "0x" || input.substr(0, 2) == "0X") { i = 2; }
+  return (std::string_view(&input[i], input.size() - i).find_first_not_of("0123456789abcdefABCDEF") == std::string::npos);
+}
+
+std::string Utils::utf8ToHex(const std::string_view &str) {
+  std::stringstream ss;
+  for (int i = 0; i < str.length(); i++) {
+    // You need two casts in order to properly cast char to uint.
+    ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<uint>(static_cast<uint8_t>(str[i]));
+  }
+
+  return ss.str();
+}
+
+void Utils::stripHexPrefix(std::string& str) {
+  if (str[0] == '0' && str[1] == 'x') {
+    str = str.substr(2);
+  }
+}

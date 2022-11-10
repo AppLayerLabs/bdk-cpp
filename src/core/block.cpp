@@ -1,30 +1,64 @@
 #include "block.h"
 
-Block::Block(const std::string &blockData, bool fromDB) {
+Block::Block(const std::string_view &blockData, bool fromDB) {
   // Split the block data into different byte arrays.
   try {
-    std::string prevBlockHashBytes; // uint256_t
-    std::string timestampBytes;     // uint64_t
-    std::string nHeightBytes;       // uint64_t
-    std::string txArraySizeBytes;   // uint32_t
+    /*
+      Hash _prevBlockHash;
+    uint64_t _timestamp; // Timestamp in nanoseconds
+    uint64_t _nHeight;
+    Signature validatorSignature;
+    uint64_t _txCount;
+    uint64_t _txValidatorsCount;*/
+    std::string_view prevBlockHashBytes; // uint256_t
+    std::string_view timestampBytes;     // uint64_t
+    std::string_view nHeightBytes;       // uint64_t
+    std::string_view validatorSignatureBytes; // 65 bytes
+    std::string_view txCountBytes;       // uint64_t
+    std::string_view txValidatorCountBytes;   // uint64_t
+    uint64_t txValidatorStart;
+    uint64_t txStart;
     this->finalized = true;
     this->indexed = true;
 
     prevBlockHashBytes = blockData.substr(0, 32);
     timestampBytes = blockData.substr(32, 8);
     nHeightBytes = blockData.substr(32 + 8, 8);
-    txArraySizeBytes = blockData.substr(32 + 8 + 8, 4);
+    validatorSignatureBytes = blockData.substr(32 + 8 + 8, 65);
+    txCountBytes = blockData.substr(32 + 8 + 8 + 65, 8);
+    txValidatorCountBytes = blockData.substr(32 + 8 + 8 + 65 + 8, 8);
+    txValidatorStart = Utils::bytesToUint64(blockData.substr(32 + 8 + 8 + 65 + 8 + 8, 8));
+    txStart = Utils::bytesToUint64(blockData.substr(32 + 8 + 8 + 65 + 8 + 8 + 8, 8));
+
     // String view to create a reference to a substring of the block data, no copy!
-    std::string_view rawTransactions(&blockData[32 + 8 + 8 + 4], blockData.size() - (32 + 8 + 8 + 4));
-    this->_prevBlockHash = Utils::bytesToUint256(prevBlockHashBytes);
+    std::string_view rawValidatorTransactions(&blockData[txValidatorStart], txStart - txValidatorStart);
+    std::string_view rawTransactions(&blockData[txStart], blockData.size() - txStart);
+    this->_prevBlockHash = Hash(prevBlockHashBytes);
     this->_timestamp = Utils::bytesToUint64(timestampBytes);
     this->_nHeight = Utils::bytesToUint64(nHeightBytes);
-    this->_txCount = Utils::bytesToUint32(txArraySizeBytes);
+    this->_validatorSignature = Signature(validatorSignatureBytes);
+    this->_txCount = Utils::bytesToUint64(txCountBytes);
+    this->_txValidatorsCount = Utils::bytesToUint64(txValidatorCountBytes);
 
     // Parse and push transactions into block.
-    // Transactions parsing through blocks is multithreaded.
+    // Parsing validator transactions are not multithreaded because there isn't many of them.
+
+    {
+      uint64_t nextTx = 0;
+      for (uint32_t i = 0; i < this->_txValidatorsCount; ++i) {
+        std::string txSizeBytes;
+        // Copy the transaction size.
+        txSizeBytes = rawValidatorTransactions.substr(nextTx, 4);
+        uint32_t txSize = Utils::bytesToUint32(txSizeBytes);
+        // Copy the transaction itself.
+        std::string_view txBytes(&rawValidatorTransactions.data()[nextTx + 4], txSize);
+        this->_validatorTransactions[i] = Tx::Base(txBytes, false);
+        nextTx = nextTx + 4 + txSize;
+      }
+    }
+
+    // Transactions parsing through blocks is multithreaded because the upper limit is 400k tx per block
     // If tx count is less than 1000, just use one thread as spawning thread can slow down things.
-    uint64_t maxIndex = 0;
     if (this->_txCount < 1000) {
       uint64_t nextTx = 0;
       for (uint32_t i = 0; i < this->_txCount; ++i) {
@@ -94,17 +128,30 @@ Block::Block(const std::string &blockData, bool fromDB) {
 std::string Block::serializeToBytes(bool db) const {
   // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ... ]
   std::string ret;
-  std::string prevBlockHashBytes = Utils::uint256ToBytes(this->_prevBlockHash);
-  std::string timestampBytes = Utils::uint64ToBytes(this->_timestamp);
-  std::string nHeightBytes = Utils::uint64ToBytes(this->_nHeight);
-  std::string txCountBytes = Utils::uint32ToBytes(this->_txCount);
 
   // Append header.
-  ret += prevBlockHashBytes;
-  ret += timestampBytes;
-  ret += nHeightBytes;
-  ret += txCountBytes;
+  ret += this->_prevBlockHash.get();
+  ret += Utils::uint64ToBytes(this->_timestamp);
+  ret += Utils::uint64ToBytes(this->_nHeight);
+  ret += this->_validatorSignature.get();
+  ret += Utils::uint64ToBytes(this->_txValidatorsCount);
+  ret += Utils::uint64ToBytes(this->_txCount);
+  uint64_t txValidatorStart = ret.size() + 16;
+  ret += Utils::uint64ToBytes(txValidatorStart);
+  uint64_t txStartLocation = ret.size();
+  ret += Utils::uint64ToBytes(0); // 8 bytes, will be appended later after txs are serialized.
 
+
+  // Append validator transactions - parse both size and data for each transaction.
+  for (uint64_t i = 0; i < this->_txValidatorsCount; ++i) {
+    std::string txBytes = (db) ? this->_validatorTransactions.find(i)->second.serialize() : this->_validatorTransactions.find(i)->second.rlpSerialize(true);
+    std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
+    ret += std::move(txSizeBytes);
+    ret += std::move(txBytes);
+  }
+  uint64_t txStart = ret.size();
+  // Append txStart location.
+  std::memcpy(&ret[txStartLocation], &txStart, 8);
   // Append transactions - parse both size and data for each transaction.
   for (uint64_t i = 0; i < this->_txCount; ++i) {
     std::string txBytes = (db) ? this->_transactions.find(i)->second.serialize() : this->_transactions.find(i)->second.rlpSerialize(true);
@@ -128,6 +175,16 @@ uint64_t Block::blockSize() const {
 }
 
 bool Block::appendTx(const Tx::Base &tx) {
+  if (this->finalized) {
+    Utils::LogPrint(Log::block, __func__, " Block is finalized.");
+    return false;
+  }
+  this->_transactions[_txCount] = (std::move(tx));
+  _txCount++;
+  return true;
+}
+
+bool Block::appendValidatorTx(const Tx::Base &tx) {
   if (this->finalized) {
     Utils::LogPrint(Log::block, __func__, " Block is finalized.");
     return false;

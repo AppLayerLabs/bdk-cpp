@@ -137,7 +137,13 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   json config = Utils::readConfigFile();
   Utils::logToFile("Starting blockManager");
-  this->blockManager = std::make_shared<BlockManager>(this->dbServer);
+  if (config.contains("validatorPrivKey")) {
+    Utils::logToFile("Validator found.");
+    this->isValidator = true;
+    this->blockManager = std::make_shared<BlockManager>(this->dbServer, Hash(Utils::hexToBytes(config["validatorPrivKey"].get<std::string>())), Address("0x0000000000000000626c6f636b4d616e61676572", true), Address("0x0000000000000000000000000000000000000000", true));
+  } else {
+    this->blockManager = std::make_shared<BlockManager>(this->dbServer, Address("0x0000000000000000626c6f636b4d616e61676572", true), Address("0x0000000000000000000000000000000000000000", true));
+  }
   Utils::logToFile("Starting P2P");
   this->p2p = std::make_shared<P2PNode>("127.0.0.1", config["p2pport"].get<unsigned short>(), this->chainHead);
 
@@ -320,7 +326,7 @@ void Subnet::setPreference(ServerContext* context, const vm::SetPreferenceReques
 const std::shared_ptr<const Block> Subnet::verifyBlock(const std::string &blockBytes) {
   auto block = std::make_shared<Block>(blockBytes, false);
   // Check if block can be attached to top of the chain.
-  if (!this->headState->validateNewBlock(block, this->chainHead)) {
+  if (!this->headState->validateNewBlock(block, this->chainHead, this->blockManager)) {
     return nullptr;
   }
 

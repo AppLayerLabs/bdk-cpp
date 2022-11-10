@@ -22,6 +22,7 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # "ZLIB_USE_STATIC_LIBS" was added in 3.24
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
 set(LEVELDB_USE_STATIC_LIBS ON)
 set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
+set(BUILD_TOOLS OFF CACHE BOOL "Build tools related to subnet")
 set(USE_LINT OFF CACHE BOOL "Run linter on compile (clang-tidy)")
 if(USE_LINT)
   set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-checks=-*,abseil-*,boost-*,bugprone-*,cert-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*")
@@ -242,7 +243,7 @@ add_library (gen-grpc
   ${ProtoFiles}
 )
 
-target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES})
+target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags)
 
 #file(GLOB SUBNETOOOR_HDRS "src/*.h")
 #file(GLOB SUBNETOOOR_SRCS "src/*.cpp")
@@ -253,6 +254,8 @@ add_subdirectory(src/core/)
 add_subdirectory(src/net/)
 add_subdirectory(src/contract/)
 add_subdirectory(src/bench/)
+add_subdirectory(src/tools)
+
 
 # Compile and link the executable
 add_executable(subnetooord

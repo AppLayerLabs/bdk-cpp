@@ -55,6 +55,8 @@ class RandomGen {
       seed_mutex.unlock();
       return;
     }
+
+    friend class ChainHead;
 };
 
 #endif

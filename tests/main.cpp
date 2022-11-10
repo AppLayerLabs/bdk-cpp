@@ -23,8 +23,9 @@ int main() {
   Tests::toChecksumAddress();
   Tests::isAddress();
   Tests::checkAddressChecksum();
-  Tests::testABIDecoder();
   Tests::testSecp256k1();
+  Tests::testABIDecoder();
+  Tests::testABIJSONDecoder();
 
   std::cout << "UNIT TESTING FINISHED" << std::endl;
   return 0;

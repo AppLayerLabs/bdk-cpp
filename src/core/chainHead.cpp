@@ -236,16 +236,16 @@ uint64_t ChainHead::blockSize() {
 
 void ChainHead::loadFromDB() {
   if (!dbServer->has("latest", DBPrefix::blocks)) {
-    Block genesis(0, 1656356645000000, 0);
+    Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
     dbServer->put("latest", genesis.serializeToBytes(false), DBPrefix::blocks);
     dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash().get(), DBPrefix::blockHeightMaps);
     dbServer->put(genesis.getBlockHash().get(), genesis.serializeToBytes(false), DBPrefix::blocks);
     // TODO: CHANGE THIS ON PUBLIC!!!
-    dbServer->put(Utils::uint64ToBytes(0),Secp256k1::toAddress(Secp256k1::toPubCompressed(PrivKey(Utils::hexToBytes("0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759")))).get(), DBPrefix::validators); // 0316e76ff1f3c88de6be793d1f1445d561d7c86ef9b7073146ca2915fa434a273d
-    dbServer->put(Utils::uint64ToBytes(1),Secp256k1::toAddress(Secp256k1::toPubCompressed(PrivKey(Utils::hexToBytes("0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4")))).get(), DBPrefix::validators); // 031f99dcd19423a1933c4574e83e0403b233316003ec97c23ec2742bb23779f08a
-    dbServer->put(Utils::uint64ToBytes(2),Secp256k1::toAddress(Secp256k1::toPubCompressed(PrivKey(Utils::hexToBytes("0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751")))).get(), DBPrefix::validators); // 022c890159873dc6ddf71941c11a04e05efffbbca8b53ef9b32564bdbd364bdc36
-    dbServer->put(Utils::uint64ToBytes(3),Secp256k1::toAddress(Secp256k1::toPubCompressed(PrivKey(Utils::hexToBytes("0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7")))).get(), DBPrefix::validators); // 033205c2720e78c550b053d387b10fd503705b778aafe52276e0c75c3f08491405
-    dbServer->put(Utils::uint64ToBytes(4),Secp256k1::toAddress(Secp256k1::toPubCompressed(PrivKey(Utils::hexToBytes("0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6")))).get(), DBPrefix::validators); // 02948ae73b1b6ff026f7b862c00fc9b9c65ba22a4698bfa09f1d327dac623c9c7d
+    dbServer->put(Utils::uint64ToBytes(0),Address("7588b0f553d1910266089c58822e1120db47e572", true).get(), DBPrefix::validators); // 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759
+    dbServer->put(Utils::uint64ToBytes(1),Address("cabf34a268847a610287709d841e5cd590cc5c00", true).get(), DBPrefix::validators); // 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4
+    dbServer->put(Utils::uint64ToBytes(2),Address("5fb516dc2cfc1288e689ed377a9eebe2216cf1e3", true).get(), DBPrefix::validators); // 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751
+    dbServer->put(Utils::uint64ToBytes(3),Address("795083c42583842774febc21abb6df09e784fce5", true).get(), DBPrefix::validators); // 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7
+    dbServer->put(Utils::uint64ToBytes(4),Address("bec7b74f70c151707a0bfb20fe3767c6e65499e0", true).get(), DBPrefix::validators); // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
     // WARNING: THE PREVIOUS PRIVATE KEYS SHOULD ONLY BE USED FOR LOCAL TESTING PURPOSES.
     Utils::LogPrint(Log::chainHead, __func__, "Created genesis block");
     Utils::LogPrint(Log::chainHead, __func__, std::string("Created genesis block: ") + Utils::bytesToHex(genesis.getBlockHash().get()));

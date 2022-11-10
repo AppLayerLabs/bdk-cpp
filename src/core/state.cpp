@@ -143,7 +143,7 @@ bool State::processNewTransaction(const Tx::Base& tx) {
 
 // Check block header, validation and transactions within.
 // Invalid transactions (such as invalid signatures, account having min balance for min fees), if included in a block, the block will be rejected.
-bool State::validateNewBlock(const std::shared_ptr<const Block> &newBlock, const std::shared_ptr<const ChainHead>& chainHead) const {
+bool State::validateNewBlock(const std::shared_ptr<const Block> &newBlock, const std::shared_ptr<const ChainHead>& chainHead, const std::shared_ptr<const BlockManager>& blockManager) const {
   // Check block previous hash.
   auto bestBlock = chainHead->latest();
   if (bestBlock->getBlockHash() != newBlock->prevBlockHash()) {
@@ -160,12 +160,18 @@ bool State::validateNewBlock(const std::shared_ptr<const Block> &newBlock, const
     return false;
   }
 
+  if (!blockManager->validateBlock(newBlock)) {
+    Utils::LogPrint(Log::state, __func__, "Block validation failed. validators does not match");
+    return false;
+  }
+
   for (const auto &tx : newBlock->transactions()) {
     if (!this->validateTransactionForBlock(tx.second)) {
       Utils::LogPrint(Log::state, __func__, "Block rejected due to invalid transaction");
       return false;
     }
   }
+
   Utils::LogPrint(Log::state, __func__, "Block " + Utils::bytesToHex(newBlock->getBlockHash().get()) + ", height " + boost::lexical_cast<std::string>(newBlock->nHeight()) + " validated.");
   return true;
 }
@@ -202,7 +208,7 @@ const std::shared_ptr<const Block> State::createNewBlock(std::shared_ptr<ChainHe
   Utils::LogPrint(Log::state, __func__, "Got best block.");
 
   auto newBestBlock = std::make_shared<Block>(
-    Utils::bytesToUint256(bestBlock->getBlockHash().get()),
+    bestBlock->getBlockHash(),
     std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::high_resolution_clock::now().time_since_epoch()
     ).count(),
@@ -240,3 +246,4 @@ void State::addBalance(const Address &address) {
   this->stateLock.unlock();
 }
 
+RandomGen State::gen(Utils::sha3("GENESIS_SEED"));
