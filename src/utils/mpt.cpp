@@ -1,12 +1,9 @@
 #include "mpt.h"
 
 MPT::MPT(std::vector<std::string> list) {
-  // Create leaf nodes, duplicating the last one if list is odd
+  // Create leaf nodes
   for (int i = 0; i < list.size(); i++) {
     this->merkle.push_back(Utils::sha3(list[i]).hex());
-  }
-  if (this->merkle.size() % 2 != 0) {
-    this->merkle.push_back(this->merkle[this->merkle.size() - 1]);
   }
 
   // Create the tree from the bottom up to the root
@@ -14,7 +11,11 @@ MPT::MPT(std::vector<std::string> list) {
   while (nextLayerCt > 1) {
     std::vector<std::string> layer;
     for (int i = 0; i < nextLayerCt; i += 2) {
-      layer.push_back(Utils::sha3(this->merkle[i] + this->merkle[i+1]).hex());
+      if (nextLayerCt % 2 != 0 && (i + 1) == nextLayerCt) { // Odd leaf number
+        layer.push_back(this->merkle[i]);
+      } else {  // Even leaf number
+        layer.push_back(Utils::sha3(this->merkle[i] + this->merkle[i+1]).hex());
+      }
     }
     nextLayerCt = layer.size();
     this->merkle.insert(this->merkle.begin(), layer.begin(), layer.end());
