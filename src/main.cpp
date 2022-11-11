@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <vector>
-#include "utils/mpt.h"
 #include "utils/merkle.h"
 
 std::unique_ptr<Subnet> subnet;
@@ -20,23 +19,16 @@ int main() {
     Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
     Utils::hexToBytes("0x2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6")
   };
-
-  MerkleRoot merkleRoot(hashList);
-
+  Merkle merkleRoot(hashList);
   for (const auto &layer : merkleRoot.layers()) {
-    std::cout << std::endl;
     for (const auto &hash : layer) {
       std::cout << hash.hex() << std::endl;
     }
+    std::cout << std::endl;
   }
-
-  return 0;
-  std::vector<std::string> v = {"a", "b", "c", "d", "e"};
-  std::vector<std::string> v2 = {"a", "b", "c", "d", "e"};
-  MPT mpt(v);
-  MPT mpt2(v2);
-  std::cout << mpt.verify("a") << std::endl;
-  std::cout << mpt2.verify("a") << std::endl;
+  std::cout << std::endl << std::endl << std::endl;
+  std::vector<Hash> res = merkleRoot.getProof(2);
+  for (Hash h : res) std::cout << h.hex() << std::endl;
   return 0;
 
   std::signal(SIGINT, SIG_IGN);
