@@ -27,4 +27,34 @@ class Merkle {
     const std::vector<Hash> getProof(const uint64_t& leafIndex) const;
 };
 
+class Patricia {
+  private:
+    class PNode {
+      private:
+        char _id;
+        std::string _data;
+        std::vector<PNode> _children;
+
+      public:
+        PNode(char id) : _id(id) {}
+        void addChild(char id) { this->_children.emplace_back(PNode(id)); }
+        PNode* getChild(char id) {
+          auto it = std::find_if(
+            std::begin(this->_children), std::end(this->_children),
+            [&id](const PNode& node){ return node._id == id; }
+          );
+          return (it != this->_children.end()) ? &*it : NULL;
+        }
+        void setData(std::string data) { this->_data = data; }
+        std::string getData() { return this->_data; }
+    };
+    PNode _root;
+
+  public:
+    Patricia() : _root('/') {}
+    void add(Hash hash, std::string data);
+    std::string get(Hash hash);
+    bool remove(Hash hash);
+};
+
 #endif  // MERKLE_H

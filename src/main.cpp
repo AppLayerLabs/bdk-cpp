@@ -2,12 +2,24 @@
 
 #include <iostream>
 #include <vector>
+#include "utils/utils.h"
 #include "utils/merkle.h"
 
 std::unique_ptr<Subnet> subnet;
 
 // Let that good boi run
 int main() {
+  Patricia p;
+  Hash h = Utils::hexToBytes(
+    "0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+  );
+  p.add(h, "Transaction data here");
+  std::cout << p.get(h) << std::endl;
+  std::cout << p.remove(h) << std::endl;
+  std::cout << p.get(h) << std::endl;
+  return 0;
+
+
   std::vector<Hash> hashList {
     Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),
     Utils::hexToBytes("0x3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"),

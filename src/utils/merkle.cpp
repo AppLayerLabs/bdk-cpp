@@ -33,3 +33,37 @@ const std::vector<Hash> Merkle::getProof(const uint64_t& leafIndex) const {
   return ret;
 }
 
+void Patricia::add(Hash hash, std::string data) {
+  PNode* tmpRoot = &this->_root;
+  std::string str = hash.hex();
+  for (int i = 0; i < str.length(); i++) {
+    PNode* child = tmpRoot->getChild(str[i]);
+    if (child == NULL) tmpRoot->addChild(str[i]);
+    tmpRoot = tmpRoot->getChild(str[i]);
+  }
+  tmpRoot->setData(data);
+}
+
+std::string Patricia::get(Hash hash) {
+  PNode* tmpRoot = &this->_root;
+  std::string str = hash.hex();
+  for (int i = 0; i < str.length(); i++) {
+    tmpRoot = tmpRoot->getChild(str[i]);
+    if (tmpRoot == NULL) return "";
+  }
+  return (!tmpRoot->getData().empty()) ? tmpRoot->getData() : "";
+}
+
+bool Patricia::remove(Hash hash) {
+  PNode* tmpRoot = &this->_root;
+  std::string str = hash.hex();
+  for (int i = 0; i < str.length(); i++) {
+    tmpRoot = tmpRoot->getChild(str[i]);
+    if (tmpRoot == NULL) return false;
+  }
+  if (!tmpRoot->getData().empty()) {
+    tmpRoot->setData("");
+    return true;
+  } else return false;
+}
+
