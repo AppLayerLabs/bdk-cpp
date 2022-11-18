@@ -206,7 +206,8 @@ bool Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply)
 bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply) {
   try {
     // Check if block already exists on chain head or chain tip
-    Hash blockHash = Utils::sha3(blockBytes);
+    auto block = std::make_shared<Block>(blockBytes, false);
+    Hash blockHash = block->getBlockHash();
     bool onHead = chainHead->exists(blockHash);
     bool onTip = chainTip->exists(blockHash);
     if (onHead || onTip) {
@@ -223,7 +224,6 @@ bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, v
     }
 
     // Build block and get latest accepted block as reference
-    auto block = std::make_shared<Block>(blockBytes, false);
     auto latestBlock = chainHead->latest();
 
     // Parse block
@@ -232,7 +232,8 @@ bool Subnet::parseBlock(ServerContext* context, const std::string& blockBytes, v
     reply->set_height(block->nHeight());
     if (block->nHeight() <= latestBlock->nHeight()) {
       reply->set_status(BlockStatus::Rejected);
-      Utils::LogPrint(Log::subnet, __func__, std::string("Block: ") + Utils::bytesToHex(block->getBlockHash().get()) + " is not higher than latest block, returning Rejected, raw byte");
+      Utils::LogPrint(Log::subnet, __func__, std::string("Block: ") + Utils::bytesToHex(block->getBlockHash().get()) +
+       "(" + std::to_string(block->nHeight())  + ") is not higher than latest block (" + std::to_string(latestBlock->nHeight()) + "), returning Rejected");
     // https://github.com/ava-labs/avalanchego/blob/master/vms/README.md#processing-blocks
     } else if (block->nHeight() > latestBlock->nHeight()) {
       // We don't know anything about a future block, so we just say we are processing it.
