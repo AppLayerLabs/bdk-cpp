@@ -125,11 +125,9 @@ using CompressedPubkey = StringContainer<33>;
 class Hash : public StringContainer<32> {
   public:
     using StringContainer<32>::StringContainer;
-
     Hash(uint256_t data) : StringContainer<32>(Utils::uint256ToBytes(data)) {};
     uint256_t inline toUint256() const { return Utils::bytesToUint256(_data); };
-
-    static Hash random() { 
+    static Hash random() {
       Hash h;
       h._data.resize(32, 0x00);
       RAND_bytes((unsigned char*)h._data.data(), 32);

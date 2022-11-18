@@ -297,6 +297,9 @@ json Utils::readConfigFile() {
     json config;
     config["rpcport"] = 8080;
     config["p2pport"] = 8081;
+    config["seedNodes"] = {
+      "127.0.0.1:8086", "127.0.0.1:8087", "127.0.0.1:8088", "127.0.0.1:8089"
+    };
     std::ofstream configFile("config.json");
     configFile << config.dump(2);
     configFile.close();

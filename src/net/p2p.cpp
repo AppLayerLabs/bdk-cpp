@@ -12,6 +12,13 @@ void P2PClient::resolve(std::string host, std::string port) {
   this->ioc_threads.emplace_back([this]{ ioc.run(); }); // Always comes *after* async
 }
 
+// TODO: iterate through the rest of the list (how to do that with async?)
+void P2PClient::resolveSeedNode() {
+  std::string ep = this->seedNodes[0];
+  size_t split = ep.find(":");  // Split "host:port" -> "host", "port"
+  this->resolve(ep.substr(0, split), ep.substr(split + 1));
+}
+
 void P2PClient::on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
   if (ec) return p2p_fail(ec, "resolve");
   Utils::logToFile("P2PClient: resolved host");

@@ -73,19 +73,24 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
   beast::flat_buffer buffer_;
   std::string host_;
   P2PInfo info_;
-  // TODO: add hardcoded nodes for the client to connect
+  std::vector<std::string> seedNodes;
   const std::vector<std::string> cmds {
     "info"
   };
 
   public:
     // Constructor.
-    P2PClient(P2PInfo info) : resolver_(net::make_strand(ioc)),
-      ws_(net::make_strand(ioc)), info_(info) {}
+    P2PClient(P2PInfo info) : resolver_(net::make_strand(ioc)), ws_(net::make_strand(ioc)), info_(info) {
+      json j = Utils::readConfigFile();
+      this->seedNodes = j["seedNodes"].get<std::vector<std::string>>();
+    }
 
     // Initialize the I/O context and resolve a given host and port.
     // Call this function to connect to a server.
     void resolve(std::string host, std::string port);
+
+    // Same as resolve() but specifically handles the seedNodes list.
+    void resolveSeedNode();
 
     // Connect to a given host and port.
     void connect(tcp::resolver::results_type results);
@@ -192,14 +197,13 @@ class P2PNode : public std::enable_shared_from_this<P2PNode> {
   public:
     P2PNode(const std::string s_host, const unsigned short s_port, std::shared_ptr<ChainHead> ch) {
       // TODO: un-hardcode versions
-      json j = Utils::readConfigFile();
-      Utils::logToFile(j.dump());
       this->p2ps = std::make_shared<P2PServer>(
         tcp::endpoint{net::ip::make_address(s_host), s_port}, P2PInfo("0.0.0.1s", ch)
       );
       this->p2pc = std::make_shared<P2PClient>(P2PInfo("0.0.0.1c", ch));
       Utils::logToFile("P2P node running on " + s_host + ":" + std::to_string(s_port));
       this->p2ps->accept(); this->wait();
+      this->p2pc->resolveSeedNode(); this->wait();
     }
 };
 
