@@ -140,9 +140,9 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   if (config.contains("validatorPrivKey")) {
     Utils::logToFile("Validator found.");
     this->isValidator = true;
-    this->blockManager = std::make_shared<BlockManager>(this->dbServer, Hash(Utils::hexToBytes(config["validatorPrivKey"].get<std::string>())), Address("0x0000000000000000626c6f636b4d616e61676572", true), Address("0x0000000000000000000000000000000000000000", true));
+    this->blockManager = std::make_shared<BlockManager>(this->dbServer, Hash(Utils::hexToBytes(config["validatorPrivKey"].get<std::string>())), ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
   } else {
-    this->blockManager = std::make_shared<BlockManager>(this->dbServer, Address("0x0000000000000000626c6f636b4d616e61676572", true), Address("0x0000000000000000000000000000000000000000", true));
+    this->blockManager = std::make_shared<BlockManager>(this->dbServer, ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
   }
   Utils::logToFile("Starting P2P");
   this->p2p = std::make_shared<P2PNode>("127.0.0.1", config["p2pport"].get<unsigned short>(), this->chainHead);

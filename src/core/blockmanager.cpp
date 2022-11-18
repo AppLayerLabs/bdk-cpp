@@ -1,6 +1,7 @@
 #include "blockmanager.h"
 #include "subnet.h"
 #include "state.h"
+#include "block.h"
 
 BlockManager::BlockManager(std::shared_ptr<DBService> &db, const Address &address, const Address &owner) : _isValidator(false), Contract(address, owner) {
   loadFromDB(db);
@@ -67,4 +68,43 @@ bool BlockManager::validateBlock(const std::shared_ptr<const Block> &block) cons
 
   managerLock.unlock();
   return true;
+}
+
+Hash BlockManager::parseTxListSeed(const std::unordered_map<uint64_t, Tx::Base, SafeHash> &transactions) {
+  std::string seed;
+  if (transactions.size() == 0) {
+    return Hash();
+  }
+  for (uint64_t i = 0; i < transactions.size(); i++) {
+    seed += transactions.at(i).data().substr(4,32);
+  }
+  return Utils::sha3(seed);
+}
+
+BlockManager::TransactionTypes BlockManager::getTransactionType(const Tx::Base &tx) {
+  if (tx.to() != ContractAddresses::BlockManager) {
+    Utils::LogPrint(Log::blockManager, __func__, "Error: Transaction is not for BlockManager");
+    throw std::runtime_error("Transaction is not for BlockManager");
+  }
+
+  std::string_view functor = tx.data().substr(0,4);
+
+  if (functor == Utils::hexToBytes("")) {
+    return TransactionTypes::addValidator;
+  }
+
+  if (functor == Utils::hexToBytes("")) {
+    return TransactionTypes::removeValidator;
+  }
+
+  if (functor == Utils::hexToBytes("")) {
+    return TransactionTypes::randomHash;
+  }
+
+  if (functor == Utils::hexToBytes("")) {
+    return TransactionTypes::randomSeed;
+  }
+
+  Utils::LogPrint(Log::blockManager, __func__, std::string("Error: functor not found"));
+  throw std::runtime_error("Functor not found in contract");
 }

@@ -1,7 +1,7 @@
 #include <iostream>
 #include "../utils/utils.h"
 #include "../core/block.h"
-#include "../core/transaction.h"
+#include "../utils/transaction.h"
 #include "../contract/abi.h"
 
 #include <boost/filesystem.hpp>
@@ -74,13 +74,15 @@ void createGenesis() {
 
   ABI::JSONEncoder contract(contractJson);
 
-  Hash node1Random = Hash::random();
+  for (auto item : contract.functors) {
+    std::cout << item.first << " " << item.second << std::endl;
+  }
+
   Hash node2Random = Hash::random();
   Hash node3Random = Hash::random();
   Hash node4Random = Hash::random();
   Hash node5Random = Hash::random();
 
-  Hash node1Hash = Utils::sha3(node1Random.get_view());
   Hash node2Hash = Utils::sha3(node2Random.get_view());
   Hash node3Hash = Utils::sha3(node3Random.get_view());
   Hash node4Hash = Utils::sha3(node4Random.get_view());

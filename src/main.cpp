@@ -1,10 +1,5 @@
 #include "core/subnet.h"
 
-#include <iostream>
-#include <vector>
-#include "utils/utils.h"
-#include "utils/merkle.h"
-
 std::unique_ptr<Subnet> subnet;
 
 // Let that good boi run

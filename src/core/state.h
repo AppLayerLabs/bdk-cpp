@@ -12,7 +12,7 @@
 #include "chainHead.h"
 #include "../utils/db.h"
 #include "../utils/random.h"
-#include "transaction.h"
+#include "../utils/transaction.h"
 #include "../utils/utils.h"
 #include "../net/grpcclient.h"
 

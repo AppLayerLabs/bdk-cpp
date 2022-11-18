@@ -2,6 +2,7 @@
 #define MERKLE_H
 
 #include "utils.h"
+#include "transaction.h"
 
 /**
  * Custom implementation of a Merkle Patricia Tree. Adapted from:
@@ -19,6 +20,7 @@ class Merkle {
 
   public:
     Merkle(const std::vector<Hash>& leafs);
+    Merkle(const std::unordered_map<uint64_t, Tx::Base, SafeHash> &transactions);
 
     const Hash& root() const { return this->_root; }
     const std::vector<std::vector<Hash>>& layers() const { return this->_layers; }

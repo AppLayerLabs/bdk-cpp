@@ -18,7 +18,7 @@ Sparq subnet source code.
 ### One-liners
 
 For **Debian 11 Bullseye or newer**:
-* `sudo apt install build-essential cmake clang-tidy autoconf libtool pkg-config libabsl-dev libboost-{chrono,filesystem,program-options,system,thread,nowide}-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libleveldb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
+* `sudo apt install build-essential cmake clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libleveldb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
 
 #### Caveats
 

@@ -7,6 +7,10 @@
 #include "../utils/db.h"
 #include "../utils/utils.h"
 
+namespace ContractAddresses {
+  const Address BlockManager = Address(std::string("0000000000000000626c6f636b4d616e61676572"),true);
+};
+
 class Contract {
   private:
     const Address _address;

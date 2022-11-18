@@ -237,6 +237,7 @@ uint64_t ChainHead::blockSize() {
 void ChainHead::loadFromDB() {
   if (!dbServer->has("latest", DBPrefix::blocks)) {
     Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
+    genesis.finalizeBlock();
     dbServer->put("latest", genesis.serializeToBytes(false), DBPrefix::blocks);
     dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash().get(), DBPrefix::blockHeightMaps);
     dbServer->put(genesis.getBlockHash().get(), genesis.serializeToBytes(false), DBPrefix::blocks);

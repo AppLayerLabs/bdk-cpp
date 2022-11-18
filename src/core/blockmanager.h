@@ -3,12 +3,15 @@
 
 #include <shared_mutex>
 
-#include "block.h"
 #include "../utils/utils.h"
 #include "../utils/db.h"
 #include "../utils/random.h"
 #include "../utils/secp256k1Wrapper.h"
+#include "../utils/transaction.h"
 #include "../contract/contract.h"
+
+// Forward declaration
+class Block;
 
 class Validator {
   private:
@@ -53,6 +56,7 @@ class BlockManager : public Contract {
     const bool _isValidator = false;
     bool shuffle();
   public:
+    enum TransactionTypes { addValidator, removeValidator, randomHash, randomSeed};
     static const uint32_t minValidators = 4;
     BlockManager(std::shared_ptr<DBService> &db,const Address &address, const Address &owner);
     BlockManager(std::shared_ptr<DBService> &db, const Hash& privKey, const Address &address, const Address &owner);
@@ -60,10 +64,16 @@ class BlockManager : public Contract {
     void saveToDB(std::shared_ptr<DBService> &db) const;
     // Validates a given block using current randomList
     bool validateBlock(const std::shared_ptr<const Block> &block) const;
-    // Process the block, and returns the new given uint256_t for RandomGen.
-    uint256_t processBlock(const std::shared_ptr<const Block> &block) const;
+    // Process the block, and returns the new given Hash for RandomGen.
+    Hash processBlock(const std::shared_ptr<const Block> &block) const;
 
+    // Parse tx list and returns the new given uint256_t for RandomGen.
+    // DOES NOT VALIDATE!
+    static Hash parseTxListSeed(const std::unordered_map<uint64_t, Tx::Base, SafeHash> &transactions);
     // TX FUNCTIONS.
+
+    // Get the functor of the transaction, throws if invalid.
+    static TransactionTypes getTransactionType(const Tx::Base &tx);
 
     friend class State; 
 };

@@ -107,7 +107,7 @@ template <unsigned N> class StringContainer {
 
     StringContainer& operator=(StringContainer const &_c) {
       if (&_c == this) return *this;
-      this->_data = _c.data();
+      this->_data = _c._data;
       return *this;
     }
 
