@@ -10,6 +10,16 @@ Merkle::Merkle(const std::vector<Hash>& leafs) {
   }
 };
 
+Merkle::Merkle(const std::unordered_map<uint64_t, Tx::Base, SafeHash> &transactions) {
+  for (uint64_t i = 0; i < transactions.size(); ++i) {
+    this->_leafs.emplace_back(std::move(Utils::sha3(transactions.find(i)->second.hash().get())));
+  }
+  this->_layers.emplace_back(this->_leafs);
+  while (this->_layers.back().size() > 1) {
+    this->_layers.emplace_back(newLayer(this->_layers.back()));
+  }
+};
+
 std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) {
   std::vector<Hash> ret;
   for (uint64_t i = 0; i < layer.size(); i += 2) ret.emplace_back(

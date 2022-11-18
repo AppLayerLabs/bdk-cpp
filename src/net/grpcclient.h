@@ -36,7 +36,7 @@
 #include "../../proto/messenger.grpc.pb.h"
 #include "../../proto/sharedmemory.grpc.pb.h"
 #include "../utils/db.h"
-#include "../core/transaction.h"
+#include "../utils/transaction.h"
 
 using grpc::Channel;
 using grpc::ClientAsyncResponseReader;

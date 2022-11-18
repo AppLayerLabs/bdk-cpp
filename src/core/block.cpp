@@ -1,44 +1,30 @@
 #include "block.h"
+#include "blockmanager.h"
 
 Block::Block(const std::string_view &blockData, bool fromDB) {
   // Split the block data into different byte arrays.
   try {
-    /*
-      Hash _prevBlockHash;
-    uint64_t _timestamp; // Timestamp in nanoseconds
-    uint64_t _nHeight;
-    Signature validatorSignature;
-    uint64_t _txCount;
-    uint64_t _txValidatorsCount;*/
-    std::string_view prevBlockHashBytes; // uint256_t
-    std::string_view timestampBytes;     // uint64_t
-    std::string_view nHeightBytes;       // uint64_t
-    std::string_view validatorSignatureBytes; // 65 bytes
-    std::string_view txCountBytes;       // uint64_t
-    std::string_view txValidatorCountBytes;   // uint64_t
+
+
     uint64_t txValidatorStart;
     uint64_t txStart;
     this->finalized = true;
     this->indexed = true;
-
-    prevBlockHashBytes = blockData.substr(0, 32);
-    timestampBytes = blockData.substr(32, 8);
-    nHeightBytes = blockData.substr(32 + 8, 8);
-    validatorSignatureBytes = blockData.substr(32 + 8 + 8, 65);
-    txCountBytes = blockData.substr(32 + 8 + 8 + 65, 8);
-    txValidatorCountBytes = blockData.substr(32 + 8 + 8 + 65 + 8, 8);
-    txValidatorStart = Utils::bytesToUint64(blockData.substr(32 + 8 + 8 + 65 + 8 + 8, 8));
-    txStart = Utils::bytesToUint64(blockData.substr(32 + 8 + 8 + 65 + 8 + 8 + 8, 8));
+    this->_validatorSignature = Signature(blockData.substr(0, 65));
+    this->_prevBlockHash = Hash(blockData.substr(65, 32));
+    this->_randomness = Hash(blockData.substr(65 + 32, 32));
+    this->_validatorMerkleRoot = Hash(blockData.substr(65 + 32 + 32, 32));
+    this->_transactionMerkleRoot = Hash(blockData.substr(65 + 32 + 32 + 32, 32));
+    this->_timestamp = Utils::bytesToUint64(blockData.substr(65 + 32 + 32 + 32 + 32, 8));
+    this->_nHeight = Utils::bytesToUint64(blockData.substr(65 + 32 + 32 + 32 + 32 + 8, 8));
+    this->_txValidatorsCount = Utils::bytesToUint64(blockData.substr(65 + 32 + 32 + 32 + 32 + 8 + 8, 8));
+    this->_txCount = Utils::bytesToUint64(blockData.substr(65 + 32 + 32 + 32 + 32 + 8 + 8 + 8, 8));
+    txValidatorStart = Utils::bytesToUint64(blockData.substr(65 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8, 8));
+    txStart = Utils::bytesToUint64(blockData.substr(65 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8, 8));
 
     // String view to create a reference to a substring of the block data, no copy!
     std::string_view rawValidatorTransactions(&blockData[txValidatorStart], txStart - txValidatorStart);
     std::string_view rawTransactions(&blockData[txStart], blockData.size() - txStart);
-    this->_prevBlockHash = Hash(prevBlockHashBytes);
-    this->_timestamp = Utils::bytesToUint64(timestampBytes);
-    this->_nHeight = Utils::bytesToUint64(nHeightBytes);
-    this->_validatorSignature = Signature(validatorSignatureBytes);
-    this->_txCount = Utils::bytesToUint64(txCountBytes);
-    this->_txValidatorsCount = Utils::bytesToUint64(txValidatorCountBytes);
 
     // Parse and push transactions into block.
     // Parsing validator transactions are not multithreaded because there isn't many of them.
@@ -53,6 +39,10 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
         // Copy the transaction itself.
         std::string_view txBytes(&rawValidatorTransactions.data()[nextTx + 4], txSize);
         this->_validatorTransactions[i] = Tx::Base(txBytes, false);
+        if (this->_validatorTransactions[i].to() != ContractAddresses::BlockManager) {
+          Utils::LogPrint(Log::block, __func__, "Error: transaction inside validator tx's does not call blockManager.");
+          throw std::runtime_error("transaction inside validator tx's does not call blockManager.");
+        }
         nextTx = nextTx + 4 + txSize;
       }
     }
@@ -69,6 +59,10 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
         // Copy the transaction itself.
         std::string_view txBytes(&rawTransactions.data()[nextTx + 4], txSize);
         this->_transactions[i] = Tx::Base(txBytes, false);
+        if (this->_transactions[i].to() == ContractAddresses::BlockManager) {
+          Utils::LogPrint(Log::block, __func__, "Error: transaction inside tx list does call blockManager.");
+          throw std::runtime_error("transaction inside tx list does call blockManager.");
+        }
         nextTx = nextTx + 4 + txSize;
       }
     } else {
@@ -97,6 +91,10 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
             std::string_view txBytes(&rawTransactions.data()[nextTx + 4], txSize);
             // push tx to block.
             auto transaction = Tx::Base(txBytes, fromDB);
+            if (transaction.to() == ContractAddresses::BlockManager) {
+              Utils::LogPrint(Log::block, __func__, "Error: transaction inside tx list does call blockManager.");
+              throw std::runtime_error("transaction inside tx list does call blockManager.");
+            }
             transactionLock.lock();
             this->_transactions[index] = std::move(transaction);
             transactionLock.unlock();
@@ -119,21 +117,62 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
       }
     }
 
+    // Check merkleroots and randomness.
+    if (this->_validatorMerkleRoot != Merkle(this->_validatorTransactions).root()) {
+      Utils::LogPrint(Log::block, __func__, "Error: Validator merkle root does not match.");
+      throw std::runtime_error("Validator merkle root does not match.");
+    }
+
+    if (this->_transactionMerkleRoot != Merkle(this->_transactions).root()) {
+      Utils::LogPrint(Log::block, __func__, "Error: Transaction merkle root does not match.");
+      throw std::runtime_error("Transaction merkle root does not match.");
+    }
+
+    if (this->_randomness != BlockManager::parseTxListSeed(this->_validatorTransactions)) {
+      Utils::LogPrint(Log::block, __func__, "Error: Randomness does not match.");
+      throw std::runtime_error("Randomness does not match.");
+    }
+
+    // Check if signature is valid.
+
+    auto messageHash = this->getBlockHash();
+    auto pubkey = Secp256k1::recover(this->_validatorSignature, messageHash);
+
+    // TODO: Re-enable this after fininshing blockManager
+    // if (!Secp256k1::verify(pubkey, this->_validatorSignature, messageHash)) {
+    //   Utils::LogPrint(Log::block, __func__, "Error: Signature is not valid.");
+    //   throw std::runtime_error("Signature is not valid.");
+    // }
+    
   } catch (std::exception &e) {
     Utils::LogPrint(Log::block, __func__, "Error: " + std::string(e.what()) + " " + dev::toHex(blockData));
     throw std::runtime_error(std::string(__func__) + ": " + e.what());
   }
 }
 
+std::string Block::serializeHeader() const {
+  std::string ret;
+
+  // Header = prevBlockHash + blockRandomness + validatorMerkleRoot + transactionMerkleRoot + timestamp + nHeight
+
+  ret += this->_prevBlockHash.get();
+  ret += this->_validatorMerkleRoot.get();
+  ret += this->_randomness.get();
+  ret += this->_transactionMerkleRoot.get();
+  ret += Utils::uint64ToBytes(this->_timestamp);
+  ret += Utils::uint64ToBytes(this->_nHeight);
+
+  return ret;
+}
+
 std::string Block::serializeToBytes(bool db) const {
   // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ... ]
   std::string ret;
 
-  // Append header.
-  ret += this->_prevBlockHash.get();
-  ret += Utils::uint64ToBytes(this->_timestamp);
-  ret += Utils::uint64ToBytes(this->_nHeight);
+  // Append Signature.
   ret += this->_validatorSignature.get();
+  // Append Header
+  ret += this->serializeHeader();
   ret += Utils::uint64ToBytes(this->_txValidatorsCount);
   ret += Utils::uint64ToBytes(this->_txCount);
   uint64_t txValidatorStart = ret.size() + 16;
@@ -163,7 +202,8 @@ std::string Block::serializeToBytes(bool db) const {
 }
 
 Hash Block::getBlockHash() const {
-  return Utils::sha3(this->serializeToBytes(false));
+  // HASH = SHA3(HEADER)
+  return Utils::sha3(this->serializeHeader());
 }
 
 uint64_t Block::blockSize() const {
@@ -217,7 +257,8 @@ bool Block::finalizeBlock() {
   if (this->finalized) {
     return false;
   }
+  this->_validatorMerkleRoot = Merkle(this->_validatorTransactions).root();
+  this->_transactionMerkleRoot = Merkle(this->_transactions).root();
   this->finalized = true;
   return true;
 }
-
