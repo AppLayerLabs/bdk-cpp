@@ -31,7 +31,6 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
  */
 
 // Report a failure.
-// TODO: join this and fail() from httpserver
 void p2p_fail(beast::error_code ec, char const* what);
 
 // Information about the P2P client and/or server.
@@ -74,6 +73,7 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
   beast::flat_buffer buffer_;
   std::string host_;
   P2PInfo info_;
+  // TODO: add hardcoded nodes for the client to connect
   const std::vector<std::string> cmds {
     "info"
   };
@@ -84,6 +84,7 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
       ws_(net::make_strand(ioc)), info_(info) {}
 
     // Initialize the I/O context and resolve a given host and port.
+    // Call this function to connect to a server.
     void resolve(std::string host, std::string port);
 
     // Connect to a given host and port.
@@ -191,6 +192,8 @@ class P2PNode : public std::enable_shared_from_this<P2PNode> {
   public:
     P2PNode(const std::string s_host, const unsigned short s_port, std::shared_ptr<ChainHead> ch) {
       // TODO: un-hardcode versions
+      json j = Utils::readConfigFile();
+      Utils::logToFile(j.dump());
       this->p2ps = std::make_shared<P2PServer>(
         tcp::endpoint{net::ip::make_address(s_host), s_port}, P2PInfo("0.0.0.1s", ch)
       );
@@ -198,30 +201,6 @@ class P2PNode : public std::enable_shared_from_this<P2PNode> {
       Utils::logToFile("P2P node running on " + s_host + ":" + std::to_string(s_port));
       this->p2ps->accept(); this->wait();
     }
-
-    // TODO: remove those? they're virtually useless
-    /*
-    void connect(const std::string host, const unsigned short port) {
-      Utils::logToFile("P2P client connecting to" + host + ":" + std::to_string(port));
-      this->p2pc->resolve(host, std::to_string(port)); this->wait();
-    }
-
-    void c_send(const std::string msg) {
-      Utils::logToFile("P2P client sending message: " + msg);
-      if (this->p2pc->parse(msg).empty()) {
-        std::cout << "Unknown command: " + msg << std::endl; return;
-      }
-      this->p2pc->write(msg); this->wait();
-    }
-
-    void s_send(const std::string msg) {
-      Utils::logToFile("P2P server sending message: " + msg);
-      if (this->p2ps->parse(msg).empty()) {
-        std::cout << "Unknown command: " + msg << std::endl; return;
-      }
-      this->p2ps->write(msg); this->wait();
-    }
-    */
 };
 
 #endif  // P2P_H

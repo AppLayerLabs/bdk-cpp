@@ -292,7 +292,7 @@ bool Utils::checkAddressChecksum(const std::string& address) {
 }
 
 json Utils::readConfigFile() {
-  if(!std::filesystem::exists("config.json")){
+  if (!std::filesystem::exists("config.json")) {
     Utils::LogPrint(Log::utils, __func__, "No config file found, generating default");
     json config;
     config["rpcport"] = 8080;
@@ -301,10 +301,8 @@ json Utils::readConfigFile() {
     configFile << config.dump(2);
     configFile.close();
   }
-
   std::ifstream configFile("config.json");
   json config = json::parse(configFile);
-  
   return config;
 }
 

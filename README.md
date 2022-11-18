@@ -39,20 +39,15 @@ For **Debian 11 Bullseye or newer**:
 
 If you want a **manual** deploy, check [DEPLOY_SUBNET.md](DEPLOY_SUBNET.md).
 
-If you want an **assisted/automatic** deploy, or you don't care about the details and just want to get it running ASAP, use one of the scripts in the `scripts` folder:
+If you want an **assisted/automatic** deploy, there are helper scripts on the `scripts` folder:
 
-* **AIO-setup.sh** - Setup the Subnet with a single node acting as a validator.
-* **AIO-setup-two-nodes.sh** - Setup the Subnet with two nodes acting as validators.
-* **AIO-setup-five-nodes.sh** - Setup the Subnet with all five nodes acting as validators.
+* **AIO-setup.sh** - Setup, deploy and start the Subnet. Five nodes will be deployed, all of them acting as validators.
+* **killAll.sh** - Stop the Subnet.
+* **startAll.sh** - Start the Subnet again.
+* **cleanAll.sh** - Clean the Subnet logs.
+* **rebuild.sh** - Stop the Subnet, refresh the build executable and start the Subnet again without having to re-deploy it.
 
 You can still get the details from the automatic deploy from the `AIO-setup.log` file.
 
-After the Subnet is deployed, use the scripts under the `scripts/helpers` subfolder to manage it:
-
-* **startAll.sh** - Start the Subnet.
-* **killAll.sh** - Stop the Subnet.
-* **cleanAll.sh** - Clean the Subnet logs.
-* **rebuild.sh** - Refresh the Subnet executable without having to re-deploy it (stop it first!)
-
-If you have to re-deploy the Subnet, stop it, `rm -rf ~/go/src` and run the deploy script again.
+If you have to re-deploy the Subnet from scratch, stop it, `rm -rf ~/go/src` and run the setup again.
 
