@@ -33,178 +33,124 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 // Report a failure.
 void p2p_fail(beast::error_code ec, char const* what);
 
-// Information about the P2P client and/or server.
-class P2PInfo {
-  private:
-    std::shared_ptr<ChainHead> ch;
-    std::string version;  // e.g. "0.0.0.1"
-    uint64_t epoch;       // from system, in nanosseconds
-    uint64_t nHeight;     // most recent block height
-    Hash nHash;           // most recent block hash
-    uint64_t nodes = 0;   // number of connected nodes
-
-  public:
-    // TODO: update nodes on connect
-    P2PInfo(std::string version_, std::shared_ptr<ChainHead> ch_)
-      : version(version_), ch(ch_) {}
-
-    void addNode() { this->nodes++; }
-    void delNode() { this->nodes--; }
-
-    std::string dump() {
-      epoch = std::time(NULL);
-      nHeight = this->ch->latest()->nHeight();
-      nHash = this->ch->latest()->getBlockHash();
-      return std::string("Version: " + this->version +
-        "\nEpoch: " + std::to_string(this->epoch) +
-        "\nnHeight: " + std::to_string(this->nHeight) +
-        "\nnHash: " + this->nHash.hex() +
-        "\nConnected nodes: " + std::to_string(this->nodes)
-      );
-    }
+// List of known P2P commands.
+const std::map<std::string, std::pair<std::string, bool>> p2pcmds {
+  {"info",                          {"0000", false} },
+  {"sendTransaction",               {"0001", true} },
+  {"sendBulkTransaction",           {"0002", true} },
+  {"requestBlockByNumber",          {"0003", true} },
+  {"requestBlockByHash",            {"0004", true} },
+  {"requestBlockRange",             {"0005", true} },
+  {"newBestBlock",                  {"0006", true} },
+  {"sendValidatorTransaction",      {"0007", true} },
+  {"sendBulkValidatorTransaction",  {"0008", true} },
+  {"requestValidatorTxs",           {"0009", false} },
+  {"getConnectedNodes",             {"000a", false} },
 };
 
-// Client side of the P2P node.
-class P2PClient : public std::enable_shared_from_this<P2PClient> {
-  std::vector<std::thread> ioc_threads;
-  net::io_context ioc;
-  tcp::resolver resolver_;
-  websocket::stream<beast::tcp_stream> ws_;
-  beast::flat_buffer buffer_;
-  std::string host_;
-  P2PInfo info_;
-  std::vector<std::string> seedNodes;
-  const std::vector<std::string> cmds {
-    "info"
-  };
-
+// TODO: neither P2PMsg nor P2PRes are considering the "0x" prefix - should they?
+// Helper class for abstracting P2P messages.
+class P2PMsg {
+  private:
+    std::string msg;
   public:
-    // Constructor.
-    P2PClient(P2PInfo info) : resolver_(net::make_strand(ioc)), ws_(net::make_strand(ioc)), info_(info) {
-      json j = Utils::readConfigFile();
-      this->seedNodes = j["seedNodes"].get<std::vector<std::string>>();
+    P2PMsg(
+      std::string id, std::vector<std::variant<uint64_t, uint256_t, std::string>> args = {}
+    );
+    std::string dump() { return this->msg; }
+};
+
+// Helper class for abstracting P2P responses.
+class P2PRes {
+  private:
+    std::string res;
+  public:
+    P2PRes(std::string data, std::shared_ptr<ChainHead> ch);
+    std::string dump() { return this->res; }
+};
+
+// The P2P node itself.
+class P2P : public std::enable_shared_from_this<P2P> {
+  private:
+    std::vector<std::thread> ioc_threads;
+    net::io_context ioc;
+    // TODO: I dunno if we can use just one websocket for everything but we could try?
+    websocket::stream<beast::tcp_stream> c_ws;
+    std::shared_ptr<websocket::stream<beast::tcp_stream>> s_ws;
+    beast::flat_buffer buf;
+    tcp::resolver resolver;
+    tcp::acceptor acceptor;
+    std::vector<std::string> seedNodes; // TODO: peer discovery? we need another list for connected nodes
+    std::shared_ptr<ChainHead> ch;
+    // This thing goes so fast, we actually need to give some sort of
+    // delay/cooldown between actions so it doesn't choke on itself with
+    // throws/segfaults/cancelled operations/etc.
+    // 2 milliseconds would be a good safe spot.
+    // 1.5 milliseconds seems to be the limit, at least from what I've tested.
+    // TODO: cooldown is not being used! It really should
+    unsigned short cooldown = 2000; // in microseconds (1000 = 1ms)
+    void wait() {
+      std::this_thread::sleep_for(std::chrono::microseconds(cooldown));
     }
 
-    // Initialize the I/O context and resolve a given host and port.
-    // Call this function to connect to a server.
-    void resolve(std::string host, std::string port);
-
-    // Same as resolve() but specifically handles the seedNodes list.
-    void resolveSeedNode();
-
-    // Connect to a given host and port.
-    void connect(tcp::resolver::results_type results);
-
-    // Perform a handshake to the connected host.
-    void handshake(std::string host, std::string port);
-
-    // Send a message to the connected host.
-    void write(std::string msg);
-
-    // Read a message from the connected host into the buffer.
-    void read();
-
-    // Parse a given command.
-    std::string parse(std::string cmd);
-
-  private:
-    // Set timeout for operation and prepare for connecting to looked up host.
+    // Set timeout for operation and prepare for connecting to another node.
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results);
 
-    // Prepare for connectiong to a given host.
+    // Prepare for connecting to another node.
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep);
 
-    // Prepare for sending a message to the connected host.
+    // Prepare for reading something after accepting the handshake.
     void on_handshake(beast::error_code ec);
 
-    // Prepare for reading a message from the connected host into the buffer.
-    void on_write(beast::error_code ec, std::size_t bytes_transferred);
-
-    // Display the message in the buffer, clear it, wait a second and write again.
-    void on_read(beast::error_code ec, std::size_t bytes_transferred);
-};
-
-// Server side of the P2P node.
-class P2PServer : public std::enable_shared_from_this<P2PServer> {
-  std::vector<std::thread> ioc_threads;
-  net::io_context ioc;
-  tcp::acceptor acceptor_;
-  std::shared_ptr<websocket::stream<beast::tcp_stream>> ws_;
-  beast::flat_buffer buffer_;
-  P2PInfo info_;
-  const std::vector<std::string> cmds {
-    "info"
-  };
-
-  public:
-    P2PServer(tcp::endpoint ep, P2PInfo info)
-    : acceptor_(ioc), info_(info) {
-      beast::error_code ec;
-      acceptor_.open(ep.protocol(), ec); // Open acceptor
-      if (ec) { p2p_fail(ec, "open"); return; }
-      acceptor_.set_option(net::socket_base::reuse_address(true), ec); // Allow address reuse
-      if (ec) { p2p_fail(ec, "set_option"); return; }
-      acceptor_.bind(ep, ec); // Bind to server address
-      if (ec) { p2p_fail(ec, "bind"); return; }
-      acceptor_.listen(net::socket_base::max_listen_connections, ec); // Listen for connections
-      if (ec) { p2p_fail(ec, "listen"); return; }
-    }
-
-    // Start accepting connections.
-    void accept();
-
-    // Read a message into the buffer.
-    void read();
-
-    // Write a message to the origin.
-    void write(std::string msg);
-
-    // Parse a given command.
-    std::string parse(std::string cmd);
-
-  private:
     // Prepare for starting the server.
     void on_accept(beast::error_code ec, tcp::socket socket);
 
     // Prepare for accepting a handshake.
     void on_start();
 
-    // Prepare for reading something after accepting the handshake.
-    void on_handshake(beast::error_code ec);
+    // Prepare for listening to a message after writing one.
+    void on_write(beast::error_code ec, std::size_t bytes_transferred);
 
-    // Prepare for writing a message to the origin.
+    // Prepare for writing a message based on what was read.
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
 
-    // Clear the buffer and do another read.
-    void on_write(beast::error_code ec, std::size_t bytes_transferred);
-};
-
-// The P2P node itself.
-class P2PNode : public std::enable_shared_from_this<P2PNode> {
-  private:
-    std::shared_ptr<P2PServer> p2ps;
-    std::shared_ptr<P2PClient> p2pc;
-    // This thing goes so fast, we actually need to give some sort of
-    // delay/cooldown between actions so it doesn't choke on itself with
-    // throws/segfaults/cancelled operations/etc.
-    // 2 milliseconds would be a good safe spot.
-    // 1.5 milliseconds seems to be the limit, at least from what I've tested.
-    unsigned short cooldown = 2000; // in microseconds (1000 = 1ms)
-    void wait() {
-      std::this_thread::sleep_for(std::chrono::microseconds(cooldown));
-    }
-
   public:
-    P2PNode(const std::string s_host, const unsigned short s_port, std::shared_ptr<ChainHead> ch) {
-      // TODO: un-hardcode versions
-      this->p2ps = std::make_shared<P2PServer>(
-        tcp::endpoint{net::ip::make_address(s_host), s_port}, P2PInfo("0.0.0.1s", ch)
-      );
-      this->p2pc = std::make_shared<P2PClient>(P2PInfo("0.0.0.1c", ch));
-      Utils::logToFile("P2P node running on " + s_host + ":" + std::to_string(s_port));
-      this->p2ps->accept(); this->wait();
-      this->p2pc->resolveSeedNode(); this->wait();
+    // Constructor.
+    P2P(const std::string host, const unsigned short port, std::shared_ptr<ChainHead> ch)
+      : resolver(net::make_strand(ioc)), acceptor(net::make_strand(ioc)), c_ws(net::make_strand(ioc))
+    {
+      beast::error_code ec;
+      tcp::endpoint ep{net::ip::make_address(host), port};
+      acceptor.open(ep.protocol(), ec); // Open acceptor
+      if (ec) { p2p_fail(ec, "open"); return; }
+      acceptor.set_option(net::socket_base::reuse_address(true), ec); // Allow address reuse
+      if (ec) { p2p_fail(ec, "set_option"); return; }
+      acceptor.bind(ep, ec); // Bind to server address
+      if (ec) { p2p_fail(ec, "bind"); return; }
+      acceptor.listen(net::socket_base::max_listen_connections, ec); // Listen for connections
+      if (ec) { p2p_fail(ec, "listen"); return; }
+      Utils::logToFile("P2P: listening on " + host + ":" + std::to_string(port));
+      try {
+        acceptor.async_accept(net::make_strand(ioc), beast::bind_front_handler(
+          &P2P::on_accept, shared_from_this()
+        ));
+      } catch (std::exception &e) { p2p_fail(ec, e.what()); return; }
+      ioc_threads.emplace_back([this]{ ioc.run(); }); // Always comes *after* async
+      //json j = Utils::readConfigFile();
+      //this->seedNodes = j["seedNodes"].get<std::vector<std::string>>();
     }
+
+    // Connect to another node in a given host and port.
+    void resolve(std::string host, std::string port);
+
+    // Same as resolve() but specifically for nodes in the seedNodes list.
+    void resolveSeedNode();
+
+    // Write a message to another node.
+    void write(std::string msg);
+
+    // Read a message from another node.
+    void read();
 };
 
 #endif  // P2P_H

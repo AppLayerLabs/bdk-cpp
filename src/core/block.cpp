@@ -4,8 +4,6 @@
 Block::Block(const std::string_view &blockData, bool fromDB) {
   // Split the block data into different byte arrays.
   try {
-
-
     uint64_t txValidatorStart;
     uint64_t txStart;
     this->finalized = true;
@@ -28,7 +26,6 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
 
     // Parse and push transactions into block.
     // Parsing validator transactions are not multithreaded because there isn't many of them.
-
     {
       uint64_t nextTx = 0;
       for (uint32_t i = 0; i < this->_txValidatorsCount; ++i) {
@@ -79,8 +76,8 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
       this->_transactions.rehash(this->_txCount);
       this->_transactions.reserve(this->_txCount);
 
-      // TODO: What happens if a thread fails? 
-      // Figure out a way to stop the other threads if one fails. 
+      // TODO: What happens if a thread fails?
+      // Figure out a way to stop the other threads if one fails.
       for (uint64_t i = 0; i < processor_count; ++i) {
         txThreads.emplace_back([&,i,nextTx,index] () mutable {
           for (uint64_t j = 0; j < workPerThread[i]; ++j) {
@@ -134,16 +131,14 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
     }
 
     // Check if signature is valid.
-
     auto messageHash = this->getBlockHash();
     auto pubkey = Secp256k1::recover(this->_validatorSignature, messageHash);
 
     // TODO: Re-enable this after fininshing blockManager
-    // if (!Secp256k1::verify(pubkey, this->_validatorSignature, messageHash)) {
-    //   Utils::LogPrint(Log::block, __func__, "Error: Signature is not valid.");
-    //   throw std::runtime_error("Signature is not valid.");
-    // }
-    
+    //if (!Secp256k1::verify(pubkey, this->_validatorSignature, messageHash)) {
+    //  Utils::LogPrint(Log::block, __func__, "Error: Signature is not valid.");
+    //  throw std::runtime_error("Signature is not valid.");
+    //}
   } catch (std::exception &e) {
     Utils::LogPrint(Log::block, __func__, "Error: " + std::string(e.what()) + " " + dev::toHex(blockData));
     throw std::runtime_error(std::string(__func__) + ": " + e.what());
@@ -151,17 +146,15 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
 }
 
 std::string Block::serializeHeader() const {
+  // Header = prevBlockHash + blockRandomness + validatorMerkleRoot
+  // + transactionMerkleRoot + timestamp + nHeight
   std::string ret;
-
-  // Header = prevBlockHash + blockRandomness + validatorMerkleRoot + transactionMerkleRoot + timestamp + nHeight
-
   ret += this->_prevBlockHash.get();
   ret += this->_validatorMerkleRoot.get();
   ret += this->_randomness.get();
   ret += this->_transactionMerkleRoot.get();
   ret += Utils::uint64ToBytes(this->_timestamp);
   ret += Utils::uint64ToBytes(this->_nHeight);
-
   return ret;
 }
 
@@ -169,19 +162,16 @@ std::string Block::serializeToBytes(bool db) const {
   // Raw Block = prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ... ]
   std::string ret;
 
-  // Append Signature.
-  ret += this->_validatorSignature.get();
-  // Append Header
-  ret += this->serializeHeader();
+  ret += this->_validatorSignature.get(); // Append Signature
+  ret += this->serializeHeader(); // Append Header
   ret += Utils::uint64ToBytes(this->_txValidatorsCount);
   ret += Utils::uint64ToBytes(this->_txCount);
   uint64_t txValidatorStart = ret.size() + 16;
   ret += Utils::uint64ToBytes(txValidatorStart);
   uint64_t txStartLocation = ret.size();
-  ret += Utils::uint64ToBytes(0); // 8 bytes, will be appended later after txs are serialized.
+  ret += Utils::uint64ToBytes(0); // 8 bytes, will be appended later after txs are serialized
 
-
-  // Append validator transactions - parse both size and data for each transaction.
+  // Append validator transactions - parse both size and data for each transaction
   for (uint64_t i = 0; i < this->_txValidatorsCount; ++i) {
     std::string txBytes = (db) ? this->_validatorTransactions.find(i)->second.serialize() : this->_validatorTransactions.find(i)->second.rlpSerialize(true);
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
@@ -189,9 +179,8 @@ std::string Block::serializeToBytes(bool db) const {
     ret += std::move(txBytes);
   }
   uint64_t txStart = ret.size();
-  // Append txStart location.
-  std::memcpy(&ret[txStartLocation], &txStart, 8);
-  // Append transactions - parse both size and data for each transaction.
+  std::memcpy(&ret[txStartLocation], &txStart, 8);  // Append txStart location
+  // Append transactions - parse both size and data for each transaction
   for (uint64_t i = 0; i < this->_txCount; ++i) {
     std::string txBytes = (db) ? this->_transactions.find(i)->second.serialize() : this->_transactions.find(i)->second.rlpSerialize(true);
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
@@ -202,8 +191,7 @@ std::string Block::serializeToBytes(bool db) const {
 }
 
 Hash Block::getBlockHash() const {
-  // HASH = SHA3(HEADER)
-  return Utils::sha3(this->serializeHeader());
+  return Utils::sha3(this->serializeHeader());  // HASH = SHA3(HEADER)
 }
 
 uint64_t Block::blockSize() const {
@@ -254,11 +242,10 @@ void Block::indexTxs() {
 }
 
 bool Block::finalizeBlock() {
-  if (this->finalized) {
-    return false;
-  }
+  if (this->finalized) return false;
   this->_validatorMerkleRoot = Merkle(this->_validatorTransactions).root();
   this->_transactionMerkleRoot = Merkle(this->_transactions).root();
   this->finalized = true;
   return true;
 }
+

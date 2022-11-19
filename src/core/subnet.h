@@ -112,11 +112,8 @@ class Subnet {
     std::shared_mutex connectedNodesLock;
 
   public:
-    /**
-     * P2P node.
-     * TODO: make this private
-     */
-    std::shared_ptr<P2PNode> p2p;
+    // P2P node. TODO: make it private?
+    std::shared_ptr<P2P> p2p;
 
     void start(); // Start the subnet.
     void stop();  // Stop the subnet.
