@@ -31,10 +31,14 @@ namespace ABI {
       std::string encodeBytesArr(std::vector<std::string> bytesV);
 
     public:
+      // Both Solidity bytes and string can be parsed the same way,
+      // therefore both are stored as string.
+      // The difference is string REQUIRES an utf8ToHex() conversion,
+      // which its respective helper function does on its own.
       Encoder(std::vector<std::variant<
         uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
         bool, std::vector<bool>, std::string, std::vector<std::string>
-      >> data, std::string func = "");  // Both bytes and string are stored as std::string
+      >> data, std::string func = "");
 
       const std::string& get() { return this->data; }
 
@@ -46,14 +50,12 @@ namespace ABI {
       std::vector<std::variant<
         uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
         bool, std::vector<bool>, std::string, std::vector<std::string>
-      >> data;  // Both bytes and string are stored as std::string
+      >> data;
 
       // Helper functions to parse each type
       uint256_t decodeUint256(const std::string &data, const uint64_t &start);
       Address decodeAddress(const std::string &data, const uint64_t &start);
       bool decodeBool(const std::string &data, const uint64_t &start);
-      // As we are dealing with data as raw bytes, interpreting a solidity byte/string is the same, so we can use the same function for both.
-      // A solidity string would return a UTF-8 encoded string, but a solidity bytes would return a byte string.
       std::string decodeBytes(const std::string &data, const uint64_t &start);
       std::vector<uint256_t> decodeUint256Arr(const std::string &data, const uint64_t &start);
       std::vector<Address> decodeAddressArr(const std::string &data, const uint64_t &start);
@@ -106,6 +108,7 @@ namespace ABI {
        * Key is the method name, value is the method hash (first 8 bytes of the ABI hash).
        */
       std::map<std::string,std::string> functors;
+
       /**
        * ABI constructor. Uses the custom Solidity class.
        * **Pay attention to the arg order! "args, func" = this one.**
@@ -116,8 +119,7 @@ namespace ABI {
        * @param &error Error object.
        * @return The %Solidity encoded function ABI.
        */
-      std::string operator() (const std::string &function ,const json &arguments);
-
+      std::string operator()(const std::string &function, const json &arguments);
   };
 };
 

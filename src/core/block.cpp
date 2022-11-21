@@ -114,7 +114,7 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
       }
     }
 
-    // Check merkleroots and randomness.
+    // Check merkle roots and randomness.
     if (this->_validatorMerkleRoot != Merkle(this->_validatorTransactions).root()) {
       Utils::LogPrint(Log::block, __func__, "Error: Validator merkle root does not match.");
       throw std::runtime_error("Validator merkle root does not match.");
@@ -134,7 +134,7 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
     auto messageHash = this->getBlockHash();
     auto pubkey = Secp256k1::recover(this->_validatorSignature, messageHash);
 
-    // TODO: Re-enable this after fininshing blockManager
+    // TODO: Re-enable this after finishing blockManager
     //if (!Secp256k1::verify(pubkey, this->_validatorSignature, messageHash)) {
     //  Utils::LogPrint(Log::block, __func__, "Error: Signature is not valid.");
     //  throw std::runtime_error("Signature is not valid.");
@@ -173,7 +173,9 @@ std::string Block::serializeToBytes(bool db) const {
 
   // Append validator transactions - parse both size and data for each transaction
   for (uint64_t i = 0; i < this->_txValidatorsCount; ++i) {
-    std::string txBytes = (db) ? this->_validatorTransactions.find(i)->second.serialize() : this->_validatorTransactions.find(i)->second.rlpSerialize(true);
+    std::string txBytes = (db)
+      ? this->_validatorTransactions.find(i)->second.serialize()
+      : this->_validatorTransactions.find(i)->second.rlpSerialize(true);
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
     ret += std::move(txSizeBytes);
     ret += std::move(txBytes);
@@ -204,7 +206,7 @@ uint64_t Block::blockSize() const {
 
 bool Block::appendTx(const Tx::Base &tx) {
   if (this->finalized) {
-    Utils::LogPrint(Log::block, __func__, " Block is finalized.");
+    Utils::LogPrint(Log::block, __func__, "Block is finalized.");
     return false;
   }
   this->_transactions[_txCount] = (std::move(tx));
@@ -214,7 +216,7 @@ bool Block::appendTx(const Tx::Base &tx) {
 
 bool Block::appendValidatorTx(const Tx::Base &tx) {
   if (this->finalized) {
-    Utils::LogPrint(Log::block, __func__, " Block is finalized.");
+    Utils::LogPrint(Log::block, __func__, "Block is finalized.");
     return false;
   }
   this->_transactions[_txCount] = (std::move(tx));
@@ -226,7 +228,7 @@ void Block::indexTxs() {
   Utils::LogPrint(Log::block, __func__, "Indexing transactions...");
   if (this->finalized) {
     if (this->indexed) {
-      Utils::LogPrint(Log::block, __func__, " Block is in chain and txs are already indexed.");
+      Utils::LogPrint(Log::block, __func__, "Block is in chain and txs are already indexed.");
       return;
     }
     uint64_t index = 0;
@@ -237,7 +239,7 @@ void Block::indexTxs() {
     this->indexed = true;
     Utils::LogPrint(Log::block, __func__, "Indexing transactions... done");
   } else {
-    Utils::LogPrint(Log::block, __func__, " Block is not finalized. cannot index transactions, ignoring call.");
+    Utils::LogPrint(Log::block, __func__, "Block is not finalized. Cannot index transactions, ignoring call.");
   }
 }
 

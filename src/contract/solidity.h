@@ -7,7 +7,6 @@
 #include <vector>
 
 
-// TODO: This section was ported from web3cpp, functions should be cleaned up and be more performant, less unecessary copies, etc.
 #include "../utils/utils.h"
 /**
  * Namespace for encoding data like [Solidity](https://docs.soliditylang.org/en/latest/abi-spec.html) does.
@@ -23,6 +22,8 @@
  * - bytes[]: offset[], size, offset..., (length, data)...
  * - string[]: offset[], size, offset..., (length, data)...
  * Multiple types at once should be handled by packMulti().
+ * ALL RETURNS ARE IN RAW BYTES FORMAT. Utils::bytesToHex() has to be used for
+ * debugging and printing.
  */
 
 namespace Solidity {
@@ -44,7 +45,7 @@ namespace Solidity {
   /**
    * Pack an individual function into %Solidity format.
    * @param func The full packed function signature (e.g. `foo(bar,baz[])`, not just `foo`).
-   * @return The first 8 bytes of the SHA3 hash of the function.
+   * @return The first 4 hex bytes of the SHA3 hash of the function.
    */
   std::string packFunction(std::string func);
 

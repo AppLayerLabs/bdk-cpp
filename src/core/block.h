@@ -57,7 +57,6 @@
 
 // Genesis Address: 0xbadbad86d54e2a2617d05010ade59b6a960d6f12
 // Genesis Private Key: 0x90565a523eb7b46465f95334cd86b93ad9b4637c9c44c029ad8adf2d85486f9c
-// TODO: include merkle root of transactions in block.
 // TODO: separate the block header from the block transactions. this allows for the block hash to be the block header itself and not the entire block.
 class Block {
   private:
@@ -72,7 +71,6 @@ class Block {
     uint64_t _txCount = 0;
     uint64_t _txValidatorsCount = 0;
     // The reason to have it as unordered_map is to be able to parse transactions asynchronously and index them without having to sync all into a vector.
-    // TODO: is it worth it? maybe just use a vector and parse them in order.
     std::unordered_map<uint64_t, Tx::Base, SafeHash> _validatorTransactions; // Tx Index > tx.
     std::unordered_map<uint64_t, Tx::Base, SafeHash> _transactions; // Tx Index > tx.
     bool finalized = false;

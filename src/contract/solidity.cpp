@@ -67,7 +67,7 @@ bool Solidity::checkType(std::string type, json value) {
         Utils::LogPrint(Log::ABI, __func__, " Error: ABI Invalid uint256 array");
         throw std::runtime_error(std::string(__func__) + "ABI Invalid uint256 array");
       }
-    } 
+    }
     return true;
   } else if (type == "address[]") {
     for (json item : value) {
@@ -111,23 +111,23 @@ bool Solidity::checkType(std::string type, json value) {
 }
 
 std::string Solidity::packFunction(std::string func) {
-  return Utils::bytesToHex(Utils::sha3(func).get()).substr(0, 8);
+  return Utils::sha3(func).get().substr(0, 4);
 }
 
 std::string Solidity::packUint(std::string num) {
-  return Hash(boost::lexical_cast<uint256_t>(num)).hex();
+  return Hash(boost::lexical_cast<uint256_t>(num)).get();
 }
 
 std::string Solidity::packAddress(std::string add) {
   Utils::toLowercaseAddress(add);
   Utils::stripHexPrefix(add);
-  return Utils::padLeft(add,64);
+  return Utils::hexToBytes(Utils::padLeft(add, 64));
 }
 
 std::string Solidity::packBool(std::string b) {
   if (b == "true") b = "1";
   else if (b == "false") b = "0";
-  return Utils::padLeft(b, 64);
+  return Utils::hexToBytes(Utils::padLeft(b, 64));
 }
 
 std::string Solidity::packBytes(std::string hex) {
@@ -139,7 +139,7 @@ std::string Solidity::packBytes(std::string hex) {
   hexLength = Utils::padLeft(Utils::uintToHex(hexStrip.length() / 2), 64);
   do { padding += 64; } while (padding < hexStrip.length());
   hexData = Utils::padRight(hexStrip, padding);
-  return hexOffset + hexLength + hexData;
+  return Utils::hexToBytes(hexOffset + hexLength + hexData);
 }
 
 std::string Solidity::packString(std::string str) {
@@ -152,41 +152,31 @@ std::string Solidity::packString(std::string str) {
   strLength = Utils::padLeft(Utils::uintToHex(strStrip.length() / 2), 64);
   do { padding += 64; } while (padding < strStrip.length());
   strData = Utils::padRight(strStrip, padding);
-  return strOffset + strLength + strData;
+  return Utils::hexToBytes(strOffset + strLength + strData);
 }
 
 std::string Solidity::packUintArray(std::vector<std::string> numV) {
   std::string arrOffset, arrSize, arrData = "";
   arrOffset = Utils::padLeft(Utils::uintToHex(32), 64);
   arrSize = Utils::padLeft(Utils::uintToHex(numV.size()), 64);
-  for (std::string num : numV) {
-    arrData += Solidity::packUint(num);
-  }
-  return arrOffset + arrSize + arrData;
+  for (std::string num : numV) arrData += Utils::bytesToHex(Solidity::packUint(num));
+  return Utils::hexToBytes(arrOffset + arrSize + arrData);
 }
 
 std::string Solidity::packAddressArray(std::vector<std::string> addV) {
   std::string arrOffset, arrSize, arrData = "";
   arrOffset = Utils::padLeft(Utils::uintToHex(32), 64);
   arrSize = Utils::padLeft(Utils::uintToHex(addV.size()), 64);
-  for (std::string add : addV) {
-    Utils::stripHexPrefix(add);
-    Utils::toLowercaseAddress(add);
-    arrData += Utils::padLeft(add,64);
-  }
-  return arrOffset + arrSize + arrData;
+  for (std::string add : addV) arrData += Utils::bytesToHex(Solidity::packAddress(add));
+  return Utils::hexToBytes(arrOffset + arrSize + arrData);
 }
 
 std::string Solidity::packBoolArray(std::vector<std::string> bV) {
   std::string arrOffset, arrSize, arrData = "";
   arrOffset = Utils::padLeft(Utils::uintToHex(32), 64);
   arrSize = Utils::padLeft(Utils::uintToHex(bV.size()), 64);
-  for (std::string b : bV) {
-    if (b == "true") b = "1";
-    else if (b == "false") b = "0";
-    arrData += Utils::padLeft(b, 64);
-  }
-  return arrOffset + arrSize + arrData;
+  for (std::string b : bV) arrData += Utils::bytesToHex(Solidity::packBool(b));
+  return Utils::hexToBytes(arrOffset + arrSize + arrData);
 }
 
 std::string Solidity::packBytesArray(std::vector<std::string> hexV) {
@@ -198,7 +188,7 @@ std::string Solidity::packBytesArray(std::vector<std::string> hexV) {
   for (int i = 0; i < hexV.size(); i++) {
     std::string hS, hO, hL, hD = "";
     int padding = 0;
-    hS = hexV[i]; 
+    hS = hexV[i];
     Utils::stripHexPrefix(hS);
     if (hS.length() % 2 != 0) hS.insert(0, "0");  // Complete odd bytes ("aaa" = "0aaa")
     hL = Utils::uintToHex(hS.length() / 2); // Get length first so we can get the right offset
@@ -216,7 +206,7 @@ std::string Solidity::packBytesArray(std::vector<std::string> hexV) {
   for (int i = 0; i < hexV.size(); i++) {
     ret += hexLength[i] + hexData[i];
   }
-  return ret;
+  return Utils::hexToBytes(ret);
 }
 
 std::string Solidity::packStringArray(std::vector<std::string> strV) {
@@ -246,12 +236,13 @@ std::string Solidity::packStringArray(std::vector<std::string> strV) {
   for (int i = 0; i < strV.size(); i++) {
     ret += strLength[i] + strData[i];
   }
-  return ret;
+  return Utils::hexToBytes(ret);
 }
 
-std::string Solidity::packMulti(json args, std::string func) { // err, std::string func) {
+std::string Solidity::packMulti(json args, std::string func) {
   // Handle function ID first if it exists
-  std::string ret = "0x";
+  std::string ret; // TODO: hexToBytes() requires 0x string?
+  std::string arrToAppend;
   if (!func.empty()) {
     if (!checkType("function", func)) {
       Utils::LogPrint(Log::ABI, __func__, " Error: ABI Invalid type");
@@ -260,7 +251,6 @@ std::string Solidity::packMulti(json args, std::string func) { // err, std::stri
     ret += packFunction(func);
   }
   uint64_t nextOffset = 32 * args.size();
-  std::string arrToAppend = "";
 
   // Treat singular and multiple types differently
   // (one is a single object, the other is an array)
