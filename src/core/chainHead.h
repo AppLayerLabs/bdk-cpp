@@ -32,10 +32,15 @@ class ChainHead {
     void _push_back(const std::shared_ptr<const Block> &&block);
     void _push_front(const std::shared_ptr<const Block> &&block);
     void loadFromDB();
+    std::thread periodicSaveThread;
+    uint64_t periodicSaveCooldown = 15; // In seconds
+    bool stopPeriodicSave = false;
 
   public:
     ChainHead(std::shared_ptr<DBService> &_dbService) : dbServer(_dbService) {
       this->loadFromDB();
+      this->periodicSaveThread = std::thread([&]{ this->periodicSaveToDB(); });
+      this->periodicSaveThread.detach();
     }
     // Mutex locked.
     // When a block is accepted, it is directly moved to chainHead.
@@ -56,7 +61,8 @@ class ChainHead {
     const std::shared_ptr<const Block> latest() const;
     uint64_t blockSize();
     void dumpToDB();
-    void periodicSaveToDB();  // TODO: implement this, do not forget that blocks are stored as shared_ptr, if you erase the item inside the map, all remaining pointers will be undefined.
+    void periodicSaveToDB();
+    void stopPeriodicSaveToDB() { this->stopPeriodicSave = true; }
 };
 
 #endif  // CHAINHEAD_H

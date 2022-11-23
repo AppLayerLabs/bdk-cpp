@@ -47,7 +47,6 @@ bool State::saveState(std::shared_ptr<DBService> &dbServer) {
 }
 
 bool State::validateTransactionForBlock(const Tx::Base& tx) const {
-  // TODO: Handle transaction queue for multiple txs from single user
   if (!tx.verified()) return false; // Ignore unverified txs
   bool ret = true;
   stateLock.lock_shared();
@@ -66,7 +65,6 @@ bool State::validateTransactionForBlock(const Tx::Base& tx) const {
 }
 
 std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx, const bool &broadcast) const {
-  // TODO: Handle transaction queue for multiple txs from single user
   // TODO: Handle error conditions to report at RPC level:
   // https://www.jsonrpc.org/specification#error_object
   // https://eips.ethereum.org/EIPS/eip-1474#error-codes

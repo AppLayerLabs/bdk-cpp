@@ -12,7 +12,6 @@
 #include "../utils/secp256k1Wrapper.h"
 #include "../contract/contract.h"
 
-
 /**
  * The Block class only contains the structure of blocks and some utilities
  * to deal with them. It does **NOT** check transaction logic/signature.
@@ -57,10 +56,8 @@
 
 // Genesis Address: 0xbadbad86d54e2a2617d05010ade59b6a960d6f12
 // Genesis Private Key: 0x90565a523eb7b46465f95334cd86b93ad9b4637c9c44c029ad8adf2d85486f9c
-// TODO: separate the block header from the block transactions. this allows for the block hash to be the block header itself and not the entire block.
 class Block {
   private:
-    // TODO: Add creator Header (might require writing a secp256k1 wrapper)
     Signature _validatorSignature = Signature();
     Hash _prevBlockHash;
     Hash _randomness;
