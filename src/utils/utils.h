@@ -9,6 +9,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/beast/core.hpp>
 
 #include "../libs/devcore/CommonData.h"
 #include "../libs/devcore/FixedHash.h"
@@ -190,6 +191,8 @@ namespace Utils {
   json readConfigFile();
 };
 
+void p2p_fail(boost::beast::error_code ec, char const* what);
+
 struct Account {
   uint256_t balance = 0;
   uint32_t nonce = 0;
@@ -289,6 +292,11 @@ struct SafeHash {
     return Utils::splitmix(std::hash<std::string>()(str) + FIXED_RANDOM);
   }
 
+  size_t operator()(const boost::asio::ip::address &address) const {
+    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    return Utils::splitmix(std::hash<std::string>()(address.to_string()) + FIXED_RANDOM);
+  }
+  
   template<typename T>
   size_t operator()(const std::shared_ptr<T> &ptr) const {
     static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
