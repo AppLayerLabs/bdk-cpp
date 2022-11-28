@@ -21,3 +21,8 @@ compile_commands.json
 #IDEA's IDE
 .idea/
 cmake-build-debug/
+
+# VILARINHO's ignored files
+liner.sh
+prepare-lib.sh
+docs/vilarinho/
