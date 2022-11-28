@@ -318,9 +318,9 @@ uint64_t Utils::splitmix(uint64_t i) {
   return i ^ (i >> 31);
 }
 
-bool Utils::isHex(const std::string_view &input) {
-  uint64_t i = 0;
-  if (input.substr(0, 2) == "0x" || input.substr(0, 2) == "0X") { i = 2; }
+bool Utils::isHex(const std::string_view &input, bool strict) {
+  uint64_t i = (strict) ? 2 : 0;
+  if (strict && input.substr(0, 2) != "0x" && input.substr(0, 2) != "0X") return false;
   return (std::string_view(&input[i], input.size() - i).find_first_not_of("0123456789abcdefABCDEF") == std::string::npos);
 }
 
@@ -330,12 +330,13 @@ std::string Utils::utf8ToHex(const std::string_view &str) {
     // You need two casts in order to properly cast char to uint.
     ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<uint>(static_cast<uint8_t>(str[i]));
   }
-
   return ss.str();
 }
 
 void Utils::stripHexPrefix(std::string& str) {
-  if (str[0] == '0' && str[1] == 'x') {
-    str = str.substr(2);
-  }
+  if (str[0] == '0' && str[1] == 'x') str = str.substr(2);
+}
+
+void p2p_fail(boost::beast::error_code ec, char const* what) {
+  std::cerr << "P2P Fail " << what << " : " << ec.message() << std::endl;
 }

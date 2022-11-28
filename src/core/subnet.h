@@ -7,7 +7,7 @@
 #include "../net/grpcclient.h"
 #include "../net/grpcserver.h"
 #include "../net/httpserver.h"
-#include "../net/p2p.h"
+#include "../net/P2PManager.h"
 #include "block.h"
 #include "blockmanager.h"
 #include "../utils/db.h"
@@ -112,8 +112,8 @@ class Subnet {
     std::shared_mutex connectedNodesLock;
 
   public:
-    // P2P node. TODO: make it private?
-    std::shared_ptr<P2P> p2p;
+    // P2P Manager. TODO: make it private?
+    std::shared_ptr<P2PManager> p2pmanager;
 
     void start(); // Start the subnet.
     void stop();  // Stop the subnet.

@@ -145,7 +145,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
     this->blockManager = std::make_shared<BlockManager>(this->dbServer, ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
   }
   Utils::logToFile("Starting P2P");
-  this->p2p = std::make_shared<P2P>("127.0.0.1", config["p2pport"].get<unsigned short>(), this->chainHead);
+  this->p2pmanager = std::make_shared<P2PManager>(boost::asio::ip::address::from_string("127.0.0.1"), config["p2pport"].get<unsigned short>(), 2);
 
   // Parse the latest block to answer AvalancheGo.
   auto latestBlock = chainHead->latest();
