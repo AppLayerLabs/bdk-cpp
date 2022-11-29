@@ -144,8 +144,6 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   } else {
     this->blockManager = std::make_shared<BlockManager>(this->dbServer, ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
   }
-  Utils::logToFile("Starting P2P");
-  this->p2pmanager = std::make_shared<P2PManager>(boost::asio::ip::address::from_string("127.0.0.1"), config["p2pport"].get<unsigned short>(), 2);
 
   // Parse the latest block to answer AvalancheGo.
   auto latestBlock = chainHead->latest();
@@ -157,6 +155,18 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   timestamp->set_seconds(latestBlock->timestamp() / 1000000000);
   timestamp->set_nanos(latestBlock->timestamp() % 1000000000);
 
+
+  // Start the P2P Server and Clients
+  Utils::logToFile("Starting P2P");
+  this->p2pmanager = std::make_shared<P2PManager>(boost::asio::ip::address::from_string("127.0.0.1"), config["p2pport"].get<unsigned short>(), 2);
+  this->p2pmanager->startServer();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  for (auto i : config["seedNodes"]) {
+    std::vector<std::string> seedNode;
+    boost::split(seedNode, i.get<std::string>(), boost::is_any_of(":"));
+    this->p2pmanager->connectToServer(boost::asio::ip::address::from_string(seedNode[0]), std::stoi(seedNode[1]));
+  }
+
   // Start the HTTP Server.
   Utils::logToFile("Starting HTTP");
   this->httpServer = std::make_unique<HTTPServer>(*this, config["rpcport"].get<unsigned short>());
@@ -166,6 +176,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   std::string jsonReply;
   google::protobuf::util::MessageToJsonString(*reply, &jsonReply, options);
   Utils::logToFile(jsonReply);
+
 }
 
 void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply) {

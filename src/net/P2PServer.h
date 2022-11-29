@@ -52,13 +52,13 @@ class P2PServer : public std::enable_shared_from_this<P2PServer>  {
       listener(net::io_context& ioc, tcp::endpoint endpoint, const std::shared_ptr<P2PManager> manager) : ioc_(ioc), acceptor_(ioc), manager_(manager) {
         beast::error_code ec;
         acceptor_.open(endpoint.protocol(), ec); // Open the acceptor
-        if (ec) { p2p_fail(ec, "open"); return; }
+        if (ec) { p2p_fail_server(__func__, ec, "open"); return; }
         acceptor_.set_option(net::socket_base::reuse_address(true), ec); // Allow address reuse
-        if (ec) { p2p_fail(ec, "set_option"); return; }
+        if (ec) { p2p_fail_server(__func__, ec, "set_option"); return; }
         acceptor_.bind(endpoint, ec); // Bind to the server address
-        if (ec) { p2p_fail(ec, "bind"); return; }
+        if (ec) { p2p_fail_server(__func__, ec, "bind"); return; }
         acceptor_.listen(net::socket_base::max_listen_connections, ec); // Start listening
-        if (ec) { p2p_fail(ec, "listen"); return; }
+        if (ec) { p2p_fail_server(__func__, ec, "listen"); return; }
       }
 
       void run();

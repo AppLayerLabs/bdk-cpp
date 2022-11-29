@@ -18,8 +18,8 @@ void P2PClient::resolve() {
 }
 
 void P2PClient::on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
-  if (!ec) {
-    p2p_fail(ec, "resolve");
+  if (ec) {
+    p2p_fail_client(__func__, ec, "resolve");
   }
 
   this->connect(results);
@@ -39,7 +39,7 @@ void P2PClient::connect(tcp::resolver::results_type& results) {
 
 void P2PClient::on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep) {
   if(ec)
-    return p2p_fail(ec, "connect");
+    return p2p_fail_client(__func__, ec, "connect");
 
   // Turn off the timeout on the tcp_stream, because
   // the websocket stream has its own timeout system.
@@ -67,7 +67,10 @@ void P2PClient::handshake(const std::string& host) {
 
 void P2PClient::on_handshake(beast::error_code ec) {
   if(ec)
-    return p2p_fail(ec, "handshake");
+    return p2p_fail_client(__func__, ec, "handshake");
+
+  Utils::LogPrint(Log::P2PClient, __func__, std::string("P2PClient: connected to: ") + ws_.next_layer().socket().remote_endpoint().address().to_string() +
+    ":" + std::to_string(ws_.next_layer().socket().remote_endpoint().port()));
 
   this->read();
 }
@@ -82,7 +85,7 @@ void P2PClient::on_read(beast::error_code ec, std::size_t bytes_transferred) {
   boost::ignore_unused(bytes_transferred);
 
   if (ec)
-    p2p_fail(ec, "read");
+    p2p_fail_client(__func__, ec, "read");
 
   this->read();
 }
@@ -97,7 +100,7 @@ void P2PClient::on_write(beast::error_code ec, std::size_t bytes_transferred) {
   boost::ignore_unused(bytes_transferred);
 
   if (ec)
-    p2p_fail(ec, "write");
+    p2p_fail_client(__func__, ec, "write");
 
   this->read();
 }

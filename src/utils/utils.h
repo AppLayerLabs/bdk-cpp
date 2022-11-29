@@ -45,6 +45,9 @@ namespace Log {
   const std::string httpServer = "HTTPServer::";
   const std::string blockManager = "BlockManager::";
   const std::string ABI = "ABI::";
+  const std::string P2PClient = "P2PClient::";
+  const std::string P2PServer = "P2PServer::";
+  const std::string P2PManager = "P2PManager::";
 };
 
 namespace MessagePrefix {
@@ -191,7 +194,8 @@ namespace Utils {
   json readConfigFile();
 };
 
-void p2p_fail(boost::beast::error_code ec, char const* what);
+void p2p_fail_client(std::string function, boost::beast::error_code ec, char const* what);
+void p2p_fail_server(std::string function, boost::beast::error_code ec, char const* what);
 
 struct Account {
   uint256_t balance = 0;

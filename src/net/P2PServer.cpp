@@ -23,10 +23,12 @@ void ServerSession::on_run() {
 }
 
 void ServerSession::on_accept(beast::error_code ec) {
-  if (ec.value() == 125) { p2p_fail(ec, "read"); return; } // Operation cancelled
-  if (ec.value() == 995) { p2p_fail(ec, "read"); return; } // Interrupted by host
-  if (ec) { return p2p_fail(ec, "accept"); }
+  if (ec.value() == 125) { p2p_fail_server(__func__, ec, "read"); return; } // Operation cancelled
+  if (ec.value() == 995) { p2p_fail_server(__func__, ec, "read"); return; } // Interrupted by host
+  if (ec) { return p2p_fail_server(__func__, ec, "accept"); }
   this->manager_->addClient(ws_.next_layer().socket().remote_endpoint().address(),shared_from_this());
+  Utils::LogPrint(Log::P2PServer, __func__, "Client connected: " + ws_.next_layer().socket().remote_endpoint().address().to_string() +
+  ":" + std::to_string(ws_.next_layer().socket().remote_endpoint().port()));
   read();
 }
 
@@ -37,14 +39,14 @@ void ServerSession::read() {
 void ServerSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
   boost::ignore_unused(bytes_transferred);
   //std::cout << "Request received!" << std::endl;
-  if (ec == websocket::error::closed) { p2p_fail(ec, "read"); return; } // This indicates the session was closed
-  if (ec.value() == 125) { p2p_fail(ec, "read"); return; } // Operation cancelled
-  if (ec.value() == 995) { p2p_fail(ec, "read"); return; } // Interrupted by host
-  if (ec) { p2p_fail(ec, "read"); }
+  if (ec == websocket::error::closed) { p2p_fail_server(__func__, ec, "read"); return; } // This indicates the session was closed
+  if (ec.value() == 125) { p2p_fail_server(__func__, ec, "read"); return; } // Operation cancelled
+  if (ec.value() == 995) { p2p_fail_server(__func__, ec, "read"); return; } // Interrupted by host
+  if (ec) { p2p_fail_server(__func__, ec, "read"); }
   // Send the message for another thread to parse it.
   //std::cout << "Passing it to our handler" << std::endl;
   // Run in another thread natively.
-  std::cout << "Received server: " << boost::beast::buffers_to_string(buffer_.data()) << std::endl;
+  //std::cout << "Received server: " << boost::beast::buffers_to_string(buffer_.data()) << std::endl;
   buffer_.consume(buffer_.size());
   read();
 }
@@ -65,7 +67,7 @@ void ServerSession::write(const std::string& response) {
 
 void ServerSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
   boost::ignore_unused(bytes_transferred);
-  if (ec) { return p2p_fail(ec, "write"); }
+  if (ec) { return p2p_fail_server(__func__, ec, "write"); }
 }
 
 void P2PServer::listener::run() {
@@ -81,7 +83,7 @@ void P2PServer::listener::accept() {
 
 void P2PServer::listener::on_accept(beast::error_code ec, tcp::socket socket) {
   if (ec) {
-    p2p_fail(ec, "accept");
+    p2p_fail_server(__func__,ec, "accept");
     return; // Close the listener regardless of the error
   } else {
     std::make_shared<ServerSession>(std::move(socket), this->manager_)->run();
@@ -99,14 +101,19 @@ void P2PServer::listener::stop() {
 }
 
 void P2PServer::start() {
+  Utils::logToFile("Server Starting");
   // Restart is needed to .run() the ioc again, otherwise it returns instantly.
+
   ioc.restart();
   std::make_shared<listener>(
     ioc, tcp::endpoint{this->address, this->port}, this->manager_
   )->run();
+
   std::vector<std::thread> v;
   v.reserve(this->threads - 1);
+
   for (auto i = this->threads - 1; i > 0; --i) { v.emplace_back([this]{ ioc.run(); }); }
   ioc.run();
+
   for (auto& t : v) t.join(); // Wait for all threads to exit
 }

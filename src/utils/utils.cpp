@@ -337,6 +337,10 @@ void Utils::stripHexPrefix(std::string& str) {
   if (str[0] == '0' && str[1] == 'x') str = str.substr(2);
 }
 
-void p2p_fail(boost::beast::error_code ec, char const* what) {
-  std::cerr << "P2P Fail " << what << " : " << ec.message() << std::endl;
+void p2p_fail_client(std::string function, boost::beast::error_code ec, char const* what) {
+  Utils::LogPrint(Log::P2PClient, function, std::string("P2P Fail ") + what + " : " + ec.message());
+}
+
+void p2p_fail_server(std::string function, boost::beast::error_code ec, char const* what) {
+  Utils::LogPrint(Log::P2PServer, function, std::string("P2P Fail ") + what + " : " + ec.message());
 }
