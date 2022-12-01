@@ -11,12 +11,14 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/beast/core.hpp>
 
+#include <boost/asio/ip/address.hpp>
 #include "../libs/devcore/CommonData.h"
 #include "../libs/devcore/FixedHash.h"
 #include "../libs/json.hpp"
  #include <openssl/rand.h>
 #include <ethash/keccak.h>
 #include <filesystem>
+#include <thread>
 
 using json = nlohmann::ordered_json;
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
@@ -65,6 +67,20 @@ namespace Utils {
     uint256_t bytesToUint256(const std::string_view &bytes);
     std::string uint256ToBytes(const uint256_t &i);
     uint64_t splitmix(uint64_t i);
+};
+
+struct ConnectionInfo {
+  const boost::asio::ip::address address;
+  const unsigned short port;
+  ConnectionInfo(const boost::asio::ip::address &_address, const unsigned short &_port) : address(_address), port(_port) {}
+
+  bool operator==(const ConnectionInfo& other) const {
+    return (address == other.address && port == other.port);
+  }
+
+  bool operator!=(const ConnectionInfo& other) const {
+    return (address != other.address || port != other.port);
+  }
 };
 
 template <unsigned N> class StringContainer {
@@ -301,6 +317,11 @@ struct SafeHash {
     return Utils::splitmix(std::hash<std::string>()(address.to_string()) + FIXED_RANDOM);
   }
   
+  size_t operator()(const ConnectionInfo &connInfo) const {
+    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    return Utils::splitmix(std::hash<std::string>()(connInfo.address.to_string() + std::to_string(connInfo.port)) + FIXED_RANDOM);
+  }
+
   template<typename T>
   size_t operator()(const std::shared_ptr<T> &ptr) const {
     static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();

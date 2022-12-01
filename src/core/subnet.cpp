@@ -164,7 +164,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   for (auto i : config["seedNodes"]) {
     std::vector<std::string> seedNode;
     boost::split(seedNode, i.get<std::string>(), boost::is_any_of(":"));
-    this->p2pmanager->connectToServer(boost::asio::ip::address::from_string(seedNode[0]), std::stoi(seedNode[1]));
+    this->p2pmanager->connectToServer(ConnectionInfo(boost::asio::ip::address::from_string(seedNode[0]), std::stoi(seedNode[1])));
   }
 
   // Start the HTTP Server.

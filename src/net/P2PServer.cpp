@@ -26,7 +26,7 @@ void ServerSession::on_accept(beast::error_code ec) {
   if (ec.value() == 125) { p2p_fail_server(__func__, ec, "read"); return; } // Operation cancelled
   if (ec.value() == 995) { p2p_fail_server(__func__, ec, "read"); return; } // Interrupted by host
   if (ec) { return p2p_fail_server(__func__, ec, "accept"); }
-  this->manager_->addClient(ws_.next_layer().socket().remote_endpoint().address(),shared_from_this());
+  this->manager_->addClient(ConnectionInfo(ws_.next_layer().socket().remote_endpoint().address(),ws_.next_layer().socket().remote_endpoint().port()),shared_from_this());
   Utils::LogPrint(Log::P2PServer, __func__, "Client connected: " + ws_.next_layer().socket().remote_endpoint().address().to_string() +
   ":" + std::to_string(ws_.next_layer().socket().remote_endpoint().port()));
   read();

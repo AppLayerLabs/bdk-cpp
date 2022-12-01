@@ -1,6 +1,7 @@
 #include "P2PClient.h"
 
 void P2PClient::run() {
+  Utils::logToFile(std::string("Trying to resolve: ") + this->host + ":" + std::to_string(this->port));
   this->resolve();
 }
 

@@ -8,26 +8,29 @@ void P2PManager::startServer() {
   return;
 }
 
-void P2PManager::addClient(const boost::asio::ip::address& address, std::shared_ptr<ServerSession> session) {
+void P2PManager::addClient(const ConnectionInfo &connInfo, std::shared_ptr<ServerSession> session) {
   clients_mutex.lock();
-  connectedClients[address] = session;
+  connectedClientsMap[connInfo] = session;
   clients_mutex.unlock();
 }
 
-void P2PManager::removeClient(const boost::asio::ip::address& address) {
+void P2PManager::removeClient(const ConnectionInfo& connInfo) {
   clients_mutex.lock();
-  connectedClients.erase(address);
+  connectedClientsMap.erase(connInfo);
   clients_mutex.unlock();
 }
 
-void P2PManager::connectToServer(const boost::asio::ip::address& address, const unsigned short& port) {
-  Utils::LogPrint(Log::P2PManager, __func__, std::string("Trying to connect to: ") + address.to_string() + ":" + std::to_string(port));
-  std::thread clientThread([&, this] {
+void P2PManager::connectToServer(const ConnectionInfo connInfo) {
+  Utils::LogPrint(Log::P2PManager, __func__, std::string("Trying to connect to: ") + connInfo.address.to_string() + ":" + std::to_string(connInfo.port));
+  std::thread clientThread([&, this, connInfo] {
     net::io_context ioc;
-    this->servers_mutex.lock();
-    this->connectedServers[address] = std::make_shared<P2PClient>(ioc, address.to_string(), port, shared_from_this());
-    this->servers_mutex.unlock();
-    this->connectedServers[address]->run();
+    auto client = std::make_shared<P2PClient>(ioc, connInfo.address.to_string(), connInfo.port, shared_from_this());
+    {
+      this->servers_mutex.lock();
+      this->connectedServersMap[connInfo] = client;
+      this->servers_mutex.unlock();
+    }
+    client->run();
     ioc.run();
   });
   clientThread.detach();
