@@ -26,13 +26,14 @@ void ServerSession::on_accept(beast::error_code ec) {
   if (ec.value() == 125) { p2p_fail_server(__func__, ec, "read"); return; } // Operation cancelled
   if (ec.value() == 995) { p2p_fail_server(__func__, ec, "read"); return; } // Interrupted by host
   if (ec) { return p2p_fail_server(__func__, ec, "accept"); }
-  this->manager_->addClient(ConnectionInfo(ws_.next_layer().socket().remote_endpoint().address(),ws_.next_layer().socket().remote_endpoint().port(),shared_from_this()));
+  this->manager_->addClient(Connection(ws_.next_layer().socket().remote_endpoint().address(),ws_.next_layer().socket().remote_endpoint().port(),shared_from_this()));
   Utils::LogPrint(Log::P2PServer, __func__, "Client connected: " + ws_.next_layer().socket().remote_endpoint().address().to_string() +
-  ":" + std::to_string(ws_.next_layer().socket().remote_endpoint().port()));
+  ":" + std::to_string(ws_.next_layer().socket().remote_endpoint().port()) + " binary: " + boost::lexical_cast<std::string>(ws_.binary()));
   read();
 }
 
 void ServerSession::read() {
+  Utils::logToFile(std::string("P2PServer: reading"));
   ws_.async_read(buffer_, beast::bind_front_handler(&ServerSession::on_read, shared_from_this()));
 }
 
@@ -44,18 +45,23 @@ void ServerSession::on_read(beast::error_code ec, std::size_t bytes_transferred)
   if (ec.value() == 995) { p2p_fail_server(__func__, ec, "read"); return; } // Interrupted by host
   if (ec) { p2p_fail_server(__func__, ec, "read"); }
   // Send the message for another thread to parse it.
-  //std::cout << "Passing it to our handler" << std::endl;
-  // Run in another thread natively.
-  //std::cout << "Received server: " << boost::beast::buffers_to_string(buffer_.data()) << std::endl;
+  // TODO: make a thread pool for gods sake
+  Utils::logToFile(std::string("P2PServer: received: ") + Utils::bytesToHex(boost::beast::buffers_to_string(buffer_.data())));
+  P2PMessage message(boost::beast::buffers_to_string(buffer_.data()));
+  std::thread t(&P2PManager::parseClientRequest, this->manager_, message, shared_from_this());
+  t.detach();
   buffer_.consume(buffer_.size());
   read();
 }
 
-void ServerSession::write(const std::string& response) {
+  //std::cout << "Received server: " << boost::beast::buffers_to_string(buffer_.data()) << std::endl;
+
+void ServerSession::write(const P2PMessage& response) {
+  Utils::logToFile(std::string("P2PClient: writing"));
   if (ws_.is_open()) { // Check if the stream is open, before commiting to it.
     // Copy string to buffer
     answerBuffer_.consume(answerBuffer_.size());
-    size_t n = boost::asio::buffer_copy(answerBuffer_.prepare(response.size()), boost::asio::buffer(response));
+    size_t n = boost::asio::buffer_copy(answerBuffer_.prepare(response.raw().size()), boost::asio::buffer(response.raw()));
     answerBuffer_.commit(n);
     // Write to the socket
     ws_.async_write(answerBuffer_.data(), beast::bind_front_handler(

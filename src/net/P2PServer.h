@@ -20,6 +20,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 // Forward declaration
 class P2PManager;
+class P2PMessage;
 
 class ServerSession : public std::enable_shared_from_this<ServerSession> {
   private:
@@ -30,7 +31,7 @@ class ServerSession : public std::enable_shared_from_this<ServerSession> {
   public:
 
   //using SessionBase::SessionBase;
-  ServerSession(tcp::socket&& socket, const std::shared_ptr<P2PManager> manager) : ws_(std::move(socket)), manager_(manager) {}
+  ServerSession(tcp::socket&& socket, const std::shared_ptr<P2PManager> manager) : ws_(std::move(socket)), manager_(manager) { ws_.binary(true); }
 
   void run();
   void stop();
@@ -38,9 +39,11 @@ class ServerSession : public std::enable_shared_from_this<ServerSession> {
   void on_accept(beast::error_code ec);
   void read();
   void on_read(beast::error_code ec, std::size_t bytes_transferred);
-  void write(const std::string& message);
+  void write(const P2PMessage& message);
   void on_write(beast::error_code ec, std::size_t bytes_transferred);
   
+  const boost::asio::ip::address address() const { return ws_.next_layer().socket().remote_endpoint().address(); }
+  const unsigned short port() const { return ws_.next_layer().socket().remote_endpoint().port(); }
 };
 
 class P2PServer : public std::enable_shared_from_this<P2PServer>  {

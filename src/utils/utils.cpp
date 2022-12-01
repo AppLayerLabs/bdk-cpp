@@ -344,3 +344,9 @@ void p2p_fail_client(std::string function, boost::beast::error_code ec, char con
 void p2p_fail_server(std::string function, boost::beast::error_code ec, char const* what) {
   Utils::LogPrint(Log::P2PServer, function, std::string("P2P Fail ") + what + " : " + ec.message());
 }
+
+std::string Utils::randomBytes(const size_t &size) {
+  std::string bytes(size, 0x00);
+  RAND_bytes((unsigned char*)bytes.data(), size);
+  return bytes;
+}

@@ -1,4 +1,5 @@
 #include "P2PClient.h"
+#include "P2PManager.h"
 
 void P2PClient::run() {
   Utils::logToFile(std::string("Trying to resolve: ") + this->host + ":" + std::to_string(this->port));
@@ -57,8 +58,8 @@ void P2PClient::on_connect(beast::error_code ec, tcp::resolver::results_type::en
     std::string(BOOST_BEAST_VERSION_STRING) + " websocket-client-async");
   }));
 
-  host += ':' + std::to_string(ep.port());
-  this->handshake(host);
+  std::string hostStr = this->host + ':' + std::to_string(ep.port());
+  this->handshake(hostStr);
 }
 
 void P2PClient::handshake(const std::string& host) {
@@ -71,12 +72,13 @@ void P2PClient::on_handshake(beast::error_code ec) {
     return p2p_fail_client(__func__, ec, "handshake");
 
   Utils::LogPrint(Log::P2PClient, __func__, std::string("P2PClient: connected to: ") + ws_.next_layer().socket().remote_endpoint().address().to_string() +
-    ":" + std::to_string(ws_.next_layer().socket().remote_endpoint().port()));
+    ":" + std::to_string(ws_.next_layer().socket().remote_endpoint().port()) + " binary: " + boost::lexical_cast<std::string>(ws_.binary()));
 
-  this->read();
+  this->write(P2PRequestEncoder::info(this->manager_->chainHead, this->manager_->connectionCount()));
 }
 
 void P2PClient::read() {
+  Utils::logToFile(std::string("P2PClient: reading"));
   ws_.async_read(
     receiveBuffer,
     beast::bind_front_handler(&P2PClient::on_read, shared_from_this()));
@@ -91,9 +93,10 @@ void P2PClient::on_read(beast::error_code ec, std::size_t bytes_transferred) {
   this->read();
 }
 
-void P2PClient::write(const std::string& data) {
+void P2PClient::write(const P2PMessage& data) {
+  Utils::logToFile(std::string("P2PClient: writing: ") + Utils::bytesToHex(data.message()));
   ws_.async_write(
-    net::buffer(data),
+    net::buffer(data.raw()),
     beast::bind_front_handler(&P2PClient::on_write, shared_from_this()));
 }
 

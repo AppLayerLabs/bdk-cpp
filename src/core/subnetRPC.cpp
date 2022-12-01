@@ -228,10 +228,33 @@ std::string Subnet::processRPCMessage(std::string &req) {
       json clientConnections = json::array();
       json serverConnections = json::array();
       for (const auto &i : this->p2pmanager->connectedServers()) {
-        clientConnections.push_back(i.address.to_string() + ":" + std::to_string(i.port));
+        json connection = {
+          {"ip", i.address.to_string()},
+          {"port", i.port},
+          {"version", i.version()},
+          {"timestamp", i.timestamp()},
+          {"latestBlockHeight", i.latestBlockHeight()},
+          {"latestBlockHash", i.latestBlockHash().hex()},
+          {"nNodes", i.nNodes()},
+          {"latestChecked", i.latestChecked()},
+          {"clockDiff", i.clockDiff()}
+        };
+        
+        clientConnections.push_back(connection);
       }
       for (const auto &i : this->p2pmanager->connectedClients()) {
-        serverConnections.push_back(i.address.to_string() + ":" + std::to_string(i.port));
+        json connection = {
+          {"ip", i.address.to_string()},
+          {"port", i.port},
+          {"version", i.version()},
+          {"timestamp", i.timestamp()},
+          {"latestBlockHeight", i.latestBlockHeight()},
+          {"latestBlockHash", i.latestBlockHash().hex()},
+          {"nNodes", i.nNodes()},
+          {"latestChecked", i.latestChecked()},
+          {"clockDiff", i.clockDiff()}
+        };
+        serverConnections.push_back(connection);
       }
       ret["result"]["outbound"] = clientConnections;
       ret["result"]["inbound"] = serverConnections;
@@ -241,4 +264,3 @@ std::string Subnet::processRPCMessage(std::string &req) {
   }
   return ret.dump();
 }
-

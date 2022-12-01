@@ -19,20 +19,21 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 // Forward declaration.
 
 class P2PManager;
+class P2PMessage;
 
 class P2PClient : public std::enable_shared_from_this<P2PClient> {
   private:
     const std::shared_ptr<P2PManager> manager_;
     tcp::resolver resolver_;
     websocket::stream<beast::tcp_stream> ws_;
-    std::string host;
-    const unsigned short port;
-
     beast::flat_buffer receiveBuffer;
 
   public:
+    const std::string host;
+    const unsigned short port;
+
     P2PClient(net::io_context& ioc, const std::string& address, const unsigned short& port, const std::shared_ptr<P2PManager> manager) 
-      : resolver_(net::make_strand(ioc)), ws_(net::make_strand(ioc)), host(address) ,port(port), manager_(manager) {}
+      : resolver_(net::make_strand(ioc)), ws_(net::make_strand(ioc)), host(address) ,port(port), manager_(manager) { ws_.binary(true); }
       
     void run();
     void stop();
@@ -44,7 +45,7 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
     void on_handshake(beast::error_code ec);
     void read();
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
-    void write(const std::string& data);
+    void write(const P2PMessage& data);
     void on_write(beast::error_code ec, std::size_t bytes_transferred);
 };
 

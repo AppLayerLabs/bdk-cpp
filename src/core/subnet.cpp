@@ -158,7 +158,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   // Start the P2P Server and Clients
   Utils::logToFile("Starting P2P");
-  this->p2pmanager = std::make_shared<P2PManager>(boost::asio::ip::address::from_string("127.0.0.1"), config["p2pport"].get<unsigned short>(), 2);
+  this->p2pmanager = std::make_shared<P2PManager>(boost::asio::ip::address::from_string("127.0.0.1"), config["p2pport"].get<unsigned short>(), 2, this->chainHead);
   this->p2pmanager->startServer();
   std::this_thread::sleep_for(std::chrono::seconds(1));
   for (auto i : config["seedNodes"]) {

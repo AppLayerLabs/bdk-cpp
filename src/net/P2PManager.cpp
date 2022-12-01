@@ -8,17 +8,23 @@ void P2PManager::startServer() {
   return;
 }
 
-void P2PManager::addClient(const ConnectionInfo<ServerSession> &session) {
+void P2PManager::addClient(const Connection<ServerSession> &session) {
   clients_mutex.lock();
   connectedClientsVector.push_back(session);
   clients_mutex.unlock();
+  counter_mutex.lock();
+  ++connCounter;
+  counter_mutex.unlock();
 }
 
-void P2PManager::removeClient(const ConnectionInfo<ServerSession>& connInfo) {
+void P2PManager::removeClient(const Connection<ServerSession>& connInfo) {
   clients_mutex.lock();
   // TODO lol
   //connectedClientsVector.erase(connInfo);
   clients_mutex.unlock();
+  counter_mutex.lock();
+  --connCounter;
+  counter_mutex.unlock();
 }
 
 void P2PManager::connectToServer(const boost::asio::ip::address &address, const unsigned short &port) {
@@ -27,14 +33,58 @@ void P2PManager::connectToServer(const boost::asio::ip::address &address, const 
     net::io_context ioc;
     auto client = std::make_shared<P2PClient>(ioc, address.to_string(), port, shared_from_this());
     {
-      ConnectionInfo<P2PClient> connInfo(address, port, client);
+      Connection<P2PClient> connInfo(address, port, client);
       this->servers_mutex.lock();
       this->connectedServersVector.push_back(connInfo);
       this->servers_mutex.unlock();
     }
     client->run();
+    counter_mutex.lock();
+    ++connCounter;
+    counter_mutex.unlock();
     ioc.run();
+    counter_mutex.lock();
+    --connCounter;
+    counter_mutex.unlock();
   });
   clientThread.detach();
   return;
+}
+
+const void P2PManager::parseClientRequest(const P2PMessage& message, const std::shared_ptr<ServerSession> &connInfo) {
+  Utils::logToFile(std::string("Trying to parse client request: ") + Utils::bytesToHex(message.message()));
+  switch (message.command()) {
+    case CommandType::Info :
+      Utils::LogPrint(Log::P2PManager, __func__, std::string("Received Info from: ") + connInfo->address().to_string() + ":" + std::to_string(connInfo->port()));
+      // Parse info and update the connection inside the vector.
+      auto newInfo = P2PRequestDecoder::info(message);
+      this->clients_mutex.lock();
+      for (auto& i : this->connectedClientsVector) {
+        if (i.session == connInfo) {
+          i.updateInfo(newInfo);
+        }
+      }
+      this->clients_mutex.unlock();
+      auto answer = P2PAnswerEncoder::info(this->chainHead, this->connectedClientsVector.size(), message.id());
+      connInfo->write(answer);
+      break;
+  } // TODO: Others commands.
+}
+
+const void P2PManager::parseServerAnswer(const P2PMessage& message, const std::shared_ptr<P2PClient> &connInfo) {
+  Utils::logToFile("Trying to parse servers answer");
+  switch (message.command()) {
+    case CommandType::Info :
+      // Info updates P2PManager itself, no need to route the answer.
+      Utils::LogPrint(Log::P2PManager, __func__, std::string("Received Info from: ") + connInfo->host + ":" + std::to_string(connInfo->port));
+      auto newInfo = P2PRequestDecoder::info(message);
+      this->servers_mutex.lock();
+      for (auto& i : this->connectedServersVector) {
+        if (i.session == connInfo) {
+          i.updateInfo(newInfo);
+        }
+      }
+      this->servers_mutex.unlock();
+      break;
+  } // TODO: Other Commands
 }

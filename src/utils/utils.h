@@ -158,6 +158,7 @@ namespace Utils {
   std::string uint32ToBytes(const uint32_t &i);
   std::string uint16ToBytes(const uint16_t &i);
   std::string uint8ToBytes(const uint8_t &i);
+  std::string randomBytes(const size_t& size);
   bool isHex(const std::string_view &input, bool strict = false);
   std::string utf8ToHex(const std::string_view &input);
   uint160_t bytesToUint160(const std::string_view &bytes);
