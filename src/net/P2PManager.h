@@ -8,12 +8,30 @@
 #include <condition_variable>
 #include "../utils/utils.h"
 
+template<typename T>
+struct ConnectionInfo {
+  const std::shared_ptr<T> session;
+  const boost::asio::ip::address address;
+  const unsigned short port;
+  ConnectionInfo(const boost::asio::ip::address &_address, const unsigned short &_port, const std::shared_ptr<T> &_session) : 
+    address(_address), port(_port), session(_session) {}
+
+  // Clock difference between our node and the node we are connected to.
+  int64_t clockDiff = 0; 
+  // Quantity of nodes that they are connected to.
+  uint64_t connectedNodes = 0;
+  // Their best block hash.
+  Hash bestBlockHash = Hash();
+  // Last time we checked their info.
+  uint64_t lastTimeUpdates = 0;
+};
+
+
 class P2PManager : public std::enable_shared_from_this<P2PManager> {
     std::shared_ptr<P2PServer> server;
-    std::shared_ptr<P2PClient> client;
-    std::unordered_map<ConnectionInfo, std::shared_ptr<P2PClient>, SafeHash> connectedServersMap;
+    std::vector<ConnectionInfo<P2PClient>> connectedServersVector;
     std::mutex servers_mutex; // Connected servers.
-    std::unordered_map<ConnectionInfo, std::shared_ptr<ServerSession>, SafeHash> connectedClientsMap;
+    std::vector<ConnectionInfo<ServerSession>> connectedClientsVector;
     std::mutex clients_mutex; // Connected clients
 
     const boost::asio::ip::address server_address;
@@ -27,18 +45,18 @@ class P2PManager : public std::enable_shared_from_this<P2PManager> {
     void parseServerMessage(const std::string& message);
     
     // Insert a new client into the connected Clients.
-    void addClient(const ConnectionInfo &connInfo, std::shared_ptr<ServerSession> session);
+    void addClient(const ConnectionInfo<ServerSession> &connInfo);
     // Remove the said client from the connected Clients.
-    void removeClient(const ConnectionInfo &connInfo);
+    void removeClient(const ConnectionInfo<ServerSession> &connInfo);
 
     // Create a new thread running the client and connect to the server.
-    void connectToServer(const ConnectionInfo connInfo);
+    void connectToServer(const boost::asio::ip::address &address, const unsigned short &port);
     // Disconect a given client from a server.
-    void disconnectFromServer(const ConnectionInfo &address);
+    void disconnectFromServer(const ConnectionInfo<P2PClient> &address);
 
 
-    const std::unordered_map<ConnectionInfo, std::shared_ptr<P2PClient>, SafeHash>& connectedServers() const { return connectedServersMap; }
-    const std::unordered_map<ConnectionInfo, std::shared_ptr<ServerSession>, SafeHash>& connectedClients() const { return connectedClientsMap; }
+    const std::vector<ConnectionInfo<P2PClient>>& connectedServers() const { return connectedServersVector; }
+    const std::vector<ConnectionInfo<ServerSession>>& connectedClients() const { return connectedClientsVector; }
     // TODO: Requesters and parsers.
 
 };

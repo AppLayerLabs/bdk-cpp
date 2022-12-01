@@ -69,20 +69,6 @@ namespace Utils {
     uint64_t splitmix(uint64_t i);
 };
 
-struct ConnectionInfo {
-  const boost::asio::ip::address address;
-  const unsigned short port;
-  ConnectionInfo(const boost::asio::ip::address &_address, const unsigned short &_port) : address(_address), port(_port) {}
-
-  bool operator==(const ConnectionInfo& other) const {
-    return (address == other.address && port == other.port);
-  }
-
-  bool operator!=(const ConnectionInfo& other) const {
-    return (address != other.address || port != other.port);
-  }
-};
-
 template <unsigned N> class StringContainer {
   protected:
     std::string _data;
@@ -317,11 +303,6 @@ struct SafeHash {
     return Utils::splitmix(std::hash<std::string>()(address.to_string()) + FIXED_RANDOM);
   }
   
-  size_t operator()(const ConnectionInfo &connInfo) const {
-    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    return Utils::splitmix(std::hash<std::string>()(connInfo.address.to_string() + std::to_string(connInfo.port)) + FIXED_RANDOM);
-  }
-
   template<typename T>
   size_t operator()(const std::shared_ptr<T> &ptr) const {
     static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
