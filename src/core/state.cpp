@@ -50,7 +50,7 @@ bool State::validateTransactionForBlock(const Tx::Base& tx) const {
   if (!tx.verified()) return false; // Ignore unverified txs
   bool ret = true;
   stateLock.lock_shared();
-  if (this->mempool.count(tx.hash()) == 0) { // Ignore if tx already exists in mempool
+  if (!this->mempool.count(tx.hash())) { // Ignore if tx already exists in mempool
     if (this->nativeAccount.count(tx.from()) == 0) { // Account doesn't exist = zero balance = can't pay fees
       ret = false;
     } else {
