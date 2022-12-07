@@ -93,17 +93,20 @@ Tx::Base::Base(const std::string_view &bytes, bool fromDB) {
     this->_v = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1))  - (uint8_t(bytes[index]) == 0x80 ? 0x80 : 0);
     ++index; // Index at rlp[7] size.
   }
-  // Get r, small string, 32 in size.
-  if (uint8_t(bytes[index]) != 0xa0) { throw std::runtime_error("R is not a 32 byte string"); }
+  
+  // Get r, small string.
+  uint8_t rLenght = bytes[index] - 0x80;
+  if (rLenght > 0x37) { throw std::runtime_error("R is not a small string"); }
   ++index; // Index at rlp[7] payload.
-  this->_r = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 32));
-  index += 32; // Index at rlp[8] size.
+  this->_r = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], rLenght));
+  index += rLenght; // Index at rlp[8] size.
 
   // get s, small string
-  if (uint8_t(bytes[index]) != 0xa0) { throw std::runtime_error("S is not a 32 byte string"); }
+  uint8_t sLenght = bytes[index] - 0x80;
+  if (sLenght > 0x37) { throw std::runtime_error("S is not a small string"); }
   ++index; // Index at rlp[8] payload.
-  this->_s = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 32));
-  index += 32; // Index at rlp[9] size.
+  this->_s = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], sLenght));
+  index += sLenght; // Index at rlp[9] size.
 
   if (_v > 36) {
     this->_chainId = static_cast<uint64_t>((this->_v - 35) / 2);
