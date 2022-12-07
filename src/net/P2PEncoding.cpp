@@ -137,3 +137,10 @@ ConnectionInfo P2PAnswerDecoder::info(const P2PMessage& message) {
   ret.latestChecked = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   return ret;
 }
+
+
+Tx::Base P2PRequestDecoder::sendTransaction(const P2PMessage& message) {
+  Tx::Base tx(message.message(), false);
+  return tx;
+}
+

@@ -1,5 +1,7 @@
 #include "subnet.h"
 
+
+// TODO: move this somewhere else outside of the subnet class?
 // Process a Metamask RPC message. There are multiple edge cases that need to be handled.
 std::string Subnet::processRPCMessage(std::string &req) {
   Utils::LogPrint(Log::subnet, "processRPCMessage", "Received RPC message: " + req);
@@ -122,11 +124,11 @@ std::string Subnet::processRPCMessage(std::string &req) {
       try {
         std::string txStr = Utils::hexToBytes(txRlp);
         Tx::Base tx(txStr, false);
-        std::pair<int, std::string> txRet = this->headState->validateTransactionForRPC(std::move(tx), true);
+        std::pair<int, std::string> txRet = this->validateTransaction(std::move(tx));
         if (txRet.first != 0) {
           ret["error"] = json({{"code", txRet.first}, {"message", txRet.second}});
         }
-        ret["result"] = std::string("0x") + Utils::bytesToHex(tx.hash().get());
+        ret["result"] = std::string("0x") + tx.hash().hex();
       } catch (std::exception &e) {
         Utils::logToFile(std::string("sendRawTransaction failed! ") + e.what());
       }

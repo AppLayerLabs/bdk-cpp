@@ -64,6 +64,7 @@ class P2PRequestEncoder {
 class P2PRequestDecoder {
   public:
     static ConnectionInfo info(const P2PMessage& message);
+    static Tx::Base sendTransaction(const P2PMessage& message);
 };
 
 class P2PAnswerEncoder {

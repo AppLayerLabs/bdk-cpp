@@ -157,8 +157,8 @@ class Subnet {
     // To be called by HTTP Server, from RPC clients (such as Metamask).
     std::string processRPCMessage(std::string &req);
 
-    // To be called by grpcServer, when avalancheGo receives a transaction through gossip.
-    void validateTransaction (const Tx::Base&& txBytes);
+    // To be called by grpcServer and HTTP Server, when we receive a Tx.
+    std::pair<int, std::string> validateTransaction(const Tx::Base&& txBytes);
 
     // To be called by grpcServer, when avalancheGo tells that a new node connected or disconnected, respectively.
     void connectNode(const std::string &nodeId);

@@ -78,7 +78,6 @@ void P2PClient::on_handshake(beast::error_code ec) {
 }
 
 void P2PClient::read() {
-  Utils::logToFile(std::string("P2PClient: reading"));
   ws_.async_read(
     receiveBuffer,
     beast::bind_front_handler(&P2PClient::on_read, shared_from_this()));
@@ -94,7 +93,6 @@ void P2PClient::on_read(beast::error_code ec, std::size_t bytes_transferred) {
 }
 
 void P2PClient::write(const P2PMessage& data) {
-  Utils::logToFile(std::string("P2PClient: writing: ") + Utils::bytesToHex(data.message()));
   ws_.async_write(
     net::buffer(data.raw()),
     beast::bind_front_handler(&P2PClient::on_write, shared_from_this()));

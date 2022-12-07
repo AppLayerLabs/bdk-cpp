@@ -1,5 +1,5 @@
 #include "P2PManager.h"
-
+#include "../core/subnet.h"
 
 void P2PManager::startServer() {
   server = std::make_shared<P2PServer>(this->server_address.to_string(), this->server_port, 2, shared_from_this());
@@ -55,24 +55,33 @@ const void P2PManager::parseClientRequest(const P2PMessage& message, const std::
   Utils::logToFile(std::string("Trying to parse client request: ") + Utils::bytesToHex(message.message()));
   switch (message.command()) {
     case CommandType::Info :
-      Utils::LogPrint(Log::P2PManager, __func__, std::string("Received Info from: ") + connInfo->address().to_string() + ":" + std::to_string(connInfo->port()));
-      // Parse info and update the connection inside the vector.
-      auto newInfo = P2PRequestDecoder::info(message);
-      this->clients_mutex.lock();
-      for (auto& i : this->connectedClientsVector) {
-        if (i.session == connInfo) {
-          i.updateInfo(newInfo);
+      {
+        Utils::LogPrint(Log::P2PManager, __func__, std::string("Received Info from: ") + connInfo->address().to_string() + ":" + std::to_string(connInfo->port()));
+        // Parse info and update the connection inside the vector.
+        auto newInfo = P2PRequestDecoder::info(message);
+        this->clients_mutex.lock();
+        for (auto& i : this->connectedClientsVector) {
+          if (i.session == connInfo) {
+            i.updateInfo(newInfo);
+          }
         }
+        this->clients_mutex.unlock();
+        auto answer = P2PAnswerEncoder::info(this->chainHead, this->connectedClientsVector.size(), message.id());
+        connInfo->write(answer);
       }
-      this->clients_mutex.unlock();
-      auto answer = P2PAnswerEncoder::info(this->chainHead, this->connectedClientsVector.size(), message.id());
-      connInfo->write(answer);
+      break;
+    case CommandType::SendTransaction :
+      {
+        Utils::LogPrint(Log::P2PManager, __func__, std::string("Received Tx from: ") + connInfo->address().to_string() + ":" + std::to_string(connInfo->port()));
+        auto tx = P2PRequestDecoder::sendTransaction(message);
+        this->subnet.validateTransaction(std::move(tx));
+      }
       break;
   } // TODO: Others commands.
 }
 
 const void P2PManager::parseServerAnswer(const P2PMessage& message, const std::shared_ptr<P2PClient> &connInfo) {
-  Utils::logToFile("Trying to parse servers answer");
+  Utils::logToFile("Trying to parse servers answer at command: " + std::to_string(message.command()));
   switch (message.command()) {
     case CommandType::Info :
       // Info updates P2PManager itself, no need to route the answer.
@@ -87,4 +96,12 @@ const void P2PManager::parseServerAnswer(const P2PMessage& message, const std::s
       this->servers_mutex.unlock();
       break;
   } // TODO: Other Commands
+}
+
+const void P2PManager::broadcastTx(const Tx::Base &tx) {
+  P2PMessage message = P2PRequestEncoder::sendTransaction(tx);
+  for (auto &s : this->connectedServersVector) {
+    Utils::logToFile(std::string("Trying to send to: ") + s.address.to_string() + ":" + std::to_string(s.port) + " tx: " + Utils::bytesToHex(tx.rlpSerialize(true)));
+    s.session->write(message);
+  }
 }

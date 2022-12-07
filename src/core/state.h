@@ -75,7 +75,7 @@ class State {
 
     // Validates a transaction from RPC, moving the transaction to the mempool. does not update the state, returns error handling for RPC.
     // Add transaction to mempool if valid. moves tx to itself.
-    std::pair<int, std::string> validateTransactionForRPC(const Tx::Base &&tx, const bool &broadcast) const;
+    std::pair<int, std::string> validateTransactionForRPC(const Tx::Base &tx) const;
 
     // TEST ONLY FUNCTIONS.
 

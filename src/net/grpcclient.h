@@ -58,10 +58,6 @@ class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
 
   void requestBlock();
 
-  // Copy because we don't actually know if mempool is keeping the transaction alive.
-  // Subnet may receive a block that clears a given tx from mempool, making a reference to that tx null.
-  void relayTransaction(const Tx::Base tx);
-
   private:
     // TODO: having nodeList here as a reference is not ideal.
     // We should create a new class (Relayer) that actively relay transactions and messages to the network.

@@ -52,11 +52,6 @@ namespace Log {
   const std::string P2PManager = "P2PManager::";
 };
 
-namespace MessagePrefix {
-  const char tx = 0x01;
-  const char batchedTx = 0x02;
-}
-
 enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
 // Only LocalTestnet is supported for now.

@@ -33,7 +33,6 @@ void ServerSession::on_accept(beast::error_code ec) {
 }
 
 void ServerSession::read() {
-  Utils::logToFile(std::string("P2PServer: reading"));
   ws_.async_read(buffer_, beast::bind_front_handler(&ServerSession::on_read, shared_from_this()));
 }
 
@@ -57,7 +56,6 @@ void ServerSession::on_read(beast::error_code ec, std::size_t bytes_transferred)
   //std::cout << "Received server: " << boost::beast::buffers_to_string(buffer_.data()) << std::endl;
 
 void ServerSession::write(const P2PMessage& response) {
-  Utils::logToFile(std::string("P2PClient: writing"));
   if (ws_.is_open()) { // Check if the stream is open, before commiting to it.
     // Copy string to buffer
     answerBuffer_.consume(answerBuffer_.size());

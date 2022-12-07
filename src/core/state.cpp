@@ -11,7 +11,7 @@ bool State::loadState(std::shared_ptr<DBService> &dbServer) {
   if (accounts.empty()) {
     Address dev("0x21B782f9BF82418A42d034517CB6Bf00b4C17612", true); // Ita's address
     Address dev2("0xb3Dc9ed7f450d188c9B5a44f679a1dDBb4Cbd6D2", true); // Supra's address
-    Address dev3("0x5d83B229235Fba526A859784105e432667f2546E", true); // Ita's office
+    Address dev3("0x12e7742c063Dff92dA0439430DFe8A05ce0d297e", true); // Ita's office
     Address dev4("0xaE33707325C17CD37331278ccb74d2Ba9bFa6c92", true); // Ita's laptop
     dbServer->put(dev.get(),Utils::uint256ToBytes(uint256_t("100000000000000000000")) + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts);
     Utils::logToFile("Added balance to: " + dev.hex());
@@ -64,7 +64,7 @@ bool State::validateTransactionForBlock(const Tx::Base& tx) const {
   return ret;
 }
 
-std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx, const bool &broadcast) const {
+std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base& tx) const {
   // TODO: Handle error conditions to report at RPC level:
   // https://www.jsonrpc.org/specification#error_object
   // https://eips.ethereum.org/EIPS/eip-1474#error-codes
@@ -102,19 +102,8 @@ std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base&& tx
   } else {
     stateLock.lock();
     Hash txHash = tx.hash();
-    this->mempool[txHash] = std::move(tx);
-    #if !IS_LOCAL_TESTS
-      if (broadcast) {
-        // Broadcast tx.
-        // If I do
-        //   std::thread t(&grpcClient::relayTransaction, this->grpcClient, this->mempool[tx.hash()]);
-        //   t.detach();
-        // it will only work half of the time.
-        // TODO: figure out why and fix it
-        this->grpcClient->relayTransaction(this->mempool[txHash]);
-      }
-      grpcClient->requestBlock();
-    #endif
+    this->mempool[txHash] = tx;
+    grpcClient->requestBlock();
     stateLock.unlock();
   }
   return std::make_pair(err, errMsg);

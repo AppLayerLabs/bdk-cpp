@@ -158,7 +158,7 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
 
   // Start the P2P Server and Clients
   Utils::logToFile("Starting P2P");
-  this->p2pmanager = std::make_shared<P2PManager>(boost::asio::ip::address::from_string("127.0.0.1"), config["p2pport"].get<unsigned short>(), 2, this->chainHead);
+  this->p2pmanager = std::make_shared<P2PManager>(boost::asio::ip::address::from_string("127.0.0.1"), config["p2pport"].get<unsigned short>(), 2, this->chainHead, *this);
   this->p2pmanager->startServer();
   std::this_thread::sleep_for(std::chrono::seconds(1));
   for (auto i : config["seedNodes"]) {
@@ -380,8 +380,16 @@ void Subnet::rejectBlock(const Hash &blockHash) {
   this->chainTip->reject(blockHash);
 }
 
-void Subnet::validateTransaction(const Tx::Base &&tx) {
-  this->headState->validateTransactionForRPC(std::move(tx), false);
+std::pair<int, std::string> Subnet::validateTransaction(const Tx::Base &&tx) {
+  auto txKnow = this->headState->getMempool().count(tx.hash());
+  Utils::logToFile("validate Transaction...");
+  auto ret = this->headState->validateTransactionForRPC(tx); 
+  if (!txKnow) {
+    Utils::logToFile("broadcasting tx...");
+    // Broadcast only if tx was not previously knew.
+    this->p2pmanager->broadcastTx(tx);
+  }
+  return ret;
 }
 
 void Subnet::connectNode(const std::string &nodeId) {
