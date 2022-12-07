@@ -3,7 +3,6 @@
 
 #include <shared_mutex>
 #include "block.h"
-#include "blockmanager.h"
 #include "../utils/db.h"
 #include "../utils/utils.h"
 #include "../utils/random.h"

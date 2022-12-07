@@ -79,10 +79,10 @@ class P2PManager : public std::enable_shared_from_this<P2PManager> {
 
     uint64_t connCounter = 0;
   public:
-    const std::shared_ptr<ChainHead> chainHead;
+    const std::shared_ptr<const ChainHead> chainHead;
     Subnet &subnet;
 
-    P2PManager(const boost::asio::ip::address &address, const unsigned short &server_port, const unsigned int &server_threads, const std::shared_ptr<ChainHead> _chainHead, Subnet &_subnet)
+    P2PManager(const boost::asio::ip::address &address, const unsigned short &server_port, const unsigned int &server_threads, const std::shared_ptr<const ChainHead> _chainHead, Subnet &_subnet)
        : server_address(address), server_port(server_port), server_threads(server_threads), chainHead(_chainHead), subnet(_subnet) {};
 
     void startServer();
@@ -106,7 +106,7 @@ class P2PManager : public std::enable_shared_from_this<P2PManager> {
     const void parseClientRequest(const P2PMessage& message, const std::shared_ptr<ServerSession> &connInfo);
     const void parseServerAnswer(const P2PMessage& message, const std::shared_ptr<P2PClient> &connInfo);
 
-    const void broadcastTx(const Tx::Base &tx);
+    const void broadcastTx(const Tx::Base &tx) const;
 
 };
 

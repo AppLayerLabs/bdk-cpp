@@ -3,16 +3,16 @@
 #include "state.h"
 #include "block.h"
 
-BlockManager::BlockManager(std::shared_ptr<DBService> &db, const Address &address, const Address &owner) : _isValidator(false), Contract(address, owner) {
-  loadFromDB(db);
+BlockManager::BlockManager(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead, const Address &address, const Address &owner) : _isValidator(false), Contract(address, owner), gen(Hash()) {
+  loadFromDB(db, chainHead);
   Utils::logToFile("BlockManager Loaded " + std::to_string(validatorsList.size()) + " validators");
   for (auto &validator : validatorsList) {
     Utils::logToFile("Validator: " + validator.hex());
   }
 }
 
-BlockManager::BlockManager(std::shared_ptr<DBService> &db, const Hash& privKey, const Address &address, const Address &owner) : _validatorPrivKey(privKey), _isValidator(true), Contract(address, owner) {
-  loadFromDB(db);
+BlockManager::BlockManager(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead, const Hash& privKey, const Address &address, const Address &owner) : _validatorPrivKey(privKey), _isValidator(true), Contract(address, owner), gen(Hash()) {
+  loadFromDB(db, chainHead);
   Utils::logToFile("BlockManager Loaded " + std::to_string(validatorsList.size()) + " validators");
   for (auto &validator : validatorsList) {
     Utils::logToFile("Validator: " + validator.hex());
@@ -21,7 +21,7 @@ BlockManager::BlockManager(std::shared_ptr<DBService> &db, const Hash& privKey, 
 
 
 // Validators are stored in DB as list, 8 bytes (uint64_t) index -> 32 bytes (pubkey).
-void BlockManager::loadFromDB(std::shared_ptr<DBService> &db) {
+void BlockManager::loadFromDB(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead) {
   auto validators = db->readBatch(DBPrefix::validators);
   validatorsList.reserve(validators.size());
   for (auto const &validator : validators) {
@@ -39,8 +39,13 @@ void BlockManager::loadFromDB(std::shared_ptr<DBService> &db) {
     validatorsList.emplace_back(Validator(validator.value, false));
     Utils::logToFile("Loop End");
   }
-  randomList = std::vector<std::reference_wrapper<Validator>>(validatorsList.begin(), validatorsList.end());
-  State::gen.shuffleVector(randomList);
+  this->randomList = std::vector<std::reference_wrapper<Validator>>(validatorsList.begin(), validatorsList.end());
+  this->gen.setSeed(chainHead->latest()->randomness());
+  this->gen.shuffleVector(this->randomList);
+
+  for (uint64_t i = 0; i < randomList.size(); ++i) {
+    Utils::logToFile(std::string("Validator ") + std::to_string(i) + " " + randomList[i].get().hex());
+  }
 }
 
 bool BlockManager::validateBlock(const std::shared_ptr<const Block> &block) const {

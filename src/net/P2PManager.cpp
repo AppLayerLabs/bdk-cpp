@@ -98,7 +98,7 @@ const void P2PManager::parseServerAnswer(const P2PMessage& message, const std::s
   } // TODO: Other Commands
 }
 
-const void P2PManager::broadcastTx(const Tx::Base &tx) {
+const void P2PManager::broadcastTx(const Tx::Base &tx) const {
   P2PMessage message = P2PRequestEncoder::sendTransaction(tx);
   for (auto &s : this->connectedServersVector) {
     Utils::logToFile(std::string("Trying to send to: ") + s.address.to_string() + ":" + std::to_string(s.port) + " tx: " + Utils::bytesToHex(tx.rlpSerialize(true)));

@@ -10,6 +10,7 @@
 
 #include "block.h"
 #include "chainHead.h"
+#include "blockmanager.h"
 #include "../utils/db.h"
 #include "../utils/random.h"
 #include "../utils/transaction.h"

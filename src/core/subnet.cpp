@@ -140,9 +140,9 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   if (config.contains("validatorPrivKey")) {
     Utils::logToFile("Validator found.");
     this->isValidator = true;
-    this->blockManager = std::make_shared<BlockManager>(this->dbServer, Hash(Utils::hexToBytes(config["validatorPrivKey"].get<std::string>())), ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
+    this->blockManager = std::make_shared<BlockManager>(this->dbServer, this->chainHead, Hash(Utils::hexToBytes(config["validatorPrivKey"].get<std::string>())), ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
   } else {
-    this->blockManager = std::make_shared<BlockManager>(this->dbServer, ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
+    this->blockManager = std::make_shared<BlockManager>(this->dbServer, this->chainHead, ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
   }
 
   // Parse the latest block to answer AvalancheGo.
@@ -330,6 +330,8 @@ bool Subnet::getAncestors(ServerContext* context, const vm::GetAncestorsRequest*
   return true;
 }
 
+
+// When AvalancheGo calls setPreference, it means we are synced, so we are able to create a block.
 void Subnet::setPreference(ServerContext* context, const vm::SetPreferenceRequest* request) {
   this->chainTip->setPreference(Hash(request->id()));
   return;

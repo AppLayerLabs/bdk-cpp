@@ -9,6 +9,7 @@
 #include "../utils/secp256k1Wrapper.h"
 #include "../utils/transaction.h"
 #include "../contract/contract.h"
+#include "chainHead.h"
 
 // Forward declaration
 class Block;
@@ -49,23 +50,29 @@ class BlockManager : public Contract {
   private:
     std::vector<Validator> validatorsList;
     std::vector<std::reference_wrapper<Validator>> randomList;
-    void loadFromDB(std::shared_ptr<DBService> &db);
+    void loadFromDB(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead);
     mutable std::shared_mutex managerLock;
 
     const Hash _validatorPrivKey;
     const bool _isValidator = false;
     bool shuffle();
+
+
+    RandomGen gen;
   public:
     enum TransactionTypes { addValidator, removeValidator, randomHash, randomSeed};
     static const uint32_t minValidators = 4;
-    BlockManager(std::shared_ptr<DBService> &db,const Address &address, const Address &owner);
-    BlockManager(std::shared_ptr<DBService> &db, const Hash& privKey, const Address &address, const Address &owner);
+    BlockManager(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead, const Address &address, const Address &owner);
+    BlockManager(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead, const Hash& privKey, const Address &address, const Address &owner);
     bool isValidator(const Validator &validator) const;
     void saveToDB(std::shared_ptr<DBService> &db) const;
     // Validates a given block using current randomList
     bool validateBlock(const std::shared_ptr<const Block> &block) const;
     // Process the block, and returns the new given Hash for RandomGen.
     Hash processBlock(const std::shared_ptr<const Block> &block) const;
+
+    // Add the validator transaction to the blockManager mempool.
+    void addValidatorTx(const Tx::Base&& tx);
 
     // Parse tx list and returns the new given uint256_t for RandomGen.
     // DOES NOT VALIDATE!
@@ -75,6 +82,7 @@ class BlockManager : public Contract {
     // Get the functor of the transaction, throws if invalid.
     static TransactionTypes getTransactionType(const Tx::Base &tx);
 
+    
     friend class State; 
 };
 #endif  // BLOCKMANAGER_H
