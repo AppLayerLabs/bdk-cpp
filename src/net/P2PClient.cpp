@@ -75,6 +75,7 @@ void P2PClient::on_handshake(beast::error_code ec) {
     ":" + std::to_string(ws_.next_layer().socket().remote_endpoint().port()) + " binary: " + boost::lexical_cast<std::string>(ws_.binary()));
 
   this->write(P2PRequestEncoder::info(this->manager_->chainHead, this->manager_->connectionCount()));
+  this->read();
 }
 
 void P2PClient::read() {
@@ -103,6 +104,4 @@ void P2PClient::on_write(beast::error_code ec, std::size_t bytes_transferred) {
 
   if (ec)
     p2p_fail_client(__func__, ec, "write");
-
-  this->read();
 }
