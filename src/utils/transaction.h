@@ -196,6 +196,122 @@ namespace Tx {
       bool operator!=(Tx::Base const& tx) const { return this->hash() != tx.hash(); };
       bool operator==(Tx::Base const& tx) const { return this->hash() == tx.hash(); };
   };
+
+  // Validator owned transaction, there is no "to", neither gas limit, gas price or value
+  // Also, there is no "blockIndex" neither other similarities.
+  // The reason I didn't implement blockIndex is to speed up development, because after the implementation of the blockManager class
+  // we should start doing a massive refactor.
+  class Validator {
+    private:
+      // Inside RLP, TxSkeleton:
+      std::string _data;
+      uint64_t _chainId = 0;
+      uint256_t _nonce = 0;
+      uint256_t _nHeight = 0;
+
+      // Secp256k1 in RLP
+      uint256_t _v = 0;
+      uint256_t _r = 0;
+      uint256_t _s = 0;
+
+      // Outside RLP
+      Address _from;                 // Derived from constructor/secp256k1 calculation.
+      bool _hasSig = false;          
+
+    public:
+      // We *always* parse Validators signatures.
+      Validator(const std::string_view &bytes);
+
+      // You can also build your own Tx by inputting the values within the RLP Skeleton
+      Validator(const Address &from,
+        const std::string &data, 
+        const uint64_t &chainId, 
+        const uint256_t &nonce,
+        const uint256_t &nHeight) :
+          _from(from), 
+          _data(data), 
+          _chainId(chainId), 
+          _nonce(nonce),
+          _nHeight(nHeight) { }
+
+      // Empty tx.
+
+      Validator() {};
+
+      // Copy constructor.
+      Validator(const Validator& other) {
+        this->_from = other._from;
+        this->_data = other._data;
+        this->_chainId = other._chainId;
+        this->_nonce = other._nonce;
+        this->_nHeight = other._nHeight;
+        this->_hasSig = other._hasSig;
+        this->_v = other._v;
+        this->_r = other._r;
+        this->_s = other._s;
+      }
+
+      // Move constructor.
+      Validator(Validator&& other) noexcept :
+        _from(std::move(other._from)),
+        _data(std::move(other._data)),
+        _chainId(std::move(_chainId)),
+        _nonce(std::move(other._nonce)),
+        _nHeight(std::move(other._nHeight)),
+        _hasSig(std::move(other._hasSig)),
+        _v(std::move(other._v)),
+        _r(std::move(other._r)),
+        _s(std::move(other._s)) {}
+
+      // Copy assignment operator.
+      Validator& operator=(const Validator& other) {
+        this->_from = other._from;
+        this->_data = other._data;
+        this->_chainId = other._chainId;
+        this->_nonce = other._nonce;
+        this->_nHeight = other._nHeight;
+        this->_hasSig = other._hasSig;
+        this->_v = other._v;
+        this->_r = other._r;
+        this->_s = other._s;
+        return *this;
+      }
+
+      // Move assignment operator.
+      Validator& operator=(Validator&& other) {
+        this->_from = std::move(other._from);
+        this->_data = std::move(other._data);
+        this->_chainId = std::move(other._chainId);
+        this->_nonce = std::move(other._nonce);
+        this->_nHeight = std::move(other._nHeight);
+        this->_hasSig = std::move(other._hasSig);
+        this->_v = std::move(other._v);
+        this->_r = std::move(other._r);
+        this->_s = std::move(other._s);
+        return *this;
+      }
+
+      // Getters
+      const std::string& data()    const { return _data; };
+      const uint64_t& chainId()    const { return _chainId; };
+      const uint256_t& nonce()     const { return _nonce; };
+      const uint256_t& v()         const { return _v; };
+      const uint256_t& r()         const { return _r; };
+      const uint256_t& s()         const { return _s; };
+      const uint256_t recoverId()  const { return uint256_t(uint8_t(this->_v - (uint256_t(this->_chainId) * 2 + 35))); };
+      const Address&  from()        const { return _from; };
+
+      // Hash in bytes not hex!
+      inline Hash hash() const { return Utils::sha3(this->rlpSerialize(this->_hasSig)); };
+      std::string rlpSerialize(const bool &includeSig) const;
+
+      // Signer
+      void sign(const PrivKey &privKey);
+
+      // Check equality, needed by std::unordered_map
+      bool operator!=(Tx::Validator const& tx) const { return this->hash() != tx.hash(); };
+      bool operator==(Tx::Validator const& tx) const { return this->hash() == tx.hash(); };
+  };
 };
 
 #endif // TRANSACTION_H

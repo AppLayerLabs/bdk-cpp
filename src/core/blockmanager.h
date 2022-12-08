@@ -76,7 +76,7 @@ class BlockManager : public Contract {
 
     // Parse tx list and returns the new given uint256_t for RandomGen.
     // DOES NOT VALIDATE!
-    static Hash parseTxListSeed(const std::unordered_map<uint64_t, Tx::Base, SafeHash> &transactions);
+    static Hash parseTxListSeed(const std::unordered_map<uint64_t, Tx::Validator, SafeHash> &transactions);
     // TX FUNCTIONS.
 
     // Get the functor of the transaction, throws if invalid.

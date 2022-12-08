@@ -35,11 +35,7 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
         uint32_t txSize = Utils::bytesToUint32(txSizeBytes);
         // Copy the transaction itself.
         std::string_view txBytes(&rawValidatorTransactions.data()[nextTx + 4], txSize);
-        this->_validatorTransactions[i] = Tx::Base(txBytes, false);
-        if (this->_validatorTransactions[i].to() != ContractAddresses::BlockManager) {
-          Utils::LogPrint(Log::block, __func__, "Error: transaction inside validator tx's does not call blockManager.");
-          throw std::runtime_error("transaction inside validator tx's does not call blockManager.");
-        }
+        this->_validatorTransactions[i] = Tx::Validator(txBytes);
         nextTx = nextTx + 4 + txSize;
       }
     }
@@ -173,9 +169,7 @@ std::string Block::serializeToBytes(bool db) const {
 
   // Append validator transactions - parse both size and data for each transaction
   for (uint64_t i = 0; i < this->_txValidatorsCount; ++i) {
-    std::string txBytes = (db)
-      ? this->_validatorTransactions.find(i)->second.serialize()
-      : this->_validatorTransactions.find(i)->second.rlpSerialize(true);
+    std::string txBytes = this->_validatorTransactions.find(i)->second.rlpSerialize(true);
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
     ret += std::move(txSizeBytes);
     ret += std::move(txBytes);
@@ -214,12 +208,12 @@ bool Block::appendTx(const Tx::Base &tx) {
   return true;
 }
 
-bool Block::appendValidatorTx(const Tx::Base &tx) {
+bool Block::appendValidatorTx(const Tx::Validator &tx) {
   if (this->finalized) {
     Utils::LogPrint(Log::block, __func__, "Block is finalized.");
     return false;
   }
-  this->_transactions[_txCount] = (std::move(tx));
+  this->_validatorTransactions[_txCount] = (std::move(tx));
   _txCount++;
   return true;
 }

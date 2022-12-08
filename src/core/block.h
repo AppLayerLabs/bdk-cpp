@@ -68,7 +68,7 @@ class Block {
     uint64_t _txCount = 0;
     uint64_t _txValidatorsCount = 0;
     // The reason to have it as unordered_map is to be able to parse transactions asynchronously and index them without having to sync all into a vector.
-    std::unordered_map<uint64_t, Tx::Base, SafeHash> _validatorTransactions; // Tx Index > tx.
+    std::unordered_map<uint64_t, Tx::Validator, SafeHash> _validatorTransactions; // Tx Index > tx.
     std::unordered_map<uint64_t, Tx::Base, SafeHash> _transactions; // Tx Index > tx.
     bool finalized = false;
     bool indexed = false;
@@ -88,9 +88,14 @@ class Block {
     Block(const Block& other) {
       this->_validatorSignature = other._validatorSignature;
       this->_prevBlockHash = other._prevBlockHash;
+      this->_randomness = other._randomness;
+      this->_validatorMerkleRoot = other._validatorMerkleRoot;
+      this->_transactionMerkleRoot = other._transactionMerkleRoot;
+      this->_timestamp = other._timestamp;
+      this->_nHeight = other._nHeight;
       this->_txCount = other._txCount;
-      this->_validatorSignature = other._validatorSignature;
       this->_txValidatorsCount = other._txValidatorsCount;
+      this->_validatorTransactions = other._validatorTransactions;
       this->_transactions = other._transactions;
       this->finalized = other.finalized;
       this->indexed = other.indexed;
@@ -107,6 +112,7 @@ class Block {
       _nHeight(std::move(other._nHeight)),
       _txCount(std::move(other._txCount)),
       _txValidatorsCount(std::move(other._txValidatorsCount)),
+      _validatorTransactions(std::move(other._validatorTransactions)),
       _transactions(std::move(other._transactions)),
       finalized(std::move(other.finalized)),
       indexed(std::move(other.indexed))
@@ -124,14 +130,14 @@ class Block {
     const uint64_t& txCount() const { return this->_txCount; };
     const uint64_t& txValidatorsCount() const { return this->_txValidatorsCount; };
     const std::unordered_map<uint64_t, Tx::Base, SafeHash>& transactions() const { return this->_transactions; };
-    const std::unordered_map<uint64_t, Tx::Base, SafeHash>& validatorTransactions() const { return this->_validatorTransactions; };
+    const std::unordered_map<uint64_t, Tx::Validator, SafeHash>& validatorTransactions() const { return this->_validatorTransactions; };
     uint64_t blockSize() const;
     Hash getBlockHash() const; // Hash (in bytes)
     std::string serializeToBytes(bool db) const; // Tells tx's to be serialized using secp256k1 for extra calculation or not on deserialization.
     std::string serializeHeader() const;
     void indexTxs();  // When transactions are indexed, the block is considered to be on chain
     bool appendTx(const Tx::Base &tx); // Transaction logic validity is not checked during appending
-    bool appendValidatorTx(const Tx::Base &tx); // Neither validators Tx's.
+    bool appendValidatorTx(const Tx::Validator &tx); // Neither validators Tx's.
     // TODO: Only finalize after all validator txs are appended.
     bool finalizeBlock();
     void signBlock(const PrivKey &privateKey);
@@ -144,23 +150,35 @@ class Block {
     }
 
     // Copy assignment operator.
-    Block& operator=(const Block& block) {
-      this->_prevBlockHash = block._prevBlockHash;
-      this->_timestamp = block._timestamp;
-      this->_nHeight = block._nHeight;
-      this->_txCount = block._txCount;
-      this->_transactions = block._transactions;
-      this->finalized = block.finalized;
-      this->indexed = block.indexed;
+    Block& operator=(const Block& other) {
+      this->_validatorSignature = other._validatorSignature;
+      this->_prevBlockHash = other._prevBlockHash;
+      this->_randomness = other._randomness;
+      this->_validatorMerkleRoot = other._validatorMerkleRoot;
+      this->_transactionMerkleRoot = other._transactionMerkleRoot;
+      this->_timestamp = other._timestamp;
+      this->_nHeight = other._nHeight;
+      this->_txCount = other._txCount;
+      this->_txValidatorsCount = other._txValidatorsCount;
+      this->_validatorTransactions = other._validatorTransactions;
+      this->_transactions = other._transactions;
+      this->finalized = other.finalized;
+      this->indexed = other.indexed;
       return *this;
     }
 
     // Move assignment operator.
     Block& operator=(Block&& other) {
+      this->_validatorSignature = std::move(other._validatorSignature);
       this->_prevBlockHash = std::move(other._prevBlockHash);
+      this->_randomness = std::move(other._randomness);
+      this->_validatorMerkleRoot = std::move(other._validatorMerkleRoot);
+      this->_transactionMerkleRoot = std::move(other._transactionMerkleRoot);
       this->_timestamp = std::move(other._timestamp);
       this->_nHeight = std::move(other._nHeight);
       this->_txCount = std::move(other._txCount);
+      this->_txValidatorsCount = std::move(other._txValidatorsCount);
+      this->_validatorTransactions = std::move(other._validatorTransactions);
       this->_transactions = std::move(other._transactions);
       this->finalized = std::move(other.finalized);
       this->indexed = std::move(other.indexed);
@@ -169,26 +187,20 @@ class Block {
 
     // It is safe to use reference here because the constructor does not create another thread using the data.
     // Copy assignment operator.
-    Block& operator=(const std::shared_ptr<const Block>& block) {
-      this->_prevBlockHash = block->_prevBlockHash;
-      this->_timestamp = block->_timestamp;
-      this->_nHeight = block->_nHeight;
-      this->_txCount = block->_txCount;
-      this->_transactions = block->_transactions;
-      this->finalized = block->finalized;
-      this->indexed = block->indexed;
-      return *this;
-    }
-
-    // Move assignment operator.
-    Block& operator=(std::shared_ptr<const Block>&& other) {
-      this->_prevBlockHash = std::move(other->_prevBlockHash);
-      this->_timestamp = std::move(other->_timestamp);
-      this->_nHeight = std::move(other->_nHeight);
-      this->_txCount = std::move(other->_txCount);
-      this->_transactions = std::move(other->_transactions);
-      this->finalized = std::move(other->finalized);
-      this->indexed = std::move(other->indexed);
+    Block& operator=(const std::shared_ptr<const Block>& other) {
+      this->_validatorSignature = other->_validatorSignature;
+      this->_prevBlockHash = other->_prevBlockHash;
+      this->_randomness = other->_randomness;
+      this->_validatorMerkleRoot = other->_validatorMerkleRoot;
+      this->_transactionMerkleRoot = other->_transactionMerkleRoot;
+      this->_timestamp = other->_timestamp;
+      this->_nHeight = other->_nHeight;
+      this->_txCount = other->_txCount;
+      this->_txValidatorsCount = other->_txValidatorsCount;
+      this->_validatorTransactions = other->_validatorTransactions;
+      this->_transactions = other->_transactions;
+      this->finalized = other->finalized;
+      this->indexed = other->indexed;
       return *this;
     }
 };

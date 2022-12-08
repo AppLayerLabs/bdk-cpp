@@ -75,7 +75,7 @@ bool BlockManager::validateBlock(const std::shared_ptr<const Block> &block) cons
   return true;
 }
 
-Hash BlockManager::parseTxListSeed(const std::unordered_map<uint64_t, Tx::Base, SafeHash> &transactions) {
+Hash BlockManager::parseTxListSeed(const std::unordered_map<uint64_t, Tx::Validator, SafeHash> &transactions) {
   std::string seed;
   if (transactions.size() == 0) {
     return Hash();
