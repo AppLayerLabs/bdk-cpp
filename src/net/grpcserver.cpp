@@ -20,7 +20,7 @@ Status VMServiceImplementation::SetState(
 
 Status VMServiceImplementation::BuildBlock(
   ServerContext* context,
-  const google::protobuf::Empty* request,
+  const vm::BuildBlockRequest* request,
   vm::BuildBlockResponse* reply
 ) {
   Utils::LogPrint(Log::grpcServer, __func__, "BuildBlock: Block Requested");

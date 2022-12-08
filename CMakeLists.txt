@@ -113,6 +113,20 @@ file(REMOVE
   "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.h"
   "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
   "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/vm.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/appsender.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/keystore.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/messenger.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/vm.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/appsender.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/keystore.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/messenger.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
 )
 
 add_custom_command(
@@ -192,36 +206,112 @@ add_custom_command(
   ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
        --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
        --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       --experimental_allow_proto3_optional
        "${CMAKE_SOURCE_DIR}/proto/vm.proto"
 )
 
-# Compile and link the protobuf files
-protobuf_generate_cpp(PROTO_VM_SRCS PROTO_VM_HDRS proto/vm.proto)
-protobuf_generate_cpp(PROTO_METRICS_SRCS PROTO_METRICS_HDRS proto/metrics.proto)
-protobuf_generate_cpp(PROTO_ALIASREADER_SRCS PROTO_ALIASREADER_HDRS proto/aliasreader.proto)
-protobuf_generate_cpp(PROTO_APPSENDER_SRCS PROTO_APPSENDER_HDRS proto/appsender.proto)
-protobuf_generate_cpp(PROTO_KEYSTORE_SRCS PROTO_KEYSTORE_HDRS proto/keystore.proto)
-protobuf_generate_cpp(PROTO_MESSENGER_SRCS PROTO_MESSENGER_HDRS proto/messenger.proto)
-protobuf_generate_cpp(PROTO_SHAREDMEMORY_SRCS PROTO_SHAREDMEMORY_HDRS proto/sharedmemory.proto)
-protobuf_generate_cpp(PROTO_RPCDB_SRCS PROTO_RPCDB_HDRS proto/rpcdb.proto)
+# Protobuf PROTOBUF_GENERATE_CPP does NOT work with --experimental_allow_proto3_optional
+# requiring us to go over protobuf files with add_custom_command
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       "${CMAKE_SOURCE_DIR}/proto/aliasreader.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/appsender.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/appsender.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       "${CMAKE_SOURCE_DIR}/proto/appsender.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/keystore.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/keystore.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       "${CMAKE_SOURCE_DIR}/proto/keystore.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/messenger.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/messenger.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       "${CMAKE_SOURCE_DIR}/proto/messenger.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/metrics.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       "${CMAKE_SOURCE_DIR}/proto/metrics.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       "${CMAKE_SOURCE_DIR}/proto/sharedmemory.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       "${CMAKE_SOURCE_DIR}/proto/rpcdb.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/metrics.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       "${CMAKE_SOURCE_DIR}/proto/metrics.proto"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_SOURCE_DIR}/proto/vm.pb.cc"
+         "${CMAKE_SOURCE_DIR}/proto/vm.pb.h"
+  COMMAND "protoc"
+  ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
+       --proto_path="${CMAKE_SOURCE_DIR}/proto"
+       --experimental_allow_proto3_optional
+       "${CMAKE_SOURCE_DIR}/proto/vm.proto"
+)
 
 add_library(ProtoFiles
-  ${PROTO_VM_SRCS}
-  ${PROTO_METRICS_SRCS}
-  ${PROTO_ALIASREADER_SRCS}
-  ${PROTO_APPSENDER_SRCS}
-  ${PROTO_KEYSTORE_SRCS}
-  ${PROTO_MESSENGER_SRCS}
-  ${PROTO_SHAREDMEMORY_SRCS}
-  ${PROTO_RPCDB_SRCS}
-  ${PROTO_VM_HDRS}
-  ${PROTO_METRICS_HDRS}
-  ${PROTO_ALIASREADER_HDRS}
-  ${PROTO_APPSENDER_HDRS}
-  ${PROTO_KEYSTORE_HDRS}
-  ${PROTO_MESSENGER_HDRS}
-  ${PROTO_SHAREDMEMORY_HDRS}
-  ${PROTO_RPCDB_HDRS}
+  "${CMAKE_SOURCE_DIR}/proto/vm.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/appsender.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/keystore.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/messenger.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/metrics.pb.cc"
+  "${CMAKE_SOURCE_DIR}/proto/vm.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/appsender.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/keystore.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/messenger.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
+  "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
 )
 
 # You HAVE to set the file names

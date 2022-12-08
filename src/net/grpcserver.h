@@ -104,7 +104,7 @@ class VMServiceImplementation final :
 
     Status BuildBlock(
       ServerContext* context,
-      const google::protobuf::Empty* request,
+      const vm::BuildBlockRequest* request,
       vm::BuildBlockResponse* reply
     ) override;
 
