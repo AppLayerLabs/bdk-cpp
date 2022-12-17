@@ -45,7 +45,7 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
     void on_handshake(beast::error_code ec);
     void read();
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
-    void write(const P2PMessage& data);
+    void write(const P2PMessage data); // Copy the data.
     void on_write(beast::error_code ec, std::size_t bytes_transferred);
 };
 

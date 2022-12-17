@@ -71,14 +71,15 @@ P2PMessage P2PRequestEncoder::newBestBlock(const Block& block) {
   return P2PMessage(std::move(message));
 }
 
-P2PMessage P2PRequestEncoder::sendValidatorTransaction(const Tx::Base& transaction) {
+P2PMessage P2PRequestEncoder::sendValidatorTransaction(const Tx::Validator& transaction) {
   std::string message = Utils::randomBytes(8);
   message += getCommandPrefix(CommandType::SendValidatorTransaction);
   message += transaction.rlpSerialize(true);
+  Utils::logToFile(std::string("sendValidatorTransaction: ") + Utils::bytesToHex(message));
   return P2PMessage(std::move(message));
 };
 
-P2PMessage P2PRequestEncoder::sendBulkValidatorTransactions(const std::vector<Tx::Base>& transactions) {
+P2PMessage P2PRequestEncoder::sendBulkValidatorTransactions(const std::vector<Tx::Validator>& transactions) {
   std::string message = Utils::randomBytes(8);
   message += getCommandPrefix(CommandType::SendBulkValidatorTransactions);
   message += Utils::uint64ToBytes(transactions.size());
@@ -126,6 +127,18 @@ P2PMessage P2PAnswerEncoder::info(const std::shared_ptr<const ChainHead> chainHe
   return P2PMessage(std::move(message));
 }
 
+P2PMessage P2PAnswerEncoder::requestValidatorTransactions(const std::unordered_map<Hash, Tx::Validator, SafeHash>& transactions) {
+  std::string message = Utils::randomBytes(8);
+  message += getCommandPrefix(CommandType::RequestValidatorTransactions);
+  message += Utils::uint64ToBytes(transactions.size());
+  for (const auto& transaction : transactions) { 
+    auto txRLP = transaction.second.rlpSerialize(true);
+    message += Utils::uint64ToBytes(txRLP.size());
+    message += txRLP;
+  }
+  return P2PMessage(std::move(message));
+}
+
 ConnectionInfo P2PAnswerDecoder::info(const P2PMessage& message) {
   ConnectionInfo ret;
   ret.version = Utils::bytesToUint64(message.message().substr(10,8));
@@ -138,9 +151,30 @@ ConnectionInfo P2PAnswerDecoder::info(const P2PMessage& message) {
   return ret;
 }
 
+std::vector<Tx::Validator> P2PAnswerDecoder::requestValidatorTransactions(const P2PMessage& message) {
+  std::vector<Tx::Validator> ret;
+  uint64_t txCount = Utils::bytesToUint64(message.message().substr(0,8));
+  uint64_t nextTx = 8;
+  for (uint64_t i = 0; i < txCount; ++i) {
+    uint64_t txSize = Utils::bytesToUint64(message.message().substr(nextTx, 8));
+    nextTx += 8;
+    auto newTx = Tx::Validator(message.message().substr(nextTx, txSize));
+    ret.push_back(newTx);
+    nextTx += txSize;
+  }
+  return ret;
+}
 
 Tx::Base P2PRequestDecoder::sendTransaction(const P2PMessage& message) {
   Tx::Base tx(message.message(), false);
   return tx;
 }
+
+Tx::Validator P2PRequestDecoder::sendValidatorTransaction(const P2PMessage& message) {
+  Tx::Validator tx(message.message());
+  return tx;
+}
+
+
+
 

@@ -1,5 +1,5 @@
 #include "core/subnet.h"
-
+#include "contract/abi.h"
 std::unique_ptr<Subnet> subnet;
 
 // Let that good boi run

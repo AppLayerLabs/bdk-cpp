@@ -41,6 +41,7 @@ namespace Tests {
   void testABIDecoder();
   void testABIJSONDecoder();
   void testSecp256k1();
+  void testP2PEncoding();
 }
 
 #endif // TESTS_H

@@ -161,11 +161,18 @@ class Subnet {
     std::pair<int, std::string> validateTransaction(const Tx::Base&& txBytes);
 
     // To be called by blockManager/P2P, when we create or receive a validator Tx.
-    bool validateValidatorTransaction(const Tx::Base && txBytes);
+    void validateValidatorTransaction(const Tx::Validator & txBytes);
 
     // To be called by grpcServer, when avalancheGo tells that a new node connected or disconnected, respectively.
     void connectNode(const std::string &nodeId);
     void disconnectNode(const std::string &nodeId);
+
+    // To be called by the P2PManager, when another node requests our validator transaction mempool
+    std::unordered_map<Hash, Tx::Validator, SafeHash> getValidatorMempool();
+
+    // TEST
+
+    static void testP2P();
 };
 
 #endif // SUBNET_H

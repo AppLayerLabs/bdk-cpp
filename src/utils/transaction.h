@@ -84,7 +84,7 @@ namespace Tx {
       }
 
       // Move constructor.
-      Base(const Base&& other) noexcept :
+      Base(Base&& other) noexcept :
         _to(std::move(other._to)),
         _value(std::move(other._value)),
         _data(std::move(other._data)),
@@ -197,7 +197,9 @@ namespace Tx {
       bool operator==(Tx::Base const& tx) const { return this->hash() == tx.hash(); };
   };
 
-  // Validator owned transaction, there is no "to", neither gas limit, gas price or value
+  // Validator owned transaction, there is no "to", neither gas limit, nonce, gas price or value
+  // The reason for no "Nonce", is that the validator is not owner of a given account, besides that, there is a nHeight which limits
+  // which block the transaction is valid in.
   // Also, there is no "blockIndex" neither other similarities.
   // The reason I didn't implement blockIndex is to speed up development, because after the implementation of the blockManager class
   // we should start doing a massive refactor.
@@ -206,7 +208,6 @@ namespace Tx {
       // Inside RLP, TxSkeleton:
       std::string _data;
       uint64_t _chainId = 0;
-      uint256_t _nonce = 0;
       uint256_t _nHeight = 0;
 
       // Secp256k1 in RLP
@@ -226,13 +227,11 @@ namespace Tx {
       Validator(const Address &from,
         const std::string &data, 
         const uint64_t &chainId, 
-        const uint256_t &nonce,
         const uint256_t &nHeight) :
           _from(from), 
           _data(data), 
           _chainId(chainId), 
-          _nonce(nonce),
-          _nHeight(nHeight) { }
+          _nHeight(nHeight) { std::cout << "a" << std::endl; }
 
       // Empty tx.
 
@@ -243,7 +242,6 @@ namespace Tx {
         this->_from = other._from;
         this->_data = other._data;
         this->_chainId = other._chainId;
-        this->_nonce = other._nonce;
         this->_nHeight = other._nHeight;
         this->_hasSig = other._hasSig;
         this->_v = other._v;
@@ -255,8 +253,7 @@ namespace Tx {
       Validator(Validator&& other) noexcept :
         _from(std::move(other._from)),
         _data(std::move(other._data)),
-        _chainId(std::move(_chainId)),
-        _nonce(std::move(other._nonce)),
+        _chainId(std::move(other._chainId)),
         _nHeight(std::move(other._nHeight)),
         _hasSig(std::move(other._hasSig)),
         _v(std::move(other._v)),
@@ -268,7 +265,6 @@ namespace Tx {
         this->_from = other._from;
         this->_data = other._data;
         this->_chainId = other._chainId;
-        this->_nonce = other._nonce;
         this->_nHeight = other._nHeight;
         this->_hasSig = other._hasSig;
         this->_v = other._v;
@@ -282,7 +278,6 @@ namespace Tx {
         this->_from = std::move(other._from);
         this->_data = std::move(other._data);
         this->_chainId = std::move(other._chainId);
-        this->_nonce = std::move(other._nonce);
         this->_nHeight = std::move(other._nHeight);
         this->_hasSig = std::move(other._hasSig);
         this->_v = std::move(other._v);
@@ -294,10 +289,10 @@ namespace Tx {
       // Getters
       const std::string& data()    const { return _data; };
       const uint64_t& chainId()    const { return _chainId; };
-      const uint256_t& nonce()     const { return _nonce; };
       const uint256_t& v()         const { return _v; };
       const uint256_t& r()         const { return _r; };
       const uint256_t& s()         const { return _s; };
+      const uint256_t& nHeight()   const { return _nHeight; };
       const uint256_t recoverId()  const { return uint256_t(uint8_t(this->_v - (uint256_t(this->_chainId) * 2 + 35))); };
       const Address&  from()        const { return _from; };
 

@@ -19,6 +19,7 @@
 
 class VMCommClient; // Forward declaration.
 class ChainTip;
+class BlockManager;
 
 /**
  * The State class is used to store the state of the system, such as
@@ -66,7 +67,7 @@ class State {
     void processNewBlock(const std::shared_ptr<const Block> &&newBlock, const std::shared_ptr<ChainHead>& chainHead);
 
     // Create a new block using setPreference or latest in case of not found. Does *not* update the state.
-    const std::shared_ptr<const Block> createNewBlock(std::shared_ptr<ChainHead>& chainHead, std::shared_ptr<ChainTip> &chainTip) const;
+    const std::shared_ptr<const Block> createNewBlock(const std::shared_ptr<ChainHead>& chainHead, const std::shared_ptr<ChainTip> &chainTip, const std::shared_ptr<BlockManager> &blockManager) const;
 
     // State querying functions
 

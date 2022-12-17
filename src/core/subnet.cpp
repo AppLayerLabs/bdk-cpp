@@ -136,14 +136,6 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   this->chainTip = std::make_shared<ChainTip>();
 
   json config = Utils::readConfigFile();
-  Utils::logToFile("Starting blockManager");
-  if (config.contains("validatorPrivKey")) {
-    Utils::logToFile("Validator found.");
-    this->isValidator = true;
-    this->blockManager = std::make_shared<BlockManager>(this->dbServer, this->chainHead, Hash(Utils::hexToBytes(config["validatorPrivKey"].get<std::string>())), ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
-  } else {
-    this->blockManager = std::make_shared<BlockManager>(this->dbServer, this->chainHead, ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
-  }
 
   // Parse the latest block to answer AvalancheGo.
   auto latestBlock = chainHead->latest();
@@ -160,11 +152,20 @@ void Subnet::initialize(const vm::InitializeRequest* request, vm::InitializeResp
   Utils::logToFile("Starting P2P");
   this->p2pmanager = std::make_shared<P2PManager>(boost::asio::ip::address::from_string("127.0.0.1"), config["p2pport"].get<unsigned short>(), 2, this->chainHead, *this);
   this->p2pmanager->startServer();
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(2));
   for (auto i : config["seedNodes"]) {
     std::vector<std::string> seedNode;
     boost::split(seedNode, i.get<std::string>(), boost::is_any_of(":"));
     this->p2pmanager->connectToServer(boost::asio::ip::address::from_string(seedNode[0]), std::stoi(seedNode[1]));
+  }
+
+  Utils::logToFile("Starting blockManager");
+  if (config.contains("validatorPrivKey")) {
+    Utils::logToFile("Validator found.");
+    this->isValidator = true;
+    this->blockManager = std::make_shared<BlockManager>(this->dbServer, this->chainHead, this->p2pmanager, this->grpcClient, Hash(Utils::hexToBytes(config["validatorPrivKey"].get<std::string>())), ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
+  } else {
+    this->blockManager = std::make_shared<BlockManager>(this->dbServer, this->chainHead, this->p2pmanager, this->grpcClient, ContractAddresses::BlockManager, Address("0x0000000000000000000000000000000000000000", true));
   }
 
   // Start the HTTP Server.
@@ -184,6 +185,10 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
    * See vm.proto and https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111
    * for more information about the SetState request.
    */
+  Utils::LogPrint(Log::subnet, __func__, std::string("Setting State to: ") + std::to_string(request->state()));
+  if (request->state() == 3) { // NormalOp
+    this->blockManager->startValidatorThread();
+  }
   auto bestBlock = chainHead->latest();
   reply->set_last_accepted_id(bestBlock->getBlockHash().get());
   reply->set_last_accepted_parent_id(bestBlock->prevBlockHash().get());
@@ -195,7 +200,7 @@ void Subnet::setState(const vm::SetStateRequest* request, vm::SetStateResponse* 
 }
 
 bool Subnet::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) {
-  auto newBlock = this->headState->createNewBlock(this->chainHead, this->chainTip);
+  auto newBlock = this->headState->createNewBlock(this->chainHead, this->chainTip, this->blockManager);
   if (newBlock == nullptr) {
     Utils::LogPrint(Log::subnet, __func__, "Could not create new block");
     return false;
@@ -394,6 +399,10 @@ std::pair<int, std::string> Subnet::validateTransaction(const Tx::Base &&tx) {
   return ret;
 }
 
+void Subnet::validateValidatorTransaction(const Tx::Validator &tx) {
+  this->blockManager->addValidatorTx(tx);
+}
+
 void Subnet::connectNode(const std::string &nodeId) {
   this->connectedNodesLock.lock();
   Utils::LogPrint(Log::subnet, __func__, "Connecting node: " + Utils::bytesToHex(nodeId));
@@ -410,4 +419,35 @@ void Subnet::disconnectNode(const std::string &nodeId) {
     }
   }
   this->connectedNodesLock.unlock();
+}
+
+std::unordered_map<Hash, Tx::Validator, SafeHash> Subnet::getValidatorMempool() {
+  return this->blockManager->getMempoolCopy();
+}
+
+void Subnet::testP2P() {
+  PrivKey myself(Utils::hexToBytes("0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759"));
+  Tx::Validator randomHashTx(Secp256k1::toAddress(Secp256k1::toPub(myself)), Utils::hexToBytes("0xcfffe746") + Hash::random().get(), 8848, 0);
+  Tx::Validator anotherRandomHashTx(Secp256k1::toAddress(Secp256k1::toPub(myself)), Utils::hexToBytes("0xcfffe746") + Hash::random().get(), 8848, 0);
+
+  randomHashTx.sign(myself);
+  anotherRandomHashTx.sign(myself);
+
+  std::unordered_map<Hash, Tx::Validator, SafeHash> mempool;
+  mempool[randomHashTx.hash()] = randomHashTx;
+  mempool[anotherRandomHashTx.hash()] = anotherRandomHashTx;
+
+  for (const auto &item : mempool) {
+    std::cout << item.second.hash().hex() << std::endl;
+  }
+
+  auto encodedAnswer = P2PAnswerEncoder::requestValidatorTransactions(mempool);
+
+  auto decodedAnswer = P2PAnswerDecoder::requestValidatorTransactions(encodedAnswer);
+
+  for (auto &i : decodedAnswer) {
+    std::cout << i.hash().hex() << std::endl;
+  }
+  
+  return;
 }

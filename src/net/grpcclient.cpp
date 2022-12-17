@@ -12,8 +12,8 @@ void VMCommClient::requestBlock() {
     this->lock.unlock();
     return;
   } else {
-    this->lock.unlock();;
-    Utils::LogPrint(Log::grpcClient, __func__, "requestBlock: RPC failed");
+    this->lock.unlock();
+    Utils::LogPrint(Log::grpcClient, __func__, std::string("requestBlock: RPC failed ERROR CODE ") + std::to_string(status.error_code()) + " ERROR MESSAGE: " + status.error_message());
     return;
   }
 }

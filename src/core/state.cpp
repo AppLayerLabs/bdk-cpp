@@ -1,5 +1,6 @@
 #include "state.h"
 #include "chainTip.h"
+#include "blockmanager.h"
 
 State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
   this->loadState(dbServer);
@@ -103,7 +104,6 @@ std::pair<int, std::string> State::validateTransactionForRPC(const Tx::Base& tx)
     stateLock.lock();
     Hash txHash = tx.hash();
     this->mempool[txHash] = tx;
-    grpcClient->requestBlock();
     stateLock.unlock();
   }
   return std::make_pair(err, errMsg);
@@ -178,7 +178,7 @@ void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const
   this->stateLock.unlock();
 }
 
-const std::shared_ptr<const Block> State::createNewBlock(std::shared_ptr<ChainHead>& chainHead, std::shared_ptr<ChainTip> &chainTip) const {
+const std::shared_ptr<const Block> State::createNewBlock(const std::shared_ptr<ChainHead>& chainHead, const std::shared_ptr<ChainTip> &chainTip, const std::shared_ptr<BlockManager> &blockManager) const {
   Utils::LogPrint(Log::state, __func__, "Creating new block.");
   auto bestBlockHash = chainTip->getPreference();
   std::shared_ptr<const Block> bestBlock;
@@ -207,6 +207,29 @@ const std::shared_ptr<const Block> State::createNewBlock(std::shared_ptr<ChainHe
   newBestBlock->finalizeBlock();
   newBestBlock->indexTxs();
   stateLock.unlock_shared();
+
+  auto validatorsMempool = blockManager->getMempoolCopy();
+  auto validatorRandomList = blockManager->getRandomListCopy();
+
+  // Order things up, first 4 transactions are randomHash, then 4 last transactions are random itself.
+  std::vector<Tx::Validator> validatorTxs;
+
+  while (validatorTxs.size() != blockManager->minValidators * 2) {
+    for (auto const &tx : validatorsMempool) {
+      if (validatorTxs.size() < blockManager->minValidators) { // Index the randomHash
+        if (tx.second.from() == validatorRandomList[validatorTxs.size() + 1].get().get() && blockManager->getTransactionType(tx.second) == BlockManager::TransactionTypes::randomHash) { // skip [0] as it is us lol
+          validatorTxs.push_back(tx.second);
+        }
+      } else {
+        if (tx.second.from() == validatorRandomList[validatorTxs.size() - blockManager->minValidators + 1].get().get() && blockManager->getTransactionType(tx.second) == BlockManager::TransactionTypes::randomSeed) {
+          validatorTxs.push_back(tx.second);
+        }
+      }
+    }
+  }
+
+  Utils::LogPrint(Log::state, __func__, std::string("Booba??? ") + std::to_string(validatorTxs.size()));
+
   Utils::LogPrint(Log::state, __func__, "New block created.");
   return newBestBlock;
 }

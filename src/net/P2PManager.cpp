@@ -52,7 +52,7 @@ void P2PManager::connectToServer(const boost::asio::ip::address &address, const 
 }
 
 const void P2PManager::parseClientRequest(const P2PMessage& message, const std::shared_ptr<ServerSession> &connInfo) {
-  Utils::logToFile(std::string("Trying to parse client request: ") + Utils::bytesToHex(message.message()));
+  Utils::logToFile(std::string("Trying to parse client command: ") + std::to_string(message.command()));
   switch (message.command()) {
     case CommandType::Info :
       {
@@ -77,6 +77,18 @@ const void P2PManager::parseClientRequest(const P2PMessage& message, const std::
         this->subnet.validateTransaction(std::move(tx));
       }
       break;
+    case CommandType::SendValidatorTransaction :
+      {
+        Utils::LogPrint(Log::P2PManager, __func__, std::string("Received Validator Tx from: ") + connInfo->address().to_string() + ":" + std::to_string(connInfo->port()));
+        this->subnet.validateValidatorTransaction(P2PRequestDecoder::sendValidatorTransaction(message));
+      }
+      break;
+    case CommandType::RequestValidatorTransactions :
+      {
+        Utils::LogPrint(Log::P2PManager, __func__, std::string("Receives requestValidatorTransaction from: ") + connInfo->address().to_string() + ":" + std::to_string(connInfo->port()));
+        connInfo->write(P2PAnswerEncoder::requestValidatorTransactions(this->subnet.getValidatorMempool()));
+      }
+      break;
   } // TODO: Others commands.
 }
 
@@ -84,24 +96,57 @@ const void P2PManager::parseServerAnswer(const P2PMessage& message, const std::s
   Utils::logToFile("Trying to parse servers answer at command: " + std::to_string(message.command()));
   switch (message.command()) {
     case CommandType::Info :
-      // Info updates P2PManager itself, no need to route the answer.
-      Utils::LogPrint(Log::P2PManager, __func__, std::string("Received Info from: ") + connInfo->host + ":" + std::to_string(connInfo->port));
-      auto newInfo = P2PRequestDecoder::info(message);
-      this->servers_mutex.lock();
-      for (auto& i : this->connectedServersVector) {
-        if (i.session == connInfo) {
-          i.updateInfo(newInfo);
+      {
+        // Info updates P2PManager itself, no need to route the answer.
+        Utils::LogPrint(Log::P2PManager, __func__, std::string("Received Info from: ") + connInfo->host + ":" + std::to_string(connInfo->port));
+        auto newInfo = P2PRequestDecoder::info(message);
+        this->servers_mutex.lock();
+        for (auto& i : this->connectedServersVector) {
+          if (i.session == connInfo) {
+            i.updateInfo(newInfo);
+          }
+        }
+        this->servers_mutex.unlock();
+      }
+      break;
+    case CommandType::RequestValidatorTransactions :
+      {
+        auto txs = P2PAnswerDecoder::requestValidatorTransactions(message);
+        Utils::LogPrint(Log::P2PManager, __func__, std::string("Received requestValidatorTransactions from: ") + connInfo->host + ":" + std::to_string(connInfo->port) + " broadcasted tx size: " + std::to_string(txs.size()));
+        for (const auto& tx : txs) {
+          this->subnet.validateValidatorTransaction(tx);
         }
       }
-      this->servers_mutex.unlock();
       break;
   } // TODO: Other Commands
 }
 
-const void P2PManager::broadcastTx(const Tx::Base &tx) const {
+const void P2PManager::broadcastTx(const Tx::Base &tx) {
   P2PMessage message = P2PRequestEncoder::sendTransaction(tx);
+  servers_mutex.lock();
   for (auto &s : this->connectedServersVector) {
     Utils::logToFile(std::string("Trying to send to: ") + s.address.to_string() + ":" + std::to_string(s.port) + " tx: " + Utils::bytesToHex(tx.rlpSerialize(true)));
     s.session->write(message);
   }
+  servers_mutex.unlock();
+}
+
+const void P2PManager::broadcastValidatorTx(const Tx::Validator &tx) {
+  P2PMessage message = P2PRequestEncoder::sendValidatorTransaction(tx);
+  servers_mutex.lock();
+  for (auto &s : this->connectedServersVector) {
+    Utils::LogPrint(Log::P2PManager, __func__, std::string("Trying to send to: ") + s.address.to_string() + ":" + std::to_string(s.port) + " tx: " + Utils::bytesToHex(tx.rlpSerialize(true)));
+    s.session->write(message);
+  }
+  servers_mutex.unlock();
+}
+
+const void P2PManager::requestValidatorTransactionsToAll() {
+  P2PMessage message = P2PRequestEncoder::requestValidatorTransactions();
+  servers_mutex.lock();
+  for(auto &s : this->connectedServersVector) {
+    Utils::LogPrint(Log::P2PManager, __func__, std::string("Trying to request validator tx's to: ") + s.address.to_string() + ":" + std::to_string(s.port));
+    s.session->write(message);
+  }
+  servers_mutex.unlock();
 }

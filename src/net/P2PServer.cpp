@@ -45,11 +45,17 @@ void ServerSession::on_read(beast::error_code ec, std::size_t bytes_transferred)
   if (ec) { p2p_fail_server(__func__, ec, "read"); }
   // Send the message for another thread to parse it.
   // TODO: make a thread pool for gods sake
-  Utils::logToFile(std::string("P2PServer: received: ") + Utils::bytesToHex(boost::beast::buffers_to_string(buffer_.data())));
-  P2PMessage message(boost::beast::buffers_to_string(buffer_.data()));
-  std::thread t(&P2PManager::parseClientRequest, this->manager_, message, shared_from_this());
-  t.detach();
-  buffer_.consume(buffer_.size());
+  try {
+    if (buffer_.size() != 0) {
+      Utils::logToFile(std::string("P2PServer: received: ") + Utils::bytesToHex(boost::beast::buffers_to_string(buffer_.data())) + " size: " + std::to_string(buffer_.size()));
+      P2PMessage message(boost::beast::buffers_to_string(buffer_.data()));
+      std::thread t(&P2PManager::parseClientRequest, this->manager_, message, shared_from_this());
+      t.detach();
+      buffer_.consume(buffer_.size());
+    }
+  } catch (std::exception &e) {
+    Utils::logToFile("P2P Server crash on_read");
+  }
   read();
 }
 
@@ -65,7 +71,6 @@ void ServerSession::write(const P2PMessage& response) {
     ws_.async_write(answerBuffer_.data(), beast::bind_front_handler(
       &ServerSession::on_write, shared_from_this()
     ));
-    return;
   }
 }
 

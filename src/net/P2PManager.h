@@ -106,7 +106,9 @@ class P2PManager : public std::enable_shared_from_this<P2PManager> {
     const void parseClientRequest(const P2PMessage& message, const std::shared_ptr<ServerSession> &connInfo);
     const void parseServerAnswer(const P2PMessage& message, const std::shared_ptr<P2PClient> &connInfo);
 
-    const void broadcastTx(const Tx::Base &tx) const;
+    const void broadcastTx(const Tx::Base &tx);
+    const void broadcastValidatorTx(const Tx::Validator &tx);
+    const void requestValidatorTransactionsToAll();
 
 };
 

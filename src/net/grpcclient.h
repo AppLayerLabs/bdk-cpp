@@ -45,6 +45,19 @@ using grpc::CompletionQueue;
 using grpc::Status;
 
 class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
+  private:
+    // TODO: having nodeList here as a reference is not ideal.
+    // We should create a new class (Relayer) that actively relay transactions and messages to the network.
+    // USE P2P INSTEAD OF GRPCCLIENT
+    const std::vector<std::string>& nodeList;
+    std::shared_mutex &nodeListLock;
+    std::unique_ptr<aliasreader::AliasReader::Stub> aliasreader_stub_;
+    std::unique_ptr<appsender::AppSender::Stub> appsender_stub_;
+    std::unique_ptr<keystore::Keystore::Stub> keystore_stub_;
+    std::unique_ptr<messenger::Messenger::Stub> messenger_stub_;
+    std::unique_ptr<sharedmemory::SharedMemory::Stub> sharedmemory_stub_;
+    std::mutex lock;
+
   public:
     explicit VMCommClient(std::shared_ptr<Channel> channel, const std::vector<std::string> &nodeList, std::shared_mutex &nodeListLock) :
       aliasreader_stub_(aliasreader::AliasReader::NewStub(channel)),
@@ -57,18 +70,6 @@ class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
     {}
 
   void requestBlock();
-
-  private:
-    // TODO: having nodeList here as a reference is not ideal.
-    // We should create a new class (Relayer) that actively relay transactions and messages to the network.
-    const std::vector<std::string>& nodeList;
-    std::shared_mutex &nodeListLock;
-    std::unique_ptr<aliasreader::AliasReader::Stub> aliasreader_stub_;
-    std::unique_ptr<appsender::AppSender::Stub> appsender_stub_;
-    std::unique_ptr<keystore::Keystore::Stub> keystore_stub_;
-    std::unique_ptr<messenger::Messenger::Stub> messenger_stub_;
-    std::unique_ptr<sharedmemory::SharedMemory::Stub> sharedmemory_stub_;
-    std::mutex lock;
 };
 
 #endif // GRPC_CLIENT_H

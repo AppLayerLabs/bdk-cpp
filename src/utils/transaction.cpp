@@ -234,73 +234,61 @@ Tx::Validator::Validator(const std::string_view &bytes) {
     throw std::runtime_error("Transaction RLP reports a size, returns smaller.");
   }
 
-  const uint8_t nonceLenght = (uint8_t(bytes[index]) >= 0x80 ? uint8_t(bytes[index]) - 0x80 : 0);  // Nonce can be a small string or the byte itself.
-  // If string (nonceLenght > 0), get _nonce from string.
-  if (nonceLenght != 0) {
-    ++index; // Index at rlp[0] payload. 
-    uint64_t nonce = 0;
-    this->_nonce = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], nonceLenght));
-    index += nonceLenght; // Index at rlp[1] size.
-  } else {
-    this->_nonce = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1))  - (uint8_t(bytes[index]) == 0x80 ? 0x80 : 0);
-    ++index; // Index at rlp[1] size.
-  }
-
   // Get data, it can be anything really, from nothing (0x80) to a big string (0xb7);
   if (uint8_t(bytes[index]) < 0x80) {
     this->_data = bytes[index];
-    ++index; // Index at rlp[2] size
+    ++index; // Index at rlp[1] size
   } else if (uint8_t(bytes[index]) < 0xb7) {
     uint8_t dataLenght = bytes[index] - 0x80;
-    ++index; // Index at rlp[1] payload.
+    ++index; // Index at rlp[0] payload.
     if (dataLenght > 0) {
       this->_data = bytes.substr(index, dataLenght);
-      index += dataLenght; // Index at rlp[2] size.
+      index += dataLenght; // Index at rlp[1] size.
     }
   } else {
     uint8_t dataLenghtSize = bytes[index] - 0xb7;
-    ++index; // Index at rlp[1] payload size.
+    ++index; // Index at rlp[0] payload size.
     uint64_t dataLenght = Utils::fromBigEndian<uint64_t>(std::string_view(&bytes[index], dataLenghtSize));
-    index += dataLenghtSize; // Index at rlp[1] payload.
+    index += dataLenghtSize; // Index at rlp[0] payload.
     this->_data = bytes.substr(index, dataLenght);
-    index += dataLenght; // Index at rlp[2] size
+    index += dataLenght; // Index at rlp[1] size
   }
 
   const uint8_t nHeightLenght = (uint8_t(bytes[index]) >= 0x80 ? uint8_t(bytes[index]) - 0x80 : 0);  // nHeight can be a small string or the byte itself.
   if (nHeightLenght != 0) {
-    ++index; // Index at rlp[2] payload. 
+    ++index; // Index at rlp[1] payload. 
     this->_nHeight = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], nHeightLenght));
-    index += nHeightLenght; // Index at rlp[3] size.
+    index += nHeightLenght; // Index at rlp[2] size.
   } else {
     this->_nHeight = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1))  - (uint8_t(bytes[index]) == 0x80 ? 0x80 : 0);
-    ++index; // Index at rlp[3] size.
+    ++index; // Index at rlp[2] size.
   }
 
   // Get v, small string or byte itself.
   uint8_t vLenght = (uint8_t(bytes[index]) >= 0x80 ? uint8_t(bytes[index]) - 0x80 : 0);  // Nonce can be a small string or the byte itself.
   if (vLenght != 0) {
     if (vLenght > 0x37) { throw std::runtime_error("V is not a small string"); }
-    ++index; // Index at rlp[3] payload.
+    ++index; // Index at rlp[2] payload.
     this->_v = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], vLenght));
-    index += vLenght; // Index at rlp[4] size.
+    index += vLenght; // Index at rlp[3] size.
   } else {
     this->_v = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1))  - (uint8_t(bytes[index]) == 0x80 ? 0x80 : 0);
-    ++index; // Index at rlp[4] size.
+    ++index; // Index at rlp[3] size.
   }
   
   // Get r, small string.
   uint8_t rLenght = bytes[index] - 0x80;
   if (rLenght > 0x37) { throw std::runtime_error("R is not a small string"); }
-  ++index; // Index at rlp[4] payload.
+  ++index; // Index at rlp[3] payload.
   this->_r = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], rLenght));
-  index += rLenght; // Index at rlp[5] size.
+  index += rLenght; // Index at rlp[4] size.
 
   // get s, small string
   uint8_t sLenght = bytes[index] - 0x80;
   if (sLenght > 0x37) { throw std::runtime_error("S is not a small string"); }
-  ++index; // Index at rlp[5] payload.
+  ++index; // Index at rlp[4] payload.
   this->_s = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], sLenght));
-  index += sLenght; // Index at rlp[6] size. rlp[6] doesn't exist on Validators tx's
+  index += sLenght; // Index at rlp[5] size. rlp[5] doesn't exist on Validators tx's
 
   if (_v > 36) {
     this->_chainId = static_cast<uint64_t>((this->_v - 35) / 2);
@@ -336,12 +324,10 @@ Tx::Validator::Validator(const std::string_view &bytes) {
 
 
 std::string Tx::Validator::rlpSerialize(const bool &includeSig) const {
-  // EIP-155 Compatible.
-  // instead of hashing six rlp encoded elements (nonce, gasprice, startgas, to, value, data)
-  // hash 5 rlp encoded elements (nonce, data, nHeight, chainid, 0, 0) before signing.
+  // hash 5 rlp encoded elements (data, nHeight, chainid, 0, 0) before signing.
   dev::RLPStream rlpStrm;
-  rlpStrm.appendList(6);
-  rlpStrm << this->_nonce << this->_data << this->_nHeight;
+  rlpStrm.appendList(5);
+  rlpStrm << this->_data << this->_nHeight;
   if (includeSig) {
     rlpStrm << (this->recoverId() + (this->_chainId * 2 + 35)) << this->_r << this->_s;
   } else {

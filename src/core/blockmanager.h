@@ -10,17 +10,20 @@
 #include "../utils/transaction.h"
 #include "../contract/contract.h"
 #include "chainHead.h"
+#include "../net/P2PManager.h"
+#include "../net/grpcclient.h"
 
 // Forward declaration
 class Block;
+
 
 class Validator {
   private:
     const Address _address;
   public:
     Validator() = default;
-    Validator(const std::string &pubkey, const bool &fromRPC) : _address(pubkey, fromRPC) {}
-    Validator(std::string&& pubkey, const bool &fromRPC) : _address(std::move(pubkey), fromRPC) {}
+    Validator(const Address &address) : _address(address) {}
+    Validator(const Address&& address) : _address(std::move(address)) {}
 
     Validator(const Validator& other) : _address(other._address) {}
     Validator(Validator&& other) noexcept : _address(std::move(other._address)) {}
@@ -50,20 +53,39 @@ class BlockManager : public Contract {
   private:
     std::vector<Validator> validatorsList;
     std::vector<std::reference_wrapper<Validator>> randomList;
-    void loadFromDB(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead);
+    std::unordered_map<Hash, Tx::Validator, SafeHash> validatorMempool;
+    const std::shared_ptr<const ChainHead> chainHead;
+    const std::shared_ptr<P2PManager> p2pmanager;
+    const std::shared_ptr<VMCommClient> grpcClient;
+    void loadFromDB(std::shared_ptr<DBService> &db);
     mutable std::shared_mutex managerLock;
 
-    const Hash _validatorPrivKey;
+    const PrivKey _validatorPrivKey;
     const bool _isValidator = false;
+    bool _isValidatorThreadRunning = false;
     bool shuffle();
 
+    void validatorLoop();
 
     RandomGen gen;
   public:
     enum TransactionTypes { addValidator, removeValidator, randomHash, randomSeed};
     static const uint32_t minValidators = 4;
-    BlockManager(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead, const Address &address, const Address &owner);
-    BlockManager(std::shared_ptr<DBService> &db, const std::shared_ptr<const ChainHead> chainHead, const Hash& privKey, const Address &address, const Address &owner);
+    BlockManager(std::shared_ptr<DBService> &db, 
+                 const std::shared_ptr<const ChainHead> chainHead, 
+                 const std::shared_ptr<P2PManager> p2pmanager, 
+                 const std::shared_ptr<VMCommClient> grpcClient,
+                 const Address &address, 
+                 const Address &owner);
+    
+    BlockManager(std::shared_ptr<DBService> &db, 
+                 const std::shared_ptr<const ChainHead> chainHead, 
+                 const std::shared_ptr<P2PManager> p2pmanager, 
+                 const std::shared_ptr<VMCommClient> grpcClient,
+                 const PrivKey& privKey, 
+                 const Address &address, 
+                 const Address &owner);
+
     bool isValidator(const Validator &validator) const;
     void saveToDB(std::shared_ptr<DBService> &db) const;
     // Validates a given block using current randomList
@@ -72,7 +94,7 @@ class BlockManager : public Contract {
     Hash processBlock(const std::shared_ptr<const Block> &block) const;
 
     // Add the validator transaction to the blockManager mempool.
-    void addValidatorTx(const Tx::Base&& tx);
+    void addValidatorTx(const Tx::Validator& tx);
 
     // Parse tx list and returns the new given uint256_t for RandomGen.
     // DOES NOT VALIDATE!
@@ -80,9 +102,13 @@ class BlockManager : public Contract {
     // TX FUNCTIONS.
 
     // Get the functor of the transaction, throws if invalid.
-    static TransactionTypes getTransactionType(const Tx::Base &tx);
+    static TransactionTypes getTransactionType(const Tx::Validator &tx);
 
-    
+    void startValidatorThread();
+
+    std::unordered_map<Hash, Tx::Validator, SafeHash> getMempoolCopy();
+
+    std::vector<std::reference_wrapper<Validator>> getRandomListCopy();
     friend class State; 
 };
 #endif  // BLOCKMANAGER_H

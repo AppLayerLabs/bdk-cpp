@@ -86,16 +86,32 @@ void P2PClient::read() {
 
 void P2PClient::on_read(beast::error_code ec, std::size_t bytes_transferred) {
   boost::ignore_unused(bytes_transferred);
+  if (ec == websocket::error::closed) { p2p_fail_server(__func__, ec, "read"); return; } // This indicates the session was closed
+  if (ec.value() == 125) { p2p_fail_server(__func__, ec, "read"); return; } // Operation cancelled
+  if (ec.value() == 995) { p2p_fail_server(__func__, ec, "read"); return; } // Interrupted by host
+  if (ec) { p2p_fail_client(__func__, ec, "read"); }
 
-  if (ec)
-    p2p_fail_client(__func__, ec, "read");
+  try {
+    if (receiveBuffer.size() != 0) {
+      Utils::logToFile(std::string("P2PClient: received: ") + Utils::bytesToHex(boost::beast::buffers_to_string(receiveBuffer.data())) + " size: " + std::to_string(receiveBuffer.size()));
+      P2PMessage message(boost::beast::buffers_to_string(receiveBuffer.data()));
+      std::thread t(&P2PManager::parseServerAnswer, this->manager_, message, shared_from_this());
+      t.detach();
+      receiveBuffer.consume(receiveBuffer.size());
+    }
+  } catch (std::exception &e) {
+    Utils::logToFile("P2P Server crash on_read");
+  }
 
   this->read();
 }
 
-void P2PClient::write(const P2PMessage& data) {
+void P2PClient::write(const P2PMessage data) {
+  auto buffer = net::buffer(data.raw());
+  Utils::logToFile(std::string("P2PClient writing: ") + Utils::bytesToHex(boost::beast::buffers_to_string(buffer)));
+
   ws_.async_write(
-    net::buffer(data.raw()),
+    buffer,
     beast::bind_front_handler(&P2PClient::on_write, shared_from_this()));
 }
 

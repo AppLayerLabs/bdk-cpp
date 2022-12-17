@@ -290,6 +290,11 @@ void Tests::testABIJSONDecoder() {
   assert(addToBytesList == addToBytesListExpected);
   assert(addToBytesListFour == addToBytesListFourExpected);
   assert(testMultipleByteArray == testMultipleByteArrayExpected);
+  std::cout << Utils::bytesToHex(addMultipleToByteList) << std::endl;
+
+  std::cout << " " << std::endl;
+
+  std::cout << Utils::bytesToHex(addMultipleToByteListExpected) << std::endl;
   assert(addMultipleToByteList == addMultipleToByteListExpected);
   assert(addMultipleToStringList == addMultipleToStringListExpected);
   assert(testAlmostAll == testAlmostAllExpected);

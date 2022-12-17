@@ -54,8 +54,8 @@ class P2PRequestEncoder {
     static P2PMessage requestBlockByHash(const Hash& block);
     static P2PMessage requestBlockRange(const uint64_t& startBlockNumber, const uint64_t& endBlockNumber);
     static P2PMessage newBestBlock(const Block& blockHash);
-    static P2PMessage sendValidatorTransaction(const Tx::Base& transaction);
-    static P2PMessage sendBulkValidatorTransactions(const std::vector<Tx::Base>& transactions);
+    static P2PMessage sendValidatorTransaction(const Tx::Validator& transaction);
+    static P2PMessage sendBulkValidatorTransactions(const std::vector<Tx::Validator>& transactions);
     static P2PMessage requestValidatorTransactions();
     static P2PMessage getConnectedNodes();
 };
@@ -65,15 +65,18 @@ class P2PRequestDecoder {
   public:
     static ConnectionInfo info(const P2PMessage& message);
     static Tx::Base sendTransaction(const P2PMessage& message);
+    static Tx::Validator sendValidatorTransaction(const P2PMessage& message);
 };
 
 class P2PAnswerEncoder {
   public:
+    static P2PMessage requestValidatorTransactions(const std::unordered_map<Hash, Tx::Validator, SafeHash>& transactions);
     static P2PMessage info(const std::shared_ptr<const ChainHead> chainHead, const uint64_t &nNodes, const std::string& id);
 };
 
 class P2PAnswerDecoder {
   public:
+    static std::vector<Tx::Validator> requestValidatorTransactions(const P2PMessage& message);
     static ConnectionInfo info(const P2PMessage& message);
 };
 

@@ -119,10 +119,6 @@ template <unsigned N> class StringContainer {
     }
 };
 
-using PrivKey = StringContainer<32>;
-using UncompressedPubkey = StringContainer<65>;
-using CompressedPubkey = StringContainer<33>;
-
 class Hash : public StringContainer<32> {
   public:
     using StringContainer<32>::StringContainer;
@@ -135,6 +131,10 @@ class Hash : public StringContainer<32> {
       return h;
     }
 };
+
+using PrivKey = Hash; 
+using UncompressedPubkey = StringContainer<65>;
+using CompressedPubkey = StringContainer<33>;
 
 class Signature : public StringContainer<65> {
   public:
