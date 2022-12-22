@@ -111,8 +111,11 @@ Block::Block(const std::string_view &blockData, bool fromDB) {
     }
 
     // Check merkle roots and randomness.
+    auto validatorMerkleRoot = Merkle(this->_validatorTransactions).root();
+    Utils::LogPrint(Log::block, __func__, std::string("validatorMerkleRoot: ") + validatorMerkleRoot.hex());
     if (this->_validatorMerkleRoot != Merkle(this->_validatorTransactions).root()) {
-      Utils::LogPrint(Log::block, __func__, "Error: Validator merkle root does not match.");
+      Utils::LogPrint(Log::block, __func__, "Error: Validator merkle root does not match. expected: " 
+                      + this->_validatorMerkleRoot.hex() + " got: " + Merkle(this->_validatorTransactions).root().hex() + " tx size: " + std::to_string(this->_validatorTransactions.size()));
       throw std::runtime_error("Validator merkle root does not match.");
     }
 
@@ -146,8 +149,8 @@ std::string Block::serializeHeader() const {
   // + transactionMerkleRoot + timestamp + nHeight
   std::string ret;
   ret += this->_prevBlockHash.get();
-  ret += this->_validatorMerkleRoot.get();
   ret += this->_randomness.get();
+  ret += this->_validatorMerkleRoot.get();
   ret += this->_transactionMerkleRoot.get();
   ret += Utils::uint64ToBytes(this->_timestamp);
   ret += Utils::uint64ToBytes(this->_nHeight);
@@ -203,7 +206,7 @@ bool Block::appendTx(const Tx::Base &tx) {
     Utils::LogPrint(Log::block, __func__, "Block is finalized.");
     return false;
   }
-  this->_transactions[_txCount] = (std::move(tx));
+  this->_transactions[_txCount] = (tx);
   _txCount++;
   return true;
 }
@@ -213,8 +216,8 @@ bool Block::appendValidatorTx(const Tx::Validator &tx) {
     Utils::LogPrint(Log::block, __func__, "Block is finalized.");
     return false;
   }
-  this->_validatorTransactions[_txCount] = (std::move(tx));
-  _txCount++;
+  this->_validatorTransactions[_txValidatorsCount] = tx;
+  _txValidatorsCount++;
   return true;
 }
 
@@ -237,11 +240,14 @@ void Block::indexTxs() {
   }
 }
 
-bool Block::finalizeBlock() {
+bool Block::finalizeBlock(const PrivKey &validatorPrivKey) {
   if (this->finalized) return false;
+
   this->_validatorMerkleRoot = Merkle(this->_validatorTransactions).root();
   this->_transactionMerkleRoot = Merkle(this->_transactions).root();
+  this->_randomness = BlockManager::parseTxListSeed(_validatorTransactions);
+  this->_validatorSignature = Secp256k1::sign(validatorPrivKey, this->getBlockHash());
   this->finalized = true;
+  this->indexTxs();
   return true;
 }
-

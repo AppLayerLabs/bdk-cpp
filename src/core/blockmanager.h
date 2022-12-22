@@ -10,6 +10,7 @@
 #include "../utils/transaction.h"
 #include "../contract/contract.h"
 #include "chainHead.h"
+#include "block.h"
 #include "../net/P2PManager.h"
 #include "../net/grpcclient.h"
 
@@ -90,11 +91,15 @@ class BlockManager : public Contract {
     void saveToDB(std::shared_ptr<DBService> &db) const;
     // Validates a given block using current randomList
     bool validateBlock(const std::shared_ptr<const Block> &block) const;
+
     // Process the block, and returns the new given Hash for RandomGen.
-    Hash processBlock(const std::shared_ptr<const Block> &block) const;
+    Hash processBlock(const std::shared_ptr<const Block> &block);
 
     // Add the validator transaction to the blockManager mempool.
     void addValidatorTx(const Tx::Validator& tx);
+
+    // Finalize a block, signing it.
+    void finalizeBlock(const std::shared_ptr<Block> block);
 
     // Parse tx list and returns the new given uint256_t for RandomGen.
     // DOES NOT VALIDATE!

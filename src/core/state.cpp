@@ -2,7 +2,7 @@
 #include "chainTip.h"
 #include "blockmanager.h"
 
-State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient) {
+State::State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient) : grpcClient(grpcClient), gen(Hash()) {
   this->loadState(dbServer);
 }
 
@@ -163,7 +163,7 @@ bool State::validateNewBlock(const std::shared_ptr<const Block> &newBlock, const
   return true;
 }
 
-void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const std::shared_ptr<ChainHead>& chainHead) {
+void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const std::shared_ptr<ChainHead>& chainHead, const std::shared_ptr<BlockManager>& blockManager) {
   // Check block previous hash.
   this->stateLock.lock();
   Utils::LogPrint(Log::state, __func__, "Processing new block " + Utils::bytesToHex(newBlock->getBlockHash().get()) + ", height " + boost::lexical_cast<std::string>(newBlock->nHeight()));
@@ -173,6 +173,7 @@ void State::processNewBlock(const std::shared_ptr<const Block>&& newBlock, const
     this->processNewTransaction(tx.second);
   }
   // Append block to chainHead.
+  blockManager->processBlock(newBlock);
   chainHead->push_back(std::move(newBlock));
   this->mempool.clear();
   this->stateLock.unlock();
@@ -204,8 +205,6 @@ const std::shared_ptr<const Block> State::createNewBlock(const std::shared_ptr<C
 
   stateLock.lock_shared();
   for (auto &tx : this->mempool) newBestBlock->appendTx(tx.second);
-  newBestBlock->finalizeBlock();
-  newBestBlock->indexTxs();
   stateLock.unlock_shared();
 
   auto validatorsMempool = blockManager->getMempoolCopy();
@@ -213,22 +212,43 @@ const std::shared_ptr<const Block> State::createNewBlock(const std::shared_ptr<C
 
   // Order things up, first 4 transactions are randomHash, then 4 last transactions are random itself.
   std::vector<Tx::Validator> validatorTxs;
+  for (auto const &tx : validatorsMempool) {
 
-  while (validatorTxs.size() != blockManager->minValidators * 2) {
+    Utils::logToFile(std::string("TX: ") + tx.second.hash().hex() + " FROM: " + tx.second.from().hex() +" TX TYPE: " + std::to_string(blockManager->getTransactionType(tx.second)));
+  }
+
+  // Reorder validator transactions, the mempool is a unordered map but it is required for the block
+  // to have the validators transacations ordered
+  // In the current code we are ordering as following:
+  // First, append in order validator[1...4] (randomList) randomHash transactions
+  // Then append in order validator[1...4] (randomList) randomSeed transactions
+
+  while (validatorTxs.size() < blockManager->minValidators * 2) {
     for (auto const &tx : validatorsMempool) {
       if (validatorTxs.size() < blockManager->minValidators) { // Index the randomHash
         if (tx.second.from() == validatorRandomList[validatorTxs.size() + 1].get().get() && blockManager->getTransactionType(tx.second) == BlockManager::TransactionTypes::randomHash) { // skip [0] as it is us lol
           validatorTxs.push_back(tx.second);
+          Utils::logToFile("Indexing validator hash tx");
         }
-      } else {
+      } else { // Index the randomSeed
         if (tx.second.from() == validatorRandomList[validatorTxs.size() - blockManager->minValidators + 1].get().get() && blockManager->getTransactionType(tx.second) == BlockManager::TransactionTypes::randomSeed) {
           validatorTxs.push_back(tx.second);
+          Utils::logToFile("Indexing validator seed tx");
         }
       }
+      if (validatorTxs.size() == blockManager->minValidators * 2) break;
     }
   }
 
-  Utils::LogPrint(Log::state, __func__, std::string("Booba??? ") + std::to_string(validatorTxs.size()));
+  // Append validators transactions
+  for (auto const &i : validatorTxs) {
+    newBestBlock->appendValidatorTx(i);
+  }
+
+  // Sign and finalize the block
+  blockManager->finalizeBlock(newBestBlock);
+
+  Utils::logToFile(std::string("createNewBlock Signature: ") + newBestBlock->signature().hex());
 
   Utils::LogPrint(Log::state, __func__, "New block created.");
   return newBestBlock;
@@ -255,5 +275,3 @@ void State::addBalance(const Address &address) {
   this->nativeAccount[address].balance += 1000000000000000000;
   this->stateLock.unlock();
 }
-
-RandomGen State::gen(Utils::sha3("GENESIS_SEED"));

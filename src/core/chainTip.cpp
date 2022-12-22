@@ -29,7 +29,7 @@ bool ChainTip::isProcessing(const Hash &blockHash) const {
   return false;
 };
 
-bool ChainTip::accept(const Hash &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead) {
+bool ChainTip::accept(const Hash &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead, const std::shared_ptr<BlockManager> blockManager) {
   internalChainTipLock.lock();
   auto it = this->internalChainTip.find(blockHash);
   if (it == this->internalChainTip.end()) {
@@ -38,13 +38,13 @@ bool ChainTip::accept(const Hash &blockHash, const std::shared_ptr<State> state,
   }
   if (it->second.unique()) {
     Utils::LogPrint(Log::chainTip, __func__, "Block is unique, moving to processNewBlock.");
-    state->processNewBlock(std::move(it->second), chainHead);
+    state->processNewBlock(std::move(it->second), chainHead, blockManager);
     this->internalChainTip.erase(blockHash);
   } else {
     // We have to create a copy of the block to process it.
     Utils::LogPrint(Log::chainTip, __func__, "Block not unique, creating copy to processNewBlock.");
     auto block = std::make_shared<Block>(*it->second);
-    state->processNewBlock(std::move(block), chainHead);
+    state->processNewBlock(std::move(block), chainHead, blockManager);
   }
   this->cachedBlockStatus[blockHash] = BlockStatus::Accepted;
   internalChainTipLock.unlock();

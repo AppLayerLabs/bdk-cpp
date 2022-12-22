@@ -237,10 +237,10 @@ uint64_t ChainHead::blockSize() {
 void ChainHead::loadFromDB() {
   if (!dbServer->has("latest", DBPrefix::blocks)) {
     Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
-    genesis.finalizeBlock();
-    dbServer->put("latest", genesis.serializeToBytes(false), DBPrefix::blocks);
+    genesis.finalizeBlock(PrivKey());
+    dbServer->put("latest", genesis.serializeToBytes(true), DBPrefix::blocks);
     dbServer->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash().get(), DBPrefix::blockHeightMaps);
-    dbServer->put(genesis.getBlockHash().get(), genesis.serializeToBytes(false), DBPrefix::blocks);
+    dbServer->put(genesis.getBlockHash().get(), genesis.serializeToBytes(true), DBPrefix::blocks);
     // TODO: CHANGE THIS ON PUBLIC!!!
     dbServer->put(Utils::uint64ToBytes(0),Address("7588b0f553d1910266089c58822e1120db47e572", true).get(), DBPrefix::validators); // 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759
     dbServer->put(Utils::uint64ToBytes(1),Address("cabf34a268847a610287709d841e5cd590cc5c00", true).get(), DBPrefix::validators); // 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4
@@ -264,12 +264,16 @@ void ChainHead::loadFromDB() {
   // Load block mappings (hash -> height and height -> hash) from DB.
   std::vector<DBEntry> blockMaps = dbServer->readBatch(DBPrefix::blockHeightMaps);
   for (DBEntry &blockMap : blockMaps) {
+    Utils::LogPrint(Log::block, __func__, std::string("Indexing height: ") + std::to_string(Utils::bytesToUint64(blockMap.key)) + " hash: " + Hash(blockMap.value).hex());
     this->lookupBlockHashByHeight[Utils::bytesToUint64(blockMap.key)] = Hash(blockMap.value);
     this->lookupBlockHeightByHash[Hash(blockMap.value)] = Utils::bytesToUint64(blockMap.key);
   }
 
   // Append up to 1000 blocks from history.
+  Utils::logToFile("Trying to appending up blocks");
   for (uint64_t i = 0; i <= 1000 && i <= depth; ++i) {
+    Utils::logToFile("looop");
+    Utils::logToFile("Block height: " + std::to_string(i) + Utils::bytesToHex(dbServer->get(this->lookupBlockHashByHeight[depth-i].get())));
     auto block = std::make_shared<Block>(dbServer->get(this->lookupBlockHashByHeight[depth-i].get(), DBPrefix::blocks), true);
     this->_push_front(block);
   }

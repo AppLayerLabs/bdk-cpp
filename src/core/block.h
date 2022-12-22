@@ -72,6 +72,7 @@ class Block {
     std::unordered_map<uint64_t, Tx::Base, SafeHash> _transactions; // Tx Index > tx.
     bool finalized = false;
     bool indexed = false;
+    void indexTxs();  // When transactions are indexed, the block is considered to be on chain
 
   public:
     // Constructor.
@@ -135,12 +136,10 @@ class Block {
     Hash getBlockHash() const; // Hash (in bytes)
     std::string serializeToBytes(bool db) const; // Tells tx's to be serialized using secp256k1 for extra calculation or not on deserialization.
     std::string serializeHeader() const;
-    void indexTxs();  // When transactions are indexed, the block is considered to be on chain
     bool appendTx(const Tx::Base &tx); // Transaction logic validity is not checked during appending
     bool appendValidatorTx(const Tx::Validator &tx); // Neither validators Tx's.
-    // TODO: Only finalize after all validator txs are appended.
-    bool finalizeBlock();
-    void signBlock(const PrivKey &privateKey);
+
+    bool finalizeBlock(const PrivKey &validatorPrivKey);
 
     // Equality operator.
     bool operator==(const Block& rBlock) const {

@@ -122,6 +122,7 @@ template <unsigned N> class StringContainer {
 class Hash : public StringContainer<32> {
   public:
     using StringContainer<32>::StringContainer;
+    using StringContainer<32>::operator=;
     Hash(uint256_t data) : StringContainer<32>(Utils::uint256ToBytes(data)) {};
     uint256_t inline toUint256() const { return Utils::bytesToUint256(_data); };
     static Hash random() {

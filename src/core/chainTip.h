@@ -22,7 +22,7 @@ class ChainTip {
     void setBlockStatus(const Hash &blockHash, const BlockStatus &status);
     BlockStatus getBlockStatus(const Hash &blockHash) const;
     bool isProcessing(const Hash &blockHash) const;
-    bool accept(const Hash &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead);
+    bool accept(const Hash &blockHash, const std::shared_ptr<State> state, const std::shared_ptr<ChainHead> chainHead, const std::shared_ptr<BlockManager> blockManager);
     void reject(const Hash &blockHash);
     void processBlock(std::shared_ptr<Block> block);
     bool exists(const Hash &blockHash) const;

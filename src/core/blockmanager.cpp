@@ -33,7 +33,8 @@ BlockManager::BlockManager(std::shared_ptr<DBService> &db,
                             Contract(address, owner), 
                             gen(Hash()), 
                             chainHead(chainHead),
-                            p2pmanager(p2pmanager) {
+                            p2pmanager(p2pmanager),
+                            grpcClient(grpcClient) {
   loadFromDB(db);
   Utils::logToFile("BlockManager Loaded " + std::to_string(validatorsList.size()) + " validators");
   for (auto &validator : validatorsList) {
@@ -77,14 +78,24 @@ bool BlockManager::validateBlock(const std::shared_ptr<const Block> &block) cons
 
   // TODO: do we need to include chainId In the block signature?
   auto pubkey = Secp256k1::recover(block->signature(), hash);
-  if (Secp256k1::toAddress(pubkey) != this->validatorsList[0].get()) {
-    Utils::LogPrint(Log::blockManager,__func__,"Block validator signature does not match validator[0]");
+  if (Secp256k1::toAddress(pubkey) != this->randomList[0].get().get()) {
+    Utils::LogPrint(Log::blockManager,__func__, std::string("Block validator signature does not match validator[0] Signature: ") + block->signature().hex());
     managerLock.unlock();
     return false;
   }
 
   managerLock.unlock();
   return true;
+}
+
+Hash BlockManager::processBlock(const std::shared_ptr<const Block> &block) {
+  managerLock.lock();
+  this->randomList = std::vector<std::reference_wrapper<Validator>>(validatorsList.begin(), validatorsList.end());
+  this->gen.shuffleVector(this->randomList);
+  this->gen.setSeed(block->randomness());
+  this->validatorMempool.clear();
+  managerLock.unlock();
+  return block->randomness();
 }
 
 Hash BlockManager::parseTxListSeed(const std::unordered_map<uint64_t, Tx::Validator, SafeHash> &transactions) {
@@ -99,21 +110,26 @@ Hash BlockManager::parseTxListSeed(const std::unordered_map<uint64_t, Tx::Valida
 }
 
 BlockManager::TransactionTypes BlockManager::getTransactionType(const Tx::Validator &tx) {
-  std::string_view functor = tx.data().substr(0,4);
+  std::string functor = tx.data().substr(0,4);
 
-  if (functor == Utils::hexToBytes("0x4d238c8e")) {
+  Utils::logToFile(std::string("TYPE: ") + Utils::bytesToHex(functor));
+  if (functor == Utils::hexToBytes("4d238c8e")) {
+    Utils::logToFile("ADD VALIDATOR");
     return TransactionTypes::addValidator;
   }
 
-  if (functor == Utils::hexToBytes("0x40a141ff")) {
+  if (functor == Utils::hexToBytes("40a141ff")) {
+    Utils::logToFile("REMOVE VALIDATOR");
     return TransactionTypes::removeValidator;
   }
 
-  if (functor == Utils::hexToBytes("0xcfffe746")) {
+  if (functor == Utils::hexToBytes("cfffe746")) {
+    Utils::logToFile("RANDOM HASH");
     return TransactionTypes::randomHash;
   }
 
-  if (functor == Utils::hexToBytes("0x6fc5a2d6")) {
+  if (functor == Utils::hexToBytes("6fc5a2d6")) {
+    Utils::logToFile("RANDOM SEED");
     return TransactionTypes::randomSeed;
   }
 
@@ -138,12 +154,13 @@ void BlockManager::validatorLoop() {
       this->managerLock.lock();
       uint32_t tries = 0;
       while (validatorMempool.size() != this->minValidators * 2) {
-        Utils::logToFile("validatorLoop: mempool size: " + std::to_string(validatorMempool.size()));
+        Utils::logToFile("BlockCreator: mempool size: " + std::to_string(validatorMempool.size()));
         managerLock.unlock();
         std::this_thread::sleep_for(std::chrono::seconds(1));
         if (tries == 10) {
           Utils::LogPrint(Log::blockManager, __func__, std::string("Requesting validator transactions..."));
           this->p2pmanager->requestValidatorTransactionsToAll();
+          tries = 0;
         }
         ++tries;
         this->managerLock.lock();
@@ -172,8 +189,8 @@ void BlockManager::validatorLoop() {
         this->managerLock.lock();
         this->validatorMempool[randomHashTx.hash()] = randomHashTx;
         uint32_t tries = 0;
-        while (this->validatorMempool.size() != this->minValidators) {
-          this->managerLock.unlock();
+        while (this->validatorMempool.size() < this->minValidators) {
+          this->managerLock.unlock(); 
           Utils::LogPrint(Log::blockManager, __func__, std::string("Sleeping until all hash transactions are broadcasted ") + std::to_string(this->validatorMempool.size()));
           if (tries == 10) { // Wait for 10 seconds before asking...
             tries = 0;
@@ -191,9 +208,9 @@ void BlockManager::validatorLoop() {
         
         Tx::Validator randomTx(myself.get(), Utils::hexToBytes("0x6fc5a2d6") + myRandom.get(), 8848, latestBlock->nHeight());
         randomTx.sign(this->_validatorPrivKey);
-        p2pmanager->broadcastValidatorTx(randomHashTx);
+        p2pmanager->broadcastValidatorTx(randomTx);
         this->managerLock.lock();
-        this->validatorMempool[randomTx.hash()] = randomHashTx;
+        this->validatorMempool[randomTx.hash()] = randomTx;
       }
       this->managerLock.unlock();
       
@@ -260,4 +277,8 @@ std::vector<std::reference_wrapper<Validator>> BlockManager::getRandomListCopy()
   auto ret = this->randomList;
   this->managerLock.unlock();
   return ret;
+}
+
+void BlockManager::finalizeBlock(const std::shared_ptr<Block> block) {
+  block->finalizeBlock(this->_validatorPrivKey);
 }

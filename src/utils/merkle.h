@@ -23,7 +23,7 @@ class Merkle {
     Merkle(const std::unordered_map<uint64_t, Tx::Base, SafeHash> &transactions);
     Merkle(const std::unordered_map<uint64_t, Tx::Validator, SafeHash> &transactions);
 
-    const Hash& root() const { return this->_root; }
+    const Hash root() const { if (_layers.size() > 1) { return _layers.back().front(); } return Hash(); }
     const std::vector<std::vector<Hash>>& layers() const { return this->_layers; }
     const std::vector<Hash>& leafs() const { return this->_leafs; }
 

@@ -27,6 +27,7 @@ class P2PClient : public std::enable_shared_from_this<P2PClient> {
     tcp::resolver resolver_;
     websocket::stream<beast::tcp_stream> ws_;
     beast::flat_buffer receiveBuffer;
+    std::mutex writeLock;
 
   public:
     const std::string host;

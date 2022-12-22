@@ -378,7 +378,7 @@ bool Subnet::acceptBlock(const Hash &blockHash) {
   // Accept block in chainTip, move it to chainState and after being processed,
   // finally move it to chainHead.
   Utils::LogPrint(Log::subnet, __func__, "Processing block: " + Utils::bytesToHex(blockHash.get()));
-  bool ret = this->chainTip->accept(blockHash, this->headState, this->chainHead);
+  bool ret = this->chainTip->accept(blockHash, this->headState, this->chainHead, this->blockManager);
   Utils::LogPrint(Log::subnet, __func__, "Block " + Utils::bytesToHex(blockHash.get()) + ", height: " + boost::lexical_cast<std::string>(blockHeight) + " accepted");
   return ret;
 }
@@ -425,29 +425,46 @@ std::unordered_map<Hash, Tx::Validator, SafeHash> Subnet::getValidatorMempool() 
   return this->blockManager->getMempoolCopy();
 }
 
-void Subnet::testP2P() {
-  PrivKey myself(Utils::hexToBytes("0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759"));
-  Tx::Validator randomHashTx(Secp256k1::toAddress(Secp256k1::toPub(myself)), Utils::hexToBytes("0xcfffe746") + Hash::random().get(), 8848, 0);
-  Tx::Validator anotherRandomHashTx(Secp256k1::toAddress(Secp256k1::toPub(myself)), Utils::hexToBytes("0xcfffe746") + Hash::random().get(), 8848, 0);
+void Subnet::test() {
 
-  randomHashTx.sign(myself);
-  anotherRandomHashTx.sign(myself);
+  Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
+  genesis.finalizeBlock(PrivKey());
 
-  std::unordered_map<Hash, Tx::Validator, SafeHash> mempool;
-  mempool[randomHashTx.hash()] = randomHashTx;
-  mempool[anotherRandomHashTx.hash()] = anotherRandomHashTx;
+  std::cout << "Trying to build a block using genesis as base" << std::endl;
+  auto newBlock = Block(genesis.serializeToBytes(false), false);
+  std::cout << "Trying to build a db block using genesis as base" << std::endl;
+  auto newDbBlock = Block(genesis.serializeToBytes(true), true);
 
-  for (const auto &item : mempool) {
-    std::cout << item.second.hash().hex() << std::endl;
-  }
+  std::vector<Tx::Validator> validatorTxs;
 
-  auto encodedAnswer = P2PAnswerEncoder::requestValidatorTransactions(mempool);
-
-  auto decodedAnswer = P2PAnswerDecoder::requestValidatorTransactions(encodedAnswer);
-
-  for (auto &i : decodedAnswer) {
-    std::cout << i.hash().hex() << std::endl;
-  }
+  validatorTxs.push_back(Tx::Validator(Utils::hexToBytes("f86ba4cfffe746a82d9001bed16dfb4e175f0b25a05b4000f82de5fff56854d97c15ae4a599a0b80824543a00fde23b9a6298091ab5ad42adf0212e984ddf3ea9fe119c02b5878a7c9a6103ea0190d69422466efcf0938ee3b743e701b9b17ef062693c998ac6f2456c898dd07")));
+  validatorTxs.push_back(Tx::Validator(Utils::hexToBytes("f86ba4cfffe746217d119c569f9ac479b2cccc6102ecbcc2b1ab6ec8ede566c758c1708fff1f7180824543a04fa3faca03ad180caec26b296af40ab53ca95b6a83ffa35556668afdaee2fb4ca04a90b194ef3edf09fbaac2d52f86b4df1c8a78ee4cf0943164eefc6a7824680d")));
+  validatorTxs.push_back(Tx::Validator(Utils::hexToBytes("f86ba4cfffe746eddfbfea896a4afa5d5a6109e589a5d78a216c9fabcc69a471887836c0ddf7d280824544a05d4aa2e3bc4f371cf37d3b81d3c736c20d91759e1a5eb8bf09a3ff7c7a3b3b05a0612986c54df2abf3d59c34b2bdb897126e8e4fa94c0d19d5446828e9a14301b6")));
+  validatorTxs.push_back(Tx::Validator(Utils::hexToBytes("f86ba4cfffe7465e751c94f28bc22806ec8fdb1e93e73a04d3fe03563128461dbfc36626a7c4a280824544a0d29fda797a405b0ed0abe191c4371d713c43e1329ec5e9d3f8c69e239830f558a00ecfa5b10cd2b5680ac00c32eea80741042941650f58bc363e38e682ffcc677e")));
+  validatorTxs.push_back(Tx::Validator(Utils::hexToBytes("f86ba46fc5a2d6166297c102dd0b884e9a8543b695b01b9bfbeb52468f52a24dd3f078c4e669d680824543a01107efa9c543506abcaac27874e94cfd676cb277d11bc47e777148ac0cc17a70a041f00ff534a510a6b6d86661ae5375c2d64b69c37a0c1a121d97d3ad334703b7")));
+  validatorTxs.push_back(Tx::Validator(Utils::hexToBytes("f86ba46fc5a2d6c683169461398660ef9f21b8537368687730ac8cceb27f86c6f23b6b96c2943f80824544a04d29e899af2fd474cf072f14a659e0f2ecde4d1444b5a2efab1748c6ad11eb2fa06844c994a3a6db99784da7744421f828586e93de506d2a5c198f6b32d9f6149d")));
+  validatorTxs.push_back(Tx::Validator(Utils::hexToBytes("f86ba46fc5a2d620f2f374e100c628815ee49294e10413830fc8d29fab394351f19be8de09cf0680824544a089dd2dd366bd080f3c6a28b62cb0fd7b1f5c6c7a46376c9a5ef290e4f17b53cda07c9e21c39d8cc9969131132844aaedd2e8fb68b04a1871097af6c383d3b75288")));
+  validatorTxs.push_back(Tx::Validator(Utils::hexToBytes("f86ba46fc5a2d6068478c43df0c3ac15fc0ad730bb1beb63fa15d64ed6e9386a8b6a47f62f5d6d80824543a0a3d90b420eeba9ec47ba5b18ddbcfb224a4055705c8b57324018daf5c114fad8a035d872d1e6675f47ed248234cf039732020c40f8c312336affc2b981359ff95f"))); 
   
-  return;
+  auto newBestBlock = std::make_shared<Block>(
+    genesis.getBlockHash(),
+    std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count(),
+    genesis.nHeight() + 1
+  );
+  
+  
+  for (const auto &i : validatorTxs) {
+    newBestBlock->appendValidatorTx(i);
+  }
+
+  newBestBlock->finalizeBlock(PrivKey());
+
+  std::cout << "merkle root: " << newBestBlock->validatorMerkleRoot().hex() << std::endl;
+
+
+  std::cout << "Serialized Block: " << Utils::bytesToHex(newBestBlock->serializeToBytes(false)) << std::endl;
+  auto testBlock = Block(newBestBlock->serializeToBytes(false), false);
+
+  std::cout << "newBestBlock: " << newBestBlock->getBlockHash().hex() << std::endl;
+  std::cout << "testBlock: " << testBlock.getBlockHash().hex() << std::endl;
 }

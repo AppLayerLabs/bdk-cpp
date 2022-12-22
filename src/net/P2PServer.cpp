@@ -47,11 +47,15 @@ void ServerSession::on_read(beast::error_code ec, std::size_t bytes_transferred)
   // TODO: make a thread pool for gods sake
   try {
     if (buffer_.size() != 0) {
-      Utils::logToFile(std::string("P2PServer: received: ") + Utils::bytesToHex(boost::beast::buffers_to_string(buffer_.data())) + " size: " + std::to_string(buffer_.size()));
-      P2PMessage message(boost::beast::buffers_to_string(buffer_.data()));
-      std::thread t(&P2PManager::parseClientRequest, this->manager_, message, shared_from_this());
-      t.detach();
-      buffer_.consume(buffer_.size());
+      if (buffer_.size() < 8) {
+        this->write(P2PMessage(boost::beast::buffers_to_string(buffer_.data())));
+      } else {
+        Utils::logToFile(std::string("P2PServer: received: ") + Utils::bytesToHex(boost::beast::buffers_to_string(buffer_.data())) + " size: " + std::to_string(buffer_.size()));
+        P2PMessage message(boost::beast::buffers_to_string(buffer_.data()));
+        std::thread t(&P2PManager::parseClientRequest, this->manager_, message, shared_from_this());
+        t.detach();
+        buffer_.consume(buffer_.size());
+      }
     }
   } catch (std::exception &e) {
     Utils::logToFile("P2P Server crash on_read");

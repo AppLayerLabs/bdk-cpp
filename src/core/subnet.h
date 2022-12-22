@@ -172,7 +172,7 @@ class Subnet {
 
     // TEST
 
-    static void testP2P();
+    static void test();
 };
 
 #endif // SUBNET_H

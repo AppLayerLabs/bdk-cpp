@@ -35,8 +35,8 @@ class State {
     // TODO: improve mempool structure (e.g. verify txs in mempool not included in a block after accepting another block, as we need to keep every tx valid)
     mutable std::shared_mutex stateLock;
     
-  // Used to notify AvalancheGo when creating new blocks.
-  std::shared_ptr<VMCommClient> &grpcClient;
+    // Used to notify AvalancheGo when creating new blocks.
+    std::shared_ptr<VMCommClient> &grpcClient;
 
     // Save accounts from memory to DB. Does a batch operation.
     bool saveState(std::shared_ptr<DBService> &dbServer);
@@ -48,8 +48,10 @@ class State {
     // Not threadified, can be only called by one thread.
     bool processNewTransaction(const Tx::Base &tx);
 
+    // Used by transactions that require randomness (none at the moment)
+    RandomGen gen;
+
   public:
-    static RandomGen gen;
 
     State(std::shared_ptr<DBService> &dbServer, std::shared_ptr<VMCommClient> &grpcClient);
 
@@ -64,7 +66,7 @@ class State {
 
     // Process a new block from the network and update the local state. to be called by chainTip.
     // The block is moved to this function because it will move the block into the chainHead if succeeds.
-    void processNewBlock(const std::shared_ptr<const Block> &&newBlock, const std::shared_ptr<ChainHead>& chainHead);
+    void processNewBlock(const std::shared_ptr<const Block> &&newBlock, const std::shared_ptr<ChainHead>& chainHead, const std::shared_ptr<BlockManager> &blockManager);
 
     // Create a new block using setPreference or latest in case of not found. Does *not* update the state.
     const std::shared_ptr<const Block> createNewBlock(const std::shared_ptr<ChainHead>& chainHead, const std::shared_ptr<ChainTip> &chainTip, const std::shared_ptr<BlockManager> &blockManager) const;

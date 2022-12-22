@@ -107,9 +107,9 @@ void P2PClient::on_read(beast::error_code ec, std::size_t bytes_transferred) {
 }
 
 void P2PClient::write(const P2PMessage data) {
+  writeLock.lock();
   auto buffer = net::buffer(data.raw());
   Utils::logToFile(std::string("P2PClient writing: ") + Utils::bytesToHex(boost::beast::buffers_to_string(buffer)));
-
   ws_.async_write(
     buffer,
     beast::bind_front_handler(&P2PClient::on_write, shared_from_this()));
@@ -117,7 +117,7 @@ void P2PClient::write(const P2PMessage data) {
 
 void P2PClient::on_write(beast::error_code ec, std::size_t bytes_transferred) {
   boost::ignore_unused(bytes_transferred);
-
+  writeLock.unlock();
   if (ec)
     p2p_fail_client(__func__, ec, "write");
 }
