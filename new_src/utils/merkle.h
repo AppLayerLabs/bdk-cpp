@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include "strings.h"
 
 /**
  * Custom implementation of a Merkle tree.
