@@ -101,7 +101,7 @@ namespace Utils {
    * @param input The string to hash.
    * @return The SHA3-hashed string.
    */
-  Hash sha3(const string_view& input);
+  Hash sha3(const std::string_view& input);
 
   /**
    * Convert a 256-bit unsigned integer to a bytes string.
