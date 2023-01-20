@@ -6,12 +6,13 @@
 #include <vector>
 #include <thread>
 
+#include "hash.h"
+#include "merkle.h"
+#include "strings.h"
+#include "tx.h"
+#include "utils.h"
+
 #include "../contract/contract.h"
-#include "../utils/hash.h"
-#include "../utils/merkle.h"
-#include "../utils/strings.h"
-#include "../utils/tx.h"
-#include "../utils/utils.h"
 
 /**
  * Abstraction of a block.

@@ -3,11 +3,11 @@
 
 #include <mutex>
 
-#include "block.h"
 #include "blockChain.h"
 #include "state.h"
 #include "../contract/contract.h"
 #include "../net/P2PManager.h"
+#include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/hash.h"
 #include "../utils/strings.h"

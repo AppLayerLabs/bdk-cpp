@@ -3,8 +3,8 @@
 
 #include <mutex>
 
-#include "block.h"
 #include "blockChain.h"
+#include "../utils/block.h"
 #include "../net/grpcserver.h"
 #include "../utils/db.h"
 #include "../utils/utils.h"

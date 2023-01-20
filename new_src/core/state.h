@@ -8,11 +8,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "block.h"
 #include "blockChain.h"
 #include "blockManager.h"
 //#include "subnet.h" // TODO: fix circular dep
 #include "../contract/contractmanager.h"
+#include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/random.h"
 #include "../utils/transaction.h"

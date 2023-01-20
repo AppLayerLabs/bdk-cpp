@@ -3,7 +3,6 @@
 
 #include <mutex>
 
-#include "block.h"
 #include "blockChain.h"
 #include "blockMempool.h"
 //#include "state.h"  TODO: fix circular dep
@@ -14,6 +13,7 @@
 #include "../net/grpcclient.h"
 #include "../net/grpcserver.h"
 #include "../net/httpserver.h"
+#include "../utils/block.h"
 #include "../utils/db.h"
 
 using json = nlohmann::ordered_json;
