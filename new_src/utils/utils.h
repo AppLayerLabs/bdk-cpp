@@ -8,8 +8,6 @@
 #include <string_view>
 #include <thread>
 
-#include <boost/asio/ip/address.hpp>
-#include <boost/beast/core.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>

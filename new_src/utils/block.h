@@ -6,8 +6,8 @@
 #include <vector>
 #include <thread>
 
-#include "hash.h"
 #include "merkle.h"
+#include "safehash.h"
 #include "strings.h"
 #include "tx.h"
 #include "utils.h"

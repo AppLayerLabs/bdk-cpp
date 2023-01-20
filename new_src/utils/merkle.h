@@ -3,7 +3,10 @@
 
 #include <string>
 #include <vector>
+
+#include "safehash.h"
 #include "strings.h"
+#include "tx.h"
 
 /**
  * Custom implementation of a Merkle tree.

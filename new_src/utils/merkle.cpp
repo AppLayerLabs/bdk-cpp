@@ -1,6 +1,4 @@
 #include "merkle.h"
-#include "hash.h"
-#include "tx.h"
 
 Merkle::Merkle(const std::vector<Hash>& leaves) {
   std::vector<Hash> leafs;

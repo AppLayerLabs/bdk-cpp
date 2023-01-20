@@ -14,7 +14,7 @@
 #include "../contract/contractmanager.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
-#include "../utils/random.h"
+#include "../utils/randomgen.h"
 #include "../utils/transaction.h"
 #include "../utils/utils.h"
 

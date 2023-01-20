@@ -1,7 +1,6 @@
 #ifndef TX_H
 #define TX_H
 
-#include "hash.h"
 #include "strings.h"
 
 /**
