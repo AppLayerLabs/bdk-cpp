@@ -51,6 +51,15 @@ namespace Secp256k1 {
   Signature makeSig(const uint256_t& r, const uint256_t& s, const uint8_t& v);
 
   /**
+   * Check if an ECDSA signature is valid.
+   * @param r The first half of the ECDSA signature.
+   * @param s The second half of the ECDSA signature.
+   * @param v The recovery ID.
+   * @return `true` if the signature is valid, `false` otherwise.
+   */
+  bool verifySig(const uint256_t& r, const uint256_t& s, const uint8_t& v);
+
+  /**
    * Derive an uncompressed public key from a private one.
    * @param key The private key to derive from.
    * @returns The derived uncompressed public key.

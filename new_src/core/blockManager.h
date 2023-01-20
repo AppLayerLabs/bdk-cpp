@@ -8,7 +8,6 @@
 #include "state.h"
 #include "../contract/contract.h"
 #include "../net/P2PManager.h"
-#include "../net/grpcclient.h"
 #include "../utils/db.h"
 #include "../utils/hash.h"
 #include "../utils/strings.h"
@@ -88,9 +87,6 @@ class BlockManager : public Contract {
     /// Pointer to the P2P connection manager.
     const std::shared_ptr<P2PManager> p2p;
 
-    /// Pointer to the gRPC client.
-    const std::shared_ptr<gRPCClient> grpcClient;
-
     /**
      * Load Validator nodes from the database.
      * Validators are stored as a list - 8 bytes for index and 32 bytes for public key.
@@ -125,7 +121,6 @@ class BlockManager : public Contract {
      * @param db Pointer to the database.
      * @param chain Pointer to the blockchain.
      * @param p2p Pointer to the P2P connection manager.
-     * @param grpcClient Pointer to the gRPC client.
      * @param add The address where the block manager will be deployed as a smart contract.
      * @param owner The owner address of the block manager contract.
      * @param privKey (optional) Private key of the Validator.
@@ -133,8 +128,8 @@ class BlockManager : public Contract {
      */
     BlockManager(
       const std::shared_ptr<DB>& db, const std::shared_ptr<BlockChain>& chain,
-      const std::shared_ptr<P2PManager>& p2p, const std::shared_ptr<gRPCClient>& grpcClient,
-      const Address& add, const Address& owner, const PrivKey& privKey = ""
+      const std::shared_ptr<P2PManager>& p2p, const Address& add,
+      const Address& owner, const PrivKey& privKey = ""
     );
 
     /// Getter for `validatorMempool`. Returns a copy, not the original.

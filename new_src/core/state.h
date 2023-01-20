@@ -12,7 +12,7 @@
 #include "blockChain.h"
 #include "blockManager.h"
 //#include "subnet.h" // TODO: fix circular dep
-#include "../net/grpcclient.h"
+#include "../contract/contractmanager.h"
 #include "../utils/db.h"
 #include "../utils/random.h"
 #include "../utils/transaction.h"
@@ -51,8 +51,8 @@ class State {
     /// Pointer to the block manager.
     const std::shared_ptr<BlockManager> mgr;
 
-    /// Pointer to the gRPC client.
-    const std::shared_ptr<gRPCClient> grpcClient;
+    /// Pointer to the contract manager.
+    const std::shared_ptr<ContractManager> contractMgr;
 
     /// Mutex for managing read/write access to the state.
     std::mutex stateLock;
@@ -86,15 +86,14 @@ class State {
      * @param chain Pointer to the blockchain.
      * @param mempool Pointer to the blockchain's mempool.
      * @param mgr Pointer to the block manager.
-     * @param grpcClient Pointer to the gRPC client.
      */
     State(
       const std::shared_ptr<DB>& db,
       const std::shared_ptr<BlockChain>& chain,
       const std::shared_ptr<BlockMempool>& mempool,
       const std::shared_ptr<BlockManager>& mgr,
-      const std::shared_ptr<gRPCClient>& grpcClient
-    ) : db(db), chain(chain), mempool(mempool), mgr(mgr), grpcClient(grpcClient) {
+      const std::shared_ptr<ContractMgr>& contractMgr
+    ) : db(db), chain(chain), mempool(mempool), mgr(mgr), contractMgr(contractMgr) {
       this->loadFromDB();
     }
 
@@ -122,13 +121,13 @@ class State {
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    bool validateNewBlock(const std::shared_ptr<const Block>& block);
+    bool validateNewBlock(Block& block);
 
     /**
      * Process a new block from the network. DOES update the state.
      * @param block The block to process.
      */
-    void processNewBlock(const std::shared_ptr<const Block>&& block);
+    void processNewBlock(Block&& block);
 
     /**
      * Create a new block. Does NOT update the state.

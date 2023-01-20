@@ -64,14 +64,14 @@ class BlockChain {
      * Only call this function directly if absolutely sure that `chainLock` is locked.
      * @param block The block to add.
      */
-    void pushBackInternal(const std::shared_ptr<const Block>&& block);
+    void pushBackInternal(Block&& block);
 
     /**
      * Add a block to the start of the chain.
      * Only call this function directly if absolutely sure that `chainLock` is locked.
      * @param block The block to add.
      */
-    void pushFrontInternal(const std::shared_ptr<const Block>&& block);
+    void pushFrontInternal(Block&& block);
 
     /// Save the latest blocks from memory to database (up to 1000).
     void saveToDB();
@@ -91,10 +91,10 @@ class BlockChain {
     }
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
-    void pushBack(const std::shared_ptr<const Block>&& block);
+    void pushBack(Block&& block);
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
-    void pushFront(const std::shared_ptr<const Block>&& block);
+    void pushFront(Block&& block);
 
     /// Remove a block from the end of the chain.
     void popBack();

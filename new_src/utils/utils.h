@@ -77,7 +77,11 @@ enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 /// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };
 
-/// Abstraction of balance and nonce for a single account.
+/**
+ * Abstraction of balance and nonce for a single account.
+ * Used with %Address on %State in an unordered_map to track native accounts.
+ * See `nativeAccounts` on %State for more info.
+ */
 struct Account { uint256_t balance = 0; uint32_t nonce = 0; };
 
 /// Namespace for utility functions.
@@ -86,7 +90,7 @@ namespace Utils {
    * Log a string to a file called `log.txt`.
    * @param str The string to log.
    */
-  void logToFile(std::string str);
+  void logToFile(const std::string_view& str);
 
   /**
    * Log a string to a file called `debug.txt`.
@@ -270,15 +274,6 @@ namespace Utils {
    * @return The converted bytes string.
    */
   std::string hexToBytes(std::string hex);
-
-  /**
-   * Check if an ECDSA signature is valid.
-   * @param r The first half of the ECDSA signature.
-   * @param s The second half of the ECDSA signature.
-   * @param v The recovery ID.
-   * @return `true` if the signature is valid, `false` otherwise.
-   */
-  bool verifySig(const uint256_t& r, const uint256_t& s, const uint8_t& v);
 
   /**
    * Add padding to the left of a string.

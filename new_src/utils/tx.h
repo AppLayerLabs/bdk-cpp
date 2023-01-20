@@ -21,10 +21,7 @@ class TxData {
     uint256_t v = 0;            ///< ECDSA recovery ID.
     uint256_t r = 0;            ///< ECDSA first half.
     uint256_t s = 0;            ///< ECDSA second half.
-    uint256_t nHeight = 0;      ///< Block height.
-    uint32_t blockIndex = 0;    ///< Index of tx inside the block.
     Address from = "";          ///< Sender address.
-    bool callsContract = false; ///< Indicates whether the tx calls a contract.
   public:
     /// Setter for `to`.
     inline void setTo(const Address& to) { this->to = to; }
@@ -56,17 +53,8 @@ class TxData {
     /// Setter for `s`.
     inline void setS(const uint256_t& s) { this->s = s; }
 
-    /// Setter for `nHeight`.
-    inline void setNHeight(const uint256_t& nHeight) { this->nHeight = nHeight; }
-
-    /// Setter for `blockIndex`.
-    inline void setBlockIndex(const uint32_t& blockIndex) { this->blockIndex = blockIndex; }
-
     /// Setter for `from`.
     inline void setFrom(const Address& from) { this->from = from; }
-
-    /// Setter for `callsContract`.
-    inline void setCallsContract(const bool& callsContract) { this->callsContract = callsContract; }
 };
 
 /**
@@ -123,17 +111,8 @@ class Tx {
     /// Getter for `s`.
     inline const uint256_t& getS() { return this->data.s; }
 
-    /// Getter for `nHeight`.
-    inline const uint256_t& getNHeight() { return this->data.nHeight; }
-
-    /// Getter for `blockIndex`.
-    inline const uint32_t& getBlockIndex() { return this->data.blockIndex; }
-
     /// Getter for `from`.
     inline const Address& getFrom() { return this->data.from; }
-
-    /// Getter for `callsContract`.
-    inline const bool& getCallsContract() { return this->data.callsContract; }
 
     /// Getter for `v`, but calculates the real ID value based on chainId.
     inline const uint256_t recoverId() {
