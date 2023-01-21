@@ -1,5 +1,5 @@
-#ifndef SUBNET_H
-#define SUBNET_H
+#ifndef BLOCKCHAIN_H
+#define BLOCKCHAIN_H
 
 #include <mutex>
 
@@ -20,27 +20,27 @@ using json = nlohmann::ordered_json;
 using grpc::Server;
 
 /**
- * Abstraction of the proper subnet.
+ * Master class that represents the blockchain as a whole.
  * Contains and acts as the middleman of every other part of the core and net protocols.
  * Those parts interact with one another by communicating through this class.
  */
-class Subnet {
+class Blockchain {
   private:
-    const std::shared_ptr<DB> db;                     ///< Pointer to the database.
-    const std::shared_ptr<State> state;               ///< Pointer to the state.
-    const std::shared_ptr<Storage> storage;           ///< Pointer to the blockchain history.
-    const std::shared_ptr<SnowmanVM> snowmanVM;       ///< Pointer to the SnowmanVM.
-    const std::shared_ptr<rdPoS> rdpos;               ///< Pointer to the rdPoS/block manager.
-    const std::shared_ptr<Server> server;             ///< Pointer to the (generic) gRPC server.
-    const std::shared_ptr<HTTPServer> httpServer;     ///< Pointer to the HTTP server.
-    const std::shared_ptr<P2PManager> p2p;            ///< Pointer to the P2P connection manager.
-    bool initialized = false;                         ///< Indicates if the Subnet is initialized.
-    bool shutdown = false;                            ///< Indicates if the Subnet will shutdown.
-    bool isValidator = false;                         ///< Indicates if the Subnet is a Validator.
+    const std::shared_ptr<DB> db;                 ///< Pointer to the database.
+    const std::shared_ptr<State> state;           ///< Pointer to the state.
+    const std::shared_ptr<Storage> storage;       ///< Pointer to the blockchain history.
+    const std::shared_ptr<SnowmanVM> snowmanVM;   ///< Pointer to the SnowmanVM.
+    const std::shared_ptr<rdPoS> rdpos;           ///< Pointer to the rdPoS/block manager.
+    const std::shared_ptr<Server> server;         ///< Pointer to the (generic) gRPC server.
+    const std::shared_ptr<HTTPServer> httpServer; ///< Pointer to the HTTP server.
+    const std::shared_ptr<P2PManager> p2p;        ///< Pointer to the P2P connection manager.
+    bool initialized = false;                     ///< Indicates if the blockchain is initialized.
+    bool shutdown = false;                        ///< Indicates if the blockchain will shutdown.
+    bool isValidator = false;                     ///< Indicates if the blockchain is a Validator.
 
   public:
-    void start();           ///< Start the Subnet.
-    void stop();            ///< Stop the Subnet.
+    void start();           ///< Start the blockchain.
+    void stop();            ///< Stop the blockchain.
     void shutdownServer();  ///< Shutdown the generic gRPC server.
 
     /**
@@ -76,4 +76,4 @@ class Subnet {
     }
 };
 
-#endif  // SUBNET_H
+#endif  // BLOCKCHAIN_H

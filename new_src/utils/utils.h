@@ -33,9 +33,9 @@ using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 void fail(std::string cl, std::string func, boost::beast::error_code ec, const char* what);
 
 /**
- * Namespace with string prefixes for each subnet module, for printing log/debug messages.
+ * Namespace with string prefixes for each blockchain module, for printing log/debug messages.
  * Values are as follows:
- * - subnet = "Subnet::"
+ * - blockchain = "Blockchain::"
  * - storage = "Storage::"
  * - snowmanVM = "SnowmanVM::"
  * - block = "Block::"
@@ -52,7 +52,7 @@ void fail(std::string cl, std::string func, boost::beast::error_code ec, const c
  * - P2PManager = "P2PManager::"
  */
 namespace Log {
-  const std::string subnet = "Subnet::";
+  const std::string blockchain = "Blockchain::";
   const std::string storage = "Storage::";
   const std::string snowmanVM = "SnowmanVM::";
   const std::string block = "Block::";

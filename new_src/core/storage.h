@@ -23,7 +23,7 @@ class Storage {
      * This limit is required because it would be too expensive to keep
      * every single transaction in memory all the time, so once it reaches
      * the limit, or every now and then, the blocks are dumped to the database.
-     * This keeps the subnet lightweight in memory and extremely responsive.
+     * This keeps the blockchain lightweight in memory and extremely responsive.
      */
     std::deque<std::shared_ptr<const Block>> chain;
 

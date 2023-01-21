@@ -8,10 +8,10 @@
 #include <unordered_map>
 #include <vector>
 
+//#include "blockchain.h" // TODO: fix circular dep
 #include "rdpos.h"
 #include "snowmanVM.h"
 #include "storage.h"
-//#include "subnet.h" // TODO: fix circular dep
 #include "../contract/contractmanager.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
