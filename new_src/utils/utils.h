@@ -45,7 +45,7 @@ void fail(std::string cl, std::string func, boost::beast::error_code ec, const c
  * - grpcClient = "gRPCClient::"
  * - utils = "Utils::"
  * - httpServer = "HTTPServer::"
- * - blockManager = "BlockManager::"
+ * - rdpos = "rdPoS::"
  * - ABI = "ABI::"
  * - P2PClient = "P2PClient::"
  * - P2PServer = "P2PServer::"
@@ -62,7 +62,7 @@ namespace Log {
   const std::string grpcClient = "gRPCClient::";
   const std::string utils = "Utils::";
   const std::string httpServer = "HTTPServer::";
-  const std::string blockManager = "BlockManager::";
+  const std::string rdpos = "rdPoS::";
   const std::string ABI = "ABI::";
   const std::string P2PClient = "P2PClient::";
   const std::string P2PServer = "P2PServer::";

@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "blockManager.h"
+#include "rdpos.h"
 #include "snowmanVM.h"
 #include "storage.h"
 //#include "subnet.h" // TODO: fix circular dep
@@ -44,8 +44,8 @@ class State {
     /// Pointer to the SnowmanVM.
     const std::shared_ptr<SnowmanVM> snowmanVM;
 
-    /// Pointer to the block manager.
-    const std::shared_ptr<BlockManager> mgr;
+    /// Pointer to the rdPoS/block manager.
+    const std::shared_ptr<rdPoS> rdpos;
 
     /// Pointer to the contract manager.
     const std::shared_ptr<ContractManager> contractMgr;
@@ -81,16 +81,16 @@ class State {
      * @param db Pointer to the database.
      * @param storage Pointer to the blockchain history.
      * @param snowmanVM Pointer to the SnowmanVM.
-     * @param mgr Pointer to the block manager.
+     * @param rdpos Pointer to the rdPoS/block manager.
      * @param contractMgr Pointer to the contract manager.
      */
     State(
       const std::shared_ptr<DB>& db,
       const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<SnowmanVM>& snowmanVM,
-      const std::shared_ptr<BlockManager>& mgr,
+      const std::shared_ptr<rdPoS>& rdpos,
       const std::shared_ptr<ContractManager>& contractMgr
-    ) : db(db), storage(storage), snowmanVM(snowmanVM), mgr(mgr), contractMgr(contractMgr) {
+    ) : db(db), storage(storage), snowmanVM(snowmanVM), rdpos(rdpos), contractMgr(contractMgr) {
       this->loadFromDB();
     }
 

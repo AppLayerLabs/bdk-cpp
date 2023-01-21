@@ -1,5 +1,5 @@
-#ifndef BLOCKMANAGER_H
-#define BLOCKMANAGER_H
+#ifndef RDPOS_H
+#define RDPOS_H
 
 #include <mutex>
 
@@ -50,10 +50,11 @@ class Validator {
 };
 
 /**
- * Class that manages block creation and congestion.
+ * Implementation of rdPoS (Random Deterministic Proof of Stake).
+ * Also known as "block manager", as it manages block creation and congestion.
  * Also considered a contract, but remains part of the core protocol.
  */
-class BlockManager : public Contract {
+class rdPoS : public Contract {
   private:
     /// List of known Validator nodes.
     std::vector<Validator> validatorList;
@@ -127,7 +128,7 @@ class BlockManager : public Contract {
      * @param privKey (optional) Private key of the Validator.
      *                If set, the current running node will become a Validator.
      */
-    BlockManager(
+    rdPoS(
       const std::shared_ptr<DB>& db, const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<P2PManager>& p2p, const Address& add,
       const Address& owner, const PrivKey& privKey = ""
@@ -191,4 +192,4 @@ class BlockManager : public Contract {
     void startValidatorThread();
 };
 
-#endif  // BLOCKMANAGER_H
+#endif  // RDPOS_H
