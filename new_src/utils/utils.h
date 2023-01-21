@@ -37,7 +37,7 @@ void fail(std::string cl, std::string func, boost::beast::error_code ec, const c
  * Values are as follows:
  * - subnet = "Subnet::"
  * - chain = "BlockChain::"
- * - mempool = "BlockMempool::"
+ * - snowmanVM = "SnowmanVM::"
  * - block = "Block::"
  * - db = "DB::"
  * - state = "State::"
@@ -54,7 +54,7 @@ void fail(std::string cl, std::string func, boost::beast::error_code ec, const c
 namespace Log {
   const std::string subnet = "Subnet::";
   const std::string chain = "BlockChain::";
-  const std::string mempool = "BlockMempool::";
+  const std::string snowmanVM = "SnowmanVM::";
   const std::string block = "Block::";
   const std::string db = "DB::";
   const std::string state = "State::";
@@ -68,9 +68,6 @@ namespace Log {
   const std::string P2PServer = "P2PServer::";
   const std::string P2PManager = "P2PManager::";
 };
-
-/// Enum for block status.
-enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
 /// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };

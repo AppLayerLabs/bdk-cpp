@@ -10,6 +10,7 @@
 
 #include "blockChain.h"
 #include "blockManager.h"
+#include "snowmanVM.h"
 //#include "subnet.h" // TODO: fix circular dep
 #include "../contract/contractmanager.h"
 #include "../utils/block.h"
@@ -31,12 +32,7 @@ class State {
      */
     std::unordered_map<Address, Account, SafeHash> nativeAccounts;
 
-    /**
-     * Transaction mempool.
-     * This differs from %BlockMempool because those are transactions not bound
-     * to any block, whereas the transactions on %BlockMempool are already in
-     * a block, waiting to be accepted or rejected.
-     */
+    /// Transaction mempool.
     std::unordered_map<Hash, TxBlock, SafeHash> mempool;
 
     /// Pointer to the database.
@@ -45,8 +41,8 @@ class State {
     /// Pointer to the blockchain.
     const std::shared_ptr<BlockChain> chain;
 
-    /// Pointer to the block mempool.
-    const std::shared_ptr<BlockMempool> mempool;
+    /// Pointer to the SnowmanVM.
+    const std::shared_ptr<SnowmanVM> snowmanVM;
 
     /// Pointer to the block manager.
     const std::shared_ptr<BlockManager> mgr;
@@ -90,10 +86,10 @@ class State {
     State(
       const std::shared_ptr<DB>& db,
       const std::shared_ptr<BlockChain>& chain,
-      const std::shared_ptr<BlockMempool>& mempool,
+      const std::shared_ptr<SnowmanVM>& snowmanVM,
       const std::shared_ptr<BlockManager>& mgr,
       const std::shared_ptr<ContractMgr>& contractMgr
-    ) : db(db), chain(chain), mempool(mempool), mgr(mgr), contractMgr(contractMgr) {
+    ) : db(db), chain(chain), snowmanVM(snowmanVM), mgr(mgr), contractMgr(contractMgr) {
       this->loadFromDB();
     }
 
