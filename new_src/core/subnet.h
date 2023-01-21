@@ -160,14 +160,14 @@ class Subnet {
      * @param tx The transaction to validate.
      * @return An error code/message pair with the status of the validation.
      */
-    std::pair<int, string> validateTx(const Tx&& tx);
+    std::pair<int, string> validateTx(const TxBlock&& tx);
 
     /**
      * Validate a given Validator transaction.
      * Called by gRPCServer.
      * @param tx The transaction to validate.
      */
-    void validateValidatorTx(const Tx& tx);
+    void validateValidatorTx(const TxValidator& tx);
 
     /**
      * Connect to a given node.
@@ -186,7 +186,7 @@ class Subnet {
      * Called by P2PManager.
      * @return A copy of the Validator mempool.
      */
-    inline std::unordered_map<Hash, Tx, SafeHash> getValidatorMempool() {
+    inline std::unordered_map<Hash, TxValidator, SafeHash> getValidatorMempool() {
       return this->blockManager->getMempoolCopy();
     }
 };

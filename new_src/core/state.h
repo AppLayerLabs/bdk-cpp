@@ -15,7 +15,7 @@
 #include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/randomgen.h"
-#include "../utils/transaction.h"
+#include "../utils/tx.h"
 #include "../utils/utils.h"
 
 /**
@@ -37,7 +37,7 @@ class State {
      * to any block, whereas the transactions on %BlockMempool are already in
      * a block, waiting to be accepted or rejected.
      */
-    std::unordered_map<Hash, Tx, SafeHash> mempool;
+    std::unordered_map<Hash, TxBlock, SafeHash> mempool;
 
     /// Pointer to the database.
     const std::shared_ptr<DB> db;
@@ -77,7 +77,7 @@ class State {
      * @param tx The transaction to process.
      * @return `true` if the transaction was processed successfully, `false` otherwise.
      */
-    bool processNewTx(const Tx& tx);
+    bool processNewTx(const TxBlock& tx);
 
   public:
     /**
@@ -98,7 +98,7 @@ class State {
     }
 
     /// Getter for `mempool`.
-    const std::unordered_map<Hash, Tx, SafeHash>& getMempool() { return this->mempool; }
+    const std::unordered_map<Hash, TxBlock, SafeHash>& getMempool() { return this->mempool; }
 
     /**
      * Get a native account's balance.
@@ -148,7 +148,7 @@ class State {
      * @param tx The transaction to validate.
      * @return `true` if the transaction is valid, `false` otherwise.
      */
-    bool validateTxForBlock(const Tx& tx);
+    bool validateTxForBlock(const TxBlock& tx);
 
     /**
      * Validates a transaction from RPC.
@@ -161,7 +161,7 @@ class State {
      * @param tx The transaction to validate.
      * @return An error code/message pair with the status of the validation.
      */
-    const std::pair<int, string> validateTxForRPC(const Tx& tx);
+    const std::pair<int, string> validateTxForRPC(const TxBlock& tx);
 
     /**
      * Add a fixed amount of funds to an account.

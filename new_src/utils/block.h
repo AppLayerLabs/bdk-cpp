@@ -82,10 +82,10 @@ class Block {
     uint64_t txCount = 0;
 
     /// List of Validator transactions.
-    std::unordered_map<uint64_t, const Tx, SafeHash> validatorTxs;
+    std::unordered_map<uint64_t, const TxValidator, SafeHash> validatorTxs;
 
     /// List of block transactions.
-    std::unordered_map<uint64_t, const Tx, SafeHash> txs;
+    std::unordered_map<uint64_t, const TxBlock, SafeHash> txs;
 
     /// Indicates whether the block is finalized or not.
     bool finalized = false;
@@ -97,7 +97,7 @@ class Block {
      * @param fromDB If `true`, skips Secp256k1 signature checking.
      *               This brings 40x more performance at the cost of storing
      *               25 extra bytes per transaction.
-     *               See %Tx's constructor for more details.
+     *               See tx constructors in tx.h for more details.
      */
     Block(std::string_view& rawData, bool fromDB);
 
@@ -169,10 +169,10 @@ class Block {
     const uint64_t& getTxCount() { return this->txCount; }
 
     /// Getter for `validatorTxs`.
-    const std::unordered_map<uint64_t, const Tx, SafeHash>& getValidatorTxs() { return this->validatorTxs; }
+    const std::unordered_map<uint64_t, const TxValidator, SafeHash>& getValidatorTxs() { return this->validatorTxs; }
 
     /// Getter for `txs`.
-    const std::unordered_map<uint64_t, const Tx, SafeHash>& getTxs() { return this->txs; }
+    const std::unordered_map<uint64_t, const TxBlock, SafeHash>& getTxs() { return this->txs; }
 
     /// Same as `getTimestamp()`, but calculates the timestamp in seconds.
     const uint64_t timestampInSeconds() { return this->_timestamp / 1000000000; }
@@ -208,7 +208,7 @@ class Block {
      * @return `true` if transaction was included in the block, or
      *         `false` if the block is finalized.
      */
-    bool appendTx(const Tx& tx);
+    bool appendTx(const TxBlock& tx);
 
     /**
      * Add a Validator transaction to the block.
@@ -217,7 +217,7 @@ class Block {
      * @return `true` if transaction was included in the block, or
      *         `false` if the block is finalized.
      */
-    bool appendValidatorTx(const Tx& tx);
+    bool appendValidatorTx(const TxValidator& tx);
 
     /**
      * Finalize the block.

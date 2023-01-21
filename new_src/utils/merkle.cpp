@@ -1,5 +1,13 @@
 #include "merkle.h"
 
+std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) {
+  std::vector<Hash> ret;
+  for (uint64_t i = 0; i < layer.size(); i += 2) ret.emplace_back(
+    ((i+1 < layer.size()) ? Utils::sha3(layer[i].get() + layer[i+1].get()) : layer[i])
+  );
+  return ret;
+};
+
 Merkle::Merkle(const std::vector<Hash>& leaves) {
   std::vector<Hash> leafs;
   for (const auto &leaf : leaves) {
@@ -11,20 +19,18 @@ Merkle::Merkle(const std::vector<Hash>& leaves) {
   }
 };
 
-Merkle::Merkle(const std::unordered_map<uint64_t, Tx, SafeHash>& txs) {
+Merkle::Merkle(const std::unordered_map<uint64_t, TxBlock, SafeHash>& txs) {
   std::vector<Hash> leafs;
   for (uint64_t i = 0; i < txs.size(); i++) {
     leafs.emplace_back(std::move(Utils::sha3(txs.find(i)->second.hash().get())));
   }
-
  this->tree.emplace_back(leafs);
-
  while (this->tree.back().size() > 1) {
     this->tree.emplace_back(newLayer(this->tree.back()));
   }
 }
 
-Merkle::Merkle(const std::unordered_map<uint64_t, Tx::Validator, SafeHash> &txs) {
+Merkle::Merkle(const std::unordered_map<uint64_t, TxValidator, SafeHash>& txs) {
   std::vector<Hash> leafs;
   for (uint64_t i = 0; i < txs.size(); ++i) {
     this->leafs.emplace_back(std::move(Utils::sha3(txs.find(i)->second.hash().get())));
@@ -35,16 +41,7 @@ Merkle::Merkle(const std::unordered_map<uint64_t, Tx::Validator, SafeHash> &txs)
   }
 };
 
-
-std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) {
-  std::vector<Hash> ret;
-  for (uint64_t i = 0; i < layer.size(); i += 2) ret.emplace_back(
-    ((i+1 < layer.size()) ? Utils::sha3(layer[i].get() + layer[i+1].get()) : layer[i])
-  );
-  return ret;
-};
-
-const std::vector<Hash> Merkle::getProof(const uint64_t& leafIndex) const {
+const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
   std::vector<Hash> leafs;
   if (leafIndex > this->leafs.size() - 1) return {};
   std::vector<Hash> ret;

@@ -33,7 +33,7 @@ class BlockChain {
     std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> blockByTxHash;
 
     /// Map that indexes transactions in memory by their respective hashes.
-    std::unordered_map<Hash, std::shared_ptr<const Tx>, SafeHash> txByHash;
+    std::unordered_map<Hash, std::shared_ptr<const TxBlock>, SafeHash> txByHash;
 
     /// Map that indexes all block heights in the chain by their respective hashes.
     std::unordered_map<Hash, uint64_t, SafeHash> blockHeightByHash;
@@ -45,7 +45,7 @@ class BlockChain {
     mutable std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> cachedBlocks;
 
     /// Cache space for transactions that will be included in the blockchain.
-    mutable std::unordered_map<Hash, std::shared_ptr<const Tx>, SafeHash> cachedTxs;
+    mutable std::unordered_map<Hash, std::shared_ptr<const TxBlock>, SafeHash> cachedTxs;
 
     /// Mutex for managing read/write access to the blockchain.
     mutable std::mutex chainLock;
@@ -148,7 +148,7 @@ class BlockChain {
      * @param tx The transaction hash to get.
      * @return The found transaction, or `nullptr` if transaction is not found.
      */
-    const std::shared_ptr<const Tx> getTx(const Hash& tx);
+    const std::shared_ptr<const TxBlock> getTx(const Hash& tx);
 
     /**
      * Get a block from the chain that contains a given transaction.

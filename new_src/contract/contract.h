@@ -52,7 +52,7 @@ class Contract {
      * Used by the %State class when calling `processNewBlock()`.
      * @param tx The transaction to use for call.
      */
-    virtual void ethCall(const Tx& tx);
+    virtual void ethCall(const TxBlock& tx);
 
     /**
      * Invoke a contract function using a data string.

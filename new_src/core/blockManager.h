@@ -62,7 +62,7 @@ class BlockManager : public Contract {
     std::vector<std::reference_wrapper<Validator>> randomList;
 
     /// Mempool for Validator transactions.
-    std::unordered_map<Hash, Tx, SafeHash> validatorMempool;
+    std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool;
 
     /// Private key of the Validator node running the block manager contract.
     PrivKey validatorPrivKey;
@@ -134,7 +134,7 @@ class BlockManager : public Contract {
     );
 
     /// Getter for `validatorMempool`. Returns a copy, not the original.
-    std::unordered_map<Hash, Tx, SafeHash> getMempoolCopy() {
+    std::unordered_map<Hash, TxValidator, SafeHash> getMempoolCopy() {
       return this->validatorMempool;
     }
 
@@ -171,7 +171,7 @@ class BlockManager : public Contract {
      * Add a Validator transaction to the mempool.
      * @param tx The transaction to add.
      */
-    void addValidatorTx(const Tx& tx);
+    void addValidatorTx(const TxValidator& tx);
 
     /**
      * Finalize a block. See %Block for more details.
@@ -185,14 +185,7 @@ class BlockManager : public Contract {
      * @param txs The list of transactions to parse.
      * @return The new randomness seed to be used for the next block.
      */
-    static Hash parseTxSeedList(const std::unordered_map<uint64_t, Tx, SafeHash> txs);
-
-    /**
-     * Get the type of a given transaction.
-     * @param tx The transaction to get the type from.
-     * @return The type of the transaction.
-     */
-    static TxType getTxType(const Tx& tx);
+    static Hash parseTxSeedList(const std::unordered_map<uint64_t, TxValidator, SafeHash> txs);
 
     /// Runs `validatorLoop()` inside the Validator thread.
     void startValidatorThread();
