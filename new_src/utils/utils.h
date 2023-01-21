@@ -36,7 +36,7 @@ void fail(std::string cl, std::string func, boost::beast::error_code ec, const c
  * Namespace with string prefixes for each subnet module, for printing log/debug messages.
  * Values are as follows:
  * - subnet = "Subnet::"
- * - chain = "BlockChain::"
+ * - storage = "Storage::"
  * - snowmanVM = "SnowmanVM::"
  * - block = "Block::"
  * - db = "DB::"
@@ -53,7 +53,7 @@ void fail(std::string cl, std::string func, boost::beast::error_code ec, const c
  */
 namespace Log {
   const std::string subnet = "Subnet::";
-  const std::string chain = "BlockChain::";
+  const std::string storage = "Storage::";
   const std::string snowmanVM = "SnowmanVM::";
   const std::string block = "Block::";
   const std::string db = "DB::";

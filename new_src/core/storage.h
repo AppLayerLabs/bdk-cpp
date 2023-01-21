@@ -1,5 +1,5 @@
-#ifndef BLOCKCHAIN_H
-#define BLOCKCHAIN_H
+#ifndef STORAGE_H
+#define STORAGE_H
 
 #include <mutex>
 
@@ -9,10 +9,11 @@
 #include "../utils/random.h"
 
 /**
- * Abstraction of the blockchain.
- * Used to help the %State process new blocks and transactions, and answer RPC queries.
+ * Abstraction of the blockchain history.
+ * Used to store blocks in memory and on disk, and helps the %State process
+ * new blocks, transactions and RPC queries.
  */
-class BlockChain {
+class Storage {
   private:
     /// Pointer to the database that contains the blockchain's entire history.
     std::shared_ptr<DB> db;
@@ -84,7 +85,7 @@ class BlockChain {
      * Constructor. Automatically starts the periodic save thread.
      * @param db Pointer to the database.
      */
-    BlockChain(const std::shared_ptr<DB>& db) : db(db) {
+    Storage(const std::shared_ptr<DB>& db) : db(db) {
       this->loadFromDB();
       this->periodicSaveThread = std::thread([&]{ this->periodicSaveToDB(); });
       this->periodicSaveThread.detach();
@@ -173,4 +174,4 @@ class BlockChain {
     void stopPeriodicSaveToDB() { this->stopPeriodicSave = true; }
 };
 
-#endif  // BLOCKCHAIN_H
+#endif  // STORAGE_H

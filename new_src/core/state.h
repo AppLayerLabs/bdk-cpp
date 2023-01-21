@@ -8,9 +8,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "blockChain.h"
 #include "blockManager.h"
 #include "snowmanVM.h"
+#include "storage.h"
 //#include "subnet.h" // TODO: fix circular dep
 #include "../contract/contractmanager.h"
 #include "../utils/block.h"
@@ -38,8 +38,8 @@ class State {
     /// Pointer to the database.
     const std::shared_ptr<DB> db;
 
-    /// Pointer to the blockchain.
-    const std::shared_ptr<BlockChain> chain;
+    /// Pointer to the blockchain history.
+    const std::shared_ptr<Storage> storage;
 
     /// Pointer to the SnowmanVM.
     const std::shared_ptr<SnowmanVM> snowmanVM;
@@ -79,17 +79,18 @@ class State {
     /**
      * Constructor. Automatically loads accounts from the database.
      * @param db Pointer to the database.
-     * @param chain Pointer to the blockchain.
-     * @param mempool Pointer to the blockchain's mempool.
+     * @param storage Pointer to the blockchain history.
+     * @param snowmanVM Pointer to the SnowmanVM.
      * @param mgr Pointer to the block manager.
+     * @param contractMgr Pointer to the contract manager.
      */
     State(
       const std::shared_ptr<DB>& db,
-      const std::shared_ptr<BlockChain>& chain,
+      const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<SnowmanVM>& snowmanVM,
       const std::shared_ptr<BlockManager>& mgr,
-      const std::shared_ptr<ContractMgr>& contractMgr
-    ) : db(db), chain(chain), snowmanVM(snowmanVM), mgr(mgr), contractMgr(contractMgr) {
+      const std::shared_ptr<ContractManager>& contractMgr
+    ) : db(db), storage(storage), snowmanVM(snowmanVM), mgr(mgr), contractMgr(contractMgr) {
       this->loadFromDB();
     }
 

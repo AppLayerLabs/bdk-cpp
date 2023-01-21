@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "blockChain.h"
+#include "storage.h"
 #include "../net/grpcclient.h"
 #include "../net/grpcserver.h"
 #include "../utils/block.h"
@@ -62,8 +62,8 @@ class SnowmanVM {
     /// Mutex for managing read/write access to the SnowmanVM object.
     mutable std::mutex lock;
 
-    /// Pointer to the blockchain.
-    const std::shared_ptr<BlockChain> chain;
+    /// Pointer to the blockchain history.
+    const std::shared_ptr<Storage> storage;
 
     /// Pointer to the gRPC server.
     const std::shared_ptr<gRPCServer> grpcServer;
@@ -74,13 +74,15 @@ class SnowmanVM {
   public:
     /**
      * Constructor.
-     * @param chain Pointer to the blockchain.
+     * @param storage Pointer to the blockchain history.
+     * @param grpcServer Pointer to the gRPC server.
+     * @param grpcClient Pointer to the gRPC client.
      */
     SnowmanVM(
-      const std::shared_ptr<BlockChain>& chain,
+      const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<gRPCServer>& grpcServer,
       const std::shared_ptr<gRPCClient>& grpcClient
-    ) : chain(chain), grpcServer(grpcServer), grpcClient(grpcClient);
+    ) : storage(storage), grpcServer(grpcServer), grpcClient(grpcClient);
 
     /// Getter for `preferredBlockHash`.
     const Hash& getPreferredBlockHash() { return this->preferredBlockHash; }

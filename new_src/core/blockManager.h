@@ -3,8 +3,8 @@
 
 #include <mutex>
 
-#include "blockChain.h"
 #include "state.h"
+#include "storage.h"
 #include "../contract/contract.h"
 #include "../net/P2PManager.h"
 #include "../utils/block.h"
@@ -82,8 +82,8 @@ class BlockManager : public Contract {
     /// Pointer to the database.
     const std::shared_ptr<DB> db;
 
-    /// Pointer to the blockchain.
-    const std::shared_ptr<BlockChain> chain;
+    /// Pointer to the blockchain history.
+    const std::shared_ptr<Storage> storage;
 
     /// Pointer to the P2P connection manager.
     const std::shared_ptr<P2PManager> p2p;
@@ -120,7 +120,7 @@ class BlockManager : public Contract {
     /**
      * Constructor.
      * @param db Pointer to the database.
-     * @param chain Pointer to the blockchain.
+     * @param storage Pointer to the blockchain history.
      * @param p2p Pointer to the P2P connection manager.
      * @param add The address where the block manager will be deployed as a smart contract.
      * @param owner The owner address of the block manager contract.
@@ -128,7 +128,7 @@ class BlockManager : public Contract {
      *                If set, the current running node will become a Validator.
      */
     BlockManager(
-      const std::shared_ptr<DB>& db, const std::shared_ptr<BlockChain>& chain,
+      const std::shared_ptr<DB>& db, const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<P2PManager>& p2p, const Address& add,
       const Address& owner, const PrivKey& privKey = ""
     );

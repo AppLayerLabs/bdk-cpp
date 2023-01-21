@@ -3,9 +3,9 @@
 
 #include <mutex>
 
-#include "blockChain.h"
 #include "blockManager.h"
 #include "snowmanVM.h"
+#include "storage.h"
 //#include "state.h"  TODO: fix circular dep
 
 #include "../libs/json.hpp"
@@ -28,7 +28,7 @@ class Subnet {
   private:
     const std::shared_ptr<DB> db;                     ///< Pointer to the database.
     const std::shared_ptr<State> state;               ///< Pointer to the state.
-    const std::shared_ptr<BlockChain> chain;          ///< Pointer to the blockchain.
+    const std::shared_ptr<Storage> storage;           ///< Pointer to the blockchain history.
     const std::shared_ptr<SnowmanVM> snowmanVM;       ///< Pointer to the SnowmanVM.
     const std::shared_ptr<BlockManager> blockManager; ///< Pointer to the block manager.
     const std::shared_ptr<Server> server;             ///< Pointer to the (generic) gRPC server.
