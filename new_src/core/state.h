@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-//#include "blockchain.h" // TODO: fix circular dep
+#include "blockchain.h"
 #include "rdpos.h"
 #include "snowmanVM.h"
 #include "storage.h"

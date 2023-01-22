@@ -6,7 +6,7 @@
 #include "rdpos.h"
 #include "snowmanVM.h"
 #include "storage.h"
-//#include "state.h"  TODO: fix circular dep
+#include "state.h"
 
 #include "../libs/json.hpp"
 
