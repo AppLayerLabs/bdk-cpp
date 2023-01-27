@@ -56,22 +56,22 @@ void fail(std::string cl, std::string func, boost::beast::error_code ec, const c
  * - P2PManager = "P2PManager::"
  */
 namespace Log {
-  const std::string subnet = "Subnet::";
-  const std::string chain = "BlockChain::";
-  const std::string mempool = "BlockMempool::";
-  const std::string block = "Block::";
-  const std::string db = "DB::";
-  const std::string state = "State::";
-  const std::string grpcServer = "gRPCServer::";
-  const std::string grpcClient = "gRPCClient::";
-  const std::string utils = "Utils::";
-  const std::string httpServer = "HTTPServer::";
-  const std::string blockManager = "BlockManager::";
-  const std::string ABI = "ABI::";
-  const std::string P2PClient = "P2PClient::";
-  const std::string P2PServer = "P2PServer::";
-  const std::string P2PManager = "P2PManager::";
-};
+  const std::string_view subnet = "Subnet::";
+  const std::string_view chain = "BlockChain::";
+  const std::string_view mempool = "BlockMempool::";
+  const std::string_view block = "Block::";
+  const std::string_view db = "DB::";
+  const std::string_view state = "State::";
+  const std::string_view grpcServer = "gRPCServer::";
+  const std::string_view grpcClient = "gRPCClient::";
+  const std::string_view utils = "Utils::";
+  const std::string_view httpServer = "HTTPServer::";
+  const std::string_view blockManager = "BlockManager::";
+  const std::string_view ABI = "ABI::";
+  const std::string_view P2PClient = "P2PClient::";
+  const std::string_view P2PServer = "P2PServer::";
+  const std::string_view P2PManager = "P2PManager::";
+}
 
 /// Enum for block status.
 enum BlockStatus { Unknown, Processing, Rejected, Accepted };
