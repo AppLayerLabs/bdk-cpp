@@ -88,7 +88,7 @@ namespace Utils {
    * Log a string to a file called `log.txt`.
    * @param str The string to log.
    */
-  void logToFile(std::string str);
+  void logToFile(std::string_view str);
 
   /**
    * Log a string to a file called `debug.txt`.
@@ -96,7 +96,7 @@ namespace Utils {
    * @param func The function where this is being called.
    * @param data The string to log.
    */
-  void logToDebug(std::string pfx, std::string func, std::string data);
+  void logToDebug(std::string_view pfx, std::string_view func, std::string_view data);
 
   /**
    * Hash a given input using SHA3.
