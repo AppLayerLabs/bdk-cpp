@@ -7,6 +7,7 @@
 #include "safehash.h"
 #include "strings.h"
 #include "tx.h"
+#include "utils.h"
 
 /**
  * Custom implementation of a Merkle tree.
@@ -84,7 +85,7 @@ class PNode {
     /// Getter for `data`.
     inline std::string getData() { return this->data; }
 
-    /// Setter for `data.
+    /// Setter for `data`.
     inline void setData(std::string data) { this->data = data; }
 
     /**
