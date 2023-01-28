@@ -92,6 +92,7 @@ class rdPoS : public Contract {
     /**
      * Load Validator nodes from the database.
      * Validators are stored as a list - 8 bytes for index and 32 bytes for public key.
+     * Throws on error.
      */
     void loadFromDB();
 
@@ -132,16 +133,33 @@ class rdPoS : public Contract {
       const std::shared_ptr<DB>& db, const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<P2PManager>& p2p, const Address& add,
       const Address& owner, const PrivKey& privKey = ""
-    );
+    ) : db(db), storage(storage), p2p(p2p), gen(Hash()), Contract(add, owner)
+    {
+      this->isValidator = (!privKey.empty());
+      this->validatorPrivKey = (!privKey.empty()) ? privKey : "";
+      this->loadFromDB();
+      Utils::logToDebug(Log::rdpos, __func__, std::string("Loaded ")
+        + std::to_string(validatorList.size()) + std::string(" validators")
+      );
+      for (Validator& v : validatorList) Utils::logToDebug(
+        Log::rdpos, __func__, std::string("Validator: ") + v.hex()
+      );
+    }
 
     /// Getter for `validatorMempool`. Returns a copy, not the original.
     std::unordered_map<Hash, TxValidator, SafeHash> getMempoolCopy() {
-      return this->validatorMempool;
+      this->lock.lock();
+      auto ret = this->validatorMempool;
+      this->lock.unlock();
+      return ret;
     }
 
     /// Getter for `randomList`. Returns a copy, not the original.
     std::vector<std::reference_wrapper<Validator>> getRandomListCopy() {
-      return this->randomList;
+      this->lock.lock();
+      auto ret = this->randomList;
+      this->lock.unlock();
+      return ret;
     }
 
     /**
@@ -178,7 +196,9 @@ class rdPoS : public Contract {
      * Finalize a block. See %Block for more details.
      * @param block The block to finalize.
      */
-    void finalizeBlock(const std::shared_ptr<Block> block);
+    inline void finalizeBlock(const std::shared_ptr<Block> block) {
+      block->finalize(this->validatorPrivKey);
+    }
 
     /**
      * Parse a transaction list.
