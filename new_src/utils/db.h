@@ -9,6 +9,8 @@
 
 #include <leveldb/db.h>
 
+#include "utils.h"
+
 /**
  * Namespace for accessing database prefixes. Values are:
  * - blocks = "0001"
@@ -80,6 +82,7 @@ struct DBBatch {
  */
 class DB {
   private:
+    // TODO: maybe opts and path don't need to be members? They're only used in the constructor.
     leveldb::DB* db;            ///< Pointer to the database object itself.
     leveldb::Options opts;      ///< Options for managing the database.
     std::mutex batchLock;       ///< Mutex for managing read/write access to batch operations.
