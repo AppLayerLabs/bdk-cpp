@@ -39,9 +39,19 @@ class Blockchain {
     bool isValidator = false;                     ///< Indicates if the blockchain is a Validator.
 
   public:
-    void start();           ///< Start the blockchain.
-    void stop();            ///< Stop the blockchain.
-    void shutdownServer();  ///< Shutdown the generic gRPC server.
+    /// Start the blockchain.
+    void start();
+
+    /// Stop the blockchain.
+    void stop();
+
+    /// Shutdown the generic gRPC server.
+    void shutdownServer() {
+      if (this->initialized && this->shutdown) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        this->server->Shutdown();
+      }
+    }
 
     /**
      * Parse an RPC message.
@@ -64,7 +74,7 @@ class Blockchain {
      * Called by gRPCServer.
      * @param tx The transaction to validate.
      */
-    void validateValidatorTx(const TxValidator& tx);
+    inline void validateValidatorTx(const TxValidator& tx) { this->rdpos->addValidatorTx(tx); }
 
     /**
      * Get the Validator transaction mempool from the rdPoS/block manager.
