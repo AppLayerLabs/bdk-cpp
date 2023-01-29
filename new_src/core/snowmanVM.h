@@ -93,6 +93,9 @@ class SnowmanVM {
     /**
      * Initialize the SnowmanVM services.
      * Called by gRPCServer.
+     * The initialization request is made by the AvalancheGo Daemon.
+     * See vm.proto for more information.
+     * Throws if called when the services are already initialized.
      */
     void initialize(
       const vm::InitializeRequest* request, vm::InitializeResponse* reply
@@ -110,6 +113,8 @@ class SnowmanVM {
     /**
      * Set the state of the SnowmanVM.
      * Called by `initialize()` if no info is found on the database.
+     * For more info about the SetState request, see vm.proto and
+     * https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111
      */
     void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
 
