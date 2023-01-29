@@ -165,7 +165,11 @@ class State {
      * @param add The address to add funds to.
      * TODO: FOR TESTING PURPOSES ONLY. This should be removed before release.
      */
-    void addBalance(const Address& add);
+    void addBalance(const Address& add) {
+      this->stateLock.lock();
+      this->nativeAccount[add].balance += 1000000000000000000;
+      this->stateLock.unlock();
+    }
 };
 
 #endif  // STATE_H
