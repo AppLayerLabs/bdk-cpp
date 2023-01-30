@@ -25,6 +25,7 @@ class TxBlock {
   public:
     /**
      * Raw constructor.
+     * Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
      * @param fromDB If `true`, assumes the tx comes from the database.
      *               If `false`, assumes the tx comes from RLP.
@@ -37,7 +38,9 @@ class TxBlock {
     TxBlock(const std::string_view& bytes, bool fromDB);
 
     /**
-     * Manual constructor. Leave fields blank ("" or 0) if they're not required.
+     * Manual constructor.
+     * Leave fields blank ("" or 0) if they're not required.
+     * Throws on signing failure.
      * @param to The receiver address.
      * @param from The sender address.
      * @param data The arbitrary data string.
@@ -54,7 +57,22 @@ class TxBlock {
     ) : to(to), from(from), data(data), chainId(chainId), nonce(nonce),
       value(value), gas(gas), gasPrice(gasPrice)
     {
-      ; // TODO: derivate v/r/s using privKey
+      if (privKey.size() != 32) throw std::runtime_error(
+        "Invalid privKey size - expected 32, got " + std::to_string(privKey.size())
+      );
+      UPubkey pubKey = Secp256k1::toPub(privKey);
+      Address add = Secp256k1::toAddress(pubKey);
+      if (add != this->from) throw std::runtime_error(
+        "Private key does not match sender address (from)"
+      );
+      Signature sig = Secp256k1::sign(privKey, this->hash(false));
+      this->r = Utils::bytesToUint256(sig.get_view(0, 32));
+      this->s = Utils::bytesToUint256(sig.get_view(32,32));
+      uint8_t recoveryIds = sig[64];
+      this->v = recoveryIds + (this->chainId * 2 + 35);
+      if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
+        throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
+      }
     }
 
     /// Copy constructor.
@@ -127,31 +145,54 @@ class TxBlock {
 
     /**
      * Create a SHA3 hash of the transaction. Calls `rlpSerialize()` before hashing.
+     * @param (optional) includeSig If `true`, includes the transaction signature (v/r/s).
+     *                   Defaults to `true`.
      * @return The hash of the transaction, in bytes.
      */
-    Hash hash();
+    inline Hash hash(bool includeSig = true) { return Utils::sha3(this->rlpSerialize(includeSig)); }
 
     /**
      * Serialize the transaction to a string in RLP format.
      * [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
      * @param (optional) includeSig If `true`, includes the transaction signature (v/r/s).
      *                   Defaults to `true`.
+     * @param (optional) includeFrom If `true`, includes the sender address (for DB operations).
+     *                   Defaults to `false`.
      * @return The serialized transaction.
      */
-    const std::string rlpSerialize(bool includeSig = true);
-
-    /**
-     * Same as `rlpSerialize()`, but checks if tx has a signature/is verified,
-     * and includes extra content like block index, sender address, if the tx
-     * calls a contract and if it's in a block.
-     */
-    const std::string serialize();
+    const std::string rlpSerialize(bool includeSig = true, bool includeFrom = false);
 
     /// Copy assignment operator.
-    TxBlock& operator=(const TxBlock& other);
+    TxBlock& operator=(const TxBlock& other) {
+      this->to = other.to;
+      this->from = other.from;
+      this->data = other.data;
+      this->chainId = other.chainId;
+      this->nonce = other.nonce;
+      this->value = other.value;
+      this->gas = other.gas;
+      this->gasPrice = other.gasPrice;
+      this->v = other.v;
+      this->r = other.r;
+      this->s = other.s;
+      return *this;
+    }
 
     /// Move assignment operator.
-    TxBlock& operator=(TxBlock&& other);
+    TxBlock& operator=(TxBlock&& other) {
+      this->to = std::move(other.to);
+      this->from = std::move(other.from);
+      this->data = std::move(other.data);
+      this->chainId = std::move(other.chainId);
+      this->nonce = std::move(other.nonce);
+      this->value = std::move(other.value);
+      this->gas = std::move(other.gas);
+      this->gasPrice = std::move(other.gasPrice);
+      this->v = std::move(other.v);
+      this->r = std::move(other.r);
+      this->s = std::move(other.s);
+      return *this;
+    }
 
     /// Equality operator. Checks the transaction hash.
     bool operator==(const TxBlock& tx) { return this->hash() == tx.hash(); }
@@ -176,6 +217,7 @@ class TxValidator {
   public:
     /**
      * Raw constructor.
+     * Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
      * @param fromDB If `true`, assumes the tx comes from the database.
      *               If `false`, assumes the tx comes from RLP.
@@ -188,7 +230,9 @@ class TxValidator {
     TxValidator(const std::string_view& bytes, bool fromDB);
 
     /**
-     * Manual constructor. Leave fields blank ("" or 0) if they're not required.
+     * Manual constructor.
+     * Leave fields blank ("" or 0) if they're not required.
+     * Throws on signing failure.
      * @param from The sender address.
      * @param data The arbitrary data string.
      * @param chainId The chain ID of the transaction.
@@ -198,7 +242,22 @@ class TxValidator {
     TxValidator(
       Address from, std::string data, uint64_t chainId, uint64_t nHeight, PrivKey privKey
     ) : from(from), data(data), chainId(chainId), nHeight(nHeight) {
-      ; // TODO: derivate v/r/s using privKey
+      if (privKey.size() != 32) throw std::runtime_error(
+        "Invalid private key size - expected 32, got " + std::to_string(privKey.size())
+      );
+      UPubkey pubKey = Secp256k1::toPub(privKey);
+      Address add = Secp256k1::toAddress(pubKey);
+      if (add != this->from) throw std::runtime_error(
+        "Private key does not match sender address (from)"
+      );
+      Signature sig = Secp256k1::sign(privKey, this->hash(false));
+      this->r = Utils::bytesToUint256(sig.get_view(0, 32));
+      this->s = Utils::bytesToUint256(sig.get_view(32,32));
+      uint8_t recoveryIds = sig[64];
+      this->v = recoveryIds + (this->chainId * 2 + 35);
+      if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
+        throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
+      }
     }
 
     /// Copy constructor.
@@ -251,31 +310,46 @@ class TxValidator {
 
     /**
      * Create a SHA3 hash of the transaction. Calls `rlpSerialize()` before hashing.
+     * @param (optional) includeSig If `true`, includes the transaction signature (v/r/s).
+     *                   Defaults to `true`.
      * @return The hash of the transaction, in bytes.
      */
-    Hash hash();
+    inline Hash hash(bool includeSig = true) { return Utils::sha3(this->rlpSerialize(includeSig)); }
 
     /**
      * Serialize the transaction to a string in RLP format.
      * [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
      * @param (optional) includeSig If `true`, includes the transaction signature (v/r/s).
      *                   Defaults to `true`.
+     * @param (optional) includeFrom If `true`, includes the sender address (for DB operations).
+     *                   Defaults to `false`.
      * @return The serialized transaction.
      */
-    const std::string rlpSerialize(bool includeSig = true);
-
-    /**
-     * Same as `rlpSerialize()`, but checks if tx has a signature/is verified,
-     * and includes extra content like block index, sender address, if the tx
-     * calls a contract and if it's in a block.
-     */
-    const std::string serialize();
+    const std::string rlpSerialize(bool includeSig = true, bool includeFrom = false);
 
     /// Copy assignment operator.
-    TxValidator& operator=(const TxValidator& other);
+    TxValidator& operator=(const TxValidator& other) {
+      this->from = other.from;
+      this->data = other.data;
+      this->chainId = other.chainId;
+      this->nHeight = other.nHeight;
+      this->v = other.v;
+      this->r = other.r;
+      this->s = other.s;
+      return *this;
+    }
 
     /// Move assignment operator.
-    TxValidator& operator=(TxValidator&& other);
+    TxValidator& operator=(TxValidator&& other) {
+      this->from = std::move(other.from);
+      this->data = std::move(other.data);
+      this->chainId = std::move(other.chainId);
+      this->nHeight = std::move(other.nHeight);
+      this->v = std::move(other.v);
+      this->r = std::move(other.r);
+      this->s = std::move(other.s);
+      return *this;
+    }
 
     /// Equality operator. Checks the transaction hash.
     bool operator==(const TxValidator& tx) { return this->hash() == tx.hash(); }
