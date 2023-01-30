@@ -11,6 +11,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/beast/core/error.hpp>
 
 #include <ethash/keccak.h>
 #include <openssl/rand.h>
@@ -191,7 +192,7 @@ namespace Utils {
 
   /**
    * Convert a bytes string to a 256-bit unsigned integer.
-   * @param b The bytes string to convert.
+   * @param b The bytes string to convert.'
    * @return The converted 256-bit integer.
    */
   uint256_t bytesToUint256(const std::string_view& b);
