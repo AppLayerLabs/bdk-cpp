@@ -1,16 +1,16 @@
-#ifndef BLOCKMANAGER_H
-#define BLOCKMANAGER_H
+#ifndef RDPOS_H
+#define RDPOS_H
 
 #include <mutex>
 
-#include "block.h"
-#include "blockChain.h"
 #include "state.h"
+#include "storage.h"
 #include "../contract/contract.h"
 #include "../net/P2PManager.h"
-#include "../net/grpcclient.h"
+#include "../utils/block.h"
 #include "../utils/db.h"
-#include "../utils/hash.h"
+#include "../utils/randomgen.h"
+#include "../utils/safehash.h"
 #include "../utils/strings.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
@@ -50,10 +50,11 @@ class Validator {
 };
 
 /**
- * Class that manages block creation and congestion.
+ * Implementation of rdPoS (Random Deterministic Proof of Stake).
+ * Also known as "block manager", as it manages block creation and congestion.
  * Also considered a contract, but remains part of the core protocol.
  */
-class BlockManager : public Contract {
+class rdPoS : public Contract {
   private:
     /// List of known Validator nodes.
     std::vector<Validator> validatorList;
@@ -62,7 +63,7 @@ class BlockManager : public Contract {
     std::vector<std::reference_wrapper<Validator>> randomList;
 
     /// Mempool for Validator transactions.
-    std::unordered_map<Hash, Tx, SafeHash> validatorMempool;
+    std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool;
 
     /// Private key of the Validator node running the block manager contract.
     PrivKey validatorPrivKey;
@@ -82,18 +83,16 @@ class BlockManager : public Contract {
     /// Pointer to the database.
     const std::shared_ptr<DB> db;
 
-    /// Pointer to the blockchain.
-    const std::shared_ptr<BlockChain> chain;
+    /// Pointer to the blockchain history.
+    const std::shared_ptr<Storage> storage;
 
     /// Pointer to the P2P connection manager.
     const std::shared_ptr<P2PManager> p2p;
 
-    /// Pointer to the gRPC client.
-    const std::shared_ptr<gRPCClient> grpcClient;
-
     /**
      * Load Validator nodes from the database.
      * Validators are stored as a list - 8 bytes for index and 32 bytes for public key.
+     * Throws on error.
      */
     void loadFromDB();
 
@@ -123,28 +122,44 @@ class BlockManager : public Contract {
     /**
      * Constructor.
      * @param db Pointer to the database.
-     * @param chain Pointer to the blockchain.
+     * @param storage Pointer to the blockchain history.
      * @param p2p Pointer to the P2P connection manager.
-     * @param grpcClient Pointer to the gRPC client.
      * @param add The address where the block manager will be deployed as a smart contract.
      * @param owner The owner address of the block manager contract.
      * @param privKey (optional) Private key of the Validator.
      *                If set, the current running node will become a Validator.
      */
-    BlockManager(
-      const std::shared_ptr<DB>& db, const std::shared_ptr<BlockChain>& chain,
-      const std::shared_ptr<P2PManager>& p2p, const std::shared_ptr<gRPCClient>& grpcClient,
-      const Address& add, const Address& owner, const PrivKey& privKey = ""
-    );
+    rdPoS(
+      const std::shared_ptr<DB>& db, const std::shared_ptr<Storage>& storage,
+      const std::shared_ptr<P2PManager>& p2p, const Address& add,
+      const Address& owner, const PrivKey& privKey = ""
+    ) : db(db), storage(storage), p2p(p2p), gen(Hash()), Contract(add, owner)
+    {
+      this->isValidator = (!privKey.empty());
+      this->validatorPrivKey = (!privKey.empty()) ? privKey : "";
+      this->loadFromDB();
+      Utils::logToDebug(Log::rdpos, __func__, std::string("Loaded ")
+        + std::to_string(validatorList.size()) + std::string(" validators")
+      );
+      for (Validator& v : validatorList) Utils::logToDebug(
+        Log::rdpos, __func__, std::string("Validator: ") + v.hex()
+      );
+    }
 
     /// Getter for `validatorMempool`. Returns a copy, not the original.
-    std::unordered_map<Hash, Tx, SafeHash> getMempoolCopy() {
-      return this->validatorMempool;
+    std::unordered_map<Hash, TxValidator, SafeHash> getMempoolCopy() {
+      this->lock.lock();
+      auto ret = this->validatorMempool;
+      this->lock.unlock();
+      return ret;
     }
 
     /// Getter for `randomList`. Returns a copy, not the original.
     std::vector<std::reference_wrapper<Validator>> getRandomListCopy() {
-      return this->randomList;
+      this->lock.lock();
+      auto ret = this->randomList;
+      this->lock.unlock();
+      return ret;
     }
 
     /**
@@ -175,13 +190,15 @@ class BlockManager : public Contract {
      * Add a Validator transaction to the mempool.
      * @param tx The transaction to add.
      */
-    void addValidatorTx(const Tx& tx);
+    void addValidatorTx(const TxValidator& tx);
 
     /**
      * Finalize a block. See %Block for more details.
      * @param block The block to finalize.
      */
-    void finalizeBlock(const std::shared_ptr<Block> block);
+    inline void finalizeBlock(const std::shared_ptr<Block> block) {
+      block->finalize(this->validatorPrivKey);
+    }
 
     /**
      * Parse a transaction list.
@@ -189,17 +206,10 @@ class BlockManager : public Contract {
      * @param txs The list of transactions to parse.
      * @return The new randomness seed to be used for the next block.
      */
-    static Hash parseTxSeedList(const std::unordered_map<uint64_t, Tx, SafeHash> txs);
-
-    /**
-     * Get the type of a given transaction.
-     * @param tx The transaction to get the type from.
-     * @return The type of the transaction.
-     */
-    static TxType getTxType(const Tx& tx);
+    static Hash parseTxSeedList(const std::unordered_map<uint64_t, TxValidator, SafeHash> txs);
 
     /// Runs `validatorLoop()` inside the Validator thread.
     void startValidatorThread();
 };
 
-#endif  // BLOCKMANAGER_H
+#endif  // RDPOS_H

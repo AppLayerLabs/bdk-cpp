@@ -8,8 +8,6 @@
 #include <string_view>
 #include <thread>
 
-#include <boost/asio/ip/address.hpp>
-#include <boost/beast/core.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
@@ -37,11 +35,11 @@ using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 void fail(std::string_view cl, std::string func, boost::beast::error_code ec, const char* what);
 
 /**
- * Namespace with string prefixes for each subnet module, for printing log/debug messages.
+ * Namespace with string prefixes for each blockchain module, for printing log/debug messages.
  * Values are as follows:
- * - subnet = "Subnet::"
- * - chain = "BlockChain::"
- * - mempool = "BlockMempool::"
+ * - blockchain = "Blockchain::"
+ * - storage = "Storage::"
+ * - snowmanVM = "SnowmanVM::"
  * - block = "Block::"
  * - db = "DB::"
  * - state = "State::"
@@ -49,37 +47,38 @@ void fail(std::string_view cl, std::string func, boost::beast::error_code ec, co
  * - grpcClient = "gRPCClient::"
  * - utils = "Utils::"
  * - httpServer = "HTTPServer::"
- * - blockManager = "BlockManager::"
+ * - rdpos = "rdPoS::"
  * - ABI = "ABI::"
  * - P2PClient = "P2PClient::"
  * - P2PServer = "P2PServer::"
  * - P2PManager = "P2PManager::"
  */
 namespace Log {
-  const std::string_view subnet = "Subnet::";
-  const std::string_view chain = "BlockChain::";
-  const std::string_view mempool = "BlockMempool::";
-  const std::string_view block = "Block::";
-  const std::string_view db = "DB::";
-  const std::string_view state = "State::";
-  const std::string_view grpcServer = "gRPCServer::";
-  const std::string_view grpcClient = "gRPCClient::";
-  const std::string_view utils = "Utils::";
-  const std::string_view httpServer = "HTTPServer::";
-  const std::string_view blockManager = "BlockManager::";
-  const std::string_view ABI = "ABI::";
-  const std::string_view P2PClient = "P2PClient::";
-  const std::string_view P2PServer = "P2PServer::";
-  const std::string_view P2PManager = "P2PManager::";
+  const std::string blockchain = "Blockchain::";
+  const std::string storage = "Storage::";
+  const std::string snowmanVM = "SnowmanVM::";
+  const std::string block = "Block::";
+  const std::string db = "DB::";
+  const std::string state = "State::";
+  const std::string grpcServer = "gRPCServer::";
+  const std::string grpcClient = "gRPCClient::";
+  const std::string utils = "Utils::";
+  const std::string httpServer = "HTTPServer::";
+  const std::string rdpos = "rdPoS::";
+  const std::string ABI = "ABI::";
+  const std::string P2PClient = "P2PClient::";
+  const std::string P2PServer = "P2PServer::";
+  const std::string P2PManager = "P2PManager::";
 }
-
-/// Enum for block status.
-enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
 /// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };
 
-/// Abstraction of balance and nonce for a single account.
+/**
+ * Abstraction of balance and nonce for a single account.
+ * Used with %Address on %State in an unordered_map to track native accounts.
+ * See `nativeAccounts` on %State for more info.
+ */
 struct Account { uint256_t balance = 0; uint32_t nonce = 0; };
 
 /// Namespace for utility functions.
@@ -295,6 +294,7 @@ namespace Utils {
 
   /**
    * Check if an ECDSA signature is valid.
+   * @deprecated Moved to ecdsa
    * @param r The first half of the ECDSA signature.
    * @param s The second half of the ECDSA signature.
    * @param v The recovery ID.

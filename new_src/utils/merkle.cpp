@@ -1,54 +1,54 @@
 #include "merkle.h"
-#include "hash.h"
-#include "tx.h"
-
-Merkle::Merkle(const std::vector<Hash>& leaves) {
-  std::vector<Hash> leafs;
-  for (const auto &leaf : leaves) {
-    this->leafs.emplace_back(std::move(Utils::sha3(leaf.get())));
-  }
-  this->tree.emplace_back(this->leafs);
-  while (this->tree.back().size() > 1) {
-    this->tree.emplace_back(newLayer(this->tree.back()));
-  }
-};
-
-Merkle::Merkle(const std::unordered_map<uint64_t, Tx, SafeHash>& txs) {
-  std::vector<Hash> leafs;
-  for (uint64_t i = 0; i < txs.size(); i++) {
-    leafs.emplace_back(std::move(Utils::sha3(txs.find(i)->second.hash().get())));
-  }
-
- this->tree.emplace_back(leafs);
-
- while (this->tree.back().size() > 1) {
-    this->tree.emplace_back(newLayer(this->tree.back()));
-  }
-}
-
-Merkle::Merkle(const std::unordered_map<uint64_t, Tx::Validator, SafeHash> &txs) {
-  std::vector<Hash> leafs;
-  for (uint64_t i = 0; i < txs.size(); ++i) {
-    this->leafs.emplace_back(std::move(Utils::sha3(txs.find(i)->second.hash().get())));
-  }
-  this->tree.emplace_back(this->leafs);
-  while (this->tree.back().size() > 1) {
-    this->tree.emplace_back(newLayer(this->tree.back()));
-  }
-};
-
 
 std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) {
   std::vector<Hash> ret;
   for (uint64_t i = 0; i < layer.size(); i += 2) ret.emplace_back(
-    ((i+1 < layer.size()) ? Utils::sha3(layer[i].get() + layer[i+1].get()) : layer[i])
+    ((i + 1 < layer.size()) ? Utils::sha3(layer[i].get() + layer[i + 1].get()) : layer[i])
   );
   return ret;
 };
 
-const std::vector<Hash> Merkle::getProof(const uint64_t& leafIndex) const {
-  std::vector<Hash> leafs;
-  if (leafIndex > this->leafs.size() - 1) return {};
+Merkle::Merkle(const std::vector<Hash>& leaves) {
+  // Mount the base leaves
+  std::vector<Hash> tmp;
+  for (const Hash& leaf : leaves) {
+    tmp.emplace_back(std::move(Utils::sha3(leaf.get())));
+  }
+  this->tree.emplace_back(tmp);
+  // Make the layers up to root
+  while (this->tree.back().size() > 1) {
+    this->tree.emplace_back(newLayer(this->tree.back()));
+  }
+};
+
+Merkle::Merkle(const std::unordered_map<uint64_t, TxBlock, SafeHash>& txs) {
+  // Mount the base leaves
+  std::vector<Hash> tmp;
+  for (uint64_t i = 0; i < txs.size(); i++) {
+    tmp.emplace_back(std::move(Utils::sha3(txs.find(i)->second.hash().get())));
+  }
+  this->tree.emplace_back(tmp);
+  // Make the layers up to root
+  while (this->tree.back().size() > 1) {
+    this->tree.emplace_back(newLayer(this->tree.back()));
+  }
+}
+
+Merkle::Merkle(const std::unordered_map<uint64_t, TxValidator, SafeHash>& txs) {
+  // Mount the base leaves
+  std::vector<Hash> tmp;
+  for (uint64_t i = 0; i < txs.size(); ++i) {
+    tmp.emplace_back(std::move(Utils::sha3(txs.find(i)->second.hash().get())));
+  }
+  this->tree.emplace_back(tmp);
+  // Make the layers up to root
+  while (this->tree.back().size() > 1) {
+    this->tree.emplace_back(newLayer(this->tree.back()));
+  }
+};
+
+const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
+  if (leafIndex > this->tree.front().size() - 1) return {};
   std::vector<Hash> ret;
   uint64_t pos = leafIndex;
   // Check if left (even) or right (odd) child, pick its sibling,
@@ -62,8 +62,16 @@ const std::vector<Hash> Merkle::getProof(const uint64_t& leafIndex) const {
   return ret;
 }
 
+PNode* PNode::getChild(char id) {
+  auto it = std::find_if(
+  std::begin(this->children), std::end(this->children),
+    [&id](const PNode& node){ return node.id == id; }
+  );
+  return (it != this->children.end()) ? &*it : NULL;
+}
+
 void Patricia::addLeaf(Hash branch, std::string data) {
-  PNode* tmpRoot = &this->_root;
+  PNode* tmpRoot = &this->root;
   std::string str = branch.hex();
   for (int i = 0; i < str.length(); i++) {
     PNode* child = tmpRoot->getChild(str[i]);
@@ -74,7 +82,7 @@ void Patricia::addLeaf(Hash branch, std::string data) {
 }
 
 std::string Patricia::getLeaf(Hash branch) {
-  PNode* tmpRoot = &this->_root;
+  PNode* tmpRoot = &this->root;
   std::string str = branch.hex();
   for (int i = 0; i < str.length(); i++) {
     tmpRoot = tmpRoot->getChild(str[i]);
@@ -84,7 +92,7 @@ std::string Patricia::getLeaf(Hash branch) {
 }
 
 bool Patricia::delLeaf(Hash branch) {
-  PNode* tmpRoot = &this->_root;
+  PNode* tmpRoot = &this->root;
   std::string str = branch.hex();
   for (int i = 0; i < str.length(); i++) {
     tmpRoot = tmpRoot->getChild(str[i]);

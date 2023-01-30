@@ -45,7 +45,7 @@ class ContractManager {
      * Process a transaction that calls a function from a given contract.
      * @param tx The transaction to process.
      */
-    void processTx(const Tx& tx);
+    void processTx(const TxBlock& tx);
 };
 
 #endif  // CONTRACTMANAGER_H

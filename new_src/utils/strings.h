@@ -16,6 +16,7 @@ template <unsigned N> class FixedStr {
     std::string data; ///< Internal string data.
   public:
     inline FixedStr() { this->data.resize(N, 0x00); }; ///< Constructor.
+    FixedStr(const std::string& data); ///< Copy constructor.
     FixedStr(const std::string_view& data); ///< Copy constructor.
     FixedStr(std::string&& data); ///< Move constructor.
     FixedStr(const FixedStr& other);  ///< Copy constructor.
@@ -124,6 +125,9 @@ class Signature : public FixedStr<65> {
 /// Abstraction for a single 20-byte address (e.g. "1234567890abcdef..."). Inherits `FixedStr<20>`.
 class Address : public FixedStr<20> {
   public:
+    using FixedStr<20>::operator==; ///< Using parent operator==.
+    using FixedStr<20>::operator!=; ///< Using parent operator!=.
+
     /**
      * Copy constructor.
      * @param add The address itself.
@@ -141,6 +145,19 @@ class Address : public FixedStr<20> {
      *                is in raw bytes format.
      */
     Address(std::string&& add, bool fromRPC);
+
+    /**
+     * Copy constructor.
+     * @param add The address itself.
+     * @param fromRPC If `true`, considers the address is a string, patches it
+     *                and stores it as bytes. If `false`, considers the address
+     *                is in raw bytes format.
+     */
+    Address(const std::string_view& add, bool fromRPC);
+
+    Address(const Address& other);  ///< Copy constructor.
+
+    Address(Address&& other); ///< Move constructor.
 
     /**
      * Convert the address back to its raw 20-byte/160-bit hash format.

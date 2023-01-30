@@ -110,7 +110,9 @@ namespace ABI {
 
     public:
       /**
-       * Constructor. Automatically encodes the data during construction.
+       * Constructor.
+       * Automatically encodes the data during construction.
+       * Throws on error.
        * @param data A list of variables to encode.
        * @param func (optional) The full function header to encode.
        *             Defaults to an empty string.
@@ -140,6 +142,7 @@ namespace ABI {
 
       /**
        * Decode a 256-bit unsigned integer from the given Solidity data string.
+       * Throws if data is too short.
        * @param data The Solidity data string to decode.
        * @start The index of the string to start decoding from.
        * @return The decoded 256-bit unsigned integer.
@@ -148,6 +151,7 @@ namespace ABI {
 
       /**
        * Decode a 20-byte address from the given Solidity data string.
+       * Throws if data is too short.
        * @param data The Solidity data string to decode.
        * @start The index of the string to start decoding from.
        * @return The decoded 20-byte address.
@@ -156,6 +160,7 @@ namespace ABI {
 
       /**
        * Decode a boolean from the given Solidity data string.
+       * Throws if data is too short.
        * @param data The Solidity data string to decode.
        * @start The index of the string to start decoding from.
        * @return The decoded boolean.
@@ -166,6 +171,7 @@ namespace ABI {
        * Decode a raw bytes or UTF-8 string from the given Solidity data string.
        * Decoding bytes and string in Solidity is done the exact same way,
        * as we are dealing with data as raw bytes anyway.
+       * Throws if data is too short.
        * @param data The Solidity data string to decode.
        * @start The index of the string to start decoding from.
        * @return The decoded raw bytes or UTF-8 string.
@@ -174,6 +180,7 @@ namespace ABI {
 
       /**
        * Decode a 256-bit unsigned integer array from the given Solidity data string.
+       * Throws if data is too short.
        * @param data The Solidity data string to decode.
        * @start The index of the string to start decoding from.
        * @return The decoded 256-bit unsigned integer array.
@@ -182,6 +189,7 @@ namespace ABI {
 
       /**
        * Decode a 20-byte address array from the given Solidity data string.
+       * Throws if data is too short.
        * @param data The Solidity data string to decode.
        * @start The index of the string to start decoding from.
        * @return The decoded 20-byte address array.
@@ -190,6 +198,7 @@ namespace ABI {
 
       /**
        * Decode a boolean array from the given Solidity data string.
+       * Throws if data is too short.
        * @param data The Solidity data string to decode.
        * @start The index of the string to start decoding from.
        * @return The decoded boolean array.
@@ -199,6 +208,7 @@ namespace ABI {
       /**
        * Decode a raw bytes or UTF-8 string array from the given Solidity data string.
        * See `decodeBytes()` for more details.
+       * Throws if data is too short.
        * @param data The Solidity data string to decode.
        * @start The index of the string to start decoding from.
        * @return The decoded raw bytes or UTF-8 string array.

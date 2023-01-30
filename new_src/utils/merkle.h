@@ -3,7 +3,11 @@
 
 #include <string>
 #include <vector>
+
+#include "safehash.h"
 #include "strings.h"
+#include "tx.h"
+#include "utils.h"
 
 /**
  * Custom implementation of a Merkle tree.
@@ -20,25 +24,34 @@ class Merkle {
      * @param layer The list of hashes to convert into a layer.
      * @return The newly created layer.
      */
-    std::vector<Hash> newLayer(const std::vector<Hash> layer);
+    std::vector<Hash> newLayer(const std::vector<Hash>& layer);
   public:
     /**
      * Constructor.
      * @param leaves The list of leaves to create the Merkle tree from.
      */
-    Merkle(const std::vector<Hash> leaves);
+    Merkle(const std::vector<Hash>& leaves);
 
     /**
-     * Constructor.
+     * Constructor for %Block transactions.
      * @param txs The list of transactions to create the Merkle tree from.
      */
-    Merkle(const std::unordered_map<uint64_t, Tx, SafeHash> txs);
+    Merkle(const std::unordered_map<uint64_t, TxBlock, SafeHash>& txs);
 
-    /// Get the root of the Merkle tree.
-    inline const Hash getRoot() { return this->tree.back().front(); }
+    /**
+     * Constructor for %Validator transactions.
+     * @param txs The list of transactions to create the Merkle tree from.
+     */
+    Merkle(const std::unordered_map<uint64_t, TxValidator, SafeHash>& txs);
 
     /// Getter for `tree`.
-    inline const std::vector<std::vector<Hash>> getTree() { return this->tree; }
+    inline const std::vector<std::vector<Hash>>& getTree() { return this->tree; }
+
+    /// Get the root of the Merkle tree.
+    inline const Hash& getRoot() { return this->tree.back().front(); }
+
+    /// Get the leaves of the Merkle tree.
+    inline const std::vector<Hash>& getLeaves() { return this->tree.front(); }
 
     /**
      * Get the proof for a given leaf in the Merkle tree.
@@ -72,7 +85,7 @@ class PNode {
     /// Getter for `data`.
     inline std::string getData() { return this->data; }
 
-    /// Setter for `data.
+    /// Setter for `data`.
     inline void setData(std::string data) { this->data = data; }
 
     /**

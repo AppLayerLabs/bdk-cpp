@@ -1,18 +1,19 @@
-#ifndef BLOCKCHAIN_H
-#define BLOCKCHAIN_H
+#ifndef STORAGE_H
+#define STORAGE_H
 
 #include <mutex>
 
-#include "block.h"
+#include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/utils.h"
 #include "../utils/random.h"
 
 /**
- * Abstraction of the blockchain.
- * Used to help the %State process new blocks and transactions, and answer RPC queries.
+ * Abstraction of the blockchain history.
+ * Used to store blocks in memory and on disk, and helps the %State process
+ * new blocks, transactions and RPC queries.
  */
-class BlockChain {
+class Storage {
   private:
     /// Pointer to the database that contains the blockchain's entire history.
     std::shared_ptr<DB> db;
@@ -22,7 +23,7 @@ class BlockChain {
      * This limit is required because it would be too expensive to keep
      * every single transaction in memory all the time, so once it reaches
      * the limit, or every now and then, the blocks are dumped to the database.
-     * This keeps the subnet lightweight in memory and extremely responsive.
+     * This keeps the blockchain lightweight in memory and extremely responsive.
      */
     std::deque<std::shared_ptr<const Block>> chain;
 
@@ -33,7 +34,7 @@ class BlockChain {
     std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> blockByTxHash;
 
     /// Map that indexes transactions in memory by their respective hashes.
-    std::unordered_map<Hash, std::shared_ptr<const Tx>, SafeHash> txByHash;
+    std::unordered_map<Hash, std::shared_ptr<const TxBlock>, SafeHash> txByHash;
 
     /// Map that indexes all block heights in the chain by their respective hashes.
     std::unordered_map<Hash, uint64_t, SafeHash> blockHeightByHash;
@@ -45,7 +46,7 @@ class BlockChain {
     mutable std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> cachedBlocks;
 
     /// Cache space for transactions that will be included in the blockchain.
-    mutable std::unordered_map<Hash, std::shared_ptr<const Tx>, SafeHash> cachedTxs;
+    mutable std::unordered_map<Hash, std::shared_ptr<const TxBlock>, SafeHash> cachedTxs;
 
     /// Mutex for managing read/write access to the blockchain.
     mutable std::mutex chainLock;
@@ -64,14 +65,14 @@ class BlockChain {
      * Only call this function directly if absolutely sure that `chainLock` is locked.
      * @param block The block to add.
      */
-    void pushBackInternal(const std::shared_ptr<const Block>&& block);
+    void pushBackInternal(Block&& block);
 
     /**
      * Add a block to the start of the chain.
      * Only call this function directly if absolutely sure that `chainLock` is locked.
      * @param block The block to add.
      */
-    void pushFrontInternal(const std::shared_ptr<const Block>&& block);
+    void pushFrontInternal(Block&& block);
 
     /// Save the latest blocks from memory to database (up to 1000).
     void saveToDB();
@@ -84,17 +85,17 @@ class BlockChain {
      * Constructor. Automatically starts the periodic save thread.
      * @param db Pointer to the database.
      */
-    BlockChain(const std::shared_ptr<DB>& db) : db(db) {
+    Storage(const std::shared_ptr<DB>& db) : db(db) {
       this->loadFromDB();
       this->periodicSaveThread = std::thread([&]{ this->periodicSaveToDB(); });
       this->periodicSaveThread.detach();
     }
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
-    void pushBack(const std::shared_ptr<const Block>&& block);
+    void pushBack(Block&& block);
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
-    void pushFront(const std::shared_ptr<const Block>&& block);
+    void pushFront(Block&& block);
 
     /// Remove a block from the end of the chain.
     void popBack();
@@ -148,7 +149,7 @@ class BlockChain {
      * @param tx The transaction hash to get.
      * @return The found transaction, or `nullptr` if transaction is not found.
      */
-    const std::shared_ptr<const Tx> getTx(const Hash& tx);
+    const std::shared_ptr<const TxBlock> getTx(const Hash& tx);
 
     /**
      * Get a block from the chain that contains a given transaction.
@@ -173,4 +174,4 @@ class BlockChain {
     void stopPeriodicSaveToDB() { this->stopPeriodicSave = true; }
 };
 
-#endif  // BLOCKCHAIN_H
+#endif  // STORAGE_H

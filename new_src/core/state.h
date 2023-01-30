@@ -8,14 +8,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include "block.h"
-#include "blockChain.h"
-#include "blockManager.h"
-//#include "subnet.h" // TODO: fix circular dep
-#include "../net/grpcclient.h"
+#include "blockchain.h"
+#include "rdpos.h"
+#include "snowmanVM.h"
+#include "storage.h"
+#include "../contract/contractmanager.h"
+#include "../utils/block.h"
 #include "../utils/db.h"
-#include "../utils/random.h"
-#include "../utils/transaction.h"
+#include "../utils/randomgen.h"
+#include "../utils/tx.h"
 #include "../utils/utils.h"
 
 /**
@@ -31,28 +32,23 @@ class State {
      */
     std::unordered_map<Address, Account, SafeHash> nativeAccounts;
 
-    /**
-     * Transaction mempool.
-     * This differs from %BlockMempool because those are transactions not bound
-     * to any block, whereas the transactions on %BlockMempool are already in
-     * a block, waiting to be accepted or rejected.
-     */
-    std::unordered_map<Hash, Tx, SafeHash> mempool;
+    /// Transaction mempool.
+    std::unordered_map<Hash, TxBlock, SafeHash> mempool;
 
     /// Pointer to the database.
     const std::shared_ptr<DB> db;
 
-    /// Pointer to the blockchain.
-    const std::shared_ptr<BlockChain> chain;
+    /// Pointer to the blockchain history.
+    const std::shared_ptr<Storage> storage;
 
-    /// Pointer to the block mempool.
-    const std::shared_ptr<BlockMempool> mempool;
+    /// Pointer to the SnowmanVM.
+    const std::shared_ptr<SnowmanVM> snowmanVM;
 
-    /// Pointer to the block manager.
-    const std::shared_ptr<BlockManager> mgr;
+    /// Pointer to the rdPoS/block manager.
+    const std::shared_ptr<rdPoS> rdpos;
 
-    /// Pointer to the gRPC client.
-    const std::shared_ptr<gRPCClient> grpcClient;
+    /// Pointer to the contract manager.
+    const std::shared_ptr<ContractManager> contractMgr;
 
     /// Mutex for managing read/write access to the state.
     std::mutex stateLock;
@@ -77,29 +73,29 @@ class State {
      * @param tx The transaction to process.
      * @return `true` if the transaction was processed successfully, `false` otherwise.
      */
-    bool processNewTx(const Tx& tx);
+    bool processNewTx(const TxBlock& tx);
 
   public:
     /**
      * Constructor. Automatically loads accounts from the database.
      * @param db Pointer to the database.
-     * @param chain Pointer to the blockchain.
-     * @param mempool Pointer to the blockchain's mempool.
-     * @param mgr Pointer to the block manager.
-     * @param grpcClient Pointer to the gRPC client.
+     * @param storage Pointer to the blockchain history.
+     * @param snowmanVM Pointer to the SnowmanVM.
+     * @param rdpos Pointer to the rdPoS/block manager.
+     * @param contractMgr Pointer to the contract manager.
      */
     State(
       const std::shared_ptr<DB>& db,
-      const std::shared_ptr<BlockChain>& chain,
-      const std::shared_ptr<BlockMempool>& mempool,
-      const std::shared_ptr<BlockManager>& mgr,
-      const std::shared_ptr<gRPCClient>& grpcClient
-    ) : db(db), chain(chain), mempool(mempool), mgr(mgr), grpcClient(grpcClient) {
+      const std::shared_ptr<Storage>& storage,
+      const std::shared_ptr<SnowmanVM>& snowmanVM,
+      const std::shared_ptr<rdPoS>& rdpos,
+      const std::shared_ptr<ContractManager>& contractMgr
+    ) : db(db), storage(storage), snowmanVM(snowmanVM), rdpos(rdpos), contractMgr(contractMgr) {
       this->loadFromDB();
     }
 
     /// Getter for `mempool`.
-    const std::unordered_map<Hash, Tx, SafeHash>& getMempool() { return this->mempool; }
+    const std::unordered_map<Hash, TxBlock, SafeHash>& getMempool() { return this->mempool; }
 
     /**
      * Get a native account's balance.
@@ -122,13 +118,13 @@ class State {
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    bool validateNewBlock(const std::shared_ptr<const Block>& block);
+    bool validateNewBlock(Block& block);
 
     /**
      * Process a new block from the network. DOES update the state.
      * @param block The block to process.
      */
-    void processNewBlock(const std::shared_ptr<const Block>&& block);
+    void processNewBlock(Block&& block);
 
     /**
      * Create a new block. Does NOT update the state.
@@ -149,7 +145,7 @@ class State {
      * @param tx The transaction to validate.
      * @return `true` if the transaction is valid, `false` otherwise.
      */
-    bool validateTxForBlock(const Tx& tx);
+    bool validateTxForBlock(const TxBlock& tx);
 
     /**
      * Validates a transaction from RPC.
@@ -162,14 +158,18 @@ class State {
      * @param tx The transaction to validate.
      * @return An error code/message pair with the status of the validation.
      */
-    const std::pair<int, string> validateTxForRPC(const Tx& tx);
+    const std::pair<int, string> validateTxForRPC(const TxBlock& tx);
 
     /**
      * Add a fixed amount of funds to an account.
      * @param add The address to add funds to.
      * TODO: FOR TESTING PURPOSES ONLY. This should be removed before release.
      */
-    void addBalance(const Address& add);
+    void addBalance(const Address& add) {
+      this->stateLock.lock();
+      this->nativeAccount[add].balance += 1000000000000000000;
+      this->stateLock.unlock();
+    }
 };
 
 #endif  // STATE_H

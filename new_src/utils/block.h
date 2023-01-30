@@ -6,12 +6,13 @@
 #include <vector>
 #include <thread>
 
+#include "merkle.h"
+#include "safehash.h"
+#include "strings.h"
+#include "tx.h"
+#include "utils.h"
+
 #include "../contract/contract.h"
-#include "../utils/hash.h"
-#include "../utils/merkle.h"
-#include "../utils/strings.h"
-#include "../utils/tx.h"
-#include "../utils/utils.h"
 
 /**
  * Abstraction of a block.
@@ -81,16 +82,14 @@ class Block {
     uint64_t txCount = 0;
 
     /// List of Validator transactions.
-    std::unordered_map<uint64_t, Tx, SafeHash> validatorTxs;
+    std::unordered_map<uint64_t, const TxValidator, SafeHash> validatorTxs;
 
     /// List of block transactions.
-    std::unordered_map<uint64_t, Tx, SafeHash> txs;
+    std::unordered_map<uint64_t, const TxBlock, SafeHash> txs;
 
     /// Indicates whether the block is finalized or not.
     bool finalized = false;
 
-    /// Indicates whether the block is in the blockchain and its transactions are indexed.
-    bool indexed = false;
   public:
     /**
      * Constructor from network/RPC.
@@ -98,7 +97,7 @@ class Block {
      * @param fromDB If `true`, skips Secp256k1 signature checking.
      *               This brings 40x more performance at the cost of storing
      *               25 extra bytes per transaction.
-     *               See %Tx's constructor for more details.
+     *               See tx constructors in tx.h for more details.
      */
     Block(std::string_view& rawData, bool fromDB);
 
@@ -124,7 +123,6 @@ class Block {
       this->validatorTxs = other.validatorTxs;
       this->txs = other.txs;
       this->finalized = other.finalized;
-      this->indexed = other.indexed;
     }
 
     /// Move constructor.
@@ -140,8 +138,7 @@ class Block {
       txCount(std::move(other.txCount)),
       validatorTxs(std::move(other.validatorTxs)),
       txs(std::move(other.txs)),
-      finalized(std::move(other.finalized)),
-      indexed(std::move(other.indexed))
+      finalized(std::move(other.finalized))
     {}
 
     /// Getter for `validatorSig`.
@@ -172,10 +169,10 @@ class Block {
     const uint64_t& getTxCount() { return this->txCount; }
 
     /// Getter for `validatorTxs`.
-    const std::unordered_map<uint64_t, Tx, SafeHash>& getValidatorTxs() { return this->validatorTxs; }
+    const std::unordered_map<uint64_t, const TxValidator, SafeHash>& getValidatorTxs() { return this->validatorTxs; }
 
     /// Getter for `txs`.
-    const std::unordered_map<uint64_t, Tx, SafeHash>& getTxs() { return this->txs; }
+    const std::unordered_map<uint64_t, const TxBlock, SafeHash>& getTxs() { return this->txs; }
 
     /// Same as `getTimestamp()`, but calculates the timestamp in seconds.
     const uint64_t timestampInSeconds() { return this->_timestamp / 1000000000; }
@@ -204,9 +201,6 @@ class Block {
      */
     inline const Hash getBlockHash() { return Utils::sha3(this->serializeHeader()); }
 
-    /// Indexes all the transactions included in the block.
-    void indexTxs();
-
     /**
      * Add a transaction to the block.
      * Transaction logic validity is not checked.
@@ -214,7 +208,7 @@ class Block {
      * @return `true` if transaction was included in the block, or
      *         `false` if the block is finalized.
      */
-    bool appendTx(const Tx& tx);
+    bool appendTx(const TxBlock& tx);
 
     /**
      * Add a Validator transaction to the block.
@@ -223,7 +217,7 @@ class Block {
      * @return `true` if transaction was included in the block, or
      *         `false` if the block is finalized.
      */
-    bool appendValidatorTx(const Tx& tx);
+    bool appendValidatorTx(const TxValidator& tx);
 
     /**
      * Finalize the block.
@@ -240,6 +234,11 @@ class Block {
       return this->getBlockHash() == rBlock.getBlockHash();
     }
 
+    /// Inequality operator. Checks the block hash of both objects.
+    const bool operator!=(const Block& rBlock) {
+      return this->getBlockHash() != rBlock.getBlockHash();
+    }
+
     /// Copy assignment operator.
     Block& operator=(const Block& other) {
       this->validatorSig = other.validatorSig;
@@ -254,7 +253,6 @@ class Block {
       this->validatorTxs = other.validatorTxs;
       this->txs = other.txs;
       this->finalized = other.finalized;
-      this->indexed = other.indexed;
       return *this;
     }
 
@@ -272,7 +270,6 @@ class Block {
       this->validatorTxs = std::move(other.validatorTxs);
       this->txs = std::move(other.txs);
       this->finalized = std::move(other.finalized);
-      this->indexed = std::move(other.indexed);
       return *this;
     }
 
@@ -290,7 +287,6 @@ class Block {
       this->validatorTxs = other->validatorTxs;
       this->txs = other->txs;
       this->finalized = other->finalized;
-      this->indexed = other->indexed;
       return *this;
     }
 };
