@@ -6,6 +6,7 @@
 #include <vector>
 #include <thread>
 
+#include "ecdsa.h"
 #include "merkle.h"
 #include "safehash.h"
 #include "strings.h"
@@ -13,6 +14,7 @@
 #include "utils.h"
 
 #include "../contract/contract.h"
+#include "../core/rdpos.h"
 
 /**
  * Abstraction of a block.
@@ -107,7 +109,8 @@ class Block {
      * @param timestamp The epoch timestamp of the block.
      * @param nHeight The height of the block.
      */
-    Block(const Hash& prevBlockHash, const uint64_t& timestamp, const uint64_t& nHeight);
+    Block(const Hash& prevBlockHash, const uint64_t& timestamp, const uint64_t& nHeight)
+      : prevBlockHash(prevBlockHash), timestamp(timestamp), nHeight(nHeight) {}
 
     /// Copy constructor.
     Block(const Block& other) {
