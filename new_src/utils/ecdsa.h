@@ -18,6 +18,7 @@ using UPubkey = FixedStr<65>;
 namespace Secp256k1 {
   /**
    * Elliptic curve constant (2^256 - 2^32 - 2^9 - 2^8 - 2^7 - 2^6 - 2^4 - 1).
+   * Equals to 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141.
    */
   static const uint256_t ecConst(
     "115792089237316195423570985008687907852837564279074904382605163141518161494337"
