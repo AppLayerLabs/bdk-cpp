@@ -6,7 +6,7 @@ Hex::Hex() : _hex(), strict() {}
 Hex::Hex(std::string&& value, bool strict) : _hex(std::move(value)), strict(strict)
 {
   isHexValid();
-  if (!strict)
+  if (strict)
   {
     if (_hex[0] == '0' && (_hex[1] == 'x' || _hex[1] == 'X')) _hex = _hex.substr(2);
   }
@@ -18,7 +18,7 @@ Hex::Hex(const std::string_view& value, bool strict) : strict(strict)
   isHexValid(value);
   std::string ret;
   uint64_t index = 0;
-  if (value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) index = 2;
+  if (strict && value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) index = 2;
   for (;index < value.size(); ++index) {
     if (std::isupper(value[index])) {
       ret += std::tolower(value[index]);
@@ -60,7 +60,8 @@ bool Hex::isHexValid(const std::string_view& v)
   if (strict && hex.substr(0, 2) != "0x" && hex.substr(0, 2) != "0X") {
     throw std::runtime_error(
             std::string("Error at --> Hex::isHexValid():\r\n")
-            + "Strict mode requires prefix \"0x\""
+            + "Strict mode requires prefix \"0x\" in \r\n\""
+            + hex + "\""
     );
   }
 
