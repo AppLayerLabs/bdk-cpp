@@ -7,10 +7,9 @@
 
 #include "strings.h"
 
-// TODO: capitalization should be the same for all aliases (PrivKey/PubKey/UPubKey)
 using PrivKey = Hash;
-using Pubkey = FixedStr<33>;
-using UPubkey = FixedStr<65>;
+using PubKey = FixedStr<33>;
+using UPubKey = FixedStr<65>;
 
 /**
  * Namespace for abstracting secp256k1 functions.
@@ -21,7 +20,7 @@ namespace Secp256k1 {
    * Equals to 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141.
    */
   static const uint256_t ecConst(
-    "115792089237316195423570985008687907852837564279074904382605163141518161494337"
+          "115792089237316195423570985008687907852837564279074904382605163141518161494337"
   );
 
   /**
@@ -30,7 +29,7 @@ namespace Secp256k1 {
    * @param msg The message hash (in bytes) to use for recovery.
    * @return The recovered uncompressed public key, or an empty string on failure.
    */
-  UPubkey recover(const Signature& sig, const Hash& msg);
+  UPubKey recover(const Signature& sig, const Hash& msg);
 
   /**
    * Create an ECDSA (Elliptic Curve Digital Signature Algorithm) signature.
@@ -55,35 +54,35 @@ namespace Secp256k1 {
    * @param key The private key to derive from.
    * @returns The derived uncompressed public key.
    */
-  UPubkey toUPub(const PrivKey& key);
+  UPubKey toUPub(const PrivKey& key);
 
   /**
    * Derive an uncompressed public key from a compressed public one.
    * @param key The compressed public key to derive from.
    * @returns The derived uncompressed public key.
    */
-  UPubkey toUPub(const PubKey& key);
+  UPubKey toUPub(const PubKey& key);
 
   /**
    * Derive a compressed public key from a private one.
    * @param key The private key to derive from.
    * @return The derived compressed public key.
    */
-  Pubkey toPub(const PrivKey& key);
+  PubKey toPub(const PrivKey& key);
 
   /**
    * Derive an address from a given uncompressed public key.
    * @param key The uncompressed public key to derive from.
    * @return The derived address.
    */
-  Address toAddress(const UPubkey& key);
+  Address toAddress(const UPubKey& key);
 
   /**
    * Derive an address from a given compressed public key.
    * @param key The compressed public key to derive from.
    * @return The derived address.
    */
-  Address toAddress(const Pubkey& key);
+  Address toAddress(const PubKey& key);
 
   /**
    * Sign a message using a given private key.
@@ -100,7 +99,7 @@ namespace Secp256k1 {
    * @param sig The signature to verify.
    * @return `true` if the signature is verified, `false` otherwise.
    */
-  bool verify(const Hash& msg, const UPubkey& key, const Signature& sig);
+  bool verify(const Hash& msg, const UPubKey& key, const Signature& sig);
 };
 
 #endif  // ECDSA_H
