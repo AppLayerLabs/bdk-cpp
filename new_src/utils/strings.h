@@ -98,9 +98,6 @@ template <unsigned N> class FixedStr {
     }
 
     /// Indexing operator.
-    inline char& operator[](const size_t pos) const { return data[pos]; }
-
-    /// Indexing operator.
     inline const char& operator[](const size_t pos) const { return data[pos]; }
 };
 
@@ -120,7 +117,7 @@ class Hash : public FixedStr<32> {
     inline const uint256_t toUint256() const { return Utils::bytesToUint256(data); }
 
     /// Generate a random 32-byte/256-bit hash.
-    inline static Hash random() const {
+    inline static Hash random() {
       Hash h;
       RAND_bytes((unsigned char*)h.data.data(), 32);
       return h;
