@@ -138,7 +138,7 @@ const uint64_t Block::blockSize() {
   // ret = prevBlockHash + timestamp + nHeight + txCount
   // ret += [ txSize, tx, ... ]
   uint64_t ret = 32 + 8 + 8 + 4;
-  for (const auto& tx : this->txs) ret += 4 + tx.second.serialize().size();
+  for (const auto& tx : this->txs) ret += 4 + tx.second.rlpSerialize().size();
   return ret;
 }
 
@@ -173,9 +173,7 @@ const std::string Block::serializeToBytes(bool fromDB) {
 
   // Append Block txs - parse both size and data for each transaction
   for (uint64_t i = 0; i < this->txCount; i++) {
-    std::string txBytes = (fromDB)
-      ? this->txs.find(i)->second.serialize()
-      : this->txs.find(i)->second.rlpSerialize(true);
+    std::string txBytes = this->txs.find(i)->second.rlpSerialize(true, fromDB);
     std::string txSizeBytes = Utils::uint32ToBytes(txBytes.size());
     ret += std::move(txSizeBytes);
     ret += std::move(txBytes);
