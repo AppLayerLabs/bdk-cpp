@@ -256,14 +256,7 @@ namespace Utils {
    * @param i The integer to convert.
    * @return The converted integer as a hex string.
    */
-  template <typename T> std::string uintToHex(const T& i) {
-    std::stringstream ss;
-    std::string ret;
-    ss << std::hex << i;
-    ret = ss.str();
-    for (auto &c : ret) if (std::isupper(c)) c = std::tolower(c);
-    return ret;
-  }
+  template <typename T> std::string uintToHex(const T& i);
 
   /**
    * Remove the "0x" prefix from a hex string.

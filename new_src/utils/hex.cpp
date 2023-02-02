@@ -6,9 +6,11 @@ Hex::Hex() : _hex(), strict() {}
 Hex::Hex(std::string&& value, bool strict) : _hex(std::move(value)), strict(strict)
 {
   isHexValid();
-  if (strict)
+  if (!strict)
   {
-    if (_hex[0] == '0' && (_hex[1] == 'x' || _hex[1] == 'X')) _hex = _hex.substr(2);
+    if (_hex[0] == '0' && (_hex[1] == 'x' || _hex[1] == 'X')) _hex.erase(0,2);
+  } else {
+    if (_hex[0] != '0' && (_hex[1] != 'x' || _hex[1] != 'X')) _hex.insert(0, "0x");
   }
   for (auto &c : _hex) if (std::isupper(c)) c = std::tolower(c);
 }
@@ -29,9 +31,9 @@ Hex::Hex(const std::string_view& value, bool strict) : strict(strict)
   _hex = ret;
 }
 
-std::string Hex::get() { return _hex; }
+const std::string& Hex::get() const { return _hex; }
 
-std::string Hex::bytes()
+std::string Hex::bytes() const
 {
   std::string ret;
   uint32_t index = _hex.size() % 2 != 0 ? 1 : 0 ;
@@ -82,19 +84,14 @@ Hex Hex::fromBytes(std::string_view bytes, bool strict) {
   auto _it = bytes.begin();
   auto _end = bytes.end();
  	static char const* hexdigits = "0123456789abcdef";
- 	size_t off = (strict) ? 2 : 0;
- 	std::string hex(std::distance(_it, _end)*2 + off, '0');
-  hex.replace(0, off, "0x");
+  size_t off = 0;
+ 	std::string hex(std::distance(_it, _end)*2, '0');
  	for (; _it != _end; _it++)
  	{
  		hex[off++] = hexdigits[(*_it >> 4) & 0x0f];
  		hex[off++] = hexdigits[*_it & 0x0f];
  	}
   return Hex(std::move(hex), strict);
-}
-
-Hex Hex::fromString(std::string_view bytes, bool strict) {
-  return fromBytes(bytes, strict);
 }
 
 Hex Hex::fromUTF8(std::string_view bytes, bool strict) {
@@ -111,7 +108,7 @@ Hex& Hex::operator+=(const std::string& hex)
 {
   if (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X'))
   {
-    _hex += hex.substr(1);
+    _hex += hex.substr(2);
   }
   else
   {
@@ -124,7 +121,7 @@ Hex& Hex::operator+=(const Hex& hex)
 {
   if (hex._hex[0] == '0' && (hex._hex[1] == 'x' || hex._hex[1] == 'X'))
   {
-    _hex += hex._hex.substr(1);
+    _hex += hex._hex.substr(2);
   }
   else
   {
@@ -140,7 +137,7 @@ std::ostream &operator<<(std::ostream &out, const Hex &hex)  {
 /**
  * TODO: Convert to properly sized bytes
  **/
-uint256_t Hex::getUint() {
+uint256_t Hex::getUint() const {
   return boost::lexical_cast<HexTo<uint256_t>>(_hex);
 }
 
