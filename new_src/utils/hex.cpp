@@ -79,8 +79,17 @@ bool Hex::isHexValid(const std::string_view& v)
 }
 
 Hex Hex::fromBytes(std::string_view bytes, bool strict) {
-  std::string hex = strict ? "0x" : "";
-  hex += dev::toHex(bytes);
+  auto _it = bytes.begin();
+  auto _end = bytes.end();
+ 	static char const* hexdigits = "0123456789abcdef";
+ 	size_t off = (strict) ? 2 : 0;
+ 	std::string hex(std::distance(_it, _end)*2 + off, '0');
+  hex.replace(0, off, "0x");
+ 	for (; _it != _end; _it++)
+ 	{
+ 		hex[off++] = hexdigits[(*_it >> 4) & 0x0f];
+ 		hex[off++] = hexdigits[*_it & 0x0f];
+ 	}
   return Hex(std::move(hex), strict);
 }
 

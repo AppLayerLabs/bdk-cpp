@@ -16,9 +16,7 @@
 #include <ethash/keccak.h>
 #include <openssl/rand.h>
 
-#include "../libs/devcore/CommonData.h"
-#include "../libs/devcore/FixedHash.h"
-#include "../libs/json.hpp"
+#include "json.hpp"
 
 class Hash;
 
@@ -107,7 +105,7 @@ namespace Utils {
 
   /**
    * Convert a 256-bit unsigned integer to a bytes string.
-   * Use `bytesToHex()` to properly print it.
+   * Use `Hex()` to properly print it.
    * @param i The integer to convert.
    * @return The converted 256-bit integer as a bytes string.
    */
@@ -115,7 +113,7 @@ namespace Utils {
 
   /**
    * Convert a 160-bit unsigned integer to a bytes string.
-   * Use `bytesToHex()` to properly print it.
+   * Use `Hex()` to properly print it.
    * @param i The integer to convert.
    * @return The converted 160-bit integer as a bytes string.
    */
@@ -123,7 +121,7 @@ namespace Utils {
 
   /**
    * Convert a 64-bit unsigned integer to a bytes string.
-   * Use `bytesToHex()` to properly print it.
+   * Use `hex()` to properly print it.
    * @param i The integer to convert.
    * @return The converted 64-bit integer as a bytes string.
    */
@@ -131,7 +129,7 @@ namespace Utils {
 
   /**
    * Convert a 32-bit unsigned integer to a bytes string.
-   * Use `bytesToHex()` to properly print it.
+   * Use `hex]()` to properly print it.
    * @param i The integer to convert.
    * @return The converted 32-bit integer as a bytes string.
    */
@@ -139,7 +137,7 @@ namespace Utils {
 
   /**
    * Convert a 16-bit unsigned integer to a bytes string.
-   * Use `bytesToHex()` to properly print it.
+   * Use `hex]()` to properly print it.
    * @param i The integer to convert.
    * @return The converted 16-bit integer as a bytes string.
    */
@@ -147,7 +145,7 @@ namespace Utils {
 
   /**
    * Convert a 8-bit unsigned integer to a bytes string.
-   * Use `bytesToHex()` to properly print it.
+   * Use `hex]()` to properly print it.
    * @param i The integer to convert.
    * @return The converted 8-bit integer as a bytes string.
    */
@@ -252,6 +250,7 @@ namespace Utils {
   std::string patchHex(const std::string& str);
 
   /**
+   * TODO: Deprecate this function with Hex::fromUint<T>
    * Convert any given unsigned integer to a hex string.
    * Does not handle paddings or the "0x" prefix.
    * @param i The integer to convert.
@@ -328,6 +327,8 @@ namespace Utils {
   std::string padRight(std::string str, unsigned int charAmount, char sign = '0');
 
   /**
+   * TODO: Somehow wrap this around FixedString or something similar, so it uses the current implementation design
+   * this function is used by TxBlock/TxValidator to be able to convert an arbirtrary length of bytes to a given int by desearializing parts of the tx bytes.
    * Convert a big-endian byte-stream represented on a templated collection to a templated integer value.
    * `_In` will typically be either std::string or bytes.
    * `T` will typically by unsigned, u160, u256 or bigint.
@@ -337,7 +338,7 @@ namespace Utils {
   template <class T, class In> T fromBigEndian(const In& bytes) {
     T ret = (T)0;
     for (auto i: bytes) {
-      ret = (T)((ret << 8) | (byte)(typename std::make_unsigned<decltype(i)>::type)i);
+      ret = (T)((ret << 8) | (uint8_t)(typename std::make_unsigned<decltype(i)>::type)i);
     }
     return ret;
   }
@@ -355,6 +356,7 @@ namespace Utils {
   void toUpper(std::string& str);
 
   /**
+   * TODO: Deprecate this function with Address::toChksumHex
    * Convert a string to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
    * @param str The string to convert.
    */
@@ -369,6 +371,7 @@ namespace Utils {
   bool isChksum(const std::string& str);
 
   /**
+   * TODO: Deprecate with static Address::isAddress(const std::string_view, bool inBytes.
    * Check if a given address string is valid. If the address has both upper *and* lowercase letters, will also check the checksum.
    * @param add The address to be checked.
    * @param fromRPC If `true`, considers the address is a string.

@@ -40,73 +40,86 @@ Hash Utils::sha3(const std::string_view& input)
   return retH;
 }
 
-bool Utils::isHex(const std::string_view input, bool strict)
-{
-  uint16_t i = (strict) ? 2 : 0;
-  if (strict && input.substr(0, 2) != "0x" && input.substr(0, 2) != "0X")
-  {
-    return false;
-  }
-  std::string_view temp(&input[i], input.size() - i);
-  return temp.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos;
-}
+// Deprecated
+//  bool Utils::isHex(const std::string_view input, bool strict)
+//  {
+//    uint16_t i = (strict) ? 2 : 0;
+//    if (strict && input.substr(0, 2) != "0x" && input.substr(0, 2) != "0X")
+//    {
+//      return false;
+//    }
+//    std::string_view temp(&input[i], input.size() - i);
+//    return temp.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos;
+//  }
 
-std::string Utils::utf8ToHex(const std::string_view &str) {
-  std::stringstream ss;
-  for (char i : str) {
-    // You need two casts in order to properly cast char to uint.
-    ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<uint>(static_cast<uint8_t>(i));
-  }
-  return ss.str();
-}
+//  Deprecated
+//  std::string Utils::utf8ToHex(const std::string_view &str) {
+//    std::stringstream ss;
+//    for (char i : str) {
+//      // You need two casts in order to properly cast char to uint.
+//      ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<uint>(static_cast<uint8_t>(i));
+//    }
+//    return ss.str();
+//  }
 
-std::string Utils::bytesToHex(const std::string_view& b)
-{
-  return dev::toHex(b);
-}
+// Deprecated
+// std::string Utils::bytesToHex(const std::string_view& b)
+// {
+//   auto _it = b.begin();
+//   auto _end = b.end();
+// 	static char const* hexdigits = "0123456789abcdef";
+// 	size_t off = 0;
+// 	std::string hex(std::distance(_it, _end)*2, '0');
+// 	for (; _it != _end; _it++)
+// 	{
+// 		hex[off++] = hexdigits[(*_it >> 4) & 0x0f];
+// 		hex[off++] = hexdigits[*_it & 0x0f];
+// 	}
+// 	return hex;
+// }
 
-std::string Utils::hexToBytes(std::string_view content) {
-  std::string hex = patchHex(content.data());
-  std::string ret;
-  uint32_t index = 0;
+// std::string Utils::hexToBytes(std::string_view content) {
+//   std::string hex = patchHex(content.data());
+//   std::string ret;
+//   uint32_t index = 0;
+// 
+//   if (hex.size() % 2 != 0) {
+//     int byteHex = hexCharToInt(hex[index]);
+//     if (byteHex != -1) {
+//       ret += (char) uint8_t(byteHex);
+//     } else {
+//       Utils::logToDebug(Log::utils ,__func__, "Invalid Hex");
+//       throw std::runtime_error(std::string(__func__) + ": " +
+//                                std::string("Invalid hex char: ") + hex[index]
+//       );
+//     }
+//     index++;
+//   }
+// 
+//   // Parse two by two chars until the end
+//   while (index < hex.size()) {
+//     int h = hexCharToInt(hex[index]);
+//     int l = hexCharToInt(hex[index+1]);
+//     if (h != -1 && l != -1) {
+//       ret += (char) uint8_t(h * 16 + l);
+//     } else {
+//       throw std::runtime_error(
+//               std::string(__func__) + ": " +
+//               std::string("One or more invalid hex chars: ") +
+//               hex[index] + hex[index + 1]
+//       );
+//     }
+//     index += 2;
+//   }
+//   return ret;
+// }
 
-  if (hex.size() % 2 != 0) {
-    int byteHex = hexCharToInt(hex[index]);
-    if (byteHex != -1) {
-      ret += (char) uint8_t(byteHex);
-    } else {
-      Utils::logToDebug(Log::utils ,__func__, "Invalid Hex");
-      throw std::runtime_error(std::string(__func__) + ": " +
-                               std::string("Invalid hex char: ") + hex[index]
-      );
-    }
-    index++;
-  }
-
-  // Parse two by two chars until the end
-  while (index < hex.size()) {
-    int h = hexCharToInt(hex[index]);
-    int l = hexCharToInt(hex[index+1]);
-    if (h != -1 && l != -1) {
-      ret += (char) uint8_t(h * 16 + l);
-    } else {
-      throw std::runtime_error(
-              std::string(__func__) + ": " +
-              std::string("One or more invalid hex chars: ") +
-              hex[index] + hex[index + 1]
-      );
-    }
-    index += 2;
-  }
-  return ret;
-}
-
-bool Utils::verifySig(uint256_t const &r, uint256_t const &s, uint8_t const &v) {
-  // s_max = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
-  static const uint256_t s_max("115792089237316195423570985008687907852837564279074904382605163141518161494337");
-  static const uint256_t s_zero = 0;
-  return (v <= 1 && r > s_zero && s > s_zero && r < s_max && s < s_max);
-}
+// bool Utils::verifySig(uint256_t const &r, uint256_t const &s, uint8_t const &v) {
+//   // s_max = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+//   static const uint256_t s_max("115792089237316195423570985008687907852837564279074904382605163141518161494337");
+//   static const uint256_t s_zero = 0;
+//   return (v <= 1 && r > s_zero && s > s_zero && r < s_max && s < s_max);
+// }
 
 // TODO: This function is identical in CommonData.h, is for the better a re-write of commonly used functions at CommonData.h
 
@@ -118,20 +131,20 @@ int Utils::hexCharToInt(char c)
   return -1;
 }
 
-std::string Utils::patchHex(const std::string& str)
-{
-  std::string ret;
-  uint64_t index = 0;
-  if (str[0] == '0' && str[1] == 'x') index = 2;
-  for (;index < str.size(); ++index) {
-    if (std::isupper(str[index])) {
-      ret += std::tolower(str[index]);
-    } else {
-      ret += str[index];
-    }
-  }
-  return ret;
-}
+// std::string Utils::patchHex(const std::string& str)
+// {
+//   std::string ret;
+//   uint64_t index = 0;
+//   if (str[0] == '0' && str[1] == 'x') index = 2;
+//   for (;index < str.size(); ++index) {
+//     if (std::isupper(str[index])) {
+//       ret += std::tolower(str[index]);
+//     } else {
+//       ret += str[index];
+//     }
+//   }
+//   return ret;
+// }
 
 std::string Utils::uint256ToBytes(const uint256_t& integer)
 {
@@ -309,15 +322,15 @@ void Utils::toUpper(std::string& str)
   std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 }
 
-void Utils::stripHexPrefix(std::string& str)
-{
-  if (str[0] == '0' && str[1] == 'x') str = str.substr(2);
-}
+// void Utils::stripHexPrefix(std::string& str)
+// {
+//   if (str[0] == '0' && str[1] == 'x') str = str.substr(2);
+// }
 
-uint256_t Utils::hexToUint(std::string &hex) {
-  patchHex(hex);
-  return boost::lexical_cast<HexTo<uint256_t>>(hex);
-}
+// uint256_t Utils::hexToUint(std::string &hex) {
+//   patchHex(hex);
+//   return boost::lexical_cast<HexTo<uint256_t>>(hex);
+// }
 
 void Utils::toChksum(std::string& str) {
 // Hash requires lowercase address without "0x"
@@ -325,8 +338,7 @@ void Utils::toChksum(std::string& str) {
     str = str.substr(2);
   }
   Utils::toLower(str);
-  std::string hash = Utils::sha3(str).get();
-  hash = Utils::bytesToHex(hash);
+  Hex hash = Utils::sha3(str).hex();
   for (int i = 0; i < str.length(); i++) {
     if (!std::isdigit(str[i])) {  // Only check letters (A-F)
       // If character hash is 8-F then make it uppercase
@@ -343,20 +355,20 @@ bool Utils::isChksum(const std::string& str) {
   return (str == addCpy);
 }
 
-bool Utils::isAddress(const std::string& add, const bool fromRPC) {
+bool Utils::isAddress(const std::string& add, bool fromRPC) {
   if(fromRPC)
   {
     if (add[0] == '0' && (add[1] == 'x' || add[1] == 'X')) {
-      if(add.substr(2).find_first_not_of("0123456789abcdefABCDEF") != std::string::npos)
-      {
-        return false;
-      }
-      else { return true; }
+      if(add.size () != 42) { return false; }
+      if(add.substr(2).find_first_not_of("0123456789abcdefABCDEF") != std::string::npos) { return false; }
+      return true;
+    } else {
+      if (add.size() != 40) { return false; }
+      if (add.find_first_not_of("0123456789abcdefABCDEF") != std::string::npos) { return false; }
+      return true;
     }
   }
-  else {
-    return (add.size() == 20);
-  }
+  return (add.size() == 20);
 }
 
 json Utils::readConfigFile() {

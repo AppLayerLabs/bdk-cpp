@@ -4,6 +4,10 @@
 #include <string>
 
 #include "utils.h"
+#include "hex.h"
+
+// Forward declaration.
+
 
 /**
  * Abstraction of a fixed-size string.
@@ -37,11 +41,14 @@ public:
   /// Getter for `data`.
   inline const std::string get() const { return this->data; }
 
+  /// Getter for `data`, but returns a std::string_view
+  inline const std::string_view get_view() const { return std::string_view(&data[0], N); }
+
   /// Getter for `data`, but returns the raw C-style string.
   inline const char* raw() const { return this->data.data(); }
 
   /// Getter for `data`, but returns the data in hex format.
-  inline const std::string hex() const { return Utils::bytesToHex(this->data); }
+  inline const Hex hex() const { return Hex::fromBytes(this->data); }
 
   /**
    * Get a read-only copy of the data string.

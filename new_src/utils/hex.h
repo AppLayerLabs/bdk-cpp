@@ -10,9 +10,7 @@
 #include <thread>
 #include <boost/multiprecision/cpp_int.hpp>
 
-
-using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
-using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
+#include "utils.h"
 
 template <typename ElemT> struct HexTo {
   ElemT value;
@@ -43,9 +41,16 @@ public:
    * Returns the data as std::string, if you need the char collection of bytes
    * use hex.get().data();
    */
-  std::string get();
+  inline std::string get();
 
   uint256_t getUint();
+
+  inline std::string substr(size_t pos = 0, size_t len = std::string::npos) const {
+    return _hex.substr(pos, len);
+  }
+  inline std::string_view substr_view(size_t pos = 0, size_t len = std::string::npos) const {
+    return std::string_view(_hex).substr(pos, len);
+  }
 
   /// String Container operators
   Hex& operator+=(const std::string& hexString);
