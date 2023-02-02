@@ -1,6 +1,6 @@
 #include "block.h"
 
-Block::Block(std::string_view& rawData, bool fromDB) {
+Block::Block(const std::string_view& rawData, bool fromDB) {
   // Split block data into different byte arrays
   try {
     this->finalized = true;
@@ -134,7 +134,7 @@ Block::Block(std::string_view& rawData, bool fromDB) {
   }
 }
 
-const uint64_t Block::blockSize() {
+const uint64_t Block::blockSize() const {
   // ret = prevBlockHash + timestamp + nHeight + txCount
   // ret += [ txSize, tx, ... ]
   uint64_t ret = 32 + 8 + 8 + 4;
@@ -142,7 +142,7 @@ const uint64_t Block::blockSize() {
   return ret;
 }
 
-const std::string Block::serializeToBytes(bool fromDB) {
+const std::string Block::serializeToBytes(bool fromDB) const {
   /**
    * Raw Block = prevBlockHash + timestamp + nHeight
    * + txCount + [ txSize, tx, ... ]
@@ -181,7 +181,7 @@ const std::string Block::serializeToBytes(bool fromDB) {
   return ret;
 }
 
-const std::string Block::serializeHeader() {
+const std::string Block::serializeHeader() const {
   /**
    * Header = prevBlockHash + blockRandomness + validatorMerkleRoot
    * + transactionMerkleRoot + timestamp + nHeight

@@ -24,7 +24,7 @@ class Merkle {
      * @param layer The list of hashes to convert into a layer.
      * @return The newly created layer.
      */
-    std::vector<Hash> newLayer(const std::vector<Hash>& layer);
+    std::vector<Hash> newLayer(const std::vector<Hash>& layer) const;
   public:
     /**
      * Constructor.
@@ -45,13 +45,13 @@ class Merkle {
     Merkle(const std::unordered_map<uint64_t, TxValidator, SafeHash>& txs);
 
     /// Getter for `tree`.
-    inline const std::vector<std::vector<Hash>>& getTree() { return this->tree; }
+    inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree; }
 
     /// Get the root of the Merkle tree.
-    inline const Hash& getRoot() { return this->tree.back().front(); }
+    inline const Hash& getRoot() const { return this->tree.back().front(); }
 
     /// Get the leaves of the Merkle tree.
-    inline const std::vector<Hash>& getLeaves() { return this->tree.front(); }
+    inline const std::vector<Hash>& getLeaves() const { return this->tree.front(); }
 
     /**
      * Get the proof for a given leaf in the Merkle tree.
@@ -60,7 +60,7 @@ class Merkle {
      *                  `getProof(2)` would get the proof for leaf C).
      * @return A list of proofs for the leaf.
      */
-    const std::vector<Hash> getProof(const uint64_t leafIndex);
+    const std::vector<Hash> getProof(const uint64_t leafIndex) const;
 };
 
 /**
@@ -80,10 +80,10 @@ class PNode {
     PNode(char id) : id(id) {};
 
     /// Getter for `id`.
-    inline char getId() { return this->id; }
+    inline const char& getId() const { return this->id; }
 
     /// Getter for `data`.
-    inline std::string getData() { return this->data; }
+    inline const std::string& getData() const { return this->data; }
 
     /// Setter for `data`.
     inline void setData(std::string data) { this->data = data; }
@@ -92,7 +92,7 @@ class PNode {
      * Check if the node has any children.
      * @returns `true` if the node has children, `false` otherwise.
      */
-    inline bool hasChildren() { return this->children.size() > 0; }
+    inline bool hasChildren() const { return this->children.size() > 0; }
 
     /**
      * Add a child to the node.
@@ -105,7 +105,7 @@ class PNode {
      * @param id The ID of the child node.
      * @return A pointer to the child node, or a NULL pointer if not found.
      */
-    PNode* getChild(char id);
+    PNode* getChild(char id) const;
 };
 
 /**
@@ -125,14 +125,14 @@ class Patricia {
      * @param branch The hash string to use as a base for creating the branch.
      * @param data The data string to add to the leaf node.
      */
-    void addLeaf(Hash branch, std::string data);
+    void addLeaf(Hash branch, std::string data) const;
 
     /**
      * Get data from a leaf node in a given branch.
      * @param branch The hash string to use as a base for searching the branch.
      * @return The data string contained in the leaf node.
      */
-    std::string getLeaf(Hash branch);
+    std::string getLeaf(Hash branch) const;
 
     /**
      * Remove data from a leaf node in a given branch.
@@ -140,7 +140,7 @@ class Patricia {
      * @param branch The hash string to use as a base for removing data from the branch.
      * @return `true` if the removal was successful, `false` otherwise.
      */
-    bool delLeaf(Hash branch);
+    bool delLeaf(Hash branch) const;
 };
 
 #endif  // MERKLE_H

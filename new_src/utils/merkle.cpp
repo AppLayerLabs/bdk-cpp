@@ -1,6 +1,6 @@
 #include "merkle.h"
 
-std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) {
+std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
   std::vector<Hash> ret;
   for (uint64_t i = 0; i < layer.size(); i += 2) ret.emplace_back(
     ((i + 1 < layer.size()) ? Utils::sha3(layer[i].get() + layer[i + 1].get()) : layer[i])
@@ -62,7 +62,7 @@ const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
   return ret;
 }
 
-PNode* PNode::getChild(char id) {
+PNode* PNode::getChild(char id) const {
   auto it = std::find_if(
   std::begin(this->children), std::end(this->children),
     [&id](const PNode& node){ return node.id == id; }
@@ -70,7 +70,7 @@ PNode* PNode::getChild(char id) {
   return (it != this->children.end()) ? &*it : NULL;
 }
 
-void Patricia::addLeaf(Hash branch, std::string data) {
+void Patricia::addLeaf(Hash branch, std::string data) const {
   PNode* tmpRoot = &this->root;
   std::string str = branch.hex();
   for (int i = 0; i < str.length(); i++) {
@@ -81,7 +81,7 @@ void Patricia::addLeaf(Hash branch, std::string data) {
   tmpRoot->setData(data);
 }
 
-std::string Patricia::getLeaf(Hash branch) {
+std::string Patricia::getLeaf(Hash branch) const {
   PNode* tmpRoot = &this->root;
   std::string str = branch.hex();
   for (int i = 0; i < str.length(); i++) {
@@ -91,7 +91,7 @@ std::string Patricia::getLeaf(Hash branch) {
   return (!tmpRoot->getData().empty()) ? tmpRoot->getData() : "";
 }
 
-bool Patricia::delLeaf(Hash branch) {
+bool Patricia::delLeaf(Hash branch) const {
   PNode* tmpRoot = &this->root;
   std::string str = branch.hex();
   for (int i = 0; i < str.length(); i++) {

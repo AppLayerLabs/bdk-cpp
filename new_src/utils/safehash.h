@@ -18,17 +18,18 @@
  */
 struct SafeHash {
   using clock = std::chrono::steady_clock;
+
   /**
    * Hash a given unsigned integer.
    * Based on [Sebastiano Vigna's original implementation](http://xorshift.di.unimi.it/splitmix64.c).
    * @param i A 64-bit unsigned integer.
    * @returns The hashed data as a 64-bit unsigned integer.
    */
-  static inline uint64_t splitmix(uint64_t integer) {
-    integer += 0x9e3779b97f4a7c15;
-    integer = (integer ^ (integer >> 30)) * 0xbf58476d1ce4e5b9;
-    integer = (integer ^ (integer >> 27)) * 0x94d049bb133111eb;
-    return integer ^ (integer >> 31);
+  inline static uint64_t splitmix(uint64_t i) {
+    i += 0x9e3779b97f4a7c15;
+    i = (i ^ (i >> 30)) * 0xbf58476d1ce4e5b9;
+    i = (i ^ (i >> 27)) * 0x94d049bb133111eb;
+    return i ^ (i >> 31);
   }
 
   /**
@@ -46,9 +47,9 @@ struct SafeHash {
    * @param add An Address object.
    * @returns The same as `splitmix()`.
    */
-  size_t operator()(const Address& addr) const {
+  size_t operator()(const Address& add) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(std::hash<std::string>()(addr.get()) + FIXED_RANDOM);
+    return splitmix(std::hash<std::string>()(add.get()) + FIXED_RANDOM);
   }
 
   /**

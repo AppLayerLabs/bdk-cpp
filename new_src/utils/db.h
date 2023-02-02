@@ -82,18 +82,16 @@ struct DBBatch {
  */
 class DB {
   private:
-    // TODO: maybe opts and path don't need to be members? They're only used in the constructor.
-    leveldb::DB* db;            ///< Pointer to the database object itself.
-    leveldb::Options opts;      ///< Options for managing the database.
-    std::mutex batchLock;       ///< Mutex for managing read/write access to batch operations.
-    std::filesystem::path path; ///< Database filesystem path.
+    leveldb::DB* db;              ///< Pointer to the database object itself.
+    leveldb::Options opts;        ///< Options for managing the database.
+    mutable std::mutex batchLock; ///< Mutex for managing read/write access to batch operations.
 
   public:
     /**
      * Constructor.
      * @param path The database's filesystem path.
      */
-    DB(std::string path);
+    DB(const std::string path);
 
     /**
      * Close the database. "Closing" a LevelDB database is just deleting its object.
@@ -107,7 +105,7 @@ class DB {
      * @param pfx (optional) The prefix to search for. Defaults to an empty string.
      * @return `true` if the key exists, `false` otherwise.
      */
-    bool has(const std::string& key, const std::string& pfx = "");
+    bool has(const std::string& key, const std::string& pfx = "") const;
 
     /**
      * Get a value from a given key in the database.
@@ -115,7 +113,7 @@ class DB {
      * @param pfx (optional) The prefix to search for. Defaults to an empty string.
      * @return The requested value, or an empty string if the key doesn't exist.
      */
-    std::string get(const std::string& key, const std::string& pfx = "");
+    std::string get(const std::string& key, const std::string& pfx = "") const;
 
     /**
      * Insert an entry into the database.
@@ -124,7 +122,7 @@ class DB {
      * @param pfx (optional) The prefix to insert the key into.
      * @return `true` if the insert is successful, `false` otherwise.
      */
-    bool put(const std::string& key, const std::string& value, const std::string& pfx = "");
+    bool put(const std::string& key, const std::string& value, const std::string& pfx = "") const;
 
     /**
      * Delete an entry from the database.
@@ -132,7 +130,7 @@ class DB {
      * @param pfx (optional) The prefix to delete the key from.
      * @return `true` if the deletion is successful, `false` otherwise.
      */
-    bool del(const std::string& key, const std::string& pfx = "");
+    bool del(const std::string& key, const std::string& pfx = "") const;
 
     /**
      * Do several operations in one go.
@@ -140,7 +138,7 @@ class DB {
      * @param pfx (optional) The prefix to operate on.
      * @return `true` if all operations were successful, `false` otherwise.
      */
-    bool putBatch(DBBatch& batch, const std::string& pfx = "");
+    bool putBatch(const DBBatch& batch, const std::string& pfx = "") const;
 
     /**
      * Get all entries from a given prefix.
@@ -149,14 +147,16 @@ class DB {
      *             Defaults to an empty list (same as "get all entries").
      * @return The list of database entries.
      */
-    std::vector<DBEntry> getBatch(const std::string& pfx, const std::vector<std::string>& keys = {});
+    std::vector<DBEntry> getBatch(
+      const std::string& pfx, const std::vector<std::string>& keys = {}
+    ) const;
 
     /**
      * Remove the database prefix (first 4 chars) from a key.
      * @param key The key to remove the prefix from.
      * @return The stripped key.
      */
-    inline std::string stripPrefix(const std::string& key) { return key.substr(4); }
+    inline std::string stripPrefix(const std::string& key) const { return key.substr(4); }
 };
 
 #endif // DB_H

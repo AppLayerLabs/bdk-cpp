@@ -31,16 +31,16 @@ class RandomGen {
     RandomGen(const Hash& seed) : seed(seed) {};
 
     /// Getter for `seed`.
-    inline Hash& getSeed() { return this->seed; }
+    inline const Hash& getSeed() const { return this->seed; }
 
     /// Setter for `seed`.
     inline void setSeed(const Hash& seed) { seedLock.lock(); this->seed = seed; seedLock.unlock(); }
 
     /// Return the maximum numeric limit of a 256-bit unsigned integer.
-    inline uint256_t max() { return std::numeric_limits<uint256_t>::max(); }
+    inline uint256_t max() const { return std::numeric_limits<uint256_t>::max(); }
 
     /// Return the minimum numeric limit of a 256-bit unsigned integer.
-    inline uint256_t min() { return std::numeric_limits<uint256_t>::min(); }
+    inline uint256_t min() const { return std::numeric_limits<uint256_t>::min(); }
 
     /**
      * Shuffle the elements in a vector.

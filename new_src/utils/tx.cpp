@@ -168,7 +168,7 @@ TxBlock::TxBlock(const std::string_view& bytes, bool fromDB) {
   }
 }
 
-const std::string TxBlock::rlpSerialize(bool includeSig, bool includeFrom) {
+std::string TxBlock::rlpSerialize(bool includeSig, bool includeFrom) const {
   dev::RLPStream rlpStrm;
   rlpStrm.appendList(9);
   rlpStrm << this->nonce << this->gasPrice << this->gas <<
@@ -299,7 +299,7 @@ TxValidator::TxValidator(const std::string_view& bytes, bool fromDB) {
   this->from = Secp256k1::toAddress(key);
 }
 
-const std::string TxValidator::rlpSerialize(bool includeSig, bool includeFrom) {
+std::string TxValidator::rlpSerialize(bool includeSig, bool includeFrom) const {
   dev::RLPStream rlpStrm;
   rlpStrm.appendList(5);
   rlpStrm << this->data << this->nHeight;

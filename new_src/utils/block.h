@@ -101,7 +101,7 @@ class Block {
      *               25 extra bytes per transaction.
      *               See tx constructors in tx.h for more details.
      */
-    Block(std::string_view& rawData, bool fromDB);
+    Block(const std::string_view& rawData, bool fromDB);
 
     /**
      * Constructor from creation.
@@ -145,43 +145,47 @@ class Block {
     {}
 
     /// Getter for `validatorSig`.
-    const Signature& getValidatorSig() { return this->validatorSig; }
+    const Signature& getValidatorSig() const { return this->validatorSig; }
 
     /// Getter for `prevBlockHash`.
-    const Hash& getPrevBlockHash() { return this->prevBlockHash; }
+    const Hash& getPrevBlockHash() const { return this->prevBlockHash; }
 
     /// Getter for `randomness`.
-    const Hash& getRandomness() { return this->randomness; }
+    const Hash& getRandomness() const { return this->randomness; }
 
     /// Getter for `validatorTxMerkleRoot`.
-    const Hash& getValidatorTxMerkleRoot() { return this->validatorTxMerkleRoot; }
+    const Hash& getValidatorTxMerkleRoot() const { return this->validatorTxMerkleRoot; }
 
     /// Getter for `txMerkleRoot`.
-    const Hash& getTxMerkleRoot() { return this->txMerkleRoot; }
+    const Hash& getTxMerkleRoot() const { return this->txMerkleRoot; }
 
     /// Getter for `timestamp`.
-    const uint64_t& getTimestamp() { return this->timestamp; }
+    const uint64_t& getTimestamp() const { return this->timestamp; }
 
     /// Getter for `nHeight`.
-    const uint64_t& getNHeight() { return this->nHeight; }
+    const uint64_t& getNHeight() const { return this->nHeight; }
 
     /// Getter for `validatorTxCount`.
-    const uint64_t& getValidatorTxCount() { return this->validatorTxCount; }
+    const uint64_t& getValidatorTxCount() const { return this->validatorTxCount; }
 
     /// Getter for `txCount`.
-    const uint64_t& getTxCount() { return this->txCount; }
+    const uint64_t& getTxCount() const { return this->txCount; }
 
     /// Getter for `validatorTxs`.
-    const std::unordered_map<uint64_t, const TxValidator, SafeHash>& getValidatorTxs() { return this->validatorTxs; }
+    const std::unordered_map<uint64_t, const TxValidator, SafeHash>& getValidatorTxs() const {
+      return this->validatorTxs;
+    }
 
     /// Getter for `txs`.
-    const std::unordered_map<uint64_t, const TxBlock, SafeHash>& getTxs() { return this->txs; }
+    const std::unordered_map<uint64_t, const TxBlock, SafeHash>& getTxs() const {
+      return this->txs;
+    }
 
     /// Same as `getTimestamp()`, but calculates the timestamp in seconds.
-    const uint64_t timestampInSeconds() { return this->_timestamp / 1000000000; }
+    const uint64_t timestampInSeconds() const { return this->timestamp / 1000000000; }
 
     /// Calculate and return the raw block size, in hex bytes.
-    const uint64_t blockSize();
+    const uint64_t blockSize() const;
 
     /**
      * Serialize the raw block data to a hex string.
@@ -189,20 +193,20 @@ class Block {
      * @param fromDB Same as constructor's.
      * @return The serialized raw block data as a hex string.
      */
-    const std::string serializeToBytes(bool fromDB);
+    const std::string serializeToBytes(bool fromDB) const;
 
     /**
      * Serialize the block header to a hex string.
      * That would be `prevBlockHash + blockRandomness + validatorMerkleRoot + transactionMerkleRoot + timestamp + nHeight`.
      * @return The serialized block header as a hex string.
      */
-    const std::string serializeHeader();
+    const std::string serializeHeader() const;
 
     /**
      * Calculate the SHA3 hash of the entire block.
      * @return The block hash.
      */
-    inline const Hash getBlockHash() { return Utils::sha3(this->serializeHeader()); }
+    inline const Hash getBlockHash() const { return Utils::sha3(this->serializeHeader()); }
 
     /**
      * Add a transaction to the block.
@@ -233,12 +237,12 @@ class Block {
     bool finalize(const PrivKey& validatorKey);
 
     /// Equality operator. Checks the block hash of both objects.
-    const bool operator==(const Block& rBlock) {
+    const bool operator==(const Block& rBlock) const {
       return this->getBlockHash() == rBlock.getBlockHash();
     }
 
     /// Inequality operator. Checks the block hash of both objects.
-    const bool operator!=(const Block& rBlock) {
+    const bool operator!=(const Block& rBlock) const {
       return this->getBlockHash() != rBlock.getBlockHash();
     }
 

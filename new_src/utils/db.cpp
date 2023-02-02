@@ -1,18 +1,18 @@
 #include "db.h"
 
-DB::DB(std::string path) {
+DB::DB(const std::string path) {
   this->opts.create_if_missing = true;
-  this->path = std::filesystem::current_path() + std::string("/") + path;
-  if (!std::filesystem::exists(this->path)) { // LevelDB is dumb as a brick so we need this
-    std::filesystem::create_directories(this->path);
+  std::filesystem::path fullPath = std::filesystem::current_path() + std::string("/") + path;
+  if (!std::filesystem::exists(fullPath)) { // LevelDB is dumb as a brick so we need this
+    std::filesystem::create_directories(fullPath);
   }
-  auto status = leveldb::DB::Open(this->opts, this->path.string(), &this->db);
+  auto status = leveldb::DB::Open(this->opts, fullPath.string(), &this->db);
   if (!status.ok()) {
     Utils::logToDebug(Log::db, __func__, "Failed to open DB: " + status.ToString());
   }
 }
 
-bool DB::has(const std::string& key, const std::string& pfx) {
+bool DB::has(const std::string& key, const std::string& pfx) const {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
   for (it->Seek(pfx + key); it->Valid(); it->Next()) {
     if (it->key().ToString() == pfx + key) { delete it; return true; }
@@ -21,7 +21,7 @@ bool DB::has(const std::string& key, const std::string& pfx) {
   return false;
 }
 
-std::string DB::get(const std::string& key, const std::string& pfx) {
+std::string DB::get(const std::string& key, const std::string& pfx) const {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
   for (it->Seek(pfx + key); it->Valid(); it->Next()) {
     if (it->key().ToString() == pfx + key) {
@@ -34,7 +34,7 @@ std::string DB::get(const std::string& key, const std::string& pfx) {
   return "";
 }
 
-bool DB::put(const std::string& key, const std::string& value, const std::string& pfx) {
+bool DB::put(const std::string& key, const std::string& value, const std::string& pfx) const {
   auto status = this->db->Put(leveldb::WriteOptions(), pfx + key, value);
   if (!status.ok()) {
     Utils::logToDebug(Log::db, __func__, "Failed to put key: " + key);
@@ -43,7 +43,7 @@ bool DB::put(const std::string& key, const std::string& value, const std::string
   return true;
 }
 
-bool DB::del(const std::string& key, const std::string& pfx) {
+bool DB::del(const std::string& key, const std::string& pfx) const {
   auto status = this->db->Delete(leveldb::WriteOptions(), pfx + key);
   if (!status.ok()) {
     Utils::logToDebug(Log::db, __func__, "Failed to delete key: " + key);
@@ -52,13 +52,13 @@ bool DB::del(const std::string& key, const std::string& pfx) {
   return true;
 }
 
-bool DB::putBatch(DBBatch& request, const std::string& pfx) {
+bool DB::putBatch(const DBBatch& batch, const std::string& pfx) const {
   batchLock.lock();
-  for (auto &entry : request.puts) {
+  for (DBEntry& entry : batch.puts) {
     auto status = this->db->Put(leveldb::WriteOptions(), pfx + entry.key, entry.value);
     if (!status.ok()) return false;
   }
-  for (std::string& key : request.dels) {
+  for (std::string& key : batch.dels) {
     auto status = this->db->Delete(leveldb::WriteOptions(), pfx + key);
     if (status.ok()) return false;
   }
@@ -66,7 +66,9 @@ bool DB::putBatch(DBBatch& request, const std::string& pfx) {
   return true;
 }
 
-std::vector<DBEntry> DB::getBatch(const std::string& pfx, const std::vector<std::string>& keys) {
+std::vector<DBEntry> DB::getBatch(
+  const std::string& pfx, const std::vector<std::string>& keys
+) const {
   batchLock.lock();
   std::vector<DBEntry> ret;
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());

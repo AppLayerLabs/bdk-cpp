@@ -52,8 +52,9 @@ class TxBlock {
      * @param privKey The private key used to sign the transaction.
      */
     TxBlock(
-      Address to, Address from, std::string data, uint64_t chainId, uint256_t nonce,
-      uint256_t value, uint256_t gas, uint256_t gasPrice, PrivKey privKey
+      const Address to, const Address from, const std::string data,
+      const uint64_t chainId, const uint256_t nonce, const uint256_t value,
+      const uint256_t gas, const uint256_t gasPrice, const PrivKey privKey
     ) : to(to), from(from), data(data), chainId(chainId), nonce(nonce),
       value(value), gas(gas), gasPrice(gasPrice)
     {
@@ -106,40 +107,40 @@ class TxBlock {
     {}
 
     /// Getter for `to`.
-    inline const Address& getTo() { return this->to; }
+    inline const Address& getTo() const { return this->to; }
 
     /// Getter for `from`.
-    inline const Address& getFrom() { return this->from; }
+    inline const Address& getFrom() const { return this->from; }
 
     /// Getter for `data`.
-    inline const std::string& getData() { return this->data; }
+    inline const std::string& getData() const { return this->data; }
 
     /// Getter for `chainId`.
-    inline const uint64_t& getChainId() { return this->chainId; }
+    inline const uint64_t& getChainId() const { return this->chainId; }
 
     /// Getter for `nonce`.
-    inline const uint256_t& getNonce() { return this->nonce; }
+    inline const uint256_t& getNonce() const { return this->nonce; }
 
     /// Getter for `value`.
-    inline const uint256_t& getValue() { return this->value; }
+    inline const uint256_t& getValue() const { return this->value; }
 
     /// Getter for `gas`.
-    inline const uint256_t& getGas() { return this->gas; }
+    inline const uint256_t& getGas() const { return this->gas; }
 
     /// Getter for `gasPrice`.
-    inline const uint256_t& getGasPrice() { return this->gasPrice; }
+    inline const uint256_t& getGasPrice() const { return this->gasPrice; }
 
     /// Getter for `v`.
-    inline const uint256_t& getV() { return this->v; }
+    inline const uint256_t& getV() const { return this->v; }
 
     /// Getter for `r`.
-    inline const uint256_t& getR() { return this->r; }
+    inline const uint256_t& getR() const { return this->r; }
 
     /// Getter for `s`.
-    inline const uint256_t& getS() { return this->s; }
+    inline const uint256_t& getS() const { return this->s; }
 
     /// Getter for `v`, but calculates the real ID value based on chainId.
-    inline const uint256_t recoverId() {
+    inline const uint256_t recoverId() const {
       return uint256_t(uint8_t(this->v - (uint256_t(this->chainId) * 2 + 35)));
     }
 
@@ -149,7 +150,9 @@ class TxBlock {
      *                   Defaults to `true`.
      * @return The hash of the transaction, in bytes.
      */
-    inline Hash hash(bool includeSig = true) { return Utils::sha3(this->rlpSerialize(includeSig)); }
+    inline const Hash hash(bool includeSig = true) {
+      return Utils::sha3(this->rlpSerialize(includeSig));
+    }
 
     /**
      * Serialize the transaction to a string in RLP format.
@@ -160,7 +163,7 @@ class TxBlock {
      *                   Defaults to `false`.
      * @return The serialized transaction.
      */
-    const std::string rlpSerialize(bool includeSig = true, bool includeFrom = false);
+    std::string rlpSerialize(bool includeSig = true, bool includeFrom = false) const;
 
     /// Copy assignment operator.
     TxBlock& operator=(const TxBlock& other) {
@@ -195,10 +198,10 @@ class TxBlock {
     }
 
     /// Equality operator. Checks the transaction hash.
-    bool operator==(const TxBlock& tx) { return this->hash() == tx.hash(); }
+    bool operator==(const TxBlock& tx) const { return this->hash() == tx.hash(); }
 
     /// Inequality operator. Checks the transaction hash.
-    bool operator!=(const TxBlock& tx) { return this->hash() != tx.hash(); }
+    bool operator!=(const TxBlock& tx) const { return this->hash() != tx.hash(); }
 };
 
 /**
@@ -239,8 +242,9 @@ class TxValidator {
      * @param nHeight The block height of the transaction.
      * @param privKey The private key used to sign the transaction.
      */
-    TxValidator(
-      Address from, std::string data, uint64_t chainId, uint64_t nHeight, PrivKey privKey
+    TxValidator(  // TODO: ref params?
+      const Address from, const std::string data, const uint64_t chainId,
+      const uint64_t nHeight, const PrivKey privKey
     ) : from(from), data(data), chainId(chainId), nHeight(nHeight) {
       if (privKey.size() != 32) throw std::runtime_error(
         "Invalid private key size - expected 32, got " + std::to_string(privKey.size())
@@ -283,28 +287,28 @@ class TxValidator {
     {}
 
     /// Getter for `from`.
-    inline const Address& getFrom() { return this->from; }
+    inline const Address& getFrom() const { return this->from; }
 
     /// Getter for `data`.
-    inline const std::string& getData() { return this->data; }
+    inline const std::string& getData() const { return this->data; }
 
     /// Getter for `chainId`.
-    inline const uint64_t& getChainId() { return this->chainId; }
+    inline const uint64_t& getChainId() const { return this->chainId; }
 
     /// Getter for `nHeight`.
-    inline const uint64_t& getNHeight() { return this->nHeight; }
+    inline const uint64_t& getNHeight() const { return this->nHeight; }
 
     /// Getter for `v`.
-    inline const uint256_t& getV() { return this->v; }
+    inline const uint256_t& getV() const { return this->v; }
 
     /// Getter for `r`.
-    inline const uint256_t& getR() { return this->r; }
+    inline const uint256_t& getR() const { return this->r; }
 
     /// Getter for `s`.
-    inline const uint256_t& getS() { return this->s; }
+    inline const uint256_t& getS() const { return this->s; }
 
     /// Getter for `v`, but calculates the real ID value based on chainId.
-    inline const uint256_t recoverId() {
+    inline const uint256_t recoverId() const {
       return uint256_t(uint8_t(this->v - (uint256_t(this->chainId) * 2 + 35)));
     }
 
@@ -314,7 +318,9 @@ class TxValidator {
      *                   Defaults to `true`.
      * @return The hash of the transaction, in bytes.
      */
-    inline Hash hash(bool includeSig = true) { return Utils::sha3(this->rlpSerialize(includeSig)); }
+    inline const Hash hash(bool includeSig = true) {
+      return Utils::sha3(this->rlpSerialize(includeSig));
+    }
 
     /**
      * Serialize the transaction to a string in RLP format.
@@ -325,7 +331,7 @@ class TxValidator {
      *                   Defaults to `false`.
      * @return The serialized transaction.
      */
-    const std::string rlpSerialize(bool includeSig = true, bool includeFrom = false);
+    std::string rlpSerialize(bool includeSig = true, bool includeFrom = false) const;
 
     /// Copy assignment operator.
     TxValidator& operator=(const TxValidator& other) {
@@ -352,10 +358,10 @@ class TxValidator {
     }
 
     /// Equality operator. Checks the transaction hash.
-    bool operator==(const TxValidator& tx) { return this->hash() == tx.hash(); }
+    bool operator==(const TxValidator& tx) const { return this->hash() == tx.hash(); }
 
     /// Inequality operator. Checks the transaction hash.
-    bool operator!=(const TxValidator& tx) { return this->hash() != tx.hash(); }
+    bool operator!=(const TxValidator& tx) const { return this->hash() != tx.hash(); }
 };
 
 #endif  // TX_H
