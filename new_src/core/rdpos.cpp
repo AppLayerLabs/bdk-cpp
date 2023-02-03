@@ -83,7 +83,7 @@ void rdPoS::validatorLoop() {
           + std::to_string(latest->getNHeight())
         );
         TxValidator randomHashTx(me.get(),
-          Utils::hexToBytes("0xcfffe746") + Utils::sha3(randomHash.get_view()).get(),
+          Utils::hexToBytes("0xcfffe746") + Utils::sha3(randomHash.view()).get(),
           8848, latest->getNHeight()
         );
         randomHashTx.sign(this->validatorPrivKey);

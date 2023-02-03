@@ -35,9 +35,6 @@ template <unsigned N> class FixedStr {
     /// Getter for `data`.
     inline const std::string& get() const { return this->data; }
 
-    /// Getter for `data`, but returns a std::string_view
-    inline const std::string_view get_view() const { return std::string_view(&data[0], N); }
-
     /// Getter for `data`, but returns the raw C-style string.
     inline const char* raw() const { return this->data.data(); }
 
@@ -45,13 +42,13 @@ template <unsigned N> class FixedStr {
     inline const Hex hex() const { return Hex::fromBytes(this->data); }
 
     /**
-     * Get a read-only copy of the data string.
+     * Getter for `data`, but returns a read-only copy of the data string.
      * @param size (optional) Number of chars to get. Defaults to the whole string.
      * @param offset (optional) Index to start getting chars from. Defaults to start of the string.
      * @return A string view of the data string.
      */
     inline const std::string_view view(const size_t& size = N, const size_t& offset = 0) const {
-      return std::string_view(this->data.substr(offset, size));
+      return std::string_view(&this->data[offset], size);
     }
 
     /**
