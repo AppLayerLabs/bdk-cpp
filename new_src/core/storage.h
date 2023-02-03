@@ -108,67 +108,67 @@ class Storage {
      * @param hash The block hash to search.
      * @return `true` if the block exists, `false` otherwise.
      */
-    bool hasBlock(const Hash& hash);
+    bool hasBlock(const Hash& hash) const;
 
     /**
      * Check if a block exists in memory, searching by block height.
      * @param height The block height to search.
      * @return `true` if the block exists, `false` otherwise.
      */
-    bool hasBlock(const uint64_t& height);
+    bool hasBlock(const uint64_t& height) const;
 
     /// Same as `hasBlock()`, but also checks the database.
-    bool exists(const Hash& hash);
+    bool exists(const Hash& hash) const;
 
     /// Same as `hasBlock()`, but also checks the database.
-    bool exists(const uint64_t& height);
+    bool exists(const uint64_t& height) const;
 
     /**
      * Get a block from the chain using a given hash.
      * @param hash The block hash to get.
      * @return The found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const Hash& hash);
+    const std::shared_ptr<const Block> getBlock(const Hash& hash) const;
 
     /**
      * Get a block from the chain using a given height.
      * @param height The block height to get.
      * @return The found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const uint64_t& height);
+    const std::shared_ptr<const Block> getBlock(const uint64_t& height) const;
 
     /**
      * Check if a transaction exists in the chain.
      * @param tx The transaction to check.
      * @return `true` if the transaction exists, `false` otherwise.
      */
-    bool hasTx(const Hash& tx);
+    bool hasTx(const Hash& tx) const;
 
     /**
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
      * @return The found transaction, or `nullptr` if transaction is not found.
      */
-    const std::shared_ptr<const TxBlock> getTx(const Hash& tx);
+    const std::shared_ptr<const TxBlock> getTx(const Hash& tx) const;
 
     /**
      * Get a block from the chain that contains a given transaction.
      * @param tx The transaction hash to look for.
      * @return The found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlockFromTx(const Hash& tx);
+    const std::shared_ptr<const Block> getBlockFromTx(const Hash& tx) const;
 
     /**
      * Get the most recently added block from the chain.
      * @returns The latest block.
      */
-    const std::shared_ptr<const Block> latest();
+    const std::shared_ptr<const Block> latest() const;
 
     /// Get the number of blocks currently in the chain.
-    uint64_t blockSize();
+    uint64_t blockSize() const;
 
     /// Start the periodic save thread. Called by the constructor.
-    void periodicSaveToDB();
+    void periodicSaveToDB() const;
 
     /// Stop the periodic save thread.
     void stopPeriodicSaveToDB() { this->stopPeriodicSave = true; }

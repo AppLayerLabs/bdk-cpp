@@ -35,7 +35,7 @@ bool rdPoS::shuffle() {
 
 // TODO: edge cases, handle malicious validators, etc.
 // There is no handling to malicious validators answering invalid hashes, it will simply throw and segfault!
-void rdPoS::validatorLoop() {
+void rdPoS::validatorLoop() const {
   Validator me(Secp256k1::toAddress(Secp256k1::toPub(this->validatorPrivKey)));
 
   while (true) {
@@ -145,7 +145,7 @@ bool rdPoS:: saveToDB() {
   ; // TODO: not implemented in original
 }
 
-bool rdPoS::validateBlock(const std::shared_ptr<const Block>& block) {
+bool rdPoS::validateBlock(const std::shared_ptr<const Block>& block) const {
   // Check validator signature against block height of prevBlockHash (not sure if enough for safety)
   this->lock.lock();
   Hash hash = block->getBlockHash();
@@ -165,7 +165,7 @@ bool rdPoS::validateBlock(const std::shared_ptr<const Block>& block) {
   return true;
 }
 
-Hash rdPoS::processBlock(const std::shared_ptr<const Block>& block) {
+const Hash& rdPoS::processBlock(const std::shared_ptr<const Block>& block) {
   this->lock.lock();
   this->randomList = std::vector<std::reference_wrapper<Validator>>(
     validatorList.begin(), validatorList.end()

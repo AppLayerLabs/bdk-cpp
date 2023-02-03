@@ -12,6 +12,7 @@
 #include "rdpos.h"
 #include "snowmanVM.h"
 #include "storage.h"
+
 #include "../contract/contractmanager.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
@@ -60,7 +61,7 @@ class State {
      * Save accounts from memory to database.
      * @return `true` if the state was saved successfully, `false` otherwise.
      */
-    bool saveToDB();
+    bool saveToDB() const;
 
     /**
      * Load accounts from database to memory.
@@ -95,21 +96,21 @@ class State {
     }
 
     /// Getter for `mempool`.
-    const std::unordered_map<Hash, TxBlock, SafeHash>& getMempool() { return this->mempool; }
+    const std::unordered_map<Hash, TxBlock, SafeHash>& getMempool() const { return this->mempool; }
 
     /**
      * Get a native account's balance.
      * @param add The account's address.
      * @return The native account's current balance.
      */
-    uint256_t getNativeBalance(const Address& add);
+    uint256_t getNativeBalance(const Address& add) const;
 
     /**
      * Get a native account's nonce.
      * @param add The account's address.
      * @return The native account's current nonce.
      */
-    uint256_t getNativeNonce(const Address& add);
+    uint256_t getNativeNonce(const Address& add) const;
 
     /**
      * Validate a block and its transactions. Does NOT update the state.
@@ -118,7 +119,7 @@ class State {
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    bool validateNewBlock(Block& block);
+    bool validateNewBlock(Block& block) const;
 
     /**
      * Process a new block from the network. DOES update the state.
@@ -131,7 +132,7 @@ class State {
      * Uses either the preferred block, or the latest block if there's no preference.
      * @return A pointer to the new block, or `nullptr` if block creation fails.
      */
-    const std::shared_ptr<const Block> createNewBlock();
+    const std::shared_ptr<const Block> createNewBlock() const;
 
     /**
      * Validate a transaction from inside a block.
@@ -145,7 +146,7 @@ class State {
      * @param tx The transaction to validate.
      * @return `true` if the transaction is valid, `false` otherwise.
      */
-    bool validateTxForBlock(const TxBlock& tx);
+    bool validateTxForBlock(const TxBlock& tx) const;
 
     /**
      * Validates a transaction from RPC.

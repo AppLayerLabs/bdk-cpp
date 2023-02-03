@@ -1,6 +1,6 @@
 #include "state.h"
 
-bool State::saveToDB() {
+bool State::saveToDB() const {
   this->stateLock.lock();
   DBBatch accBatch;
   for (auto& acc : this->nativeAccounts) {
@@ -71,21 +71,21 @@ bool State::processNewTx(const TxBlock& tx) {
   return true;
 }
 
-uint256_t State::getNativeBalance(const Address& add) {
+uint256_t State::getNativeBalance(const Address& add) const {
   this->stateLock.lock();
   uint256_t ret = this->nativeAccount[add].balance;
   this->stateLock.unlock();
   return ret;
 };
 
-uint256_t State::getNativeNonce(const Address& add) {
+uint256_t State::getNativeNonce(const Address& add) const {
   this->stateLock.lock();
   uint256_t ret = this->nativeAccount[add].nonce;
   this->stateLock.unlock();
   return ret;
 };
 
-bool State::validateNewBlock(Block& block) {
+bool State::validateNewBlock(Block& block) const {
   // Check block header, previous hash, validation and transactions within.
   // The block will be rejected if invalid transactions are included in it
   // (e.g. invalid signatures, account having min balance for min fees)
@@ -139,7 +139,7 @@ void State::processNewBlock(Block&& block) {
   this->stateLock.unlock();
 }
 
-const std::shared_ptr<const Block> State::createNewBlock() {
+const std::shared_ptr<const Block> State::createNewBlock() const {
   Utils::logToDebug(Log::state, __func__, "Creating new block");
   Hash bestHash = this->snowmanVM->getPreferredBlockHash();
   if (bestHash.empty()) {
@@ -218,7 +218,7 @@ const std::shared_ptr<const Block> State::createNewBlock() {
   return newBestBlock;
 }
 
-bool State::validateTxForBlock(const TxBlock& tx) {
+bool State::validateTxForBlock(const TxBlock& tx) const {
   // Txs are assumed to be always verified - see utils/tx.h for more details
   bool ret = true;
   this->stateLock.lock();

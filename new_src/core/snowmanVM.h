@@ -85,7 +85,7 @@ class SnowmanVM {
     ) : storage(storage), grpcServer(grpcServer), grpcClient(grpcClient);
 
     /// Getter for `preferredBlockHash`.
-    const Hash& getPreferredBlockHash() { return this->preferredBlockHash; }
+    const Hash& getPreferredBlockHash() const { return this->preferredBlockHash; }
 
     /// Setter for `preferredBlockHash`.
     void setPreferredBlockHash(const Hash& hash) { this->preferredBlockHash = hash; }
@@ -108,7 +108,7 @@ class SnowmanVM {
      */
     bool parseBlock(
       ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply
-    );
+    ) const;
 
     /**
      * Set the state of the SnowmanVM.
@@ -116,14 +116,14 @@ class SnowmanVM {
      * For more info about the SetState request, see vm.proto and
      * https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111
      */
-    void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply);
+    void setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply) const;
 
     /**
      * Request a block to be created.
      * Called by gRPCServer.
      * @return `true` if request is successful, `false` otherwise.
      */
-    bool blockRequest(ServerContext* context, vm::BuildBlockResponse* reply);
+    bool blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) const;
 
     /**
      * Get a block that was requested.
@@ -131,7 +131,7 @@ class SnowmanVM {
      */
     void getBlock(
       ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply
-    );
+    ) const;
 
     /**
      * Get the ancestors of a block.
@@ -140,7 +140,7 @@ class SnowmanVM {
      */
     bool getAncestors(
       ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply
-    );
+    ) const;
 
     /**
      * Set the preferred block for acceptance/continuing the chain.
@@ -153,7 +153,7 @@ class SnowmanVM {
      * @param hash The block hash to get the status from.
      * @return The current block's status.
      */
-    const BlockStatus getBlockStatus(const Hash& hash);
+    const BlockStatus getBlockStatus(const Hash& hash) const;
 
     /**
      * Set a block's status in the mempool.
@@ -168,7 +168,7 @@ class SnowmanVM {
      * @param bytes The raw block bytes.
      * @return A pointer to the block, or `nullptr` in case of error.
      */
-    const std::shared_ptr<const Block> verifyBlock(const std::string bytes);
+    const std::shared_ptr<const Block> verifyBlock(const std::string bytes) const;
 
     /**
      * Accept a block.
@@ -190,21 +190,21 @@ class SnowmanVM {
      * @param hash The block hash to check.
      * @return `true` if the block exists, `false` otherwise.
      */
-    bool blockExists(const Hash& hash);
+    bool blockExists(const Hash& hash) const;
 
     /**
      * Check if a block has the "Processing" status (no consensus reached yet).
      * @param hash The block hash to check.
      * @return `true` if block is processing, `false` otherwise.
      */
-    bool blockIsProcessing(const Hash& hash);
+    bool blockIsProcessing(const Hash& hash) const;
 
     /**
      * Get a block from the mempool by its hash.
      * @param hash The block hash to get.
      * @return The found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const Hash& hash);
+    const std::shared_ptr<const Block> getBlock(const Hash& hash) const;
 
     /**
      * Connect to a given node.

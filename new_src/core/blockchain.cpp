@@ -70,11 +70,10 @@ void Blockchain::stop() {
   }
 }
 
-std::pair<int, string> Blockchain::validateTx(const TxBlock&& tx) {
-  bool hasTx = this->state->getMempool().count(tx.hash());
-  auto ret = this->state->validateTxForRPC(tx);
+const std::pair<int, std::string> Blockchain::validateTx(const TxBlock&& tx) const {
+  const std::pair<int, std::string> ret = this->state->validateTxForRPC(tx);
   // Broadcast only if tx was not previously in State
-  if (!hasTx) {
+  if (!this->state->getMempool().count(tx.hash())) {
     Utils::logToDebug(Log::blockchain, __func__, "Broadcasting tx...");
     this->p2p->broadcastTx(tx);
   }

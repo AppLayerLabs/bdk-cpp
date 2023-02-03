@@ -80,7 +80,7 @@ void SnowmanVM::initialize(
 
 bool SnowmanVM::parseBlock(
   ServerContext* context, const std::string& blockBytes, vm::ParseBlockResponse* reply
-) {
+) const {
   try {
     // Check if block already exists on chain head or chain tip
     std::shared_ptr<Block> block = std::make_shared<Block>(blockBytes, false);
@@ -140,7 +140,7 @@ bool SnowmanVM::parseBlock(
   return true;
 }
 
-void SnowmanVM::setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply) {
+void SnowmanVM::setState(const vm::SetStateRequest* request, vm::SetStateResponse* reply) const {
   Utils::logToDebug(Log::snowmanVM, __func__,
     std::string("Setting State to: ") + std::to_string(request->state())
   );
@@ -156,7 +156,7 @@ void SnowmanVM::setState(const vm::SetStateRequest* request, vm::SetStateRespons
   timestamp->set_nanos(bestBlock->getTimestamp() % 1000000000);
 }
 
-bool SnowmanVM::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) {
+bool SnowmanVM::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) const {
   //auto newBlock = this->state->createNewBlock(); // TODO: State pointer doesn't exist here
   if (newBlock == nullptr) {
     Utils::logToDebug(Log::snowmanVM, __func__, "Could not create new block");
@@ -179,7 +179,7 @@ bool SnowmanVM::blockRequest(ServerContext* context, vm::BuildBlockResponse* rep
 
 void SnowmanVM::getBlock(
   ServerContext* context, const vm::GetBlockRequest* request, vm::GetBlockResponse* reply
-) {
+) const {
   Hash hash(request->id());
   if (this->storage->exists(hash)) {
     const std::shared_ptr<const Block> block = this->storage->getBlock(hash);
@@ -194,7 +194,7 @@ void SnowmanVM::getBlock(
       "Block found in chain: " + Utils::bytesToHex(block->serializeToBytes(false))
     );
   } else if (this->blockExists(hash)) {
-    auto block = this->getBlock(hash);
+    const std::shared_ptr<const Block> block = this->getBlock(hash);
     reply->set_parent_id(block->getPrevBlockHash().get());
     reply->set_bytes(block->serializeToBytes(false));
     reply->set_status(this->getBlockStatus(hash));
@@ -216,7 +216,7 @@ void SnowmanVM::getBlock(
 
 bool SnowmanVM::getAncestors(
   ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply
-) {
+) const {
   Utils::LogPrint(Log::snowmanVM, __func__,
     std::string("Getting ancestors of block ") + Utils::bytesToHex(hash.get())
     + " with depth of " + std::to_string(request->max_blocks_num()) + " up to "
@@ -261,7 +261,7 @@ void SnowmanVM::setPreference(ServerContext* context, const vm::SetPreferenceReq
   this->setPreferredBlockHash(Hash(request->id()));
 }
 
-const BlockStatus SnowmanVM::getBlockStatus(const Hash& hash) {
+const BlockStatus SnowmanVM::getBlockStatus(const Hash& hash) const {
   BlockStatus ret = BlockStatus::Unknown;
   this->lock.lock();
   if (this->cachedBlockStatus.count(hash) > 0) {
@@ -277,7 +277,7 @@ void SnowmanVM::setBlockStatus(const Hash& hash, const BlockStatus& status) {
   this->lock.unlock();
 }
 
-const std::shared_ptr<const Block> SnowmanVM::verifyBlock(const std::string bytes) {
+const std::shared_ptr<const Block> SnowmanVM::verifyBlock(const std::string bytes) const {
   // Check if block can be attached to top of the chain, if so add it to processing
   const std::shared_ptr<const Block> block = std::make_shared<Block>(blockBytes, false);
   //if (!this->state->validateNewBlock(block)) return nullptr; // TODO: State pointer doesn't exist here
@@ -315,14 +315,14 @@ void SnowmanVM::rejectBlock(const Hash& hash) {
   this->lock.unlock();
 }
 
-bool SnowmanVM::blockExists(const Hash& hash) {
+bool SnowmanVM::blockExists(const Hash& hash) const {
   this->lock.lock();
   bool ret = (this->mempool.count(hash) > 0);
   this->lock.unlock();
   return ret;
 }
 
-bool SnowmanVM::blockIsProcessing(const Hash& hash) {
+bool SnowmanVM::blockIsProcessing(const Hash& hash) const {
   bool ret = false;
   this->lock.lock();
   if (this->cachedBlockStatus.count(hash) > 0) {
@@ -332,7 +332,7 @@ bool SnowmanVM::blockIsProcessing(const Hash& hash) {
   return ret;
 }
 
-const std::shared_ptr<const Block> SnowmanVM::getBlock(const Hash& hash) {
+const std::shared_ptr<const Block> SnowmanVM::getBlock(const Hash& hash) const {
   this->lock.lock();
   auto it = this->mempool.find(hash);
   std::shared_ptr<const Block>& ret = (it != this->mempool.end()) ? it->second : nullptr;

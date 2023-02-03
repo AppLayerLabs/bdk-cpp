@@ -176,31 +176,31 @@ void Storage::popFront() {
   this->chainLock.unlock();
 }
 
-bool Storage::hasBlock(const Hash& hash) {
+bool Storage::hasBlock(const Hash& hash) const {
   this->chainLock.lock();
   bool result = this->blockByHash.count(hash) > 0;
   this->chainLock.unlock();
   return result;
 }
 
-bool Storage::hasBlock(const uint64_t& height) {
+bool Storage::hasBlock(const uint64_t& height) const {
   this->chainLock.lock();
   bool result = this->blockHashByHeight.count(height) > 0;
   this->chainLock.unlock();
   return result;
 }
 
-bool Storage::exists(const Hash& hash) {
+bool Storage::exists(const Hash& hash) const {
   if (this->hasBlock(hash)) return true;
   return this->db->has(hash.get(), DBPrefix::blocks);
 }
 
-bool Storage::exists(const uint64_t& height) {
+bool Storage::exists(const uint64_t& height) const {
   if (this->hasBlock(height)) return true;
   return this->db->has(Utils::uint64ToBytes(height), DBPrefix::blockHeightMaps);
 }
 
-const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
+const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) const {
   if (!this->exists(hash)) return nullptr;
   Utils::logToDebug(Log::storage, __func__, "hash: " + hash.get());
   std::shared_ptr<const Block> ret;
@@ -218,7 +218,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
   return ret;
 }
 
-const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
+const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) const {
   if (!this->exists(height)) return nullptr;
   Utils::logToDebug(Log::Storage, __func__, "height: " + height);
   std::shared_ptr<const Block> ret;
@@ -237,14 +237,14 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
   return ret;
 }
 
-bool Storage::hasTx(const Hash& tx) {
+bool Storage::hasTx(const Hash& tx) const {
   this->chainLock.lock();
   bool ret = (this->txByHash.count(tx) > 0);
   this->chainLock.unlock();
   return ret;
 }
 
-const std::shared_ptr<const TxBlock> Storage::getTx(const Hash& tx) {
+const std::shared_ptr<const TxBlock> Storage::getTx(const Hash& tx) const {
   std::shared_ptr<const TxBlock> ret = nullptr;
 
   // Check chain first, then cache, then database.
@@ -262,7 +262,7 @@ const std::shared_ptr<const TxBlock> Storage::getTx(const Hash& tx) {
   return ret;
 }
 
-const std::shared_ptr<const Block> Storage::getBlockFromTx(const Hash& tx) {
+const std::shared_ptr<const Block> Storage::getBlockFromTx(const Hash& tx) const {
   this->chainLock.lock();
   const std::shared_ptr<const Block> ret = (this->hasTx(tx))
     ? this->blockByTxHash.find(tx)->second : nullptr;
@@ -270,21 +270,21 @@ const std::shared_ptr<const Block> Storage::getBlockFromTx(const Hash& tx) {
   return ret;
 }
 
-const std::shared_ptr<const Block> Storage::latest() {
+const std::shared_ptr<const Block> Storage::latest() const {
   this->chainLock.lock();
   const std::shared_ptr<const Block> ret = this->chain.back();
   this->chainLock.unlock();
   return ret;
 }
 
-uint64_t Storage::blockSize() {
+uint64_t Storage::blockSize() const {
   this->chainLock.lock();
   uint64_t ret = this->chain.size();
   this->chainLock.unlock();
   return ret;
 }
 
-void Storage::periodicSaveToDB() {
+void Storage::periodicSaveToDB() const {
   while (!this->stopPeriodicSave) {
     std::this_thread::sleep_for(std::chrono::seconds(this->periodicSaveCooldown));
     if (

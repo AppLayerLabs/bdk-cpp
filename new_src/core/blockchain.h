@@ -46,7 +46,7 @@ class Blockchain {
     void stop();
 
     /// Shutdown the generic gRPC server.
-    void shutdownServer() {
+    void shutdownServer() const {
       if (this->initialized && this->shutdown) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         this->server->Shutdown();
@@ -59,7 +59,7 @@ class Blockchain {
      * @param msg The message string to be parsed.
      * @return The parsed response string to the message.
      */
-    std::string parseRPC(std::string& msg);
+    const std::string parseRPC(const std::string& msg) const;
 
     /**
      * Validate a given transaction.
@@ -67,21 +67,21 @@ class Blockchain {
      * @param tx The transaction to validate.
      * @return An error code/message pair with the status of the validation.
      */
-    std::pair<int, string> validateTx(const TxBlock&& tx);
+    const std::pair<int, std::string> validateTx(const TxBlock&& tx) const;
 
     /**
      * Validate a given Validator transaction.
      * Called by gRPCServer.
      * @param tx The transaction to validate.
      */
-    inline void validateValidatorTx(const TxValidator& tx) { this->rdpos->addValidatorTx(tx); }
+    inline void validateValidatorTx(const TxValidator& tx) const { this->rdpos->addValidatorTx(tx); }
 
     /**
      * Get the Validator transaction mempool from the rdPoS/block manager.
      * Called by P2PManager.
      * @return A copy of the Validator mempool.
      */
-    inline std::unordered_map<Hash, TxValidator, SafeHash> getValidatorMempool() {
+    inline std::unordered_map<Hash, TxValidator, SafeHash> getValidatorMempool() const {
       return this->rdpos->getMempoolCopy();
     }
 };

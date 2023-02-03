@@ -24,7 +24,7 @@ class Validator {
     Address add;  ///< The validator's address.
 
   public:
-    /// Constructor.
+    /// Copy constructor.
     Validator(const Address& add) : add(add) {}
 
     /// Move constructor.
@@ -37,16 +37,16 @@ class Validator {
     Validator(Validator&& other) noexcept : add(std::move(other.add)) {}
 
     /// Getter for `add`.
-    const Address& get() { return this->add; }
+    const Address& get() const { return this->add; }
 
     /// Getter for `add`, but returns the address in hex format.
-    const std::string hex() { return this->add.hex(); }
+    const std::string hex() const { return this->add.hex(); }
 
     /// Equality operator. Checks both addresses.
-    bool operator==(const Validator& other) { return add == other.add; }
+    bool operator==(const Validator& other) const { return add == other.add; }
 
     /// Inequality operator. Checks both addresses.
-    bool operator!=(const Validator& other) { return add != other.add; }
+    bool operator!=(const Validator& other) const { return add != other.add; }
 };
 
 /**
@@ -110,7 +110,7 @@ class rdPoS : public Contract {
      * - If hash txs, it'll be the one to provide signatures for creating the block
      * - Asks for txs from other Validator nodes and checks if both are valid
      */
-    void validatorLoop();
+    void validatorLoop() const;
 
   public:
     /// Enum for transaction types.
@@ -147,7 +147,7 @@ class rdPoS : public Contract {
     }
 
     /// Getter for `validatorMempool`. Returns a copy, not the original.
-    std::unordered_map<Hash, TxValidator, SafeHash> getMempoolCopy() {
+    const std::unordered_map<Hash, TxValidator, SafeHash> getMempoolCopy() const {
       this->lock.lock();
       auto ret = this->validatorMempool;
       this->lock.unlock();
@@ -155,7 +155,7 @@ class rdPoS : public Contract {
     }
 
     /// Getter for `randomList`. Returns a copy, not the original.
-    std::vector<std::reference_wrapper<Validator>> getRandomListCopy() {
+    const std::vector<std::reference_wrapper<Validator>> getRandomListCopy() const {
       this->lock.lock();
       auto ret = this->randomList;
       this->lock.unlock();
@@ -177,14 +177,14 @@ class rdPoS : public Contract {
      * @param block The block to validate.
      * @return `true` if the block is properly validated, `false` otherwise.
      */
-    bool validateBlock(const std::shared_ptr<const Block>& block);
+    bool validateBlock(const std::shared_ptr<const Block>& block) const;
 
     /**
      * Process a block.
      * @param block The block to process.
      * @return The new randomness seed to be used for the next block.
      */
-    Hash processBlock(const std::shared_ptr<const Block>& block);
+    const Hash& processBlock(const std::shared_ptr<const Block>& block);
 
     /**
      * Add a Validator transaction to the mempool.
@@ -196,7 +196,7 @@ class rdPoS : public Contract {
      * Finalize a block. See %Block for more details.
      * @param block The block to finalize.
      */
-    inline void finalizeBlock(const std::shared_ptr<Block> block) {
+    inline void finalizeBlock(const std::shared_ptr<Block> block) const {
       block->finalize(this->validatorPrivKey);
     }
 

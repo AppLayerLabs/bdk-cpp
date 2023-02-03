@@ -1,7 +1,7 @@
 #include "blockchain.h"
 
-// TODO: move this somewhere else outside of the Blockchain class? There are multiple edge cases that need to be handled.
-std::string Blockchain::parseRPC(std::string& msg) {
+// TODO: handle multiple edge cases
+const std::string Blockchain::parseRPC(const std::string& msg) const {
   Utils::logToDebug(Log::blockchain, __func__, "Received RPC message: " + msg);
   json ret;
   try {
