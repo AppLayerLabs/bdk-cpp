@@ -64,42 +64,42 @@ namespace TUtils {
 
     SECTION("bytesToUint256 Test") {
       FixedStr<32> bytesStr(std::string("\xcb\x06\x75\x32\x90\xff\xac\x16\x72\x05\xd0\xf5\x3b\x64\xac\xfd\x80\xbe\x11\xed\xbb\x26\xa2\x24\xbe\xd9\x23\x9a\xe6\x74\x0e\x67"));
-      auto uint256Output = Utils::bytesToUint256(bytesStr.get_view());
+      auto uint256Output = Utils::bytesToUint256(bytesStr.view());
       uint256_t uint256ExpectedOutput = uint256_t("91830918212381802449294565349763096207758814059154440393436864477986483867239");
       REQUIRE(uint256Output == uint256ExpectedOutput);
     }
 
     SECTION("bytesToUint160 Test") {
       FixedStr<20> bytesStr(std::string("\x58\xc5\x95\xbe\xdf\x1d\xea\x53\x2c\xf0\x6a\xf9\x09\x1a\x51\xb7\x5a\x11\xda\x61"));
-      auto uint160Output = Utils::bytesToUint160(bytesStr.get_view());
+      auto uint160Output = Utils::bytesToUint160(bytesStr.view());
       uint160_t uint160ExpectedOutput = uint160_t("506797479317435130489084083375319966488594602593");
       REQUIRE(uint160Output == uint160ExpectedOutput);
     }
 
     SECTION("bytesToUint64 Test") {
       FixedStr<8> bytesStr(std::string("\x9a\xce\x8e\x96\x24\xe4\xed\x56"));
-      auto uint64Output = Utils::bytesToUint64(bytesStr.get_view());
+      auto uint64Output = Utils::bytesToUint64(bytesStr.view());
       uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614);
       REQUIRE(uint64Output == uint64ExpectedOutput);
     }
 
     SECTION("bytesToUint32 Test") {
       FixedStr<4> bytesStr(std::string("\x77\x7b\xca\x9a"));
-      auto uint32Output = Utils::bytesToUint32(bytesStr.get_view());
+      auto uint32Output = Utils::bytesToUint32(bytesStr.view());
       uint32_t uint32ExpectedOutput = 2004601498;
       REQUIRE(uint32Output == uint32ExpectedOutput);
     }
 
     SECTION("bytesToUint16 Test") {
       FixedStr<2> bytesStr(std::string("\xff\xac"));
-      auto uint16Output = Utils::bytesToUint16(bytesStr.get_view());
+      auto uint16Output = Utils::bytesToUint16(bytesStr.view());
       uint16_t uint16ExpectedOutput = 65452;
       REQUIRE(uint16Output == uint16ExpectedOutput);
     }
 
     SECTION("bytesToUint8 Test") {
       FixedStr<1> bytesStr(std::string("\x78"));
-      auto uint8Output = Utils::bytesToUint8(bytesStr.get_view());
+      auto uint8Output = Utils::bytesToUint8(bytesStr.view());
       uint8_t uint8ExpectedOutput = 120;
       REQUIRE(uint8Output == uint8ExpectedOutput);
     }

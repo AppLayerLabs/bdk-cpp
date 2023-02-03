@@ -25,7 +25,7 @@ struct SafeHash {
    * @param i A 64-bit unsigned integer.
    * @returns The hashed data as a 64-bit unsigned integer.
    */
-  inline static uint64_t splitmix(uint64_t i) {
+  inline static uint64_t splitmix(uint64_t i) const {
     i += 0x9e3779b97f4a7c15;
     i = (i ^ (i >> 30)) * 0xbf58476d1ce4e5b9;
     i = (i ^ (i >> 27)) * 0x94d049bb133111eb;

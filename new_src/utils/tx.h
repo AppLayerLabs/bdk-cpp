@@ -67,8 +67,8 @@ class TxBlock {
         "Private key does not match sender address (from)"
       );
       Signature sig = Secp256k1::sign(privKey, this->hash(false));
-      this->r = Utils::bytesToUint256(sig.get_view(0, 32));
-      this->s = Utils::bytesToUint256(sig.get_view(32,32));
+      this->r = Utils::bytesToUint256(sig.view(0, 32));
+      this->s = Utils::bytesToUint256(sig.view(32,32));
       uint8_t recoveryIds = sig[64];
       this->v = recoveryIds + (this->chainId * 2 + 35);
       if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
@@ -150,7 +150,7 @@ class TxBlock {
      *                   Defaults to `true`.
      * @return The hash of the transaction, in bytes.
      */
-    inline const Hash hash(bool includeSig = true) {
+    inline const Hash hash(bool includeSig = true) const {
       return Utils::sha3(this->rlpSerialize(includeSig));
     }
 
@@ -242,7 +242,7 @@ class TxValidator {
      * @param nHeight The block height of the transaction.
      * @param privKey The private key used to sign the transaction.
      */
-    TxValidator(  // TODO: ref params?
+    TxValidator(
       const Address from, const std::string data, const uint64_t chainId,
       const uint64_t nHeight, const PrivKey privKey
     ) : from(from), data(data), chainId(chainId), nHeight(nHeight) {
@@ -255,8 +255,8 @@ class TxValidator {
         "Private key does not match sender address (from)"
       );
       Signature sig = Secp256k1::sign(privKey, this->hash(false));
-      this->r = Utils::bytesToUint256(sig.get_view(0, 32));
-      this->s = Utils::bytesToUint256(sig.get_view(32,32));
+      this->r = Utils::bytesToUint256(sig.view(0, 32));
+      this->s = Utils::bytesToUint256(sig.view(32,32));
       uint8_t recoveryIds = sig[64];
       this->v = recoveryIds + (this->chainId * 2 + 35);
       if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
@@ -318,7 +318,7 @@ class TxValidator {
      *                   Defaults to `true`.
      * @return The hash of the transaction, in bytes.
      */
-    inline const Hash hash(bool includeSig = true) {
+    inline const Hash hash(bool includeSig = true) const {
       return Utils::sha3(this->rlpSerialize(includeSig));
     }
 
