@@ -1,8 +1,11 @@
 #include "hex.h"
 #include "utils.h"
 
+Hex::Hex(bool strict) : strict(strict) {
+  if (strict) { this->hex = "0x"; }
+}
+
 Hex::Hex(std::string&& value, bool strict) : hex(std::move(value)), strict(strict) {
-  isHexValid();
   if (strict) {
     if (this->hex[0] != '0' && (this->hex[1] != 'x' || this->hex[1] != 'X')) {
       this->hex.insert(0, "0x");
@@ -12,17 +15,24 @@ Hex::Hex(std::string&& value, bool strict) : hex(std::move(value)), strict(stric
       this->hex.erase(0, 2);
     }
   }
+  isHexValid();
   for (auto& c : this->hex) if (std::isupper(c)) c = std::tolower(c);
 }
 
 Hex::Hex(const std::string_view& value, bool strict) : strict(strict) {
   isHexValid(value);
   std::string ret;
-  uint64_t i = (strict && value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) ? 2 : 0;
+  uint64_t i = 0;
+  if (value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) {
+    i = 2;
+    if (strict) {
+      ret.insert(0, "0x");
+    }
+  }
   for (; i < value.size(); i++) {
     ret += (std::isupper(value[i])) ? std::tolower(value[i]) : value[i];
   }
-  this->hex = ret;
+  this->hex = std::move(ret);
 }
 
 bool Hex::isHexValid(const std::string_view& v) const {
@@ -49,8 +59,9 @@ Hex Hex::fromBytes(std::string_view bytes, bool strict) {
   auto it = bytes.begin();
   auto end = bytes.end();
   static const char* digits = "0123456789abcdef";
-  size_t off = 0;
-  std::string hex(std::distance(it, end) * 2, '0');
+  size_t off = (strict) ? 2 : 0;
+  std::string hex(std::distance(it, end) * 2 + off, '0');
+  hex.replace(0, 2, "0x");
   for (; it != end; it++) {
     hex[off++] = digits[(*it >> 4) & 0x0f];
     hex[off++] = digits[*it & 0x0f];
@@ -60,6 +71,7 @@ Hex Hex::fromBytes(std::string_view bytes, bool strict) {
 
 Hex Hex::fromUTF8(std::string_view bytes, bool strict) {
   std::stringstream ss;
+  if (strict) ss << "0x";
   for (int i = 0; i < bytes.length(); i++) {
     // You need two casts in order to properly cast char to uint
     ss << std::hex << std::setfill('0') << std::setw(2)
@@ -73,6 +85,7 @@ std::string Hex::bytes() const {
 
   // Parse two by two chars until the end
   uint32_t i = (this->hex.size() % 2 != 0); // Odd offset ("0xaaa")
+  i += (this->strict) ? 2 : 0; // Strict offset ("0x")
   for (; i < this->hex.size(); i += 2) {
     int h = Utils::hexCharToInt(this->hex[i]);
     int l = Utils::hexCharToInt(this->hex[i + 1]);

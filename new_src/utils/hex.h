@@ -30,7 +30,7 @@ class Hex {
     bool isHexValid(const std::string_view& v = "") const;   ///< Check if the hex string is valid, if argument empty, check _hex
 
   public:
-    Hex()                                                    ///< Default constructor (empty string)
+    Hex(bool strict = false);                                                   ///< Default constructor (empty string)
 
     /**
      * Move a Hex object from a hex string "0x1234" or "1234"
