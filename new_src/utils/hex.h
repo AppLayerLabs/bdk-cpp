@@ -61,6 +61,18 @@ class Hex {
      */
     static Hex fromUTF8(std::string_view bytes, bool strict = false);
 
+
+    /**
+     * Build a Hex value from a uint*_t value
+     * @param value uint*_t value
+     * @param strict if true, the _hex will include "0x" prefix
+     */
+    template <typename T>
+    static Hex fromUint(T value, bool strict = false) {
+      std::stringstream ss;
+      ss << std::hex << value;
+      return Hex(ss.str(), strict);
+    }
     /**
      * Build a bytes string from the Hex object
      * @return bytes string

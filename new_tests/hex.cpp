@@ -49,6 +49,14 @@ namespace THex {
       REQUIRE_THAT(hexStrict.get(), Equals("0x6578656d706c65"));
     }
 
+    SECTION("Hex FromUint") {
+      uint256_t value = 4660;
+      Hex hex = Hex::fromUint(value, false);
+      Hex hexStrict = Hex::fromUint(value, true);
+      REQUIRE_THAT(hex.get(), Equals("1234"));
+      REQUIRE_THAT(hexStrict.get(), Equals("0x1234"));
+    }
+
     SECTION("Hex Bytes") {
       std::string hexStr = "0x1234";
       Hex hex(hexStr, false);

@@ -250,15 +250,6 @@ namespace Utils {
   std::string patchHex(const std::string& str);
 
   /**
-   * TODO: Deprecate this function with Hex::fromUint<T>
-   * Convert any given unsigned integer to a hex string.
-   * Does not handle paddings or the "0x" prefix.
-   * @param i The integer to convert.
-   * @return The converted integer as a hex string.
-   */
-  template <typename T> std::string uintToHex(const T& i);
-
-  /**
    * Remove the "0x" prefix from a hex string.
    * @deprecated
    * This function is unsafe due to modifying the string by reference of an Hex
