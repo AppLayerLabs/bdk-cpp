@@ -38,7 +38,7 @@ template <unsigned N> class FixedStr {
     /// Getter for `data`, but returns the raw C-style string.
     inline const char* raw() const { return this->data.data(); }
 
-    /// Getter for `data`, but returns the data in hex format.
+    /// Getter for `data`, but returns the data in hex format, non-strict hex.
     inline const Hex hex() const { return Hex::fromBytes(this->data); }
 
     /**
@@ -146,10 +146,24 @@ class Address : public FixedStr<20> {
      *                and stores it as bytes. If `false`, considers the address
      *                is in raw bytes format.
      */
-    inline Address(const std::string& add, bool fromRPC) { this->data = Hex(add, fromRPC).bytes(); }
+    inline Address(const std::string& add, bool fromRPC) { 
+      if (!fromRPC) {
+        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+        this->data = add;
+      } else {
+        this->data = std::move(Hex(add).bytes()); 
+      }
+    }
 
     /// Overload of copy constructor that accepts a string_view.
-    inline Address(const std::string_view& add, bool fromRPC) { this->data = Hex(add, fromRPC).bytes(); }
+    inline Address(const std::string_view& add, bool fromRPC) {
+      if (!fromRPC) {
+        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+        this->data = add;
+      } else {
+        this->data = std::move(Hex(add).bytes()); 
+      }
+    }
 
     /**
      * Move constructor.
@@ -158,7 +172,14 @@ class Address : public FixedStr<20> {
      *                and stores it as bytes. If `false`, considers the address
      *                is in raw bytes format.
      */
-    inline Address(std::string&& add, bool fromRPC) { this->data = Hex(std::move(add), fromRPC).bytes(); }
+    inline Address(std::string&& add, bool fromRPC) {
+    if (!fromRPC) {
+        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+        this->data = std::move(add);
+      } else {
+        this->data = std::move(Hex(std::move(add)).bytes()); 
+      }
+    }
 
     /// Copy constructor.
     inline Address(const Address& other) { this->data = other.data; }
