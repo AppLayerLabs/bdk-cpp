@@ -6,7 +6,8 @@
 
 #include "safehash.h"
 #include "strings.h"
-#include "tx.h"
+//TODO: Wait Ita finish Tx
+//#include "tx.h"
 #include "utils.h"
 
 /**
@@ -32,17 +33,18 @@ class Merkle {
      */
     Merkle(const std::vector<Hash>& leaves);
 
-    /**
-     * Constructor for %Block transactions.
-     * @param txs The list of transactions to create the Merkle tree from.
-     */
-    Merkle(const std::unordered_map<uint64_t, TxBlock, SafeHash>& txs);
-
-    /**
-     * Constructor for %Validator transactions.
-     * @param txs The list of transactions to create the Merkle tree from.
-     */
-    Merkle(const std::unordered_map<uint64_t, TxValidator, SafeHash>& txs);
+    //TODO: Wait Ita finish Tx
+//    /**
+//     * Constructor for %Block transactions.
+//     * @param txs The list of transactions to create the Merkle tree from.
+//     */
+//    Merkle(const std::unordered_map<uint64_t, TxBlock, SafeHash>& txs);
+//
+//    /**
+//     * Constructor for %Validator transactions.
+//     * @param txs The list of transactions to create the Merkle tree from.
+//     */
+//    Merkle(const std::unordered_map<uint64_t, TxValidator, SafeHash>& txs);
 
     /// Getter for `tree`.
     inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree; }
@@ -69,7 +71,7 @@ class Merkle {
  */
 class PNode {
   private:
-    char id;  ///< ID of the node. `/` implies it's the root node.
+    char _id;  ///< ID of the node. `/` implies it's the root node.
     std::string data; ///< Data of the node. Non-empty implies it's the end node.
     std::vector<PNode> children;  ///< List of children nodes.
   public:
@@ -77,16 +79,16 @@ class PNode {
      * Constructor.
      * @param id The ID of the node.
      */
-    PNode(char id) : id(id) {};
+    PNode(char id) : _id(id) {};
 
     /// Getter for `id`.
-    inline const char& getId() const { return this->id; }
+    inline const char& getId() const { return this->_id; }
 
     /// Getter for `data`.
     inline const std::string& getData() const { return this->data; }
 
     /// Setter for `data`.
-    inline void setData(std::string data) { this->data = data; }
+    inline void setData(std::string content) { this->data = content; }
 
     /**
      * Check if the node has any children.
