@@ -11,9 +11,8 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 
-using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
+#include "utils.h"
 
-// TODO: document this
 template <typename ElemT> struct HexTo {
   ElemT value;
   operator ElemT() const { return value; }
@@ -25,131 +24,118 @@ template <typename ElemT> struct HexTo {
 
 class Hex {
   private:
-    std::string hex;                                       ///< Internal string data.
-    std::string_view filter = "0123456789abcdefxABCDEFX";  ///< Filter for hex string validity.
-    bool strict;                                           ///< If true, hex will include "0x" prefix.
-
-    /**
-     * Check if hex string is valid.
-     * @param v (optional) The string to check. If empty, checks hex. Defaults to empty.
-     * @return `true` if hex is valid, `false` otherwise.
-     */
-    bool isValid(const std::string_view& v = "") const;
+    std::string hex;                                         ///< Internal string data.
+    std::string_view filter = "0123456789abcdefxABCDEFX";    ///< Filter for hex string
+    bool strict;                                             ///< If true, the _hex will include "0x" prefix
+    bool isHexValid(const std::string_view& v = "") const;   ///< Check if the hex string is valid, if argument empty, check _hex
 
   public:
-    /**
-     * Default constructor (empty string).
-     * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     */
-    inline Hex(bool strict = false) : strict(strict) { if (strict) this->hex = "0x"; }
+    Hex(bool strict = false);                                                   ///< Default constructor (empty string)
 
     /**
-     * Copy constructor.
-     * Throws on invalid hex param.
-     * @param v The hex string.
-     * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
+     * Move a Hex object from a hex string "0x1234" or "1234"
+     * @param value hex string
+     * @param strict if true, the _hex will include "0x" prefix
      */
-    Hex(const std::string_view& v, bool strict = false);
+    Hex(std::string&& value, bool strict = false);
 
     /**
-     * Move constructor.
-     * Throws on invalid hex param.
-     * @param v The hex string.
-     * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     */
-    Hex(std::string&& v, bool strict = false);
+     * Build a Hex object from a hex string "0x1234" or "1234"
+     * @param value hex string_view
+     * @param strict if true, the _hex will include "0x" prefix
+     */    
+    Hex(const std::string_view& value, bool strict = false);
+
 
     /**
-     * Build a Hex object from a byte string.
-     * "\x12\x34" would result in "1234".
-     * @param bytes The byte string to build from.
-     * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @return The constructed Hex object.
+     * Build a Hex object from a byte string "\x12\x34" would result in "1234"
+     * @param value bytes string
+     * @param strict if true, the _hex will include "0x" prefix
      */
     static Hex fromBytes(std::string_view bytes, bool strict = false);
 
     /**
-     * Build a Hex object from a UTF-8 string.
-     * "example" would result in "6578616d706c65".
-     * @param str The UTF-8 string to build from.
-     * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @return The constructed Hex object.
+     * Build a Hex object from a string "exemple" would result in "6578656d706c65"
+     * @param value bytes string
+     * @param strict if true, the _hex will include "0x" prefix
      */
-    static Hex fromUTF8(std::string_view str, bool strict = false);
+    static Hex fromUTF8(std::string_view bytes, bool strict = false);
+
 
     /**
-     * Build a Hex object from any given uint value.
-     * @param v The uint to use.
-     * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
+     * Build a Hex value from a uint*_t value
+     * @param value uint*_t value
+     * @param strict if true, the _hex will include "0x" prefix
      */
-    template <typename T> static Hex fromUint(T v, bool strict = false) {
+    template <typename T>
+    static Hex fromUint(T value, bool strict = false) {
       std::stringstream ss;
-      ss << std::hex << v;
+      ss << std::hex << value;
       return Hex(ss.str(), strict);
     }
-
     /**
-     * Convert a given hex char to its integer representation.
-     * @param c The hex char to convert
-     * @return The hex char as an integer.
-     */
-    static int toInt(char c);
-
-    /**
-     * Convert the Hex data to a bytes string.
-     * Throws on invalid chars.
-     * @return The converted bytes string.
+     * Build a bytes string from the Hex object
+     * @return bytes string
      */
     std::string bytes() const;
 
-    /// Getter for `hex`.
+    /**
+     * Getter for internal hex string
+     * @return hex string
+     */
     inline const std::string& get() const { return this->hex; }
 
-    /// Getter for `hex`, but converts the value to a 256-bit unsigned integer.
-    uint256_t getUint() const;
+    /**
+     * Get uint256_t equivalent to hex.
+     * @return uint256_t value
+     */
+    inline uint256_t getUint() const {
+      return boost::lexical_cast<HexTo<uint256_t>>(this->hex);
+    }
 
     /**
-     * Get a substring of the Hex data string.
-     * @param pos The position of the first character to get.
-     * @param len The number of characters to get.
-     * @return The specified substring.
+     * Get substr of hex string
+     * @param pos position of the first character to include
+     * @param len number of characters to include
+     * @return hex string (new string object)
     */
     inline std::string substr(size_t pos = 0, size_t len = std::string::npos) const {
       return this->hex.substr(pos, len);
     }
 
-    /// Overload of `substr()`, for string_view.
+    /**
+     * Get substr of hex string
+     * @param pos position of the first character to include
+     * @param len number of characters to include
+     * @return hex string (string_view object)
+    */
+
     inline std::string_view substr_view(size_t pos = 0, size_t len = std::string::npos) const {
       return std::string_view(this->hex).substr(pos, len);
     }
 
-    /// Concat operator.
-    Hex& operator+=(const std::string& hex) {
-      if (this->isValid(hex)) {
-        this->hex += (
-          hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
-        ) ? hex.substr(2) : hex;
-      }
+    Hex& operator+=(const std::string& hex) { ///< operator+= to add a string () to the hex string
+      // TODO: check if hex string is a valid hex string.
+      this->hex += (
+        hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
+      ) ? hex.substr(2) : hex;
       return *this;
     }
 
-    /// Concat operator.
-    Hex& operator+=(const Hex& other) {
-      if (this->isValid(hex)) {
-        this->hex += (
-          other.hex[0] == '0' && (other.hex[1] == 'x' || other.hex[1] == 'X')
-        ) ? other.hex.substr(2) : other.hex;
-      }
+    Hex& operator+=(const Hex& other) { ///< operator += to add a hex to another hex.
+      this->hex += (
+        other.hex[0] == '0' && (other.hex[1] == 'x' || other.hex[1] == 'X')
+      ) ? other.hex.substr(2) : other.hex;
       return *this;
     }
 
     /**
-     * Default operator to return the hex directly as a string.
-     *
+     * Default operator to return directly the hex as string
      * @example
      * std::string myHexString = "My Hex is:";
      * Hex hex = Hex::fromString("Hello World");
      * myHexString += hex;
+     *
      * std::cout << myStringHex << std::endl;
      *
      * @result
@@ -159,12 +145,12 @@ class Hex {
     inline operator std::string() const { return this->hex; }
 
     /**
-     * Default operator to return the hex directly as a string_view.
-     *
+     * Default operator to return directly the hex as string_view
      * @example
      * std::string myHexString = "My Hex is:";
      * Hex hex = Hex::fromString("Hello World");
      * std::string_view myHexString = hex;
+     *
      * std::cout << myStringHex << myStringHex << std::endl;
      *
      * @result
@@ -174,8 +160,7 @@ class Hex {
     inline operator std::string_view() const { return this->hex; }
 
     /**
-     * Friend function to allow bitwise left shift in output stream.
-     *
+     * Friend function to allow the shift to left in output stream
      * @example
      * Hex hex = Hex("48656c6c6f20576f726c64");
      * std::cout << "My hex is: " << hex << std::endl;
