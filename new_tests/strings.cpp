@@ -214,26 +214,50 @@ namespace TSignature {
 }
 
 namespace TAddress {
-  TEST_CASE("Address Copy Constructor Test") {
-    Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
-    Address addr2(std::string("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"), true);
-    REQUIRE(addr1 == addr2);
-    REQUIRE_THAT(addr1.get(), Equals("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"));
-    REQUIRE_THAT(addr2.hex(), Equals("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"));
-  }
+  TEST_CASE("Address Class") {
+    SECTION("Address Copy Constructor Test") {
+      Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
+      Address addr2(std::string("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"), true);
+      REQUIRE(addr1 == addr2);
+      REQUIRE_THAT(addr1.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+      REQUIRE_THAT(addr2.get(), Equals("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"));
+    }
+  
+    SECTION("Address Move String Constructor Test") {
+      std::string str("0x71c7656ec7ab88b098defb751b7401b5f6d8976f");
+      Address addr1(std::move(str), false);
+      REQUIRE_THAT(addr1.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+      REQUIRE_THAT(str, Equals(""));
+    }
+  
+    SECTION("Address Move Address Constructor Test") {
+      Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
+      Address addr2(std::move(addr1));
+      REQUIRE_THAT(addr1.get(), Equals(""));
+      REQUIRE_THAT(addr2.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+    }
 
-  TEST_CASE("Address Move String Constructor Test") {
-    std::string str("0x71c7656ec7ab88b098defb751b7401b5f6d8976f");
-    Address addr1(std::move(str), false);
-    REQUIRE_THAT(addr1.get(), Equals("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"));
-    REQUIRE_THAT(str, Equals(""));
-  }
+    SECTION("Address::toChksum Test") {
+      Address inputAddress(std::string("0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359"), false);
+      std::string inputChecksum = inputAddress.toChksum();
+      Address outputAddress(inputChecksum, false);
+      Address expectedOutputAddress(std::string("0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359"), false);
+      REQUIRE_THAT(outputAddress.get(), Equals(expectedOutputAddress.get()));
+    }
 
-  TEST_CASE("Address Move Address Constructor Test") {
-    Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
-    Address addr2(std::move(addr1));
-    REQUIRE_THAT(addr1.get(), Equals(""));
-    REQUIRE_THAT(addr2.get(), Equals("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+    SECTION("isChksum Test") {
+      std::string inputAddress = "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359";
+      REQUIRE(Utils::isChksum(inputAddress));
+    }
+
+    SECTION("isAddress Test") {
+      std::string inputHexAddress = "0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359";
+      std::string inputBytesAddress = "\xfb\x69\x16\x09\x5c\xa1\xdf\x60\xbb\x79\xce\x92\xce\x3e\xa7\x4c\x37\xc5\xd3\x59";
+      REQUIRE(Address::isValid(inputHexAddress, false));
+      REQUIRE(Address::isValid(inputBytesAddress, true));
+      REQUIRE(!Address::isValid(inputHexAddress, true));
+      REQUIRE(!Address::isValid(inputBytesAddress, false));
+    }
   }
 }
 

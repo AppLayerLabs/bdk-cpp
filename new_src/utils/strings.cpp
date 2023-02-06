@@ -1,13 +1,8 @@
 #include "strings.h"
 
-Hash::Hash(uint256_t data) : FixedStr<32>(Utils::uint256ToBytes(data)) {};
-
-const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data); }
-
 Hex Address::toChksum() const {
   // Hash requires lowercase address without "0x"
-  std::string str = Hex::fromBytes(this->data, false).bytes().substr(2);
-  Utils::toLower(str);
+  std::string str = Hex::fromBytes(this->data, false).get();
   Hex hash = Utils::sha3(str).hex();
   for (int i = 0; i < str.length(); i++) {
     if (!std::isdigit(str[i])) {  // Only check letters (A-F)

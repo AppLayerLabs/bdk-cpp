@@ -129,6 +129,8 @@ class Hex {
       return *this;
     }
 
+    static int hexCharToInt(char c);
+    
     /**
      * Default operator to return directly the hex as string
      * @example

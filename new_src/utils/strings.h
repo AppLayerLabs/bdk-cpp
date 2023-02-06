@@ -146,8 +146,8 @@ class Address : public FixedStr<20> {
      *                and stores it as bytes. If `false`, considers the address
      *                is in raw bytes format.
      */
-    inline Address(const std::string& add, bool fromRPC) { 
-      if (!fromRPC) {
+    inline Address(const std::string& add, bool inBytes) { 
+      if (inBytes) {
         if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
         this->data = add;
       } else {
@@ -156,8 +156,8 @@ class Address : public FixedStr<20> {
     }
 
     /// Overload of copy constructor that accepts a string_view.
-    inline Address(const std::string_view& add, bool fromRPC) {
-      if (!fromRPC) {
+    inline Address(const std::string_view& add, bool inBytes) {
+      if (inBytes) {
         if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
         this->data = add;
       } else {
@@ -172,8 +172,8 @@ class Address : public FixedStr<20> {
      *                and stores it as bytes. If `false`, considers the address
      *                is in raw bytes format.
      */
-    inline Address(std::string&& add, bool fromRPC) {
-    if (!fromRPC) {
+    inline Address(std::string&& add, bool inBytes) {
+    if (inBytes) {
         if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
         this->data = std::move(add);
       } else {
@@ -186,6 +186,10 @@ class Address : public FixedStr<20> {
 
     /// Move constructor.
     inline Address(Address&& other) : FixedStr<20>(std::move(other.data)) {};
+
+    Hex toChksum() const; ///< Get the checksummed version of the address.
+
+    static bool isValid(const std::string_view add, bool inBytes);
 };
 
 #endif  // STRINGS_H

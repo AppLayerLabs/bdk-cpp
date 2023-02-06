@@ -116,7 +116,7 @@ PubKey Secp256k1::toPub(const PrivKey& key) {
 
 Address Secp256k1::toAddress(const UPubKey& key) {
   // Address = pubKeyHash[12..32], no "0x"
-  return Address(Utils::sha3(std::string_view(&key[1], 64)).get().substr(12), false);
+  return Address(Utils::sha3(std::string_view(&key[1], 64)).get().substr(12), true);
 }
 
 Address Secp256k1::toAddress(const PubKey& key) {
