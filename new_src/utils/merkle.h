@@ -63,6 +63,8 @@ class Merkle {
      * @return A list of proofs for the leaf.
      */
     const std::vector<Hash> getProof(const uint64_t leafIndex) const;
+
+    static bool verify(const std::vector<Hash> &proof, const Hash& leaf, const Hash& root);
 };
 
 /**
