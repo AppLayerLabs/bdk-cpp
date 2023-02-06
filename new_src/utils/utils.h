@@ -16,9 +16,11 @@
 #include <ethash/keccak.h>
 #include <openssl/rand.h>
 
+#include "strings.h"
+
 #include "json.hpp"
 
-class Hash;
+class Hash; // Forward declaration.
 
 using json = nlohmann::ordered_json;
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
@@ -109,7 +111,7 @@ namespace Utils {
    * @param i The integer to convert.
    * @return The converted 256-bit integer as a bytes string.
    */
-  std::string uint256ToBytes(const uint256_t& integer);
+  std::string uint256ToBytes(const uint256_t& i);
 
   /**
    * Convert a 160-bit unsigned integer to a bytes string.
@@ -117,7 +119,7 @@ namespace Utils {
    * @param i The integer to convert.
    * @return The converted 160-bit integer as a bytes string.
    */
-  std::string uint160ToBytes(const uint160_t& integer);
+  std::string uint160ToBytes(const uint160_t& i);
 
   /**
    * Convert a 64-bit unsigned integer to a bytes string.
@@ -125,7 +127,7 @@ namespace Utils {
    * @param i The integer to convert.
    * @return The converted 64-bit integer as a bytes string.
    */
-  std::string uint64ToBytes(const uint64_t& integer);
+  std::string uint64ToBytes(const uint64_t& i);
 
   /**
    * Convert a 32-bit unsigned integer to a bytes string.
@@ -190,6 +192,7 @@ namespace Utils {
 
   /**
    * Convert a bytes string to a 256-bit unsigned integer.
+   * Throws on failure.
    * @param b The bytes string to convert.'
    * @return The converted 256-bit integer.
    */
@@ -197,6 +200,7 @@ namespace Utils {
 
   /**
    * Convert a bytes string to a 128-bit unsigned integer.
+   * Throws on failure.
    * @param b The bytes string to convert.
    * @return The converted 128-bit integer.
    */
@@ -204,6 +208,7 @@ namespace Utils {
 
   /**
    * Convert a bytes string to a 64-bit unsigned integer.
+   * Throws on failure.
    * @param b The bytes string to convert.
    * @return The converted 64-bit integer.
    */
@@ -211,6 +216,7 @@ namespace Utils {
 
   /**
    * Convert a bytes string to a 32-bit unsigned integer.
+   * Throws on failure.
    * @param b The bytes string to convert.
    * @return The converted 32-bit integer.
    */
@@ -218,6 +224,7 @@ namespace Utils {
 
   /**
    * Convert a bytes string to a 16-bit unsigned integer.
+   * Throws on failure.
    * @param b The bytes string to convert.
    * @return The converted 16-bit integer.
    */
@@ -225,17 +232,11 @@ namespace Utils {
 
   /**
    * Convert a bytes string to a 8-bit unsigned integer.
+   * Throws on failure.
    * @param b The bytes string to convert.
    * @return The converted 8-bit integer.
    */
   uint8_t bytesToUint8(const std::string_view& b);
-
-  /**
-   * Convert a given hex char to its integer representation.
-   * @param c The hex char to convert
-   * @return The hex char as an integer.
-   */
-  int hexCharToInt(char c);
 
   /**
    * Remove the "0x" prefix from a hex string and make it all lowercase.
@@ -331,38 +332,17 @@ namespace Utils {
    * Convert a string to all-lowercase.
    * @param str The string to convert.
    */
-  void toLower(std::string& str);
+  inline void toLower(std::string& str) {
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+  }
 
   /**
    * Convert a string to all-uppercase.
    * @param str The string to convert.
    */
-  void toUpper(std::string& str);
-
-  /**
-   * TODO: Deprecate this function with Address::toChksumHex
-   * Convert a string to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
-   * @param str The string to convert.
-   */
-  void toChksum(std::string& str);
-
-  /**
-   * Check if string is checksummed, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
-   * Uses `toChksum()` internally. Does not alter the original string.
-   * @param str The string to check.
-   * @return `true` if the string is checksummed, `false` otherwise.
-   */
-  bool isChksum(const std::string& str);
-
-  /**
-   * TODO: Deprecate with static Address::isAddress(const std::string_view, bool inBytes.
-   * Check if a given address string is valid. If the address has both upper *and* lowercase letters, will also check the checksum.
-   * @param add The address to be checked.
-   * @param fromRPC If `true`, considers the address is a string.
-   *                If `false`, considers the address is in raw bytes format.
-   * @return `true` if the address is valid, `false` otherwise.
-   */
-  bool isAddress(const std::string& add, bool fromRPC);
+  inline void toUpper(std::string& str) {
+    std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+  }
 
   /**
    * Load HTTP port settings from a config file. Creates the file if it doesn't exist.
