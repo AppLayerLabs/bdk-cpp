@@ -15,7 +15,7 @@ UPubKey Secp256k1::recover(const Signature& sig, const Hash& msg) {
     reinterpret_cast<const unsigned char*>(msg.view().data())
   )) return UPubKey();
 
-  UPubKey serializedPubkey;
+  std::string serializedPubkey(65, 0x00);
   size_t serializedPubkeySize = serializedPubkey.size();
   secp256k1_ec_pubkey_serialize(
     ctx, reinterpret_cast<unsigned char*>(&serializedPubkey[0]),
@@ -25,7 +25,8 @@ UPubKey Secp256k1::recover(const Signature& sig, const Hash& msg) {
   secp256k1_context_destroy(ctx);
   assert(serializedPubkeySize == serializedPubkey.size());
   assert(serializedPubkey[0] == 0x04); // Expect single byte header of value 0x04 = uncompressed pubkey
-  return serializedPubkey;  // Return pubkey without the 0x04 header
+
+  return UPubKey(std::move(serializedPubkey));  // Return pubkey without the 0x04 header
 }
 
 Signature Secp256k1::makeSig(const uint256_t& r, const uint256_t& s, const uint8_t& v) {
@@ -55,10 +56,10 @@ UPubKey Secp256k1::toUPub(const PrivKey& key) {
 
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_create(
-    ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.view().data())
+    ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(&key[0])
   )) return UPubKey();
 
-  UPubKey serializedPubkey;
+  std::string serializedPubkey (65, 0x00);
   auto serializedPubkeySize = serializedPubkey.size();
   secp256k1_ec_pubkey_serialize(
     ctx, reinterpret_cast<unsigned char*>(&serializedPubkey[0]),
@@ -68,7 +69,7 @@ UPubKey Secp256k1::toUPub(const PrivKey& key) {
   // Expect single byte header of value 0x04 = uncompressed pubkey
   assert(serializedPubkey.size() == serializedPubkeySize);
   assert(serializedPubkey[0] == 0x04);
-  return serializedPubkey;
+  return UPubKey(std::move(serializedPubkey));
 }
 
 UPubKey Secp256k1::toUPub(const PubKey& key) {
@@ -79,7 +80,7 @@ UPubKey Secp256k1::toUPub(const PubKey& key) {
     ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.view().data()), 33
   )) return UPubKey();
 
-  UPubKey serializedPubkey;
+  std::string serializedPubkey (65, 0x00);
   auto serializedPubkeySize = serializedPubkey.size();
   secp256k1_ec_pubkey_serialize(
     ctx, reinterpret_cast<unsigned char*>(&serializedPubkey[0]),
@@ -89,7 +90,7 @@ UPubKey Secp256k1::toUPub(const PubKey& key) {
   // Expect single byte header of value 0x04 = uncompressed pubkey
   assert(serializedPubkey.size() == serializedPubkeySize);
   assert(serializedPubkey[0] == 0x04);
-  return serializedPubkey;
+  return UPubKey(std::move(serializedPubkey));
 }
 
 PubKey Secp256k1::toPub(const PrivKey& key) {
@@ -100,7 +101,7 @@ PubKey Secp256k1::toPub(const PrivKey& key) {
     ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.view().data())
   )) return PubKey();
 
-  PubKey serializedPubkey;
+  std::string serializedPubkey(33, 0x00);
   auto serializedPubkeySize = serializedPubkey.size();
   secp256k1_ec_pubkey_serialize(
     ctx, reinterpret_cast<unsigned char*>(&serializedPubkey[0]),

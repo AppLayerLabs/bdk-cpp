@@ -104,29 +104,29 @@ namespace TUtils {
       REQUIRE(uint8Output == uint8ExpectedOutput);
     }
 
-    SECTION("Hex::toInt Test") {
-      REQUIRE(Hex::toInt('0') == 0); // 0
-      REQUIRE(Hex::toInt('1') == 1); // 1
-      REQUIRE(Hex::toInt('2') == 2); // 2
-      REQUIRE(Hex::toInt('3') == 3); // 3
-      REQUIRE(Hex::toInt('4') == 4); // 4
-      REQUIRE(Hex::toInt('5') == 5); // 5
-      REQUIRE(Hex::toInt('6') == 6); // 6
-      REQUIRE(Hex::toInt('7') == 7); // 7
-      REQUIRE(Hex::toInt('8') == 8); // 8
-      REQUIRE(Hex::toInt('9') == 9); // 9
-      REQUIRE(Hex::toInt('a') == 10); // a
-      REQUIRE(Hex::toInt('b') == 11); // b
-      REQUIRE(Hex::toInt('c') == 12); // c
-      REQUIRE(Hex::toInt('d') == 13); // d
-      REQUIRE(Hex::toInt('e') == 14); // e
-      REQUIRE(Hex::toInt('f') == 15); // f
-      REQUIRE(Hex::toInt('A') == 10); // A
-      REQUIRE(Hex::toInt('B') == 11); // B
-      REQUIRE(Hex::toInt('C') == 12); // C
-      REQUIRE(Hex::toInt('D') == 13); // D
-      REQUIRE(Hex::toInt('E') == 14); // E
-      REQUIRE(Hex::toInt('F') == 15); // F
+    SECTION("hexCharToInt Test") {
+      REQUIRE(Utils::hexCharToInt('0') == 0); // 0
+      REQUIRE(Utils::hexCharToInt('1') == 1); // 1
+      REQUIRE(Utils::hexCharToInt('2') == 2); // 2
+      REQUIRE(Utils::hexCharToInt('3') == 3); // 3
+      REQUIRE(Utils::hexCharToInt('4') == 4); // 4
+      REQUIRE(Utils::hexCharToInt('5') == 5); // 5
+      REQUIRE(Utils::hexCharToInt('6') == 6); // 6
+      REQUIRE(Utils::hexCharToInt('7') == 7); // 7
+      REQUIRE(Utils::hexCharToInt('8') == 8); // 8
+      REQUIRE(Utils::hexCharToInt('9') == 9); // 9
+      REQUIRE(Utils::hexCharToInt('a') == 10); // a
+      REQUIRE(Utils::hexCharToInt('b') == 11); // b
+      REQUIRE(Utils::hexCharToInt('c') == 12); // c
+      REQUIRE(Utils::hexCharToInt('d') == 13); // d
+      REQUIRE(Utils::hexCharToInt('e') == 14); // e
+      REQUIRE(Utils::hexCharToInt('f') == 15); // f
+      REQUIRE(Utils::hexCharToInt('A') == 10); // A
+      REQUIRE(Utils::hexCharToInt('B') == 11); // B
+      REQUIRE(Utils::hexCharToInt('C') == 12); // C
+      REQUIRE(Utils::hexCharToInt('D') == 13); // D
+      REQUIRE(Utils::hexCharToInt('E') == 14); // E
+      REQUIRE(Utils::hexCharToInt('F') == 15); // F
     }
 
     SECTION("padLeft Test") {
@@ -196,12 +196,12 @@ namespace TUtils {
       REQUIRE_THAT(outputAddress.get(), Equals(expectedOutputAddress.get()));
     }
 
-    SECTION("Address::isChksum Test") {
-      Address inputAddress(std::string("0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359"), false);
-      REQUIRE(inputAddress.isChksum());
+    SECTION("isChksum Test") {
+      std::string inputAddress = "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359";
+      REQUIRE(Utils::isChksum(inputAddress));
     }
 
-    SECTION("Address::isValid Test") {
+    SECTION("isAddress Test") {
       std::string inputHexAddress = "0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359";
       std::string inputBytesAddress = "\xfb\x69\x16\x09\x5c\xa1\xdf\x60\xbb\x79\xce\x92\xce\x3e\xa7\x4c\x37\xc5\xd3\x59";
       REQUIRE(Address::isValid(inputHexAddress, false));
@@ -211,3 +211,4 @@ namespace TUtils {
     }
   }
 }
+

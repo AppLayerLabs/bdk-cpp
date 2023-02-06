@@ -38,7 +38,7 @@ template <unsigned N> class FixedStr {
     /// Getter for `data`, but returns the raw C-style string.
     inline const char* raw() const { return this->data.data(); }
 
-    /// Getter for `data`, but returns the data in non-strict hex format.
+    /// Getter for `data`, but returns the data in hex format, non-strict hex.
     inline const Hex hex() const { return Hex::fromBytes(this->data); }
 
     /**
@@ -108,10 +108,10 @@ class Hash : public FixedStr<32> {
      * Constructor.
      * @param data The unsigned 256-bit number to convert into a hash string.
      */
-    Hash(uint256_t data);
+    Hash(uint256_t data) : FixedStr<32>(Utils::uint256ToBytes(data)) {};
 
     /// Convert the hash string back to an unsigned 256-bit number.
-    const uint256_t toUint256() const;
+    inline const uint256_t toUint256() const { return Utils::bytesToUint256(data); }
 
     /// Generate a random 32-byte/256-bit hash.
     inline static Hash random() {
@@ -142,27 +142,43 @@ class Address : public FixedStr<20> {
     /**
      * Copy constructor.
      * @param add The address itself.
-     * @param inBytes If `true`, considers a raw bytes string.
+     * @param fromRPC If `true`, considers the address is a string, patches it
+     *                and stores it as bytes. If `false`, considers the address
+     *                is in raw bytes format.
      */
-    Address(const std::string& add, bool inBytes) {
-      if (inBytes && add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-      this->data = (inBytes) ? std::move(Hex(add).bytes()) : add;
+    inline Address(const std::string& add, bool fromRPC) { 
+      if (!fromRPC) {
+        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+        this->data = add;
+      } else {
+        this->data = std::move(Hex(add).bytes()); 
+      }
     }
 
     /// Overload of copy constructor that accepts a string_view.
-    Address(const std::string_view& add, bool inBytes) {
-      if (inBytes && add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-      this->data = (inBytes) ? std::move(Hex(add).bytes()) : add;
+    inline Address(const std::string_view& add, bool fromRPC) {
+      if (!fromRPC) {
+        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+        this->data = add;
+      } else {
+        this->data = std::move(Hex(add).bytes()); 
+      }
     }
 
     /**
      * Move constructor.
      * @param add The address itself.
-     * @param inBytes If `true`, considers a raw bytes string.
+     * @param fromRPC If `true`, considers the address is a string, patches it
+     *                and stores it as bytes. If `false`, considers the address
+     *                is in raw bytes format.
      */
-    Address(std::string&& add, bool inBytes) {
-      if (inBytes && add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-      this->data = (inBytes) ? std::move(Hex(std::move(add)).bytes()) : std::move(add);
+    inline Address(std::string&& add, bool fromRPC) {
+    if (!fromRPC) {
+        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+        this->data = std::move(add);
+      } else {
+        this->data = std::move(Hex(std::move(add)).bytes()); 
+      }
     }
 
     /// Copy constructor.
@@ -170,28 +186,6 @@ class Address : public FixedStr<20> {
 
     /// Move constructor.
     inline Address(Address&& other) : FixedStr<20>(std::move(other.data)) {};
-
-    /**
-     * Convert the Address to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
-     * @return The converted checksum-formatted Address as a hex.
-     */
-    Hex toChksum() const;
-
-    /**
-     * Check if the Address is checksummed, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
-     * Uses `toChksum()` internally.
-     * @return `true` if the Address is checksummed, `false` otherwise.
-     */
-    inline bool isChksum() const { return (this->data == this->toChksum().get()); }
-
-    /**
-     * Check if a given string is a valid Address.
-     * Does NOT check the checksum.
-     * @param add The address string to be checked.
-     * @param inBytes If `true`, considers a raw bytes string.
-     * @return `true` if the string is a valid Address, `false` otherwise.
-     */
-    static bool isValid(const std::string_view add, bool inBytes);
 };
 
 #endif  // STRINGS_H
