@@ -190,7 +190,8 @@ namespace TUtils {
 
     SECTION("Address::toChksum Test") {
       Address inputAddress(std::string("0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359"), false);
-      Address outputAddress(inputAddress.toChksum().get(), false);
+      std::string inputChecksum = inputAddress.toChksum();
+      Address outputAddress(inputChecksum, false);
       Address expectedOutputAddress(std::string("0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359"), false);
       REQUIRE_THAT(outputAddress.get(), Equals(expectedOutputAddress.get()));
     }
@@ -203,10 +204,10 @@ namespace TUtils {
     SECTION("Address::isValid Test") {
       std::string inputHexAddress = "0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359";
       std::string inputBytesAddress = "\xfb\x69\x16\x09\x5c\xa1\xdf\x60\xbb\x79\xce\x92\xce\x3e\xa7\x4c\x37\xc5\xd3\x59";
-      REQUIRE(Address::isValid(inputHexAddress, true));
-      REQUIRE(Address::isValid(inputBytesAddress, false));
-      REQUIRE(!Address::isValid(inputHexAddress, false));
-      REQUIRE(!Address::isValid(inputBytesAddress, true));
+      REQUIRE(Address::isValid(inputHexAddress, false));
+      REQUIRE(Address::isValid(inputBytesAddress, true));
+      REQUIRE(!Address::isValid(inputHexAddress, true));
+      REQUIRE(!Address::isValid(inputBytesAddress, false));
     }
   }
 }

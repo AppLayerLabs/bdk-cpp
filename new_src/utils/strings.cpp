@@ -6,8 +6,8 @@ const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data); }
 
 Hex Address::toChksum() const {
   // Hash requires lowercase address without "0x"
-  std::string str = Utils::toLower(this->data);
-  if (str.substr(0, 2) == "0x") str = str.substr(2);
+  std::string str = Hex::fromBytes(this->data, false).bytes().substr(2);
+  Utils::toLower(str);
   Hex hash = Utils::sha3(str).hex();
   for (int i = 0; i < str.length(); i++) {
     if (!std::isdigit(str[i])) {  // Only check letters (A-F)
@@ -16,10 +16,11 @@ Hex Address::toChksum() const {
       str[i] = (nibble >= 8) ? std::toupper(str[i]) : std::tolower(str[i]);
     }
   }
+  str.insert(0, "0x");
   return Hex(str, true);
 }
 
-static bool Address::isValid(const std::string_view add, bool inBytes) {
+bool Address::isValid(const std::string_view add, bool inBytes) {
   if (inBytes) return (add.size() == 20);
   if (add[0] == '0' && (add[1] == 'x' || add[1] == 'X')) {
     return (add.size() == 42 &&

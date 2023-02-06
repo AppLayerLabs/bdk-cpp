@@ -64,7 +64,7 @@ namespace TFixedStr {
       REQUIRE_THAT(str1.hex(), Equals("31323334353637383930"));
       REQUIRE_THAT(str2.hex(), Equals("0102030405060708090a"));
     }
-    
+
     SECTION("FixedStr empty() Test") {
       FixedStr<10> str1(std::string("1234567890"));
       FixedStr<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
@@ -176,7 +176,7 @@ namespace THash {
       Hash hash(i);
       REQUIRE_THAT(hash.hex(), Equals("9be83ea08b549e7c77644c451b55a674bb12e4668d018183ff9723b1de493818"));
     }
-    
+
     SECTION("Hash toUint256 Test") {
       uint256_t i = uint256_t("70518832285973061936518038480459635341011381946952877582230426678885538674712");
       Hash hash(i);
@@ -198,7 +198,7 @@ namespace TSignature {
       FixedStr<32> rStr(std::string("70518832285973061936518038480459"));
       REQUIRE(sig.r().get() == rStr.get());
     }
-    
+
     SECTION("Signature s()") {
       Signature sig(std::string("70518832285973061936518038480459635341011381946952877582230426678"));
       FixedStr<32> sStr(std::string("63534101138194695287758223042667"));
@@ -207,7 +207,6 @@ namespace TSignature {
 
     SECTION("Signature v()") {
       Signature sig(std::string("70518832285973061936518038480459635341011381946952877582230426678"));
-      std::cout << sig.get() << std::endl;
       FixedStr<1> vStr(std::string("8"));
       REQUIRE(sig.v().get() == vStr.get());
     }
@@ -216,24 +215,25 @@ namespace TSignature {
 
 namespace TAddress {
   TEST_CASE("Address Copy Constructor Test") {
-    Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), true);
-    Address addr2(std::string("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"), false);
+    Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
+    Address addr2(std::string("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"), true);
     REQUIRE(addr1 == addr2);
-    REQUIRE_THAT(addr1.get(), Equals("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"));
-    REQUIRE_THAT(addr2.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+    REQUIRE_THAT(addr1.get(), Equals("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+    REQUIRE_THAT(addr2.hex(), Equals("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"));
   }
 
   TEST_CASE("Address Move String Constructor Test") {
     std::string str("0x71c7656ec7ab88b098defb751b7401b5f6d8976f");
-    Address addr1(std::move(str), true);
-    REQUIRE_THAT(addr1.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+    Address addr1(std::move(str), false);
+    REQUIRE_THAT(addr1.get(), Equals("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"));
     REQUIRE_THAT(str, Equals(""));
   }
 
   TEST_CASE("Address Move Address Constructor Test") {
-    Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), true);
+    Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
     Address addr2(std::move(addr1));
-    REQUIRE_THAT(addr2.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
-    REQUIRE_THAT(addr1.hex(), Equals(""));
+    REQUIRE_THAT(addr1.get(), Equals(""));
+    REQUIRE_THAT(addr2.get(), Equals("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"));
   }
 }
+

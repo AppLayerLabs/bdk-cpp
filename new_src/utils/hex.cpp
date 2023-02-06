@@ -1,16 +1,25 @@
 #include "hex.h"
 
 Hex::Hex(const std::string_view& v, bool strict) : strict(strict) {
-  if (!this->isValid(v)) throw std::runtime_error("Invalid Hex string at constructor");
-  std::string ret;
-  uint64_t i = 0;
-  if (v[0] == '0' && (v[1] == 'x' || v[1] == 'X')) { i = 2; if (strict) ret.insert(0, "0x"); }
+  std::string ret(v);
+  if (strict) {
+    if (ret[0] != '0' && (ret[1] != 'x' || ret[1] != 'X')) ret.insert(0, "0x");
+  } else {
+    if (ret[0] == '0' && (ret[1] == 'x' || ret[1] == 'X')) ret.erase(0, 2);
+  }
+  if (!this->isValid(ret)) throw std::runtime_error("Invalid Hex string at constructor");
   this->hex = std::move(ret);
 }
 
 Hex::Hex(std::string&& v, bool strict) : hex(std::move(v)), strict(strict) {
-  if (this->hex[0] != '0' && (this->hex[1] != 'x' || this->hex[1] != 'X')) {
-    if (strict) this->hex.insert(0, "0x"); else this->hex.erase(0, 2);
+  if (strict) {
+    if (this->hex[0] != '0' && (this->hex[1] != 'x' || this->hex[1] != 'X')) {
+      this->hex.insert(0, "0x");
+    }
+  } else {
+    if (this->hex[0] == '0' && (this->hex[1] == 'x' || this->hex[1] == 'X')) {
+      this->hex.erase(0, 2);
+    }
   }
   if (!this->isValid()) throw std::runtime_error("Invalid Hex string at constructor");
 }

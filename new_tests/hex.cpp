@@ -100,7 +100,7 @@ namespace THex {
       Hex hex(hexStr, false);
       Hex hexStrict(hexStr, true);
       hex += std::string("0x5678");
-      hexStrict += std::string("5678");
+      hexStrict += std::string("0x5678");
       REQUIRE_THAT(hex.get(), Equals("12345678"));
       REQUIRE_THAT(hexStrict.get(), Equals("0x12345678"));
     }
