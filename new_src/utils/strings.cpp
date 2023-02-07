@@ -1,5 +1,36 @@
 #include "strings.h"
 
+
+Address::Address(const std::string& add, bool inBytes) { 
+  if (inBytes) {
+    if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+    this->data = add;
+  } else {
+    if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
+    this->data = std::move(Hex(add).bytes()); 
+  }
+}
+
+Address::Address(const std::string_view& add, bool inBytes) {
+  if (inBytes) {
+    if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+    this->data = add;
+  } else {
+    if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
+    this->data = std::move(Hex(add).bytes()); 
+  }
+}
+
+Address::Address(std::string&& add, bool inBytes) {
+if (inBytes) {
+    if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
+    this->data = std::move(add);
+  } else {
+    if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
+    this->data = std::move(Hex(std::move(add)).bytes()); 
+  }
+}
+
 Hex Address::toChksum() const {
   // Hash requires lowercase address without "0x"
   std::string str = Hex::fromBytes(this->data, false).get();
@@ -28,3 +59,7 @@ bool Address::isValid(const std::string_view add, bool inBytes) {
   }
 }
 
+bool Address::isChksum(const std::string_view add) {
+  Address myAdd(add, false);
+  return (add == myAdd.toChksum());
+}

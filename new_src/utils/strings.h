@@ -146,24 +146,10 @@ class Address : public FixedStr<20> {
      *                and stores it as bytes. If `false`, considers the address
      *                is in raw bytes format.
      */
-    inline Address(const std::string& add, bool inBytes) { 
-      if (inBytes) {
-        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-        this->data = add;
-      } else {
-        this->data = std::move(Hex(add).bytes()); 
-      }
-    }
+    Address(const std::string& add, bool inBytes);
 
     /// Overload of copy constructor that accepts a string_view.
-    inline Address(const std::string_view& add, bool inBytes) {
-      if (inBytes) {
-        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-        this->data = add;
-      } else {
-        this->data = std::move(Hex(add).bytes()); 
-      }
-    }
+    Address(const std::string_view& add, bool inBytes);
 
     /**
      * Move constructor.
@@ -172,14 +158,7 @@ class Address : public FixedStr<20> {
      *                and stores it as bytes. If `false`, considers the address
      *                is in raw bytes format.
      */
-    inline Address(std::string&& add, bool inBytes) {
-    if (inBytes) {
-        if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-        this->data = std::move(add);
-      } else {
-        this->data = std::move(Hex(std::move(add)).bytes()); 
-      }
-    }
+    Address(std::string&& add, bool inBytes);
 
     /// Copy constructor.
     inline Address(const Address& other) { this->data = other.data; }
@@ -189,7 +168,9 @@ class Address : public FixedStr<20> {
 
     Hex toChksum() const; ///< Get the checksummed version of the address.
 
-    static bool isValid(const std::string_view add, bool inBytes);
+    static bool isValid(const std::string_view add, bool inBytes); ///< Check if an address is valid.
+
+    static bool isChksum(const std::string_view add); ///< Check if an address is hex checksummed.
 };
 
 #endif  // STRINGS_H

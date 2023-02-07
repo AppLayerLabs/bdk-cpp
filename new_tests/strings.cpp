@@ -247,7 +247,7 @@ namespace TAddress {
 
     SECTION("isChksum Test") {
       std::string inputAddress = "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359";
-      REQUIRE(Utils::isChksum(inputAddress));
+      REQUIRE(Address::isChksum(inputAddress));
     }
 
     SECTION("isAddress Test") {
