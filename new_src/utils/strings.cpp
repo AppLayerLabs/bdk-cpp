@@ -1,5 +1,8 @@
 #include "strings.h"
 
+Hash::Hash(uint256_t data) : FixedStr<32>(Utils::uint256ToBytes(data)) {};
+
+const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data); }
 
 Address::Address(const std::string& add, bool inBytes) { 
   if (inBytes) {
@@ -22,7 +25,7 @@ Address::Address(const std::string_view& add, bool inBytes) {
 }
 
 Address::Address(std::string&& add, bool inBytes) {
-if (inBytes) {
+  if (inBytes) {
     if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
     this->data = std::move(add);
   } else {
@@ -63,3 +66,4 @@ bool Address::isChksum(const std::string_view add) {
   Address myAdd(add, false);
   return (add == myAdd.toChksum());
 }
+

@@ -108,10 +108,10 @@ class Hash : public FixedStr<32> {
      * Constructor.
      * @param data The unsigned 256-bit number to convert into a hash string.
      */
-    Hash(uint256_t data) : FixedStr<32>(Utils::uint256ToBytes(data)) {};
+    Hash(uint256_t data);
 
     /// Convert the hash string back to an unsigned 256-bit number.
-    inline const uint256_t toUint256() const { return Utils::bytesToUint256(data); }
+    const uint256_t toUint256() const;
 
     /// Generate a random 32-byte/256-bit hash.
     inline static Hash random() {
@@ -142,9 +142,7 @@ class Address : public FixedStr<20> {
     /**
      * Copy constructor.
      * @param add The address itself.
-     * @param fromRPC If `true`, considers the address is a string, patches it
-     *                and stores it as bytes. If `false`, considers the address
-     *                is in raw bytes format.
+     * @param inBytes If `true`, treats the input as a raw bytes string.
      */
     Address(const std::string& add, bool inBytes);
 
@@ -154,9 +152,7 @@ class Address : public FixedStr<20> {
     /**
      * Move constructor.
      * @param add The address itself.
-     * @param fromRPC If `true`, considers the address is a string, patches it
-     *                and stores it as bytes. If `false`, considers the address
-     *                is in raw bytes format.
+     * @param inBytes If `true`, treats the input as a raw bytes string.
      */
     Address(std::string&& add, bool inBytes);
 
@@ -166,11 +162,26 @@ class Address : public FixedStr<20> {
     /// Move constructor.
     inline Address(Address&& other) : FixedStr<20>(std::move(other.data)) {};
 
-    Hex toChksum() const; ///< Get the checksummed version of the address.
+    /**
+     * Convert the Address to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
+     * @return A copy of the checksummed Address as a Hex object.
+     */
+    Hex toChksum() const;
 
-    static bool isValid(const std::string_view add, bool inBytes); ///< Check if an address is valid.
+    /**
+     * Check if a given Address string is valid. If the address has both upper *and* lowercase letters, will also check the checksum.
+     * @param add The address to be checked.
+     * @param inBytes If `true`, treats the input as a raw bytes string.
+     * @return `true` if the address is valid, `false` otherwise.
+     */
+    static bool isValid(const std::string_view add, bool inBytes);
 
-    static bool isChksum(const std::string_view add); ///< Check if an address is hex checksummed.
+    /**
+     * Check if an Address string is checksummed, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
+     * Uses `toChksum()` internally. Does not alter the original string.
+     * @param add The string to check.
+     */
+    static bool isChksum(const std::string_view add);
 };
 
 #endif  // STRINGS_H

@@ -104,29 +104,29 @@ namespace TUtils {
       REQUIRE(uint8Output == uint8ExpectedOutput);
     }
 
-    SECTION("hexCharToInt Test") {
-      REQUIRE(Utils::hexCharToInt('0') == 0); // 0
-      REQUIRE(Utils::hexCharToInt('1') == 1); // 1
-      REQUIRE(Utils::hexCharToInt('2') == 2); // 2
-      REQUIRE(Utils::hexCharToInt('3') == 3); // 3
-      REQUIRE(Utils::hexCharToInt('4') == 4); // 4
-      REQUIRE(Utils::hexCharToInt('5') == 5); // 5
-      REQUIRE(Utils::hexCharToInt('6') == 6); // 6
-      REQUIRE(Utils::hexCharToInt('7') == 7); // 7
-      REQUIRE(Utils::hexCharToInt('8') == 8); // 8
-      REQUIRE(Utils::hexCharToInt('9') == 9); // 9
-      REQUIRE(Utils::hexCharToInt('a') == 10); // a
-      REQUIRE(Utils::hexCharToInt('b') == 11); // b
-      REQUIRE(Utils::hexCharToInt('c') == 12); // c
-      REQUIRE(Utils::hexCharToInt('d') == 13); // d
-      REQUIRE(Utils::hexCharToInt('e') == 14); // e
-      REQUIRE(Utils::hexCharToInt('f') == 15); // f
-      REQUIRE(Utils::hexCharToInt('A') == 10); // A
-      REQUIRE(Utils::hexCharToInt('B') == 11); // B
-      REQUIRE(Utils::hexCharToInt('C') == 12); // C
-      REQUIRE(Utils::hexCharToInt('D') == 13); // D
-      REQUIRE(Utils::hexCharToInt('E') == 14); // E
-      REQUIRE(Utils::hexCharToInt('F') == 15); // F
+    SECTION("Hex::toInt Test") {
+      REQUIRE(Hex::toInt('0') == 0); // 0
+      REQUIRE(Hex::toInt('1') == 1); // 1
+      REQUIRE(Hex::toInt('2') == 2); // 2
+      REQUIRE(Hex::toInt('3') == 3); // 3
+      REQUIRE(Hex::toInt('4') == 4); // 4
+      REQUIRE(Hex::toInt('5') == 5); // 5
+      REQUIRE(Hex::toInt('6') == 6); // 6
+      REQUIRE(Hex::toInt('7') == 7); // 7
+      REQUIRE(Hex::toInt('8') == 8); // 8
+      REQUIRE(Hex::toInt('9') == 9); // 9
+      REQUIRE(Hex::toInt('a') == 10); // a
+      REQUIRE(Hex::toInt('b') == 11); // b
+      REQUIRE(Hex::toInt('c') == 12); // c
+      REQUIRE(Hex::toInt('d') == 13); // d
+      REQUIRE(Hex::toInt('e') == 14); // e
+      REQUIRE(Hex::toInt('f') == 15); // f
+      REQUIRE(Hex::toInt('A') == 10); // A
+      REQUIRE(Hex::toInt('B') == 11); // B
+      REQUIRE(Hex::toInt('C') == 12); // C
+      REQUIRE(Hex::toInt('D') == 13); // D
+      REQUIRE(Hex::toInt('E') == 14); // E
+      REQUIRE(Hex::toInt('F') == 15); // F
     }
 
     SECTION("padLeft Test") {

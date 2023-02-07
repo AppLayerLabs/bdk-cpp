@@ -109,8 +109,8 @@ namespace THex {
       std::string hexStr = "0x1234";
       Hex hex(hexStr, false);
       Hex hexStrict(hexStr, true);
-      hex += Hex(std::move(std::string("0x5678")), true);
-      hexStrict += Hex(std::move(std::string("5678")), false);
+      hex += Hex(std::move(std::string("0x5678")), false);
+      hexStrict += Hex(std::move(std::string("0x5678")), true);
       REQUIRE_THAT(hex.get(), Equals("12345678"));
       REQUIRE_THAT(hexStrict.get(), Equals("0x12345678"));
     }
