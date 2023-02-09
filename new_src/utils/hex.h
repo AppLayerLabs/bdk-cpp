@@ -13,6 +13,10 @@
 
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 
+/**
+ * Helper struct for use with Boost's lexical_cast to convert hex strings to a given type.
+ * e.g. `boost::lexical_cast<HexTo<uint256_t>>(hexStr)`.
+ */
 template <typename ElemT> struct HexTo {
   ElemT value;
   operator ElemT() const { return value; }
@@ -22,11 +26,12 @@ template <typename ElemT> struct HexTo {
   }
 };
 
+/// Abstraction of a hex string.
 class Hex {
   private:
-    std::string hex;                                         ///< Internal string data.
-    std::string_view filter = "0123456789abcdefxABCDEFX";    ///< Filter for hex string
-    bool strict;                                             ///< If `true`, hex includes "0x"
+    std::string hex;                                       ///< Internal string data.
+    std::string_view filter = "0123456789abcdefxABCDEFX";  ///< Filter for hex string
+    bool strict;                                           ///< If `true`, hex includes "0x"
 
     /**
      * Check if a given string is valid hex.
