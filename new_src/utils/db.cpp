@@ -2,7 +2,7 @@
 
 DB::DB(const std::string path) {
   this->opts.create_if_missing = true;
-  std::filesystem::path fullPath = std::filesystem::current_path() + std::string("/") + path;
+  std::filesystem::path fullPath = std::filesystem::current_path().string() + std::string("/") + path;
   if (!std::filesystem::exists(fullPath)) { // LevelDB is dumb as a brick so we need this
     std::filesystem::create_directories(fullPath);
   }
@@ -54,13 +54,13 @@ bool DB::del(const std::string& key, const std::string& pfx) const {
 
 bool DB::putBatch(const DBBatch& batch, const std::string& pfx) const {
   batchLock.lock();
-  for (DBEntry& entry : batch.puts) {
+  for (const DBEntry entry : batch.puts) {
     auto status = this->db->Put(leveldb::WriteOptions(), pfx + entry.key, entry.value);
     if (!status.ok()) return false;
   }
-  for (std::string& key : batch.dels) {
+  for (const std::string key : batch.dels) {
     auto status = this->db->Delete(leveldb::WriteOptions(), pfx + key);
-    if (status.ok()) return false;
+    if (!status.ok()) return false;
   }
   batchLock.unlock();
   return true;

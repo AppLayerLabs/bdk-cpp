@@ -1,4 +1,5 @@
 set(UTILS_HEADERS
+  ${CMAKE_SOURCE_DIR}/new_src/utils/db.h
   ${CMAKE_SOURCE_DIR}/new_src/utils/utils.h
   ${CMAKE_SOURCE_DIR}/new_src/utils/strings.h
   ${CMAKE_SOURCE_DIR}/new_src/utils/hex.h
@@ -10,6 +11,7 @@ set(UTILS_HEADERS
 )
 
 set(UTILS_SOURCES
+  ${CMAKE_SOURCE_DIR}/new_src/utils/db.cpp
   ${CMAKE_SOURCE_DIR}/new_src/utils/utils.cpp
   ${CMAKE_SOURCE_DIR}/new_src/utils/strings.cpp
   ${CMAKE_SOURCE_DIR}/new_src/utils/hex.cpp

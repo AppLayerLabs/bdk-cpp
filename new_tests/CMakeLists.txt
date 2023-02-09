@@ -5,6 +5,7 @@ set(TESTS_HEADERS
 
 set (TESTS_SOURCES
   ""
+  ${CMAKE_SOURCE_DIR}/new_tests/db.cpp
   ${CMAKE_SOURCE_DIR}/new_tests/utils.cpp
   ${CMAKE_SOURCE_DIR}/new_tests/hex.cpp
   ${CMAKE_SOURCE_DIR}/new_tests/strings.cpp
