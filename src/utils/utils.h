@@ -21,6 +21,7 @@
 #include <thread>
 
 using json = nlohmann::ordered_json;
+using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 static const uint256_t c_secp256k1n("115792089237316195423570985008687907852837564279074904382605163141518161494337");
@@ -170,6 +171,23 @@ namespace Utils {
     ss << std::hex << i;
     ret = ss.str();
     for (auto &c : ret) if (std::isupper(c)) c = std::tolower(c);
+    return ret;
+  }
+  template <class T>
+  inline unsigned bytesRequired(T _i)
+  {
+  	static_assert(std::is_same<bigint, T>::value || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported"); //bigint does not carry sign bit on shift
+  	unsigned i = 0;
+  	for (; _i != 0; ++i, _i >>= 8) {}
+  	return i;
+  }
+  // Convert Unsigned Integer to Bytes, takes uint as little endian
+  template <class _T> void uintToBytes(_T _i)
+  {
+    std::string ret(bytesRequired(_i), 0x00);
+    uint8_t* b = &ret.back();
+    for (; _i; _i >>= 8)
+      *(b--) = (uint8_t)(_i & 0xff);
     return ret;
   }
   void stripHexPrefix(std::string& str);
