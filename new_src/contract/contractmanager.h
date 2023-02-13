@@ -7,7 +7,8 @@
 #include "../utils/db.h"
 #include "../utils/strings.h"
 #include "../utils/tx.h"
-//#include "contract.h" // TODO: circular dep
+#include "../utils/utils.h"
+#include "contract.h"
 
 /**
  * Class that holds all current contract instances in the blockchain state.
@@ -19,9 +20,12 @@ class ContractManager {
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<Contract>> contracts;
 
-    std::unique_ptr<DB> db; ///< Pointer to the database.
+    /// Pointer to the database.
+    std::unique_ptr<DB> db;
 
   public:
+    // TODO: constructor and destructor are not implemented because we don't know how contract loading/saving will work yet
+
     /**
      * Constructor. Automatically loads contracts from the database and deploys them.
      * @param db Pointer to the database.
@@ -34,18 +38,27 @@ class ContractManager {
     /**
      * Get a contract object from the deployed list.
      * @param address The address where the contract is deployed.
-     * @return The contract object.
+     * @return The contract object, or a nullptr if contract is not found.
      */
-    std::unique_ptr<Contract>& getContract(Address address);
+    std::unique_ptr<Contract>& getContract(Address address) const {
+      auto it = this->contracts.find(address);
+      return (it != this->contracts.end()) ? it->second : nullptr;
+    }
 
     /// Const-friendly overload of `getContract()`.
-    const std::unique_ptr<Contract>& getContract(Address address);
+    const std::unique_ptr<Contract>& getContract(Address address) const { return this->getContract(address); }
 
     /**
      * Process a transaction that calls a function from a given contract.
      * @param tx The transaction to process.
      */
-    void processTx(const TxBlock& tx);
+    void processTx(const TxBlock& tx) const {
+      try {
+        this->contracts[tx.getTo()]->ethCall(tx);
+      } catch (std::exception& e) {
+        Utils::logToDebug(Log::contractManager, __func__, std::string("Reverted: ") + e.what());
+      }
+    }
 };
 
 #endif  // CONTRACTMANAGER_H

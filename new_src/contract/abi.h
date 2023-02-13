@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "../libs/json.hpp"
-
+#include "../utils/hex.h"
+#include "../utils/json.hpp"
 #include "../utils/utils.h"
 
 /**
@@ -43,28 +43,28 @@ namespace ABI {
        * @param func The function header to encode.
        * @return The encoded functor hex string.
        */
-      std::string encodeFunction(std::string func);
+      std::string encodeFunction(std::string func) const;
 
       /**
        * Encode a 256-bit unsigned integer into Solidity ABI format.
        * @param num The 256-bit unsigned integer to encode.
        * @return The encoded uint256 hex string, padded 32 hex bytes to the LEFT.
        */
-      std::string encodeUint256(uint256_t num);
+      std::string encodeUint256(uint256_t num) const;
 
       /**
        * Encode a 20-byte address into Solidity ABI format.
        * @param add The 20-byte address to encode.
        * @return The encoded address hex string, padded 32 bytes to the LEFT.
        */
-      std::string encodeAddress(Address add);
+      std::string encodeAddress(Address add) const;
 
       /**
        * Encode a boolean into Solidity ABI format.
        * @param b The boolean to encode.
        * @return The encoded boolean hex string, padded 32 bytes to the LEFT.
        */
-      std::string encodeBool(bool b);
+      std::string encodeBool(bool b) const;
 
       /**
        * Encode a raw bytes or UTF-8 string into Solidity ABI format.
@@ -77,28 +77,28 @@ namespace ABI {
        * @return The encoded hex bytes or string,
        *         padded to the nearest multiple of 32 bytes to the RIGHT.
        */
-      std::string encodeBytes(std::string bytes);
+      std::string encodeBytes(std::string bytes) const;
 
       /**
        * Encode a 256-bit unsigned integer array into Solidity ABI format.
        * @param numV The 256-bit unsigned integer array to encode.
        * @return The encoded uint256[] hex string, with the proper offsets and lengths.
        */
-      std::string encodeUint256Arr(std::vector<uint256_t> numV);
+      std::string encodeUint256Arr(std::vector<uint256_t> numV) const;
 
       /**
        * Encode a 20-byte address array into Solidity ABI format.
        * @param addV The 20-byte address array to encode.
        * @return The encoded address[] hex string, with the proper offsets and lengths.
        */
-      std::string encodeAddressArr(std::vector<Address> addV);
+      std::string encodeAddressArr(std::vector<Address> addV) const;
 
       /**
        * Encode a boolean array into Solidity ABI format.
        * @param bV The boolean array to encode.
        * @return The encoded bool[] hex string, with the proper offsets and lengths.
        */
-      std::string encodeBoolArr(std::vector<bool> bV);
+      std::string encodeBoolArr(std::vector<bool> bV) const;
 
       /**
        * Encode a raw bytes or UTF-8 string array into Solidity ABI format.
@@ -106,7 +106,7 @@ namespace ABI {
        * @param bytesV The raw bytes or UTF-8 string array to encode.
        * @return The encoded bytes[] or string[] hex string, with the proper offsets and lengths.
        */
-      std::string encodeBytesArr(std::vector<std::string> bytesV);
+      std::string encodeBytesArr(std::vector<std::string> bytesV) const;
 
     public:
       /**
@@ -122,13 +122,14 @@ namespace ABI {
         bool, std::vector<bool>, std::string, std::vector<std::string>
       >> data, std::string func = "");
 
-      const std::string& getData() { return this->data; } ///< Getter for `data`.
+      /// Getter for `data`.
+      const std::string& getData() const { return this->data; }
 
       /**
        * Get the length of `data`.
        * @return The total size of the data string.
        */
-      size_t getDataLen() { return this->data.length(); }
+      size_t getDataLen() const { return this->data.length(); }
   };
 
   /// Class that unpacks and decodes a Solidity ABI string into their original data types.
@@ -147,7 +148,7 @@ namespace ABI {
        * @start The index of the string to start decoding from.
        * @return The decoded 256-bit unsigned integer.
        */
-      uint256_t decodeUint256(const std::string& data, const uint64_t& start);
+      uint256_t decodeUint256(const std::string& data, const uint64_t& start) const;
 
       /**
        * Decode a 20-byte address from the given Solidity data string.
@@ -156,7 +157,7 @@ namespace ABI {
        * @start The index of the string to start decoding from.
        * @return The decoded 20-byte address.
        */
-      Address decodeAddress(const std::string& data, const uint64_t& start);
+      Address decodeAddress(const std::string& data, const uint64_t& start) const;
 
       /**
        * Decode a boolean from the given Solidity data string.
@@ -165,7 +166,7 @@ namespace ABI {
        * @start The index of the string to start decoding from.
        * @return The decoded boolean.
        */
-      bool decodeBool(const std::string& data, const uint64_t& start);
+      bool decodeBool(const std::string& data, const uint64_t& start) const;
 
       /**
        * Decode a raw bytes or UTF-8 string from the given Solidity data string.
@@ -176,7 +177,7 @@ namespace ABI {
        * @start The index of the string to start decoding from.
        * @return The decoded raw bytes or UTF-8 string.
        */
-      std::string decodeBytes(const std::string& data, const uint64_t& start);
+      std::string decodeBytes(const std::string& data, const uint64_t& start) const;
 
       /**
        * Decode a 256-bit unsigned integer array from the given Solidity data string.
@@ -185,7 +186,7 @@ namespace ABI {
        * @start The index of the string to start decoding from.
        * @return The decoded 256-bit unsigned integer array.
        */
-      std::vector<uint256_t> decodeUint256Arr(const std::string& data, const uint64_t& start);
+      std::vector<uint256_t> decodeUint256Arr(const std::string& data, const uint64_t& start) const;
 
       /**
        * Decode a 20-byte address array from the given Solidity data string.
@@ -194,7 +195,7 @@ namespace ABI {
        * @start The index of the string to start decoding from.
        * @return The decoded 20-byte address array.
        */
-      std::vector<Address> decodeAddressArr(const std::string& data, const uint64_t& start);
+      std::vector<Address> decodeAddressArr(const std::string& data, const uint64_t& start) const;
 
       /**
        * Decode a boolean array from the given Solidity data string.
@@ -203,7 +204,7 @@ namespace ABI {
        * @start The index of the string to start decoding from.
        * @return The decoded boolean array.
        */
-      std::vector<bool> decodeBoolArr(const std::string& data, const uint64_t& start);
+      std::vector<bool> decodeBoolArr(const std::string& data, const uint64_t& start) const;
 
       /**
        * Decode a raw bytes or UTF-8 string array from the given Solidity data string.
@@ -213,7 +214,7 @@ namespace ABI {
        * @start The index of the string to start decoding from.
        * @return The decoded raw bytes or UTF-8 string array.
        */
-      std::vector<std::string> decodeBytesArr(const std::string& data, const uint64_t& start);
+      std::vector<std::string> decodeBytesArr(const std::string& data, const uint64_t& start) const;
 
     public:
       /**
@@ -228,9 +229,9 @@ namespace ABI {
        * @param index The index of the data type to get.
        * @return The decoded data type.
        */
-      template <typename T> T getData(const uint64_t& index) {
-        if (index >= data.size()) throw std::out_of_range("Index out of range");
-        if (std::holds_alternative<T>(data[index])) return std::get<T>(data[index]);
+      template <typename T> T getData(const uint64_t& index) const {
+        if (index >= this->data.size()) throw std::out_of_range("Index out of range");
+        if (std::holds_alternative<T>(this->data[index])) return std::get<T>(this->data[index]);
         throw std::runtime_error("Type mismatch");
       }
 
@@ -238,7 +239,7 @@ namespace ABI {
        * Get the size of the `data` list.
        * @return The total number of decoded types.
        */
-      size_t getDataSize() { return data.size(); }
+      size_t getDataSize() const { return this->data.size(); }
   };
 
   /// Same as %Encoder, but works strictly with JSON objects.
@@ -249,7 +250,7 @@ namespace ABI {
        * @param type The type value that will be checked.
        * @return `true` if type is array, `false` otherwise.
        */
-      bool typeIsArray(const Types& type);
+      bool typeIsArray(const Types& type) const;
 
     public:
       /**

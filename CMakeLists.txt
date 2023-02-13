@@ -141,7 +141,7 @@ if(BUILD_AVALANCHEGO)
     "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.h"
     "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
@@ -151,7 +151,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/aliasreader.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/appsender.grpc.pb.h"
@@ -161,7 +161,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/appsender.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/keystore.grpc.pb.h"
@@ -171,7 +171,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/keystore.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.h"
@@ -181,7 +181,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/messenger.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/metrics.grpc.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/metrics.grpc.pb.h"
@@ -191,7 +191,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/metrics.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
@@ -201,7 +201,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/sharedmemory.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
@@ -211,7 +211,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/rpcdb.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.h"
@@ -222,10 +222,10 @@ if(BUILD_AVALANCHEGO)
          --experimental_allow_proto3_optional
          "${CMAKE_SOURCE_DIR}/proto/vm.proto"
   )
-  
+
   # Protobuf PROTOBUF_GENERATE_CPP does NOT work with --experimental_allow_proto3_optional
   # requiring us to go over protobuf files with add_custom_command
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.h"
@@ -234,7 +234,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/aliasreader.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/appsender.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/appsender.pb.h"
@@ -243,7 +243,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/appsender.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/keystore.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/keystore.pb.h"
@@ -252,7 +252,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/keystore.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/messenger.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/messenger.pb.h"
@@ -261,7 +261,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/messenger.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/metrics.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
@@ -270,7 +270,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/metrics.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.h"
@@ -279,7 +279,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/sharedmemory.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
@@ -288,7 +288,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/rpcdb.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/metrics.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
@@ -297,7 +297,7 @@ if(BUILD_AVALANCHEGO)
          --proto_path="${CMAKE_SOURCE_DIR}/proto"
          "${CMAKE_SOURCE_DIR}/proto/metrics.proto"
   )
-  
+
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/proto/vm.pb.cc"
            "${CMAKE_SOURCE_DIR}/proto/vm.pb.h"
@@ -307,7 +307,7 @@ if(BUILD_AVALANCHEGO)
          --experimental_allow_proto3_optional
          "${CMAKE_SOURCE_DIR}/proto/vm.proto"
   )
-  
+
   add_library(ProtoFiles
     "${CMAKE_SOURCE_DIR}/proto/vm.pb.cc"
     "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.cc"
@@ -326,7 +326,7 @@ if(BUILD_AVALANCHEGO)
     "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
     "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
   )
-  
+
   # You HAVE to set the file names
   add_library (gen-grpc
     "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.cc"
@@ -345,13 +345,15 @@ if(BUILD_AVALANCHEGO)
     "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
     ${ProtoFiles}
   )
-  
+
   target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags)
 
   # Currently only utils.cpp and utils.h are being linked, change to cmake variables (see add_subdirectory above)
   add_library(subnetooor_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
+    ${CONTRACT_HEADERS}
+    ${CONTRACT_SOURCES}
   )
 
   add_dependencies(subnetooor_lib gen-grpc ProtoFiles)
@@ -365,7 +367,7 @@ if(BUILD_AVALANCHEGO)
   )
 
   set_target_properties(subnetooor_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
-  
+
   # Compile and link the executable
   add_executable(subnetooord
     "${CMAKE_SOURCE_DIR}/new_src/main.cpp"
@@ -388,6 +390,8 @@ else()
   add_library(subnetooor_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
+    ${CONTRACT_HEADERS}
+    ${CONTRACT_SOURCES}
   )
 
   target_include_directories(subnetooor_lib PRIVATE ${CMAKE_SOURCE_DIR}/include)
