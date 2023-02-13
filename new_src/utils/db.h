@@ -21,6 +21,7 @@
  * - erc721Tokens = "0006"
  * - txToBlocks = "0007"
  * - validators = "0008"
+ * - contracts = "0009"
  */
 namespace DBPrefix {
   const std::string blocks = "0001";
@@ -31,6 +32,7 @@ namespace DBPrefix {
   const std::string erc721Tokens = "0006";
   const std::string txToBlocks = "0007";
   const std::string validators = "0008";
+  const std::string contracts = "0009";
 };
 
 /**

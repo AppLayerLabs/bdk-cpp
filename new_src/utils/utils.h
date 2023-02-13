@@ -54,6 +54,7 @@ void fail(std::string_view cl, std::string func, boost::beast::error_code ec, co
  * - P2PClient = "P2PClient::"
  * - P2PServer = "P2PServer::"
  * - P2PManager = "P2PManager::"
+ * - contractManager = "ContractManager::"
  */
 namespace Log {
   const std::string blockchain = "Blockchain::";
@@ -71,6 +72,7 @@ namespace Log {
   const std::string P2PClient = "P2PClient::";
   const std::string P2PServer = "P2PServer::";
   const std::string P2PManager = "P2PManager::";
+  const std::string contractManager = "ContractManager::";
 }
 
 /// Enum for network type.
