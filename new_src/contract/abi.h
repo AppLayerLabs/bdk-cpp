@@ -123,7 +123,10 @@ namespace ABI {
       >> data, std::string func = "");
 
       /// Getter for `data`.
-      const std::string& getData() const { return this->data; }
+      const std::string getData() const { return Hex::fromBytes(this->data).get(); }
+
+      /// Getter for `data`, but returns the raw bytes string.
+      const std::string& getRaw() const { return this->data; }
 
       /**
        * Get the length of `data`.
@@ -220,7 +223,7 @@ namespace ABI {
       /**
        * Constructor. Automatically decodes the data during construction.
        * @param types An ordered list of expected Solidity types to decode.
-       * @param bytes The full Solidity ABI string to decode.
+       * @param bytes The full Solidity ABI string to decode, AS A RAW BYTES STRING.
        */
       Decoder(const std::vector<ABI::Types>& types, const std::string& bytes);
 
