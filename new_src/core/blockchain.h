@@ -3,18 +3,18 @@
 
 #include <mutex>
 
-#include "rdpos.h"
-#include "snowmanVM.h"
-#include "storage.h"
-#include "state.h"
-
-#include "../libs/json.hpp"
-
-#include "../net/P2PManager.h"
+#include "../net/p2pmanager.h"
 #include "../net/httpserver.h"
 #include "../net/grpcserver.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
+#include "../utils/json.hpp"
+#include "../utils/tx.h"
+
+#include "rdpos.h"
+#include "snowmanVM.h"
+#include "storage.h"
+#include "state.h"
 
 using json = nlohmann::ordered_json;
 using grpc::Server;
@@ -67,7 +67,7 @@ class Blockchain {
      * @param tx The transaction to validate.
      * @return An error code/message pair with the status of the validation.
      */
-    std::pair<int, string> validateTx(const TxBlock&& tx);
+    std::pair<int, std::string> validateTx(const TxBlock&& tx);
 
     /**
      * Validate a given Validator transaction.

@@ -113,17 +113,17 @@ bool SnowmanVM::parseBlock(
     if (block->getNHeight() <= latest->getNHeight()) {
       reply->set_status(BlockStatus::Rejected);
       Utils::logToDebug(Log::snowmanVM, __func__,
-        std::string("Block: ") + Utils::bytesToHex(block->getBlockHash().get())
+        std::string("Block: ") + Hex::fromBytes(block->getBlockHash().get()).get()
         + "(" + std::to_string(block->getNHeight()) + ") is lower than latest ("
-        + std::to_string(latestBlock->getNHeight()) + "), returning Rejected"
+        + std::to_string(latest->getNHeight()) + "), returning Rejected"
       );
     } else if (block->getNHeight() > latest->getNHeight()) {
       // We don't know anything about a future block, so we just say we are processing it
       reply->set_status(BlockStatus::Processing);
       Utils::logToDebug(Log::snowmanVM, __func__,
-        std::string("Block: ") + Utils::bytesToHex(block->getBlockHash().get())
+        std::string("Block: ") + Hex::fromBytes(block->getBlockHash().get()).get()
         + "(" + std::to_string(block->getNHeight()) + ") is higher than latest ("
-        + std::to_string(latestBlock->getNHeight()) + "), returning Processing"
+        + std::to_string(latest->getNHeight()) + "), returning Processing"
       );
       //this->rdpos->processBlock(block);  // TODO: rdPoS pointer doesn't exist here
     }
@@ -158,13 +158,14 @@ void SnowmanVM::setState(const vm::SetStateRequest* request, vm::SetStateRespons
 
 bool SnowmanVM::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) {
   //auto newBlock = this->state->createNewBlock(); // TODO: State pointer doesn't exist here
+  auto newBlock;
   if (newBlock == nullptr) {
     Utils::logToDebug(Log::snowmanVM, __func__, "Could not create new block");
     return false;
   }
   Utils::logToDebug(Log::snowmanVM, __func__, "Trying to answer AvalancheGo");
   Utils::logToDebug(Log::snowmanVM, __func__, std::string("New block created: ")
-    + Utils::bytesToHex(newBlock->getBlockHash().get())
+    + Hex::fromBytes(newBlock->getBlockHash().get()).get()
   );
   reply->set_id(newBlock->getBlockHash().get());
   reply->set_parent_id(newBlock->getPrevBlockHash().get());
@@ -191,7 +192,7 @@ void SnowmanVM::getBlock(
     timestamp->set_seconds(block->getTimestamp() / 1000000000);
     timestamp->set_nanos(block->getTimestamp() % 1000000000);
     Utils::logToDebug(Log::snowmanVM, __func__,
-      "Block found in chain: " + Utils::bytesToHex(block->serializeToBytes(false))
+      "Block found in chain: " + Hex::fromBytes(block->serializeToBytes(false)).get()
     );
   } else if (this->blockExists(hash)) {
     auto block = this->getBlock(hash);
@@ -203,13 +204,13 @@ void SnowmanVM::getBlock(
     timestamp->set_seconds(block->getTimestamp() / 1000000000);
     timestamp->set_nanos(block->getTimestamp() % 1000000000);
     Utils::logToDebug(Log::snowmanVM, __func__,
-      "Block found in mempool: " + Utils::bytesToHex(block->serializeToBytes(false))
+      "Block found in mempool: " + Hex::fromBytes(block->serializeToBytes(false)).get()
     );
   } else {
     reply->set_status(BlockStatus::Unknown);
     reply->set_err(2); // https://github.com/ava-labs/avalanchego/blob/559ce151a6b6f28d8115e0189627d8deaf00d9fb/vms/rpcchainvm/errors.go#L21
     Utils::logToDebug(Log::snowmanVM, __func__,
-      "Block " + Utils::bytesToHex(request->id()) + " does not exist"
+      "Block " + Hex::fromBytes(request->id()).get() + " does not exist"
     );
   }
 }
@@ -217,8 +218,8 @@ void SnowmanVM::getBlock(
 bool SnowmanVM::getAncestors(
   ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply
 ) {
-  Utils::LogPrint(Log::snowmanVM, __func__,
-    std::string("Getting ancestors of block ") + Utils::bytesToHex(hash.get())
+  Utils::logToDebug(Log::snowmanVM, __func__,
+    std::string("Getting ancestors of block ") + Hex::fromBytes(hash.get()).get()
     + " with depth of " + std::to_string(request->max_blocks_num()) + " up to "
     + std::to_string(request->max_blocks_size()) + " bytes and/or for "
     + std::to_string(request->max_blocks_retrival_time()) + " nanosseconds"
@@ -232,7 +233,7 @@ bool SnowmanVM::getAncestors(
   uint64_t maxTime = request->max_blocks_retrival_time(); // In nanosseconds
 
   // Depth can be actually higher than chain height, so we set it to chain height
-  if (depth > best->nHeight()) {
+  if (depth > best->getNHeight()) {
     Utils::logToDebug(Log::snowmanVM, __func__,
       "Depth is higher than chain height, setting depth to chain height"
     );
@@ -240,11 +241,11 @@ bool SnowmanVM::getAncestors(
   }
   auto timeStart = std::chrono::system_clock::now();
   for (
-    uint64_t index = (head->nHeight());
-    index >= (head->nHeight() - depth) && index <= head->nHeight();
+    uint64_t index = (head->getNHeight());
+    index >= (head->getNHeight() - depth) && index <= head->getNHeight();
     index--
   ) {
-    const std::shared_ptr<const Block> block = chainHead->getBlock(index);
+    const std::shared_ptr<const Block> block = this->storage->getBlock(index);
     reply->add_blks_bytes(block->serializeToBytes(false));
     auto timeEnd = std::chrono::system_clock::now();
     auto timeDiff = std::chrono::duration_cast<std::chrono::nanoseconds>(timeEnd - timeStart).count();
@@ -279,7 +280,7 @@ void SnowmanVM::setBlockStatus(const Hash& hash, const BlockStatus& status) {
 
 const std::shared_ptr<const Block> SnowmanVM::verifyBlock(const std::string bytes) {
   // Check if block can be attached to top of the chain, if so add it to processing
-  const std::shared_ptr<const Block> block = std::make_shared<Block>(blockBytes, false);
+  const std::shared_ptr<const Block> block = std::make_shared<Block>(bytes, false);
   //if (!this->state->validateNewBlock(block)) return nullptr; // TODO: State pointer doesn't exist here
   //this->rdpos->processBlock(block); // TODO: rdPoS pointer doesn't exist here
   return this->getBlock(block->getBlockHash());
@@ -335,7 +336,7 @@ bool SnowmanVM::blockIsProcessing(const Hash& hash) {
 const std::shared_ptr<const Block> SnowmanVM::getBlock(const Hash& hash) {
   this->lock.lock();
   auto it = this->mempool.find(hash);
-  std::shared_ptr<const Block>& ret = (it != this->mempool.end()) ? it->second : nullptr;
+  std::shared_ptr<const Block> ret = (it != this->mempool.end()) ? it->second : nullptr;
   this->lock.unlock();
   return ret;
 }
@@ -343,7 +344,7 @@ const std::shared_ptr<const Block> SnowmanVM::getBlock(const Hash& hash) {
 void SnowmanVM::connectNode(const std::string& id) {
   this->connectedNodesLock.lock();
   Utils::logToDebug(Log::snowmanVM, __func__,
-    "Connecting node: " + Utils::bytesToHex(id)
+    "Connecting node: " + Hex::fromBytes(id).get()
   );
   this->connectedNodes.emplace_back(id);
   this->connectedNodesLock.unlock();
@@ -354,7 +355,7 @@ void SnowmanVM::disconnectNode(const std::string& id) {
   for (uint64_t i = 0; i < this->connectedNodes.size(); i++) {
     if (this->connectedNodes[i] == id) {
       Utils::logToDebug(Log::snowmanVM, __func__,
-        "Disconnecting node: " + Utils::bytesToHex(id)
+        "Disconnecting node: " + Hex::fromBytes(id).get()
       );
       this->connectedNodes.erase(this->connectedNodes.begin() + i);
       break;

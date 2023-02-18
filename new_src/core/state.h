@@ -8,16 +8,17 @@
 #include <unordered_map>
 #include <vector>
 
-#include "blockchain.h"
-#include "rdpos.h"
-#include "snowmanVM.h"
-#include "storage.h"
 #include "../contract/contractmanager.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/randomgen.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
+
+#include "blockchain.h"
+#include "rdpos.h"
+#include "snowmanVM.h"
+#include "storage.h"
 
 /**
  * Class for storing system state and shared blockchain inner variables.
@@ -158,7 +159,7 @@ class State {
      * @param tx The transaction to validate.
      * @return An error code/message pair with the status of the validation.
      */
-    const std::pair<int, string> validateTxForRPC(const TxBlock& tx);
+    const std::pair<int, std::string> validateTxForRPC(const TxBlock& tx);
 
     /**
      * Add a fixed amount of funds to an account.
@@ -167,7 +168,7 @@ class State {
      */
     void addBalance(const Address& add) {
       this->stateLock.lock();
-      this->nativeAccount[add].balance += 1000000000000000000;
+      this->nativeAccounts[add].balance += 1000000000000000000;
       this->stateLock.unlock();
     }
 };

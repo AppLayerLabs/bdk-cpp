@@ -11,7 +11,7 @@ void Blockchain::start() {
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distr(50000, 60000);
   unsigned short port = distr(gen);
-  Utils::LogPrint(Log::blockchain, __func__,
+  Utils::logToDebug(Log::blockchain, __func__,
     std::string("Starting blockchain at port: ") + std::to_string(port)
   );
   std::string serverHost(std::string("0.0.0.0:") + std::to_string(port));
@@ -59,7 +59,7 @@ void Blockchain::stop() {
     // Signal the HTTP server to stop and wait for it
     this->httpServer->stop();
     while (true) {
-      if (!this->httpServer->isRunning()) break;
+      if (!this->httpServer->running()) break;
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     Utils::logToDebug(Log::blockchain, __func__, "HTTP server stopped");
@@ -70,7 +70,7 @@ void Blockchain::stop() {
   }
 }
 
-std::pair<int, string> Blockchain::validateTx(const TxBlock&& tx) {
+std::pair<int, std::string> Blockchain::validateTx(const TxBlock&& tx) {
   bool hasTx = this->state->getMempool().count(tx.hash());
   auto ret = this->state->validateTxForRPC(tx);
   // Broadcast only if tx was not previously in State

@@ -10,7 +10,7 @@ void rdPoS::loadFromDB() {
       throw std::runtime_error("Validator key size is not 8 bytes");
     }
     if (v.value.size() != 20) {
-      Utils::LogPrint(Log::rdpos, __func__, "Validator value size is not 20 bytes (address)");
+      Utils::logToDebug(Log::rdpos, __func__, "Validator value size is not 20 bytes (address)");
       throw std::runtime_error("Validator value size is not 20 bytes (address)");
     }
     // Make sure that list is *ordered* before savind to DB
@@ -79,9 +79,10 @@ void rdPoS::validatorLoop() {
         Hash randomHash = Hash::random();
         Utils::logToDebug(Log::rdpos, __func__,
           std::string("Randomizer: creating random hash tx for block ")
-          + latest->getBlockHash().hex() + std::string(" at height ")
+          + latest->getBlockHash().hex().get() + std::string(" at height ")
           + std::to_string(latest->getNHeight())
         );
+        // TODO: missing priv key here
         TxValidator randomHashTx(me.get(),
           Utils::hexToBytes("0xcfffe746") + Utils::sha3(randomHash.view()).get(),
           8848, latest->getNHeight()
@@ -128,7 +129,7 @@ void rdPoS::validatorLoop() {
 
     // Wait until next block
     while (this->storage->latest()->getNHeight() == latest->getNHeight()) {
-      Utils::logToDebug(Log:rdpos, __func__,
+      Utils::logToDebug(Log::rdpos, __func__,
         std::string("Waiting until new block... validator mempool size = ")
         + std::to_string(validatorMempool.size())
       );
@@ -141,7 +142,7 @@ bool rdPoS::validatorIsKnown(const Validator& val) {
   ; // TODO: not implemented in original
 }
 
-bool rdPoS:: saveToDB() {
+bool rdPoS::saveToDB() {
   ; // TODO: not implemented in original
 }
 
@@ -151,11 +152,11 @@ bool rdPoS::validateBlock(const std::shared_ptr<const Block>& block) {
   Hash hash = block->getBlockHash();
 
   // TODO: do we need to include chainId In the block signature?
-  UPubkey key = Secp256k1::recover(block->getValidatorSig(), hash);
+  UPubKey key = Secp256k1::recover(block->getValidatorSig(), hash);
   if (Secp256k1::toAddress(key) != this->randomList[0].get().get()) {
     Utils::logToDebug(Log::rdpos,__func__,
       std::string("Block validator signature does not match validator[0] signature: ")
-      + block->getValidatorSig().hex()
+      + block->getValidatorSig().hex().get()
     );
     this->lock.unlock();
     return false;
@@ -196,7 +197,7 @@ void rdPoS::addValidatorTx(const TxValidator& tx) {
 static Hash rdPoS::parseTxSeedList(const std::unordered_map<uint64_t, TxValidator, SafeHash> txs) {
   std::string seed;
   if (txs.size() == 0) return Hash();
-  for (uint64_t i = 0; i < txs.size(); i++) seed += txs.at(i).data().substr(4,32);
+  for (uint64_t i = 0; i < txs.size(); i++) seed += txs.at(i).getData().substr(4,32);
   return Utils::sha3(seed);
 }
 

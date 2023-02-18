@@ -3,10 +3,8 @@
 
 #include <mutex>
 
-#include "state.h"
-#include "storage.h"
 #include "../contract/contract.h"
-#include "../net/P2PManager.h"
+#include "../net/p2pmanager.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/randomgen.h"
@@ -14,6 +12,9 @@
 #include "../utils/strings.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
+
+#include "state.h"
+#include "storage.h"
 
 /**
  * Abstraction of a validator.
@@ -132,11 +133,12 @@ class rdPoS : public Contract {
     rdPoS(
       const std::shared_ptr<DB>& db, const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<P2PManager>& p2p, const Address& add,
-      const Address& owner, const PrivKey& privKey = ""
+      const Address& owner, const PrivKey& privKey = Hash(uint256_t(0))
     ) : db(db), storage(storage), p2p(p2p), gen(Hash()), Contract(add, owner)
     {
-      this->isValidator = (!privKey.empty());
-      this->validatorPrivKey = (!privKey.empty()) ? privKey : "";
+      if (privKey != Hash(uint256_t(0))) {
+        this->isValidator = true; this->validatorPrivKey = privKey;
+      }
       this->loadFromDB();
       Utils::logToDebug(Log::rdpos, __func__, std::string("Loaded ")
         + std::to_string(validatorList.size()) + std::string(" validators")
