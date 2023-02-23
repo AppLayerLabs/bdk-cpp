@@ -68,7 +68,7 @@ namespace P2P {
     public:
       static Message ping(const Message& request);
       static Message info();
-      static Message requestNodes(const Message& request, const std::vector<std::tuple<NodeType, std::string, boost::asio::ip::address, unsigned short>>& nodes);
+      static Message requestNodes(const Message& request, const std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>>& nodes);
   };
   
   // Used to decode a answer to request.
@@ -76,7 +76,7 @@ namespace P2P {
     public:
       static bool ping(const Message& message);
       static NodeInfo info(const Message& message);
-      static std::vector<std::tuple<NodeType, std::string, boost::asio::ip::address, unsigned short>> requestNodes(const Message& message);
+      static std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> requestNodes(const Message& message);
   };
 
   class Message {
@@ -126,15 +126,15 @@ namespace P2P {
     private:
       CommandType _command; // The command type.
       std::string _id;      // The request id.
-      std::string _nodeId;  // The host node id.
+      Hash _nodeId;  // The host node id.
       std::promise<Message> _answer;      // The answer to the request.
       bool _isAnswered = false;
 
     public:
-      Request(const CommandType& command, const std::string& id, const std::string& nodeId) : _command(command), _id(id), _nodeId(nodeId) {};
+      Request(const CommandType& command, const std::string& id, const Hash& nodeId) : _command(command), _id(id), _nodeId(nodeId) {};
       const CommandType command() const { return _command; };
       const std::string_view id() const { return _id; };
-      const std::string_view nodeId() const { return _nodeId; };
+      const Hash nodeId() const { return _nodeId; };
       std::future<Message> answerFuture() { return _answer.get_future(); };
       const bool isAnswered() const { return _isAnswered; };
       void setAnswer(const Message& answer) { _answer.set_value(answer); _isAnswered = true; };

@@ -12,7 +12,7 @@ namespace P2P {
         handleAnswer(session, message);
         break;
       default:
-        Utils::logToDebug(Log::P2PParser, __func__, "Invalid message type from " + Hex::fromBytes(session->hostNodeId()).get() + ", closing session.");
+        Utils::logToDebug(Log::P2PParser, __func__, "Invalid message type from " + session->hostNodeId().hex().get() + ", closing session.");
         this->disconnectSession(session->hostNodeId());
         break;
     }
@@ -30,7 +30,7 @@ namespace P2P {
         handleRequestNodesRequest(session, message);
         break;
       default:
-        Utils::logToDebug(Log::P2PParser, __func__, "Invalid Request Command Type from " + Hex::fromBytes(session->hostNodeId()).get() + ", closing session.");
+        Utils::logToDebug(Log::P2PParser, __func__, "Invalid Request Command Type from " + session->hostNodeId().hex().get() + ", closing session.");
         this->disconnectSession(session->hostNodeId());
         break;
     }
@@ -48,7 +48,7 @@ namespace P2P {
         handleRequestNodesAnswer(session, message);
         break;
       default:
-        Utils::logToDebug(Log::P2PParser, __func__, "Invalid Answer Command Type from " + Hex::fromBytes(session->hostNodeId()).get() + ", closing session.");
+        Utils::logToDebug(Log::P2PParser, __func__, "Invalid Answer Command Type from " + session->hostNodeId().hex().get() + ", closing session.");
         this->disconnectSession(session->hostNodeId());
         break;
     }
@@ -56,7 +56,7 @@ namespace P2P {
 
   void Manager::handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
     if (!RequestDecoder::ping(message)) {
-      Utils::logToDebug(Log::P2PParser, __func__, "Invalid ping request from " + Hex::fromBytes(session->hostNodeId()).get() + " closing session.");
+      Utils::logToDebug(Log::P2PParser, __func__, "Invalid ping request from " + session->hostNodeId().hex().get() + " closing session.");
       this->disconnectSession(session->hostNodeId());
       return;
     }
@@ -70,7 +70,7 @@ namespace P2P {
       return;
     }
 
-    std::vector<std::tuple<NodeType, std::string, boost::asio::ip::address, unsigned short>> nodes;
+    std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> nodes;
     {
       std::unique_lock lock(requestsMutex);
       for (const auto& session : this->sessions_) {
@@ -83,7 +83,7 @@ namespace P2P {
   void Manager::handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
     std::unique_lock lock(requestsMutex);
     if (!requests_.contains(message.id())) {
-      Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + Hex::fromBytes(session->hostNodeId()).get());
+      Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + session->hostNodeId().hex().get());
       this->disconnectSession(session->hostNodeId());
       return;
     }
@@ -93,7 +93,7 @@ namespace P2P {
   void Manager::handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
     std::unique_lock lock(requestsMutex);
     if (!requests_.contains(message.id())) {
-      Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + Hex::fromBytes(session->hostNodeId()).get());
+      Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + session->hostNodeId().hex().get());
       this->disconnectSession(session->hostNodeId());
       return;
     }

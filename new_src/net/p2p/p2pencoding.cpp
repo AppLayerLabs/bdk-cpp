@@ -59,7 +59,7 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message AnswerEncoder::requestNodes(const Message& request, const std::vector<std::tuple<NodeType, std::string, boost::asio::ip::address, unsigned short>>& nodes) {
+  Message AnswerEncoder::requestNodes(const Message& request, const std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>>& nodes) {
     std::string message;
     message += getRequestTypePrefix(Answering);
     message += request.id();
@@ -68,7 +68,7 @@ namespace P2P {
       // NodeType
       message += Utils::uint8ToBytes(std::get<0>(node));
       // NodeID
-      message += std::get<1>(node);
+      message += std::get<1>(node).get();
 
       message += Utils::uint8ToBytes(std::get<2>(node).is_v4() ? 0 : 1);
       if (std::get<2>(node).is_v4()) {
@@ -90,19 +90,19 @@ namespace P2P {
     return true;
   }
 
-  std::vector<std::tuple<NodeType, std::string, boost::asio::ip::address, unsigned short>> AnswerDecoder::requestNodes(const Message& message) {
+  std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> AnswerDecoder::requestNodes(const Message& message) {
     std::cout << __func__ << " " << message.size() << std::endl;
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestNodes) { throw std::runtime_error("Invalid command."); }
-    std::vector<std::tuple<NodeType, std::string, boost::asio::ip::address, unsigned short>> nodes;
+    std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> nodes;
     std::string_view data = message.message();
     size_t index = 0;
     while (index < data.size()) {
       if (data.size() < 40) { throw std::runtime_error("Invalid data size."); }
-      std::tuple<NodeType, std::string, boost::asio::ip::address, unsigned short> node;
+      std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short> node;
       std::get<0>(node) = static_cast<NodeType>(Utils::bytesToUint8(data.substr(index, 1)));
       index += 1;
-      std::get<1>(node) = std::string(data.substr(index, 32));
+      std::get<1>(node) = Hash(std::string(data.substr(index, 32)));
       index += 32;
       uint8_t ipVersion = Utils::bytesToUint8(data.substr(index, 1));
       index += 1; // Move index to IP address
