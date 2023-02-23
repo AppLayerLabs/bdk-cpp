@@ -51,9 +51,12 @@ void fail(std::string_view cl, std::string func, boost::beast::error_code ec, co
  * - httpServer = "HTTPServer::"
  * - rdpos = "rdPoS::"
  * - ABI = "ABI::"
- * - P2PClient = "P2PClient::"
- * - P2PServer = "P2PServer::"
- * - P2PManager = "P2PManager::"
+ * - P2P::ClientSession = "P2P::ClientSession"
+ * - P2P::Server = "P2P::Server"
+ * - P2P::ServerListener = "P2P::ServerListener"
+ * - P2P::ServerSession = "P2P::ServerSession"
+ * - P2P::Manager = "P2P::Manager"
+ * - P2P::Parser = "P2P::Parser" <- Part of P2P::Manager
  * - contractManager = "ContractManager::"
  */
 namespace Log {
@@ -69,9 +72,12 @@ namespace Log {
   const std::string httpServer = "HTTPServer::";
   const std::string rdpos = "rdPoS::";
   const std::string ABI = "ABI::";
-  const std::string P2PClient = "P2PClient::";
-  const std::string P2PServer = "P2PServer::";
-  const std::string P2PManager = "P2PManager::";
+  const std::string P2PClientSession = "P2P::ClientSession";
+  const std::string P2PServer = "P2P::Server";
+  const std::string P2PServerListener = "P2P::ServerListener";
+  const std::string P2PServerSession = "P2P::ServerSession";
+  const std::string P2PManager = "P2P::Manager";
+  const std::string P2PParser = "P2P::Parser";
   const std::string contractManager = "ContractManager::";
 }
 

@@ -1,32 +1,38 @@
 
 if(BUILD_AVALANCHEGO)
   set(NET_HEADERS
-    ${CMAKE_SOURCE_DIR}/new_src/net/grpcclient.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/grpcserver.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/httpserver.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2pclient.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2pencoding.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2pmanager.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2pserver.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pbase.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pencoding.h
     PARENT_SCOPE
   )
 
   set(NET_SOURCES
-    ""
+    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pmanager.cpp
+    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pserver.cpp
+    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pclient.cpp
+    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pencoding.cpp
+    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pparser.cpp
     PARENT_SCOPE
   )
 else()
   set(NET_HEADERS
-    ${CMAKE_SOURCE_DIR}/new_src/net/httpserver.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2pclient.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2pencoding.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2pmanager.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2pserver.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/PARENT_SCOPE
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pbase.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pencoding.h
+    PARENT_SCOPE
   )
 
   set(NET_SOURCES
-    ""
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pencoding.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pparser.cpp
     PARENT_SCOPE
   )
 endif()

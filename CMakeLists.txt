@@ -394,8 +394,10 @@ else()
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
     ${CONTRACT_SOURCES}
-    #${CORE_HEADERS}
-    #${CORE_SOURCES}
+    ${CORE_HEADERS}
+    ${CORE_SOURCES}
+    ${NET_HEADERS}
+    ${NET_SOURCES}
   )
 
   target_include_directories(subnetooor_lib PRIVATE ${CMAKE_SOURCE_DIR}/include)
