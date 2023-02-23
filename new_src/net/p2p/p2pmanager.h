@@ -23,21 +23,21 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace P2P {
   class Manager {
     private:
-      const std::string nodeId_; // Unique node ID, randomly generated at P2PManager constructor, 32 bytes in size, hex encoded (handshake http requires).
+      const Hash nodeId_;        // Unique node ID, randomly generated at P2PManager constructor, 32 bytes in size, byte encoded.
                                  // Used in the session unordered_map to identify a session to a given node.
                                  // Do not allow multiple sessions to the same node.
       boost::asio::ip::address hostIp_;
       unsigned short hostPort_;
       const std::shared_ptr<Server> p2pserver_;
       const NodeType nodeType_;
-      std::unordered_map <std::string, std::shared_ptr<BaseSession>, SafeHash> sessions_;
+      std::unordered_map <Hash, std::shared_ptr<BaseSession>, SafeHash> sessions_;
       std::unordered_map <std::string, std::shared_ptr<Request>, SafeHash> requests_;
 
       std::shared_mutex sessionsMutex; // Mutex for protecting sessions
       std::shared_mutex requestsMutex; // Mutex for protecting requests
 
       // Sends a message to a given node. returns pointer to the request object, null if doesn't exists.
-      std::shared_ptr<Request>& sendMessageTo(std::string nodeId, const Message& message);
+      std::shared_ptr<Request>& sendMessageTo(const Hash& nodeId, const Message& message);
       void answerSession(std::shared_ptr<BaseSession>& session, const Message& message);
 
       // Handlers for client and server requests.
@@ -63,13 +63,13 @@ namespace P2P {
       bool unregisterSession(std::shared_ptr<BaseSession> session);
 
       // Disconnect from a given Session (client or server) based on nodeId.
-      bool disconnectSession(const std::string& nodeId);
+      bool disconnectSession(const Hash& nodeId);
 
       // Starts WebSocket server.
       void startServer();
 
       // Gets a copy of keys of the sessions map
-      std::vector<std::string> getSessionsIDs();
+      std::vector<Hash> getSessionsIDs();
 
       // Connects to a given WebSocket server.
       void connectToServer(const std::string &host, const unsigned short &port);
@@ -80,11 +80,11 @@ namespace P2P {
       void handleMessage(std::shared_ptr<BaseSession> session, const Message message);
 
       // Public request functions
-      void ping(const std::string& nodeId);
+      void ping(const Hash& nodeId);
 
-      std::vector<std::tuple<NodeType, std::string, boost::asio::ip::address, unsigned short>> requestNodes(const std::string& nodeId);
+      std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> requestNodes(const Hash& nodeId);
 
-      const std::string& nodeId() const { return nodeId_; }
+      const Hash& nodeId() const { return nodeId_; }
 
       const NodeType& nodeType() const { return nodeType_; }
 

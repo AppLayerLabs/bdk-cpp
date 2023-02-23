@@ -21,7 +21,7 @@ class Contract; // Forward declaration.
 class ContractManager {
   private:
     /// List of currently deployed contracts.
-    std::unordered_map<Address, std::unique_ptr<Contract>> contracts;
+    std::unordered_map<Address, std::unique_ptr<Contract>, SafeHash> contracts;
 
     /// Pointer to the database.
     std::unique_ptr<DB> db;

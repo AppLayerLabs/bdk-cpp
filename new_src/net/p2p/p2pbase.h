@@ -9,6 +9,8 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "../../utils/strings.h"
+
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
@@ -40,7 +42,7 @@ namespace P2P {
       const std::string host_;                 // Target IP/hostname
       const unsigned short port_;              // Target port
       boost::asio::ip::address address_;       // Target address
-      std::string hostNodeId_;                 // Host node ID, got from handshake (hex), stored in bytes.
+      Hash hostNodeId_;                 // Host node ID, got from handshake (hex), stored in bytes.
       unsigned short hostServerPort_;    // Host P2P Server Port, got from handshake.
       NodeType hostType_;                      // Host node type, got from handshake.
       bool closed_ = false;
@@ -80,7 +82,7 @@ namespace P2P {
       const boost::asio::ip::address address() { return address_; }
       const unsigned short& port() const { return port_; }
       const std::pair<boost::asio::ip::address, unsigned short> addressAndPort() { return std::make_pair(address_, port_); }
-      const std::string& hostNodeId() const { return hostNodeId_; }
+      const Hash& hostNodeId() const { return hostNodeId_; }
       const ConnectionType& connectionType() const { return connectionType_; }
       const NodeType& hostType() const { return hostType_; }
       const unsigned short& hostServerPort() const { return hostServerPort_; }

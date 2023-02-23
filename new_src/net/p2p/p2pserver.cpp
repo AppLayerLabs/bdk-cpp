@@ -26,7 +26,7 @@ namespace P2P {
     // Set a decorator to change the Server of the handshake
     ws_.set_option(websocket::stream_base::decorator([this](websocket::response_type& res){
       res.set(http::field::server, std::string(BOOST_BEAST_VERSION_STRING) + " websocket-server-async");
-      res.set("X-Node-Id", this->manager_.nodeId()); // Add the custom header
+      res.set("X-Node-Id", this->manager_.nodeId().hex().get()); // Add the custom header
       res.set("X-Node-Type", std::to_string(this->manager_.nodeType()));
       res.set("X-Node-ServerPort", std::to_string(this->manager_.serverPort()));
     }));
@@ -40,34 +40,33 @@ namespace P2P {
     boost::ignore_unused(bytes_transferred);
     if (ec) { handleError(__func__, ec); return; }
 
-
-    this->hostNodeId_ = Hex::toBytes(std::string(this->upgrade_request_["X-Node-Id"]));
-    if (this->hostNodeId_.size() != 32) {
+    try {
+      this->hostNodeId_ = Hash(Hex::toBytes(std::string(this->upgrade_request_["X-Node-Id"])));
+      } catch (std::exception &e) {
       Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Id header is not valid from: " + this->host_ + " at " + std::to_string(this->port_));
-      return;
     }
 
     std::string nodeTypeStr = std::string(this->upgrade_request_["X-Node-Type"]);
     if (nodeTypeStr.size() == 1) {
       if(!std::isdigit(nodeTypeStr[0])) {
-        Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Type header is not a valid digit from " + Hex::fromBytes(this->hostNodeId_).get());
+        Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Type header is not a valid digit from " + this->hostNodeId_.hex().get());
         return;
       }
       this->hostType_ = (NodeType)std::stoi(nodeTypeStr);
     } else {
-      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Type header is not valid from " + Hex::fromBytes(this->hostNodeId_).get());
+      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Type header is not valid from " + this->hostNodeId_.hex().get());
       return;
     }
 
     std::string serverPortStr = std::string(this->upgrade_request_["X-Node-ServerPort"]);
     if (serverPortStr.size() > 0) {
       if(!std::all_of(serverPortStr.begin(), serverPortStr.end(), ::isdigit)) {
-        Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-ServerPort header is not a valid digit from " + Hex::fromBytes(this->hostNodeId_).get());
+        Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-ServerPort header is not a valid digit from " + this->hostNodeId_.hex().get());
         return;
       }
       this->hostServerPort_ = std::stoi(serverPortStr);
     } else {
-      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-ServerPort header is not valid from " + Hex::fromBytes(this->hostNodeId_).get());
+      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-ServerPort header is not valid from " + this->hostNodeId_.hex().get());
       return;
     }
     
@@ -105,10 +104,10 @@ namespace P2P {
         t.detach();
         buffer_.consume(buffer_.size());
       } else {
-        Utils::logToDebug(Log::P2PServer, __func__, "Message too short: " + this->hostNodeId_ + " too short");
+        Utils::logToDebug(Log::P2PServer, __func__, "Message too short: " + this->hostNodeId_.hex().get() + " too short");
       }
     } catch (std::exception &e) {
-      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession exception from: " + this->hostNodeId_ + " " + std::string(e.what()));
+      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession exception from: " + this->hostNodeId_.hex().get() + " " + std::string(e.what()));
     }
     read();
   }
