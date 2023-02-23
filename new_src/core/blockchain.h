@@ -35,9 +35,9 @@ class Blockchain {
     const std::shared_ptr<Storage> storage;       ///< Pointer to the blockchain history.
     const std::shared_ptr<SnowmanVM> snowmanVM;   ///< Pointer to the SnowmanVM.
     const std::shared_ptr<rdPoS> rdpos;           ///< Pointer to the rdPoS/block manager.
-    const std::unique_ptr<Server> server;         ///< Pointer to the (generic) gRPC server.
     const std::shared_ptr<HTTPServer> httpServer; ///< Pointer to the HTTP server.
     const std::shared_ptr<P2P::Manager> p2p;      ///< Pointer to the P2P connection manager.
+    std::unique_ptr<Server> server;               ///< Pointer to the (generic) gRPC server.
     bool initialized = false;                     ///< Indicates if the blockchain is initialized.
     bool shutdown = false;                        ///< Indicates if the blockchain will shutdown.
     bool isValidator = false;                     ///< Indicates if the blockchain is a Validator.

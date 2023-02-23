@@ -24,7 +24,7 @@ class ContractManager {
     std::unordered_map<Address, std::unique_ptr<Contract>, SafeHash> contracts;
 
     /// Pointer to the database.
-    std::unique_ptr<DB> db;
+    std::shared_ptr<DB> db;
 
   public:
     // TODO: constructor and destructor are not implemented because we don't know how contract loading/saving will work yet
@@ -33,7 +33,7 @@ class ContractManager {
      * Constructor. Automatically loads contracts from the database and deploys them.
      * @param db Pointer to the database.
      */
-    ContractManager(std::unique_ptr<DB>& db) : db(db);
+    ContractManager(std::shared_ptr<DB>& db) : db(db) {}
 
     /// Destructor. Automatically saves contracts to the database before wiping them.
     ~ContractManager();
@@ -45,14 +45,14 @@ class ContractManager {
      */
     const std::unique_ptr<Contract>& getContract(Address address) const {
       auto it = this->contracts.find(address);
-      return (it != this->contracts.end()) ? it->second : std::unique_ptr<Contract>(nullptr);
+      return (it != this->contracts.end()) ? it->second : nullptr;
     }
 
     /**
      * Process a transaction that calls a function from a given contract.
      * @param tx The transaction to process.
      */
-    void processTx(const TxBlock& tx) const {
+    void processTx(const TxBlock& tx) {
       try {
         this->contracts[tx.getTo()]->ethCall(tx);
       } catch (std::exception& e) {
