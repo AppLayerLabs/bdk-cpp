@@ -354,8 +354,8 @@ if(BUILD_AVALANCHEGO)
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
     ${CONTRACT_SOURCES}
-    ${CORE_HEADERS}
-    ${CORE_SOURCES}
+    #${CORE_HEADERS}
+    #${CORE_SOURCES}
   )
 
   add_dependencies(subnetooor_lib gen-grpc ProtoFiles)
@@ -394,8 +394,8 @@ else()
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
     ${CONTRACT_SOURCES}
-    ${CORE_HEADERS}
-    ${CORE_SOURCES}
+    #${CORE_HEADERS}
+    #${CORE_SOURCES}
   )
 
   target_include_directories(subnetooor_lib PRIVATE ${CMAKE_SOURCE_DIR}/include)

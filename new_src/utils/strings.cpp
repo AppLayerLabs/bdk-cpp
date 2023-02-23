@@ -4,13 +4,13 @@ Hash::Hash(uint256_t data) : FixedStr<32>(Utils::uint256ToBytes(data)) {};
 
 const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data); }
 
-Address::Address(const std::string& add, bool inBytes) { 
+Address::Address(const std::string& add, bool inBytes) {
   if (inBytes) {
     if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
     this->data = add;
   } else {
     if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
-    this->data = std::move(Hex(add).bytes()); 
+    this->data = std::move(Hex::toBytes(add));
   }
 }
 
@@ -20,7 +20,7 @@ Address::Address(const std::string_view& add, bool inBytes) {
     this->data = add;
   } else {
     if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
-    this->data = std::move(Hex(add).bytes()); 
+    this->data = std::move(Hex::toBytes(add));
   }
 }
 
@@ -30,7 +30,8 @@ Address::Address(std::string&& add, bool inBytes) {
     this->data = std::move(add);
   } else {
     if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
-    this->data = std::move(Hex(std::move(add)).bytes()); 
+    add = Hex::toBytes(add);
+    this->data = std::move(add);
   }
 }
 
