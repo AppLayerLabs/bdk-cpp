@@ -20,4 +20,3 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/new_src/utils/randomgen.cpp
   PARENT_SCOPE
 )
-
