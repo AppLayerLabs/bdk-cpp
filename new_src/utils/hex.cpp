@@ -25,9 +25,13 @@ Hex::Hex(std::string&& v, bool strict) : hex(std::move(v)), strict(strict) {
 }
 
 bool Hex::isValid(const std::string_view& v) const {
-  std::string hex = (v.empty()) ? this->hex : v.data();
-  if (strict && hex.substr(0, 2) != "0x" && hex.substr(0, 2) != "0X") return false;
-  if (hex.find_first_not_of(filter) != std::string::npos) return false;
+  std::string_view hex((v.empty()) ? this->hex : v);
+  int off = 0;
+  if (strict) {
+    if (hex.substr(0, 2) != "0x" && hex.substr(0, 2) != "0X") return false;
+    off = 2;
+  }
+  if (hex.find_first_not_of(filter, off) != std::string::npos) return false;
   return true;
 }
 
@@ -53,7 +57,7 @@ Hex Hex::fromUTF8(std::string_view str, bool strict) {
     ss << std::hex << std::setfill('0') << std::setw(2)
       << static_cast<uint>(static_cast<uint8_t>(str[i]));
   }
-  return Hex(std::move(ss.str()), strict);
+  return Hex(ss.str(), strict);
 }
 
 // TODO: This function is identical in CommonData.h, is for the better a re-write of commonly used functions at CommonData.h
@@ -64,22 +68,38 @@ int Hex::toInt(char c) {
   return -1;
 }
 
-std::string Hex::bytes() const {
-  // Parse two by two chars until the end
+std::string Hex::toBytes(const std::string_view& hex) {
   std::string ret;
-  uint32_t i = (this->hex.size() % 2 != 0); // Odd offset ("0xaaa")
-  i += (this->strict) ? 2 : 0; // Strict offset ("0x")
-  for (; i < this->hex.size(); i += 2) {
-    int h = Hex::toInt(this->hex[i]);
-    int l = Hex::toInt(this->hex[i + 1]);
-    if (h != -1 && l != -1) {
-      ret += (char) uint8_t(h * 16 + l);
-    } else {
-      throw std::runtime_error(std::string(__func__)
-        + ": One or more invalid hex chars: " + this->hex[i] + this->hex[i + 1]
-      );
-    }
+  size_t i = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? 2 : 0;
+  if (hex.find_first_not_of(filter, i) != std::string::npos) {
+    throw std::runtime_error(std::string(__func__) + ": Invalid hex string");
+  }
+  if (hex.size() % 2) {
+    int h = Hex::toInt(hex[i++]);
+    ret += (char) uint8_t(h);
+  }
+  for (; i < hex.size(); i += 2) {
+    int h = Hex::toInt(hex[i]);
+    int l = Hex::toInt(hex[i + 1]);
+    ret += (char) uint8_t(h * 16 + l);
   }
   return ret;
 }
 
+std::string Hex::bytes() const {
+  // Parse two by two chars until the end
+  std::string ret;
+  uint32_t i = (this->strict) ? 2 : 0; // Strict offset ("0x")
+  if (hex.size() % 2) {
+    int h = Hex::toInt(this->hex[i++]);
+    ret += (char) uint8_t(h);
+  }
+  for (; i < this->hex.size(); i += 2) {
+    int h = Hex::toInt(this->hex[i]);
+    int l = Hex::toInt(this->hex[i + 1]);
+    ret += (char) uint8_t(h * 16 + l);
+  }
+  return ret;
+}
+
+const std::string_view Hex::filter("0123456789abcdefABCDEF");

@@ -30,7 +30,7 @@ template <typename ElemT> struct HexTo {
 class Hex {
   private:
     std::string hex;                                       ///< Internal string data.
-    std::string_view filter = "0123456789abcdefxABCDEFX";  ///< Filter for hex string
+    static const std::string_view filter;  ///< Filter for hex string
     bool strict;                                           ///< If `true`, hex includes "0x"
 
     /**
@@ -97,6 +97,13 @@ class Hex {
      */
     std::string bytes() const;
 
+    /**
+     * Convert the Hex data to bytes, static version.
+     * @param hex The hex string.
+     * @return The bytes string.
+     */
+    static std::string toBytes(const std::string_view& hex);
+
     /// Getter for `hex`.
     inline const std::string& get() const { return this->hex; }
 
@@ -136,13 +143,7 @@ class Hex {
 
     /// Concat operator. Throws on invalid concat.
     Hex& operator+=(const Hex& other) {
-      if (this->isValid(other.hex)) {
-        this->hex += (
-          other.hex[0] == '0' && (other.hex[1] == 'x' || other.hex[1] == 'X')
-        ) ? other.hex.substr(2) : other.hex;
-      } else {
-        throw std::runtime_error("Invalid Hex concat operation");
-      }
+      this->hex += (other.strict) ? other.hex.substr(2) : other.hex;
       return *this;
     }
 
