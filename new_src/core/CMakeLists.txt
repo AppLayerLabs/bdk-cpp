@@ -1,37 +1,37 @@
 if(BUILD_AVALANCHEGO)
   set(CORE_HEADERS
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/snowmanVM.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/state.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/storage.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/snowmanVM.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/state.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/storage.h
     PARENT_SCOPE
   )
 
   set(CORE_SOURCES
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/blockchainRPC.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/snowmanVM.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/state.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/storage.cpp 
+    ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/blockchainRPC.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/snowmanVM.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/state.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/storage.cpp
     PARENT_SCOPE
   )
 else()
   set(CORE_HEADERS
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/state.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/storage.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/state.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/storage.h
     PARENT_SCOPE
   )
 
   set(CORE_SOURCES
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/blockchainRPC.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/state.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/storage.cpp 
+    ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/blockchainRPC.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/state.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/storage.cpp
     PARENT_SCOPE
   )
 endif()

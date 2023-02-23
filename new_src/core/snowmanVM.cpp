@@ -157,8 +157,8 @@ void SnowmanVM::setState(const vm::SetStateRequest* request, vm::SetStateRespons
 }
 
 bool SnowmanVM::blockRequest(ServerContext* context, vm::BuildBlockResponse* reply) {
-  //auto newBlock = this->state->createNewBlock(); // TODO: State pointer doesn't exist here
-  auto newBlock;
+  //std::shared_ptr<const Block> newBlock = this->state->createNewBlock(); // TODO: State pointer doesn't exist here
+  std::shared_ptr<const Block> newBlock = nullptr;
   if (newBlock == nullptr) {
     Utils::logToDebug(Log::snowmanVM, __func__, "Could not create new block");
     return false;
@@ -218,14 +218,14 @@ void SnowmanVM::getBlock(
 bool SnowmanVM::getAncestors(
   ServerContext* context, const vm::GetAncestorsRequest* request, vm::GetAncestorsResponse* reply
 ) {
+  Hash hash(request->blk_id());
+  if (!this->storage->exists(hash)) return false;
   Utils::logToDebug(Log::snowmanVM, __func__,
     std::string("Getting ancestors of block ") + Hex::fromBytes(hash.get()).get()
     + " with depth of " + std::to_string(request->max_blocks_num()) + " up to "
     + std::to_string(request->max_blocks_size()) + " bytes and/or for "
     + std::to_string(request->max_blocks_retrival_time()) + " nanosseconds"
   );
-  Hash hash(request->blk_id());
-  if (!this->storage->exists(hash)) return false;
   const std::shared_ptr<const Block> head = this->storage->getBlock(hash);
   const std::shared_ptr<const Block> best = this->storage->latest();
   uint64_t depth = request->max_blocks_num();

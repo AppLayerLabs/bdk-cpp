@@ -38,7 +38,6 @@ message("Building avalanchego: ${BUILD_AVALANCHEGO}")
 
 cable_add_buildinfo_library(PROJECT_NAME subnetooor)
 
-
 # System package configs (built-in)
 set(Boost_USE_STATIC_LIBS ON)
 set(OPENSSL_USE_STATIC_LIBS ON)
@@ -64,8 +63,8 @@ include(cmake/ProjectSecp256k1.cmake) # Bitcoin core fast implementation
 
 # Build catch2 to a library.
 add_library(catch2
-    ${CMAKE_SOURCE_DIR}/new_src/libs/catch2/catch_amalgamated.hpp
-    ${CMAKE_SOURCE_DIR}/new_src/libs/catch2/catch_amalgamated.cpp
+  ${CMAKE_SOURCE_DIR}/new_src/libs/catch2/catch_amalgamated.hpp
+  ${CMAKE_SOURCE_DIR}/new_src/libs/catch2/catch_amalgamated.cpp
 )
 
 target_include_directories(catch2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/catch2)
@@ -348,14 +347,15 @@ if(BUILD_AVALANCHEGO)
 
   target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags)
 
-  # Currently only utils.cpp and utils.h are being linked, change to cmake variables (see add_subdirectory above)
   add_library(subnetooor_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
     ${CONTRACT_SOURCES}
-    #${CORE_HEADERS}
-    #${CORE_SOURCES}
+    ${CORE_HEADERS}
+    ${CORE_SOURCES}
+    ${NET_HEADERS}
+    ${NET_SOURCES}
   )
 
   add_dependencies(subnetooor_lib gen-grpc ProtoFiles)
@@ -371,9 +371,7 @@ if(BUILD_AVALANCHEGO)
   set_target_properties(subnetooor_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
 
   # Compile and link the executable
-  add_executable(subnetooord
-    "${CMAKE_SOURCE_DIR}/new_src/main.cpp"
-  )
+  add_executable(subnetooord "${CMAKE_SOURCE_DIR}/new_src/main.cpp")
 
   add_dependencies(subnetooord subnetooor_lib gen-grpc ProtoFiles)
   target_include_directories(subnetooord PRIVATE subnetooor_lib)
@@ -385,10 +383,7 @@ if(BUILD_AVALANCHEGO)
   )
 
   # TODO: Implement tests for AvalancheGo compilation.
-
 else()
-
-  # Currently only utils.cpp and utils.h are being linked, change to cmake variables (see add_subdirectory above)
   add_library(subnetooor_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
@@ -410,9 +405,7 @@ else()
   set_target_properties(subnetooor_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
 
   # Compile and link the executable
-  add_executable(subnetooord
-    "${CMAKE_SOURCE_DIR}/new_src/main.cpp"
-  )
+  add_executable(subnetooord "${CMAKE_SOURCE_DIR}/new_src/main.cpp")
 
   add_dependencies(subnetooord subnetooor_lib)
   target_include_directories(subnetooord PRIVATE subnetooor_lib)
@@ -421,11 +414,7 @@ else()
   )
 
   # Compile and link the test executable.
-
-  add_executable(subnetooord-tests
-    ${TESTS_HEADERS}
-    ${TESTS_SOURCES}
-  )
+  add_executable(subnetooord-tests ${TESTS_HEADERS} ${TESTS_SOURCES})
 
   add_dependencies(subnetooord-tests subnetooor_lib)
   target_include_directories(subnetooord-tests PRIVATE subnetooor_lib)
@@ -433,7 +422,4 @@ else()
     subnetooor_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
   )
 endif()
-
-
-
 

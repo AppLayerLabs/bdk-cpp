@@ -3,8 +3,6 @@
 
 #include <mutex>
 
-#include "../contract/contract.h"
-#include "../net/p2pmanager.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/randomgen.h"
@@ -13,8 +11,15 @@
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 
+#include "../contract/contract.h"
+
+#include "../net/p2p/p2pmanager.h"
+
 #include "state.h"
 #include "storage.h"
+
+// Forward declarations.
+class Block;
 
 /**
  * Abstraction of a validator.
@@ -88,7 +93,7 @@ class rdPoS : public Contract {
     const std::shared_ptr<Storage> storage;
 
     /// Pointer to the P2P connection manager.
-    const std::shared_ptr<P2PManager> p2p;
+    const std::shared_ptr<P2P::Manager> p2p;
 
     /**
      * Load Validator nodes from the database.
@@ -132,7 +137,7 @@ class rdPoS : public Contract {
      */
     rdPoS(
       const std::shared_ptr<DB>& db, const std::shared_ptr<Storage>& storage,
-      const std::shared_ptr<P2PManager>& p2p, const Address& add,
+      const std::shared_ptr<P2P::Manager>& p2p, const Address& add,
       const Address& owner, const PrivKey& privKey = Hash(uint256_t(0))
     ) : db(db), storage(storage), p2p(p2p), gen(Hash()), Contract(add, owner)
     {

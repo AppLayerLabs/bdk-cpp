@@ -5,14 +5,19 @@
 #include <string>
 #include <vector>
 
-#include "storage.h"
-#include "../net/grpcclient.h"
-#include "../net/grpcserver.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/utils.h"
 
+#include "../net/grpcclient.h"
+#include "../net/grpcserver.h"
+
+#include "storage.h"
+
 using grpc::ServerContext;
+
+// Forward declarations.
+class Block;  // Include is not working, why? There's no circular dep here
 
 /**
  * Internal struct that contains data for initializing the SnowmanVM.
@@ -31,6 +36,9 @@ struct InitializeRequest {
   std::vector<DBServer> dbServers; ///< Array of database server to connect to.
   std::string gRPCServerAddress; ///< gRPC server address to connect to.
 };
+
+/// Enum for block status.
+enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
 /**
  * Abstraction of AvalancheGo's SnowmanVM protocol.
@@ -69,9 +77,6 @@ class SnowmanVM {
     const std::shared_ptr<gRPCClient> grpcClient;
 
   public:
-    /// Enum for block status.
-    enum BlockStatus { Unknown, Processing, Rejected, Accepted };
-
     /**
      * Constructor.
      * @param storage Pointer to the blockchain history.

@@ -55,41 +55,22 @@ class TxBlock {
       const Address to, const Address from, const std::string data,
       const uint64_t chainId, const uint256_t nonce, const uint256_t value,
       const uint256_t gas, const uint256_t gasPrice, const PrivKey privKey
-    ) : to(to), from(from), data(data), chainId(chainId), nonce(nonce),
-      value(value), gas(gas), gasPrice(gasPrice)
-    {
-      if (privKey.size() != 32) throw std::runtime_error(
-        "Invalid privKey size - expected 32, got " + std::to_string(privKey.size())
-      );
-      UPubkey pubKey = Secp256k1::toPub(privKey);
-      Address add = Secp256k1::toAddress(pubKey);
-      if (add != this->from) throw std::runtime_error(
-        "Private key does not match sender address (from)"
-      );
-      Signature sig = Secp256k1::sign(privKey, this->hash(false));
-      this->r = Utils::bytesToUint256(sig.view(0, 32));
-      this->s = Utils::bytesToUint256(sig.view(32,32));
-      uint8_t recoveryIds = sig[64];
-      this->v = recoveryIds + (this->chainId * 2 + 35);
-      if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
-        throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
-      }
-    }
+    );
 
     /// Copy constructor.
-    TxBlock(const TxBlock& other) {
-      this->to = other.to;
-      this->from = other.from;
-      this->data = other.data;
-      this->chainId = other.chainId;
-      this->nonce = other.nonce;
-      this->value = other.value;
-      this->gas = other.gas;
-      this->gasPrice = other.gasPrice;
-      this->v = other.v;
-      this->r = other.r;
-      this->s = other.s;
-    }
+    TxBlock(const TxBlock& other) noexcept :
+      to(other.to),
+      from(other.from),
+      data(other.data),
+      chainId(other.chainId),
+      nonce(other.nonce),
+      value(other.value),
+      gas(other.gas),
+      gasPrice(other.gasPrice),
+      v(other.v),
+      r(other.r),
+      s(other.s)
+    {}
 
     /// Move constructor.
     TxBlock(TxBlock&& other) noexcept :
@@ -103,7 +84,7 @@ class TxBlock {
       gasPrice(std::move(other.gasPrice)),
       v(std::move(other.v)),
       r(std::move(other.r)),
-      s(std::move(other.s)),
+      s(std::move(other.s))
     {}
 
     /// Getter for `to`.
@@ -245,35 +226,18 @@ class TxValidator {
     TxValidator(
       const Address from, const std::string data, const uint64_t chainId,
       const uint64_t nHeight, const PrivKey privKey
-    ) : from(from), data(data), chainId(chainId), nHeight(nHeight) {
-      if (privKey.size() != 32) throw std::runtime_error(
-        "Invalid private key size - expected 32, got " + std::to_string(privKey.size())
-      );
-      UPubkey pubKey = Secp256k1::toPub(privKey);
-      Address add = Secp256k1::toAddress(pubKey);
-      if (add != this->from) throw std::runtime_error(
-        "Private key does not match sender address (from)"
-      );
-      Signature sig = Secp256k1::sign(privKey, this->hash(false));
-      this->r = Utils::bytesToUint256(sig.view(0, 32));
-      this->s = Utils::bytesToUint256(sig.view(32,32));
-      uint8_t recoveryIds = sig[64];
-      this->v = recoveryIds + (this->chainId * 2 + 35);
-      if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
-        throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
-      }
-    }
+    );
 
     /// Copy constructor.
-    TxValidator(const TxValidator& other) {
-      this->from = other.from;
-      this->data = other.data;
-      this->chainId = other.chainId;
-      this->nHeight = other.nHeight;
-      this->v = other.v;
-      this->r = other.r;
-      this->s = other.s;
-    }
+    TxValidator(const TxValidator& other) noexcept :
+      from(other.from),
+      data(other.data),
+      chainId(other.chainId),
+      nHeight(other.nHeight),
+      v(other.v),
+      r(other.r),
+      s(other.s)
+    {}
 
     /// Move constructor.
     TxValidator(TxValidator&& other) noexcept :
@@ -283,7 +247,7 @@ class TxValidator {
       nHeight(std::move(other.nHeight)),
       v(std::move(other.v)),
       r(std::move(other.r)),
-      s(std::move(other.s)),
+      s(std::move(other.s))
     {}
 
     /// Getter for `from`.

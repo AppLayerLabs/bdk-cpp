@@ -3,7 +3,7 @@
 
 #include <mutex>
 
-#include "../net/p2pmanager.h"
+#include "../net/p2p/p2pmanager.h"
 #include "../net/httpserver.h"
 #include "../net/grpcserver.h"
 #include "../utils/block.h"
@@ -19,6 +19,10 @@
 using json = nlohmann::ordered_json;
 using grpc::Server;
 
+// Forward declarations.
+class HTTPServer;
+class State;
+
 /**
  * Master class that represents the blockchain as a whole.
  * Contains and acts as the middleman of every other part of the core and net protocols.
@@ -31,9 +35,9 @@ class Blockchain {
     const std::shared_ptr<Storage> storage;       ///< Pointer to the blockchain history.
     const std::shared_ptr<SnowmanVM> snowmanVM;   ///< Pointer to the SnowmanVM.
     const std::shared_ptr<rdPoS> rdpos;           ///< Pointer to the rdPoS/block manager.
-    const std::shared_ptr<Server> server;         ///< Pointer to the (generic) gRPC server.
+    const std::unique_ptr<Server> server;         ///< Pointer to the (generic) gRPC server.
     const std::shared_ptr<HTTPServer> httpServer; ///< Pointer to the HTTP server.
-    const std::shared_ptr<P2PManager> p2p;        ///< Pointer to the P2P connection manager.
+    const std::shared_ptr<P2P::Manager> p2p;      ///< Pointer to the P2P connection manager.
     bool initialized = false;                     ///< Indicates if the blockchain is initialized.
     bool shutdown = false;                        ///< Indicates if the blockchain will shutdown.
     bool isValidator = false;                     ///< Indicates if the blockchain is a Validator.
@@ -78,7 +82,7 @@ class Blockchain {
 
     /**
      * Get the Validator transaction mempool from the rdPoS/block manager.
-     * Called by P2PManager.
+     * Called by P2P::Manager.
      * @return A copy of the Validator mempool.
      */
     inline std::unordered_map<Hash, TxValidator, SafeHash> getValidatorMempool() {

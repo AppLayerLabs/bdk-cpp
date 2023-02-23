@@ -81,8 +81,8 @@ std::string Blockchain::parseRPC(std::string& msg) {
           txJson["blockHash"] = Hex::fromBytes(block->getBlockHash().get(), true).get();
           txJson["blockNumber"] = Hex::fromUint(block->getNHeight(), true).get();
           txJson["txJsonIndex"] = Hex::fromUint(tx.second.blockIndex(), true).get();
-          txJson["from"] = std::string("0x") + tx.second.getFrom().hex();
-          txJson["to"] = std::string("0x") + tx.second.getTo().hex();
+          txJson["from"] = std::string("0x") + tx.second.getFrom().hex().get();
+          txJson["to"] = std::string("0x") + tx.second.getTo().hex().get();
           txJson["value"] = Hex::fromUint(tx.second.getValue(), true).get();
           txJson["gasPrice"] = Hex::fromUint(tx.second.getGasPrice(), true).get();
           txJson["gas"] = Hex::fromUint(tx.second.getGas(), true).get();
@@ -118,12 +118,12 @@ std::string Blockchain::parseRPC(std::string& msg) {
       Utils::patchHex(txRlp);
       try {
         std::string txStr = Utils::hexToBytes(txRlp);
-        TxBblock tx(txStr, false);
+        TxBlock tx(txStr, false);
         std::pair<int, std::string> txRet = this->validateTx(std::move(tx));
         if (txRet.first != 0) {
           ret["error"] = json({{"code", txRet.first}, {"message", txRet.second}});
         }
-        ret["result"] = std::string("0x") + tx.hash().hex();
+        ret["result"] = std::string("0x") + tx.hash().hex().get();
       } catch (std::exception &e) {
         Utils::logToDebug(Log::blockchain, __func__,
           std::string("sendRawTransaction: failed! ") + e.what()
@@ -188,8 +188,8 @@ std::string Blockchain::parseRPC(std::string& msg) {
           txJson["blockHash"] = Hex::fromBytes(block->getBlockHash().get(), true).get();
           txJson["blockNumber"] = Hex::fromUint(block->getNHeight(), true).get();
           txJson["txJsonIndex"] = Hex::fromUint(tx.second.blockIndex(), true).get();
-          txJson["from"] = std::string("0x") + tx.second.getFrom().hex();
-          txJson["to"] = std::string("0x") + tx.second.getTo().hex();
+          txJson["from"] = std::string("0x") + tx.second.getFrom().hex().get();
+          txJson["to"] = std::string("0x") + tx.second.getTo().hex().get();
           txJson["value"] = Hex::fromUint(tx.second.getValue(), true).get();
           txJson["gasPrice"] = Hex::fromUint(tx.second.getGasPrice(), true).get();
           txJson["gas"] = Hex::fromUint(tx.second.getGas(), true).get();
@@ -225,8 +225,8 @@ std::string Blockchain::parseRPC(std::string& msg) {
     if (msgJson["method"] == "getPeerList") {
       json clientsJson = json::array();
       json serversJson = json::array();
-      for (const Connection<P2PClient>& i : this->p2p->getConnServers()) {
-        const ConnectionInfo& c = i.getInfo();
+      for (const Connection<P2PClient> i : this->p2p->getConnServers()) {
+        ConnectionInfo c = i.getInfo();
         json conn = {
           {"host", i.getHost().to_string()},
           {"port", i.getPort()},
@@ -240,8 +240,8 @@ std::string Blockchain::parseRPC(std::string& msg) {
         };
         clientsJson.push_back(conn);
       }
-      for (const Connection<P2PServerSession>& i : this->p2p->getConnClients()) {
-        const ConnectionInfo& c = i.getInfo();
+      for (const Connection<P2PServerSession> i : this->p2p->getConnClients()) {
+        ConnectionInfo c = i.getInfo();
         json conn = {
           {"host", i.getHost().to_string()},
           {"port", i.getPort()},

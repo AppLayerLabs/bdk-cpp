@@ -8,17 +8,23 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../contract/contractmanager.h"
 #include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/randomgen.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 
+#include "../contract/contractmanager.h"
+
 #include "blockchain.h"
 #include "rdpos.h"
 #include "snowmanVM.h"
 #include "storage.h"
+
+// Forward declarations.
+class Block;  // Include is not working, why? There's no circular dep here
+class Blockchain;
+class ContractManager;
 
 /**
  * Class for storing system state and shared blockchain inner variables.
@@ -58,12 +64,6 @@ class State {
     RandomGen gen;
 
     /**
-     * Save accounts from memory to database.
-     * @return `true` if the state was saved successfully, `false` otherwise.
-     */
-    bool saveToDB();
-
-    /**
      * Load accounts from database to memory.
      * @return `true` if the state was loaded successfully, `false` otherwise.
      */
@@ -91,7 +91,8 @@ class State {
       const std::shared_ptr<SnowmanVM>& snowmanVM,
       const std::shared_ptr<rdPoS>& rdpos,
       const std::shared_ptr<ContractManager>& contractMgr
-    ) : db(db), storage(storage), snowmanVM(snowmanVM), rdpos(rdpos), contractMgr(contractMgr) {
+    ) : db(db), storage(storage), snowmanVM(snowmanVM), rdpos(rdpos),
+        contractMgr(contractMgr), gen(Hash::random()) {
       this->loadFromDB();
     }
 
@@ -160,6 +161,12 @@ class State {
      * @return An error code/message pair with the status of the validation.
      */
     const std::pair<int, std::string> validateTxForRPC(const TxBlock& tx);
+
+    /**
+     * Save accounts from memory to database.
+     * @return `true` if the state was saved successfully, `false` otherwise.
+     */
+    bool saveToDB();
 
     /**
      * Add a fixed amount of funds to an account.

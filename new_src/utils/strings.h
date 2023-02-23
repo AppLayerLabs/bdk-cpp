@@ -182,6 +182,18 @@ class Address : public FixedStr<20> {
      * @param add The string to check.
      */
     static bool isChksum(const std::string_view add);
+
+    /// Copy assignment operator.
+    inline Address& operator=(const Address& other) {
+      this->data = other.data;
+      return *this;
+    }
+
+    /// Move assignment operator.
+    inline Address& operator=(Address&& other) {
+      this->data = std::move(other.data);
+      return *this;
+    }
 };
 
 #endif  // STRINGS_H

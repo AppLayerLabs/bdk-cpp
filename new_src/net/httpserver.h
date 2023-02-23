@@ -14,10 +14,6 @@
 #include <thread>
 #include <vector>
 
-#include <google/protobuf/message.h>
-#include <google/protobuf/text_format.h>
-#include <google/protobuf/util/json_util.h>
-
 #include <boost/algorithm/hex.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/bind_executor.hpp>
@@ -35,14 +31,22 @@
 #include <boost/optional.hpp>
 #include <boost/thread.hpp>
 
+#include <google/protobuf/message.h>
+#include <google/protobuf/text_format.h>
+#include <google/protobuf/util/json_util.h>
+
 #include "../core/blockchain.h"
 #include "../utils/utils.h"
 
-namespace beast = boost::beast;
-namespace http = beast::http;
-namespace websocket = beast::websocket;
-namespace net = boost::asio;
-namespace tcp = boost::asio::ip::tcp;
+namespace beast = boost::beast;         // from <boost/beast.hpp>
+namespace http = beast::http;           // from <boost/beast/http.hpp>
+namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
+namespace net = boost::asio;            // from <boost/asio.hpp>
+using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+
+// Forward declarations.
+class Blockchain;
+class HTTPSession;  // HTTPQueue depends on HTTPSession and vice-versa
 
 /**
  * Produce an HTTP response for the given request.
@@ -83,7 +87,7 @@ class HTTPQueue {
      * @param session Reference to the HTTP session that will handle the queue.
      */
     HTTPQueue(HTTPSession& session) : session(session) {
-      static_assert(this->limit > 0, "queue limit must be positive");
+      assert(this->limit > 0);
       items.reserve(this->limit);
     }
 

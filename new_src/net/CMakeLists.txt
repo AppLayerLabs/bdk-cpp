@@ -10,11 +10,11 @@ if(BUILD_AVALANCHEGO)
   )
 
   set(NET_SOURCES
-    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pmanager.cpp
-    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pserver.cpp
-    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pclient.cpp
-    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pencoding.cpp
-    ${CMAKE_SOURCE_DIR}/net_src/net/p2p/p2pparser.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pencoding.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pparser.cpp
     PARENT_SCOPE
   )
 else()

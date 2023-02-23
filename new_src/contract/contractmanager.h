@@ -4,11 +4,14 @@
 #include <memory>
 #include <unordered_map>
 
+#include "contract.h"
+
 #include "../utils/db.h"
 #include "../utils/strings.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
-#include "contract.h"
+
+class Contract; // Forward declaration.
 
 /**
  * Class that holds all current contract instances in the blockchain state.
@@ -40,13 +43,10 @@ class ContractManager {
      * @param address The address where the contract is deployed.
      * @return The contract object, or a nullptr if contract is not found.
      */
-    std::unique_ptr<Contract>& getContract(Address address) const {
+    const std::unique_ptr<Contract>& getContract(Address address) const {
       auto it = this->contracts.find(address);
-      return (it != this->contracts.end()) ? it->second : nullptr;
+      return (it != this->contracts.end()) ? it->second : std::unique_ptr<Contract>(nullptr);
     }
-
-    /// Const-friendly overload of `getContract()`.
-    const std::unique_ptr<Contract>& getContract(Address address) const { return this->getContract(address); }
 
     /**
      * Process a transaction that calls a function from a given contract.

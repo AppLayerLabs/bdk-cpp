@@ -5,8 +5,11 @@
 
 #include "../utils/block.h"
 #include "../utils/db.h"
-#include "../utils/utils.h"
 #include "../utils/randomgen.h"
+#include "../utils/utils.h"
+
+// Forward declarations.
+class Block;  // Include is not working, why? There's no circular dep here
 
 /**
  * Abstraction of the blockchain history.
@@ -73,9 +76,6 @@ class Storage {
      * @param block The block to add.
      */
     void pushFrontInternal(Block&& block);
-
-    /// Save the latest blocks from memory to database (up to 1000).
-    void saveToDB();
 
     /// Load the latest blocks from database to memory (up to 1000).
     void loadFromDB();
@@ -166,6 +166,9 @@ class Storage {
 
     /// Get the number of blocks currently in the chain.
     uint64_t blockSize();
+
+    /// Save the latest blocks from memory to database (up to 1000).
+    void saveToDB();
 
     /// Start the periodic save thread. Called by the constructor.
     void periodicSaveToDB();

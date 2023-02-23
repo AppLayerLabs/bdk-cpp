@@ -76,7 +76,7 @@ std::pair<int, std::string> Blockchain::validateTx(const TxBlock&& tx) {
   // Broadcast only if tx was not previously in State
   if (!hasTx) {
     Utils::logToDebug(Log::blockchain, __func__, "Broadcasting tx...");
-    this->p2p->broadcastTx(tx);
+    //this->p2p->broadcastTx(tx); // TODO: broadcastTx() does not exist on P2P::Manager
   }
   return ret;
 }

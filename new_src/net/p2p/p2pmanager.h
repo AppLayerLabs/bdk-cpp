@@ -1,17 +1,18 @@
 #include <iostream>
+#include <shared_mutex>
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
-#include "p2pserver.h"
-#include "p2pclient.h"
-#include "p2pencoding.h"
-#include "p2pbase.h"
-#include <shared_mutex>
 
 #include "../../utils/utils.h"
 #include "../../utils/safehash.h"
+
+#include "p2pbase.h"
+#include "p2pclient.h"
+#include "p2pencoding.h"
+#include "p2pserver.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
