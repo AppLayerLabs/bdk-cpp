@@ -11,7 +11,7 @@ std::string Blockchain::parseRPC(std::string& msg) {
     // eth_blockNumber
     if (msgJson["method"] == "eth_blockNumber") {
       const std::shared_ptr<const Block> bestBlock = this->storage->latest();
-      ret["result"] = "0x" + Utils::uintToHex(bestBlock->getNHeight());
+      ret["result"] = Hex::fromUint(bestBlock->getNHeight(), true).get();
       Utils::logToDebug(Log::blockchain, __func__,
         "eth_blockNumber: " + ret["result"].get<std::string>()
       );
@@ -23,12 +23,9 @@ std::string Blockchain::parseRPC(std::string& msg) {
     // eth_getBalance
     if (msgJson["method"] == "eth_getBalance") {
       Address add(msgJson["params"][0].get<std::string>(), true);
-      Utils::logToDebug(Log::blockchain, __func__, "eth_getBalance: ", add.hex());
-      uint256_t balance = this->state->getNativeBalance(add);
-      std::string hexValue = "0x";
-      hexValue += Utils::uintToHex(balance);
-      ret["result"] = hexValue;
-      Utils::logToDebug(Log::blockchain, __func__, "eth_getBalance: ", ret.dump());
+      Utils::logToDebug(Log::blockchain, __func__, "eth_getBalance: " + add.hex().get());
+      ret["result"] = Hex::fromUint(this->state->getNativeBalance(add), true).get();
+      Utils::logToDebug(Log::blockchain, __func__, "eth_getBalance: " + ret.dump());
     }
     // eth_getBlockByNumber
     if (msgJson["method"] == "eth_getBlockByNumber") {
@@ -38,7 +35,7 @@ std::string Blockchain::parseRPC(std::string& msg) {
       if (blockStr != "latest") {
         height = boost::lexical_cast<uint64_t>(Utils::hexToUint(blockStr));
         Utils::logToDebug(Log::blockchain, __func__,
-          "eth_getBlockByNumber: height ", std::to_string(height)
+          "eth_getBlockByNumber: height " + std::to_string(height)
         );
         if (!this->storage->exists(height)) {
           ret["error"] = { {"code", -32000}, {"message", "Block not found"} };
@@ -58,9 +55,9 @@ std::string Blockchain::parseRPC(std::string& msg) {
       bool includeTxs = (msgJson["params"].size() > 1) ? msgJson["params"][1].get<bool>() : false;
 
       json answer;
-      answer["number"] = std::string("0x") + Utils::uintToHex(block->getNHeight());
-      answer["hash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash().get());
-      answer["parentHash"] = std::string("0x") + Utils::bytesToHex(block->getPrevBlockHash().get());
+      answer["number"] = Hex::fromUint(block->getNHeight(), true).get();
+      answer["hash"] = Hex::fromBytes(block->getBlockHash().get(), true).get();
+      answer["parentHash"] = Hex::fromBytes(block->getPrevBlockHash().get(), true).get();
       answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
       answer["sha3Uncles"] = "0x";
       answer["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
@@ -73,36 +70,36 @@ std::string Blockchain::parseRPC(std::string& msg) {
       answer["size"] = "0xfffff";
       answer["gasLimit"] = "0xfffff";
       answer["gasUsed"] = "0xfffff";
-      answer["timestamp"] = std::string("0x") + Utils::uintToHex(block->timestampInSeconds());  // Seconds since epoch
+      answer["timestamp"] = Hex::fromUint(block->timestampInSeconds(), true).get();  // Seconds since epoch
       answer["transactions"] = json::array();
       for (auto tx : block->getTxs()) {
         if (includeTxs) {
           // https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash
           json txJson;
-          txJson["hash"] = std::string("0x") + Utils::bytesToHex(tx.second.hash().get());
-          txJson["nonce"] = std::string("0x") + Utils::uintToHex(tx.second.getNonce());
-          txJson["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash().get());
-          txJson["blockNumber"] = std::string("0x") + Utils::uintToHex(block->getNHeight());
-          txJson["txJsonIndex"] = std::string("0x") + Utils::uintToHex(tx.second.blockIndex());
+          txJson["hash"] = Hex::fromBytes(tx.second.hash().get(), true).get();
+          txJson["nonce"] = Hex::fromUint(tx.second.getNonce(), true).get();
+          txJson["blockHash"] = Hex::fromBytes(block->getBlockHash().get(), true).get();
+          txJson["blockNumber"] = Hex::fromUint(block->getNHeight(), true).get();
+          txJson["txJsonIndex"] = Hex::fromUint(tx.second.blockIndex(), true).get();
           txJson["from"] = std::string("0x") + tx.second.getFrom().hex();
           txJson["to"] = std::string("0x") + tx.second.getTo().hex();
-          txJson["value"] = std::string("0x") + Utils::uintToHex(tx.second.getValue());
-          txJson["gasPrice"] = std::string("0x") + Utils::uintToHex(tx.second.getGasPrice());
-          txJson["gas"] = std::string("0x") + Utils::uintToHex(tx.second.getGas());
-          txJson["input"] = std::string("0x") + Utils::bytesToHex(tx.second.getData());
-          txJson["v"] = std::string("0x") + Utils::uintToHex(tx.second.getV());
-          txJson["standardV"] = std::string("0x") + Utils::uintToHex(tx.second.recoverId());
-          txJson["r"] = std::string("0x") + Utils::uintToHex(tx.second.getR());
-          txJson["raw"] = std::string("0x") + Utils::bytesToHex(tx.second.rlpSerialize(true));
-          txJson["chainid"] = std::string("0x") + Utils::uintToHex(tx.second.getChainId());
+          txJson["value"] = Hex::fromUint(tx.second.getValue(), true).get();
+          txJson["gasPrice"] = Hex::fromUint(tx.second.getGasPrice(), true).get();
+          txJson["gas"] = Hex::fromUint(tx.second.getGas(), true).get();
+          txJson["input"] = Hex::fromBytes(tx.second.getData(), true).get();
+          txJson["v"] = Hex::fromUint(tx.second.getV(), true).get();
+          txJson["standardV"] = Hex::fromUint(tx.second.recoverId(), true).get();
+          txJson["r"] = Hex::fromUint(tx.second.getR(), true).get();
+          txJson["raw"] = Hex::fromBytes(tx.second.rlpSerialize(true), true).get();
+          txJson["chainid"] = Hex::fromUint(tx.second.getChainId(), true).get();
           answer["transactions"].push_back(txJson);
         } else {
-          answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.second.hash().get()));
+          answer["transactions"].push_back(Hex::fromBytes(tx.second.hash().get(), true).get());
         }
       }
       answer["uncles"] = json::array();
       ret["result"] = answer;
-      Utils::logToDebug(Log::blockchain, __func__, "eth_getBlockByNumber: ", ret.dump());
+      Utils::logToDebug(Log::blockchain, __func__, "eth_getBlockByNumber: " + ret.dump());
     }
     // eth_getCode
     if (msgJson["method"] == "eth_getCode") ret["result"] = "0x";
@@ -113,8 +110,7 @@ std::string Blockchain::parseRPC(std::string& msg) {
     // eth_getTransactionCount
     if (msgJson["method"] == "eth_getTransactionCount") {
       Address add(msgJson["params"][0].get<std::string>(), true);
-      uint256_t nonce = this->state->getNativeNonce(add);
-      ret["result"] = std::string("0x") + Utils::uintToHex(nonce);
+      ret["result"] = Hex::fromUint(this->state->getNativeNonce(add), true).get();
     }
     // eth_sendRawTransaction
     if (msgJson["method"] == "eth_sendRawTransaction") {
@@ -122,7 +118,7 @@ std::string Blockchain::parseRPC(std::string& msg) {
       Utils::patchHex(txRlp);
       try {
         std::string txStr = Utils::hexToBytes(txRlp);
-        TxBase tx(txStr, false);
+        TxBblock tx(txStr, false);
         std::pair<int, std::string> txRet = this->validateTx(std::move(tx));
         if (txRet.first != 0) {
           ret["error"] = json({{"code", txRet.first}, {"message", txRet.second}});
@@ -139,20 +135,20 @@ std::string Blockchain::parseRPC(std::string& msg) {
       Hash txHash = Hash(Utils::hexToBytes(msgJson["params"][0].get<std::string>()));
       try {
         const std::shared_ptr<const TxBlock> tx = this->storage->getTx(txHash);
-        ret["result"]["transactionHash"] = std::string("0x") + Utils::bytesToHex(tx->hash().get());
+        ret["result"]["transactionHash"] = Hex::fromBytes(tx->hash().get(), true).get();
         ret["result"]["transactionIndex"] = "0x" + dev::toHex(Utils::uint32ToBytes(tx->blockIndex()));
         auto block = this->storage->getBlockFromTx(txHash);
-        ret["result"]["blockNumber"] = std::string("0x") + Utils::uintToHex(block->getNHeight());
+        ret["result"]["blockNumber"] = Hex::fromUint(block->getNHeight(), true).get();
         ret["result"]["blockHash"] = std::string("0x") + dev::toHex(block->getBlockHash().get());
-        ret["result"]["cumulativeGasUsed"] = "0x" + Utils::uintToHex(tx->getGas());
-        ret["result"]["gasUsed"] = "0x" + Utils::uintToHex(tx->getGas());
+        ret["result"]["cumulativeGasUsed"] = Hex::fromUint(tx->getGas(), true).get();
+        ret["result"]["gasUsed"] = Hex::fromUint(tx->getGas(), true).get();
         ret["result"]["contractAddress"] = "0x";  // TODO: does MetaMask check if we called a contract?
         ret["logs"] = json::array();
         ret["result"]["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
         ret["result"]["status"] = "0x1";
       } catch (std::exception &e) {
         Utils::logToDebug(Log::blockchain, __func__,
-          std::string("eth_getTransactionReceipt: tx not found: "), e.what()
+          std::string("eth_getTransactionReceipt: tx not found: ") + e.what()
         );
       }
     }
@@ -167,7 +163,7 @@ std::string Blockchain::parseRPC(std::string& msg) {
       bool includeTxs = (msgJson["params"].size() > 1) ? msgJson["params"][1].get<bool>() : false;
 
       json answer;
-      answer["number"] = std::string("0x") + Utils::uintToHex(block->getNHeight());
+      answer["number"] = Hex::fromUint(block->getNHeight(), true).get();
       answer["hash"] = std::string("0x") + dev::toHex(block->getBlockHash().get());
       answer["parentHash"] = std::string("0x") + dev::toHex(block->getPrevBlockHash().get());
       answer["nonce"] = "0x00000000000000"; // Any nonce should be good, MetaMask is not checking block validity.
@@ -182,31 +178,30 @@ std::string Blockchain::parseRPC(std::string& msg) {
       answer["size"] = "0xfffff";
       answer["gasLimit"] = "0xfffff";
       answer["gasUsed"] = "0xfffff";
-      answer["timestamp"] = std::string("0x") + Utils::uintToHex(block->timestampInSeconds()); // Seconds since epoch
+      answer["timestamp"] = Hex::fromUint(block->timestampInSeconds(), true).get(); // Seconds since epoch
       answer["transactions"] = json::array();
       for (auto tx : block->getTxs()) {
-        if (includeTxs) {
-          // https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash
+        if (includeTxs) { // https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash
           json txJson;
-          txJson["hash"] = std::string("0x") + Utils::bytesToHex(tx.second.hash().get());
-          txJson["nonce"] = std::string("0x") + Utils::uintToHex(tx.second.getNonce());
-          txJson["blockHash"] = std::string("0x") + Utils::bytesToHex(block->getBlockHash().get());
-          txJson["blockNumber"] = std::string("0x") + Utils::uintToHex(block->getNHeight());
-          txJson["txJsonIndex"] = std::string("0x") + Utils::uintToHex(tx.second.blockIndex());
+          txJson["hash"] = Hex::fromBytes(tx.second.hash().get(), true).get();
+          txJson["nonce"] = Hex::fromUint(tx.second.getNonce(), true).get();
+          txJson["blockHash"] = Hex::fromBytes(block->getBlockHash().get(), true).get();
+          txJson["blockNumber"] = Hex::fromUint(block->getNHeight(), true).get();
+          txJson["txJsonIndex"] = Hex::fromUint(tx.second.blockIndex(), true).get();
           txJson["from"] = std::string("0x") + tx.second.getFrom().hex();
           txJson["to"] = std::string("0x") + tx.second.getTo().hex();
-          txJson["value"] = std::string("0x") + Utils::uintToHex(tx.second.getValue());
-          txJson["gasPrice"] = std::string("0x") + Utils::uintToHex(tx.second.getGasPrice());
-          txJson["gas"] = std::string("0x") + Utils::uintToHex(tx.second.getGas());
-          txJson["input"] = std::string("0x") + Utils::bytesToHex(tx.second.getData());
-          txJson["v"] = std::string("0x") + Utils::uintToHex(tx.second.getV());
-          txJson["standardV"] = std::string("0x") + Utils::uintToHex(tx.second.recoverId());
-          txJson["r"] = std::string("0x") + Utils::uintToHex(tx.second.getR());
-          txJson["raw"] = std::string("0x") + Utils::bytesToHex(tx.second.rlpSerialize(true));
-          txJson["chainid"] = std::string("0x") + Utils::uintToHex(tx.second.getChainId());
+          txJson["value"] = Hex::fromUint(tx.second.getValue(), true).get();
+          txJson["gasPrice"] = Hex::fromUint(tx.second.getGasPrice(), true).get();
+          txJson["gas"] = Hex::fromUint(tx.second.getGas(), true).get();
+          txJson["input"] = Hex::fromBytes(tx.second.getData(), true).get();
+          txJson["v"] = Hex::fromUint(tx.second.getV(), true).get();
+          txJson["standardV"] = Hex::fromUint(tx.second.recoverId(), true).get();
+          txJson["r"] = Hex::fromUint(tx.second.getR(), true).get();
+          txJson["raw"] = Hex::fromBytes(tx.second.rlpSerialize(true), true).get();
+          txJson["chainid"] = Hex::fromUint(tx.second.getChainId(), true).get();
           answer["transactions"].push_back(txJson);
         } else {
-          answer["transactions"].push_back(std::string("0x") + Utils::bytesToHex(tx.second.hash().get()));
+          answer["transactions"].push_back(Hex::fromBytes(tx.second.hash().get(), true).get());
         }
       }
       answer["uncles"] = json::array();
@@ -230,31 +225,33 @@ std::string Blockchain::parseRPC(std::string& msg) {
     if (msgJson["method"] == "getPeerList") {
       json clientsJson = json::array();
       json serversJson = json::array();
-      for (const auto& i : this->p2p->getConnServers()) {
+      for (const Connection<P2PClient>& i : this->p2p->getConnServers()) {
+        const ConnectionInfo& c = i.getInfo();
         json conn = {
           {"host", i.getHost().to_string()},
           {"port", i.getPort()},
-          {"version", i.getInfo().version},
-          {"timestamp", i.getInfo().timestamp},
-          {"latestBlockHeight", i.getInfo().latestBlockHeight},
-          {"latestBlockHash", i.getInfo().latestBlockHash.hex()},
-          {"nodes", i.getInfo().nodes},
-          {"lastNodeCheck", i.getInfo().lastNodeCheck},
-          {"clockDiff", i.getInfo().clockDiff}
+          {"version", c.version},
+          {"timestamp", c.timestamp},
+          {"latestBlockHeight", c.latestBlockHeight},
+          {"latestBlockHash", c.latestBlockHash.hex()},
+          {"nodes", c.nodes},
+          {"lastNodeCheck", c.lastNodeCheck},
+          {"clockDiff", c.clockDiff}
         };
         clientsJson.push_back(conn);
       }
-      for (const auto &i : this->p2p->getConnClients()) {
+      for (const Connection<P2PServerSession>& i : this->p2p->getConnClients()) {
+        const ConnectionInfo& c = i.getInfo();
         json conn = {
           {"host", i.getHost().to_string()},
           {"port", i.getPort()},
-          {"version", i.getInfo().version},
-          {"timestamp", i.getInfo().timestamp},
-          {"latestBlockHeight", i.getInfo().latestBlockHeight},
-          {"latestBlockHash", i.getInfo().latestBlockHash.hex()},
-          {"nodes", i.getInfo().nodes},
-          {"lastNodeCheck", i.getInfo().lastNodeCheck},
-          {"clockDiff", i.getInfo().clockDiff}
+          {"version", c.version},
+          {"timestamp", c.timestamp},
+          {"latestBlockHeight", c.latestBlockHeight},
+          {"latestBlockHash", c.latestBlockHash.hex()},
+          {"nodes", c.nodes},
+          {"lastNodeCheck", c.lastNodeCheck},
+          {"clockDiff", c.clockDiff}
         };
         serversJson.push_back(conn);
       }

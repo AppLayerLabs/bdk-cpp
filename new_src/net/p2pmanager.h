@@ -84,7 +84,7 @@ template <typename T> class Connection {
     ) : host(host), port(port), session(session);
 
     /// Getter for `info`.
-    ConnectionInfo& getInfo() { return this->info; }
+    const ConnectionInfo& getInfo() { return this->info; }
 
     /// Getter for `host`.
     const boost::asio::ip::address& getHost() { return this->host; }
@@ -167,10 +167,10 @@ class P2PManager : public std::enable_shared_from_this<P2PManager> {
     {}
 
     /// Getter for `connServers`.
-    const vector<Connection<P2PClient>>& getConnServers() { return this->connServers; }
+    const std::vector<Connection<P2PClient>>& getConnServers() { return this->connServers; }
 
     /// Getter for `connClients`.
-    const vector<Connection<P2PServerSession>>& getConnClients() { return this->connClients; }
+    const std::vector<Connection<P2PServerSession>>& getConnClients() { return this->connClients; }
 
     /// Getter for `connCt`.
     const uint64_t& getConnCt() { return this->connCt; }

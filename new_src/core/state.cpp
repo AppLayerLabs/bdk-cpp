@@ -117,7 +117,7 @@ bool State::validateNewBlock(Block& block) {
   }
 
   Utils::logToDebug(Log::state, __func__,
-    "Validated block " + Utils::bytesToHex(block->getBlockHash().get())
+    "Validated block " + Hex::fromBytes(block->getBlockHash().get()).get()
     + " at height " + boost::lexical_cast<std::string>(block->getNHeight())
   );
   return true;
@@ -127,7 +127,7 @@ void State::processNewBlock(Block&& block) {
   // Check block previous hash
   this->stateLock.lock();
   Utils::logToDebug(Log::state, __func__, "Processing new block "
-    + Utils::bytesToHex(block.getBlockHash().get())
+    + Hex::fromBytes(block.getBlockHash().get()).get()
     + " at height " + boost::lexical_cast<std::string>(block.getNHeight())
   );
   for (const auto& tx : block.getTxs()) this->processNewTx(tx.second);
@@ -147,11 +147,11 @@ const std::shared_ptr<const Block> State::createNewBlock() {
     return nullptr;
   }
   Utils::logToDebug(Log::state, __func__,
-    std::string("Got preference: ") + Utils::bytesToHex(bestHash.get())
+    std::string("Got preference: ") + Hex::fromBytes(bestHash.get()).get()
   );
   std::shared_ptr<const Block> bestBlock = this->storage->getBlock(bestHash);
   if (bestBlock == nullptr) {
-    Utils::LogPrint(Log::state, __func__, "Preferred block does not exist");
+    Utils::logToDebug(Log::state, __func__, "Preferred block does not exist");
     return nullptr;
   }
   Utils::logToDebug(Log::state, __func__, "Got best block");

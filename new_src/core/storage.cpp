@@ -90,7 +90,7 @@ void Storage::loadFromDB() {
     this->db->put(Utils::uint64ToBytes(3), Address("795083c42583842774febc21abb6df09e784fce5", true).get(), DBPrefix::validators); // 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7
     this->db->put(Utils::uint64ToBytes(4), Address("bec7b74f70c151707a0bfb20fe3767c6e65499e0", true).get(), DBPrefix::validators); // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
     Utils::logToDebug(Log::storage, __func__,
-      std::string("Created genesis block: ") + Utils::bytesToHex(genesis.getBlockHash().get())
+      std::string("Created genesis block: ") + Hex::fromBytes(genesis.getBlockHash().get()).get()
     );
   }
 
@@ -120,9 +120,9 @@ void Storage::loadFromDB() {
   Utils::logToDebug(Log::storage, __func__, "Appending recent blocks");
   for (uint64_t i = 0; i <= 1000 && i <= depth; i++) {
     Utils::logToDebug(Log::storage, __func__,
-      std::to_string(i) + std::string(" - height: ") + Utils::bytesToHex(
+      std::to_string(i) + std::string(" - height: ") + Hex::fromBytes(
         this->db->get(this->blockHashByHeight[depth - i].get())
-      )
+      ).get()
     );
     std::shared_ptr<const Block> block = std::make_shared<Block>(
       this->db->get(this->blockHashByHeight[depth - i].get(), DBPrefix::blocks), true

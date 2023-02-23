@@ -6,7 +6,7 @@
 #include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/utils.h"
-#include "../utils/random.h"
+#include "../utils/randomgen.h"
 
 /**
  * Abstraction of the blockchain history.

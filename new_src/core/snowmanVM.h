@@ -38,9 +38,6 @@ struct InitializeRequest {
  */
 class SnowmanVM {
   private:
-    /// Enum for block status.
-    enum BlockStatus { Unknown, Processing, Rejected, Accepted };
-
     /// Struct with initialization request data from AvalancheGo.
     InitializeRequest initParams;
 
@@ -72,6 +69,9 @@ class SnowmanVM {
     const std::shared_ptr<gRPCClient> grpcClient;
 
   public:
+    /// Enum for block status.
+    enum BlockStatus { Unknown, Processing, Rejected, Accepted };
+
     /**
      * Constructor.
      * @param storage Pointer to the blockchain history.
@@ -82,7 +82,7 @@ class SnowmanVM {
       const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<gRPCServer>& grpcServer,
       const std::shared_ptr<gRPCClient>& grpcClient
-    ) : storage(storage), grpcServer(grpcServer), grpcClient(grpcClient);
+    ) : storage(storage), grpcServer(grpcServer), grpcClient(grpcClient) {}
 
     /// Getter for `preferredBlockHash`.
     const Hash& getPreferredBlockHash() { return this->preferredBlockHash; }
