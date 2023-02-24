@@ -12,5 +12,6 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/new_tests/merkle.cpp
   ${CMAKE_SOURCE_DIR}/new_tests/ecdsa.cpp
   ${CMAKE_SOURCE_DIR}/new_tests/randomgen.cpp
+  ${CMAKE_SOURCE_DIR}/new_tests/p2p.cpp
   PARENT_SCOPE
 )

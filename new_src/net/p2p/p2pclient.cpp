@@ -173,7 +173,6 @@ namespace P2P {
   void ClientSession::close() {
     // Close the WebSocket connection
     this->closed_ = true;
-    ws_.next_layer().cancel();
     ws_.async_close(websocket::close_code::normal, beast::bind_front_handler(
       &ClientSession::on_close, shared_from_this()
     ));

@@ -97,7 +97,6 @@ namespace P2P {
       this->disconnectSession(session->hostNodeId());
       return;
     }
-    std::cout << "Setting answer to request: " << message.id().hex().get() << " " << message.size() << std::endl;
     requests_[message.id()]->setAnswer(message);
   }
 };

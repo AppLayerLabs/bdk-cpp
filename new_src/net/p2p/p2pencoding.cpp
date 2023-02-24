@@ -104,7 +104,6 @@ namespace P2P {
   }
 
   std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> AnswerDecoder::requestNodes(const Message& message) {
-    std::cout << __func__ << " " << message.size() << std::endl;
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestNodes) { throw std::runtime_error("Invalid command."); }
     std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> nodes;
@@ -146,7 +145,6 @@ namespace P2P {
       nodes.push_back(node);
       index += 2;
     }
-    std::cout << "Nodes size: " << nodes.size() << std::endl;
     return nodes;
   }
 }

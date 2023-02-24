@@ -54,7 +54,7 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Session already exists for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
       return false;
     } 
-    Utils::logToDebug(Log::P2PManager, __func__, "Registering client session for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
+    Utils::logToDebug(Log::P2PManager, __func__, "Registering " + std::string((session->connectionType() == ConnectionType::CLIENT) ? "Client" : "Server") + " session for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
     sessions_[session->hostNodeId()] = session;
     return true;
   }
@@ -66,7 +66,7 @@ namespace P2P {
       return false;
     } 
 
-    Utils::logToDebug(Log::P2PManager, __func__, "Unregistering client session for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
+    Utils::logToDebug(Log::P2PManager, __func__, "Unregistering session for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
     sessions_.erase(session->hostNodeId());
     return true;
   }
@@ -77,8 +77,9 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Session does not exist for " + nodeId.hex().get());
       return false;
     } 
-    Utils::logToDebug(Log::P2PManager, __func__, "Disconnecting client session for " + nodeId.hex().get());
+    Utils::logToDebug(Log::P2PManager, __func__, "Disconnecting session for " + nodeId.hex().get());
     // Get a copy of the pointer
+
     sessions_[nodeId]->close();
     sessions_.erase(nodeId);
     return true;
