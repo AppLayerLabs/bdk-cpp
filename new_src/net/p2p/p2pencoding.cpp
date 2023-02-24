@@ -1,6 +1,19 @@
 #include "p2pencoding.h"
 
 namespace P2P {
+  RequestID::RequestID(const uint64_t& value) {
+    this->data = Utils::uint64ToBytes(value);
+  }
+
+  uint64_t RequestID::toUint64() const {
+    return Utils::bytesToUint64(data);
+  }
+
+  RequestID RequestID::random() {
+    return RequestID(Utils::randBytes(8));
+  }
+
+
   CommandType getCommandType(const std::string_view& message) {
     if (message.size() != 2) { throw std::runtime_error("Invalid Command Type size." + std::to_string(message.size())); }
     uint16_t commandType = Utils::bytesToUint16(message);
@@ -54,7 +67,7 @@ namespace P2P {
   Message AnswerEncoder::ping(const Message& request) {
     std::string message;
     message += getRequestTypePrefix(Answering);
-    message += request.id();
+    message += request.id().get();
     message += getCommandPrefix(Ping);
     return Message(std::move(message));
   }
@@ -62,7 +75,7 @@ namespace P2P {
   Message AnswerEncoder::requestNodes(const Message& request, const std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>>& nodes) {
     std::string message;
     message += getRequestTypePrefix(Answering);
-    message += request.id();
+    message += request.id().get();
     message += getCommandPrefix(RequestNodes);
     for (const auto& node : nodes) {
       // NodeType

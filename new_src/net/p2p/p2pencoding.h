@@ -10,6 +10,25 @@ namespace P2P {
   // Foward declaration.
   class Manager;
   class Message;
+
+  /// Abstraction of a 8-byte hash. Inherits `FixedStr<32>`.
+  class RequestID : public FixedStr<8> {
+    public:
+      using FixedStr<8>::FixedStr; ///< Using parent constructor.
+      using FixedStr<8>::operator=; ///< Using parent operator=.
+
+      /**
+       * Constructor.
+       * @param data The unsigned 256-bit number to convert into a hash string.
+       */
+      RequestID(const uint64_t& value);
+
+      /// Convert the hash string back to an unsigned 256-bit number.
+      uint64_t toUint64() const;
+
+      /// Generate a random 32-byte/256-bit hash.
+      static RequestID random();
+  };
   
   enum RequestType {
     Requesting,
@@ -93,8 +112,8 @@ namespace P2P {
        */
     
       std::string _rawMessage;
-      Message() {};
-      Message(std::string&& raw) : _rawMessage(std::move(raw)) {};
+
+      Message(std::string&& raw) : _rawMessage(std::move(raw)) { if (_rawMessage.size() < 11) throw std::runtime_error("Invalid message size."); };
 
       Message& operator=(const Message& message) {
         this->_rawMessage = message._rawMessage; return *this;
@@ -109,7 +128,7 @@ namespace P2P {
         this->_rawMessage = std::move(message._rawMessage);
       };
       const RequestType type() const { return getRequestType(_rawMessage.substr(0,1)); };
-      const std::string id() const { return (_rawMessage).substr(1, 8); };
+      const RequestID id() const { return RequestID(_rawMessage.substr(1, 8)); };
       const CommandType command() const { return getCommandType(_rawMessage.substr(9,2)); };
       const std::string_view message() const { return std::string_view(_rawMessage).substr(11); };
       const std::string_view raw() const { return _rawMessage; };
@@ -125,16 +144,16 @@ namespace P2P {
   class Request {
     private:
       CommandType _command; // The command type.
-      std::string _id;      // The request id.
+      RequestID _id;      // The request id.
       Hash _nodeId;  // The host node id.
       std::promise<Message> _answer;      // The answer to the request.
       bool _isAnswered = false;
 
     public:
-      Request(const CommandType& command, const std::string& id, const Hash& nodeId) : _command(command), _id(id), _nodeId(nodeId) {};
-      const CommandType command() const { return _command; };
-      const std::string_view id() const { return _id; };
-      const Hash nodeId() const { return _nodeId; };
+      Request(const CommandType& command, const RequestID& id, const Hash& nodeId) : _command(command), _id(id), _nodeId(nodeId) {};
+      const CommandType& command() const { return _command; };
+      const RequestID& id() const { return _id; };
+      const Hash& nodeId() const { return _nodeId; };
       std::future<Message> answerFuture() { return _answer.get_future(); };
       const bool isAnswered() const { return _isAnswered; };
       void setAnswer(const Message& answer) { _answer.set_value(answer); _isAnswered = true; };
