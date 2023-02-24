@@ -74,6 +74,9 @@ namespace P2P {
       // Connects to a given WebSocket server.
       void connectToServer(const std::string &host, const unsigned short &port);
 
+      // Cleans all current connections and stop the server.
+      void stop();
+
       // Handles a message from a session.
       // the shared_ptr here is not a reference because handleMessage is called from another thread, requiring a copy of the pointer
       // The other handler functions are called from the same thread (from handleMessage) and therefore can use a reference.
@@ -89,5 +92,8 @@ namespace P2P {
       const NodeType& nodeType() const { return nodeType_; }
 
       const unsigned int serverPort() const { return hostPort_; }
+
+      const bool isServerRunning() const { return this->p2pserver_->isRunning(); }
+
   };
 };

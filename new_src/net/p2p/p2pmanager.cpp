@@ -12,6 +12,11 @@ namespace P2P {
   void Manager::startServer() {
     std::thread t(&Server::start, p2pserver_);
     t.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (!p2pserver_->isRunning()) {
+      Utils::logToDebug(Log::P2PManager, __func__, "Server failed to start");
+      throw std::runtime_error("Server failed to start");
+    }
   }
   
   void Manager::connectToServer(const std::string &host, const unsigned short &port) {
@@ -104,4 +109,13 @@ namespace P2P {
     return AnswerDecoder::requestNodes(answer.get());
   }
 
+  void Manager::stop() {
+    std::unique_lock lock(sessionsMutex);
+    Utils::logToDebug(Log::P2PManager, __func__, "Stopping P2PManager");
+    for(auto& [key, value] : sessions_) {
+      value->close();
+    }
+    sessions_.clear();
+    p2pserver_->stop();
+  }
 }; // namespace P2P

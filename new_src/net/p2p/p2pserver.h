@@ -80,9 +80,11 @@ namespace P2P {
     private: 
       Manager& manager_;
       net::io_context ioc;
+      std::shared_ptr<listener> listener_;
       const boost::asio::ip::address address;
       const unsigned short port;
       const unsigned int threads;
+      bool isRunning_ = false;
 
     public:
       Server(boost::asio::ip::address address, unsigned short port, unsigned int threads, Manager& manager)
@@ -90,6 +92,7 @@ namespace P2P {
 
       void start();
       void stop();
+      bool isRunning() const { return isRunning_; }
 
   };
 
