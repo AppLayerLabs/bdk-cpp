@@ -175,7 +175,19 @@ namespace P2P {
     acceptor_.close(); // Close the acceptor.
   }
 
+  void Server::stop() {
+    if (!this->isRunning()) {
+      Utils::logToDebug(Log::P2PServer, __func__, "Server is not running");
+      return;
+    }
+    this->ioc.stop();
+  }
+
   void Server::start() {
+    if (this->isRunning()) {
+      Utils::logToDebug(Log::P2PServer, __func__, "Server is already running");
+      return;
+    }
     Utils::logToDebug(Log::P2PServer, __func__, "Starting server on " + this->address.to_string() + ":" + std::to_string(this->port));
     // Restart is needed to .run() the ioc again, otherwise it returns instantly.
 
@@ -188,9 +200,11 @@ namespace P2P {
     v.reserve(this->threads - 1);
 
     for (auto i = this->threads - 1; i > 0; --i) { v.emplace_back([this]{ ioc.run(); }); }
+    this->isRunning_ = true;
     ioc.run();
 
     for (auto& t : v) t.join(); // Wait for all threads to exit
+    this->isRunning_ = false;
   }
 
 };
