@@ -3,8 +3,9 @@
 
 #include <mutex>
 
-#include "../utils/block.h"
+//#include "../utils/block.h"
 #include "../utils/db.h"
+#include "../utils/ecdsa.h"
 #include "../utils/randomgen.h"
 #include "../utils/safehash.h"
 #include "../utils/strings.h"

@@ -3,8 +3,8 @@
 
 #include <mutex>
 
+#include "../net/http/httpserver.h"
 #include "../net/p2p/p2pmanager.h"
-#include "../net/httpserver.h"
 #include "../net/grpcserver.h"
 #include "../utils/block.h"
 #include "../utils/db.h"

@@ -56,8 +56,8 @@ void Storage::saveToDB() {
       txToBlockBatch.puts.emplace_back(DBEntry(
         tx.second.hash().get(), block->getBlockHash().get()
       ));
-      this->lookupTxByHash.erase(tx.second.hash());
-      this->lookupBlockByTxHash.erase(tx.second.hash());
+      this->txByHash.erase(tx.second.hash());
+      this->blockByTxHash.erase(tx.second.hash());
     }
 
     // Delete block from internal mappings and the chain
@@ -68,7 +68,7 @@ void Storage::saveToDB() {
   // Batch save to database
   this->db->putBatch(blockBatch, DBPrefix::blocks);
   this->db->putBatch(heightBatch, DBPrefix::blockHeightMaps);
-  this->db->putBatch(txToBlockBatch, DBPrefix::TxToBlocks);
+  this->db->putBatch(txToBlockBatch, DBPrefix::txToBlocks);
   this->db->put("latest", latest->serializeToBytes(true), DBPrefix::blocks);
 
   this->chainLock.unlock();
@@ -84,11 +84,11 @@ void Storage::loadFromDB() {
     this->db->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash().get(), DBPrefix::blockHeightMaps);
     this->db->put(genesis.getBlockHash().get(), genesis.serializeToBytes(true), DBPrefix::blocks);
     // TODO: CHANGE THIS ON PUBLIC!!! THOSE PRIVATE KEYS SHOULD ONLY BE USED FOR LOCAL TESTING
-    this->db->put(Utils::uint64ToBytes(0), Address("7588b0f553d1910266089c58822e1120db47e572", true).get(), DBPrefix::validators); // 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759
-    this->db->put(Utils::uint64ToBytes(1), Address("cabf34a268847a610287709d841e5cd590cc5c00", true).get(), DBPrefix::validators); // 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4
-    this->db->put(Utils::uint64ToBytes(2), Address("5fb516dc2cfc1288e689ed377a9eebe2216cf1e3", true).get(), DBPrefix::validators); // 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751
-    this->db->put(Utils::uint64ToBytes(3), Address("795083c42583842774febc21abb6df09e784fce5", true).get(), DBPrefix::validators); // 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7
-    this->db->put(Utils::uint64ToBytes(4), Address("bec7b74f70c151707a0bfb20fe3767c6e65499e0", true).get(), DBPrefix::validators); // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
+    this->db->put(Utils::uint64ToBytes(0), Address(std::string("0x7588b0f553d1910266089c58822e1120db47e572"), true).get(), DBPrefix::validators); // 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759
+    this->db->put(Utils::uint64ToBytes(1), Address(std::string("0xcabf34a268847a610287709d841e5cd590cc5c00"), true).get(), DBPrefix::validators); // 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4
+    this->db->put(Utils::uint64ToBytes(2), Address(std::string("0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3"), true).get(), DBPrefix::validators); // 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751
+    this->db->put(Utils::uint64ToBytes(3), Address(std::string("0x795083c42583842774febc21abb6df09e784fce5"), true).get(), DBPrefix::validators); // 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7
+    this->db->put(Utils::uint64ToBytes(4), Address(std::string("0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"), true).get(), DBPrefix::validators); // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
     Utils::logToDebug(Log::storage, __func__,
       std::string("Created genesis block: ") + Hex::fromBytes(genesis.getBlockHash().get()).get()
     );
@@ -105,12 +105,12 @@ void Storage::loadFromDB() {
   // Parse block mappings (hash -> height / height -> hash) from DB
   Utils::logToDebug(Log::storage, __func__, "Parsing block mappings");
   this->chainLock.lock();
-  std::vector<DBEntry> maps = this->db->readBatch(DBPrefix::blockHeightMaps);
+  std::vector<DBEntry> maps = this->db->getBatch(DBPrefix::blockHeightMaps);
   for (DBEntry& map : maps) {
     Utils::logToDebug(Log::storage, __func__,
       std::string("Indexing height ")
       + std::to_string(Utils::bytesToUint64(map.key))
-      + std::string(", hash ") + Hash(map.value).hex()
+      + std::string(", hash ") + Hash(map.value).hex().get()
     );
     this->blockHashByHeight[Utils::bytesToUint64(map.key)] = Hash(map.value);
     this->blockHeightByHash[Hash(map.value)] = Utils::bytesToUint64(map.key);
@@ -220,7 +220,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
 
 const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
   if (!this->exists(height)) return nullptr;
-  Utils::logToDebug(Log::Storage, __func__, "height: " + height);
+  Utils::logToDebug(Log::storage, __func__, "height: " + height);
   std::shared_ptr<const Block> ret;
 
   // Check chain first, then cache, then database
@@ -228,7 +228,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
   if (this->hasBlock(height)) {
     ret = this->blockByHash.find(this->blockHashByHeight.find(height)->second)->second;
   } else {
-    Hash hash(this->db->get(Utils::uint64ToBytes(height), DBPrefix::heightMaps));
+    Hash hash(this->db->get(Utils::uint64ToBytes(height), DBPrefix::blockHeightMaps));
     ret = (this->cachedBlocks.count(hash) > 0)
       ? this->cachedBlocks[hash]
       : std::make_shared<Block>(this->db->get(hash.get(), DBPrefix::blocks), true);

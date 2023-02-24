@@ -4,7 +4,7 @@ if(BUILD_AVALANCHEGO)
   #  ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.h
   #  ${CMAKE_SOURCE_DIR}/new_src/core/snowmanVM.h
   #  ${CMAKE_SOURCE_DIR}/new_src/core/state.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/storage.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/storage.h
     PARENT_SCOPE
   )
 
@@ -14,7 +14,7 @@ if(BUILD_AVALANCHEGO)
   #  ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.cpp
   #  ${CMAKE_SOURCE_DIR}/new_src/core/snowmanVM.cpp
   #  ${CMAKE_SOURCE_DIR}/new_src/core/state.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/storage.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/storage.cpp
     PARENT_SCOPE
   )
 else()
@@ -22,7 +22,7 @@ else()
   #  ${CMAKE_SOURCE_DIR}/new_src/core/blockchain.h
   #  ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.h
   #  ${CMAKE_SOURCE_DIR}/new_src/core/state.h
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/storage.h
+    ${CMAKE_SOURCE_DIR}/new_src/core/storage.h
     PARENT_SCOPE
   )
 
@@ -31,7 +31,7 @@ else()
   #  ${CMAKE_SOURCE_DIR}/new_src/core/blockchainRPC.cpp
   #  ${CMAKE_SOURCE_DIR}/new_src/core/rdpos.cpp
   #  ${CMAKE_SOURCE_DIR}/new_src/core/state.cpp
-  #  ${CMAKE_SOURCE_DIR}/new_src/core/storage.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/core/storage.cpp
     PARENT_SCOPE
   )
 endif()
