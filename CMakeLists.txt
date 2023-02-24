@@ -350,10 +350,10 @@ if(BUILD_AVALANCHEGO)
   add_library(subnetooor_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
-    ${CONTRACT_HEADERS}
-    ${CONTRACT_SOURCES}
-    ${CORE_HEADERS}
-    ${CORE_SOURCES}
+    #${CONTRACT_HEADERS}
+    #${CONTRACT_SOURCES}
+    #${CORE_HEADERS}
+    #${CORE_SOURCES}
     ${NET_HEADERS}
     ${NET_SOURCES}
   )
@@ -387,10 +387,10 @@ else()
   add_library(subnetooor_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
-    ${CONTRACT_HEADERS}
-    ${CONTRACT_SOURCES}
-    ${CORE_HEADERS}
-    ${CORE_SOURCES}
+    #${CONTRACT_HEADERS}
+    #${CONTRACT_SOURCES}
+    #${CORE_HEADERS}
+    #${CORE_SOURCES}
     ${NET_HEADERS}
     ${NET_SOURCES}
   )

@@ -1,6 +1,9 @@
-
 if(BUILD_AVALANCHEGO)
   set(NET_HEADERS
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpbase.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpsession.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httplistener.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpserver.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.h
@@ -10,6 +13,10 @@ if(BUILD_AVALANCHEGO)
   )
 
   set(NET_SOURCES
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpbase.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpsession.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httplistener.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpserver.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.cpp
@@ -19,6 +26,10 @@ if(BUILD_AVALANCHEGO)
   )
 else()
   set(NET_HEADERS
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpbase.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpsession.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httplistener.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpserver.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.h
@@ -28,6 +39,10 @@ else()
   )
 
   set(NET_SOURCES
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpbase.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpsession.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httplistener.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/http/httpserver.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.cpp
@@ -36,3 +51,4 @@ else()
     PARENT_SCOPE
   )
 endif()
+
