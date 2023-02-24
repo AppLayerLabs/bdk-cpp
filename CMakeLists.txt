@@ -106,7 +106,6 @@ add_subdirectory(new_src/utils)
 add_subdirectory(new_tests/)
 
 if(BUILD_AVALANCHEGO)
-
   # Generate gRPC files
   # Headers/sources are always cleaned at configure stage
   # so they can be regenerated at build stage

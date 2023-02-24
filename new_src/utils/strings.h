@@ -21,7 +21,7 @@ template <unsigned N> class FixedStr {
     inline FixedStr() { this->data.resize(N, 0x00); };
 
     /// Copy constructor.
-    inline FixedStr(const std::string_view& data) { this->data = data; this->data.resize(N); }
+    inline FixedStr(const std::string_view data) { this->data = data; this->data.resize(N); }
 
     /// Move constructor.
     inline FixedStr(std::string&& data) { this->data = std::move(data); this->data.resize(N); }
@@ -147,7 +147,7 @@ class Address : public FixedStr<20> {
     Address(const std::string& add, bool inBytes);
 
     /// Overload of copy constructor that accepts a string_view.
-    Address(const std::string_view& add, bool inBytes);
+    Address(const std::string_view add, bool inBytes);
 
     /**
      * Move constructor.

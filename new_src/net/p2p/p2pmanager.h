@@ -31,7 +31,7 @@ namespace P2P {
       const std::shared_ptr<Server> p2pserver_;
       const NodeType nodeType_;
       std::unordered_map <Hash, std::shared_ptr<BaseSession>, SafeHash> sessions_;
-      std::unordered_map <std::string, std::shared_ptr<Request>, SafeHash> requests_;
+      std::unordered_map <RequestID, std::shared_ptr<Request>, SafeHash> requests_;
 
       std::shared_mutex sessionsMutex; // Mutex for protecting sessions
       std::shared_mutex requestsMutex; // Mutex for protecting requests
