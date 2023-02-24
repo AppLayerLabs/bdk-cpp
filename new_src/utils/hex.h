@@ -33,13 +33,6 @@ class Hex {
     static const std::string_view filter;  ///< Filter for hex string
     bool strict;                                           ///< If `true`, hex includes "0x"
 
-    /**
-     * Check if a given string is valid hex.
-     * @param v (optional) The string to check. If empty, check hex. Defaults to empty.
-     * @return `true` if string is a valid hex, `false` otherwise.
-     */
-    bool isValid(const std::string_view& v = "") const;
-
   public:
     /**
      * Default constructor (empty string).
@@ -59,7 +52,7 @@ class Hex {
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
      */
-    Hex(const std::string_view& value, bool strict = false);
+    Hex(const std::string_view value, bool strict = false);
 
     /**
      * Build a Hex object from a byte string.
@@ -92,6 +85,13 @@ class Hex {
     }
 
     /**
+     * Check if a given string is valid hex.
+     * @param v The string to check.
+     * @return `true` if string is a valid hex, `false` otherwise.
+     */
+    static bool isValid(const std::string_view hex, bool strict = false);
+
+    /**
      * Convert the Hex data to bytes.
      * @return The bytes string.
      */
@@ -102,7 +102,7 @@ class Hex {
      * @param hex The hex string.
      * @return The bytes string.
      */
-    static std::string toBytes(const std::string_view& hex);
+    static std::string toBytes(const std::string_view hex);
 
     /// Getter for `hex`.
     inline const std::string& get() const { return this->hex; }
@@ -131,7 +131,8 @@ class Hex {
 
     /// Concat operator. Throws on invalid concat.
     Hex& operator+=(const std::string& hex) {
-      if (this->isValid(hex)) {
+
+      if (this->isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
         this->hex += (
           hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
         ) ? hex.substr(2) : hex;

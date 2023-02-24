@@ -1,13 +1,13 @@
 #include "hex.h"
 
-Hex::Hex(const std::string_view& v, bool strict) : strict(strict) {
+Hex::Hex(const std::string_view v, bool strict) : strict(strict) {
   std::string ret(v);
   if (strict) {
     if (ret[0] != '0' && (ret[1] != 'x' || ret[1] != 'X')) ret.insert(0, "0x");
   } else {
     if (ret[0] == '0' && (ret[1] == 'x' || ret[1] == 'X')) ret.erase(0, 2);
   }
-  if (!this->isValid(ret)) throw std::runtime_error("Invalid Hex string at constructor");
+  if (!this->isValid(ret, strict)) throw std::runtime_error("Invalid Hex string at constructor");
   this->hex = std::move(ret);
 }
 
@@ -21,11 +21,10 @@ Hex::Hex(std::string&& v, bool strict) : hex(std::move(v)), strict(strict) {
       this->hex.erase(0, 2);
     }
   }
-  if (!this->isValid()) throw std::runtime_error("Invalid Hex string at constructor");
+  if (!this->isValid(this->hex, strict)) throw std::runtime_error("Invalid Hex string at constructor");
 }
 
-bool Hex::isValid(const std::string_view& v) const {
-  std::string_view hex((v.empty()) ? this->hex : v);
+bool Hex::isValid(const std::string_view hex, bool strict) {
   int off = 0;
   if (strict) {
     if (hex.substr(0, 2) != "0x" && hex.substr(0, 2) != "0X") return false;
@@ -68,7 +67,7 @@ int Hex::toInt(char c) {
   return -1;
 }
 
-std::string Hex::toBytes(const std::string_view& hex) {
+std::string Hex::toBytes(const std::string_view hex) {
   std::string ret;
   size_t i = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? 2 : 0;
   if (hex.find_first_not_of(filter, i) != std::string::npos) {

@@ -24,7 +24,7 @@ void Utils::logToDebug(std::string_view pfx, std::string_view func, std::string_
   debug_mutex.unlock();
 }
 
-Hash Utils::sha3(const std::string_view& input) {
+Hash Utils::sha3(const std::string_view input) {
   std::string ret;
   ethash_hash256 h = ethash_keccak256(reinterpret_cast<const unsigned char*>(&input[0]), input.size());
   for (unsigned char byte : h.bytes) ret.push_back(byte); // Unsigned char to char warning?
@@ -41,7 +41,7 @@ std::string Utils::uint256ToBytes(const uint256_t& i) {
   return ret;
 }
 
-uint256_t Utils::bytesToUint256(const std::string_view& b) {
+uint256_t Utils::bytesToUint256(const std::string_view b) {
   if (b.size() != 32) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 32, got " + std::to_string(b.size())
   );
@@ -59,7 +59,7 @@ std::string Utils::uint160ToBytes(const uint160_t& i) {
   return ret;
 }
 
-uint160_t Utils::bytesToUint160(const std::string_view& b) {
+uint160_t Utils::bytesToUint160(const std::string_view b) {
   if (b.size() != 20) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 20, got " + std::to_string(b.size())
   );
@@ -77,7 +77,7 @@ std::string Utils::uint64ToBytes(const uint64_t& i) {
   return ret;
 }
 
-uint64_t Utils::bytesToUint64(const std::string_view& b) {
+uint64_t Utils::bytesToUint64(const std::string_view b) {
   if (b.size() != 8) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 8, got " + std::to_string(b.size())
   );
@@ -98,7 +98,7 @@ std::string Utils::uint32ToBytes(const uint32_t& i) {
   return ret;
 }
 
-uint32_t Utils::bytesToUint32(const std::string_view& b) {
+uint32_t Utils::bytesToUint32(const std::string_view b) {
   if (b.size() != 4) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 4, got " + std::to_string(b.size())
   );
@@ -119,7 +119,7 @@ std::string Utils::uint16ToBytes(const uint16_t& i) {
   return ret;
 }
 
-uint16_t Utils::bytesToUint16(const std::string_view& b) {
+uint16_t Utils::bytesToUint16(const std::string_view b) {
   if (b.size() != 2) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 2, got " + std::to_string(b.size())
   );
@@ -137,7 +137,7 @@ std::string Utils::uint8ToBytes(const uint8_t& i) {
   return ret;
 }
 
-uint8_t Utils::bytesToUint8(const std::string_view& b) {
+uint8_t Utils::bytesToUint8(const std::string_view b) {
   if (b.size() != 1) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 1, got " + std::to_string(b.size())
   );

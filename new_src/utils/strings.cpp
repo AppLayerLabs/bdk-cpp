@@ -14,7 +14,7 @@ Address::Address(const std::string& add, bool inBytes) {
   }
 }
 
-Address::Address(const std::string_view& add, bool inBytes) {
+Address::Address(const std::string_view add, bool inBytes) {
   if (inBytes) {
     if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
     this->data = add;

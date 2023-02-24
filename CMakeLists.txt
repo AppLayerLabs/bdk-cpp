@@ -389,8 +389,8 @@ else()
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
     ${CONTRACT_SOURCES}
-    ${CORE_HEADERS}
-    ${CORE_SOURCES}
+    # ${CORE_HEADERS}
+    # ${CORE_SOURCES}
     ${NET_HEADERS}
     ${NET_SOURCES}
   )

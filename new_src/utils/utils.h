@@ -112,7 +112,7 @@ namespace Utils {
    * @param input The string to hash.
    * @return The SHA3-hashed string.
    */
-  Hash sha3(const std::string_view& input);
+  Hash sha3(const std::string_view input);
 
   /**
    * Convert a 256-bit unsigned integer to a bytes string.
@@ -174,42 +174,42 @@ namespace Utils {
    * @param b The bytes string to convert.'
    * @return The converted 256-bit integer.
    */
-  uint256_t bytesToUint256(const std::string_view& b);
+  uint256_t bytesToUint256(const std::string_view b);
 
   /**
    * Convert a bytes string to a 128-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 128-bit integer.
    */
-  uint160_t bytesToUint160(const std::string_view& b);
+  uint160_t bytesToUint160(const std::string_view b);
 
   /**
    * Convert a bytes string to a 64-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 64-bit integer.
    */
-  uint64_t bytesToUint64(const std::string_view& b);
+  uint64_t bytesToUint64(const std::string_view b);
 
   /**
    * Convert a bytes string to a 32-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 32-bit integer.
    */
-  uint32_t bytesToUint32(const std::string_view& b);
+  uint32_t bytesToUint32(const std::string_view b);
 
   /**
    * Convert a bytes string to a 16-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 16-bit integer.
    */
-  uint16_t bytesToUint16(const std::string_view& b);
+  uint16_t bytesToUint16(const std::string_view b);
 
   /**
    * Convert a bytes string to a 8-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 8-bit integer.
    */
-  uint8_t bytesToUint8(const std::string_view& b);
+  uint8_t bytesToUint8(const std::string_view b);
 
   /**
    * Add padding to the left of a string.
@@ -293,7 +293,7 @@ namespace Utils {
    * @param input The UTF-8 string to convert.
    * @return The converted hex string.
    */
-  std::string utf8ToHex(const std::string_view& input);
+  std::string utf8ToHex(const std::string_view input);
 
   /**
    * Convert a bytes string to a hex string.
@@ -303,7 +303,7 @@ namespace Utils {
    * @param b The bytes string to convert
    * @return The converted hex string.
    */
-  std::string bytesToHex(const std::string_view& b);
+  std::string bytesToHex(const std::string_view b);
 
 
   /**
