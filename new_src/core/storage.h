@@ -3,13 +3,15 @@
 
 #include <mutex>
 
-#include "../utils/block.h"
+//#include "../utils/block.h"
 #include "../utils/db.h"
+#include "../utils/ecdsa.h"
 #include "../utils/randomgen.h"
+#include "../utils/safehash.h"
 #include "../utils/utils.h"
 
 // Forward declarations.
-class Block;  // Include is not working, why? There's no circular dep here
+class Block;
 
 /**
  * Abstraction of the blockchain history.
