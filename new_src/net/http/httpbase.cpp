@@ -66,7 +66,7 @@ template<class Body, class Allocator, class Send> void handle_request(
 
   std::string request = req.body();
 
-  std::string answer = blockchain.parseRPC(request);  // This does the parsing per se
+  // std::string answer = blockchain.parseRPC(request);  // This does the parsing per se
   http::response<http::string_body> res{http::status::ok, req.version()};
   res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
   res.set(http::field::access_control_allow_origin, "*");
@@ -77,7 +77,7 @@ template<class Body, class Allocator, class Send> void handle_request(
   res.set(http::field::strict_transport_security, "max-age=0");
   res.set(http::field::vary, "Origin");
   res.set(http::field::access_control_allow_credentials, "true");
-  res.body() = answer;
+  // res.body() = answer;
   res.keep_alive(req.keep_alive());
   res.prepare_payload();
   return send(std::move(res));
