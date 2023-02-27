@@ -117,6 +117,8 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
 
     /// Start the HTTP session.
     void start();
+    
+    friend class HTTPQueue;
 };
 
 #endif  // HTTPSESSION_H
