@@ -72,26 +72,26 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message AnswerEncoder::requestNodes(const Message& request, const std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>>& nodes) {
+  Message AnswerEncoder::requestNodes(const Message& request, const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes) {
     std::string message;
     message += getRequestTypePrefix(Answering);
     message += request.id().get();
     message += getCommandPrefix(RequestNodes);
     for (const auto& node : nodes) {
       // NodeType
-      message += Utils::uint8ToBytes(std::get<0>(node));
+      message += Utils::uint8ToBytes(std::get<0>(node.second));
       // NodeID
-      message += std::get<1>(node).get();
+      message += node.first.get();
 
-      message += Utils::uint8ToBytes(std::get<2>(node).is_v4() ? 0 : 1);
-      if (std::get<2>(node).is_v4()) {
-        auto address = std::get<2>(node).to_v4().to_bytes();
+      message += Utils::uint8ToBytes(std::get<1>(node.second).is_v4() ? 0 : 1);
+      if (std::get<1>(node.second).is_v4()) {
+        auto address = std::get<1>(node.second).to_v4().to_bytes();
         message += std::string(address.begin(), address.end());
       } else {
-        auto address = std::get<2>(node).to_v6().to_bytes();
+        auto address = std::get<1>(node.second).to_v6().to_bytes();
         message += std::string(address.begin(), address.end());
       }
-      message += Utils::uint16ToBytes(uint16_t(std::get<3>(node)));
+      message += Utils::uint16ToBytes(uint16_t(std::get<2>(node.second)));
     }
     return Message(std::move(message));
   }
@@ -103,18 +103,18 @@ namespace P2P {
     return true;
   }
 
-  std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> AnswerDecoder::requestNodes(const Message& message) {
+  std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> AnswerDecoder::requestNodes(const Message& message) {
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestNodes) { throw std::runtime_error("Invalid command."); }
-    std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> nodes;
+    std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> nodes;
     std::string_view data = message.message();
     size_t index = 0;
     while (index < data.size()) {
       if (data.size() < 40) { throw std::runtime_error("Invalid data size."); }
-      std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short> node;
+      std::tuple<NodeType, boost::asio::ip::address, unsigned short> node;
       std::get<0>(node) = static_cast<NodeType>(Utils::bytesToUint8(data.substr(index, 1)));
       index += 1;
-      std::get<1>(node) = Hash(std::string(data.substr(index, 32)));
+      Hash nodeId = Hash(std::string(data.substr(index, 32)));
       index += 32;
       uint8_t ipVersion = Utils::bytesToUint8(data.substr(index, 1));
       index += 1; // Move index to IP address
@@ -126,7 +126,7 @@ namespace P2P {
           ip += '.';
         }
         ip.pop_back();
-        std::get<2>(node) = boost::asio::ip::address::from_string(ip);
+        std::get<1>(node) = boost::asio::ip::address::from_string(ip);
         index += 4;
       } else if (ipVersion == 1) { // V6
         std::string ip;
@@ -136,13 +136,13 @@ namespace P2P {
           ip += ':';
         }
         ip.pop_back();
-        std::get<2>(node) = boost::asio::ip::address::from_string(ip);
+        std::get<1>(node) = boost::asio::ip::address::from_string(ip);
         index += 16;
       } else {
         throw std::runtime_error("Invalid ip version.");
       }
-      std::get<3>(node) = Utils::bytesToUint16(data.substr(index, 2));
-      nodes.push_back(node);
+      std::get<2>(node) = Utils::bytesToUint16(data.substr(index, 2));
+      nodes[nodeId] = node;
       index += 2;
     }
     return nodes;

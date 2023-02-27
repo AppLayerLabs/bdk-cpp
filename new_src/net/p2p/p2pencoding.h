@@ -2,6 +2,7 @@
 #define P2PENCODING_H
 
 #include "../../utils/utils.h"
+#include "../../utils/safehash.h"
 #include "p2pbase.h"
 #include <future>
 
@@ -87,7 +88,7 @@ namespace P2P {
     public:
       static Message ping(const Message& request);
       static Message info();
-      static Message requestNodes(const Message& request, const std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>>& nodes);
+      static Message requestNodes(const Message& request, const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes);
   };
   
   // Used to decode a answer to request.
@@ -95,7 +96,7 @@ namespace P2P {
     public:
       static bool ping(const Message& message);
       static NodeInfo info(const Message& message);
-      static std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> requestNodes(const Message& message);
+      static std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> requestNodes(const Message& message);
   };
 
   class Message {

@@ -1,3 +1,6 @@
+#ifndef P2PMANAGERNORMAL_H
+#define P2PMANAGERNORMAL_H
+
 #include <iostream>
 #include <shared_mutex>
 
@@ -39,9 +42,11 @@ namespace P2P {
       void handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
 
     public:
-      ManagerNormal(const boost::asio::ip::address& hostIp, unsigned short hostPort) : ManagerBase(hostIp, hostPort, NodeType::NORMAL_NODE) {};
+      ManagerNormal(const boost::asio::ip::address& hostIp, unsigned short hostPort) : ManagerBase(hostIp, hostPort, NodeType::NORMAL_NODE, 50) {};
       
       void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
 
   };
 };
+
+#endif

@@ -1,9 +1,9 @@
-#include "p2pmanagernormal.h"
+#include "p2pmanagerdiscovery.h"
 
 
 namespace P2P {
 
-  void ManagerNormal::handleMessage(std::shared_ptr<BaseSession> session, const Message message) {
+  void ManagerDiscovery::handleMessage(std::shared_ptr<BaseSession> session, const Message message) {
     switch (message.type()) {
       case Requesting:
         handleRequest(session, message);
@@ -18,7 +18,7 @@ namespace P2P {
     }
   }
 
-  void ManagerNormal::handleRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
+  void ManagerDiscovery::handleRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
     switch (message.command()) {
       case Ping:
         handlePingRequest(session, message);
@@ -36,7 +36,7 @@ namespace P2P {
     }
   }
 
-  void ManagerNormal::handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
+  void ManagerDiscovery::handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
     switch (message.command()) {
       case Ping:
         handlePingAnswer(session, message);
@@ -54,7 +54,7 @@ namespace P2P {
     }
   }
 
-  void ManagerNormal::handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
+  void ManagerDiscovery::handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
     if (!RequestDecoder::ping(message)) {
       Utils::logToDebug(Log::P2PParser, __func__, "Invalid ping request from " + session->hostNodeId().hex().get() + " closing session.");
       this->disconnectSession(session->hostNodeId());
@@ -63,24 +63,24 @@ namespace P2P {
     this->answerSession(session, AnswerEncoder::ping(message));
   }
 
-  void ManagerNormal::handleRequestNodesRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
+  void ManagerDiscovery::handleRequestNodesRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
     if (!RequestDecoder::requestNodes(message)) {
       Utils::logToDebug(Log::P2PParser, __func__, "Invalid requestNodes request, closing session.");
       this->disconnectSession(session->hostNodeId());
       return;
     }
 
-    std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> nodes;
+    std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> nodes;
     {
       std::unique_lock lock(requestsMutex);
       for (const auto& session : this->sessions_) {
-        nodes.emplace_back(std::make_tuple(session.second->hostType(),session.second->hostNodeId(),session.second->address(), session.second->hostServerPort()));
+        nodes[session.second->hostNodeId()] = std::make_tuple(session.second->hostType(), session.second->address(), session.second->hostServerPort());
       }
     }
     this->answerSession(session, AnswerEncoder::requestNodes(message, nodes));
   }
 
-  void ManagerNormal::handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
+  void ManagerDiscovery::handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
     std::unique_lock lock(requestsMutex);
     if (!requests_.contains(message.id())) {
       Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + session->hostNodeId().hex().get());
@@ -90,7 +90,7 @@ namespace P2P {
     requests_[message.id()]->setAnswer(message);
   }
 
-  void ManagerNormal::handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
+  void ManagerDiscovery::handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
     std::unique_lock lock(requestsMutex);
     if (!requests_.contains(message.id())) {
       Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + session->hostNodeId().hex().get());

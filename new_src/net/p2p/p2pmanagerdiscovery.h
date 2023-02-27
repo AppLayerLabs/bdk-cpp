@@ -1,3 +1,6 @@
+#ifndef P2PMANAGERDISCOVERY_H
+#define P2PMANAGERDISCOVERY_H
+
 #include <iostream>
 #include <shared_mutex>
 
@@ -22,7 +25,7 @@ namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 namespace P2P {
-  class ManagerNormal : public ManagerBase {
+  class ManagerDiscovery : public ManagerBase {
     protected:
       // Handlers for client and server requests.
       // Handle message (called from sessions) is public.
@@ -39,9 +42,11 @@ namespace P2P {
       void handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
 
     public:
-      ManagerNormal(const boost::asio::ip::address& hostIp, unsigned short hostPort) : ManagerBase(hostIp, hostPort, NodeType::NORMAL_NODE) {};
+      ManagerDiscovery(const boost::asio::ip::address& hostIp, unsigned short hostPort) : ManagerBase(hostIp, hostPort, NodeType::DISCOVERY_NODE, 200) {};
       
       void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
 
   };
 };
+
+#endif

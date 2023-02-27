@@ -117,6 +117,7 @@ namespace P2P {
   void ServerSession::write(const Message& response) {
     if (ws_.is_open()) { // Check if the stream is open, before commiting to it.
       // Copy string to buffer
+      writeLock_.lock();
       auto buffer = net::buffer(response.raw());
       // Write to the socket
       ws_.async_write(buffer, beast::bind_front_handler(
@@ -127,6 +128,7 @@ namespace P2P {
 
   void ServerSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
+    writeLock_.unlock();
     if (ec) { handleError(__func__, ec); return; }
   }
 

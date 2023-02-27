@@ -70,11 +70,11 @@ namespace P2P {
       return;
     }
 
-    std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> nodes;
+    std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> nodes;
     {
       std::unique_lock lock(requestsMutex);
       for (const auto& session : this->sessions_) {
-        nodes.emplace_back(std::make_tuple(session.second->hostType(),session.second->hostNodeId(),session.second->address(), session.second->hostServerPort()));
+        nodes[session.second->hostNodeId()] = std::make_tuple(session.second->hostType(), session.second->address(), session.second->hostServerPort());
       }
     }
     this->answerSession(session, AnswerEncoder::requestNodes(message, nodes));

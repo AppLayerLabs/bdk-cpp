@@ -26,6 +26,8 @@ namespace P2P {
 
   class ServerSession : public BaseSession, public std::enable_shared_from_this<ServerSession> {
     private:
+      // Todo: change this to timed mutex, so that a thread doesn't lock forever.
+      std::mutex writeLock_;
       beast::flat_buffer buffer_; 
       beast::flat_buffer answerBuffer_;
       http::request<http::string_body> upgrade_request_;

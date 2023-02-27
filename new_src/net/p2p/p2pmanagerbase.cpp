@@ -1,12 +1,13 @@
 #include "p2pmanagerbase.h"
 
 namespace P2P {
-  ManagerBase::ManagerBase(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType) : 
+  ManagerBase::ManagerBase(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType, unsigned int maxConnections) : 
     nodeId_(Hash::random()),
     hostIp_(hostIp), 
     hostPort_(hostPort), 
     p2pserver_(std::make_shared<Server>(hostIp_, hostPort_, 2, *this)),
-    nodeType_(nodeType)
+    nodeType_(nodeType),
+    maxConnections_(maxConnections)
   {}
   
   void ManagerBase::startServer() {
@@ -17,6 +18,7 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Server failed to start");
       throw std::runtime_error("Server failed to start");
     }
+    this->startDiscovery();
   }
   
   void ManagerBase::connectToServer(const std::string &host, const unsigned short &port) {
@@ -101,7 +103,9 @@ namespace P2P {
     requestPtr->answerFuture().wait();
   }
 
-  std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> ManagerBase::requestNodes(const Hash& nodeId) {
+  // TODO: Both ping and requestNodes is a blocking call on .wait()
+  // Somehow change to wait_for.
+  std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> ManagerBase::requestNodes(const Hash& nodeId) {
     auto request = RequestEncoder::requestNodes();
     Utils::logToFile("Requesting nodes from " + nodeId.hex().get());
     auto requestPtr = sendMessageTo(nodeId, request);

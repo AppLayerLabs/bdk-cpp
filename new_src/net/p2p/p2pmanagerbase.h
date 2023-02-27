@@ -1,6 +1,10 @@
+#ifndef P2PMANAGERBASE_H
+#define P2PMANAGERBASE_H
+
 #include <iostream>
 #include <shared_mutex>
 #include <atomic>
+#include <unordered_set>
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/strand.hpp>
@@ -35,6 +39,7 @@ namespace P2P {
       unsigned short hostPort_;
       const std::shared_ptr<Server> p2pserver_;
       const NodeType nodeType_;
+      const unsigned int maxConnections_;
       std::unordered_map <Hash, std::shared_ptr<BaseSession>, SafeHash> sessions_;
       std::unordered_map <RequestID, std::shared_ptr<Request>, SafeHash> requests_;
 
@@ -59,7 +64,7 @@ namespace P2P {
       void discoveryThread();
 
     public:
-      ManagerBase(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType);
+      ManagerBase(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType, unsigned int maxConnections);
       ~ManagerBase() { stop(); }
 
       // Registers a session
@@ -98,7 +103,8 @@ namespace P2P {
       // Public request functions
       void ping(const Hash& nodeId);
 
-      std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> requestNodes(const Hash& nodeId);
+      std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> requestNodes(const Hash& nodeId);
+
 
       const Hash& nodeId() const { return nodeId_; }
 
@@ -107,6 +113,10 @@ namespace P2P {
       const unsigned int serverPort() const { return hostPort_; }
 
       const bool isServerRunning() const { return this->p2pserver_->isRunning(); }
+      
+      const unsigned int maxConnections() const { return maxConnections_; }
 
   };
 };
+
+#endif
