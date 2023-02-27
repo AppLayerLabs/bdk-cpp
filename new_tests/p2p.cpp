@@ -1,6 +1,6 @@
 #include "../new_src/libs/catch2/catch_amalgamated.hpp"
 #include "../new_src/utils/utils.h"
-#include "../new_src/net/p2p/p2pmanager.h"
+#include "../new_src/net/p2p/p2pmanagernormal.h"
 
 using Catch::Matchers::Equals;
 
@@ -8,9 +8,9 @@ namespace TP2P {
 
   TEST_CASE("P2P Manager") {
     SECTION ("P2P::Manager Simple 3 node network") {
-      P2P::Manager p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), 8080, P2P::NodeType::NORMAL_NODE);
-      P2P::Manager p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), 8081, P2P::NodeType::NORMAL_NODE);
-      P2P::Manager p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), 8082, P2P::NodeType::NORMAL_NODE);
+      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), 8080);
+      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
+      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), 8082);
 
 			Hash node1Id = p2pNode1.nodeId();
 			Hash node2Id = p2pNode2.nodeId();

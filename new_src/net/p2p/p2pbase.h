@@ -20,7 +20,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 // Forward declaration
 
 namespace P2P {
-  class Manager;
+  class ManagerBase;
   class Message;
 
   enum ConnectionType {
@@ -38,7 +38,7 @@ namespace P2P {
   class BaseSession {
     protected:
       websocket::stream<beast::tcp_stream> ws_;
-      Manager& manager_;
+      ManagerBase& manager_;
       const std::string host_;                 // Target IP/hostname
       const unsigned short port_;              // Target port
       boost::asio::ip::address address_;       // Target address
@@ -50,7 +50,7 @@ namespace P2P {
 
     public:
       // Used by ClientSession
-      BaseSession(net::io_context& ioc, Manager& manager, const std::string& host, unsigned short port, ConnectionType connectionType) : 
+      BaseSession(net::io_context& ioc, ManagerBase& manager, const std::string& host, unsigned short port, ConnectionType connectionType) : 
         ws_(net::make_strand(ioc)), 
         manager_(manager), 
         host_(host), 
@@ -59,7 +59,7 @@ namespace P2P {
       { ws_.binary(true); }
 
       // Used by ServerSession
-      BaseSession(tcp::socket&& socket, Manager& manager, ConnectionType connectionType) : 
+      BaseSession(tcp::socket&& socket, ManagerBase& manager, ConnectionType connectionType) : 
         ws_(std::move(socket)), 
         manager_(manager), 
         host_(ws_.next_layer().socket().remote_endpoint().address().to_string()), 

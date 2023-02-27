@@ -4,7 +4,8 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httpsession.h
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httplistener.h
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httpserver.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanagerbase.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanagernormal.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pbase.h
@@ -17,11 +18,12 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httpsession.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httplistener.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httpserver.cpp
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanagerbase.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanagernormal.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pencoding.cpp
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pparser.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/discoverythread.cpp
     PARENT_SCOPE
   )
 else()
@@ -30,7 +32,8 @@ else()
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httpsession.h
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httplistener.h
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httpserver.h
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanagerbase.h
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanagernormal.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.h
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pbase.h
@@ -43,11 +46,12 @@ else()
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httpsession.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httplistener.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/http/httpserver.cpp
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanager.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanagerbase.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pmanagernormal.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pserver.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pclient.cpp
     ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pencoding.cpp
-    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/p2pparser.cpp
+    ${CMAKE_SOURCE_DIR}/new_src/net/p2p/discoverythread.cpp
     PARENT_SCOPE
   )
 endif()

@@ -22,7 +22,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 namespace P2P {
   // Forward declaration
-  class Manager;
+  class ManagerBase;
 
   class ServerSession : public BaseSession, public std::enable_shared_from_this<ServerSession> {
     private:
@@ -33,7 +33,7 @@ namespace P2P {
     public:
 
     //using SessionBase::SessionBase;
-    ServerSession(tcp::socket&& socket, Manager& manager) : BaseSession(std::move(socket), manager, ConnectionType::SERVER) {}
+    ServerSession(tcp::socket&& socket, ManagerBase& manager) : BaseSession(std::move(socket), manager, ConnectionType::SERVER) {}
 
     void run() override;
     void stop() override;
@@ -54,9 +54,9 @@ namespace P2P {
     class listener : public std::enable_shared_from_this<listener> {
       net::io_context& ioc_;
       tcp::acceptor acceptor_;
-      Manager& manager_;
+      ManagerBase& manager_;
       public:
-        listener(net::io_context& ioc, tcp::endpoint endpoint, Manager& manager) : ioc_(ioc), acceptor_(ioc), manager_(manager) {
+        listener(net::io_context& ioc, tcp::endpoint endpoint, ManagerBase& manager) : ioc_(ioc), acceptor_(ioc), manager_(manager) {
           beast::error_code ec;
           acceptor_.open(endpoint.protocol(), ec); // Open the acceptor
           if (ec) { Utils::logToDebug(Log::P2PServer, __func__, "Open Acceptor: " + ec.message()); return; }
@@ -78,7 +78,7 @@ namespace P2P {
     };
 
     private: 
-      Manager& manager_;
+      ManagerBase& manager_;
       net::io_context ioc;
       std::shared_ptr<listener> listener_;
       const boost::asio::ip::address address;
@@ -87,7 +87,7 @@ namespace P2P {
       bool isRunning_ = false;
 
     public:
-      Server(boost::asio::ip::address address, unsigned short port, unsigned int threads, Manager& manager)
+      Server(boost::asio::ip::address address, unsigned short port, unsigned int threads, ManagerBase& manager)
        : address(address), port(port), threads(threads), manager_(manager) {};
 
       void start();

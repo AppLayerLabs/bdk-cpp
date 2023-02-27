@@ -1,7 +1,7 @@
-#include "p2pmanager.h"
+#include "p2pmanagerbase.h"
 
 namespace P2P {
-  Manager::Manager(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType) : 
+  ManagerBase::ManagerBase(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType) : 
     nodeId_(Hash::random()),
     hostIp_(hostIp), 
     hostPort_(hostPort), 
@@ -9,7 +9,7 @@ namespace P2P {
     nodeType_(nodeType)
   {}
   
-  void Manager::startServer() {
+  void ManagerBase::startServer() {
     std::thread t(&Server::start, p2pserver_);
     t.detach();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -19,7 +19,7 @@ namespace P2P {
     }
   }
   
-  void Manager::connectToServer(const std::string &host, const unsigned short &port) {
+  void ManagerBase::connectToServer(const std::string &host, const unsigned short &port) {
     std::thread clientThread([&, host, port] {
       net::io_context ioc;
       auto client = std::make_shared<ClientSession>(ioc, host, port, *this);
@@ -30,7 +30,7 @@ namespace P2P {
     clientThread.detach();
   }
   
-  std::shared_ptr<Request>& Manager::sendMessageTo(const Hash& nodeId, const Message& message) {
+  std::shared_ptr<Request>& ManagerBase::sendMessageTo(const Hash& nodeId, const Message& message) {
     std::unique_lock lockSession(sessionsMutex);
     std::unique_lock lockRequests(requestsMutex);
     if(!sessions_.contains(nodeId)) {
@@ -44,11 +44,11 @@ namespace P2P {
     return requests_[message.id()];
   }
 
-  void Manager::answerSession(std::shared_ptr<BaseSession>& session, const Message& message) {
+  void ManagerBase::answerSession(std::shared_ptr<BaseSession>& session, const Message& message) {
     session->write(message);
   }
   
-  bool Manager::registerSession(std::shared_ptr<BaseSession> session) {
+  bool ManagerBase::registerSession(std::shared_ptr<BaseSession> session) {
     std::unique_lock lock(sessionsMutex);
     if(sessions_.contains(session->hostNodeId())) {
       Utils::logToDebug(Log::P2PManager, __func__, "Session already exists for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
@@ -59,7 +59,7 @@ namespace P2P {
     return true;
   }
   
-  bool Manager::unregisterSession(std::shared_ptr<BaseSession> session) {
+  bool ManagerBase::unregisterSession(std::shared_ptr<BaseSession> session) {
     std::unique_lock lock(sessionsMutex);
     if(!sessions_.contains(session->hostNodeId())) {
       Utils::logToDebug(Log::P2PManager, __func__, "Session does not exist for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
@@ -71,7 +71,7 @@ namespace P2P {
     return true;
   }
   
-  bool Manager::disconnectSession(const Hash& nodeId) {
+  bool ManagerBase::disconnectSession(const Hash& nodeId) {
     std::unique_lock lock(sessionsMutex);
     if(!sessions_.contains(nodeId)) {
       Utils::logToDebug(Log::P2PManager, __func__, "Session does not exist for " + nodeId.hex().get());
@@ -85,7 +85,7 @@ namespace P2P {
     return true;
   }
   
-  std::vector<Hash> Manager::getSessionsIDs() {
+  std::vector<Hash> ManagerBase::getSessionsIDs() {
     std::vector<Hash> ret;
     std::shared_lock lock(sessionsMutex);
     for(auto& [key, value] : sessions_) {
@@ -94,14 +94,14 @@ namespace P2P {
     return ret;
   }
 
-  void Manager::ping(const Hash& nodeId) {
+  void ManagerBase::ping(const Hash& nodeId) {
     auto request = RequestEncoder::ping();
     Utils::logToFile("Pinging " + nodeId.hex().get());
     auto requestPtr = sendMessageTo(nodeId, request);
     requestPtr->answerFuture().wait();
   }
 
-  std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> Manager::requestNodes(const Hash& nodeId) {
+  std::vector<std::tuple<NodeType, Hash, boost::asio::ip::address, unsigned short>> ManagerBase::requestNodes(const Hash& nodeId) {
     auto request = RequestEncoder::requestNodes();
     Utils::logToFile("Requesting nodes from " + nodeId.hex().get());
     auto requestPtr = sendMessageTo(nodeId, request);
@@ -110,7 +110,8 @@ namespace P2P {
     return AnswerDecoder::requestNodes(answer.get());
   }
 
-  void Manager::stop() {
+  void ManagerBase::stop() {
+    this->stopDiscovery();
     std::unique_lock lock(sessionsMutex);
     Utils::logToDebug(Log::P2PManager, __func__, "Stopping P2PManager");
     for(auto& [key, value] : sessions_) {

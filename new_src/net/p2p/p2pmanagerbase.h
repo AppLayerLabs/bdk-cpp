@@ -1,5 +1,6 @@
 #include <iostream>
 #include <shared_mutex>
+#include <atomic>
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/strand.hpp>
@@ -20,9 +21,13 @@ namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
+
+// Base Manager for Normal node and Discovery Node.
+// Discovery Node has access to only few functions of P2P Encoding.
+// Such as "Ping", "Info" and "RequestNodes"
 namespace P2P {
-  class Manager {
-    private:
+  class ManagerBase {
+    protected:
       const Hash nodeId_;        // Unique node ID, randomly generated at P2PManager constructor, 32 bytes in size, byte encoded.
                                  // Used in the session unordered_map to identify a session to a given node.
                                  // Do not allow multiple sessions to the same node.
@@ -42,19 +47,20 @@ namespace P2P {
 
       // Handlers for client and server requests.
       // Handle message (called from sessions) is public.
-      void handleRequest(std::shared_ptr<BaseSession>& session, const Message& message);
-      void handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      // Overriden by inherited object
+      virtual void handleRequest(std::shared_ptr<BaseSession>& session, const Message& message) {};
+      virtual void handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {};
 
-      // Handlers for command requests
-      void handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message);
-      void handleRequestNodesRequest(std::shared_ptr<BaseSession>& session, const Message& message);
-
-      // Handlers for command answers
-      void handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
-      void handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      // For Discovery thread.
+      void handleDiscoveryStop();
+      std::atomic_bool discoveryThreadRunning_ = false;
+      std::atomic_bool discoveryThreadStopFlag_ = false;
+      std::thread discoveryThread_;
+      void discoveryThread();
 
     public:
-      Manager(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType);
+      ManagerBase(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType);
+      ~ManagerBase() { stop(); }
 
       // Registers a session
       bool registerSession(std::shared_ptr<BaseSession> session);
@@ -68,6 +74,12 @@ namespace P2P {
       // Starts WebSocket server.
       void startServer();
 
+      // Starts the discovery thread.
+      void startDiscovery();
+
+      // Stop the discovery thread.
+      void stopDiscovery();
+
       // Gets a copy of keys of the sessions map
       std::vector<Hash> getSessionsIDs();
 
@@ -80,7 +92,8 @@ namespace P2P {
       // Handles a message from a session.
       // the shared_ptr here is not a reference because handleMessage is called from another thread, requiring a copy of the pointer
       // The other handler functions are called from the same thread (from handleMessage) and therefore can use a reference.
-      void handleMessage(std::shared_ptr<BaseSession> session, const Message message);
+      // Overriden by inherited object
+      virtual void handleMessage(std::shared_ptr<BaseSession> session, const Message message) {};
 
       // Public request functions
       void ping(const Hash& nodeId);

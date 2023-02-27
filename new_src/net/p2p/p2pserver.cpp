@@ -1,5 +1,5 @@
 #include "p2pserver.h"
-#include "p2pmanager.h"
+#include "p2pmanagerbase.h"
 
 namespace P2P {
 
@@ -100,7 +100,7 @@ namespace P2P {
       if (buffer_.size() >= 11) {
         Message message(boost::beast::buffers_to_string(buffer_.data()));
         //this->manager_.handleMessage(shared_from_this(), message);
-        std::thread t(&Manager::handleMessage, &this->manager_, shared_from_this(), message);
+        std::thread t(&ManagerBase::handleMessage, &this->manager_, shared_from_this(), message);
         t.detach();
         buffer_.consume(buffer_.size());
       } else {

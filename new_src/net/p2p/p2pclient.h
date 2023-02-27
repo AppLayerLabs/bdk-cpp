@@ -21,7 +21,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 namespace P2P {
 
-  class Manager;
+  class ManagerBase;
   class Message;
 
   class ClientSession : public BaseSession, public std::enable_shared_from_this<ClientSession> {
@@ -32,7 +32,7 @@ namespace P2P {
       boost::beast::websocket::response_type req_;
 
     public:
-      ClientSession(net::io_context& ioc, const std::string& host, const unsigned short& port, Manager& manager) :
+      ClientSession(net::io_context& ioc, const std::string& host, const unsigned short& port, ManagerBase& manager) :
         BaseSession(ioc, manager, host, port, ConnectionType::CLIENT), resolver_(net::make_strand(ioc)) {}
 
       void run() override;
