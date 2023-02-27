@@ -359,10 +359,10 @@ if(BUILD_AVALANCHEGO)
 
   add_dependencies(subnetooor_lib gen-grpc ProtoFiles)
 
-  target_include_directories(subnetooor_lib PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_include_directories(subnetooor_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
   target_link_libraries(subnetooor_lib PRIVATE
-    cryptopp scrypt Secp256k1 Ethash ${ETHASH_BYPRODUCTS} ${Protobuf_LIBRARIES}
+    ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS} ${Protobuf_LIBRARIES}
     ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags
     ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
@@ -373,7 +373,7 @@ if(BUILD_AVALANCHEGO)
   add_executable(subnetooord "${CMAKE_SOURCE_DIR}/new_src/main.cpp")
 
   add_dependencies(subnetooord subnetooor_lib gen-grpc ProtoFiles)
-  target_include_directories(subnetooord PRIVATE subnetooor_lib)
+  target_include_directories(subnetooord PRIVATE subnetooor_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(subnetooord
     subnetooor_lib
     ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
@@ -394,10 +394,10 @@ else()
     ${NET_SOURCES}
   )
 
-  target_include_directories(subnetooor_lib PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_include_directories(subnetooor_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
   target_link_libraries(subnetooor_lib PRIVATE
-    cryptopp scrypt Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
+    ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
     ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
@@ -407,7 +407,7 @@ else()
   add_executable(subnetooord "${CMAKE_SOURCE_DIR}/new_src/main.cpp")
 
   add_dependencies(subnetooord subnetooor_lib)
-  target_include_directories(subnetooord PRIVATE subnetooor_lib)
+  target_include_directories(subnetooord PRIVATE subnetooor_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(subnetooord
     subnetooor_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
   )
@@ -416,7 +416,7 @@ else()
   add_executable(subnetooord-tests ${TESTS_HEADERS} ${TESTS_SOURCES})
 
   add_dependencies(subnetooord-tests subnetooor_lib)
-  target_include_directories(subnetooord-tests PRIVATE subnetooor_lib)
+  target_include_directories(subnetooord-tests PRIVATE subnetooor_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(subnetooord-tests
     subnetooor_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
   )
