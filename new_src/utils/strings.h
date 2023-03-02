@@ -139,14 +139,15 @@ class Signature : public FixedStr<65> {
 /// Abstraction for a single 20-byte address (e.g. "1234567890abcdef..."). Inherits `FixedStr<20>`.
 class Address : public FixedStr<20> {
   public:
+    using FixedStr<20>::operator==; ///< Using parent operator.
+
+    inline Address() { this->data.resize(20, 0x00); };
     /**
      * Copy constructor.
      * @param add The address itself.
      * @param inBytes If `true`, treats the input as a raw bytes string.
      */
-    Address(const std::string& add, bool inBytes);
-
-    /// Overload of copy constructor that accepts a string_view.
+    /// Copy constructor that accepts a string_view.
     Address(const std::string_view add, bool inBytes);
 
     /**
