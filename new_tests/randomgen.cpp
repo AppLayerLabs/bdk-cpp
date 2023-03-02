@@ -6,7 +6,7 @@
 using Catch::Matchers::Equals;
 
 namespace TRandomGen {
-  TEST_CASE("RandomGen Class") {
+  TEST_CASE("RandomGen Class", "[utils]") {
     SECTION("RandomGen Constructor Test") {
       Hash seed(std::string("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"));
       RandomGen generator(seed);

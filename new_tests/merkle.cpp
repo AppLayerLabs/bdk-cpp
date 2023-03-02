@@ -6,7 +6,7 @@
 using Catch::Matchers::Equals;
 
 namespace TMerkle {
-  TEST_CASE("Merkle Tests") {
+  TEST_CASE("Merkle Tests", "[utils]") {
     SECTION("Simple Merkle Tree Test") {
       std::vector<std::string> unhashedLeafs = {"ab", "bc", "cd", "de", "ef", "fg", "gh", "hi", "ij", "jk", "km", "mn"};
       std::vector<Hash> hashedLeafs;

@@ -7,7 +7,7 @@ using Catch::Matchers::Equals;
 
 namespace TUtils {
 
-  TEST_CASE("Utils Namespace") {
+  TEST_CASE("Utils Namespace", "[utils]") {
     SECTION("Sha3 Test") {
       std::string sha3Input = "My SHA3 Input";
       auto sha3Output = Utils::sha3(sha3Input);

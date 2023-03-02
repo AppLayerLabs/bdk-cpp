@@ -7,7 +7,7 @@ using Catch::Matchers::Equals;
 
 namespace TP2P {
 
-  TEST_CASE("P2P Manager") {
+  TEST_CASE("P2P Manager", "[net]") {
     SECTION ("P2P::Manager Simple 3 node network") {
       P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), 8080);
       P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
