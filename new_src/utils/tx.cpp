@@ -173,11 +173,18 @@ TxBlock::TxBlock(
   if (add != this->from_) throw std::runtime_error(
     "Private key does not match sender address (from)"
   );
-  Signature sig = Secp256k1::sign(privKey, this->hash(false));
+  auto hash = this->hash(false);
+  Signature sig = Secp256k1::sign(hash, privKey);
+
   this->r_ = Utils::bytesToUint256(sig.view(0, 32));
   this->s_ = Utils::bytesToUint256(sig.view(32,32));
+
   uint8_t recoveryIds = sig[64];
+
   this->v_ = recoveryIds + (this->chainId_ * 2 + 35);
+  if (pubKey != Secp256k1::recover(sig, hash)) {
+    throw std::runtime_error("Invalid transaction signature, signature derived key doens't match public key");
+  }
   if (!Secp256k1::verifySig(this->r_, this->s_, recoveryIds)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
@@ -266,7 +273,7 @@ std::string TxBlock::rlpSerialize(bool includeSig) const {
   }
 
   // Gas
-  if (this->gasPrice_ == 0) serial += char(0x80);
+  if (this->gas_ == 0) serial += char(0x80);
   else if (this->gas_ < 0x80) serial += char(this->gas_);
   else {
     serial += char(reqBytesGas + 0x80);
@@ -454,16 +461,20 @@ TxValidator::TxValidator(
   );
   UPubKey pubKey = Secp256k1::toUPub(privKey);
   Address add = Secp256k1::toAddress(pubKey);
+  auto hash = this->hash(false);
   if (add != this->from_) throw std::runtime_error(
     "Private key does not match sender address (from)"
   );
-  Signature sig = Secp256k1::sign(privKey, this->hash(false));
+  Signature sig = Secp256k1::sign(hash, privKey);
   this->r_ = Utils::bytesToUint256(sig.view(0, 32));
   this->s_ = Utils::bytesToUint256(sig.view(32,32));
   uint8_t recoveryIds = sig[64];
   this->v_ = recoveryIds + (this->chainId_ * 2 + 35);
   if (!Secp256k1::verifySig(this->r_, this->s_, recoveryIds)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
+  }
+  if (pubKey != Secp256k1::recover(sig, hash)) {
+    throw std::runtime_error("Invalid transaction signature, signature derived key doens't match public key");
   }
 }
 

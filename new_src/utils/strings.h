@@ -47,8 +47,8 @@ template <unsigned N> class FixedStr {
      * @param offset (optional) Index to start getting chars from. Defaults to start of the string.
      * @return A string view of the data string.
      */
-    inline const std::string_view view(const size_t& size = N, const size_t& offset = 0) const {
-      return std::string_view(&this->data[offset], size);
+    inline const std::string_view view(size_t pos = 0, size_t len = N) const {
+      return std::string_view(&this->data[pos], len);
     }
 
     /**

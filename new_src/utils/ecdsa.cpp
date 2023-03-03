@@ -7,12 +7,12 @@ UPubKey Secp256k1::recover(const Signature& sig, const Hash& msg) {
 
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
-    ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.view().data()), v
+    ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.raw()), v
   )) return UPubKey();
 
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig,
-    reinterpret_cast<const unsigned char*>(msg.view().data())
+    reinterpret_cast<const unsigned char*>(msg.raw())
   )) return UPubKey();
 
   std::string serializedPubkey(65, 0x00);
@@ -77,7 +77,7 @@ UPubKey Secp256k1::toUPub(const PubKey& key) {
 
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_parse(
-    ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.view().data()), 33
+    ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.raw()), 33
   )) return UPubKey();
 
   std::string serializedPubkey (65, 0x00);
@@ -98,7 +98,7 @@ PubKey Secp256k1::toPub(const PrivKey& key) {
 
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_create(
-    ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.view().data())
+    ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.raw())
   )) return PubKey();
 
   std::string serializedPubkey(33, 0x00);
@@ -128,8 +128,8 @@ Signature Secp256k1::sign(const Hash& msg, const PrivKey& key) {
 
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_sign_recoverable(ctx, &rawSig,
-    reinterpret_cast<const unsigned char*>(msg.view().data()),
-    reinterpret_cast<const unsigned char*>(key.view().data()),
+    reinterpret_cast<const unsigned char*>(msg.raw()),
+    reinterpret_cast<const unsigned char*>(key.raw()),
     nullptr, nullptr
   )) return Signature();
 
@@ -144,13 +144,12 @@ Signature Secp256k1::sign(const Hash& msg, const PrivKey& key) {
   uint256_t s = Utils::bytesToUint256(sig.substr(32,32));
 
   if (s > (Secp256k1::ecConst / 2)) {
-    // TODO: unused variable rawV
     rawV = static_cast<uint8_t>(rawV ^ 1);
     s = uint256_t(Secp256k1::ecConst - uint256_t(s));
   }
 
   assert (s <= (Secp256k1::ecConst / 2));
-  return Secp256k1::makeSig(r, s, v);
+  return Secp256k1::makeSig(r, s, rawV);
 }
 
 bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig) {
@@ -158,7 +157,7 @@ bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig
 
   secp256k1_ecdsa_signature rawSig;
   if (!secp256k1_ecdsa_signature_parse_compact(
-    ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.view().data())
+    ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.raw())
   )) {
     secp256k1_context_destroy(ctx);
     return false;
@@ -166,7 +165,7 @@ bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig
 
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey,
-    reinterpret_cast<const unsigned char*>(key.view().data()), key.size()
+    reinterpret_cast<const unsigned char*>(key.raw()), key.size()
   )) {
     secp256k1_context_destroy(ctx);
     return false;
@@ -174,7 +173,7 @@ bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig
 
   secp256k1_ecdsa_signature_normalize(ctx, &rawSig, &rawSig);
   int ret = secp256k1_ecdsa_verify(ctx, &rawSig,
-    reinterpret_cast<const unsigned char*>(msg.view().data()), &rawPubkey
+    reinterpret_cast<const unsigned char*>(msg.raw()), &rawPubkey
   );
 
   secp256k1_context_destroy(ctx);
