@@ -11,31 +11,24 @@
  */
 class TxBlock {
   private:
-    Address to;         ///< Receiver address.
-    Address from;       ///< Sender address.
-    std::string data;   ///< Arbitrary data (e.g. for contracts).
-    uint64_t chainId;   ///< Chain ID where the tx will be broadcast.
-    uint256_t nonce;    ///< Sender address nonce.
-    uint256_t value;    ///< Value in Wei.
-    uint256_t gas;      ///< Gas limit in Wei (e.g. 21000 Wei).
-    uint256_t gasPrice; ///< Gas price in Wei (usually in Gwei - 1 Gwei = 1000000000 Wei).
-    uint256_t v;        ///< ECDSA recovery ID.
-    uint256_t r;        ///< ECDSA first half.
-    uint256_t s;        ///< ECDSA second half.
+    Address to_;         ///< Receiver address.
+    Address from_;       ///< Sender address.
+    std::string data_;   ///< Arbitrary data (e.g. for contracts).
+    uint64_t chainId_;   ///< Chain ID where the tx will be broadcast.
+    uint256_t nonce_;    ///< Sender address nonce.
+    uint256_t value_;    ///< Value in Wei.
+    uint256_t gas_;      ///< Gas limit in Wei (e.g. 21000 Wei).
+    uint256_t gasPrice_; ///< Gas price in Wei (usually in Gwei - 1 Gwei = 1000000000 Wei).
+    uint256_t v_;        ///< ECDSA recovery ID.
+    uint256_t r_;        ///< ECDSA first half.
+    uint256_t s_;        ///< ECDSA second half.
   public:
     /**
      * Raw constructor.
      * Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
-     * @param fromDB If `true`, assumes the tx comes from the database.
-     *               If `false`, assumes the tx comes from RLP.
-     *               DB txs are trusted, as they are already validated and
-     *               included in a block, thus no checks are needed.
-     *               RLP txs are untrusted, as they are not validated or
-     *               included in a block yet, thus they need to be checked
-     *               with secp256k1 (as well as derive the sender address).
      */
-    TxBlock(const std::string_view& bytes, bool fromDB);
+    TxBlock(const std::string_view& bytes);
 
     /**
      * Manual constructor.
@@ -59,70 +52,70 @@ class TxBlock {
 
     /// Copy constructor.
     TxBlock(const TxBlock& other) noexcept :
-      to(other.to),
-      from(other.from),
-      data(other.data),
-      chainId(other.chainId),
-      nonce(other.nonce),
-      value(other.value),
-      gas(other.gas),
-      gasPrice(other.gasPrice),
-      v(other.v),
-      r(other.r),
-      s(other.s)
+      to_(other.to_),
+      from_(other.from_),
+      data_(other.data_),
+      chainId_(other.chainId_),
+      nonce_(other.nonce_),
+      value_(other.value_),
+      gas_(other.gas_),
+      gasPrice_(other.gasPrice_),
+      v_(other.v_),
+      r_(other.r_),
+      s_(other.s_)
     {}
 
     /// Move constructor.
     TxBlock(TxBlock&& other) noexcept :
-      to(std::move(other.to)),
-      from(std::move(other.from)),
-      data(std::move(other.data)),
-      chainId(std::move(other.chainId)),
-      nonce(std::move(other.nonce)),
-      value(std::move(other.value)),
-      gas(std::move(other.gas)),
-      gasPrice(std::move(other.gasPrice)),
-      v(std::move(other.v)),
-      r(std::move(other.r)),
-      s(std::move(other.s))
+      to_(std::move(other.to_)),
+      from_(std::move(other.from_)),
+      data_(std::move(other.data_)),
+      chainId_(std::move(other.chainId_)),
+      nonce_(std::move(other.nonce_)),
+      value_(std::move(other.value_)),
+      gas_(std::move(other.gas_)),
+      gasPrice_(std::move(other.gasPrice_)),
+      v_(std::move(other.v_)),
+      r_(std::move(other.r_)),
+      s_(std::move(other.s_))
     {}
 
     /// Getter for `to`.
-    inline const Address& getTo() const { return this->to; }
+    inline const Address& to() const { return this->to_; }
 
     /// Getter for `from`.
-    inline const Address& getFrom() const { return this->from; }
+    inline const Address& from() const { return this->from_; }
 
     /// Getter for `data`.
-    inline const std::string& getData() const { return this->data; }
+    inline const std::string& data() const { return this->data_; }
 
     /// Getter for `chainId`.
-    inline const uint64_t& getChainId() const { return this->chainId; }
+    inline const uint64_t& chainId() const { return this->chainId_; }
 
     /// Getter for `nonce`.
-    inline const uint256_t& getNonce() const { return this->nonce; }
+    inline const uint256_t& nonce() const { return this->nonce_; }
 
     /// Getter for `value`.
-    inline const uint256_t& getValue() const { return this->value; }
+    inline const uint256_t& value() const { return this->value_; }
 
     /// Getter for `gas`.
-    inline const uint256_t& getGas() const { return this->gas; }
+    inline const uint256_t& gas() const { return this->gas_; }
 
     /// Getter for `gasPrice`.
-    inline const uint256_t& getGasPrice() const { return this->gasPrice; }
+    inline const uint256_t& gasPrice() const { return this->gasPrice_; }
 
     /// Getter for `v`.
-    inline const uint256_t& getV() const { return this->v; }
+    inline const uint256_t& v() const { return this->v_; }
 
     /// Getter for `r`.
-    inline const uint256_t& getR() const { return this->r; }
+    inline const uint256_t& r() const { return this->r_; }
 
     /// Getter for `s`.
-    inline const uint256_t& getS() const { return this->s; }
+    inline const uint256_t& s() const { return this->s_; }
 
     /// Getter for `v`, but calculates the real ID value based on chainId.
     inline const uint256_t recoverId() const {
-      return uint256_t(uint8_t(this->v - (uint256_t(this->chainId) * 2 + 35)));
+      return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35)));
     }
 
     /**
@@ -144,37 +137,37 @@ class TxBlock {
      *                   Defaults to `false`.
      * @return The serialized transaction.
      */
-    std::string rlpSerialize(bool includeSig = true, bool includeFrom = false) const;
+    std::string rlpSerialize(bool includeSig = true) const;
 
     /// Copy assignment operator.
     TxBlock& operator=(const TxBlock& other) {
-      this->to = other.to;
-      this->from = other.from;
-      this->data = other.data;
-      this->chainId = other.chainId;
-      this->nonce = other.nonce;
-      this->value = other.value;
-      this->gas = other.gas;
-      this->gasPrice = other.gasPrice;
-      this->v = other.v;
-      this->r = other.r;
-      this->s = other.s;
+      this->to_ = other.to_;
+      this->from_ = other.from_;
+      this->data_ = other.data_;
+      this->chainId_ = other.chainId_;
+      this->nonce_ = other.nonce_;
+      this->value_ = other.value_;
+      this->gas_ = other.gas_;
+      this->gasPrice_ = other.gasPrice_;
+      this->v_ = other.v_;
+      this->r_ = other.r_;
+      this->s_ = other.s_;
       return *this;
     }
 
     /// Move assignment operator.
     TxBlock& operator=(TxBlock&& other) {
-      this->to = std::move(other.to);
-      this->from = std::move(other.from);
-      this->data = std::move(other.data);
-      this->chainId = std::move(other.chainId);
-      this->nonce = std::move(other.nonce);
-      this->value = std::move(other.value);
-      this->gas = std::move(other.gas);
-      this->gasPrice = std::move(other.gasPrice);
-      this->v = std::move(other.v);
-      this->r = std::move(other.r);
-      this->s = std::move(other.s);
+      this->to_ = std::move(other.to_);
+      this->from_ = std::move(other.from_);
+      this->data_ = std::move(other.data_);
+      this->chainId_ = std::move(other.chainId_);
+      this->nonce_ = std::move(other.nonce_);
+      this->value_ = std::move(other.value_);
+      this->gas_ = std::move(other.gas_);
+      this->gasPrice_ = std::move(other.gasPrice_);
+      this->v_ = std::move(other.v_);
+      this->r_ = std::move(other.r_);
+      this->s_ = std::move(other.s_);
       return *this;
     }
 
@@ -191,27 +184,20 @@ class TxBlock {
  */
 class TxValidator {
   private:
-    Address from;       ///< Sender address.
-    std::string data;   ///< Arbitrary data (e.g. for contracts).
-    uint64_t chainId;   ///< Chain ID where the tx will be broadcast.
-    uint64_t nHeight;   ///< Block height where the tx will be broadcast.
-    uint256_t v;        ///< ECDSA recovery ID.
-    uint256_t r;        ///< ECDSA first half.
-    uint256_t s;        ///< ECDSA second half.
+    Address from_;       ///< Sender address.
+    std::string data_;   ///< Arbitrary data (e.g. for contracts).
+    uint64_t chainId_;   ///< Chain ID where the tx will be broadcast.
+    uint64_t nHeight_;   ///< Block height where the tx will be broadcast.
+    uint256_t v_;        ///< ECDSA recovery ID.
+    uint256_t r_;        ///< ECDSA first half.
+    uint256_t s_;        ///< ECDSA second half.
   public:
     /**
      * Raw constructor.
      * Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
-     * @param fromDB If `true`, assumes the tx comes from the database.
-     *               If `false`, assumes the tx comes from RLP.
-     *               DB txs are trusted, as they are already validated and
-     *               included in a block, thus no checks are needed.
-     *               RLP txs are untrusted, as they are not validated or
-     *               included in a block yet, thus they need to be checked
-     *               with secp256k1 (as well as derive the sender address).
      */
-    TxValidator(const std::string_view& bytes, bool fromDB);
+    TxValidator(const std::string_view& bytes);
 
     /**
      * Manual constructor.
@@ -230,50 +216,50 @@ class TxValidator {
 
     /// Copy constructor.
     TxValidator(const TxValidator& other) noexcept :
-      from(other.from),
-      data(other.data),
-      chainId(other.chainId),
-      nHeight(other.nHeight),
-      v(other.v),
-      r(other.r),
-      s(other.s)
+      from_(other.from_),
+      data_(other.data_),
+      chainId_(other.chainId_),
+      nHeight_(other.nHeight_),
+      v_(other.v_),
+      r_(other.r_),
+      s_(other.s_)
     {}
 
     /// Move constructor.
     TxValidator(TxValidator&& other) noexcept :
-      from(std::move(other.from)),
-      data(std::move(other.data)),
-      chainId(std::move(other.chainId)),
-      nHeight(std::move(other.nHeight)),
-      v(std::move(other.v)),
-      r(std::move(other.r)),
-      s(std::move(other.s))
+      from_(std::move(other.from_)),
+      data_(std::move(other.data_)),
+      chainId_(std::move(other.chainId_)),
+      nHeight_(std::move(other.nHeight_)),
+      v_(std::move(other.v_)),
+      r_(std::move(other.r_)),
+      s_(std::move(other.s_))
     {}
 
     /// Getter for `from`.
-    inline const Address& getFrom() const { return this->from; }
+    inline const Address& from() const { return this->from_; }
 
     /// Getter for `data`.
-    inline const std::string& getData() const { return this->data; }
+    inline const std::string& data() const { return this->data_; }
 
     /// Getter for `chainId`.
-    inline const uint64_t& getChainId() const { return this->chainId; }
+    inline const uint64_t& chainId() const { return this->chainId_; }
 
     /// Getter for `nHeight`.
-    inline const uint64_t& getNHeight() const { return this->nHeight; }
+    inline const uint64_t& nHeight() const { return this->nHeight_; }
 
     /// Getter for `v`.
-    inline const uint256_t& getV() const { return this->v; }
+    inline const uint256_t& v() const { return this->v_; }
 
     /// Getter for `r`.
-    inline const uint256_t& getR() const { return this->r; }
+    inline const uint256_t& r() const { return this->r_; }
 
     /// Getter for `s`.
-    inline const uint256_t& getS() const { return this->s; }
+    inline const uint256_t& s() const { return this->s_; }
 
     /// Getter for `v`, but calculates the real ID value based on chainId.
     inline const uint256_t recoverId() const {
-      return uint256_t(uint8_t(this->v - (uint256_t(this->chainId) * 2 + 35)));
+      return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35)));
     }
 
     /**
@@ -295,29 +281,29 @@ class TxValidator {
      *                   Defaults to `false`.
      * @return The serialized transaction.
      */
-    std::string rlpSerialize(bool includeSig = true, bool includeFrom = false) const;
+    std::string rlpSerialize(bool includeSig = true) const;
 
     /// Copy assignment operator.
     TxValidator& operator=(const TxValidator& other) {
-      this->from = other.from;
-      this->data = other.data;
-      this->chainId = other.chainId;
-      this->nHeight = other.nHeight;
-      this->v = other.v;
-      this->r = other.r;
-      this->s = other.s;
+      this->from_ = other.from_;
+      this->data_ = other.data_;
+      this->chainId_ = other.chainId_;
+      this->nHeight_ = other.nHeight_;
+      this->v_ = other.v_;
+      this->r_ = other.r_;
+      this->s_ = other.s_;
       return *this;
     }
 
     /// Move assignment operator.
     TxValidator& operator=(TxValidator&& other) {
-      this->from = std::move(other.from);
-      this->data = std::move(other.data);
-      this->chainId = std::move(other.chainId);
-      this->nHeight = std::move(other.nHeight);
-      this->v = std::move(other.v);
-      this->r = std::move(other.r);
-      this->s = std::move(other.s);
+      this->from_ = std::move(other.from_);
+      this->data_ = std::move(other.data_);
+      this->chainId_ = std::move(other.chainId_);
+      this->nHeight_ = std::move(other.nHeight_);
+      this->v_ = std::move(other.v_);
+      this->r_ = std::move(other.r_);
+      this->s_ = std::move(other.s_);
       return *this;
     }
 

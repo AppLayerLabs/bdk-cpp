@@ -7,6 +7,7 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/new_src/utils/merkle.h
   ${CMAKE_SOURCE_DIR}/new_src/utils/ecdsa.h
   ${CMAKE_SOURCE_DIR}/new_src/utils/randomgen.h
+  ${CMAKE_SOURCE_DIR}/new_src/utils/tx.h
   PARENT_SCOPE
 )
 
@@ -18,5 +19,6 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/new_src/utils/merkle.cpp
   ${CMAKE_SOURCE_DIR}/new_src/utils/ecdsa.cpp
   ${CMAKE_SOURCE_DIR}/new_src/utils/randomgen.cpp
+  ${CMAKE_SOURCE_DIR}/new_src/utils/tx.cpp
   PARENT_SCOPE
 )

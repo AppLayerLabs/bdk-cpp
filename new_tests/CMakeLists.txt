@@ -13,5 +13,6 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/new_tests/ecdsa.cpp
   ${CMAKE_SOURCE_DIR}/new_tests/randomgen.cpp
   ${CMAKE_SOURCE_DIR}/new_tests/p2p.cpp
+  ${CMAKE_SOURCE_DIR}/new_tests/tx.cpp
   PARENT_SCOPE
 )
