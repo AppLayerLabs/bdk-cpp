@@ -17,6 +17,8 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   // Size sanity check
   if (listLength <  bytes.size() - listLengthSize - 1) {
     throw std::runtime_error("Tx RLP returns smaller size than reported");
+  } else if (listLength > bytes.size() - listLengthSize - 1) {
+    throw std::runtime_error("Tx RLP returns larger size than reported");
   }
 
   // If nonceLength > 0, get nonce from string.
@@ -39,7 +41,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
     index++; // Index at rlp[1] size
   }
 
-  // Get gas price - small string
+  // Get gas price - small string (tx has min of 0.01 gwei gas price)
   uint8_t gasPriceLength = bytes[index] - 0x80;
   if (gasPriceLength > 0x37) throw std::runtime_error("Gas price is not a small string");
   index++; // Index at rlp[1] payload
@@ -48,7 +50,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   );
   index += gasPriceLength; // Index at rlp[2] size.
 
-  // Get gas limit - small string
+  // Get gas limit - small string (tx has min of 21000 gas limit)
   uint8_t gasLimitLength = bytes[index] - 0x80;
   if (gasLimitLength > 0x37) throw std::runtime_error("Gas limit is not a small string");
   index++; // Index at rlp[2] payload
@@ -66,14 +68,23 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   this->to_ = Address(std::string_view(&bytes[index], 20), true);
   index += 20; // Index at rlp[4] size
 
-  // Get value - small string
-  uint8_t valueLength = bytes[index] - 0x80;
-  if (valueLength > 0x37) throw std::runtime_error("Value is not a small string");
-  index++; // Index at rlp[4] payload
-  this->value_ = Utils::fromBigEndian<uint256_t>(
-    std::string_view(&bytes[index], valueLength)
-  );
-  index += valueLength; // Index at rlp[5] size
+  // Get value - small string or byte itself.
+  uint8_t valueLength = (uint8_t(bytes[index]) >= 0x80 ? uint8_t(bytes[index]) - 0x80 : 0);
+  if (valueLength != 0) {
+    if (valueLength > 0x37) throw std::runtime_error("Value is not a small string");
+    index++; // Index at rlp[4] payload
+    this->value_ = Utils::fromBigEndian<uint256_t>(
+      std::string_view(&bytes[index], valueLength)
+    );
+    index += valueLength; // Index at rlp[5] size
+  } else {
+    if (uint8_t(bytes[index]) == 0x80) {
+      this->value_ = 0;
+    } else {
+      this->value_ = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
+    }
+    index++; // Index at rlp[5] size
+  }
 
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
   if (uint8_t(bytes[index]) < 0x80) {
@@ -352,6 +363,8 @@ TxValidator::TxValidator(const std::string_view& bytes) {
   // Size sanity check
   if (listLength < bytes.size() - listLengthSize - 1) {
     throw std::runtime_error("Tx RLP returns smaller size than reported");
+  } else if (listLength > bytes.size() - listLengthSize - 1) {
+    throw std::runtime_error("Tx RLP returns larger size than reported");
   }
 
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
@@ -521,8 +534,7 @@ std::string TxValidator::rlpSerialize(bool includeSig) const {
     serial += char(total_size + 0xc0);
   } else {
     uint64_t sizeBytes = Utils::bytesRequired(total_size);
-    total_size += sizeBytes;
-    serial.reserve(total_size + 1);
+    serial.reserve(total_size + sizeBytes + 1);
     serial += char(sizeBytes + 0xf7);
     serial += Utils::uintToBytes(total_size);
   }
@@ -539,7 +551,8 @@ std::string TxValidator::rlpSerialize(bool includeSig) const {
   }
 
   // nHeight
-  if (this->nHeight_ < 0x80) serial += char(this->nHeight_);
+  if(this->nHeight_ == 0) serial += char(0x80);
+  else if (this->nHeight_ < 0x80) serial += char(this->nHeight_);
   else {
     serial += char(reqBytesnHeight + 0x80);
     serial += Utils::uintToBytes(this->nHeight_);
