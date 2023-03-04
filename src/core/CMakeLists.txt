@@ -1,13 +1,37 @@
-file(GLOB SUBNETOOOR_CORE_SRCS "*.cpp")
-file(GLOB SUBNETOOOR_CORE_HDRS "*.h")
+if(BUILD_AVALANCHEGO)
+  set(CORE_HEADERS
+  #  ${CMAKE_SOURCE_DIR}/src/core/blockchain.h
+  #  ${CMAKE_SOURCE_DIR}/src/core/rdpos.h
+  #  ${CMAKE_SOURCE_DIR}/src/core/snowmanVM.h
+  #  ${CMAKE_SOURCE_DIR}/src/core/state.h
+    ${CMAKE_SOURCE_DIR}/src/core/storage.h
+    PARENT_SCOPE
+  )
 
-add_library (subnetooor_core
-  ${SUBNETOOOR_CORE_SRCS}
-  ${SUBNETOOOR_CORE_HDRS}
-)
+  set(CORE_SOURCES
+  #  ${CMAKE_SOURCE_DIR}/src/core/blockchain.cpp
+  #  ${CMAKE_SOURCE_DIR}/src/core/blockchainRPC.cpp
+  #  ${CMAKE_SOURCE_DIR}/src/core/rdpos.cpp
+  #  ${CMAKE_SOURCE_DIR}/src/core/snowmanVM.cpp
+  #  ${CMAKE_SOURCE_DIR}/src/core/state.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/storage.cpp
+    PARENT_SCOPE
+  )
+else()
+  set(CORE_HEADERS
+  #  ${CMAKE_SOURCE_DIR}/src/core/blockchain.h
+  #  ${CMAKE_SOURCE_DIR}/src/core/rdpos.h
+  #  ${CMAKE_SOURCE_DIR}/src/core/state.h
+    ${CMAKE_SOURCE_DIR}/src/core/storage.h
+    PARENT_SCOPE
+  )
 
-target_include_directories(subnetooor_core PRIVATE "../net" gen-grpc ProtoFiles)
-add_dependencies(subnetooor_core gen-grpc ProtoFiles)
-target_link_libraries(subnetooor_core PUBLIC subnetooor_utils subnetooor_contract subnetooor_net PRIVATE ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
-  ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-  absl::flags Secp256k1 aleth)
+  set(CORE_SOURCES
+  #  ${CMAKE_SOURCE_DIR}/src/core/blockchain.cpp
+  #  ${CMAKE_SOURCE_DIR}/src/core/blockchainRPC.cpp
+  #  ${CMAKE_SOURCE_DIR}/src/core/rdpos.cpp
+  #  ${CMAKE_SOURCE_DIR}/src/core/state.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/storage.cpp
+    PARENT_SCOPE
+  )
+endif()

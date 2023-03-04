@@ -63,8 +63,8 @@ include(cmake/ProjectSecp256k1.cmake) # Bitcoin core fast implementation
 
 # Build catch2 to a library.
 add_library(catch2
-  ${CMAKE_SOURCE_DIR}/new_src/libs/catch2/catch_amalgamated.hpp
-  ${CMAKE_SOURCE_DIR}/new_src/libs/catch2/catch_amalgamated.cpp
+  ${CMAKE_SOURCE_DIR}/src/libs/catch2/catch_amalgamated.hpp
+  ${CMAKE_SOURCE_DIR}/src/libs/catch2/catch_amalgamated.cpp
 )
 
 target_include_directories(catch2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/catch2)
@@ -83,27 +83,27 @@ endif()
 # Include headers and libs
 include_directories(
   "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_SOURCE_DIR}/new_src"
-  "${CMAKE_SOURCE_DIR}/new_src/libs"
+  "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_SOURCE_DIR}/src/libs"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/include"
 )
 
 link_directories(
   "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_SOURCE_DIR}/new_src"
-  "${CMAKE_SOURCE_DIR}/new_src/libs"
+  "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_SOURCE_DIR}/src/libs"
   "${CMAKE_SOURCE_DIR}/build"
   "${CMAKE_SOURCE_DIR}/build/deps/lib"
 )
 
-# TODO: change new_src/ to src/
+# TODO: change src/ to src/
 # Organize, compile and link subnetooor libs
-add_subdirectory(new_src/contract)
-add_subdirectory(new_src/core)
-add_subdirectory(new_src/net)
-add_subdirectory(new_src/utils)
-add_subdirectory(new_tests/)
+add_subdirectory(src/contract)
+add_subdirectory(src/core)
+add_subdirectory(src/net)
+add_subdirectory(src/utils)
+add_subdirectory(tests/)
 
 if(BUILD_AVALANCHEGO)
   # Generate gRPC files
@@ -370,7 +370,7 @@ if(BUILD_AVALANCHEGO)
   set_target_properties(subnetooor_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
 
   # Compile and link the executable
-  add_executable(subnetooord "${CMAKE_SOURCE_DIR}/new_src/main.cpp")
+  add_executable(subnetooord "${CMAKE_SOURCE_DIR}/src/main.cpp")
 
   add_dependencies(subnetooord subnetooor_lib gen-grpc ProtoFiles)
   target_include_directories(subnetooord PRIVATE subnetooor_lib ${OPENSSL_INCLUDE_DIR})
@@ -404,7 +404,7 @@ else()
   set_target_properties(subnetooor_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
 
   # Compile and link the executable
-  add_executable(subnetooord "${CMAKE_SOURCE_DIR}/new_src/main.cpp")
+  add_executable(subnetooord "${CMAKE_SOURCE_DIR}/src/main.cpp")
 
   add_dependencies(subnetooord subnetooor_lib)
   target_include_directories(subnetooord PRIVATE subnetooor_lib ${OPENSSL_INCLUDE_DIR})

@@ -1,21 +1,30 @@
 #include "db.h"
 
-bool DBService::has(const std::string& key, const std::string& prefix) {
+DB::DB(const std::string path) {
+  this->opts.create_if_missing = true;
+  std::filesystem::path fullPath = std::filesystem::current_path().string() + std::string("/") + path;
+  if (!std::filesystem::exists(fullPath)) { // LevelDB is dumb as a brick so we need this
+    std::filesystem::create_directories(fullPath);
+  }
+  auto status = leveldb::DB::Open(this->opts, fullPath.string(), &this->db);
+  if (!status.ok()) {
+    Utils::logToDebug(Log::db, __func__, "Failed to open DB: " + status.ToString());
+  }
+}
+
+bool DB::has(const std::string& key, const std::string& pfx) const {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
-  for (it->Seek(prefix+key); it->Valid(); it->Next()) {
-    if (it->key().ToString() == prefix+key) {
-      delete it;
-      return true;
-    }
+  for (it->Seek(pfx + key); it->Valid(); it->Next()) {
+    if (it->key().ToString() == pfx + key) { delete it; return true; }
   }
   delete it;
   return false;
 }
 
-std::string DBService::get(const std::string& key, const std::string& prefix) {
+std::string DB::get(const std::string& key, const std::string& pfx) const {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
-  for (it->Seek(prefix+key); it->Valid(); it->Next()) {
-    if (it->key().ToString() == prefix+key) {
+  for (it->Seek(pfx + key); it->Valid(); it->Next()) {
+    if (it->key().ToString() == pfx + key) {
       std::string value = it->value().ToString();
       delete it;
       return value;
@@ -25,60 +34,62 @@ std::string DBService::get(const std::string& key, const std::string& prefix) {
   return "";
 }
 
-bool DBService::put(const std::string& key, const std::string& value, const std::string& prefix) {
-  auto status = this->db->Put(leveldb::WriteOptions(), prefix+key, value);
+bool DB::put(const std::string& key, const std::string& value, const std::string& pfx) const {
+  auto status = this->db->Put(leveldb::WriteOptions(), pfx + key, value);
   if (!status.ok()) {
-    Utils::LogPrint(Log::db, __func__, "Failed to put key: " + key);
+    Utils::logToDebug(Log::db, __func__, "Failed to put key: " + key);
     return false;
   }
   return true;
 }
 
-bool DBService::del(const std::string& key, const std::string& prefix) {
-  auto status = this->db->Delete(leveldb::WriteOptions(), prefix+key);
+bool DB::del(const std::string& key, const std::string& pfx) const {
+  auto status = this->db->Delete(leveldb::WriteOptions(), pfx + key);
   if (!status.ok()) {
-    Utils::LogPrint(Log::db, __func__, "Failed to delete key: " + key);
+    Utils::logToDebug(Log::db, __func__, "Failed to delete key: " + key);
     return false;
   }
   return true;
 }
 
-bool DBService::writeBatch(WriteBatchRequest& request, const std::string& prefix) {
+bool DB::putBatch(const DBBatch& batch, const std::string& pfx) const {
   batchLock.lock();
-  for (auto &entry : request.puts) {
-    auto status = this->db->Put(leveldb::WriteOptions(), prefix+entry.key, entry.value);
+  for (const DBEntry entry : batch.puts) {
+    auto status = this->db->Put(leveldb::WriteOptions(), pfx + entry.key, entry.value);
     if (!status.ok()) return false;
   }
-  for (std::string& key : request.dels) {
-    auto status = this->db->Delete(leveldb::WriteOptions(), prefix+key);
-    if (status.ok()) return false;
+  for (const std::string key : batch.dels) {
+    auto status = this->db->Delete(leveldb::WriteOptions(), pfx + key);
+    if (!status.ok()) return false;
   }
   batchLock.unlock();
   return true;
 }
 
-std::vector<DBEntry> DBService::readBatch(const std::string& prefix) {
-  batchLock.lock();
-  std::vector<DBEntry> entries;
-  leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
-  for (it->Seek(prefix); it->Valid(); it->Next()) {
-    if (it->key().ToString().substr(0, 4) == prefix) {
-      DBEntry entry(removeKeyPrefix(it->key().ToString()), it->value().ToString());
-      entries.push_back(entry);
-    }
-  }
-  delete it;
-  batchLock.unlock();
-  return entries;
-}
-
-std::vector<DBEntry> DBService::readBatch(const std::vector<std::string>& keys, const std::string& prefix) {
+std::vector<DBEntry> DB::getBatch(
+  const std::string& pfx, const std::vector<std::string>& keys
+) const {
   batchLock.lock();
   std::vector<DBEntry> ret;
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
-  for (it->Seek(prefix); it->Valid(); it->Next()) {
-    if (it->key().ToString().substr(0, 4) == prefix) {
-      std::string strippedKey = removeKeyPrefix(it->key().ToString());
+
+  // Search for all entries
+  if (keys.empty()) {
+    for (it->Seek(pfx); it->Valid(); it->Next()) {
+      if (it->key().ToString().substr(0, 4) == pfx) {
+        DBEntry entry(this->stripPrefix(it->key().ToString()), it->value().ToString());
+        ret.push_back(entry);
+      }
+    }
+    delete it;
+    batchLock.unlock();
+    return ret;
+  }
+
+  // Search for specific entries from keys
+  for (it->Seek(pfx); it->Valid(); it->Next()) {
+    if (it->key().ToString().substr(0, 4) == pfx) {
+      std::string strippedKey = this->stripPrefix(it->key().ToString());
       for (const std::string& key : keys) {
         if (strippedKey == key) {
           DBEntry entry(strippedKey, it->value().ToString());

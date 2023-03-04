@@ -1,5 +1,5 @@
-#ifndef GRPC_CLIENT_H
-#define GRPC_CLIENT_H
+#ifndef GRPCCLIENT_H
+#define GRPCCLIENT_H
 
 #include <chrono>
 #include <csignal>
@@ -35,8 +35,9 @@
 #include "../../proto/keystore.grpc.pb.h"
 #include "../../proto/messenger.grpc.pb.h"
 #include "../../proto/sharedmemory.grpc.pb.h"
+
 #include "../utils/db.h"
-#include "../utils/transaction.h"
+#include "../utils/tx.h"
 
 using grpc::Channel;
 using grpc::ClientAsyncResponseReader;
@@ -44,32 +45,55 @@ using grpc::ClientContext;
 using grpc::CompletionQueue;
 using grpc::Status;
 
-class VMCommClient : public std::enable_shared_from_this<VMCommClient> {
+/// Abstraction of the client side of the gRPC protocol.
+class gRPCClient : public std::enable_shared_from_this<gRPCClient> {
   private:
-    // TODO: having nodeList here as a reference is not ideal.
+    // TODO: having nodes here as a reference is not ideal.
     // We should create a new class (Relayer) that actively relay transactions and messages to the network.
     // USE P2P INSTEAD OF GRPCCLIENT
-    const std::vector<std::string>& nodeList;
-    std::shared_mutex &nodeListLock;
-    std::unique_ptr<aliasreader::AliasReader::Stub> aliasreader_stub_;
-    std::unique_ptr<appsender::AppSender::Stub> appsender_stub_;
-    std::unique_ptr<keystore::Keystore::Stub> keystore_stub_;
-    std::unique_ptr<messenger::Messenger::Stub> messenger_stub_;
-    std::unique_ptr<sharedmemory::SharedMemory::Stub> sharedmemory_stub_;
+    /// List of node IDs connected through AvalancheGo.
+    const std::vector<std::string> nodes;
+
+    /// Stub for .proto gRPC Client.
+    std::unique_ptr<aliasreader::AliasReader::Stub> aliasreaderStub;
+
+    /// Stub for .proto gRPC Client.
+    std::unique_ptr<appsender::AppSender::Stub> appsenderStub;
+
+    /// Stub for .proto gRPC Client.
+    std::unique_ptr<keystore::Keystore::Stub> keystoreStub;
+
+    /// Stub for .proto gRPC Client.
+    std::unique_ptr<messenger::Messenger::Stub> messengerStub;
+
+    /// Stub for .proto gRPC Client.
+    std::unique_ptr<sharedmemory::SharedMemory::Stub> sharedmemoryStub;
+
+    /// Mutex for managing read/write access to the stubs.
     std::mutex lock;
 
   public:
-    explicit VMCommClient(std::shared_ptr<Channel> channel, const std::vector<std::string> &nodeList, std::shared_mutex &nodeListLock) :
-      aliasreader_stub_(aliasreader::AliasReader::NewStub(channel)),
-      appsender_stub_(appsender::AppSender::NewStub(channel)),
-      keystore_stub_(keystore::Keystore::NewStub(channel)),
-      messenger_stub_(messenger::Messenger::NewStub(channel)),
-      sharedmemory_stub_(sharedmemory::SharedMemory::NewStub(channel)),
-      nodeList(nodeList),
-      nodeListLock(nodeListLock)
+    /**
+     * Constructor.
+     * @param channel Pointer to a gRPC channel. See the [gRPC docs](https://grpc.io/docs/what-is-grpc/core-concepts/#channels) for more info.
+     * @param nodes List of nodes connected through AvalancheGo.
+     */
+    gRPCClient(
+      const std::shared_ptr<Channel> channel,
+      const std::vector<std::string>& nodes
+    ) : nodes(nodes),
+      aliasreaderStub(aliasreader::AliasReader::NewStub(channel)),
+      appsenderStub(appsender::AppSender::NewStub(channel)),
+      keystoreStub(keystore::Keystore::NewStub(channel)),
+      messengerStub(messenger::Messenger::NewStub(channel)),
+      sharedmemoryStub(sharedmemory::SharedMemory::NewStub(channel))
     {}
 
-  void requestBlock();
+    /**
+     * Request a block to AvalancheGo.
+     * AvalancheGo will call BuildBlock() after that.
+     */
+    void requestBlock();
 };
 
-#endif // GRPC_CLIENT_H
+#endif  // GRPCCLIENT_H

@@ -2,35 +2,74 @@
 #define CONTRACT_H
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
+#include "contractmanager.h"
+
+#include "../core/state.h"
 #include "../utils/db.h"
+#include "../utils/strings.h"
+#include "../utils/tx.h"
 #include "../utils/utils.h"
 
-namespace ContractAddresses {
-  const Address BlockManager = Address(std::string("0000000000000000626c6f636b4d616e61676572"),true);
-};
+// Forward declarations.
+class ContractManager;
+class State;
 
+/**
+ * Native abstraction of a smart contract.
+ * All contracts have to inherit this class.
+ */
 class Contract {
   private:
-    const Address _address;
-    const Address _owner;
-    static Hash currentBlockHash;
-    static uint64_t currentBlockHeight;
-    static uint64_t currentBlockTime;
-    // Setters
-    static void setCurrentBlockHash(const Hash &hash) { currentBlockHash = hash; }
-    static void setCurrentBlockHeight(const uint64_t &height) { currentBlockHeight = height; }
-    static void setCurrentBlockTime(const uint64_t &time) { currentBlockTime = time; }
+    /* Contract-specific variables */
+    const Address address; ///< Address where the contract is deployed.
+    const uint64_t chainId; ///< Chain where the contract is deployed.
+    const std::unique_ptr<ContractManager> contractManager; ///< Pointer to the contract manager.
+
+    /* Global variables */
+    static Address coinbase;  ///< Coinbase address (creator of current block).
+    static uint256_t blockHeight; ///< Current block height.
+    static uint256_t blockTimestamp; ///< Current block timestamp.
+
   public:
-  
-    Contract(const Address &address, const Address &owner) : _address(address), _owner(owner) {}
+    /**
+     * Constructor.
+     * @param address The address where the contract will be deployed.
+     * @param chainId The chain where the contract wil be deployed.
+     * @param contractManager Pointer to the contract manager.
+     */
+    Contract(
+      const Address& address, const uint64_t& chainId,
+      const std::unique_ptr<ContractManager>& contractManager
+    ) : address(address), chainId(chainId), contractManager(contractManager) {}
 
-    // Getters
-    const Address& address() const { return this->_address; }
-    const Address& owner() const { return this->_owner; }
+    /// Getter for `coinbase`.
+    static const Address& getCoinbase() { return Contract::coinbase; }
 
-    friend class State;
+    /// Getter for `blockHeight`.
+    static const uint256_t& getBlockHeight() { return Contract::blockHeight; }
+
+    /// Getter for `blockTimestamp`.
+    static const uint256_t& getBlockTimestamp() { return Contract::blockTimestamp; }
+
+    /**
+     * Invoke a contract function using a transaction.
+     * Used by the %State class when calling `processNewBlock()`.
+     * @param tx The transaction to use for call.
+     */
+    virtual void ethCall(const TxBlock& tx);
+
+    /**
+     * Invoke a contract function using a data string.
+     * Used by RPC for answering `eth_call`.
+     * @param data The data string to use for call.
+     * @return An encoded %Solidity hex string with the desired function result.
+     */
+    virtual const std::string ethCall(const std::string& data) const;
+
+    friend State; // State can update private global vars
 };
 
 #endif  // CONTRACT_H
