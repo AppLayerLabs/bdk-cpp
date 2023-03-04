@@ -163,9 +163,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   Signature sig = Secp256k1::makeSig(this->r_, this->s_, recoveryId);
   Hash msgHash = this->hash(false); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
-  if (!Secp256k1::verify(msgHash, key, sig)) {
-    throw std::runtime_error("Invalid transaction signature");
-  }
+  if (key == UPubKey()) throw std::runtime_error("Invalid tx signature - cannot recover public key");
   this->from_ = Secp256k1::toAddress(key);
 }
 
@@ -461,7 +459,7 @@ TxValidator::TxValidator(const std::string_view& bytes) {
   Signature sig = Secp256k1::makeSig(this->r_, this->s_, recoveryId);
   Hash msgHash = this->hash(false); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
-  if (!Secp256k1::verify(msgHash, key, sig)) throw std::runtime_error("Invalid tx signature");
+  if (key == UPubKey()) throw std::runtime_error("Invalid tx signature - cannot recover public key");
   this->from_ = Secp256k1::toAddress(key);
 }
 

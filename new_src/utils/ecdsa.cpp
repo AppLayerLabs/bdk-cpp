@@ -171,7 +171,6 @@ bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig
     return false;
   }
 
-  secp256k1_ecdsa_signature_normalize(ctx, &rawSig, &rawSig);
   int ret = secp256k1_ecdsa_verify(ctx, &rawSig,
     reinterpret_cast<const unsigned char*>(msg.raw()), &rawPubkey
   );
