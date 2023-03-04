@@ -32,7 +32,7 @@ namespace P2P {
     clientThread.detach();
   }
   
-  std::shared_ptr<Request>& ManagerBase::sendMessageTo(const Hash& nodeId, const Message& message) {
+  std::shared_ptr<Request> ManagerBase::sendMessageTo(const Hash& nodeId, const Message& message) {
     std::unique_lock lockSession(sessionsMutex);
     std::unique_lock lockRequests(requestsMutex);
     if(!sessions_.contains(nodeId)) {

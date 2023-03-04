@@ -47,7 +47,7 @@ namespace P2P {
       std::shared_mutex requestsMutex; // Mutex for protecting requests
 
       // Sends a message to a given node. returns pointer to the request object, null if doesn't exists.
-      std::shared_ptr<Request>& sendMessageTo(const Hash& nodeId, const Message& message);
+      std::shared_ptr<Request> sendMessageTo(const Hash& nodeId, const Message& message);
       void answerSession(std::shared_ptr<BaseSession>& session, const Message& message);
 
       // Handlers for client and server requests.
