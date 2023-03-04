@@ -21,33 +21,6 @@ Merkle::Merkle(const std::vector<Hash>& leaves) {
   }
 }
 
-//TODO: Wait Ita finish Tx
-//Merkle::Merkle(const std::unordered_map<uint64_t, TxBlock, SafeHash>& txs) {
-//  // Mount the base leaves
-//  std::vector<Hash> tmp;
-//  for (uint64_t i = 0; i < txs.size(); i++) {
-//    tmp.emplace_back(std::move(Utils::sha3(txs.find(i)->second.hash().get())));
-//  }
-//  this->tree.emplace_back(tmp);
-//  // Make the layers up to root
-//  while (this->tree.back().size() > 1) {
-//    this->tree.emplace_back(newLayer(this->tree.back()));
-//  }
-//}
-//TODO: Wait Ita finish Tx
-//Merkle::Merkle(const std::unordered_map<uint64_t, TxValidator, SafeHash>& txs) {
-//  // Mount the base leaves
-//  std::vector<Hash> tmp;
-//  for (uint64_t i = 0; i < txs.size(); ++i) {
-//    tmp.emplace_back(std::move(Utils::sha3(txs.find(i)->second.hash().get())));
-//  }
-//  this->tree.emplace_back(tmp);
-//  // Make the layers up to root
-//  while (this->tree.back().size() > 1) {
-//    this->tree.emplace_back(newLayer(this->tree.back()));
-//  }
-//}
-
 const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
   if (leafIndex > this->tree.front().size() - 1) return {};
   std::vector<Hash> ret;

@@ -6,8 +6,8 @@
 
 #include "safehash.h"
 #include "strings.h"
-//TODO: Wait Ita finish Tx
-//#include "tx.h"
+
+#include "tx.h"
 #include "utils.h"
 
 /**
@@ -33,18 +33,23 @@ class Merkle {
      */
     Merkle(const std::vector<Hash>& leaves);
 
-    //TODO: Wait Ita finish Tx
-//    /**
-//     * Constructor for %Block transactions.
-//     * @param txs The list of transactions to create the Merkle tree from.
-//     */
-//    Merkle(const std::unordered_map<uint64_t, TxBlock, SafeHash>& txs);
-//
-//    /**
-//     * Constructor for %Validator transactions.
-//     * @param txs The list of transactions to create the Merkle tree from.
-//     */
-//    Merkle(const std::unordered_map<uint64_t, TxValidator, SafeHash>& txs);
+    /**
+     * Constructor for %Block transactions.
+     * @param txs The list of transactions to create the Merkle tree from.
+     */
+    template <typename TxType>
+    Merkle(const std::vector<TxType>& txs) {
+      // Mount the base leaves
+      std::vector<Hash> tmp;
+      for (auto tx : txs) {
+        tmp.emplace_back(std::move(Utils::sha3(tx.hash().get())));
+      }
+      this->tree.emplace_back(tmp);
+      // Make the layers up to root
+      while (this->tree.back().size() > 1) {
+        this->tree.emplace_back(newLayer(this->tree.back()));
+      }
+    }
 
     /// Getter for `tree`.
     inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree; }
