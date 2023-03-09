@@ -3,7 +3,7 @@
 
 Block::Block(std::string_view bytes) {
   try {
-    if (bytes.size() < 209) {
+    if (bytes.size() < 217) {
       throw std::runtime_error("Invalid block size");
     }
     this->validatorSig_ = Signature(bytes.substr(0, 65));
@@ -18,7 +18,7 @@ Block::Block(std::string_view bytes) {
 
     // Count how many txs are in the block
     uint64_t txCount = 0;
-    uint64_t index = 210;
+    uint64_t index = 217;
     while (index < txValidatorStart) {
       uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
       index += txSize + 4;
@@ -35,7 +35,7 @@ Block::Block(std::string_view bytes) {
     }
 
     // Deserialize the transactions
-    index = 210;
+    index = 217;
     for (uint64_t i = 0; i < txCount; ++i) {
       uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
       index += 4;
@@ -70,7 +70,7 @@ Block::Block(std::string_view bytes) {
     }
 
     Hash msgHash = this->hash();
-    if (Secp256k1::verifySig(this->validatorSig_.r(), this->validatorSig_.s(), this->validatorSig_.v())) {
+    if (!Secp256k1::verifySig(this->validatorSig_.r(), this->validatorSig_.s(), this->validatorSig_.v())) {
       throw std::runtime_error("Invalid validator signature");
     }    
 
@@ -81,12 +81,15 @@ Block::Block(std::string_view bytes) {
     Utils::logToDebug(Log::block, __func__, "Error when deserializing a block: "
       + std::string(e.what())
     );
+    // Throw again because invalid blocks should not be created at all.
+    throw std::runtime_error(std::string(__func__) + ": " + e.what());
   }
+  return;
 }
 
 
 const std::string Block::serializeHeader() const {
-  // Block header = 209 bytes
+  // Block header = 218 bytes
   // Block header == bytes(prevBlockHash) + bytes(blockRandomness) + bytes(validatorMerkleRoot) + bytes(txMerkleRoot) + bytes(timestamp) + bytes(nHeight) 
   std::string ret;
   ret += this->prevBlockHash_.get();
@@ -164,6 +167,7 @@ bool Block::finalize(const PrivKey& validatorPrivKey) {
   this->validatorMerkleRoot_ = Merkle(this->txValidators_).getRoot();
   this->blockRandomness_ = rdPoS::parseTxSeedList(this->txValidators_);
   this->validatorSig_ = Secp256k1::sign(validatorPrivKey, this->hash());
+  this->validatorPubKey_ = Secp256k1::recover(this->validatorSig_, this->hash());
   this->finalized = true;
   return true;
 }

@@ -21,7 +21,7 @@
  *   32 BYTES - BLOCK RANDOMNESS
  *   32 BYTES - VALIDATOR MERKLE ROOT
  *   32 BYTES - TRANSACTION MERKLE ROOT
- *   8 BYTES  - TIMESTAMP
+ *   8 BYTES  - TIMESTAMP (MILLISECONDS)
  *   8 BYTES  - NHEIGHT
  * CONTENT:
  *   8 BYTES  - TX VALIDATOR ARRAY START
@@ -133,10 +133,13 @@ class Block {
     const Hash& prevBlockHash() const { return prevBlockHash_; }
     const Hash& blockRandomness() const { return blockRandomness_; }
     const Hash& validatorMerkleRoot() const { return validatorMerkleRoot_; }
-    const std::vector<TxValidator>& txValidators() const { return txValidators_; }
-    const std::vector<TxBlock>& txs() const { return txs_; }
+    const Hash& txMerkleRoot() const { return txMerkleRoot_; }
     uint64_t timestamp() const { return timestamp_; }
     uint64_t nHeight() const { return nHeight_; }
+    const std::vector<TxValidator>& txValidators() const { return txValidators_; }
+    const std::vector<TxBlock>& txs() const { return txs_; }
+    const UPubKey& validatorPubKey() const { return validatorPubKey_; }
+    bool isFinalized() const { return finalized; }
 
     /// Copy assignment operator.
     Block& operator=(const Block& other) {
