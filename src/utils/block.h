@@ -1,20 +1,12 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include <array>
-#include <cstdint>
-#include <vector>
-#include <thread>
-
-#include "ecdsa.h"
-#include "merkle.h"
-#include "safehash.h"
-#include "strings.h"
-#include "tx.h"
-#include "utils.h"
-
-#include "../contract/contract.h"
 #include "../core/rdpos.h"
+#include "utils.h"
+#include "tx.h"
+#include "strings.h"
+#include "merkle.h"
+#include "ecdsa.h"
 
 /**
  * Abstraction of a block.
@@ -22,8 +14,9 @@
  * structure/data and some functions to manage it.
  * Block structure is as follows:
  *
- * 65 BYTES - VALIDATOR SIGNATURE
- * HEADER:
+ * OUTSIDE OF BLOCK HEADER:
+ *  65 BYTES - VALIDATOR SIGNATURE
+ * BLOCK HEADER:
  *   32 BYTES - PREV BLOCK HASH
  *   32 BYTES - BLOCK RANDOMNESS
  *   32 BYTES - VALIDATOR MERKLE ROOT
@@ -31,10 +24,7 @@
  *   8 BYTES  - TIMESTAMP
  *   8 BYTES  - NHEIGHT
  * CONTENT:
- *   8 BYTES  - TX VALIDATOR COUNT
- *   8 BYTES  - TX COUNT
  *   8 BYTES  - TX VALIDATOR ARRAY START
- *   8 BYTES  - TX ARRAY START
  *   [
  *     4 BYTES - TX SIZE
  *     X BYTES - TX
@@ -54,54 +44,51 @@
  *     ...
  *   ]
  */
+
 class Block {
   private:
-    /// Signature of the Validator that created the block.
-    Signature validatorSig = Signature();
 
-    /// Previous block hash.
-    Hash prevBlockHash;
+    // Block validator signature
+    Signature validatorSig_;
 
-    /// Randomness seed used for seeding and creating the next block.
-    Hash randomness;
+    // Previous block hash
+    Hash prevBlockHash_;
 
-    /// Merkle root for Validator transactions.
-    Hash validatorTxMerkleRoot;
+    // Current block randomness based on rdPoS
+    Hash blockRandomness_;
 
-    /// Merkle root for block transactions.
-    Hash txMerkleRoot;
+    // Merkle root of the validator transactions
+    Hash validatorMerkleRoot_;
 
-    /// Epoch timestamp of the block (time since 1970-01-01), in nanoseconds.
-    uint64_t timestamp = 0;
+    // Merkle root of the transactions
 
-    /// Height of the block.
-    uint64_t nHeight = 0;
+    Hash txMerkleRoot_;
 
-    /// Number of Validator transactions.
-    uint64_t validatorTxCount = 0;
+    // Block timestamp
+    uint64_t timestamp_ = 0;
 
-    /// Number of block transactions.
-    uint64_t txCount = 0;
+    // Block nHeight in chain
+    uint64_t nHeight_ = 0;
 
-    /// List of Validator transactions.
-    std::unordered_map<uint64_t, const TxValidator, SafeHash> validatorTxs;
+    // Block validator transactions
+    std::vector<TxValidator> txValidators_;
+    
+    // Block transactions.
+    std::vector<TxBlock> txs_;
 
-    /// List of block transactions.
-    std::unordered_map<uint64_t, const TxBlock, SafeHash> txs;
+    // Block Validator pubkey.
+    UPubKey validatorPubKey_;
 
-    /// Indicates whether the block is finalized or not.
     bool finalized = false;
-
+  
   public:
+
     /**
      * Constructor from network/RPC.
      * @param rawData The raw block data to parse.
-     * @param fromDB If `true`, skips Secp256k1 signature checking.
-     *               This brings 40x more performance at the cost of storing
-     *               25 extra bytes per transaction.
-     *               See tx constructors in tx.h for more details.
      */
-    Block(const std::string_view& rawData, bool fromDB);
+
+    Block(std::string_view bytes);
 
     /**
      * Constructor from creation.
@@ -110,192 +97,79 @@ class Block {
      * @param nHeight The height of the block.
      */
     Block(const Hash& prevBlockHash, const uint64_t& timestamp, const uint64_t& nHeight)
-      : prevBlockHash(prevBlockHash), timestamp(timestamp), nHeight(nHeight) {}
+      : prevBlockHash_(prevBlockHash), timestamp_(timestamp), nHeight_(nHeight) {}
 
-    /// Copy constructor.
-    Block(const Block& other) {
-      this->validatorSig = other.validatorSig;
-      this->prevBlockHash = other.prevBlockHash;
-      this->randomness = other.randomness;
-      this->validatorTxMerkleRoot = other.validatorTxMerkleRoot;
-      this->txMerkleRoot = other.txMerkleRoot;
-      this->timestamp = other.timestamp;
-      this->nHeight = other.nHeight;
-      this->validatorTxCount = other.validatorTxCount;
-      this->txCount = other.txCount;
-      this->validatorTxs = other.validatorTxs;
-      this->txs = other.txs;
-      this->finalized = other.finalized;
-    }
 
-    /// Move constructor.
-    Block(Block&& other) noexcept :
-      validatorSig(std::move(other.validatorSig)),
-      prevBlockHash(std::move(other.prevBlockHash)),
-      randomness(std::move(other.randomness)),
-      validatorTxMerkleRoot(std::move(other.validatorTxMerkleRoot)),
-      txMerkleRoot(std::move(other.txMerkleRoot)),
-      timestamp(std::move(other.timestamp)),
-      nHeight(std::move(other.nHeight)),
-      validatorTxCount(std::move(other.validatorTxCount)),
-      txCount(std::move(other.txCount)),
-      validatorTxs(std::move(other.validatorTxs)),
-      txs(std::move(other.txs)),
-      finalized(std::move(other.finalized))
-    {}
+    // Serialization Functions
 
-    /// Getter for `validatorSig`.
-    const Signature& getValidatorSig() const { return this->validatorSig; }
-
-    /// Getter for `prevBlockHash`.
-    const Hash& getPrevBlockHash() const { return this->prevBlockHash; }
-
-    /// Getter for `randomness`.
-    const Hash& getRandomness() const { return this->randomness; }
-
-    /// Getter for `validatorTxMerkleRoot`.
-    const Hash& getValidatorTxMerkleRoot() const { return this->validatorTxMerkleRoot; }
-
-    /// Getter for `txMerkleRoot`.
-    const Hash& getTxMerkleRoot() const { return this->txMerkleRoot; }
-
-    /// Getter for `timestamp`.
-    const uint64_t& getTimestamp() const { return this->timestamp; }
-
-    /// Getter for `nHeight`.
-    const uint64_t& getNHeight() const { return this->nHeight; }
-
-    /// Getter for `validatorTxCount`.
-    const uint64_t& getValidatorTxCount() const { return this->validatorTxCount; }
-
-    /// Getter for `txCount`.
-    const uint64_t& getTxCount() const { return this->txCount; }
-
-    /// Getter for `validatorTxs`.
-    const std::unordered_map<uint64_t, const TxValidator, SafeHash>& getValidatorTxs() const {
-      return this->validatorTxs;
-    }
-
-    /// Getter for `txs`.
-    const std::unordered_map<uint64_t, const TxBlock, SafeHash>& getTxs() const {
-      return this->txs;
-    }
-
-    /// Same as `getTimestamp()`, but calculates the timestamp in seconds.
-    const uint64_t timestampInSeconds() const { return this->timestamp / 1000000000; }
-
-    /// Calculate and return the raw block size, in hex bytes.
-    const uint64_t blockSize() const;
-
-    /**
-     * Serialize the raw block data to a hex string.
-     * That would be `prevBlockHash + timestamp + nHeight + txCount + [ txSize, tx, ... ]`.
-     * @param fromDB Same as constructor's.
-     * @return The serialized raw block data as a hex string.
-     */
-    const std::string serializeToBytes(bool fromDB) const;
-
-    /**
-     * Serialize the block header to a hex string.
-     * That would be `prevBlockHash + blockRandomness + validatorMerkleRoot + transactionMerkleRoot + timestamp + nHeight`.
-     * @return The serialized block header as a hex string.
-     */
+    // Serialize only the block header (Prev block hash, Block Randomness, Validator Merkle Root, Transaction Merkle Root, Timestamp and nHeight)
     const std::string serializeHeader() const;
 
-    /**
-     * Calculate the SHA3 hash of the entire block.
-     * @return The block hash.
-     */
-    inline const Hash getBlockHash() const { return Utils::sha3(this->serializeHeader()); }
+    // Serialize the entire block and content
+    const std::string serializeBlock() const;
 
-    /**
-     * Add a transaction to the block.
-     * Transaction logic validity is not checked.
-     * @param tx The transaction to append.
-     * @return `true` if transaction was included in the block, or
-     *         `false` if the block is finalized.
-     */
+    // Give the block hash (sha3(serializeHeader()).
+    const Hash hash() const;
+
+    // Transaction related functions
+
     bool appendTx(const TxBlock& tx);
+    bool appendTxValidator(const TxValidator& tx);
 
-    /**
-     * Add a Validator transaction to the block.
-     * Transaction logic validity is not checked.
-     * @param tx The transaction to append.
-     * @return `true` if transaction was included in the block, or
-     *         `false` if the block is finalized.
-     */
-    bool appendValidatorTx(const TxValidator& tx);
+    // Block Finalizator.
+    bool finalize(const PrivKey& validatorPrivKey);
 
-    /**
-     * Finalize the block.
-     * This means the block is "closed" so no other transactions
-     * can be included in it anymore.
-     * @param validatorKey The private key of the Validator, used to sign the block.
-     * @return `true` if the block is successfully finalized, or
-     *         `false` if the block is finalized.
-     */
-    bool finalize(const PrivKey& validatorKey);
-
-    /// Equality operator. Checks the block hash of both objects.
+    // Equality operator. Checks the block hash of both objects.
     const bool operator==(const Block& rBlock) const {
-      return this->getBlockHash() == rBlock.getBlockHash();
+      return this->hash() == rBlock.hash();
     }
 
-    /// Inequality operator. Checks the block hash of both objects.
+    // Inequality operator. Checks the block hash of both objects.
     const bool operator!=(const Block& rBlock) const {
-      return this->getBlockHash() != rBlock.getBlockHash();
+      return this->hash() != rBlock.hash();
     }
+
+    const Signature& validatorSig() const { return validatorSig_; }
+    const Hash& prevBlockHash() const { return prevBlockHash_; }
+    const Hash& blockRandomness() const { return blockRandomness_; }
+    const Hash& validatorMerkleRoot() const { return validatorMerkleRoot_; }
+    const std::vector<TxValidator>& txValidators() const { return txValidators_; }
+    const std::vector<TxBlock>& txs() const { return txs_; }
+    uint64_t timestamp() const { return timestamp_; }
+    uint64_t nHeight() const { return nHeight_; }
 
     /// Copy assignment operator.
     Block& operator=(const Block& other) {
-      this->validatorSig = other.validatorSig;
-      this->prevBlockHash = other.prevBlockHash;
-      this->randomness = other.randomness;
-      this->validatorTxMerkleRoot = other.validatorTxMerkleRoot;
-      this->txMerkleRoot = other.txMerkleRoot;
-      this->timestamp = other.timestamp;
-      this->nHeight = other.nHeight;
-      this->validatorTxCount = other.validatorTxCount;
-      this->txCount = other.txCount;
-      this->validatorTxs = other.validatorTxs;
-      this->txs = other.txs;
+      this->validatorSig_ = other.validatorSig_;
+      this->prevBlockHash_ = other.prevBlockHash_;
+      this->blockRandomness_ = other.blockRandomness_;
+      this->validatorMerkleRoot_ = other.validatorMerkleRoot_;
+      this->txMerkleRoot_ = other.txMerkleRoot_;
+      this->timestamp_ = other.timestamp_;
+      this->nHeight_ = other.nHeight_;
+      this->txValidators_ = other.txValidators_;
+      this->txs_ = other.txs_;
+      this->validatorPubKey_ = other.validatorPubKey_;
       this->finalized = other.finalized;
       return *this;
     }
 
     /// Move assignment operator.
     Block& operator=(Block&& other) {
-      this->validatorSig = std::move(other.validatorSig);
-      this->prevBlockHash = std::move(other.prevBlockHash);
-      this->randomness = std::move(other.randomness);
-      this->validatorTxMerkleRoot = std::move(other.validatorTxMerkleRoot);
-      this->txMerkleRoot = std::move(other.txMerkleRoot);
-      this->timestamp = std::move(other.timestamp);
-      this->nHeight = std::move(other.nHeight);
-      this->validatorTxCount = std::move(other.validatorTxCount);
-      this->txCount = std::move(other.txCount);
-      this->validatorTxs = std::move(other.validatorTxs);
-      this->txs = std::move(other.txs);
+      this->validatorSig_ = std::move(other.validatorSig_);
+      this->prevBlockHash_ = std::move(other.prevBlockHash_);
+      this->blockRandomness_ = std::move(other.blockRandomness_);
+      this->validatorMerkleRoot_ = std::move(other.validatorMerkleRoot_);
+      this->txMerkleRoot_ = std::move(other.txMerkleRoot_);
+      this->timestamp_ = std::move(other.timestamp_);
+      this->nHeight_ = std::move(other.nHeight_);
+      this->txValidators_ = std::move(other.txValidators_);
+      this->txs_ = std::move(other.txs_);
+      this->validatorPubKey_ = std::move(other.validatorPubKey_);
       this->finalized = std::move(other.finalized);
-      return *this;
-    }
-
-    /// Copy assignment operator.
-    Block& operator=(const std::shared_ptr<const Block>& other) {
-      this->validatorSig = other->validatorSig;
-      this->prevBlockHash = other->prevBlockHash;
-      this->randomness = other->randomness;
-      this->validatorTxMerkleRoot = other->validatorTxMerkleRoot;
-      this->txMerkleRoot = other->txMerkleRoot;
-      this->timestamp = other->timestamp;
-      this->nHeight = other->nHeight;
-      this->validatorTxCount = other->validatorTxCount;
-      this->txCount = other->txCount;
-      this->validatorTxs = other->validatorTxs;
-      this->txs = other->txs;
-      this->finalized = other->finalized;
       return *this;
     }
 };
 
-#endif  // BLOCK_H
+
+#endif // BLOCK_H

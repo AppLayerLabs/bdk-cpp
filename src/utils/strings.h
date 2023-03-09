@@ -127,13 +127,13 @@ class Signature : public FixedStr<65> {
     using FixedStr<65>::FixedStr; ///< Using parent constructor.
 
     /// Get the first half (32 bytes) of the signature.
-    inline FixedStr<32> r() const { return FixedStr<32>(this->data.substr(0, 32)); };
+    uint256_t r() const;
 
     /// Get the second half (32 bytes) of the signature.
-    inline FixedStr<32> s() const { return FixedStr<32>(this->data.substr(32, 32)); };
+    uint256_t s() const;
 
     /// Get the recovery ID (1 byte).
-    inline FixedStr<1> v() const { return FixedStr<1>(this->data.substr(64, 1)); };
+    uint8_t v() const;
 };
 
 /// Abstraction for a single 20-byte address (e.g. "1234567890abcdef..."). Inherits `FixedStr<20>`.

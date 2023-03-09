@@ -55,7 +55,7 @@ class Merkle {
     inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree; }
 
     /// Get the root of the Merkle tree.
-    inline const Hash& getRoot() const { return this->tree.back().front(); }
+    inline const Hash getRoot() const { if (this->tree.back().size() == 0) { return Hash(); } return this->tree.back().front(); }
 
     /// Get the leaves of the Merkle tree.
     inline const std::vector<Hash>& getLeaves() const { return this->tree.front(); }

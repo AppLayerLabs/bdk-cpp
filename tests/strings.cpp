@@ -170,7 +170,7 @@ namespace TFixedStr {
 }
 
 namespace THash {
-  TEST_CASE("Hash Class") {
+  TEST_CASE("Hash Class", "[utils]") {
     SECTION("Hash uint256_t Constructor Test") {
       uint256_t i = uint256_t("70518832285973061936518038480459635341011381946952877582230426678885538674712");
       Hash hash(i);
@@ -192,29 +192,26 @@ namespace THash {
 }
 
 namespace TSignature {
-  TEST_CASE("Signature Class") {
+  TEST_CASE("Signature Class", "[utils]") {
     SECTION("Signature r()") {
       Signature sig(std::string("70518832285973061936518038480459635341011381946952877582230426678"));
-      FixedStr<32> rStr(std::string("70518832285973061936518038480459"));
-      REQUIRE(sig.r().get() == rStr.get());
+      REQUIRE(sig.r() == uint256_t("24962382450703388064783334469112749050093133395427026078791530264393631937849"));
     }
 
     SECTION("Signature s()") {
       Signature sig(std::string("70518832285973061936518038480459635341011381946952877582230426678"));
-      FixedStr<32> sStr(std::string("63534101138194695287758223042667"));
-      REQUIRE(sig.s().get() == sStr.get());
+      REQUIRE(sig.s() == uint256_t("24515370196810216536934266698278180508572754644750025621044793698089203807799"));
     }
 
     SECTION("Signature v()") {
       Signature sig(std::string("70518832285973061936518038480459635341011381946952877582230426678"));
-      FixedStr<1> vStr(std::string("8"));
-      REQUIRE(sig.v().get() == vStr.get());
+      REQUIRE(sig.v() == uint8_t(56));
     }
   }
 }
 
 namespace TAddress {
-  TEST_CASE("Address Class") {
+  TEST_CASE("Address Class", "[utils]") {
     SECTION("Address Copy Constructor Test") {
       Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
       Address addr2(std::string("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"), true);

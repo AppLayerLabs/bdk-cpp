@@ -240,7 +240,7 @@ class TxValidator {
     inline const Address& from() const { return this->from_; }
 
     /// Getter for `data`.
-    inline const std::string& data() const { return this->data_; }
+    inline const std::string_view data() const { return this->data_; }
 
     /// Getter for `chainId`.
     inline const uint64_t& chainId() const { return this->chainId_; }

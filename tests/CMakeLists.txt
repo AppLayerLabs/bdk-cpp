@@ -14,5 +14,6 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/randomgen.cpp
   ${CMAKE_SOURCE_DIR}/tests/p2p.cpp
   ${CMAKE_SOURCE_DIR}/tests/tx.cpp
+  ${CMAKE_SOURCE_DIR}/tests/block.cpp
   PARENT_SCOPE
 )
