@@ -1,13 +1,16 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include "../core/rdpos.h"
+#include <future>
+#include <thread>
 
 #include "utils.h"
 #include "tx.h"
 #include "strings.h"
 #include "merkle.h"
 #include "ecdsa.h"
+
+#include "../core/rdpos.h"
 
 /**
  * Abstraction of a block.

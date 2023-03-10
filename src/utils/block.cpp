@@ -15,7 +15,7 @@ Block::Block(std::string_view bytes) {
 
     // Count how many block txs are in the block
     uint64_t txCount = 0;
-    uint64_t index = 217;
+    uint64_t index = 217; // Start of block tx range
     while (index < txValidatorStart) {
       uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
       index += txSize + 4;
@@ -30,17 +30,68 @@ Block::Block(std::string_view bytes) {
       index += txSize + 4;
       valTxCount++;
     }
+    index = 217;  // Rewind to start of block tx range
 
-    // Deserialize the transactions
-    index = 217;
-    for (uint64_t i = 0; i < txCount; ++i) {
-      uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
-      index += 4;
-      this->txs.emplace_back(bytes.substr(index, txSize));
-      index += txSize;
+    // If we have up to X block txs or only one physical thread
+    // for some reason, deserialize normally.
+    // Otherwise, parallelize into threads/asyncs.
+    unsigned int thrNum = std::thread::hardware_concurrency();
+    if (thrNum <= 1 || txCount <= 2000) {
+      for (uint64_t i = 0; i < txCount; ++i) {
+        uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
+        index += 4;
+        this->txs.emplace_back(bytes.substr(index, txSize));
+        index += txSize;
+      }
+    } else {
+      // Logically divide txs equally into one-time hardware threads/asyncs.
+      // Division reminder always goes to the LAST thread (e.g. 11/4 = 2+2+2+5)
+      std::vector<uint64_t> txsPerThr(thrNum, txCount / thrNum);
+      txsPerThr.back() += txCount % thrNum;
+
+      // Deserialize the txs with parallelized asyncs
+      std::vector<std::future<std::vector<TxBlock>>> f;
+      f.reserve(thrNum);
+      uint64_t thrOff = index;
+      for (uint64_t i = 0; i < txsPerThr.size(); i++) {
+        // Find out how many txs this thread will work with,
+        // then update offset for next thread
+        uint64_t startIdx = thrOff;
+        uint64_t nTxs = txsPerThr[i];
+
+        // Work that sucker to death, c'mon now
+        std::future<std::vector<TxBlock>> txF = std::async(
+          [&, startIdx, nTxs](){
+            std::vector<TxBlock> txVec;
+            uint64_t idx = startIdx;
+            for (uint64_t i = 0; i < nTxs; i++) {
+              uint64_t len = Utils::bytesToUint32(bytes.substr(idx, 4));
+              idx += 4;
+              txVec.emplace_back(bytes.substr(idx, len));
+              idx += len;
+            }
+            return txVec;
+          }
+        );
+        f.emplace_back(std::move(txF));
+
+        // Update offset, skip if this is the last thread
+        if (i < txsPerThr.size() - 1) {
+          for (uint64_t i = 0; i < nTxs; i++) {
+            uint8_t len = bytes[thrOff];
+            thrOff += len + 1;
+          }
+        }
+      }
+
+      // Wait for asyncs and fill the block tx vector
+      for (int i = 0; i < f.size(); i++) {
+        f[i].wait();
+        for (TxBlock tx : f[i].get()) this->txs.emplace_back(tx);
+      }
     }
 
-    // Deserialize the Validator transactions
+    // Deserialize the Validator transactions normally, no need to thread
     index = txValidatorStart;
     for (uint64_t i = 0; i < valTxCount; ++i) {
       uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
