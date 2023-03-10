@@ -48,7 +48,7 @@ void Storage::saveToDB() {
       block->getBlockHash().get(), block->serializeToBytes(true)
     ));
     heightBatch.puts.emplace_back(DBEntry(
-      Utils::uint64ToBytes(block->nHeight()), block->getBlockHash().get()
+      Utils::uint64ToBytes(block->getNHeight()), block->getBlockHash().get()
     ));
 
     // Batch txs to be saved to the database and delete them from mappings
@@ -81,7 +81,7 @@ void Storage::loadFromDB() {
     Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
     genesis.finalize(PrivKey());
     this->db->put("latest", genesis.serializeToBytes(true), DBPrefix::blocks);
-    this->db->put(Utils::uint64ToBytes(genesis.nHeight()), genesis.getBlockHash().get(), DBPrefix::blockHeightMaps);
+    this->db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.getBlockHash().get(), DBPrefix::blockHeightMaps);
     this->db->put(genesis.getBlockHash().get(), genesis.serializeToBytes(true), DBPrefix::blocks);
     // TODO: CHANGE THIS ON PUBLIC!!! THOSE PRIVATE KEYS SHOULD ONLY BE USED FOR LOCAL TESTING
     this->db->put(Utils::uint64ToBytes(0), Address(std::string("0x7588b0f553d1910266089c58822e1120db47e572"), true).get(), DBPrefix::validators); // 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759
@@ -96,7 +96,7 @@ void Storage::loadFromDB() {
 
   // Get the latest block from the database
   Block latest = Block(this->db->get("latest", DBPrefix::blocks), true);
-  uint64_t depth = latest.nHeight();
+  uint64_t depth = latest.getNHeight();
   Utils::logToDebug(Log::storage, __func__,
     std::string("Got latest block: ") + dev::toHex(latest.getBlockHash())
     + std::string(" - height ") + std::to_string(depth)

@@ -3,9 +3,11 @@
 Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
   std::string seed;
   if (txs.size() == 0) return Hash();
-  for (const auto& tx : txs)
-    if (tx.data().substr(0,4) == Hex::toBytes("0x6fc5a2d6"))
-      seed += tx.data().substr(4,32);
+  for (const TxValidator& tx : txs) {
+    if (tx.getData().substr(0,4) == Hex::toBytes("0x6fc5a2d6")) {
+      seed += tx.getData().substr(4,32);
+    }
+  }
   return Utils::sha3(seed);
 }
 
@@ -30,23 +32,23 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //   );
 //   this->gen.setSeed(this->storage->latest()->getRandomness());
 //   this->gen.shuffle(this->randomList);
-// 
+//
 //   for (uint64_t i = 0; i < randomList.size(); i++) {
 //     Utils::logToDebug(Log::rdpos, __func__,
 //       std::string("Validator ") + std::to_string(i)
 //       + std::string(" - ") + randomList[i].get().hex());
 //   }
 // }
-// 
+//
 // bool rdPoS::shuffle() {
 //   ; // TODO: not implemented in original
 // }
-// 
+//
 // // TODO: edge cases, handle malicious validators, etc.
 // // There is no handling to malicious validators answering invalid hashes, it will simply throw and segfault!
 // void rdPoS::validatorLoop() {
 //   Validator me(Secp256k1::toAddress(Secp256k1::toPub(this->validatorPrivKey)));
-// 
+//
 //   while (true) {
 //     // Check if we're next in line, and which type (block creator or randomizer)
 //     std::shared_ptr<const Block> latest = this->storage->latest();
@@ -73,11 +75,11 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //         this->lock.lock();
 //       }
 //       this->lock.unlock();
-// 
+//
 //       // Tell AvalancheGo that we're ready to create the block
 //       //this->grpcClient->requestBlock(); // TODO: we're not using gRPC here
 //     }
-// 
+//
 //     for (uint64_t i = 1; i <= this->minValidators; i++) {
 //       // If we're any of the randomizer validators, we create the random
 //       // hash tx and relay it, then wait for the next set of random hash txs
@@ -98,7 +100,7 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //         );
 //         randomHashTx.sign(this->validatorPrivKey);
 //         this->p2p->broadcastValidatorTx(randomHashTx);
-// 
+//
 //         // Wait until all other random hash txs were broadcast,
 //         // then rebroadcast our own random hash tx
 //         this->lock.lock();
@@ -122,7 +124,7 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //           tries++;
 //         }
 //         this->lock.unlock();
-// 
+//
 //         // Send the tx and the original random.
 //         TxValidator randomTx(me.get(),
 //           Utils::hexToBytes("0x6fc5a2d6") + randomHash.get(),
@@ -135,7 +137,7 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //       }
 //       this->lock.unlock();
 //     }
-// 
+//
 //     // Wait until next block
 //     while (this->storage->latest()->getNHeight() == latest->getNHeight()) {
 //       Utils::logToDebug(Log::rdpos, __func__,
@@ -146,20 +148,20 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //     }
 //   }
 // }
-// 
+//
 // bool rdPoS::validatorIsKnown(const Validator& val) {
 //   ; // TODO: not implemented in original
 // }
-// 
+//
 // bool rdPoS::saveToDB() {
 //   ; // TODO: not implemented in original
 // }
-// 
+//
 // bool rdPoS::validateBlock(const std::shared_ptr<const Block>& block) {
 //   // Check validator signature against block height of prevBlockHash (not sure if enough for safety)
 //   this->lock.lock();
 //   Hash hash = block->getBlockHash();
-// 
+//
 //   // TODO: do we need to include chainId In the block signature?
 //   UPubKey key = Secp256k1::recover(block->getValidatorSig(), hash);
 //   if (Secp256k1::toAddress(key) != this->randomList[0].get().get()) {
@@ -170,11 +172,11 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //     this->lock.unlock();
 //     return false;
 //   }
-// 
+//
 //   this->lock.unlock();
 //   return true;
 // }
-// 
+//
 // Hash rdPoS::processBlock(const std::shared_ptr<const Block>& block) {
 //   this->lock.lock();
 //   this->randomList = std::vector<std::reference_wrapper<Validator>>(
@@ -186,7 +188,7 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //   this->lock.unlock();
 //   return block->getRandomness();
 // }
-// 
+//
 // void rdPoS::addValidatorTx(const TxValidator& tx) {
 //   this->lock.lock();
 //   bool broadcast = (this->validatorMempool.count(tx.hash()) == 0);
@@ -202,14 +204,14 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 //   }
 //   this->lock.unlock();
 // }
-// 
+//
 // static Hash rdPoS::parseTxSeedList(const std::unordered_map<uint64_t, TxValidator, SafeHash> txs) {
 //   std::string seed;
 //   if (txs.size() == 0) return Hash();
 //   for (uint64_t i = 0; i < txs.size(); i++) seed += txs.at(i).getData().substr(4,32);
 //   return Utils::sha3(seed);
 // }
-// 
+//
 // void rdPoS::startValidatorThread() {
 //   this->lock.lock();
 //   if (this->isValidator && !this->isValidatorThreadRunning) {

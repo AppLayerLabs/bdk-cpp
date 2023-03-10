@@ -28,16 +28,13 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   if (nonceLength != 0) {
     index++; // Index at rlp[0] payload
     uint64_t nonce = 0;
-    this->nonce_ = Utils::fromBigEndian<uint256_t>(
+    this->nonce = Utils::fromBigEndian<uint256_t>(
       std::string_view(&bytes[index], nonceLength)
     );
     index += nonceLength; // Index at rlp[1] size
   } else {
-    if (uint8_t(bytes[index]) == 0x80) {
-      this->nonce_ = 0;
-    } else {
-      this->nonce_ = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
-    }
+    this->nonce = (uint8_t(bytes[index]) == 0x80)
+      ? 0 : Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
     index++; // Index at rlp[1] size
   }
 
@@ -45,7 +42,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   uint8_t gasPriceLength = bytes[index] - 0x80;
   if (gasPriceLength > 0x37) throw std::runtime_error("Gas price is not a small string");
   index++; // Index at rlp[1] payload
-  this->gasPrice_ = Utils::fromBigEndian<uint256_t>(
+  this->gasPrice = Utils::fromBigEndian<uint256_t>(
     std::string_view(&bytes[index], gasPriceLength)
   );
   index += gasPriceLength; // Index at rlp[2] size.
@@ -54,7 +51,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   uint8_t gasLimitLength = bytes[index] - 0x80;
   if (gasLimitLength > 0x37) throw std::runtime_error("Gas limit is not a small string");
   index++; // Index at rlp[2] payload
-  this->gas_ = Utils::fromBigEndian<uint256_t>(
+  this->gas = Utils::fromBigEndian<uint256_t>(
     std::string_view(&bytes[index], gasLimitLength)
   );
   index += gasLimitLength; // Index at rlp[3] size
@@ -65,7 +62,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
     "Receiver address (to) is not a 20 byte string (address)"
   );
   index++; // Index at rlp[3] payload
-  this->to_ = Address(std::string_view(&bytes[index], 20), true);
+  this->to = Address(std::string_view(&bytes[index], 20), true);
   index += 20; // Index at rlp[4] size
 
   // Get value - small string or byte itself.
@@ -73,28 +70,25 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   if (valueLength != 0) {
     if (valueLength > 0x37) throw std::runtime_error("Value is not a small string");
     index++; // Index at rlp[4] payload
-    this->value_ = Utils::fromBigEndian<uint256_t>(
+    this->value = Utils::fromBigEndian<uint256_t>(
       std::string_view(&bytes[index], valueLength)
     );
     index += valueLength; // Index at rlp[5] size
   } else {
-    if (uint8_t(bytes[index]) == 0x80) {
-      this->value_ = 0;
-    } else {
-      this->value_ = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
-    }
+    this->value = (uint8_t(bytes[index]) == 0x80)
+      ? 0 : Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
     index++; // Index at rlp[5] size
   }
 
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
   if (uint8_t(bytes[index]) < 0x80) {
-    this->data_ = bytes[index];
+    this->data = bytes[index];
     index++; // Index at rlp[6] size
   } else if (uint8_t(bytes[index]) < 0xb7) {
     uint8_t dataLength = bytes[index] - 0x80;
     index++; // Index at rlp[5] payload
     if (dataLength > 0) {
-      this->data_ = bytes.substr(index, dataLength);
+      this->data = bytes.substr(index, dataLength);
       index += dataLength; // Index at rlp[6] size
     }
   } else {
@@ -104,7 +98,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
       std::string_view(&bytes[index], dataLengthSize)
     );
     index += dataLengthSize; // Index at rlp[5] payload
-    this->data_ = bytes.substr(index, dataLength);
+    this->data = bytes.substr(index, dataLength);
     index += dataLength; // Index at rlp[6] size
   }
 
@@ -113,16 +107,13 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   if (vLength != 0) {
     if (vLength > 0x37) throw std::runtime_error("V is not a small string");
     index++; // Index at rlp[6] payload
-    this->v_ = Utils::fromBigEndian<uint256_t>(
+    this->v = Utils::fromBigEndian<uint256_t>(
       std::string_view(&bytes[index], vLength)
     );
     index += vLength; // Index at rlp[7] size
   } else {
-    if (uint8_t(bytes[index]) == 0x80) {
-      this->v_ = 0;
-    } else {
-      this->v_ = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
-    }
+    this->v = (uint8_t(bytes[index]) == 0x80)
+      ? 0 : Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
     index++; // Index at rlp[7] size
   }
 
@@ -130,218 +121,204 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   uint8_t rLength = bytes[index] - 0x80;
   if (rLength > 0x37) throw std::runtime_error("R is not a small string");
   index++; // Index at rlp[7] payload
-  this->r_ = Utils::fromBigEndian<uint256_t>(
-    std::string_view(&bytes[index], rLength)
-  );
+  this->r = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], rLength));
   index += rLength; // Index at rlp[8] size
 
   // Get s - small string
   uint8_t sLength = bytes[index] - 0x80;
   if (sLength > 0x37) throw std::runtime_error("S is not a small string");
   index++; // Index at rlp[8] payload
-  this->s_ = Utils::fromBigEndian<uint256_t>(
-    std::string_view(&bytes[index], sLength)
-  );
+  this->s = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], sLength));
   index += sLength; // Index at rlp[9] size
 
   // Get chainId - calculated from v
-  if (this->v_ > 36) {
-    this->chainId_ = static_cast<uint64_t>((this->v_ - 35) / 2);
-    if (this->chainId_ > std::numeric_limits<uint64_t>::max()) {
+  if (this->v > 36) {
+    this->chainId = static_cast<uint64_t>((this->v - 35) / 2);
+    if (this->chainId > std::numeric_limits<uint64_t>::max()) {
       throw std::runtime_error("chainId too high");
     }
-  } else if (this->v_ != 27 && this->v_ != 28) {
+  } else if (this->v != 27 && this->v != 28) {
     throw std::runtime_error("Invalid tx signature - v is not 27 or 28");
   }
 
-
   // Verify signature and derive sender address (from) if not coming from DB
-  uint8_t recoveryId = uint8_t{this->v_ - (uint256_t(this->chainId_) * 2 + 35)};
-  if (!Secp256k1::verifySig(this->r_, this->s_, recoveryId)) {
+  uint8_t recoveryId = uint8_t{this->v - (uint256_t(this->chainId) * 2 + 35)};
+  if (!Secp256k1::verifySig(this->r, this->s, recoveryId)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
-  Signature sig = Secp256k1::makeSig(this->r_, this->s_, recoveryId);
+  Signature sig = Secp256k1::makeSig(this->r, this->s, recoveryId);
   Hash msgHash = this->hash(false); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
   if (key == UPubKey()) throw std::runtime_error("Invalid tx signature - cannot recover public key");
-  this->from_ = Secp256k1::toAddress(key);
+  this->from = Secp256k1::toAddress(key);
 }
 
 TxBlock::TxBlock(
   const Address to, const Address from, const std::string data,
   const uint64_t chainId, const uint256_t nonce, const uint256_t value,
   const uint256_t gas, const uint256_t gasPrice, const PrivKey privKey
-) : to_(to), from_(from), data_(data), chainId_(chainId), nonce_(nonce),
-  value_(value), gas_(gas), gasPrice_(gasPrice)
+) : to(to), from(from), data(data), chainId(chainId), nonce(nonce),
+  value(value), gas(gas), gasPrice(gasPrice)
 {
   if (privKey.size() != 32) throw std::runtime_error(
     "Invalid privKey size - expected 32, got " + std::to_string(privKey.size())
   );
+
   UPubKey pubKey = Secp256k1::toUPub(privKey);
   Address add = Secp256k1::toAddress(pubKey);
-  if (add != this->from_) throw std::runtime_error(
-    "Private key does not match sender address (from)"
-  );
-  auto hash = this->hash(false);
+  if (add != this->from) throw std::runtime_error("Private key does not match sender address (from)");
+
+  Hash hash = this->hash(false);
   Signature sig = Secp256k1::sign(hash, privKey);
-
-  this->r_ = Utils::bytesToUint256(sig.view(0, 32));
-  this->s_ = Utils::bytesToUint256(sig.view(32,32));
-
+  this->r = Utils::bytesToUint256(sig.view(0, 32));
+  this->s = Utils::bytesToUint256(sig.view(32,32));
   uint8_t recoveryIds = sig[64];
+  this->v = recoveryIds + (this->chainId * 2 + 35);
 
-  this->v_ = recoveryIds + (this->chainId_ * 2 + 35);
   if (pubKey != Secp256k1::recover(sig, hash)) {
     throw std::runtime_error("Invalid transaction signature, signature derived key doens't match public key");
   }
-  if (!Secp256k1::verifySig(this->r_, this->s_, recoveryIds)) {
+  if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
 }
 
 std::string TxBlock::rlpSerialize(bool includeSig) const {
-  std::string serial;
+  std::string ret;
   uint64_t total_size = 0;
+  uint64_t reqBytesNonce = Utils::bytesRequired(this->nonce);
+  uint64_t reqBytesGasPrice = Utils::bytesRequired(this->gasPrice);
+  uint64_t reqBytesGas = Utils::bytesRequired(this->gas);
+  uint64_t reqBytesValue = Utils::bytesRequired(this->value);
+  uint64_t reqBytesData = this->data.size();
+  uint64_t reqBytesV = Utils::bytesRequired((includeSig) ? this->v : this->chainId);
+  uint64_t reqBytesR = Utils::bytesRequired(this->r);
+  uint64_t reqBytesS = Utils::bytesRequired(this->s);
 
-  uint64_t reqBytesNonce = Utils::bytesRequired(this->nonce_);
-  uint64_t reqBytesGasPrice = Utils::bytesRequired(this->gasPrice_);
-  uint64_t reqBytesGas = Utils::bytesRequired(this->gas_);
-  uint64_t reqBytesValue = Utils::bytesRequired(this->value_);
-  uint64_t reqBytesData = this->data_.size();
-  uint64_t reqBytesV = Utils::bytesRequired((includeSig) ? this->v_ : this->chainId_);
-  uint64_t reqBytesR = Utils::bytesRequired(this->r_);
-  uint64_t reqBytesS = Utils::bytesRequired(this->s_);
+  // Calculate total sizes
+  total_size += (this->nonce < 0x80) ? 1 : 1 + reqBytesNonce;
+  total_size += (this->gasPrice < 0x80) ? 1 : 1 + reqBytesGasPrice;
+  total_size += (this->gas < 0x80) ? 1 : 1 + reqBytesGas;
+  total_size += 1 + 20; // To
+  total_size += (this->value < 0x80) ? 1 : 1 + reqBytesValue;
 
-  // Calculate total size
-  // nonce
-  if (this->nonce_ < 0x80) total_size += 1;
-  else total_size += 1 + reqBytesNonce;
-
-  // Gas Price
-  if (this->gasPrice_ < 0x80) total_size += 1;
-  else total_size += 1 + reqBytesGasPrice;
-
-  // Gas
-  if (this->gas_ < 0x80) total_size += 1;
-  else total_size += 1 + reqBytesGas;
-
-  // To
-  total_size += 1 + 20;
-
-  // Value
-  if (this->value_ < 0x80) total_size += 1;
-  else total_size += 1 + reqBytesValue;
-
-  // Data
-  if (this->data_.size() == 0) total_size += 1;
-  else if(reqBytesData <= 55) total_size += 1 + reqBytesData;
-  else(total_size += 1 + Utils::bytesRequired(reqBytesData) + reqBytesData);
-
-  // V/chainId
-  if (includeSig) {
-    if (this->v_ < 0x80) total_size += 1;
-    else total_size += 1 + reqBytesV;
+  if (this->data.size() == 0) {
+    total_size += 1;
+  } else if (reqBytesData <= 55) {
+    total_size += 1 + reqBytesData;
   } else {
-    if (this->chainId_ < 0x80) total_size += 1;
-    else total_size += 1 + reqBytesV;
+    total_size += 1 + Utils::bytesRequired(reqBytesData) + reqBytesData;
   }
 
-  // R 
-  if (!includeSig) total_size += 1;
-  else total_size += 1 + reqBytesR;
+  if (includeSig) {
+    total_size += (this->v < 0x80) ? 1 : 1 + reqBytesV;
+  } else {
+    total_size += (this->chainId < 0x80) ? 1 : 1 + reqBytesV;
+  }
+  total_size += (!includeSig) ? 1 : 1 + reqBytesR;
+  total_size += (!includeSig) ? 1 : 1 + reqBytesS;
 
-  // S
-  if (!includeSig) total_size += 1;
-  else total_size += 1 + reqBytesS;
-
-  // Straight Serialize
+  // Serialize everything
   if (total_size <= 55) {
-    serial.reserve(total_size + 1);
-    serial += char(total_size + 0xc0);
+    ret.reserve(total_size + 1);
+    ret += char(total_size + 0xc0);
   } else {
     uint64_t sizeBytes = Utils::bytesRequired(total_size);
-    serial.reserve(total_size + sizeBytes + 1);
-    serial += char(sizeBytes + 0xf7);
-    serial += Utils::uintToBytes(total_size);
+    ret.reserve(total_size + sizeBytes + 1);
+    ret += char(sizeBytes + 0xf7);
+    ret += Utils::uintToBytes(total_size);
   }
 
   // Nonce
-  if (this->nonce_ == 0) serial += char(0x80);
-  else if (this->nonce_ < 0x80) serial += char(this->nonce_);
-  else {
-    serial += char(reqBytesNonce + 0x80);
-    serial += Utils::uintToBytes(this->nonce_);
+  if (this->nonce == 0) {
+    ret += char(0x80);
+  } else if (this->nonce < 0x80) {
+    ret += char(this->nonce);
+  } else {
+    ret += char(reqBytesNonce + 0x80);
+    ret += Utils::uintToBytes(this->nonce);
   }
 
   // Gas Price
-  if (this->gasPrice_ == 0) serial += char(0x80);
-  else if (this->gasPrice_ < 0x80) serial += char(this->gasPrice_);
-  else {
-    serial += char(reqBytesGasPrice + 0x80);
-    serial += Utils::uintToBytes(this->gasPrice_);
+  if (this->gasPrice == 0) {
+    ret += char(0x80);
+  } else if (this->gasPrice < 0x80) {
+    ret += char(this->gasPrice);
+  } else {
+    ret += char(reqBytesGasPrice + 0x80);
+    ret += Utils::uintToBytes(this->gasPrice);
   }
 
   // Gas
-  if (this->gas_ == 0) serial += char(0x80);
-  else if (this->gas_ < 0x80) serial += char(this->gas_);
-  else {
-    serial += char(reqBytesGas + 0x80);
-    serial += Utils::uintToBytes(this->gas_);
+  if (this->gas == 0) {
+    ret += char(0x80);
+  } else if (this->gas < 0x80) {
+    ret += char(this->gas);
+  } else {
+    ret += char(reqBytesGas + 0x80);
+    ret += Utils::uintToBytes(this->gas);
   }
 
   // To
-  serial += char(0x94);
-  serial += this->to_.get();
+  ret += char(0x94);
+  ret += this->to.get();
 
   // Value
-  if (this->value_ == 0) serial += char(0x80);
-  else if (this->value_ < 0x80) serial += char(this->value_);
-  else {
-    serial += char(reqBytesValue + 0x80);
-    serial += Utils::uintToBytes(this->value_);
+  if (this->value == 0) {
+    ret += char(0x80);
+  } else if (this->value < 0x80) {
+    ret += char(this->value);
+  } else {
+    ret += char(reqBytesValue + 0x80);
+    ret += Utils::uintToBytes(this->value);
   }
 
   // Data
-  if (this->data_.size() == 0) serial += char(0x80);
-  else if (reqBytesData <= 55) {
-    serial += char(reqBytesData + 0x80);
-    serial += this->data_;
+  if (this->data.size() == 0) {
+    ret += char(0x80);
+  } else if (reqBytesData <= 55) {
+    ret += char(reqBytesData + 0x80);
+    ret += this->data;
   } else {
-    serial += char(Utils::bytesRequired(reqBytesData) + 0xb7);
-    serial += Utils::uintToBytes(reqBytesData);
-    serial += this->data_;
+    ret += char(Utils::bytesRequired(reqBytesData) + 0xb7);
+    ret += Utils::uintToBytes(reqBytesData);
+    ret += this->data;
   }
 
   // V/chainId
   if (includeSig) {
-    if (this->v_ < 0x80) serial += char(this->v_);
-    else {
-      serial += char(reqBytesV + 0x80);
-      serial += Utils::uintToBytes(this->v_);
+    if (this->v < 0x80) {
+      ret += char(this->v);
+    } else {
+      ret += char(reqBytesV + 0x80);
+      ret += Utils::uintToBytes(this->v);
     }
   } else {
-    if (this->chainId_ < 0x80) serial += char(this->chainId_);
-    else {
-      serial += char(reqBytesV + 0x80);
-      serial += Utils::uintToBytes(this->chainId_);
+    if (this->chainId < 0x80) {
+      ret += char(this->chainId);
+    } else {
+      ret += char(reqBytesV + 0x80);
+      ret += Utils::uintToBytes(this->chainId);
     }
   }
 
   // R
-  if (!includeSig) serial += char(0x80);
-  else {
-    serial += char(reqBytesR + 0x80);
-    serial += Utils::uintToBytes(this->r_);
+  if (!includeSig) {
+    ret += char(0x80);
+  } else {
+    ret += char(reqBytesR + 0x80);
+    ret += Utils::uintToBytes(this->r);
   }
 
   // S
-  if (!includeSig) serial += char(0x80);
-  else {
-    serial += char(reqBytesS + 0x80);
-    serial += Utils::uintToBytes(this->s_);
+  if (!includeSig) {
+    ret += char(0x80);
+  } else {
+    ret += char(reqBytesS + 0x80);
+    ret += Utils::uintToBytes(this->s);
   }
 
-  return serial;
+  return ret;
 }
 
 TxValidator::TxValidator(const std::string_view& bytes) {
@@ -367,13 +344,13 @@ TxValidator::TxValidator(const std::string_view& bytes) {
 
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
   if (uint8_t(bytes[index]) < 0x80) {
-    this->data_ = bytes[index];
+    this->data = bytes[index];
     index++; // Index at rlp[1] size
   } else if (uint8_t(bytes[index]) < 0xb7) {
     uint8_t dataLength = bytes[index] - 0x80;
     index++; // Index at rlp[0] payload
     if (dataLength > 0) {
-      this->data_ = bytes.substr(index, dataLength);
+      this->data = bytes.substr(index, dataLength);
       index += dataLength; // Index at rlp[1] size
     }
   } else {
@@ -383,7 +360,7 @@ TxValidator::TxValidator(const std::string_view& bytes) {
       std::string_view(&bytes[index], dataLengthSize)
     );
     index += dataLengthSize; // Index at rlp[0] payload
-    this->data_ = bytes.substr(index, dataLength);
+    this->data = bytes.substr(index, dataLength);
     index += dataLength; // Index at rlp[1] size
   }
 
@@ -391,16 +368,13 @@ TxValidator::TxValidator(const std::string_view& bytes) {
   const uint8_t nHeightLength = (uint8_t(bytes[index]) >= 0x80) ? uint8_t(bytes[index]) - 0x80 : 0;
   if (nHeightLength != 0) {
     index++; // Index at rlp[1] payload
-    this->nHeight_ = Utils::fromBigEndian<uint64_t>(
+    this->nHeight = Utils::fromBigEndian<uint64_t>(
       std::string_view(&bytes[index], nHeightLength)
     );
     index += nHeightLength; // Index at rlp[2] size
   } else {
-    if (uint8_t(bytes[index]) == 0x80) {
-      this->nHeight_ = 0;
-    } else {
-      this->nHeight_ = Utils::fromBigEndian<uint64_t>(std::string_view(&bytes[index], 1));
-    }
+    this->nHeight = (uint8_t(bytes[index]) == 0x80)
+      ? 0 : Utils::fromBigEndian<uint64_t>(std::string_view(&bytes[index], 1));
     index++; // Index at rlp[2] size
   }
 
@@ -409,16 +383,13 @@ TxValidator::TxValidator(const std::string_view& bytes) {
   if (vLength != 0) {
     if (vLength > 0x37) throw std::runtime_error("V is not a small string");
     index++; // Index at rlp[2] payload
-    this->v_ = Utils::fromBigEndian<uint256_t>(
+    this->v = Utils::fromBigEndian<uint256_t>(
       std::string_view(&bytes[index], vLength)
     );
     index += vLength; // Index at rlp[3] size
   } else {
-    if  (uint8_t(bytes[index]) == 0x80) {
-      this->v_ = 0;
-    } else {
-      this->v_ = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
-    }
+    this->v = (uint8_t(bytes[index]) == 0x80)
+      ? 0 : Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
     index++; // Index at rlp[3] size
   }
 
@@ -426,62 +397,59 @@ TxValidator::TxValidator(const std::string_view& bytes) {
   uint8_t rLength = bytes[index] - 0x80;
   if (rLength > 0x37) throw std::runtime_error("R is not a small string");
   index++; // Index at rlp[3] payload
-  this->r_ = Utils::fromBigEndian<uint256_t>(
-    std::string_view(&bytes[index], rLength)
-  );
+  this->r = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], rLength));
   index += rLength; // Index at rlp[4] size
 
   // Get s - small string
   uint8_t sLength = bytes[index] - 0x80;
   if (sLength > 0x37) throw std::runtime_error("S is not a small string");
   index++; // Index at rlp[4] payload
-  this->s_ = Utils::fromBigEndian<uint256_t>(
-    std::string_view(&bytes[index], sLength)
-  );
+  this->s = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], sLength));
   index += sLength; // Index at rlp[5] size. rlp[5] doesn't exist on Validator txs
 
   // Get chainId - calculated from v
-  if (this->v_ > 36) {
-    this->chainId_ = static_cast<uint64_t>((this->v_ - 35) / 2);
-    if (this->chainId_ > std::numeric_limits<uint64_t>::max()) {
+  if (this->v > 36) {
+    this->chainId = static_cast<uint64_t>((this->v - 35) / 2);
+    if (this->chainId > std::numeric_limits<uint64_t>::max()) {
       throw std::runtime_error("chainId too high");
     }
-  } else if (this->v_ != 27 && this->v_ != 28) {
+  } else if (this->v != 27 && this->v != 28) {
     throw std::runtime_error("Invalid tx signature - v is not 27 or 28, v is "
-      + boost::lexical_cast<std::string>(this->v_));
+      + boost::lexical_cast<std::string>(this->v));
   }
 
   // Get recoveryId, verify the signature and derive sender address (from)
-  uint8_t recoveryId = uint8_t{this->v_ - (uint256_t(this->chainId_) * 2 + 35)};
-  if (!Secp256k1::verifySig(this->r_, this->s_, recoveryId)) {
+  uint8_t recoveryId = uint8_t{this->v - (uint256_t(this->chainId) * 2 + 35)};
+  if (!Secp256k1::verifySig(this->r, this->s, recoveryId)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
-  Signature sig = Secp256k1::makeSig(this->r_, this->s_, recoveryId);
+  Signature sig = Secp256k1::makeSig(this->r, this->s, recoveryId);
   Hash msgHash = this->hash(false); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
   if (key == UPubKey()) throw std::runtime_error("Invalid tx signature - cannot recover public key");
-  this->from_ = Secp256k1::toAddress(key);
+  this->from = Secp256k1::toAddress(key);
 }
 
 TxValidator::TxValidator(
   const Address from, const std::string data, const uint64_t chainId,
   const uint64_t nHeight, const PrivKey privKey
-) : from_(from), data_(data), chainId_(chainId), nHeight_(nHeight) {
+) : from(from), data(data), chainId(chainId), nHeight(nHeight) {
   if (privKey.size() != 32) throw std::runtime_error(
     "Invalid private key size - expected 32, got " + std::to_string(privKey.size())
   );
+
   UPubKey pubKey = Secp256k1::toUPub(privKey);
   Address add = Secp256k1::toAddress(pubKey);
-  auto hash = this->hash(false);
-  if (add != this->from_) throw std::runtime_error(
-    "Private key does not match sender address (from)"
-  );
+  Hash hash = this->hash(false);
+  if (add != this->from) throw std::runtime_error("Private key does not match sender address (from)");
+
   Signature sig = Secp256k1::sign(hash, privKey);
-  this->r_ = Utils::bytesToUint256(sig.view(0, 32));
-  this->s_ = Utils::bytesToUint256(sig.view(32,32));
+  this->r = Utils::bytesToUint256(sig.view(0, 32));
+  this->s = Utils::bytesToUint256(sig.view(32,32));
   uint8_t recoveryIds = sig[64];
-  this->v_ = recoveryIds + (this->chainId_ * 2 + 35);
-  if (!Secp256k1::verifySig(this->r_, this->s_, recoveryIds)) {
+  this->v = recoveryIds + (this->chainId * 2 + 35);
+
+  if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
   if (pubKey != Secp256k1::recover(sig, hash)) {
@@ -490,100 +458,100 @@ TxValidator::TxValidator(
 }
 
 std::string TxValidator::rlpSerialize(bool includeSig) const {
-  std::string serial;
+  std::string ret;
   uint64_t total_size = 0;
+  uint64_t reqBytesData = this->data.size();
+  uint64_t reqBytesnHeight = Utils::bytesRequired(this->nHeight);
+  uint64_t reqBytesV = Utils::bytesRequired((includeSig) ? this->v : this->chainId);
+  uint64_t reqBytesR = Utils::bytesRequired(this->r);
+  uint64_t reqBytesS = Utils::bytesRequired(this->s);
 
-  uint64_t reqBytesData = this->data_.size();
-  uint64_t reqBytesnHeight = Utils::bytesRequired(this->nHeight_);
-  uint64_t reqBytesV = Utils::bytesRequired((includeSig) ? this->v_ : this->chainId_);
-  uint64_t reqBytesR = Utils::bytesRequired(this->r_);
-  uint64_t reqBytesS = Utils::bytesRequired(this->s_);
-
-  // Calculate total size
-  // Data
-  if (this->data_.size() == 0) total_size += 1;
-  else if(reqBytesData <= 55) total_size += 1 + reqBytesData;
-  else(total_size += 1 + Utils::bytesRequired(reqBytesData) + reqBytesData);
-  
-  // nHeight
-  if (this->nHeight_ < 0x80) total_size += 1;
-  else total_size += 1 + reqBytesnHeight;
-
-  // V/chainId
-  if (includeSig) {
-    if (this->v_ < 0x80) total_size += 1;
-    else total_size += 1 + reqBytesV;
+  // Calculate total sizes
+  if (this->data.size() == 0) {
+    total_size += 1;
+  } else if (reqBytesData <= 55) {
+    total_size += 1 + reqBytesData;
   } else {
-    if (this->chainId_ < 0x80) total_size += 1;
-    else total_size += 1 + reqBytesV;
+    total_size += 1 + Utils::bytesRequired(reqBytesData) + reqBytesData;
   }
 
-  // R 
-  if (!includeSig) total_size += 1;
-  else total_size += 1 + reqBytesR;
+  total_size += (this->nHeight < 0x80) ? 1 : 1 + reqBytesnHeight;
 
-  // S
-  if (!includeSig) total_size += 1;
-  else total_size += 1 + reqBytesS;
-  
-  // Straight Serialize
+  if (includeSig) {
+    total_size += (this->v < 0x80) ? 1 : 1 + reqBytesV;
+  } else {
+    total_size += (this->chainId < 0x80) ? 1 : 1 + reqBytesV;
+  }
+
+  total_size += (!includeSig) ? 1 : 1 + reqBytesR;
+  total_size += (!includeSig) ? 1 : 1 + reqBytesS;
+
+  // Serialize everything
   if (total_size <= 55) {
-    serial.reserve(total_size + 1);
-    serial += char(total_size + 0xc0);
+    ret.reserve(total_size + 1);
+    ret += char(total_size + 0xc0);
   } else {
     uint64_t sizeBytes = Utils::bytesRequired(total_size);
-    serial.reserve(total_size + sizeBytes + 1);
-    serial += char(sizeBytes + 0xf7);
-    serial += Utils::uintToBytes(total_size);
+    ret.reserve(total_size + sizeBytes + 1);
+    ret += char(sizeBytes + 0xf7);
+    ret += Utils::uintToBytes(total_size);
   }
 
   // Data
-  if (this->data_.size() == 0) serial += char(0x80);
-  else if (reqBytesData <= 55) {
-    serial += char(reqBytesData + 0x80);
-    serial += this->data_;
+  if (this->data.size() == 0) {
+    ret += char(0x80);
+  } else if (reqBytesData <= 55) {
+    ret += char(reqBytesData + 0x80);
+    ret += this->data;
   } else {
-    serial += char(Utils::bytesRequired(reqBytesData) + 0xb7);
-    serial += Utils::uintToBytes(reqBytesData);
-    serial += this->data_;
+    ret += char(Utils::bytesRequired(reqBytesData) + 0xb7);
+    ret += Utils::uintToBytes(reqBytesData);
+    ret += this->data;
   }
 
   // nHeight
-  if(this->nHeight_ == 0) serial += char(0x80);
-  else if (this->nHeight_ < 0x80) serial += char(this->nHeight_);
-  else {
-    serial += char(reqBytesnHeight + 0x80);
-    serial += Utils::uintToBytes(this->nHeight_);
+  if (this->nHeight == 0) {
+    ret += char(0x80);
+  } else if (this->nHeight < 0x80) {
+    ret += char(this->nHeight);
+  } else {
+    ret += char(reqBytesnHeight + 0x80);
+    ret += Utils::uintToBytes(this->nHeight);
   }
 
   // V/chainId
   if (includeSig) {
-    if (this->v_ < 0x80) serial += char(this->v_);
-    else {
-      serial += char(reqBytesV + 0x80);
-      serial += Utils::uintToBytes(this->v_);
+    if (this->v < 0x80) {
+      ret += char(this->v);
+    } else {
+      ret += char(reqBytesV + 0x80);
+      ret += Utils::uintToBytes(this->v);
     }
   } else {
-    if (this->chainId_ < 0x80) serial += char(this->chainId_);
-    else {
-      serial += char(reqBytesV + 0x80);
-      serial += Utils::uintToBytes(this->chainId_);
+    if (this->chainId < 0x80) {
+      ret += char(this->chainId);
+    } else {
+      ret += char(reqBytesV + 0x80);
+      ret += Utils::uintToBytes(this->chainId);
     }
   }
 
   // R
-  if (!includeSig) serial += char(0x80);
-  else {
-    serial += char(reqBytesR + 0x80);
-    serial += Utils::uintToBytes(this->r_);
+  if (!includeSig) {
+    ret += char(0x80);
+  } else {
+    ret += char(reqBytesR + 0x80);
+    ret += Utils::uintToBytes(this->r);
   }
 
   // S
-  if (!includeSig) serial += char(0x80);
-  else {
-    serial += char(reqBytesS + 0x80);
-    serial += Utils::uintToBytes(this->s_);
+  if (!includeSig) {
+    ret += char(0x80);
+  } else {
+    ret += char(reqBytesS + 0x80);
+    ret += Utils::uintToBytes(this->s);
   }
 
-  return serial;
+  return ret;
 }
+

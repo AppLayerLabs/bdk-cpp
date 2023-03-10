@@ -92,15 +92,15 @@ bool State::validateNewBlock(Block& block) {
   const std::shared_ptr<const Block> best = this->storage->latest();
   if (best->getBlockHash() != block.getPrevBlockHash()) {
     Utils::logToDebug(Log::state, __func__, "Block previous hash does not match.");
-    Utils::logToDebug(Log::state, __func__, "Block previous hash: " + block.prevBlockHash().get());
+    Utils::logToDebug(Log::state, __func__, "Block previous hash: " + block.getPrevBlockHash().get());
     Utils::logToDebug(Log::state, __func__, "Best block hash: " + best->getBlockHash().get());
     return false;
   }
 
   if (block.getNHeight() != (best->getNHeight() + 1)) {
     Utils::logToDebug(Log::state, __func__, "Block height does not match.");
-    Utils::logToDebug(Log::state, __func__, "Block height: " + std::to_string(block.nHeight()));
-    Utils::logToDebug(Log::state, __func__, "Best block height: " + std::to_string(best->nHeight()));
+    Utils::logToDebug(Log::state, __func__, "Block height: " + std::to_string(block.getNHeight()));
+    Utils::logToDebug(Log::state, __func__, "Best block height: " + std::to_string(best->getNHeight()));
     return false;
   }
 
@@ -175,7 +175,7 @@ const std::shared_ptr<const Block> State::createNewBlock() {
   for (const auto& tx : valMempool) {
     Utils::logToDebug(Log::state, __func__,
       std::string("TX: ") + tx.second.hash().hex()
-      + ", FROM: " + tx.second.from().hex()
+      + ", FROM: " + tx.second.getFrom().hex()
       + ", TYPE: " + std::to_string(this->rdpos->getTxType(tx.second))
     );
   }
@@ -190,7 +190,7 @@ const std::shared_ptr<const Block> State::createNewBlock() {
     for (const auto& tx : valMempool) {
       if (valTxs.size() < this->rdpos->minValidators) { // Index the randomHash
         if (
-          tx.second.from() == valRandomList[valTxs.size() + 1].get().get() &&
+          tx.second.getFrom() == valRandomList[valTxs.size() + 1].get().get() &&
           this->rdpos->getTxType(tx.second) == rdPoS::TxType::randomHash
         ) { // Skip [0] as it is us
           valTxs.push_back(tx.second);
@@ -198,7 +198,7 @@ const std::shared_ptr<const Block> State::createNewBlock() {
         }
       } else { // Index the randomSeed
         if (
-          tx.second.from() == valRandomList[valTxs.size() - this->rdpos->minValidators + 1].get().get() &&
+          tx.second.getFrom() == valRandomList[valTxs.size() - this->rdpos->minValidators + 1].get().get() &&
           this->rdpos->getTxType(tx.second) == rdPoS::TxType::randomSeed
         ) {
           valTxs.push_back(tx.second);
