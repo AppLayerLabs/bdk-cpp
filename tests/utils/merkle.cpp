@@ -1,9 +1,8 @@
 #include <algorithm>
 
-#include "../src/utils/merkle.h"
-#include "../src/utils/tx.h"
-
-#include "../src/libs/catch2/catch_amalgamated.hpp"
+#include "../../src/utils/merkle.h"
+#include "../../src/utils/tx.h"
+#include "../../src/libs/catch2/catch_amalgamated.hpp"
 
 using Catch::Matchers::Equals;
 

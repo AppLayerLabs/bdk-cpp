@@ -1,5 +1,5 @@
-#include "../src/libs/catch2/catch_amalgamated.hpp"
-#include "../src/utils/strings.h"
+#include "../../src/libs/catch2/catch_amalgamated.hpp"
+#include "../../src/utils/strings.h"
 
 using Catch::Matchers::Equals;
 

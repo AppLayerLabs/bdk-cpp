@@ -1,7 +1,7 @@
-#include "../src/libs/catch2/catch_amalgamated.hpp"
-#include "../src/utils/utils.h"
-#include "../src/utils/strings.h"
-#include "../src/utils/hex.h"
+#include "../../src/libs/catch2/catch_amalgamated.hpp"
+#include "../../src/utils/utils.h"
+#include "../../src/utils/strings.h"
+#include "../../src/utils/hex.h"
 
 using Catch::Matchers::Equals;
 

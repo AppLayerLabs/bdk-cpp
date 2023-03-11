@@ -1,6 +1,6 @@
-#include "../src/libs/catch2/catch_amalgamated.hpp"
-#include "../src/utils/db.h"
-#include "../src/utils/strings.h"
+#include "../../src/libs/catch2/catch_amalgamated.hpp"
+#include "../../src/utils/db.h"
+#include "../../src/utils/strings.h"
 
 #include <filesystem>
 #include <string>

@@ -1,6 +1,6 @@
-#include "../src/libs/catch2/catch_amalgamated.hpp"
-#include "../src/utils/utils.h"
-#include "../src/utils/tx.h"
+#include "../../src/libs/catch2/catch_amalgamated.hpp"
+#include "../../src/utils/utils.h"
+#include "../../src/utils/tx.h"
 
 using Catch::Matchers::Equals;
 

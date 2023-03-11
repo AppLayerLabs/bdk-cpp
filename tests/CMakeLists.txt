@@ -5,15 +5,15 @@ set(TESTS_HEADERS
 
 set (TESTS_SOURCES
   ""
-  ${CMAKE_SOURCE_DIR}/tests/db.cpp
-  ${CMAKE_SOURCE_DIR}/tests/utils.cpp
-  ${CMAKE_SOURCE_DIR}/tests/hex.cpp
-  ${CMAKE_SOURCE_DIR}/tests/strings.cpp
-  ${CMAKE_SOURCE_DIR}/tests/merkle.cpp
-  ${CMAKE_SOURCE_DIR}/tests/ecdsa.cpp
-  ${CMAKE_SOURCE_DIR}/tests/randomgen.cpp
-  ${CMAKE_SOURCE_DIR}/tests/p2p.cpp
-  ${CMAKE_SOURCE_DIR}/tests/tx.cpp
-  ${CMAKE_SOURCE_DIR}/tests/block.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/db.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/utils.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/hex.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/strings.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/merkle.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/ecdsa.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/randomgen.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/p2p.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/tx.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/block.cpp
   PARENT_SCOPE
 )

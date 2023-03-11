@@ -1,7 +1,7 @@
 #include <algorithm>
 
-#include "../src/utils/randomgen.h"
-#include "../src/libs/catch2/catch_amalgamated.hpp"
+#include "../../src/utils/randomgen.h"
+#include "../../src/libs/catch2/catch_amalgamated.hpp"
 
 using Catch::Matchers::Equals;
 
