@@ -78,8 +78,8 @@ Block::Block(std::string_view bytes) {
         // Update offset, skip if this is the last thread
         if (i < txsPerThr.size() - 1) {
           for (uint64_t i = 0; i < nTxs; i++) {
-            uint8_t len = bytes[thrOff];
-            thrOff += len + 1;
+            uint64_t len = Utils::bytesToUint32(bytes.substr(thrOff, 4));
+            thrOff += len + 4;
           }
         }
       }
@@ -208,7 +208,7 @@ bool Block::finalize(const PrivKey& validatorPrivKey) {
   this->txMerkleRoot = Merkle(this->txs).getRoot();
   this->validatorMerkleRoot = Merkle(this->txValidators).getRoot();
   this->blockRandomness = rdPoS::parseTxSeedList(this->txValidators);
-  this->validatorSig = Secp256k1::sign(validatorPrivKey, this->hash());
+  this->validatorSig = Secp256k1::sign(this->hash(), validatorPrivKey);
   this->validatorPubKey = Secp256k1::recover(this->validatorSig, this->hash());
   this->finalized = true;
   return true;

@@ -1,5 +1,9 @@
 #include "rdpos.h"
 
+// TODO: move these to contracts.
+// "0x6fc5a2d6" -> Function for random tx
+// "0xcfffe746" -> Function for random hash tx
+
 Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
   std::string seed;
   if (txs.size() == 0) return Hash();
