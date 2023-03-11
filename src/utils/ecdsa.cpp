@@ -1,9 +1,16 @@
 #include "ecdsa.h"
 
+secp256k1_context const* Secp256k1::getCtx() {
+  static std::unique_ptr<secp256k1_context, ContextDeleter> s_ctx{
+      secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY)
+  };
+  return s_ctx.get();
+}
+
 UPubKey Secp256k1::recover(const Signature& sig, const Hash& msg) {
   int v = sig[64];
   if (v > 3) { return UPubKey(); }
-  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  auto* ctx = Secp256k1::getCtx();
 
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
@@ -22,7 +29,6 @@ UPubKey Secp256k1::recover(const Signature& sig, const Hash& msg) {
     &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED
   );
 
-  secp256k1_context_destroy(ctx);
   assert(serializedPubkeySize == serializedPubkey.size());
   assert(serializedPubkey[0] == 0x04); // Expect single byte header of value 0x04 = uncompressed pubkey
 
@@ -52,7 +58,7 @@ bool Secp256k1::verifySig(const uint256_t& r, const uint256_t& s, const uint8_t&
 }
 
 UPubKey Secp256k1::toUPub(const PrivKey& key) {
-  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  auto* ctx = Secp256k1::getCtx();
 
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_create(
@@ -73,7 +79,7 @@ UPubKey Secp256k1::toUPub(const PrivKey& key) {
 }
 
 UPubKey Secp256k1::toUPub(const PubKey& key) {
-  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  auto* ctx = Secp256k1::getCtx();
 
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_parse(
@@ -94,7 +100,7 @@ UPubKey Secp256k1::toUPub(const PubKey& key) {
 }
 
 PubKey Secp256k1::toPub(const PrivKey& key) {
-  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  auto* ctx = Secp256k1::getCtx();
 
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ec_pubkey_create(
@@ -124,7 +130,7 @@ Address Secp256k1::toAddress(const PubKey& key) {
 }
 
 Signature Secp256k1::sign(const Hash& msg, const PrivKey& key) {
-  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  auto* ctx = Secp256k1::getCtx();
 
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_sign_recoverable(ctx, &rawSig,
@@ -153,13 +159,12 @@ Signature Secp256k1::sign(const Hash& msg, const PrivKey& key) {
 }
 
 bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig) {
-  auto* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  auto* ctx = Secp256k1::getCtx();
 
   secp256k1_ecdsa_signature rawSig;
   if (!secp256k1_ecdsa_signature_parse_compact(
     ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.raw())
   )) {
-    secp256k1_context_destroy(ctx);
     return false;
   }
 
@@ -167,7 +172,6 @@ bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig
   if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey,
     reinterpret_cast<const unsigned char*>(key.raw()), key.size()
   )) {
-    secp256k1_context_destroy(ctx);
     return false;
   }
 
@@ -175,7 +179,6 @@ bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig
     reinterpret_cast<const unsigned char*>(msg.raw()), &rawPubkey
   );
 
-  secp256k1_context_destroy(ctx);
   return ret;
 }
 

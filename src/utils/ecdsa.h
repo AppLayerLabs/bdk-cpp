@@ -15,6 +15,21 @@ using UPubKey = FixedStr<65>;
  * Namespace for abstracting secp256k1 functions.
  */
 namespace Secp256k1 {
+
+  /**
+   * secp256k1_context pointer deleter for RAII.
+   */
+  struct ContextDeleter {
+    void operator()(secp256k1_context* ctx) const {
+      secp256k1_context_destroy(ctx);
+    }
+  };
+
+  /**
+   * secp256k1_context pointer wrapper for RAII.
+   */
+   secp256k1_context const* getCtx();
+
   /**
    * Elliptic curve constant (2^256 - 2^32 - 2^9 - 2^8 - 2^7 - 2^6 - 2^4 - 1).
    * Equals to 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141.
