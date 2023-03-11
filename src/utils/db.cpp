@@ -12,7 +12,7 @@ DB::DB(const std::string path) {
   }
 }
 
-bool DB::has(const std::string& key, const std::string& pfx) const {
+bool DB::has(const std::string& key, const std::string& pfx) {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
   for (it->Seek(pfx + key); it->Valid(); it->Next()) {
     if (it->key().ToString() == pfx + key) { delete it; return true; }

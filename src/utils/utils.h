@@ -39,46 +39,46 @@ void fail(std::string_view cl, std::string func, boost::beast::error_code ec, co
 /**
  * Namespace with string prefixes for each blockchain module, for printing log/debug messages.
  * Values are as follows:
- * - blockchain = "Blockchain::"
- * - storage = "Storage::"
- * - snowmanVM = "SnowmanVM::"
- * - block = "Block::"
- * - db = "DB::"
- * - state = "State::"
- * - grpcServer = "gRPCServer::"
- * - grpcClient = "gRPCClient::"
- * - utils = "Utils::"
- * - httpServer = "HTTPServer::"
- * - rdpos = "rdPoS::"
- * - ABI = "ABI::"
+ * - blockchain = "Blockchain"
+ * - storage = "Storage"
+ * - snowmanVM = "SnowmanVM"
+ * - block = "Block"
+ * - db = "DB"
+ * - state = "State"
+ * - grpcServer = "gRPCServer"
+ * - grpcClient = "gRPCClient"
+ * - utils = "Utils"
+ * - httpServer = "HTTPServer"
+ * - rdpos = "rdPoS"
+ * - ABI = "ABI"
  * - P2P::ClientSession = "P2P::ClientSession"
  * - P2P::Server = "P2P::Server"
  * - P2P::ServerListener = "P2P::ServerListener"
  * - P2P::ServerSession = "P2P::ServerSession"
  * - P2P::Manager = "P2P::Manager"
  * - P2P::Parser = "P2P::Parser" <- Part of P2P::Manager
- * - contractManager = "ContractManager::"
+ * - contractManager = "ContractManager"
  */
 namespace Log {
-  const std::string blockchain = "Blockchain::";
-  const std::string storage = "Storage::";
-  const std::string snowmanVM = "SnowmanVM::";
-  const std::string block = "Block::";
-  const std::string db = "DB::";
-  const std::string state = "State::";
-  const std::string grpcServer = "gRPCServer::";
-  const std::string grpcClient = "gRPCClient::";
-  const std::string utils = "Utils::";
-  const std::string httpServer = "HTTPServer::";
-  const std::string rdpos = "rdPoS::";
-  const std::string ABI = "ABI::";
+  const std::string blockchain = "Blockchain";
+  const std::string storage = "Storage";
+  const std::string snowmanVM = "SnowmanVM";
+  const std::string block = "Block";
+  const std::string db = "DB";
+  const std::string state = "State";
+  const std::string grpcServer = "gRPCServer";
+  const std::string grpcClient = "gRPCClient";
+  const std::string utils = "Utils";
+  const std::string httpServer = "HTTPServer";
+  const std::string rdpos = "rdPoS";
+  const std::string ABI = "ABI";
   const std::string P2PClientSession = "P2P::ClientSession";
   const std::string P2PServer = "P2P::Server";
   const std::string P2PServerListener = "P2P::ServerListener";
   const std::string P2PServerSession = "P2P::ServerSession";
   const std::string P2PManager = "P2P::Manager";
   const std::string P2PParser = "P2P::Parser";
-  const std::string contractManager = "ContractManager::";
+  const std::string contractManager = "ContractManager";
 }
 
 /// Enum for network type.

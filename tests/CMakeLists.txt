@@ -15,5 +15,6 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/p2p.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/tx.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/block.cpp
+  ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   PARENT_SCOPE
 )

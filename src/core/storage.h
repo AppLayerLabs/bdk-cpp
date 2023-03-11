@@ -1,9 +1,9 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
-#include <mutex>
+#include <shared_mutex>
 
-//#include "../utils/block.h"
+#include "../utils/block.h"
 #include "../utils/db.h"
 #include "../utils/ecdsa.h"
 #include "../utils/randomgen.h"
@@ -21,10 +21,11 @@ class Block;
 class Storage {
   private:
     /// Pointer to the database that contains the blockchain's entire history.
-    std::shared_ptr<DB> db;
+    const std::unique_ptr<DB>& db;
 
     /**
-     * The recent blockchain history, up to the 1000 most recent blocks.
+     * The recent blockchain history, up to the 1000 most recent blocks,
+     * Or 10M transactions, whichever comes first.
      * This limit is required because it would be too expensive to keep
      * every single transaction in memory all the time, so once it reaches
      * the limit, or every now and then, the blocks are dumped to the database.
@@ -54,7 +55,7 @@ class Storage {
     mutable std::unordered_map<Hash, std::shared_ptr<const TxBlock>, SafeHash> cachedTxs;
 
     /// Mutex for managing read/write access to the blockchain.
-    mutable std::mutex chainLock;
+    mutable std::shared_mutex chainLock;
 
     /// Thread that periodically saves the blockchain history to the database.
     std::thread periodicSaveThread;
@@ -87,7 +88,7 @@ class Storage {
      * Constructor. Automatically starts the periodic save thread.
      * @param db Pointer to the database.
      */
-    Storage(const std::shared_ptr<DB>& db) : db(db) {
+    Storage(const std::unique_ptr<DB>& db) : db(db) {
       this->loadFromDB();
       this->periodicSaveThread = std::thread([&]{ this->periodicSaveToDB(); });
       this->periodicSaveThread.detach();
@@ -166,7 +167,7 @@ class Storage {
      */
     const std::shared_ptr<const Block> latest();
 
-    /// Get the number of blocks currently in the chain.
+    /// Get the number of blocks currently in the std::deque.
     uint64_t blockSize();
 
     /// Save the latest blocks from memory to database (up to 1000).

@@ -107,7 +107,7 @@ class DB {
      * @param pfx (optional) The prefix to search for. Defaults to an empty string.
      * @return `true` if the key exists, `false` otherwise.
      */
-    bool has(const std::string& key, const std::string& pfx = "") const;
+    bool has(const std::string& key, const std::string& pfx = "");
 
     /**
      * Get a value from a given key in the database.
