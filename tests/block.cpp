@@ -16,6 +16,7 @@ namespace TBlock {
 
       newBlock.finalize(validatorPrivKey);
 
+      Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
 
       // Check within reconstructed block
@@ -44,6 +45,46 @@ namespace TBlock {
       REQUIRE(reconstructedBlock.getTxs() == newBlock.getTxs());
       REQUIRE(reconstructedBlock.getValidatorPubKey() == newBlock.getValidatorPubKey());
       REQUIRE(reconstructedBlock.isFinalized() == newBlock.isFinalized());
+
+      // Compare created reconstructed block with block copy constructor
+      REQUIRE(reconstructedBlock.getValidatorSig() == blockCopyConstructor.getValidatorSig());
+      REQUIRE(reconstructedBlock.getPrevBlockHash() == blockCopyConstructor.getPrevBlockHash());
+      REQUIRE(reconstructedBlock.getBlockRandomness() == blockCopyConstructor.getBlockRandomness());
+      REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == blockCopyConstructor.getValidatorMerkleRoot());
+      REQUIRE(reconstructedBlock.getTxMerkleRoot() == blockCopyConstructor.getTxMerkleRoot());
+      REQUIRE(reconstructedBlock.getTimestamp() == blockCopyConstructor.getTimestamp());
+      REQUIRE(reconstructedBlock.getNHeight() == blockCopyConstructor.getNHeight());
+      REQUIRE(reconstructedBlock.getTxValidators() == blockCopyConstructor.getTxValidators());
+      REQUIRE(reconstructedBlock.getTxs() == blockCopyConstructor.getTxs());
+      REQUIRE(reconstructedBlock.getValidatorPubKey() == blockCopyConstructor.getValidatorPubKey());
+      REQUIRE(reconstructedBlock.isFinalized() == blockCopyConstructor.isFinalized());
+
+      std::shared_ptr<Block> blockPtr = std::make_shared<Block>(std::move(newBlock));
+
+      // New block was moved, check blockPtr and newBlock.
+      REQUIRE(blockPtr->getValidatorSig() == reconstructedBlock.getValidatorSig());
+      REQUIRE(blockPtr->getPrevBlockHash() == reconstructedBlock.getPrevBlockHash());
+      REQUIRE(blockPtr->getBlockRandomness() == reconstructedBlock.getBlockRandomness());
+      REQUIRE(blockPtr->getValidatorMerkleRoot() == reconstructedBlock.getValidatorMerkleRoot());
+      REQUIRE(blockPtr->getTxMerkleRoot() == reconstructedBlock.getTxMerkleRoot());
+      REQUIRE(blockPtr->getTimestamp() == reconstructedBlock.getTimestamp());
+      REQUIRE(blockPtr->getNHeight() == reconstructedBlock.getNHeight());
+      REQUIRE(blockPtr->getTxValidators() == reconstructedBlock.getTxValidators());
+      REQUIRE(blockPtr->getTxs() == reconstructedBlock.getTxs());
+      REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
+      REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
+
+      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
+      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
+      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
+      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTimestamp() == 1678400201858);
+      REQUIRE(newBlock.getNHeight() == 92137812);
+      REQUIRE(newBlock.getTxValidators().size() == 0);
+      REQUIRE(newBlock.getTxs().size() == 0);
+      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
+      REQUIRE(newBlock.isFinalized() == false);
     }
 
     SECTION("Block creation with 10 transactions") {
@@ -57,7 +98,8 @@ namespace TBlock {
       for (uint64_t i = 0; i < 10; i++) newBlock.appendTx(tx);
 
       newBlock.finalize(validatorPrivKey);
-
+      
+      Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
 
       // Check within reconstructed block
@@ -88,6 +130,46 @@ namespace TBlock {
       REQUIRE(reconstructedBlock.getTxs() == newBlock.getTxs());
       REQUIRE(reconstructedBlock.getValidatorPubKey() == newBlock.getValidatorPubKey());
       REQUIRE(reconstructedBlock.isFinalized() == newBlock.isFinalized());
+
+      // Compare created reconstructed block with block copy constructor
+      REQUIRE(reconstructedBlock.getValidatorSig() == blockCopyConstructor.getValidatorSig());
+      REQUIRE(reconstructedBlock.getPrevBlockHash() == blockCopyConstructor.getPrevBlockHash());
+      REQUIRE(reconstructedBlock.getBlockRandomness() == blockCopyConstructor.getBlockRandomness());
+      REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == blockCopyConstructor.getValidatorMerkleRoot());
+      REQUIRE(reconstructedBlock.getTxMerkleRoot() == blockCopyConstructor.getTxMerkleRoot());
+      REQUIRE(reconstructedBlock.getTimestamp() == blockCopyConstructor.getTimestamp());
+      REQUIRE(reconstructedBlock.getNHeight() == blockCopyConstructor.getNHeight());
+      REQUIRE(reconstructedBlock.getTxValidators() == blockCopyConstructor.getTxValidators());
+      REQUIRE(reconstructedBlock.getTxs() == blockCopyConstructor.getTxs());
+      REQUIRE(reconstructedBlock.getValidatorPubKey() == blockCopyConstructor.getValidatorPubKey());
+      REQUIRE(reconstructedBlock.isFinalized() == blockCopyConstructor.isFinalized());
+
+      std::shared_ptr<Block> blockPtr = std::make_shared<Block>(std::move(newBlock));
+
+      // New block was moved, check blockPtr and newBlock.
+      REQUIRE(blockPtr->getValidatorSig() == reconstructedBlock.getValidatorSig());
+      REQUIRE(blockPtr->getPrevBlockHash() == reconstructedBlock.getPrevBlockHash());
+      REQUIRE(blockPtr->getBlockRandomness() == reconstructedBlock.getBlockRandomness());
+      REQUIRE(blockPtr->getValidatorMerkleRoot() == reconstructedBlock.getValidatorMerkleRoot());
+      REQUIRE(blockPtr->getTxMerkleRoot() == reconstructedBlock.getTxMerkleRoot());
+      REQUIRE(blockPtr->getTimestamp() == reconstructedBlock.getTimestamp());
+      REQUIRE(blockPtr->getNHeight() == reconstructedBlock.getNHeight());
+      REQUIRE(blockPtr->getTxValidators() == reconstructedBlock.getTxValidators());
+      REQUIRE(blockPtr->getTxs() == reconstructedBlock.getTxs());
+      REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
+      REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
+
+      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
+      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
+      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
+      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTimestamp() == 1678400843315);
+      REQUIRE(newBlock.getNHeight() == 100);
+      REQUIRE(newBlock.getTxValidators().size() == 0);
+      REQUIRE(newBlock.getTxs().size() == 0);
+      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
+      REQUIRE(newBlock.isFinalized() == false);
     }
 
  
@@ -144,6 +226,7 @@ namespace TBlock {
       // Sign block with block validator private key.
       newBlock.finalize(blockValidatorPrivKey);
 
+      Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
 
       // Check within reconstructed block
@@ -174,6 +257,46 @@ namespace TBlock {
       REQUIRE(reconstructedBlock.getTxs() == newBlock.getTxs());
       REQUIRE(reconstructedBlock.getValidatorPubKey() == newBlock.getValidatorPubKey());
       REQUIRE(reconstructedBlock.isFinalized() == newBlock.isFinalized());
+
+      // Compare created reconstructed block with block copy constructor
+      REQUIRE(reconstructedBlock.getValidatorSig() == blockCopyConstructor.getValidatorSig());
+      REQUIRE(reconstructedBlock.getPrevBlockHash() == blockCopyConstructor.getPrevBlockHash());
+      REQUIRE(reconstructedBlock.getBlockRandomness() == blockCopyConstructor.getBlockRandomness());
+      REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == blockCopyConstructor.getValidatorMerkleRoot());
+      REQUIRE(reconstructedBlock.getTxMerkleRoot() == blockCopyConstructor.getTxMerkleRoot());
+      REQUIRE(reconstructedBlock.getTimestamp() == blockCopyConstructor.getTimestamp());
+      REQUIRE(reconstructedBlock.getNHeight() == blockCopyConstructor.getNHeight());
+      REQUIRE(reconstructedBlock.getTxValidators() == blockCopyConstructor.getTxValidators());
+      REQUIRE(reconstructedBlock.getTxs() == blockCopyConstructor.getTxs());
+      REQUIRE(reconstructedBlock.getValidatorPubKey() == blockCopyConstructor.getValidatorPubKey());
+      REQUIRE(reconstructedBlock.isFinalized() == blockCopyConstructor.isFinalized());
+
+      std::shared_ptr<Block> blockPtr = std::make_shared<Block>(std::move(newBlock));
+
+      // New block was moved, check blockPtr and newBlock.
+      REQUIRE(blockPtr->getValidatorSig() == reconstructedBlock.getValidatorSig());
+      REQUIRE(blockPtr->getPrevBlockHash() == reconstructedBlock.getPrevBlockHash());
+      REQUIRE(blockPtr->getBlockRandomness() == reconstructedBlock.getBlockRandomness());
+      REQUIRE(blockPtr->getValidatorMerkleRoot() == reconstructedBlock.getValidatorMerkleRoot());
+      REQUIRE(blockPtr->getTxMerkleRoot() == reconstructedBlock.getTxMerkleRoot());
+      REQUIRE(blockPtr->getTimestamp() == reconstructedBlock.getTimestamp());
+      REQUIRE(blockPtr->getNHeight() == reconstructedBlock.getNHeight());
+      REQUIRE(blockPtr->getTxValidators() == reconstructedBlock.getTxValidators());
+      REQUIRE(blockPtr->getTxs() == reconstructedBlock.getTxs());
+      REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
+      REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
+
+      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
+      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
+      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
+      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTimestamp() == 1678464099412509);
+      REQUIRE(newBlock.getNHeight() == 331653115);
+      REQUIRE(newBlock.getTxValidators().size() == 0);
+      REQUIRE(newBlock.getTxs().size() == 0);
+      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
+      REQUIRE(newBlock.isFinalized() == false);
     }
 
     SECTION("Block with 500 dynamically created transactions and 64 dynamically created validator transactions") {
@@ -245,6 +368,7 @@ namespace TBlock {
       // Sign block with block validator private key.
       newBlock.finalize(blockValidatorPrivKey);
 
+      Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
 
       // Check within reconstructed block
@@ -274,6 +398,46 @@ namespace TBlock {
       REQUIRE(reconstructedBlock.getTxs() == newBlock.getTxs());
       REQUIRE(reconstructedBlock.getValidatorPubKey() == newBlock.getValidatorPubKey());
       REQUIRE(reconstructedBlock.isFinalized() == newBlock.isFinalized());
+
+      // Compare created reconstructed block with block copy constructor
+      REQUIRE(reconstructedBlock.getValidatorSig() == blockCopyConstructor.getValidatorSig());
+      REQUIRE(reconstructedBlock.getPrevBlockHash() == blockCopyConstructor.getPrevBlockHash());
+      REQUIRE(reconstructedBlock.getBlockRandomness() == blockCopyConstructor.getBlockRandomness());
+      REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == blockCopyConstructor.getValidatorMerkleRoot());
+      REQUIRE(reconstructedBlock.getTxMerkleRoot() == blockCopyConstructor.getTxMerkleRoot());
+      REQUIRE(reconstructedBlock.getTimestamp() == blockCopyConstructor.getTimestamp());
+      REQUIRE(reconstructedBlock.getNHeight() == blockCopyConstructor.getNHeight());
+      REQUIRE(reconstructedBlock.getTxValidators() == blockCopyConstructor.getTxValidators());
+      REQUIRE(reconstructedBlock.getTxs() == blockCopyConstructor.getTxs());
+      REQUIRE(reconstructedBlock.getValidatorPubKey() == blockCopyConstructor.getValidatorPubKey());
+      REQUIRE(reconstructedBlock.isFinalized() == blockCopyConstructor.isFinalized());
+
+      std::shared_ptr<Block> blockPtr = std::make_shared<Block>(std::move(newBlock));
+
+      // New block was moved, check blockPtr and newBlock.
+      REQUIRE(blockPtr->getValidatorSig() == reconstructedBlock.getValidatorSig());
+      REQUIRE(blockPtr->getPrevBlockHash() == reconstructedBlock.getPrevBlockHash());
+      REQUIRE(blockPtr->getBlockRandomness() == reconstructedBlock.getBlockRandomness());
+      REQUIRE(blockPtr->getValidatorMerkleRoot() == reconstructedBlock.getValidatorMerkleRoot());
+      REQUIRE(blockPtr->getTxMerkleRoot() == reconstructedBlock.getTxMerkleRoot());
+      REQUIRE(blockPtr->getTimestamp() == reconstructedBlock.getTimestamp());
+      REQUIRE(blockPtr->getNHeight() == reconstructedBlock.getNHeight());
+      REQUIRE(blockPtr->getTxValidators() == reconstructedBlock.getTxValidators());
+      REQUIRE(blockPtr->getTxs() == reconstructedBlock.getTxs());
+      REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
+      REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
+
+      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
+      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
+      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
+      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTimestamp() == 64545214243);
+      REQUIRE(newBlock.getNHeight() == 6414363551);
+      REQUIRE(newBlock.getTxValidators().size() == 0);
+      REQUIRE(newBlock.getTxs().size() == 0);
+      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
+      REQUIRE(newBlock.isFinalized() == false);
     }
 
     SECTION("Block with 40000 dynamically created transactions and 256 dynamically created validator transactions") {
@@ -345,6 +509,7 @@ namespace TBlock {
       // Sign block with block validator private key.
       newBlock.finalize(blockValidatorPrivKey);
 
+      Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
 
       // Check within reconstructed block
@@ -374,6 +539,46 @@ namespace TBlock {
       REQUIRE(reconstructedBlock.getTxs() == newBlock.getTxs());
       REQUIRE(reconstructedBlock.getValidatorPubKey() == newBlock.getValidatorPubKey());
       REQUIRE(reconstructedBlock.isFinalized() == newBlock.isFinalized());
+
+      // Compare created reconstructed block with block copy constructor
+      REQUIRE(reconstructedBlock.getValidatorSig() == blockCopyConstructor.getValidatorSig());
+      REQUIRE(reconstructedBlock.getPrevBlockHash() == blockCopyConstructor.getPrevBlockHash());
+      REQUIRE(reconstructedBlock.getBlockRandomness() == blockCopyConstructor.getBlockRandomness());
+      REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == blockCopyConstructor.getValidatorMerkleRoot());
+      REQUIRE(reconstructedBlock.getTxMerkleRoot() == blockCopyConstructor.getTxMerkleRoot());
+      REQUIRE(reconstructedBlock.getTimestamp() == blockCopyConstructor.getTimestamp());
+      REQUIRE(reconstructedBlock.getNHeight() == blockCopyConstructor.getNHeight());
+      REQUIRE(reconstructedBlock.getTxValidators() == blockCopyConstructor.getTxValidators());
+      REQUIRE(reconstructedBlock.getTxs() == blockCopyConstructor.getTxs());
+      REQUIRE(reconstructedBlock.getValidatorPubKey() == blockCopyConstructor.getValidatorPubKey());
+      REQUIRE(reconstructedBlock.isFinalized() == blockCopyConstructor.isFinalized());
+
+      std::shared_ptr<Block> blockPtr = std::make_shared<Block>(std::move(newBlock));
+
+      // New block was moved, check blockPtr and newBlock.
+      REQUIRE(blockPtr->getValidatorSig() == reconstructedBlock.getValidatorSig());
+      REQUIRE(blockPtr->getPrevBlockHash() == reconstructedBlock.getPrevBlockHash());
+      REQUIRE(blockPtr->getBlockRandomness() == reconstructedBlock.getBlockRandomness());
+      REQUIRE(blockPtr->getValidatorMerkleRoot() == reconstructedBlock.getValidatorMerkleRoot());
+      REQUIRE(blockPtr->getTxMerkleRoot() == reconstructedBlock.getTxMerkleRoot());
+      REQUIRE(blockPtr->getTimestamp() == reconstructedBlock.getTimestamp());
+      REQUIRE(blockPtr->getNHeight() == reconstructedBlock.getNHeight());
+      REQUIRE(blockPtr->getTxValidators() == reconstructedBlock.getTxValidators());
+      REQUIRE(blockPtr->getTxs() == reconstructedBlock.getTxs());
+      REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
+      REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
+
+      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
+      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
+      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
+      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
+      REQUIRE(newBlock.getTimestamp() == 230915972837111);
+      REQUIRE(newBlock.getNHeight() == 239178513);
+      REQUIRE(newBlock.getTxValidators().size() == 0);
+      REQUIRE(newBlock.getTxs().size() == 0);
+      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
+      REQUIRE(newBlock.isFinalized() == false);
     }
   }
 }

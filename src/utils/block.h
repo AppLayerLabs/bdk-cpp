@@ -100,6 +100,42 @@ class Block {
     Block(const Hash& prevBlockHash, const uint64_t& timestamp, const uint64_t& nHeight)
       : prevBlockHash(prevBlockHash), timestamp(timestamp), nHeight(nHeight) {}
 
+    /**
+     * Block copy constructor.
+     * @param block The block to copy.
+     */
+
+    Block(const Block& block) :
+      validatorSig(block.validatorSig),
+      prevBlockHash(block.prevBlockHash),
+      blockRandomness(block.blockRandomness),
+      validatorMerkleRoot(block.validatorMerkleRoot),
+      txMerkleRoot(block.txMerkleRoot),
+      timestamp(block.timestamp),
+      nHeight(block.nHeight),
+      txValidators(block.txValidators),
+      txs(block.txs),
+      validatorPubKey(block.validatorPubKey),
+      finalized(block.finalized) {}
+
+    /**
+     * Block move constructor.
+     * @param block The block to move.
+     */
+
+    Block(Block&& block) :
+      validatorSig(std::move(block.validatorSig)),
+      prevBlockHash(std::move(block.prevBlockHash)),
+      blockRandomness(std::move(block.blockRandomness)),
+      validatorMerkleRoot(std::move(block.validatorMerkleRoot)),
+      txMerkleRoot(std::move(block.txMerkleRoot)),
+      timestamp(std::move(block.timestamp)),
+      nHeight(std::move(block.nHeight)),
+      txValidators(std::move(block.txValidators)),
+      txs(std::move(block.txs)),
+      validatorPubKey(std::move(block.validatorPubKey)),
+      finalized(std::move(block.finalized)) { block.finalized = false; return; } // Block moved -> invalid block, as member of block were moved.
+
     /// Getter for `validatorSig`.
     const Signature& getValidatorSig() const { return validatorSig; }
 
