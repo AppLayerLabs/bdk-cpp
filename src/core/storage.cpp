@@ -66,7 +66,6 @@ void Storage::saveToDB() {
       // Batch block to be saved to the database.
       // We can't call this->popBack() because of the mutex
       std::shared_ptr<const Block> block = this->chain.front();
-      if (block == latest) break; // Skip latest block
       blockBatch.puts.emplace_back(DBEntry(
         block->hash().get(), block->serializeBlock()
       ));
@@ -134,7 +133,7 @@ void Storage::loadFromDB() {
   std::vector<DBEntry> maps = this->db->getBatch(DBPrefix::blockHeightMaps);
   for (DBEntry& map : maps) {
     Utils::logToDebug(Log::storage, __func__,
-      std::string("Indexing height ")
+      std::string(" ")
       + std::to_string(Utils::bytesToUint64(map.key))
       + std::string(", hash ") + Hash(map.value).hex().get()
     );
@@ -142,13 +141,11 @@ void Storage::loadFromDB() {
     this->blockHeightByHash[Hash(map.value)] = Utils::bytesToUint64(map.key);
   }
 
-  // Append up to 1000 most recent blocks from DB to chain
+  // Append up to 500 most recent blocks from DB to chain
   Utils::logToDebug(Log::storage, __func__, "Appending recent blocks");
-  for (uint64_t i = 0; i <= 1000 && i <= depth; i++) {
+  for (uint64_t i = 0; i <= 500 && i <= depth; i++) {
     Utils::logToDebug(Log::storage, __func__,
-      std::to_string(i) + std::string(" - height: ") + Hex::fromBytes(
-        this->db->get(this->blockHashByHeight[depth - i].get())
-      ).get()
+      std::string("Height: ") + std::to_string(depth - i) + " hash: "  + this->blockHashByHeight[depth - i].hex().get()
     );
     Block block(this->db->get(this->blockHashByHeight[depth - i].get(), DBPrefix::blocks));
     this->pushFrontInternal(std::move(block));
@@ -195,14 +192,18 @@ void Storage::popFront() {
 
 bool Storage::hasBlock(const Hash& hash) {
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
-  bool result = this->blockByHash.count(hash) > 0;
-  return result;
+  return this->blockByHash.contains(hash);
 }
 
 bool Storage::hasBlock(const uint64_t& height) {
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
-  bool result = this->blockHashByHeight.count(height) > 0;
-  return result;
+  auto it = this->blockHashByHeight.find(height);
+  if (it != this->blockHashByHeight.end()) {
+    if (this->blockByHash.contains(it->second)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool Storage::exists(const Hash& hash) {
@@ -224,7 +225,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
   if (this->hasBlock(hash)) {
     ret = this->blockByHash.find(hash)->second;
-  } else if (this->cachedBlocks.count(hash) > 0) {
+  } else if (this->cachedBlocks.contains(hash)) {
     ret = this->cachedBlocks[hash];
   } else {
     ret = std::make_shared<Block>(this->db->get(hash.get(), DBPrefix::blocks));
@@ -243,7 +244,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
     ret = this->blockByHash.find(this->blockHashByHeight.find(height)->second)->second;
   } else {
     Hash hash(this->db->get(Utils::uint64ToBytes(height), DBPrefix::blockHeightMaps));
-    ret = (this->cachedBlocks.count(hash) > 0)
+    ret = (this->cachedBlocks.contains(hash))
       ? this->cachedBlocks[hash]
       : std::make_shared<Block>(this->db->get(hash.get(), DBPrefix::blocks));
   }
@@ -252,8 +253,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
 
 bool Storage::hasTx(const Hash& tx) {
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
-  bool ret = (this->txByHash.count(tx) > 0);
-  return ret;
+  return this->txByHash.contains(tx);
 }
 
 const std::shared_ptr<const TxBlock> Storage::getTx(const Hash& tx) {
@@ -263,7 +263,7 @@ const std::shared_ptr<const TxBlock> Storage::getTx(const Hash& tx) {
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
   if (this->hasTx(tx)) {
     ret = this->txByHash.find(tx)->second;
-  } else if (this->cachedTxs.count(tx) > 0) {
+  } else if (this->cachedTxs.contains(tx)) {
     ret = this->cachedTxs[tx];
   } else if (this->db->has(tx.get(), DBPrefix::txToBlocks)) {
     Hash hash(this->db->get(tx.get(), DBPrefix::txToBlocks));

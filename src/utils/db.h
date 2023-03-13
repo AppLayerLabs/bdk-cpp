@@ -96,6 +96,12 @@ class DB {
     DB(const std::string path);
 
     /**
+     * Destructor
+     * Automatically closes the DB to not leave a LOCK file behind.
+     */
+    ~DB() { this->close(); }
+
+    /**
      * Close the database. "Closing" a LevelDB database is just deleting its object.
      * @return `true` if the database is closed successfully, `false` otherwise.
      */
