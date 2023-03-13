@@ -111,15 +111,14 @@ namespace TStorage {
       REQUIRE(genesis->getTxMerkleRoot() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(genesis->getTimestamp() == uint64_t(1656356645000000));
       REQUIRE(genesis->getNHeight() == uint64_t(0));
-      REQUIRE(genesis->getTxValidators().size() == 0);1b
+      REQUIRE(genesis->getTxValidators().size() == 0);
       REQUIRE(genesis->getTxs().size() == 0);
       REQUIRE(genesis->getValidatorPubKey() == UPubKey(Hex::toBytes("04eb4c1da10ca5f1e52d1cba87f627931b5a980dba6d910d6aa756db62fc71ea78db1a18a2c364fb348bb28e0b0a3c6563a0522626eecfe32cdab30746365f5747")));
       REQUIRE(Secp256k1::toAddress(genesis->getValidatorPubKey()) == Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true));
       REQUIRE(genesis->isFinalized() == true);
-      db->close();
     }
 
-    SECTION("10 Blocks forward with SaveToDB Test") {
+    SECTION("10 Blocks forward with destructor test") {
       // Create 10 Blocks, each with 100 dynamic transactions and 16 validator transactions
       std::vector<Block> blocks;
       {
@@ -153,8 +152,6 @@ namespace TStorage {
           REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
           REQUIRE(block->isFinalized() == blocks[i].isFinalized());
         }
-        storage->saveToDB();
-        db->close();
       }
 
       // Load DB again...
@@ -180,7 +177,6 @@ namespace TStorage {
         REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
         REQUIRE(block->isFinalized() == blocks[i].isFinalized());
       }
-      db->close();
     }
 
     SECTION("2000 Blocks forward with N (0...16) dynamic normal txs and 32 validator txs, with SaveToDB Test") {
@@ -218,8 +214,6 @@ namespace TStorage {
           REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
           REQUIRE(block->isFinalized() == blocks[i].isFinalized());
         }
-        storage->saveToDB();
-        db->close();
       }
       // Load DB again...
       std::unique_ptr<DB> db;
@@ -244,7 +238,6 @@ namespace TStorage {
         REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
         REQUIRE(block->isFinalized() == blocks[i].isFinalized());
       }
-      db->close();
     }
   }
 }

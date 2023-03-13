@@ -88,11 +88,8 @@ class Storage {
      * Constructor. Automatically starts the periodic save thread.
      * @param db Pointer to the database.
      */
-    Storage(const std::unique_ptr<DB>& db) : db(db) {
-      this->loadFromDB();
-      this->periodicSaveThread = std::thread([&]{ this->periodicSaveToDB(); });
-      this->periodicSaveThread.detach();
-    }
+    Storage(const std::unique_ptr<DB>& db);
+    ~Storage();
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
     void pushBack(Block&& block);
@@ -169,9 +166,6 @@ class Storage {
 
     /// Get the number of blocks currently in the std::deque.
     uint64_t blockSize();
-
-    /// Save the latest blocks from memory to database (up to 1000).
-    void saveToDB();
 
     /// Start the periodic save thread. Called by the constructor.
     void periodicSaveToDB();

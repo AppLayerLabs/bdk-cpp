@@ -1,101 +1,6 @@
 #include "storage.h"
 
-void Storage::pushBackInternal(Block&& block) {
-  // Push the new block and get a pointer to it
-  if (this->chain.size() != 0) {
-    if (this->chain.back()->hash() != block.getPrevBlockHash()) {
-      throw std::runtime_error("Block " + block.hash().hex().get() + " does not have the correct previous block hash.");
-    }
-
-    if (block.getNHeight() != this->chain.back()->getNHeight() + 1) {
-      throw std::runtime_error("Block " + block.hash().hex().get() + " does not have the correct height.");
-    }
-  }
-
-  this->chain.emplace_back(std::make_shared<Block>(std::move(block)));
-  std::shared_ptr<const Block> newBlock = this->chain.back();
-
-  // Add block to mappings
-  this->blockByHash[newBlock->hash()] = newBlock;
-  this->blockHashByHeight[newBlock->getNHeight()] = newBlock->hash();
-  this->blockHeightByHash[newBlock->hash()] = newBlock->getNHeight();
-
-  // Add block txs to mappings
-  for (const TxBlock& tx : newBlock->getTxs()) {
-    this->txByHash[tx.hash()] = std::make_shared<TxBlock>(tx);
-    this->blockByTxHash[tx.hash()] = newBlock;
-  }
-}
-
-void Storage::pushFrontInternal(Block&& block) {
-  // Push the new block and get a pointer to it
-  if (this->chain.size() != 0) {
-    if (this->chain.front()->getPrevBlockHash() != block.hash()) {
-      throw std::runtime_error("Block " + block.hash().hex().get() + " does not have the correct previous block hash.");
-    } 
-  
-    if (block.getNHeight() != this->chain.front()->getNHeight() - 1) {
-      throw std::runtime_error("Block " + block.hash().hex().get() + " does not have the correct height.");
-    }
-  }
-  
-  this->chain.emplace_front(std::make_shared<Block>(std::move(block)));
-  std::shared_ptr<const Block> newBlock = this->chain.front();
-
-  // Add block to mappings
-  this->blockByHash[newBlock->hash()] = newBlock;
-  this->blockHashByHeight[newBlock->getNHeight()] = newBlock->hash();
-  this->blockHeightByHash[newBlock->hash()] = newBlock->getNHeight();
-
-  // Add block txs to mappings
-  for (const TxBlock& tx : newBlock->getTxs()) {
-    this->txByHash[tx.hash()] = std::make_shared<TxBlock>(tx);
-    this->blockByTxHash[tx.hash()] = newBlock;
-  }
-}
-
-// TODO: Maybe move SaveToDB during destructor and not within a function?
-// That requires us to make sure that the destructor is called after everyone is done using the Storage object.
-void Storage::saveToDB() {
-  DBBatch blockBatch, heightBatch, txToBlockBatch;
-  std::shared_ptr<const Block> latest;
-  { 
-    std::unique_lock<std::shared_mutex> lock(this->chainLock);
-    latest = this->chain.back();
-    while (!this->chain.empty()) {
-      // Batch block to be saved to the database.
-      // We can't call this->popBack() because of the mutex
-      std::shared_ptr<const Block> block = this->chain.front();
-      blockBatch.puts.emplace_back(DBEntry(
-        block->hash().get(), block->serializeBlock()
-      ));
-      heightBatch.puts.emplace_back(DBEntry(
-        Utils::uint64ToBytes(block->getNHeight()), block->hash().get()
-      ));
-
-      // Batch txs to be saved to the database and delete them from mappings
-      for (const TxBlock& tx : block->getTxs()) {
-        txToBlockBatch.puts.emplace_back(DBEntry(
-          tx.hash().get(), block->hash().get()
-        ));
-        this->txByHash.erase(tx.hash());
-        this->blockByTxHash.erase(tx.hash());
-      }
-
-      // Delete block from internal mappings and the chain
-      this->blockByHash.erase(block->hash());
-      this->chain.pop_front();
-    }
-  }
-
-  // Batch save to database
-  this->db->putBatch(blockBatch, DBPrefix::blocks);
-  this->db->putBatch(heightBatch, DBPrefix::blockHeightMaps);
-  this->db->putBatch(txToBlockBatch, DBPrefix::txToBlocks);
-  this->db->put("latest", latest->serializeBlock(), DBPrefix::blocks);
-}
-
-void Storage::loadFromDB() {
+Storage::Storage(const std::unique_ptr<DB>& db) : db(db) {
   // Create a new genesis block if one doesn't exist (fresh new blockchain)
   Utils::logToDebug(Log::storage, __func__, "Loading blockchain from DB");
   if (!this->db->has("latest", DBPrefix::blocks)) {
@@ -154,9 +59,102 @@ void Storage::loadFromDB() {
   Utils::logToDebug(Log::storage, __func__, "Blockchain successfully loaded");
 }
 
+Storage::~Storage() {
+  DBBatch blockBatch, heightBatch, txToBlockBatch;
+  std::shared_ptr<const Block> latest;
+  { 
+    std::unique_lock<std::shared_mutex> lock(this->chainLock);
+    latest = this->chain.back();
+    while (!this->chain.empty()) {
+      // Batch block to be saved to the database.
+      // We can't call this->popBack() because of the mutex
+      std::shared_ptr<const Block> block = this->chain.front();
+      blockBatch.puts.emplace_back(DBEntry(
+        block->hash().get(), block->serializeBlock()
+      ));
+      heightBatch.puts.emplace_back(DBEntry(
+        Utils::uint64ToBytes(block->getNHeight()), block->hash().get()
+      ));
+
+      // Batch txs to be saved to the database and delete them from mappings
+      for (const TxBlock& tx : block->getTxs()) {
+        txToBlockBatch.puts.emplace_back(DBEntry(
+          tx.hash().get(), block->hash().get()
+        ));
+        this->txByHash.erase(tx.hash());
+        this->blockByTxHash.erase(tx.hash());
+      }
+
+      // Delete block from internal mappings and the chain
+      this->blockByHash.erase(block->hash());
+      this->chain.pop_front();
+    }
+  }
+
+  // Batch save to database
+  this->db->putBatch(blockBatch, DBPrefix::blocks);
+  this->db->putBatch(heightBatch, DBPrefix::blockHeightMaps);
+  this->db->putBatch(txToBlockBatch, DBPrefix::txToBlocks);
+  this->db->put("latest", latest->serializeBlock(), DBPrefix::blocks);
+}
+
 void Storage::pushBack(Block&& block) {
   std::unique_lock<std::shared_mutex> lock(this->chainLock);
   this->pushBackInternal(std::move(block));
+}
+
+void Storage::pushBackInternal(Block&& block) {
+  // Push the new block and get a pointer to it
+  if (this->chain.size() != 0) {
+    if (this->chain.back()->hash() != block.getPrevBlockHash()) {
+      throw std::runtime_error("Block " + block.hash().hex().get() + " does not have the correct previous block hash.");
+    }
+
+    if (block.getNHeight() != this->chain.back()->getNHeight() + 1) {
+      throw std::runtime_error("Block " + block.hash().hex().get() + " does not have the correct height.");
+    }
+  }
+
+  this->chain.emplace_back(std::make_shared<Block>(std::move(block)));
+  std::shared_ptr<const Block> newBlock = this->chain.back();
+
+  // Add block to mappings
+  this->blockByHash[newBlock->hash()] = newBlock;
+  this->blockHashByHeight[newBlock->getNHeight()] = newBlock->hash();
+  this->blockHeightByHash[newBlock->hash()] = newBlock->getNHeight();
+
+  // Add block txs to mappings
+  for (const TxBlock& tx : newBlock->getTxs()) {
+    this->txByHash[tx.hash()] = std::make_shared<TxBlock>(tx);
+    this->blockByTxHash[tx.hash()] = newBlock;
+  }
+}
+
+void Storage::pushFrontInternal(Block&& block) {
+  // Push the new block and get a pointer to it
+  if (this->chain.size() != 0) {
+    if (this->chain.front()->getPrevBlockHash() != block.hash()) {
+      throw std::runtime_error("Block " + block.hash().hex().get() + " does not have the correct previous block hash.");
+    } 
+  
+    if (block.getNHeight() != this->chain.front()->getNHeight() - 1) {
+      throw std::runtime_error("Block " + block.hash().hex().get() + " does not have the correct height.");
+    }
+  }
+  
+  this->chain.emplace_front(std::make_shared<Block>(std::move(block)));
+  std::shared_ptr<const Block> newBlock = this->chain.front();
+
+  // Add block to mappings
+  this->blockByHash[newBlock->hash()] = newBlock;
+  this->blockHashByHeight[newBlock->getNHeight()] = newBlock->hash();
+  this->blockHeightByHash[newBlock->hash()] = newBlock->getNHeight();
+
+  // Add block txs to mappings
+  for (const TxBlock& tx : newBlock->getTxs()) {
+    this->txByHash[tx.hash()] = std::make_shared<TxBlock>(tx);
+    this->blockByTxHash[tx.hash()] = newBlock;
+  }
 }
 
 void Storage::pushFront(Block&& block) {
