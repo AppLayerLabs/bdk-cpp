@@ -32,6 +32,9 @@ template <unsigned N> class FixedStr {
     /// Move constructor.
     inline FixedStr(FixedStr&& other) noexcept { this->data = std::move(other.data); }
 
+    /// @returns true if this is the empty value (all zeroes)
+    explicit operator bool() const { return std::any_of(data.begin(), data.end(), [](uint8_t _b) { return _b != 0; }); }
+
     /// Getter for `data`.
     inline const std::string& get() const { return this->data; }
 

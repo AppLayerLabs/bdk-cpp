@@ -149,7 +149,8 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   Signature sig = Secp256k1::makeSig(this->r, this->s, recoveryId);
   Hash msgHash = this->hash(false); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
-  if (key == UPubKey()) throw std::runtime_error("Invalid tx signature - cannot recover public key");
+  if (!key) throw std::runtime_error("Invalid tx signature - cannot recover public key");
+  
   this->from = Secp256k1::toAddress(key);
 }
 
