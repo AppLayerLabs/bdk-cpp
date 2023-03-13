@@ -234,7 +234,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
 
 const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
   if (!this->exists(height)) return nullptr;
-  Utils::logToDebug(Log::storage, __func__, "height: " + height);
+  Utils::logToDebug(Log::storage, __func__, "height: " + std::to_string(height));
   std::shared_ptr<const Block> ret;
 
   // Check chain first, then cache, then database
