@@ -165,7 +165,7 @@ class DB {
      * @param key The key to remove the prefix from.
      * @return The stripped key.
      */
-    inline std::string stripPrefix(const std::string& key) const { return key.substr(4); }
+    inline std::string stripPrefix(const std::string& key) const { return key.substr(2); }
 };
 
 #endif // DB_H

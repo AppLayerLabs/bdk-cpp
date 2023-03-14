@@ -12,7 +12,7 @@ namespace TDB {
     SECTION("Open and Close DB + Strip Prefix From Key") {
       DB db("testDB");
       REQUIRE(std::filesystem::exists(std::filesystem::current_path().string() + "/testDB"));
-      REQUIRE(db.stripPrefix("0001a4a96085") == "a4a96085");
+      REQUIRE(db.stripPrefix(DBPrefix::blocks + "a4a96085") == "a4a96085");
       REQUIRE(db.close());
     }
 
@@ -48,7 +48,7 @@ namespace TDB {
     SECTION("Batched CRUD (Create + Read + Update + Delete)") {
       // Open
       DB db("testDB");
-      std::string pfx = "0001";
+      std::string pfx = DBPrefix::blocks;
       std::vector<DBEntry> putB;
       std::vector<std::string> delB;
       for (int i = 0; i < 32; i++) {

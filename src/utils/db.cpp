@@ -76,7 +76,7 @@ std::vector<DBEntry> DB::getBatch(
   // Search for all entries
   if (keys.empty()) {
     for (it->Seek(pfx); it->Valid(); it->Next()) {
-      if (it->key().ToString().substr(0, 4) == pfx) {
+      if (it->key().ToString().substr(0, 2) == pfx) {
         DBEntry entry(this->stripPrefix(it->key().ToString()), it->value().ToString());
         ret.push_back(entry);
       }
@@ -88,7 +88,7 @@ std::vector<DBEntry> DB::getBatch(
 
   // Search for specific entries from keys
   for (it->Seek(pfx); it->Valid(); it->Next()) {
-    if (it->key().ToString().substr(0, 4) == pfx) {
+    if (it->key().ToString().substr(0, 2) == pfx) {
       std::string strippedKey = this->stripPrefix(it->key().ToString());
       for (const std::string& key : keys) {
         if (strippedKey == key) {
