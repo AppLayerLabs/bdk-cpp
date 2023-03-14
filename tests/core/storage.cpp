@@ -93,7 +93,7 @@ Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHei
 }
 
 namespace TStorage {
-  TEST_CASE("Storage Class", "[core]") {
+  TEST_CASE("Storage Class", "[core][storage]") {
     SECTION("Simple Storage Startup") {
       std::unique_ptr<DB> db;
       std::unique_ptr<Storage> storage;

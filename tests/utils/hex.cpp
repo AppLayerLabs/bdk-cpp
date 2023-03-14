@@ -5,7 +5,7 @@
 using Catch::Matchers::Equals;
 
 namespace THex {
-  TEST_CASE("Hex Class", "[utils]") {
+  TEST_CASE("Hex Class", "[utils][hex]") {
     SECTION("Hex Default Constructor") {
       Hex hex;
       Hex hexStrict(true);

@@ -5,7 +5,7 @@
 using Catch::Matchers::Equals;
 
 namespace TTX {
-  TEST_CASE("TxBlock", "[utils]") {
+  TEST_CASE("TxBlock", "[utils][tx]") {
     SECTION("Simple Transaction 1") {
       TxBlock tx(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"));
       REQUIRE(tx.getNonce() == 2);

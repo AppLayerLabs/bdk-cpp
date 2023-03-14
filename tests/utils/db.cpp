@@ -8,7 +8,7 @@
 using Catch::Matchers::Equals;
 
 namespace TDB {
-  TEST_CASE("DB Tests", "[utils]") {
+  TEST_CASE("DB Tests", "[utils][db]") {
     SECTION("Open and Close DB + Strip Prefix From Key") {
       DB db("testDB");
       REQUIRE(std::filesystem::exists(std::filesystem::current_path().string() + "/testDB"));
