@@ -35,7 +35,7 @@ std::string ABI::Encoder::encodeUint256Arr(std::vector<uint256_t> numV) const {
   std::string arrOff, arrLen, arrData = "";
   arrOff = Utils::padLeft(Hex::fromUint(32).get(), 64);
   arrLen = Utils::padLeft(Hex::fromUint(numV.size()), 64);
-  for (uint256_t num : numV) arrData += Hex(encodeUint256(num)).get();
+  for (uint256_t num : numV) arrData += Hex::fromBytes(encodeUint256(num)).get();
   return Hex::toBytes(arrOff + arrLen + arrData);
 }
 
@@ -43,7 +43,7 @@ std::string ABI::Encoder::encodeAddressArr(std::vector<Address> addV) const {
   std::string arrOff, arrLen, arrData = "";
   arrOff = Utils::padLeft(Hex::fromUint(32).get(), 64);
   arrLen = Utils::padLeft(Hex::fromUint(addV.size()).get(), 64);
-  for (Address add : addV) arrData += Hex(encodeAddress(add)).get();
+  for (Address add : addV) arrData += Hex::fromBytes(encodeAddress(add)).get();
   return Hex::toBytes(arrOff + arrLen + arrData);
 }
 
@@ -51,7 +51,7 @@ std::string ABI::Encoder::encodeBoolArr(std::vector<bool> bV) const {
   std::string arrOff, arrLen, arrData = "";
   arrOff = Utils::padLeft(Hex::fromUint(32).get(), 64);
   arrLen = Utils::padLeft(Hex::fromUint(bV.size()).get(), 64);
-  for (bool b : bV) arrData += Hex(encodeBool(b)).get();
+  for (bool b : bV) arrData += Hex::fromBytes(encodeBool(b)).get();
   return Hex::toBytes(arrOff + arrLen + arrData);
 }
 

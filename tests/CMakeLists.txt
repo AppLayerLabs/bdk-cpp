@@ -16,5 +16,6 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/tx.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/block.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
   PARENT_SCOPE
 )

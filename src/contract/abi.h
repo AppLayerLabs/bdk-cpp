@@ -109,6 +109,12 @@ namespace ABI {
       std::string encodeBytesArr(std::vector<std::string> bytesV) const;
 
     public:
+      /// Typedef for variant type because I can't be bothered to rewrite all of this.
+      typedef std::vector<std::variant<
+        uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
+        bool, std::vector<bool>, std::string, std::vector<std::string>
+      >> EncVar;
+
       /**
        * Constructor.
        * Automatically encodes the data during construction.
