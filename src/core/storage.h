@@ -13,6 +13,9 @@
 // Forward declarations.
 class Block;
 
+/// Enum for the status of a block or transaction inside the storage.
+enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
+
 /**
  * Abstraction of the blockchain history.
  * Used to store blocks in memory and on disk, and helps the %State process
@@ -25,11 +28,12 @@ class Storage {
 
     /**
      * The recent blockchain history, up to the 1000 most recent blocks,
-     * Or 10M transactions, whichever comes first.
+     * or 1M transactions, whichever comes first.
      * This limit is required because it would be too expensive to keep
      * every single transaction in memory all the time, so once it reaches
      * the limit, or every now and then, the blocks are dumped to the database.
      * This keeps the blockchain lightweight in memory and extremely responsive.
+     * Older blocks always at FRONT, newer blocks always at BACK.
      */
     std::deque<std::shared_ptr<const Block>> chain;
 
@@ -80,21 +84,21 @@ class Storage {
      */
     void pushFrontInternal(Block&& block);
 
-    /// Load the latest blocks from database to memory (up to 1000).
-    void loadFromDB();
-
   public:
     /**
-     * Constructor. Automatically starts the periodic save thread.
+     * Constructor. Automatically loads the chain from the database
+     * and starts the periodic save thread.
      * @param db Pointer to the database.
      */
     Storage(const std::unique_ptr<DB>& db);
+
+    /// Destructor. Automatically saves the chain to the database.
     ~Storage();
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
     void pushBack(Block&& block);
 
-    /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
+    /// Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock`.
     void pushFront(Block&& block);
 
     /// Remove a block from the end of the chain.
@@ -104,24 +108,19 @@ class Storage {
     void popFront();
 
     /**
-     * Check if a block exists in memory, searching by block hash.
-     * @param hash The block hash to search.
-     * @return `true` if the block exists, `false` otherwise.
+     * Check if a block exists anywhere in storage
+     * (memory/chain, then cache, then database).
+     * @param blockHash The block hash to search.
+     * @return An enum telling where the block is.
      */
-    bool hasBlock(const Hash& hash);
+    StorageStatus blockExists(const Hash& hash);
 
     /**
-     * Check if a block exists in memory, searching by block height.
-     * @param height The block height to search.
-     * @return `true` if the block exists, `false` otherwise.
+     * Overload of `blockExists` that works with block height instead of hash.
+     * @param blockHeight The block height to search.
+     * @return An enum telling where the block is.
      */
-    bool hasBlock(const uint64_t& height);
-
-    /// Same as `hasBlock()`, but also checks the database.
-    bool exists(const Hash& hash);
-
-    /// Same as `hasBlock()`, but also checks the database.
-    bool exists(const uint64_t& height);
+    StorageStatus blockExists(const uint64_t& height);
 
     /**
      * Get a block from the chain using a given hash.
@@ -138,11 +137,12 @@ class Storage {
     const std::shared_ptr<const Block> getBlock(const uint64_t& height);
 
     /**
-     * Check if a transaction exists in the chain.
+     * Check if a transaction exists anywhere in storage
+     * (memory/chain, then cache, then database).
      * @param tx The transaction to check.
-     * @return `true` if the transaction exists, `false` otherwise.
+     * @return An enum telling where the transaction is.
      */
-    bool hasTx(const Hash& tx);
+    StorageStatus txExists(const Hash& tx);
 
     /**
      * Get a transaction from the chain using a given hash.
@@ -164,8 +164,8 @@ class Storage {
      */
     const std::shared_ptr<const Block> latest();
 
-    /// Get the number of blocks currently in the std::deque.
-    uint64_t blockSize();
+    /// Get the number of blocks currently in the chain.
+    uint64_t currentChainSize();
 
     /// Start the periodic save thread. Called by the constructor.
     void periodicSaveToDB();

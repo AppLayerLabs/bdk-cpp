@@ -5,13 +5,11 @@
 #include <filesystem>
 #include <utility>
 
-
 // Initialize db to be used in tests.
 // DB here is the same
-
 void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, bool clearDB = true) {
   if (clearDB) {
-    if(std::filesystem::exists("blocksTests")) {
+    if (std::filesystem::exists("blocksTests")) {
       std::filesystem::remove_all("blocksTests");
     }
   }
@@ -94,7 +92,6 @@ Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHei
   return newBlock;
 }
 
-
 namespace TStorage {
   TEST_CASE("Storage Class", "[core]") {
     SECTION("Simple Storage Startup") {
@@ -102,7 +99,7 @@ namespace TStorage {
       std::unique_ptr<Storage> storage;
       initialize(db, storage);
       // Chain should be filled with the genesis.
-      REQUIRE(storage->blockSize() == 1);
+      REQUIRE(storage->currentChainSize() == 1);
       auto genesis = storage->latest();
       REQUIRE(genesis->getValidatorSig() == Signature(Hex::toBytes("e543e00583d25a668712ccbb9d2604778acb2057a580a19ad50479779e684e7e4f4c5792e1e9cfd73b1c69ab897dac6ea8b4509f902283e7ecc724e76a1a68d401")));
       REQUIRE(genesis->getPrevBlockHash() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
@@ -134,7 +131,7 @@ namespace TStorage {
           storage->pushBack(Block(newBlock));
         }
 
-        REQUIRE(storage->blockSize() == 11);
+        REQUIRE(storage->currentChainSize() == 11);
         // Check if the chain is filled with the correct blocks.
         for (uint64_t i = 0; i < 10; i++) {
           auto block = storage->getBlock(i + 1);
@@ -190,13 +187,13 @@ namespace TStorage {
         // Generate 10 blocks.
         for (uint64_t i = 0; i < 2000; ++i) {
           auto latest = storage->latest();
-          uint64_t txCount = uint64_t(uint8_t(Utils::randBytes(1)[0]) % 16);  
+          uint64_t txCount = uint64_t(uint8_t(Utils::randBytes(1)[0]) % 16);
           Block newBlock = createRandomBlock(txCount, 16, latest->getNHeight() + 1, latest->hash());
           blocks.emplace_back(newBlock);
           storage->pushBack(Block(newBlock));
         }
 
-        REQUIRE(storage->blockSize() == 2001);
+        REQUIRE(storage->currentChainSize() == 2001);
         // Check if the chain is filled with the correct blocks.
         for (uint64_t i = 0; i < 2000; i++) {
           auto block = storage->getBlock(i + 1);
