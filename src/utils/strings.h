@@ -143,6 +143,12 @@ class Signature : public FixedStr<65> {
 class Address : public FixedStr<20> {
   public:
     using FixedStr<20>::operator==; ///< Using parent operator.
+    using FixedStr<20>::operator!=; ///< Using parent operator.
+    using FixedStr<20>::operator<;  ///< Using parent operator.
+    using FixedStr<20>::operator<=; ///< Using parent operator.
+    using FixedStr<20>::operator>;  ///< Using parent operator.
+    using FixedStr<20>::operator>=; ///< Using parent operator.
+    using FixedStr<20>::operator=;  ///< Using parent operator.
 
     inline Address() { this->data.resize(20, 0x00); };
     /**
