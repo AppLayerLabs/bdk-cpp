@@ -1,5 +1,7 @@
 #include "hex.h"
 
+
+
 Hex::Hex(const std::string_view v, bool strict) : strict(strict) {
   std::string ret(v);
   if (strict) {
@@ -30,6 +32,7 @@ bool Hex::isValid(const std::string_view hex, bool strict) {
     if (hex.substr(0, 2) != "0x" && hex.substr(0, 2) != "0X") return false;
     off = 2;
   }
+  const static std::string_view filter("0123456789abcdefABCDEF");
   if (hex.find_first_not_of(filter, off) != std::string::npos) return false;
   return true;
 }
@@ -70,8 +73,9 @@ int Hex::toInt(char c) {
 std::string Hex::toBytes(const std::string_view hex) {
   std::string ret;
   size_t i = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? 2 : 0;
+  const static std::string_view filter("0123456789abcdefABCDEF");
   if (hex.find_first_not_of(filter, i) != std::string::npos) {
-    throw std::runtime_error(std::string(__func__) + ": Invalid hex string");
+    throw std::runtime_error(std::string(__func__) + ": Invalid hex string: " + std::string(hex) + " filter: " + std::string(filter));
   }
   if (hex.size() % 2) {
     int h = Hex::toInt(hex[i++]);
@@ -100,5 +104,3 @@ std::string Hex::bytes() const {
   }
   return ret;
 }
-
-const std::string_view Hex::filter("0123456789abcdefABCDEF");

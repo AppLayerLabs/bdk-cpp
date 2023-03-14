@@ -5,7 +5,7 @@
 using Catch::Matchers::Equals;
 
 namespace TSecp256k1 {
-  TEST_CASE("Secp256k1 Tests", "[utils]") {
+  TEST_CASE("Secp256k1 Tests", "[utils][secp256k1]") {
     SECTION("Recover Public Key from Signature") {
       Hash msg = Utils::sha3("Hello World!");  
       Signature sig(Hex(std::string("e7a9dc85504bf4f79732e55c25fded4dd5471dfc28a6e35463aab7e8dfb180b5414520f0e8f18ec174fc2e14ce4c98f12faf58344c00af87c50b7bc502ac6b5f01")).bytes());

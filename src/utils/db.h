@@ -24,15 +24,16 @@
  * - contracts = "0009"
  */
 namespace DBPrefix {
-  const std::string blocks = "0001";
-  const std::string blockHeightMaps = "0002";
-  const std::string transactions = "0003";
-  const std::string nativeAccounts = "0004";
-  const std::string erc20Tokens = "0005";
-  const std::string erc721Tokens = "0006";
-  const std::string txToBlocks = "0007";
-  const std::string validators = "0008";
-  const std::string contracts = "0009";
+  const std::string blocks = std::string("\x00\x01", 2);
+  const std::string blockHeightMaps = std::string("\x00\x02", 2);
+  const std::string transactions = std::string("\x00\x03", 2);
+  const std::string nativeAccounts = std::string("\x00\x04", 2);
+  const std::string erc20Tokens = std::string("\x00\x05", 2);
+  const std::string erc721Tokens = std::string("\x00\x06", 2);
+  const std::string txToBlocks = std::string("\x00\x07", 2);
+  const std::string validators = std::string("\x00\x08", 2);
+  const std::string contracts = std::string("\x00\x09", 2);
+  const std::string rdPoS = std::string("\x00\x0A", 2);
 };
 
 /**

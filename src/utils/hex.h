@@ -30,7 +30,6 @@ template <typename ElemT> struct HexTo {
 class Hex {
   private:
     std::string hex;                                       ///< Internal string data.
-    static const std::string_view filter;  ///< Filter for hex string
     bool strict;                                           ///< If `true`, hex includes "0x"
 
   public:

@@ -4,7 +4,7 @@
 using Catch::Matchers::Equals;
 
 namespace TFixedStr {
-  TEST_CASE("FixedStr Class", "[utils]") {
+  TEST_CASE("FixedStr Class", "[utils][strings]") {
     SECTION("FixedStr Default Constructor Test") {
       FixedStr<10> str1;
       FixedStr<20> str2;

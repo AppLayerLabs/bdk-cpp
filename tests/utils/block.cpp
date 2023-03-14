@@ -6,7 +6,7 @@
 using Catch::Matchers::Equals;
 
 namespace TBlock {
-  TEST_CASE("Block Class", "[utils]") {
+  TEST_CASE("Block Class", "[utils][block]") {
     SECTION("Block creation with no transactions") {
       PrivKey validatorPrivKey(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750d"));
       Hash nPrevBlockHash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6"));
