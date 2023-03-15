@@ -35,6 +35,18 @@ class Validator : public Address {
 
     /// Move constructor.
     Validator(Validator&& other) noexcept : Address(std::move(other.data), true) {}
+
+    /// Copy assignment operator.
+    Validator& operator=(const Validator& other) {
+      this->data = other.data;
+      return *this;
+    }
+
+    /// Move assignment operator.
+    Validator& operator=(Validator&& other) noexcept {
+      this->data = std::move(other.data);
+      return *this;
+    }
 };
 
 class rdPoS : public Contract {
@@ -43,7 +55,7 @@ class rdPoS : public Contract {
     std::set<Validator> validators;
 
     /// Shuffled version of `validatorList`, used at block creation/signing.
-    std::vector<std::reference_wrapper<Validator>> randomList;
+    std::vector<Validator> randomList;
 
     /// Mempool for validator Transactions.
     std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool;
@@ -58,6 +70,9 @@ class rdPoS : public Contract {
     /// Randomness Generator
     RandomGen randomGen;  
 
+    /// Best randomness seed (taken from the last block)
+    Hash bestRandomSeed;
+
     /// mutex for class members
     mutable std::shared_mutex mutex;
 
@@ -66,6 +81,10 @@ class rdPoS : public Contract {
 
     /// Pointer to P2P Manager (for sending/requesting TxValidators from other nodes)
     const std::unique_ptr<P2P::ManagerBase>& p2p;
+
+    /// Initializes the blockchain with the default information for rdPoS.
+    /// This function is called by the constructor if no previous blockchain is found.
+    void initializeBlockchain();
 
   public:
     /**
@@ -83,7 +102,7 @@ class rdPoS : public Contract {
           const std::unique_ptr<P2P::ManagerBase>& p2p,
           const PrivKey& validatorKey = PrivKey());
 
-    ~rdPoS() {};
+    ~rdPoS();
     
     /// Enum for transaction types.
     enum TxType { addValidator, removeValidator, randomHash, randomSeed };
@@ -95,10 +114,13 @@ class rdPoS : public Contract {
     const std::set<Validator> getValidators() const { std::shared_lock lock(this->mutex); return validators; }
 
     /// Getter for randomList, not a reference because the inner vector can be changed.
-    const std::vector<std::reference_wrapper<Validator>> getRandomList() const { std::shared_lock lock(this->mutex); return randomList; }
+    const std::vector<Validator> getRandomList() const { std::shared_lock lock(this->mutex); return randomList; }
 
     /// Getter for mempool, not a reference because the inner map can be changed.
     const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const { std::shared_lock lock(this->mutex); return validatorMempool; }
+
+    /// Getter for bestRandomSeed.
+    const Hash getBestRandomSeed() const { std::shared_lock lock(this->mutex); return bestRandomSeed; }
 
     /// Check if a given address is a validator
     const bool isValidatorAddress(const Address& add) const { std::shared_lock lock(this->mutex); return validators.contains(Validator(add)); }

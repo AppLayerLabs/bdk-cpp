@@ -3,35 +3,8 @@
 Storage::Storage(const std::unique_ptr<DB>& db) : db(db) {
   Utils::logToDebug(Log::storage, __func__, "Loading blockchain from DB");
 
-  if (!this->db->has("latest", DBPrefix::blocks)) {
-    // Create a new genesis block if one doesn't exist (fresh new blockchain)
-    Utils::logToDebug(Log::storage, __func__, "No history found, creating genesis block.");
-    Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
-
-    // Genesis Keys:
-    // Private: 0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867
-    // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
-    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
-    this->db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
-    this->db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
-    this->db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
-
-    // TODO: CHANGE THIS ON PUBLIC!!! THOSE PRIVATE KEYS SHOULD ONLY BE USED FOR LOCAL TESTING
-    // 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759
-    this->db->put(Utils::uint64ToBytes(0), Address(Hex::toBytes("0x7588b0f553d1910266089c58822e1120db47e572"), true).get(), DBPrefix::validators);
-    // 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4
-    this->db->put(Utils::uint64ToBytes(1), Address(Hex::toBytes("0xcabf34a268847a610287709d841e5cd590cc5c00"), true).get(), DBPrefix::validators);
-    // 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751
-    this->db->put(Utils::uint64ToBytes(2), Address(Hex::toBytes("0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3"), true).get(), DBPrefix::validators);
-    // 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7
-    this->db->put(Utils::uint64ToBytes(3), Address(Hex::toBytes("0x795083c42583842774febc21abb6df09e784fce5"), true).get(), DBPrefix::validators);
-    // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
-    this->db->put(Utils::uint64ToBytes(4), Address(Hex::toBytes("0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"), true).get(), DBPrefix::validators);
-
-    Utils::logToDebug(Log::storage, __func__,
-      std::string("Created genesis block: ") + Hex::fromBytes(genesis.hash().get()).get()
-    );
-  }
+  // Initialize the blockchain if latest block doesn't exist.
+  initializeBlockchain();
 
   // Get the latest block from the database
   Utils::logToDebug(Log::storage, __func__, "Loading latest block");
@@ -48,6 +21,8 @@ Storage::Storage(const std::unique_ptr<DB>& db) : db(db) {
   Utils::logToDebug(Log::storage, __func__, "Parsing block mappings");
   std::vector<DBEntry> maps = this->db->getBatch(DBPrefix::blockHeightMaps);
   for (DBEntry& map : maps) {
+    // TODO: Check if a block is missing.
+    // Might be interesting to change DB::getBatch to return a map instead of a vector
     Utils::logToDebug(Log::storage, __func__, std::string(": ")
       + std::to_string(Utils::bytesToUint64(map.key))
       + std::string(", hash ") + Hash(map.value).hex().get()
@@ -106,6 +81,25 @@ Storage::~Storage() {
   this->db->putBatch(heightBatch, DBPrefix::blockHeightMaps);
   this->db->putBatch(txToBlockBatch, DBPrefix::txToBlocks);
   this->db->put("latest", latest->serializeBlock(), DBPrefix::blocks);
+}
+
+void Storage::initializeBlockchain() {
+  if (!this->db->has("latest", DBPrefix::blocks)) {
+    // Create a new genesis block if one doesn't exist (fresh new blockchain)
+    Utils::logToDebug(Log::storage, __func__, "No history found, creating genesis block.");
+    Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
+
+    // Genesis Keys:
+    // Private: 0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867
+    // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
+    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
+    this->db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
+    this->db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
+    this->db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
+    Utils::logToDebug(Log::storage, __func__,
+      std::string("Created genesis block: ") + Hex::fromBytes(genesis.hash().get()).get()
+    );
+  }  
 }
 
 void Storage::pushBackInternal(Block&& block) {

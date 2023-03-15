@@ -84,6 +84,14 @@ class Storage {
      */
     void pushFrontInternal(Block&& block);
 
+    /**
+     * Initializes the blockchain the first time the blockchain binary is ran.
+     * This function is called by the constructor.
+     * initializeBlockchain will only populate information related with the Storage class
+     * such as genesis and mappings.
+     */
+    void initializeBlockchain();
+
   public:
     /**
      * Constructor. Automatically loads the chain from the database

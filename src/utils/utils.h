@@ -70,7 +70,7 @@ namespace Log {
   const std::string grpcClient = "gRPCClient";
   const std::string utils = "Utils";
   const std::string httpServer = "HTTPServer";
-  const std::string rdpos = "rdPoS";
+  const std::string rdPoS = "rdPoS";
   const std::string ABI = "ABI";
   const std::string P2PClientSession = "P2P::ClientSession";
   const std::string P2PServer = "P2P::Server";
