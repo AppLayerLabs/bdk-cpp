@@ -6,6 +6,7 @@
 
 #include "strings.h"
 #include "utils.h"
+#include "tx.h"
 
 /**
  * Custom hashing implementation for use in `std::unordered_map`.
@@ -60,6 +61,17 @@ struct SafeHash {
   size_t operator()(const std::string& str) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
     return splitmix(std::hash<std::string>()(str) + FIXED_RANDOM);
+  }
+
+  /**
+   * Wrapper for `splitmix()`.
+   * @param tx a TxValidator object
+   * @returns The same as `splitmix()`.
+   */
+
+  size_t operator()(const TxValidator& tx) const {
+    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
+    return splitmix(std::hash<std::string>()(tx.hash().get()) + FIXED_RANDOM);
   }
 
   /**

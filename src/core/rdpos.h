@@ -15,6 +15,9 @@ class rdPoSWorker;
 class Storage;
 class Block; 
 
+// "0x6fc5a2d6" -> Function for random tx
+// "0xcfffe746" -> Function for random hash tx
+
 class Validator : public Address {
   public:
     using Address::operator==; // Inherit == operator.

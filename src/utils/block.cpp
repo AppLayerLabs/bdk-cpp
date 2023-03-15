@@ -97,6 +97,8 @@ Block::Block(std::string_view bytes) {
       uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
       index += 4;
       this->txValidators.emplace_back(bytes.substr(index, txSize));
+      if (txValidators.back().getNHeight() != this->nHeight)
+        throw std::runtime_error("Invalid validator tx height");
       index += txSize;
     }
 

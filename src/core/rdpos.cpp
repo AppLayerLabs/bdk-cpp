@@ -58,6 +58,91 @@ rdPoS::~rdPoS() {
   }
 }
 
+bool rdPoS::validateBlock(const Block& block) {
+  std::lock_guard(this->mutex);
+  // Check if block signature matches randomList[0]
+  if (!block.isFinalized()) {
+    Utils::logToDebug(Log::rdPoS, __func__, "Block is not finalized, cannot be validated.");
+    return false;
+  }
+
+  if (Secp256k1::toAddress(block.getValidatorPubKey()) != randomList[0]) {
+    Utils::logToDebug(Log::rdPoS, __func__, "Block signature does not match randomList[0]");
+    return false;
+  }
+
+  if (block.getTxValidators().size() != this->minValidators * 2) {
+    Utils::logToDebug(Log::rdPoS, __func__, "Block contains invalid number of TxValidator transactions.");
+    return false;
+  }
+
+  // TxValidator transactions within the block must be *ordered* by their respective signer.
+  // This is to ensure that the randomness is the same for all validators.
+  // Given a minValidator of 4, the block should contain 8 TxValidator transactions.
+  // The first 4 (minValidators) transactions from should match randomList[1] to randomList[5] (minValidators + 1)
+  // The first 4 (minValidators) transactions should be randomHash transactions. (0xcfffe746), which contains the Sha3(seed).
+  // The remaining 4 (minValidators) transactions from should also match randomList[1] to randomList[5] (minValidators +1)
+  // The remaining 4 (minValidators) transactions should be random transactions. (0x6fc5a2d6), which contains the seed itself.
+
+  std::unordered_map<TxValidator,TxValidator, SafeHash> txHashToSeedMap; /// Tx randomHash -> Tx random
+  for (uint64_t i = 0; i < this->minValidators; ++i) {
+    if (Validator(block.getTxValidators()[i].getFrom()) != randomList[i+1]) {
+      Utils::logToDebug(Log::rdPoS, __func__, "TxValidator randomHash " + std::to_string(i) + " is not ordered correctly." +
+                        "Expected: " + randomList[i+1].hex().get() + " Got: " + block.getTxValidators()[i].getFrom().hex().get());
+      return false;
+    }
+    if (Validator(block.getTxValidators()[i + this->minValidators].getFrom()) != randomList[i+1]) {
+      Utils::logToDebug(Log::rdPoS, __func__, "TxValidator random " + std::to_string(i) + " is not ordered correctly." +
+                        "Expected: " + randomList[i+1].hex().get() + " Got: " + block.getTxValidators()[i].getFrom().hex().get());
+      return false;
+    }
+
+    txHashToSeedMap.emplace(block.getTxValidators()[i],block.getTxValidators()[i + this->minValidators]);
+  }
+
+  if (txHashToSeedMap.size() != this->minValidators) {
+    Utils::logToDebug(Log::rdPoS, __func__, "txHashToSeedMap doesn't match minValidator size.");
+    return false;
+  }
+
+  //for (auto const& [key, value] : txHashToSeedMap) {
+  //  std::cout << "Key Hash: " << key.hash().hex() << std::endl;
+  //  std::cout << "Value Hash: " << value.hash().hex() << std::endl;
+  //  std::cout << "Key from: " << key.getFrom().hex() << std::endl;
+  //  std::cout << "Value from: " << value.getFrom().hex() << std::endl;
+  //}
+
+
+  // Check the transactions within the block, we should have every transaction within the txHashToSeed map.
+  for (auto const& [key, value] : txHashToSeedMap) {
+    if (key.getFrom() != value.getFrom()) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator sender ") + key.hash().hex().get() 
+                                              + " does not match TxValidator sender " 
+                                              + value.hash().hex().get());
+      return false;
+    }
+    // Check if the left sided transaction is a randomHash transaction.
+    if (key.getData().substr(0,4) != Hex::toBytes("0xcfffe746")) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + key.hash().hex().get()  + " is not a randomHash transaction.");
+      return false;
+    }
+    // Check if the right sided transaction is a random transaction.
+    if (value.getData().substr(0,4) != Hex::toBytes("0x6fc5a2d6")) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + value.hash().hex().get()  + " is not a random transaction.");
+      return false;
+    }
+    // Check if the randomHash transaction matches the random transaction.
+    if (Utils::sha3(value.getData().substr(4)) != key.getData().substr(4)) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + key.hash().hex().get()  
+                                              + " does not match TxValidator " + value.hash().hex().get() 
+                                              + " randomness");
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void rdPoS::initializeBlockchain() {
   auto validatorsDb = db->getBatch(DBPrefix::validators);
   if (validatorsDb.size() == 0) {
