@@ -197,12 +197,24 @@ namespace TRdPoS {
       }
       // Append the transactions to the block.
       for (const auto& tx : randomHashTxs) {
+        rdpos->addValidatorTx(tx);
         block.appendTxValidator(tx);
       }
       for (const auto& tx : randomTxs) {
+        rdpos->addValidatorTx(tx);
         block.appendTxValidator(tx);
       }
 
+      // Check rdPoS mempool.
+      auto rdPoSmempool = rdpos->getMempool();
+      REQUIRE(rdpos->getMempool().size() == 8);
+      for (const auto& tx : randomHashTxs) {
+        REQUIRE(rdPoSmempool.contains(tx.hash()));
+      }
+      for (const auto& tx : randomTxs) {
+        REQUIRE(rdPoSmempool.contains(tx.hash()));
+      }
+      
       // Finalize the block
       block.finalize(blockSignerPrivKey);
 

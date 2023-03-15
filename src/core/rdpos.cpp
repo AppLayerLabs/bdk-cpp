@@ -41,7 +41,7 @@ rdPoS::rdPoS(const std::unique_ptr<DB>& db,
 
   // Populate the random list
   randomGen.setSeed(bestRandomSeed);
-  randomList = std::vector<Validator>(this->validators.begin(), this->validators.end());
+  this->randomList = std::vector<Validator>(this->validators.begin(), this->validators.end());
 
   randomGen.shuffle(randomList);
 }
@@ -58,8 +58,8 @@ rdPoS::~rdPoS() {
   }
 }
 
-bool rdPoS::validateBlock(const Block& block) {
-  std::lock_guard(this->mutex);
+bool rdPoS::validateBlock(const Block& block) const {
+  std::lock_guard lock(this->mutex);
   // Check if block signature matches randomList[0]
   if (!block.isFinalized()) {
     Utils::logToDebug(Log::rdPoS, __func__, "Block is not finalized, cannot be validated.");
@@ -141,6 +141,65 @@ bool rdPoS::validateBlock(const Block& block) {
   }
 
   return true;
+}
+
+Hash rdPoS::processBlock(const Block& block) {
+  std::unique_lock lock(this->mutex);
+  if (!block.isFinalized()) {
+    Utils::logToDebug(Log::rdPoS, __func__, "Block is not finalized.");
+    throw std::runtime_error("Block is not finalized.");
+  }
+  validatorMempool.clear();
+  this->randomList = std::vector<Validator>(this->validators.begin(), this->validators.end());
+  this->bestRandomSeed = block.getBlockRandomness();
+  randomGen.setSeed(bestRandomSeed);
+  randomGen.shuffle(randomList);
+  return this->bestRandomSeed;
+}
+
+void rdPoS::addValidatorTx(const TxValidator& tx) {
+  std::unique_lock lock(this->mutex);
+  if (tx.getNHeight() != this->storage->latest()->getNHeight() + 1) {
+    Utils::logToDebug(Log::rdPoS, __func__, "TxValidator is not for the next block.");
+    return;
+  }
+
+  // Check if sender is a validator and can participate in this rdPoS round (check from existance in randomList)
+  bool participates = false;
+  for (uint64_t i = 1; i < this->minValidators + 1; ++i) {
+    if (Validator(tx.getFrom()) == randomList[i]) {
+      participates = true;
+      break;
+    }
+  }
+  if (!participates) {
+    Utils::logToDebug(Log::rdPoS, __func__, "TxValidator sender is not a validator or is not participating in this rdPoS round.");
+    return;
+  }
+
+  // Do not allow duplicate transactions for the same function, we only have two functions (2 TxValidator per validator per block)
+  std::vector<TxValidator> txs;
+  for (auto const& [key, value] : validatorMempool) {
+    if (value.getFrom() == tx.getFrom()) {
+      txs.push_back(value);
+    }
+  }
+
+  if (txs.size() == 0) { // No transactions from this sender yet, add it.
+    validatorMempool.emplace(tx.hash(), tx);
+    return;
+  } else if (txs.size() == 1) { // We already have one transaction from this sender, check if it is the same function.
+    if (txs[0].getData().substr(0,4) == tx.getData().substr(0,4)) {
+      Utils::logToDebug(Log::rdPoS, __func__, "TxValidator sender already has a transaction for this function.");
+      return;
+    }
+    validatorMempool.emplace(tx.hash(), tx);
+  } else { // We already have two transactions from this sender, it is the max we can have per validator.
+    Utils::logToDebug(Log::rdPoS, __func__, "TxValidator sender already has two transactions.");
+    return;
+  }
+
+  // TODO: Propagate tx to other nodes.
 }
 
 void rdPoS::initializeBlockchain() {

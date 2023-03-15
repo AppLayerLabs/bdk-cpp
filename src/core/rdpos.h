@@ -133,10 +133,11 @@ class rdPoS : public Contract {
      * @param block The block to validate.
      * @return `true` if the block is properly validated, `false` otherwise.
      */
-    bool validateBlock(const Block& block);
+    bool validateBlock(const Block& block) const;
 
     /**
      * Process a block.
+     * should be called from State, after a block is validated and before is added to Storage.
      * @param block The block to process.
      * @return The new randomness seed to be used for the next block.
      */
@@ -148,12 +149,6 @@ class rdPoS : public Contract {
      */
     void addValidatorTx(const TxValidator& tx);
  
-    /**
-     * Finalize a block. See %Block for more details.
-     * @param block The block to finalize.
-     */
-    inline void finalizeBlock(Block& block);
-
     /**
      * Parse a transaction list.
      * Does NOT validate any of the block rdPoS transactions.
