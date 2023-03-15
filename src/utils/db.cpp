@@ -53,7 +53,7 @@ bool DB::del(const std::string& key, const std::string& pfx) const {
 }
 
 bool DB::putBatch(const DBBatch& batch, const std::string& pfx) const {
-  batchLock.lock();
+  std::lock_guard lock(batchLock);
   for (const DBEntry entry : batch.puts) {
     auto status = this->db->Put(leveldb::WriteOptions(), pfx + entry.key, entry.value);
     if (!status.ok()) return false;
@@ -62,14 +62,13 @@ bool DB::putBatch(const DBBatch& batch, const std::string& pfx) const {
     auto status = this->db->Delete(leveldb::WriteOptions(), pfx + key);
     if (!status.ok()) return false;
   }
-  batchLock.unlock();
   return true;
 }
 
 std::vector<DBEntry> DB::getBatch(
   const std::string& pfx, const std::vector<std::string>& keys
 ) const {
-  batchLock.lock();
+  std::lock_guard lock(batchLock);
   std::vector<DBEntry> ret;
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
 
@@ -82,7 +81,6 @@ std::vector<DBEntry> DB::getBatch(
       }
     }
     delete it;
-    batchLock.unlock();
     return ret;
   }
 
@@ -99,7 +97,6 @@ std::vector<DBEntry> DB::getBatch(
     }
   }
   delete it;
-  batchLock.unlock();
   return ret;
 }
 

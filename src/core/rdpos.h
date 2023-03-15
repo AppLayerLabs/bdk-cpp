@@ -130,14 +130,14 @@ class rdPoS : public Contract {
      * @param block The block to validate.
      * @return `true` if the block is properly validated, `false` otherwise.
      */
-    bool validateBlock(const std::shared_ptr<const Block>& block);
+    bool validateBlock(const Block& block);
 
     /**
      * Process a block.
      * @param block The block to process.
      * @return The new randomness seed to be used for the next block.
      */
-    Hash processBlock(const std::shared_ptr<const Block>& block);
+    Hash processBlock(const Block& block);
 
     /**
      * Add a Validator transaction to the mempool.

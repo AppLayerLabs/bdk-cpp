@@ -17,7 +17,7 @@
 class RandomGen {
   private:
     Hash seed;            ///< RNG seed.
-    std::mutex seedLock;  ///< Mutex for managing read/write access to the seed.
+    mutable std::mutex seedLock;  ///< Mutex for managing read/write access to the seed.
   public:
     /**
      * Alias for the result type.
@@ -32,10 +32,10 @@ class RandomGen {
     RandomGen(const Hash& seed) : seed(seed) {};
 
     /// Getter for `seed`.
-    inline const Hash& getSeed() const { return this->seed; }
+    inline const Hash getSeed() const { std::lock_guard lock(seedLock); return this->seed; }
 
     /// Setter for `seed`.
-    inline void setSeed(const Hash& seed) { seedLock.lock(); this->seed = seed; seedLock.unlock(); }
+    inline void setSeed(const Hash& seed) { std::lock_guard lock(seedLock); this->seed = seed; }
 
     /// Return the maximum numeric limit of a 256-bit unsigned integer.
     static inline uint256_t max() { return std::numeric_limits<result_type>::max(); }
@@ -48,14 +48,13 @@ class RandomGen {
      * @param v A vector of any given type.
      */
     template <typename Vector> void shuffle(Vector& v) {
-      this->seedLock.lock();
+      std::lock_guard lock(seedLock);
       for (uint64_t i = 0; i < v.size(); ++i) {
         this->seed = Utils::sha3(this->seed.get());
         //std::cout << this->seed.hex() << std::endl; // Uncomment to print seed
         uint64_t n = uint64_t(i + this->seed.toUint256() % (v.size() - i));
         std::swap(v[n], v[i]);
       }
-      this->seedLock.unlock();
     }
 
     uint256_t operator()(); ///< Generate and return a new random seed.
