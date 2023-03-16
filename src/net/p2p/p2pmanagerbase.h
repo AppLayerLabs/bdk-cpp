@@ -55,6 +55,7 @@ namespace P2P {
       // Overriden by inherited object
       virtual void handleRequest(std::shared_ptr<BaseSession>& session, const Message& message) {};
       virtual void handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {};
+      virtual void handleBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {};
 
       // For Discovery thread.
       void handleDiscoveryStop();

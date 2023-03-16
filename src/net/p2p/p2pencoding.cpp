@@ -52,6 +52,14 @@ namespace P2P {
     return Message(std::move(message));
   }
 
+  Message RequestEncoder::requestValidatorTxs() {
+    std::string message;
+    message += getRequestTypePrefix(Requesting);
+    message += Utils::randBytes(8);
+    message += getCommandPrefix(RequestValidatorTxs);
+    return Message(std::move(message));
+  }
+
   bool RequestDecoder::ping(const Message& message) {
     if (message.size() != 11) { return false; }
     if (message.command() != Ping) { return false; }
@@ -61,6 +69,12 @@ namespace P2P {
   bool RequestDecoder::requestNodes(const Message& message) {
     if (message.size() != 11) { return false; }
     if (message.command() != RequestNodes) { return false; }
+    return true;
+  }
+
+  bool RequestDecoder::requestValidatorTxs(const Message& message) {
+    if (message.size() != 11) { return false; }
+    if (message.command() != RequestValidatorTxs) { return false; }
     return true;
   }
 
@@ -92,6 +106,19 @@ namespace P2P {
         message += std::string(address.begin(), address.end());
       }
       message += Utils::uint16ToBytes(uint16_t(std::get<2>(node.second)));
+    }
+    return Message(std::move(message));
+  }
+
+  Message AnswerEncoder::requestValidatorTxs(const Message& request, const std::unordered_map<Hash, TxValidator, SafeHash>& txs) {
+    std::string message;
+    message += getRequestTypePrefix(Answering);
+    message += request.id().get();
+    message += getCommandPrefix(RequestValidatorTxs);
+    for (const auto& validatorTx : txs) {
+      std::string rlp = validatorTx.second.rlpSerialize();
+      message += Utils::uint32ToBytes(rlp.size());
+      message += rlp;
     }
     return Message(std::move(message));
   }
@@ -146,5 +173,37 @@ namespace P2P {
       index += 2;
     }
     return nodes;
+  }
+
+  std::vector<TxValidator> AnswerDecoder::requestValidatorTxs(const Message& message) {
+    if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
+    if (message.command() != RequestValidatorTxs) { throw std::runtime_error("Invalid command."); }
+    std::vector<TxValidator> txs;
+    std::string_view data = message.message();
+    size_t index = 0;
+    while (index < data.size()) {
+      if (data.size() < 4) { throw std::runtime_error("Invalid data size."); }
+      uint32_t txSize = Utils::bytesToUint32(data.substr(index, 4));
+      index += 4;
+      if (data.size() < txSize) { throw std::runtime_error("Invalid data size."); }
+      std::string_view txData = data.substr(index, txSize);
+      index += txSize;
+      txs.push_back(txData);
+    }
+    return txs;
+  }
+
+  Message BroadcastEncoder::broadcastValidatorTx(const TxValidator& tx) {
+    std::string message;
+    message += getRequestTypePrefix(Broadcasting);
+    message += getCommandPrefix(BroadcastValidatorTx);
+    message += tx.rlpSerialize();
+    return Message(std::move(message));
+  }
+
+  TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message) {
+    if (message.type() != Broadcasting) { throw std::runtime_error("Invalid message type."); }
+    if (message.command() != BroadcastValidatorTx) { throw std::runtime_error("Invalid command."); }
+    return TxValidator(message.message());
   }
 }

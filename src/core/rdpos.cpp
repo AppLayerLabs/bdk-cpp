@@ -157,11 +157,16 @@ Hash rdPoS::processBlock(const Block& block) {
   return this->bestRandomSeed;
 }
 
-void rdPoS::addValidatorTx(const TxValidator& tx) {
+bool rdPoS::addValidatorTx(const TxValidator& tx) {
   std::unique_lock lock(this->mutex);
+  if (this->validatorMempool.contains(tx.hash())) {
+    Utils::logToDebug(Log::rdPoS, __func__, "TxValidator already exists in mempool.");
+    return true;
+  }
+
   if (tx.getNHeight() != this->storage->latest()->getNHeight() + 1) {
     Utils::logToDebug(Log::rdPoS, __func__, "TxValidator is not for the next block.");
-    return;
+    return false;
   }
 
   // Check if sender is a validator and can participate in this rdPoS round (check from existance in randomList)
@@ -174,7 +179,7 @@ void rdPoS::addValidatorTx(const TxValidator& tx) {
   }
   if (!participates) {
     Utils::logToDebug(Log::rdPoS, __func__, "TxValidator sender is not a validator or is not participating in this rdPoS round.");
-    return;
+    return false;
   }
 
   // Do not allow duplicate transactions for the same function, we only have two functions (2 TxValidator per validator per block)
@@ -187,19 +192,19 @@ void rdPoS::addValidatorTx(const TxValidator& tx) {
 
   if (txs.size() == 0) { // No transactions from this sender yet, add it.
     validatorMempool.emplace(tx.hash(), tx);
-    return;
+    return true;
   } else if (txs.size() == 1) { // We already have one transaction from this sender, check if it is the same function.
     if (txs[0].getData().substr(0,4) == tx.getData().substr(0,4)) {
       Utils::logToDebug(Log::rdPoS, __func__, "TxValidator sender already has a transaction for this function.");
-      return;
+      return false;
     }
     validatorMempool.emplace(tx.hash(), tx);
   } else { // We already have two transactions from this sender, it is the max we can have per validator.
     Utils::logToDebug(Log::rdPoS, __func__, "TxValidator sender already has two transactions.");
-    return;
+    return false;
   }
 
-  // TODO: Propagate tx to other nodes.
+  return true;
 }
 
 void rdPoS::initializeBlockchain() {

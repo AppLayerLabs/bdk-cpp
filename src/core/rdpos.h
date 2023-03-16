@@ -146,8 +146,9 @@ class rdPoS : public Contract {
     /**
      * Add a Validator transaction to the mempool.
      * @param tx The transaction to add.
+     * @return `true` if the transaction was added, `false` if invalid otherwise.
      */
-    void addValidatorTx(const TxValidator& tx);
+    bool addValidatorTx(const TxValidator& tx);
  
     /**
      * Parse a transaction list.

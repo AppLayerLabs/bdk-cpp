@@ -66,7 +66,7 @@ void initialize(std::unique_ptr<DB>& db,
   }
 
   storage = std::make_unique<Storage>(db);
-  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), serverPort);
+  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), serverPort, rdpos);
   validatorKey = PrivKey::random();
   rdpos = std::make_unique<rdPoS>(db, 8080, storage, p2p, validatorKey);
 }

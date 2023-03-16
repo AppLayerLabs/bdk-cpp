@@ -3,6 +3,7 @@
 
 #include "../../utils/utils.h"
 #include "../../utils/safehash.h"
+#include "../../utils/tx.h"
 #include "p2pbase.h"
 #include <future>
 
@@ -40,7 +41,9 @@ namespace P2P {
   enum CommandType {
     Ping,
     Info,
-    RequestNodes
+    RequestNodes,
+    RequestValidatorTxs,
+    BroadcastValidatorTx
   };
   
   CommandType getCommandType(const std::string_view& message);
@@ -49,8 +52,10 @@ namespace P2P {
   // Vector for easy conversion to command prefixes.
   inline extern const std::vector<std::string> commandPrefixes {
     std::string("\x00\x00", 2),       // Ping
-    std::string("\x00\x01", 2),        // Info
-    std::string("\x00\x02", 2)        // requestNodes
+    std::string("\x00\x01", 2),       // Info
+    std::string("\x00\x02", 2),       // requestNodes
+    std::string("\x00\x03", 2),       // RequestValidatorTxs
+    std::string("\x00\x04", 2)        // BroadcastValidatorTx
   };
   
   RequestType getRequestType(const std::string_view& message);
@@ -64,7 +69,6 @@ namespace P2P {
   };
   
   struct NodeInfo {
-    std::string nodeId;
   };
   
   // Used when creating a request
@@ -73,6 +77,7 @@ namespace P2P {
       static Message ping();
       static Message info();
       static Message requestNodes();
+      static Message requestValidatorTxs();
   };
   
   // Used to decode a request.
@@ -81,6 +86,7 @@ namespace P2P {
       static bool ping(const Message& message);
       static NodeInfo info(const Message& message);
       static bool requestNodes(const Message& message);
+      static bool requestValidatorTxs(const Message& message);
   };
   
   // Used to encode a answer to request.
@@ -89,6 +95,7 @@ namespace P2P {
       static Message ping(const Message& request);
       static Message info();
       static Message requestNodes(const Message& request, const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes);
+      static Message requestValidatorTxs(const Message& request, const std::unordered_map<Hash, TxValidator, SafeHash>& txs); 
   };
   
   // Used to decode a answer to request.
@@ -97,6 +104,17 @@ namespace P2P {
       static bool ping(const Message& message);
       static NodeInfo info(const Message& message);
       static std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> requestNodes(const Message& message);
+      static std::vector<TxValidator> requestValidatorTxs(const Message& message);
+  };
+
+  class BroadcastEncoder {
+    public:
+      static Message broadcastValidatorTx(const TxValidator& tx);
+  };
+
+  class BroadcastDecoder {
+    public:
+      static TxValidator broadcastValidatorTx(const Message& message);
   };
 
   class Message {
@@ -137,6 +155,7 @@ namespace P2P {
 
       friend class RequestEncoder;
       friend class AnswerEncoder;
+      friend class BroadcastEncoder; 
       friend class ClientSession;
       friend class ServerSession;
       friend class Request;

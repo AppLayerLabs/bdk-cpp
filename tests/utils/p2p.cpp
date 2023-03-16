@@ -2,6 +2,7 @@
 #include "../../src/utils/utils.h"
 #include "../../src/net/p2p/p2pmanagernormal.h"
 #include "../../src/net/p2p/p2pmanagerdiscovery.h"
+#include "../../src/core/rdpos.h"
 
 using Catch::Matchers::Equals;
 
@@ -9,9 +10,9 @@ namespace TP2P {
 
   TEST_CASE("P2P Manager", "[net][p2p]") {
     SECTION ("P2P::Manager Simple 3 node network") {
-      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), 8080);
-      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
-      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), 8082);
+      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), 8080, nullptr);
+      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), 8081, nullptr);
+      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), 8082, nullptr);
 
 			Hash node1Id = p2pNode1.nodeId();
 			Hash node2Id = p2pNode2.nodeId();
@@ -120,16 +121,16 @@ namespace TP2P {
 
 		SECTION("10 P2P::ManagerNormal 1 P2P::ManagerDiscovery") {
 			P2P::ManagerDiscovery p2pDiscoveryNode(boost::asio::ip::address::from_string("127.0.0.1"), 8080);
-      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
-      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), 8082);
-      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), 8083);
-			P2P::ManagerNormal p2pNode4(boost::asio::ip::address::from_string("127.0.0.1"), 8084);
-			P2P::ManagerNormal p2pNode5(boost::asio::ip::address::from_string("127.0.0.1"), 8085);
-			P2P::ManagerNormal p2pNode6(boost::asio::ip::address::from_string("127.0.0.1"), 8086);
-			P2P::ManagerNormal p2pNode7(boost::asio::ip::address::from_string("127.0.0.1"), 8087);
-			P2P::ManagerNormal p2pNode8(boost::asio::ip::address::from_string("127.0.0.1"), 8088);
-			P2P::ManagerNormal p2pNode9(boost::asio::ip::address::from_string("127.0.0.1"), 8089);
-			P2P::ManagerNormal p2pNode10(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), 8081, nullptr);
+      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), 8082, nullptr);
+      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), 8083, nullptr);
+			P2P::ManagerNormal p2pNode4(boost::asio::ip::address::from_string("127.0.0.1"), 8084, nullptr);
+			P2P::ManagerNormal p2pNode5(boost::asio::ip::address::from_string("127.0.0.1"), 8085, nullptr);
+			P2P::ManagerNormal p2pNode6(boost::asio::ip::address::from_string("127.0.0.1"), 8086, nullptr);
+			P2P::ManagerNormal p2pNode7(boost::asio::ip::address::from_string("127.0.0.1"), 8087, nullptr);
+			P2P::ManagerNormal p2pNode8(boost::asio::ip::address::from_string("127.0.0.1"), 8088, nullptr);
+			P2P::ManagerNormal p2pNode9(boost::asio::ip::address::from_string("127.0.0.1"), 8089, nullptr);
+			P2P::ManagerNormal p2pNode10(boost::asio::ip::address::from_string("127.0.0.1"), 8090, nullptr);
 
 			p2pDiscoveryNode.startServer();
 			p2pNode1.startServer();
