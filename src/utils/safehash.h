@@ -65,6 +65,17 @@ struct SafeHash {
 
   /**
    * Wrapper for `splitmix()`.
+   * @param str A regular string view.
+   * @returns The same as `splitmix()`.
+   */
+  size_t operator()(const std::string_view& str) const {
+    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
+    return splitmix(std::hash<std::string_view>()(str) + FIXED_RANDOM);
+  }
+
+
+  /**
+   * Wrapper for `splitmix()`.
    * @param tx a TxValidator object
    * @returns The same as `splitmix()`.
    */

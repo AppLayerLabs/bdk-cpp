@@ -3,6 +3,23 @@
 
 namespace P2P {
 
+  void ManagerNormal::broadcastMessage(const Message& message) {
+    std::unique_lock broadcastLock(broadcastMutex);
+    if (broadcastedMessages_[message.id().toUint64()] > 0) {
+      Utils::logToDebug(Log::P2PManager, __func__, "Already broadcasted message " + message.id().hex().get() + " to all nodes. Skipping broadcast.");
+      return;
+    }
+
+    std::unique_lock sessionsLock(sessionsMutex);
+    Utils::logToDebug(Log::P2PManager, __func__, "Broadcasting message " + message.id().hex().get() + " to all nodes. ");
+    for (const auto& session : this->sessions_) {
+      if (session.second->hostType() == NodeType::NORMAL_NODE) {
+        session.second->write(message);
+      }
+    }
+    broadcastedMessages_[message.id().toUint64()] = ++broadcastedMessages_[message.id().toUint64()];
+  }
+
   void ManagerNormal::handleMessage(std::shared_ptr<BaseSession> session, const Message message) {
     switch (message.type()) {
       case Requesting:
@@ -65,7 +82,7 @@ namespace P2P {
 
   void ManagerNormal::handleBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {
     switch (message.command()) {
-      case Ping:
+      case BroadcastValidatorTx:
         handleTxValidatorBroadcast(session, message);
         break;
       default:
@@ -108,7 +125,7 @@ namespace P2P {
       return;
     }
 
-    this->answerSession(session, AnswerEncoder::requestValidatorTxs(message, this->rdpos->getMempool()));
+    this->answerSession(session, AnswerEncoder::requestValidatorTxs(message, this->rdpos_->getMempool()));
   }
 
   void ManagerNormal::handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
@@ -145,11 +162,11 @@ namespace P2P {
     // TODO: Add a filter to broadcast any message to all nodes if message was not previously know.
     try {
       auto tx = BroadcastDecoder::broadcastValidatorTx(message);
-      if (this->rdpos->addValidatorTx(tx)) {
-        // TODO: Broadcast to all nodes.
+      if (this->rdpos_->addValidatorTx(tx)) {
+        this->broadcastMessage(message);
       }
     } catch (std::exception &e) {
-      Utils::logToDebug(Log::P2PParser, __func__, "Invalid txValidatorBroadcast from " + session->hostNodeId().hex().get() + " closing session.");
+      Utils::logToDebug(Log::P2PParser, __func__, "Invalid txValidatorBroadcast from " + session->hostNodeId().hex().get() + ", error: " + e.what() + " closing session.");
       this->disconnectSession(session->hostNodeId());
     }
   }
@@ -163,5 +180,11 @@ namespace P2P {
     auto answer = requestPtr->answerFuture();
     answer.wait();
     return AnswerDecoder::requestValidatorTxs(answer.get());
+  }
+
+  void ManagerNormal::broadcastTxValidator(const TxValidator& tx) {
+    auto broadcast = BroadcastEncoder::broadcastValidatorTx(tx);
+    this->broadcastMessage(broadcast);
+    return;
   }
 };

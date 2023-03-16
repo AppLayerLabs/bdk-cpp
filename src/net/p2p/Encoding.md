@@ -37,7 +37,7 @@ A Request will always wait and have an respective Answer while broadcast are pro
 
 - Random ID
 
-Used to tell different requests appart and to make async requests.
+Used to tell different requests appart and to make async requests, during a request, the randomId is calculated with 8 random bytes, during a answer, the randomId is equal to the randomId of the respective request, if broadcast request, RandomID = SafeHash(payload).
 
 - Command ID
 

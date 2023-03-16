@@ -3,6 +3,7 @@
 #include "../../src/core/storage.h"
 #include "../../src/utils/db.h"
 #include "../../src/net/p2p/p2pmanagernormal.h"
+#include "../../src/net/p2p/p2pmanagerdiscovery.h"
 
 #include <filesystem>
 #include <utility>
@@ -23,18 +24,19 @@ const std::vector<Hash> validatorPrivKeys {
 // The tests will still work, as tests uses own genesis block.
 void initialize(std::unique_ptr<DB>& db, 
                 std::unique_ptr<Storage>& storage, 
-                std::unique_ptr<P2P::ManagerBase>& p2p, 
-                PrivKey& validatorKey, 
+                std::unique_ptr<P2P::ManagerNormal>& p2p, 
+                PrivKey validatorKey, 
                 std::unique_ptr<rdPoS>& rdpos,
                 uint64_t serverPort,
-                bool clearDb = true) {
-
+                bool clearDb = true,
+                std::string dbPrefix = "") {
+  std::string dbName = dbPrefix + "rdPoStests";
   if (clearDb) {
-    if (std::filesystem::exists("rdPoStests")) {
-      std::filesystem::remove_all("rdPoStests");
+    if (std::filesystem::exists(dbName)) {
+      std::filesystem::remove_all(dbName);
     }
   }
-  db = std::make_unique<DB>("rdPoStests");
+  db = std::make_unique<DB>(dbName);
   if (clearDb) {
     Block genesis(Hash(Utils::uint256ToBytes(0)), 1678887537000000, 0);
                                                   
@@ -67,29 +69,102 @@ void initialize(std::unique_ptr<DB>& db,
 
   storage = std::make_unique<Storage>(db);
   p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), serverPort, rdpos);
-  validatorKey = PrivKey::random();
   rdpos = std::make_unique<rdPoS>(db, 8080, storage, p2p, validatorKey);
 }
 
-/*
 
-    rdPoS(const std::unique_ptr<DB>& db, 
-          const uint64_t& chainId,
-          const std::unique_ptr<Storage>& storage,
-          const std::unique_ptr<P2P::ManagerBase>& p2p,
-          const PrivKey& validatorKey = PrivKey());
+// This creates a valid block given the state within the rdPoS class.
+// Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
+// And that is not the purpose of network/thread testing.
+Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& storage) {
+  auto validators = rdpos->getValidators();
+  auto randomList = rdpos->getRandomList();
 
-*/
+  Hash blockSignerPrivKey;           // Private key for the block signer.
+  std::vector<Hash> orderedPrivKeys; // Private keys for the validators in the order of the random list, limited to rdPoS::minValidators.
+  orderedPrivKeys.reserve(4);
+  for (const auto& privKey : validatorPrivKeys) {
+    if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
+      blockSignerPrivKey = privKey;
+      break;
+    }
+  }
+
+  for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+    for (const auto& privKey : validatorPrivKeys) {
+      if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
+        orderedPrivKeys.push_back(privKey);
+        break;
+      }
+    }
+  }
+
+  // By now we should have randomList[0] privKey in blockSignerPrivKey and the rest in orderedPrivKeys, ordered by the random list.
+  // We can proceed with creating the block, transactions have to be **ordered** by the random list.
+
+  // Create a block with 8 TxValidator transactions, 2 for each validator, in order (randomHash and random)
+  uint64_t newBlocknHeight = storage->latest()->getNHeight() + 1;
+  uint64_t newBlockTimestamp = storage->latest()->getTimestamp() + 100000;
+  Hash newBlockPrevHash = storage->latest()->hash();
+  Block block(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
+  std::vector<TxValidator> randomHashTxs;
+  std::vector<TxValidator> randomTxs;
+
+  std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
+  for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
+    Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
+    std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(randomSeeds[i].get()).get();
+    std::string randomTxData = Hex::toBytes("0x6fc5a2d6") + randomSeeds[i].get();
+    randomHashTxs.emplace_back(
+      validatorAddress,
+      hashTxData,
+      8080,
+      newBlocknHeight,
+      orderedPrivKeys[i]
+    );
+    randomTxs.emplace_back(
+      validatorAddress,
+      randomTxData,
+      8080,
+      newBlocknHeight,
+      orderedPrivKeys[i]
+    );
+  }
+  // Append the transactions to the block.
+  for (const auto& tx : randomHashTxs) {
+    rdpos->addValidatorTx(tx);
+    block.appendTxValidator(tx);
+  }
+  for (const auto& tx : randomTxs) {
+    rdpos->addValidatorTx(tx);
+    block.appendTxValidator(tx);
+  }
+
+  // Check rdPoS mempool.
+  auto rdPoSmempool = rdpos->getMempool();
+  REQUIRE(rdpos->getMempool().size() == 8);
+  for (const auto& tx : randomHashTxs) {
+    REQUIRE(rdPoSmempool.contains(tx.hash()));
+  }
+  for (const auto& tx : randomTxs) {
+    REQUIRE(rdPoSmempool.contains(tx.hash()));
+  }
+      
+  // Finalize the block
+  block.finalize(blockSignerPrivKey);
+  return block;
+}
 
 namespace TRdPoS {
+  // Simple rdPoS execution, does not test network functionality neither validator execution (rdPoSWorker)
   TEST_CASE("rdPoS Class", "[core][rdpos]") {
     SECTION("rdPoS class Startup") {
       std::set<Validator> validatorsList;
       {
         std::unique_ptr<DB> db;
         std::unique_ptr<Storage> storage;
-        std::unique_ptr<P2P::ManagerBase> p2p;
-        PrivKey validatorKey;
+        std::unique_ptr<P2P::ManagerNormal> p2p;
+        PrivKey validatorKey = PrivKey();
         std::unique_ptr<rdPoS> rdpos;
         initialize(db, storage, p2p, validatorKey, rdpos, 8080);
 
@@ -125,8 +200,8 @@ namespace TRdPoS {
       
       std::unique_ptr<DB> db;
       std::unique_ptr<Storage> storage;
-      std::unique_ptr<P2P::ManagerBase> p2p;
-      PrivKey validatorKey;
+      std::unique_ptr<P2P::ManagerNormal> p2p;
+      PrivKey validatorKey = PrivKey();
       std::unique_ptr<rdPoS> rdpos;
       initialize(db, storage, p2p, validatorKey, rdpos, 8080, false);
 
@@ -137,13 +212,93 @@ namespace TRdPoS {
     SECTION ("rdPoS validateBlock(), one block from genesis") {
       std::unique_ptr<DB> db;
       std::unique_ptr<Storage> storage;
-      std::unique_ptr<P2P::ManagerBase> p2p;
-      PrivKey validatorKey;
+      std::unique_ptr<P2P::ManagerNormal> p2p;
+      PrivKey validatorKey = PrivKey();
       std::unique_ptr<rdPoS> rdpos;
       initialize(db, storage, p2p, validatorKey, rdpos, 8080);
 
-      auto validators = rdpos->getValidators();
-      auto randomList = rdpos->getRandomList();
+      auto block = createValidBlock(rdpos, storage);
+      // Validate the block on rdPoS
+      REQUIRE(rdpos->validateBlock(block));
+    }
+
+    SECTION ("rdPoS validateBlock(), ten block from genesis") {
+      Hash expectedRandomnessFromBestBlock;
+      std::vector<Validator> expectedRandomList;
+      {
+        std::unique_ptr<DB> db;
+        std::unique_ptr<Storage> storage;
+        std::unique_ptr<P2P::ManagerNormal> p2p;
+        PrivKey validatorKey = PrivKey();
+        std::unique_ptr<rdPoS> rdpos;
+        initialize(db, storage, p2p, validatorKey, rdpos, 8080);
+
+        for (uint64_t i = 0; i < 10; ++i) {
+          // Create a valid block, with the correct rdPoS transactions
+          auto block = createValidBlock(rdpos, storage);
+
+          // Validate the block on rdPoS
+          REQUIRE(rdpos->validateBlock(block));
+          
+          // Process block on rdPoS.
+          rdpos->processBlock(block);
+
+          // Add the block to the storage.
+          storage->pushBack(std::move(block));
+        }
+
+        // We expect to have moved 10 blocks forward.
+        auto latestBlock = storage->latest();
+        REQUIRE(latestBlock->getNHeight() == 10);
+        REQUIRE(latestBlock->getBlockRandomness() == rdpos->getBestRandomSeed());
+
+        expectedRandomList = rdpos->getRandomList();
+        expectedRandomnessFromBestBlock = rdpos->getBestRandomSeed();
+      }
+
+      std::unique_ptr<DB> db;
+      std::unique_ptr<Storage> storage;
+      std::unique_ptr<P2P::ManagerNormal> p2p;
+      PrivKey validatorKey = PrivKey();
+      std::unique_ptr<rdPoS> rdpos;
+      // Initialize same DB and storage as before.
+      initialize(db, storage, p2p, validatorKey, rdpos, 8080, false);
+
+      REQUIRE(rdpos->getBestRandomSeed() == expectedRandomnessFromBestBlock);
+      REQUIRE(rdpos->getRandomList() == expectedRandomList);
+    }
+  }
+
+  TEST_CASE("rdPoS Class With Network Functionality", "[core][rdpos][net][p2p]") {
+    SECTION("Two Nodes instances, simple transaction broadcast") {
+      // Initialize two different node instances, with different ports and DBs.
+      std::unique_ptr<DB> db1;
+      std::unique_ptr<Storage> storage1;
+      std::unique_ptr<P2P::ManagerNormal> p2p1;
+      PrivKey validatorKey1 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos1;
+      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, 8080, true, "node1");
+
+      std::unique_ptr<DB> db2;
+      std::unique_ptr<Storage> storage2;
+      std::unique_ptr<P2P::ManagerNormal> p2p2;
+      PrivKey validatorKey2 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos2;
+      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, 8081, true, "node2");
+
+
+      // Start respective p2p servers, and connect each other.
+      p2p1->startServer();
+      p2p2->startServer();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      p2p1->connectToServer("127.0.0.1", 8081);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      REQUIRE(p2p1->getSessionsIDs().size() == 1);
+
+      // Create valid TxValidator transactions (8 in total), append them to node 1's storage.
+      // After appending to node 1's storage, broadcast them to all nodes.
+      auto validators = rdpos1->getValidators();
+      auto randomList = rdpos1->getRandomList();
 
       Hash blockSignerPrivKey;           // Private key for the block signer.
       std::vector<Hash> orderedPrivKeys; // Private keys for the validators in the order of the random list, limited to rdPoS::minValidators.
@@ -168,26 +323,22 @@ namespace TRdPoS {
       // We can proceed with creating the block, transactions have to be **ordered** by the random list.
 
       // Create a block with 8 TxValidator transactions, 2 for each validator, in order (randomHash and random)
-      uint64_t newBlocknHeight = storage->latest()->getNHeight() + 1;
-      uint64_t newBlockTimestamp = storage->latest()->getTimestamp() + 100000;
-      Hash newBlockPrevHash = storage->latest()->hash();
-      Block block(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
-      std::vector<TxValidator> randomHashTxs;
-      std::vector<TxValidator> randomTxs;
+      uint64_t newBlocknHeight = storage1->latest()->getNHeight() + 1;
+      std::vector<TxValidator> txValidators;
 
       std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
         std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(randomSeeds[i].get()).get();
         std::string randomTxData = Hex::toBytes("0x6fc5a2d6") + randomSeeds[i].get();
-        randomHashTxs.emplace_back(
+        txValidators.emplace_back(
           validatorAddress,
           hashTxData,
           8080,
           newBlocknHeight,
           orderedPrivKeys[i]
         );
-        randomTxs.emplace_back(
+        txValidators.emplace_back(
           validatorAddress,
           randomTxData,
           8080,
@@ -196,30 +347,236 @@ namespace TRdPoS {
         );
       }
       // Append the transactions to the block.
-      for (const auto& tx : randomHashTxs) {
-        rdpos->addValidatorTx(tx);
-        block.appendTxValidator(tx);
-      }
-      for (const auto& tx : randomTxs) {
-        rdpos->addValidatorTx(tx);
-        block.appendTxValidator(tx);
+      for (const auto& tx : txValidators) {
+        REQUIRE(rdpos1->addValidatorTx(tx));
       }
 
-      // Check rdPoS mempool.
-      auto rdPoSmempool = rdpos->getMempool();
-      REQUIRE(rdpos->getMempool().size() == 8);
-      for (const auto& tx : randomHashTxs) {
-        REQUIRE(rdPoSmempool.contains(tx.hash()));
+      // Broadcast the transactions
+      for (const auto& tx : txValidators) {
+        p2p1->broadcastTxValidator(tx);
       }
-      for (const auto& tx : randomTxs) {
-        REQUIRE(rdPoSmempool.contains(tx.hash()));
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+      auto node1Mempool = rdpos1->getMempool();
+      auto node2Mempool = rdpos2->getMempool();
+
+      // As transactions were broadcasted, they should be included in both nodes.
+      REQUIRE(node1Mempool == node2Mempool);
+
+      // Clear mempool from node 1.
+      rdpos1->clearMempool();
+
+      // Request the transactions from node 1 to node 2
+      std::vector<Hash> nodesIds = p2p1->getSessionsIDs();
+      REQUIRE(nodesIds.size() == 1);
+      auto transactionList = p2p1->requestValidatorTxs(nodesIds[0]);
+
+      REQUIRE(transactionList.size() == 8);
+
+      // Append transactions back to node 1 mempool.
+      for (const auto& tx : transactionList) {
+        REQUIRE(rdpos1->addValidatorTx(tx));
       }
+
+      // Check that the mempool is the same as before.
+      node1Mempool = rdpos1->getMempool();
+      REQUIRE(node1Mempool == node2Mempool);
+    }
+
+    SECTION("Ten NormalNodes and one DiscoveryNode, test broadcast") {
+      // Initialize ten different node instances, with different ports and DBs.
+      std::unique_ptr<DB> db1;
+      std::unique_ptr<Storage> storage1;
+      std::unique_ptr<P2P::ManagerNormal> p2p1;
+      PrivKey validatorKey1 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos1;
+      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, 8080, true, "node1");
+
+      std::unique_ptr<DB> db2;
+      std::unique_ptr<Storage> storage2;
+      std::unique_ptr<P2P::ManagerNormal> p2p2;
+      PrivKey validatorKey2 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos2;
+      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, 8081, true, "node2");
+
+      std::unique_ptr<DB> db3;
+      std::unique_ptr<Storage> storage3;
+      std::unique_ptr<P2P::ManagerNormal> p2p3;
+      PrivKey validatorKey3 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos3;
+      initialize(db3, storage3, p2p3, validatorKey3, rdpos3, 8082, true, "node3");
+
+      std::unique_ptr<DB> db4;
+      std::unique_ptr<Storage> storage4;
+      std::unique_ptr<P2P::ManagerNormal> p2p4;
+      PrivKey validatorKey4 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos4;
+      initialize(db4, storage4, p2p4, validatorKey4, rdpos4, 8083, true, "node4");
+
+      std::unique_ptr<DB> db5;
+      std::unique_ptr<Storage> storage5;
+      std::unique_ptr<P2P::ManagerNormal> p2p5;
+      PrivKey validatorKey5 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos5;
+      initialize(db5, storage5, p2p5, validatorKey5, rdpos5, 8084, true, "node5");
+
+      std::unique_ptr<DB> db6;
+      std::unique_ptr<Storage> storage6;
+      std::unique_ptr<P2P::ManagerNormal> p2p6;
+      PrivKey validatorKey6 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos6;
+      initialize(db6, storage6, p2p6, validatorKey6, rdpos6, 8085, true, "node6");
+
+      std::unique_ptr<DB> db7;
+      std::unique_ptr<Storage> storage7;
+      std::unique_ptr<P2P::ManagerNormal> p2p7;
+      PrivKey validatorKey7 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos7;
+      initialize(db7, storage7, p2p7, validatorKey7, rdpos7, 8086, true, "node7");
+
+      std::unique_ptr<DB> db8;
+      std::unique_ptr<Storage> storage8;
+      std::unique_ptr<P2P::ManagerNormal> p2p8;
+      PrivKey validatorKey8 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos8;
+      initialize(db8, storage8, p2p8, validatorKey8, rdpos8, 8087, true, "node8");
+
+      std::unique_ptr<DB> db9;
+      std::unique_ptr<Storage> storage9;
+      std::unique_ptr<P2P::ManagerNormal> p2p9;
+      PrivKey validatorKey9 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos9;
+      initialize(db9, storage9, p2p9, validatorKey9, rdpos9, 8088, true, "node9");
+
+      std::unique_ptr<DB> db10;
+      std::unique_ptr<Storage> storage10;
+      std::unique_ptr<P2P::ManagerNormal> p2p10;
+      PrivKey validatorKey10 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos10;
+      initialize(db10, storage10, p2p10, validatorKey10, rdpos10, 8089, true, "node10");
+
+      // Initialize the discovery node.
+      std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+
+      // Start servers
+      p2pDiscovery->startServer();
+      p2p1->startServer();
+      p2p2->startServer();
+      p2p3->startServer();
+      p2p4->startServer();
+      p2p5->startServer();
+      p2p6->startServer();
+      p2p7->startServer();
+      p2p8->startServer();
+      p2p9->startServer();
+      p2p10->startServer();
+
+      // Connect nodes to the discovery node.
+      p2p1->connectToServer("127.0.0.1", 8090);
+      p2p2->connectToServer("127.0.0.1", 8090);
+      p2p3->connectToServer("127.0.0.1", 8090);
+      p2p4->connectToServer("127.0.0.1", 8090);
+      p2p5->connectToServer("127.0.0.1", 8090);
+      p2p6->connectToServer("127.0.0.1", 8090);
+      p2p7->connectToServer("127.0.0.1", 8090);
+      p2p8->connectToServer("127.0.0.1", 8090);
+      p2p9->connectToServer("127.0.0.1", 8090);
+      p2p10->connectToServer("127.0.0.1", 8090);
+
+			// After a while, the discovery thread should have found all the nodes and connected between each other.
+			std::this_thread::sleep_for(std::chrono::seconds(10));
+
+      REQUIRE(p2pDiscovery->getSessionsIDs().size());
       
-      // Finalize the block
-      block.finalize(blockSignerPrivKey);
+      // Create valid TxValidator transactions (8 in total), append them to node 1's storage.
+      // After appending to node 1's storage, broadcast them to all nodes.
+      auto validators = rdpos1->getValidators();
+      auto randomList = rdpos1->getRandomList();
 
-      // Validate the block on rdPoS
-      REQUIRE(rdpos->validateBlock(block));
+      Hash blockSignerPrivKey;           // Private key for the block signer.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the validators in the order of the random list, limited to rdPoS::minValidators.
+      orderedPrivKeys.reserve(4);
+      for (const auto& privKey : validatorPrivKeys) {
+        if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
+          blockSignerPrivKey = privKey;
+          break;
+        }
+      }
+
+      for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+        for (const auto& privKey : validatorPrivKeys) {
+          if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
+            orderedPrivKeys.push_back(privKey);
+            break;
+          }
+        }
+      }
+
+      // By now we should have randomList[0] privKey in blockSignerPrivKey and the rest in orderedPrivKeys, ordered by the random list.
+      // We can proceed with creating the block, transactions have to be **ordered** by the random list.
+
+      // Create a block with 8 TxValidator transactions, 2 for each validator, in order (randomHash and random)
+      uint64_t newBlocknHeight = storage1->latest()->getNHeight() + 1;
+      std::vector<TxValidator> txValidators;
+
+      std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
+      for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
+        Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
+        std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(randomSeeds[i].get()).get();
+        std::string randomTxData = Hex::toBytes("0x6fc5a2d6") + randomSeeds[i].get();
+        txValidators.emplace_back(
+          validatorAddress,
+          hashTxData,
+          8080,
+          newBlocknHeight,
+          orderedPrivKeys[i]
+        );
+        txValidators.emplace_back(
+          validatorAddress,
+          randomTxData,
+          8080,
+          newBlocknHeight,
+          orderedPrivKeys[i]
+        );
+      }
+      // Append the transactions to the block.
+      for (const auto& tx : txValidators) {
+        REQUIRE(rdpos1->addValidatorTx(tx));
+      }
+
+      // Broadcast transactions to all nodes.
+      for (const auto& tx : txValidators) {
+        p2p1->broadcastTxValidator(tx);
+      }
+
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+
+      // Check if all mempools matchs
+      auto node1Mempool = rdpos1->getMempool();
+      auto node2Mempool = rdpos2->getMempool();
+      auto node3Mempool = rdpos3->getMempool();
+      auto node4Mempool = rdpos4->getMempool();
+      auto node5Mempool = rdpos5->getMempool();
+      auto node6Mempool = rdpos6->getMempool();
+      auto node7Mempool = rdpos7->getMempool();
+      auto node8Mempool = rdpos8->getMempool();
+      auto node9Mempool = rdpos9->getMempool();
+      auto node10Mempool = rdpos10->getMempool();
+
+      REQUIRE(node1Mempool == node2Mempool);
+      REQUIRE(node2Mempool == node3Mempool);
+      REQUIRE(node3Mempool == node4Mempool);
+      REQUIRE(node4Mempool == node5Mempool);
+      REQUIRE(node5Mempool == node6Mempool);
+      REQUIRE(node6Mempool == node7Mempool);
+      REQUIRE(node7Mempool == node8Mempool);
+      REQUIRE(node8Mempool == node9Mempool);
+      REQUIRE(node9Mempool == node10Mempool);
     }
   }
-}
+
+  TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality", "[core][rdpos][net][p2p]") {
+
+  }
+};

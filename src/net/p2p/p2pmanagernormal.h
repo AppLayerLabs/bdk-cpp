@@ -37,7 +37,16 @@ namespace P2P {
       void handleBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) override;
 
     private:
-      const std::unique_ptr<rdPoS>& rdpos;
+      const std::unique_ptr<rdPoS>& rdpos_;
+      // Mapping of broadcasted Messages and counter of such broadcasted messages (how many times we have broadcasted it).
+      // This is used to avoid broadcasting the same message multiple times.
+      std::unordered_map <uint64_t, unsigned int, SafeHash> broadcastedMessages_;
+      
+      // Mutex for protecting broadcasted messages.
+      std::shared_mutex broadcastMutex;
+
+      // Broadcaster function.
+      void broadcastMessage(const Message& message);
 
       // Handlers for command requests
       void handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message);
@@ -56,11 +65,13 @@ namespace P2P {
       ManagerNormal(const boost::asio::ip::address& hostIp, 
                     unsigned short hostPort, 
                     const std::unique_ptr<rdPoS>& rdpos) : 
-                    ManagerBase(hostIp, hostPort, NodeType::NORMAL_NODE, 50), rdpos(rdpos) {};
+                    ManagerBase(hostIp, hostPort, NodeType::NORMAL_NODE, 50), rdpos_(rdpos) {};
       
       void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
 
       std::vector<TxValidator> requestValidatorTxs(const Hash& nodeId);
+
+      void broadcastTxValidator(const TxValidator& tx);
 
   };
 };

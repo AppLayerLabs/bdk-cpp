@@ -6,7 +6,7 @@
 #include "../utils/tx.h"
 #include "../utils/safehash.h"
 #include "../utils/randomgen.h"
-#include "../net/p2p/p2pmanagerbase.h"
+#include "../net/p2p/p2pmanagernormal.h"
 
 #include <optional>
 #include <shared_mutex>
@@ -83,7 +83,7 @@ class rdPoS : public Contract {
     const std::unique_ptr<Storage>& storage;
 
     /// Pointer to P2P Manager (for sending/requesting TxValidators from other nodes)
-    const std::unique_ptr<P2P::ManagerBase>& p2p;
+    const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
     /// Initializes the blockchain with the default information for rdPoS.
     /// This function is called by the constructor if no previous blockchain is found.
@@ -102,7 +102,7 @@ class rdPoS : public Contract {
     rdPoS(const std::unique_ptr<DB>& db, 
           const uint64_t& chainId,
           const std::unique_ptr<Storage>& storage,
-          const std::unique_ptr<P2P::ManagerBase>& p2p,
+          const std::unique_ptr<P2P::ManagerNormal>& p2p,
           const PrivKey& validatorKey = PrivKey());
 
     ~rdPoS();
@@ -127,6 +127,10 @@ class rdPoS : public Contract {
 
     /// Check if a given address is a validator
     const bool isValidatorAddress(const Address& add) const { std::shared_lock lock(this->mutex); return validators.contains(Validator(add)); }
+
+
+    /// Clear the mempool
+    void clearMempool() { std::unique_lock lock(this->mutex); validatorMempool.clear(); }
 
     /**
      * Validate a block.

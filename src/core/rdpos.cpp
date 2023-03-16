@@ -4,7 +4,7 @@
 rdPoS::rdPoS(const std::unique_ptr<DB>& db, 
   const uint64_t& chainId,
   const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerBase>& p2p,
+  const std::unique_ptr<P2P::ManagerNormal>& p2p,
   const PrivKey& validatorKey) :
 
   Contract(ProtocolContractAddresses.at("rdPoS"), chainId, db),
