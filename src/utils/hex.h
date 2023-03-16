@@ -29,8 +29,8 @@ template <typename ElemT> struct HexTo {
 /// Abstraction of a hex string.
 class Hex {
   private:
-    std::string hex;                                       ///< Internal string data.
-    bool strict;                                           ///< If `true`, hex includes "0x"
+    std::string hex;  ///< Internal string data.
+    bool strict;      ///< If `true`, hex includes "0x"
 
   public:
     /**

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <leveldb/db.h>
+#include <leveldb/write_batch.h>
 
 #include "utils.h"
 
@@ -22,6 +23,7 @@
  * - txToBlocks = "0007"
  * - validators = "0008"
  * - contracts = "0009"
+ * - rdPoS = "000A"
  */
 namespace DBPrefix {
   const std::string blocks = std::string("\x00\x01", 2);
@@ -91,22 +93,19 @@ class DB {
 
   public:
     /**
-     * Constructor.
+     * Constructor. Automatically creates the database if it doesn't exist. Throws on error.
      * @param path The database's filesystem path.
      */
     DB(const std::string path);
 
-    /**
-     * Destructor
-     * Automatically closes the DB to not leave a LOCK file behind.
-     */
+    /// Destructor. Automatically closes the DB to not leave a LOCK file behind.
     ~DB() { this->close(); }
 
     /**
      * Close the database. "Closing" a LevelDB database is just deleting its object.
      * @return `true` if the database is closed successfully, `false` otherwise.
      */
-    inline bool close() { delete this->db; this->db = nullptr; return true; }
+    inline bool close() { delete this->db; this->db = nullptr; return (this->db == nullptr); }
 
     /**
      * Check if a key exists in the database.
@@ -151,21 +150,14 @@ class DB {
 
     /**
      * Get all entries from a given prefix.
-     * @param pfx The prefix to get entries from.
+     * @param pfx The prefix string to get entries from.
      * @param keys (optional) A list of keys to filter values from.
      *             Defaults to an empty list (same as "get all entries").
      * @return The list of database entries.
      */
     std::vector<DBEntry> getBatch(
-      const std::string& pfx, const std::vector<std::string>& keys = {}
+      const leveldb::Slice& pfx, const std::vector<std::string>& keys = {}
     ) const;
-
-    /**
-     * Remove the database prefix (first 4 chars) from a key.
-     * @param key The key to remove the prefix from.
-     * @return The stripped key.
-     */
-    inline std::string stripPrefix(const std::string& key) const { return key.substr(2); }
 };
 
 #endif // DB_H

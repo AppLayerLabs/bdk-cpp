@@ -9,6 +9,7 @@ DB::DB(const std::string path) {
   auto status = leveldb::DB::Open(this->opts, fullPath.string(), &this->db);
   if (!status.ok()) {
     Utils::logToDebug(Log::db, __func__, "Failed to open DB: " + status.ToString());
+    throw std::runtime_error("Failed to open DB: " + status.ToString());
   }
 }
 
@@ -54,19 +55,15 @@ bool DB::del(const std::string& key, const std::string& pfx) const {
 
 bool DB::putBatch(const DBBatch& batch, const std::string& pfx) const {
   std::lock_guard lock(batchLock);
-  for (const DBEntry entry : batch.puts) {
-    auto status = this->db->Put(leveldb::WriteOptions(), pfx + entry.key, entry.value);
-    if (!status.ok()) return false;
-  }
-  for (const std::string key : batch.dels) {
-    auto status = this->db->Delete(leveldb::WriteOptions(), pfx + key);
-    if (!status.ok()) return false;
-  }
-  return true;
+  leveldb::WriteBatch wb;
+  for (const std::string key : batch.dels) wb.Delete(pfx + key);
+  for (const DBEntry entry : batch.puts) wb.Put(pfx + entry.key, entry.value);
+  leveldb::Status s = this->db->Write(leveldb::WriteOptions(), &wb);
+  return s.ok();
 }
 
 std::vector<DBEntry> DB::getBatch(
-  const std::string& pfx, const std::vector<std::string>& keys
+  const leveldb::Slice& pfx, const std::vector<std::string>& keys
 ) const {
   std::lock_guard lock(batchLock);
   std::vector<DBEntry> ret;
@@ -75,9 +72,9 @@ std::vector<DBEntry> DB::getBatch(
   // Search for all entries
   if (keys.empty()) {
     for (it->Seek(pfx); it->Valid(); it->Next()) {
-      if (it->key().ToString().substr(0, 2) == pfx) {
-        DBEntry entry(this->stripPrefix(it->key().ToString()), it->value().ToString());
-        ret.push_back(entry);
+      if (it->key().starts_with(pfx)) {
+        it->key().remove_prefix(2);
+        ret.emplace_back(it->key().ToString(), it->value().ToString());
       }
     }
     delete it;
@@ -86,12 +83,11 @@ std::vector<DBEntry> DB::getBatch(
 
   // Search for specific entries from keys
   for (it->Seek(pfx); it->Valid(); it->Next()) {
-    if (it->key().ToString().substr(0, 2) == pfx) {
-      std::string strippedKey = this->stripPrefix(it->key().ToString());
+    if (it->key().starts_with(pfx)) {
+      it->key().remove_prefix(2);
       for (const std::string& key : keys) {
-        if (strippedKey == key) {
-          DBEntry entry(strippedKey, it->value().ToString());
-          ret.push_back(entry);
+        if (it->key() == leveldb::Slice(key)) {
+          ret.emplace_back(it->key().ToString(), it->value().ToString());
         }
       }
     }
