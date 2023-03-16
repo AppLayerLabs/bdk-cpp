@@ -110,6 +110,7 @@ namespace ABI {
 
     public:
       /// Typedef for variant type because I can't be bothered to rewrite all of this.
+      // TODO: apparently I have to now... find out how to use initializer lists here
       typedef std::vector<std::variant<
         uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
         bool, std::vector<bool>, std::string, std::vector<std::string>
@@ -123,10 +124,7 @@ namespace ABI {
        * @param func (optional) The full function header to encode.
        *             Defaults to an empty string.
        */
-      Encoder(std::vector<std::variant<
-        uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, std::string, std::vector<std::string>
-      >> data, std::string func = "");
+      Encoder(ABI::Encoder::EncVar data, std::string func = "");
 
       /// Getter for `data`.
       const std::string getData() const { return Hex::fromBytes(this->data).get(); }

@@ -18,17 +18,16 @@ std::string ABI::Encoder::encodeBool(bool b) const {
 }
 
 std::string ABI::Encoder::encodeBytes(std::string bytes) const {
-  std::string strip, off, len, data = "";
+  std::string strip, len, data = "";
   int pad = 0;
   strip = (bytes.substr(0, 2) == "0x" || bytes.substr(0, 2) == "0X")
     ? Hex(bytes).get() : Hex::fromUTF8(bytes).get();  // Bytes or string
   Utils::toLower(strip);
   if (strip.substr(0, 2) == "0x") strip.erase(0, 2);
-  off = Utils::padLeft(Hex::fromUint(32).get(), 64);
   len = Utils::padLeft(Hex::fromUint(strip.length() / 2).get(), 64);
   do { pad += 64; } while (pad < strip.length());
   data = Utils::padRight(strip, pad);
-  return Hex::toBytes(off + len + data);
+  return Hex::toBytes(len + data);
 }
 
 std::string ABI::Encoder::encodeUint256Arr(std::vector<uint256_t> numV) const {
@@ -85,10 +84,7 @@ std::string ABI::Encoder::encodeBytesArr(std::vector<std::string> bytesV) const 
   return Hex::toBytes(ret);
 }
 
-ABI::Encoder::Encoder(std::vector<std::variant<
-  uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-  bool, std::vector<bool>, std::string, std::vector<std::string>
->> data, std::string func) {
+ABI::Encoder::Encoder(ABI::Encoder::EncVar data, std::string func) {
   // Handle function ID first if it exists.
   // We have to check the existence of "()", every type inside it,
   // *and* if type positions on both header and data vector are the same
@@ -132,45 +128,63 @@ ABI::Encoder::Encoder(std::vector<std::variant<
     this->data += encodeFunction(func);
   }
 
-  // Handle each data type and value
+  /**
+   * Handle each data type and value, like this:
+   * - Split parsing in two: static vars + offsets (appended to this->data),
+   * and dynamic vars (appended to dynamicStr)
+   * - Consider each 32-byte/64-char space, thus each declared item in the
+   * array, as a "line" (for easier understanding)
+   * - Count a "global" dynamic offset (nextOffset),
+   * starting from (32 bytes * starting number of lines), and
+   * adding every (32 bytes * number of lines from current item)
+   * for each parsed item
+   */
   uint64_t nextOffset = 32 * data.size();
-  std::string arrToAppend = "";
+  std::string dynamicStr = "";
   for (auto arg : data) {
+    // uint256 (static)
     if (std::holds_alternative<uint256_t>(arg)) {
       this->data += encodeUint256(std::get<uint256_t>(arg));
+    // address (static)
     } else if (std::holds_alternative<Address>(arg)) {
       this->data += encodeAddress(std::get<Address>(arg));
+    // bool (static)
     } else if (std::holds_alternative<bool>(arg)) {
       this->data += encodeBool(std::get<bool>(arg));
+    // bytes/string (dynamic)
     } else if (std::holds_alternative<std::string>(arg)) {
-      this->data += Hex::toBytes(Utils::padLeft(Hex::fromUint(nextOffset), 64));
       std::string packed = encodeBytes(std::get<std::string>(arg));
+      this->data += Hex::toBytes(Utils::padLeft(Hex::fromUint(nextOffset).get(), 64));
       nextOffset += 32 * (packed.length() / 32); // Both offset and packed in bytes
-      arrToAppend += packed;
+      dynamicStr += packed;
+    // uint256[] (dynamic)
     } else if (std::holds_alternative<std::vector<uint256_t>>(arg)) {
       std::vector<uint256_t> argData = std::get<std::vector<uint256_t>>(arg);
       this->data += Hex::toBytes(Utils::padLeft(Hex::fromUint(nextOffset).get(), 64));
-      nextOffset += 32 * argData.size();  // In bytes
-      arrToAppend += encodeUint256Arr(argData).substr(32);
+      nextOffset += 32 + (32 * argData.size());  // Length + items, in bytes
+      dynamicStr += encodeUint256Arr(argData).substr(32);
+    // address[] (dynamic)
     } else if (std::holds_alternative<std::vector<Address>>(arg)) {
       std::vector<Address> argData = std::get<std::vector<Address>>(arg);
       this->data += Hex::toBytes(Utils::padLeft(Hex::fromUint(nextOffset).get(), 64));
-      nextOffset += 32 * argData.size();  // In bytes
-      arrToAppend += encodeAddressArr(argData).substr(32);
+      nextOffset += 32 + (32 * argData.size());  // Length + items, in bytes
+      dynamicStr += encodeAddressArr(argData).substr(32);
+    // bool[] (dynamic)
     } else if (std::holds_alternative<std::vector<bool>>(arg)) {
       std::vector<bool> argData = std::get<std::vector<bool>>(arg);
       this->data += Hex::toBytes(Utils::padLeft(Hex::fromUint(nextOffset).get(), 64));
-      nextOffset += 32 * argData.size();  // In bytes
-      arrToAppend += encodeBoolArr(argData).substr(32);
+      nextOffset += 32 + (32 * argData.size());  // Length + items, in bytes
+      dynamicStr += encodeBoolArr(argData).substr(32);
+    // bytes[]/string[] (dynamic)
     } else if (std::holds_alternative<std::vector<std::string>>(arg)) {
       std::vector<std::string> argData = std::get<std::vector<std::string>>(arg);
-      this->data += Hex::toBytes(Utils::padLeft(Hex::fromUint(nextOffset).get(), 64));
       std::string packed = encodeBytesArr(argData).substr(32);
+      this->data += Hex::toBytes(Utils::padLeft(Hex::fromUint(nextOffset).get(), 64));
       nextOffset += 32 * (packed.length() / 32); // Both offset and packed in bytes
-      arrToAppend += packed;
+      dynamicStr += packed;
     }
   }
-  this->data += arrToAppend;
+  this->data += dynamicStr;
 }
 
 uint256_t ABI::Decoder::decodeUint256(const std::string& data, const uint64_t& start) const {
@@ -272,7 +286,7 @@ std::vector<Address> ABI::Decoder::decodeAddressArr(const std::string& data, con
       data.begin() + arrayStart + 32 + (i * 32) + 32,
       std::back_inserter(tmp)
     );
-    Address address(tmp, false);
+    Address address(tmp, true); // tmp is in bytes
     tmpArr.emplace_back(address);
   }
 
