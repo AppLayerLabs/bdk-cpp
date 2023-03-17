@@ -29,6 +29,7 @@ ExternalProject_Add(
     BUILD_COMMAND ""
     ${_overwrite_install_command}
     LOG_INSTALL 1
+    BUILD_BYPRODUCTS "${ETHASH_LIBRARY}"
     BUILD_BYPRODUCTS "${ETHASH_BYPRODUCTS}"
 )
  
