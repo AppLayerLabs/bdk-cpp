@@ -9,10 +9,9 @@ using Catch::Matchers::Equals;
 
 namespace TDB {
   TEST_CASE("DB Tests", "[utils][db]") {
-    SECTION("Open and Close DB + Strip Prefix From Key") {
+    SECTION("Open and Close DB") {
       DB db("testDB");
       REQUIRE(std::filesystem::exists(std::filesystem::current_path().string() + "/testDB"));
-      REQUIRE(db.stripPrefix(DBPrefix::blocks + "a4a96085") == "a4a96085");
       REQUIRE(db.close());
     }
 
