@@ -1,5 +1,4 @@
 #include "db.h"
-#include "hex.h"
 
 DB::DB(const std::string path) {
   this->opts.create_if_missing = true;
