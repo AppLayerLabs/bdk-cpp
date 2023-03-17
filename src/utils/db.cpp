@@ -1,4 +1,5 @@
 #include "db.h"
+#include "hex.h"
 
 DB::DB(const std::string path) {
   this->opts.create_if_missing = true;
@@ -15,8 +16,10 @@ DB::DB(const std::string path) {
 
 bool DB::has(const std::string& key, const std::string& pfx) {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
-  for (it->Seek(pfx + key); it->Valid(); it->Next()) {
-    if (it->key().ToString() == pfx + key) { delete it; return true; }
+  std::string strForSlice = std::string(pfx + key);
+  leveldb::Slice slice(strForSlice);
+  for (it->Seek(slice); it->Valid(); it->Next()) {
+    if (it->key() == slice) { delete it; return true; }
   }
   delete it;
   return false;
@@ -24,8 +27,10 @@ bool DB::has(const std::string& key, const std::string& pfx) {
 
 std::string DB::get(const std::string& key, const std::string& pfx) const {
   leveldb::Iterator *it = this->db->NewIterator(leveldb::ReadOptions());
-  for (it->Seek(pfx + key); it->Valid(); it->Next()) {
-    if (it->key().ToString() == pfx + key) {
+  std::string strForSlice = std::string(pfx + key);
+  leveldb::Slice slice(strForSlice);
+  for (it->Seek(slice); it->Valid(); it->Next()) {
+    if (it->key().ToString() == slice) {
       std::string value = it->value().ToString();
       delete it;
       return value;
@@ -73,8 +78,9 @@ std::vector<DBEntry> DB::getBatch(
   if (keys.empty()) {
     for (it->Seek(pfx); it->Valid(); it->Next()) {
       if (it->key().starts_with(pfx)) {
-        it->key().remove_prefix(2);
-        ret.emplace_back(it->key().ToString(), it->value().ToString());
+        auto keySlice = it->key();
+        keySlice.remove_prefix(2);
+        ret.emplace_back(keySlice.ToString(), it->value().ToString());
       }
     }
     delete it;
@@ -84,10 +90,11 @@ std::vector<DBEntry> DB::getBatch(
   // Search for specific entries from keys
   for (it->Seek(pfx); it->Valid(); it->Next()) {
     if (it->key().starts_with(pfx)) {
-      it->key().remove_prefix(2);
+      auto keySlice = it->key();
+      keySlice.remove_prefix(2);
       for (const std::string& key : keys) {
-        if (it->key() == leveldb::Slice(key)) {
-          ret.emplace_back(it->key().ToString(), it->value().ToString());
+        if (keySlice == leveldb::Slice(key)) {
+          ret.emplace_back(keySlice.ToString(), it->value().ToString());
         }
       }
     }
