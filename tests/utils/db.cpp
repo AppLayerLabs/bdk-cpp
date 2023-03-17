@@ -9,9 +9,12 @@ using Catch::Matchers::Equals;
 
 namespace TDB {
   TEST_CASE("DB Tests", "[utils][db]") {
-    SECTION("Open and Close DB") {
+    SECTION("Open and Close DB (w/ throw)") {
+      bool catched = false;
       DB db("testDB");
       REQUIRE(std::filesystem::exists(std::filesystem::current_path().string() + "/testDB"));
+      try { DB db2("testDB"); } catch (std::exception& e) { catched = true; }
+      REQUIRE(catched == true);
       REQUIRE(db.close());
     }
 
@@ -42,7 +45,6 @@ namespace TDB {
       // Close
       REQUIRE(db.close());
     }
-
 
     SECTION("Batched CRUD (Create + Read + Update + Delete)") {
       // Open
@@ -96,6 +98,14 @@ namespace TDB {
       for (std::string key : batchD.dels) REQUIRE(!db.has(key, pfx));
 
       // Close
+      REQUIRE(db.close());
+    }
+
+    SECTION("Throws/Errors") {
+      DB db("testDB");
+      REQUIRE(!db.has("dummy"));
+      REQUIRE(db.get("dummy").empty());
+      REQUIRE(db.getBatch("0001", {"dummy"}).empty());
       REQUIRE(db.close());
     }
 
