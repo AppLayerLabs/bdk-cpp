@@ -98,7 +98,7 @@ namespace TBlock {
       for (uint64_t i = 0; i < 10; i++) newBlock.appendTx(tx);
 
       newBlock.finalize(validatorPrivKey);
-      
+
       Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
 
@@ -172,23 +172,21 @@ namespace TBlock {
       REQUIRE(newBlock.isFinalized() == false);
     }
 
- 
+
     SECTION("Block creation with 64 TxBlock transactions and 16 TxValidator transactions") {
       // There is 16 TxValidator transactions, but only 8 of them are used for block randomness.
-      PrivKey blockValidatorPrivKey(Hex::toBytes("0x77ec0f8f28012de474dcd0b0a2317df22e188cec0a4cb0c9b760c845a23c9699")); 
+      PrivKey blockValidatorPrivKey(Hex::toBytes("0x77ec0f8f28012de474dcd0b0a2317df22e188cec0a4cb0c9b760c845a23c9699"));
       PrivKey txValidatorPrivKey(Hex::toBytes("53f3b164248c7aa5fe610208c0f785063e398fcb329a32ab4fbc9bd4d29b42db"));
       Hash nPrevBlockHash(Hex::toBytes("0x7c9efc59d7bec8e79499a49915e0a655a3fff1d0609644d98791893afc67e64b"));
       uint64_t timestamp = 1678464099412509;
       uint64_t nHeight = 331653115;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
- 
+
       TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"));
- 
-      for (uint64_t i = 0; i < 64; ++i) {
-        newBlock.appendTx(tx);
-      }
- 
-      // Create and append 8 
+
+      for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
+
+      // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
       std::string randomSeed; // Concatenated random seed of block.
       for (const auto &seed : randomSeeds) randomSeed += seed.get();
@@ -198,8 +196,8 @@ namespace TBlock {
 
       // Create 8 TxValidator transactions with type 0xcfffe746 (random hash)
       for (const auto &seed : randomSeeds) {
-         std::string data = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
-         txValidators.emplace_back(
+        std::string data = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        txValidators.emplace_back(
           validatorAddress,
           data,
           8080,
@@ -208,10 +206,10 @@ namespace TBlock {
         );
       }
 
-      // create 8 TxValidator transactions with type 0x6fc5a2d6 (random seed)
+      // Create 8 TxValidator transactions with type 0x6fc5a2d6 (random seed)
       for (const auto &seed : randomSeeds) {
-         std::string data = Hex::toBytes("0x6fc5a2d6") + seed.get();
-         txValidators.emplace_back(
+        std::string data = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        txValidators.emplace_back(
           validatorAddress,
           data,
           8080,
@@ -306,7 +304,7 @@ namespace TBlock {
       uint64_t timestamp = 64545214243;
       uint64_t nHeight = 6414363551;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
- 
+
       std::vector<TxBlock> txs;
 
       for (uint64_t i = 0; i < 500; ++i) {
@@ -331,7 +329,7 @@ namespace TBlock {
           txPrivKey
         );
       }
- 
+
       // Create and append 32 randomSeeds
       std::vector<Hash> randomSeeds(32, Hash::random());
       std::string randomSeed; // Concatenated random seed of block.
@@ -447,10 +445,10 @@ namespace TBlock {
       uint64_t timestamp = 230915972837111;
       uint64_t nHeight = 239178513;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
- 
+
       std::vector<TxBlock> txs;
 
-      for (uint64_t i = 0; i < 40000; ++i) {
+      for (uint64_t i = 0; i < 40000; i++) {
         PrivKey txPrivKey = PrivKey::random();
         Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
         Address to(Utils::randBytes(20), true);
@@ -472,7 +470,7 @@ namespace TBlock {
           txPrivKey
         );
       }
- 
+
       // Create and append 32 randomSeeds
       std::vector<Hash> randomSeeds(128, Hash::random());
       std::string randomSeed; // Concatenated random seed of block.

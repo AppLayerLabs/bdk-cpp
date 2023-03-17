@@ -3,7 +3,7 @@
 Block::Block(std::string_view bytes) {
   try {
     // Split the bytes string
-    if (bytes.size() < 217) throw std::runtime_error("Invalid block size");
+    if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
     this->validatorSig = Signature(bytes.substr(0, 65));
     this->prevBlockHash = Hash(bytes.substr(65, 32));
     this->blockRandomness = Hash(bytes.substr(97, 32));
@@ -97,8 +97,9 @@ Block::Block(std::string_view bytes) {
       uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
       index += 4;
       this->txValidators.emplace_back(bytes.substr(index, txSize));
-      if (txValidators.back().getNHeight() != this->nHeight)
+      if (txValidators.back().getNHeight() != this->nHeight) {
         throw std::runtime_error("Invalid validator tx height");
+      }
       index += txSize;
     }
 

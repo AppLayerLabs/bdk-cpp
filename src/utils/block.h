@@ -214,7 +214,7 @@ class Block {
      * This means the block will be "closed" to new transactions,
      * being signed and validated by the Validator, and generating a
      * new randomness seed for the next block.
-     * @return `true` on success, `false`
+     * @return `true` on success, `false` if block is already finalized.
      */
     bool finalize(const PrivKey& validatorPrivKey);
 
