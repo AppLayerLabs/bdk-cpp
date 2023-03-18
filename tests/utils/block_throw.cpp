@@ -256,9 +256,9 @@ namespace TBlock {
       // Sign block with block validator private key.
       newBlock.finalize(blockValidatorPrivKey);
 
+      // TODO: this doesn't seem to work, it doesn't throw
       bool catched = false;
       std::string str = newBlock.serializeBlock();
-      // TODO: this doesn't seem to work, it doesn't throw
       Block b(str);
       std::cout << b.getValidatorSig().hex().get() << std::endl;
       str.replace(0, 2, "\xb0\x0b"); // Replace 2 bytes in Validator sig to make it invalid and throw

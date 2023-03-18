@@ -16,12 +16,14 @@
 
 class RandomGen {
   private:
-    Hash seed;            ///< RNG seed.
+    Hash seed;  ///< RNG seed.
     mutable std::mutex seedLock;  ///< Mutex for managing read/write access to the seed.
+
   public:
     /**
      * Alias for the result type.
-     * Implemented in conformity with [UniformRandomBitGenerator](https://en.cppreference.com/w/cpp/named_req/UniformRandomBitGenerator).
+     * Implemented in conformity with UniformRandomBitGenerator:
+     * https://en.cppreference.com/w/cpp/named_req/UniformRandomBitGenerator
      */
     typedef uint256_t result_type;
 

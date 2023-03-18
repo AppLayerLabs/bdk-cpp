@@ -2,9 +2,12 @@
 
 std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
   std::vector<Hash> ret;
-  for (uint64_t i = 0; i < layer.size(); i += 2)
-    ret.emplace_back(((i + 1 < layer.size()) ? Utils::sha3(std::min(layer[i].get(), layer[i + 1].get()) + std::max(layer[i].get(), layer[i + 1].get())) : layer[i]));
-
+  for (uint64_t i = 0; i < layer.size(); i += 2) ret.emplace_back((
+    (i + 1 < layer.size())
+      ? Utils::sha3(std::min(layer[i].get(), layer[i + 1].get())
+        + std::max(layer[i].get(), layer[i + 1].get()))
+      : layer[i]
+  ));
   return ret;
 }
 

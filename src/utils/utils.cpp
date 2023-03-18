@@ -35,7 +35,7 @@ std::string Utils::uint256ToBytes(const uint256_t& i) {
   std::string tmp;
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
   // Replace bytes from tmp to ret to make it 32 bytes in size
-  for (unsigned i = 0; i < tmp.size(); i++) ret[31 - i] = tmp[tmp.size() - i - 1];  
+  for (unsigned i = 0; i < tmp.size(); i++) ret[31 - i] = tmp[tmp.size() - i - 1];
   return ret;
 }
 

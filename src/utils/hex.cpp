@@ -1,7 +1,5 @@
 #include "hex.h"
 
-
-
 Hex::Hex(const std::string_view v, bool strict) : strict(strict) {
   std::string ret(v);
   if (strict) {
@@ -104,3 +102,4 @@ std::string Hex::bytes() const {
   }
   return ret;
 }
+

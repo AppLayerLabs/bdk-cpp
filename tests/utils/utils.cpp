@@ -6,7 +6,6 @@
 using Catch::Matchers::Equals;
 
 namespace TUtils {
-
   TEST_CASE("Utils Namespace", "[utils]") {
     SECTION("Sha3 Test") {
       std::string sha3Input = "My SHA3 Input";
@@ -67,6 +66,15 @@ namespace TUtils {
       auto uint256Output = Utils::bytesToUint256(bytesStr.view());
       uint256_t uint256ExpectedOutput = uint256_t("91830918212381802449294565349763096207758814059154440393436864477986483867239");
       REQUIRE(uint256Output == uint256ExpectedOutput);
+
+      bool catchLo = false;
+      bool catchHi = false;
+      std::string_view loStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+      std::string_view hiStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+      try { Utils::bytesToUint256(loStr); } catch (std::exception &e) { catchLo = true; }
+      try { Utils::bytesToUint256(hiStr); } catch (std::exception &e) { catchHi = true; }
+      REQUIRE(catchLo == true);
+      REQUIRE(catchHi == true);
     }
 
     SECTION("bytesToUint160 Test") {
@@ -74,6 +82,15 @@ namespace TUtils {
       auto uint160Output = Utils::bytesToUint160(bytesStr.view());
       uint160_t uint160ExpectedOutput = uint160_t("506797479317435130489084083375319966488594602593");
       REQUIRE(uint160Output == uint160ExpectedOutput);
+
+      bool catchLo = false;
+      bool catchHi = false;
+      std::string_view loStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffff");
+      std::string_view hiStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffff");
+      try { Utils::bytesToUint160(loStr); } catch (std::exception &e) { catchLo = true; }
+      try { Utils::bytesToUint160(hiStr); } catch (std::exception &e) { catchHi = true; }
+      REQUIRE(catchLo == true);
+      REQUIRE(catchHi == true);
     }
 
     SECTION("bytesToUint64 Test") {
@@ -81,6 +98,15 @@ namespace TUtils {
       auto uint64Output = Utils::bytesToUint64(bytesStr.view());
       uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614);
       REQUIRE(uint64Output == uint64ExpectedOutput);
+
+      bool catchLo = false;
+      bool catchHi = false;
+      std::string_view loStr = Hex::toBytes("0xffffffffffffff");
+      std::string_view hiStr = Hex::toBytes("0xffffffffffffffffff");
+      try { Utils::bytesToUint64(loStr); } catch (std::exception &e) { catchLo = true; }
+      try { Utils::bytesToUint64(hiStr); } catch (std::exception &e) { catchHi = true; }
+      REQUIRE(catchLo == true);
+      REQUIRE(catchHi == true);
     }
 
     SECTION("bytesToUint32 Test") {
@@ -88,6 +114,15 @@ namespace TUtils {
       auto uint32Output = Utils::bytesToUint32(bytesStr.view());
       uint32_t uint32ExpectedOutput = 2004601498;
       REQUIRE(uint32Output == uint32ExpectedOutput);
+
+      bool catchLo = false;
+      bool catchHi = false;
+      std::string_view loStr = Hex::toBytes("0xffffff");
+      std::string_view hiStr = Hex::toBytes("0xffffffffff");
+      try { Utils::bytesToUint32(loStr); } catch (std::exception &e) { catchLo = true; }
+      try { Utils::bytesToUint32(hiStr); } catch (std::exception &e) { catchHi = true; }
+      REQUIRE(catchLo == true);
+      REQUIRE(catchHi == true);
     }
 
     SECTION("bytesToUint16 Test") {
@@ -95,6 +130,15 @@ namespace TUtils {
       auto uint16Output = Utils::bytesToUint16(bytesStr.view());
       uint16_t uint16ExpectedOutput = 65452;
       REQUIRE(uint16Output == uint16ExpectedOutput);
+
+      bool catchLo = false;
+      bool catchHi = false;
+      std::string_view loStr = Hex::toBytes("0xff");
+      std::string_view hiStr = Hex::toBytes("0xffffff");
+      try { Utils::bytesToUint16(loStr); } catch (std::exception &e) { catchLo = true; }
+      try { Utils::bytesToUint16(hiStr); } catch (std::exception &e) { catchHi = true; }
+      REQUIRE(catchLo == true);
+      REQUIRE(catchHi == true);
     }
 
     SECTION("bytesToUint8 Test") {
@@ -102,6 +146,15 @@ namespace TUtils {
       auto uint8Output = Utils::bytesToUint8(bytesStr.view());
       uint8_t uint8ExpectedOutput = 120;
       REQUIRE(uint8Output == uint8ExpectedOutput);
+
+      bool catchLo = false;
+      bool catchHi = false;
+      std::string_view loStr = Hex::toBytes("0x");
+      std::string_view hiStr = Hex::toBytes("0xffff");
+      try { Utils::bytesToUint8(loStr); } catch (std::exception &e) { catchLo = true; }
+      try { Utils::bytesToUint8(hiStr); } catch (std::exception &e) { catchHi = true; }
+      REQUIRE(catchLo == true);
+      REQUIRE(catchHi == true);
     }
 
     SECTION("Hex::toInt Test") {

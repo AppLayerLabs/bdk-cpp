@@ -26,6 +26,7 @@ class Merkle {
      * @return The newly created layer.
      */
     std::vector<Hash> newLayer(const std::vector<Hash>& layer) const;
+
   public:
     /**
      * Constructor.
@@ -37,8 +38,7 @@ class Merkle {
      * Constructor for %Block transactions.
      * @param txs The list of transactions to create the Merkle tree from.
      */
-    template <typename TxType>
-    Merkle(const std::vector<TxType>& txs) {
+    template <typename TxType> Merkle(const std::vector<TxType>& txs) {
       // Mount the base leaves
       std::vector<Hash> tmp;
       for (auto tx : txs) {

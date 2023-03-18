@@ -15,7 +15,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   index += listLengthSize; // Index is now at rlp[0] size
 
   // Size sanity check
-  if (listLength <  bytes.size() - listLengthSize - 1) {
+  if (listLength < bytes.size() - listLengthSize - 1) {
     throw std::runtime_error("Tx RLP returns smaller size than reported");
   } else if (listLength > bytes.size() - listLengthSize - 1) {
     throw std::runtime_error("Tx RLP returns larger size than reported");
@@ -150,7 +150,7 @@ TxBlock::TxBlock(const std::string_view& bytes) {
   Hash msgHash = this->hash(false); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
   if (!key) throw std::runtime_error("Invalid tx signature - cannot recover public key");
-  
+
   this->from = Secp256k1::toAddress(key);
 }
 
@@ -161,10 +161,6 @@ TxBlock::TxBlock(
 ) : to(to), from(from), data(data), chainId(chainId), nonce(nonce),
   value(value), gas(gas), gasPrice(gasPrice)
 {
-  if (privKey.size() != 32) throw std::runtime_error(
-    "Invalid privKey size - expected 32, got " + std::to_string(privKey.size())
-  );
-
   UPubKey pubKey = Secp256k1::toUPub(privKey);
   Address add = Secp256k1::toAddress(pubKey);
   if (add != this->from) throw std::runtime_error("Private key does not match sender address (from)");
@@ -177,7 +173,7 @@ TxBlock::TxBlock(
   this->v = recoveryIds + (this->chainId * 2 + 35);
 
   if (pubKey != Secp256k1::recover(sig, hash)) {
-    throw std::runtime_error("Invalid transaction signature, signature derived key doens't match public key");
+    throw std::runtime_error("Invalid tx signature - derived key doesn't match public key");
   }
   if (!Secp256k1::verifySig(this->r, this->s, recoveryIds)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
@@ -435,10 +431,6 @@ TxValidator::TxValidator(
   const Address from, const std::string data, const uint64_t chainId,
   const uint64_t nHeight, const PrivKey privKey
 ) : from(from), data(data), chainId(chainId), nHeight(nHeight) {
-  if (privKey.size() != 32) throw std::runtime_error(
-    "Invalid private key size - expected 32, got " + std::to_string(privKey.size())
-  );
-
   UPubKey pubKey = Secp256k1::toUPub(privKey);
   Address add = Secp256k1::toAddress(pubKey);
   Hash hash = this->hash(false);

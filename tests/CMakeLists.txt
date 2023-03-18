@@ -14,6 +14,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/randomgen.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/strings.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/tx.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/tx_throw.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/utils.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp

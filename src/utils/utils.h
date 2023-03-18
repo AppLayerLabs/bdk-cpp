@@ -272,7 +272,7 @@ namespace Utils {
    * @return A JSON object with the settings.
    */
   json readConfigFile();
-  
+
   // DEPRECATED FUNCTIONS BELOW
 
   /**

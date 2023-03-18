@@ -8,57 +8,44 @@ using Catch::Matchers::Equals;
 
 namespace TMerkle {
   TEST_CASE("Merkle Tests", "[utils][merkle]") {
-    SECTION("Simple Merkle Tree Test") {
-      std::vector<std::string> unhashedLeafs = {"ab", "bc", "cd", "de", "ef", "fg", "gh", "hi", "ij", "jk", "km", "mn"};
+    SECTION("Simple Merkle Tree") {
+      std::vector<std::string> unhashedLeafs = {
+        "ab", "bc", "cd", "de", "ef", "fg",
+        "gh", "hi", "ij", "jk", "km", "mn"
+      };
       std::vector<Hash> hashedLeafs;
-      for(const std::string& leaf : unhashedLeafs)
-      {
-        hashedLeafs.emplace_back(Utils::sha3(leaf));
-      }
+      for(const std::string& leaf : unhashedLeafs) hashedLeafs.emplace_back(Utils::sha3(leaf));
 
       Merkle tree(hashedLeafs);
-
-      auto proof = tree.getProof(3);
-      auto leaf = tree.getLeaves()[3];
-      auto root = tree.getRoot();
-      auto badLeaf = tree.getLeaves()[4];
+      std::vector<Hash> proof = tree.getProof(3);
+      Hash leaf = tree.getLeaves()[3];
+      Hash root = tree.getRoot();
+      Hash badLeaf = tree.getLeaves()[4];
 
       REQUIRE_THAT(root.hex(), Equals("3fb0308018d8a6b4c2081699003624e9719774be2b7f65b7f9ac45f2bebc20b7"));
       REQUIRE(Merkle::verify(proof, leaf, root));
       REQUIRE(!Merkle::verify(proof, badLeaf, root));
     }
 
-    SECTION("Random Merkle Tree Test") {
+    SECTION("Random Merkle Tree") {
       std::vector<Hash> hashedLeafs {
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
-        Hash::random(),
+        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
+        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
+        Hash::random(), Hash::random(), Hash::random(), Hash::random(),
+        Hash::random(), Hash::random(), Hash::random()
       };
 
       Merkle tree(hashedLeafs);
-
-      auto proof = tree.getProof(5);
-      auto leaf = tree.getLeaves()[5];
-      auto root = tree.getRoot();
-      auto badLeaf = tree.getLeaves()[6];
+      std::vector<Hash> proof = tree.getProof(5);
+      Hash leaf = tree.getLeaves()[5];
+      Hash root = tree.getRoot();
+      Hash badLeaf = tree.getLeaves()[6];
 
       REQUIRE(Merkle::verify(proof, leaf, root));
       REQUIRE(!Merkle::verify(proof, badLeaf, root));
     }
 
-    SECTION("TxBlock Merkle Tree Test") {
+    SECTION("TxBlock Merkle Tree") {
       std::vector<TxBlock> txs {
         TxBlock(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c")),
         TxBlock(Hex::toBytes("f895844016f37185f2b0db75ee819a94244c50e5c782fb2845f96f6c59a772688b2321fc8920a695124ba217f0aea16049b0b9a404cc2bcfa22db59623d8a103c4d3975f925ab5b7906e05b499152f3e840138463ea0eabb0ebec46336ea95d2fe388ece3f7b4467dd8d346165bf0f4d533e886e8e8da070486c921eaebfcb3a7ff5455bdd27e335ea8e028b0dcda4103b2d32816ec321")),
@@ -79,10 +66,10 @@ namespace TMerkle {
       };
 
       Merkle tree(txs);
-      auto proof = tree.getProof(3);
-      auto leaf = tree.getLeaves()[3];
-      auto root = tree.getRoot();
-      auto badLeaf = tree.getLeaves()[4];
+      std::vector<Hash> proof = tree.getProof(3);
+      Hash leaf = tree.getLeaves()[3];
+      Hash root = tree.getRoot();
+      Hash badLeaf = tree.getLeaves()[4];
 
       REQUIRE(root == Hash(Hex::toBytes("eef6cb29005b53e9f74ba5fe7e29759ab3623251804ff7e07608c2b49ae2c5f8")));
       REQUIRE(Merkle::verify(proof, leaf, root));
@@ -90,3 +77,4 @@ namespace TMerkle {
     }
   }
 }
+

@@ -2,14 +2,14 @@
 
 secp256k1_context const* Secp256k1::getCtx() {
   static std::unique_ptr<secp256k1_context, ContextDeleter> s_ctx{
-      secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY)
+    secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY)
   };
   return s_ctx.get();
 }
 
 UPubKey Secp256k1::recover(const Signature& sig, const Hash& msg) {
   int v = sig[64];
-  if (v > 3) { return UPubKey(); }
+  if (v > 3) return UPubKey();
   auto* ctx = Secp256k1::getCtx();
 
   secp256k1_ecdsa_recoverable_signature rawSig;

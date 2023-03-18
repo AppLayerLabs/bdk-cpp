@@ -130,7 +130,6 @@ class Hex {
 
     /// Concat operator. Throws on invalid concat.
     Hex& operator+=(const std::string& hex) {
-
       if (this->isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
         this->hex += (
           hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
@@ -141,7 +140,7 @@ class Hex {
       return *this;
     }
 
-    /// Concat operator. Throws on invalid concat.
+    /// Concat operator.
     Hex& operator+=(const Hex& other) {
       this->hex += (other.strict) ? other.hex.substr(2) : other.hex;
       return *this;
