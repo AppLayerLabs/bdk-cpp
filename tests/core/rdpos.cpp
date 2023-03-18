@@ -49,22 +49,10 @@ void initialize(std::unique_ptr<DB>& db,
     db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
 
     // Populate rdPoS DB with unique validators, not default.
-    // PrivateKey: 0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8
-    db->put(Utils::uint64ToBytes(0), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[0]))).get(), DBPrefix::validators);
-    // PrivateKey: b254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66
-    db->put(Utils::uint64ToBytes(1), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[1]))).get(), DBPrefix::validators);
-    // PrivateKey: 8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da
-    db->put(Utils::uint64ToBytes(2), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[2]))).get(), DBPrefix::validators);
-    // PrivateKey: 9048f5e80549e244b7899e85a4ef69512d7d68613a3dba828266736a580e7745
-    db->put(Utils::uint64ToBytes(3), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[3]))).get(), DBPrefix::validators);
-    // PrivateKey: 0b6f5ad26f6eb79116da8c98bed5f3ed12c020611777d4de94c3c23b9a03f739
-    db->put(Utils::uint64ToBytes(4), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[4]))).get(), DBPrefix::validators);
-    // PrivateKey: a69eb3a3a679e7e4f6a49fb183fb2819b7ab62f41c341e2e2cc6288ee22fbdc7
-    db->put(Utils::uint64ToBytes(5), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[5]))).get(), DBPrefix::validators);
-    // PrivateKey: d9b0613b7e4ccdb0f3a5ab0956edeb210d678db306ab6fae1e2b0c9ebca1c2c5
-    db->put(Utils::uint64ToBytes(6), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[6]))).get(), DBPrefix::validators);
-    // PrivateKey: 426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f
-    db->put(Utils::uint64ToBytes(7), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[7]))).get(), DBPrefix::validators);
+    for (uint64_t i = 0; i < validatorPrivKeys.size(); ++i) {
+      db->put(Utils::uint64ToBytes(i), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[i]))).get(),
+              DBPrefix::validators);
+    }
   }
 
   storage = std::make_unique<Storage>(db);
@@ -576,7 +564,216 @@ namespace TRdPoS {
     }
   }
 
-  TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality", "[core][rdpos][net][p2p]") {
+  TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality, move 10 blocks forward", "[core][rdpos][net][p2p][heavy]") {
+    // Initialize 8 different node instances, with different ports and DBs.
+    std::unique_ptr<DB> db1;
+    std::unique_ptr<Storage> storage1;
+    std::unique_ptr<P2P::ManagerNormal> p2p1;
+    PrivKey validatorKey1 = PrivKey();
+    std::unique_ptr<rdPoS> rdpos1;
+    initialize(db1, storage1, p2p1, validatorPrivKeys[0], rdpos1, 8080, true, "node1");
 
+    std::unique_ptr<DB> db2;
+    std::unique_ptr<Storage> storage2;
+    std::unique_ptr<P2P::ManagerNormal> p2p2;
+    PrivKey validatorKey2 = PrivKey();
+    std::unique_ptr<rdPoS> rdpos2;
+    initialize(db2, storage2, p2p2, validatorPrivKeys[1], rdpos2, 8081, true, "node2");
+
+    std::unique_ptr<DB> db3;
+    std::unique_ptr<Storage> storage3;
+    std::unique_ptr<P2P::ManagerNormal> p2p3;
+    PrivKey validatorKey3 = PrivKey();
+    std::unique_ptr<rdPoS> rdpos3;
+    initialize(db3, storage3, p2p3, validatorPrivKeys[2], rdpos3, 8082, true, "node3");
+
+    std::unique_ptr<DB> db4;
+    std::unique_ptr<Storage> storage4;
+    std::unique_ptr<P2P::ManagerNormal> p2p4;
+    PrivKey validatorKey4 = PrivKey();
+    std::unique_ptr<rdPoS> rdpos4;
+    initialize(db4, storage4, p2p4, validatorPrivKeys[3], rdpos4, 8083, true, "node4");
+
+    std::unique_ptr<DB> db5;
+    std::unique_ptr<Storage> storage5;
+    std::unique_ptr<P2P::ManagerNormal> p2p5;
+    PrivKey validatorKey5 = PrivKey();
+    std::unique_ptr<rdPoS> rdpos5;
+    initialize(db5, storage5, p2p5, validatorPrivKeys[4], rdpos5, 8084, true, "node5");
+
+    std::unique_ptr<DB> db6;
+    std::unique_ptr<Storage> storage6;
+    std::unique_ptr<P2P::ManagerNormal> p2p6;
+    PrivKey validatorKey6 = PrivKey();
+    std::unique_ptr<rdPoS> rdpos6;
+    initialize(db6, storage6, p2p6, validatorPrivKeys[5], rdpos6, 8085, true, "node6");
+
+    std::unique_ptr<DB> db7;
+    std::unique_ptr<Storage> storage7;
+    std::unique_ptr<P2P::ManagerNormal> p2p7;
+    PrivKey validatorKey7 = PrivKey();
+    std::unique_ptr<rdPoS> rdpos7;
+    initialize(db7, storage7, p2p7, validatorPrivKeys[6], rdpos7, 8086, true, "node7");
+
+    std::unique_ptr<DB> db8;
+    std::unique_ptr<Storage> storage8;
+    std::unique_ptr<P2P::ManagerNormal> p2p8;
+    PrivKey validatorKey8 = PrivKey();
+    std::unique_ptr<rdPoS> rdpos8;
+    initialize(db8, storage8, p2p8, validatorPrivKeys[7], rdpos8, 8087, true, "node8");
+
+    // Initialize the discovery node.
+    std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+
+    // References for the rdPoS workers vector.
+    std::vector<std::reference_wrapper<std::unique_ptr<rdPoS>>> rdPoSreferences;
+    rdPoSreferences.emplace_back(rdpos1);
+    rdPoSreferences.emplace_back(rdpos2);
+    rdPoSreferences.emplace_back(rdpos3);
+    rdPoSreferences.emplace_back(rdpos4);
+    rdPoSreferences.emplace_back(rdpos5);
+    rdPoSreferences.emplace_back(rdpos6);
+    rdPoSreferences.emplace_back(rdpos7);
+    rdPoSreferences.emplace_back(rdpos8);
+
+    // Start servers
+    p2pDiscovery->startServer();
+    p2p1->startServer();
+    p2p2->startServer();
+    p2p3->startServer();
+    p2p4->startServer();
+    p2p5->startServer();
+    p2p6->startServer();
+    p2p7->startServer();
+    p2p8->startServer();
+
+    // Connect nodes to the discovery node.
+    p2p1->connectToServer("127.0.0.1", 8090);
+    p2p2->connectToServer("127.0.0.1", 8090);
+    p2p3->connectToServer("127.0.0.1", 8090);
+    p2p4->connectToServer("127.0.0.1", 8090);
+    p2p5->connectToServer("127.0.0.1", 8090);
+    p2p6->connectToServer("127.0.0.1", 8090);
+    p2p7->connectToServer("127.0.0.1", 8090);
+    p2p8->connectToServer("127.0.0.1", 8090);
+
+    // After a while, the discovery thread should have found all the nodes and connected between each other.
+    while (p2pDiscovery->getSessionsIDs().size() != 8) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    // Sleep an extra second
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
+
+    REQUIRE(rdpos1->getIsValidator());
+    REQUIRE(rdpos2->getIsValidator());
+    REQUIRE(rdpos3->getIsValidator());
+    REQUIRE(rdpos4->getIsValidator());
+    REQUIRE(rdpos5->getIsValidator());
+    REQUIRE(rdpos6->getIsValidator());
+    REQUIRE(rdpos7->getIsValidator());
+    REQUIRE(rdpos8->getIsValidator());
+
+    rdpos1->startrdPoSWorker();
+    rdpos2->startrdPoSWorker();
+    rdpos3->startrdPoSWorker();
+    rdpos4->startrdPoSWorker();
+    rdpos5->startrdPoSWorker();
+    rdpos6->startrdPoSWorker();
+    rdpos7->startrdPoSWorker();
+    rdpos8->startrdPoSWorker();
+
+    // Loop for block creation.
+    for (uint64_t i = 0; i < 10; ++i) {
+      while (rdpos1->getMempool().size() != 8) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
+      // Wait until block creator is truly ready.
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+      for (auto &blockCreator: rdPoSreferences) {
+        if (blockCreator.get()->canCreateBlock()) {
+          // Create the block.
+          auto mempool = blockCreator.get()->getMempool();
+          auto randomList = blockCreator.get()->getRandomList();
+          // Order the transactions in the proper manner.
+          std::vector<TxValidator> randomHashTxs;
+          std::vector<TxValidator> randomnessTxs;
+          uint64_t i = 1;
+          while (randomHashTxs.size() != rdPoS::minValidators) {
+            for (const auto [txHash, tx]: mempool) {
+              if (tx.getFrom() == randomList[i]) {
+                if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  randomHashTxs.emplace_back(tx);
+                  ++i;
+                  break;
+                }
+              }
+            }
+          }
+          i = 1;
+          while (randomnessTxs.size() != rdPoS::minValidators) {
+            for (const auto [txHash, tx]: mempool) {
+              if (tx.getFrom() == randomList[i]) {
+                if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  randomnessTxs.emplace_back(tx);
+                  ++i;
+                  break;
+                }
+              }
+            }
+          }
+
+          // Create the block and append to all chains, we can use any storage for latestblock
+          auto latestBlock = storage1->latest();
+          Block block(latestBlock->hash(), latestBlock->getTimestamp() + 10000, latestBlock->getNHeight() + 1);
+          // Append transactions towards block.
+          for (const auto &tx: randomHashTxs) {
+            block.appendTxValidator(tx);
+          }
+          for (const auto &tx: randomnessTxs) {
+            block.appendTxValidator(tx);
+          }
+
+          blockCreator.get()->signBlock(block);
+          // Validate the block.
+          REQUIRE(rdpos2->validateBlock(block));
+          REQUIRE(rdpos3->validateBlock(block));
+          REQUIRE(rdpos4->validateBlock(block));
+          REQUIRE(rdpos5->validateBlock(block));
+          REQUIRE(rdpos1->validateBlock(block));
+          REQUIRE(rdpos8->validateBlock(block));
+          REQUIRE(rdpos6->validateBlock(block));
+          REQUIRE(rdpos7->validateBlock(block));
+
+          rdpos1->processBlock(block);
+          storage1->pushBack(Block(block));
+
+          rdpos2->processBlock(block);
+          storage2->pushBack(Block(block));
+
+          rdpos3->processBlock(block);
+          storage3->pushBack(Block(block));
+
+          rdpos4->processBlock(block);
+          storage4->pushBack(Block(block));
+
+          rdpos5->processBlock(block);
+          storage5->pushBack(Block(block));
+
+          rdpos6->processBlock(block);
+          storage6->pushBack(Block(block));
+
+          rdpos7->processBlock(block);
+          storage7->pushBack(Block(block));
+
+          rdpos8->processBlock(block);
+          storage8->pushBack(Block(block));
+          break;
+        }
+      }
+    }
   }
 };

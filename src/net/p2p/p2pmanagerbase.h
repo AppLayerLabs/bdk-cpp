@@ -53,6 +53,9 @@ namespace P2P {
       // Handlers for client and server requests.
       // Handle message (called from sessions) is public.
       // Overriden by inherited object
+      // TODO: There is a bug with handleRequest that throws std::system_error.
+      // I believe that this is related with the std::shared_ptr<BaseSession> getting deleted or
+      // the session itself being disconnected.
       virtual void handleRequest(std::shared_ptr<BaseSession>& session, const Message& message) {};
       virtual void handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {};
       virtual void handleBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {};

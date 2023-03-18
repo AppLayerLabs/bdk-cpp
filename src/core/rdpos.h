@@ -39,6 +39,9 @@ class Validator : public Address {
     /// Move constructor.
     Validator(Validator&& other) noexcept : Address(std::move(other.data), true) {}
 
+    /// Get an Address copy
+    const Address address() const { return Address(this->data, true); }
+
     /// Copy assignment operator.
     Validator& operator=(const Validator& other) {
       this->data = other.data;
@@ -63,8 +66,9 @@ class rdPoS : public Contract {
     /// Mempool for validator Transactions.
     std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool;
 
-    /// Private Key for operating a validator, optional.
-    std::optional<PrivKey> validatorKey;
+    /// Private Key for operating a validator.
+    const PrivKey validatorKey;
+
     bool isValidator = false;
 
     /// worker for rdPoS. 
@@ -128,6 +132,8 @@ class rdPoS : public Contract {
     /// Check if a given address is a validator
     const bool isValidatorAddress(const Address& add) const { std::shared_lock lock(this->mutex); return validators.contains(Validator(add)); }
 
+    /// Getter for isValidator
+    const bool getIsValidator() const { return isValidator; }
 
     /// Clear the mempool
     void clearMempool() { std::unique_lock lock(this->mutex); validatorMempool.clear(); }
@@ -148,6 +154,12 @@ class rdPoS : public Contract {
     Hash processBlock(const Block& block);
 
     /**
+     * Signs a block using validatorKey
+     * returns false if we are not able to sign the block
+     */
+    void signBlock(Block& block);
+
+    /**
      * Add a Validator transaction to the mempool.
      * @param tx The transaction to add.
      * @return `true` if the transaction was added, `false` if invalid otherwise.
@@ -160,7 +172,22 @@ class rdPoS : public Contract {
      * @param txs The list of transactions to parse.
      * @return The new randomness of given transaction set.
      */
-    static Hash parseTxSeedList(const std::vector<TxValidator>& txs); 
+    static Hash parseTxSeedList(const std::vector<TxValidator>& txs);
+
+    /**
+     * Function for getting if we can create a block from rdPoSWorker
+     */
+    const std::atomic<bool>& canCreateBlock() const;
+
+    /**
+     * Function for starting the rdPoS worker.
+     */
+    void startrdPoSWorker();
+
+    /**
+     * Function for stopping the rdPoS worker.
+     */
+    void stoprdPoSWorker();
 
     friend rdPoSWorker;
 };
@@ -168,9 +195,55 @@ class rdPoS : public Contract {
 // Worker Class for rdPoS. This separate the class from the rdPoS operation which runs rdPoS.
 class rdPoSWorker {
   private:
+    /// Reference back to the rdPoS object.
     rdPoS& rdpos;
+
+    /// Boolean to stop the worker thread.
+    bool stopWorker = false;
+
+    /// Future object for the worker thread.
+    /// This is used to wait for the thread to finish after stopWorker is set to true.
+    std::future<bool> workerFuture;
+
+    /// Atomic object to know if the worker is ready to create a block.
+    std::atomic<bool> canCreateBlock = false;
+
+    /**
+     * Entry function for the workerThread.
+     * This function runs the workerLoop() function.
+     */
+    bool workerLoop();
+
+    /**
+     * This function does the block creator rdPoS operation
+     * Wait for transactions to be added to the mempool.
+     * TODO: this function should call State or Blockchain to let them know that we are ready to create a block.
+     * To be called by workerLoop().
+     */
+
+    void doBlockCreation();
+
+    /**
+     * This function does the transaction creation related to rdPoS operation
+     * and broadcast it to the network.
+     * @param nHeight The nHeight for the transactions.
+     */
+
+    void doTxCreation(const uint64_t& nHeight, const Validator& me);
+    
   public:
+    /// Constructor for rdPoSWorker.
+    /// @param rdpos 
     rdPoSWorker(rdPoS& rdpos) : rdpos(rdpos) {}
+
+    /// starter for workerFuture and workerLoop. Should only be called after node is synced.
+    void start();
+
+    /// stopper for workerFuture and workerLoop.
+    void stop();
+
+    /// Getter for the block boolean.
+    const std::atomic<bool>& getCanCreateBlock() const { return canCreateBlock; }
 };
 
 

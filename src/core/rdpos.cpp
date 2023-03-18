@@ -1,5 +1,6 @@
 #include "rdpos.h"
 #include "storage.h"
+#include "../utils/block.h"
 
 rdPoS::rdPoS(const std::unique_ptr<DB>& db, 
   const uint64_t& chainId,
@@ -11,7 +12,7 @@ rdPoS::rdPoS(const std::unique_ptr<DB>& db,
   worker(std::make_unique<rdPoSWorker>(*this)),
   storage(storage),
   p2p(p2p),
-  validatorKey(std::make_optional<PrivKey>(validatorKey)),
+  validatorKey(validatorKey),
   randomGen(Hash()) 
 {
   std::unique_lock lock(this->mutex);
@@ -47,6 +48,7 @@ rdPoS::rdPoS(const std::unique_ptr<DB>& db,
 }
 
 rdPoS::~rdPoS() {
+  this->stoprdPoSWorker();
   std::unique_lock lock(this->mutex);
   DBBatch validatorsBatch;
   Utils::logToDebug(Log::rdPoS, __func__, "Descontructing rdPoS, saving to DB.");
@@ -157,6 +159,10 @@ Hash rdPoS::processBlock(const Block& block) {
   return this->bestRandomSeed;
 }
 
+void rdPoS::signBlock(Block &block) {
+  block.finalize(this->validatorKey);
+}
+
 bool rdPoS::addValidatorTx(const TxValidator& tx) {
   std::unique_lock lock(this->mutex);
   if (this->validatorMempool.contains(tx.hash())) {
@@ -165,7 +171,8 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
   }
 
   if (tx.getNHeight() != this->storage->latest()->getNHeight() + 1) {
-    Utils::logToDebug(Log::rdPoS, __func__, "TxValidator is not for the next block.");
+    Utils::logToDebug(Log::rdPoS, __func__, "TxValidator is not for the next block. expected: "
+                        + std::to_string(this->storage->latest()->getNHeight() + 1) + " got: " + std::to_string(tx.getNHeight()));
     return false;
   }
 
@@ -234,4 +241,141 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
     }
   }
   return Utils::sha3(seed);
+}
+
+const std::atomic<bool>& rdPoS::canCreateBlock() const {
+  return this->worker->getCanCreateBlock();
+}
+
+void rdPoS::startrdPoSWorker() {
+  this->worker->start();
+}
+
+void rdPoS::stoprdPoSWorker() {
+  this->worker->stop();
+}
+
+
+bool rdPoSWorker::workerLoop() {
+  Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->rdpos.validatorKey)));
+  while (!this->stopWorker) {
+    auto latestBlock = this->rdpos.storage->latest();
+
+    // Check if we are the validator required for signing the block.
+    bool isBlockCreator = false;
+    // Scope for unique_lock.
+    {
+      std::unique_lock checkValidatorsList(this->rdpos.mutex);
+      if (me == this->rdpos.randomList[0]) {
+        isBlockCreator = true;
+        checkValidatorsList.unlock();
+        doBlockCreation();
+      }
+
+      // Check if we are one of the validators that need to create random transactions.
+      if (!isBlockCreator) {
+        for (uint64_t i = 1; i <= this->rdpos.minValidators; ++i) {
+          if (me == this->rdpos.randomList[i]) {
+            checkValidatorsList.unlock();
+            doTxCreation(latestBlock->getNHeight() + 1, me);
+          }
+        }
+      }
+    }
+
+    // After processing everything. wait until the new block is appended to the chain.
+    while (latestBlock == this->rdpos.storage->latest() && !this->stopWorker) {
+      Utils::logToDebug(Log::rdPoS, __func__, "Waiting for new block...");
+      Utils::logToDebug(Log::rdPoS, __func__, "latestBlock nHeight: " + std::to_string(latestBlock->getNHeight()));
+      Utils::logToDebug(Log::rdPoS, __func__, "storage nHeight: " + std::to_string(this->rdpos.storage->latest()->getNHeight()));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+    if (isBlockCreator) this->canCreateBlock = false;
+  }
+  return true;
+}
+
+void rdPoSWorker::doBlockCreation() {
+  // TODO: add requesting transactions to other nodes when mempool is not filled up
+  Utils::logToDebug(Log::rdPoS, __func__, "Block creator: waiting for txs");
+  uint64_t validatorMempoolSize = 0;
+  while (validatorMempoolSize != this->rdpos.minValidators * 2 && !this->stopWorker)
+  {
+    Utils::logToDebug(Log::rdPoS, __func__, "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
+    // Scope for lock.
+    {
+      std::unique_lock mempoolSizeLock(this->rdpos.mutex);
+      validatorMempoolSize = this->rdpos.validatorMempool.size();
+    }
+    // TODO **URGENT**
+    // Figure out WHY THE HELL validatorMempoolSize gets back to 0 during the loop.
+    //
+    if (validatorMempoolSize == this->rdpos.minValidators * 2) {
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+  Utils::logToDebug(Log::rdPoS, __func__, "Validator ready to create a block");
+  // After processing everything, we can let everybody know that we are ready to create a block
+  this->canCreateBlock = true;
+}
+
+void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
+  Hash randomness = Hash::random();
+  Hash randomHash = Utils::sha3(randomness.get());
+  Utils::logToDebug(Log::rdPoS, __func__, "Creating random Hash transaction");
+  TxValidator randomHashTx(
+      me.address(),
+      Hex::toBytes("0xcfffe746") + randomHash.get(),
+      8080,
+      nHeight,
+      this->rdpos.validatorKey
+  );
+
+  TxValidator randomTx(
+      me.address(),
+      Hex::toBytes("0x6fc5a2d6") + randomness.get(),
+      8080,
+      nHeight,
+      this->rdpos.validatorKey
+    );
+
+  // Append to mempool and broadcast the transaction across all nodes.
+  this->rdpos.addValidatorTx(randomHashTx);
+  this->rdpos.p2p->broadcastTxValidator(randomHashTx);
+
+  // Wait until we received all randomHash transactions to broadcast the randomness transaction
+  uint64_t validatorMempoolSize = 0;
+  while (validatorMempoolSize < this->rdpos.minValidators && !this->stopWorker) {
+    Utils::logToDebug(Log::rdPoS, __func__, "Waiting for randomHash transactions to be broadcasted");
+    // Scope for lock
+    {
+      std::unique_lock mempoolSizeLock(this->rdpos.mutex);
+      validatorMempoolSize = this->rdpos.validatorMempool.size();
+    }
+    // TODO **URGENT**
+    // Figure out WHY THE HELL validatorMempoolSize gets back to 0 during the loop
+    if (validatorMempoolSize >= this->rdpos.minValidators) {
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+
+  // Append and broadcast the randomness transaction.
+  this->rdpos.addValidatorTx(randomTx);
+  this->rdpos.p2p->broadcastTxValidator(randomTx);
+}
+void rdPoSWorker::start() {
+  if (this->rdpos.isValidator && !this->workerFuture.valid()) {
+    this->workerFuture = std::async(std::launch::async, &rdPoSWorker::workerLoop, this);
+  }
+}
+
+void rdPoSWorker::stop() {
+  if (this->workerFuture.valid()) {
+    this->stopWorker = true;
+    this->workerFuture.wait();
+    this->workerFuture.get();
+  }
 }
