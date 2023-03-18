@@ -285,10 +285,7 @@ bool rdPoSWorker::workerLoop() {
 
     // After processing everything. wait until the new block is appended to the chain.
     while (latestBlock == this->rdpos.storage->latest() && !this->stopWorker) {
-      Utils::logToDebug(Log::rdPoS, __func__, "Waiting for new block...");
-      Utils::logToDebug(Log::rdPoS, __func__, "latestBlock nHeight: " + std::to_string(latestBlock->getNHeight()));
-      Utils::logToDebug(Log::rdPoS, __func__, "storage nHeight: " + std::to_string(this->rdpos.storage->latest()->getNHeight()));
-      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      std::this_thread::sleep_for(std::chrono::milliseconds(25));
     }
 
     if (isBlockCreator) this->canCreateBlock = false;
@@ -306,15 +303,13 @@ void rdPoSWorker::doBlockCreation() {
     // Scope for lock.
     {
       std::unique_lock mempoolSizeLock(this->rdpos.mutex);
+      Utils::logToDebug(Log::rdPoS, __func__, "this->rdpos.validatorMempool.size(): " + std::to_string(this->rdpos.validatorMempool.size()) 
+                        + " transactions in mempool");
       validatorMempoolSize = this->rdpos.validatorMempool.size();
+      Utils::logToDebug(Log::rdPoS, __func__, "validatorMempoolSize: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
-    // TODO **URGENT**
-    // Figure out WHY THE HELL validatorMempoolSize gets back to 0 during the loop.
-    //
-    if (validatorMempoolSize == this->rdpos.minValidators * 2) {
-      break;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    Utils::logToDebug(Log::rdPoS, __func__, "validatorMempoolSize: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
   }
   Utils::logToDebug(Log::rdPoS, __func__, "Validator ready to create a block");
   // After processing everything, we can let everybody know that we are ready to create a block
@@ -359,7 +354,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
     if (validatorMempoolSize >= this->rdpos.minValidators) {
       break;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
   }
 
   // Append and broadcast the randomness transaction.

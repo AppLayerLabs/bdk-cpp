@@ -686,13 +686,12 @@ namespace TRdPoS {
     rdpos8->startrdPoSWorker();
 
     // Loop for block creation.
-    for (uint64_t i = 0; i < 10; ++i) {
+    uint64_t blocks = 0;
+    while (blocks < 10) {
       while (rdpos1->getMempool().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
 
-      // Wait until block creator is truly ready.
-      std::this_thread::sleep_for(std::chrono::seconds(1));
       for (auto &blockCreator: rdPoSreferences) {
         if (blockCreator.get()->canCreateBlock()) {
           // Create the block.
@@ -771,9 +770,12 @@ namespace TRdPoS {
 
           rdpos8->processBlock(block);
           storage8->pushBack(Block(block));
+          ++blocks;
           break;
         }
       }
     }
+    // Sleep so it can conclude the last operations.
+    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 };
