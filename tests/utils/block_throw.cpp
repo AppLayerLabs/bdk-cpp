@@ -257,27 +257,25 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey);
 
       // TODO: this doesn't seem to work, it doesn't throw
-      bool catched = false;
-      std::string str = newBlock.serializeBlock();
-      Block b(str);
-      std::cout << b.getValidatorSig().hex().get() << std::endl;
-      str.replace(0, 2, "\xb0\x0b"); // Replace 2 bytes in Validator sig to make it invalid and throw
-      Block b2(str);
-      std::cout << b2.getValidatorSig().hex().get() << std::endl;
-      std::cout << Secp256k1::verifySig(
-        b.getValidatorSig().r(), b.getValidatorSig().s(), b.getValidatorSig().v()
-      ) << std::endl;
-      std::cout << Secp256k1::verifySig(
-        b2.getValidatorSig().r(), b2.getValidatorSig().s(), b2.getValidatorSig().v()
-      ) << std::endl;
-      std::cout << b.getValidatorSig().r() << std::endl;
-      std::cout << b.getValidatorSig().s() << std::endl;
-      std::cout << b.getValidatorSig().v() << std::endl;
-      std::cout << b2.getValidatorSig().r() << std::endl;
-      std::cout << b2.getValidatorSig().s() << std::endl;
-      std::cout << b2.getValidatorSig().v() << std::endl;
-      try { Block b(str); } catch (std::exception& e) { catched = true; }
-      REQUIRE(catched == true);
+      bool catchedR = false;
+      bool catchedS = false;
+      bool catchedV = false;
+      std::string strR = newBlock.serializeBlock();
+      std::string strS = newBlock.serializeBlock();
+      std::string strV = newBlock.serializeBlock();
+      // Make signature R over Secp256k1::ecConst, making signature invalid.
+      // Which equals to 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+      strR.replace(0, 16, "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"); // Replace 2 bytes in Validator sig to make it invalid and throw
+      // Make signature S over Secp256k1::ecConst, making signature invalid
+      strS.replace(32, 16, "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff");
+      // Make signature V over 1, making signature invalid
+      strV.replace(64,1, "\xff");
+      try { Block b(strR); } catch (std::exception& e) { catchedR = true; }
+      try { Block b(strS); } catch (std::exception& e) { catchedS = true; }
+      try { Block b(strV); } catch (std::exception& e) { catchedV = true; }
+      REQUIRE(catchedR == true);
+      REQUIRE(catchedS == true);
+      REQUIRE(catchedV == true);
     }
 
     SECTION("Finalizing and appending tx/Validator tx on already finalized block") {
