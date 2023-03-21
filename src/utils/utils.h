@@ -2,315 +2,387 @@
 #define UTILS_H
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <regex>
 #include <string_view>
+#include <thread>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/beast/core.hpp>
+#include <boost/beast/core/error.hpp>
 
-#include <boost/asio/ip/address.hpp>
-#include "../libs/devcore/CommonData.h"
-#include "../libs/devcore/FixedHash.h"
-#include "../libs/json.hpp"
- #include <openssl/rand.h>
 #include <ethash/keccak.h>
-#include <filesystem>
-#include <thread>
+#include <openssl/rand.h>
+
+#include "strings.h"
+
+#include "json.hpp"
+
+class Hash;
 
 using json = nlohmann::ordered_json;
+using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
-static const uint256_t c_secp256k1n("115792089237316195423570985008687907852837564279074904382605163141518161494337");
 
-template <typename ElemT> struct HexTo {
-  ElemT value;
-  operator ElemT() const { return value; }
-  friend std::istream& operator>>(std::istream& in, HexTo& out) {
-    in >> std::hex >> out.value;
-    return in;
-  }
-};
+/**
+ * Helper function for debugging failed operations.
+ * @param cl The class where the operation failed.
+ * @param func The function where the operation failed.
+ * @param ec Boost Beast error code.
+ * @param what String explaining what exactly failed.
+ */
+void fail(std::string_view cl, std::string func, boost::beast::error_code ec, const char* what);
 
+/**
+ * Namespace with string prefixes for each blockchain module, for printing log/debug messages.
+ * Values are as follows:
+ * - blockchain = "Blockchain"
+ * - storage = "Storage"
+ * - snowmanVM = "SnowmanVM"
+ * - block = "Block"
+ * - db = "DB"
+ * - state = "State"
+ * - grpcServer = "gRPCServer"
+ * - grpcClient = "gRPCClient"
+ * - utils = "Utils"
+ * - httpServer = "HTTPServer"
+ * - rdpos = "rdPoS"
+ * - ABI = "ABI"
+ * - P2P::ClientSession = "P2P::ClientSession"
+ * - P2P::Server = "P2P::Server"
+ * - P2P::ServerListener = "P2P::ServerListener"
+ * - P2P::ServerSession = "P2P::ServerSession"
+ * - P2P::Manager = "P2P::Manager"
+ * - P2P::Parser = "P2P::Parser" <- Part of P2P::Manager
+ * - contractManager = "ContractManager"
+ */
 namespace Log {
-  const std::string subnet = "Subnet::";
-  const std::string chainHead = "ChainHead::";
-  const std::string chainTip = "ChainTip::";
-  const std::string block = "Block::";
-  const std::string db = "DBService::";
-  const std::string state = "State::";
-  const std::string grpcServer = "VMServiceImplementation::";
-  const std::string grpcClient = "VMCommClient::";
-  const std::string utils = "Utils::";
-  const std::string httpServer = "HTTPServer::";
-  const std::string blockManager = "BlockManager::";
-  const std::string ABI = "ABI::";
-  const std::string P2PClient = "P2PClient::";
-  const std::string P2PServer = "P2PServer::";
-  const std::string P2PManager = "P2PManager::";
-};
+  const std::string blockchain = "Blockchain";
+  const std::string storage = "Storage";
+  const std::string snowmanVM = "SnowmanVM";
+  const std::string block = "Block";
+  const std::string db = "DB";
+  const std::string state = "State";
+  const std::string grpcServer = "gRPCServer";
+  const std::string grpcClient = "gRPCClient";
+  const std::string utils = "Utils";
+  const std::string httpServer = "HTTPServer";
+  const std::string rdPoS = "rdPoS";
+  const std::string ABI = "ABI";
+  const std::string P2PClientSession = "P2P::ClientSession";
+  const std::string P2PServer = "P2P::Server";
+  const std::string P2PServerListener = "P2P::ServerListener";
+  const std::string P2PServerSession = "P2P::ServerSession";
+  const std::string P2PManager = "P2P::Manager";
+  const std::string P2PParser = "P2P::Parser";
+  const std::string contractManager = "ContractManager";
+}
 
-enum BlockStatus { Unknown, Processing, Rejected, Accepted };
-
-// Only LocalTestnet is supported for now.
+/// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };
-// Utils::bytesToHex and others should be located before StringContainer
+
+/**
+ * Abstraction of balance and nonce for a single account.
+ * Used with %Address on %State in an unordered_map to track native accounts.
+ * See `nativeAccounts` on %State for more info.
+ */
+struct Account { uint256_t balance = 0; uint32_t nonce = 0; };
+
+/// Namespace for utility functions.
 namespace Utils {
-    std::string bytesToHex(const std::string_view& bytes);
-    uint256_t bytesToUint256(const std::string_view &bytes);
-    std::string uint256ToBytes(const uint256_t &i);
-    uint64_t splitmix(uint64_t i);
-};
+  /**
+   * Log a string to a file called `log.txt`.
+   * @param str The string to log.
+   */
+  void logToFile(std::string_view str);
 
-template <unsigned N> class StringContainer {
-  protected:
-    std::string _data;
+  /**
+   * Log a string to a file called `debug.txt`.
+   * @param pfx The module prefix where this is being called (see %Log).
+   * @param func The function where this is being called.
+   * @param data The contents to be stored.
+   */
+  void logToDebug(std::string_view pfx, std::string_view func, std::string_view data);
 
-  public:
-    // TODO: when constructing the StringContainer, if the input string doesn't match the size, it will throw
-    // Add error handling for these throws, specially over places where the user can input data (such as subnetRPC.cpp).
-    enum { sizeT = N };
-    StringContainer() { _data.resize(N, 0x00); }
-    StringContainer(const std::string_view& data) { if (data.size() != N) { throw std::runtime_error("Invalid StringContainer input size"); } _data = data; };
-    StringContainer(std::string&& data) { if (data.size() != N) { throw std::runtime_error("Invalid StringContainer input size"); } _data = std::move(data); };
-    StringContainer(const StringContainer& other) { if (other.sizeT != N) { throw std::runtime_error("Invalid StringContainer input size");} _data = other._data; };
-    StringContainer(StringContainer&& other) { if (other.sizeT != N) { throw std::runtime_error("Invalid StringContainer input size");} _data = std::move(other._data); };
+  /**
+   * Hash a given input using SHA3.
+   * @param input The string to hash.
+   * @return The SHA3-hashed string.
+   */
+  Hash sha3(const std::string_view input);
 
-    inline const std::string& get() const { return _data; }
-    inline const std::string hex() const { return Utils::bytesToHex(_data); }
-    inline const std::string_view get_view() const { return std::string_view(&_data[0], N); }
-    inline const std::string_view get_view(const size_t& offset, const size_t& size) const {
-      if (offset > sizeT || size > sizeT) { throw std::runtime_error("Invalid get_view size"); }
-      return std::string_view(&_data[offset], size);
-    }
-    inline const bool empty() const { return _data.empty(); }
-    bool operator==(const StringContainer& other) const { return (this->_data == other._data);}
-    bool operator!=(const StringContainer& other) const { return (this->_data != other._data); }
-    bool operator<(const StringContainer& other) const { return (this->_data < other._data); }
-    bool operator>=(const StringContainer& other) const { return (this->_data >= other._data); }
-    bool operator<=(const StringContainer& other) const { return (this->_data <= other._data); }
-    bool operator>(const StringContainer& other) const { return (this->_data > other._data); }
+  /**
+   * Convert a 256-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 256-bit integer as a bytes string.
+   */
+  std::string uint256ToBytes(const uint256_t& i);
 
-    char& operator[](const size_t& pos) { return _data[pos]; }
+  /**
+   * Convert a 160-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 160-bit integer as a bytes string.
+   */
+  std::string uint160ToBytes(const uint160_t& i);
 
-    const char& operator[](const size_t& pos) const { return _data[pos]; }
+  /**
+   * Convert a 64-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 64-bit integer as a bytes string.
+   */
+  std::string uint64ToBytes(const uint64_t& i);
 
-    size_t size() const { return this->_data.size(); };
+  /**
+   * Convert a 32-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 32-bit integer as a bytes string.
+   */
+  std::string uint32ToBytes(const uint32_t& i);
 
-    const std::string::const_iterator begin() const { return _data.cbegin(); }
-    const std::string::const_iterator end() const { return _data.cend(); }
+  /**
+   * Convert a 16-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 16-bit integer as a bytes string.
+   */
+  std::string uint16ToBytes(const uint16_t& i);
 
-    /// @returns a constant byte pointer to the object's data.
-    // Don't forget size() if data contains a 00 on it!
-    const char* data() const { return _data.data(); }
+  /**
+   * Convert a 8-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 8-bit integer as a bytes string.
+   */
+  std::string uint8ToBytes(const uint8_t& i);
 
-    StringContainer& operator=(StringContainer const &_c) {
-      if (&_c == this) return *this;
-      this->_data = _c._data;
-      return *this;
-    }
+  /**
+   * Generate a random bytes string of a given size.
+   * @param size The size of the string.
+   * @return The generated bytes string.
+   */
+  std::string randBytes(const int& size);
 
-    StringContainer& operator=(StringContainer &&_c) {
-      if (&_c == this) return *this;
-      this->_data = std::move(_c._data);
-      return *this;
-    }
-};
+  /**
+   * Convert a bytes string to a 256-bit unsigned integer.
+   * @param b The bytes string to convert.'
+   * @return The converted 256-bit integer.
+   */
+  uint256_t bytesToUint256(const std::string_view b);
 
-class Hash : public StringContainer<32> {
-  public:
-    using StringContainer<32>::StringContainer;
-    using StringContainer<32>::operator=;
-    Hash(uint256_t data) : StringContainer<32>(Utils::uint256ToBytes(data)) {};
-    uint256_t inline toUint256() const { return Utils::bytesToUint256(_data); };
-    static Hash random() {
-      Hash h;
-      h._data.resize(32, 0x00);
-      RAND_bytes((unsigned char*)h._data.data(), 32);
-      return h;
-    }
-};
+  /**
+   * Convert a bytes string to a 128-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 128-bit integer.
+   */
+  uint160_t bytesToUint160(const std::string_view b);
 
-using PrivKey = Hash; 
-using UncompressedPubkey = StringContainer<65>;
-using CompressedPubkey = StringContainer<33>;
+  /**
+   * Convert a bytes string to a 64-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 64-bit integer.
+   */
+  uint64_t bytesToUint64(const std::string_view b);
 
-class Signature : public StringContainer<65> {
-  public:
-    using StringContainer<65>::StringContainer;
-    StringContainer<32> r() { return StringContainer<32>(this->_data.substr(0, 32)); };
-    StringContainer<32> s() { return StringContainer<32>(this->_data.substr(32, 32)); };
-    StringContainer<1> v() { return StringContainer<1>(this->_data.substr(64, 1)); };
-};
+  /**
+   * Convert a bytes string to a 32-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 32-bit integer.
+   */
+  uint32_t bytesToUint32(const std::string_view b);
 
-namespace Utils {
-  void logToFile(std::string str);
-  void LogPrint(const std::string &prefix, std::string function, std::string data);
-  Hash sha3(const std::string_view &input);
-  std::string uint160ToBytes(const uint160_t &i);
-  std::string uint64ToBytes(const uint64_t &i);
-  std::string uint32ToBytes(const uint32_t &i);
-  std::string uint16ToBytes(const uint16_t &i);
-  std::string uint8ToBytes(const uint8_t &i);
-  std::string randomBytes(const size_t& size);
-  bool isHex(const std::string_view &input, bool strict = false);
-  std::string utf8ToHex(const std::string_view &input);
-  uint160_t bytesToUint160(const std::string_view &bytes);
-  uint64_t bytesToUint64(const std::string_view &bytes);
-  uint32_t bytesToUint32(const std::string_view &bytes);
-  uint16_t bytesToUint16(const std::string_view &bytes);
-  uint8_t bytesToUint8(const std::string_view &bytes);
-  int fromHexChar(char c) noexcept;
-  void patchHex(std::string& str);
-  template <typename T> std::string uintToHex(const T &i) {
-    std::stringstream ss;
-    std::string ret;
-    ss << std::hex << i;
-    ret = ss.str();
-    for (auto &c : ret) if (std::isupper(c)) c = std::tolower(c);
-    return ret;
-  }
-  void stripHexPrefix(std::string& str);
-  uint256_t hexToUint(std::string &hex);
-  std::string hexToBytes(std::string hex);
-  bool verifySignature(uint8_t const &v, uint256_t const &r, uint256_t const &s);
+  /**
+   * Convert a bytes string to a 16-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 16-bit integer.
+   */
+  uint16_t bytesToUint16(const std::string_view b);
+
+  /**
+   * Convert a bytes string to a 8-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 8-bit integer.
+   */
+  uint8_t bytesToUint8(const std::string_view b);
+
+  /**
+   * Add padding to the left of a string.
+   * @param str The string to pad.
+   * @param charAmount The total amount of characters the resulting string should have.
+   *                   If this is less than the string's original size,
+   *                   the string will remain untouched.
+   *                   e.g. `padLeft("aaa", 5)` = **"00aaa"**, `padLeft("aaa", 2)` = **"aaa"**
+   * @param sign (optional) The character to use as padding. Defaults to '0'.
+   * @return The padded string.
+   */
   std::string padLeft(std::string str, unsigned int charAmount, char sign = '0');
+
+  /**
+   * Add padding to the right of a string.
+   * @param str The string to pad.
+   * @param charAmount The total amount of characters the resulting string should have.
+   *                   If this is less than the string's original size,
+   *                   the string will remain untouched.
+   *                   e.g. `padRight("aaa", 5)` = **"aaa00"**, `padRight("aaa", 2)` = **"aaa"**
+   * @param sign (optional) The character to use as padding. Defaults to '0'.
+   * @return The padded string.
+   */
   std::string padRight(std::string str, unsigned int charAmount, char sign = '0');
-  template <class T, class _In> inline T fromBigEndian(_In const& _bytes) {
+
+  /**
+   * Convert a big-endian byte-stream represented on a templated collection to a templated integer value.
+   * `_In` will typically be either std::string or bytes.
+   * `T` will typically by unsigned, u160, u256 or bigint.
+   * @param bytes The byte stream to convert.
+   * @return The converted integer type.
+   */
+  template <class T, class In> T fromBigEndian(const In& bytes) {
     T ret = (T)0;
-    for (auto i: _bytes) {
-      ret = (T)((ret << 8) | (byte)(typename std::make_unsigned<decltype(i)>::type)i);
+    for (auto i: bytes) {
+      ret = (T)((ret << 8) | (uint8_t)(typename std::make_unsigned<decltype(i)>::type)i);
     }
     return ret;
   }
-  void toLowercaseAddress(std::string& address);
-  void toUppercaseAddress(std::string& address);
-  void toChecksumAddress(std::string& address);
-  bool isAddress(const std::string& address, const bool& fromRPC);
-  bool checkAddressChecksum(const std::string& address);
+
+  /**
+   * Convert a string to all-lowercase.
+   * @param str The string to convert.
+   */
+  inline void toLower(std::string& str) {
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+  }
+
+  /**
+   * Convert a string to all-uppercase.
+   * @param str The string to convert.
+   */
+  inline void toUpper(std::string& str) {
+    std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+  }
+
+  /**
+   * Load HTTP port settings from a config file. Creates the file if it doesn't exist.
+   * @note Organize every "ruleset read-only" as an "Settings" defined class to avoid variable redefinition
+   * @return A JSON object with the settings.
+   */
   json readConfigFile();
+
+  // DEPRECATED FUNCTIONS BELOW
+
+  /**
+   * Check if a string is in hex format.
+   * @deprecated
+   * Please use Hex when working with strings of behaviour type Hex
+   *
+   * @param input The string to check.
+   * @param strict (optional) If `true`, requires the "0x" prefix. Defaults to `false`.
+   * @return `true` if the string is a hex string, `false` otherwise.
+   */
+  bool isHex(std::string_view input, bool strict = false);
+
+  /**
+   * Convert an UTF-8 string to a hex string.
+   * @deprecated
+   * Please use Hex::fromUTF8 and avoid using pure strings
+   * @param input The UTF-8 string to convert.
+   * @return The converted hex string.
+   */
+  std::string utf8ToHex(const std::string_view input);
+
+  /**
+   * Convert a bytes string to a hex string.
+   * @deprecated
+   * Please use Hex when working with strings of behaviour type Hex
+   *
+   * @param b The bytes string to convert
+   * @return The converted hex string.
+   */
+  std::string bytesToHex(const std::string_view b);
+
+
+  /**
+   * Remove the "0x" prefix from a hex string and make it all lowercase.
+   * Same as `stripHexPrefix()` + `toLower()`.
+   * @deprecated
+   * Please use Hex when working with strings of behaviour type Hex
+   * @warning
+   * This function has an unsafe string manipulation!
+   *
+   * @param str The hex string to patch.
+   */
+  std::string patchHex(const std::string& str);
+
+  /**
+   * Remove the "0x" prefix from a hex string.
+   * @deprecated
+   * This function is unsafe due to modifying the string by reference of an Hex
+   * @param str The hex string to remove the "0x" from.
+   */
+  void stripHexPrefix(std::string& str);
+
+  /**
+   * Convert a given hex string to a 256-bit unsigned integer.
+   * @deprecated
+   * Please use Hex::getUint
+   * @param hex The hex string to convert.
+   * @return The converted unsigned 256-bit integer.
+   */
+  uint256_t hexToUint(std::string& hex);
+
+  /**
+   * Convert a hex string to a bytes string.
+   * @deprecated
+   * Please use Hex::bytes
+   *
+   * @param hex The hex string to convert.
+   * @return The converted bytes string.
+   */
+  std::string hexToBytes(std::string_view hex);
+
+  /**
+   * Tells how many bytes are required to store a given integer.
+   * @param _i The integer to check.
+   * @return The number of bytes required to store the integer.
+   */
+  template <class T>
+  inline unsigned bytesRequired(T _i)
+  {
+  	static_assert(std::is_same<bigint, T>::value || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported"); //bigint does not carry sign bit on shift
+  	unsigned i = 0;
+  	for (; _i != 0; ++i, _i >>= 8) {}
+  	return i;
+  }
+
+  /**
+   * Convert Unsigned Integer to Bytes, takes uint as little endian
+   * differently than the uintToBytes functions, there is no padding.
+   * @param _i The integer to convert.
+   * @return The converted bytes string.
+   */
+  template <class _T> std::string uintToBytes(_T _i)
+  {
+    std::string ret(bytesRequired(_i), 0x00);
+    uint8_t* b = reinterpret_cast<uint8_t*>(&ret.back());
+    for (; _i; _i >>= 8)
+      *(b--) = (uint8_t)(_i & 0xff);
+    return ret;
+  }
+
+  /**
+   * Check if an ECDSA signature is valid.
+   * @deprecated Moved to ecdsa
+   * @param r The first half of the ECDSA signature.
+   * @param s The second half of the ECDSA signature.
+   * @param v The recovery ID.
+   * @return `true` if the signature is valid, `false` otherwise.
+   */
+  bool verifySig(const uint256_t& r, const uint256_t& s, const uint8_t& v);
 };
 
-void p2p_fail_client(std::string function, boost::beast::error_code ec, char const* what);
-void p2p_fail_server(std::string function, boost::beast::error_code ec, char const* what);
-
-struct Account {
-  uint256_t balance = 0;
-  uint32_t nonce = 0;
-};
-
-class Address {
-  private:
-    std::string innerAddress;
-
-  public:
-    Address() {}
-
-    // C++ can only differ std::string&& and const std::string& on function overloading.
-    Address(const std::string& address, const bool& fromRPC) {
-      if (!Utils::isAddress(address, fromRPC)) {
-        throw std::runtime_error(address + " is not a valid address");
-      }
-      if (fromRPC) {
-        innerAddress = address;
-        Utils::patchHex(innerAddress);
-        innerAddress = Utils::hexToBytes(innerAddress);
-      } else {
-        innerAddress = address;
-      }
-    }
-
-    // Move string constructor.
-    Address(std::string&& address, const bool& fromRPC) {
-      if (!Utils::isAddress(address, fromRPC)) {
-        throw std::runtime_error(address + " is not a valid address");
-      }
-      if (fromRPC) {
-        Utils::patchHex(address);
-        innerAddress = std::move(Utils::hexToBytes(address));
-      } else {
-        innerAddress = std::move(address);
-      }
-    }
-
-    // Move from iterators. used in Tx::Base string move constructor
-   // template<class It> Address(const It&& _begin,const It&& _end) {
-   //   std::move(_begin, _end, std::back_inserter(innerAddress));
-   // }
-
-    // Copy constructor.
-    Address(const Address& other) {
-      this->innerAddress = other.innerAddress;
-    }
-
-    // Move constructor.
-    Address(Address&& other) noexcept :
-      innerAddress(std::move(other.innerAddress)) {}
-
-    // Destructor.
-    ~Address() { this->innerAddress = ""; }
-
-    const std::string& get() const { return innerAddress; };
-    const std::string hex() const { return Utils::bytesToHex(innerAddress); }
-    dev::h160 toHash() const {
-      return dev::h160(innerAddress, dev::FixedHash<20>::ConstructFromStringType::FromBinary);
-    }
-    void operator=(const std::string_view& address) { this->innerAddress = address; }
-    void operator=(const std::string& address) { this->innerAddress = address; }
-    void operator=(const Address& address) { this->innerAddress = address.innerAddress; }
-    void operator=(const dev::h160 &address) { this->innerAddress = address.byteStr(); }
-    void operator=(const uint160_t &address) { this->innerAddress = Utils::uint160ToBytes(address); }
-    Address& operator=(Address&& other) {
-      this->innerAddress = std::move(other.innerAddress);
-      return *this;
-    }
-    bool operator==(const Address& rAddress) const { return bool(innerAddress == rAddress.innerAddress); }
-    bool operator!=(const Address& rAddress) const { return bool(innerAddress != rAddress.innerAddress); }
-};
-
-template <> struct std::hash<Address> {
-  size_t operator() (const Address& address) const {
-    return std::hash<std::string>()(address.get());
-  }
-};
-
-// std::unordered_map uses uint64_t hashes, if we keep the hash the same accross multiple nodes, a issue appears
-// hash collisions are possible by having many Accounts and them being distributed in a way that they have the same hash accross all nodes.
-// this is a workaround for that issue, it's not perfect because it is still uint64_t but it's better than nothing now that nodes keeps different hashes.
-struct SafeHash {
-  size_t operator()(uint64_t x) const {
-    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    return Utils::splitmix(x + FIXED_RANDOM);
-  }
-
-  size_t operator()(const Address& address) const {
-    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    return Utils::splitmix(std::hash<std::string>()(address.get()) + FIXED_RANDOM);
-  }
-
-  size_t operator()(const std::string& str) const {
-    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    return Utils::splitmix(std::hash<std::string>()(str) + FIXED_RANDOM);
-  }
-
-  size_t operator()(const boost::asio::ip::address &address) const {
-    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    return Utils::splitmix(std::hash<std::string>()(address.to_string()) + FIXED_RANDOM);
-  }
-  
-  template<typename T>
-  size_t operator()(const std::shared_ptr<T> &ptr) const {
-    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    return Utils::splitmix(std::hash<std::shared_ptr<T>>()(ptr) + FIXED_RANDOM);
-  }
-
-  template<unsigned N>
-  size_t operator()(const StringContainer<N> &strContainer) const {
-    static const uint64_t FIXED_RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    return Utils::splitmix(std::hash<std::string>()(strContainer.get()) + FIXED_RANDOM);
-  }
-};
-
-#endif // UTILS_H
+#endif  // UTILS_H

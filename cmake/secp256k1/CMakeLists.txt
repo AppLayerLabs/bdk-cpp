@@ -22,7 +22,7 @@ if (MSVC)
 	set(COMPILE_OPTIONS "")
 else()
 	set(COMPILE_FLAGS USE_FIELD_5X52 USE_SCALAR_4X64 HAVE_BUILTIN_EXPECT HAVE___INT128)
-	set(COMPILE_OPTIONS -O3 -W -std=c89 -pedantic -Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wno-unused-function -Wno-long-long -Wno-overlength-strings -fvisibility=hidden)
+	set(COMPILE_OPTIONS -O2 -W -std=c89 -pedantic -Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wno-unused-function -Wno-long-long -Wno-overlength-strings -fvisibility=hidden)
 endif()
 
 add_library(secp256k1 STATIC src/secp256k1.c src/precomputed_ecmult.h src/precomputed_ecmult_gen.h src/precomputed_ecmult.c src/precomputed_ecmult_gen.c)
