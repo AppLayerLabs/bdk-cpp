@@ -19,6 +19,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
+  ${CMAKE_SOURCE_DIR}/tests/core/state.cpp
   ${CMAKE_SOURCE_DIR}/tests/net/p2p/p2p.cpp
   PARENT_SCOPE
 )

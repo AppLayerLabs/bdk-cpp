@@ -89,7 +89,15 @@ enum Networks { Mainnet, Testnet, LocalTestnet };
  * Used with %Address on %State in an unordered_map to track native accounts.
  * See `nativeAccounts` on %State for more info.
  */
-struct Account { uint256_t balance = 0; uint32_t nonce = 0; };
+struct Account {
+  uint256_t balance = 0;
+  uint64_t nonce = 0;
+  /// Copy Constructor
+  Account(const uint256_t& balance, const uint64_t& nonce) : balance(balance), nonce(nonce) {}
+
+  /// Move Constructor
+  Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
+};
 
 /// Namespace for utility functions.
 namespace Utils {

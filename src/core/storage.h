@@ -10,9 +10,6 @@
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
 
-// Forward declarations.
-class Block;
-
 /// Enum for the status of a block or transaction inside the storage.
 enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
 

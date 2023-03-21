@@ -99,7 +99,7 @@ namespace P2P {
     try {
       if (buffer_.size() >= 11) {
         Message message(boost::beast::buffers_to_string(buffer_.data()));
-        //this->manager_.handleMessage(shared_from_this(), message);
+        /// TODO *URGENT*: Change this to a thread pool. spawning threads is too utterly expensive, specially when the requesting node can try to DDoS us.
         std::thread t(&ManagerBase::handleMessage, &this->manager_, shared_from_this(), message);
         t.detach();
         buffer_.consume(buffer_.size());

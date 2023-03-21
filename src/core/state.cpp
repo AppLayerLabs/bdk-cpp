@@ -1,275 +1,81 @@
 #include "state.h"
 
-bool State::saveToDB() {
-  this->stateLock.lock();
-  DBBatch accBatch;
-  for (auto& acc : this->nativeAccounts) {
-    accBatch.puts.emplace_back(acc.first.get(),
-      Utils::uint256ToBytes(acc.second.balance)
-      + Utils::uint32ToBytes(acc.second.nonce)
-    );
-  }
-  bool ret = this->db->putBatch(accBatch, DBPrefix::nativeAccounts);
-  this->stateLock.unlock();
-  return ret;
-}
-
-bool State::loadFromDB() {
-  this->stateLock.lock();
-  std::vector<DBEntry> accs = this->db->getBatch(DBPrefix::nativeAccounts);
-  if (accs.empty()) {
-    Address dev("0x21B782f9BF82418A42d034517CB6Bf00b4C17612", true); // Ita's address
-    Address dev2("0xb3Dc9ed7f450d188c9B5a44f679a1dDBb4Cbd6D2", true); // Supra's address
-    Address dev3("0x12e7742c063Dff92dA0439430DFe8A05ce0d297e", true); // Ita's office
-    Address dev4("0xaE33707325C17CD37331278ccb74d2Ba9bFa6c92", true); // Ita's laptop
-    this->db->put(dev.get(),
-      Utils::uint256ToBytes(uint256_t("100000000000000000000"))
-      + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts
-    );
-    Utils::logToDebug(Log::state, __func__, "Added balance to " + dev.hex());
-    this->db->put(dev2.get(),
-      Utils::uint256ToBytes(uint256_t("100000000000000000000"))
-      + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts
-    );
-    Utils::logToDebug(Log::state, __func__, "Added balance to " + dev2.hex());
-    this->db->put(dev3.get(),
-      Utils::uint256ToBytes(uint256_t("100000000000000000000"))
-      + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts
-    );
-    Utils::logToDebug(Log::state, __func__, "Added balance to " + dev3.hex());
-    this->db->put(dev4.get(),
-      Utils::uint256ToBytes(uint256_t("100000000000000000000"))
-      + Utils::uint32ToBytes(0), DBPrefix::nativeAccounts
-    );
-    Utils::logToDebug(Log::state, __func__, "Added balance to " + dev4.hex());
-    accs = this->db->getBatch(DBPrefix::nativeAccounts);
-  }
-  for (const DBEntry acc : accs) {
-    Address address(acc.key, false);
-    this->nativeAccounts[address].balance = Utils::bytesToUint256(acc.value.substr(0,32));
-    this->nativeAccounts[address].nonce = Utils::bytesToUint32(acc.value.substr(32,4));
-  }
-  this->stateLock.unlock();
-  return true;
-}
-
-bool State::processNewTx(const TxBlock& tx) {
-  bool isContractCall = false;
-  Utils::logToDebug(Log::state, __func__, "Processing new tx from: "
-    + tx.getFrom().hex() + " with a value of " + boost::lexical_cast<std::string>(tx.getValue())
-  );
-  // Remove tx from mempool if found there
-  if (this->mempool.count(tx.hash()) != 0) this->mempool.erase(tx.hash());
-
-  // Update balances and nonce.
-  this->nativeAccounts[tx.getFrom()].balance -= tx.getValue();
-  this->nativeAccounts[tx.getFrom()].balance -= uint256_t(tx.getGasPrice() * tx.getGas());
-  this->nativeAccounts[tx.getTo()].balance += tx.getValue();
-  this->nativeAccounts[tx.getFrom()].nonce++;
-
-  // TODO: Handle contract calls.
-  return true;
-}
-
-uint256_t State::getNativeBalance(const Address& add) {
-  this->stateLock.lock();
-  uint256_t ret = this->nativeAccount[add].balance;
-  this->stateLock.unlock();
-  return ret;
-};
-
-uint256_t State::getNativeNonce(const Address& add) {
-  this->stateLock.lock();
-  uint256_t ret = this->nativeAccount[add].nonce;
-  this->stateLock.unlock();
-  return ret;
-};
-
-bool State::validateNewBlock(Block& block) {
-  // Check block header, previous hash, validation and transactions within.
-  // The block will be rejected if invalid transactions are included in it
-  // (e.g. invalid signatures, account having min balance for min fees)
-  const std::shared_ptr<const Block> best = this->storage->latest();
-  if (best->getBlockHash() != block.getPrevBlockHash()) {
-    Utils::logToDebug(Log::state, __func__, "Block previous hash does not match.");
-    Utils::logToDebug(Log::state, __func__, "Block previous hash: " + block.getPrevBlockHash().get());
-    Utils::logToDebug(Log::state, __func__, "Best block hash: " + best->getBlockHash().get());
-    return false;
+State::State(const std::unique_ptr<DB>& db,
+             const std::unique_ptr<Storage>& storage,
+             const std::unique_ptr<rdPoS>& rdpos,
+             const std::unique_ptr<P2P::ManagerNormal>& p2pManager) :
+             db(db),
+             storage(storage),
+             rdpos(rdpos),
+             p2pManager(p2pManager) {
+  std::unique_lock lock(this->stateMutex);
+  auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
+  if (accountsFromDB.empty()) {
+    /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
+    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true);
+    /// See ~State for encoding
+    uint256_t desiredBalance("1000000000000000000000");
+    std::string value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance)) + Utils::uintToBytes(desiredBalance) + '\x00';
+    db->put(dev1.get(), value, DBPrefix::nativeAccounts);
+    accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   }
 
-  if (block.getNHeight() != (best->getNHeight() + 1)) {
-    Utils::logToDebug(Log::state, __func__, "Block height does not match.");
-    Utils::logToDebug(Log::state, __func__, "Block height: " + std::to_string(block.getNHeight()));
-    Utils::logToDebug(Log::state, __func__, "Best block height: " + std::to_string(best->getNHeight()));
-    return false;
-  }
-
-  if (!this->rdpos->validateBlock(block)) {
-    Utils::logToDebug(Log::state, __func__, "Block validation failed: Validators do not match");
-    return false;
-  }
-
-  for (const auto &tx : block.getTxs()) {
-    if (!this->validateTransactionForBlock(tx.second)) {
-      Utils::logToDebug(Log::state, __func__, "Block rejected due to invalid tx");
-      return false;
+  for (auto const dbEntry : accountsFromDB) {
+    std::string_view data(dbEntry.value);
+    if (dbEntry.key.size() != 20) {
+      Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, address from DB size mismatch");
+      throw std::runtime_error("Error when loading State from DB, address from DB size mismatch");
     }
-  }
-
-  Utils::logToDebug(Log::state, __func__,
-    "Validated block " + Hex::fromBytes(block->getBlockHash().get()).get()
-    + " at height " + boost::lexical_cast<std::string>(block->getNHeight())
-  );
-  return true;
-}
-
-void State::processNewBlock(Block&& block) {
-  // Check block previous hash
-  this->stateLock.lock();
-  Utils::logToDebug(Log::state, __func__, "Processing new block "
-    + Hex::fromBytes(block.getBlockHash().get()).get()
-    + " at height " + boost::lexical_cast<std::string>(block.getNHeight())
-  );
-  for (const auto& tx : block.getTxs()) this->processNewTx(tx.second);
-
-  // Process block and append to chain
-  this->rdpos->processBlock(block);
-  this->storage->push_back(std::move(block));
-  this->mempool.clear();
-  this->stateLock.unlock();
-}
-
-const std::shared_ptr<const Block> State::createNewBlock() {
-  Utils::logToDebug(Log::state, __func__, "Creating new block");
-  Hash bestHash = this->snowmanVM->getPreferredBlockHash();
-  if (bestHash.empty()) {
-    Utils::logToDebug(Log::state, __func__, "No preferred block found");
-    return nullptr;
-  }
-  Utils::logToDebug(Log::state, __func__,
-    std::string("Got preference: ") + Hex::fromBytes(bestHash.get()).get()
-  );
-  std::shared_ptr<const Block> bestBlock = this->storage->getBlock(bestHash);
-  if (bestBlock == nullptr) {
-    Utils::logToDebug(Log::state, __func__, "Preferred block does not exist");
-    return nullptr;
-  }
-  Utils::logToDebug(Log::state, __func__, "Got best block");
-
-  std::shared_ptr<Block> newBestBlock = std::make_shared<Block>(
-    bestBlock->getBlockHash(),
-    std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::high_resolution_clock::now().time_since_epoch()
-    ).count(),
-    bestBlock->getNHeight() + 1
-  );
-
-  this->stateLock.lock();
-  for (auto& tx : this->mempool) newBestBlock->appendTx(tx.second);
-  this->stateLock.unlock();
-
-  // Order things up, first 4 txs are randomHash, last 4 txs are random itself
-  auto valMempool = this->rdpos->getMempoolCopy();
-  auto valRandomList = this->rdpos->getRandomListCopy();
-  std::vector<TxValidator> valTxs;
-  for (const auto& tx : valMempool) {
-    Utils::logToDebug(Log::state, __func__,
-      std::string("TX: ") + tx.second.hash().hex()
-      + ", FROM: " + tx.second.getFrom().hex()
-      + ", TYPE: " + std::to_string(this->rdpos->getTxType(tx.second))
-    );
-  }
-
-  // Reorder validator transactions.
-  // The mempool is an unordered map but it is required for the block
-  // to have the validator transactions ordered.
-  // In the current code we are ordering it like this:
-  // First, append in order validator[1...4] (randomList) randomHash transactions
-  // Then append in order validator[1...4] (randomList) randomSeed transactions
-  while (valTxs.size() < this->rdpos->minValidators * 2) {
-    for (const auto& tx : valMempool) {
-      if (valTxs.size() < this->rdpos->minValidators) { // Index the randomHash
-        if (
-          tx.second.getFrom() == valRandomList[valTxs.size() + 1].get().get() &&
-          this->rdpos->getTxType(tx.second) == rdPoS::TxType::randomHash
-        ) { // Skip [0] as it is us
-          valTxs.push_back(tx.second);
-          Utils::logToDebug(Log::state, __func__, "Indexing validator hash tx");
-        }
-      } else { // Index the randomSeed
-        if (
-          tx.second.getFrom() == valRandomList[valTxs.size() - this->rdpos->minValidators + 1].get().get() &&
-          this->rdpos->getTxType(tx.second) == rdPoS::TxType::randomSeed
-        ) {
-          valTxs.push_back(tx.second);
-          Utils::logToDebug(Log::state, __func__, "Indexing validator seed tx");
-        }
-      }
-      if (valTxs.size() == this->rdpos->minValidators * 2) break;
+    uint8_t balanceSize = Utils::fromBigEndian<uint8_t>(data.substr(0,1));
+    if (data.size() + 1 < data.size()) {
+      Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on balanceSize");
+      throw std::runtime_error("Error when loading State from DB, value from DB size mismatch on balanceSize");
     }
-  }
 
-  // Append Validator txs, sign and finalize the block
-  for (const auto& i : valTxs) newBestBlock->appendValidatorTx(i);
-  this->rdpos->finalizeBlock(newBestBlock);
-  Utils::logToDebug(Log::state, __func__,
-    std::string("Block created, signature: ") + newBestBlock->signature().hex()
-  );
-  return newBestBlock;
-}
+    uint256_t balance = Utils::fromBigEndian<uint256_t>(data.substr(1, balanceSize));
+    uint8_t nonceSize = Utils::fromBigEndian<uint8_t>(data.substr(1 + balanceSize, 1));
 
-bool State::validateTxForBlock(const TxBlock& tx) {
-  // Txs are assumed to be always verified - see utils/tx.h for more details
-  bool ret = true;
-  this->stateLock.lock();
-  if (!this->mempool.count(tx.hash())) { // Ignore if tx is already in mempool
-    if (this->nativeAccounts.count(tx.getFrom()) == 0) {
-      ret = false;  // No account = zero balance = can't pay fees
-    } else {
-      Account acc = this->nativeAccount.find(tx.getFrom())->second;
-      if (acc.balance < tx.getValue() || acc.nonce != tx.getNonce()) {
-        ret = false; // Insufficient balance or invalid nonce
-      }
+    if (2 + balanceSize + nonceSize != data.size()) {
+      Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on nonceSize");
+      throw std::runtime_error("Error when loading State from DB, value from DB size mismatch on nonceSize");
     }
+    uint64_t nonce = Utils::fromBigEndian<uint64_t>(data.substr(2 + balanceSize, nonceSize));
+
+    this->accounts.insert({Address(dbEntry.key, true), Account(std::move(balance), std::move(nonce))});
   }
-  this->stateLock.unlock();
-  return ret;
 }
 
-const std::pair<int, string> State::validateTxForRPC(const TxBlock& tx) {
-  // TODO: Handle error conditions to report at RPC level:
-  // https://www.jsonrpc.org/specification#error_object
-  // https://eips.ethereum.org/EIPS/eip-1474#error-codes
-  int err = 0;
-  std::string errMsg;
-
-  this->stateLock.lock();
-  if (this->mempool.count(tx.hash())) { // Not really considered a failure
-    errMsg = "Transaction already exists in mempool";
-  } else if (this->nativeAccounts.count(tx.getFrom()) == 0) { // No account = zero balance = can't pay fees
-    err = -32003; errMsg = "Insufficient balance - required: "
-      + boost::lexical_cast<std::string>(tx.getValue()) + ", available: 0";
-  } else {
-    Account acc = this->nativeAccounts.find(tx.getFrom())->second;
-    if (acc.balance < tx.getValue()) {
-      err = -32002; errMsg = "Insufficient balance - required: "
-        + boost::lexical_cast<std::string>(tx.getValue()) + ", available: "
-        + boost::lexical_cast<std::string>(acc.balance);
-    } else if (acc.nonce != tx.getNonce()) {
-      err = -32001; errMsg = "Invalid nonce";
-    }
+State::~State() {
+  /// DB is stored as following
+  /// Under the DBPrefix::nativeAccounts
+  /// Each key == Address
+  /// Each Value == Balance + uint256_t (not exact bytes)
+  /// Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
+  /// Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
+  /// If the nonce equals to 0, it will be *empty*
+  DBBatch accountsBatch;
+  std::unique_lock lock(this->stateMutex);
+  for (const auto& [address, account] : this->accounts) {
+    // Serialize Balance.
+    std::string serializedStr = (account.balance == 0) ? std::string(1, 0x00) : Utils::uintToBytes(Utils::bytesRequired(account.balance)) + Utils::uintToBytes(account.balance);
+    // Serialize Account.
+    serializedStr += (account.nonce == 0) ? std::string(1, 0x00) : Utils::uintToBytes(Utils::bytesRequired(account.nonce)) + Utils::uintToBytes(account.nonce);
+    accountsBatch.puts.emplace_back(DBEntry(address.get(), std::move(serializedStr)));
   }
-  this->stateLock.unlock();
 
-  if (err != 0) {
-    errMsg.insert(0, "Tx rejected: ");
-    Utils::logToDebug(Log::state, __func__, errMsg);
-  } else {
-    this->stateLock.lock();
-    Hash txHash = tx.hash();
-    this->mempool[txHash] = tx;
-    this->stateLock.unlock();
-  }
-  return std::make_pair(err, errMsg);
+  this->db->putBatch(accountsBatch, DBPrefix::nativeAccounts);
 }
 
+const uint256_t State::getNativeBalance(const Address &addr) const {
+  std::shared_lock lock(this->stateMutex);
+  auto it = this->accounts.find(addr);
+  if (it == this->accounts.end()) return 0;
+  return it->second.balance;
+}
+
+const uint256_t State::getNativeNonce(const Address& addr) const {
+  std::shared_lock lock(this->stateMutex);
+  auto it = this->accounts.find(addr);
+  if (it == this->accounts.end()) return 0;
+  return it->second.nonce;
+}

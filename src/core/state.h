@@ -1,183 +1,127 @@
 #ifndef STATE_H
 #define STATE_H
 
-#include <atomic>
-#include <chrono>
-#include <deque>
-#include <mutex>
-#include <unordered_map>
-#include <vector>
-
-#include "../utils/block.h"
-#include "../utils/db.h"
-#include "../utils/randomgen.h"
-#include "../utils/tx.h"
 #include "../utils/utils.h"
-
-#include "../contract/contractmanager.h"
-
-#include "blockchain.h"
-#include "rdpos.h"
-#include "snowmanVM.h"
+#include "../utils/db.h"
 #include "storage.h"
+#include "rdpos.h"
 
-// Forward declarations.
-class Block;  // Include is not working, why? There's no circular dep here
-class Blockchain;
-class ContractManager;
 
-/**
- * Class for storing system state and shared blockchain inner variables.
- * e.g. coin/token balances, contract statuses, mempool, txs, block parsing, creation, etc.
- * Updates with blocks only, either creating one itself or receiving one from the network.
- */
 class State {
   private:
-    /**
-     * List of native accounts, by address.
-     * A "native account" is an account used to make normal transaction operations.
-     */
-    std::unordered_map<Address, Account, SafeHash> nativeAccounts;
+    /// Pointer to DB.
+    const std::unique_ptr<DB>& db;
 
-    /// Transaction mempool.
+    /// Pointer to Storage.
+    const std::unique_ptr<Storage>& storage;
+
+    /// Pointer to rdPoS.
+    const std::unique_ptr<rdPoS>& rdpos;
+
+    /// Pointer to P2P Manager
+    const std::unique_ptr<P2P::ManagerNormal> &p2pManager;
+
+    /// Pointer to ContractManager
+    /// TODO: Add contract functionality to State after ContractManager is ready.
+
+    /**
+     * std::unordered_map containing information about the blockchain accounts
+     * the map is expressed as following:
+     * Address -> Account
+     * Where Account is a struct containing balance and account nonce.
+     */
+    std::unordered_map<Address, Account, SafeHash> accounts;
+
+    /// Normal (TxBlock) Transaction Mempool
     std::unordered_map<Hash, TxBlock, SafeHash> mempool;
 
-    /// Pointer to the database.
-    const std::shared_ptr<DB> db;
-
-    /// Pointer to the blockchain history.
-    const std::shared_ptr<Storage> storage;
-
-    /// Pointer to the SnowmanVM.
-    const std::shared_ptr<SnowmanVM> snowmanVM;
-
-    /// Pointer to the rdPoS/block manager.
-    const std::shared_ptr<rdPoS> rdpos;
-
-    /// Pointer to the contract manager.
-    const std::shared_ptr<ContractManager> contractMgr;
-
-    /// Mutex for managing read/write access to the state.
-    std::mutex stateLock;
-
-    /// Random seed generator.
-    RandomGen gen;
+    /// State mutex
+    mutable std::shared_mutex stateMutex;
 
     /**
-     * Load accounts from database to memory.
-     * @return `true` if the state was loaded successfully, `false` otherwise.
+     * Process the transaction
+     * To be called by State::processNextBlock
+     * @param tx within a block
+     * @return 'true' if transaction succeeded, 'false' if transaction failed.
+     * when transaction fails, any state change that this transaction would cause has to be reverted
      */
-    bool loadFromDB();
-
-    /**
-     * Process a new transaction from a given block (only used by `processNewBlock()`).
-     * @param tx The transaction to process.
-     * @return `true` if the transaction was processed successfully, `false` otherwise.
-     */
-    bool processNewTx(const TxBlock& tx);
-
+    bool processTransaction(const TxBlock& tx);
   public:
+
+    State(const std::unique_ptr<DB>& db,
+          const std::unique_ptr<Storage>& storage,
+          const std::unique_ptr<rdPoS>& rdpos,
+          const std::unique_ptr<P2P::ManagerNormal>& p2pManager);
+
+    ~State();
+
     /**
-     * Constructor. Automatically loads accounts from the database.
-     * @param db Pointer to the database.
-     * @param storage Pointer to the blockchain history.
-     * @param snowmanVM Pointer to the SnowmanVM.
-     * @param rdpos Pointer to the rdPoS/block manager.
-     * @param contractMgr Pointer to the contract manager.
+     * Get native account balance
+     * @param addr
+     * @return native account balance.
      */
-    State(
-      const std::shared_ptr<DB>& db,
-      const std::shared_ptr<Storage>& storage,
-      const std::shared_ptr<SnowmanVM>& snowmanVM,
-      const std::shared_ptr<rdPoS>& rdpos,
-      const std::shared_ptr<ContractManager>& contractMgr
-    ) : db(db), storage(storage), snowmanVM(snowmanVM), rdpos(rdpos),
-        contractMgr(contractMgr), gen(Hash::random()) {
-      this->loadFromDB();
-    }
 
-    /// Getter for `mempool`.
-    const std::unordered_map<Hash, TxBlock, SafeHash>& getMempool() { return this->mempool; }
+    const uint256_t getNativeBalance(const Address& addr) const;
 
     /**
-     * Get a native account's balance.
-     * @param add The account's address.
-     * @return The native account's current balance.
+     * Get native account nonce
+     * @param addr
+     * @return native account nonce.
      */
-    uint256_t getNativeBalance(const Address& add);
+
+    const uint256_t getNativeNonce(const Address& addr) const;
 
     /**
-     * Get a native account's nonce.
-     * @param add The account's address.
-     * @return The native account's current nonce.
+     * Getter for mempool
+     * @return mempool copy
      */
-    uint256_t getNativeNonce(const Address& add);
+
+    const std::unordered_map<Address, Account, SafeHash> getMempool() const;
 
     /**
-     * Validate a block and its transactions. Does NOT update the state.
+     * Validate the next block given current state and its transactions. Does NOT update the state.
      * The block will be rejected if there are invalid transactions in it
      * (e.g. invalid signature, insufficient balance, etc.).
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    bool validateNewBlock(Block& block);
+    bool validateNextBlock(const Block& block) const;
 
     /**
-     * Process a new block from the network. DOES update the state.
+     * Process the next block given current state from the network. DOES update the state.
+     * Appends block to Storage after processing.
      * @param block The block to process.
      */
-    void processNewBlock(Block&& block);
+    void processNextBlock(Block&& block);
+
 
     /**
-     * Create a new block. Does NOT update the state.
-     * Uses either the preferred block, or the latest block if there's no preference.
-     * @return A pointer to the new block, or `nullptr` if block creation fails.
+     * Create a new block with the block transactions filled with the current mempool.
+     * Does not fill block TxValitador transactions, neither finalize the block or update State.
+     * @return Block with transactions currently on mempool.
      */
-    const std::shared_ptr<const Block> createNewBlock();
+    Block createNewBlock() const;
 
     /**
-     * Validate a transaction from inside a block.
-     * Validation is done checking the following requirements:
-     * - Replay protection
-     * - Sender nonce matches
-     * - Sender has enough balance
-     * - Tx is not already in mempool
-     * Does NOT update the state and does NOT move the tx to the mempool,
-     * as it is already included in a block.
-     * @param tx The transaction to validate.
-     * @return `true` if the transaction is valid, `false` otherwise.
+     * Verify if the transaction can be accepted within the current State.
+     * @param tx The transaction
      */
-    bool validateTxForBlock(const TxBlock& tx);
+    bool validateTransaction(const TxBlock& tx) const;
 
     /**
-     * Validates a transaction from RPC.
-     * Validation is done checking the following requirements:
-     * - Replay protection
-     * - Sender nonce matches
-     * - Sender has enough balance
-     * - Tx is not already in mempool
-     * Does NOT update the state, but DOES move the tx to the mempool.
-     * @param tx The transaction to validate.
-     * @return An error code/message pair with the status of the validation.
+     * Add transaction to mempool if valid.
+     * @param tx The transaction.
      */
-    const std::pair<int, std::string> validateTxForRPC(const TxBlock& tx);
+    bool addTx(TxBlock&& tx);
 
     /**
-     * Save accounts from memory to database.
-     * @return `true` if the state was saved successfully, `false` otherwise.
+     * This function is used through HTTP RPC to add balance to a given address
+     * ONLY TO BE USED WITHIN TESTNET OF A GIVEN APP-CHAIN.
+     * THIS FUNCTION ALLOWS ANYONE TO GIVE THEMSELVES NATIVE TOKENS
      */
-    bool saveToDB();
+    void addBalance(const Address& addr);
 
-    /**
-     * Add a fixed amount of funds to an account.
-     * @param add The address to add funds to.
-     * TODO: FOR TESTING PURPOSES ONLY. This should be removed before release.
-     */
-    void addBalance(const Address& add) {
-      this->stateLock.lock();
-      this->nativeAccounts[add].balance += 1000000000000000000;
-      this->stateLock.unlock();
-    }
 };
 
-#endif  // STATE_H
+
+#endif // STATE
