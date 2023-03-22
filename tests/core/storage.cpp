@@ -87,7 +87,7 @@ Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHei
   for (const auto &tx : txs) newBlock.appendTx(tx);
   for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
   // Sign block with block validator private key.
-  newBlock.finalize(blockValidatorPrivKey);
+  newBlock.finalize(blockValidatorPrivKey, timestamp + 1);
   REQUIRE(newBlock.getBlockRandomness() == Hash(Utils::sha3(randomSeed)));
   return newBlock;
 }

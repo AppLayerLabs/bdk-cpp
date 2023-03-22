@@ -43,7 +43,7 @@ void initialize(std::unique_ptr<DB>& db,
     // Genesis Keys:
     // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
     // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
-    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
+    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1678887538000000);
     db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
     db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
@@ -92,7 +92,7 @@ Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& 
 
   // Create a block with 8 TxValidator transactions, 2 for each validator, in order (randomHash and random)
   uint64_t newBlocknHeight = storage->latest()->getNHeight() + 1;
-  uint64_t newBlockTimestamp = storage->latest()->getTimestamp() + 100000;
+  uint64_t newBlockTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
   Hash newBlockPrevHash = storage->latest()->hash();
   Block block(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
   std::vector<TxValidator> randomHashTxs;
@@ -139,7 +139,7 @@ Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& 
   }
       
   // Finalize the block
-  block.finalize(blockSignerPrivKey);
+  block.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
   return block;
 }
 

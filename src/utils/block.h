@@ -25,7 +25,7 @@
  *   32 BYTES - BLOCK RANDOMNESS
  *   32 BYTES - VALIDATOR MERKLE ROOT
  *   32 BYTES - TRANSACTION MERKLE ROOT
- *   8 BYTES  - TIMESTAMP (MILLISECONDS)
+ *   8 BYTES  - TIMESTAMP (MICROSECONDS)
  *   8 BYTES  - NHEIGHT
  * CONTENT:
  *   8 BYTES  - TX VALIDATOR ARRAY START
@@ -216,7 +216,7 @@ class Block {
      * new randomness seed for the next block.
      * @return `true` on success, `false` if block is already finalized.
      */
-    bool finalize(const PrivKey& validatorPrivKey);
+    bool finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp);
 
     /// Equality operator. Checks the block hash of both objects.
     const bool operator==(const Block& rBlock) const {

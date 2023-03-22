@@ -14,7 +14,7 @@ namespace TBlock {
       uint64_t nHeight = 92137812;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      newBlock.finalize(validatorPrivKey);
+      newBlock.finalize(validatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
@@ -97,7 +97,7 @@ namespace TBlock {
 
       for (uint64_t i = 0; i < 10; i++) newBlock.appendTx(tx);
 
-      newBlock.finalize(validatorPrivKey);
+      newBlock.finalize(validatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
@@ -222,7 +222,7 @@ namespace TBlock {
       for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
 
       // Sign block with block validator private key.
-      newBlock.finalize(blockValidatorPrivKey);
+      newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
@@ -364,7 +364,7 @@ namespace TBlock {
       for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
 
       // Sign block with block validator private key.
-      newBlock.finalize(blockValidatorPrivKey);
+      newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());
@@ -505,7 +505,7 @@ namespace TBlock {
       for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
 
       // Sign block with block validator private key.
-      newBlock.finalize(blockValidatorPrivKey);
+      newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock());

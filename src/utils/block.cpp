@@ -203,11 +203,18 @@ bool Block::appendTxValidator(const TxValidator &tx) {
   return true;
 }
 
-bool Block::finalize(const PrivKey& validatorPrivKey) {
+bool Block::finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp) {
   if (this->finalized) {
     Utils::logToDebug(Log::block, __func__, "Block is already finalized");
     return false;
   }
+  /// Allow validators to improve the block time
+  /// Only if new timestamp is better than old timestmap
+  if (this->timestamp > newTimestamp) {
+    Utils::logToDebug(Log::block, __func__, "Block timestamp not satisfiable");
+    return false;
+  }
+
   this->txMerkleRoot = Merkle(this->txs).getRoot();
   this->validatorMerkleRoot = Merkle(this->txValidators).getRoot();
   this->blockRandomness = rdPoS::parseTxSeedList(this->txValidators);

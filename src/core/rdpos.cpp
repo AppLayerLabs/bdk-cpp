@@ -152,7 +152,8 @@ Hash rdPoS::processBlock(const Block& block) {
 }
 
 void rdPoS::signBlock(Block &block) {
-  block.finalize(this->validatorKey);
+  uint64_t newTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  block.finalize(this->validatorKey, newTimestamp);
 }
 
 bool rdPoS::addValidatorTx(const TxValidator& tx) {

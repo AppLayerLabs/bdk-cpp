@@ -46,7 +46,7 @@ void initialize(std::unique_ptr<DB>& db,
     // Genesis Keys:
     // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
     // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
-    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")));
+    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")),1678887538000000);
     db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
     db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
@@ -81,7 +81,8 @@ namespace TState {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, true, "stateConstructorTest");
-        REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) == uint256_t("1000000000000000000000"));
+        REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) ==
+                uint256_t("1000000000000000000000"));
       }
       // Wait a little until everyone has been destructed.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -92,7 +93,9 @@ namespace TState {
       std::unique_ptr<State> state;
       //// Check if opening the state loads successfully from DB.
       initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, false, "stateConstructorTest");
-      REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) == uint256_t("1000000000000000000000"));
+      REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) ==
+              uint256_t("1000000000000000000000"));
+      REQUIRE(state->getNativeNonce(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) == 0);
     }
 
     SECTION("State Class addBalance to random Addresses") {
@@ -128,6 +131,19 @@ namespace TState {
       for (const auto& [address, expectedBalance] : addresses) {
         REQUIRE(state->getNativeBalance(address) == expectedBalance);
         REQUIRE(state->getNativeNonce(address) == 0);
+      }
+    }
+    SECTION("Test Simple block on State (No Transactions only rdPoS") {
+      std::unique_ptr<Block> latestBlock = nullptr;
+      {
+        std::unique_ptr<DB> db;
+        std::unique_ptr<Storage> storage;
+        std::unique_ptr<P2P::ManagerNormal> p2p;
+        std::unique_ptr<rdPoS> rdpos;
+        std::unique_ptr<State> state;
+        initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, true, "stateAddBalanceTest");
+
+
       }
     }
   }

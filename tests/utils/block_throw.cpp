@@ -59,7 +59,7 @@ namespace TBlock {
       for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
 
       // Sign block with block validator private key.
-      newBlock.finalize(blockValidatorPrivKey);
+      newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       bool catched = false;
       std::string str = newBlock.serializeBlock();
@@ -107,7 +107,7 @@ namespace TBlock {
       for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
 
       // Sign block with block validator private key.
-      newBlock.finalize(blockValidatorPrivKey);
+      newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       bool catched = false;
       std::string str = newBlock.serializeBlock();
@@ -156,7 +156,7 @@ namespace TBlock {
       for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
 
       // Sign block with block validator private key.
-      newBlock.finalize(blockValidatorPrivKey);
+      newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       bool catched = false;
       std::string str = newBlock.serializeBlock();
@@ -205,7 +205,7 @@ namespace TBlock {
       for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
 
       // Sign block with block validator private key.
-      newBlock.finalize(blockValidatorPrivKey);
+      newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       bool catched = false;
       std::string str = newBlock.serializeBlock();
@@ -254,7 +254,7 @@ namespace TBlock {
       for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
 
       // Sign block with block validator private key.
-      newBlock.finalize(blockValidatorPrivKey);
+      newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       // TODO: this doesn't seem to work, it doesn't throw
       bool catchedR = false;
@@ -288,8 +288,8 @@ namespace TBlock {
       TxBlock txB(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"));
       TxValidator txV(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"));
 
-      newBlock.finalize(validatorPrivKey);
-      REQUIRE(!newBlock.finalize(validatorPrivKey));
+      newBlock.finalize(validatorPrivKey, timestamp+1);
+      REQUIRE(!newBlock.finalize(validatorPrivKey, timestamp+1));
       REQUIRE(!newBlock.appendTx(txB));
       REQUIRE(!newBlock.appendTxValidator(txV));
     }
