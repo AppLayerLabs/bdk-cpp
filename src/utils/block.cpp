@@ -211,10 +211,11 @@ bool Block::finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimesta
   /// Allow validators to improve the block time
   /// Only if new timestamp is better than old timestmap
   if (this->timestamp > newTimestamp) {
-    Utils::logToDebug(Log::block, __func__, "Block timestamp not satisfiable");
+    Utils::logToDebug(Log::block, __func__, "Block timestamp not satisfiable, expected higher than " +
+                        std::to_string(this->timestamp) + " got " + std::to_string(newTimestamp));
     return false;
   }
-
+  this->timestamp = newTimestamp;
   this->txMerkleRoot = Merkle(this->txs).getRoot();
   this->validatorMerkleRoot = Merkle(this->txValidators).getRoot();
   this->blockRandomness = rdPoS::parseTxSeedList(this->txValidators);

@@ -66,6 +66,44 @@ State::~State() {
   this->db->putBatch(accountsBatch, DBPrefix::nativeAccounts);
 }
 
+bool State::validateTransactionInternal(const TxBlock& tx) const {
+  /**
+   * Rules for a transaction to be accepted within the current state:
+   * Transaction value + txFee (gas * gasPrice) needs to be lower than account balance
+   * Transaction nonce must match account nonce
+   */
+
+  /// Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
+  if (this->mempool.contains(tx.hash())) {
+    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
+    return true;
+  }
+  auto accountIt = this->accounts.find(tx.getFrom());
+  if (accountIt == this->accounts.end()) {
+    Utils::logToDebug(Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
+    return false;
+  }
+  const auto& accBalance = accountIt->second.balance;
+  const auto& accNonce = accountIt->second.nonce;
+  uint256_t txWithFees = tx.getValue() + (tx.getGas() * tx.getGasPrice());
+  if (txWithFees > accBalance) {
+    Utils::logToDebug(Log::state, __func__,
+                      "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
+                      + " expected: " + txWithFees.str() + " has: " + accBalance.str());
+    return false;
+  }
+  // TODO: The blockchain is able to store higher nonce transactions until they are valid
+  // Handle this case.
+  if (accNonce != tx.getNonce()) {
+    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
+                                            + " got: " + tx.getNonce().str());
+    return false;
+  }
+  /// TODO: check if calls contract
+
+  return true;
+}
+
 void State::processTransaction(const TxBlock& tx) {
   /// Lock is already called by processNextBlock
   /// processNextBlock already calls validateTransaction in every tx.
@@ -80,6 +118,30 @@ void State::processTransaction(const TxBlock& tx) {
   ++nonce;
 }
 
+void State::refreshMempool(const Block& block) {
+  /// No need to lock mutex as function caller (this->processNextBlock) already lock mutex.
+  /// Remove all transactions within the block that exists on the unordered_map.
+  for (const auto& tx : block.getTxs()) {
+    const auto it = this->mempool.find(tx.hash());
+    if (it != this->mempool.end()) {
+      this->mempool.erase(it);
+    }
+  }
+
+  /// Copy mempool over
+  auto mempoolCopy = this->mempool;
+  this->mempool.clear();
+
+  /// Verify if the transactions within the old mempool
+  /// not added to the block are valid given the current state
+  for (const auto& [hash, tx] : mempoolCopy) {
+    /// Calls internal function which doesn't lock mutex.
+    if (this->validateTransactionInternal(tx)) {
+      this->mempool.insert({hash, tx});
+    }
+  }
+}
+
 const uint256_t State::getNativeBalance(const Address &addr) const {
   std::shared_lock lock(this->stateMutex);
   auto it = this->accounts.find(addr);
@@ -88,7 +150,7 @@ const uint256_t State::getNativeBalance(const Address &addr) const {
 }
 
 
-const uint256_t State::getNativeNonce(const Address& addr) const {
+const uint64_t State::getNativeNonce(const Address& addr) const {
   std::shared_lock lock(this->stateMutex);
   auto it = this->accounts.find(addr);
   if (it == this->accounts.end()) return 0;
@@ -110,6 +172,7 @@ bool State::validateNextBlock(const Block& block) const {
    * Rules for a block to be accepted within the current state
    * Block nHeight must match latest nHeight + 1
    * Block nPrevHash must match latest hash
+   * Block nTimestamp must be higher than latest block
    * Block has valid rdPoS transaction and signature based on current state.
    * All transactions within Block are valid (does not return false on validateTransaction)
    * Block constructor already checks if merkle roots within a block are valid.
@@ -125,6 +188,12 @@ bool State::validateNextBlock(const Block& block) const {
   if (block.getPrevBlockHash() != latestBlock->hash()) {
     Utils::logToDebug(Log::state, __func__, "Block prevBlockHash doesn't match, expected " +
                       latestBlock->hash().hex().get() + " got: " + block.getPrevBlockHash().hex().get());
+    return false;
+  }
+
+  if (latestBlock->getTimestamp() > block.getTimestamp()) {
+    Utils::logToDebug(Log::state, __func__, "Block timestamp is lower than latest block, expected higher than " + std::to_string(latestBlock->getTimestamp())
+                      + " got " + std::to_string(block.getTimestamp()));
     return false;
   }
 
@@ -151,14 +220,17 @@ void State::processNextBlock(Block&& block) {
     throw std::runtime_error("Invalid block detected during processNextBlock sanity check.");
   }
 
-  /// Process transactions of the block within the current state.
   std::unique_lock lock(this->stateMutex);
+  /// Process transactions of the block within the current state.
   for (auto const& tx : block.getTxs()) {
     this->processTransaction(tx);
   }
 
   /// Process rdPoS State
   this->rdpos->processBlock(block);
+
+  /// Refresh the mempool based on the block transactions;
+  this->refreshMempool(block);
 
   /// Move block to storage.
   this->storage->pushBack(std::move(block));
@@ -174,42 +246,8 @@ void State::fillBlockWithTransactions(Block& block) const {
 }
 
 bool State::validateTransaction(const TxBlock& tx) const {
-  /**
-   * Rules for a transaction to be accepted within the current state:
-   * Transaction value + txFee (gas * gasPrice) needs to be lower than account balance
-   * Transaction nonce must match account nonce
-   */
-
   std::shared_lock lock(this->stateMutex);
-  /// Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
-  if (this->mempool.contains(tx.hash())) {
-    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
-    return true;
-  }
-  auto accountIt = this->accounts.find(tx.getFrom());
-  if (accountIt == this->accounts.end()) {
-    Utils::logToDebug(Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
-    return false;
-  }
-  const auto& accBalance = accountIt->second.balance;
-  const auto& accNonce = accountIt->second.nonce;
-  uint256_t txWithFees = tx.getValue() + (tx.getGas() * tx.getGasPrice());
-  if (txWithFees > accBalance) {
-    Utils::logToDebug(Log::state, __func__,
-                      "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
-                      + " expected: " + txWithFees.str() + " has: " + accBalance.str());
-    return false;
-  }
-  // TODO: The blockchain is able to store higher nonce transactions until they are valid
-  // Handle this case.
-  if (accNonce != tx.getNonce()) {
-    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
-                      + " got: " + tx.getNonce().str());
-    return false;
-  }
-  /// TODO: check if calls contract
-
-  return true;
+  return this->validateTransactionInternal(tx);
 }
 
 bool State::addTx(TxBlock&& tx) {
@@ -222,5 +260,5 @@ bool State::addTx(TxBlock&& tx) {
 
 void State::addBalance(const Address& addr) {
   std::unique_lock lock(this->stateMutex);
-  this->accounts[addr].balance += 1000000000000000000;
+  this->accounts[addr].balance += uint256_t("1000000000000000000000");
 }

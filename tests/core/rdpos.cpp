@@ -64,7 +64,7 @@ void initialize(std::unique_ptr<DB>& db,
 // This creates a valid block given the state within the rdPoS class.
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
-Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& storage) {
+Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& storage, const std::vector<TxBlock>& txs = {}) {
   auto validators = rdpos->getValidators();
   auto randomList = rdpos->getRandomList();
 
@@ -92,7 +92,7 @@ Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& 
 
   // Create a block with 8 TxValidator transactions, 2 for each validator, in order (randomHash and random)
   uint64_t newBlocknHeight = storage->latest()->getNHeight() + 1;
-  uint64_t newBlockTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  uint64_t newBlockTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
   Hash newBlockPrevHash = storage->latest()->hash();
   Block block(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
   std::vector<TxValidator> randomHashTxs;
@@ -127,6 +127,9 @@ Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& 
     rdpos->addValidatorTx(tx);
     block.appendTxValidator(tx);
   }
+  for (const auto& tx : txs) {
+    block.appendTx(tx);
+  }
 
   // Check rdPoS mempool.
   auto rdPoSmempool = rdpos->getMempool();
@@ -139,7 +142,7 @@ Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& 
   }
       
   // Finalize the block
-  block.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+  block.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
   return block;
 }
 
@@ -727,7 +730,7 @@ namespace TRdPoS {
 
           // Create the block and append to all chains, we can use any storage for latestblock
           auto latestBlock = storage1->latest();
-          Block block(latestBlock->hash(), latestBlock->getTimestamp() + 10000, latestBlock->getNHeight() + 1);
+          Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
           // Append transactions towards block.
           for (const auto &tx: randomHashTxs) {
             block.appendTxValidator(tx);

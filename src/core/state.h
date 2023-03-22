@@ -41,6 +41,13 @@ class State {
     mutable std::shared_mutex stateMutex;
 
     /**
+     * Verify if the transaction can be accepted within the current State.
+     * Calls validateTransactionInternal, but with locking mutex in a shared manner.
+     * @param tx The transaction
+     */
+    bool validateTransactionInternal(const TxBlock& tx) const;
+
+    /**
      * Process the transaction
      * To be called by State::processNextBlock
      * @param tx within a block
@@ -56,7 +63,7 @@ class State {
      * on the mempool are valid given the new State after processing the block.
      */
 
-    bool refreshMempool();
+    void refreshMempool(const Block& block);
   public:
 
     State(const std::unique_ptr<DB>& db,
@@ -78,7 +85,7 @@ class State {
      * @param addr
      * @return native account nonce.
      */
-    const uint256_t getNativeNonce(const Address& addr) const;
+    const uint64_t getNativeNonce(const Address& addr) const;
 
     /**
      * Getter for accounts within the current State
@@ -117,6 +124,7 @@ class State {
 
     /**
      * Verify if the transaction can be accepted within the current State.
+     * Calls validateTransactionInternal, but with locking mutex in a shared manner.
      * @param tx The transaction
      */
     bool validateTransaction(const TxBlock& tx) const;
