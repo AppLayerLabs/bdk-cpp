@@ -66,6 +66,20 @@ State::~State() {
   this->db->putBatch(accountsBatch, DBPrefix::nativeAccounts);
 }
 
+void State::processTransaction(const TxBlock& tx) {
+  /// Lock is already called by processNextBlock
+  /// processNextBlock already calls validateTransaction in every tx.
+  /// As it calls validateNextBlock as a sanity check.
+
+  /// TODO: Contract calling, including "payable" functions.
+  auto accountIt = this->accounts.find(tx.getFrom());
+  auto& balance = accountIt->second.balance;
+  auto& nonce = accountIt->second.nonce;
+  uint256_t txValueWithFees = tx.getValue() + (tx.getGas() * tx.getGasPrice());  /// This need to change with payable contract functions
+  balance -= txValueWithFees;
+  ++nonce;
+}
+
 const uint256_t State::getNativeBalance(const Address &addr) const {
   std::shared_lock lock(this->stateMutex);
   auto it = this->accounts.find(addr);
@@ -73,9 +87,140 @@ const uint256_t State::getNativeBalance(const Address &addr) const {
   return it->second.balance;
 }
 
+
 const uint256_t State::getNativeNonce(const Address& addr) const {
   std::shared_lock lock(this->stateMutex);
   auto it = this->accounts.find(addr);
   if (it == this->accounts.end()) return 0;
   return it->second.nonce;
+}
+
+const std::unordered_map<Address, Account, SafeHash> State::getAccounts() const {
+  std::shared_lock lock(this->stateMutex);
+  return this->accounts;
+}
+
+const std::unordered_map<Hash, TxBlock, SafeHash> State::getMempool() const {
+  std::shared_lock lock(this->stateMutex);
+  return this->mempool;
+}
+
+bool State::validateNextBlock(const Block& block) const {
+  /**
+   * Rules for a block to be accepted within the current state
+   * Block nHeight must match latest nHeight + 1
+   * Block nPrevHash must match latest hash
+   * Block has valid rdPoS transaction and signature based on current state.
+   * All transactions within Block are valid (does not return false on validateTransaction)
+   * Block constructor already checks if merkle roots within a block are valid.
+   */
+
+  auto latestBlock = this->storage->latest();
+  if (block.getNHeight() != latestBlock->getNHeight() + 1) {
+    Utils::logToDebug(Log::state, __func__, "Block nHeight doesn't match, expected "
+                      + std::to_string(latestBlock->getNHeight() + 1) + " got " + std::to_string(block.getNHeight()));
+    return false;
+  }
+
+  if (block.getPrevBlockHash() != latestBlock->hash()) {
+    Utils::logToDebug(Log::state, __func__, "Block prevBlockHash doesn't match, expected " +
+                      latestBlock->hash().hex().get() + " got: " + block.getPrevBlockHash().hex().get());
+    return false;
+  }
+
+  if (!this->rdpos->validateBlock(block)) {
+    Utils::logToDebug(Log::state, __func__, "Invalid rdPoS in block");
+    return false;
+  }
+
+  std::shared_lock verifyingBlockTxs(this->stateMutex);
+  for (const auto& tx : block.getTxs()) {
+    if (!this->validateTransaction(tx)) {
+      Utils::logToDebug(Log::state, __func__, "Transaction " + tx.hash().hex().get() + " within block is invalid");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void State::processNextBlock(Block&& block) {
+  /// Sanity Check.
+  if (!this->validateNextBlock(block)) {
+    Utils::logToDebug(Log::state, __func__, "Sanity check failed, blockchain is trying to append a invalid block, throwing.");
+    throw std::runtime_error("Invalid block detected during processNextBlock sanity check.");
+  }
+
+  /// Process transactions of the block within the current state.
+  std::unique_lock lock(this->stateMutex);
+  for (auto const& tx : block.getTxs()) {
+    this->processTransaction(tx);
+  }
+
+  /// Process rdPoS State
+  this->rdpos->processBlock(block);
+
+  /// Move block to storage.
+  this->storage->pushBack(std::move(block));
+  return;
+}
+
+void State::fillBlockWithTransactions(Block& block) const {
+  std::shared_lock lock(this->stateMutex);
+  for (const auto& [hash, tx] : this->mempool) {
+    block.appendTx(tx);
+  }
+  return;
+}
+
+bool State::validateTransaction(const TxBlock& tx) const {
+  /**
+   * Rules for a transaction to be accepted within the current state:
+   * Transaction value + txFee (gas * gasPrice) needs to be lower than account balance
+   * Transaction nonce must match account nonce
+   */
+
+  std::shared_lock lock(this->stateMutex);
+  /// Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
+  if (this->mempool.contains(tx.hash())) {
+    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
+    return true;
+  }
+  auto accountIt = this->accounts.find(tx.getFrom());
+  if (accountIt == this->accounts.end()) {
+    Utils::logToDebug(Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
+    return false;
+  }
+  const auto& accBalance = accountIt->second.balance;
+  const auto& accNonce = accountIt->second.nonce;
+  uint256_t txWithFees = tx.getValue() + (tx.getGas() * tx.getGasPrice());
+  if (txWithFees > accBalance) {
+    Utils::logToDebug(Log::state, __func__,
+                      "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
+                      + " expected: " + txWithFees.str() + " has: " + accBalance.str());
+    return false;
+  }
+  // TODO: The blockchain is able to store higher nonce transactions until they are valid
+  // Handle this case.
+  if (accNonce != tx.getNonce()) {
+    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
+                      + " got: " + tx.getNonce().str());
+    return false;
+  }
+  /// TODO: check if calls contract
+
+  return true;
+}
+
+bool State::addTx(TxBlock&& tx) {
+  if (!this->validateTransaction(tx)) return false;
+  std::unique_lock lock(this->stateMutex);
+  auto txHash = tx.hash();
+  this->mempool.insert({txHash, std::move(tx)});
+  return true;
+}
+
+void State::addBalance(const Address& addr) {
+  std::unique_lock lock(this->stateMutex);
+  this->accounts[addr].balance += 1000000000000000000;
 }

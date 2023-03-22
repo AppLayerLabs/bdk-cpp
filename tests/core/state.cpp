@@ -94,5 +94,41 @@ namespace TState {
       initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, false, "stateConstructorTest");
       REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) == uint256_t("1000000000000000000000"));
     }
+
+    SECTION("State Class addBalance to random Addresses") {
+      std::vector<std::pair<Address,uint256_t>> addresses;
+      {
+        std::unique_ptr<DB> db;
+        std::unique_ptr<Storage> storage;
+        std::unique_ptr<P2P::ManagerNormal> p2p;
+        std::unique_ptr<rdPoS> rdpos;
+        std::unique_ptr<State> state;
+        initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, true, "stateAddBalanceTest");
+
+        for (uint64_t i = 0; i < 1024; ++i) {
+          std::pair<Address,uint256_t> randomAddress = std::make_pair(Address(Utils::randBytes(20), true), uint256_t("1000000000000000000"));
+          state->addBalance(randomAddress.first);
+          addresses.push_back(randomAddress);
+        }
+
+        for (const auto& [address, expectedBalance] : addresses) {
+          REQUIRE(state->getNativeBalance(address) == expectedBalance);
+          REQUIRE(state->getNativeNonce(address) == 0);
+        }
+      }
+      // Wait until destructors are called.
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      // Load everything back from DB.
+      std::unique_ptr<DB> db;
+      std::unique_ptr<Storage> storage;
+      std::unique_ptr<P2P::ManagerNormal> p2p;
+      std::unique_ptr<rdPoS> rdpos;
+      std::unique_ptr<State> state;
+      initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, false, "stateAddBalanceTest");
+      for (const auto& [address, expectedBalance] : addresses) {
+        REQUIRE(state->getNativeBalance(address) == expectedBalance);
+        REQUIRE(state->getNativeNonce(address) == 0);
+      }
+    }
   }
 }

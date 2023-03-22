@@ -92,6 +92,9 @@ enum Networks { Mainnet, Testnet, LocalTestnet };
 struct Account {
   uint256_t balance = 0;
   uint64_t nonce = 0;
+  /// Default Constructor
+  Account() {}
+
   /// Copy Constructor
   Account(const uint256_t& balance, const uint64_t& nonce) : balance(balance), nonce(nonce) {}
 

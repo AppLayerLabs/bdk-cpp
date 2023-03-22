@@ -107,14 +107,6 @@ bool rdPoS::validateBlock(const Block& block) const {
     return false;
   }
 
-  //for (auto const& [key, value] : txHashToSeedMap) {
-  //  std::cout << "Key Hash: " << key.hash().hex() << std::endl;
-  //  std::cout << "Value Hash: " << value.hash().hex() << std::endl;
-  //  std::cout << "Key from: " << key.getFrom().hex() << std::endl;
-  //  std::cout << "Value from: " << value.getFrom().hex() << std::endl;
-  //}
-
-
   // Check the transactions within the block, we should have every transaction within the txHashToSeed map.
   for (auto const& [key, value] : txHashToSeedMap) {
     if (key.getFrom() != value.getFrom()) {

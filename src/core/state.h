@@ -6,7 +6,9 @@
 #include "storage.h"
 #include "rdpos.h"
 
-
+// TODO: We could possibly change the bool functions
+// into a enum function, to be able to properly return each error case
+// We need this in order to slash invalid rdPoS blocks.
 class State {
   private:
     /// Pointer to DB.
@@ -45,7 +47,16 @@ class State {
      * @return 'true' if transaction succeeded, 'false' if transaction failed.
      * when transaction fails, any state change that this transaction would cause has to be reverted
      */
-    bool processTransaction(const TxBlock& tx);
+    void processTransaction(const TxBlock& tx);
+
+    /**
+     * Free mempool from processing block transactions.
+     * This function is called by processNewBlock and it is used to filter out our current
+     * mempool based on transactions that have been accepted on the block, and verify if transactions
+     * on the mempool are valid given the new State after processing the block.
+     */
+
+    bool refreshMempool();
   public:
 
     State(const std::unique_ptr<DB>& db,
@@ -60,7 +71,6 @@ class State {
      * @param addr
      * @return native account balance.
      */
-
     const uint256_t getNativeBalance(const Address& addr) const;
 
     /**
@@ -68,15 +78,19 @@ class State {
      * @param addr
      * @return native account nonce.
      */
-
     const uint256_t getNativeNonce(const Address& addr) const;
+
+    /**
+     * Getter for accounts within the current State
+     * @return accounts from copy
+     */
+    const std::unordered_map<Address, Account, SafeHash> getAccounts() const;
 
     /**
      * Getter for mempool
      * @return mempool copy
      */
-
-    const std::unordered_map<Address, Account, SafeHash> getMempool() const;
+    const std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
 
     /**
      * Validate the next block given current state and its transactions. Does NOT update the state.
@@ -96,11 +110,10 @@ class State {
 
 
     /**
-     * Create a new block with the block transactions filled with the current mempool.
-     * Does not fill block TxValitador transactions, neither finalize the block or update State.
-     * @return Block with transactions currently on mempool.
+     * Fill the block with all transactions with the current mempool.
+     * DOES NOT FINALIZE THE BLOCK.
      */
-    Block createNewBlock() const;
+    void fillBlockWithTransactions(Block& block) const;
 
     /**
      * Verify if the transaction can be accepted within the current State.
@@ -118,6 +131,7 @@ class State {
      * This function is used through HTTP RPC to add balance to a given address
      * ONLY TO BE USED WITHIN TESTNET OF A GIVEN APP-CHAIN.
      * THIS FUNCTION ALLOWS ANYONE TO GIVE THEMSELVES NATIVE TOKENS
+     * IF CALLING THIS FUNCTION WITH A MULTI-NODE NETWORK, YOU HAVE TO CALL IT ON ALL NODES IN ORDER TO BE VALID.
      */
     void addBalance(const Address& addr);
 
