@@ -199,7 +199,7 @@ class rdPoSWorker {
     rdPoS& rdpos;
 
     /// Boolean to stop the worker thread.
-    bool stopWorker = false;
+    std::atomic<bool> stopWorker = false;
 
     /// Future object for the worker thread.
     /// This is used to wait for the thread to finish after stopWorker is set to true.
@@ -235,6 +235,9 @@ class rdPoSWorker {
     /// Constructor for rdPoSWorker.
     /// @param rdpos 
     rdPoSWorker(rdPoS& rdpos) : rdpos(rdpos) {}
+
+    /// Destructor.
+    ~rdPoSWorker() { this->stop(); }; // stop the worker thread if it is still running.
 
     /// starter for workerFuture and workerLoop. Should only be called after node is synced.
     void start();

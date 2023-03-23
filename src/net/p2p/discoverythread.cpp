@@ -2,31 +2,40 @@
 
 namespace P2P {
 
-  void ManagerBase::handleDiscoveryStop() {
-    this->discoveryThreadRunning_ = false;
+  void DiscoveryWorker::start() {
+    if (!this->workerFuture.valid()) {
+      this->stopWorker = false;
+      this->workerFuture = std::async(std::launch::async, &DiscoveryWorker::discoverLoop, this);
+    }
   }
 
-  void ManagerBase::discoveryThread() {
-    this->discoveryThreadRunning_ = true;
+  void DiscoveryWorker::stop() {
+    if (this->workerFuture.valid()) {
+      this->stopWorker = true;
+      this->workerFuture.get();
+    }
+  }
+
+  bool DiscoveryWorker::discoverLoop() {
     bool foundNodesToConnect = false;
     bool discoveryPass = false;
 
     std::unordered_set <Hash, SafeHash> nodesRequested;
     Utils::logToDebug(Log::P2PManager, __func__, "Discovery thread started");
-    while (!this->discoveryThreadStopFlag_) {
+    while (!this->stopWorker) {
       std::this_thread::sleep_for(std::chrono::seconds(1));
       
       std::unordered_set<Hash, SafeHash> connectedNormalNodes;
       std::unordered_set<Hash, SafeHash> connectedDiscoveryNodes;
       {
-        std::unique_lock lock(this->sessionsMutex);
-        if (this->sessions_.size() >= this->maxConnections_) {
+        std::unique_lock lock(this->manager.sessionsMutex);
+        if (this->manager.sessions_.size() >= this->manager.maxConnections_) {
           Utils::logToDebug(Log::P2PManager, __func__, "Max nodes reached, skipping discovery");
           std::this_thread::sleep_for(std::chrono::seconds(60));
           nodesRequested.clear();
           continue;
         }
-        for (auto& session : this->sessions_) {
+        for (auto& session : this->manager.sessions_) {
           // Skip nodes that were already requested.
           if (nodesRequested.contains(session.first)) continue;
           if (session.second->hostType() == NodeType::NORMAL_NODE)
@@ -38,7 +47,7 @@ namespace P2P {
 
       std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> newNodes;
 
-      if (this->discoveryThreadStopFlag_) break;
+      if (this->stopWorker) break;
 
       // Give priority to discovery nodes for the first pass of discovery.
       if (connectedDiscoveryNodes.size() == 0 || discoveryPass) {
@@ -52,11 +61,11 @@ namespace P2P {
         for (auto& node : connectedNormalNodes) {
           auto now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
           if (now - startTime > 10) break;
-          if (this->discoveryThreadStopFlag_) break;
+          if (this->stopWorker) break;
           if (!nodesRequested.contains(node)) {
             nodesRequested.insert(node);
             auto request = RequestEncoder::requestNodes();
-            auto requestPtr = sendMessageTo(node, request);
+            auto requestPtr = manager.sendMessageTo(node, request);
             auto answer = requestPtr->answerFuture();
             auto status = answer.wait_for(std::chrono::seconds(1));
             if (status == std::future_status::ready) {
@@ -79,11 +88,11 @@ namespace P2P {
         for (auto& node : connectedDiscoveryNodes) {
           auto now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
           if (now - startTime > 10) break;
-          if (this->discoveryThreadStopFlag_) break;
+          if (this->stopWorker) break;
           if (!nodesRequested.contains(node)) {
             nodesRequested.insert(node);
             auto request = RequestEncoder::requestNodes();
-            auto requestPtr = sendMessageTo(node, request);
+            auto requestPtr = manager.sendMessageTo(node, request);
             auto answer = requestPtr->answerFuture();
             auto status = answer.wait_for(std::chrono::seconds(1));
             if (status == std::future_status::ready) {
@@ -104,23 +113,18 @@ namespace P2P {
         for (auto const &node : newNodes) {
           foundNodesToConnect = true;
           Utils::logToDebug(Log::P2PManager, __func__, "Trying to connect to node: " + node.first.hex().get());
-          this->connectToServer(std::get<1>(node.second).to_string(), std::get<2>(node.second));
+          this->manager.connectToServer(std::get<1>(node.second).to_string(), std::get<2>(node.second));
         }
       }
     }
-    handleDiscoveryStop();
+    return true;
   }
 
   void ManagerBase::startDiscovery() {
-    if (!this->discoveryThreadRunning_) {
-      this->discoveryThreadStopFlag_ = false;
-      this->discoveryThread_ = std::thread(&ManagerBase::discoveryThread, this);
-      this->discoveryThread_.detach();
-    }
+    this->discoveryWorker->start();
   }
 
   void ManagerBase::stopDiscovery() {
-    this->discoveryThreadStopFlag_ = true;
+    this->discoveryWorker->stop();
   }
-
 }

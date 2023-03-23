@@ -7,7 +7,8 @@ namespace P2P {
     hostPort_(hostPort), 
     p2pserver_(std::make_shared<Server>(hostIp_, hostPort_, 2, *this)),
     nodeType_(nodeType),
-    maxConnections_(maxConnections)
+    maxConnections_(maxConnections),
+    discoveryWorker(std::make_unique<DiscoveryWorker>(*this))
   {}
   
   void ManagerBase::startServer() {
@@ -18,7 +19,7 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Server failed to start");
       throw std::runtime_error("Server failed to start");
     }
-    this->startDiscovery();
+    this->discoveryWorker->start();
   }
   
   void ManagerBase::connectToServer(const std::string &host, const unsigned short &port) {
@@ -115,7 +116,7 @@ namespace P2P {
   }
 
   void ManagerBase::stop() {
-    this->stopDiscovery();
+    this->discoveryWorker->stop();
     std::unique_lock lock(sessionsMutex);
     Utils::logToDebug(Log::P2PManager, __func__, "Stopping P2PManager");
     for(auto& [key, value] : sessions_) {

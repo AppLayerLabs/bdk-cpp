@@ -29,7 +29,9 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 // Base Manager for Normal node and Discovery Node.
 // Discovery Node has access to only few functions of P2P Encoding.
 // Such as "Ping", "Info" and "RequestNodes"
+
 namespace P2P {
+  class DiscoveryWorker;
   class ManagerBase {
     protected:
       const Hash nodeId_;        // Unique node ID, randomly generated at P2PManager constructor, 32 bytes in size, byte encoded.
@@ -61,11 +63,7 @@ namespace P2P {
       virtual void handleBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {};
 
       // For Discovery thread.
-      void handleDiscoveryStop();
-      std::atomic_bool discoveryThreadRunning_ = false;
-      std::atomic_bool discoveryThreadStopFlag_ = false;
-      std::thread discoveryThread_;
-      void discoveryThread();
+      const std::unique_ptr<DiscoveryWorker> discoveryWorker;
 
     public:
       ManagerBase(const boost::asio::ip::address& hostIp, unsigned short hostPort, NodeType nodeType, unsigned int maxConnections);
@@ -119,6 +117,42 @@ namespace P2P {
       const bool isServerRunning() const { return this->p2pserver_->isRunning(); }
       
       const unsigned int maxConnections() const { return maxConnections_; }
+
+      friend class DiscoveryWorker;
+  };
+
+  class DiscoveryWorker {
+  private:
+    /// Reference back to the Manager Object
+    ManagerBase& manager;
+
+    /// Atomic bool for stopping the thread
+    std::atomic<bool> stopWorker = false;
+
+    /// Future object for the worker thread.
+    /// This is either checked for valid (running) to determine if the thread is running
+    /// And wait(), to waiting until thread is finished
+    std::future<bool> workerFuture;
+
+    /**
+     * Entry Function for the discovery thread.
+     */
+    bool discoverLoop();
+
+  public:
+
+    /// Constructor
+    DiscoveryWorker(ManagerBase& manager) : manager(manager) {}
+
+    /// Destructor
+    ~DiscoveryWorker() { this->stop(); }
+
+    /// Starts the discovery thread
+    void start();
+
+    /// Stops the discovery thread
+    /// Waits until the thread is finished
+    void stop();
 
   };
 };
