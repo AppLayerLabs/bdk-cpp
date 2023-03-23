@@ -177,18 +177,15 @@ namespace P2P {
   }
 
   void Server::stop() {
-    if (!this->isRunning()) {
+    if (!this->runFuture_.valid()) {
       Utils::logToDebug(Log::P2PServer, __func__, "Server is not running");
       return;
     }
     this->ioc.stop();
+    this->runFuture_.get();
   }
 
-  void Server::start() {
-    if (this->isRunning()) {
-      Utils::logToDebug(Log::P2PServer, __func__, "Server is already running");
-      return;
-    }
+  bool Server::run() {
     Utils::logToDebug(Log::P2PServer, __func__, "Starting server on " + this->address.to_string() + ":" + std::to_string(this->port));
     // Restart is needed to .run() the ioc again, otherwise it returns instantly.
 
@@ -201,11 +198,20 @@ namespace P2P {
     v.reserve(this->threads - 1);
 
     for (auto i = this->threads - 1; i > 0; --i) { v.emplace_back([this]{ ioc.run(); }); }
-    this->isRunning_ = true;
     ioc.run();
 
     for (auto& t : v) t.join(); // Wait for all threads to exit
-    this->isRunning_ = false;
+    return true;
   }
+
+  bool Server::start() {
+    if (this->runFuture_.valid()) {
+      Utils::logToDebug(Log::P2PServer, __func__, "Server is already running");
+      return false;
+    }
+    this->runFuture_ = std::async(std::launch::async, &Server::run, this);
+    return true;
+  }
+
 
 };

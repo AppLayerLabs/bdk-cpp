@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <thread>
+#include <future>
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/strand.hpp>
@@ -86,15 +87,18 @@ namespace P2P {
       const boost::asio::ip::address address;
       const unsigned short port;
       const unsigned int threads;
-      bool isRunning_ = false;
+
+      std::future<bool> runFuture_;
+
+      bool run();
 
     public:
       Server(boost::asio::ip::address address, unsigned short port, unsigned int threads, ManagerBase& manager)
        : address(address), port(port), threads(threads), manager_(manager) {};
 
-      void start();
+      bool start();
       void stop();
-      bool isRunning() const { return isRunning_; }
+      bool isRunning() const { return runFuture_.valid(); }
 
   };
 

@@ -12,14 +12,10 @@ namespace P2P {
   {}
   
   void ManagerBase::startServer() {
-    std::thread t(&Server::start, p2pserver_);
-    t.detach();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    if (!p2pserver_->isRunning()) {
-      Utils::logToDebug(Log::P2PManager, __func__, "Server failed to start");
-      throw std::runtime_error("Server failed to start");
+    if(this->p2pserver_->start()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      this->discoveryWorker->start();
     }
-    this->discoveryWorker->start();
   }
   
   void ManagerBase::connectToServer(const std::string &host, const unsigned short &port) {
