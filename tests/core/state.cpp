@@ -172,6 +172,7 @@ namespace TState {
       }
 
       Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      uint256_t targetExpectedValue = 0;
       {
         std::unique_ptr<DB> db;
         std::unique_ptr<Storage> storage;
@@ -201,6 +202,7 @@ namespace TState {
           val.first = state->getNativeBalance(me) - (transactions.back().getGasPrice() * transactions.back().getGas()) -
                       transactions.back().getValue();
           val.second = state->getNativeNonce(me) + 1;
+          targetExpectedValue += transactions.back().getValue();
         }
 
         auto newBestBlock = createValidBlock(rdpos, storage, transactions);
@@ -213,8 +215,220 @@ namespace TState {
           REQUIRE(state->getNativeBalance(me) == val.first);
           REQUIRE(state->getNativeNonce(me) == val.second);
         }
+        REQUIRE(state->getNativeBalance(targetOfTransactions) == targetExpectedValue);
       }
     }
+
+    SECTION("Test State mempool") {
+      std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
+      for (uint64_t i = 0; i < 500; ++i) {
+        randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
+      }
+
+      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      uint256_t targetExpectedValue = 0;
+      {
+        std::unique_ptr<DB> db;
+        std::unique_ptr<Storage> storage;
+        std::unique_ptr<P2P::ManagerNormal> p2p;
+        std::unique_ptr<rdPoS> rdpos;
+        std::unique_ptr<State> state;
+        initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, true, "stateSimpleBlockTest");
+
+        /// Add balance to the random Accounts and add tx's to directly to mempool.
+        for (auto &[privkey, val]: randomAccounts) {
+          Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+          state->addBalance(me);
+          TxBlock tx(
+            targetOfTransactions,
+            me,
+            "",
+            8080,
+            state->getNativeNonce(me),
+            1000000000000000000,
+            21000,
+            1000000000,
+            privkey
+          );
+
+          /// Take note of expected balance and nonce
+          val.first = state->getNativeBalance(me) - (tx.getGasPrice() * tx.getGas()) - tx.getValue();
+          val.second = state->getNativeNonce(me) + 1;
+          targetExpectedValue += tx.getValue();
+          state->addTx(std::move(tx));
+        }
+
+        auto mempoolCopy = state->getMempool();
+        REQUIRE(mempoolCopy.size() == 500);
+        std::vector<TxBlock> txCopy;
+        for (const auto& [key, value] : mempoolCopy) {
+          txCopy.emplace_back(value);
+        }
+
+        auto newBestBlock = createValidBlock(rdpos, storage, txCopy);
+        REQUIRE(state->validateNextBlock(newBestBlock));
+
+        state->processNextBlock(std::move(newBestBlock));
+
+        for (const auto &[privkey, val]: randomAccounts) {
+          auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+          REQUIRE(state->getNativeBalance(me) == val.first);
+          REQUIRE(state->getNativeNonce(me) == val.second);
+        }
+        REQUIRE(state->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+      }
+    }
+
+    SECTION("Test State mempool refresh") {
+      /// The block included will only have transactions where the address starts with \x08 or lower
+      /// where the mempool will have 500 transactions, including the \x08 addresses txs.
+      /// Test if the mempool is refreshed correctly.
+      std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
+      for (uint64_t i = 0; i < 500; ++i) {
+        randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
+      }
+
+      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      uint256_t targetExpectedValue = 0;
+      {
+        std::unique_ptr<DB> db;
+        std::unique_ptr<Storage> storage;
+        std::unique_ptr<P2P::ManagerNormal> p2p;
+        std::unique_ptr<rdPoS> rdpos;
+        std::unique_ptr<State> state;
+        initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, true, "stateSimpleBlockTest");
+
+        /// Add balance to the random Accounts and add tx's to directly to mempool.
+        std::vector<TxBlock> txs;
+        std::vector<TxBlock> notOnBlock;
+        for (auto &[privkey, val]: randomAccounts) {
+          Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+          state->addBalance(me);
+          TxBlock tx(
+            targetOfTransactions,
+            me,
+            "",
+            8080,
+            state->getNativeNonce(me),
+            1000000000000000000,
+            21000,
+            1000000000,
+            privkey
+          );
+
+          if (me[0] <= 0x08) {
+            txs.emplace_back(tx);
+            /// Take note of expected balance and nonce
+            val.first = state->getNativeBalance(me) - (tx.getGasPrice() * tx.getGas()) - tx.getValue();
+            val.second = state->getNativeNonce(me) + 1;
+            targetExpectedValue += tx.getValue();
+          } else {
+            val.first = state->getNativeBalance(me);
+            val.second = state->getNativeNonce(me);
+            notOnBlock.emplace_back(tx);
+          }
+          state->addTx(std::move(tx));
+        }
+
+        auto newBestBlock = createValidBlock(rdpos, storage, txs);
+        REQUIRE(state->validateNextBlock(newBestBlock));
+
+        state->processNextBlock(std::move(newBestBlock));
+
+        REQUIRE(state->getMempool().size() == notOnBlock.size());
+
+        auto mempoolCopy = state->getMempool();
+        for (const auto& tx : notOnBlock) {
+          REQUIRE(mempoolCopy.contains(tx.hash()));
+        }
+
+        for (const auto &[privkey, val]: randomAccounts) {
+          auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+          REQUIRE(state->getNativeBalance(me) == val.first);
+          REQUIRE(state->getNativeNonce(me) == val.second);
+        }
+        REQUIRE(state->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+      }
+
+    }
+
+    SECTION("Test 10 blocks forward on State (100 Transactions per block)") {
+      std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
+      for (uint64_t i = 0; i < 100; ++i) {
+        randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
+      }
+
+      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      uint256_t targetExpectedValue = 0;
+      std::unique_ptr<Block> latestBlock = nullptr;
+      {
+        std::unique_ptr<DB> db;
+        std::unique_ptr<Storage> storage;
+        std::unique_ptr<P2P::ManagerNormal> p2p;
+        std::unique_ptr<rdPoS> rdpos;
+        std::unique_ptr<State> state;
+        initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, true, "state10BlocksTest");
+        /// Add balance to the given addresses
+        for (const auto &[privkey, account]: randomAccounts) {
+          Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+          state->addBalance(me);
+        }
+
+        for (uint64_t index = 0; index < 10; ++index) {
+          /// Create random transactions
+          std::vector<TxBlock> txs;
+          for (auto &[privkey, account]: randomAccounts) {
+            Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+            txs.emplace_back(
+              targetOfTransactions,
+              me,
+              "",
+              8080,
+              state->getNativeNonce(me),
+              1000000000000000000,
+              21000,
+              1000000000,
+              privkey
+            );
+            /// Take note of expected balance and nonce
+            account.first = state->getNativeBalance(me) - (txs.back().getGasPrice() * txs.back().getGas()) -
+              txs.back().getValue();
+            account.second = state->getNativeNonce(me) + 1;
+            targetExpectedValue += txs.back().getValue();
+          }
+
+          // Create the new block
+          auto newBestBlock = createValidBlock(rdpos, storage, txs);
+          REQUIRE(state->validateNextBlock(newBestBlock));
+
+          state->processNextBlock(std::move(newBestBlock));
+          for (const auto &[privkey, val]: randomAccounts) {
+            auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+            REQUIRE(state->getNativeBalance(me) == val.first);
+            REQUIRE(state->getNativeNonce(me) == val.second);
+          }
+          REQUIRE(state->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+        }
+
+        latestBlock = std::make_unique<Block>(*storage->latest().get());
+      }
+      std::unique_ptr<DB> db;
+      std::unique_ptr<Storage> storage;
+      std::unique_ptr<P2P::ManagerNormal> p2p;
+      std::unique_ptr<rdPoS> rdpos;
+      std::unique_ptr<State> state;
+      initialize(db, storage, p2p, rdpos, state, validatorPrivKeys[0], 8080, false, "state10BlocksTest");
+
+      REQUIRE(latestBlock->hash() == storage->latest()->hash());
+      REQUIRE(storage->latest()->getNHeight() == 10);
+      for (const auto &[privkey, val]: randomAccounts) {
+        auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+        REQUIRE(state->getNativeBalance(me) == val.first);
+        REQUIRE(state->getNativeNonce(me) == val.second);
+      }
+      REQUIRE(state->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+    }
+
     SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, no transactions") {
       // Initialize 8 different node instances, with different ports and DBs.
       std::unique_ptr<DB> db1;
@@ -223,7 +437,7 @@ namespace TState {
       PrivKey validatorKey1 = PrivKey();
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<State> state1;
-      initialize(db1, storage1, p2p1, rdpos1, state1, validatorPrivKeys[0], 8080, true, "node1");
+      initialize(db1, storage1, p2p1, rdpos1, state1, validatorPrivKeys[0], 8080, true, "state8NodesNode1");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -231,7 +445,7 @@ namespace TState {
       PrivKey validatorKey2 = PrivKey();
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<State> state2;
-      initialize(db2, storage2, p2p2, rdpos2, state2, validatorPrivKeys[1], 8081, true, "node2");
+      initialize(db2, storage2, p2p2, rdpos2, state2, validatorPrivKeys[1], 8081, true, "state8NodesNode2");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -239,7 +453,7 @@ namespace TState {
       PrivKey validatorKey3 = PrivKey();
       std::unique_ptr<rdPoS> rdpos3;
       std::unique_ptr<State> state3;
-      initialize(db3, storage3, p2p3, rdpos3, state3, validatorPrivKeys[2], 8082, true, "node3");
+      initialize(db3, storage3, p2p3, rdpos3, state3, validatorPrivKeys[2], 8082, true, "state8NodesNode3");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -247,7 +461,7 @@ namespace TState {
       PrivKey validatorKey4 = PrivKey();
       std::unique_ptr<rdPoS> rdpos4;
       std::unique_ptr<State> state4;
-      initialize(db4, storage4, p2p4, rdpos4, state4, validatorPrivKeys[3], 8083, true, "node4");
+      initialize(db4, storage4, p2p4, rdpos4, state4, validatorPrivKeys[3], 8083, true, "state8NodesNode4");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -255,7 +469,7 @@ namespace TState {
       PrivKey validatorKey5 = PrivKey();
       std::unique_ptr<rdPoS> rdpos5;
       std::unique_ptr<State> state5;
-      initialize(db5, storage5, p2p5, rdpos5, state5, validatorPrivKeys[4], 8084, true, "node5");
+      initialize(db5, storage5, p2p5, rdpos5, state5, validatorPrivKeys[4], 8084, true, "state8NodesNode5");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -263,7 +477,7 @@ namespace TState {
       PrivKey validatorKey6 = PrivKey();
       std::unique_ptr<rdPoS> rdpos6;
       std::unique_ptr<State> state6;
-      initialize(db6, storage6, p2p6, rdpos6, state6, validatorPrivKeys[5], 8085, true, "node6");
+      initialize(db6, storage6, p2p6, rdpos6, state6, validatorPrivKeys[5], 8085, true, "state8NodesNode6");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -271,7 +485,7 @@ namespace TState {
       PrivKey validatorKey7 = PrivKey();
       std::unique_ptr<rdPoS> rdpos7;
       std::unique_ptr<State> state7;
-      initialize(db7, storage7, p2p7, rdpos7, state7, validatorPrivKeys[6], 8086, true, "node7");
+      initialize(db7, storage7, p2p7, rdpos7, state7, validatorPrivKeys[6], 8086, true, "state8NodesNode7");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -279,7 +493,7 @@ namespace TState {
       PrivKey validatorKey8 = PrivKey();
       std::unique_ptr<rdPoS> rdpos8;
       std::unique_ptr<State> state8;
-      initialize(db8, storage8, p2p8, rdpos8, state8, validatorPrivKeys[7], 8087, true, "node8");
+      initialize(db8, storage8, p2p8, rdpos8, state8, validatorPrivKeys[7], 8087, true, "state8NodesNode8");
 
       // Initialize the discovery node.
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
@@ -415,6 +629,274 @@ namespace TState {
             state6->processNextBlock(Block(block)); // Create copy.
             state7->processNextBlock(Block(block)); // Create copy.
             state8->processNextBlock(Block(block)); // Create copy.
+
+            ++blocks;
+            break;
+          }
+        }
+      }
+      // Sleep so it can conclude the last operations.
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, 100 transactions per block") {
+      // Create random accounts for the transactions.
+      std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
+      for (uint64_t i = 0; i < 100; ++i) {
+        randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
+      }
+
+      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      uint256_t targetExpectedValue = 0;
+      // Initialize 8 different node instances, with different ports and DBs.
+      std::unique_ptr<DB> db1;
+      std::unique_ptr<Storage> storage1;
+      std::unique_ptr<P2P::ManagerNormal> p2p1;
+      PrivKey validatorKey1 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos1;
+      std::unique_ptr<State> state1;
+      initialize(db1, storage1, p2p1, rdpos1, state1, validatorPrivKeys[0], 8080, true, "state8NodesNode1");
+
+      std::unique_ptr<DB> db2;
+      std::unique_ptr<Storage> storage2;
+      std::unique_ptr<P2P::ManagerNormal> p2p2;
+      PrivKey validatorKey2 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos2;
+      std::unique_ptr<State> state2;
+      initialize(db2, storage2, p2p2, rdpos2, state2, validatorPrivKeys[1], 8081, true, "state8NodesNode2");
+
+      std::unique_ptr<DB> db3;
+      std::unique_ptr<Storage> storage3;
+      std::unique_ptr<P2P::ManagerNormal> p2p3;
+      PrivKey validatorKey3 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos3;
+      std::unique_ptr<State> state3;
+      initialize(db3, storage3, p2p3, rdpos3, state3, validatorPrivKeys[2], 8082, true, "state8NodesNode3");
+
+      std::unique_ptr<DB> db4;
+      std::unique_ptr<Storage> storage4;
+      std::unique_ptr<P2P::ManagerNormal> p2p4;
+      PrivKey validatorKey4 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos4;
+      std::unique_ptr<State> state4;
+      initialize(db4, storage4, p2p4, rdpos4, state4, validatorPrivKeys[3], 8083, true, "state8NodesNode4");
+
+      std::unique_ptr<DB> db5;
+      std::unique_ptr<Storage> storage5;
+      std::unique_ptr<P2P::ManagerNormal> p2p5;
+      PrivKey validatorKey5 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos5;
+      std::unique_ptr<State> state5;
+      initialize(db5, storage5, p2p5, rdpos5, state5, validatorPrivKeys[4], 8084, true, "state8NodesNode5");
+
+      std::unique_ptr<DB> db6;
+      std::unique_ptr<Storage> storage6;
+      std::unique_ptr<P2P::ManagerNormal> p2p6;
+      PrivKey validatorKey6 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos6;
+      std::unique_ptr<State> state6;
+      initialize(db6, storage6, p2p6, rdpos6, state6, validatorPrivKeys[5], 8085, true, "state8NodesNode6");
+
+      std::unique_ptr<DB> db7;
+      std::unique_ptr<Storage> storage7;
+      std::unique_ptr<P2P::ManagerNormal> p2p7;
+      PrivKey validatorKey7 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos7;
+      std::unique_ptr<State> state7;
+      initialize(db7, storage7, p2p7, rdpos7, state7, validatorPrivKeys[6], 8086, true, "state8NodesNode7");
+
+      std::unique_ptr<DB> db8;
+      std::unique_ptr<Storage> storage8;
+      std::unique_ptr<P2P::ManagerNormal> p2p8;
+      PrivKey validatorKey8 = PrivKey();
+      std::unique_ptr<rdPoS> rdpos8;
+      std::unique_ptr<State> state8;
+      initialize(db8, storage8, p2p8, rdpos8, state8, validatorPrivKeys[7], 8087, true, "state8NodesNode8");
+
+      // Initialize the discovery node.
+      std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
+        boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+
+      // Initialize state with all balances
+      for (const auto& [privkey, account] : randomAccounts) {
+        Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+        state1->addBalance(me);
+        state2->addBalance(me);
+        state3->addBalance(me);
+        state4->addBalance(me);
+        state5->addBalance(me);
+        state6->addBalance(me);
+        state7->addBalance(me);
+        state8->addBalance(me);
+      }
+
+      // References for the rdPoS workers vector.
+      std::vector<std::reference_wrapper<std::unique_ptr<rdPoS>>> rdPoSreferences;
+      rdPoSreferences.emplace_back(rdpos1);
+      rdPoSreferences.emplace_back(rdpos2);
+      rdPoSreferences.emplace_back(rdpos3);
+      rdPoSreferences.emplace_back(rdpos4);
+      rdPoSreferences.emplace_back(rdpos5);
+      rdPoSreferences.emplace_back(rdpos6);
+      rdPoSreferences.emplace_back(rdpos7);
+      rdPoSreferences.emplace_back(rdpos8);
+
+      // Start servers
+      p2pDiscovery->startServer();
+      p2p1->startServer();
+      p2p2->startServer();
+      p2p3->startServer();
+      p2p4->startServer();
+      p2p5->startServer();
+      p2p6->startServer();
+      p2p7->startServer();
+      p2p8->startServer();
+
+      // Connect nodes to the discovery node.
+      p2p1->connectToServer("127.0.0.1", 8090);
+      p2p2->connectToServer("127.0.0.1", 8090);
+      p2p3->connectToServer("127.0.0.1", 8090);
+      p2p4->connectToServer("127.0.0.1", 8090);
+      p2p5->connectToServer("127.0.0.1", 8090);
+      p2p6->connectToServer("127.0.0.1", 8090);
+      p2p7->connectToServer("127.0.0.1", 8090);
+      p2p8->connectToServer("127.0.0.1", 8090);
+
+      // After a while, the discovery thread should have found all the nodes and connected between each other.
+      while (p2pDiscovery->getSessionsIDs().size() != 8) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
+      // Sleep an extra second
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+
+      REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
+
+      REQUIRE(rdpos1->getIsValidator());
+      REQUIRE(rdpos2->getIsValidator());
+      REQUIRE(rdpos3->getIsValidator());
+      REQUIRE(rdpos4->getIsValidator());
+      REQUIRE(rdpos5->getIsValidator());
+      REQUIRE(rdpos6->getIsValidator());
+      REQUIRE(rdpos7->getIsValidator());
+      REQUIRE(rdpos8->getIsValidator());
+
+      rdpos1->startrdPoSWorker();
+      rdpos2->startrdPoSWorker();
+      rdpos3->startrdPoSWorker();
+      rdpos4->startrdPoSWorker();
+      rdpos5->startrdPoSWorker();
+      rdpos6->startrdPoSWorker();
+      rdpos7->startrdPoSWorker();
+      rdpos8->startrdPoSWorker();
+
+      // Loop for block creation.
+      uint64_t blocks = 0;
+      while (blocks < 10) {
+        while (rdpos1->getMempool().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        for (auto &blockCreator: rdPoSreferences) {
+          if (blockCreator.get()->canCreateBlock()) {
+            // Create the block.
+            auto mempool = blockCreator.get()->getMempool();
+            auto randomList = blockCreator.get()->getRandomList();
+            // Order the transactions in the proper manner.
+            std::vector<TxValidator> randomHashTxs;
+            std::vector<TxValidator> randomnessTxs;
+            uint64_t i = 1;
+            while (randomHashTxs.size() != rdPoS::minValidators) {
+              for (const auto [txHash, tx]: mempool) {
+                if (tx.getFrom() == randomList[i]) {
+                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                    randomHashTxs.emplace_back(tx);
+                    ++i;
+                    break;
+                  }
+                }
+              }
+            }
+            i = 1;
+            while (randomnessTxs.size() != rdPoS::minValidators) {
+              for (const auto [txHash, tx]: mempool) {
+                if (tx.getFrom() == randomList[i]) {
+                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                    randomnessTxs.emplace_back(tx);
+                    ++i;
+                    break;
+                  }
+                }
+              }
+            }
+
+            // Create the block and append to all chains, we can use any storage for latestblock
+            auto latestBlock = storage1->latest();
+            Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
+            // Append transactions towards block.
+            for (const auto &tx: randomHashTxs) {
+              block.appendTxValidator(tx);
+            }
+            for (const auto &tx: randomnessTxs) {
+              block.appendTxValidator(tx);
+            }
+
+            /// Add balance to the random Accounts and create random transactions
+            for (auto &[privkey, val]: randomAccounts) {
+              Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+              TxBlock tx(
+                targetOfTransactions,
+                me,
+                "",
+                8080,
+                state1->getNativeNonce(me),
+                1000000000000000000,
+                21000,
+                1000000000,
+                privkey
+              );
+
+              /// Take note of expected balance and nonce
+              val.first = state1->getNativeBalance(me) - (tx.getGasPrice() * tx.getGas()) - tx.getValue();
+              val.second = state1->getNativeNonce(me) + 1;
+              targetExpectedValue += tx.getValue();
+              block.appendTx(tx);
+            }
+
+            blockCreator.get()->signBlock(block);
+            // Validate the block.
+            REQUIRE(state1->validateNextBlock(block));
+            REQUIRE(state2->validateNextBlock(block));
+            REQUIRE(state3->validateNextBlock(block));
+            REQUIRE(state4->validateNextBlock(block));
+            REQUIRE(state5->validateNextBlock(block));
+            REQUIRE(state6->validateNextBlock(block));
+            REQUIRE(state7->validateNextBlock(block));
+            REQUIRE(state8->validateNextBlock(block));
+
+            state1->processNextBlock(Block(block)); // Create copy.
+            state2->processNextBlock(Block(block)); // Create copy.
+            state3->processNextBlock(Block(block)); // Create copy.
+            state4->processNextBlock(Block(block)); // Create copy.
+            state5->processNextBlock(Block(block)); // Create copy.
+            state6->processNextBlock(Block(block)); // Create copy.
+            state7->processNextBlock(Block(block)); // Create copy.
+            state8->processNextBlock(Block(block)); // Create copy.
+
+            for (const auto &[privkey, val]: randomAccounts) {
+              auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
+              REQUIRE(state1->getNativeBalance(me) == val.first);
+              REQUIRE(state1->getNativeNonce(me) == val.second);
+            }
+
+            REQUIRE(state1->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+            REQUIRE(state2->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+            REQUIRE(state3->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+            REQUIRE(state4->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+            REQUIRE(state5->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+            REQUIRE(state6->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+            REQUIRE(state7->getNativeBalance(targetOfTransactions) == targetExpectedValue);
+            REQUIRE(state8->getNativeBalance(targetOfTransactions) == targetExpectedValue);
 
             ++blocks;
             break;

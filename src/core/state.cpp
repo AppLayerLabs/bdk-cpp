@@ -115,6 +115,7 @@ void State::processTransaction(const TxBlock& tx) {
   auto& nonce = accountIt->second.nonce;
   uint256_t txValueWithFees = tx.getValue() + (tx.getGas() * tx.getGasPrice());  /// This need to change with payable contract functions
   balance -= txValueWithFees;
+  this->accounts[tx.getTo()].balance += tx.getValue();
   ++nonce;
 }
 
@@ -204,7 +205,7 @@ bool State::validateNextBlock(const Block& block) const {
 
   std::shared_lock verifyingBlockTxs(this->stateMutex);
   for (const auto& tx : block.getTxs()) {
-    if (!this->validateTransaction(tx)) {
+    if (!this->validateTransactionInternal(tx)) {
       Utils::logToDebug(Log::state, __func__, "Transaction " + tx.hash().hex().get() + " within block is invalid");
       return false;
     }
