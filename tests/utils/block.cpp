@@ -20,13 +20,12 @@ namespace TBlock {
       Block reconstructedBlock(newBlock.serializeBlock());
 
       // Check within reconstructed block
-
-      REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("a65b66624ee7419b9ea21a1cb52df606b69f4992427e5ccbef90aadeef287f8461351d1bb99cc351f19c959706d47b7f923883e20f955cbe7c5eebbe2234e54100")));
+      REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("18395ff0c8ee38a250b9e7aeb5733c437fed8d6ca2135fa634367bb288a3830a3c624e33401a1798ce09f049fb6507adc52b085d0a83dacc43adfa519c1228e701")));
       REQUIRE(reconstructedBlock.getPrevBlockHash() == Hash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6")));
       REQUIRE(reconstructedBlock.getBlockRandomness() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(reconstructedBlock.getTxMerkleRoot() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
-      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(1678400201858));
+      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(1678400201859));
       REQUIRE(reconstructedBlock.getNHeight() == uint64_t(92137812));
       REQUIRE(reconstructedBlock.getTxValidators().size() == 0);
       REQUIRE(reconstructedBlock.getTxs().size() == 0);
@@ -79,7 +78,7 @@ namespace TBlock {
       REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
       REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTimestamp() == 1678400201858);
+      REQUIRE(newBlock.getTimestamp() == 1678400201859);
       REQUIRE(newBlock.getNHeight() == 92137812);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
@@ -103,12 +102,12 @@ namespace TBlock {
       Block reconstructedBlock(newBlock.serializeBlock());
 
       // Check within reconstructed block
-      REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("1248be6307454c4caf6bb6b0f5dc5c5f9bf94d1e78d78b847e8e93f6b3fbf0df4714c34732cb24c8a8e7009eb24a9705830f17ce7945d835cac632b5dc8e7af201")));
+      REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("b8e8aab3dab7dc8f9fe3a86d6baab64e06947993fe113c4075f3f5a08ff61a695c5ca8493fd7513dae0fc4b9847633d31f8fd2ee59de7084da7a5b68008addd601")));
       REQUIRE(reconstructedBlock.getPrevBlockHash() == Hash(Hex::toBytes("97a5ebd9bbb5e330b0b3c74b9816d595ffb7a04d4a29fb117ea93f8a333b43be")));
       REQUIRE(reconstructedBlock.getBlockRandomness() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(reconstructedBlock.getTxMerkleRoot() == Hash(Hex::toBytes("5d8c59743808c403ac95ca03937d51bd01661d8951c1af7fade03495475281a5")));
-      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(1678400843315));
+      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(1678400843316));
       REQUIRE(reconstructedBlock.getNHeight() == uint64_t(100));
       REQUIRE(reconstructedBlock.getTxValidators().size() == 0);
       REQUIRE(reconstructedBlock.getTxs().size() == 10);
@@ -164,7 +163,7 @@ namespace TBlock {
       REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
       REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTimestamp() == 1678400843315);
+      REQUIRE(newBlock.getTimestamp() == 1678400843316);
       REQUIRE(newBlock.getNHeight() == 100);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
@@ -232,7 +231,7 @@ namespace TBlock {
       REQUIRE(reconstructedBlock.getBlockRandomness() == Utils::sha3(randomSeed));
       REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == Merkle(txValidators).getRoot());
       REQUIRE(reconstructedBlock.getTxMerkleRoot() == Hash(Hex::toBytes("7e5ad20b00eccd6eef2b87c1eb774a34b0aa10ef6e7e4ccd2642823a1ad34df7")));
-      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(1678464099412509));
+      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(1678464099412510));
       REQUIRE(reconstructedBlock.getNHeight() == uint64_t(331653115));
       REQUIRE(reconstructedBlock.getTxValidators().size() == 16);
       REQUIRE(reconstructedBlock.getTxs().size() == 64);
@@ -289,7 +288,7 @@ namespace TBlock {
       REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
       REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTimestamp() == 1678464099412509);
+      REQUIRE(newBlock.getTimestamp() == 1678464099412510);
       REQUIRE(newBlock.getNHeight() == 331653115);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
@@ -374,7 +373,7 @@ namespace TBlock {
       REQUIRE(reconstructedBlock.getBlockRandomness() == Utils::sha3(randomSeed));
       REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == Merkle(txValidators).getRoot());
       REQUIRE(reconstructedBlock.getTxMerkleRoot() == Merkle(txs).getRoot());
-      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(64545214243));
+      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(64545214244));
       REQUIRE(reconstructedBlock.getNHeight() == uint64_t(6414363551));
       REQUIRE(reconstructedBlock.getTxValidators().size() == 64);
       REQUIRE(reconstructedBlock.getTxs().size() == 500);
@@ -430,7 +429,7 @@ namespace TBlock {
       REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
       REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTimestamp() == 64545214243);
+      REQUIRE(newBlock.getTimestamp() == 64545214244);
       REQUIRE(newBlock.getNHeight() == 6414363551);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
@@ -448,28 +447,46 @@ namespace TBlock {
 
       std::vector<TxBlock> txs;
 
-      for (uint64_t i = 0; i < 40000; i++) {
-        PrivKey txPrivKey = PrivKey::random();
-        Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
-        Address to(Utils::randBytes(20), true);
-        std::string data = Utils::randBytes(32);
-        uint64_t chainId = Utils::bytesToUint32(Utils::randBytes(4));
-        uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
-        uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-        uint256_t gas = Utils::bytesToUint32(Utils::randBytes(4));
-        uint256_t gasPrice = Utils::bytesToUint32(Utils::randBytes(4));
-        txs.emplace_back(
-          to,
-          from,
-          data,
-          chainId,
-          nonce,
-          value,
-          gas,
-          gasPrice,
-          txPrivKey
-        );
+      // Create 40000 Transactions with parallelization to speed up tests
+      uint64_t nCores = std::thread::hardware_concurrency();
+      std::mutex txLock;
+      std::vector<uint64_t> nJobPerCore(nCores, 40000 / nCores);
+      nJobPerCore.back() += 40000 % nCores;
+      std::vector<std::future<bool>> futures;
+      futures.reserve(nCores);
+      for (uint64_t i = 0; i < nCores; ++i) {
+        uint64_t coreJobs = nJobPerCore[i];
+        futures.push_back(std::async(std::launch::async, [&txs, &txLock, &coreJobs, i] {
+          for (uint64_t j = 0; j < coreJobs; ++j) {
+            PrivKey txPrivKey = PrivKey::random();
+            Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
+            Address to(Utils::randBytes(20), true);
+            std::string data = Utils::randBytes(32);
+            uint64_t chainId = Utils::bytesToUint32(Utils::randBytes(4));
+            uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
+            uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
+            uint256_t gas = Utils::bytesToUint32(Utils::randBytes(4));
+            uint256_t gasPrice = Utils::bytesToUint32(Utils::randBytes(4));
+            auto tx = TxBlock(
+              to,
+              from,
+              data,
+              chainId,
+              nonce,
+              value,
+              gas,
+              gasPrice,
+              txPrivKey
+            );
+            std::unique_lock lock(txLock);
+            txs.emplace_back(std::move(tx));
+          }
+          return true;
+        }));
       }
+
+      for (auto &future : futures) future.get();
+
 
       // Create and append 32 randomSeeds
       std::vector<Hash> randomSeeds(128, Hash::random());
@@ -515,7 +532,7 @@ namespace TBlock {
       REQUIRE(reconstructedBlock.getBlockRandomness() == Utils::sha3(randomSeed));
       REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == Merkle(txValidators).getRoot());
       REQUIRE(reconstructedBlock.getTxMerkleRoot() == Merkle(txs).getRoot());
-      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(230915972837111));
+      REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(230915972837112));
       REQUIRE(reconstructedBlock.getNHeight() == uint64_t(239178513));
       REQUIRE(reconstructedBlock.getTxValidators().size() == 256);
       REQUIRE(reconstructedBlock.getTxs().size() == 40000);
@@ -571,7 +588,7 @@ namespace TBlock {
       REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
       REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTimestamp() == 230915972837111);
+      REQUIRE(newBlock.getTimestamp() == 230915972837112);
       REQUIRE(newBlock.getNHeight() == 239178513);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
