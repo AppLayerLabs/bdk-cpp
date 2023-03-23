@@ -120,5 +120,6 @@ namespace P2P {
     }
     sessions_.clear();
     p2pserver_->stop();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 }; // namespace P2P

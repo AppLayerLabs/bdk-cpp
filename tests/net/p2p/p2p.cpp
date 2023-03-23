@@ -23,7 +23,6 @@ namespace TP2P {
       p2pNode3.startServer();
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-
       REQUIRE(p2pNode1.isServerRunning() == true);
       REQUIRE(p2pNode2.isServerRunning() == true);
       REQUIRE(p2pNode3.isServerRunning() == true);
@@ -59,7 +58,15 @@ namespace TP2P {
 			p2pNode2.stopDiscovery();
 			p2pNode3.stopDiscovery();
 			p2pNode1.disconnectSession(node2Id);
-			std::this_thread::sleep_for(std::chrono::seconds(5));	
+
+      while(p2pNode1.getSessionsIDs().size() != 1) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
+      while(p2pNode2.getSessionsIDs().size() != 1) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
 
 			node1SessionsIDs = p2pNode1.getSessionsIDs();
 			node2SessionsIDs = p2pNode2.getSessionsIDs();
@@ -80,7 +87,15 @@ namespace TP2P {
 			p2pNode2.startDiscovery();
 			p2pNode3.startDiscovery();
 
-			std::this_thread::sleep_for(std::chrono::seconds(5));
+      while(p2pNode1.getSessionsIDs().size() != 2) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
+      while(p2pNode2.getSessionsIDs().size() != 2) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
+
 			
 			node1SessionsIDs = p2pNode1.getSessionsIDs();
 			node2SessionsIDs = p2pNode2.getSessionsIDs();
@@ -102,13 +117,12 @@ namespace TP2P {
 			for (auto session : node3SessionsIDs) {
 				p2pNode3.ping(session);
 			}
-			
+
 			// Stop the servers
 			p2pNode1.stop();
 			p2pNode2.stop();
 			p2pNode3.stop();
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 			REQUIRE(p2pNode1.getSessionsIDs().size() == 0);
 			REQUIRE(p2pNode2.getSessionsIDs().size() == 0);
@@ -143,8 +157,7 @@ namespace TP2P {
 			p2pNode8.startServer();
 			p2pNode9.startServer();
 			p2pNode10.startServer();
-			
-			std::this_thread::sleep_for(std::chrono::seconds(1));
+
 			p2pNode1.connectToServer("127.0.0.1", 8080);
 			p2pNode2.connectToServer("127.0.0.1", 8080);
 			p2pNode3.connectToServer("127.0.0.1", 8080);
@@ -157,7 +170,23 @@ namespace TP2P {
 			p2pNode10.connectToServer("127.0.0.1", 8080);
 
 			// After a while, the discovery thread should have found all the nodes and connected between each other.
-			std::this_thread::sleep_for(std::chrono::seconds(10));
+      while(p2pDiscoveryNode.getSessionsIDs().size() != 10 ||
+            p2pNode1.getSessionsIDs().size() != 10 ||
+            p2pNode2.getSessionsIDs().size() != 10 ||
+            p2pNode3.getSessionsIDs().size() != 10 ||
+            p2pNode4.getSessionsIDs().size() != 10 ||
+            p2pNode5.getSessionsIDs().size() != 10 ||
+            p2pNode6.getSessionsIDs().size() != 10 ||
+            p2pNode7.getSessionsIDs().size() != 10 ||
+            p2pNode8.getSessionsIDs().size() != 10 ||
+            p2pNode9.getSessionsIDs().size() != 10 ||
+            p2pNode10.getSessionsIDs().size() != 10) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
+
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 			auto nodeDiscoverySessionsIDs = p2pDiscoveryNode.getSessionsIDs();
 			auto node1SessionsIDs = p2pNode1.getSessionsIDs();
@@ -243,9 +272,6 @@ namespace TP2P {
 			p2pNode8.stop();
 			p2pNode9.stop();
 			p2pNode10.stop();
-
-			// Wait for the threads to finish.
-			std::this_thread::sleep_for(std::chrono::seconds(1));
 
 			REQUIRE(p2pDiscoveryNode.getSessionsIDs().size() == 0);
 			REQUIRE(p2pNode1.getSessionsIDs().size() == 0);

@@ -174,6 +174,8 @@ namespace P2P {
   void ClientSession::close() {
     // Close the WebSocket connection
     this->closed_ = true;
+    // TODO: close does not wait for on_close to be called, we need to, somehow change this to a future and wait.
+    // Server does not need this because it is already waited.
     ws_.async_close(websocket::close_code::normal, beast::bind_front_handler(
       &ClientSession::on_close, shared_from_this()
     ));
