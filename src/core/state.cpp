@@ -211,6 +211,7 @@ bool State::validateNextBlock(const Block& block) const {
     }
   }
 
+  Utils::logToDebug(Log::state, __func__, "Block " + block.hash().hex().get() + " is valid. (Sanity Check Passed)");
   return true;
 }
 
@@ -233,6 +234,7 @@ void State::processNextBlock(Block&& block) {
   /// Refresh the mempool based on the block transactions;
   this->refreshMempool(block);
 
+  Utils::logToDebug(Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.)");
   /// Move block to storage.
   this->storage->pushBack(std::move(block));
   return;

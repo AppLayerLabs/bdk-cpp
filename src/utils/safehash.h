@@ -106,4 +106,18 @@ struct SafeHash {
   }
 };
 
+/// Hash to be used within broadcast messages.
+struct FNVHash
+{
+  size_t operator()(std::string_view s) const
+  {
+    size_t result = 2166136261U;
+    std::string_view::const_iterator end = s.end();
+    for (std::string_view::const_iterator iter = s.begin(); iter != end; ++iter ) {
+      result = (16777619 * result) ^ static_cast<unsigned char>(*iter);
+    }
+    return result;
+  }
+};
+
 #endif  // HASH_H

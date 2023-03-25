@@ -11,6 +11,7 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pbase.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.h
     PARENT_SCOPE
   )
 
@@ -25,7 +26,7 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/discoverythread.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.cpp
     PARENT_SCOPE
   )
 else()
@@ -41,6 +42,7 @@ else()
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pbase.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.h
     PARENT_SCOPE
   )
 
@@ -55,7 +57,7 @@ else()
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/discoverythread.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.cpp
     PARENT_SCOPE
   )
 endif()

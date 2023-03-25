@@ -198,7 +198,7 @@ namespace P2P {
     message += getRequestTypePrefix(Broadcasting);
     // We need to use std::hash instead of SafeHash
     // Because hashing with SafeHash will always be different between nodes
-    message += Utils::uint64ToBytes(std::hash<std::string_view>()(tx.rlpSerialize()));
+    message += Utils::uint64ToBytes(FNVHash()(tx.rlpSerialize()));
     message += getCommandPrefix(BroadcastValidatorTx);
     message += tx.rlpSerialize();
     return Message(std::move(message));
@@ -206,7 +206,7 @@ namespace P2P {
 
   TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message) {
     if (message.type() != Broadcasting) { throw std::runtime_error("Invalid message type."); }
-    if (message.id().toUint64() != std::hash<std::string_view>()(message.message())) { throw std::runtime_error("Invalid message id."); }
+    if (message.id().toUint64() != FNVHash()(message.message())) { throw std::runtime_error("Invalid message id."); }
     if (message.command() != BroadcastValidatorTx) { throw std::runtime_error("Invalid command."); }
     return TxValidator(message.message());
   }

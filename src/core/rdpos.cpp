@@ -278,6 +278,8 @@ bool rdPoSWorker::workerLoop() {
 
     // After processing everything. wait until the new block is appended to the chain.
     while (latestBlock == this->rdpos.storage->latest() && !this->stopWorker) {
+      Utils::logToDebug(Log::rdPoS, __func__, "Waiting for new block to be appended to the chain. (Height: " + std::to_string(latestBlock->getNHeight()) + ")");
+      Utils::logToDebug(Log::rdPoS, __func__, "Currently has " + std::to_string(this->rdpos.validatorMempool.size()) + " transactions in mempool.");
       std::this_thread::sleep_for(std::chrono::milliseconds(25));
     }
 
@@ -296,12 +298,8 @@ void rdPoSWorker::doBlockCreation() {
     // Scope for lock.
     {
       std::unique_lock mempoolSizeLock(this->rdpos.mutex);
-      Utils::logToDebug(Log::rdPoS, __func__, "this->rdpos.validatorMempool.size(): " + std::to_string(this->rdpos.validatorMempool.size()) 
-                        + " transactions in mempool");
       validatorMempoolSize = this->rdpos.validatorMempool.size();
-      Utils::logToDebug(Log::rdPoS, __func__, "validatorMempoolSize: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     }
-    Utils::logToDebug(Log::rdPoS, __func__, "validatorMempoolSize: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
   }
   Utils::logToDebug(Log::rdPoS, __func__, "Validator ready to create a block");
@@ -330,26 +328,24 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
     );
 
   // Append to mempool and broadcast the transaction across all nodes.
+  Utils::logToDebug(Log::rdPoS, __func__, "Broadcasting randomHash transaction");
   this->rdpos.addValidatorTx(randomHashTx);
   this->rdpos.p2p->broadcastTxValidator(randomHashTx);
 
   // Wait until we received all randomHash transactions to broadcast the randomness transaction
+  Utils::logToDebug(Log::rdPoS, __func__, "Waiting for randomHash transactions to be broadcasted");
   uint64_t validatorMempoolSize = 0;
   while (validatorMempoolSize < this->rdpos.minValidators && !this->stopWorker) {
-    Utils::logToDebug(Log::rdPoS, __func__, "Waiting for randomHash transactions to be broadcasted");
+    Utils::logToDebug(Log::rdPoS, __func__, "Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool");
     // Scope for lock
     {
       std::unique_lock mempoolSizeLock(this->rdpos.mutex);
       validatorMempoolSize = this->rdpos.validatorMempool.size();
     }
-    // TODO **URGENT**
-    // Figure out WHY THE HELL validatorMempoolSize gets back to 0 during the loop
-    if (validatorMempoolSize >= this->rdpos.minValidators) {
-      break;
-    }
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
   }
 
+  Utils::logToDebug(Log::rdPoS, __func__, "Broadcasting random transaction");
   // Append and broadcast the randomness transaction.
   this->rdpos.addValidatorTx(randomTx);
   this->rdpos.p2p->broadcastTxValidator(randomTx);
