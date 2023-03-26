@@ -101,12 +101,12 @@ namespace TStorage {
       // Chain should be filled with the genesis.
       REQUIRE(storage->currentChainSize() == 1);
       auto genesis = storage->latest();
-      REQUIRE(genesis->getValidatorSig() == Signature(Hex::toBytes("e543e00583d25a668712ccbb9d2604778acb2057a580a19ad50479779e684e7e4f4c5792e1e9cfd73b1c69ab897dac6ea8b4509f902283e7ecc724e76a1a68d401")));
+      REQUIRE(genesis->getValidatorSig() == Signature(Hex::toBytes("7f31ae12a792653ea222f66bd9a6b8b0c72cb2e6ba952ba3706de01a71e6b5d63030de6302f1d2fe85a22d2122b90a11ad9f7cc7bf5c517049bf170dede9370600")));
       REQUIRE(genesis->getPrevBlockHash() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(genesis->getBlockRandomness() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(genesis->getValidatorMerkleRoot() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(genesis->getTxMerkleRoot() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
-      REQUIRE(genesis->getTimestamp() == uint64_t(1656356645000000));
+      REQUIRE(genesis->getTimestamp() == uint64_t(1656356646000000));
       REQUIRE(genesis->getNHeight() == uint64_t(0));
       REQUIRE(genesis->getTxValidators().size() == 0);
       REQUIRE(genesis->getTxs().size() == 0);
