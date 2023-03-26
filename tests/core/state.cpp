@@ -437,7 +437,7 @@ namespace TState {
       PrivKey validatorKey1 = PrivKey();
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<State> state1;
-      initialize(db1, storage1, p2p1, rdpos1, state1, validatorPrivKeys[0], 8080, true, "state8NodesNode1");
+      initialize(db1, storage1, p2p1, rdpos1, state1, validatorPrivKeys[0], 8080, true, "state8NodesNode1NetworkCapabilities");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -445,7 +445,7 @@ namespace TState {
       PrivKey validatorKey2 = PrivKey();
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<State> state2;
-      initialize(db2, storage2, p2p2, rdpos2, state2, validatorPrivKeys[1], 8081, true, "state8NodesNode2");
+      initialize(db2, storage2, p2p2, rdpos2, state2, validatorPrivKeys[1], 8081, true, "state8NodesNode2NetworkCapabilities");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -453,7 +453,7 @@ namespace TState {
       PrivKey validatorKey3 = PrivKey();
       std::unique_ptr<rdPoS> rdpos3;
       std::unique_ptr<State> state3;
-      initialize(db3, storage3, p2p3, rdpos3, state3, validatorPrivKeys[2], 8082, true, "state8NodesNode3");
+      initialize(db3, storage3, p2p3, rdpos3, state3, validatorPrivKeys[2], 8082, true, "state8NodesNode3NetworkCapabilities");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -461,7 +461,7 @@ namespace TState {
       PrivKey validatorKey4 = PrivKey();
       std::unique_ptr<rdPoS> rdpos4;
       std::unique_ptr<State> state4;
-      initialize(db4, storage4, p2p4, rdpos4, state4, validatorPrivKeys[3], 8083, true, "state8NodesNode4");
+      initialize(db4, storage4, p2p4, rdpos4, state4, validatorPrivKeys[3], 8083, true, "state8NodesNode4NetworkCapabilities");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -469,7 +469,7 @@ namespace TState {
       PrivKey validatorKey5 = PrivKey();
       std::unique_ptr<rdPoS> rdpos5;
       std::unique_ptr<State> state5;
-      initialize(db5, storage5, p2p5, rdpos5, state5, validatorPrivKeys[4], 8084, true, "state8NodesNode5");
+      initialize(db5, storage5, p2p5, rdpos5, state5, validatorPrivKeys[4], 8084, true, "state8NodesNode5NetworkCapabilities");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -477,7 +477,7 @@ namespace TState {
       PrivKey validatorKey6 = PrivKey();
       std::unique_ptr<rdPoS> rdpos6;
       std::unique_ptr<State> state6;
-      initialize(db6, storage6, p2p6, rdpos6, state6, validatorPrivKeys[5], 8085, true, "state8NodesNode6");
+      initialize(db6, storage6, p2p6, rdpos6, state6, validatorPrivKeys[5], 8085, true, "state8NodesNode6NetworkCapabilities");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -485,7 +485,7 @@ namespace TState {
       PrivKey validatorKey7 = PrivKey();
       std::unique_ptr<rdPoS> rdpos7;
       std::unique_ptr<State> state7;
-      initialize(db7, storage7, p2p7, rdpos7, state7, validatorPrivKeys[6], 8086, true, "state8NodesNode7");
+      initialize(db7, storage7, p2p7, rdpos7, state7, validatorPrivKeys[6], 8086, true, "state8NodesNode7NetworkCapabilities");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -493,7 +493,7 @@ namespace TState {
       PrivKey validatorKey8 = PrivKey();
       std::unique_ptr<rdPoS> rdpos8;
       std::unique_ptr<State> state8;
-      initialize(db8, storage8, p2p8, rdpos8, state8, validatorPrivKeys[7], 8087, true, "state8NodesNode8");
+      initialize(db8, storage8, p2p8, rdpos8, state8, validatorPrivKeys[7], 8087, true, "state8NodesNode8NetworkCapabilities");
 
       // Initialize the discovery node.
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
@@ -531,15 +531,60 @@ namespace TState {
       p2p7->connectToServer("127.0.0.1", 8090);
       p2p8->connectToServer("127.0.0.1", 8090);
 
+      // Wait everyone be connected with the discovery node.
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
       // After a while, the discovery thread should have found all the nodes and connected between each other.
       while (p2pDiscovery->getSessionsIDs().size() != 8) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
 
-      // Sleep an extra second
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
+      REQUIRE(p2p1->getSessionsIDs().size() == 1);
+      REQUIRE(p2p2->getSessionsIDs().size() == 1);
+      REQUIRE(p2p3->getSessionsIDs().size() == 1);
+      REQUIRE(p2p4->getSessionsIDs().size() == 1);
+      REQUIRE(p2p5->getSessionsIDs().size() == 1);
+      REQUIRE(p2p6->getSessionsIDs().size() == 1);
+      REQUIRE(p2p7->getSessionsIDs().size() == 1);
+      REQUIRE(p2p8->getSessionsIDs().size() == 1);
+
+      // Start discovery
+      p2pDiscovery->startDiscovery();
+      p2p1->startDiscovery();
+      p2p2->startDiscovery();
+      p2p3->startDiscovery();
+      p2p4->startDiscovery();
+      p2p5->startDiscovery();
+      p2p6->startDiscovery();
+      p2p7->startDiscovery();
+      p2p8->startDiscovery();
+
+      // Wait for discovery to take effect
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      // Wait for nodes to connect.
+      while(p2pDiscovery->getSessionsIDs().size() != 8 ||
+            p2p1->getSessionsIDs().size() != 8 ||
+            p2p2->getSessionsIDs().size() != 8 ||
+            p2p3->getSessionsIDs().size() != 8 ||
+            p2p4->getSessionsIDs().size() != 8 ||
+            p2p5->getSessionsIDs().size() != 8 ||
+            p2p6->getSessionsIDs().size() != 8 ||
+            p2p7->getSessionsIDs().size() != 8 ||
+            p2p8->getSessionsIDs().size() != 8) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
+      REQUIRE(p2p1->getSessionsIDs().size() == 8);
+      REQUIRE(p2p2->getSessionsIDs().size() == 8);
+      REQUIRE(p2p3->getSessionsIDs().size() == 8);
+      REQUIRE(p2p4->getSessionsIDs().size() == 8);
+      REQUIRE(p2p5->getSessionsIDs().size() == 8);
+      REQUIRE(p2p6->getSessionsIDs().size() == 8);
+      REQUIRE(p2p7->getSessionsIDs().size() == 8);
+      REQUIRE(p2p8->getSessionsIDs().size() == 8);
 
       REQUIRE(rdpos1->getIsValidator());
       REQUIRE(rdpos2->getIsValidator());
@@ -655,7 +700,7 @@ namespace TState {
       PrivKey validatorKey1 = PrivKey();
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<State> state1;
-      initialize(db1, storage1, p2p1, rdpos1, state1, validatorPrivKeys[0], 8080, true, "state8NodesNode1");
+      initialize(db1, storage1, p2p1, rdpos1, state1, validatorPrivKeys[0], 8080, true, "state8NodesNode1NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -663,7 +708,7 @@ namespace TState {
       PrivKey validatorKey2 = PrivKey();
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<State> state2;
-      initialize(db2, storage2, p2p2, rdpos2, state2, validatorPrivKeys[1], 8081, true, "state8NodesNode2");
+      initialize(db2, storage2, p2p2, rdpos2, state2, validatorPrivKeys[1], 8081, true, "state8NodesNode2NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -671,7 +716,7 @@ namespace TState {
       PrivKey validatorKey3 = PrivKey();
       std::unique_ptr<rdPoS> rdpos3;
       std::unique_ptr<State> state3;
-      initialize(db3, storage3, p2p3, rdpos3, state3, validatorPrivKeys[2], 8082, true, "state8NodesNode3");
+      initialize(db3, storage3, p2p3, rdpos3, state3, validatorPrivKeys[2], 8082, true, "state8NodesNode3NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -679,7 +724,7 @@ namespace TState {
       PrivKey validatorKey4 = PrivKey();
       std::unique_ptr<rdPoS> rdpos4;
       std::unique_ptr<State> state4;
-      initialize(db4, storage4, p2p4, rdpos4, state4, validatorPrivKeys[3], 8083, true, "state8NodesNode4");
+      initialize(db4, storage4, p2p4, rdpos4, state4, validatorPrivKeys[3], 8083, true, "state8NodesNode4NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -687,7 +732,7 @@ namespace TState {
       PrivKey validatorKey5 = PrivKey();
       std::unique_ptr<rdPoS> rdpos5;
       std::unique_ptr<State> state5;
-      initialize(db5, storage5, p2p5, rdpos5, state5, validatorPrivKeys[4], 8084, true, "state8NodesNode5");
+      initialize(db5, storage5, p2p5, rdpos5, state5, validatorPrivKeys[4], 8084, true, "state8NodesNode5NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -695,7 +740,7 @@ namespace TState {
       PrivKey validatorKey6 = PrivKey();
       std::unique_ptr<rdPoS> rdpos6;
       std::unique_ptr<State> state6;
-      initialize(db6, storage6, p2p6, rdpos6, state6, validatorPrivKeys[5], 8085, true, "state8NodesNode6");
+      initialize(db6, storage6, p2p6, rdpos6, state6, validatorPrivKeys[5], 8085, true, "state8NodesNode6NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -703,7 +748,7 @@ namespace TState {
       PrivKey validatorKey7 = PrivKey();
       std::unique_ptr<rdPoS> rdpos7;
       std::unique_ptr<State> state7;
-      initialize(db7, storage7, p2p7, rdpos7, state7, validatorPrivKeys[6], 8086, true, "state8NodesNode7");
+      initialize(db7, storage7, p2p7, rdpos7, state7, validatorPrivKeys[6], 8086, true, "state8NodesNode7NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -711,7 +756,7 @@ namespace TState {
       PrivKey validatorKey8 = PrivKey();
       std::unique_ptr<rdPoS> rdpos8;
       std::unique_ptr<State> state8;
-      initialize(db8, storage8, p2p8, rdpos8, state8, validatorPrivKeys[7], 8087, true, "state8NodesNode8");
+      initialize(db8, storage8, p2p8, rdpos8, state8, validatorPrivKeys[7], 8087, true, "state8NodesNode8NetworkCapabilitiesWithTx");
 
       // Initialize the discovery node.
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
@@ -761,16 +806,61 @@ namespace TState {
       p2p6->connectToServer("127.0.0.1", 8090);
       p2p7->connectToServer("127.0.0.1", 8090);
       p2p8->connectToServer("127.0.0.1", 8090);
+      
+      // Wait everyone be connected with the discovery node.
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
       while (p2pDiscovery->getSessionsIDs().size() != 8) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
 
-      // Sleep an extra second
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
+      REQUIRE(p2p1->getSessionsIDs().size() == 1);
+      REQUIRE(p2p2->getSessionsIDs().size() == 1);
+      REQUIRE(p2p3->getSessionsIDs().size() == 1);
+      REQUIRE(p2p4->getSessionsIDs().size() == 1);
+      REQUIRE(p2p5->getSessionsIDs().size() == 1);
+      REQUIRE(p2p6->getSessionsIDs().size() == 1);
+      REQUIRE(p2p7->getSessionsIDs().size() == 1);
+      REQUIRE(p2p8->getSessionsIDs().size() == 1);
+
+      // Start discovery
+      p2pDiscovery->startDiscovery();
+      p2p1->startDiscovery();
+      p2p2->startDiscovery();
+      p2p3->startDiscovery();
+      p2p4->startDiscovery();
+      p2p5->startDiscovery();
+      p2p6->startDiscovery();
+      p2p7->startDiscovery();
+      p2p8->startDiscovery();
+
+      // Wait for discovery to take effect
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      // Wait for nodes to connect.
+      while(p2pDiscovery->getSessionsIDs().size() != 8 ||
+            p2p1->getSessionsIDs().size() != 8 ||
+            p2p2->getSessionsIDs().size() != 8 ||
+            p2p3->getSessionsIDs().size() != 8 ||
+            p2p4->getSessionsIDs().size() != 8 ||
+            p2p5->getSessionsIDs().size() != 8 ||
+            p2p6->getSessionsIDs().size() != 8 ||
+            p2p7->getSessionsIDs().size() != 8 ||
+            p2p8->getSessionsIDs().size() != 8) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
+      REQUIRE(p2p1->getSessionsIDs().size() == 8);
+      REQUIRE(p2p2->getSessionsIDs().size() == 8);
+      REQUIRE(p2p3->getSessionsIDs().size() == 8);
+      REQUIRE(p2p4->getSessionsIDs().size() == 8);
+      REQUIRE(p2p5->getSessionsIDs().size() == 8);
+      REQUIRE(p2p6->getSessionsIDs().size() == 8);
+      REQUIRE(p2p7->getSessionsIDs().size() == 8);
+      REQUIRE(p2p8->getSessionsIDs().size() == 8);
 
       REQUIRE(rdpos1->getIsValidator());
       REQUIRE(rdpos2->getIsValidator());

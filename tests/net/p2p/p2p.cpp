@@ -32,6 +32,11 @@ namespace TP2P {
 			p2pNode2.connectToServer("127.0.0.1", 8082);
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+      // Start discovery
+      p2pNode1.startDiscovery();
+      p2pNode2.startDiscovery();
+      p2pNode3.startDiscovery();
+
 			auto node1SessionsIDs = p2pNode1.getSessionsIDs();
 			auto node2SessionsIDs = p2pNode2.getSessionsIDs();
 			auto node3SessionsIDs = p2pNode3.getSessionsIDs();			
@@ -168,6 +173,22 @@ namespace TP2P {
 			p2pNode8.connectToServer("127.0.0.1", 8080);
 			p2pNode9.connectToServer("127.0.0.1", 8080);
 			p2pNode10.connectToServer("127.0.0.1", 8080);
+
+      // Wait until all peers are connected to the discovery node.
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      // Start discovery
+      p2pDiscoveryNode.startDiscovery();
+      p2pNode1.startDiscovery();
+      p2pNode2.startDiscovery();
+      p2pNode3.startDiscovery();
+      p2pNode4.startDiscovery();
+      p2pNode5.startDiscovery();
+      p2pNode6.startDiscovery();
+      p2pNode7.startDiscovery();
+      p2pNode8.startDiscovery();
+      p2pNode9.startDiscovery();
+      p2pNode10.startDiscovery();
 
 			// After a while, the discovery thread should have found all the nodes and connected between each other.
       while(p2pDiscoveryNode.getSessionsIDs().size() != 10 ||

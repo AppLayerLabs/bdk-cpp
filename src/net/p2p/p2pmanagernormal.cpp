@@ -53,7 +53,7 @@ namespace P2P {
         handleTxValidatorRequest(session, message);
         break;
       default:
-        Utils::logToDebug(Log::P2PParser, __func__, "Invalid Request Command Type from " + session->hostNodeId().hex().get() + ", closing session.");
+        Utils::logToDebug(Log::P2PParser, __func__, "Invalid Request Command Type: " + std::to_string(message.command()) + " from: " + session->hostNodeId().hex().get() + ", closing session.");
         this->disconnectSession(session->hostNodeId());
         break;
     }
@@ -177,8 +177,12 @@ namespace P2P {
     auto request = RequestEncoder::requestValidatorTxs();
     Utils::logToFile("Requesting nodes from " + nodeId.hex().get());
     auto requestPtr = sendMessageTo(nodeId, request);
+    if (requestPtr == nullptr) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Request to " + nodeId.hex().get() + " failed.");
+      return {};
+    }
     auto answer = requestPtr->answerFuture();
-    auto status = answer.wait_for(std::chrono::seconds(3)); // 3s timeout.
+    auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
     if (status == std::future_status::timeout) {
       Utils::logToDebug(Log::P2PParser, __func__, "Request to " + nodeId.hex().get() + " timed out.");
       return {};

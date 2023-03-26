@@ -14,11 +14,22 @@ namespace P2P {
   void ManagerBase::startServer() {
     if(this->p2pserver_->start()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      this->discoveryWorker->start();
     }
   }
-  
+
+  void ManagerBase::startDiscovery() {
+    this->discoveryWorker->start();
+  }
+
+  void ManagerBase::stopDiscovery() {
+    this->discoveryWorker->stop();
+  }
+
   void ManagerBase::connectToServer(const std::string &host, const unsigned short &port) {
+    if (this->hostIp_.to_string() == host && this->hostPort_ == port) {
+      Utils::logToDebug(Log::P2PManager, __func__, "Cannot connect to self");
+      return;
+    }
     std::thread clientThread([&, host, port] {
       net::io_context ioc;
       auto client = std::make_shared<ClientSession>(ioc, host, port, *this);
@@ -34,10 +45,16 @@ namespace P2P {
     std::unique_lock lockRequests(requestsMutex);
     if(!sessions_.contains(nodeId)) {
       Utils::logToDebug(Log::P2PManager, __func__, "Session does not exist for " + nodeId.hex().get());
-      throw std::runtime_error("Session does not exist for " + nodeId.hex().get());
+      return nullptr;
     }
     auto session = sessions_[nodeId];
-  
+    /// We can only request ping, info and requestNode to discovery nodes
+    if (session->hostType() == NodeType::DISCOVERY_NODE && (message.command() != CommandType::Ping &&
+        message.command() != CommandType::Info &&
+        message.command() != CommandType::RequestNodes)) {
+      Utils::logToDebug(Log::P2PManager, __func__, "Session is discovery, cannot send message");
+      return nullptr;
+    }
     requests_[message.id()] = std::make_shared<Request>(message.command(), message.id(), session->hostNodeId());
     session->write(message);
     return requests_[message.id()];
@@ -97,6 +114,8 @@ namespace P2P {
     auto request = RequestEncoder::ping();
     Utils::logToFile("Pinging " + nodeId.hex().get());
     auto requestPtr = sendMessageTo(nodeId, request);
+    if (requestPtr == nullptr)
+      throw std::runtime_error("Failed to send ping to " + nodeId.hex().get() + ".)");
     requestPtr->answerFuture().wait();
   }
 
@@ -106,9 +125,23 @@ namespace P2P {
     auto request = RequestEncoder::requestNodes();
     Utils::logToFile("Requesting nodes from " + nodeId.hex().get());
     auto requestPtr = sendMessageTo(nodeId, request);
+    if (requestPtr == nullptr) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Request to " + nodeId.hex().get() + " failed.");
+      return {};
+    }
     auto answer = requestPtr->answerFuture();
-    answer.wait();
-    return AnswerDecoder::requestNodes(answer.get());
+    auto status = answer.wait_for(std::chrono::seconds(2));
+    if (status == std::future_status::timeout) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Request to " + nodeId.hex().get() + " timed out.");
+      return {};
+    }
+    try {
+      return AnswerDecoder::requestNodes(answer.get());
+    } catch (std::exception &e) {
+      Utils::logToDebug(Log::P2PParser, __func__,
+                        "Request to " + nodeId.hex().get() + " failed with error: " + e.what());
+      return {};
+    }
   }
 
   void ManagerBase::stop() {

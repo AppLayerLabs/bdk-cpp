@@ -475,11 +475,51 @@ namespace TRdPoS {
       p2p9->connectToServer("127.0.0.1", 8090);
       p2p10->connectToServer("127.0.0.1", 8090);
 
-			// After a while, the discovery thread should have found all the nodes and connected between each other.
-			std::this_thread::sleep_for(std::chrono::seconds(10));
+      // Wait for connection towards discovery node.
+      while(p2pDiscovery->getSessionsIDs().size() != 10)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
 
-      REQUIRE(p2pDiscovery->getSessionsIDs().size());
-      
+      REQUIRE(p2pDiscovery->getSessionsIDs().size() == 10);
+      REQUIRE(p2p1->getSessionsIDs().size() == 1);
+      REQUIRE(p2p2->getSessionsIDs().size() == 1);
+      REQUIRE(p2p3->getSessionsIDs().size() == 1);
+      REQUIRE(p2p4->getSessionsIDs().size() == 1);
+      REQUIRE(p2p5->getSessionsIDs().size() == 1);
+      REQUIRE(p2p6->getSessionsIDs().size() == 1);
+      REQUIRE(p2p7->getSessionsIDs().size() == 1);
+      REQUIRE(p2p8->getSessionsIDs().size() == 1);
+      REQUIRE(p2p9->getSessionsIDs().size() == 1);
+      REQUIRE(p2p10->getSessionsIDs().size() == 1);
+
+      p2pDiscovery->startDiscovery();
+      p2p1->startDiscovery();
+      p2p2->startDiscovery();
+      p2p3->startDiscovery();
+      p2p4->startDiscovery();
+      p2p5->startDiscovery();
+      p2p6->startDiscovery();
+      p2p7->startDiscovery();
+      p2p8->startDiscovery();
+      p2p9->startDiscovery();
+      p2p10->startDiscovery();
+
+
+      while(p2pDiscovery->getSessionsIDs().size() != 10 ||
+            p2p1->getSessionsIDs().size() != 10 ||
+            p2p2->getSessionsIDs().size() != 10 ||
+            p2p3->getSessionsIDs().size() != 10 ||
+            p2p4->getSessionsIDs().size() != 10 ||
+            p2p5->getSessionsIDs().size() != 10 ||
+            p2p6->getSessionsIDs().size() != 10 ||
+            p2p7->getSessionsIDs().size() != 10 ||
+            p2p8->getSessionsIDs().size() != 10 ||
+            p2p9->getSessionsIDs().size() != 10 ||
+            p2p10->getSessionsIDs().size() != 10) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
       // Create valid TxValidator transactions (8 in total), append them to node 1's storage.
       // After appending to node 1's storage, broadcast them to all nodes.
       auto validators = rdpos1->getValidators();
@@ -659,6 +699,44 @@ namespace TRdPoS {
     p2p6->connectToServer("127.0.0.1", 8090);
     p2p7->connectToServer("127.0.0.1", 8090);
     p2p8->connectToServer("127.0.0.1", 8090);
+
+    // Wait for connection towards discovery node.
+    while(p2pDiscovery->getSessionsIDs().size() != 8)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
+    REQUIRE(p2p1->getSessionsIDs().size() == 1);
+    REQUIRE(p2p2->getSessionsIDs().size() == 1);
+    REQUIRE(p2p3->getSessionsIDs().size() == 1);
+    REQUIRE(p2p4->getSessionsIDs().size() == 1);
+    REQUIRE(p2p5->getSessionsIDs().size() == 1);
+    REQUIRE(p2p6->getSessionsIDs().size() == 1);
+    REQUIRE(p2p7->getSessionsIDs().size() == 1);
+    REQUIRE(p2p8->getSessionsIDs().size() == 1);
+
+    p2pDiscovery->startDiscovery();
+    p2p1->startDiscovery();
+    p2p2->startDiscovery();
+    p2p3->startDiscovery();
+    p2p4->startDiscovery();
+    p2p5->startDiscovery();
+    p2p6->startDiscovery();
+    p2p7->startDiscovery();
+    p2p8->startDiscovery();
+
+    while(p2pDiscovery->getSessionsIDs().size() != 8 ||
+          p2p1->getSessionsIDs().size() != 8 ||
+          p2p2->getSessionsIDs().size() != 8 ||
+          p2p3->getSessionsIDs().size() != 8 ||
+          p2p4->getSessionsIDs().size() != 8 ||
+          p2p5->getSessionsIDs().size() != 8 ||
+          p2p6->getSessionsIDs().size() != 8 ||
+          p2p7->getSessionsIDs().size() != 8 ||
+          p2p8->getSessionsIDs().size() != 8) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     // After a while, the discovery thread should have found all the nodes and connected between each other.
     while (p2pDiscovery->getSessionsIDs().size() != 8) {
