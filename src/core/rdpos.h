@@ -221,6 +221,14 @@ class rdPoSWorker {
     /// Atomic object to know if the worker is ready to create a block.
     std::atomic<bool> canCreateBlock = false;
 
+    /// Latest block.
+    std::shared_ptr<const Block> latestBlock;
+
+    /// Function to check if latest block has updated.
+    /// Does not update latestBlock, this is done by the workerLoop() function.
+    /// @return `true` if latestBlock has been updated, `false` otherwise.
+    bool checkLatestBlock();
+
     /**
      * Entry function for the workerThread.
      * This function runs the workerLoop() function.
@@ -260,6 +268,9 @@ class rdPoSWorker {
 
     /// Getter for the block boolean.
     const std::atomic<bool>& getCanCreateBlock() const { return canCreateBlock; }
+
+    /// Setter for canCreateBlock.
+    void blockCreated() { canCreateBlock = false; }
 };
 
 

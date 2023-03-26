@@ -178,8 +178,18 @@ namespace P2P {
     Utils::logToFile("Requesting nodes from " + nodeId.hex().get());
     auto requestPtr = sendMessageTo(nodeId, request);
     auto answer = requestPtr->answerFuture();
-    answer.wait();
-    return AnswerDecoder::requestValidatorTxs(answer.get());
+    auto status = answer.wait_for(std::chrono::seconds(3)); // 3s timeout.
+    if (status == std::future_status::timeout) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Request to " + nodeId.hex().get() + " timed out.");
+      return {};
+    }
+    try {
+      return AnswerDecoder::requestValidatorTxs(answer.get());
+    } catch (std::exception &e) {
+      Utils::logToDebug(Log::P2PParser, __func__,
+                        "Request to " + nodeId.hex().get() + " failed with error: " + e.what());
+      return {};
+    }
   }
 
   void ManagerNormal::broadcastTxValidator(const TxValidator& tx) {
