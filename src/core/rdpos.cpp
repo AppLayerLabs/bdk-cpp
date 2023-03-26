@@ -108,27 +108,41 @@ bool rdPoS::validateBlock(const Block& block) const {
   }
 
   // Check the transactions within the block, we should have every transaction within the txHashToSeed map.
-  for (auto const& [key, value] : txHashToSeedMap) {
-    if (key.getFrom() != value.getFrom()) {
-      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator sender ") + key.hash().hex().get() 
+  for (auto const& [hashTx, seedTx] : txHashToSeedMap) {
+    TxValidatorFunction hashTxFunction = this->getTxValidatorFunction(hashTx);
+    TxValidatorFunction seedTxFunction = this->getTxValidatorFunction(seedTx);
+    // Check if hash tx is invalid by itself.
+    if (hashTxFunction == TxValidatorFunction::INVALID) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + hashTx.hash().hex().get()  + " is invalid.");
+      return false;
+    }
+    if (seedTxFunction == TxValidatorFunction::INVALID) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + seedTx.hash().hex().get()  + " is invalid.");
+      return false;
+    }
+    // Check if senders match.
+    if (hashTx.getFrom() != seedTx.getFrom()) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator sender ") + seedTx.hash().hex().get()
                                               + " does not match TxValidator sender " 
-                                              + value.hash().hex().get());
+                                              + hashTx.hash().hex().get());
       return false;
     }
     // Check if the left sided transaction is a randomHash transaction.
-    if (key.getData().substr(0,4) != Hex::toBytes("0xcfffe746")) {
-      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + key.hash().hex().get()  + " is not a randomHash transaction.");
+    if (hashTxFunction != TxValidatorFunction::RANDOMHASH) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + hashTx.hash().hex().get()  + " is not a randomHash transaction.");
       return false;
     }
     // Check if the right sided transaction is a random transaction.
-    if (value.getData().substr(0,4) != Hex::toBytes("0x6fc5a2d6")) {
-      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + value.hash().hex().get()  + " is not a random transaction.");
+    if (seedTxFunction != TxValidatorFunction::RANDOMSEED) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + seedTx.hash().hex().get()  + " is not a random transaction.");
       return false;
     }
     // Check if the randomHash transaction matches the random transaction.
-    if (Utils::sha3(value.getData().substr(4)) != key.getData().substr(4)) {
-      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + key.hash().hex().get()  
-                                              + " does not match TxValidator " + value.hash().hex().get() 
+    std::string_view hash = std::string_view(hashTx.getData()).substr(4);
+    std::string_view random = std::string_view(seedTx.getData()).substr(4);
+    if (Utils::sha3(random) != hash) {
+      Utils::logToDebug(Log::rdPoS, __func__, std::string("TxValidator ") + seedTx.hash().hex().get()
+                                              + " does not match TxValidator " + hashTx.hash().hex().get()
                                               + " randomness");
       return false;
     }
@@ -229,7 +243,7 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
   std::string seed;
   if (txs.size() == 0) return Hash();
   for (const TxValidator& tx : txs) {
-    if (tx.getData().substr(0,4) == Hex::toBytes("0x6fc5a2d6")) {
+    if (rdPoS::getTxValidatorFunction(tx) == TxValidatorFunction::RANDOMSEED) {
       seed += tx.getData().substr(4,32);
     }
   }
@@ -238,6 +252,25 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 
 const std::atomic<bool>& rdPoS::canCreateBlock() const {
   return this->worker->getCanCreateBlock();
+}
+
+rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) {
+  constexpr std::string_view randomHashHash("\xcf\xff\xe7\x46",4);
+  constexpr std::string_view randomSeedHash("\x6f\xc5\xa2\xd6",4);
+  if (tx.getData().size() != 36) {
+    Utils::logToDebug(Log::rdPoS, __func__, "TxValidator data size is not 36 bytes.");
+    // Both RandomHash and RandomSeed are 32 bytes, so if the data size is not 36 bytes, it is invalid.
+    return TxValidatorFunction::INVALID;
+  }
+  std::string_view functionABI = std::string_view(tx.getData()).substr(0, 4);
+  if (functionABI == randomHashHash) {
+    return TxValidatorFunction::RANDOMHASH;
+  } else if (functionABI == randomSeedHash) {
+    return TxValidatorFunction::RANDOMSEED;
+  } else {
+    Utils::logToDebug(Log::rdPoS, __func__, "TxValidator function ABI is not recognized.");
+    return TxValidatorFunction::INVALID;
+  }
 }
 
 void rdPoS::startrdPoSWorker() {
@@ -319,7 +352,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
       this->rdpos.validatorKey
   );
 
-  TxValidator randomTx(
+  TxValidator seedTx(
       me.address(),
       Hex::toBytes("0x6fc5a2d6") + randomness.get(),
       8080,
@@ -347,8 +380,8 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
 
   Utils::logToDebug(Log::rdPoS, __func__, "Broadcasting random transaction");
   // Append and broadcast the randomness transaction.
-  this->rdpos.addValidatorTx(randomTx);
-  this->rdpos.p2p->broadcastTxValidator(randomTx);
+  this->rdpos.addValidatorTx(seedTx);
+  this->rdpos.p2p->broadcastTxValidator(seedTx);
 }
 void rdPoSWorker::start() {
   if (this->rdpos.isValidator && !this->workerFuture.valid()) {

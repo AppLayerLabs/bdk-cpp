@@ -94,6 +94,11 @@ class rdPoS : public Contract {
     void initializeBlockchain();
 
   public:
+    enum TxValidatorFunction {
+      INVALID,
+      RANDOMHASH,
+      RANDOMSEED
+    };
     /**
      * Constructor.
      * @param db Pointer to the database.
@@ -173,6 +178,14 @@ class rdPoS : public Contract {
      * @return The new randomness of given transaction set.
      */
     static Hash parseTxSeedList(const std::vector<TxValidator>& txs);
+
+    /**
+     * Get TxValidator function, based on ABI
+     * @param tx The transaction to parse.
+     * @return The TxValidator object.
+     */
+
+    static TxValidatorFunction getTxValidatorFunction(const TxValidator& tx);
 
     /**
      * Function for getting if we can create a block from rdPoSWorker
