@@ -9,6 +9,7 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "../../libs/BS_thread_pool_light.hpp"
 #include "../../utils/strings.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -23,22 +24,20 @@ namespace P2P {
   class ManagerBase;
   class Message;
 
-  enum ConnectionType {
-    SERVER,
-    CLIENT
-  };
+  enum ConnectionType { SERVER, CLIENT };
 
-  enum NodeType {
-    NORMAL_NODE,        // Normal P2P node, follows all rules of protocol and can answer for any request, 
-                        // will broadcast requests to other nodes if broadcast flag is used
-    DISCOVERY_NODE      // P2P Node used only for discovery, will only answer requests related to connection/discovery
-                        // and will not broadcast requests to other nodes
-  };
+  // Normal P2P node follows all rules of protocol and can answer for
+  // any request, will broadcast requests to other nodes if broadcast
+  // flag is used.
+  // Discovery P2P node will only answer requests related to
+  // connection/discovery and will not broadcast requests to other nodes.
+  enum NodeType { NORMAL_NODE, DISCOVERY_NODE };
 
   class BaseSession {
     protected:
       websocket::stream<beast::tcp_stream> ws_;
       ManagerBase& manager_;
+      const std::unique_ptr<BS::thread_pool_light>& threadPool;
       const std::string host_;                 // Target IP/hostname
       const unsigned short port_;              // Target port
       boost::asio::ip::address address_;       // Target address
@@ -50,24 +49,23 @@ namespace P2P {
 
     public:
       // Used by ClientSession
-      BaseSession(net::io_context& ioc, ManagerBase& manager, const std::string& host, unsigned short port, ConnectionType connectionType) : 
-        ws_(net::make_strand(ioc)), 
-        manager_(manager), 
-        host_(host), 
-        port_(port),
-        connectionType_(connectionType)
+      BaseSession(
+        net::io_context& ioc, ManagerBase& manager, const std::string& host,
+        unsigned short port, ConnectionType connectionType,
+        const std::unique_ptr<BS::thread_pool_light>& threadPool
+      ) : ws_(net::make_strand(ioc)), manager_(manager), host_(host),
+        port_(port), connectionType_(connectionType), threadPool(threadPool)
       { ws_.binary(true); }
 
       // Used by ServerSession
-      BaseSession(tcp::socket&& socket, ManagerBase& manager, ConnectionType connectionType) : 
-        ws_(std::move(socket)), 
-        manager_(manager), 
-        host_(ws_.next_layer().socket().remote_endpoint().address().to_string()), 
+      BaseSession(
+        tcp::socket&& socket, ManagerBase& manager, ConnectionType connectionType,
+        const std::unique_ptr<BS::thread_pool_light>& threadPool
+      ) : ws_(std::move(socket)), manager_(manager),
+        host_(ws_.next_layer().socket().remote_endpoint().address().to_string()),
         port_(ws_.next_layer().socket().remote_endpoint().port()),
-        connectionType_(connectionType)
+        connectionType_(connectionType), threadPool(threadPool)
       { ws_.binary(true); }
-
-
 
       virtual void run() {}
       virtual void stop() {}

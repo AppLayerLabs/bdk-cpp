@@ -8,6 +8,7 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include "../../libs/BS_thread_pool_light.hpp"
 #include "../../utils/utils.h"
 #include "p2pbase.h"
 
@@ -20,7 +21,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 // Forward declaration.
 
 namespace P2P {
-
+  // Forward declarations.
   class ManagerBase;
   class Message;
 
@@ -32,8 +33,12 @@ namespace P2P {
       boost::beast::websocket::response_type req_;
 
     public:
-      ClientSession(net::io_context& ioc, const std::string& host, const unsigned short& port, ManagerBase& manager) :
-        BaseSession(ioc, manager, host, port, ConnectionType::CLIENT), resolver_(net::make_strand(ioc)) {}
+      ClientSession(
+        net::io_context& ioc, const std::string& host,
+        const unsigned short& port, ManagerBase& manager,
+        const std::unique_ptr<BS::thread_pool_light>& threadPool
+      ) : BaseSession(ioc, manager, host, port, ConnectionType::CLIENT, threadPool),
+      resolver_(net::make_strand(ioc)) {}
 
       void run() override;
       void stop() override;
@@ -51,7 +56,6 @@ namespace P2P {
 
       void handleError(const std::string& func, const beast::error_code& ec);
   };
-
 }
 
-#endif
+#endif  // P2PCLIENT_H

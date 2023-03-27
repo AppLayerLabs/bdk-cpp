@@ -51,10 +51,8 @@ namespace P2P {
   }
 
   void ClientSession::on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep) {
-    if(ec) {
-      handleError(__func__, ec);
-      return; 
-    }
+    if (ec) { handleError(__func__, ec); return; }
+
     // Turn off the timeout on the tcp_stream, because
     // the websocket stream has its own timeout system.
     beast::get_lowest_layer(ws_).expires_never();
@@ -140,9 +138,9 @@ namespace P2P {
     try {
       if (receiveBuffer_.size() >= 11) {
         Message message(boost::beast::buffers_to_string(receiveBuffer_.data()));
-        /// TODO *URGENT*: Change this to a thread pool. spawning threads is too utterly expensive, specially when the requesting node can try to DDoS us.
-        std::thread t(&ManagerBase::handleMessage, &this->manager_, shared_from_this(), message);
-        t.detach();
+        this->threadPool->push_task(
+          &ManagerBase::handleMessage, &this->manager_, shared_from_this(), std::move(message)
+        );
         receiveBuffer_.consume(receiveBuffer_.size());
       } else {
         Utils::logToDebug(Log::P2PClientSession, __func__, "Message too short: " + this->hostNodeId_.hex().get() + " too short");

@@ -30,10 +30,9 @@ namespace P2P {
       res.set("X-Node-Type", std::to_string(this->manager_.nodeType()));
       res.set("X-Node-ServerPort", std::to_string(this->manager_.serverPort()));
     }));
+
     // Accept the websocket handshake
-
     http::async_read(ws_.next_layer(), buffer_, upgrade_request_, beast::bind_front_handler(&ServerSession::accept, shared_from_this()));
-
   }
 
   void ServerSession::accept(beast::error_code ec, size_t bytes_transferred) {
@@ -42,13 +41,13 @@ namespace P2P {
 
     try {
       this->hostNodeId_ = Hash(Hex::toBytes(std::string(this->upgrade_request_["X-Node-Id"])));
-      } catch (std::exception &e) {
+    } catch (std::exception &e) {
       Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Id header is not valid from: " + this->host_ + " at " + std::to_string(this->port_));
     }
 
     std::string nodeTypeStr = std::string(this->upgrade_request_["X-Node-Type"]);
     if (nodeTypeStr.size() == 1) {
-      if(!std::isdigit(nodeTypeStr[0])) {
+      if (!std::isdigit(nodeTypeStr[0])) {
         Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Type header is not a valid digit from " + this->hostNodeId_.hex().get());
         return;
       }
@@ -60,7 +59,7 @@ namespace P2P {
 
     std::string serverPortStr = std::string(this->upgrade_request_["X-Node-ServerPort"]);
     if (serverPortStr.size() > 0) {
-      if(!std::all_of(serverPortStr.begin(), serverPortStr.end(), ::isdigit)) {
+      if (!std::all_of(serverPortStr.begin(), serverPortStr.end(), ::isdigit)) {
         Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-ServerPort header is not a valid digit from " + this->hostNodeId_.hex().get());
         return;
       }
@@ -69,7 +68,7 @@ namespace P2P {
       Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-ServerPort header is not valid from " + this->hostNodeId_.hex().get());
       return;
     }
-    
+
     buffer_.consume(buffer_.size());
     Utils::logToFile("Server: async_accept");
     ws_.async_accept(upgrade_request_, beast::bind_front_handler(&ServerSession::on_accept, shared_from_this()));
@@ -77,13 +76,8 @@ namespace P2P {
 
   void ServerSession::on_accept(beast::error_code ec) {
     if (ec) { handleError(__func__, ec); return; }
-
-
     this->address_ = ws_.next_layer().socket().remote_endpoint().address();
-    if (!this->manager_.registerSession(shared_from_this())) {
-      return;
-    }
-
+    if (!this->manager_.registerSession(shared_from_this())) return;
     read();
   }
 
@@ -99,9 +93,9 @@ namespace P2P {
     try {
       if (buffer_.size() >= 11) {
         Message message(boost::beast::buffers_to_string(buffer_.data()));
-        /// TODO *URGENT*: Change this to a thread pool. spawning threads is too utterly expensive, specially when the requesting node can try to DDoS us.
-        std::thread t(&ManagerBase::handleMessage, &this->manager_, shared_from_this(), message);
-        t.detach();
+        this->threadPool->push_task(
+          &ManagerBase::handleMessage, &this->manager_, shared_from_this(), std::move(message)
+        );
         buffer_.consume(buffer_.size());
       } else {
         Utils::logToDebug(Log::P2PServer, __func__, "Message too short: " + this->hostNodeId_.hex().get() + " too short");
@@ -112,7 +106,7 @@ namespace P2P {
     read();
   }
 
-    //std::cout << "Received server: " << boost::beast::buffers_to_string(buffer_.data()) << std::endl;
+  //std::cout << "Received server: " << boost::beast::buffers_to_string(buffer_.data()) << std::endl;
 
   void ServerSession::write(const Message& response) {
     if (ws_.is_open()) { // Check if the stream is open, before commiting to it.
@@ -162,7 +156,9 @@ namespace P2P {
       Utils::logToDebug(Log::P2PServerListener, __func__, "Server listener error: " + ec.message());
       return; // Close the listener regardless of the error
     } else {
-      std::make_shared<ServerSession>(std::move(socket), this->manager_)->run();
+      std::make_shared<ServerSession>(
+        std::move(socket), this->manager_, this->threadPool
+      )->run();
     }
    accept();
   }
@@ -191,7 +187,7 @@ namespace P2P {
 
     ioc.restart();
     std::make_shared<listener>(
-      ioc, tcp::endpoint{this->address, this->port}, this->manager_
+      ioc, tcp::endpoint{this->address, this->port}, this->manager_, this->threadPool
     )->run();
 
     std::vector<std::thread> v;

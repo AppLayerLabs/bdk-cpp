@@ -11,6 +11,7 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include "../../libs/BS_thread_pool_light.hpp"
 #include "../../utils/utils.h"
 #include "../../utils/safehash.h"
 
@@ -26,109 +27,114 @@ namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-
-// Base Manager for Normal node and Discovery Node.
-// Discovery Node has access to only few functions of P2P Encoding.
-// Such as "Ping", "Info" and "RequestNodes"
+/**
+ * Base Manager for Normal node and Discovery Node.
+ * Discovery Node has access to only few functions of P2PEncoding, such as
+ * "Ping", "Info" and "RequestNodes".
+ */
 
 namespace P2P {
   class DiscoveryWorker;
 
   class ManagerBase {
-  protected:
-    const Hash nodeId_;        // Unique node ID, randomly generated at P2PManager constructor, 32 bytes in size, byte encoded.
-    // Used in the session unordered_map to identify a session to a given node.
-    // Do not allow multiple sessions to the same node.
-    boost::asio::ip::address hostIp_;
-    unsigned short hostPort_;
-    const std::shared_ptr<Server> p2pserver_;
-    const NodeType nodeType_;
-    const unsigned int maxConnections_;
-    std::unordered_map<Hash, std::shared_ptr<BaseSession>, SafeHash> sessions_;
-    std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
+    protected:
+      const Hash nodeId_; // Unique node ID, randomly generated at P2PManager constructor, 32 bytes in size, byte encoded.
+      // Used in the session unordered_map to identify a session to a given node.
+      // Do not allow multiple sessions to the same node.
+      boost::asio::ip::address hostIp_;
+      unsigned short hostPort_;
+      const std::shared_ptr<Server> p2pserver_;
+      const NodeType nodeType_;
+      const unsigned int maxConnections_;
+      std::unordered_map<Hash, std::shared_ptr<BaseSession>, SafeHash> sessions_;
+      std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
 
-    std::shared_mutex sessionsMutex; // Mutex for protecting sessions
-    std::shared_mutex requestsMutex; // Mutex for protecting requests
+      std::shared_mutex sessionsMutex; // Mutex for protecting sessions
+      std::shared_mutex requestsMutex; // Mutex for protecting requests
 
-    // Sends a message to a given node. returns pointer to the request object, null if doesn't exists.
-    std::shared_ptr<Request> sendMessageTo(const Hash &nodeId, const Message &message);
+      // Sends a message to a given node. returns pointer to the request object, null if doesn't exists.
+      std::shared_ptr<Request> sendMessageTo(const Hash &nodeId, const Message &message);
 
-    void answerSession(std::shared_ptr<BaseSession> &session, const Message &message);
+      void answerSession(std::shared_ptr<BaseSession> &session, const Message &message);
 
-    // Handlers for client and server requests.
-    // Handle message (called from sessions) is public.
-    // Overriden by inherited object
-    // TODO: There is a bug with handleRequest that throws std::system_error.
-    // I believe that this is related with the std::shared_ptr<BaseSession> getting deleted or
-    // the session itself being disconnected.
-    virtual void handleRequest(std::shared_ptr<BaseSession> &session, const Message &message) {};
+      // Handlers for client and server requests.
+      // Handle message (called from sessions) is public.
+      // Overriden by inherited object
+      // TODO: There is a bug with handleRequest that throws std::system_error.
+      // I believe that this is related with the std::shared_ptr<BaseSession> getting deleted or
+      // the session itself being disconnected.
+      virtual void handleRequest(std::shared_ptr<BaseSession> &session, const Message &message) {};
 
-    virtual void handleAnswer(std::shared_ptr<BaseSession> &session, const Message &message) {};
+      virtual void handleAnswer(std::shared_ptr<BaseSession> &session, const Message &message) {};
 
-    virtual void handleBroadcast(std::shared_ptr<BaseSession> &session, const Message &message) {};
+      virtual void handleBroadcast(std::shared_ptr<BaseSession> &session, const Message &message) {};
 
-    // For Discovery thread.
-    const std::unique_ptr<DiscoveryWorker> discoveryWorker;
+      // For Discovery thread.
+      const std::unique_ptr<DiscoveryWorker> discoveryWorker;
 
-  public:
-    ManagerBase(const boost::asio::ip::address &hostIp, unsigned short hostPort, NodeType nodeType,
-                unsigned int maxConnections);
+      // Thread pool.
+      const std::unique_ptr<BS::thread_pool_light> threadPool;
 
-    ~ManagerBase() { stop(); }
+    public:
+      ManagerBase(
+        const boost::asio::ip::address& hostIp, unsigned short hostPort,
+        NodeType nodeType, unsigned int maxConnections
+      );
 
-    // Registers a session
-    bool registerSession(std::shared_ptr<BaseSession> session);
+      ~ManagerBase() { stop(); }
 
-    // Unregisters a session
-    bool unregisterSession(std::shared_ptr<BaseSession> session);
+      // Registers a session
+      bool registerSession(std::shared_ptr<BaseSession> session);
 
-    // Disconnect from a given Session (client or server) based on nodeId.
-    bool disconnectSession(const Hash &nodeId);
+      // Unregisters a session
+      bool unregisterSession(std::shared_ptr<BaseSession> session);
 
-    // Starts WebSocket server.
-    void startServer();
+      // Disconnect from a given Session (client or server) based on nodeId.
+      bool disconnectSession(const Hash &nodeId);
 
-    // Starts the discovery thread.
-    void startDiscovery();
+      // Starts WebSocket server.
+      void startServer();
 
-    // Stop the discovery thread.
-    void stopDiscovery();
+      // Starts the discovery thread.
+      void startDiscovery();
 
-    // Gets a copy of keys of the sessions map
-    std::vector<Hash> getSessionsIDs();
+      // Stop the discovery thread.
+      void stopDiscovery();
 
-    // Connects to a given WebSocket server.
-    void connectToServer(const std::string &host, const unsigned short &port);
+      // Gets a copy of keys of the sessions map
+      std::vector<Hash> getSessionsIDs();
 
-    // Cleans all current connections and stop the server.
-    void stop();
+      // Connects to a given WebSocket server.
+      void connectToServer(const std::string &host, const unsigned short &port);
 
-    // Handles a message from a session.
-    // the shared_ptr here is not a reference because handleMessage is called from another thread, requiring a copy of the pointer
-    // The other handler functions are called from the same thread (from handleMessage) and therefore can use a reference.
-    // Overriden by inherited object
-    virtual void handleMessage(std::shared_ptr<BaseSession> session, const Message message) {};
+      // Cleans all current connections and stop the server.
+      void stop();
 
-    // Public request functions
-    void ping(const Hash &nodeId);
+      // Handles a message from a session.
+      // the shared_ptr here is not a reference because handleMessage is called from another thread, requiring a copy of the pointer
+      // The other handler functions are called from the same thread (from handleMessage) and therefore can use a reference.
+      // Overriden by inherited object
+      virtual void handleMessage(std::shared_ptr<BaseSession> session, const Message message) {};
 
-    std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>
-    requestNodes(const Hash &nodeId);
+      // Public request functions
+      void ping(const Hash &nodeId);
+
+      std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>
+      requestNodes(const Hash &nodeId);
 
 
-    const Hash &nodeId() const { return nodeId_; }
+      const Hash &nodeId() const { return nodeId_; }
 
-    const NodeType &nodeType() const { return nodeType_; }
+      const NodeType &nodeType() const { return nodeType_; }
 
-    const unsigned int serverPort() const { return hostPort_; }
+      const unsigned int serverPort() const { return hostPort_; }
 
-    const bool isServerRunning() const { return this->p2pserver_->isRunning(); }
+      const bool isServerRunning() const { return this->p2pserver_->isRunning(); }
 
-    const unsigned int maxConnections() const { return maxConnections_; }
+      const unsigned int maxConnections() const { return maxConnections_; }
 
-    friend class DiscoveryWorker;
+      friend class DiscoveryWorker;
   };
-
 };
 
-#endif
+#endif  // P2PMANAGERBASE_H

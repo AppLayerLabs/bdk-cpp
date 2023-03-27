@@ -11,7 +11,9 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "../../libs/BS_thread_pool_light.hpp"
 #include "../../utils/utils.h"
+
 #include "p2pbase.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -20,46 +22,54 @@ namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-
 namespace P2P {
-  // Forward declaration
-  class ManagerBase;
+  class ManagerBase;  // Forward declaration
 
   class ServerSession : public BaseSession, public std::enable_shared_from_this<ServerSession> {
     private:
-      // Todo: change this to timed mutex, so that a thread doesn't lock forever.
+      // TODO: change this to timed mutex, so that a thread doesn't lock forever.
       std::mutex writeLock_;
-      beast::flat_buffer buffer_; 
+      beast::flat_buffer buffer_;
       beast::flat_buffer answerBuffer_;
       http::request<http::string_body> upgrade_request_;
 
     public:
+      ServerSession(
+        tcp::socket&& socket, ManagerBase& manager,
+        const std::unique_ptr<BS::thread_pool_light>& threadPool
+      ) : BaseSession(std::move(socket), manager, ConnectionType::SERVER, threadPool)
+      {}
 
-    //using SessionBase::SessionBase;
-    ServerSession(tcp::socket&& socket, ManagerBase& manager) : BaseSession(std::move(socket), manager, ConnectionType::SERVER) {}
+      void run() override;
+      void stop() override;
+      void on_run();
+      void accept(beast::error_code ec, std::size_t bytes_transferred);
+      void on_accept(beast::error_code ec);
+      void read() override;
+      void on_read(beast::error_code ec, std::size_t bytes_transferred) override;
+      void write(const Message& message) override;
+      void on_write(beast::error_code ec, std::size_t bytes_transferred) override;
+      void close() override;
+      void on_close(beast::error_code ec) override;
 
-    void run() override;
-    void stop() override;
-    void on_run();
-    void accept(beast::error_code ec, std::size_t bytes_transferred);
-    void on_accept(beast::error_code ec);
-    void read() override;
-    void on_read(beast::error_code ec, std::size_t bytes_transferred) override;
-    void write(const Message& message) override;
-    void on_write(beast::error_code ec, std::size_t bytes_transferred) override;
-    void close() override;
-    void on_close(beast::error_code ec) override;
-
-    void handleError(const std::string& func, const beast::error_code& ec);
+      void handleError(const std::string& func, const beast::error_code& ec);
   };
 
   class Server : public std::enable_shared_from_this<Server>  {
     class listener : public std::enable_shared_from_this<listener> {
-      net::io_context& ioc_;
-      tcp::acceptor acceptor_;
-      ManagerBase& manager_;
+      private:
+        net::io_context& ioc_;
+        tcp::acceptor acceptor_;
+        ManagerBase& manager_;
+        const std::unique_ptr<BS::thread_pool_light>& threadPool;
+        void accept();
+        void on_accept(beast::error_code ec, tcp::socket socket);
+
       public:
-        listener(net::io_context& ioc, tcp::endpoint endpoint, ManagerBase& manager) : ioc_(ioc), acceptor_(ioc), manager_(manager) {
+        listener(
+          net::io_context& ioc, tcp::endpoint endpoint, ManagerBase& manager,
+          const std::unique_ptr<BS::thread_pool_light>& threadPool
+        ) : ioc_(ioc), acceptor_(ioc), manager_(manager), threadPool(threadPool) {
           beast::error_code ec;
           acceptor_.open(endpoint.protocol(), ec); // Open the acceptor
           if (ec) { Utils::logToDebug(Log::P2PServer, __func__, "Open Acceptor: " + ec.message()); return; }
@@ -70,38 +80,33 @@ namespace P2P {
           acceptor_.listen(net::socket_base::max_listen_connections, ec); // Start listening
           if (ec) { Utils::logToDebug(Log::P2PServer, __func__, "Listen Acceptor: " + ec.message()); return; }
         }
-
         void run();
         void stop();
-
-      private:
-
-        void accept();
-        void on_accept(beast::error_code ec, tcp::socket socket);
     };
 
-    private: 
+    private:
       ManagerBase& manager_;
+      const std::unique_ptr<BS::thread_pool_light>& threadPool;
       net::io_context ioc;
       std::shared_ptr<listener> listener_;
       const boost::asio::ip::address address;
       const unsigned short port;
       const unsigned int threads;
-
       std::future<bool> runFuture_;
-
       bool run();
 
     public:
-      Server(boost::asio::ip::address address, unsigned short port, unsigned int threads, ManagerBase& manager)
-       : address(address), port(port), threads(threads), manager_(manager) {};
+      Server(
+        boost::asio::ip::address address, unsigned short port,
+        unsigned int threads, ManagerBase& manager,
+        const std::unique_ptr<BS::thread_pool_light>& threadPool
+      ) : address(address), port(port), threads(threads), manager_(manager), threadPool(threadPool)
+      {};
 
       bool start();
       void stop();
       bool isRunning() const { return runFuture_.valid(); }
-
   };
-
 };
 
 #endif
