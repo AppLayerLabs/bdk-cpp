@@ -9,6 +9,12 @@
 // TODO: We could possibly change the bool functions
 // into a enum function, to be able to properly return each error case
 // We need this in order to slash invalid rdPoS blocks.
+enum TxInvalid {
+  NotInvalid,
+  InvalidNonce,
+  InvalidBalance
+};
+
 class State {
   private:
     /// Pointer to DB.
@@ -43,9 +49,10 @@ class State {
     /**
      * Verify if the transaction can be accepted within the current State.
      * Calls validateTransactionInternal, but with locking mutex in a shared manner.
-     * @param tx The transaction
+     * @param TxInvalid enum, 0 (false) if valid.
+     * use !TxInvalid to check if valid.
      */
-    bool validateTransactionInternal(const TxBlock& tx) const;
+    TxInvalid validateTransactionInternal(const TxBlock& tx) const;
 
     /**
      * Process the transaction
@@ -127,13 +134,29 @@ class State {
      * Calls validateTransactionInternal, but with locking mutex in a shared manner.
      * @param tx The transaction
      */
-    bool validateTransaction(const TxBlock& tx) const;
+    TxInvalid validateTransaction(const TxBlock& tx) const;
 
     /**
      * Add transaction to mempool if valid.
      * @param tx The transaction.
+     * @return TxInvalid enum, 0 (false) if valid.
      */
-    bool addTx(TxBlock&& tx);
+    TxInvalid addTx(TxBlock&& tx);
+
+    /**
+     * Check if a transaction Hash is in the mempool.
+     * @param txHash The transaction Hash.
+     */
+    bool isTxInMempool(const Hash& txHash) const;
+
+    /**
+     * Returns a unique_ptr *copy* of a transaction from the mempool.
+     * Nullptr if not found.
+     * Reason for unique_ptr: We cannot directly copy because TxBlock doesn't contain a default constructor
+     * making impossible to return a "empty" transaction if hash is not found within mempool.
+     * @params  txHash The transaction Hash.
+     */
+    std::unique_ptr<TxBlock> getTxFromMempool(const Hash& txHash) const;
 
     /**
      * This function is used through HTTP RPC to add balance to a given address

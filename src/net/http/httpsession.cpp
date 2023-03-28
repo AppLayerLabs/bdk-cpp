@@ -52,7 +52,7 @@ void HTTPSession::on_read(beast::error_code ec, std::size_t bytes) {
   boost::ignore_unused(bytes);
   if (ec == http::error::end_of_stream) return this->do_close(); // This means the other side closed the connection
   if (ec) return fail("HTTPSession", __func__, ec, "Failed to close connection");
-  handle_request(*this->docroot, this->parser->release(), this->queue, this->blockchain); // Send the response
+  handle_request(*this->docroot, this->parser->release(), this->queue, this->state, this->storage, this->p2p); // Send the response
   if (!this->queue.full()) this->do_read(); // If queue still has free space, try to pipeline another request
 }
 

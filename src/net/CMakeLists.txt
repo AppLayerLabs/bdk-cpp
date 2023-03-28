@@ -1,9 +1,12 @@
 if(BUILD_AVALANCHEGO)
   set(NET_HEADERS
-    ${CMAKE_SOURCE_DIR}/src/net/http/httpbase.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpparser.h
     ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.h
     ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.h
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.h
@@ -16,10 +19,12 @@ if(BUILD_AVALANCHEGO)
   )
 
   set(NET_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/net/http/httpbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpparser.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.cpp
@@ -31,10 +36,13 @@ if(BUILD_AVALANCHEGO)
   )
 else()
   set(NET_HEADERS
-    ${CMAKE_SOURCE_DIR}/src/net/http/httpbase.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpparser.h
     ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.h
     ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.h
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.h
@@ -47,10 +55,12 @@ else()
   )
 
   set(NET_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/net/http/httpbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpparser.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.cpp

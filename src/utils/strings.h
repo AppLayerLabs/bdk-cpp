@@ -42,7 +42,7 @@ template <unsigned N> class FixedStr {
     inline const char* raw() const { return this->data.data(); }
 
     /// Getter for `data`, but returns the data in hex format, non-strict hex.
-    inline const Hex hex() const { return Hex::fromBytes(this->data); }
+    inline const Hex hex(bool strict = false) const { return Hex::fromBytes(this->data, strict); }
 
     /**
      * Getter for `data`, but returns a read-only copy of the data string.

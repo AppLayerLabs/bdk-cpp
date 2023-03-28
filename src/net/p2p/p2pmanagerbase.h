@@ -49,8 +49,8 @@ namespace P2P {
       std::unordered_map<Hash, std::shared_ptr<BaseSession>, SafeHash> sessions_;
       std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
 
-      std::shared_mutex sessionsMutex; // Mutex for protecting sessions
-      std::shared_mutex requestsMutex; // Mutex for protecting requests
+      mutable std::shared_mutex sessionsMutex; // Mutex for protecting sessions
+      mutable std::shared_mutex requestsMutex; // Mutex for protecting requests
 
       // Sends a message to a given node. returns pointer to the request object, null if doesn't exists.
       std::shared_ptr<Request> sendMessageTo(const Hash &nodeId, const Message &message);
@@ -132,6 +132,8 @@ namespace P2P {
       const bool isServerRunning() const { return this->p2pserver_->isRunning(); }
 
       const unsigned int maxConnections() const { return maxConnections_; }
+
+      const uint64_t getPeerCount() const { std::shared_lock lock(this->sessionsMutex); return sessions_.size(); }
 
       friend class DiscoveryWorker;
   };

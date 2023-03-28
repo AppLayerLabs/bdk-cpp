@@ -66,7 +66,7 @@ State::~State() {
   this->db->putBatch(accountsBatch, DBPrefix::nativeAccounts);
 }
 
-bool State::validateTransactionInternal(const TxBlock& tx) const {
+TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   /**
    * Rules for a transaction to be accepted within the current state:
    * Transaction value + txFee (gas * gasPrice) needs to be lower than account balance
@@ -76,12 +76,12 @@ bool State::validateTransactionInternal(const TxBlock& tx) const {
   /// Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
   if (this->mempool.contains(tx.hash())) {
     Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
-    return true;
+    return TxInvalid::InvalidBalance;
   }
   auto accountIt = this->accounts.find(tx.getFrom());
   if (accountIt == this->accounts.end()) {
     Utils::logToDebug(Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
-    return false;
+    return TxInvalid::InvalidBalance;
   }
   const auto& accBalance = accountIt->second.balance;
   const auto& accNonce = accountIt->second.nonce;
@@ -90,18 +90,18 @@ bool State::validateTransactionInternal(const TxBlock& tx) const {
     Utils::logToDebug(Log::state, __func__,
                       "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
                       + " expected: " + txWithFees.str() + " has: " + accBalance.str());
-    return false;
+    return TxInvalid::InvalidBalance;
   }
   // TODO: The blockchain is able to store higher nonce transactions until they are valid
   // Handle this case.
   if (accNonce != tx.getNonce()) {
     Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
                                             + " got: " + tx.getNonce().str());
-    return false;
+    return TxInvalid::InvalidNonce;
   }
   /// TODO: check if calls contract
 
-  return true;
+  return TxInvalid::NotInvalid;
 }
 
 void State::processTransaction(const TxBlock& tx) {
@@ -137,7 +137,7 @@ void State::refreshMempool(const Block& block) {
   /// not added to the block are valid given the current state
   for (const auto& [hash, tx] : mempoolCopy) {
     /// Calls internal function which doesn't lock mutex.
-    if (this->validateTransactionInternal(tx)) {
+    if (!this->validateTransactionInternal(tx)) {
       this->mempool.insert({hash, tx});
     }
   }
@@ -205,7 +205,7 @@ bool State::validateNextBlock(const Block& block) const {
 
   std::shared_lock verifyingBlockTxs(this->stateMutex);
   for (const auto& tx : block.getTxs()) {
-    if (!this->validateTransactionInternal(tx)) {
+    if (this->validateTransactionInternal(tx)) {
       Utils::logToDebug(Log::state, __func__, "Transaction " + tx.hash().hex().get() + " within block is invalid");
       return false;
     }
@@ -248,17 +248,30 @@ void State::fillBlockWithTransactions(Block& block) const {
   return;
 }
 
-bool State::validateTransaction(const TxBlock& tx) const {
+TxInvalid State::validateTransaction(const TxBlock& tx) const {
   std::shared_lock lock(this->stateMutex);
   return this->validateTransactionInternal(tx);
 }
 
-bool State::addTx(TxBlock&& tx) {
-  if (!this->validateTransaction(tx)) return false;
+TxInvalid State::addTx(TxBlock&& tx) {
+  auto TxInvalid = this->validateTransaction(tx);
+  if (TxInvalid) return TxInvalid;
   std::unique_lock lock(this->stateMutex);
   auto txHash = tx.hash();
   this->mempool.insert({txHash, std::move(tx)});
-  return true;
+  return TxInvalid;
+}
+
+bool State::isTxInMempool(const Hash& txHash) const {
+  std::shared_lock lock(this->stateMutex);
+  return this->mempool.contains(txHash);
+}
+
+std::unique_ptr<TxBlock> State::getTxFromMempool(const Hash &txHash) const {
+  std::shared_lock lock(this->stateMutex);
+  auto it = this->mempool.find(txHash);
+  if (it == this->mempool.end()) return nullptr;
+  return std::make_unique<TxBlock>(it->second);
 }
 
 void State::addBalance(const Address& addr) {

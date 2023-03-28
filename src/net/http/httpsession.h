@@ -1,10 +1,15 @@
 #ifndef HTTPSESSION_H
 #define HTTPSESSION_H
 
-#include "httpbase.h"
+#include "httpparser.h"
 
 // Forward declarations.
 class HTTPSession;  // HTTPQueue depends on HTTPSession and vice-versa
+class State;
+class Storage;
+namespace P2P {
+  class ManagerNormal;
+}
 
 /**
  * Helper class used for HTTP pipelining.
@@ -76,8 +81,14 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
      */
     boost::optional<http::request_parser<http::string_body>> parser;
 
-    /// Reference to the blockchain.
-    Blockchain& blockchain;
+    /// Reference to the state.
+    const std::unique_ptr<State>& state;
+
+    /// Refence to the storage.
+    const std::unique_ptr<Storage>& storage;
+
+    /// Reference to the P2P manager.
+    const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
     /// Read whatever is on the internal buffer.
     void do_read();
@@ -106,13 +117,15 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
      * Constructor.
      * @param sock The socket to take ownership or.
      * @param docroot Pointer to the root directory of the endpoint.
-     * @param blockchain Reference to the blockchain.
+     * @param unique_ptr reference to the state.
      */
     HTTPSession(
       tcp::socket&& sock,
       std::shared_ptr<const std::string>& docroot,
-      Blockchain& blockchain
-    ) : stream(std::move(sock)), docroot(docroot), queue(*this), blockchain(blockchain)
+      const std::unique_ptr<State>& state,
+      const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<P2P::ManagerNormal>& p2p
+    ) : stream(std::move(sock)), docroot(docroot), queue(*this), state(state), storage(storage), p2p(p2p)
     {}
 
     /// Start the HTTP session.

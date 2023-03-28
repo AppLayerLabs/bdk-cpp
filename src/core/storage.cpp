@@ -295,6 +295,19 @@ const std::shared_ptr<const TxBlock> Storage::getTx(const Hash& tx) {
 }
 
 const std::shared_ptr<const Block> Storage::getBlockFromTx(const Hash& tx) {
+  // TODO **MOST URGENT** : This is a temporary fix, we need to implement a better way to get the block from a tx
+  // The reason for this is that the current way only keep tracks of txs that are on the std::deque
+  // We need a way to store the block hash of a tx that is not on the std::deque
+  // Ways to do that is to store within the database block headers separetely from the block body (transactions)
+  // And store transactions in a separate database
+  // The reason for including which block the transaction is included is because of the folloring RPC methods:
+  // eth_getTransactionByHash
+  // eth_getTransactionByBlockHashAndIndex
+  // eth_getTransactionByBlockNumberAndIndex
+  // eth_getTransactionReceipt
+  // PS: We probably will need to make a specific function to make blocks load from DB (because the block object is what contains the txs, they are just stored separately)
+  // The constructor of block probably will have to be changed to two std::string_views, one for Header and one for Body
+  // The blockHeader has a **fixed size**, use that to your advantage
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
   StorageStatus txStatus = this->txExists(tx);
   if (txStatus == StorageStatus::NotFound) return nullptr;

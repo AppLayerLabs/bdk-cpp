@@ -70,6 +70,12 @@ include(cmake/ProjectBoostCertify.cmake)
 include(cmake/ProjectEthash.cmake)
 include(cmake/ProjectSecp256k1.cmake) # Bitcoin core fast implementation
 
+set(CPR_USE_SYSTEM_CURL ON CACHE BOOL "Force the usage of system's libcurl")
+include(FetchContent)
+FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
+  GIT_TAG 32fd1453194c37d5136577ee55629b863a42333f) # The commit hash for 1.10.x. Replace with the latest from: https://github.com/libcpr/cpr/releases
+FetchContent_MakeAvailable(cpr)
+
 # Build catch2 to a library.
 add_library(catch2
   ${CMAKE_SOURCE_DIR}/src/libs/catch2/catch_amalgamated.hpp
@@ -425,9 +431,9 @@ else()
   add_executable(subnetooord-tests ${TESTS_HEADERS} ${TESTS_SOURCES})
 
   add_dependencies(subnetooord-tests subnetooor_lib)
-  target_include_directories(subnetooord-tests PRIVATE subnetooor_lib ${OPENSSL_INCLUDE_DIR})
+  target_include_directories(subnetooord-tests PRIVATE subnetooor_lib  ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(subnetooord-tests
-    subnetooor_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
+    subnetooor_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2 cpr::cpr
   )
 endif()
 

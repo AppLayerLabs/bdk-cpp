@@ -5,7 +5,7 @@ void HTTPServer::start() {
   const boost::asio::ip::address address = net::ip::make_address("0.0.0.0");
   std::shared_ptr<const std::string> docroot = std::make_shared<const std::string>(".");
   this->listener = std::make_shared<HTTPListener>(
-    this->ioc, tcp::endpoint{address, this->port}, docroot, this->blockchain
+    this->ioc, tcp::endpoint{address, this->port}, docroot, this->state, this->storage, this->p2p
   );
   this->listener->start();
 

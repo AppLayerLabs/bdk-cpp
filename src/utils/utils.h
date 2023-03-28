@@ -70,6 +70,8 @@ namespace Log {
   const std::string grpcClient = "gRPCClient";
   const std::string utils = "Utils";
   const std::string httpServer = "HTTPServer";
+  const std::string JsonRPCEncoding = "JsonRPC::Encoding";
+  const std::string JsonRPCDecoding = "JsonRPC::Decoding";
   const std::string rdPoS = "rdPoS";
   const std::string ABI = "ABI";
   const std::string P2PClientSession = "P2P::ClientSession";

@@ -3,8 +3,10 @@
 HTTPListener::HTTPListener(
   net::io_context& ioc, tcp::endpoint ep,
   std::shared_ptr<const std::string>& docroot,
-  Blockchain& blockchain
-) : ioc(ioc), acc(net::make_strand(ioc)), docroot(docroot), blockchain(blockchain) {
+  const std::unique_ptr<State>& state,
+  const std::unique_ptr<Storage>& storage,
+  const std::unique_ptr<P2P::ManagerNormal>& p2p
+) : ioc(ioc), acc(net::make_strand(ioc)), docroot(docroot), state(state), storage(storage), p2p(p2p) {
   beast::error_code ec;
   this->acc.open(ep.protocol(), ec);  // Open the acceptor
   if (ec) { fail("HTTPListener", __func__, ec, "Failed to open the acceptor"); return; }
@@ -27,7 +29,7 @@ void HTTPListener::on_accept(beast::error_code ec, tcp::socket sock) {
     fail("HTTPListener", __func__, ec, "Failed to accept connection");
   } else {
     std::make_shared<HTTPSession>(
-      std::move(sock), this->docroot, this->blockchain
+      std::move(sock), this->docroot, this->state, this->storage, this->p2p
     )->start(); // Create the http session and run it
   }
   this->do_accept(); // Accept another connection

@@ -35,8 +35,10 @@
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
 
-//#include "../core/blockchain.h" TODO: re-enable when core is ready
 #include "../utils/utils.h"
+#include "jsonrpc/methods.h"
+#include "jsonrpc/encoding.h"
+#include "jsonrpc/decoding.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -44,7 +46,30 @@ namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-class Blockchain; // Fake forward declaration because of the todo above, remove when done
+// Forward declaration!
+// httparser never access any of these members only passes them around
+// It is preferable to use forward declarations
+class State;
+class Storage;
+namespace P2P {
+  class ManagerNormal;
+}
+
+/**
+ * Parse a std::string JSON-RPC request body into a std::string JSON-RPC response body.
+ * Handles all requests and errors.
+ * @param body The request body
+ * @param state Pointer to the state
+ * @param storage Pointer to the storaeg
+ * @param p2p Pointer to the p2p manager
+ * @return The response body
+ */
+std::string parseJsonRpcRequest(
+  const std::string& body,
+  const std::unique_ptr<State>& state,
+  const std::unique_ptr<Storage>& storage,
+  const std::unique_ptr<P2P::ManagerNormal>& p2p
+);
 
 /**
  * Produce an HTTP response for the given request.
@@ -53,12 +78,13 @@ class Blockchain; // Fake forward declaration because of the todo above, remove 
  * @param docroot The root directory of the endpoint.
  * @param req The request to handle.
  * @param send TODO: we're missing details on this, Allocator, Body, the function itself and where it's used
- * @param blockchain Reference to the blockchain.
+ * @param unique_ptr reference to the state.
  */
 template<class Body, class Allocator, class Send> void handle_request(
   beast::string_view docroot,
   http::request<Body, http::basic_fields<Allocator>>&& req,
-  Send&& send, Blockchain& blockchain
+  Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+  const std::unique_ptr<P2P::ManagerNormal>& p2p
 );
 
 #endif  // HTTPBASE_H

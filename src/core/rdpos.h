@@ -140,6 +140,9 @@ class rdPoS : public Contract {
     /// Getter for isValidator
     const bool getIsValidator() const { return isValidator; }
 
+    /// Getter for validator UPubKey
+    const UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey); }
+
     /// Clear the mempool
     void clearMempool() { std::unique_lock lock(this->mutex); validatorMempool.clear(); }
 
