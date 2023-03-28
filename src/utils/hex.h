@@ -63,6 +63,15 @@ class Hex {
     static Hex fromBytes(std::string_view bytes, bool strict = false);
 
     /**
+     * Wrapper for `fromBytes()` that works with pure C strings.
+     * @param bytes The byte string.
+     * @param size The size of the byte string.
+     * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
+     * @return The constructed Hex object.
+     */
+    static Hex fromBytes(const char* bytes, size_t size, bool strict = false);
+
+    /**
      * Build a Hex object from a UTF-8 string.
      * "example" would result in "6578616d706c65".
      * @param bytes The UTF-8 string.

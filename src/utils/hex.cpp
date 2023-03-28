@@ -49,6 +49,10 @@ Hex Hex::fromBytes(std::string_view bytes, bool strict) {
   return Hex(std::move(hex), strict);
 }
 
+Hex Hex::fromBytes(const char* bytes, size_t size, bool strict) {
+  return Hex::fromBytes(std::string_view(bytes, size), strict);
+}
+
 Hex Hex::fromUTF8(std::string_view str, bool strict) {
   std::stringstream ss;
   if (strict) ss << "0x";
