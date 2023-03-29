@@ -76,7 +76,7 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   /// Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
   if (this->mempool.contains(tx.hash())) {
     Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
-    return TxInvalid::InvalidBalance;
+    return TxInvalid::NotInvalid;
   }
   auto accountIt = this->accounts.find(tx.getFrom());
   if (accountIt == this->accounts.end()) {
