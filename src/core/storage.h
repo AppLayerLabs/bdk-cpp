@@ -37,8 +37,8 @@ class Storage {
     /// Map that indexes blocks in memory by their respective hashes.
     std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> blockByHash;
 
-    /// Map that indexes Tx blockHash and blockIndex by their respective hashes
-    std::unordered_map<Hash, std::tuple<std::shared_ptr<const TxBlock>,Hash,uint64_t>, SafeHash> txByHash;
+    /// Map that indexes Tx, blockHash, blockIndex and blockHeight by their respective hashes
+    std::unordered_map<Hash, std::tuple<std::shared_ptr<const TxBlock>,Hash,uint64_t,uint64_t>, SafeHash> txByHash;
 
     /// Map that indexes all block heights in the chain by their respective hashes.
     std::unordered_map<Hash, uint64_t, SafeHash> blockHeightByHash;
@@ -50,8 +50,8 @@ class Storage {
     mutable std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> cachedBlocks;
 
     /// Cache space for transactions that will be included in the blockchain.
-    /// Value: tx, txBlockHash, txBlockHeight
-    mutable std::unordered_map<Hash, std::tuple<std::shared_ptr<const TxBlock>,Hash,uint64_t>, SafeHash> cachedTxs;
+    /// Value: tx, txBlockHash, txBlockIndex, txBlockHeight
+    mutable std::unordered_map<Hash, std::tuple<std::shared_ptr<const TxBlock>,Hash,uint64_t,uint64_t>, SafeHash> cachedTxs;
 
     /// Mutex for managing read/write access to the blockchain.
     mutable std::shared_mutex chainLock;
@@ -165,7 +165,7 @@ class Storage {
      * @return std::tuple<const std::shared_ptr<const TxBlock>, const Hash, const uint64_t>
      * @return The found transaction, the block hash it's in, and the block height it's in.
      */
-    const std::tuple<const std::shared_ptr<const TxBlock>,const Hash, const uint64_t> getTx(const Hash& tx);
+    const std::tuple<const std::shared_ptr<const TxBlock>,const Hash, const uint64_t, const uint64_t> getTx(const Hash& tx);
 
     /**
      * Get the most recently added block from the chain.

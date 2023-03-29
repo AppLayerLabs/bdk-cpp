@@ -67,7 +67,7 @@ Storage::~Storage() {
       auto Txs = block->getTxs();
       for (uint32_t i = 0; i < Txs.size(); i++) {
         const auto TxHash = Txs[i].hash();
-        std::string value = block->hash().get() + Utils::uint32ToBytes(i);
+        std::string value = block->hash().get() + Utils::uint32ToBytes(i) + Utils::uint64ToBytes(block->getNHeight());
         txToBlockBatch.puts.emplace_back(DBEntry(TxHash.get(), value));
         this->txByHash.erase(TxHash);
       }
@@ -139,7 +139,7 @@ void Storage::pushBackInternal(Block&& block) {
   this->blockHeightByHash[newBlock->hash()] = newBlock->getNHeight();
   const auto& Txs = newBlock->getTxs();
   for (uint32_t i = 0; i < Txs.size(); ++i) {
-    this->txByHash[Txs[i].hash()] = { std::make_shared<const TxBlock>(Txs[i]), newBlock->hash(), i };
+    this->txByHash[Txs[i].hash()] = { std::make_shared<const TxBlock>(Txs[i]), newBlock->hash(), i, newBlock->getNHeight() };
   }
 }
 
@@ -164,7 +164,7 @@ void Storage::pushFrontInternal(Block&& block) {
   this->blockHeightByHash[newBlock->hash()] = newBlock->getNHeight();
   const auto& Txs = newBlock->getTxs();
   for (uint32_t i = 0; i < Txs.size(); ++i) {
-    this->txByHash[Txs[i].hash()] = { std::make_shared<const TxBlock>(Txs[i]), newBlock->hash(), i };
+    this->txByHash[Txs[i].hash()] = { std::make_shared<const TxBlock>(Txs[i]), newBlock->hash(), i, newBlock->getNHeight() };
   }
 }
 
@@ -287,33 +287,34 @@ StorageStatus Storage::txExists(const Hash& tx) {
   }
 }
 
-const std::tuple<const std::shared_ptr<const TxBlock>,const Hash, const uint64_t> Storage::getTx(const Hash& tx) {
+const std::tuple<const std::shared_ptr<const TxBlock>,const Hash, const uint64_t, const uint64_t> Storage::getTx(const Hash& tx) {
   // Check chain first, then cache, then database
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
   StorageStatus txStatus = this->txExists(tx);
-  if (txStatus == StorageStatus::NotFound) return {nullptr, Hash(), 0};
+  if (txStatus == StorageStatus::NotFound) return {nullptr, Hash(), 0, 0};
   switch (txStatus) {
     case StorageStatus::OnChain: {
-        const auto &[Tx, hash, nHeight] = this->txByHash.find(tx)->second;
-        return {Tx, hash, nHeight};
+        const auto &[Tx, hash, index, nHeight] = this->txByHash.find(tx)->second;
+        return {Tx, hash, index, nHeight};
       }
     case StorageStatus::OnCache: {
         std::shared_lock(this->cacheLock);
-        const auto &[Tx, hash, nHeight] = this->cachedTxs.find(tx)->second;
-        return {Tx, hash, nHeight};
+        const auto &[Tx, hash, index, nHeight] = this->cachedTxs.find(tx)->second;
+        return {Tx, hash, index, nHeight};
       }
     case StorageStatus::OnDB: {
         std::string txData(this->db->get(tx.get(), DBPrefix::txToBlocks));
         Hash blockHash = Hash(std::string_view(txData).substr(0, 32));
         uint64_t blockIndex = Utils::bytesToUint32(std::string_view(txData).substr(32, 4));
+        uint64_t blockHeight = Utils::bytesToUint64(std::string_view(txData).substr(36,8));
         std::string_view blockData(this->db->get(blockHash.get(), DBPrefix::blocks));
         auto Tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
         std::shared_lock(this->cacheLock);
-        const auto txPtr = this->cachedTxs[tx] = {std::make_shared<const TxBlock>(Tx), blockHash, blockIndex};
-        return txPtr;
+        const auto txTuple = this->cachedTxs[tx] = {std::make_shared<const TxBlock>(Tx), blockHash, blockIndex, blockHeight};
+        return txTuple;
       }
   }
-  return {nullptr, Hash(), 0};
+  return {nullptr, Hash(), 0, 0};
 }
 
 const std::shared_ptr<const Block> Storage::latest() {

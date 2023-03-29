@@ -242,9 +242,10 @@ namespace TStorage {
         const auto& requiredBlockHash = requiredBlock.hash();
         for (uint64_t ii = 0; ii < requiredTxs.size(); ii++) {
           auto txInfo = storage->getTx(requiredTxs[ii].hash());
-          const auto& [tx, blockHash, blockIndex] = txInfo;
+          const auto& [tx, blockHash, blockIndex, blockHeight] = txInfo;
           REQUIRE(blockHash == requiredBlockHash);
           REQUIRE(blockIndex == ii);
+          REQUIRE(blockHeight == i + 1);
           REQUIRE(tx->hash() == requiredTxs[ii].hash());
         }
       }
