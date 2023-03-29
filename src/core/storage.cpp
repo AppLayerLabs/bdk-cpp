@@ -64,10 +64,12 @@ Storage::~Storage() {
       ));
 
       // Batch txs to be saved to the database and delete them from the mappings
-      for (const TxBlock& tx : block->getTxs()) {
-        txToBlockBatch.puts.emplace_back(DBEntry(tx.hash().get(), block->hash().get()));
-        this->txByHash.erase(tx.hash());
-        this->blockByTxHash.erase(tx.hash());
+      auto Txs = block->getTxs();
+      for (uint32_t i = 0; i < Txs.size(); i++) {
+        const auto TxHash = Txs[i].hash();
+        std::string value = block->hash().get() + Utils::uint32ToBytes(i);
+        txToBlockBatch.puts.emplace_back(DBEntry(TxHash.get(), value));
+        this->txByHash.erase(TxHash);
       }
 
       // Delete block from internal mappings and the chain
@@ -102,6 +104,20 @@ void Storage::initializeBlockchain() {
   }  
 }
 
+const TxBlock Storage::getTxFromBlockWithIndex(const std::string_view blockData, const uint64_t& txIndex) {
+  uint64_t index = 217; // Start of block tx range
+  /// Count txs until index.
+  uint64_t currentTx = 0;
+  while (currentTx < txIndex) {
+    uint32_t txSize = Utils::bytesToUint32(blockData.substr(index, 4));
+    index += txSize + 4;
+    ++currentTx;
+  }
+  uint64_t txSize = Utils::bytesToUint32(blockData.substr(index, 4));
+  index += 4;
+  return TxBlock(blockData.substr(index, txSize));
+}
+
 void Storage::pushBackInternal(Block&& block) {
   // Push the new block and get a pointer to it
   if (this->chain.size() != 0) {
@@ -121,9 +137,9 @@ void Storage::pushBackInternal(Block&& block) {
   this->blockByHash[newBlock->hash()] = newBlock;
   this->blockHashByHeight[newBlock->getNHeight()] = newBlock->hash();
   this->blockHeightByHash[newBlock->hash()] = newBlock->getNHeight();
-  for (const TxBlock& tx : newBlock->getTxs()) {
-    this->txByHash[tx.hash()] = std::make_shared<TxBlock>(tx);
-    this->blockByTxHash[tx.hash()] = newBlock;
+  const auto& Txs = newBlock->getTxs();
+  for (uint32_t i = 0; i < Txs.size(); ++i) {
+    this->txByHash[Txs[i].hash()] = { std::make_shared<const TxBlock>(Txs[i]), newBlock->hash(), i };
   }
 }
 
@@ -146,9 +162,9 @@ void Storage::pushFrontInternal(Block&& block) {
   this->blockByHash[newBlock->hash()] = newBlock;
   this->blockHashByHeight[newBlock->getNHeight()] = newBlock->hash();
   this->blockHeightByHash[newBlock->hash()] = newBlock->getNHeight();
-  for (const TxBlock& tx : newBlock->getTxs()) {
-    this->txByHash[tx.hash()] = std::make_shared<TxBlock>(tx);
-    this->blockByTxHash[tx.hash()] = newBlock;
+  const auto& Txs = newBlock->getTxs();
+  for (uint32_t i = 0; i < Txs.size(); ++i) {
+    this->txByHash[Txs[i].hash()] = { std::make_shared<const TxBlock>(Txs[i]), newBlock->hash(), i };
   }
 }
 
@@ -168,7 +184,6 @@ void Storage::popBack() {
   std::shared_ptr<const Block> block = this->chain.back();
   for (const TxBlock& tx : block->getTxs()) {
     this->txByHash.erase(tx.hash());
-    this->blockByTxHash.erase(tx.hash());
   }
   this->blockByHash.erase(block->hash());
   this->chain.pop_back();
@@ -180,7 +195,6 @@ void Storage::popFront() {
   std::shared_ptr<const Block> block = this->chain.front();
   for (const TxBlock& tx : block->getTxs()) {
     this->txByHash.erase(tx.hash());
-    this->blockByTxHash.erase(tx.hash());
   }
   this->blockByHash.erase(block->hash());
   this->chain.pop_front();
@@ -273,46 +287,33 @@ StorageStatus Storage::txExists(const Hash& tx) {
   }
 }
 
-const std::shared_ptr<const TxBlock> Storage::getTx(const Hash& tx) {
+const std::tuple<const std::shared_ptr<const TxBlock>,const Hash, const uint64_t> Storage::getTx(const Hash& tx) {
   // Check chain first, then cache, then database
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
   StorageStatus txStatus = this->txExists(tx);
-  if (txStatus == StorageStatus::NotFound) return nullptr;
+  if (txStatus == StorageStatus::NotFound) return {nullptr, Hash(), 0};
   switch (txStatus) {
-    case StorageStatus::OnChain:
-      return this->txByHash.find(tx)->second;
-      break;
-    case StorageStatus::OnCache:
-      return this->cachedTxs[tx];
-      break;
-    case StorageStatus::OnDB:
-      Hash hash(this->db->get(tx.get(), DBPrefix::txToBlocks));
-      std::string txBytes = this->db->get(hash.get(), DBPrefix::blocks);
-      return std::make_shared<TxBlock>(txBytes);
-      break;
+    case StorageStatus::OnChain: {
+        const auto &[Tx, hash, nHeight] = this->txByHash.find(tx)->second;
+        return {Tx, hash, nHeight};
+      }
+    case StorageStatus::OnCache: {
+        std::shared_lock(this->cacheLock);
+        const auto &[Tx, hash, nHeight] = this->cachedTxs.find(tx)->second;
+        return {Tx, hash, nHeight};
+      }
+    case StorageStatus::OnDB: {
+        std::string txData(this->db->get(tx.get(), DBPrefix::txToBlocks));
+        Hash blockHash = Hash(std::string_view(txData).substr(0, 32));
+        uint64_t blockIndex = Utils::bytesToUint32(std::string_view(txData).substr(32, 4));
+        std::string_view blockData(this->db->get(blockHash.get(), DBPrefix::blocks));
+        auto Tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
+        std::shared_lock(this->cacheLock);
+        const auto txPtr = this->cachedTxs[tx] = {std::make_shared<const TxBlock>(Tx), blockHash, blockIndex};
+        return txPtr;
+      }
   }
-  return nullptr;
-}
-
-const std::shared_ptr<const Block> Storage::getBlockFromTx(const Hash& tx) {
-  // TODO **MOST URGENT** : This is a temporary fix, we need to implement a better way to get the block from a tx
-  // The reason for this is that the current way only keep tracks of txs that are on the std::deque
-  // We need a way to store the block hash of a tx that is not on the std::deque
-  // Ways to do that is to store within the database block headers separetely from the block body (transactions)
-  // And store transactions in a separate database
-  // The reason for including which block the transaction is included is because of the folloring RPC methods:
-  // eth_getTransactionByHash
-  // eth_getTransactionByBlockHashAndIndex
-  // eth_getTransactionByBlockNumberAndIndex
-  // eth_getTransactionReceipt
-  // PS: We probably will need to make a specific function to make blocks load from DB (because the block object is what contains the txs, they are just stored separately)
-  // The constructor of block probably will have to be changed to two std::string_views, one for Header and one for Body
-  // The blockHeader has a **fixed size**, use that to your advantage
-  std::shared_lock<std::shared_mutex> lock(this->chainLock);
-  StorageStatus txStatus = this->txExists(tx);
-  if (txStatus == StorageStatus::NotFound) return nullptr;
-  return (txStatus == StorageStatus::OnChain)
-    ? this->blockByTxHash.find(tx)->second : nullptr;
+  return {nullptr, Hash(), 0};
 }
 
 const std::shared_ptr<const Block> Storage::latest() {
@@ -321,8 +322,7 @@ const std::shared_ptr<const Block> Storage::latest() {
 }
 
 uint64_t Storage::currentChainSize() {
-  std::shared_lock<std::shared_mutex> lock(this->chainLock);
-  return this->chain.size();
+  return this->latest()->getNHeight() + 1;
 }
 
 void Storage::periodicSaveToDB() {

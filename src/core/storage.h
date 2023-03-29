@@ -37,11 +37,8 @@ class Storage {
     /// Map that indexes blocks in memory by their respective hashes.
     std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> blockByHash;
 
-    /// Map that indexes blocks in memory by their respective transaction hashes.
-    std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> blockByTxHash;
-
-    /// Map that indexes transactions in memory by their respective hashes.
-    std::unordered_map<Hash, std::shared_ptr<const TxBlock>, SafeHash> txByHash;
+    /// Map that indexes Tx blockHash and blockIndex by their respective hashes
+    std::unordered_map<Hash, std::tuple<std::shared_ptr<const TxBlock>,Hash,uint64_t>, SafeHash> txByHash;
 
     /// Map that indexes all block heights in the chain by their respective hashes.
     std::unordered_map<Hash, uint64_t, SafeHash> blockHeightByHash;
@@ -53,10 +50,14 @@ class Storage {
     mutable std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> cachedBlocks;
 
     /// Cache space for transactions that will be included in the blockchain.
-    mutable std::unordered_map<Hash, std::shared_ptr<const TxBlock>, SafeHash> cachedTxs;
+    /// Value: tx, txBlockHash, txBlockHeight
+    mutable std::unordered_map<Hash, std::tuple<std::shared_ptr<const TxBlock>,Hash,uint64_t>, SafeHash> cachedTxs;
 
     /// Mutex for managing read/write access to the blockchain.
     mutable std::shared_mutex chainLock;
+
+    /// Mutex to manage read/write access to the cache.
+    mutable std::shared_mutex cacheLock;
 
     /// Thread that periodically saves the blockchain history to the database.
     std::thread periodicSaveThread;
@@ -88,6 +89,15 @@ class Storage {
      * such as genesis and mappings.
      */
     void initializeBlockchain();
+
+    /**
+     * Parse a given Tx from a serialize block data.
+     * Used to get only a specific transaction from a block.
+     * @params blockData The serialized block data.
+     * @params index The index of the transaction to get.
+     * @return const std::shared_ptr<const TxBlock> The transaction.
+     */
+    static const TxBlock getTxFromBlockWithIndex(const std::string_view blockData, const uint64_t& txIndex);
 
   public:
     /**
@@ -152,16 +162,10 @@ class Storage {
     /**
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
-     * @return The found transaction, or `nullptr` if transaction is not found.
+     * @return std::tuple<const std::shared_ptr<const TxBlock>, const Hash, const uint64_t>
+     * @return The found transaction, the block hash it's in, and the block height it's in.
      */
-    const std::shared_ptr<const TxBlock> getTx(const Hash& tx);
-
-    /**
-     * Get a block from the chain that contains a given transaction.
-     * @param tx The transaction hash to look for.
-     * @return The found block, or `nullptr` if block is not found.
-     */
-    const std::shared_ptr<const Block> getBlockFromTx(const Hash& tx);
+    const std::tuple<const std::shared_ptr<const TxBlock>,const Hash, const uint64_t> getTx(const Hash& tx);
 
     /**
      * Get the most recently added block from the chain.
@@ -169,7 +173,7 @@ class Storage {
      */
     const std::shared_ptr<const Block> latest();
 
-    /// Get the number of blocks currently in the chain.
+    /// Get the number of blocks currently in the chain. (nHeight of latest block + 1)
     uint64_t currentChainSize();
 
     /// Start the periodic save thread. Called by the constructor.

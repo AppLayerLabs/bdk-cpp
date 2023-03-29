@@ -176,9 +176,9 @@ namespace TStorage {
       }
     }
 
-    SECTION("2000 Blocks forward with N (0...16) dynamic normal txs and 32 validator txs, with SaveToDB Test") {
+    SECTION("2000 Blocks forward with N (0...16) dynamic normal txs and 32 validator txs, with SaveToDB and Tx Cache test") {
       // Create 2000 Blocks, each with 0 to 16 dynamic transactions and 32 validator transactions
-      std::vector<Block> blocks;
+      std::vector<std::pair<Block,std::vector<TxBlock>>> blocksWithTxs;
       {
         std::unique_ptr<DB> db;
         std::unique_ptr<Storage> storage;
@@ -189,27 +189,29 @@ namespace TStorage {
           auto latest = storage->latest();
           uint64_t txCount = uint64_t(uint8_t(Utils::randBytes(1)[0]) % 16);
           Block newBlock = createRandomBlock(txCount, 16, latest->getNHeight() + 1, latest->hash());
-          blocks.emplace_back(newBlock);
-          storage->pushBack(Block(newBlock));
+          std::vector<TxBlock> txs = newBlock.getTxs();
+          blocksWithTxs.emplace_back(std::make_pair(newBlock, txs));
+          storage->pushBack(std::move(newBlock));
         }
 
         REQUIRE(storage->currentChainSize() == 2001);
         // Check if the chain is filled with the correct blocks.
         for (uint64_t i = 0; i < 2000; i++) {
           auto block = storage->getBlock(i + 1);
-          REQUIRE(block->getValidatorSig() == blocks[i].getValidatorSig());
-          REQUIRE(block->getPrevBlockHash() == blocks[i].getPrevBlockHash());
-          REQUIRE(block->getBlockRandomness() == blocks[i].getBlockRandomness());
-          REQUIRE(block->getValidatorMerkleRoot() == blocks[i].getValidatorMerkleRoot());
-          REQUIRE(block->getTxMerkleRoot() == blocks[i].getTxMerkleRoot());
-          REQUIRE(block->getTimestamp() == blocks[i].getTimestamp());
-          REQUIRE(block->getNHeight() == blocks[i].getNHeight());
-          REQUIRE(block->getTxs() == blocks[i].getTxs());
-          REQUIRE(block->getTxValidators() == blocks[i].getTxValidators());
-          REQUIRE(block->getTxValidators().size() == blocks[i].getTxValidators().size());
-          REQUIRE(block->getTxs().size() == blocks[i].getTxs().size());
-          REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
-          REQUIRE(block->isFinalized() == blocks[i].isFinalized());
+          const auto& [requiredBlock, requiredTxs] = blocksWithTxs[i];
+          REQUIRE(block->getValidatorSig() == requiredBlock.getValidatorSig());
+          REQUIRE(block->getPrevBlockHash() == requiredBlock.getPrevBlockHash());
+          REQUIRE(block->getBlockRandomness() == requiredBlock.getBlockRandomness());
+          REQUIRE(block->getValidatorMerkleRoot() == requiredBlock.getValidatorMerkleRoot());
+          REQUIRE(block->getTxMerkleRoot() == requiredBlock.getTxMerkleRoot());
+          REQUIRE(block->getTimestamp() == requiredBlock.getTimestamp());
+          REQUIRE(block->getNHeight() == requiredBlock.getNHeight());
+          REQUIRE(block->getTxs() == requiredBlock.getTxs());
+          REQUIRE(block->getTxValidators() == requiredBlock.getTxValidators());
+          REQUIRE(block->getTxValidators().size() == requiredBlock.getTxValidators().size());
+          REQUIRE(block->getTxs().size() == requiredBlock.getTxs().size());
+          REQUIRE(block->getValidatorPubKey() == requiredBlock.getValidatorPubKey());
+          REQUIRE(block->isFinalized() == requiredBlock.isFinalized());
         }
       }
       // Load DB again...
@@ -218,22 +220,33 @@ namespace TStorage {
       initialize(db, storage, false);
       // Required to initialize the same chain as before.
       auto latest = storage->latest();
-      REQUIRE(*latest == blocks[1999]);
+      REQUIRE(*latest == blocksWithTxs[1999].first);
       for (uint64_t i = 0; i < 2000; i++) {
+        // blocksWithTxs doesn't include the genesis block, we have to skip it
         auto block = storage->getBlock(i + 1);
-        REQUIRE(block->getValidatorSig() == blocks[i].getValidatorSig());
-        REQUIRE(block->getPrevBlockHash() == blocks[i].getPrevBlockHash());
-        REQUIRE(block->getBlockRandomness() == blocks[i].getBlockRandomness());
-        REQUIRE(block->getValidatorMerkleRoot() == blocks[i].getValidatorMerkleRoot());
-        REQUIRE(block->getTxMerkleRoot() == blocks[i].getTxMerkleRoot());
-        REQUIRE(block->getTimestamp() == blocks[i].getTimestamp());
-        REQUIRE(block->getNHeight() == blocks[i].getNHeight());
-        REQUIRE(block->getTxs() == blocks[i].getTxs());
-        REQUIRE(block->getTxValidators() == blocks[i].getTxValidators());
-        REQUIRE(block->getTxValidators().size() == blocks[i].getTxValidators().size());
-        REQUIRE(block->getTxs().size() == blocks[i].getTxs().size());
-        REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
-        REQUIRE(block->isFinalized() == blocks[i].isFinalized());
+        const auto& [requiredBlock, requiredTxs] = blocksWithTxs[i];
+        REQUIRE(block->getValidatorSig() == requiredBlock.getValidatorSig());
+        REQUIRE(block->getPrevBlockHash() == requiredBlock.getPrevBlockHash());
+        REQUIRE(block->getBlockRandomness() == requiredBlock.getBlockRandomness());
+        REQUIRE(block->getValidatorMerkleRoot() == requiredBlock.getValidatorMerkleRoot());
+        REQUIRE(block->getTxMerkleRoot() == requiredBlock.getTxMerkleRoot());
+        REQUIRE(block->getTimestamp() == requiredBlock.getTimestamp());
+        REQUIRE(block->getNHeight() == requiredBlock.getNHeight());
+        REQUIRE(block->getTxs() == requiredBlock.getTxs());
+        REQUIRE(block->getTxValidators() == requiredBlock.getTxValidators());
+        REQUIRE(block->getTxValidators().size() == requiredBlock.getTxValidators().size());
+        REQUIRE(block->getTxs().size() == requiredBlock.getTxs().size());
+        REQUIRE(block->getValidatorPubKey() == requiredBlock.getValidatorPubKey());
+        REQUIRE(block->isFinalized() == requiredBlock.isFinalized());
+
+        const auto& requiredBlockHash = requiredBlock.hash();
+        for (uint64_t ii = 0; ii < requiredTxs.size(); ii++) {
+          auto txInfo = storage->getTx(requiredTxs[ii].hash());
+          const auto& [tx, blockHash, blockIndex] = txInfo;
+          REQUIRE(blockHash == requiredBlockHash);
+          REQUIRE(blockIndex == ii);
+          REQUIRE(tx->hash() == requiredTxs[ii].hash());
+        }
       }
     }
   }
