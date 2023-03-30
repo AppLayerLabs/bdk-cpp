@@ -165,7 +165,21 @@ class Storage {
      * @return std::tuple<const std::shared_ptr<const TxBlock>, const Hash, const uint64_t>
      * @return The found transaction, the block hash it's in, and the block height it's in.
      */
-    const std::tuple<const std::shared_ptr<const TxBlock>,const Hash, const uint64_t, const uint64_t> getTx(const Hash& tx);
+    const std::tuple<const std::shared_ptr<const TxBlock>,
+                     const Hash,
+                     const uint64_t,
+                     const uint64_t> getTx(const Hash& tx);
+
+    /**
+     * Get a Tx from a block with a specific index.
+     * @param blockHash The block hash
+     * @param blockIndex the index within the block
+     * @return The found transaction, the block hash ti's in, and the block height it's in.
+     */
+    const std::tuple<const std::shared_ptr<const TxBlock>,
+                     const Hash,
+                     const uint64_t,
+                     const uint64_t> getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
 
     /**
      * Get the most recently added block from the chain.
