@@ -108,6 +108,31 @@ std::string parseJsonRpcRequest(
           state
         );
         break;
+      case JsonRPC::Methods::eth_getTransactionByHash:
+        ret = JsonRPC::Encoding::eth_getTransactionByHash(
+            JsonRPC::Decoding::eth_getTransactionByHash(request),
+            storage,
+            state
+          );
+        break;
+      case JsonRPC::Methods::eth_getTransactionByBlockHashAndIndex:
+        ret = JsonRPC::Encoding::eth_getTransactionByBlockHashAndIndex(
+            JsonRPC::Decoding::eth_getTransactionByBlockHashAndIndex(request),
+            storage
+          );
+        break;
+      case JsonRPC::Methods::eth_getTransactionByBlockNumberAndIndex:
+        ret = JsonRPC::Encoding::eth_getTransactionByBlockNumberAndIndex(
+            JsonRPC::Decoding::eth_getTransactionByBlockNumberAndIndex(request, storage),
+            storage
+          );
+        break;
+      case JsonRPC::Methods::eth_getTransactionReceipt:
+        ret = JsonRPC::Encoding::eth_getTransactionReceipt(
+            JsonRPC::Decoding::eth_getTransactionReceipt(request),
+            storage
+          );
+        break;
       default:
         ret["error"]["code"] = -32601;
         ret["error"]["message"] = "Method not found";

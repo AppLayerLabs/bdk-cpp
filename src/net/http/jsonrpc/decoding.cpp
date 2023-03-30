@@ -506,5 +506,19 @@ namespace JsonRPC {
         throw std::runtime_error("Error while decoding eth_getTransactionByBlockNumberAndIndex: " + std::string(e.what()));
       }
     }
+
+    Hash eth_getTransactionReceipt(const json& request) {
+      static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
+      try {
+        std::string txHash = request["params"][0].get<std::string>();
+        if (!std::regex_match(txHash, hashFilter)) {
+          throw std::runtime_error("Invalid Hex");
+        }
+        return Hash(Hex::toBytes(txHash));
+      } catch (std::exception &e) {
+        Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_getTransactionReceipt: ") + e.what());
+        throw std::runtime_error("Error while decoding eth_getTransactionReceipt: " + std::string(e.what()));
+      }
+    }
   }
 }

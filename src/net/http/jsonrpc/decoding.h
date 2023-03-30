@@ -188,6 +188,14 @@ namespace JsonRPC {
      * Throws if invalid
      */
     std::pair<uint64_t,uint64_t> eth_getTransactionByBlockNumberAndIndex(const json& request, const std::unique_ptr<Storage> &storage);
+
+    /**
+     * Parse a eth_getTransactionReceipt request
+     * @param request
+     * @return Hash = txHash
+     * Throws if invalid
+     */
+    Hash eth_getTransactionReceipt(const json& request);
   }
 }
 

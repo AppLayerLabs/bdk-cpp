@@ -24,14 +24,6 @@ namespace JsonRPC {
      */
     json getBlockJson(const std::shared_ptr<const Block>& block, bool includeTransactions);
 
-    /**
-     * Format a given tx into a JSON object.
-     * @param tx
-     * @return
-     */
-     template <typename smart_ptr>
-    json encodeTransactionJson(const TxBlock& tx);
-
     /// JSON ENCODING FUNCTIONS
 
     /**
@@ -172,6 +164,29 @@ namespace JsonRPC {
      * @params State: pointer to state (Tx is on mempool)
      */
     json eth_getTransactionByHash(const Hash& txHash, const std::unique_ptr<Storage>& storage, const std::unique_ptr<State>& state);
+
+    /**
+     * JSON encode a eth_getTransactionByBlockHashAndIndex response
+     * @params blockHash: given block hash.
+     * @params blockIndex: index of tx within block
+     * @params Storage: pointer to storage
+     */
+    json eth_getTransactionByBlockHashAndIndex(const std::pair<Hash,uint64_t>& requestInfo, const std::unique_ptr<Storage>& storage);
+
+    /**
+     * JSON encode a eth_getTransactionByBlockNumberAndIndex response
+     * @params blockNumber: given block number
+     * @params blockIndex: index of tx within block
+     * @params Storage: pointer to storage
+     */
+    json eth_getTransactionByBlockNumberAndIndex(const std::pair<uint64_t,uint64_t>& requestInfo, const std::unique_ptr<Storage>& storage);
+
+    /**
+     * JSON encode a eth_getTransactionReceipt response
+     * @params txHash: given tx hash
+     * @params Storage: pointer to Storage
+     */
+    json eth_getTransactionReceipt(const Hash& txHash, const std::unique_ptr<Storage>& storage);
   }
 }
 

@@ -223,5 +223,132 @@ namespace JsonRPC {
       }
       return ret;
     }
+
+    json eth_getTransactionByHash(const Hash& txHash, const std::unique_ptr<Storage>& storage, const std::unique_ptr<State>& state) {
+      json ret;
+      ret["jsonrpc"] = "2.0";
+      auto txOnMempool = state->getTxFromMempool(txHash);
+      if (txOnMempool != nullptr) {
+        ret["result"]["blockHash"] = json::value_t::null;
+        ret["result"]["blockIndex"] = json::value_t::null;
+        ret["result"]["from"] = txOnMempool->getFrom().hex(true);
+        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGas()), true);
+        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGasPrice()), true);
+        ret["result"]["hash"] = txOnMempool->hash().hex();
+        ret["result"]["input"] = Hex::fromBytes(txOnMempool->getData(), true);
+        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getNonce()), true);
+        ret["result"]["to"] = txOnMempool->getTo().hex(true);
+        ret["result"]["transactionIndex"] = json::value_t::null;
+        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getValue()), true);
+        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getV()), true);
+        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getR()), true);
+        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getS()), true);
+        return ret;
+      }
+
+      auto txOnChain = storage->getTx(txHash);
+      const auto &[tx, blockHash, blockIndex, blockHeight] = txOnChain;
+      if (tx != nullptr) {
+        ret["result"]["blockHash"] = blockHash.hex(true);
+        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true);
+        ret["result"]["from"] = tx->getFrom().hex(true);
+        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
+        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true);
+        ret["result"]["hash"] = tx->hash().hex();
+        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true);
+        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true);
+        ret["result"]["to"] = tx->getTo().hex(true);
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true);
+        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true);
+        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true);
+        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true);
+        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true);
+        return ret;
+      }
+      ret["result"] = json::value_t::null;
+      return ret;
+    }
+
+    json eth_getTransactionByBlockHashAndIndex(const std::pair<Hash,uint64_t>& requestInfo, const std::unique_ptr<Storage>& storage) {
+      json ret;
+      ret["jsonrpc"] = "2.0";
+      const auto& [blockHash, blockIndex] = requestInfo;
+      auto txInfo = storage->getTxByBlockHashAndIndex(blockHash, blockIndex);
+      const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
+      if (tx != nullptr) {
+        ret["result"]["blockHash"] = txBlockHash.hex(true);
+        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true);
+        ret["result"]["from"] = tx->getFrom().hex(true);
+        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
+        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true);
+        ret["result"]["hash"] = tx->hash().hex();
+        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true);
+        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true);
+        ret["result"]["to"] = tx->getTo().hex(true);
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true);
+        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true);
+        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true);
+        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true);
+        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true);
+        return ret;
+      }
+      ret["result"] = json::value_t::null;
+      return ret;
+    }
+
+    json eth_getTransactionByBlockNumberAndIndex(const std::pair<uint64_t,uint64_t>& requestInfo, const std::unique_ptr<Storage>& storage) {
+      json ret;
+      ret["jsonrpc"] = "2.0";
+      const auto& [blockNumber, blockIndex] = requestInfo;
+      auto txInfo = storage->getTxByBlockNumberAndIndex(blockNumber, blockIndex);
+      const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
+      if (tx != nullptr) {
+        ret["result"]["blockHash"] = txBlockHash.hex(true);
+        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true);
+        ret["result"]["from"] = tx->getFrom().hex(true);
+        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
+        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true);
+        ret["result"]["hash"] = tx->hash().hex();
+        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true);
+        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true);
+        ret["result"]["to"] = tx->getTo().hex(true);
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true);
+        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true);
+        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true);
+        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true);
+        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true);
+        return ret;
+      }
+      ret["result"] = json::value_t::null;
+      return ret;
+    }
+
+    json eth_getTransactionReceipt(const Hash& txHash, const std::unique_ptr<Storage>& storage) {
+      json ret;
+      ret["jsonrpc"] = "2.0";
+      auto txInfo = storage->getTx(txHash);
+      const auto& [tx, blockHash, blockIndex, blockHeight] = txInfo;
+      if (tx != nullptr) {
+        ret["result"]["transactionHash"] = tx->hash().hex(true);
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true);
+        ret["result"]["blockHash"] = blockHash.hex(true);
+        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true);
+        ret["result"]["from"] = tx->getFrom().hex(true);
+        ret["result"]["to"] = tx->getTo().hex(true);
+        ret["result"]["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
+        ret["result"]["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
+        ret["result"]["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()),true);
+        ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
+        ret["result"]["contractAddress"] = json::value_t::null; /// TODO: CHANGE THIS WHEN CREATING CONTRACTS!
+        ret["result"]["logs"] = json::array();
+        ret["result"]["logsBloom"] = Hash().hex(true);
+        ret["result"]["type"] = "0x00";
+        ret["result"]["root"] = Hash().hex(true);
+        ret["result"]["status"] = "0x1"; /// TODO: change this when contracts are ready
+        return ret;
+      }
+      ret["result"] = json::value_t::null;
+      return ret;
+    }
   }
 }

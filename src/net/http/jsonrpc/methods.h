@@ -56,10 +56,10 @@ namespace JsonRPC {
     eth_sendTransaction,                                    /// NOT IMPLEMENTED: NODE ARE NOT A WALLET
     eth_sendRawTransaction,                                 /// HALF DONE, WAITING FOR BLOCKCHAIN TO PROPERLY BROADCAST TX'S TO OTHER NODES.
     eth_getRawTransaction,
-    eth_getTransactionByHash,                               /// TODO, WAITING FOR FIX IN STORAGE.
-    eth_getTransactionByBlockHashAndIndex,                  /// TODO, WAITING FOR FIX IN STORAGE.
-    eth_getTransactionByBlockNumberAndIndex,                /// TODO, WAITING FOR FIX IN STORAGE.
-    eth_getTransactionReceipt,                              /// TODO, WAITING FOR FIX IN STORAGE.
+    eth_getTransactionByHash,                               /// DONE
+    eth_getTransactionByBlockHashAndIndex,                  /// DONE
+    eth_getTransactionByBlockNumberAndIndex,                /// DONE
+    eth_getTransactionReceipt,                              /// DONE
   };
 
   inline extern const std::unordered_map<std::string, Methods> methodsLookupTable = {
