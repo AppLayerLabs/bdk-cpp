@@ -35,23 +35,23 @@ class Storage {
     std::deque<std::shared_ptr<const Block>> chain;
 
     /// Map that indexes blocks in memory by their respective hashes.
-    std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> blockByHash;
+    std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> blockByHash;
 
     /// Map that indexes Tx, blockHash, blockIndex and blockHeight by their respective hashes
-    std::unordered_map<Hash, std::tuple<std::shared_ptr<const TxBlock>,Hash,uint64_t,uint64_t>, SafeHash> txByHash;
+    std::unordered_map<Hash, const std::tuple<const Hash,const uint64_t,const uint64_t>, SafeHash> txByHash;
 
     /// Map that indexes all block heights in the chain by their respective hashes.
-    std::unordered_map<Hash, uint64_t, SafeHash> blockHeightByHash;
+    std::unordered_map<Hash, const uint64_t, SafeHash> blockHeightByHash;
 
     /// Map that indexes all block hashes in the chain by their respective heights.
-    std::unordered_map<uint64_t, Hash, SafeHash> blockHashByHeight;
+    std::unordered_map<uint64_t, const Hash, SafeHash> blockHashByHeight;
 
     /// Cache space for blocks that will be included in the blockchain.
-    mutable std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> cachedBlocks;
+    mutable std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> cachedBlocks;
 
     /// Cache space for transactions that will be included in the blockchain.
     /// Value: tx, txBlockHash, txBlockIndex, txBlockHeight
-    mutable std::unordered_map<Hash, std::tuple<std::shared_ptr<const TxBlock>,Hash,uint64_t,uint64_t>, SafeHash> cachedTxs;
+    mutable std::unordered_map<Hash, const std::tuple<const std::shared_ptr<const TxBlock>,const Hash,const uint64_t, const uint64_t>, SafeHash> cachedTxs;
 
     /// Mutex for managing read/write access to the blockchain.
     mutable std::shared_mutex chainLock;
