@@ -57,7 +57,7 @@ namespace JsonRPC {
         if (request["params"].size() != 1) {
           throw std::runtime_error("web3_sha3 needs 1 param");
         }
-        std::string data = request["params"][0].get<std::string>();
+        std::string data = request["params"].at(0).get<std::string>();
         if (!Hex::isValid(data, true)) {
           throw std::runtime_error("Invalid hex string");
         }
@@ -129,7 +129,7 @@ namespace JsonRPC {
           includeTransactions = request["params"][1].get<bool>();
         }
         /// Check block hash.
-        std::string blockHash = request["params"][0].get<std::string>();
+        std::string blockHash = request["params"].at(0).get<std::string>();
         if (!std::regex_match(blockHash, hashFilter)) {
           throw std::runtime_error("Invalid block hash hex");
         }
@@ -150,7 +150,7 @@ namespace JsonRPC {
         }
 
         /// eth_getBlockByNumber support flags for it params instead of hex number.
-        std::string blockNumber = request["params"][0].get<std::string>();
+        std::string blockNumber = request["params"].at(0).get<std::string>();
         if (blockNumber == "latest") {
           return std::make_pair(storage->latest()->getNHeight(), includeTransactions);
         }
@@ -174,7 +174,7 @@ namespace JsonRPC {
       static const std::regex hashFilter("^0x[0-9a-f]{64}$");
       try {
         /// Check block hash.
-        std::string blockHash = request["params"][0].get<std::string>();
+        std::string blockHash = request["params"].at(0).get<std::string>();
         if (!std::regex_match(blockHash, hashFilter)) {
           throw std::runtime_error("Invalid block hash hex");
         }
@@ -189,7 +189,7 @@ namespace JsonRPC {
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
         /// eth_getBlockTransactionCountByNumber support flags for it params instead of hex number.
-        std::string blockNumber = request["params"][0].get<std::string>();
+        std::string blockNumber = request["params"].at(0).get<std::string>();
         if (blockNumber == "latest") {
           return storage->latest()->getNHeight();
         }
@@ -267,7 +267,7 @@ namespace JsonRPC {
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
-        const auto txObject = request["params"][0];
+        const auto txObject = request["params"].at(0);
         const auto block = request["params"][1].get<std::string>();
         if (block != "latest") {
           throw std::runtime_error("Only latest block is supported");
@@ -331,7 +331,7 @@ namespace JsonRPC {
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
-        const auto txObject = request["params"][0];
+        const auto txObject = request["params"].at(0);
         const auto block = request["params"][1].get<std::string>();
         if (block != "latest") {
           throw std::runtime_error("Only latest block is supported");
@@ -394,7 +394,7 @@ namespace JsonRPC {
 
     void eth_gasPrice(const json& request) {
       try {
-        const auto block = request["params"][0].get<std::string>();
+        const auto block = request["params"].at(0).get<std::string>();
         if (block != "latest") {
           throw std::runtime_error("Only latest block is supported");
         }
@@ -407,7 +407,7 @@ namespace JsonRPC {
     Address eth_getBalance(const json& request) {
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       try {
-        const auto address = request["params"][0].get<std::string>();
+        const auto address = request["params"].at(0).get<std::string>();
         const auto block = request["params"][1].get<std::string>();
         if (block != "latest") {
           throw std::runtime_error("Only latest block is supported");
@@ -425,7 +425,7 @@ namespace JsonRPC {
     Address eth_getTransactionCount(const json& request) {
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       try {
-        const auto address = request["params"][0].get<std::string>();
+        const auto address = request["params"].at(0).get<std::string>();
         const auto block = request["params"][1].get<std::string>();
         if (block != "latest") {
           throw std::runtime_error("Only latest block is supported");
@@ -442,7 +442,7 @@ namespace JsonRPC {
 
     TxBlock eth_sendRawTransaction(const json& request) {
       try {
-        const auto txHex = request["params"][0].get<std::string>();
+        const auto txHex = request["params"].at(0).get<std::string>();
         if (!Hex::isValid(txHex, true)) {
           throw std::runtime_error("Invalid transaction hex");
         }
@@ -456,7 +456,7 @@ namespace JsonRPC {
     Hash eth_getTransactionByHash(const json& request) {
       static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
       try {
-        const auto hash = request["params"][0].get<std::string>();
+        const auto hash = request["params"].at(0).get<std::string>();
         if (!std::regex_match(hash, hashFilter)) {
           throw std::runtime_error("Invalid hash hex");
         }
@@ -471,7 +471,7 @@ namespace JsonRPC {
       static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
-        std::string blockHash = request["params"][0].get<std::string>();
+        std::string blockHash = request["params"].at(0).get<std::string>();
         std::string index = request["params"][1].get<std::string>();
         if (!std::regex_match(blockHash, hashFilter)) {
           throw std::runtime_error("Invalid blockHash hex");
@@ -489,7 +489,7 @@ namespace JsonRPC {
     std::pair<uint64_t,uint64_t> eth_getTransactionByBlockNumberAndIndex(const json& request, const std::unique_ptr<Storage> &storage) {
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
-        std::string blockNumber = request["params"][0].get<std::string>();
+        std::string blockNumber = request["params"].at(0).get<std::string>();
         std::string index = request["params"][1].get<std::string>();
         if (!std::regex_match(index, numberFilter)) {
           throw std::runtime_error("Invalid index hex");
@@ -510,7 +510,7 @@ namespace JsonRPC {
     Hash eth_getTransactionReceipt(const json& request) {
       static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
       try {
-        std::string txHash = request["params"][0].get<std::string>();
+        std::string txHash = request["params"].at(0).get<std::string>();
         if (!std::regex_match(txHash, hashFilter)) {
           throw std::runtime_error("Invalid Hex");
         }
