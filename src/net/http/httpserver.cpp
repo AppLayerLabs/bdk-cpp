@@ -1,6 +1,6 @@
 #include "httpserver.h"
 
-void HTTPServer::start() {
+bool HTTPServer::run() {
   // Create and launch a listening port
   const boost::asio::ip::address address = net::ip::make_address("0.0.0.0");
   std::shared_ptr<const std::string> docroot = std::make_shared<const std::string>(".");
@@ -20,11 +20,25 @@ void HTTPServer::start() {
 
   // If we get here, it means we got a SIGINT or SIGTERM. Block until all the threads exit
   for (std::thread& t : v) t.join();
-  this->stopped = true;
   Utils::logToDebug(Log::httpServer, __func__, "HTTP Server Stopped");
+  return true;
 }
 
-void HTTPServer::stop() { this->ioc.stop(); }
+void HTTPServer::start() {
+  if (this->runFuture_.valid()) {
+    Utils::logToDebug(Log::httpServer, __func__, "HTTP Server is already running");
+    return;
+  }
+  this->runFuture_ = std::async(std::launch::async, &HTTPServer::run, this);
+}
 
-bool HTTPServer::running() { return !this->stopped; }
+void HTTPServer::stop() {
+  if (!this->runFuture_.valid()) {
+    Utils::logToDebug(Log::httpServer, __func__, "HTTP Server is not running");
+    return;
+  }
+  this->ioc.stop();
+  this->runFuture_.get();
+}
+bool HTTPServer::running() { return this->runFuture_.valid(); }
 

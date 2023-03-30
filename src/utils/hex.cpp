@@ -72,6 +72,18 @@ int Hex::toInt(char c) {
   return -1;
 }
 
+std::string Hex::forRPC() const {
+  std::string retHex = this->hex;
+  if (retHex[0] != '0' && retHex[1] != 'x') retHex.insert(0, "0x");
+  if (retHex == "0x") { retHex = "0x0"; return retHex; };
+  /// Check for leading zeroes!
+  size_t i = 2;
+  while (retHex[i] == '0')
+    retHex.erase(i, 1);
+  return retHex;
+};
+
+
 std::string Hex::toBytes(const std::string_view hex) {
   std::string ret;
   size_t i = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? 2 : 0;

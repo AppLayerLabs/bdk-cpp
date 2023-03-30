@@ -163,6 +163,18 @@ class Hex {
     static int toInt(char c);
 
     /**
+     * Return a Ethereum JSONRPC friendly Hex.
+     * https://ethereum.org/pt/developers/docs/apis/json-rpc/#hex-encoding
+     * 0x41 (65 in decimal)
+     * 0x400 (1024 in decimal)
+     * WRONG: 0x (should always have at least one digit - zero is "0x0")
+     * WRONG: 0x0400 (no leading zeroes allowed)
+     * WRONG: ff (must be prefixed 0x)
+     * @return this->hex
+     */
+    std::string forRPC() const;
+
+    /**
      * Default operator to return the hex directly as a string.
      *
      * @example

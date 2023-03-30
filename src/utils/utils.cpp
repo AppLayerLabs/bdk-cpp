@@ -4,7 +4,7 @@ std::mutex log_lock;
 std::mutex debug_mutex;
 
 void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what) {
-  Utils::logToDebug(cl, func, std::string("P2P Fail ") + what + " : " + ec.message());
+  Utils::logToDebug(cl, func, std::string("HTTP Fail ") + what + " : " + ec.message());
 }
 
 void Utils::logToFile(std::string_view str) {

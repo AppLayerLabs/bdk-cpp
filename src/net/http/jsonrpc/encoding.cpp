@@ -14,6 +14,7 @@ namespace JsonRPC {
           ret["result"] = json::value_t::null;
           return ret;
         }
+        ret["result"]["hash"] = block->hash().hex(true);
         ret["result"]["parentHash"] = block->getPrevBlockHash().hex(true);
         ret["result"]["sha3Uncles"] = Hash().hex(true); /// Uncles doesn't exists.
         ret["result"]["miner"] = Secp256k1::toAddress(block->getValidatorPubKey()).hex(true);
@@ -22,17 +23,17 @@ namespace JsonRPC {
         ret["result"]["receiptsRoot"] = Hash().hex(true); /// No receiptsRoot.
         ret["result"]["logsBloom"] = Hash().hex(true); /// No logsBloom.
         ret["result"]["difficulty"] = "0x1";
-        ret["result"]["number"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true);
-        ret["result"]["gasLimit"] = Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true);
-        ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true); /// Arbitrary number
-        ret["result"]["timestamp"] = Hex::fromBytes(Utils::uintToBytes(block->getTimestamp()),true);
+        ret["result"]["number"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
+        ret["result"]["gasLimit"] = Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC();
+        ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC(); /// Arbitrary number
+        ret["result"]["timestamp"] = Hex::fromBytes(Utils::uintToBytes(block->getTimestamp()),true).forRPC();
         ret["result"]["extraData"] = "0x0";
         ret["result"]["mixHash"] = Hash().hex(true); /// No mixHash.
-        ret["result"]["nonce"] = "0x0000000000000000";
+        ret["result"]["nonce"] = "0x0";
         ret["result"]["totalDifficulty"] = "0x1";
         ret["result"]["baseFeePerGas"] = "0x9502f900";
         ret["result"]["withdrawRoot"] = Hash().hex(true); /// No withdrawRoot.
-        ret["result"]["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true); /// TODO: to get a block you have to serialize it entirely, this can be expensive.
+        ret["result"]["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC(); /// TODO: to get a block you have to serialize it entirely, this can be expensive.
         if (!includeTransactions) {
           /// Only include the transaction hashes.
           ret["result"]["transactions"] = json::array();
@@ -45,16 +46,16 @@ namespace JsonRPC {
           for (const auto& tx : block->getTxs()) {
             json txJson = json::object();
             txJson["type"] = "0x0"; /// Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
-            txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true); /// TODO: get the nonce from the transaction.
+            txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC(); /// TODO: get the nonce from the transaction.
             txJson["to"] = tx.getTo().hex(true);
-            txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGas()),true);
-            txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true);
-            txJson["input"] = Hex::fromBytes(tx.getData(),true);
-            txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasPrice()),true);
-            txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true);
-            txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()),true);
-            txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()),true);
-            txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()),true);
+            txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGas()),true).forRPC();
+            txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
+            txJson["input"] = Hex::fromBytes(tx.getData(),true).forRPC();
+            txJson["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasPrice()),true).forRPC();
+            txJson["chainId"] = Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC();
+            txJson["v"] = Hex::fromBytes(Utils::uintToBytes(tx.getV()),true).forRPC();
+            txJson["r"] = Hex::fromBytes(Utils::uintToBytes(tx.getR()),true).forRPC();
+            txJson["s"] = Hex::fromBytes(Utils::uintToBytes(tx.getS()),true).forRPC();
             ret["result"]["transactions"].emplace_back(std::move(txJson));
           }
         }
@@ -101,7 +102,7 @@ namespace JsonRPC {
     json net_peerCount(const std::unique_ptr<P2P::ManagerNormal>& manager) {
       json ret;
       ret["jsonrpc"] = 2.0;
-      ret["result"] = Hex::fromBytes(Utils::uintToBytes(manager->getPeerCount()), true);
+      ret["result"] = Hex::fromBytes(Utils::uintToBytes(manager->getPeerCount()), true).forRPC();
       return ret;
     }
 
@@ -131,7 +132,7 @@ namespace JsonRPC {
       if (block == nullptr) {
         ret["result"] = json::value_t::null;
       }
-      ret["result"] = Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true);
+      ret["result"] = Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true).forRPC();
       return ret;
     }
 
@@ -142,7 +143,7 @@ namespace JsonRPC {
       if (block == nullptr) {
         ret["result"] = json::value_t::null;
       }
-      ret["result"] = Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true);
+      ret["result"] = Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true).forRPC();
       return ret;
     }
 
@@ -171,7 +172,7 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = "2.0";
       auto latestBlock = storage->latest();
-      ret["result"] = Hex::fromBytes(Utils::uintToBytes(latestBlock->getNHeight()), true);
+      ret["result"] = Hex::fromBytes(Utils::uintToBytes(latestBlock->getNHeight()), true).forRPC();
       return ret;
     }
 
@@ -192,14 +193,14 @@ namespace JsonRPC {
     json eth_getBalance(const Address& address, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
-      ret["result"] = Hex::fromBytes(Utils::uintToBytes(state->getNativeBalance(address)), true);
+      ret["result"] = Hex::fromBytes(Utils::uintToBytes(state->getNativeBalance(address)), true).forRPC();
       return ret;
     }
 
     json eth_getTransactionCount(const Address& address, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
-      ret["result"] = Hex::fromBytes(Utils::uintToBytes(state->getNativeNonce(address)), true);
+      ret["result"] = Hex::fromBytes(Utils::uintToBytes(state->getNativeNonce(address)), true).forRPC();
       return ret;
     }
 
@@ -232,17 +233,17 @@ namespace JsonRPC {
         ret["result"]["blockHash"] = json::value_t::null;
         ret["result"]["blockIndex"] = json::value_t::null;
         ret["result"]["from"] = txOnMempool->getFrom().hex(true);
-        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGas()), true);
-        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGasPrice()), true);
-        ret["result"]["hash"] = txOnMempool->hash().hex();
-        ret["result"]["input"] = Hex::fromBytes(txOnMempool->getData(), true);
-        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getNonce()), true);
+        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGas()), true).forRPC();
+        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getGasPrice()), true).forRPC();
+        ret["result"]["hash"] = txOnMempool->hash().hex(true);
+        ret["result"]["input"] = Hex::fromBytes(txOnMempool->getData(), true).forRPC();
+        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getNonce()), true).forRPC();
         ret["result"]["to"] = txOnMempool->getTo().hex(true);
         ret["result"]["transactionIndex"] = json::value_t::null;
-        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getValue()), true);
-        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getV()), true);
-        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getR()), true);
-        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getS()), true);
+        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getValue()), true).forRPC();
+        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getV()), true).forRPC();
+        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getR()), true).forRPC();
+        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(txOnMempool->getS()), true).forRPC();
         return ret;
       }
 
@@ -250,19 +251,19 @@ namespace JsonRPC {
       const auto &[tx, blockHash, blockIndex, blockHeight] = txOnChain;
       if (tx != nullptr) {
         ret["result"]["blockHash"] = blockHash.hex(true);
-        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true);
+        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
         ret["result"]["from"] = tx->getFrom().hex(true);
-        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
-        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true);
-        ret["result"]["hash"] = tx->hash().hex();
-        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true);
-        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true);
+        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true).forRPC();
+        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true).forRPC();
+        ret["result"]["hash"] = tx->hash().hex(true);
+        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
         ret["result"]["to"] = tx->getTo().hex(true);
-        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true);
-        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true);
-        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true);
-        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true);
-        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true);
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true).forRPC();
+        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
+        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
+        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
+        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
         return ret;
       }
       ret["result"] = json::value_t::null;
@@ -277,19 +278,19 @@ namespace JsonRPC {
       const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
       if (tx != nullptr) {
         ret["result"]["blockHash"] = txBlockHash.hex(true);
-        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true);
+        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true).forRPC();
         ret["result"]["from"] = tx->getFrom().hex(true);
-        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
-        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true);
-        ret["result"]["hash"] = tx->hash().hex();
-        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true);
-        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true);
+        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true).forRPC();
+        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true).forRPC();
+        ret["result"]["hash"] = tx->hash().hex(true);
+        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
         ret["result"]["to"] = tx->getTo().hex(true);
-        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true);
-        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true);
-        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true);
-        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true);
-        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true);
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
+        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
+        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
+        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
+        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
         return ret;
       }
       ret["result"] = json::value_t::null;
@@ -304,19 +305,19 @@ namespace JsonRPC {
       const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
       if (tx != nullptr) {
         ret["result"]["blockHash"] = txBlockHash.hex(true);
-        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true);
+        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(txBlockHeight), true).forRPC();
         ret["result"]["from"] = tx->getFrom().hex(true);
-        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
-        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true);
-        ret["result"]["hash"] = tx->hash().hex();
-        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true);
-        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true);
+        ret["result"]["gas"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true).forRPC();
+        ret["result"]["gasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()), true).forRPC();
+        ret["result"]["hash"] = tx->hash().hex(true);
+        ret["result"]["input"] = Hex::fromBytes(tx->getData(), true).forRPC();
+        ret["result"]["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx->getNonce()), true).forRPC();
         ret["result"]["to"] = tx->getTo().hex(true);
-        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true);
-        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true);
-        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true);
-        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true);
-        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true);
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txBlockIndex), true).forRPC();
+        ret["result"]["value"] = Hex::fromBytes(Utils::uintToBytes(tx->getValue()), true).forRPC();
+        ret["result"]["v"] = Hex::fromBytes(Utils::uintToBytes(tx->getV()), true).forRPC();
+        ret["result"]["r"] = Hex::fromBytes(Utils::uintToBytes(tx->getR()), true).forRPC();
+        ret["result"]["s"] = Hex::fromBytes(Utils::uintToBytes(tx->getS()), true).forRPC();
         return ret;
       }
       ret["result"] = json::value_t::null;
@@ -330,15 +331,15 @@ namespace JsonRPC {
       const auto& [tx, blockHash, blockIndex, blockHeight] = txInfo;
       if (tx != nullptr) {
         ret["result"]["transactionHash"] = tx->hash().hex(true);
-        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true);
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true).forRPC();
         ret["result"]["blockHash"] = blockHash.hex(true);
-        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true);
+        ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
         ret["result"]["from"] = tx->getFrom().hex(true);
         ret["result"]["to"] = tx->getTo().hex(true);
-        ret["result"]["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
-        ret["result"]["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
-        ret["result"]["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()),true);
-        ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true);
+        ret["result"]["cumulativeGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true).forRPC();
+        ret["result"]["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true).forRPC();
+        ret["result"]["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasPrice()),true).forRPC();
+        ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGas()), true).forRPC();
         ret["result"]["contractAddress"] = json::value_t::null; /// TODO: CHANGE THIS WHEN CREATING CONTRACTS!
         ret["result"]["logs"] = json::array();
         ret["result"]["logsBloom"] = Hash().hex(true);

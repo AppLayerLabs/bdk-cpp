@@ -25,11 +25,14 @@ class HTTPServer {
     /// Pointer to the listener.
     std::shared_ptr<HTTPListener> listener;
 
-    /// Indicates if the server is currently stopped.
-    bool stopped = false;
-
     /// The port where the server is running.
     const unsigned short port;
+
+    /// The run function. (effectively starts the server)
+    bool run();
+
+    /// Future for the run function.
+    std::future<bool> runFuture_;
 
   public:
     /**
@@ -39,6 +42,8 @@ class HTTPServer {
      */
     HTTPServer(const unsigned short port, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage, const std::unique_ptr<P2P::ManagerNormal>& p2p)
       : port(port), state(state), storage(storage), p2p(p2p) {}
+
+    ~HTTPServer() { this->stop(); }
 
     void start(); ///< Start the server.
     void stop(); ///< Stop the server.

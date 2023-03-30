@@ -28,13 +28,13 @@ using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
 
 /**
- * Helper function for debugging failed operations.
+ * Helper function for debugging failed operations over HTTP.
  * @param cl The class where the operation failed.
  * @param func The function where the operation failed.
  * @param ec Boost Beast error code.
  * @param what String explaining what exactly failed.
  */
-void fail(std::string_view cl, std::string func, boost::beast::error_code ec, const char* what);
+void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what);
 
 /**
  * Namespace with string prefixes for each blockchain module, for printing log/debug messages.
