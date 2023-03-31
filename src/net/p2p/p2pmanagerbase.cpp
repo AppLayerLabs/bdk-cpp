@@ -28,12 +28,18 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Cannot connect to self");
       return;
     }
+    if (clientSessionsCount >= this->maxConnections_) {
+      Utils::logToDebug(Log::P2PManager, __func__, "Cannot connect to more than " + std::to_string(maxConnections_) + " clients");
+      return;
+    }
     std::thread clientThread([&, host, port] {
+      ++clientSessionsCount;
       net::io_context ioc;
       auto client = std::make_shared<ClientSession>(ioc, host, port, *this, this->threadPool);
       client->run();
       ioc.run();
       Utils::logToFile("ClientSession thread exitted");
+      --clientSessionsCount;
     });
     clientThread.detach();
   }

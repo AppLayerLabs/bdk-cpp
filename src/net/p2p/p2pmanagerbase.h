@@ -52,6 +52,9 @@ namespace P2P {
       mutable std::shared_mutex sessionsMutex; // Mutex for protecting sessions
       mutable std::shared_mutex requestsMutex; // Mutex for protecting requests
 
+      // Atomic uint for counting number of ClientSessions
+      std::atomic<unsigned int> clientSessionsCount = 0;
+
       // Sends a message to a given node. returns pointer to the request object, null if doesn't exists.
       std::shared_ptr<Request> sendMessageTo(const Hash &nodeId, const Message &message);
 
