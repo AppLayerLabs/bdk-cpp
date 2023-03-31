@@ -17,7 +17,7 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
 endif()
 
 # Project data
-project(subnetooor VERSION 0.0.1 DESCRIPTION "Sparq subnet")
+project(orbitersdk VERSION 0.0.1 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -45,7 +45,7 @@ message(STATUS "Find libs with suffix: ${CMAKE_FIND_LIBRARY_SUFFIXES}")
 message("Building tests: ${BUILD_TESTS}")
 message("Building avalanchego: ${BUILD_AVALANCHEGO}")
 
-cable_add_buildinfo_library(PROJECT_NAME subnetooor)
+cable_add_buildinfo_library(PROJECT_NAME orbitersdk)
 
 # System package configs (built-in)
 set(Boost_USE_STATIC_LIBS ON)
@@ -107,7 +107,7 @@ link_directories(
 )
 
 # TODO: change src/ to src/
-# Organize, compile and link subnetooor libs
+# Organize, compile and link orbitersdk libs
 add_subdirectory(src/contract)
 add_subdirectory(src/core)
 add_subdirectory(src/net)
@@ -355,7 +355,7 @@ if(BUILD_AVALANCHEGO)
 
   target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags)
 
-  add_library(subnetooor_lib STATIC
+  add_library(orbitersdk_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
@@ -366,25 +366,25 @@ if(BUILD_AVALANCHEGO)
     ${NET_SOURCES}
   )
 
-  add_dependencies(subnetooor_lib gen-grpc ProtoFiles)
+  add_dependencies(orbitersdk_lib gen-grpc ProtoFiles)
 
-  target_include_directories(subnetooor_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
+  target_include_directories(orbitersdk_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
-  target_link_libraries(subnetooor_lib PRIVATE
+  target_link_libraries(orbitersdk_lib PRIVATE
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS} ${Protobuf_LIBRARIES}
     ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags
     ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
-  set_target_properties(subnetooor_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
+  set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
 
   # Compile and link the executable
-  add_executable(subnetooord "${CMAKE_SOURCE_DIR}/src/main.cpp")
+  add_executable(orbitersdkd "${CMAKE_SOURCE_DIR}/src/main.cpp")
 
-  add_dependencies(subnetooord subnetooor_lib gen-grpc ProtoFiles)
-  target_include_directories(subnetooord PRIVATE subnetooor_lib ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(subnetooord
-    subnetooor_lib
+  add_dependencies(orbitersdkd orbitersdk_lib gen-grpc ProtoFiles)
+  target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
+  target_link_libraries(orbitersdkd
+    orbitersdk_lib
     ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
     ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
     absl::flags Secp256k1
@@ -392,7 +392,7 @@ if(BUILD_AVALANCHEGO)
 
   # TODO: Implement tests for AvalancheGo compilation.
 else()
-  add_library(subnetooor_lib STATIC
+  add_library(orbitersdk_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
@@ -403,31 +403,31 @@ else()
     ${NET_SOURCES}
   )
 
-  target_include_directories(subnetooor_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
+  target_include_directories(orbitersdk_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
-  target_link_libraries(subnetooor_lib PRIVATE
+  target_link_libraries(orbitersdk_lib PRIVATE
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
     ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
-  set_target_properties(subnetooor_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
+  set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
 
   # Compile and link the executable
-  add_executable(subnetooord "${CMAKE_SOURCE_DIR}/src/main.cpp")
+  add_executable(orbitersdkd "${CMAKE_SOURCE_DIR}/src/main.cpp")
 
-  add_dependencies(subnetooord subnetooor_lib)
-  target_include_directories(subnetooord PRIVATE subnetooor_lib ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(subnetooord
-    subnetooor_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
+  add_dependencies(orbitersdkd orbitersdk_lib)
+  target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
+  target_link_libraries(orbitersdkd
+    orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
   )
 
   # Compile and link the test executable.
-  add_executable(subnetooord-tests ${TESTS_HEADERS} ${TESTS_SOURCES})
+  add_executable(orbitersdkd-tests ${TESTS_HEADERS} ${TESTS_SOURCES})
 
-  add_dependencies(subnetooord-tests subnetooor_lib)
-  target_include_directories(subnetooord-tests PRIVATE subnetooor_lib  ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(subnetooord-tests
-    subnetooor_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
+  add_dependencies(orbitersdkd-tests orbitersdk_lib)
+  target_include_directories(orbitersdkd-tests PRIVATE orbitersdk_lib  ${OPENSSL_INCLUDE_DIR})
+  target_link_libraries(orbitersdkd-tests
+    orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
   )
 endif()
 
