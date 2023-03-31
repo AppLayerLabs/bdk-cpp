@@ -9,6 +9,7 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/randomgen.h
   ${CMAKE_SOURCE_DIR}/src/utils/tx.h
   ${CMAKE_SOURCE_DIR}/src/utils/block.h
+  ${CMAKE_SOURCE_DIR}/src/utils/options.h
   PARENT_SCOPE
 )
 
@@ -22,5 +23,6 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/randomgen.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/tx.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/block.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/options.cpp
   PARENT_SCOPE
 )

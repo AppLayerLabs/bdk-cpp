@@ -12,19 +12,19 @@
 namespace JsonRPC {
   enum Methods {
     invalid,
-    web3_clientVersion,                                     /// TODO: WAITING FOR OPTIONS
+    web3_clientVersion,                                     /// DONE (RETURNS APPCHAIN SYSTEM SPECIFIC VERSION)
     web3_sha3,                                              /// DONE
-    net_version,                                            /// TODO: WAITING FOR OPTIONS
+    net_version,                                            /// DONE (RETURNS APPCHAIN VERSION)
     net_listening,                                          /// TODO: WAITING FOR BLOCKCHAIN
     net_peerCount,                                          /// DONE
-    eth_protocolVersion,                                    /// TODO: WAITING FOR OPTIONS
+    eth_protocolVersion,                                    /// DONE (RETURNS ORBITERSDK VERSION)
     eth_getBlockByHash,                                     /// DONE
     eth_getBlockByNumber,                                   /// DONE
     eth_getBlockTransactionCountByHash,                     /// DONE
     eth_getBlockTransactionCountByNumber,                   /// DONE
     eth_getUncleCountByBlockHash,                           /// CAN'T IMPLEMENT, WE ARE NOT DAG (DAG = Directed Acyclic Graph)
     eth_getUncleCountByBlockNumber,                         /// CAN'T IMPLEMENT, WE ARE NOT DAG (DAG = Directed Acyclic Graph)
-    eth_chainId,                                            /// TODO: WAITING FOR OPTIONS
+    eth_chainId,                                            /// DONE.
     eth_syncing,                                            /// TODO: WAITING FOR BLOCKCHAIN
     eth_coinbase,                                           /// TODO: WAITING FOR OPTIONS
     eth_accounts,                                           /// NOT IMPLEMENTED: NODE IS NOT A WALLET

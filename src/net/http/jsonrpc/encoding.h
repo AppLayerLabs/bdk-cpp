@@ -4,6 +4,7 @@
 #include "../../../utils/utils.h"
 #include "../../../utils/block.h"
 #include "../../../utils/tx.h"
+#include "../../../utils/options.h"
 
 /// Forward Declaration
 namespace P2P {
@@ -28,9 +29,8 @@ namespace JsonRPC {
 
     /**
      * JSON Encode a web3_clientVersion response.
-     * TODO: WAITING FOR OPTIONS
      */
-    json web3_clientVersion();
+    json web3_clientVersion(const std::unique_ptr<Options>& options);
 
     /**
      * JSON Encode a web3_sha3 request
@@ -40,9 +40,8 @@ namespace JsonRPC {
 
     /**
      * JSON Encode a net_version response
-     * TODO: WAITING FOR OPTIONS
      */
-    json net_version();
+    json net_version(const std::unique_ptr<Options>& options);
 
     /**
      * JSON Encode a net_listening response
@@ -60,7 +59,7 @@ namespace JsonRPC {
      * JSON Encode a eth_protocolVersion response
      * TODO: Wainting for options
      */
-    json eth_protocolVersion();
+    json eth_protocolVersion(const std::unique_ptr<Options>& options);
 
     /**
      * JSON Encode a eth_getBlockByHash response
@@ -92,9 +91,8 @@ namespace JsonRPC {
 
     /**
      * JSON encode a eth_chainId response
-     * TODO: WAITING FOR OPTIONS
      */
-    json eth_chainId();
+    json eth_chainId(const std::unique_ptr<Options>& options);
 
     /**
      * JSON encode a eth_syncing response
@@ -104,9 +102,8 @@ namespace JsonRPC {
 
     /**
      * JSON encode a eth_coinbase response
-     * TODO: WAITING FOR OPTIONS
      */
-    json eth_coinbase();
+    json eth_coinbase(const std::unique_ptr<Options>& options);
 
     /**
      * JSON encode a eth_blockNumber response

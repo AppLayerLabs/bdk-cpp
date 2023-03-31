@@ -36,6 +36,7 @@
 #include <google/protobuf/util/json_util.h>
 
 #include "../utils/utils.h"
+#include "../utils/options.h"
 #include "jsonrpc/methods.h"
 #include "jsonrpc/encoding.h"
 #include "jsonrpc/decoding.h"
@@ -68,7 +69,8 @@ std::string parseJsonRpcRequest(
   const std::string& body,
   const std::unique_ptr<State>& state,
   const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p
+  const std::unique_ptr<P2P::ManagerNormal>& p2p,
+  const std::unique_ptr<Options>& options
 );
 
 /**
@@ -84,7 +86,7 @@ template<class Body, class Allocator, class Send> void handle_request(
   beast::string_view docroot,
   http::request<Body, http::basic_fields<Allocator>>&& req,
   Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p
+  const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
 ) {
   // Returns a bad request response
   const auto bad_request = [&req](beast::string_view why){
@@ -147,7 +149,7 @@ template<class Body, class Allocator, class Send> void handle_request(
 
   std::string request = req.body();
 
-  std::string answer = parseJsonRpcRequest(request, state, storage, p2p);
+  std::string answer = parseJsonRpcRequest(request, state, storage, p2p, options);
   http::response<http::string_body> res{http::status::ok, req.version()};
   res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
   res.set(http::field::access_control_allow_origin, "*");

@@ -25,6 +25,9 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
     /// Reference to the P2P manager.
     const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
+    /// Reference to the Options
+    const std::unique_ptr<Options>& options;
+
     /**
      * Accept an incoming connection from the endpoint.
      * The new connection gets its own strand.
@@ -52,7 +55,8 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
       std::shared_ptr<const std::string>& docroot,
       const std::unique_ptr<State>& state,
       const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p
+      const std::unique_ptr<P2P::ManagerNormal>& p2p,
+      const std::unique_ptr<Options>& options
     );
 
     /// Start accepting incoming connections.

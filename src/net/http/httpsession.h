@@ -90,6 +90,9 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
     /// Reference to the P2P manager.
     const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
+    /// Reference to the Options
+    const std::unique_ptr<Options>& options;
+
     /// Read whatever is on the internal buffer.
     void do_read();
 
@@ -124,8 +127,9 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
       std::shared_ptr<const std::string>& docroot,
       const std::unique_ptr<State>& state,
       const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p
-    ) : stream(std::move(sock)), docroot(docroot), queue(*this), state(state), storage(storage), p2p(p2p)
+      const std::unique_ptr<P2P::ManagerNormal>& p2p,
+      const std::unique_ptr<Options>& options
+    ) : stream(std::move(sock)), docroot(docroot), queue(*this), state(state), storage(storage), p2p(p2p), options(options)
     {}
 
     /// Start the HTTP session.

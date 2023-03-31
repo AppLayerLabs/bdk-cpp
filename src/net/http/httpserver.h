@@ -16,6 +16,9 @@ class HTTPServer {
     /// Reference to the P2P manager.
     const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
+    /// Reference to the Options
+    const std::unique_ptr<Options>& options;
+
     /**
      * Provides core I/O functionality.
      * {x} is the maximum number of threads the object can use.
@@ -40,8 +43,12 @@ class HTTPServer {
      * @param state unique_ptr reference to the state.
      * @param port The port that the server will run at.
      */
-    HTTPServer(const unsigned short port, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage, const std::unique_ptr<P2P::ManagerNormal>& p2p)
-      : port(port), state(state), storage(storage), p2p(p2p) {}
+    HTTPServer(const unsigned short port,
+               const std::unique_ptr<State>& state,
+               const std::unique_ptr<Storage>& storage,
+               const std::unique_ptr<P2P::ManagerNormal>& p2p,
+               const std::unique_ptr<Options>& options)
+      : port(port), state(state), storage(storage), p2p(p2p), options(options) {}
 
     ~HTTPServer() { this->stop(); }
 

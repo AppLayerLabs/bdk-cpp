@@ -1,5 +1,6 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/utils.h"
+#include "../../src/utils/options.h"
 #include "../../src/net/p2p/p2pmanagernormal.h"
 #include "../../src/net/http/httpserver.h"
 #include "../../src/core/state.h"
@@ -100,12 +101,13 @@ void initialize(std::unique_ptr<DB>& db,
                 std::unique_ptr<rdPoS>& rdpos,
                 std::unique_ptr<State>& state,
                 std::unique_ptr<HTTPServer>& httpServer,
+                std::unique_ptr<Options>& options,
                 PrivKey validatorKey,
                 uint64_t serverPort,
                 uint64_t httpServerPort,
                 bool clearDb = true,
                 std::string dbPrefix = "") {
-  std::string dbName = dbPrefix + "httpTests";
+  std::string dbName = dbPrefix + "/httpTests";
   if (clearDb) {
     if (std::filesystem::exists(dbName)) {
       std::filesystem::remove_all(dbName);
@@ -141,7 +143,8 @@ void initialize(std::unique_ptr<DB>& db,
   p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), serverPort, rdpos);
   rdpos = std::make_unique<rdPoS>(db, 8080, storage, p2p, validatorKey);
   state = std::make_unique<State>(db, storage, rdpos, p2p);
-  httpServer = std::make_unique<HTTPServer>(httpServerPort, state, storage, p2p);
+  options = std::make_unique<Options>(Options::fromFile("config.json"));
+  httpServer = std::make_unique<HTTPServer>(httpServerPort, state, storage, p2p, options);
 }
 
 template <typename T>
@@ -171,7 +174,8 @@ namespace THTTPJsonRPC{
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<State> state;
       std::unique_ptr<HTTPServer> httpServer;
-      initialize(db, storage, p2p, rdpos, state, httpServer, validatorPrivKeys[0], 8080, 8081, true, "jsonRPC");
+      std::unique_ptr<Options> options;
+      initialize(db, storage, p2p, rdpos, state, httpServer, options, validatorPrivKeys[0], 8080, 8081, true, "jsonRPC");
 
 
       /// Make random transactions within a given block, we need to include requests for getting txs and blocks
@@ -321,7 +325,7 @@ namespace THTTPJsonRPC{
       REQUIRE(eth_syncingResponse["result"] == false);
 
       json eth_coinbaseResponse = requestMethod("eth_coinbase", json::array());
-      REQUIRE(eth_coinbaseResponse["result"] == json::value_t::null);
+      REQUIRE(eth_coinbaseResponse["result"] == Address().hex(true));
 
       json eth_blockNumberResponse = requestMethod("eth_blockNumber", json::array());
       REQUIRE(eth_blockNumberResponse["result"] == "0x1");

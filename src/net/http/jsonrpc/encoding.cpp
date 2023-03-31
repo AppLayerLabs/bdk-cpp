@@ -71,10 +71,10 @@ namespace JsonRPC {
       return ret;
     }
 
-    json web3_clientVersion() {
+    json web3_clientVersion(const std::unique_ptr<Options>& options) {
       json ret;
       ret["jsonrpc"] = "2.0";
-      ret["result"] = "OrbiterSDK/cpp/linux_x86-64/0.0.1";
+      ret["result"] = options->getWeb3ClientVersion();
       return ret;
     }
 
@@ -85,10 +85,10 @@ namespace JsonRPC {
       return ret;
     }
 
-    json net_version() {
+    json net_version(const std::unique_ptr<Options>& options) {
       json ret;
       ret["jsonrpc"] = 2.0;
-      ret["result"] = "1";
+      ret["result"] = std::to_string(options->getVersion());
       return ret;
     }
 
@@ -106,10 +106,10 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_protocolVersion() {
+    json eth_protocolVersion(const std::unique_ptr<Options>& options) {
       json ret;
       ret["jsonrpc"] = 2.0;
-      ret["result"] = "1";
+      ret["result"] = std::to_string(options->getSDKVersion());
       return ret;
     }
 
@@ -147,10 +147,10 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_chainId() {
+    json eth_chainId(const std::unique_ptr<Options>& options) {
       json ret;
       ret["jsonrpc"] = "2.0";
-      ret["result"] = "0x1f90";
+      ret["result"] = Hex::fromBytes(Utils::uintToBytes(options->getChainID()), true).forRPC();
       return ret;
     }
 
@@ -161,10 +161,10 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_coinbase() {
+    json eth_coinbase(const std::unique_ptr<Options>& options) {
       json ret;
       ret["jsonrpc"] = "2.0";
-      ret["result"] = json::value_t::null;
+      ret["result"] = options->getCoinbase().hex(true);
       return ret;
     }
 

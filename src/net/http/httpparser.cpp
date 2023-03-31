@@ -4,7 +4,8 @@ std::string parseJsonRpcRequest(
   const std::string& body,
   const std::unique_ptr<State>& state,
   const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p
+  const std::unique_ptr<P2P::ManagerNormal>& p2p,
+  const std::unique_ptr<Options>& options
 ) {
   json ret;
   uint64_t id = 0;
@@ -25,14 +26,14 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::web3_clientVersion:
         JsonRPC::Decoding::web3_clientVersion(request);
-        ret = JsonRPC::Encoding::web3_clientVersion();
+        ret = JsonRPC::Encoding::web3_clientVersion(options);
         break;
       case JsonRPC::Methods::web3_sha3:
         ret = JsonRPC::Encoding::web3_sha3(JsonRPC::Decoding::web3_sha3(request));
         break;
       case JsonRPC::Methods::net_version:
         JsonRPC::Decoding::net_version(request);
-        ret = JsonRPC::Encoding::net_version();
+        ret = JsonRPC::Encoding::net_version(options);
         break;
       case JsonRPC::Methods::net_listening:
         JsonRPC::Decoding::net_listening(request);
@@ -44,7 +45,7 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_protocolVersion:
         JsonRPC::Decoding::eth_protocolVersion(request);
-        ret = JsonRPC::Encoding::eth_protocolVersion();
+        ret = JsonRPC::Encoding::eth_protocolVersion(options);
         break;
       case JsonRPC::Methods::eth_getBlockByHash:
         ret = JsonRPC::Encoding::eth_getBlockByHash(
@@ -72,7 +73,7 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_chainId:
         JsonRPC::Decoding::eth_chainId(request);
-        ret = JsonRPC::Encoding::eth_chainId();
+        ret = JsonRPC::Encoding::eth_chainId(options);
         break;
       case JsonRPC::Methods::eth_syncing:
         JsonRPC::Decoding::eth_syncing(request);
@@ -80,7 +81,7 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_coinbase:
         JsonRPC::Decoding::eth_coinbase(request);
-        ret = JsonRPC::Encoding::eth_coinbase();
+        ret = JsonRPC::Encoding::eth_coinbase(options);
         break;
       case JsonRPC::Methods::eth_blockNumber:
         JsonRPC::Decoding::eth_blockNumber(request);
