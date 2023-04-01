@@ -12,7 +12,7 @@ class Options {
     const std::string rootPath;
 
     /// Version of the OrbiterSDK
-    const uint64_t SDKVersion = 1;
+    const uint64_t SDKVersion = @CMAKE_PROJECT_VERSION@;
 
     /// clientVersion
     const std::string web3clientVersion;
@@ -48,7 +48,6 @@ class Options {
       coinbase(other.coinbase),
       isValidator(other.isValidator) {}
 
-
     /// Constructor for Options
     /// Populates coinbase() and isValidator() with false
     /// Creates option.json file within rootPath
@@ -58,12 +57,11 @@ class Options {
     /// @params chainID: ChainID
     /// @params wsPort: Websocket Server Port
     /// @params httpPort: HTTP Server Port
-    Options(const std::string& rootPath,
-            const std::string& web3clientVersion,
-            const uint64_t& version,
-            const uint64_t& chainID,
-            const uint16_t& wsPort,
-            const uint16_t& httpPort);
+    Options(
+      const std::string& rootPath, const std::string& web3clientVersion,
+      const uint64_t& version, const uint64_t& chainID,
+      const uint16_t& wsPort, const uint16_t& httpPort
+    );
 
     /// Constructor for Options
     /// Populates coinbase() and isValidator() with privKey address and true respectively
@@ -74,14 +72,12 @@ class Options {
     /// @params chainID: ChainID
     /// @params wsPort: Websocket Server Port
     /// @params httpPort: HTTP Server Port
-    Options(const std::string& rootPath,
-            const std::string& web3clientVersion,
-            const uint64_t& version,
-            const uint64_t& chainID,
-            const uint16_t& wsPort,
-            const uint16_t& httpPort,
-            const PrivKey& privKey
-            );
+    Options(
+      const std::string& rootPath, const std::string& web3clientVersion,
+      const uint64_t& version, const uint64_t& chainID,
+      const uint16_t& wsPort, const uint16_t& httpPort,
+      const PrivKey& privKey
+    );
 
     /// Tries to load options.json from rootPath
     /// Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/0.0.1", 1, 8080, 8080, 8081) if not found.
@@ -89,8 +85,7 @@ class Options {
     /// @returns Options: Options object
     static Options fromFile(const std::string& rootPath);
 
-
-    /// Options Getters
+    /// Getters.
     const std::string& getRootPath() { return this->rootPath; }
     const uint64_t& getSDKVersion() { return this->SDKVersion; }
     const std::string& getWeb3ClientVersion() { return this->web3clientVersion; }
@@ -100,8 +95,6 @@ class Options {
     const uint16_t& getHttpPort() { return this->httpPort; }
     const Address& getCoinbase() { return this->coinbase; }
     const bool& getIsValidator() { return this->isValidator; }
-
 };
-
 
 #endif // OPTIONS_H

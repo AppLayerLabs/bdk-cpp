@@ -13,11 +13,11 @@ set(CMAKE_MAP_IMPORTED_CONFIG_RelWithDebInfo Debug)
 
 # Avoid warning about DOWNLOAD_EXTRACT_TIMESTAMP in CMake 3.24:
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
-	cmake_policy(SET CMP0135 NEW)
+  cmake_policy(SET CMP0135 NEW)
 endif()
 
 # Project data
-project(orbitersdk VERSION 0.0.1 DESCRIPTION "Sparq subnet")
+project(orbitersdk VERSION 1 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -29,6 +29,15 @@ endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # "ZLIB_USE_STATIC_LIBS" was added in 3.24
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
+
+# Set project version inside the code
+configure_file(
+  ${CMAKE_SOURCE_DIR}/src/utils/options.h.in
+  ${CMAKE_SOURCE_DIR}/src/utils/options.h
+  @ONLY
+)
+
+# External project data
 set(LEVELDB_USE_STATIC_LIBS ON)
 set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
 set(BUILD_AVALANCHEGO OFF CACHE BOOL "Build with AvalancheGo wrapping")

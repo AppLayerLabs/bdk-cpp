@@ -1,25 +1,15 @@
 #include "options.h"
 
-
-
-
-Options::Options(const std::string& rootPath,
-        const std::string& web3clientVersion,
-        const uint64_t& version,
-        const uint64_t& chainID,
-        const uint16_t& wsPort,
-        const uint16_t& httpPort) :
-  rootPath(rootPath),
-  web3clientVersion(web3clientVersion),
-  version(version),
-  chainID(chainID),
-  wsPort(wsPort),
-  httpPort(httpPort),
-  coinbase(Address()),
-  isValidator(false) {
+Options::Options(
+  const std::string& rootPath, const std::string& web3clientVersion,
+  const uint64_t& version, const uint64_t& chainID,
+  const uint16_t& wsPort, const uint16_t& httpPort
+) : rootPath(rootPath), web3clientVersion(web3clientVersion),
+  version(version), chainID(chainID), wsPort(wsPort),
+  httpPort(httpPort), coinbase(Address()), isValidator(false)
+{
   json options;
   if (std::filesystem::exists(rootPath + "/options.json")) return;
-
   options["rootPath"] = rootPath;
   options["web3clientVersion"] = web3clientVersion;
   options["version"] = version;
@@ -33,24 +23,17 @@ Options::Options(const std::string& rootPath,
   o.close();
 }
 
-Options::Options(const std::string& rootPath,
-        const std::string& web3clientVersion,
-        const uint64_t& version,
-        const uint64_t& chainID,
-        const uint16_t& wsPort,
-        const uint16_t& httpPort,
-        const PrivKey& privKey
-) :
-  rootPath(rootPath),
-  web3clientVersion(web3clientVersion),
-  version(version),
-  chainID(chainID),
-  wsPort(wsPort),
-  httpPort(httpPort),
-  coinbase(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
-  isValidator(true) {
+Options::Options(
+  const std::string& rootPath, const std::string& web3clientVersion,
+  const uint64_t& version, const uint64_t& chainID,
+  const uint16_t& wsPort, const uint16_t& httpPort,
+  const PrivKey& privKey
+) : rootPath(rootPath), web3clientVersion(web3clientVersion),
+  version(version), chainID(chainID), wsPort(wsPort),
+  httpPort(httpPort), coinbase(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
+  isValidator(true)
+{
   if (std::filesystem::exists(rootPath + "/options.json")) return;
-
   json options;
   options["rootPath"] = rootPath;
   options["web3clientVersion"] = web3clientVersion;
@@ -97,3 +80,4 @@ Options Options::fromFile(const std::string& rootPath) {
     options["httpPort"].get<uint64_t>()
   );
 }
+
