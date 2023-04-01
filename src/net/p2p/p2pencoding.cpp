@@ -175,7 +175,7 @@ namespace P2P {
     return nodes;
   }
 
-  std::vector<TxValidator> AnswerDecoder::requestValidatorTxs(const Message& message) {
+  std::vector<TxValidator> AnswerDecoder::requestValidatorTxs(const Message& message, const uint64_t& requiredChainId) {
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestValidatorTxs) { throw std::runtime_error("Invalid command."); }
     std::vector<TxValidator> txs;
@@ -188,7 +188,7 @@ namespace P2P {
       if (data.size() < txSize) { throw std::runtime_error("Invalid data size."); }
       std::string_view txData = data.substr(index, txSize);
       index += txSize;
-      txs.push_back(txData);
+      txs.emplace_back(txData, requiredChainId);
     }
     return txs;
   }
@@ -204,10 +204,10 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message) {
+  TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId) {
     if (message.type() != Broadcasting) { throw std::runtime_error("Invalid message type."); }
     if (message.id().toUint64() != FNVHash()(message.message())) { throw std::runtime_error("Invalid message id."); }
     if (message.command() != BroadcastValidatorTx) { throw std::runtime_error("Invalid command."); }
-    return TxValidator(message.message());
+    return TxValidator(message.message(), requiredChainId);
   }
 }

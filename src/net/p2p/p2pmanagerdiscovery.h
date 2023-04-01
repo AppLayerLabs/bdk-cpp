@@ -42,7 +42,8 @@ namespace P2P {
       void handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
 
     public:
-      ManagerDiscovery(const boost::asio::ip::address& hostIp, unsigned short hostPort) : ManagerBase(hostIp, hostPort, NodeType::DISCOVERY_NODE, 200) {};
+      ManagerDiscovery(const boost::asio::ip::address& hostIp, const std::unique_ptr<Options>& options) :
+        ManagerBase(hostIp, NodeType::DISCOVERY_NODE, 200, options) {};
       
       void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
 

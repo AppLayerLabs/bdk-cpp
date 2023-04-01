@@ -43,12 +43,11 @@ class HTTPServer {
      * @param state unique_ptr reference to the state.
      * @param port The port that the server will run at.
      */
-    HTTPServer(const unsigned short port,
-               const std::unique_ptr<State>& state,
+    HTTPServer(const std::unique_ptr<State>& state,
                const std::unique_ptr<Storage>& storage,
                const std::unique_ptr<P2P::ManagerNormal>& p2p,
                const std::unique_ptr<Options>& options)
-      : port(port), state(state), storage(storage), p2p(p2p), options(options) {}
+      : state(state), storage(storage), p2p(p2p), options(options), port(options->getHttpPort()) {}
 
     ~HTTPServer() { this->stop(); }
 

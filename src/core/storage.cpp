@@ -1,6 +1,6 @@
 #include "storage.h"
 
-Storage::Storage(const std::unique_ptr<DB>& db) : db(db) {
+Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options) : db(db), options(options) {
   Utils::logToDebug(Log::storage, __func__, "Loading blockchain from DB");
 
   // Initialize the blockchain if latest block doesn't exist.
@@ -8,7 +8,7 @@ Storage::Storage(const std::unique_ptr<DB>& db) : db(db) {
 
   // Get the latest block from the database
   Utils::logToDebug(Log::storage, __func__, "Loading latest block");
-  Block latest(this->db->get("latest", DBPrefix::blocks));
+  Block latest(this->db->get("latest", DBPrefix::blocks), this->options->getChainID());
   uint64_t depth = latest.getNHeight();
   Utils::logToDebug(Log::storage, __func__,
     std::string("Got latest block: ") + latest.hash().hex().get()
@@ -38,7 +38,7 @@ Storage::Storage(const std::unique_ptr<DB>& db) : db(db) {
       std::string("Height: ") + std::to_string(depth - i) + ", Hash: "
       + this->blockHashByHeight[depth - i].hex().get()
     );
-    Block block(this->db->get(this->blockHashByHeight[depth - i].get(), DBPrefix::blocks));
+    Block block(this->db->get(this->blockHashByHeight[depth - i].get(), DBPrefix::blocks), this->options->getChainID());
     this->pushFrontInternal(std::move(block));
   }
 
@@ -115,7 +115,7 @@ const TxBlock Storage::getTxFromBlockWithIndex(const std::string_view blockData,
   }
   uint64_t txSize = Utils::bytesToUint32(blockData.substr(index, 4));
   index += 4;
-  return TxBlock(blockData.substr(index, txSize));
+  return TxBlock(blockData.substr(index, txSize), this->options->getChainID());
 }
 
 void Storage::pushBackInternal(Block&& block) {
@@ -250,7 +250,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
     }
     case StorageStatus::OnDB: {
       std::unique_lock lock(this->cacheLock);
-      this->cachedBlocks.insert({hash, std::make_shared<Block>(this->db->get(hash.get(), DBPrefix::blocks))});
+      this->cachedBlocks.insert({hash, std::make_shared<Block>(this->db->get(hash.get(), DBPrefix::blocks), this->options->getChainID())});
       return this->cachedBlocks[hash];
     }
   }
@@ -279,7 +279,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
       std::unique_lock lock(this->cacheLock);
       Hash hash = this->blockHashByHeight.find(height)->second;
       auto blockData = this->db->get(hash.get(), DBPrefix::blocks);
-      cachedBlocks.insert({hash, std::make_shared<Block>(blockData)});
+      cachedBlocks.insert({hash, std::make_shared<Block>(blockData, this->options->getChainID())});
       return cachedBlocks[hash];
     }
   }

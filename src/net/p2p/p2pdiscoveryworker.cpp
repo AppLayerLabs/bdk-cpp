@@ -130,6 +130,8 @@ namespace P2P {
     if (this->workerFuture.valid()) {
       this->stopWorker = true;
       this->workerFuture.get();
+      std::unique_lock lock(this->requestedNodesMutex);
+      this->requestedNodes.clear();
     }
   }
 }

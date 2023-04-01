@@ -161,7 +161,7 @@ namespace P2P {
   void ManagerNormal::handleTxValidatorBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {
     // TODO: Add a filter to broadcast any message to all nodes if message was not previously know.
     try {
-      auto tx = BroadcastDecoder::broadcastValidatorTx(message);
+      auto tx = BroadcastDecoder::broadcastValidatorTx(message, this->options->getChainID());
       if (this->rdpos_->addValidatorTx(tx)) {
         this->broadcastMessage(message);
       }
@@ -188,7 +188,7 @@ namespace P2P {
       return {};
     }
     try {
-      return AnswerDecoder::requestValidatorTxs(answer.get());
+      return AnswerDecoder::requestValidatorTxs(answer.get(), this->options->getChainID());
     } catch (std::exception &e) {
       Utils::logToDebug(Log::P2PParser, __func__,
                         "Request to " + nodeId.hex().get() + " failed with error: " + e.what());

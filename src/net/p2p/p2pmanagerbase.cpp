@@ -2,12 +2,13 @@
 
 namespace P2P {
   ManagerBase::ManagerBase(
-    const boost::asio::ip::address& hostIp, unsigned short hostPort,
-    NodeType nodeType, unsigned int maxConnections
+    const boost::asio::ip::address& hostIp,
+    NodeType nodeType, unsigned int maxConnections, const std::unique_ptr<Options>& options
   ) :
+    options(options),
     nodeId_(Hash::random()),
     hostIp_(hostIp),
-    hostPort_(hostPort),
+    hostPort_(options->getWsPort()),
     threadPool(std::make_unique<BS::thread_pool_light>(std::thread::hardware_concurrency() * 4)),
     p2pserver_(std::make_shared<Server>(hostIp_, hostPort_, 2, *this, this->threadPool)),
     nodeType_(nodeType),

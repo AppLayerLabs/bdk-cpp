@@ -62,10 +62,10 @@ namespace P2P {
       void handleTxValidatorBroadcast(std::shared_ptr<BaseSession>& session, const Message& message);
 
     public:
-      ManagerNormal(const boost::asio::ip::address& hostIp, 
-                    unsigned short hostPort, 
-                    const std::unique_ptr<rdPoS>& rdpos) : 
-                    ManagerBase(hostIp, hostPort, NodeType::NORMAL_NODE, 50), rdpos_(rdpos) {};
+      ManagerNormal(const boost::asio::ip::address& hostIp,
+                    const std::unique_ptr<rdPoS>& rdpos,
+                    const std::unique_ptr<Options>& options) :
+                    ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options), rdpos_(rdpos)  {};
       
       void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
 

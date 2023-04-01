@@ -166,7 +166,7 @@ namespace JsonRPC {
      * @return TxBlock
      * Throws if invalid
      */
-    TxBlock eth_sendRawTransaction(const json& request);
+    TxBlock eth_sendRawTransaction(const json& request, const uint64_t& requiredChainId);
 
     /** Parse a eth_getTransactionByHash tx Hash
      * @param request

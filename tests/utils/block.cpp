@@ -17,7 +17,7 @@ namespace TBlock {
       newBlock.finalize(validatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
-      Block reconstructedBlock(newBlock.serializeBlock());
+      Block reconstructedBlock(newBlock.serializeBlock(), 8080);
 
       // Check within reconstructed block
       REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("18395ff0c8ee38a250b9e7aeb5733c437fed8d6ca2135fa634367bb288a3830a3c624e33401a1798ce09f049fb6507adc52b085d0a83dacc43adfa519c1228e701")));
@@ -92,14 +92,14 @@ namespace TBlock {
       uint64_t timestamp = 1678400843315;
       uint64_t nHeight = 100;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
-      TxBlock tx(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"));
+      TxBlock tx(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"), 1);
 
       for (uint64_t i = 0; i < 10; i++) newBlock.appendTx(tx);
 
       newBlock.finalize(validatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
-      Block reconstructedBlock(newBlock.serializeBlock());
+      Block reconstructedBlock(newBlock.serializeBlock(), 1);
 
       // Check within reconstructed block
       REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("b8e8aab3dab7dc8f9fe3a86d6baab64e06947993fe113c4075f3f5a08ff61a695c5ca8493fd7513dae0fc4b9847633d31f8fd2ee59de7084da7a5b68008addd601")));
@@ -181,7 +181,7 @@ namespace TBlock {
       uint64_t nHeight = 331653115;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"));
+      TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"), 1);
 
       for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
 
@@ -199,7 +199,7 @@ namespace TBlock {
         txValidators.emplace_back(
           validatorAddress,
           data,
-          8080,
+          1,
           nHeight,
           txValidatorPrivKey
         );
@@ -211,7 +211,7 @@ namespace TBlock {
         txValidators.emplace_back(
           validatorAddress,
           data,
-          8080,
+          1,
           nHeight,
           txValidatorPrivKey
         );
@@ -224,7 +224,7 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
-      Block reconstructedBlock(newBlock.serializeBlock());
+      Block reconstructedBlock(newBlock.serializeBlock(), 1);
 
       // Check within reconstructed block
       REQUIRE(reconstructedBlock.getPrevBlockHash() == Hash(Hex::toBytes("7c9efc59d7bec8e79499a49915e0a655a3fff1d0609644d98791893afc67e64b")));
@@ -311,7 +311,7 @@ namespace TBlock {
         Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
         Address to(Utils::randBytes(20), true);
         std::string data = Utils::randBytes(32);
-        uint64_t chainId = Utils::bytesToUint32(Utils::randBytes(4));
+        uint64_t chainId = 8080;
         uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
         uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
         uint256_t gas = Utils::bytesToUint32(Utils::randBytes(4));
@@ -366,7 +366,7 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
-      Block reconstructedBlock(newBlock.serializeBlock());
+      Block reconstructedBlock(newBlock.serializeBlock(), 8080);
 
       // Check within reconstructed block
       REQUIRE(reconstructedBlock.getPrevBlockHash() == nPrevBlockHash);
@@ -462,7 +462,7 @@ namespace TBlock {
             Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
             Address to(Utils::randBytes(20), true);
             std::string data = Utils::randBytes(32);
-            uint64_t chainId = Utils::bytesToUint32(Utils::randBytes(4));
+            uint64_t chainId = 8080;
             uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
             uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
             uint256_t gas = Utils::bytesToUint32(Utils::randBytes(4));
@@ -525,7 +525,7 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
-      Block reconstructedBlock(newBlock.serializeBlock());
+      Block reconstructedBlock(newBlock.serializeBlock(), 8080);
 
       // Check within reconstructed block
       REQUIRE(reconstructedBlock.getPrevBlockHash() == nPrevBlockHash);

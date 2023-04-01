@@ -440,13 +440,13 @@ namespace JsonRPC {
       }
     }
 
-    TxBlock eth_sendRawTransaction(const json& request) {
+    TxBlock eth_sendRawTransaction(const json& request, const uint64_t& requiredChainId) {
       try {
         const auto txHex = request["params"].at(0).get<std::string>();
         if (!Hex::isValid(txHex, true)) {
           throw std::runtime_error("Invalid transaction hex");
         }
-        return TxBlock(Hex::toBytes(txHex));
+        return TxBlock(Hex::toBytes(txHex), requiredChainId);
       } catch (std::exception &e) {
         Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_sendRawTransaction: ") + e.what());
         throw std::runtime_error("Error while decoding eth_sendRawTransaction: " + std::string(e.what()));

@@ -104,7 +104,7 @@ namespace P2P {
       static bool ping(const Message& message);
       static NodeInfo info(const Message& message);
       static std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> requestNodes(const Message& message);
-      static std::vector<TxValidator> requestValidatorTxs(const Message& message);
+      static std::vector<TxValidator> requestValidatorTxs(const Message& message, const uint64_t& requiredChainId);
   };
 
   class BroadcastEncoder {
@@ -114,7 +114,7 @@ namespace P2P {
 
   class BroadcastDecoder {
     public:
-      static TxValidator broadcastValidatorTx(const Message& message);
+      static TxValidator broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId);
   };
 
   class Message {

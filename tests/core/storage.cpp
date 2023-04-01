@@ -7,26 +7,34 @@
 
 // Initialize db to be used in tests.
 // DB here is the same
-void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, bool clearDB = true) {
+void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std::unique_ptr<Options>& options, bool clearDB = true) {
   if (clearDB) {
     if (std::filesystem::exists("blocksTests")) {
       std::filesystem::remove_all("blocksTests");
     }
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  db = std::make_unique<DB>("blocksTests");
-  storage = std::make_unique<Storage>(db);
+  db = std::make_unique<DB>("blocksTests/db");
+  options = std::make_unique<Options>(
+    "blocksTests",
+    "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+    1,
+    8080,
+    8080,
+    9999
+  );
+  storage = std::make_unique<Storage>(db, options);
 }
 
 // Helper functions to create data.
 
 // Random transaction
-TxBlock createRandomTx() {
+TxBlock createRandomTx(const uint64_t& requiredChainId) {
   PrivKey txPrivKey = PrivKey::random();
   Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
   Address to(Utils::randBytes(20), true);
   std::string data = Utils::randBytes(32);
-  uint64_t chainId = Utils::bytesToUint32(Utils::randBytes(4));
+  uint64_t chainId = requiredChainId;
   uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
   uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
   uint256_t gas = Utils::bytesToUint32(Utils::randBytes(4));
@@ -35,7 +43,7 @@ TxBlock createRandomTx() {
 }
 
 // Random list of TxValidator transactions and the corresponding seedRandomness.
-std::pair<std::vector<TxValidator>, std::string> createRandomTxValidatorList(uint64_t nHeight, uint64_t N) {
+std::pair<std::vector<TxValidator>, std::string> createRandomTxValidatorList(uint64_t nHeight, uint64_t N, const uint64_t& requiredChainId) {
   std::pair<std::vector<TxValidator>, std::string> ret;
   std::string randomnessStr;
   ret.first.reserve(N);
@@ -49,7 +57,7 @@ std::pair<std::vector<TxValidator>, std::string> createRandomTxValidatorList(uin
     ret.first.emplace_back(
       validatorAddress,
       hashTxData,
-      8080,
+      requiredChainId,
       nHeight,
       txValidatorPrivKey
     );
@@ -57,7 +65,7 @@ std::pair<std::vector<TxValidator>, std::string> createRandomTxValidatorList(uin
     ret.first.emplace_back(
       validatorAddress,
       seedTxData,
-      8080,
+      requiredChainId,
       nHeight,
       txValidatorPrivKey
     );
@@ -66,7 +74,7 @@ std::pair<std::vector<TxValidator>, std::string> createRandomTxValidatorList(uin
   return ret;
 }
 
-Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHeight, Hash prevHash) {
+Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHeight, Hash prevHash, const uint64_t& requiredChainId) {
   PrivKey blockValidatorPrivKey = PrivKey::random();
   Hash nPrevBlockHash = prevHash;
   uint64_t timestamp = 230915972837111; // Timestamp doesn't really matter.
@@ -75,11 +83,11 @@ Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHei
   std::vector<TxBlock> txs;
 
   for (uint64_t i = 0; i < txCount; ++i) {
-    txs.emplace_back(createRandomTx());
+    txs.emplace_back(createRandomTx(requiredChainId));
   }
 
   // Create and append 8 randomSeeds
-  auto randomnessResult = createRandomTxValidatorList(nHeight, validatorCount);
+  auto randomnessResult = createRandomTxValidatorList(nHeight, validatorCount, requiredChainId);
   std::string randomSeed = randomnessResult.second;
   std::vector<TxValidator> txValidators = randomnessResult.first;
 
@@ -97,7 +105,8 @@ namespace TStorage {
     SECTION("Simple Storage Startup") {
       std::unique_ptr<DB> db;
       std::unique_ptr<Storage> storage;
-      initialize(db, storage);
+      std::unique_ptr<Options> options;
+      initialize(db, storage, options);
       // Chain should be filled with the genesis.
       REQUIRE(storage->currentChainSize() == 1);
       auto genesis = storage->latest();
@@ -121,12 +130,13 @@ namespace TStorage {
       {
         std::unique_ptr<DB> db;
         std::unique_ptr<Storage> storage;
-        initialize(db, storage);
+        std::unique_ptr<Options> options;
+        initialize(db, storage, options);
 
         // Generate 10 blocks.
         for (uint64_t i = 0; i < 10; ++i) {
           auto latest = storage->latest();
-          Block newBlock = createRandomBlock(100, 16, latest->getNHeight() + 1, latest->hash());
+          Block newBlock = createRandomBlock(100, 16, latest->getNHeight() + 1, latest->hash(), options->getChainID());
           blocks.emplace_back(newBlock);
           storage->pushBack(Block(newBlock));
         }
@@ -154,7 +164,8 @@ namespace TStorage {
       // Load DB again...
       std::unique_ptr<DB> db;
       std::unique_ptr<Storage> storage;
-      initialize(db, storage, false);
+      std::unique_ptr<Options> options;
+      initialize(db, storage, options, false);
       // Required to initialize the same chain as before.
       auto latest = storage->latest();
       REQUIRE(*latest == blocks[9]);
@@ -182,13 +193,14 @@ namespace TStorage {
       {
         std::unique_ptr<DB> db;
         std::unique_ptr<Storage> storage;
-        initialize(db, storage);
+        std::unique_ptr<Options> options;
+        initialize(db, storage, options);
 
         // Generate 10 blocks.
         for (uint64_t i = 0; i < 2000; ++i) {
           auto latest = storage->latest();
           uint64_t txCount = uint64_t(uint8_t(Utils::randBytes(1)[0]) % 16);
-          Block newBlock = createRandomBlock(txCount, 16, latest->getNHeight() + 1, latest->hash());
+          Block newBlock = createRandomBlock(txCount, 16, latest->getNHeight() + 1, latest->hash(), options->getChainID());
           std::vector<TxBlock> txs = newBlock.getTxs();
           blocksWithTxs.emplace_back(std::make_pair(newBlock, txs));
           storage->pushBack(std::move(newBlock));
@@ -217,7 +229,8 @@ namespace TStorage {
       // Load DB again...
       std::unique_ptr<DB> db;
       std::unique_ptr<Storage> storage;
-      initialize(db, storage, false);
+      std::unique_ptr<Options> options;
+      initialize(db, storage, options, false);
       // Required to initialize the same chain as before.
       auto latest = storage->latest();
       REQUIRE(*latest == blocksWithTxs[1999].first);

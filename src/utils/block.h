@@ -89,7 +89,7 @@ class Block {
      * Constructor from network/RPC.
      * @param rawData The raw block data to parse.
      */
-    Block(std::string_view bytes);
+    Block(std::string_view bytes, const uint64_t& requiredChainId);
 
     /**
      * Constructor from creation.

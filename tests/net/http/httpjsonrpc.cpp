@@ -105,9 +105,9 @@ void initialize(std::unique_ptr<DB>& db,
                 PrivKey validatorKey,
                 uint64_t serverPort,
                 uint64_t httpServerPort,
-                bool clearDb = true,
-                std::string dbPrefix = "") {
-  std::string dbName = dbPrefix + "/httpTests";
+                bool clearDb,
+                std::string folderPath) {
+  std::string dbName = folderPath + "/db";
   if (clearDb) {
     if (std::filesystem::exists(dbName)) {
       std::filesystem::remove_all(dbName);
@@ -138,13 +138,19 @@ void initialize(std::unique_ptr<DB>& db,
     std::string value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance)) + Utils::uintToBytes(desiredBalance) + '\x00';
     db->put(dev1.get(), value, DBPrefix::nativeAccounts);
   }
-
-  storage = std::make_unique<Storage>(db);
-  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), serverPort, rdpos);
-  rdpos = std::make_unique<rdPoS>(db, 8080, storage, p2p, validatorKey);
+  options = std::make_unique<Options>(
+    folderPath,
+    "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+    1,
+    8080,
+    serverPort,
+    httpServerPort
+  );
+  storage = std::make_unique<Storage>(db, options);
+  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options);
+  rdpos = std::make_unique<rdPoS>(db, storage, p2p, options);
   state = std::make_unique<State>(db, storage, rdpos, p2p);
-  options = std::make_unique<Options>(Options::fromFile("config.json"));
-  httpServer = std::make_unique<HTTPServer>(httpServerPort, state, storage, p2p, options);
+  httpServer = std::make_unique<HTTPServer>(state, storage, p2p, options);
 }
 
 template <typename T>
@@ -175,7 +181,7 @@ namespace THTTPJsonRPC{
       std::unique_ptr<State> state;
       std::unique_ptr<HTTPServer> httpServer;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, rdpos, state, httpServer, options, validatorPrivKeys[0], 8080, 8081, true, "jsonRPC");
+      initialize(db, storage, p2p, rdpos, state, httpServer, options, validatorPrivKeys[0], 8080, 8081, true, "HTTPjsonRPC");
 
 
       /// Make random transactions within a given block, we need to include requests for getting txs and blocks

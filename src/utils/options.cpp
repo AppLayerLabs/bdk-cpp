@@ -80,4 +80,14 @@ Options Options::fromFile(const std::string& rootPath) {
     options["httpPort"].get<uint64_t>()
   );
 }
-
+const PrivKey Options::getValidatorPrivKey() const {
+  json options;
+  std::ifstream i(rootPath + "/options.json");
+  i >> options;
+  i.close();
+  if (options.contains("privKey")) {
+    const auto privKey = options["privKey"].get<std::string>();
+    return PrivKey(Hex::toBytes(privKey));
+  }
+  return PrivKey();
+}

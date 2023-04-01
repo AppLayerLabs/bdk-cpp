@@ -6,6 +6,7 @@
 #include "../utils/tx.h"
 #include "../utils/safehash.h"
 #include "../utils/randomgen.h"
+#include "../utils/options.h"
 #include "../net/p2p/p2pmanagernormal.h"
 
 #include <optional>
@@ -57,6 +58,16 @@ class Validator : public Address {
 
 class rdPoS : public Contract {
   private:
+
+    /// Pointer to Storage
+    const std::unique_ptr<Storage>& storage;
+
+    /// Pointer to P2P Manager (for sending/requesting TxValidators from other nodes)
+    const std::unique_ptr<P2P::ManagerNormal>& p2p;
+
+    /// Pointer to the Options
+    const std::unique_ptr<Options>& options;
+
     ///< Ordered list of validators.
     std::set<Validator> validators;
 
@@ -69,7 +80,7 @@ class rdPoS : public Contract {
     /// Private Key for operating a validator.
     const PrivKey validatorKey;
 
-    bool isValidator = false;
+    const bool isValidator = false;
 
     /// worker for rdPoS. 
     const std::unique_ptr<rdPoSWorker> worker;
@@ -82,12 +93,6 @@ class rdPoS : public Contract {
 
     /// mutex for class members
     mutable std::shared_mutex mutex;
-
-    /// Pointer to Storage
-    const std::unique_ptr<Storage>& storage;
-
-    /// Pointer to P2P Manager (for sending/requesting TxValidators from other nodes)
-    const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
     /// Initializes the blockchain with the default information for rdPoS.
     /// This function is called by the constructor if no previous blockchain is found.
@@ -108,11 +113,10 @@ class rdPoS : public Contract {
      * @param validatorKey The private key of the validator, if any.
      */
 
-    rdPoS(const std::unique_ptr<DB>& db, 
-          const uint64_t& chainId,
+    rdPoS(const std::unique_ptr<DB>& db,
           const std::unique_ptr<Storage>& storage,
           const std::unique_ptr<P2P::ManagerNormal>& p2p,
-          const PrivKey& validatorKey = PrivKey());
+          const std::unique_ptr<Options>& options);
 
     ~rdPoS();
     

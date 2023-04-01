@@ -28,8 +28,9 @@ class TxBlock {
      * Raw constructor.
      * Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
+     * @param requiredChainId The chain ID of the transaction.
      */
-    TxBlock(const std::string_view& bytes);
+    TxBlock(const std::string_view& bytes, const uint64_t& requiredChainId);
 
     /**
      * Manual constructor.
@@ -198,7 +199,7 @@ class TxValidator {
      * Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
      */
-    TxValidator(const std::string_view& bytes);
+    TxValidator(const std::string_view& bytes, const uint64_t& requiredChainId);
 
     /**
      * Manual constructor.

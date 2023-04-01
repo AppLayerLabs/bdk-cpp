@@ -14,6 +14,7 @@
 #include "../../libs/BS_thread_pool_light.hpp"
 #include "../../utils/utils.h"
 #include "../../utils/safehash.h"
+#include "../../utils/options.h"
 
 #include "p2pdiscoveryworker.h"
 #include "p2pbase.h"
@@ -78,10 +79,13 @@ namespace P2P {
       // Thread pool.
       const std::unique_ptr<BS::thread_pool_light> threadPool;
 
+      // Pointer to the Options
+      const std::unique_ptr<Options>& options;
+
     public:
       ManagerBase(
-        const boost::asio::ip::address& hostIp, unsigned short hostPort,
-        NodeType nodeType, unsigned int maxConnections
+        const boost::asio::ip::address& hostIp,
+        NodeType nodeType, unsigned int maxConnections, const std::unique_ptr<Options>& options
       );
 
       ~ManagerBase() { stop(); }

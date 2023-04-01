@@ -9,6 +9,7 @@
 #include "../utils/randomgen.h"
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
+#include "../utils/options.h"
 
 /// Enum for the status of a block or transaction inside the storage.
 enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
@@ -22,6 +23,9 @@ class Storage {
   private:
     /// Pointer to the database that contains the blockchain's entire history.
     const std::unique_ptr<DB>& db;
+
+    /// Pointer to the options.
+    const std::unique_ptr<Options>& options;
 
     /**
      * The recent blockchain history, up to the 1000 most recent blocks,
@@ -97,7 +101,7 @@ class Storage {
      * @params index The index of the transaction to get.
      * @return const std::shared_ptr<const TxBlock> The transaction.
      */
-    static const TxBlock getTxFromBlockWithIndex(const std::string_view blockData, const uint64_t& txIndex);
+    const TxBlock getTxFromBlockWithIndex(const std::string_view blockData, const uint64_t& txIndex);
 
   public:
     /**
@@ -105,7 +109,7 @@ class Storage {
      * and starts the periodic save thread.
      * @param db Pointer to the database.
      */
-    Storage(const std::unique_ptr<DB>& db);
+    Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options);
 
     /// Destructor. Automatically saves the chain to the database.
     ~Storage();

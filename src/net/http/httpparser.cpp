@@ -111,7 +111,7 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_sendRawTransaction:
         ret = JsonRPC::Encoding::eth_sendRawTransaction(
-          JsonRPC::Decoding::eth_sendRawTransaction(request),
+          JsonRPC::Decoding::eth_sendRawTransaction(request, options->getChainID()),
           state
         );
         break;

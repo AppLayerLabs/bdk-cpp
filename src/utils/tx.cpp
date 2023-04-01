@@ -1,6 +1,6 @@
 #include "tx.h"
 
-TxBlock::TxBlock(const std::string_view& bytes) {
+TxBlock::TxBlock(const std::string_view& bytes, const uint64_t& requiredChainId) {
   uint64_t index = 0;
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list
@@ -136,6 +136,10 @@ TxBlock::TxBlock(const std::string_view& bytes) {
     this->chainId = static_cast<uint64_t>((this->v - 35) / 2);
     if (this->chainId > std::numeric_limits<uint64_t>::max()) {
       throw std::runtime_error("chainId too high");
+    }
+    if (this->chainId != requiredChainId) {
+      throw std::runtime_error("Invalid chainId expected: " + std::to_string(requiredChainId) +
+        " got: " + std::to_string(this->chainId));
     }
   } else if (this->v != 27 && this->v != 28) {
     throw std::runtime_error("Invalid tx signature - v is not 27 or 28");
@@ -318,7 +322,7 @@ std::string TxBlock::rlpSerialize(bool includeSig) const {
   return ret;
 }
 
-TxValidator::TxValidator(const std::string_view& bytes) {
+TxValidator::TxValidator(const std::string_view& bytes, const uint64_t& requiredChainId) {
   uint64_t index = 0;
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list

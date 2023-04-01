@@ -15,7 +15,7 @@ namespace TBlock {
         "0x9890a27da5231bd842529fa107a6e137e807fb8086f6c740d39a37681e1394317e2b38f540f3a9ed7f0b4f6835fc67613dcb52d2e8b3afa193840441902cc030f2febfaa0a1edd774318d1fe6e3bf1aec16082457f7a66f7fd4bef8ddded9b76d7b9da8a2d15d02eae1743ddcfb9e34fe0374ceaec6e96fb8489d16c6886441697610af9744109384ae774b20eb22cce3677a4c836f57ca30eafc308af2d04cf93ada88ad0fb6968ce6ea1556cc24af1234b8b2d93a0e37a417f53148662659ccdbaa2ed5233d712a2ea93ea0a08e360c72018fa10a8d7"
       ));
       REQUIRE(str.length() < 217);
-      try { Block b(str); } catch (std::exception& e) { catched = true; }
+      try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
 
@@ -27,7 +27,7 @@ namespace TBlock {
       uint64_t nHeight = 331653115;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"));
+      TxBlock tx(Hex::toBytes("f8ca8798a75ba3d89ae187d95d7e1944fa07842dd8416e9413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e823f44a0ac5a548f098186dc197b2416cb7188bfe4955b7b554098f5986ad92c3e948f3ea01513ee3cd51b18d289682ab68a9f6d379d0aae8eda3d27f45669fce3da6786a4"), 8080);
 
       for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
 
@@ -63,7 +63,7 @@ namespace TBlock {
 
       bool catched = false;
       std::string str = newBlock.serializeBlock();
-      try { Block b(str); } catch (std::exception& e) { catched = true; }
+      try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
 
@@ -75,7 +75,7 @@ namespace TBlock {
       uint64_t nHeight = 331653115;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"));
+      TxBlock tx(Hex::toBytes("f8ca8798a75ba3d89ae187d95d7e1944fa07842dd8416e9413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e823f44a0ac5a548f098186dc197b2416cb7188bfe4955b7b554098f5986ad92c3e948f3ea01513ee3cd51b18d289682ab68a9f6d379d0aae8eda3d27f45669fce3da6786a4"), 8080);
 
       for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
 
@@ -112,7 +112,7 @@ namespace TBlock {
       bool catched = false;
       std::string str = newBlock.serializeBlock();
       str.replace(161, 2, "\xb0\x0b"); // Replace 2 bytes on tx merkle root to make it invalid and throw
-      try { Block b(str); } catch (std::exception& e) { catched = true; }
+      try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
 
@@ -124,7 +124,7 @@ namespace TBlock {
       uint64_t nHeight = 331653115;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"));
+      TxBlock tx(Hex::toBytes("f8ca8798a75ba3d89ae187d95d7e1944fa07842dd8416e9413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e823f44a0ac5a548f098186dc197b2416cb7188bfe4955b7b554098f5986ad92c3e948f3ea01513ee3cd51b18d289682ab68a9f6d379d0aae8eda3d27f45669fce3da6786a4"), 8080);
 
       for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
 
@@ -161,7 +161,7 @@ namespace TBlock {
       bool catched = false;
       std::string str = newBlock.serializeBlock();
       str.replace(129, 2, "\xb0\x0b"); // Replace 2 bytes on validator merkle root to make it invalid and throw
-      try { Block b(str); } catch (std::exception& e) { catched = true; }
+      try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
 
@@ -173,7 +173,7 @@ namespace TBlock {
       uint64_t nHeight = 331653115;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"));
+      TxBlock tx(Hex::toBytes("f8ca8798a75ba3d89ae187d95d7e1944fa07842dd8416e9413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e823f44a0ac5a548f098186dc197b2416cb7188bfe4955b7b554098f5986ad92c3e948f3ea01513ee3cd51b18d289682ab68a9f6d379d0aae8eda3d27f45669fce3da6786a4"), 8080);
 
       for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
 
@@ -210,7 +210,7 @@ namespace TBlock {
       bool catched = false;
       std::string str = newBlock.serializeBlock();
       str.replace(97, 2, "\xb0\x0b"); // Replace 2 bytes on block randomness to make it invalid and throw
-      try { Block b(str); } catch (std::exception& e) { catched = true; }
+      try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
 
@@ -222,7 +222,7 @@ namespace TBlock {
       uint64_t nHeight = 331653115;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"));
+      TxBlock tx(Hex::toBytes("f8ca8798a75ba3d89ae187d95d7e1944fa07842dd8416e9413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e823f44a0ac5a548f098186dc197b2416cb7188bfe4955b7b554098f5986ad92c3e948f3ea01513ee3cd51b18d289682ab68a9f6d379d0aae8eda3d27f45669fce3da6786a4"), 8080);
 
       for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
 
@@ -270,9 +270,9 @@ namespace TBlock {
       strS.replace(32, 16, "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff");
       // Make signature V over 1, making signature invalid
       strV.replace(64,1, "\xff");
-      try { Block b(strR); } catch (std::exception& e) { catchedR = true; }
-      try { Block b(strS); } catch (std::exception& e) { catchedS = true; }
-      try { Block b(strV); } catch (std::exception& e) { catchedV = true; }
+      try { Block b(strR, 8080); } catch (std::exception& e) { catchedR = true; }
+      try { Block b(strS, 8080); } catch (std::exception& e) { catchedS = true; }
+      try { Block b(strV, 8080); } catch (std::exception& e) { catchedV = true; }
       REQUIRE(catchedR == true);
       REQUIRE(catchedS == true);
       REQUIRE(catchedV == true);
@@ -285,8 +285,8 @@ namespace TBlock {
       uint64_t nHeight = 92137812;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      TxBlock txB(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"));
-      TxValidator txV(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"));
+      TxBlock txB(Hex::toBytes("f8ca8798a75ba3d89ae187d95d7e1944fa07842dd8416e9413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e823f44a0ac5a548f098186dc197b2416cb7188bfe4955b7b554098f5986ad92c3e948f3ea01513ee3cd51b18d289682ab68a9f6d379d0aae8eda3d27f45669fce3da6786a4"), 8080);
+      TxValidator txV(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"), 8080);
 
       newBlock.finalize(validatorPrivKey, timestamp+1);
       REQUIRE(!newBlock.finalize(validatorPrivKey, timestamp+1));

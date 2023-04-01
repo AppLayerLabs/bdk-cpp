@@ -2,22 +2,22 @@
 #include "storage.h"
 #include "../utils/block.h"
 
-rdPoS::rdPoS(const std::unique_ptr<DB>& db, 
-  const uint64_t& chainId,
+rdPoS::rdPoS(const std::unique_ptr<DB>& db,
   const std::unique_ptr<Storage>& storage,
   const std::unique_ptr<P2P::ManagerNormal>& p2p,
-  const PrivKey& validatorKey) :
+  const std::unique_ptr<Options>& options) :
 
   Contract(ProtocolContractAddresses.at("rdPoS"), chainId, db),
-  worker(std::make_unique<rdPoSWorker>(*this)),
   storage(storage),
   p2p(p2p),
-  validatorKey(validatorKey),
+  options(options),
+  worker(std::make_unique<rdPoSWorker>(*this)),
+  validatorKey(options->getValidatorPrivKey()),
+  isValidator((validatorKey) ? true : false),
   randomGen(Hash()) 
 {
   std::unique_lock lock(this->mutex);
   Utils::logToDebug(Log::rdPoS, __func__, "Initializing rdPoS.");
-  if (validatorKey) isValidator = true;
   // Initialize blockchain.
   initializeBlockchain();
   // Load information from DB.
@@ -388,7 +388,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
   TxValidator randomHashTx(
       me.address(),
       Hex::toBytes("0xcfffe746") + randomHash.get(),
-      8080,
+      this->rdpos.options->getChainID(),
       nHeight,
       this->rdpos.validatorKey
   );
@@ -396,7 +396,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
   TxValidator seedTx(
       me.address(),
       Hex::toBytes("0x6fc5a2d6") + randomness.get(),
-      8080,
+      this->rdpos.options->getChainID(),
       nHeight,
       this->rdpos.validatorKey
     );

@@ -1,6 +1,6 @@
 #include "block.h"
 
-Block::Block(std::string_view bytes) {
+Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
   try {
     // Split the bytes string
     if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
@@ -40,7 +40,7 @@ Block::Block(std::string_view bytes) {
       for (uint64_t i = 0; i < txCount; ++i) {
         uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
         index += 4;
-        this->txs.emplace_back(bytes.substr(index, txSize));
+        this->txs.emplace_back(bytes.substr(index, txSize), requiredChainId);
         index += txSize;
       }
     } else {
@@ -67,7 +67,7 @@ Block::Block(std::string_view bytes) {
             for (uint64_t i = 0; i < nTxs; i++) {
               uint64_t len = Utils::bytesToUint32(bytes.substr(idx, 4));
               idx += 4;
-              txVec.emplace_back(bytes.substr(idx, len));
+              txVec.emplace_back(bytes.substr(idx, len), requiredChainId);
               idx += len;
             }
             return txVec;
@@ -96,7 +96,7 @@ Block::Block(std::string_view bytes) {
     for (uint64_t i = 0; i < valTxCount; ++i) {
       uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
       index += 4;
-      this->txValidators.emplace_back(bytes.substr(index, txSize));
+      this->txValidators.emplace_back(bytes.substr(index, txSize), requiredChainId);
       if (txValidators.back().getNHeight() != this->nHeight) {
         throw std::runtime_error("Invalid validator tx height");
       }

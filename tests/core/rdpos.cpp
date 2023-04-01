@@ -2,6 +2,7 @@
 #include "../../src/core/rdpos.h"
 #include "../../src/core/storage.h"
 #include "../../src/utils/db.h"
+#include "../../src/utils/options.h"
 #include "../../src/net/p2p/p2pmanagernormal.h"
 #include "../../src/net/p2p/p2pmanagerdiscovery.h"
 
@@ -25,12 +26,13 @@ const std::vector<Hash> validatorPrivKeys {
 void initialize(std::unique_ptr<DB>& db, 
                 std::unique_ptr<Storage>& storage, 
                 std::unique_ptr<P2P::ManagerNormal>& p2p, 
-                PrivKey validatorKey, 
+                PrivKey validatorKey,
                 std::unique_ptr<rdPoS>& rdpos,
+                std::unique_ptr<Options>& options,
                 uint64_t serverPort,
-                bool clearDb = true,
-                std::string dbPrefix = "") {
-  std::string dbName = dbPrefix + "rdPoStests";
+                bool clearDb,
+                std::string folderName) {
+  std::string dbName = folderName + "/db";
   if (clearDb) {
     if (std::filesystem::exists(dbName)) {
       std::filesystem::remove_all(dbName);
@@ -55,12 +57,38 @@ void initialize(std::unique_ptr<DB>& db,
     }
   }
 
-  storage = std::make_unique<Storage>(db);
-  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), serverPort, rdpos);
-  rdpos = std::make_unique<rdPoS>(db, 8080, storage, p2p, validatorKey);
+  if (!validatorKey) {
+    options = std::make_unique<Options>(
+        folderName,
+        "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        1,
+        8080,
+        serverPort,
+        9999
+      );
+  } else {
+    options = std::make_unique<Options>(
+      folderName,
+      "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+      1,
+      8080,
+      serverPort,
+      9999,
+      validatorKey
+    );
+  }
+
+  storage = std::make_unique<Storage>(db, options);
+  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options);
+  rdpos = std::make_unique<rdPoS>(db, storage, p2p, options);
 }
 
-
+/*    Options(const std::string& rootPath,
+            const std::string& web3clientVersion,
+            const uint64_t& version,
+            const uint64_t& chainID,
+            const uint16_t& wsPort,
+            const uint16_t& httpPort); */
 // This creates a valid block given the state within the rdPoS class.
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
@@ -157,7 +185,8 @@ namespace TRdPoS {
         std::unique_ptr<P2P::ManagerNormal> p2p;
         PrivKey validatorKey = PrivKey();
         std::unique_ptr<rdPoS> rdpos;
-        initialize(db, storage, p2p, validatorKey, rdpos, 8080);
+        std::unique_ptr<Options> options;
+        initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, true, "rdPoSStartup");
 
         auto validators = rdpos->getValidators();
         REQUIRE(rdpos->getValidators().size() == 8);
@@ -194,7 +223,8 @@ namespace TRdPoS {
       std::unique_ptr<P2P::ManagerNormal> p2p;
       PrivKey validatorKey = PrivKey();
       std::unique_ptr<rdPoS> rdpos;
-      initialize(db, storage, p2p, validatorKey, rdpos, 8080, false);
+      std::unique_ptr<Options> options;
+      initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, false, "rdPoSStartup");
 
       auto validators = rdpos->getValidators();
       REQUIRE(validators == validatorsList);
@@ -206,7 +236,8 @@ namespace TRdPoS {
       std::unique_ptr<P2P::ManagerNormal> p2p;
       PrivKey validatorKey = PrivKey();
       std::unique_ptr<rdPoS> rdpos;
-      initialize(db, storage, p2p, validatorKey, rdpos, 8080);
+      std::unique_ptr<Options> options;
+      initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, true, "rdPoSValidateBlock");
 
       auto block = createValidBlock(rdpos, storage);
       // Validate the block on rdPoS
@@ -222,7 +253,8 @@ namespace TRdPoS {
         std::unique_ptr<P2P::ManagerNormal> p2p;
         PrivKey validatorKey = PrivKey();
         std::unique_ptr<rdPoS> rdpos;
-        initialize(db, storage, p2p, validatorKey, rdpos, 8080);
+        std::unique_ptr<Options> options;
+        initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, true, "rdPoSValidateBlockTenBlocks");
 
         for (uint64_t i = 0; i < 10; ++i) {
           // Create a valid block, with the correct rdPoS transactions
@@ -252,8 +284,9 @@ namespace TRdPoS {
       std::unique_ptr<P2P::ManagerNormal> p2p;
       PrivKey validatorKey = PrivKey();
       std::unique_ptr<rdPoS> rdpos;
+      std::unique_ptr<Options> options;
       // Initialize same DB and storage as before.
-      initialize(db, storage, p2p, validatorKey, rdpos, 8080, false);
+      initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, false, "rdPoSValidateBlockTenBlocks");
 
       REQUIRE(rdpos->getBestRandomSeed() == expectedRandomnessFromBestBlock);
       REQUIRE(rdpos->getRandomList() == expectedRandomList);
@@ -268,14 +301,16 @@ namespace TRdPoS {
       std::unique_ptr<P2P::ManagerNormal> p2p1;
       PrivKey validatorKey1 = PrivKey();
       std::unique_ptr<rdPoS> rdpos1;
-      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, 8080, true, "node1");
+      std::unique_ptr<Options> options1;
+      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, 8080, true, "rdPosBasicNetworkNode1");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
       std::unique_ptr<P2P::ManagerNormal> p2p2;
       PrivKey validatorKey2 = PrivKey();
       std::unique_ptr<rdPoS> rdpos2;
-      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, 8081, true, "node2");
+      std::unique_ptr<Options> options2;
+      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, 8081, true, "rdPosBasicNetworkNode2");
 
 
       // Start respective p2p servers, and connect each other.
@@ -382,73 +417,91 @@ namespace TRdPoS {
       std::unique_ptr<P2P::ManagerNormal> p2p1;
       PrivKey validatorKey1 = PrivKey();
       std::unique_ptr<rdPoS> rdpos1;
-      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, 8080, true, "node1");
+      std::unique_ptr<Options> options1;
+      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, 8080, true, "rdPoSdiscoveryNodeTestBroadcastNode1");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
       std::unique_ptr<P2P::ManagerNormal> p2p2;
       PrivKey validatorKey2 = PrivKey();
       std::unique_ptr<rdPoS> rdpos2;
-      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, 8081, true, "node2");
+      std::unique_ptr<Options> options2;
+      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, 8081, true, "rdPoSdiscoveryNodeTestBroadcastNode2");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
       std::unique_ptr<P2P::ManagerNormal> p2p3;
       PrivKey validatorKey3 = PrivKey();
       std::unique_ptr<rdPoS> rdpos3;
-      initialize(db3, storage3, p2p3, validatorKey3, rdpos3, 8082, true, "node3");
+      std::unique_ptr<Options> options3;
+      initialize(db3, storage3, p2p3, validatorKey3, rdpos3, options3, 8082, true, "rdPoSdiscoveryNodeTestBroadcastNode3");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
       std::unique_ptr<P2P::ManagerNormal> p2p4;
       PrivKey validatorKey4 = PrivKey();
       std::unique_ptr<rdPoS> rdpos4;
-      initialize(db4, storage4, p2p4, validatorKey4, rdpos4, 8083, true, "node4");
+      std::unique_ptr<Options> options4;
+      initialize(db4, storage4, p2p4, validatorKey4, rdpos4, options4, 8083, true, "rdPoSdiscoveryNodeTestBroadcastNode4");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
       std::unique_ptr<P2P::ManagerNormal> p2p5;
       PrivKey validatorKey5 = PrivKey();
       std::unique_ptr<rdPoS> rdpos5;
-      initialize(db5, storage5, p2p5, validatorKey5, rdpos5, 8084, true, "node5");
+      std::unique_ptr<Options> options5;
+      initialize(db5, storage5, p2p5, validatorKey5, rdpos5, options5, 8084, true, "rdPoSdiscoveryNodeTestBroadcastNode5");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
       std::unique_ptr<P2P::ManagerNormal> p2p6;
       PrivKey validatorKey6 = PrivKey();
       std::unique_ptr<rdPoS> rdpos6;
-      initialize(db6, storage6, p2p6, validatorKey6, rdpos6, 8085, true, "node6");
+      std::unique_ptr<Options> options6;
+      initialize(db6, storage6, p2p6, validatorKey6, rdpos6, options6, 8085, true, "rdPoSdiscoveryNodeTestBroadcastNode6");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
       std::unique_ptr<P2P::ManagerNormal> p2p7;
       PrivKey validatorKey7 = PrivKey();
       std::unique_ptr<rdPoS> rdpos7;
-      initialize(db7, storage7, p2p7, validatorKey7, rdpos7, 8086, true, "node7");
+      std::unique_ptr<Options> options7;
+      initialize(db7, storage7, p2p7, validatorKey7, rdpos7, options7, 8086, true, "rdPoSdiscoveryNodeTestBroadcastNode7");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
       std::unique_ptr<P2P::ManagerNormal> p2p8;
       PrivKey validatorKey8 = PrivKey();
       std::unique_ptr<rdPoS> rdpos8;
-      initialize(db8, storage8, p2p8, validatorKey8, rdpos8, 8087, true, "node8");
+      std::unique_ptr<Options> options8;
+      initialize(db8, storage8, p2p8, validatorKey8, rdpos8, options8, 8087, true, "rdPoSdiscoveryNodeTestBroadcastNode8");
 
       std::unique_ptr<DB> db9;
       std::unique_ptr<Storage> storage9;
       std::unique_ptr<P2P::ManagerNormal> p2p9;
       PrivKey validatorKey9 = PrivKey();
       std::unique_ptr<rdPoS> rdpos9;
-      initialize(db9, storage9, p2p9, validatorKey9, rdpos9, 8088, true, "node9");
+      std::unique_ptr<Options> options9;
+      initialize(db9, storage9, p2p9, validatorKey9, rdpos9, options9, 8088, true, "rdPoSdiscoveryNodeTestBroadcastNode9");
 
       std::unique_ptr<DB> db10;
       std::unique_ptr<Storage> storage10;
       std::unique_ptr<P2P::ManagerNormal> p2p10;
       PrivKey validatorKey10 = PrivKey();
       std::unique_ptr<rdPoS> rdpos10;
-      initialize(db10, storage10, p2p10, validatorKey10, rdpos10, 8089, true, "node10");
+      std::unique_ptr<Options> options10;
+      initialize(db10, storage10, p2p10, validatorKey10, rdpos10, options10, 8089, true, "rdPoSdiscoveryNodeTestBroadcastNode10");
 
       // Initialize the discovery node.
-      std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
+          "rdPoSdiscoveryNodeTestBroadcast",
+          "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+          1,
+          8080,
+          8090,
+          9999
+        );
+      std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // Start servers
       p2pDiscovery->startServer();
@@ -614,59 +667,76 @@ namespace TRdPoS {
     std::unique_ptr<P2P::ManagerNormal> p2p1;
     PrivKey validatorKey1 = PrivKey();
     std::unique_ptr<rdPoS> rdpos1;
-    initialize(db1, storage1, p2p1, validatorPrivKeys[0], rdpos1, 8080, true, "node1");
+    std::unique_ptr<Options> options1;
+    initialize(db1, storage1, p2p1, validatorPrivKeys[0], rdpos1, options1, 8080, true, "rdPoSdiscoveryNodeTestMove10BlocksNode1");
 
     std::unique_ptr<DB> db2;
     std::unique_ptr<Storage> storage2;
     std::unique_ptr<P2P::ManagerNormal> p2p2;
     PrivKey validatorKey2 = PrivKey();
     std::unique_ptr<rdPoS> rdpos2;
-    initialize(db2, storage2, p2p2, validatorPrivKeys[1], rdpos2, 8081, true, "node2");
+    std::unique_ptr<Options> options2;
+    initialize(db2, storage2, p2p2, validatorPrivKeys[1], rdpos2, options2, 8081, true, "rdPoSdiscoveryNodeTestMove10BlocksNode2");
 
     std::unique_ptr<DB> db3;
     std::unique_ptr<Storage> storage3;
     std::unique_ptr<P2P::ManagerNormal> p2p3;
     PrivKey validatorKey3 = PrivKey();
     std::unique_ptr<rdPoS> rdpos3;
-    initialize(db3, storage3, p2p3, validatorPrivKeys[2], rdpos3, 8082, true, "node3");
+    std::unique_ptr<Options> options3;
+    initialize(db3, storage3, p2p3, validatorPrivKeys[2], rdpos3, options3, 8082, true, "rdPoSdiscoveryNodeTestMove10BlocksNode3");
 
     std::unique_ptr<DB> db4;
     std::unique_ptr<Storage> storage4;
     std::unique_ptr<P2P::ManagerNormal> p2p4;
     PrivKey validatorKey4 = PrivKey();
     std::unique_ptr<rdPoS> rdpos4;
-    initialize(db4, storage4, p2p4, validatorPrivKeys[3], rdpos4, 8083, true, "node4");
+    std::unique_ptr<Options> options4;
+    initialize(db4, storage4, p2p4, validatorPrivKeys[3], rdpos4, options4, 8083, true, "rdPoSdiscoveryNodeTestMove10BlocksNode4");
 
     std::unique_ptr<DB> db5;
     std::unique_ptr<Storage> storage5;
     std::unique_ptr<P2P::ManagerNormal> p2p5;
     PrivKey validatorKey5 = PrivKey();
     std::unique_ptr<rdPoS> rdpos5;
-    initialize(db5, storage5, p2p5, validatorPrivKeys[4], rdpos5, 8084, true, "node5");
+    std::unique_ptr<Options> options5;
+    initialize(db5, storage5, p2p5, validatorPrivKeys[4], rdpos5, options5, 8084, true, "rdPoSdiscoveryNodeTestMove10BlocksNode5");
 
     std::unique_ptr<DB> db6;
     std::unique_ptr<Storage> storage6;
     std::unique_ptr<P2P::ManagerNormal> p2p6;
     PrivKey validatorKey6 = PrivKey();
     std::unique_ptr<rdPoS> rdpos6;
-    initialize(db6, storage6, p2p6, validatorPrivKeys[5], rdpos6, 8085, true, "node6");
+    std::unique_ptr<Options> options6;
+    initialize(db6, storage6, p2p6, validatorPrivKeys[5], rdpos6, options6, 8085, true, "rdPoSdiscoveryNodeTestMove10BlocksNode6");
 
     std::unique_ptr<DB> db7;
     std::unique_ptr<Storage> storage7;
     std::unique_ptr<P2P::ManagerNormal> p2p7;
     PrivKey validatorKey7 = PrivKey();
     std::unique_ptr<rdPoS> rdpos7;
-    initialize(db7, storage7, p2p7, validatorPrivKeys[6], rdpos7, 8086, true, "node7");
+    std::unique_ptr<Options> options7;
+    initialize(db7, storage7, p2p7, validatorPrivKeys[6], rdpos7, options7, 8086, true, "rdPoSdiscoveryNodeTestMove10BlocksNode7");
 
     std::unique_ptr<DB> db8;
     std::unique_ptr<Storage> storage8;
     std::unique_ptr<P2P::ManagerNormal> p2p8;
     PrivKey validatorKey8 = PrivKey();
     std::unique_ptr<rdPoS> rdpos8;
-    initialize(db8, storage8, p2p8, validatorPrivKeys[7], rdpos8, 8087, true, "node8");
+    std::unique_ptr<Options> options8;
+    initialize(db8, storage8, p2p8, validatorPrivKeys[7], rdpos8, options8, 8087, true, "rdPoSdiscoveryNodeTestMove10BlocksNode8");
 
     // Initialize the discovery node.
-    std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    // Initialize the discovery node.
+    std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
+      "rdPoSdiscoveryNodeTestMove10Blocks",
+      "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+      1,
+      8080,
+      8090,
+      9999
+    );
+    std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
     // References for the rdPoS workers vector.
     std::vector<std::reference_wrapper<std::unique_ptr<rdPoS>>> rdPoSreferences;
