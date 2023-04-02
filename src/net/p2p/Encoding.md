@@ -174,3 +174,16 @@ Example:
 ```0x02adf01827349cad810004f86ba4cfffe74621e0caa14dfcb67a6f263391f4a6ad957ace256f3e706b6da07517a63295165701823f44a01545c0c89ad5fda9e4c6ef65f264ef575fa2edebef29d577f88d365ff9d28357a00d9ed64e1675315477aca44908148b9b572c7de45d420398193dcfc2d430d158```
 
 
+### BroadcastTx
+
+Broadcast a given TxBlock to all know nodes connected to us, they should validate and rebroadcast
+
+BroadcastTx command ID: \x00\x05
+
+Request Type: Broadcast Only
+
+Payload: TxRLP
+
+Example:
+
+```0x02adf01827349cad810005f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c```

@@ -1,6 +1,7 @@
 #include "p2pmanagernormal.h"
 #include "../core/rdpos.h"
 #include "../core/storage.h"
+#include "../core/state.h"
 
 namespace P2P {
 
@@ -85,6 +86,9 @@ namespace P2P {
     switch (message.command()) {
       case BroadcastValidatorTx:
         handleTxValidatorBroadcast(session, message);
+        break;
+      case BroadcastTx:
+        handleTxBroadcast(session, message);
         break;
       default:
         Utils::logToDebug(Log::P2PParser, __func__, "Invalid Broadcast Command Type from " + session->hostNodeId().hex().get() + ", closing session.");
@@ -175,7 +179,6 @@ namespace P2P {
   }
 
   void ManagerNormal::handleTxValidatorBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {
-    // TODO: Add a filter to broadcast any message to all nodes if message was not previously know.
     try {
       auto tx = BroadcastDecoder::broadcastValidatorTx(message, this->options->getChainID());
       if (this->rdpos_->addValidatorTx(tx)) {
@@ -183,6 +186,18 @@ namespace P2P {
       }
     } catch (std::exception &e) {
       Utils::logToDebug(Log::P2PParser, __func__, "Invalid txValidatorBroadcast from " + session->hostNodeId().hex().get() + ", error: " + e.what() + " closing session.");
+      this->disconnectSession(session->hostNodeId());
+    }
+  }
+
+  void ManagerNormal::handleTxBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {
+    try {
+      auto tx = BroadcastDecoder::broadcastTx(message, this->options->getChainID());
+      if (!this->state_->addTx(std::move(tx))) {
+        this->broadcastMessage(message);
+      }
+    } catch (std::exception &e) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Invalid txBroadcast from " + session->hostNodeId().hex().get() + ", error: " + e.what() + " closing session.");
       this->disconnectSession(session->hostNodeId());
     }
   }
@@ -237,6 +252,12 @@ namespace P2P {
 
   void ManagerNormal::broadcastTxValidator(const TxValidator& tx) {
     auto broadcast = BroadcastEncoder::broadcastValidatorTx(tx);
+    this->broadcastMessage(broadcast);
+    return;
+  }
+
+  void ManagerNormal::broadcastTxBlock(const TxBlock &txBlock) {
+    auto broadcast = BroadcastEncoder::broadcastTx(txBlock);
     this->broadcastMessage(broadcast);
     return;
   }

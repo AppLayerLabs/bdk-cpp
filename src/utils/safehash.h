@@ -107,6 +107,8 @@ struct SafeHash {
 };
 
 /// Hash to be used within broadcast messages.
+/// This skips compilator optimizations and forces the whole string to be hashed.
+/// Diminishing the chance of collisions (remember, we're using 64-bit hashes).
 struct FNVHash
 {
   size_t operator()(std::string_view s) const

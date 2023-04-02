@@ -1,6 +1,7 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/core/rdpos.h"
 #include "../../src/core/storage.h"
+#include "../../src/core/state.h"
 #include "../../src/utils/db.h"
 #include "../../src/utils/options.h"
 #include "../../src/net/p2p/p2pmanagernormal.h"
@@ -81,7 +82,7 @@ void initialize(std::unique_ptr<DB>& db,
   }
 
   storage = std::make_unique<Storage>(db, options);
-  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage);
+  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, nullptr);
   rdpos = std::make_unique<rdPoS>(db, storage, p2p, options);
 }
 

@@ -250,10 +250,28 @@ namespace P2P {
     return Message(std::move(message));
   }
 
+  Message BroadcastEncoder::broadcastTx(const TxBlock& tx) {
+    std::string message;
+    message += getRequestTypePrefix(Broadcasting);
+    // We need to use std::hash instead of SafeHash
+    // Because hashing with SafeHash will always be different between nodes
+    message += Utils::uint64ToBytes(FNVHash()(tx.rlpSerialize()));
+    message += getCommandPrefix(BroadcastTx);
+    message += tx.rlpSerialize();
+    return Message(std::move(message));
+  }
+
   TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId) {
     if (message.type() != Broadcasting) { throw std::runtime_error("Invalid message type."); }
     if (message.id().toUint64() != FNVHash()(message.message())) { throw std::runtime_error("Invalid message id."); }
     if (message.command() != BroadcastValidatorTx) { throw std::runtime_error("Invalid command."); }
     return TxValidator(message.message(), requiredChainId);
+  }
+
+  TxBlock BroadcastDecoder::broadcastTx(const P2P::Message &message, const uint64_t &requiredChainId) {
+    if (message.type() != Broadcasting) { throw std::runtime_error("Invalid message type."); }
+    if (message.id().toUint64() != FNVHash()(message.message())) { throw std::runtime_error("Invalid message id."); }
+    if (message.command() != BroadcastTx) { throw std::runtime_error("Invalid command."); }
+    return TxBlock(message.message(), requiredChainId);
   }
 }

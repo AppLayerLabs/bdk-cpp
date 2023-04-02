@@ -104,7 +104,7 @@ namespace TP2P {
     }
 
     storage = std::make_unique<Storage>(db, options);
-    p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage);
+    p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, state);
     rdpos = std::make_unique<rdPoS>(db, storage, p2p, options);
     state = std::make_unique<State>(db, storage, rdpos, p2p);
   }
@@ -117,9 +117,9 @@ namespace TP2P {
       initializeOptions(options1, "testP2PManagerSimpleNetworkNode1", 8080);
       initializeOptions(options2, "testP2PManagerSimpleNetworkNode2", 8081);
       initializeOptions(options3, "testP2PManagerSimpleNetworkNode3", 8082);
-      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options1, nullptr);
-      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options2, nullptr);
-      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options3, nullptr);
+      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options1, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options2, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options3, nullptr, nullptr);
 
 			Hash node1Id = p2pNode1.nodeId();
 			Hash node2Id = p2pNode2.nodeId();
@@ -305,16 +305,16 @@ namespace TP2P {
       initializeOptions(options10, "testP2PManagerDiscoveryNetworkNode10", 8089);
 
 			P2P::ManagerDiscovery p2pDiscoveryNode(boost::asio::ip::address::from_string("127.0.0.1"), optionsDiscovery);
-      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options1, nullptr);
-      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options2, nullptr);
-      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options3, nullptr);
-			P2P::ManagerNormal p2pNode4(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options4, nullptr);
-			P2P::ManagerNormal p2pNode5(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options5, nullptr);
-			P2P::ManagerNormal p2pNode6(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options6, nullptr);
-			P2P::ManagerNormal p2pNode7(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options7, nullptr);
-			P2P::ManagerNormal p2pNode8(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options8, nullptr);
-			P2P::ManagerNormal p2pNode9(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options9, nullptr);
-			P2P::ManagerNormal p2pNode10(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options10, nullptr);
+      P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options1, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options2, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options3, nullptr, nullptr);
+			P2P::ManagerNormal p2pNode4(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options4, nullptr, nullptr);
+			P2P::ManagerNormal p2pNode5(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options5, nullptr, nullptr);
+			P2P::ManagerNormal p2pNode6(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options6, nullptr, nullptr);
+			P2P::ManagerNormal p2pNode7(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options7, nullptr, nullptr);
+			P2P::ManagerNormal p2pNode8(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options8, nullptr, nullptr);
+			P2P::ManagerNormal p2pNode9(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options9, nullptr, nullptr);
+			P2P::ManagerNormal p2pNode10(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options10, nullptr, nullptr);
       
 
 			p2pDiscoveryNode.startServer();

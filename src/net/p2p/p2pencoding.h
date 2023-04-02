@@ -45,7 +45,8 @@ namespace P2P {
     Info,
     RequestNodes,
     RequestValidatorTxs,
-    BroadcastValidatorTx
+    BroadcastValidatorTx,
+    BroadcastTx
   };
   
   CommandType getCommandType(const std::string_view& message);
@@ -57,7 +58,8 @@ namespace P2P {
     std::string("\x00\x01", 2),       // Info
     std::string("\x00\x02", 2),       // requestNodes
     std::string("\x00\x03", 2),       // RequestValidatorTxs
-    std::string("\x00\x04", 2)        // BroadcastValidatorTx
+    std::string("\x00\x04", 2),        // BroadcastValidatorTx
+    std::string("\x00\x05", 2)        // BroadcastTx
   };
   
   RequestType getRequestType(const std::string_view& message);
@@ -116,11 +118,13 @@ namespace P2P {
   class BroadcastEncoder {
     public:
       static Message broadcastValidatorTx(const TxValidator& tx);
+      static Message broadcastTx(const TxBlock& tx);
   };
 
   class BroadcastDecoder {
     public:
       static TxValidator broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId);
+      static TxBlock broadcastTx(const Message& message, const uint64_t& requiredChainId);
   };
 
   class Message {
