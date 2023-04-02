@@ -75,7 +75,7 @@ Answer Example:  ```0x01adf01827349cad810000```
 
 
 ---
-### Info (Not yet implemented)
+### Info
 
 Requests a basic list of information from another node, also sends ours.
 

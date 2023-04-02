@@ -1,5 +1,6 @@
 #include "p2pmanagernormal.h"
 #include "../core/rdpos.h"
+#include "../core/storage.h"
 
 namespace P2P {
 
@@ -44,7 +45,7 @@ namespace P2P {
         handlePingRequest(session, message);
         break;
       case Info:
-        // handleInfoRequest(session, message);
+        handleInfoRequest(session, message);
         break;
       case RequestNodes:
         handleRequestNodesRequest(session, message);
@@ -65,7 +66,7 @@ namespace P2P {
         handlePingAnswer(session, message);
         break;
       case Info:
-        // handleInfoAnswer(session, message);
+        handleInfoAnswer(session, message);
         break;
       case RequestNodes:
         handleRequestNodesAnswer(session, message);
@@ -101,6 +102,11 @@ namespace P2P {
     this->answerSession(session, AnswerEncoder::ping(message));
   }
 
+  void ManagerNormal::handleInfoRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
+    RequestDecoder::info(message);
+    this->answerSession(session, AnswerEncoder::info(message, this->storage_->latest(), this->options));
+  }
+
   void ManagerNormal::handleRequestNodesRequest(std::shared_ptr<BaseSession>& session, const Message& message) {
     if (!RequestDecoder::requestNodes(message)) {
       Utils::logToDebug(Log::P2PParser, __func__, "Invalid requestNodes request, closing session.");
@@ -129,6 +135,16 @@ namespace P2P {
   }
 
   void ManagerNormal::handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
+    std::unique_lock lock(requestsMutex);
+    if (!requests_.contains(message.id())) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + session->hostNodeId().hex().get());
+      this->disconnectSession(session->hostNodeId());
+      return;
+    }
+    requests_[message.id()]->setAnswer(message);
+  }
+
+  void ManagerNormal::handleInfoAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
     std::unique_lock lock(requestsMutex);
     if (!requests_.contains(message.id())) {
       Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + session->hostNodeId().hex().get());
@@ -189,6 +205,29 @@ namespace P2P {
     }
     try {
       return AnswerDecoder::requestValidatorTxs(answer.get(), this->options->getChainID());
+    } catch (std::exception &e) {
+      Utils::logToDebug(Log::P2PParser, __func__,
+                        "Request to " + nodeId.hex().get() + " failed with error: " + e.what());
+      return {};
+    }
+  }
+
+  NodeInfo ManagerNormal::requestNodeInfo(const Hash& nodeId) {
+    auto request = RequestEncoder::info(this->storage_->latest(), this->options);
+    Utils::logToFile("Requesting nodes from " + nodeId.hex().get());
+    auto requestPtr = sendMessageTo(nodeId, request);
+    if (requestPtr == nullptr) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Request to " + nodeId.hex().get() + " failed.");
+      return {};
+    }
+    auto answer = requestPtr->answerFuture();
+    auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
+    if (status == std::future_status::timeout) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Request to " + nodeId.hex().get() + " timed out.");
+      return {};
+    }
+    try {
+      return AnswerDecoder::info(answer.get());
     } catch (std::exception &e) {
       Utils::logToDebug(Log::P2PParser, __func__,
                         "Request to " + nodeId.hex().get() + " failed with error: " + e.what());

@@ -23,9 +23,10 @@ namespace P2P {
       case Ping:
         handlePingRequest(session, message);
         break;
-      case Info:
+      // case Info:
+        // We don't handle info within discovery because discovery keeps zero track of blockchain history.
         // handleInfoRequest(session, message);
-        break;
+        // break;
       case RequestNodes:
         handleRequestNodesRequest(session, message);
         break;

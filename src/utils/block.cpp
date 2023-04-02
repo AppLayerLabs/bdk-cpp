@@ -1,4 +1,5 @@
 #include "block.h"
+#include "../core/rdpos.h"
 
 Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
   try {

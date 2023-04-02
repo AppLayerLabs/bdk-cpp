@@ -26,6 +26,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 // Forward declaration.
 class rdPoS;
+class Storage;
 
 namespace P2P {
   class ManagerNormal : public ManagerBase {
@@ -38,6 +39,8 @@ namespace P2P {
 
     private:
       const std::unique_ptr<rdPoS>& rdpos_;
+
+      const std::unique_ptr<Storage>& storage_;
       // Mapping of broadcasted Messages and counter of such broadcasted messages (how many times we have broadcasted it).
       // This is used to avoid broadcasting the same message multiple times.
       std::unordered_map <uint64_t, unsigned int, SafeHash> broadcastedMessages_;
@@ -50,11 +53,13 @@ namespace P2P {
 
       // Handlers for command requests
       void handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleInfoRequest(std::shared_ptr<BaseSession>& session, const Message& message);
       void handleRequestNodesRequest(std::shared_ptr<BaseSession>& session, const Message& message);
       void handleTxValidatorRequest(std::shared_ptr<BaseSession>& session, const Message& message);
 
       // Handlers for command answers
       void handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleInfoAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
       void handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
       void handleTxValidatorAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
 
@@ -64,14 +69,17 @@ namespace P2P {
     public:
       ManagerNormal(const boost::asio::ip::address& hostIp,
                     const std::unique_ptr<rdPoS>& rdpos,
-                    const std::unique_ptr<Options>& options) :
-                    ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options), rdpos_(rdpos)  {};
+                    const std::unique_ptr<Options>& options,
+                    const std::unique_ptr<Storage>& storage) :
+                    ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options), rdpos_(rdpos), storage_(storage) {};
       
       void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
 
       std::vector<TxValidator> requestValidatorTxs(const Hash& nodeId);
 
       void broadcastTxValidator(const TxValidator& tx);
+
+      NodeInfo requestNodeInfo(const Hash& nodeId);
 
   };
 };

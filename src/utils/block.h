@@ -10,8 +10,6 @@
 #include "merkle.h"
 #include "ecdsa.h"
 
-#include "../core/rdpos.h"
-
 /**
  * Abstraction of a block.
  * Does NOT check transaction logic or signatures, it's only the block's

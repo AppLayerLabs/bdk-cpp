@@ -4,6 +4,8 @@
 #include "../../utils/utils.h"
 #include "../../utils/safehash.h"
 #include "../../utils/tx.h"
+#include "../../utils/block.h"
+#include "../../utils/options.h"
 #include "p2pbase.h"
 #include <future>
 
@@ -69,13 +71,17 @@ namespace P2P {
   };
   
   struct NodeInfo {
+    const uint64_t nodeVersion;
+    const uint64_t currentTimestamp;
+    const uint64_t latestBlockHeight;
+    const Hash latestBlockHash;
   };
   
   // Used when creating a request
   class RequestEncoder {
     public:
       static Message ping();
-      static Message info();
+      static Message info(const std::shared_ptr<const Block>& latestBlock, const std::unique_ptr<Options> &options);
       static Message requestNodes();
       static Message requestValidatorTxs();
   };
@@ -93,7 +99,7 @@ namespace P2P {
   class AnswerEncoder {
     public:
       static Message ping(const Message& request);
-      static Message info();
+      static Message info(const Message& request, const std::shared_ptr<const Block>& latestBlock, const std::unique_ptr<Options> &options);
       static Message requestNodes(const Message& request, const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes);
       static Message requestValidatorTxs(const Message& request, const std::unordered_map<Hash, TxValidator, SafeHash>& txs); 
   };

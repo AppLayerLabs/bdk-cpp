@@ -44,6 +44,19 @@ namespace P2P {
     return Message(std::move(message));
   }
 
+  Message RequestEncoder::info(const std::shared_ptr<const Block>& latestBlock, const std::unique_ptr<Options> &options) {
+    std::string message;
+    message += getRequestTypePrefix(Requesting);
+    message += Utils::randBytes(8);
+    message += getCommandPrefix(Info);
+    message += Utils::uint64ToBytes(options->getVersion());
+    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    message += Utils::uint64ToBytes(currentEpoch);
+    message += Utils::uint64ToBytes(latestBlock->getNHeight());
+    message += latestBlock->hash().get();
+    return Message(std::move(message));
+  }
+
   Message RequestEncoder::requestNodes() {
     std::string message;
     message += getRequestTypePrefix(Requesting);
@@ -66,6 +79,16 @@ namespace P2P {
     return true;
   }
 
+  NodeInfo RequestDecoder::info(const Message& message) {
+    if (message.size() != 67) { throw std::runtime_error("Invalid Info message size."); }
+    if (message.command() != Info) { throw std::runtime_error("Invalid Info message command."); }
+    uint64_t nodeVersion = Utils::bytesToUint64(message.message().substr(0, 8));
+    uint64_t nodeEpoch = Utils::bytesToUint64(message.message().substr(8, 8));
+    uint64_t nodeHeight = Utils::bytesToUint64(message.message().substr(16, 8));
+    Hash nodeHash(message.message().substr(24, 32));
+    return NodeInfo(nodeVersion, nodeEpoch, nodeHeight, nodeHash);
+  }
+
   bool RequestDecoder::requestNodes(const Message& message) {
     if (message.size() != 11) { return false; }
     if (message.command() != RequestNodes) { return false; }
@@ -83,6 +106,19 @@ namespace P2P {
     message += getRequestTypePrefix(Answering);
     message += request.id().get();
     message += getCommandPrefix(Ping);
+    return Message(std::move(message));
+  }
+
+  Message AnswerEncoder::info(const Message& request, const std::shared_ptr<const Block>& latestBlock, const std::unique_ptr<Options> &options) {
+    std::string message;
+    message += getRequestTypePrefix(Answering);
+    message += request.id().get();
+    message += getCommandPrefix(Info);
+    message += Utils::uint64ToBytes(options->getVersion());
+    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    message += Utils::uint64ToBytes(currentEpoch);
+    message += Utils::uint64ToBytes(latestBlock->getNHeight());
+    message += latestBlock->hash().get();
     return Message(std::move(message));
   }
 
@@ -128,6 +164,16 @@ namespace P2P {
     if (message.type() != Answering) { return false; }
     if (message.command() != Ping) { return false; }
     return true;
+  }
+
+  NodeInfo AnswerDecoder::info(const Message& message) {
+    if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
+    if (message.command() != Info) { throw std::runtime_error("Invalid command."); }
+    uint64_t nodeVersion = Utils::bytesToUint64(message.message().substr(0, 8));
+    uint64_t nodeEpoch = Utils::bytesToUint64(message.message().substr(8, 8));
+    uint64_t nodeHeight = Utils::bytesToUint64(message.message().substr(16, 8));
+    Hash nodeHash(message.message().substr(24, 32));
+    return NodeInfo(nodeVersion, nodeEpoch, nodeHeight, nodeHash);
   }
 
   std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> AnswerDecoder::requestNodes(const Message& message) {
