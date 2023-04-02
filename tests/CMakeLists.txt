@@ -16,6 +16,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/tx.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/tx_throw.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/utils.cpp
+  ${CMAKE_SOURCE_DIR}/tests/utils/options.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
