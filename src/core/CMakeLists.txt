@@ -1,6 +1,6 @@
 if(BUILD_AVALANCHEGO)
   set(CORE_HEADERS
-  #  ${CMAKE_SOURCE_DIR}/src/core/blockchain.h
+     ${CMAKE_SOURCE_DIR}/src/core/blockchain.h
   #  ${CMAKE_SOURCE_DIR}/src/core/rdpos.h
   #  ${CMAKE_SOURCE_DIR}/src/core/snowmanVM.h
      ${CMAKE_SOURCE_DIR}/src/core/state.h
@@ -10,8 +10,7 @@ if(BUILD_AVALANCHEGO)
   )
 
   set(CORE_SOURCES
-  #  ${CMAKE_SOURCE_DIR}/src/core/blockchain.cpp
-  #  ${CMAKE_SOURCE_DIR}/src/core/blockchainRPC.cpp
+     ${CMAKE_SOURCE_DIR}/src/core/blockchain.cpp
   #  ${CMAKE_SOURCE_DIR}/src/core/rdpos.cpp
   #  ${CMAKE_SOURCE_DIR}/src/core/snowmanVM.cpp
      ${CMAKE_SOURCE_DIR}/src/core/state.cpp
@@ -21,7 +20,7 @@ if(BUILD_AVALANCHEGO)
   )
 else()
   set(CORE_HEADERS
-  #  ${CMAKE_SOURCE_DIR}/src/core/blockchain.h
+     ${CMAKE_SOURCE_DIR}/src/core/blockchain.h
   #  ${CMAKE_SOURCE_DIR}/src/core/rdpos.h
      ${CMAKE_SOURCE_DIR}/src/core/state.h
      ${CMAKE_SOURCE_DIR}/src/core/storage.h
@@ -30,8 +29,7 @@ else()
   )
 
   set(CORE_SOURCES
-  #  ${CMAKE_SOURCE_DIR}/src/core/blockchain.cpp
-  #  ${CMAKE_SOURCE_DIR}/src/core/blockchainRPC.cpp
+     ${CMAKE_SOURCE_DIR}/src/core/blockchain.cpp
   #  ${CMAKE_SOURCE_DIR}/src/core/rdpos.cpp
      ${CMAKE_SOURCE_DIR}/src/core/state.cpp
      ${CMAKE_SOURCE_DIR}/src/core/storage.cpp

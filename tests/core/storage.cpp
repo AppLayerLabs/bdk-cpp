@@ -1,6 +1,7 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/core/storage.h"
 #include "../../src/utils/db.h"
+#include "../../src/utils/options.h"
 
 #include <filesystem>
 #include <utility>
@@ -15,13 +16,15 @@ void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std:
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   db = std::make_unique<DB>("blocksTests/db");
+  std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   options = std::make_unique<Options>(
     "blocksTests",
     "OrbiterSDK/cpp/linux_x86-64/0.0.1",
     1,
     8080,
     8080,
-    9999
+    9999,
+    discoveryNodes
   );
   storage = std::make_unique<Storage>(db, options);
 }

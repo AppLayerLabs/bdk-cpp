@@ -9,13 +9,15 @@ using Catch::Matchers::Equals;
 namespace TP2P {
 
   void initializeOptions(std::unique_ptr<Options>& options, std::string folderPath, uint64_t serverPort) {
+    std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
     options = std::make_unique<Options>(
       folderPath,
       "OrbiterSDK/cpp/linux_x86-64/0.0.1",
       1,
       8080,
       serverPort,
-      9999
+      9999,
+      peers
     );
   }
 

@@ -261,7 +261,7 @@ namespace JsonRPC {
       }
     }
 
-    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_call(const json& request) {
+    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_call(const json& request, const std::unique_ptr<Storage> &storage) {
       std::tuple<Address, Address, uint64_t, uint256_t, uint256_t, std::string> result;
       auto& [from, to, gas, gasPrice, value, data] = result;
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
@@ -270,8 +270,15 @@ namespace JsonRPC {
         const auto txObject = request["params"].at(0);
         const auto block = request["params"].at(1).get<std::string>();
         if (block != "latest") {
-          throw std::runtime_error("Only latest block is supported");
+          if (!std::regex_match(block, numberFilter)) {
+            throw std::runtime_error("Invalid block number");
+          }
+          uint64_t blockNumber = uint64_t(Hex(block).getUint());
+          if (blockNumber != storage->latest()->getNHeight()) {
+            throw std::runtime_error("Only latest block is supported");
+          }
         }
+
         /// Check from address. (optional)
         if (txObject.contains("from")) {
           std::string fromAddress = txObject["from"].get<std::string>();
@@ -325,7 +332,7 @@ namespace JsonRPC {
       }
     }
 
-    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_estimateGas(const json& request) {
+    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage) {
       std::tuple<Address, Address, uint64_t, uint256_t, uint256_t, std::string> result;
       auto& [from, to, gas, gasPrice, value, data] = result;
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
@@ -334,7 +341,13 @@ namespace JsonRPC {
         const auto txObject = request["params"].at(0);
         const auto block = request["params"].at(1).get<std::string>();
         if (block != "latest") {
-          throw std::runtime_error("Only latest block is supported");
+          if (!std::regex_match(block, numberFilter)) {
+            throw std::runtime_error("Invalid block number");
+          }
+          uint64_t blockNumber = uint64_t(Hex(block).getUint());
+          if (blockNumber != storage->latest()->getNHeight()) {
+            throw std::runtime_error("Only latest block is supported");
+          }
         }
         /// Check from address. (optional)
         if (txObject.contains("from")) {
@@ -394,9 +407,8 @@ namespace JsonRPC {
 
     void eth_gasPrice(const json& request) {
       try {
-        const auto block = request["params"].at(0).get<std::string>();
-        if (block != "latest") {
-          throw std::runtime_error("Only latest block is supported");
+        if (!request["params"].empty()) {
+          throw std::runtime_error("eth_gasPrice does not need params");
         }
       } catch (std::exception &e) {
         Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_gasPrice: ") + e.what());
@@ -404,13 +416,20 @@ namespace JsonRPC {
       }
     }
 
-    Address eth_getBalance(const json& request) {
+    Address eth_getBalance(const json& request, const std::unique_ptr<Storage> &storage) {
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
+      static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
         const auto address = request["params"].at(0).get<std::string>();
         const auto block = request["params"].at(1).get<std::string>();
         if (block != "latest") {
-          throw std::runtime_error("Only latest block is supported");
+          if (!std::regex_match(block, numberFilter)) {
+            throw std::runtime_error("Invalid block number");
+          }
+          uint64_t blockNumber = uint64_t(Hex(block).getUint());
+          if (blockNumber != storage->latest()->getNHeight()) {
+            throw std::runtime_error("Only latest block is supported");
+          }
         }
         if (!std::regex_match(address, addressFilter)) {
           throw std::runtime_error("Invalid address hex");
@@ -422,13 +441,20 @@ namespace JsonRPC {
       }
     }
 
-    Address eth_getTransactionCount(const json& request) {
+    Address eth_getTransactionCount(const json& request, const std::unique_ptr<Storage>& storage) {
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
+      static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
         const auto address = request["params"].at(0).get<std::string>();
         const auto block = request["params"].at(1).get<std::string>();
         if (block != "latest") {
-          throw std::runtime_error("Only latest block is supported");
+          if (!std::regex_match(block, numberFilter)) {
+            throw std::runtime_error("Invalid block number");
+          }
+          uint64_t blockNumber = uint64_t(Hex(block).getUint());
+          if (blockNumber != storage->latest()->getNHeight()) {
+            throw std::runtime_error("Only latest block is supported");
+          }
         }
         if (!std::regex_match(address, addressFilter)) {
           throw std::runtime_error("Invalid address hex");

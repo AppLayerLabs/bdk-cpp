@@ -138,13 +138,15 @@ void initialize(std::unique_ptr<DB>& db,
     std::string value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance)) + Utils::uintToBytes(desiredBalance) + '\x00';
     db->put(dev1.get(), value, DBPrefix::nativeAccounts);
   }
+  std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   options = std::make_unique<Options>(
     folderPath,
     "OrbiterSDK/cpp/linux_x86-64/0.0.1",
     1,
     8080,
     serverPort,
-    httpServerPort
+    httpServerPort,
+    discoveryNodes
   );
   storage = std::make_unique<Storage>(db, options);
   p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options);
@@ -347,7 +349,7 @@ namespace THTTPJsonRPC{
       }), "latest"}));
       REQUIRE(eth_estimateGasResponse["result"] == "0x5208");
 
-      json eth_gasPriceResponse = requestMethod("eth_gasPrice", json::array({"latest"}));
+      json eth_gasPriceResponse = requestMethod("eth_gasPrice", json::array());
       REQUIRE(eth_gasPriceResponse["result"] == "0x9502f900");
 
       for (const auto& [privKey, accInfo] : randomAccounts) {

@@ -133,13 +133,13 @@ namespace JsonRPC {
      * @param request
      * @return std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> = (from, to, gas, gasPrice, value, data)
      */
-    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_call(const json& request);
+    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_call(const json& request, const std::unique_ptr<Storage> &storage);
 
     /** Check and parse a given eth_estimateGas request
      * @param request
      * @return std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> = (from, to, gas, gasPrice, value, data)
      */
-    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_estimateGas(const json& request);
+    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage);
 
     /** Check if eth_gasPrice is valid
      * @param request
@@ -152,14 +152,14 @@ namespace JsonRPC {
      * @return Address
      * Throws if invalid
      */
-    Address eth_getBalance(const json& request);
+    Address eth_getBalance(const json& request, const std::unique_ptr<Storage> &storage);
 
     /** Parse eth_getTransactionCount Address, check if valid
      * @param request
      * @return Address
      * Throws if invalid
      */
-    Address eth_getTransactionCount(const json& request);
+    Address eth_getTransactionCount(const json& request, const std::unique_ptr<Storage>& storage);
 
     /** Parse eth_sendRawTransaction Tx, check if valid
      * @param request

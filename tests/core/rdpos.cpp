@@ -56,7 +56,7 @@ void initialize(std::unique_ptr<DB>& db,
               DBPrefix::validators);
     }
   }
-
+  std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   if (!validatorKey) {
     options = std::make_unique<Options>(
         folderName,
@@ -64,7 +64,8 @@ void initialize(std::unique_ptr<DB>& db,
         1,
         8080,
         serverPort,
-        9999
+        9999,
+        discoveryNodes
       );
   } else {
     options = std::make_unique<Options>(
@@ -74,6 +75,7 @@ void initialize(std::unique_ptr<DB>& db,
       8080,
       serverPort,
       9999,
+      discoveryNodes,
       validatorKey
     );
   }
@@ -493,13 +495,15 @@ namespace TRdPoS {
       initialize(db10, storage10, p2p10, validatorKey10, rdpos10, options10, 8089, true, "rdPoSdiscoveryNodeTestBroadcastNode10");
 
       // Initialize the discovery node.
+      std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           "rdPoSdiscoveryNodeTestBroadcast",
           "OrbiterSDK/cpp/linux_x86-64/0.0.1",
           1,
           8080,
           8090,
-          9999
+          9999,
+          peers
         );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
@@ -727,14 +731,15 @@ namespace TRdPoS {
     initialize(db8, storage8, p2p8, validatorPrivKeys[7], rdpos8, options8, 8087, true, "rdPoSdiscoveryNodeTestMove10BlocksNode8");
 
     // Initialize the discovery node.
-    // Initialize the discovery node.
+    std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
     std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
       "rdPoSdiscoveryNodeTestMove10Blocks",
       "OrbiterSDK/cpp/linux_x86-64/0.0.1",
       1,
       8080,
       8090,
-      9999
+      9999,
+      discoveryNodes
     );
     std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 

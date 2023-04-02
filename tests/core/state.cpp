@@ -70,7 +70,7 @@ void initialize(std::unique_ptr<DB>& db,
     std::string value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance)) + Utils::uintToBytes(desiredBalance) + '\x00';
     db->put(dev1.get(), value, DBPrefix::nativeAccounts);
   }
-
+  std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   if (!validatorKey) {
     options = std::make_unique<Options>(
       folderName,
@@ -78,7 +78,8 @@ void initialize(std::unique_ptr<DB>& db,
       1,
       8080,
       serverPort,
-      9999
+      9999,
+      discoveryNodes
     );
   } else {
     options = std::make_unique<Options>(
@@ -88,6 +89,7 @@ void initialize(std::unique_ptr<DB>& db,
       8080,
       serverPort,
       9999,
+      discoveryNodes,
       validatorKey
     );
   }
@@ -537,13 +539,15 @@ namespace TState {
       initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true, "stateNode8NetworkCapabilities");
 
       // Initialize the discovery node.
+      std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
         "stateDiscoveryNodeNetworkCapabilities",
         "OrbiterSDK/cpp/linux_x86-64/0.0.1",
         1,
         8080,
         8090,
-        9999
+        9999,
+        discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
         boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -816,13 +820,15 @@ namespace TState {
       initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true, "stateNode8NetworkCapabilitiesWithTx");
 
       // Initialize the discovery node.
+      std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
         "statedDiscoveryNodeNetworkCapabilitiesWithTx",
         "OrbiterSDK/cpp/linux_x86-64/0.0.1",
         1,
         8080,
         8090,
-        9999
+        9999,
+        discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
         boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -871,7 +877,7 @@ namespace TState {
       p2p6->connectToServer("127.0.0.1", 8090);
       p2p7->connectToServer("127.0.0.1", 8090);
       p2p8->connectToServer("127.0.0.1", 8090);
-      
+
       // Wait everyone be connected with the discovery node.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

@@ -11,7 +11,6 @@ std::string parseJsonRpcRequest(
   uint64_t id = 0;
   try {
     json request = json::parse(body);
-    id = request["id"].get<uint64_t>();
     if (!JsonRPC::Decoding::checkJsonRPCSpec(request)) {
       ret["error"]["code"] = -32600;
       ret["error"]["message"] = "Invalid Request, does not conform to JSON-RPC 2.0 spec";
@@ -91,7 +90,7 @@ std::string parseJsonRpcRequest(
         throw std::runtime_error("eth_call not implemented");
         break;
       case JsonRPC::Methods::eth_estimateGas:
-        ret = JsonRPC::Encoding::eth_estimateGas(JsonRPC::Decoding::eth_estimateGas(request));
+        ret = JsonRPC::Encoding::eth_estimateGas(JsonRPC::Decoding::eth_estimateGas(request, storage));
         break;
       case JsonRPC::Methods::eth_gasPrice:
         JsonRPC::Decoding::eth_gasPrice(request);
@@ -99,13 +98,13 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_getBalance:
         ret = JsonRPC::Encoding::eth_getBalance(
-          JsonRPC::Decoding::eth_getBalance(request),
+          JsonRPC::Decoding::eth_getBalance(request, storage),
           state
         );
         break;
       case JsonRPC::Methods::eth_getTransactionCount:
         ret = JsonRPC::Encoding::eth_getTransactionCount(
-          JsonRPC::Decoding::eth_getTransactionCount(request),
+          JsonRPC::Decoding::eth_getTransactionCount(request, storage),
           state
         );
         break;
@@ -145,6 +144,15 @@ std::string parseJsonRpcRequest(
         ret["error"]["message"] = "Method not found";
         break;
     }
+    if (request["id"].is_string()) {
+      ret["id"] = request["id"].get<std::string>();
+    } else if (request["id"].is_number()) {
+      ret["id"] = request["id"].get<uint64_t>();
+    } else if(request["id"].is_null()) {
+      ret["id"] = nullptr;
+    } else {
+      throw std::runtime_error("Invalid id type");
+    }
   } catch (std::exception &e) {
     json error;
     error["id"] = id;
@@ -154,6 +162,5 @@ std::string parseJsonRpcRequest(
     return error.dump();
   }
   // Set back to the original id
-  ret["id"] = id;
   return ret.dump();
 }

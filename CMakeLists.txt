@@ -40,6 +40,7 @@ configure_file(
 # External project data
 set(LEVELDB_USE_STATIC_LIBS ON)
 set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
+set(BUILD_DISCOVERY ON CACHE BOOL "Build helper discovery node prorgam")
 set(BUILD_AVALANCHEGO OFF CACHE BOOL "Build with AvalancheGo wrapping")
 set(BUILD_TOOLS OFF CACHE BOOL "Build tools related to subnet")
 set(USE_LINT OFF CACHE BOOL "Run linter on compile (clang-tidy)")
@@ -53,6 +54,7 @@ message(STATUS "Using PIC: ${CMAKE_POSITION_INDEPENDENT_CODE}")
 message(STATUS "Find libs with suffix: ${CMAKE_FIND_LIBRARY_SUFFIXES}")
 message("Building tests: ${BUILD_TESTS}")
 message("Building avalanchego: ${BUILD_AVALANCHEGO}")
+message("Building discovery Node: ${BUILD_DISCOVERY}")
 
 cable_add_buildinfo_library(PROJECT_NAME orbitersdk)
 
@@ -429,14 +431,25 @@ else()
   target_link_libraries(orbitersdkd
     orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
   )
+endif()
 
+
+if (BUILD_TESTS)
   # Compile and link the test executable.
   add_executable(orbitersdkd-tests ${TESTS_HEADERS} ${TESTS_SOURCES})
 
   add_dependencies(orbitersdkd-tests orbitersdk_lib)
   target_include_directories(orbitersdkd-tests PRIVATE orbitersdk_lib  ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd-tests
-    orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
-  )
+      orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
+      )
 endif()
 
+if (BUILD_DISCOVERY)
+  add_executable(orbitersdkd-discovery "${CMAKE_SOURCE_DIR}/src/main-discovery.cpp")
+  add_dependencies(orbitersdkd-discovery orbitersdk_lib)
+  target_include_directories(orbitersdkd-discovery PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
+  target_link_libraries(orbitersdkd-discovery
+      orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
+      )
+endif()
