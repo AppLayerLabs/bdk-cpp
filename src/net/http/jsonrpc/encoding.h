@@ -145,6 +145,12 @@ namespace JsonRPC {
      */
     json eth_getTransactionCount(const Address& address, const std::unique_ptr<State>& state);
 
+    /** JSON encode a eth_getCode response
+     * @params address: address to get code from
+     * returns "0x"
+     */
+    json eth_getCode(const Address& address);
+
     /**
      * JSON encode a eth_sendRawTransaction respnse
      * Add tx to mempool

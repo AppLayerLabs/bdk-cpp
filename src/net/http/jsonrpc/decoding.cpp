@@ -375,12 +375,14 @@ namespace JsonRPC {
           }
           from = Address(Hex::toBytes(fromAddress), true);
         }
-        /// Check to address.
-        std::string toAddress = txObject["to"].get<std::string>();
-        if (!std::regex_match(toAddress, addressFilter)) {
-          throw std::runtime_error("Invalid to address hex");
+        /// Check to address. (optional)
+        if (txObject.contains("to") && !txObject["to"].is_null()) {
+          std::string toAddress = txObject["to"].get<std::string>();
+          if (!std::regex_match(toAddress, addressFilter)) {
+            throw std::runtime_error("Invalid to address hex");
+          }
+          to = Address(Hex::toBytes(toAddress), true);
         }
-        to = Address(Hex::toBytes(toAddress), true);
         /// Check gas (optional)
         if (txObject.contains("gas") && !txObject["gas"].is_null()) {
           std::string gasHex = txObject["gas"].get<std::string>();
@@ -481,6 +483,31 @@ namespace JsonRPC {
       } catch (std::exception &e) {
         Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_getTransactionCount: ") + e.what());
         throw std::runtime_error("Error while decoding eth_getTransactionCount: " + std::string(e.what()));
+      }
+    }
+
+    Address eth_getCode(const json& request, const std::unique_ptr<Storage>& storage) {
+      static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
+      static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
+      try {
+        const auto address = request["params"].at(0).get<std::string>();
+        const auto block = request["params"].at(1).get<std::string>();
+        if (block != "latest") {
+          if (!std::regex_match(block, numberFilter)) {
+            throw std::runtime_error("Invalid block number");
+          }
+          uint64_t blockNumber = uint64_t(Hex(block).getUint());
+          if (blockNumber != storage->latest()->getNHeight()) {
+            throw std::runtime_error("Only latest block is supported");
+          }
+        }
+        if (!std::regex_match(address, addressFilter)) {
+          throw std::runtime_error("Invalid address hex");
+        }
+        return Address(Hex::toBytes(address), true);
+      } catch (std::exception &e) {
+        Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_getCode: ") + e.what());
+        throw std::runtime_error("Error while decoding eth_getCode: " + std::string(e.what()));
       }
     }
 

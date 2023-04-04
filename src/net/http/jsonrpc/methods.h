@@ -51,7 +51,7 @@ namespace JsonRPC {
     eth_getBalance,                                         /// DONE
     eth_getStorageAt,                                       /// NOT IMPLEMENTED: WE DON'T SUPPORT STORAGED/WE ARE NOT EVM
     eth_getTransactionCount,                                /// DONE
-    eth_getCode,                                            /// NOT IMPLEMENTED: WE ARE NOT EVM WE DON'T HAVE "BYTECODE" FOR A CONTRACT
+    eth_getCode,                                            /// HALF DONE: ALWAYS ANSWER WITH 0x
     eth_getProof,                                           /// NOT IMPLEMENTED: WE DON'T HAVE MERKLE PROOFS FOR ACCOUNTS, ONLY FOR TXS
     eth_sendTransaction,                                    /// NOT IMPLEMENTED: NODE ARE NOT A WALLET
     eth_sendRawTransaction,                                 /// HALF DONE, WAITING FOR BLOCKCHAIN TO PROPERLY BROADCAST TX'S TO OTHER NODES.
@@ -82,6 +82,8 @@ namespace JsonRPC {
     { "eth_gasPrice", eth_gasPrice },
     { "eth_getBalance", eth_getBalance },
     { "eth_getTransactionCount", eth_getTransactionCount },
+    { "eth_getCode", eth_getCode },
+    { "eth_sendTransaction", eth_sendTransaction },
     { "eth_sendRawTransaction", eth_sendRawTransaction },
     { "eth_getTransactionByHash", eth_getTransactionByHash },
     { "eth_getTransactionByBlockHashAndIndex", eth_getTransactionByBlockHashAndIndex },

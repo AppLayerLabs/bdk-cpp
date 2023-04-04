@@ -204,6 +204,13 @@ namespace JsonRPC {
       return ret;
     }
 
+    json eth_getCode(const Address& address) {
+      json ret;
+      ret["jsonrpc"] = "2.0";
+      ret["result"] = "0x";
+      return ret;
+    }
+
     json eth_sendRawTransaction(const TxBlock& tx, const std::unique_ptr<State>& state, const std::unique_ptr<P2P::ManagerNormal>& p2p) {
       json ret;
       ret["jsonrpc"] = "2.0";

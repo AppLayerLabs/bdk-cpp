@@ -161,6 +161,13 @@ namespace JsonRPC {
      */
     Address eth_getTransactionCount(const json& request, const std::unique_ptr<Storage>& storage);
 
+    /** Parse a eth_getCode request
+     * @param request
+     * @return Address
+     * Throws if invalid
+     */
+    Address eth_getCode(const json& request, const std::unique_ptr<Storage>& storage);
+
     /** Parse eth_sendRawTransaction Tx, check if valid
      * @param request
      * @return TxBlock
