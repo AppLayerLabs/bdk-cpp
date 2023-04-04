@@ -9,6 +9,8 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "p2pencoding.h"
+
 #include "../../libs/BS_thread_pool_light.hpp"
 #include "../../utils/strings.h"
 
@@ -22,16 +24,6 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 namespace P2P {
   class ManagerBase;
-  class Message;
-
-  enum ConnectionType { SERVER, CLIENT };
-
-  // Normal P2P node follows all rules of protocol and can answer for
-  // any request, will broadcast requests to other nodes if broadcast
-  // flag is used.
-  // Discovery P2P node will only answer requests related to
-  // connection/discovery and will not broadcast requests to other nodes.
-  enum NodeType { NORMAL_NODE, DISCOVERY_NODE };
 
   class BaseSession {
     protected:

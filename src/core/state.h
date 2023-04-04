@@ -144,6 +144,13 @@ class State {
     TxInvalid addTx(TxBlock&& tx);
 
     /**
+     * Add validator Tx to the rdPoS mempool if valid.
+     * @param tx The transaction.
+     * @return bool true if valid.
+     */
+    bool addValidatorTx(const TxValidator& tx);
+
+    /**
      * Check if a transaction Hash is in the mempool.
      * @param txHash The transaction Hash.
      */

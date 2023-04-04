@@ -51,6 +51,9 @@ namespace P2P {
       // Mutex for protecting broadcasted messages.
       std::shared_mutex broadcastMutex;
 
+      // Mutex for protecting block broadcast.
+      std::mutex blockBroadcastMutex;
+
       // Broadcaster function.
       void broadcastMessage(const Message& message);
 
@@ -69,6 +72,7 @@ namespace P2P {
       // Handlers for command broadcasts
       void handleTxValidatorBroadcast(std::shared_ptr<BaseSession>& session, const Message& message);
       void handleTxBroadcast(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleBlockBroadcast(std::shared_ptr<BaseSession>& session, const Message& message);
 
     public:
       ManagerNormal(const boost::asio::ip::address& hostIp,
@@ -78,7 +82,7 @@ namespace P2P {
                     const std::unique_ptr<State>& state) :
                     ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options), rdpos_(rdpos), storage_(storage), state_(state) {};
       
-      void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
+      void handleMessage(std::shared_ptr<BaseSession> session, Message message) override;
 
       std::vector<TxValidator> requestValidatorTxs(const Hash& nodeId);
 
@@ -87,6 +91,8 @@ namespace P2P {
       void broadcastTxBlock(const TxBlock& txBlock);
 
       NodeInfo requestNodeInfo(const Hash& nodeId);
+
+      void broadcastBlock(const std::shared_ptr<const Block> block);
 
   };
 };

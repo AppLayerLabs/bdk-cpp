@@ -90,6 +90,9 @@ namespace P2P {
       case BroadcastTx:
         handleTxBroadcast(session, message);
         break;
+      case BroadcastBlock:
+        handleBlockBroadcast(session, message);
+        break;
       default:
         Utils::logToDebug(Log::P2PParser, __func__, "Invalid Broadcast Command Type from " + session->hostNodeId().hex().get() + ", closing session.");
         this->disconnectSession(session->hostNodeId());
@@ -181,7 +184,7 @@ namespace P2P {
   void ManagerNormal::handleTxValidatorBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {
     try {
       auto tx = BroadcastDecoder::broadcastValidatorTx(message, this->options->getChainID());
-      if (this->rdpos_->addValidatorTx(tx)) {
+      if (this->state_->addValidatorTx(tx)) {
         this->broadcastMessage(message);
       }
     } catch (std::exception &e) {
@@ -199,6 +202,35 @@ namespace P2P {
     } catch (std::exception &e) {
       Utils::logToDebug(Log::P2PParser, __func__, "Invalid txBroadcast from " + session->hostNodeId().hex().get() + ", error: " + e.what() + " closing session.");
       this->disconnectSession(session->hostNodeId());
+    }
+  }
+
+  void ManagerNormal::handleBlockBroadcast(std::shared_ptr<BaseSession> &session, const P2P::Message &message) {
+    /// We require a lock here because validateNextBlock **throws** if the block is invalid
+    /// The reason for locking because for that a processNextBlock race condition can occur
+    /// Making the same block be accepted, and then rejected, disconnecting the node.
+    bool shouldRebroadcast = false;
+    try {
+      auto block = BroadcastDecoder::broadcastBlock(message, this->options->getChainID());
+      if (this->storage_->blockExists(block.hash())) {
+        // If the block is latest()->getNHeight() - 1, we should still rebroadcast it
+        if (this->storage_->latest()->getNHeight() - 1 == block.getNHeight()) {
+          shouldRebroadcast = true;
+        }
+        return;
+      }
+      std::unique_lock lock(this->blockBroadcastMutex);
+      if (this->state_->validateNextBlock(block)) {
+        this->state_->processNextBlock(std::move(block));
+        this->broadcastMessage(message);
+        shouldRebroadcast = true;
+      }
+    } catch (std::exception &e) {
+      Utils::logToDebug(Log::P2PParser, __func__, "Invalid blockBroadcast from " + session->hostNodeId().hex().get() + ", error: " + e.what() + " closing session.");
+      this->disconnectSession(session->hostNodeId());
+    }
+    if (shouldRebroadcast) {
+      this->broadcastMessage(message);
     }
   }
 
@@ -258,6 +290,12 @@ namespace P2P {
 
   void ManagerNormal::broadcastTxBlock(const TxBlock &txBlock) {
     auto broadcast = BroadcastEncoder::broadcastTx(txBlock);
+    this->broadcastMessage(broadcast);
+    return;
+  }
+
+  void ManagerNormal::broadcastBlock(const std::shared_ptr<const Block> block) {
+    auto broadcast = BroadcastEncoder::broadcastBlock(block);
     this->broadcastMessage(broadcast);
     return;
   }

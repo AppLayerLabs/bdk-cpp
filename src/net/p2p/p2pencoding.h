@@ -6,7 +6,6 @@
 #include "../../utils/tx.h"
 #include "../../utils/block.h"
 #include "../../utils/options.h"
-#include "p2pbase.h"
 #include <future>
 
 namespace P2P {
@@ -14,6 +13,15 @@ namespace P2P {
   // Foward declaration.
   class Manager;
   class Message;
+
+  enum ConnectionType { SERVER, CLIENT };
+
+  // Normal P2P node follows all rules of protocol and can answer for
+  // any request, will broadcast requests to other nodes if broadcast
+  // flag is used.
+  // Discovery P2P node will only answer requests related to
+  // connection/discovery and will not broadcast requests to other nodes.
+  enum NodeType { NORMAL_NODE, DISCOVERY_NODE };
 
   /// Abstraction of a 8-byte hash. Inherits `FixedStr<32>`.
   class RequestID : public FixedStr<8> {
@@ -46,7 +54,8 @@ namespace P2P {
     RequestNodes,
     RequestValidatorTxs,
     BroadcastValidatorTx,
-    BroadcastTx
+    BroadcastTx,
+    BroadcastBlock
   };
   
   CommandType getCommandType(const std::string_view& message);
@@ -58,8 +67,9 @@ namespace P2P {
     std::string("\x00\x01", 2),       // Info
     std::string("\x00\x02", 2),       // requestNodes
     std::string("\x00\x03", 2),       // RequestValidatorTxs
-    std::string("\x00\x04", 2),        // BroadcastValidatorTx
-    std::string("\x00\x05", 2)        // BroadcastTx
+    std::string("\x00\x04", 2),       // BroadcastValidatorTx
+    std::string("\x00\x05", 2),       // BroadcastTx
+    std::string("\x00\x06", 2)        // BroadcastBlock
   };
   
   RequestType getRequestType(const std::string_view& message);
@@ -119,12 +129,14 @@ namespace P2P {
     public:
       static Message broadcastValidatorTx(const TxValidator& tx);
       static Message broadcastTx(const TxBlock& tx);
+      static Message broadcastBlock(const std::shared_ptr<const Block>& block);
   };
 
   class BroadcastDecoder {
     public:
       static TxValidator broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId);
       static TxBlock broadcastTx(const Message& message, const uint64_t& requiredChainId);
+      static Block broadcastBlock(const Message& message, const uint64_t& requiredChainId);
   };
 
   class Message {

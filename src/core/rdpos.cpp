@@ -1,16 +1,19 @@
 #include "rdpos.h"
 #include "storage.h"
+#include "state.h"
 #include "../utils/block.h"
 
 rdPoS::rdPoS(const std::unique_ptr<DB>& db,
   const std::unique_ptr<Storage>& storage,
   const std::unique_ptr<P2P::ManagerNormal>& p2p,
-  const std::unique_ptr<Options>& options) :
+  const std::unique_ptr<Options>& options,
+  const std::unique_ptr<State>& state) :
 
   Contract(ProtocolContractAddresses.at("rdPoS"), chainId, db),
   storage(storage),
   p2p(p2p),
   options(options),
+  state(state),
   worker(std::make_unique<rdPoSWorker>(*this)),
   validatorKey(options->getValidatorPrivKey()),
   isValidator((validatorKey) ? true : false),
@@ -80,6 +83,15 @@ bool rdPoS::validateBlock(const Block& block) const {
     Utils::logToDebug(Log::rdPoS, __func__, "Block contains invalid number of TxValidator transactions. latest nHeight: "
                       + std::to_string(latestBlock->getNHeight()) + " Block nHeight: " + std::to_string(block.getNHeight()));
     return false;
+  }
+
+  // Check if all transactions are of the block height
+  for (const auto& tx : block.getTxValidators()) {
+    if (tx.getNHeight() != block.getNHeight()) {
+      Utils::logToDebug(Log::rdPoS, __func__, "TxValidator transaction is not of the same block height. tx nHeight: "
+                        + std::to_string(tx.getNHeight()) + " Block nHeight: " + std::to_string(block.getNHeight()));
+      return false;
+    }
   }
 
   // TxValidator transactions within the block must be *ordered* by their respective signer.
@@ -325,7 +337,7 @@ bool rdPoSWorker::workerLoop() {
 
     // After processing everything. wait until the new block is appended to the chain.
     while (!this->checkLatestBlock() && !this->stopWorker) {
-      Utils::logToDebug(Log::rdPoS, __func__, "Waiting for new block to be appended to the chain. (Height: " + std::to_string(latestBlock->getNHeight()) + ")");
+      Utils::logToDebug(Log::rdPoS, __func__, "Waiting for new block to be appended to the chain. (Height: " + std::to_string(latestBlock->getNHeight()) + ")" + " latest height: " + std::to_string(this->rdpos.storage->latest()->getNHeight()));
       Utils::logToDebug(Log::rdPoS, __func__, "Currently has " + std::to_string(this->rdpos.validatorMempool.size()) + " transactions in mempool.");
       std::unique_lock mempoolSizeLock(this->rdpos.mutex);
       uint64_t mempoolSize = this->rdpos.validatorMempool.size();
@@ -336,8 +348,9 @@ bool rdPoSWorker::workerLoop() {
         for (auto const& nodeId : connectedNodesList) {
           if (this->checkLatestBlock() || this->stopWorker) break;
           auto txList = this->rdpos.p2p->requestValidatorTxs(nodeId);
+          if (this->checkLatestBlock() || this->stopWorker) break;
           for (auto const& tx : txList) {
-            this->rdpos.addValidatorTx(tx);
+            this->rdpos.state->addValidatorTx(tx);
           }
         }
       } else {
@@ -371,7 +384,7 @@ void rdPoSWorker::doBlockCreation() {
       auto txList = this->rdpos.p2p->requestValidatorTxs(nodeId);
       if (this->stopWorker) return;
       for (auto const& tx : txList) {
-        this->rdpos.addValidatorTx(tx);
+        this->rdpos.state->addValidatorTx(tx);
       }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
@@ -409,7 +422,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
 
   // Append to mempool and broadcast the transaction across all nodes.
   Utils::logToDebug(Log::rdPoS, __func__, "Broadcasting randomHash transaction");
-  this->rdpos.addValidatorTx(randomHashTx);
+  this->rdpos.state->addValidatorTx(randomHashTx);
   this->rdpos.p2p->broadcastTxValidator(randomHashTx);
 
   // Wait until we received all randomHash transactions to broadcast the randomness transaction
@@ -428,7 +441,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
       if (this->stopWorker) return;
       auto txList = this->rdpos.p2p->requestValidatorTxs(nodeId);
       for (auto const& tx : txList) {
-        this->rdpos.addValidatorTx(tx);
+        this->rdpos.state->addValidatorTx(tx);
       }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
@@ -436,7 +449,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
 
   Utils::logToDebug(Log::rdPoS, __func__, "Broadcasting random transaction");
   // Append and broadcast the randomness transaction.
-  this->rdpos.addValidatorTx(seedTx);
+  this->rdpos.state->addValidatorTx(seedTx);
   this->rdpos.p2p->broadcastTxValidator(seedTx);
 }
 void rdPoSWorker::start() {

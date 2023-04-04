@@ -92,17 +92,18 @@ namespace P2P {
 
     try {
       if (buffer_.size() >= 11) {
-        Message message(boost::beast::buffers_to_string(buffer_.data()));
+        std::string messageStr = boost::beast::buffers_to_string(buffer_.data());
+        Message message(std::move(messageStr));
         this->threadPool->push_task(
-          &ManagerBase::handleMessage, &this->manager_, shared_from_this(), std::move(message)
+          &ManagerBase::handleMessage, &this->manager_, shared_from_this(), message
         );
-        buffer_.consume(buffer_.size());
       } else {
         Utils::logToDebug(Log::P2PServer, __func__, "Message too short: " + this->hostNodeId_.hex().get() + " too short");
       }
     } catch (std::exception &e) {
       Utils::logToDebug(Log::P2PServer, __func__, "ServerSession exception from: " + this->hostNodeId_.hex().get() + " " + std::string(e.what()));
     }
+    buffer_.consume(buffer_.size());
     read();
   }
 
@@ -112,9 +113,10 @@ namespace P2P {
     if (ws_.is_open()) { // Check if the stream is open, before commiting to it.
       // Copy string to buffer
       writeLock_.lock();
-      auto buffer = net::buffer(response.raw());
+      size_t n = boost::asio::buffer_copy(this->answerBuffer_.prepare(response.raw().size()), boost::asio::buffer(response.raw()));
+      this->answerBuffer_.commit(n);
       // Write to the socket
-      ws_.async_write(buffer, beast::bind_front_handler(
+      ws_.async_write(this->answerBuffer_.data(), beast::bind_front_handler(
         &ServerSession::on_write, shared_from_this()
       ));
     }
@@ -122,6 +124,7 @@ namespace P2P {
 
   void ServerSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
+    this->answerBuffer_.consume(this->answerBuffer_.size());
     writeLock_.unlock();
     if (ec) { handleError(__func__, ec); return; }
   }

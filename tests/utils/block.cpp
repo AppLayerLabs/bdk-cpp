@@ -19,6 +19,8 @@ namespace TBlock {
       Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock(), 8080);
 
+      std::cout << Hex::fromBytes(blockCopyConstructor.serializeBlock()) << std::endl;
+
       // Check within reconstructed block
       REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("18395ff0c8ee38a250b9e7aeb5733c437fed8d6ca2135fa634367bb288a3830a3c624e33401a1798ce09f049fb6507adc52b085d0a83dacc43adfa519c1228e701")));
       REQUIRE(reconstructedBlock.getPrevBlockHash() == Hash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6")));

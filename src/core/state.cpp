@@ -234,7 +234,7 @@ void State::processNextBlock(Block&& block) {
   /// Refresh the mempool based on the block transactions;
   this->refreshMempool(block);
 
-  Utils::logToDebug(Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.)");
+  Utils::logToDebug(Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.) block bytes: " + Hex::fromBytes(block.serializeBlock()).get());
   /// Move block to storage.
   this->storage->pushBack(std::move(block));
   return;
@@ -260,6 +260,11 @@ TxInvalid State::addTx(TxBlock&& tx) {
   auto txHash = tx.hash();
   this->mempool.insert({txHash, std::move(tx)});
   return TxInvalid;
+}
+
+bool State::addValidatorTx(const TxValidator& tx) {
+  std::unique_lock lock(this->stateMutex);
+  return this->rdpos->addValidatorTx(tx);
 }
 
 bool State::isTxInMempool(const Hash& txHash) const {

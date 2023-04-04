@@ -29,6 +29,7 @@ namespace P2P {
     private:
       tcp::resolver resolver_;
       beast::flat_buffer receiveBuffer_;
+      beast::flat_buffer answerBuffer_;
       std::mutex writeLock_;
       boost::beast::websocket::response_type req_;
 

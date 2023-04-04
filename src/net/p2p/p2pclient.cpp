@@ -137,31 +137,33 @@ namespace P2P {
 
     try {
       if (receiveBuffer_.size() >= 11) {
-        Message message(boost::beast::buffers_to_string(receiveBuffer_.data()));
+        std::string messageStr = boost::beast::buffers_to_string(receiveBuffer_.data());
+        Message message(std::move(messageStr));
         this->threadPool->push_task(
-          &ManagerBase::handleMessage, &this->manager_, shared_from_this(), std::move(message)
+          &ManagerBase::handleMessage, &this->manager_, shared_from_this(), message
         );
-        receiveBuffer_.consume(receiveBuffer_.size());
       } else {
         Utils::logToDebug(Log::P2PClientSession, __func__, "Message too short: " + this->hostNodeId_.hex().get() + " too short");
       }
     } catch (std::exception &e) {
       Utils::logToDebug(Log::P2PClientSession, __func__, "ClientSession exception from: " + this->hostNodeId_.hex().get() + " " + e.what());
     }
-
+    receiveBuffer_.consume(receiveBuffer_.size());
     this->read();
   }
 
   void ClientSession::write(const Message& data) {
     writeLock_.lock();
-    auto buffer = net::buffer(data.raw());
+    size_t n = boost::asio::buffer_copy(this->answerBuffer_.prepare(data.raw().size()), boost::asio::buffer(data.raw()));
+    this->answerBuffer_.commit(n);
     ws_.async_write(
-      buffer,
+      this->answerBuffer_.data(),
       beast::bind_front_handler(&ClientSession::on_write, shared_from_this()));
   }
 
   void ClientSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
+    this->answerBuffer_.consume(this->answerBuffer_.size());
     writeLock_.unlock();
     if (ec) {
       handleError(__func__, ec);

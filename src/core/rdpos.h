@@ -14,7 +14,8 @@
 
 class rdPoSWorker;
 class Storage;
-class Block; 
+class Block;
+class State;
 
 // "0x6fc5a2d6" -> Function for random tx
 // "0xcfffe746" -> Function for random hash tx
@@ -64,6 +65,9 @@ class rdPoS : public Contract {
 
     /// Pointer to P2P Manager (for sending/requesting TxValidators from other nodes)
     const std::unique_ptr<P2P::ManagerNormal>& p2p;
+
+    /// Pointer to the State
+    const std::unique_ptr<State>& state;
 
     /// Pointer to the Options
     const std::unique_ptr<Options>& options;
@@ -116,7 +120,8 @@ class rdPoS : public Contract {
     rdPoS(const std::unique_ptr<DB>& db,
           const std::unique_ptr<Storage>& storage,
           const std::unique_ptr<P2P::ManagerNormal>& p2p,
-          const std::unique_ptr<Options>& options);
+          const std::unique_ptr<Options>& options,
+          const std::unique_ptr<State>& state);
 
     ~rdPoS();
     
@@ -173,6 +178,8 @@ class rdPoS : public Contract {
 
     /**
      * Add a Validator transaction to the mempool.
+     * Should ONLY be called by the State, as State locks the current state mutex.
+     * Not allowing a race condition of addin transactions that are not for the current block nHeight
      * @param tx The transaction to add.
      * @return `true` if the transaction was added, `false` if invalid otherwise.
      */

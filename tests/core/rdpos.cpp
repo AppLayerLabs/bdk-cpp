@@ -30,6 +30,7 @@ void initialize(std::unique_ptr<DB>& db,
                 PrivKey validatorKey,
                 std::unique_ptr<rdPoS>& rdpos,
                 std::unique_ptr<Options>& options,
+                std::unique_ptr<State>& state,
                 uint64_t serverPort,
                 bool clearDb,
                 std::string folderName) {
@@ -83,7 +84,8 @@ void initialize(std::unique_ptr<DB>& db,
 
   storage = std::make_unique<Storage>(db, options);
   p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, nullptr);
-  rdpos = std::make_unique<rdPoS>(db, storage, p2p, options);
+  rdpos = std::make_unique<rdPoS>(db, storage, p2p, options, state);
+  state = std::make_unique<State>(db, storage, rdpos, p2p);
 }
 
 /*    Options(const std::string& rootPath,
@@ -189,7 +191,8 @@ namespace TRdPoS {
         PrivKey validatorKey = PrivKey();
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, true, "rdPoSStartup");
+        std::unique_ptr<State> state;
+        initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, "rdPoSStartup");
 
         auto validators = rdpos->getValidators();
         REQUIRE(rdpos->getValidators().size() == 8);
@@ -227,7 +230,8 @@ namespace TRdPoS {
       PrivKey validatorKey = PrivKey();
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, false, "rdPoSStartup");
+      std::unique_ptr<State> state;
+      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, false, "rdPoSStartup");
 
       auto validators = rdpos->getValidators();
       REQUIRE(validators == validatorsList);
@@ -240,7 +244,8 @@ namespace TRdPoS {
       PrivKey validatorKey = PrivKey();
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, true, "rdPoSValidateBlock");
+      std::unique_ptr<State> state;
+      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, "rdPoSValidateBlock");
 
       auto block = createValidBlock(rdpos, storage);
       // Validate the block on rdPoS
@@ -257,7 +262,8 @@ namespace TRdPoS {
         PrivKey validatorKey = PrivKey();
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, true, "rdPoSValidateBlockTenBlocks");
+        std::unique_ptr<State> state;
+        initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, "rdPoSValidateBlockTenBlocks");
 
         for (uint64_t i = 0; i < 10; ++i) {
           // Create a valid block, with the correct rdPoS transactions
@@ -288,8 +294,9 @@ namespace TRdPoS {
       PrivKey validatorKey = PrivKey();
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<Options> options;
+      std::unique_ptr<State> state;
       // Initialize same DB and storage as before.
-      initialize(db, storage, p2p, validatorKey, rdpos, options, 8080, false, "rdPoSValidateBlockTenBlocks");
+      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, false, "rdPoSValidateBlockTenBlocks");
 
       REQUIRE(rdpos->getBestRandomSeed() == expectedRandomnessFromBestBlock);
       REQUIRE(rdpos->getRandomList() == expectedRandomList);
@@ -305,7 +312,8 @@ namespace TRdPoS {
       PrivKey validatorKey1 = PrivKey();
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<Options> options1;
-      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, 8080, true, "rdPosBasicNetworkNode1");
+      std::unique_ptr<State> state1;
+      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, state1, 8080, true, "rdPosBasicNetworkNode1");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -313,7 +321,8 @@ namespace TRdPoS {
       PrivKey validatorKey2 = PrivKey();
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<Options> options2;
-      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, 8081, true, "rdPosBasicNetworkNode2");
+      std::unique_ptr<State> state2;
+      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, state2, 8081, true, "rdPosBasicNetworkNode2");
 
 
       // Start respective p2p servers, and connect each other.
@@ -421,7 +430,8 @@ namespace TRdPoS {
       PrivKey validatorKey1 = PrivKey();
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<Options> options1;
-      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, 8080, true, "rdPoSdiscoveryNodeTestBroadcastNode1");
+      std::unique_ptr<State> state1;
+      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, state1, 8080, true, "rdPoSdiscoveryNodeTestBroadcastNode1");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -429,7 +439,8 @@ namespace TRdPoS {
       PrivKey validatorKey2 = PrivKey();
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<Options> options2;
-      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, 8081, true, "rdPoSdiscoveryNodeTestBroadcastNode2");
+      std::unique_ptr<State> state2;
+      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, state2, 8081, true, "rdPoSdiscoveryNodeTestBroadcastNode2");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -437,7 +448,8 @@ namespace TRdPoS {
       PrivKey validatorKey3 = PrivKey();
       std::unique_ptr<rdPoS> rdpos3;
       std::unique_ptr<Options> options3;
-      initialize(db3, storage3, p2p3, validatorKey3, rdpos3, options3, 8082, true, "rdPoSdiscoveryNodeTestBroadcastNode3");
+      std::unique_ptr<State> state3;
+      initialize(db3, storage3, p2p3, validatorKey3, rdpos3, options3, state3, 8082, true, "rdPoSdiscoveryNodeTestBroadcastNode3");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -445,7 +457,8 @@ namespace TRdPoS {
       PrivKey validatorKey4 = PrivKey();
       std::unique_ptr<rdPoS> rdpos4;
       std::unique_ptr<Options> options4;
-      initialize(db4, storage4, p2p4, validatorKey4, rdpos4, options4, 8083, true, "rdPoSdiscoveryNodeTestBroadcastNode4");
+      std::unique_ptr<State> state4;
+      initialize(db4, storage4, p2p4, validatorKey4, rdpos4, options4, state4, 8083, true, "rdPoSdiscoveryNodeTestBroadcastNode4");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -453,7 +466,8 @@ namespace TRdPoS {
       PrivKey validatorKey5 = PrivKey();
       std::unique_ptr<rdPoS> rdpos5;
       std::unique_ptr<Options> options5;
-      initialize(db5, storage5, p2p5, validatorKey5, rdpos5, options5, 8084, true, "rdPoSdiscoveryNodeTestBroadcastNode5");
+      std::unique_ptr<State> state5;
+      initialize(db5, storage5, p2p5, validatorKey5, rdpos5, options5, state5, 8084, true, "rdPoSdiscoveryNodeTestBroadcastNode5");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -461,7 +475,8 @@ namespace TRdPoS {
       PrivKey validatorKey6 = PrivKey();
       std::unique_ptr<rdPoS> rdpos6;
       std::unique_ptr<Options> options6;
-      initialize(db6, storage6, p2p6, validatorKey6, rdpos6, options6, 8085, true, "rdPoSdiscoveryNodeTestBroadcastNode6");
+      std::unique_ptr<State> state6;
+      initialize(db6, storage6, p2p6, validatorKey6, rdpos6, options6, state6, 8085, true, "rdPoSdiscoveryNodeTestBroadcastNode6");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -469,7 +484,8 @@ namespace TRdPoS {
       PrivKey validatorKey7 = PrivKey();
       std::unique_ptr<rdPoS> rdpos7;
       std::unique_ptr<Options> options7;
-      initialize(db7, storage7, p2p7, validatorKey7, rdpos7, options7, 8086, true, "rdPoSdiscoveryNodeTestBroadcastNode7");
+      std::unique_ptr<State> state7;
+      initialize(db7, storage7, p2p7, validatorKey7, rdpos7, options7, state7, 8086, true, "rdPoSdiscoveryNodeTestBroadcastNode7");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -477,7 +493,8 @@ namespace TRdPoS {
       PrivKey validatorKey8 = PrivKey();
       std::unique_ptr<rdPoS> rdpos8;
       std::unique_ptr<Options> options8;
-      initialize(db8, storage8, p2p8, validatorKey8, rdpos8, options8, 8087, true, "rdPoSdiscoveryNodeTestBroadcastNode8");
+      std::unique_ptr<State> state8;
+      initialize(db8, storage8, p2p8, validatorKey8, rdpos8, options8, state8, 8087, true, "rdPoSdiscoveryNodeTestBroadcastNode8");
 
       std::unique_ptr<DB> db9;
       std::unique_ptr<Storage> storage9;
@@ -485,7 +502,8 @@ namespace TRdPoS {
       PrivKey validatorKey9 = PrivKey();
       std::unique_ptr<rdPoS> rdpos9;
       std::unique_ptr<Options> options9;
-      initialize(db9, storage9, p2p9, validatorKey9, rdpos9, options9, 8088, true, "rdPoSdiscoveryNodeTestBroadcastNode9");
+      std::unique_ptr<State> state9;
+      initialize(db9, storage9, p2p9, validatorKey9, rdpos9, options9, state9, 8088, true, "rdPoSdiscoveryNodeTestBroadcastNode9");
 
       std::unique_ptr<DB> db10;
       std::unique_ptr<Storage> storage10;
@@ -493,7 +511,8 @@ namespace TRdPoS {
       PrivKey validatorKey10 = PrivKey();
       std::unique_ptr<rdPoS> rdpos10;
       std::unique_ptr<Options> options10;
-      initialize(db10, storage10, p2p10, validatorKey10, rdpos10, options10, 8089, true, "rdPoSdiscoveryNodeTestBroadcastNode10");
+      std::unique_ptr<State> state10;
+      initialize(db10, storage10, p2p10, validatorKey10, rdpos10, options10, state10, 8089, true, "rdPoSdiscoveryNodeTestBroadcastNode10");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
@@ -673,7 +692,8 @@ namespace TRdPoS {
     PrivKey validatorKey1 = PrivKey();
     std::unique_ptr<rdPoS> rdpos1;
     std::unique_ptr<Options> options1;
-    initialize(db1, storage1, p2p1, validatorPrivKeys[0], rdpos1, options1, 8080, true, "rdPoSdiscoveryNodeTestMove10BlocksNode1");
+    std::unique_ptr<State> state1;
+    initialize(db1, storage1, p2p1, validatorPrivKeys[0], rdpos1, options1, state1, 8080, true, "rdPoSdiscoveryNodeTestMove10BlocksNode1");
 
     std::unique_ptr<DB> db2;
     std::unique_ptr<Storage> storage2;
@@ -681,7 +701,8 @@ namespace TRdPoS {
     PrivKey validatorKey2 = PrivKey();
     std::unique_ptr<rdPoS> rdpos2;
     std::unique_ptr<Options> options2;
-    initialize(db2, storage2, p2p2, validatorPrivKeys[1], rdpos2, options2, 8081, true, "rdPoSdiscoveryNodeTestMove10BlocksNode2");
+    std::unique_ptr<State> state2;
+    initialize(db2, storage2, p2p2, validatorPrivKeys[1], rdpos2, options2, state2, 8081, true, "rdPoSdiscoveryNodeTestMove10BlocksNode2");
 
     std::unique_ptr<DB> db3;
     std::unique_ptr<Storage> storage3;
@@ -689,7 +710,8 @@ namespace TRdPoS {
     PrivKey validatorKey3 = PrivKey();
     std::unique_ptr<rdPoS> rdpos3;
     std::unique_ptr<Options> options3;
-    initialize(db3, storage3, p2p3, validatorPrivKeys[2], rdpos3, options3, 8082, true, "rdPoSdiscoveryNodeTestMove10BlocksNode3");
+    std::unique_ptr<State> state3;
+    initialize(db3, storage3, p2p3, validatorPrivKeys[2], rdpos3, options3, state3, 8082, true, "rdPoSdiscoveryNodeTestMove10BlocksNode3");
 
     std::unique_ptr<DB> db4;
     std::unique_ptr<Storage> storage4;
@@ -697,7 +719,8 @@ namespace TRdPoS {
     PrivKey validatorKey4 = PrivKey();
     std::unique_ptr<rdPoS> rdpos4;
     std::unique_ptr<Options> options4;
-    initialize(db4, storage4, p2p4, validatorPrivKeys[3], rdpos4, options4, 8083, true, "rdPoSdiscoveryNodeTestMove10BlocksNode4");
+    std::unique_ptr<State> state4;
+    initialize(db4, storage4, p2p4, validatorPrivKeys[3], rdpos4, options4, state4, 8083, true, "rdPoSdiscoveryNodeTestMove10BlocksNode4");
 
     std::unique_ptr<DB> db5;
     std::unique_ptr<Storage> storage5;
@@ -705,7 +728,8 @@ namespace TRdPoS {
     PrivKey validatorKey5 = PrivKey();
     std::unique_ptr<rdPoS> rdpos5;
     std::unique_ptr<Options> options5;
-    initialize(db5, storage5, p2p5, validatorPrivKeys[4], rdpos5, options5, 8084, true, "rdPoSdiscoveryNodeTestMove10BlocksNode5");
+    std::unique_ptr<State> state5;
+    initialize(db5, storage5, p2p5, validatorPrivKeys[4], rdpos5, options5, state5, 8084, true, "rdPoSdiscoveryNodeTestMove10BlocksNode5");
 
     std::unique_ptr<DB> db6;
     std::unique_ptr<Storage> storage6;
@@ -713,7 +737,8 @@ namespace TRdPoS {
     PrivKey validatorKey6 = PrivKey();
     std::unique_ptr<rdPoS> rdpos6;
     std::unique_ptr<Options> options6;
-    initialize(db6, storage6, p2p6, validatorPrivKeys[5], rdpos6, options6, 8085, true, "rdPoSdiscoveryNodeTestMove10BlocksNode6");
+    std::unique_ptr<State> state6;
+    initialize(db6, storage6, p2p6, validatorPrivKeys[5], rdpos6, options6, state6, 8085, true, "rdPoSdiscoveryNodeTestMove10BlocksNode6");
 
     std::unique_ptr<DB> db7;
     std::unique_ptr<Storage> storage7;
@@ -721,7 +746,8 @@ namespace TRdPoS {
     PrivKey validatorKey7 = PrivKey();
     std::unique_ptr<rdPoS> rdpos7;
     std::unique_ptr<Options> options7;
-    initialize(db7, storage7, p2p7, validatorPrivKeys[6], rdpos7, options7, 8086, true, "rdPoSdiscoveryNodeTestMove10BlocksNode7");
+    std::unique_ptr<State> state7;
+    initialize(db7, storage7, p2p7, validatorPrivKeys[6], rdpos7, options7, state7, 8086, true, "rdPoSdiscoveryNodeTestMove10BlocksNode7");
 
     std::unique_ptr<DB> db8;
     std::unique_ptr<Storage> storage8;
@@ -729,7 +755,8 @@ namespace TRdPoS {
     PrivKey validatorKey8 = PrivKey();
     std::unique_ptr<rdPoS> rdpos8;
     std::unique_ptr<Options> options8;
-    initialize(db8, storage8, p2p8, validatorPrivKeys[7], rdpos8, options8, 8087, true, "rdPoSdiscoveryNodeTestMove10BlocksNode8");
+    std::unique_ptr<State> state8;
+    initialize(db8, storage8, p2p8, validatorPrivKeys[7], rdpos8, options8, state8, 8087, true, "rdPoSdiscoveryNodeTestMove10BlocksNode8");
 
     // Initialize the discovery node.
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
