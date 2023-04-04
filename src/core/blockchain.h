@@ -9,7 +9,8 @@
 #include "../utils/options.h"
 #include "../utils/db.h"
 
-
+/// Forward declaration
+class Syncer;
 
 class Blockchain {
   private:
@@ -34,6 +35,8 @@ class Blockchain {
     /// HTTPServer Object (Blockchain HTTP)
     const std::unique_ptr<HTTPServer> http;
 
+    /// Syncer Object (Blockchain Syncer)
+    const std::unique_ptr<Syncer> syncer;
 
   public:
     Blockchain(std::string blockchainPath);
@@ -50,6 +53,72 @@ class Blockchain {
     friend class Syncer;
 };
 
+
+/**
+ * Syncer class is the main class where the magic happens between the nodes on the network
+ * This function is responsible for syncing the node with the network, broadcast transactions
+ * and also for creating new blocks if the node is a validator
+ * TODO: This function can also be responsible for slashing validators if they are not behaving correctlyng
+ * TODO: Maybe it is better to move rdPoSWorker to Syncer?
+ * Currently Syncer is *single threaded*, meaning that it doesn't required mutexes.
+ */
+class Syncer {
+  private:
+    /// Reference back to the blockchain
+    Blockchain& blockchain;
+    /// List of currently connected nodes and their info
+    std::unordered_map<Hash, P2P::NodeInfo, SafeHash> currentlyConnectedNodes;
+
+    /// Pointer to latestBlock
+    std::shared_ptr<const Block> latestBlock;
+
+    /// Function to update currentlyConnectedNodes
+    void updateCurrentlyConnectedNodes();
+
+    /// Function to check latest block (used by validatorLoop())
+    bool checkLatestBlock();
+
+    /// Syncing function
+    void doSync();
+
+    /**
+     * If the node is a validator and it has to create a new block, this function will be called
+     * The new block will be created based on the State and rdPoS objects, and then it will be broadcasted
+     * Called by validatorLoop()
+     */
+    void doValidatorBlock();
+
+    /**
+     * If the node is a validator, this function will be called to make this node waits until it receives a new block
+     * Called by validatorLoop()
+     */
+    void doValidatorTx();
+
+    /// Function loop if the node is a validator
+    void validatorLoop();
+
+    /// Function loop if the node is a not a validator
+    void nonValidatorLoop();
+
+    /// Function loop for worker
+    bool syncerLoop();
+
+    /// Future object holding the thread for the Syncer loop
+    std::future<bool> syncerLoopFuture;
+
+    /// Syncer stopper
+    std::atomic<bool> stopSyncer = false;
+
+  public:
+    Syncer(Blockchain& blockchain) : blockchain(blockchain) {};
+    ~Syncer() { this->stop(); };
+
+    /// Start Syncer Loop
+    void start();
+
+    /// Stop Syncer Loop
+    void stop();
+};
 
 
 #endif /// BLOCKCHAIN_H

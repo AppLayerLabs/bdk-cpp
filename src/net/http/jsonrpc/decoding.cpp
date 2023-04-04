@@ -267,20 +267,29 @@ namespace JsonRPC {
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
-        const auto txObject = request["params"].at(0);
-        const auto block = request["params"].at(1).get<std::string>();
-        if (block != "latest") {
-          if (!std::regex_match(block, numberFilter)) {
-            throw std::runtime_error("Invalid block number");
+        json txObject;
+        if (request["params"].is_array()) {
+          txObject = request["params"].at(0);
+          if (request["params"].size() > 1) {
+            const auto block = request["params"].at(1).get<std::string>();
+            if (block != "latest") {
+              if (!std::regex_match(block, numberFilter)) {
+                throw std::runtime_error("Invalid block number");
+              }
+              uint64_t blockNumber = uint64_t(Hex(block).getUint());
+              if (blockNumber != storage->latest()->getNHeight()) {
+                throw std::runtime_error("Only latest block is supported");
+              }
+            }
           }
-          uint64_t blockNumber = uint64_t(Hex(block).getUint());
-          if (blockNumber != storage->latest()->getNHeight()) {
-            throw std::runtime_error("Only latest block is supported");
-          }
+        } else if (request["params"].is_object()) {
+          txObject = request["params"];
+        } else {
+          throw std::runtime_error("Invalid params");
         }
 
         /// Check from address. (optional)
-        if (txObject.contains("from")) {
+        if (txObject.contains("from") && !txObject["from"].is_null()) {
           std::string fromAddress = txObject["from"].get<std::string>();
           if (!std::regex_match(fromAddress, addressFilter)) {
             throw std::runtime_error("Invalid from address hex");
@@ -294,7 +303,7 @@ namespace JsonRPC {
         }
         to = Address(Hex::toBytes(toAddress), true);
         /// Check gas (optional)
-        if (txObject.contains("gas")) {
+        if (txObject.contains("gas") && !txObject["gas"].is_null()) {
           std::string gasHex = txObject["gas"].get<std::string>();
           if (!std::regex_match(gasHex, numberFilter)) {
             throw std::runtime_error("Invalid gas hex");
@@ -302,7 +311,7 @@ namespace JsonRPC {
           gas = uint64_t(Hex(gasHex).getUint());
         }
         /// Check gasPrice (optional)
-        if (txObject.contains("gasPrice")) {
+        if (txObject.contains("gasPrice") && !txObject["gasPrice"].is_null()) {
           std::string gasPriceHex = txObject["gasPrice"].get<std::string>();
           if (!std::regex_match(gasPriceHex, numberFilter)) {
             throw std::runtime_error("Invalid gasPrice hex");
@@ -310,7 +319,7 @@ namespace JsonRPC {
           gasPrice = uint256_t(Hex(gasPriceHex).getUint());
         }
         /// Check value (optional)
-        if (txObject.contains("value")) {
+        if (txObject.contains("value") && !txObject["value"].is_null()) {
           std::string valueHex = txObject["value"].get<std::string>();
           if (!std::regex_match(valueHex, numberFilter)) {
             throw std::runtime_error("Invalid value hex");
@@ -318,7 +327,7 @@ namespace JsonRPC {
           value = uint256_t(Hex(valueHex).getUint());
         }
         /// Check data (optional)
-        if (txObject.contains("data")) {
+        if (txObject.contains("data") && !txObject["data"].is_null()) {
           std::string dataHex = txObject["data"].get<std::string>();
           if (!Hex::isValid(dataHex, true)) {
             throw std::runtime_error("Invalid data hex");
@@ -338,19 +347,28 @@ namespace JsonRPC {
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
-        const auto txObject = request["params"].at(0);
-        const auto block = request["params"].at(1).get<std::string>();
-        if (block != "latest") {
-          if (!std::regex_match(block, numberFilter)) {
-            throw std::runtime_error("Invalid block number");
+        json txObject;
+        if (request["params"].is_array()) {
+          txObject = request["params"].at(0);
+          if (request["params"].size() > 1) {
+            const auto block = request["params"].at(1).get<std::string>();
+            if (block != "latest") {
+              if (!std::regex_match(block, numberFilter)) {
+                throw std::runtime_error("Invalid block number");
+              }
+              uint64_t blockNumber = uint64_t(Hex(block).getUint());
+              if (blockNumber != storage->latest()->getNHeight()) {
+                throw std::runtime_error("Only latest block is supported");
+              }
+            }
           }
-          uint64_t blockNumber = uint64_t(Hex(block).getUint());
-          if (blockNumber != storage->latest()->getNHeight()) {
-            throw std::runtime_error("Only latest block is supported");
-          }
+        } else if (request["params"].is_object()) {
+          txObject = request["params"];
+        } else {
+          throw std::runtime_error("Invalid params");
         }
         /// Check from address. (optional)
-        if (txObject.contains("from")) {
+        if (txObject.contains("from") && !txObject["from"].is_null()) {
           std::string fromAddress = txObject["from"].get<std::string>();
           if (!std::regex_match(fromAddress, addressFilter)) {
             throw std::runtime_error("Invalid from address hex");
@@ -364,7 +382,7 @@ namespace JsonRPC {
         }
         to = Address(Hex::toBytes(toAddress), true);
         /// Check gas (optional)
-        if (txObject.contains("gas")) {
+        if (txObject.contains("gas") && !txObject["gas"].is_null()) {
           std::string gasHex = txObject["gas"].get<std::string>();
           if (!std::regex_match(gasHex, numberFilter)) {
             throw std::runtime_error("Invalid gas hex");
@@ -375,7 +393,7 @@ namespace JsonRPC {
           gas = std::numeric_limits<uint64_t>::max();
         }
         /// Check gasPrice (optional)
-        if (txObject.contains("gasPrice")) {
+        if (txObject.contains("gasPrice") && !txObject["gasPrice"].is_null()) {
           std::string gasPriceHex = txObject["gasPrice"].get<std::string>();
           if (!std::regex_match(gasPriceHex, numberFilter)) {
             throw std::runtime_error("Invalid gasPrice hex");
@@ -383,7 +401,7 @@ namespace JsonRPC {
           gasPrice = uint256_t(Hex(gasPriceHex).getUint());
         }
         /// Check value (optional)
-        if (txObject.contains("value")) {
+        if (txObject.contains("value") && !txObject["value"].is_null()) {
           std::string valueHex = txObject["value"].get<std::string>();
           if (!std::regex_match(valueHex, numberFilter)) {
             throw std::runtime_error("Invalid value hex");
@@ -391,7 +409,7 @@ namespace JsonRPC {
           value = uint256_t(Hex(valueHex).getUint());
         }
         /// Check data (optional)
-        if (txObject.contains("data")) {
+        if (txObject.contains("data") && !txObject["data"].is_null()) {
           std::string dataHex = txObject["data"].get<std::string>();
           if (!Hex::isValid(dataHex, true)) {
             throw std::runtime_error("Invalid data hex");

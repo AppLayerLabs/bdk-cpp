@@ -107,6 +107,12 @@ class State {
     const std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
 
     /**
+     * Getter for mempool size
+     * @returns mempool size
+     */
+    inline const size_t getMempoolSize() const { std::shared_lock (this->stateMutex); return mempool.size(); }
+
+    /**
      * Validate the next block given current state and its transactions. Does NOT update the state.
      * The block will be rejected if there are invalid transactions in it
      * (e.g. invalid signature, insufficient balance, etc.).

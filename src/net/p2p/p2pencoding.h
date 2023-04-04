@@ -83,10 +83,28 @@ namespace P2P {
   };
   
   struct NodeInfo {
-    const uint64_t nodeVersion;
-    const uint64_t currentTimestamp;
-    const uint64_t latestBlockHeight;
-    const Hash latestBlockHash;
+    uint64_t nodeVersion = 0;
+    uint64_t currentTimestamp = 0;
+    uint64_t latestBlockHeight = 0;
+    Hash latestBlockHash = Hash();
+
+    bool operator==(const NodeInfo& other) const {
+      return nodeVersion == other.nodeVersion &&
+             currentTimestamp == other.currentTimestamp &&
+             latestBlockHeight == other.latestBlockHeight &&
+             latestBlockHash == other.latestBlockHash;
+    }
+
+    NodeInfo& operator=(const NodeInfo& other) {
+      if (this != &other) {
+        nodeVersion = other.nodeVersion;
+        currentTimestamp = other.currentTimestamp;
+        latestBlockHeight = other.latestBlockHeight;
+        latestBlockHash = other.latestBlockHash;
+      }
+      return *this;
+    }
+
   };
   
   // Used when creating a request

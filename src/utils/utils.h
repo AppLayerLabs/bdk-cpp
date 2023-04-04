@@ -82,6 +82,7 @@ namespace Log {
   const std::string P2PParser = "P2P::Parser";
   const std::string P2PDiscoveryWorker = "P2P::DiscoveryWorker";
   const std::string contractManager = "ContractManager";
+  const std::string syncer = "Syncer";
 }
 
 /// Enum for network type.

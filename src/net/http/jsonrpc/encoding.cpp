@@ -204,13 +204,17 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_sendRawTransaction(TxBlock&& tx, const std::unique_ptr<State>& state) {
+    json eth_sendRawTransaction(const TxBlock& tx, const std::unique_ptr<State>& state, const std::unique_ptr<P2P::ManagerNormal>& p2p) {
       json ret;
       ret["jsonrpc"] = "2.0";
       auto txHash = tx.hash();
-      auto TxInvalid = state->addTx(std::move(tx));
+      /// We can't move as we need to broadcast the tx (see below)
+      auto TxInvalid = state->addTx(TxBlock(tx));
       if (!TxInvalid) {
         ret["result"] = txHash.hex(true);
+        /// TODO: Make this use threadpool instead of blocking
+        /// TODO: Make tx broadcasting better, the current solution is not good.
+        p2p->broadcastTxBlock(tx);
       } else {
         ret["error"]["code"] = -32000;
         switch (TxInvalid) {

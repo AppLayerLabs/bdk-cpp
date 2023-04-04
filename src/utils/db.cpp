@@ -2,11 +2,10 @@
 
 DB::DB(const std::string path) {
   this->opts.create_if_missing = true;
-  std::filesystem::path fullPath = std::filesystem::current_path().string() + std::string("/") + path;
-  if (!std::filesystem::exists(fullPath)) { // LevelDB is dumb as a brick so we need this
-    std::filesystem::create_directories(fullPath);
+  if (!std::filesystem::exists(path)) { // LevelDB is dumb as a brick so we need this
+    std::filesystem::create_directories(path);
   }
-  auto status = leveldb::DB::Open(this->opts, fullPath.string(), &this->db);
+  auto status = leveldb::DB::Open(this->opts, path, &this->db);
   if (!status.ok()) {
     Utils::logToDebug(Log::db, __func__, "Failed to open DB: " + status.ToString());
     throw std::runtime_error("Failed to open DB: " + status.ToString());

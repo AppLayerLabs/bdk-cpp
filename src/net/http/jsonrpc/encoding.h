@@ -152,7 +152,7 @@ namespace JsonRPC {
      * @params State: pointer to state
      * TODO: WAITING FOR BLOCKCHAIN
      */
-    json eth_sendRawTransaction(TxBlock&& tx, const std::unique_ptr<State>& state);
+    json eth_sendRawTransaction(const TxBlock& tx, const std::unique_ptr<State>& state, const std::unique_ptr<P2P::ManagerNormal>& p2p);
 
     /**
      * JSON encode a eth_getTransactionByHash response

@@ -47,26 +47,28 @@ cp orbitersdkd-discovery ../local_testnet
 cd ../local_testnet
 for i in {1..5}; do
  mkdir local_testnet_validator$i
+ mkdir local_testnet_validator$i/blockchain
  cp orbitersdkd local_testnet_validator$i
 done
 
 mkdir local_testnet_discovery
+mkdir local_testnet_discovery/discoveryNode
 cp orbitersdkd-discovery local_testnet_discovery
 
 ## Create the JSON file for the Discovery Node
 echo '{
-        "rootPath": "local_testnet_discovery",
+        "rootPath": "discoveryNode",
         "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
         "version": 1,
         "chainID": 8080,
         "wsPort": 8080,
-        "httpPort": 8081,
+        "httpPort": 9999,
         "privKey": "0000000000000000000000000000000000000000000000000000000000000000"
-      }' >> local_testnet_discovery/options.json
+      }' >> local_testnet_discovery/discoveryNode/options.json
 
 ## Create the JSON file for the Validators
 echo '{
-        "rootPath": "local_testnet_discovery",
+        "rootPath": "blockchain",
         "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
         "version": 1,
         "chainID": 8080,
@@ -79,10 +81,10 @@ echo '{
             "port" : 8080
           }
         ]
-      }' >>  cp orbitersdkd local_testnet_validator1/options.json
+      }' >> local_testnet_validator1/blockchain/options.json
 
 echo '{
-        "rootPath": "local_testnet_discovery",
+        "rootPath": "blockchain",
         "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
         "version": 1,
         "chainID": 8080,
@@ -95,10 +97,10 @@ echo '{
             "port" : 8080
           }
         ]
-      }' >>  cp orbitersdkd local_testnet_validator2/options.json
+      }' >> local_testnet_validator2/blockchain/options.json
 
 echo '{
-        "rootPath": "local_testnet_discovery",
+        "rootPath": "blockchain",
         "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
         "version": 1,
         "chainID": 8080,
@@ -111,10 +113,10 @@ echo '{
             "port" : 8080
           }
         ]
-      }' >>  cp orbitersdkd local_testnet_validator3/options.json
+      }' >> local_testnet_validator3/blockchain/options.json
 
 echo '{
-        "rootPath": "local_testnet_discovery",
+        "rootPath": "blockchain",
         "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
         "version": 1,
         "chainID": 8080,
@@ -127,16 +129,10 @@ echo '{
             "port" : 8080
           }
         ]
-        "discoveryNodes": [
-          {
-            "address" : "127.0.0.1",
-            "port" : 8080
-          }
-        ]
-      }' >>  cp orbitersdkd local_testnet_validator4/options.json
+      }' >> local_testnet_validator4/blockchain/options.json
 
 echo '{
-        "rootPath": "local_testnet_discovery",
+        "rootPath": "blockchain",
         "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
         "version": 1,
         "chainID": 8080,
@@ -149,9 +145,30 @@ echo '{
             "port" : 8080
           }
         ]
-      }' >>  cp orbitersdkd local_testnet_validator5/options.json
+      }' >> local_testnet_validator5/blockchain/options.json
 
 
+## Launch the Discovery Node through tmux
+cd local_testnet_discovery
+tmux new-session -d -s local_testnet_discovery './orbitersdkd-discovery'
+
+sleep 1
+
+## Launch the Validators through tmux
+cd ../local_testnet_validator1
+tmux new-session -d -s local_testnet_validator1 './orbitersdkd'
+
+cd ../local_testnet_validator2
+tmux new-session -d -s local_testnet_validator2 './orbitersdkd'
+
+cd ../local_testnet_validator3
+tmux new-session -d -s local_testnet_validator3 './orbitersdkd'
+
+cd ../local_testnet_validator4
+tmux new-session -d -s local_testnet_validator4 './orbitersdkd'
+
+cd ../local_testnet_validator5
+tmux new-session -d -s local_testnet_validator5 './orbitersdkd'
 
 
 

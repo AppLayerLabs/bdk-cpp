@@ -65,9 +65,16 @@ namespace P2P {
       // Check if we reached connection limit.
       {
         std::shared_lock lock(this->manager.sessionsMutex);
+        if (this->manager.sessions_.size() >= this->manager.minConnections()) {
+          /// If we don't have at least 5 connections, we don't sleep discovery.
+          /// This is to make sure that local_testnet can quickly start up a new network, but still sleep discovery
+          /// If the minimum is reached.
+          Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Min connections reached, sleeping");
+          std::this_thread::sleep_for(std::chrono::seconds(5)); /// Only 5 seconds because we still want to reach maxConnections
+        }
         if (this->manager.sessions_.size() >= this->manager.maxConnections()) {
           Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Max connections reached, sleeping");
-          std::this_thread::sleep_for(std::chrono::seconds(5));
+          std::this_thread::sleep_for(std::chrono::seconds(60));
           continue;
         } else {
           std::unique_lock lock(this->requestedNodesMutex);
