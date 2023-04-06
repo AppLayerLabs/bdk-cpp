@@ -40,9 +40,11 @@ TxBlock createRandomTx(const uint64_t& requiredChainId) {
   uint64_t chainId = requiredChainId;
   uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
   uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-  uint256_t gas = Utils::bytesToUint32(Utils::randBytes(4));
-  uint256_t gasPrice = Utils::bytesToUint32(Utils::randBytes(4));
-  return TxBlock(to, from, data, chainId, nonce, value, gas, gasPrice, txPrivKey);
+  uint256_t maxGasPerFee = Utils::bytesToUint32(Utils::randBytes(4));
+  uint256_t maxPriorityFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
+  uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
+
+  return TxBlock(to, from, data, chainId, nonce, value, maxPriorityFeePerGas, maxGasPerFee, gasLimit, txPrivKey);
 }
 
 // Random list of TxValidator transactions and the corresponding seedRandomness.

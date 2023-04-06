@@ -66,7 +66,7 @@ namespace P2P {
       {
         std::shared_lock lock(this->manager.sessionsMutex);
         if (this->manager.sessions_.size() >= this->manager.minConnections()) {
-          /// If we don't have at least 5 connections, we don't sleep discovery.
+          /// If we don't have at least 11 connections, we don't sleep discovery.
           /// This is to make sure that local_testnet can quickly start up a new network, but still sleep discovery
           /// If the minimum is reached.
           Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Min connections reached, sleeping");

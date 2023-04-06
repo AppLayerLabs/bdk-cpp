@@ -36,7 +36,7 @@ CORES=$(grep -c ^processor /proc/cpuinfo)
 
 ## Build the project
 cd build_local_testnet
-cmake ..
+cmake -DBUILD_TESTS=OFF ..
 make -j${CORES}
 
 ## Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory

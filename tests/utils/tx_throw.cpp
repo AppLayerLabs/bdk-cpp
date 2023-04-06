@@ -5,12 +5,23 @@
 using Catch::Matchers::Equals;
 
 namespace TTX {
-  TEST_CASE("TxBlock (Throw)", "[utils][tx]") {
+  TEST_CASE("TxBlock (Throw)", "[utils][tx][throw]") {
     SECTION("Tx is not a list") {
       bool catched = false;
-      std::string txStr = Hex::toBytes(
-        "0xf66b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"
-      ); // "0xf6.. < 0xf7..", thus throw
+      TxBlock tx(
+        Address(std::string_view("0x13b5c424686de186bc5268d5cfe6aa4200ca9aee"), false),
+        Address(std::string_view("0x31Af43C5E5924610a9c02B669c7980D9eBdB9719"), false),
+        Hex::toBytes("0xe426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e"),
+        uint64_t(8080),                 /// ChainID
+        uint256_t("42968208492763873"),     /// Nonce
+        uint256_t("166903214424643"),       /// Value
+        uint256_t("65612315125671"),        /// maxPriorityFeePerGas
+        uint256_t("712471569147246"),       /// maxFeePerGas
+        uint256_t("61182866117425671"),     /// gasLimit
+        Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d")
+      );
+      std::string txStr = tx.rlpSerialize();
+      txStr[1] = 0xf6;
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -18,32 +29,79 @@ namespace TTX {
     SECTION("Tx RLP too short/large") {
       bool catch1 = false;
       bool catch2 = false;
-      std::string txShortStr = Hex::toBytes(
-        "0xf88f8085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x..8f < 0x..90", thus throw
-      std::string txLargeStr = Hex::toBytes(
-        "0xf8918085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x..91 > 0x..90", thus throw
+      TxBlock tx(
+        Address(std::string_view("0x13b5c424686de186bc5268d5cfe6aa4200ca9aee"), false),
+        Address(std::string_view("0x31Af43C5E5924610a9c02B669c7980D9eBdB9719"), false),
+        Hex::toBytes("0xe426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24e"),
+        uint64_t(8080),                 /// ChainID
+        uint256_t("42968208492763873"),     /// Nonce
+        uint256_t("166903214424643"),       /// Value
+        uint256_t("65612315125671"),        /// maxPriorityFeePerGas
+        uint256_t("712471569147246"),       /// maxFeePerGas
+        uint256_t("61182866117425671"),     /// gasLimit
+        Hex::toBytes("ce974dad85cf9593db9d5c3e89ca8c67ca0f841dc97f2c58c6ea2038e4fa6d8d")
+      );
+      std::string txShortStr = tx.rlpSerialize();
+      txShortStr = txShortStr.substr(0, txShortStr.size() - 1);
+      std::string txLargeStr = tx.rlpSerialize();
+      txLargeStr += "0x00";
       try { TxBlock txShort(txShortStr, 8080); } catch (std::exception &e) { catch1 = true; }
       try { TxBlock txLarge(txLargeStr, 8080); } catch (std::exception &e) { catch2 = true; }
       REQUIRE(catch1 == true);
       REQUIRE(catch2 == true);
     }
 
-    SECTION("Tx GasPrice too large") {
+    SECTION("Tx chainId too large") {
       bool catched = false;
       std::string txStr = Hex::toBytes(
-        "0xf89080f5178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x......f5 > 0x......85", thus throw
+        "02f8d6b71f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); /// "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
 
+    SECTION("Tx MaxPriorityFeePerGas too large") {
+      bool catched = false;
+      std::string txStr = Hex::toBytes(
+        "02f8d6821f908798a75ba3d89ae1b73bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); /// "0x...b7" -> not value anymore", thus throw
+      try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
+      REQUIRE(catched == true);
+    }
+
+    SECTION("Tx Nonce too large") {
+      bool catched = false;
+      std::string txStr = Hex::toBytes(
+        "02f8d6821f90b798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); /// "0x...b7" -> not value anymore", thus throw
+      try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
+      REQUIRE(catched == true);
+    }
+
+    SECTION("Tx MaxPriorityFeePerGas too large") {
+      bool catched = false;
+      std::string txStr = Hex::toBytes(
+        "02f8d6821f908798a75ba3d89ae1b73bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); // /// "0x...b7" -> not value anymore", thus throw
+      try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
+      REQUIRE(catched == true);
+    }
+
+    SECTION("Tx MaxFeePerGas too large") {
+      bool catched = false;
+      std::string txStr = Hex::toBytes(
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7b70287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); // /// "0x...b7" -> not value anymore", thus throw
+      try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
+      REQUIRE(catched == true);
+    }
+
+
     SECTION("Tx GasLimit too large") {
       bool catched = false;
       std::string txStr = Hex::toBytes(
-        "0xf8908085178411b200f303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x..................f3 > 0x..................83", thus throw
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56eb7d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); // /// "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -52,10 +110,10 @@ namespace TTX {
       bool catch1 = false;
       bool catch2 = false;
       std::string txBiggerStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15595bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079513b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
       ); // "0x..........................95 != 0x..........................94", thus throw
       std::string txSmallerStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15593bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079313b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
       ); // "0x..........................93 != 0x..........................94", thus throw
       try { TxBlock tx1(txBiggerStr, 8080); } catch (std::exception &e) { catch1 = true; }
       try { TxBlock tx2(txSmallerStr, 8080); } catch (std::exception &e) { catch2 = true; }
@@ -66,8 +124,8 @@ namespace TTX {
     SECTION("Tx value too large") {
       bool catched = false;
       std::string txStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22f76a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x...8ccd22f7 < 0x...8ccd2287", thus throw
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aeeb797cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); /// "0x...b7" -> not value anymore", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -75,8 +133,8 @@ namespace TTX {
     SECTION("Tx V too large") {
       bool catched = false;
       std::string txStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d79ffa05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x...0a4d79ff > 0x...0a4d7925", thus throw
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec002a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); // "0x...02 > 0x01", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -84,8 +142,8 @@ namespace TTX {
     SECTION("Tx R too large") {
       bool catched = false;
       std::string txStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925ff5ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x...0a4d7925ff > 0x...0a4d7925a0", thus throw
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a13f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a702f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a13f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); /// "0x...a1 > 0xa0", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -93,26 +151,8 @@ namespace TTX {
     SECTION("Tx S too large") {
       bool catched = false;
       std::string txStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27ff727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x...96fc27ff > 0x...96fc27a0", thus throw
-      try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
-      REQUIRE(catched == true);
-    }
-
-    // TODO: how to actually test "chainId too high"?
-    /*
-    SECTION("Tx chainId too high") {
-      bool catched = false;
-      // ...
-      REQUIRE(catched == true);
-    }
-    */
-
-    SECTION("Tx invalid signature (wrong V)") {
-      bool catched = false;
-      std::string txStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7910a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
-      ); // "0x...0a4d7910" < "0x...0a4d7925" (v is not 27 or 28), thus throw
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa12d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
+      ); /// "0x...a1 > 0xa0", thus throw
       try { TxBlock tx(txStr, 8080); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -121,10 +161,10 @@ namespace TTX {
       bool catch1 = false;
       bool catch2 = false;
       std::string txWrongRStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a00000000000000000000000000000000000000000000000000000000000000000a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a0fffffffffffffffffffffffffffffffffffffffffffffffffffffff1b4c39fdfa02d71eaeba43f0cbd3f9184afc4e0a907c0b1b69b6a78e6af38b7ddf6b6c0e2a7"
       ); // R is zeroed (after second "0xa0"), thus throw
       std::string txWrongSStr = Hex::toBytes(
-        "0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a00000000000000000000000000000000000000000000000000000000000000000"
+        "02f8d6821f908798a75ba3d89ae1863bac8ebc67a7870287fd36caa56e87d95d7e1944fa079413b5c424686de186bc5268d5cfe6aa4200ca9aee8697cc2ecec243b852e426208f118c6c7db391b3391dda9b94bb0e5c6da9514ad74b63fd6d723b38be421a039136c0015ef0c6bff94109cb9bc4942031949016b85e919fdca81f59f0e417bd696cf6e8f9203d792edc223a59d24ec001a03f40d77504fededf1c0f59b1b5aeecd6cb1c9bbca983352f10717441b4c39fdfa0fffffffffffffffffffffffffffffffffffffffffffffffffffffffff6c0e2a7"
       ); // S is zeroed (after third "0xa0"), thus throw
       try { TxBlock txR(txWrongRStr, 8080); } catch (std::exception &e) { catch1 = true; }
       try { TxBlock txS(txWrongSStr, 8080); } catch (std::exception &e) { catch2 = true; }
@@ -132,22 +172,13 @@ namespace TTX {
       REQUIRE(catch2 == true);
     }
 
-    // TODO: can't do this one unless Secp256k1::recover() can also be done
-    /*
-    SECTION(Tx invalid signature (can't recover pubkey)") {
-      bool catched = false;
-      // ...
-      REQUIRE(catched == true);
-    }
-    */
-
     SECTION("Tx invalid PrivKey (doesn't match from)") {
       bool catched = false;
       try {
         TxBlock tx(
           Address(std::string("0x1234567890123456789012345678901234567890"), false),
           Address(std::string("0x1234567890123456789012345678901234567890"), false),
-          std::string(""), 8080, 0, 0, 90, 21000, std::string("12345678901234567890123456789012")
+          std::string(""), 8080, 0, 0, 90, 90, 21000, std::string("12345678901234567890123456789012")
         );
       } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);

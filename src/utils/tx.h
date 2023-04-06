@@ -11,17 +11,19 @@
  */
 class TxBlock {
   private:
-    Address to;         ///< Receiver address.
-    Address from;       ///< Sender address.
-    std::string data;   ///< Arbitrary data (e.g. for contracts).
-    uint64_t chainId;   ///< Chain ID where the tx will be broadcast.
-    uint256_t nonce;    ///< Sender address nonce.
-    uint256_t value;    ///< Value in Wei.
-    uint256_t gas;      ///< Gas limit in Wei (e.g. 21000 Wei).
-    uint256_t gasPrice; ///< Gas price in Wei (usually in Gwei - 1 Gwei = 1000000000 Wei).
-    uint256_t v;        ///< ECDSA recovery ID.
-    uint256_t r;        ///< ECDSA first half.
-    uint256_t s;        ///< ECDSA second half.
+    Address to;                     ///< Receiver address.
+    Address from;                   ///< Sender address.
+    std::string data;               ///< Arbitrary data (e.g. for contracts).
+    uint64_t chainId;               ///< Chain ID where the tx will be broadcast.
+    uint256_t nonce;                ///< Sender address nonce.
+    uint256_t value;                ///< Value in Wei.
+    uint256_t maxPriorityFeePerGas; ///< maxPriorityFeePerGas in Wei (e.g. 21000 Wei).
+    uint256_t maxFeePerGas;         ///< maxFeePerGas in Wei (e.g. 21000 Wei).
+    uint256_t gasLimit;             ///< Gas limit
+    void* accessList = nullptr;     ///< Access list (not implemented).
+    uint8_t v;                    ///< ECDSA recovery ID.
+    uint256_t r;                    ///< ECDSA first half.
+    uint256_t s;                    ///< ECDSA second half.
 
   public:
     /**
@@ -42,14 +44,15 @@ class TxBlock {
      * @param chainId The chain ID of the transaction.
      * @param nonce The nonce of the transaction.
      * @param value The value of the transaction.
-     * @param gas The gas limit of the transaction.
-     * @param gasPrice The gas price of the transaction.
+     * @param maxPriorityFeePerGas The maxPriorityFeePerGas of the transaction.
+     * @param maxFeePerGas The maxFeePerGas of the transaction.
+     * @param gasLimit The gas limit of the transaction.
      * @param privKey The private key used to sign the transaction.
      */
     TxBlock(
       const Address to, const Address from, const std::string data,
       const uint64_t chainId, const uint256_t nonce, const uint256_t value,
-      const uint256_t gas, const uint256_t gasPrice, const PrivKey privKey
+      const uint256_t maxPriorityFeePerGas, const uint256_t maxFeePerGas, const uint256_t gasLimit, const PrivKey privKey
     );
 
     /// Copy constructor.
@@ -60,8 +63,9 @@ class TxBlock {
       chainId(other.chainId),
       nonce(other.nonce),
       value(other.value),
-      gas(other.gas),
-      gasPrice(other.gasPrice),
+      maxPriorityFeePerGas(other.maxPriorityFeePerGas),
+      maxFeePerGas(other.maxFeePerGas),
+      gasLimit(other.gasLimit),
       v(other.v),
       r(other.r),
       s(other.s)
@@ -75,8 +79,9 @@ class TxBlock {
       chainId(std::move(other.chainId)),
       nonce(std::move(other.nonce)),
       value(std::move(other.value)),
-      gas(std::move(other.gas)),
-      gasPrice(std::move(other.gasPrice)),
+      maxPriorityFeePerGas(std::move(other.maxPriorityFeePerGas)),
+      maxFeePerGas(std::move(other.maxFeePerGas)),
+      gasLimit(std::move(other.gasLimit)),
       v(std::move(other.v)),
       r(std::move(other.r)),
       s(std::move(other.s))
@@ -100,14 +105,17 @@ class TxBlock {
     /// Getter for `value`.
     inline const uint256_t& getValue() const { return this->value; }
 
-    /// Getter for `gas`.
-    inline const uint256_t& getGas() const { return this->gas; }
+    /// Getter for `maxPriorityFeePerGas`.
+    inline const uint256_t& getMaxPriorityFeePerGas() const { return this->maxPriorityFeePerGas; }
 
-    /// Getter for `gasPrice`.
-    inline const uint256_t& getGasPrice() const { return this->gasPrice; }
+    /// Getter for `maxPerGas`.
+    inline const uint256_t& getMaxFeePerGas() const { return this->maxFeePerGas; }
+
+    /// Getter for `gasLimit`.
+    inline const uint256_t& getGasLimit() const { return this->gasLimit; }
 
     /// Getter for `v`.
-    inline const uint256_t& getV() const { return this->v; }
+    inline const uint8_t& getV() const { return this->v; }
 
     /// Getter for `r`.
     inline const uint256_t& getR() const { return this->r; }
@@ -149,8 +157,9 @@ class TxBlock {
       this->chainId = other.chainId;
       this->nonce = other.nonce;
       this->value = other.value;
-      this->gas = other.gas;
-      this->gasPrice = other.gasPrice;
+      this->maxPriorityFeePerGas = other.maxPriorityFeePerGas;
+      this->maxFeePerGas = other.maxFeePerGas;
+      this->gasLimit = other.gasLimit;
       this->v = other.v;
       this->r = other.r;
       this->s = other.s;
@@ -165,8 +174,9 @@ class TxBlock {
       this->chainId = std::move(other.chainId);
       this->nonce = std::move(other.nonce);
       this->value = std::move(other.value);
-      this->gas = std::move(other.gas);
-      this->gasPrice = std::move(other.gasPrice);
+      this->maxPriorityFeePerGas = std::move(other.maxPriorityFeePerGas);
+      this->maxFeePerGas = std::move(other.maxFeePerGas);
+      this->gasLimit = std::move(other.gasLimit);
       this->v = std::move(other.v);
       this->r = std::move(other.r);
       this->s = std::move(other.s);

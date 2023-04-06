@@ -207,11 +207,12 @@ namespace THTTPJsonRPC{
           1000000000000000000,
           21000,
           1000000000,
+          1000000000,
           privkey
         );
 
         /// Take note of expected balance and nonce
-        val.first = state->getNativeBalance(me) - (transactions.back().getGasPrice() * transactions.back().getGas()) -
+        val.first = state->getNativeBalance(me) - (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
                     transactions.back().getValue();
         val.second = state->getNativeNonce(me) + 1;
         targetExpectedValue += transactions.back().getValue();
@@ -275,10 +276,10 @@ namespace THTTPJsonRPC{
         REQUIRE(txJson["type"] == "0x0");
         REQUIRE(txJson["nonce"] == Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC());
         REQUIRE(txJson["to"] == tx.getTo().hex(true));
-        REQUIRE(txJson["gas"] == Hex::fromBytes(Utils::uintToBytes(tx.getGas()),true).forRPC());
+        REQUIRE(txJson["gas"] == Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC());
         REQUIRE(txJson["value"] == Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC());
         REQUIRE(txJson["input"] == Hex::fromBytes(tx.getData(),true).forRPC());
-        REQUIRE(txJson["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(tx.getGasPrice()),true).forRPC());
+        REQUIRE(txJson["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC());
         REQUIRE(txJson["chainId"] == Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC());
         REQUIRE(txJson["v"] == Hex::fromBytes(Utils::uintToBytes(tx.getV()),true).forRPC());
         REQUIRE(txJson["r"] == Hex::fromBytes(Utils::uintToBytes(tx.getR()),true).forRPC());
@@ -310,10 +311,10 @@ namespace THTTPJsonRPC{
         REQUIRE(txJson["type"] == "0x0");
         REQUIRE(txJson["nonce"] == Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC());
         REQUIRE(txJson["to"] == tx.getTo().hex(true));
-        REQUIRE(txJson["gas"] == Hex::fromBytes(Utils::uintToBytes(tx.getGas()),true).forRPC());
+        REQUIRE(txJson["gas"] == Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC());
         REQUIRE(txJson["value"] == Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC());
         REQUIRE(txJson["input"] == Hex::fromBytes(tx.getData(),true).forRPC());
-        REQUIRE(txJson["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(tx.getGasPrice()),true).forRPC());
+        REQUIRE(txJson["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(tx.getMaxFeePerGas()),true).forRPC());
         REQUIRE(txJson["chainId"] == Hex::fromBytes(Utils::uintToBytes(tx.getChainId()),true).forRPC());
         REQUIRE(txJson["v"] == Hex::fromBytes(Utils::uintToBytes(tx.getV()),true).forRPC());
         REQUIRE(txJson["r"] == Hex::fromBytes(Utils::uintToBytes(tx.getR()),true).forRPC());
@@ -369,6 +370,7 @@ namespace THTTPJsonRPC{
         1000000000000000000,
         21000,
         1000000000,
+        1000000000,
         randomAccounts.begin()->first
       );
 
@@ -380,8 +382,8 @@ namespace THTTPJsonRPC{
         REQUIRE(eth_getTransactionByHash["result"]["blockHash"] == newBestBlock.hash().hex(true));
         REQUIRE(eth_getTransactionByHash["result"]["blockNumber"] == "0x1");
         REQUIRE(eth_getTransactionByHash["result"]["from"] == transactions[i].getFrom().hex(true));
-        REQUIRE(eth_getTransactionByHash["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGas()),true).forRPC());
-        REQUIRE(eth_getTransactionByHash["result"]["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasPrice()),true).forRPC());
+        REQUIRE(eth_getTransactionByHash["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()),true).forRPC());
+        REQUIRE(eth_getTransactionByHash["result"]["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getMaxFeePerGas()),true).forRPC());
         REQUIRE(eth_getTransactionByHash["result"]["hash"] == transactions[i].hash().hex(true));
         REQUIRE(eth_getTransactionByHash["result"]["input"] == Hex::fromBytes(transactions[i].getData(),true).forRPC());
         REQUIRE(eth_getTransactionByHash["result"]["nonce"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getNonce()),true).forRPC());
@@ -398,8 +400,8 @@ namespace THTTPJsonRPC{
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["blockHash"] == newBestBlock.hash().hex(true));
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["blockNumber"] == "0x1");
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["from"] == transactions[i].getFrom().hex(true));
-        REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGas()),true).forRPC());
-        REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasPrice()),true).forRPC());
+        REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()),true).forRPC());
+        REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getMaxFeePerGas()),true).forRPC());
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["hash"] == transactions[i].hash().hex(true));
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["input"] == Hex::fromBytes(transactions[i].getData(),true).forRPC());
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["nonce"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getNonce()),true).forRPC());
@@ -416,8 +418,8 @@ namespace THTTPJsonRPC{
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["blockHash"] == newBestBlock.hash().hex(true));
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["blockNumber"] == "0x1");
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["from"] == transactions[i].getFrom().hex(true));
-        REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGas()),true).forRPC());
-        REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasPrice()),true).forRPC());
+        REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()),true).forRPC());
+        REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["gasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getMaxFeePerGas()),true).forRPC());
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["hash"] == transactions[i].hash().hex(true));
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["input"] == Hex::fromBytes(transactions[i].getData(),true).forRPC());
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["nonce"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getNonce()),true).forRPC());
@@ -437,10 +439,10 @@ namespace THTTPJsonRPC{
         REQUIRE(eth_getTransactionReceiptResponse["result"]["blockNumber"] == "0x1");
         REQUIRE(eth_getTransactionReceiptResponse["result"]["from"] == transactions[i].getFrom().hex(true));
         REQUIRE(eth_getTransactionReceiptResponse["result"]["to"] == transactions[i].getTo().hex(true));
-        REQUIRE(eth_getTransactionReceiptResponse["result"]["cumulativeGasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGas()), true).forRPC());
-        REQUIRE(eth_getTransactionReceiptResponse["result"]["effectiveGasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGas()), true).forRPC());
-        REQUIRE(eth_getTransactionReceiptResponse["result"]["effectiveGasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasPrice()), true).forRPC());
-        REQUIRE(eth_getTransactionReceiptResponse["result"]["gasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGas()), true).forRPC());
+        REQUIRE(eth_getTransactionReceiptResponse["result"]["cumulativeGasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()), true).forRPC());
+        REQUIRE(eth_getTransactionReceiptResponse["result"]["effectiveGasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()), true).forRPC());
+        REQUIRE(eth_getTransactionReceiptResponse["result"]["effectiveGasPrice"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getMaxFeePerGas()), true).forRPC());
+        REQUIRE(eth_getTransactionReceiptResponse["result"]["gasUsed"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()), true).forRPC());
         REQUIRE(eth_getTransactionReceiptResponse["result"]["contractAddress"] == json::value_t::null);
         REQUIRE(eth_getTransactionReceiptResponse["result"]["logs"] == json::array());
         REQUIRE(eth_getTransactionReceiptResponse["result"]["logsBloom"] == Hash().hex(true));

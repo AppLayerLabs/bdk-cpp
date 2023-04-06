@@ -83,7 +83,7 @@ void initialize(std::unique_ptr<DB>& db,
   }
 
   storage = std::make_unique<Storage>(db, options);
-  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, nullptr);
+  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, state);
   rdpos = std::make_unique<rdPoS>(db, storage, p2p, options, state);
   state = std::make_unique<State>(db, storage, rdpos, p2p);
 }
@@ -582,7 +582,6 @@ namespace TRdPoS {
       p2p9->startDiscovery();
       p2p10->startDiscovery();
 
-
       while(p2pDiscovery->getSessionsIDs().size() != 10 ||
             p2p1->getSessionsIDs().size() != 10 ||
             p2p2->getSessionsIDs().size() != 10 ||
@@ -594,8 +593,23 @@ namespace TRdPoS {
             p2p8->getSessionsIDs().size() != 10 ||
             p2p9->getSessionsIDs().size() != 10 ||
             p2p10->getSessionsIDs().size() != 10) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
       }
+
+      // Stop discovery after all nodes have connected to each other.
+      // TODO: this is done because there is a mess of mutexes within broadcast
+      // Making so that the broadcast down this line takes too long to complete
+      p2p1->stopDiscovery();
+      p2p2->stopDiscovery();
+      p2p3->stopDiscovery();
+      p2p4->stopDiscovery();
+      p2p5->stopDiscovery();
+      p2p6->stopDiscovery();
+      p2p7->stopDiscovery();
+      p2p8->stopDiscovery();
+      p2p9->stopDiscovery();
+      p2p10->stopDiscovery();
+      p2pDiscovery->stopDiscovery();
 
       // Create valid TxValidator transactions (8 in total), append them to node 1's storage.
       // After appending to node 1's storage, broadcast them to all nodes.
@@ -627,7 +641,6 @@ namespace TRdPoS {
       // Create a block with 8 TxValidator transactions, 2 for each validator, in order (randomHash and random)
       uint64_t newBlocknHeight = storage1->latest()->getNHeight() + 1;
       std::vector<TxValidator> txValidators;
-
       std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
@@ -841,6 +854,20 @@ namespace TRdPoS {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
+    // Stop discovery after all nodes have connected to each other.
+    // TODO: this is done because there is a mess of mutexes within broadcast
+    // Making so that the broadcast down this line takes too long to complete
+    p2p1->stopDiscovery();
+    p2p2->stopDiscovery();
+    p2p3->stopDiscovery();
+    p2p4->stopDiscovery();
+    p2p5->stopDiscovery();
+    p2p6->stopDiscovery();
+    p2p7->stopDiscovery();
+    p2p8->stopDiscovery();
+    p2pDiscovery->stopDiscovery();
+
+
     // After a while, the discovery thread should have found all the nodes and connected between each other.
     while (p2pDiscovery->getSessionsIDs().size() != 8) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -959,6 +986,15 @@ namespace TRdPoS {
         }
       }
     }
+    /// TODO: This is done for the same reason as stopDiscovery.
+    rdpos1->stoprdPoSWorker();
+    rdpos2->stoprdPoSWorker();
+    rdpos3->stoprdPoSWorker();
+    rdpos4->stoprdPoSWorker();
+    rdpos5->stoprdPoSWorker();
+    rdpos6->stoprdPoSWorker();
+    rdpos7->stoprdPoSWorker();
+    rdpos8->stoprdPoSWorker();
     // Sleep so it can conclude the last operations.
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }

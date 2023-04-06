@@ -85,7 +85,7 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   }
   const auto& accBalance = accountIt->second.balance;
   const auto& accNonce = accountIt->second.nonce;
-  uint256_t txWithFees = tx.getValue() + (tx.getGas() * tx.getGasPrice());
+  uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
   if (txWithFees > accBalance) {
     Utils::logToDebug(Log::state, __func__,
                       "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
@@ -113,7 +113,7 @@ void State::processTransaction(const TxBlock& tx) {
   auto accountIt = this->accounts.find(tx.getFrom());
   auto& balance = accountIt->second.balance;
   auto& nonce = accountIt->second.nonce;
-  uint256_t txValueWithFees = tx.getValue() + (tx.getGas() * tx.getGasPrice());  /// This need to change with payable contract functions
+  uint256_t txValueWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());  /// This need to change with payable contract functions
   balance -= txValueWithFees;
   this->accounts[tx.getTo()].balance += tx.getValue();
   ++nonce;

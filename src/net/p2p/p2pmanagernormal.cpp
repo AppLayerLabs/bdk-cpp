@@ -6,8 +6,19 @@
 namespace P2P {
 
   void ManagerNormal::broadcastMessage(const Message& message) {
+    /// TODO: Improve "broadcast" ordering:
+    /// All broadcast requests currently has to pass through broadcastMessage
+    /// In order to check if the messagas was previously received.
+    /// Currently, it is uniquely locking for every single request.
+    /// This is utterly inefficient, and should be improved.
+
+    /// TODO: **URGENT** Sometimes things segfault on this line
+    /// With the following error: __pthread_mutex_lock: Assertion `mutex->__data.__owner == 0' failed.
+    /// This means that the mutex doesn't exists anymore
+    /// Somehow the BaseSessiono is calling back ManagerNormal after is has been destroyed!
     std::unique_lock broadcastLock(broadcastMutex);
-    if (broadcastedMessages_[message.id().toUint64()] > 0) {
+    uint64_t i = message.id().toUint64();
+    if (broadcastedMessages_[i] > 0) {
       Utils::logToDebug(Log::P2PManager, __func__, "Already broadcasted message " + message.id().hex().get() + " to all nodes. Skipping broadcast.");
       return;
     }

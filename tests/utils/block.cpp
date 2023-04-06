@@ -19,8 +19,6 @@ namespace TBlock {
       Block blockCopyConstructor(newBlock);
       Block reconstructedBlock(newBlock.serializeBlock(), 8080);
 
-      std::cout << Hex::fromBytes(blockCopyConstructor.serializeBlock()) << std::endl;
-
       // Check within reconstructed block
       REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("18395ff0c8ee38a250b9e7aeb5733c437fed8d6ca2135fa634367bb288a3830a3c624e33401a1798ce09f049fb6507adc52b085d0a83dacc43adfa519c1228e701")));
       REQUIRE(reconstructedBlock.getPrevBlockHash() == Hash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6")));
@@ -94,7 +92,7 @@ namespace TBlock {
       uint64_t timestamp = 1678400843315;
       uint64_t nHeight = 100;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
-      TxBlock tx(Hex::toBytes("f86b02851087ee060082520894f137c97b1345f0a7ec97d070c70cf96a3d71a1c9871a204f293018008025a0d738fcbf48d672da303e56192898a36400da52f26932dfe67b459238ac86b551a00a60deb51469ae5b0dc4a9dd702bad367d1111873734637d428626640bcef15c"), 1);
+      TxBlock tx(Hex::toBytes("0x02f874821f9080849502f900849502f900825208942e951aa58c8b9b504a97f597bbb2765c011a8802880de0b6b3a764000080c001a0f56fe87778b4420d3b0f8eba91d28093abfdbea281a188b8516dd8411dc223d7a05c2d2d71ad3473571ff637907d72e6ac399fe4804641dbd9e2d863586c57717d"), 1);
 
       for (uint64_t i = 0; i < 10; i++) newBlock.appendTx(tx);
 
@@ -104,11 +102,11 @@ namespace TBlock {
       Block reconstructedBlock(newBlock.serializeBlock(), 1);
 
       // Check within reconstructed block
-      REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("b8e8aab3dab7dc8f9fe3a86d6baab64e06947993fe113c4075f3f5a08ff61a695c5ca8493fd7513dae0fc4b9847633d31f8fd2ee59de7084da7a5b68008addd601")));
+      REQUIRE(reconstructedBlock.getValidatorSig() == Signature(Hex::toBytes("7932f2e62d9b7f81ae7d2673d88d9c7ca3aa101c3cd22d76c8ca9063de9126db350c0aa08470cf1a65652bfe1e16f8210af0ecef4f36fe3e01c93b71e75cabd501")));
       REQUIRE(reconstructedBlock.getPrevBlockHash() == Hash(Hex::toBytes("97a5ebd9bbb5e330b0b3c74b9816d595ffb7a04d4a29fb117ea93f8a333b43be")));
       REQUIRE(reconstructedBlock.getBlockRandomness() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
       REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == Hash(Hex::toBytes("0000000000000000000000000000000000000000000000000000000000000000")));
-      REQUIRE(reconstructedBlock.getTxMerkleRoot() == Hash(Hex::toBytes("5d8c59743808c403ac95ca03937d51bd01661d8951c1af7fade03495475281a5")));
+      REQUIRE(reconstructedBlock.getTxMerkleRoot() == Hash(Hex::toBytes("658285e815d4134cc842f23c4e93e07b96e7831e3c22acc9c5db289720d8851e")));
       REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(1678400843316));
       REQUIRE(reconstructedBlock.getNHeight() == uint64_t(100));
       REQUIRE(reconstructedBlock.getTxValidators().size() == 0);
@@ -183,7 +181,7 @@ namespace TBlock {
       uint64_t nHeight = 331653115;
       Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
 
-      TxBlock tx(Hex::toBytes("0xf8908085178411b2008303f15594bcf935d206ca32929e1b887a07ed240f0d8ccd22876a94d74f430000a48853b53e00000000000000000000000000000000000000000000000000000000000a4d7925a05ca395600115460cf539c25ac9f3140f71b10db78eca64c43873921b9f96fc27a0727953c15ff2725c144ba16d458b29aa6fbfae3feade7c8c854b08223178337e"), 1);
+      TxBlock tx(Hex::toBytes("0x02f874821f9080849502f900849502f900825208942e951aa58c8b9b504a97f597bbb2765c011a8802880de0b6b3a764000080c001a0f56fe87778b4420d3b0f8eba91d28093abfdbea281a188b8516dd8411dc223d7a05c2d2d71ad3473571ff637907d72e6ac399fe4804641dbd9e2d863586c57717d"), 1);
 
       for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
 
@@ -201,7 +199,7 @@ namespace TBlock {
         txValidators.emplace_back(
           validatorAddress,
           data,
-          1,
+          8080,
           nHeight,
           txValidatorPrivKey
         );
@@ -213,7 +211,7 @@ namespace TBlock {
         txValidators.emplace_back(
           validatorAddress,
           data,
-          1,
+          8080,
           nHeight,
           txValidatorPrivKey
         );
@@ -226,13 +224,13 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       Block blockCopyConstructor(newBlock);
-      Block reconstructedBlock(newBlock.serializeBlock(), 1);
+      Block reconstructedBlock(newBlock.serializeBlock(), 8080);
 
       // Check within reconstructed block
       REQUIRE(reconstructedBlock.getPrevBlockHash() == Hash(Hex::toBytes("7c9efc59d7bec8e79499a49915e0a655a3fff1d0609644d98791893afc67e64b")));
       REQUIRE(reconstructedBlock.getBlockRandomness() == Utils::sha3(randomSeed));
       REQUIRE(reconstructedBlock.getValidatorMerkleRoot() == Merkle(txValidators).getRoot());
-      REQUIRE(reconstructedBlock.getTxMerkleRoot() == Hash(Hex::toBytes("7e5ad20b00eccd6eef2b87c1eb774a34b0aa10ef6e7e4ccd2642823a1ad34df7")));
+      REQUIRE(reconstructedBlock.getTxMerkleRoot() == Hash(Hex::toBytes("39ba30dc64127c507fe30e2310890667cfbc9fd247ddd8841e5e0573d8dcca9e")));
       REQUIRE(reconstructedBlock.getTimestamp() == uint64_t(1678464099412510));
       REQUIRE(reconstructedBlock.getNHeight() == uint64_t(331653115));
       REQUIRE(reconstructedBlock.getTxValidators().size() == 16);
@@ -316,8 +314,8 @@ namespace TBlock {
         uint64_t chainId = 8080;
         uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
         uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-        uint256_t gas = Utils::bytesToUint32(Utils::randBytes(4));
-        uint256_t gasPrice = Utils::bytesToUint32(Utils::randBytes(4));
+        uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
+        uint256_t maxFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
         txs.emplace_back(
           to,
           from,
@@ -325,8 +323,9 @@ namespace TBlock {
           chainId,
           nonce,
           value,
-          gas,
-          gasPrice,
+          maxFeePerGas,
+          maxFeePerGas,
+          gasLimit,
           txPrivKey
         );
       }
@@ -467,8 +466,8 @@ namespace TBlock {
             uint64_t chainId = 8080;
             uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
             uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
-            uint256_t gas = Utils::bytesToUint32(Utils::randBytes(4));
-            uint256_t gasPrice = Utils::bytesToUint32(Utils::randBytes(4));
+            uint256_t gasLimit = Utils::bytesToUint32(Utils::randBytes(4));
+            uint256_t maxFeePerGas = Utils::bytesToUint32(Utils::randBytes(4));
             auto tx = TxBlock(
               to,
               from,
@@ -476,8 +475,9 @@ namespace TBlock {
               chainId,
               nonce,
               value,
-              gas,
-              gasPrice,
+              maxFeePerGas,
+              maxFeePerGas,
+              gasLimit,
               txPrivKey
             );
             std::unique_lock lock(txLock);

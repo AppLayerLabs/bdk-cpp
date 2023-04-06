@@ -226,11 +226,12 @@ namespace TState {
             1000000000000000000,
             21000,
             1000000000,
+            1000000000,
             privkey
           );
 
           /// Take note of expected balance and nonce
-          val.first = state->getNativeBalance(me) - (transactions.back().getGasPrice() * transactions.back().getGas()) -
+          val.first = state->getNativeBalance(me) - (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
                       transactions.back().getValue();
           val.second = state->getNativeNonce(me) + 1;
           targetExpectedValue += transactions.back().getValue();
@@ -280,11 +281,12 @@ namespace TState {
             1000000000000000000,
             21000,
             1000000000,
+            1000000000,
             privkey
           );
 
           /// Take note of expected balance and nonce
-          val.first = state->getNativeBalance(me) - (tx.getGasPrice() * tx.getGas()) - tx.getValue();
+          val.first = state->getNativeBalance(me) - (tx.getMaxFeePerGas() * tx.getGasLimit()) - tx.getValue();
           val.second = state->getNativeNonce(me) + 1;
           targetExpectedValue += tx.getValue();
           state->addTx(std::move(tx));
@@ -346,13 +348,14 @@ namespace TState {
             1000000000000000000,
             21000,
             1000000000,
+            1000000000,
             privkey
           );
 
           if (me[0] <= 0x08) {
             txs.emplace_back(tx);
             /// Take note of expected balance and nonce
-            val.first = state->getNativeBalance(me) - (tx.getGasPrice() * tx.getGas()) - tx.getValue();
+            val.first = state->getNativeBalance(me) - (tx.getMaxFeePerGas() * tx.getGasLimit()) - tx.getValue();
             val.second = state->getNativeNonce(me) + 1;
             targetExpectedValue += tx.getValue();
           } else {
@@ -422,10 +425,11 @@ namespace TState {
               1000000000000000000,
               21000,
               1000000000,
+              1000000000,
               privkey
             );
             /// Take note of expected balance and nonce
-            account.first = state->getNativeBalance(me) - (txs.back().getGasPrice() * txs.back().getGas()) -
+            account.first = state->getNativeBalance(me) - (txs.back().getMaxFeePerGas() * txs.back().getGasLimit()) -
               txs.back().getValue();
             account.second = state->getNativeNonce(me) + 1;
             targetExpectedValue += txs.back().getValue();
@@ -647,6 +651,19 @@ namespace TState {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
 
+      // Stop discovery after all nodes have connected to each other.
+      // TODO: this is done because there is a mess of mutexes within broadcast
+      // Making so that the broadcast down this line takes too long to complete
+      p2p1->stopDiscovery();
+      p2p2->stopDiscovery();
+      p2p3->stopDiscovery();
+      p2p4->stopDiscovery();
+      p2p5->stopDiscovery();
+      p2p6->stopDiscovery();
+      p2p7->stopDiscovery();
+      p2p8->stopDiscovery();
+      p2pDiscovery->stopDiscovery();
+
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 8);
       REQUIRE(p2p2->getSessionsIDs().size() == 8);
@@ -678,6 +695,7 @@ namespace TState {
           state1->getNativeNonce(me),
           1000000000000000000,
           21000,
+          1000000000,
           1000000000,
           privkey
         );
@@ -865,6 +883,19 @@ namespace TState {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
 
+      // Stop discovery after all nodes have connected to each other.
+      // TODO: this is done because there is a mess of mutexes within broadcast
+      // Making so that the broadcast down this line takes too long to complete
+      p2p1->stopDiscovery();
+      p2p2->stopDiscovery();
+      p2p3->stopDiscovery();
+      p2p4->stopDiscovery();
+      p2p5->stopDiscovery();
+      p2p6->stopDiscovery();
+      p2p7->stopDiscovery();
+      p2p8->stopDiscovery();
+      p2pDiscovery->stopDiscovery();
+
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 8);
       REQUIRE(p2p2->getSessionsIDs().size() == 8);
@@ -969,6 +1000,15 @@ namespace TState {
           }
         }
       }
+      /// TODO: This is done for the same reason as stopDiscovery.
+      rdpos1->stoprdPoSWorker();
+      rdpos2->stoprdPoSWorker();
+      rdpos3->stoprdPoSWorker();
+      rdpos4->stoprdPoSWorker();
+      rdpos5->stoprdPoSWorker();
+      rdpos6->stoprdPoSWorker();
+      rdpos7->stoprdPoSWorker();
+      rdpos8->stoprdPoSWorker();
       // Sleep so it can conclude the last operations.
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
@@ -1159,6 +1199,19 @@ namespace TState {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
 
+      // Stop discovery after all nodes have connected to each other.
+      // TODO: this is done because there is a mess of mutexes within broadcast
+      // Making so that the broadcast down this line takes too long to complete
+      p2p1->stopDiscovery();
+      p2p2->stopDiscovery();
+      p2p3->stopDiscovery();
+      p2p4->stopDiscovery();
+      p2p5->stopDiscovery();
+      p2p6->stopDiscovery();
+      p2p7->stopDiscovery();
+      p2p8->stopDiscovery();
+      p2pDiscovery->stopDiscovery();
+
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 8);
       REQUIRE(p2p2->getSessionsIDs().size() == 8);
@@ -1250,11 +1303,12 @@ namespace TState {
                 1000000000000000000,
                 21000,
                 1000000000,
+                1000000000,
                 privkey
               );
 
               /// Take note of expected balance and nonce
-              val.first = state1->getNativeBalance(me) - (tx.getGasPrice() * tx.getGas()) - tx.getValue();
+              val.first = state1->getNativeBalance(me) - (tx.getMaxFeePerGas() * tx.getGasLimit()) - tx.getValue();
               val.second = state1->getNativeNonce(me) + 1;
               targetExpectedValue += tx.getValue();
               block.appendTx(tx);
@@ -1300,6 +1354,15 @@ namespace TState {
           }
         }
       }
+      /// TODO: This is done for the same reason as stopDiscovery.
+      rdpos1->stoprdPoSWorker();
+      rdpos2->stoprdPoSWorker();
+      rdpos3->stoprdPoSWorker();
+      rdpos4->stoprdPoSWorker();
+      rdpos5->stoprdPoSWorker();
+      rdpos6->stoprdPoSWorker();
+      rdpos7->stoprdPoSWorker();
+      rdpos8->stoprdPoSWorker();
       // Sleep so it can conclude the last operations.
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
@@ -1490,6 +1553,19 @@ namespace TState {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
 
+      // Stop discovery after all nodes have connected to each other.
+      // TODO: this is done because there is a mess of mutexes within broadcast
+      // Making so that the broadcast down this line takes too long to complete
+      p2p1->stopDiscovery();
+      p2p2->stopDiscovery();
+      p2p3->stopDiscovery();
+      p2p4->stopDiscovery();
+      p2p5->stopDiscovery();
+      p2p6->stopDiscovery();
+      p2p7->stopDiscovery();
+      p2p8->stopDiscovery();
+      p2pDiscovery->stopDiscovery();
+
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 8);
       REQUIRE(p2p2->getSessionsIDs().size() == 8);
@@ -1581,11 +1657,12 @@ namespace TState {
                 1000000000000000000,
                 21000,
                 1000000000,
+                1000000000,
                 privkey
               );
 
               /// Take note of expected balance and nonce
-              val.first = state1->getNativeBalance(me) - (tx.getGasPrice() * tx.getGas()) - tx.getValue();
+              val.first = state1->getNativeBalance(me) - (tx.getMaxFeePerGas() * tx.getGasLimit()) - tx.getValue();
               val.second = state1->getNativeNonce(me) + 1;
               targetExpectedValue += tx.getValue();
               block.appendTx(tx);
@@ -1639,6 +1716,15 @@ namespace TState {
           }
         }
       }
+      /// TODO: This is done for the same reason as stopDiscovery.
+      rdpos1->stoprdPoSWorker();
+      rdpos2->stoprdPoSWorker();
+      rdpos3->stoprdPoSWorker();
+      rdpos4->stoprdPoSWorker();
+      rdpos5->stoprdPoSWorker();
+      rdpos6->stoprdPoSWorker();
+      rdpos7->stoprdPoSWorker();
+      rdpos8->stoprdPoSWorker();
       // Sleep so it can conclude the last operations.
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }

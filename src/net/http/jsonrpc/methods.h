@@ -33,7 +33,8 @@ namespace JsonRPC {
     eth_estimateGas,                                        /// DONE
     eth_createAccessList,                                   /// NOT IMPLEMENTED: NOT SUPPORTED BY THE BLOCKCHAIN, WE ARE NOT An EVM
     eth_gasPrice,                                           /// DONE
-    eth_maxPriorityFeePerGas,                               /// NOT IMPLEMENTED: WE DON'T SUPPORT EIP-1559 TXS
+    eth_maxPriorityFeePerGas,                               /// TODO: IMPLEMENT THIS
+    eth_feeHistory,                                         /// TODO: IMPLEMENT THIS. SEE https://docs.alchemy.com/reference/eth-feehistory
     eth_newFilter,                                          /// NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
     eth_newBlockFilter,                                     /// NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
     eth_newPendingTransactionFilter,                        /// NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)

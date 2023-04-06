@@ -94,6 +94,11 @@ namespace P2P {
       if (buffer_.size() >= 11) {
         std::string messageStr = boost::beast::buffers_to_string(buffer_.data());
         Message message(std::move(messageStr));
+        if (this->closed_) {
+          std::cout << "BRO WE ARE CLOSED!" << std::endl;
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          return;
+        }
         this->threadPool->push_task(
           &ManagerBase::handleMessage, &this->manager_, shared_from_this(), message
         );

@@ -47,7 +47,7 @@ namespace P2P {
       const std::shared_ptr<Server> p2pserver_;
       const NodeType nodeType_;
       const unsigned int maxConnections_;
-      const unsigned int minConnections_ = 5; /// See DiscoveryWorker for more information
+      const unsigned int minConnections_ = 11; /// See DiscoveryWorker for more information
       std::unordered_map<Hash, std::shared_ptr<BaseSession>, SafeHash> sessions_;
       std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
 
