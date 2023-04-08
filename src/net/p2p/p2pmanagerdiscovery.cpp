@@ -4,6 +4,7 @@
 namespace P2P {
 
   void ManagerDiscovery::handleMessage(std::shared_ptr<BaseSession> session, const Message message) {
+    if (this->closed_) return;
     switch (message.type()) {
       case Requesting:
         handleRequest(session, message);
@@ -73,7 +74,7 @@ namespace P2P {
 
     std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> nodes;
     {
-      std::unique_lock lock(requestsMutex);
+      std::shared_lock lock(sessionsMutex);
       for (const auto& session : this->sessions_) {
         nodes[session.second->hostNodeId()] = std::make_tuple(session.second->hostType(), session.second->address(), session.second->hostServerPort());
       }
@@ -83,7 +84,7 @@ namespace P2P {
 
   void ManagerDiscovery::handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message) {
     std::unique_lock lock(requestsMutex);
-    if (!requests_.contains(message.id())) {
+      if (!requests_.contains(message.id())) {
       Utils::logToDebug(Log::P2PParser, __func__, "Answer to invalid request from " + session->hostNodeId().hex().get());
       this->disconnectSession(session->hostNodeId());
       return;

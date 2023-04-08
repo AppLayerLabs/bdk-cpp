@@ -328,7 +328,7 @@ const std::tuple<const std::shared_ptr<const TxBlock>,
       Hash blockHash = Hash(std::string_view(txData).substr(0, 32));
       uint64_t blockIndex = Utils::bytesToUint32(std::string_view(txData).substr(32, 4));
       uint64_t blockHeight = Utils::bytesToUint64(std::string_view(txData).substr(36,8));
-      std::string_view blockData(this->db->get(blockHash.get(), DBPrefix::blocks));
+      std::string blockData(this->db->get(blockHash.get(), DBPrefix::blocks));
       auto Tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
       std::unique_lock(this->cacheLock);
       this->cachedTxs.insert({tx, {std::make_shared<const TxBlock>(Tx), blockHash, blockIndex, blockHeight}});

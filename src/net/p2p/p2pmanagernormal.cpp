@@ -16,24 +16,28 @@ namespace P2P {
     /// With the following error: __pthread_mutex_lock: Assertion `mutex->__data.__owner == 0' failed.
     /// This means that the mutex doesn't exists anymore
     /// Somehow the BaseSessiono is calling back ManagerNormal after is has been destroyed!
-    std::unique_lock broadcastLock(broadcastMutex);
-    uint64_t i = message.id().toUint64();
-    if (broadcastedMessages_[i] > 0) {
-      Utils::logToDebug(Log::P2PManager, __func__, "Already broadcasted message " + message.id().hex().get() + " to all nodes. Skipping broadcast.");
-      return;
+    if (this->closed_) return;
+    {
+      std::unique_lock broadcastLock(broadcastMutex);
+      if (broadcastedMessages_[message.id().toUint64()] > 0) {
+        Utils::logToDebug(Log::P2PManager, __func__,
+                          "Message " + message.id().hex().get() + " already broadcasted, skipping.");
+        return;
+      } else {
+        broadcastedMessages_[message.id().toUint64()]++;
+      }
     }
-
-    std::unique_lock sessionsLock(sessionsMutex);
+    std::shared_lock sessionsLock(sessionsMutex); /// ManagerNormal::broadcastMessage doesn't change sessions_ map.
     Utils::logToDebug(Log::P2PManager, __func__, "Broadcasting message " + message.id().hex().get() + " to all nodes. ");
     for (const auto& session : this->sessions_) {
       if (session.second->hostType() == NodeType::NORMAL_NODE) {
         session.second->write(message);
       }
     }
-    broadcastedMessages_[message.id().toUint64()] = ++broadcastedMessages_[message.id().toUint64()];
   }
 
   void ManagerNormal::handleMessage(std::shared_ptr<BaseSession> session, const Message message) {
+    if (this->closed_) return;
     switch (message.type()) {
       case Requesting:
         handleRequest(session, message);
@@ -94,6 +98,18 @@ namespace P2P {
   }
 
   void ManagerNormal::handleBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) {
+    if (this->closed_) return;
+    {
+      std::shared_lock broadcastLock(broadcastMutex);
+      auto it = broadcastedMessages_.find(message.id().toUint64());
+      if (it != broadcastedMessages_.end()) {
+        if (it->second > 0) {
+          Utils::logToDebug(Log::P2PManager, __func__, "Already broadcasted message " + message.id().hex().get() +
+                                                       " to all nodes. Skipping broadcast.");
+          return;
+        }
+      }
+    }
     switch (message.command()) {
       case BroadcastValidatorTx:
         handleTxValidatorBroadcast(session, message);
@@ -134,7 +150,7 @@ namespace P2P {
 
     std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> nodes;
     {
-      std::unique_lock lock(requestsMutex);
+      std::shared_lock lock(sessionsMutex);
       for (const auto& session : this->sessions_) {
         nodes[session.second->hostNodeId()] = std::make_tuple(session.second->hostType(), session.second->address(), session.second->hostServerPort());
       }
@@ -223,6 +239,7 @@ namespace P2P {
     bool shouldRebroadcast = false;
     try {
       auto block = BroadcastDecoder::broadcastBlock(message, this->options->getChainID());
+      std::unique_lock lock(this->blockBroadcastMutex);
       if (this->storage_->blockExists(block.hash())) {
         // If the block is latest()->getNHeight() - 1, we should still rebroadcast it
         if (this->storage_->latest()->getNHeight() - 1 == block.getNHeight()) {
@@ -230,7 +247,6 @@ namespace P2P {
         }
         return;
       }
-      std::unique_lock lock(this->blockBroadcastMutex);
       if (this->state_->validateNextBlock(block)) {
         this->state_->processNextBlock(std::move(block));
         this->broadcastMessage(message);

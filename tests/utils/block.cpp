@@ -457,7 +457,7 @@ namespace TBlock {
       futures.reserve(nCores);
       for (uint64_t i = 0; i < nCores; ++i) {
         uint64_t coreJobs = nJobPerCore[i];
-        futures.push_back(std::async(std::launch::async, [&txs, &txLock, &coreJobs, i] {
+        futures.push_back(std::async(std::launch::async, [&txs, &txLock, coreJobs, i] {
           for (uint64_t j = 0; j < coreJobs; ++j) {
             PrivKey txPrivKey = PrivKey::random();
             Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));

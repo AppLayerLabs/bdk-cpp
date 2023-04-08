@@ -81,6 +81,7 @@ namespace P2P {
                     const std::unique_ptr<Storage>& storage,
                     const std::unique_ptr<State>& state) :
                     ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options), rdpos_(rdpos), storage_(storage), state_(state) {};
+      ~ManagerNormal() { this->stop(); }
       
       void handleMessage(std::shared_ptr<BaseSession> session, Message message) override;
 

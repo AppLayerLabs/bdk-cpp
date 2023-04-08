@@ -17,6 +17,7 @@ namespace P2P {
   {}
 
   void ManagerBase::startServer() {
+    this->closed_ = false;
     if (this->p2pserver_->start()) std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
@@ -25,6 +26,7 @@ namespace P2P {
   void ManagerBase::stopDiscovery() { this->discoveryWorker->stop(); }
 
   void ManagerBase::connectToServer(const std::string &host, const unsigned short &port) {
+    if (this->closed_) return;
     if (this->hostIp_.to_string() == host && this->hostPort_ == port) {
       Utils::logToDebug(Log::P2PManager, __func__, "Cannot connect to self");
       return;
@@ -33,21 +35,28 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Cannot connect to more than " + std::to_string(maxConnections_) + " clients");
       return;
     }
+    /// TODO: **URGENT** improve the client thread.
+    /// Some problems here: ioc lifetime might be shorther than ClientSession
+    /// The thread can still be running after the manager is destroyed *undefined behavior*
+    /// ClientSession doesn't die 5% of the time, no idea why, not sure how to reproduce (dangling threads!!!)
+    /// But stressing out the Manager (let's say 200 connections) could give us a few tips
+    /// Because of the reasons above, clientSessionsCount have been moved outside of the thread.
+    /// ioc.stop() is being called immediatelly, and the shared_ptr within the unordered_map is being deleted immediately.
+    /// The current solution of launching a new thread for each client is not ideal, but it works (for now, dangling threads can be problematic on production)
     std::thread clientThread([&, host, port] {
-      ++clientSessionsCount;
       net::io_context ioc;
       auto client = std::make_shared<ClientSession>(ioc, host, port, *this, this->threadPool);
       client->run();
       ioc.run();
       Utils::logToFile("ClientSession thread exitted");
-      --clientSessionsCount;
+      ioc.stop();
     });
     clientThread.detach();
   }
 
   std::shared_ptr<Request> ManagerBase::sendMessageTo(const Hash& nodeId, const Message& message) {
-    std::unique_lock lockSession(sessionsMutex);
-    std::unique_lock lockRequests(requestsMutex);
+    if (this->closed_) return nullptr;
+    std::shared_lock lockSession(sessionsMutex); /// ManagerBase::sendMessageTo doesn't change sessions_ map.
     if(!sessions_.contains(nodeId)) {
       Utils::logToDebug(Log::P2PManager, __func__, "Session does not exist for " + nodeId.hex().get());
       return nullptr;
@@ -60,21 +69,25 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Session is discovery, cannot send message");
       return nullptr;
     }
+    std::unique_lock lockRequests(requestsMutex);
     requests_[message.id()] = std::make_shared<Request>(message.command(), message.id(), session->hostNodeId());
     session->write(message);
     return requests_[message.id()];
   }
 
   void ManagerBase::answerSession(std::shared_ptr<BaseSession>& session, const Message& message) {
+    if (this->closed_) return;
     session->write(message);
   }
 
   bool ManagerBase::registerSession(std::shared_ptr<BaseSession> session) {
+    if (this->closed_) return false;
     std::unique_lock lock(sessionsMutex);
     if (sessions_.contains(session->hostNodeId())) {
       Utils::logToDebug(Log::P2PManager, __func__, "Session already exists for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
       return false;
     }
+    if (session->connectionType() == ConnectionType::CLIENT) clientSessionsCount++;
     Utils::logToDebug(Log::P2PManager, __func__, "Registering " + std::string((session->connectionType() == ConnectionType::CLIENT) ? "Client" : "Server") + " session for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
     sessions_[session->hostNodeId()] = session;
     return true;
@@ -86,6 +99,7 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Session does not exist for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
       return false;
     }
+    if (session->connectionType() == ConnectionType::CLIENT) clientSessionsCount--;
     Utils::logToDebug(Log::P2PManager, __func__, "Unregistering session for " + session->hostNodeId().hex().get() + " at " + session->address().to_string());
     sessions_.erase(session->hostNodeId());
     return true;
@@ -148,11 +162,17 @@ namespace P2P {
   }
 
   void ManagerBase::stop() {
-    this->threadPool->wait_for_tasks();
+    /// Close all current sessions and set the flag to stop accepting new ones.
+    this->closed_ = true;
     this->discoveryWorker->stop();
     std::unique_lock lock(sessionsMutex);
+    for (auto it = sessions_.begin(); it != sessions_.end();) {
+      auto& [key, value] = *it;
+      value->close();
+      it = sessions_.erase(it);
+    }
+    this->threadPool->wait_for_tasks();
     Utils::logToDebug(Log::P2PManager, __func__, "Stopping P2PManager");
-    for (auto& [key, value] : sessions_) value->close();
     sessions_.clear();
     p2pserver_->stop();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

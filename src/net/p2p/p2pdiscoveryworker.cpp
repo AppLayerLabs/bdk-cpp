@@ -70,7 +70,7 @@ namespace P2P {
           /// This is to make sure that local_testnet can quickly start up a new network, but still sleep discovery
           /// If the minimum is reached.
           Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Min connections reached, sleeping");
-          std::this_thread::sleep_for(std::chrono::seconds(5)); /// Only 5 seconds because we still want to reach maxConnections
+          std::this_thread::sleep_for(std::chrono::seconds(5)); /// Only 1 second because we still want to reach maxConnections
         }
         if (this->manager.sessions_.size() >= this->manager.maxConnections()) {
           Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Max connections reached, sleeping");
