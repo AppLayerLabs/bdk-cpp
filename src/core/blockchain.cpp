@@ -21,6 +21,16 @@ void Blockchain::start() {
   syncer->start();
 }
 
+void Blockchain::stop() {
+  syncer->stop();
+  http->stop();
+  p2p->stop();
+}
+
+const std::atomic<bool>& Blockchain::isSynced() const {
+  return this->syncer->isSynced();
+}
+
 void Syncer::updateCurrentlyConnectedNodes() {
   // Get the list of currently connected nodes
   std::vector<Hash> connectedNodes = blockchain.p2p->getSessionsIDs();
@@ -86,6 +96,7 @@ void Syncer::doSync() {
   }
 
   this->latestBlock = blockchain.storage->latest();
+  synced = true;
   return;
 }
 

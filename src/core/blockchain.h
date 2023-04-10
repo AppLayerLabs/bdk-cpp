@@ -50,6 +50,19 @@ class Blockchain {
 
     void start();
 
+    void stop();
+
+    /// Getters (mostly used by Test Cases)
+    const std::unique_ptr<Options>& getOptions() const { return this->options; };
+    const std::unique_ptr<DB>& getDB() const { return this->db; };
+    const std::unique_ptr<Storage>& getStorage() const { return this->storage; };
+    const std::unique_ptr<rdPoS>& getrdPoS() const { return this->rdpos; };
+    const std::unique_ptr<State>& getState() const { return this->state; };
+    const std::unique_ptr<P2P::ManagerNormal>& getP2P() const { return this->p2p; };
+    const std::unique_ptr<HTTPServer>& getHTTP() const { return this->http; };
+    const std::unique_ptr<Syncer>& getSyncer() const { return this->syncer; };
+    const std::atomic<bool>& isSynced() const;
+
     friend class Syncer;
 };
 
@@ -109,6 +122,9 @@ class Syncer {
     /// Syncer stopper
     std::atomic<bool> stopSyncer = false;
 
+    /// Atomic bool to tell we are synced
+    std::atomic<bool> synced = false;
+
   public:
     Syncer(Blockchain& blockchain) : blockchain(blockchain) {};
     ~Syncer() { this->stop(); };
@@ -118,6 +134,9 @@ class Syncer {
 
     /// Stop Syncer Loop
     void stop();
+
+    /// Getter for synced
+    const std::atomic<bool>& isSynced() const { return this->synced; }
 };
 
 
