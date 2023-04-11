@@ -50,6 +50,7 @@ namespace P2P {
       ioc.run();
       Utils::logToFile("ClientSession thread exitted");
       ioc.stop();
+      unregisterSession(client);
     });
     clientThread.detach();
   }
@@ -163,19 +164,34 @@ namespace P2P {
 
   void ManagerBase::stop() {
     /// Close all current sessions and set the flag to stop accepting new ones.
+    std::cout << "{" << std::endl;
     this->closed_ = true;
+    std::cout << "  set closed_ to true" << std::endl;
     this->discoveryWorker->stop();
+    std::cout << "  discoveryWorker stopped" << std::endl;
     std::unique_lock lock(sessionsMutex);
+    std::cout << "  sessionsMutex locked" << std::endl;
+    std::cout << "  closing sessions" << std::endl;
     for (auto it = sessions_.begin(); it != sessions_.end();) {
+      std::cout << "  {" << std::endl;
       auto& [key, value] = *it;
+      std::cout << "    got session pointer" << std::endl;
       value->close();
+      std::cout << "    closed session" << std::endl;
       it = sessions_.erase(it);
+      std::cout << "    erased session pointer" << std::endl;
+      std::cout << "  }" << std::endl;
     }
+    std::cout << "  waiting for tasks to finish" << std::endl;
     this->threadPool->wait_for_tasks();
+    std::cout << "  tasks finished" << std::endl;
     Utils::logToDebug(Log::P2PManager, __func__, "Stopping P2PManager");
     sessions_.clear();
+    std::cout << "  cleared all sessions" << std::endl;
     p2pserver_->stop();
+    std::cout << "  stopped p2p server" << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::cout << "}" << std::endl;
   }
 }; // namespace P2P
 

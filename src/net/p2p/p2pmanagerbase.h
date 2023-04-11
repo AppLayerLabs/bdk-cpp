@@ -44,7 +44,6 @@ namespace P2P {
       // Do not allow multiple sessions to the same node.
       boost::asio::ip::address hostIp_;
       unsigned short hostPort_;
-      const std::shared_ptr<Server> p2pserver_;
       const NodeType nodeType_;
       const unsigned int maxConnections_;
       const unsigned int minConnections_ = 11; /// See DiscoveryWorker for more information
@@ -52,6 +51,8 @@ namespace P2P {
       std::unordered_map<Hash, std::shared_ptr<BaseSession>, SafeHash> sessions_;
       /// TODO: Somehow find a way to clean up requests_ after a certain time/being used.
       std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
+  
+      const std::shared_ptr<Server> p2pserver_;
 
       mutable std::shared_mutex sessionsMutex; // Mutex for protecting sessions
       mutable std::shared_mutex requestsMutex; // Mutex for protecting requests
