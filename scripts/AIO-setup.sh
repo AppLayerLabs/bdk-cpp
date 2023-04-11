@@ -1,6 +1,6 @@
-## A given network has a minimum requirement of 5 Validators and 1 Discovery Node.
+## A given network has a minimum requirement of 5 Validators, 6 Normal Nodes and 1 Discovery Node.
 ## Discovery Nodes are described within the options.json file.
-## This script is meant to be executed within the main directory of this project
+## This script is meant to be executed within the   main directory of this project
 ## It will create a new directory, called "local_testnet" and will create
 ## New directories for each Validator and Discovery Node created (5 and 1 respectively)
 ## This script is also meant to build the project within a new folder called "build_local_testnet"
@@ -12,6 +12,12 @@ tmux kill-session -t local_testnet_validator2
 tmux kill-session -t local_testnet_validator3
 tmux kill-session -t local_testnet_validator4
 tmux kill-session -t local_testnet_validator5
+tmux kill-session -t local_testnet_normal1
+tmux kill-session -t local_testnet_normal2
+tmux kill-session -t local_testnet_normal3
+tmux kill-session -t local_testnet_normal4
+tmux kill-session -t local_testnet_normal5
+tmux kill-session -t local_testnet_normal6
 tmux kill-session -t local_testnet_discovery
 
 # Check if the user is running this script from the main directory of the project
@@ -36,7 +42,7 @@ CORES=$(grep -c ^processor /proc/cpuinfo)
 
 ## Build the project
 cd build_local_testnet
-cmake -DBUILD_TESTS=OFF ..
+cmake -DDEBUG=ON ..
 make -j${CORES}
 
 ## Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory
@@ -49,6 +55,12 @@ for i in {1..5}; do
  mkdir local_testnet_validator$i
  mkdir local_testnet_validator$i/blockchain
  cp orbitersdkd local_testnet_validator$i
+done
+
+for i in {1..6}; do
+ mkdir local_testnet_normal$i
+ mkdir local_testnet_normal$i/blockchain
+ cp orbitersdkd local_testnet_normal$i
 done
 
 mkdir local_testnet_discovery
@@ -147,28 +159,137 @@ echo '{
         ]
       }' >> local_testnet_validator5/blockchain/options.json
 
+## Create the json file for the Normal Nodes
+echo '{
+        "rootPath": "blockchain",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "version": 1,
+        "chainID": 8080,
+        "wsPort": 8086,
+        "httpPort": 8095,
+        "discoveryNodes": [
+          {
+            "address" : "127.0.0.1",
+            "port" : 8080
+          }
+        ]
+      }' >> local_testnet_normal1/blockchain/options.json
+
+echo '{
+        "rootPath": "blockchain",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "version": 1,
+        "chainID": 8080,
+        "wsPort": 8087,
+        "httpPort": 8096,
+        "discoveryNodes": [
+          {
+            "address" : "127.0.0.1",
+            "port" : 8080
+          }
+        ]
+      }' >> local_testnet_normal2/blockchain/options.json
+
+echo '{
+        "rootPath": "blockchain",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "version": 1,
+        "chainID": 8080,
+        "wsPort": 8088,
+        "httpPort": 8097,
+        "discoveryNodes": [
+          {
+            "address" : "127.0.0.1",
+            "port" : 8080
+          }
+        ]
+      }' >> local_testnet_normal3/blockchain/options.json
+
+echo '{
+        "rootPath": "blockchain",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "version": 1,
+        "chainID": 8080,
+        "wsPort": 8089,
+        "httpPort": 8098,
+        "discoveryNodes": [
+          {
+            "address" : "127.0.0.1",
+            "port" : 8080
+          }
+        ]
+      }' >> local_testnet_normal4/blockchain/options.json
+
+echo '{
+        "rootPath": "blockchain",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "version": 1,
+        "chainID": 8080,
+        "wsPort": 8110,
+        "httpPort": 8099,
+        "discoveryNodes": [
+          {
+            "address" : "127.0.0.1",
+            "port" : 8080
+          }
+        ]
+      }' >> local_testnet_normal5/blockchain/options.json
+
+echo '{
+        "rootPath": "blockchain",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "version": 1,
+        "chainID": 8080,
+        "wsPort": 8111,
+        "httpPort": 8100,
+        "discoveryNodes": [
+          {
+            "address" : "127.0.0.1",
+            "port" : 8080
+          }
+        ]
+      }' >> local_testnet_normal6/blockchain/options.json
 
 ## Launch the Discovery Node through tmux
 cd local_testnet_discovery
-tmux new-session -d -s local_testnet_discovery './orbitersdkd-discovery'
+tmux new-session -d -s local_testnet_discovery './orbitersdkd-discovery || bash && bash'
 
 sleep 1
 
-## Launch the Validators through tmux
+## Launch the Validators through tmux, don't exit the tmux session when you close the terminal
 cd ../local_testnet_validator1
-tmux new-session -d -s local_testnet_validator1 './orbitersdkd'
+tmux new-session -d -s local_testnet_validator1 './orbitersdkd || bash && bash'
 
 cd ../local_testnet_validator2
-tmux new-session -d -s local_testnet_validator2 './orbitersdkd'
+tmux new-session -d -s local_testnet_validator2 './orbitersdkd || bash && bash'
 
 cd ../local_testnet_validator3
-tmux new-session -d -s local_testnet_validator3 './orbitersdkd'
+tmux new-session -d -s local_testnet_validator3 './orbitersdkd || bash && bash'
 
 cd ../local_testnet_validator4
-tmux new-session -d -s local_testnet_validator4 './orbitersdkd'
+tmux new-session -d -s local_testnet_validator4 './orbitersdkd || bash && bash'
 
 cd ../local_testnet_validator5
-tmux new-session -d -s local_testnet_validator5 './orbitersdkd'
+tmux new-session -d -s local_testnet_validator5 './orbitersdkd || bash && bash'
 
+## Launc the Normal Nodes through tmux, don't exit the tmux session when you close the terminal
+
+cd ../local_testnet_normal1
+tmux new-session -d -s local_testnet_normal1 './orbitersdkd || bash && bash'
+
+cd ../local_testnet_normal2
+tmux new-session -d -s local_testnet_normal2 './orbitersdkd || bash && bash'
+
+cd ../local_testnet_normal3
+tmux new-session -d -s local_testnet_normal3 './orbitersdkd || bash && bash'
+
+cd ../local_testnet_normal4
+tmux new-session -d -s local_testnet_normal4 './orbitersdkd || bash && bash'
+
+cd ../local_testnet_normal5
+tmux new-session -d -s local_testnet_normal5 './orbitersdkd || bash && bash'
+
+cd ../local_testnet_normal6
+tmux new-session -d -s local_testnet_normal6 './orbitersdkd || bash && bash'
 
 

@@ -11,7 +11,7 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 
-using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::unchecked, void>>;
+using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
 /**
  * Helper struct for use with Boost's lexical_cast to convert hex strings to a given type.

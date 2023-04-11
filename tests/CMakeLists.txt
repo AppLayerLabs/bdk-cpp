@@ -18,6 +18,11 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/utils.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/options.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint64_t.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint256_t.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp
