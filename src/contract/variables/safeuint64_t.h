@@ -2,18 +2,21 @@
 #define SAFEUINT64_T_H
 
 #include <memory>
+#include "safebase.h"
 
-
-class SafeUint64_t {
+class SafeUint64_t : public SafeBase {
   private:
     uint64_t value;
     /// Check() require valuePtr to be mutable.
     mutable std::unique_ptr<uint64_t> valuePtr;
-    inline void check() const { if (valuePtr == nullptr) { valuePtr = std::make_unique<uint64_t>(value); } };
+    inline void check() const override { if (valuePtr == nullptr) { valuePtr = std::make_unique<uint64_t>(value); } };
   public:
 
-    SafeUint64_t(const uint64_t& value = 0) : value(0), valuePtr(std::make_unique<uint64_t>(value)) {};
-    SafeUint64_t(const SafeUint64_t& other) {
+    /// Only Variables built with this constructor will be registered within a contract.
+    SafeUint64_t(Contract* owner, const uint64_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint64_t>(value)) {};
+
+    SafeUint64_t(const uint64_t& value = 0) : SafeBase(nullptr), value(0), valuePtr(std::make_unique<uint64_t>(value)) {};
+    SafeUint64_t(const SafeUint64_t& other) : SafeBase(nullptr) {
       other.check();
       value = 0;
       valuePtr = std::make_unique<uint64_t>(*other.valuePtr);
@@ -135,11 +138,12 @@ class SafeUint64_t {
     inline bool operator>=(const SafeUint64_t& other) const { check(); return *valuePtr >= other.get(); };
     inline bool operator>=(const uint64_t& other) const { check(); return *valuePtr >= other; };
     /// Assignment Operators
-    inline SafeUint64_t& operator= (const SafeUint64_t& other) { check(); *valuePtr = other.get(); return *this; };
-    inline SafeUint64_t& operator= (const uint64_t& other) { check(); *valuePtr = other; return *this; };
+    inline SafeUint64_t& operator= (const SafeUint64_t& other) { check(); markAsUsed(); *valuePtr = other.get(); return *this; };
+    inline SafeUint64_t& operator= (const uint64_t& other) { check(); markAsUsed(); *valuePtr = other; return *this; };
 
     inline SafeUint64_t& operator+= (const SafeUint64_t& other) {
       check();
+      markAsUsed();
       if (*valuePtr > std::numeric_limits<uint64_t>::max() - other.get()) {
         throw std::overflow_error("Overflow in addition operation");
       }
@@ -149,6 +153,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator+= (const uint64_t& other) {
       check();
+      markAsUsed();
       if (*valuePtr > std::numeric_limits<uint64_t>::max() - other) {
         throw std::overflow_error("Overflow in addition operation");
       }
@@ -158,6 +163,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator-= (const SafeUint64_t& other) {
       check();
+      markAsUsed();
       if (*valuePtr < other.get()) {
         throw std::underflow_error("Underflow in subtraction operation");
       }
@@ -167,6 +173,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator-= (const uint64_t& other) {
       check();
+      markAsUsed();
       if (*valuePtr < other) {
         throw std::underflow_error("Underflow in subtraction operation");
       }
@@ -176,6 +183,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator*= (const SafeUint64_t& other) {
       check();
+      markAsUsed();
       if (other.get() == 0 || *valuePtr == 0) {
         throw std::domain_error("Multiplication by zero");
       }
@@ -188,6 +196,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator*= (const uint64_t& other) {
       check();
+      markAsUsed();
       if (other == 0 || *valuePtr == 0) {
         throw std::domain_error("Multiplication by zero");
       }
@@ -200,6 +209,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator/= (const SafeUint64_t& other) {
       check();
+      markAsUsed();
       if (*valuePtr == 0 || other.get() == 0) {
         throw std::domain_error("Division by zero");
       }
@@ -209,6 +219,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator/= (const uint64_t& other) {
       check();
+      markAsUsed();
       if (*valuePtr == 0 || other == 0) {
         throw std::domain_error("Division by zero");
       }
@@ -218,6 +229,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator%= (const SafeUint64_t& other) {
       check();
+      markAsUsed();
       if (*valuePtr == 0 || other.get() == 0) {
         throw std::domain_error("Modulo by zero");
       }
@@ -227,25 +239,28 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator%= (const uint64_t& other) {
       check();
+      markAsUsed();
       if (*valuePtr == 0 || other == 0) {
         throw std::domain_error("Modulo by zero");
       }
       *valuePtr %= other;
       return *this;
     };
-    inline SafeUint64_t& operator&= (const SafeUint64_t& other) { check(); *valuePtr &= other.get(); return *this; };
-    inline SafeUint64_t& operator&= (const uint64_t& other) { check(); *valuePtr &= other; return *this; };
-    inline SafeUint64_t& operator|= (const SafeUint64_t& other) { check(); *valuePtr |= other.get(); return *this; };
-    inline SafeUint64_t& operator|= (const uint64_t& other) { check(); *valuePtr |= other; return *this; };
-    inline SafeUint64_t& operator^= (const SafeUint64_t& other) { check(); *valuePtr ^= other.get(); return *this; };
-    inline SafeUint64_t& operator^= (const uint64_t& other) { check(); *valuePtr ^= other; return *this; };
-    inline SafeUint64_t& operator<<= (const SafeUint64_t& other) { check(); *valuePtr <<= other.get(); return *this; };
-    inline SafeUint64_t& operator<<= (const uint64_t& other) { check(); *valuePtr <<= other; return *this; };
-    inline SafeUint64_t& operator>>= (const SafeUint64_t& other) { check(); *valuePtr >>= other.get(); return *this; };
-    inline SafeUint64_t& operator>>= (const uint64_t& other) { check(); *valuePtr >>= other; return *this; };
+
+    inline SafeUint64_t& operator&= (const SafeUint64_t& other) { check(); markAsUsed(); *valuePtr &= other.get(); return *this; };
+    inline SafeUint64_t& operator&= (const uint64_t& other) { check(); markAsUsed(); *valuePtr &= other; return *this; };
+    inline SafeUint64_t& operator|= (const SafeUint64_t& other) { check(); markAsUsed(); *valuePtr |= other.get(); return *this; };
+    inline SafeUint64_t& operator|= (const uint64_t& other) { check(); markAsUsed(); *valuePtr |= other; return *this; };
+    inline SafeUint64_t& operator^= (const SafeUint64_t& other) { check(); markAsUsed(); *valuePtr ^= other.get(); return *this; };
+    inline SafeUint64_t& operator^= (const uint64_t& other) { check(); markAsUsed(); *valuePtr ^= other; return *this; };
+    inline SafeUint64_t& operator<<= (const SafeUint64_t& other) { check(); markAsUsed(); *valuePtr <<= other.get(); return *this; };
+    inline SafeUint64_t& operator<<= (const uint64_t& other) { check(); markAsUsed(); *valuePtr <<= other; return *this; };
+    inline SafeUint64_t& operator>>= (const SafeUint64_t& other) { check(); markAsUsed(); *valuePtr >>= other.get(); return *this; };
+    inline SafeUint64_t& operator>>= (const uint64_t& other) { check(); markAsUsed(); *valuePtr >>= other; return *this; };
     /// Increment and Decrement Operators
     inline SafeUint64_t& operator++() {
       check();
+      markAsUsed();
       if (*valuePtr == std::numeric_limits<uint64_t>::max()) {
         throw std::overflow_error("Overflow in increment operation");
       }
@@ -255,6 +270,7 @@ class SafeUint64_t {
 
     inline SafeUint64_t& operator--() {
       check();
+      markAsUsed();
       if (*valuePtr == std::numeric_limits<uint64_t>::min()) {
         throw std::underflow_error("Underflow in increment operation");
       }
@@ -264,8 +280,8 @@ class SafeUint64_t {
 
     /// get is used to properly get the value of a variable within another SafeUint64_t (we need to call check!)
     inline uint64_t get() const { check(); return *valuePtr; };
-    inline void commit() { check(); value = *valuePtr; valuePtr = nullptr; };
-    inline void revert() { valuePtr = nullptr; };
+    inline void commit() override { check(); value = *valuePtr; valuePtr = nullptr; };
+    inline void revert() const override { valuePtr = nullptr; };
 };
 
 #endif

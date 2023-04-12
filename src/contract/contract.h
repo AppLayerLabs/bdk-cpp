@@ -11,6 +11,7 @@
 #include "../utils/strings.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
+#include "variables/safebase.h"
 
 // Forward declarations.
 class ContractManager;
@@ -40,6 +41,9 @@ class ContractGlobals {
  * All contracts have to inherit this class.
  */
 class Contract : public ContractGlobals {
+  private:
+    std::vector<std::reference_wrapper<SafeBase>> usedVariables;
+    void registerVariableUse(SafeBase& variable) { usedVariables.emplace_back(variable); }
   protected:
     /* Contract-specific variables */
     const std::string contractName;                                  ///< Name of the contract, used to identify the Contract Class.
@@ -68,7 +72,25 @@ class Contract : public ContractGlobals {
      * @param account Reference back to the account within the State class.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction
      */
-     virtual void ethCall(const TxBlock& tx, Account& account, bool commit = false) {};
+     virtual void ethCall(const TxBlock& tx, Account& account, bool commit = false) {
+       try {
+         ///... Call Contracts Functions
+       } catch (const std::exception& e) {
+         for (auto& variable : usedVariables) {
+           variable.get().revert();
+         }
+         throw e;
+       }
+       if (!commit) {
+         for (auto& variable : usedVariables) {
+           variable.get().revert();
+         }
+       } else {
+         for (auto& variable : usedVariables) {
+           variable.get().commit();
+         }
+       }
+     };
 
     /**
      * Invoke a contract function using a transaction.
@@ -76,7 +98,25 @@ class Contract : public ContractGlobals {
      * @param tx The transaction to use for call.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction.
      */
-    virtual void ethCall(const TxBlock& tx, bool commit = false) {};
+    virtual void ethCall(const TxBlock& tx, bool commit = false) {
+      try {
+        ///... Call Contracts Functions
+      } catch (const std::exception& e) {
+        for (auto& variable : usedVariables) {
+          variable.get().revert();
+        }
+        throw e;
+      }
+      if (!commit) {
+        for (auto& variable : usedVariables) {
+          variable.get().revert();
+        }
+      } else {
+        for (auto& variable : usedVariables) {
+          variable.get().commit();
+        }
+      }
+    };
 
     /**
      * Invoke a const (solidity view) contract function using a data string.
@@ -91,6 +131,9 @@ class Contract : public ContractGlobals {
     const Address& getContractAddress() const { return this->contractAddress; }
     const Address& getContractCreator() const { return this->contractCreator; }
     const uint64_t& getContractChainId() const { return this->contractChainId; }
+
+    /// Friend
+    friend void registerVariableUse(Contract& contract, SafeBase& variable);
 };
 
 #endif  // CONTRACT_H

@@ -4,19 +4,19 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
-#include "safemaphash.h"
 #include "../../utils/safehash.h"
+#include "safebase.h"
 
 
 /// TODO: somehow figure out a way to make loop (for (const auto& [key, value] : map) { ... }) work with this class
 template<typename Key, typename T>
-class SafeUnorderedMap {
+class SafeUnorderedMap : public SafeBase {
   private:
     std::unordered_map<Key, T, SafeHash> map;
     mutable std::unique_ptr<std::unordered_map<Key, T, SafeHash>> mapPtr;
     mutable std::unique_ptr<std::unordered_set<Key, SafeHash>> erasedKeys;
 
-    inline void check() const {
+    inline void check() const override {
       if (mapPtr == nullptr) {
         mapPtr = std::make_unique<std::unordered_map<Key, T, SafeHash>>();
       }
@@ -80,8 +80,11 @@ class SafeUnorderedMap {
     }
     
   public:
-    SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {}) : mapPtr(std::make_unique<std::unordered_map<Key, T, SafeHash>>(map)) {}
-    SafeUnorderedMap(const SafeUnorderedMap& other) {
+    /// Only Variables built with this constructor will be registered within a contract.
+    SafeUnorderedMap(Contract* owner, const std::unordered_map<Key, T, SafeHash>& map = {}) : SafeBase(owner), map(map) {}
+
+    SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {}) : SafeBase(nullptr), mapPtr(std::make_unique<std::unordered_map<Key, T, SafeHash>>(map)) {}
+    SafeUnorderedMap(const SafeUnorderedMap& other) : SafeBase(nullptr) {
       other.check();
       map = other.map;
       mapPtr = std::make_unique<std::unordered_map<Key, T, SafeHash>>(*other.mapPtr);
@@ -106,12 +109,14 @@ class SafeUnorderedMap {
     /// std::pair<iterator,bool> insert( const value_type& value );
     const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(const typename std::unordered_map<Key, T, SafeHash>::value_type& value) {
       check();
+      markAsUsed();
       return mapPtr->insert(value);
     }
 
     /// std::pair<iterator,bool> insert( value_type&& value );
     const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(typename std::unordered_map<Key, T, SafeHash>::value_type&& value) {
       check();
+      markAsUsed();
       return mapPtr->insert(std::move(value));
     }
 
@@ -119,18 +124,21 @@ class SafeUnorderedMap {
     /// std::pair<iterator,bool> insert( P&& value );
     const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(T&& value) {
       check();
+      markAsUsed();
       return mapPtr->insert(std::forward<T>(value));
     }
 
     /// iterator insert( const_iterator hint, const value_type& value )
     const typename std::unordered_map<Key, T, SafeHash>::iterator insert(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, const typename std::unordered_map<Key, T, SafeHash>::value_type& value) {
       check();
+      markAsUsed();
       return mapPtr->insert(hint, value);
     }
 
     /// iterator insert( const_iterator hint, value_type&& value );
     const typename std::unordered_map<Key, T, SafeHash>::iterator insert(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, typename std::unordered_map<Key, T, SafeHash>::value_type&& value) {
       check();
+      markAsUsed();
       return mapPtr->insert(hint, std::move(value));
     }
 
@@ -138,6 +146,7 @@ class SafeUnorderedMap {
     /// iterator insert( const_iterator hint, P&& value );
     const typename std::unordered_map<Key, T, SafeHash>::iterator insert(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, T&& value) {
       check();
+      markAsUsed();
       return mapPtr->insert(hint, std::forward<T>(value));
     }
 
@@ -146,48 +155,56 @@ class SafeUnorderedMap {
     template <class InputIt>
     void insert(InputIt first, InputIt last) {
       check();
+      markAsUsed();
       mapPtr->insert(first, last);
     }
 
     /// void insert( std::initializer_list<value_type> ilist );
     void insert(std::initializer_list<typename std::unordered_map<Key, T, SafeHash>::value_type> ilist) {
       check();
+      markAsUsed();
       mapPtr->insert(ilist);
     }
 
     /// insert_return_type insert( node_type&& nh );
     typename std::unordered_map<Key, T, SafeHash>::insert_return_type insert(typename std::unordered_map<Key, T, SafeHash>::node_type&& nh) {
       check();
+      markAsUsed();
       return mapPtr->insert(std::move(nh));
     }
 
     /// iterator insert( const_iterator hint, node_type&& nh );
     const typename std::unordered_map<Key, T, SafeHash>::iterator insert(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, typename std::unordered_map<Key, T, SafeHash>::node_type&& nh) {
       check();
+      markAsUsed();
       return mapPtr->insert(hint, std::move(nh));
     }
 
     /// std::pair<iterator, bool> insert_or_assign(const Key& k, const T& obj);
     const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert_or_assign(const Key& k, const T& obj) {
       check();
+      markAsUsed();
       return mapPtr->insert_or_assign(k, obj);
     }
 
     /// std::pair<iterator, bool> insert_or_assign(Key&& k, T&& obj);
     const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert_or_assign(Key&& k, T&& obj) {
       check();
+      markAsUsed();
       return mapPtr->insert_or_assign(std::move(k), std::move(obj));
     }
 
     /// iterator insert_or_assign(const_iterator hint, const Key& k, const T& obj);
     const typename std::unordered_map<Key, T, SafeHash>::iterator insert_or_assign(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, const Key& k, const T& obj) {
       check();
+      markAsUsed();
       return mapPtr->insert_or_assign(hint, k, obj);
     }
 
     /// iterator insert_or_assign(const_iterator hint, Key&& k, T&& obj);
     const typename std::unordered_map<Key, T, SafeHash>::iterator insert_or_assign(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, Key&& k, T&& obj) {
       check();
+      markAsUsed();
       return mapPtr->insert_or_assign(hint, std::move(k), std::move(obj));
     }
 
@@ -195,6 +212,7 @@ class SafeUnorderedMap {
     template<typename... Args>
     const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> emplace(Args&&... args) {
       check();
+      markAsUsed();
       return mapPtr->emplace(std::forward<Args>(args)...);
     }
 
@@ -202,12 +220,14 @@ class SafeUnorderedMap {
     template<typename... Args>
     const typename std::unordered_map<Key, T, SafeHash>::iterator emplace_hint(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, Args&&... args) {
       check();
+      markAsUsed();
       return mapPtr->emplace_hint(hint, std::forward<Args>(args)...);
     }
 
     /// iterator erase(iterator pos)
     const typename std::unordered_map<Key, T, SafeHash>::iterator erase(typename std::unordered_map<Key, T, SafeHash>::iterator pos) {
       check();
+      markAsUsed();
       erasedKeys->insert(pos->first);
       return mapPtr->erase(pos);
     }
@@ -215,6 +235,7 @@ class SafeUnorderedMap {
     /// iterator erase(const_iterator pos)
     const typename std::unordered_map<Key, T, SafeHash>::iterator erase(typename std::unordered_map<Key, T, SafeHash>::const_iterator pos) {
       check();
+      markAsUsed();
       erasedKeys->insert(pos->first);
       return mapPtr->erase(pos);
     }
@@ -222,6 +243,7 @@ class SafeUnorderedMap {
     /// iterator erase(const_iterator first, const_iterator last)
     const typename std::unordered_map<Key, T, SafeHash>::iterator erase(typename std::unordered_map<Key, T, SafeHash>::const_iterator first, typename std::unordered_map<Key, T, SafeHash>::const_iterator last) {
       check();
+      markAsUsed();
       for (auto it = first; it != last; ++it) {
         erasedKeys->insert(it->first);
       }
@@ -231,6 +253,7 @@ class SafeUnorderedMap {
     /// size_type erase(const Key& key)
     typename std::unordered_map<Key, T, SafeHash>::size_type erase(const Key& key) {
       check();
+      markAsUsed();
       erasedKeys->insert(key);
       return mapPtr->erase(key);
     }
@@ -239,6 +262,7 @@ class SafeUnorderedMap {
     template<class K>
     typename std::unordered_map<Key, T, SafeHash>::size_type erase(K&& key) {
       check();
+      markAsUsed();
       erasedKeys->insert(std::forward<K>(key));
       return mapPtr->erase(std::forward<K>(key));
     }
@@ -246,6 +270,7 @@ class SafeUnorderedMap {
     /// T& at(const Key& key);
     T& at(const Key& key) {
       checkKeyAndThrow(key);
+      markAsUsed();
       return (*mapPtr)[key];
     }
 
@@ -258,12 +283,14 @@ class SafeUnorderedMap {
     /// T& operator[](const Key& key);
     T& operator[](const Key& key) {
       checkKeyAndCreate(key);
+      markAsUsed();
       return (*mapPtr)[key];
     }
 
     /// T& operator[](Key&& key);
     T& operator[](Key&& key) {
       checkKeyAndCreate(key);
+      markAsUsed();
       return (*mapPtr)[key];
     }
 
@@ -271,6 +298,7 @@ class SafeUnorderedMap {
     /// TODO: Can't really be used, because it would require a copy of the map. not reversible.
     SafeUnorderedMap& operator=(const SafeUnorderedMap& other) {
       if (this != &other) {
+        markAsUsed();
         other.check();
         map = other.map;
         mapPtr = std::make_unique(*other.mapPtr);
@@ -288,6 +316,7 @@ class SafeUnorderedMap {
     /// iterator find(const Key& key);
     const typename std::unordered_map<Key, T, SafeHash>::iterator find(const Key& key) {
       checkKeyAndCopy(key);
+      markAsUsed();
       return mapPtr->find(key);
     }
 
@@ -302,7 +331,7 @@ class SafeUnorderedMap {
       return mapPtr->contains(key);
     }
 
-    void commit() {
+    void commit() override {
       check();
       for (const auto& [key, value] : (*mapPtr)) {
         map[key] = value;
@@ -313,7 +342,7 @@ class SafeUnorderedMap {
       mapPtr = nullptr;
     }
 
-    void revert() {
+    void revert() const override {
       mapPtr = nullptr;
       erasedKeys = nullptr;
     }
