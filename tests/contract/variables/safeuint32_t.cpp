@@ -1,28 +1,28 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/variables/safeuint64_t.h"
+#include "../../src/contract/variables/safeuint32_t.h"
 #include <iostream>
 
 
-namespace TSafeUint64_t {
-  TEST_CASE("SafeUint64_t Class", "[contracts][variables][safeuint64_t]") {
-    SECTION("SafeUint64_t constructor (Commit and Revert") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+namespace TSafeUint32_t {
+  TEST_CASE("SafeUint32_t Class", "[contracts][variables][safeuint32_t]") {
+    SECTION("SafeUint32_t constructor (Commit and Revert") {
+      SafeUint32_t commitedValue(uint32_t(429496));
+      SafeUint32_t revertedValue(uint32_t(429496));
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(192381851023));
-      REQUIRE(revertedValue.get() == uint64_t(0));
+      REQUIRE(commitedValue.get() == uint32_t(429496));
+      REQUIRE(revertedValue.get() == uint32_t(0));
     }
 
-    SECTION("SafeUint64_t operator+") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator+") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
-      SafeUint64_t throwValue(std::numeric_limits<uint64_t>::max());
+      SafeUint32_t throwValue(std::numeric_limits<uint32_t>::max());
       throwValue.commit();
 
       bool overflow = false;
@@ -37,17 +37,17 @@ namespace TSafeUint64_t {
       commitedValue.commit();
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(192381861023));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(439496));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
       REQUIRE(overflow);
     }
 
-    SECTION("SafeUint64_t operator-") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator-") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
-      SafeUint64_t throwValue(uint64_t(0));
+      SafeUint32_t throwValue(uint32_t(0));
       throwValue.commit();
 
       bool overflow = false;
@@ -62,17 +62,17 @@ namespace TSafeUint64_t {
       commitedValue.commit();
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(192381841023));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(419496));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
       REQUIRE(overflow);
     }
 
-    SECTION("SafeUint64_t operator*") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator*") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
-      SafeUint64_t throwValue(std::numeric_limits<uint64_t>::max());
+      SafeUint32_t throwValue(std::numeric_limits<uint32_t>::max());
       throwValue.commit();
 
       bool overflow = false;
@@ -85,20 +85,20 @@ namespace TSafeUint64_t {
         overflow = true;
       }
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(1923818510230000));
+      REQUIRE(revertedValue.get() == uint32_t(4294960000));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(1923818510230000));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(4294960000));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
       REQUIRE(overflow);
     }
 
-    SECTION("SafeUint64_t operator/") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator/") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
-      SafeUint64_t throwValue(uint64_t(0));
+      SafeUint32_t throwValue(uint32_t(0));
       throwValue.commit();
 
       bool overflow = false;
@@ -111,20 +111,20 @@ namespace TSafeUint64_t {
         overflow = true;
       }
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(19238185));
+      REQUIRE(revertedValue.get() == uint32_t(42));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(19238185));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(42));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
       REQUIRE(overflow);
     }
 
-    SECTION("SafeUint64_t operator%") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator%") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
-      SafeUint64_t throwValue(uint64_t(0));
+      SafeUint32_t throwValue(uint32_t(0));
       throwValue.commit();
 
       bool overflow = false;
@@ -137,103 +137,103 @@ namespace TSafeUint64_t {
         overflow = true;
       }
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(1023));
+      REQUIRE(revertedValue.get() == uint32_t(9496));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(1023));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(9496));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
       REQUIRE(overflow);
     }
 
-    SECTION("SafeUint64_t operator&") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator&") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue = commitedValue & 10000;
       revertedValue = revertedValue & 10000;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(1280));
+      REQUIRE(revertedValue.get() == uint32_t(1296));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(1280));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(1296));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator|") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator|") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue = commitedValue | 10000;
       revertedValue = revertedValue | 10000;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(192381859743));
+      REQUIRE(revertedValue.get() == uint32_t(438200));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(192381859743));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(438200));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator^") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator^") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue = commitedValue ^ 10000;
       revertedValue = revertedValue ^ 10000;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(192381858463));
+      REQUIRE(revertedValue.get() == uint32_t(436904));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(192381858463));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(436904));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator<<") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator<<") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue = commitedValue << 4;
       revertedValue = revertedValue << 4;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(3078109616368));
+      REQUIRE(revertedValue.get() == uint32_t(6871936));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(3078109616368));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(6871936));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator>>") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator>>") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue = commitedValue >> 4;
       revertedValue = revertedValue >> 4;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(12023865688));
+      REQUIRE(revertedValue.get() == uint32_t(26843));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(12023865688));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(26843));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator!") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator!") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue = 0;
@@ -246,11 +246,11 @@ namespace TSafeUint64_t {
       REQUIRE(!(!revertedValue));
     }
 
-    SECTION("SafeUint64_t operator&&") {
-      SafeUint64_t trueValue1(uint64_t(1));
-      SafeUint64_t trueValue2(uint64_t(5));
-      SafeUint64_t falseValue1(uint64_t(0));
-      SafeUint64_t falseValue2(uint64_t(0));
+    SECTION("SafeUint32_t operator&&") {
+      SafeUint32_t trueValue1(uint32_t(1));
+      SafeUint32_t trueValue2(uint32_t(5));
+      SafeUint32_t falseValue1(uint32_t(0));
+      SafeUint32_t falseValue2(uint32_t(0));
 
       bool result1 = trueValue1 && trueValue2;
       bool result2 = trueValue1 && falseValue1;
@@ -263,11 +263,11 @@ namespace TSafeUint64_t {
       REQUIRE(!result4);
     }
 
-    SECTION("SafeUint64_t operator||") {
-      SafeUint64_t trueValue1(uint64_t(1));
-      SafeUint64_t trueValue2(uint64_t(5));
-      SafeUint64_t falseValue1(uint64_t(0));
-      SafeUint64_t falseValue2(uint64_t(0));
+    SECTION("SafeUint32_t operator||") {
+      SafeUint32_t trueValue1(uint32_t(1));
+      SafeUint32_t trueValue2(uint32_t(5));
+      SafeUint32_t falseValue1(uint32_t(0));
+      SafeUint32_t falseValue2(uint32_t(0));
 
       bool result1 = trueValue1 || trueValue2;
       bool result2 = trueValue1 || falseValue1;
@@ -280,20 +280,20 @@ namespace TSafeUint64_t {
       REQUIRE(!result4);
     }
 
-    SECTION("SafeUint64_t operator==") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator==") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
 
       REQUIRE(commitedValue == revertedValue);
       revertedValue.revert();
       REQUIRE(commitedValue != revertedValue);
     }
 
-    SECTION("SafeUint64_t operator!=") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator!=") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(123981581));
       revertedValue.commit();
 
       REQUIRE(commitedValue != revertedValue);
@@ -303,10 +303,10 @@ namespace TSafeUint64_t {
       REQUIRE(commitedValue != revertedValue);
     }
 
-    SECTION("SafeUint64_t operator<") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator<") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(319384));
       revertedValue.commit();
 
       REQUIRE(revertedValue < commitedValue);
@@ -316,23 +316,24 @@ namespace TSafeUint64_t {
       REQUIRE(revertedValue < commitedValue);
     }
 
-    SECTION("SafeUint64_t operator<=") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator<=") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       REQUIRE(revertedValue <= commitedValue);
       revertedValue = commitedValue / 2;
       REQUIRE(!(commitedValue <= revertedValue));
+      REQUIRE(!(commitedValue <= revertedValue));
       revertedValue.revert();
       REQUIRE(revertedValue <= commitedValue);
     }
     
-    SECTION("SafeUint64_t operator>") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator>") {
+      SafeUint32_t commitedValue(uint32_t(1239881));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       REQUIRE(commitedValue > revertedValue);
@@ -342,10 +343,10 @@ namespace TSafeUint64_t {
       REQUIRE(commitedValue > revertedValue);
     }
 
-    SECTION("SafeUint64_t operator>=") {
-      SafeUint64_t commitedValue(uint64_t(123981581));
+    SECTION("SafeUint32_t operator>=") {
+      SafeUint32_t commitedValue(uint32_t(123981581));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(123981581));
       revertedValue.commit();
 
       REQUIRE(commitedValue >= revertedValue);
@@ -355,10 +356,10 @@ namespace TSafeUint64_t {
       REQUIRE(revertedValue >= commitedValue);
     }
 
-    SECTION("SafeUint64_t operator=") {
-      SafeUint64_t commitedValue(uint64_t(123981581));
+    SECTION("SafeUint32_t operator=") {
+      SafeUint32_t commitedValue(uint32_t(123981581));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(123981581));
       revertedValue.commit();
 
       revertedValue = commitedValue;
@@ -367,12 +368,12 @@ namespace TSafeUint64_t {
       REQUIRE(commitedValue == revertedValue);
     }
 
-    SECTION("SafeUint64_t operator+=") {
-      SafeUint64_t commitedValue(uint64_t(123981581));
+    SECTION("SafeUint32_t operator+=") {
+      SafeUint32_t commitedValue(uint32_t(123981581));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(123981581));
       revertedValue.commit();
-      SafeUint64_t throwValue(std::numeric_limits<uint64_t>::max());
+      SafeUint32_t throwValue(std::numeric_limits<uint32_t>::max());
       throwValue.commit();
 
       bool overflow = false;
@@ -392,12 +393,12 @@ namespace TSafeUint64_t {
       REQUIRE(commitedValue.get() == 123981601);
     }
 
-    SECTION("SafeUint64_t operator=-") {
-      SafeUint64_t commitedValue(uint64_t(123981581));
+    SECTION("SafeUint32_t operator=-") {
+      SafeUint32_t commitedValue(uint32_t(123981581));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(123981581));
       revertedValue.commit();
-      SafeUint64_t throwValue(std::numeric_limits<uint64_t>::min());
+      SafeUint32_t throwValue(std::numeric_limits<uint32_t>::min());
       throwValue.commit();
 
       bool overflow = false;
@@ -417,12 +418,12 @@ namespace TSafeUint64_t {
       REQUIRE(commitedValue.get() == 123981561);
     }
 
-    SECTION("SafeUint64_t operator=*") {
-      SafeUint64_t commitedValue(uint64_t(123981581));
+    SECTION("SafeUint32_t operator=*") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
-      SafeUint64_t throwValue(std::numeric_limits<uint64_t>::max());
+      SafeUint32_t throwValue(std::numeric_limits<uint32_t>::max());
       throwValue.commit();
 
       bool overflow = false;
@@ -434,21 +435,21 @@ namespace TSafeUint64_t {
       }
 
       REQUIRE(overflow);
-      revertedValue *= commitedValue;
-      REQUIRE(revertedValue.get() == 15371432427259561);
+      revertedValue *= 100;
+      REQUIRE(revertedValue.get() == 42949600);
       revertedValue.revert();
-      REQUIRE(revertedValue.get() == 123981581);
+      REQUIRE(revertedValue.get() == 429496);
       commitedValue *= 20;
       commitedValue.commit();
-      REQUIRE(commitedValue.get() == 2479631620);
+      REQUIRE(commitedValue.get() == 8589920);
     }
 
-    SECTION("SafeUint64_t operator=/") {
-      SafeUint64_t commitedValue(uint64_t(123981581));
+    SECTION("SafeUint32_t operator=/") {
+      SafeUint32_t commitedValue(uint32_t(123981581));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(123981581));
       revertedValue.commit();
-      SafeUint64_t throwValue(std::numeric_limits<uint64_t>::max());
+      SafeUint32_t throwValue(std::numeric_limits<uint32_t>::max());
       throwValue.commit();
 
       bool overflow = false;
@@ -469,12 +470,12 @@ namespace TSafeUint64_t {
       REQUIRE(commitedValue.get() == 6199079);
     }
 
-    SECTION("SafeUint64_t operator%=") {
-      SafeUint64_t commitedValue(uint64_t(123981581));
+    SECTION("SafeUint32_t operator%=") {
+      SafeUint32_t commitedValue(uint32_t(123981581));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(123981581));
+      SafeUint32_t revertedValue(uint32_t(123981581));
       revertedValue.commit();
-      SafeUint64_t throwValue(std::numeric_limits<uint64_t>::max());
+      SafeUint32_t throwValue(std::numeric_limits<uint32_t>::max());
       throwValue.commit();
 
       bool overflow = false;
@@ -495,97 +496,97 @@ namespace TSafeUint64_t {
       REQUIRE(commitedValue.get() == 1);
     }
 
-    SECTION("SafeUint64_t operator &=") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator &=") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue &= 10000;
       revertedValue &= 10000;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(1280));
+      REQUIRE(revertedValue.get() == uint32_t(1296));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(1280));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(1296));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
     SECTION("SafeUint64-t operator|=") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue |= 10000;
       revertedValue |= 10000;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(192381859743));
+      REQUIRE(revertedValue.get() == uint32_t(438200));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(192381859743));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(438200));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator^=") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator^=") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue ^= 10000;
       revertedValue ^= 10000;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(192381858463));
+      REQUIRE(revertedValue.get() == uint32_t(436904));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(192381858463));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(436904));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator<<=") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator<<=") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue <<= 4;
       revertedValue <<= 4;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(3078109616368));
+      REQUIRE(revertedValue.get() == uint32_t(6871936));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(3078109616368));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(6871936));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator>>=") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator>>=") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
 
       commitedValue >>= 4;
       revertedValue >>= 4;
 
       commitedValue.commit();
-      REQUIRE(revertedValue.get() == uint64_t(12023865688));
+      REQUIRE(revertedValue.get() == uint32_t(26843));
       revertedValue.revert();
 
-      REQUIRE(commitedValue.get() == uint64_t(12023865688));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(26843));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator++") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator++") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
-      SafeUint64_t throwValue(std::numeric_limits<uint64_t>::max());
+      SafeUint32_t throwValue(std::numeric_limits<uint32_t>::max());
       throwValue.commit();
 
       bool overflow = false;
@@ -600,18 +601,18 @@ namespace TSafeUint64_t {
       ++revertedValue;
       commitedValue.commit();
 
-      REQUIRE(revertedValue.get() == uint64_t(192381851024));
+      REQUIRE(revertedValue.get() == uint32_t(429497));
       revertedValue.revert();
-      REQUIRE(commitedValue.get() == uint64_t(192381851024));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(429497));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
 
-    SECTION("SafeUint64_t operator--") {
-      SafeUint64_t commitedValue(uint64_t(192381851023));
+    SECTION("SafeUint32_t operator--") {
+      SafeUint32_t commitedValue(uint32_t(429496));
       commitedValue.commit();
-      SafeUint64_t revertedValue(uint64_t(192381851023));
+      SafeUint32_t revertedValue(uint32_t(429496));
       revertedValue.commit();
-      SafeUint64_t throwValue(uint64_t(0));
+      SafeUint32_t throwValue(uint32_t(0));
       throwValue.commit();
 
       bool overflow = false;
@@ -626,10 +627,10 @@ namespace TSafeUint64_t {
       --revertedValue;
       commitedValue.commit();
 
-      REQUIRE(revertedValue.get() == uint64_t(192381851022));
+      REQUIRE(revertedValue.get() == uint32_t(429495));
       revertedValue.revert();
-      REQUIRE(commitedValue.get() == uint64_t(192381851022));
-      REQUIRE(revertedValue.get() == uint64_t(192381851023));
+      REQUIRE(commitedValue.get() == uint32_t(429495));
+      REQUIRE(revertedValue.get() == uint32_t(429496));
     }
   }
 }

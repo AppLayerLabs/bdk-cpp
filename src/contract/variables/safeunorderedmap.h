@@ -85,6 +85,7 @@ class SafeUnorderedMap {
       other.check();
       map = other.map;
       mapPtr = std::make_unique<std::unordered_map<Key, T, SafeHash>>(*other.mapPtr);
+      erasedKeys = std::make_unique<std::unordered_set<Key, SafeHash>>(*other.erasedKeys);
     }
 
     /// this can only be used within a view/const function, returns original map, iteratin over it DOES NOT load temporary values.
@@ -266,12 +267,14 @@ class SafeUnorderedMap {
       return (*mapPtr)[key];
     }
 
-    /// operator=
+    /// operator=.
+    /// TODO: Can't really be used, because it would require a copy of the map. not reversible.
     SafeUnorderedMap& operator=(const SafeUnorderedMap& other) {
       if (this != &other) {
         other.check();
         map = other.map;
         mapPtr = std::make_unique(*other.mapPtr);
+        erasedKeys = std::make_unique(*other.erasedKeys);
       }
       return *this;
     }

@@ -18,8 +18,12 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/utils.cpp
   ${CMAKE_SOURCE_DIR}/tests/utils/options.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint8_t.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint16_t.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint32_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint64_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint256_t.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safestring.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp

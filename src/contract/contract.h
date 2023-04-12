@@ -42,9 +42,10 @@ class ContractGlobals {
 class Contract : public ContractGlobals {
   protected:
     /* Contract-specific variables */
-    const std::string name;                                  ///< Name of the contract, used to identify the Contract Class.
-    const Address address;                                   ///< Address where the contract is deployed.
-    const uint64_t chainId;                                  ///< Chain where the contract is deployed.
+    const std::string contractName;                                  ///< Name of the contract, used to identify the Contract Class.
+    const Address contractAddress;                                   ///< Address where the contract is deployed.
+    const Address contractCreator;                                   ///< Address of the creator of the contract.
+    const uint64_t contractChainId;                                  ///< Chain where the contract is deployed.
     const std::unique_ptr<DB> &db;                           ///< Reference to the DB where the contract stored deployed.
 
   public:
@@ -54,18 +55,28 @@ class Contract : public ContractGlobals {
      * @param chainId The chain where the contract wil be deployed.
      * @param contractManager Pointer to the contract manager.
      */
-    Contract(
-      const Address& address, const uint64_t& chainId, const std::unique_ptr<DB> &db
-    ) : address(address), chainId(chainId), db(db) {}
+    Contract(const std::string& contractName,
+      const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db
+    ) : contractName(contractName), contractAddress(address), contractCreator(creator), contractChainId(chainId), db(db) {}
 
     ~Contract() {}
 
     /**
-     * Invoke a contract function using a transaction.
-     * Used by the %State class when calling `processNewBlock()`.
-     * @param tx The transaction to use for call.
+     * Invoke a contract "payable" function using a transaction
+     * Used by the State class when calling `processNewBlock()/validateNewBlock()`
+     * @param tx the Transaction to use for call
+     * @param account Reference back to the account within the State class.
+     * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction
      */
-    virtual void ethCall(const TxBlock& tx) {};
+     virtual void ethCall(const TxBlock& tx, Account& account, bool commit = false) {};
+
+    /**
+     * Invoke a contract function using a transaction.
+     * Used by the %State class when calling `processNewBlock()/validateNewBlock()`.
+     * @param tx The transaction to use for call.
+     * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction.
+     */
+    virtual void ethCall(const TxBlock& tx, bool commit = false) {};
 
     /**
      * Invoke a const (solidity view) contract function using a data string.
@@ -76,9 +87,10 @@ class Contract : public ContractGlobals {
     virtual const std::string ethCall(const std::string& data) const { return ""; };
 
     /// Getters
-    const std::string& getName() const { return name; }
-    const Address& getAddress() const { return address; }
-    const uint64_t& getChainId() const { return chainId; }
+    const std::string& getContractName() const { return this->contractName; }
+    const Address& getContractAddress() const { return this->contractAddress; }
+    const Address& getContractCreator() const { return this->contractCreator; }
+    const uint64_t& getContractChainId() const { return this->contractChainId; }
 };
 
 #endif  // CONTRACT_H

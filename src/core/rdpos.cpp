@@ -8,8 +8,7 @@ rdPoS::rdPoS(const std::unique_ptr<DB>& db,
   const std::unique_ptr<P2P::ManagerNormal>& p2p,
   const std::unique_ptr<Options>& options,
   const std::unique_ptr<State>& state) :
-
-  Contract(ProtocolContractAddresses.at("rdPoS"), chainId, db),
+  Contract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options->getChainID(), db),
   storage(storage),
   p2p(p2p),
   options(options),

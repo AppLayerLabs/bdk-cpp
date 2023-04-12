@@ -282,6 +282,19 @@ namespace TSafeUint256_t {
       REQUIRE(revertedValue < commitedValue);
     }
 
+    SECTION("SafeUint256_t operator<=") {
+      SafeUint256_t commitedValue(uint256_t("1927831865120318940191371489123952378115126713"));
+      commitedValue.commit();
+      SafeUint256_t revertedValue(uint256_t("1927831865120318940191371489123952378115126713"));
+      revertedValue.commit();
+
+      REQUIRE(revertedValue <= commitedValue);
+      revertedValue = commitedValue / 2;
+      REQUIRE(!(commitedValue <= revertedValue));
+      revertedValue.revert();
+      REQUIRE(revertedValue <= commitedValue);
+    }
+
     SECTION("SafeUint256_t operator>") {
       SafeUint256_t commitedValue(uint256_t("1927831865120318940191371489123952378115126713"));
       commitedValue.commit();
