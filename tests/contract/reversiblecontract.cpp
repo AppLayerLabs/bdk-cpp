@@ -2,17 +2,14 @@
 #include "../../src/contract/contract.h"
 #include "../../src/contract/variables/safeunorderedmap.h"
 #include "../../src/contract/abi.h"
+#include "../../src/utils/db.h"
 
 class ReversibleContract : public Contract {
   private:
     SafeUnorderedMap<Address, uint256_t> balances;
 
-  public:
-    ReversibleContract() : Contract("ReversibleContract",
-                                    Address(Hex::toBytes("0x0000000000000000000000000000000000000000"), true),
-                                    Address(Hex::toBytes("0x0000000000000000000000000000000000000000"), true),
-                                    8080, nullptr),
-                                    balances(this) {
+  protected:
+    void registerContractFunctions() override {
       this->registerFunction(Hex::toBytes("0xae639329"), [this](const TxBlock &txBlock) {
         Address from = txBlock.getFrom();
         std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
@@ -35,6 +32,15 @@ class ReversibleContract : public Contract {
         ABI::Decoder decoder(types, str.substr(4));
         return this->getBalance(decoder.getData<Address>(0));
       });
+    }
+
+  public:
+    ReversibleContract(const std::unique_ptr<DB>& db) : Contract("ReversibleContract",
+                                    Address(Hex::toBytes("0x0000000000000000000000000000000000000000"), true),
+                                    Address(Hex::toBytes("0x0000000000000000000000000000000000000000"), true),
+                                    8080, db),
+                                    balances(this) {
+      this->registerContractFunctions();
     }
 
 
@@ -63,7 +69,8 @@ class ReversibleContract : public Contract {
 namespace TReversibleContract {
   TEST_CASE("ReversibleContract", "[contract][reversiblecontract]") {
     SECTION("ReversibleContract Contract Full Test") {
-      ReversibleContract contract;
+      std::unique_ptr<DB> db = std::make_unique<DB>("reversibleContractTest");
+      ReversibleContract contract(db);
       PrivKey privKey = PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address myAddress = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
       Address destinationAddress = Address(Utils::randBytes(20), true);

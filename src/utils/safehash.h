@@ -104,6 +104,17 @@ struct SafeHash {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
     return splitmix(std::hash<std::string>()(str.get()) + FIXED_RANDOM);
   }
+
+  /**
+   * Wrapper for `splitmix()`.
+   * @param a std::unordered_map object.
+   * @returns The same as `splitmix()`.
+   */
+   template <typename Key, typename T>
+   size_t operator()(const std::unordered_map<Key, T, SafeHash>& a) const {
+     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
+     return splitmix(std::hash<std::unordered_map<Key, T, SafeHash>>()(a) + FIXED_RANDOM);
+   }
 };
 
 /// Hash to be used within broadcast messages.
