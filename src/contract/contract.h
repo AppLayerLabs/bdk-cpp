@@ -90,7 +90,7 @@ class Contract : public ContractGlobals {
      * @param account Reference back to the account within the State class.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction
      */
-     virtual void ethCall(const TxBlock& tx, Account& account, bool commit = false) {
+     void ethCall(const TxBlock& tx, Account& account, bool commit = false) {
        try {
          std::string funcName = tx.getData().substr(0, 4);
          auto func = this->payableFunctions.find(funcName);
@@ -122,7 +122,7 @@ class Contract : public ContractGlobals {
      * @param tx The transaction to use for call.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction.
      */
-    virtual void ethCall(const TxBlock& tx, bool commit = false) {
+    void ethCall(const TxBlock& tx, bool commit = false) {
       try {
         std::string funcName = tx.getData().substr(0, 4);
         auto func = this->functions.find(funcName);
@@ -154,7 +154,7 @@ class Contract : public ContractGlobals {
      * @param data The data string to use for call.
      * @return An encoded %Solidity hex string with the desired function result.
      */
-    virtual const std::string ethCall(const std::string& data) const {
+    const std::string ethCall(const std::string& data) const {
       try {
         std::string funcName = data.substr(0, 4);
         auto func = this->viewFunctions.find(funcName);
