@@ -386,8 +386,8 @@ class SafeUint256_t : public SafeBase {
 
     /// get is used to properly get the value of a variable within another SafeUint256_t (we need to call check!)
     inline uint256_t get() const { check(); return *valuePtr; };
-    inline void commit() override { value = *valuePtr; valuePtr = nullptr; };
-    inline void revert() const override { valuePtr = nullptr; };
+    inline void commit() override { value = *valuePtr; valuePtr = nullptr; registered = false; };
+    inline void revert() const override { valuePtr = nullptr; registered = false; };
 };
 
 

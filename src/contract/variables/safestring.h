@@ -319,8 +319,8 @@ class SafeString : SafeBase {
     inline bool operator>=(const char* rhs) const { check(); return *strPtr >= rhs; };
 
     inline const std::string& get() const { check(); return *strPtr; };
-    inline void commit() override { check(); str = *strPtr; };
-    inline void revert() const override { strPtr = nullptr; };
+    inline void commit() override { check(); str = *strPtr; registered = false; };
+    inline void revert() const override { strPtr = nullptr; registered = false; };
 };
 
 inline std::ostream& operator<<(std::ostream& _out, SafeString const& _t) {

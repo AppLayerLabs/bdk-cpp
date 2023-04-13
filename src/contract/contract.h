@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <tuple>
 
 #include "contractmanager.h"
 
@@ -42,6 +43,10 @@ class ContractGlobals {
  */
 class Contract : public ContractGlobals {
   private:
+    std::unordered_map<std::string, std::function<void(const TxBlock& tx)>> functions;
+    std::unordered_map<std::string, std::function<void(const TxBlock& tx, Account& account)>> payableFunctions;
+    std::unordered_map<std::string, std::function<std::string(const std::string& str)>> viewFunctions;
+
     std::vector<std::reference_wrapper<SafeBase>> usedVariables;
     void registerVariableUse(SafeBase& variable) { usedVariables.emplace_back(variable); }
   protected:
@@ -52,6 +57,19 @@ class Contract : public ContractGlobals {
     const uint64_t contractChainId;                                  ///< Chain where the contract is deployed.
     const std::unique_ptr<DB> &db;                           ///< Reference to the DB where the contract stored deployed.
 
+    /// TODO: eth_call from another contract.
+    /// Register by using function name + lambda.
+    void registerFunction(const std::string& functor, std::function<void(const TxBlock& tx)> f) {
+      functions[functor] = f;
+    }
+
+    void registerPayableFunction(const std::string& functor, std::function<void(const TxBlock& tx, Account& account)> f) {
+      payableFunctions[functor] = f;
+    }
+
+    void registerViewFunction(const std::string& functor, std::function<std::string(const std::string& str)> f) {
+      viewFunctions[functor] = f;
+    }
   public:
     /**
      * Constructor.
@@ -74,7 +92,12 @@ class Contract : public ContractGlobals {
      */
      virtual void ethCall(const TxBlock& tx, Account& account, bool commit = false) {
        try {
-         ///... Call Contracts Functions
+         std::string funcName = tx.getData().substr(0, 4);
+         auto func = this->payableFunctions.find(funcName);
+         if (func == this->payableFunctions.end()) {
+           throw std::runtime_error("Functor not found");
+         }
+         func->second(tx, account);
        } catch (const std::exception& e) {
          for (auto& variable : usedVariables) {
            variable.get().revert();
@@ -90,6 +113,7 @@ class Contract : public ContractGlobals {
            variable.get().commit();
          }
        }
+      usedVariables.clear();
      };
 
     /**
@@ -100,7 +124,12 @@ class Contract : public ContractGlobals {
      */
     virtual void ethCall(const TxBlock& tx, bool commit = false) {
       try {
-        ///... Call Contracts Functions
+        std::string funcName = tx.getData().substr(0, 4);
+        auto func = this->functions.find(funcName);
+        if (func == this->functions.end()) {
+          throw std::runtime_error("Functor not found");
+        }
+        func->second(tx);
       } catch (const std::exception& e) {
         for (auto& variable : usedVariables) {
           variable.get().revert();
@@ -116,6 +145,7 @@ class Contract : public ContractGlobals {
           variable.get().commit();
         }
       }
+      usedVariables.clear();
     };
 
     /**
@@ -124,7 +154,18 @@ class Contract : public ContractGlobals {
      * @param data The data string to use for call.
      * @return An encoded %Solidity hex string with the desired function result.
      */
-    virtual const std::string ethCall(const std::string& data) const { return ""; };
+    virtual const std::string ethCall(const std::string& data) const {
+      try {
+        std::string funcName = data.substr(0, 4);
+        auto func = this->viewFunctions.find(funcName);
+        if (func == this->viewFunctions.end()) {
+          throw std::runtime_error("Functor not found");
+        }
+        return func->second(data);
+      } catch (std::exception &e) {
+        throw e;
+      }
+    }
 
     /// Getters
     const std::string& getContractName() const { return this->contractName; }

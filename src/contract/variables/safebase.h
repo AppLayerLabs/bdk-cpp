@@ -20,14 +20,18 @@ class SafeBase {
     /// Variables of the contract should be initialized during the constructor of such contract
     /// Passing the contract as a pointer allows us to register it to the contract, and call commit()/revert() properly.
     Contract* owner = nullptr;
-    mutable bool registered = false;
 
   protected:
     /// Register the use of this variable within the contract
-    void markAsUsed() { if (owner != nullptr) { if (!registered) { { registerVariableUse(*owner, *this); } registered = true; }}}
+    void markAsUsed() { if (owner != nullptr) { if (!registered) { registerVariableUse(*owner, *this); registered = true; }}}
 
+    /// Boolean to check if the variable is already registered within the contract
+    mutable bool registered = false;
     /// Should always be overridden by the child class
     inline virtual void check() const {};
+
+    inline bool isRegistered() const { return registered; }
+    inline Contract* getOwner() const { return owner; }
 
   public:
 
@@ -37,15 +41,15 @@ class SafeBase {
 
     /// Normal Constructor.
     /// Only variables built with this constructor will be registered within the contract.
-    SafeBase(Contract* owner = nullptr) : owner(owner) {};
+    SafeBase(Contract* owner) : owner(owner) {};
 
     /// Normal Constructor for variables that are not registered within the contract.
     /// This should be used only within local variables within functions.
     SafeBase(SafeBase& other) : owner(nullptr) {};
 
     /// Should always be overridden by the child class
-    inline virtual void commit() {};
-    inline virtual void revert() const {};
+    inline virtual void commit() { registered = false; };
+    inline virtual void revert() const { registered = false; };
 };
 
 #endif // SAFEBASE_H

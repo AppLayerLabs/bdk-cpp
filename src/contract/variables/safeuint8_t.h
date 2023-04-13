@@ -278,8 +278,8 @@ class SafeUint8_t : public SafeBase {
 
     /// get is used to properly get the value of a variable within another SafeUint8_t (we need to call check!)
     inline uint8_t get() const { check(); return *valuePtr; };
-    inline void commit() override { check(); value = *valuePtr; valuePtr = nullptr; };
-    inline void revert() const override { valuePtr = nullptr; };
+    inline void commit() override { check(); value = *valuePtr; valuePtr = nullptr; registered = false; };
+    inline void revert() const override { valuePtr = nullptr; registered = false; };
 };
 
 #endif

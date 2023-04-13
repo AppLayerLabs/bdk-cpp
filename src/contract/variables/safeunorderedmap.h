@@ -340,11 +340,13 @@ class SafeUnorderedMap : public SafeBase {
         map.erase(key);
       }
       mapPtr = nullptr;
+      registered = false;
     }
 
     void revert() const override {
       mapPtr = nullptr;
       erasedKeys = nullptr;
+      registered = false;
     }
 };
 
