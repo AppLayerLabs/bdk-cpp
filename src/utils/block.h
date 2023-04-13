@@ -12,12 +12,16 @@
 
 /**
  * Abstraction of a block.
+ *
  * Does NOT check transaction logic or signatures, it's only the block's
  * structure/data and some functions to manage it.
- * Block structure is as follows:
  *
+ * (Summed up) Structure is as follows:
+ *
+ * ```
  * OUTSIDE OF BLOCK HEADER:
- *  65 BYTES - VALIDATOR SIGNATURE
+ *   65 BYTES - VALIDATOR SIGNATURE
+ *
  * BLOCK HEADER:
  *   32 BYTES - PREV BLOCK HASH
  *   32 BYTES - BLOCK RANDOMNESS
@@ -25,7 +29,8 @@
  *   32 BYTES - TRANSACTION MERKLE ROOT
  *   8 BYTES  - TIMESTAMP (MICROSECONDS)
  *   8 BYTES  - NHEIGHT
- * CONTENT:
+ *
+ * BLOCK CONTENT:
  *   8 BYTES  - TX VALIDATOR ARRAY START
  *   [
  *     4 BYTES - TX SIZE
@@ -45,11 +50,11 @@
  *     ,
  *     ...
  *   ]
+ * ```
  */
-
 class Block {
   private:
-    /// Block validator signature.
+    /// Validator signature for the block.
     Signature validatorSig;
 
     /// Previous block hash.
@@ -58,34 +63,35 @@ class Block {
     /// Current block randomness based on rdPoS.
     Hash blockRandomness;
 
-    /// Merkle root of Validator transactions.
+    /// Merkle root for Validator transactions.
     Hash validatorMerkleRoot;
 
-    /// Merkle root of block transactions.
+    /// Merkle root for block transactions.
     Hash txMerkleRoot;
 
-    /// Block timestamp.
+    /// Epoch timestamp of the block, in microsseconds.
     uint64_t timestamp = 0;
 
-    /// Block height in chain.
+    /// Height of the block in chain.
     uint64_t nHeight = 0;
 
-    /// Validator transactions.
+    /// List of Validator transactions.
     std::vector<TxValidator> txValidators;
 
-    /// Block transactions.
+    /// List of block transactions.
     std::vector<TxBlock> txs;
 
-    /// Block Validator public key.
+    /// Validator public key for the block.
     UPubKey validatorPubKey;
 
-    /// Indicates whether the block is finalized or not.
+    /// Indicates whether the block is finalized or not. See finalize().
     bool finalized = false;
 
   public:
     /**
      * Constructor from network/RPC.
-     * @param rawData The raw block data to parse.
+     * @param bytes The raw block data string to parse.
+     * @param requiredChainId The chain ID that the block and its transactions belong to.
      */
     Block(std::string_view bytes, const uint64_t& requiredChainId);
 
@@ -98,11 +104,7 @@ class Block {
     Block(const Hash& prevBlockHash, const uint64_t& timestamp, const uint64_t& nHeight)
       : prevBlockHash(prevBlockHash), timestamp(timestamp), nHeight(nHeight) {}
 
-    /**
-     * Block copy constructor.
-     * @param block The block to copy.
-     */
-
+    /// Copy constructor.
     Block(const Block& block) :
       validatorSig(block.validatorSig),
       prevBlockHash(block.prevBlockHash),
@@ -114,13 +116,10 @@ class Block {
       txValidators(block.txValidators),
       txs(block.txs),
       validatorPubKey(block.validatorPubKey),
-      finalized(block.finalized) {}
+      finalized(block.finalized)
+    {}
 
-    /**
-     * Block move constructor.
-     * @param block The block to move.
-     */
-
+    /// Move constructor.
     Block(Block&& block) :
       validatorSig(std::move(block.validatorSig)),
       prevBlockHash(std::move(block.prevBlockHash)),
@@ -132,7 +131,8 @@ class Block {
       txValidators(std::move(block.txValidators)),
       txs(std::move(block.txs)),
       validatorPubKey(std::move(block.validatorPubKey)),
-      finalized(std::move(block.finalized)) { block.finalized = false; return; } // Block moved -> invalid block, as member of block were moved.
+      finalized(std::move(block.finalized))
+    { block.finalized = false; return; } // Block moved -> invalid block, as members of block were moved
 
     /// Getter for `validatorSig`.
     const Signature& getValidatorSig() const { return validatorSig; }
@@ -173,8 +173,7 @@ class Block {
 
     /**
      * Serialize the block header (prev block hash + randomness +
-     * Validator Merkle Root + Transaction Merkle Root +
-     * timestamp + nHeight).
+     * Validator Merkle Root + Transaction Merkle Root + timestamp + nHeight).
      * @return The serialized header string.
      */
     const std::string serializeHeader() const;
@@ -186,7 +185,7 @@ class Block {
     const std::string serializeBlock() const;
 
     /**
-     * SHA3-hash the block header. Calls serializeHeader() internally.
+     * SHA3-hash the block header (calls serializeHeader() internally).
      * @return The hash of the block header.
      */
     const Hash hash() const;
@@ -197,12 +196,14 @@ class Block {
 
     /**
      * Append a block transaction to the block.
+     * @param tx The transaction to append.
      * @return `true` on success, `false` if block is finalized.
      */
     bool appendTx(const TxBlock& tx);
 
     /**
      * Append a Validator transaction to the block.
+     * @param tx The transaction to append.
      * @return `true` on success, `false` if block is finalized.
      */
     bool appendTxValidator(const TxValidator& tx);
@@ -210,21 +211,17 @@ class Block {
     /**
      * Finalize the block.
      * This means the block will be "closed" to new transactions,
-     * being signed and validated by the Validator, and generating a
-     * new randomness seed for the next block.
+     * signed and validated by the Validator, and a new randomness seed
+     * will be generated for the next block.
      * @return `true` on success, `false` if block is already finalized.
      */
     bool finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp);
 
     /// Equality operator. Checks the block hash of both objects.
-    const bool operator==(const Block& rBlock) const {
-      return this->hash() == rBlock.hash();
-    }
+    const bool operator==(const Block& b) const { return this->hash() == b.hash(); }
 
     /// Inequality operator. Checks the block hash of both objects.
-    const bool operator!=(const Block& rBlock) const {
-      return this->hash() != rBlock.hash();
-    }
+    const bool operator!=(const Block& b) const { return this->hash() != b.hash(); }
 
     /// Copy assignment operator.
     Block& operator=(const Block& other) {

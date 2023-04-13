@@ -209,11 +209,12 @@ bool Block::finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimesta
     Utils::logToDebug(Log::block, __func__, "Block is already finalized");
     return false;
   }
-  /// Allow validators to improve the block time
-  /// Only if new timestamp is better than old timestmap
+  // Allow validators to improve block time only if new timestamp is better than old timestamp
   if (this->timestamp > newTimestamp) {
-    Utils::logToDebug(Log::block, __func__, "Block timestamp not satisfiable, expected higher than " +
-                        std::to_string(this->timestamp) + " got " + std::to_string(newTimestamp));
+    Utils::logToDebug(Log::block, __func__,
+      "Block timestamp not satisfiable, expected higher than " +
+      std::to_string(this->timestamp) + " got " + std::to_string(newTimestamp)
+    );
     return false;
   }
   this->timestamp = newTimestamp;
