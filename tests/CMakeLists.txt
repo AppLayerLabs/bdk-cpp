@@ -20,6 +20,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/reversiblecontract.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint8_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint16_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint32_t.cpp

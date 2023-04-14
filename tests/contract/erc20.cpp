@@ -5,14 +5,6 @@
 
 #include <filesystem>
 
-/*
- *     ERC20(const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals, const uint256_t& mintValue, const std::string& contractName,
-          const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db);
- *
- *
- */
-
-
 namespace TERC20 {
   TEST_CASE("ERC20 Class", "[contract][erc20]") {
     SECTION("ERC20 Class Constructor") {
@@ -24,7 +16,7 @@ namespace TERC20 {
       Address owner(Utils::randBytes(20), true);
       Address contractAddress(Utils::randBytes(20), true);
       {
-        ERC20 erc20("TestToken", "TST", 18, 1000000000000000000, "ERC20", contractAddress, owner, 8080, db);
+        ERC20 erc20("TestToken", "TST", 18, 1000000000000000000, contractAddress, owner, 8080, db);
         ABI::Decoder nameDecoder({ABI::Types::string}, erc20.name());
         REQUIRE(erc20.getContractName() == "ERC20");
         REQUIRE(erc20.getContractAddress() == contractAddress);
@@ -67,7 +59,7 @@ namespace TERC20 {
       Address contractAddress(Utils::randBytes(20), true);
       Address destinationOfTransactions(Utils::randBytes(20), true);
       {
-        ERC20 erc20("TestToken", "TST", 18, 1000000000000000000, "ERC20", contractAddress, owner, 8080, db);
+        ERC20 erc20("TestToken", "TST", 18, 1000000000000000000, contractAddress, owner, 8080, db);
 
         ABI::Encoder::EncVar getBalanceMeVars;
         getBalanceMeVars.push_back(owner);
@@ -143,7 +135,7 @@ namespace TERC20 {
       Address contractAddress(Utils::randBytes(20), true);
       Address destinationOfApproval(Utils::randBytes(20), true);
       {
-        ERC20 erc20("TestToken", "TST", 18, 1000000000000000000, "ERC20", contractAddress, owner, 8080, db);
+        ERC20 erc20("TestToken", "TST", 18, 1000000000000000000, contractAddress, owner, 8080, db);
 
         ABI::Encoder::EncVar getAllowanceVars;
         getAllowanceVars.push_back(owner);
@@ -203,7 +195,7 @@ namespace TERC20 {
       PrivKey destinationOfApprovalPrivKey(Utils::randBytes(32));
       Address destinationOfApproval(Secp256k1::toAddress(Secp256k1::toUPub(destinationOfApprovalPrivKey)));
       {
-        ERC20 erc20("TestToken", "TST", 18, 1000000000000000000, "ERC20", contractAddress, owner, 8080, db);
+        ERC20 erc20("TestToken", "TST", 18, 1000000000000000000, contractAddress, owner, 8080, db);
 
         ABI::Encoder::EncVar approveVars;
         approveVars.push_back(destinationOfApproval);

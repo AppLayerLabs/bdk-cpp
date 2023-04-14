@@ -40,10 +40,10 @@ class ERC20 : public Contract {
     /// Default Constructor when loading contract from DB.
     ERC20(const Address& address, const std::unique_ptr<DB> &db);
     /// Constructor to be used when creating a new contract.
-    ERC20(const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals, const uint256_t& mintValue, const std::string& contractName,
+    ERC20(const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals, const uint256_t& mintValue,
           const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db);
 
-    ~ERC20();
+    ~ERC20() override;
 
     /// function name() public view returns (string memory) { return _name; }
     std::string name() const;

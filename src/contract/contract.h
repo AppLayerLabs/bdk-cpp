@@ -48,11 +48,12 @@ class Contract : public ContractGlobals {
     uint64_t contractChainId;                                  ///< Chain where the contract is deployed.
 
     std::unordered_map<std::string, std::function<void(const TxBlock& tx)>> functions;
-    std::unordered_map<std::string, std::function<void(const TxBlock& tx, Account& account)>> payableFunctions;
+    std::unordered_map<std::string, std::function<void(const TxBlock& tx)>> payableFunctions;
     std::unordered_map<std::string, std::function<std::string(const std::string& str)>> viewFunctions;
 
     mutable Address origin;          /// Who called the contract
     mutable Address caller;          /// Who sent the tx
+    mutable uint256_t value;         /// Value sent with the tx
 
     std::vector<std::reference_wrapper<SafeBase>> usedVariables;
     void registerVariableUse(SafeBase& variable) { usedVariables.emplace_back(variable); }
@@ -66,7 +67,7 @@ class Contract : public ContractGlobals {
       functions[functor] = f;
     }
 
-    void registerPayableFunction(const std::string& functor, std::function<void(const TxBlock& tx, Account& account)> f) {
+    void registerPayableFunction(const std::string& functor, std::function<void(const TxBlock& tx)> f) {
       payableFunctions[functor] = f;
     }
 
@@ -120,7 +121,8 @@ class Contract : public ContractGlobals {
        this->contractChainId = Utils::bytesToUint64(db->get("contractChainId", DBPrefix::contracts + contractAddress.get()));
      }
 
-    ~Contract() {}
+    /// All derived classes should override the destructor in order to call DB functions.
+    virtual ~Contract() {}
     /**
      * Invoke a contract "payable" function using a transaction
      * Used by the State class when calling `processNewBlock()/validateNewBlock()`
@@ -129,21 +131,22 @@ class Contract : public ContractGlobals {
      * @param account Reference back to the account within the State class.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction
      */
-     virtual void ethCall(const TxBlock& tx, Account& account, bool commit = false) {
+     virtual void ethCall(const TxBlock& tx, const uint256_t& txValue, bool commit = false) {
        this->caller = tx.getFrom();
        this->origin = tx.getFrom();
+       this->value = txValue;
        try {
          std::string funcName = tx.getData().substr(0, 4);
          auto func = this->payableFunctions.find(funcName);
          if (func == this->payableFunctions.end()) {
            throw std::runtime_error("Functor not found");
          }
-         func->second(tx, account);
+         func->second(tx);
        } catch (const std::exception& e) {
          updateState(false);
          throw e;
        }
-      updateState(commit);
+       updateState(commit);
      };
 
     /**
@@ -155,6 +158,7 @@ class Contract : public ContractGlobals {
     virtual void ethCall(const TxBlock& tx, bool commit = false) {
       this->caller = tx.getFrom();
       this->origin = tx.getFrom();
+      this->value = 0;
       try {
         std::string funcName = tx.getData().substr(0, 4);
         auto func = this->functions.find(funcName);
@@ -178,6 +182,7 @@ class Contract : public ContractGlobals {
     virtual const std::string ethCall(const std::string& data) const {
       this->origin = Address();
       this->caller = Address();
+      this->value = 0;
       try {
         std::string funcName = data.substr(0, 4);
         auto func = this->viewFunctions.find(funcName);
