@@ -16,19 +16,18 @@ class TxBlock {
     std::string data;               ///< Arbitrary data (e.g. for contracts).
     uint64_t chainId;               ///< Chain ID where the tx will be broadcast.
     uint256_t nonce;                ///< Sender address nonce.
-    uint256_t value;                ///< Value in Wei.
-    uint256_t maxPriorityFeePerGas; ///< maxPriorityFeePerGas in Wei (e.g. 21000 Wei).
-    uint256_t maxFeePerGas;         ///< maxFeePerGas in Wei (e.g. 21000 Wei).
-    uint256_t gasLimit;             ///< Gas limit
+    uint256_t value;                ///< Value, in Wei.
+    uint256_t maxPriorityFeePerGas; ///< Max priority fee per gas, as per [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559), in Wei.
+    uint256_t maxFeePerGas;         ///< Max fee per gas, as per [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559), in Wei.
+    uint256_t gasLimit;             ///< Gas limit.
     void* accessList = nullptr;     ///< Access list (not implemented).
-    uint8_t v;                    ///< ECDSA recovery ID.
+    uint8_t v;                      ///< ECDSA recovery ID.
     uint256_t r;                    ///< ECDSA first half.
     uint256_t s;                    ///< ECDSA second half.
 
   public:
     /**
-     * Raw constructor.
-     * Throws on parsing failure.
+     * Raw constructor. Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
      * @param requiredChainId The chain ID of the transaction.
      */
@@ -44,15 +43,16 @@ class TxBlock {
      * @param chainId The chain ID of the transaction.
      * @param nonce The nonce of the transaction.
      * @param value The value of the transaction.
-     * @param maxPriorityFeePerGas The maxPriorityFeePerGas of the transaction.
-     * @param maxFeePerGas The maxFeePerGas of the transaction.
+     * @param maxPriorityFeePerGas The maximum priority fee per gas of the transaction.
+     * @param maxFeePerGas The maximum fee per gas of the transaction.
      * @param gasLimit The gas limit of the transaction.
      * @param privKey The private key used to sign the transaction.
      */
     TxBlock(
       const Address to, const Address from, const std::string data,
       const uint64_t chainId, const uint256_t nonce, const uint256_t value,
-      const uint256_t maxPriorityFeePerGas, const uint256_t maxFeePerGas, const uint256_t gasLimit, const PrivKey privKey
+      const uint256_t maxPriorityFeePerGas, const uint256_t maxFeePerGas,
+      const uint256_t gasLimit, const PrivKey privKey
     );
 
     /// Copy constructor.
@@ -130,7 +130,7 @@ class TxBlock {
 
     /**
      * Create a SHA3 hash of the transaction. Calls `rlpSerialize()` before hashing.
-     * @param (optional) includeSig If `true`, includes the transaction signature (v/r/s).
+     * @param includeSig (optional) If `true`, includes the transaction signature (v/r/s).
      *                   Defaults to `true`.
      * @return The hash of the transaction, in bytes.
      */
@@ -139,13 +139,11 @@ class TxBlock {
     }
 
     /**
-     * Serialize the transaction to a string in RLP format.
-     * [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
-     * @param (optional) includeSig If `true`, includes the transaction signature (v/r/s).
+     * Serialize the transaction to a string in RLP format
+     * ([EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible).
+     * @param includeSig (optional) If `true`, includes the transaction signature (v/r/s).
      *                   Defaults to `true`.
-     * @param (optional) includeFrom If `true`, includes the sender address (for DB operations).
-     *                   Defaults to `false`.
-     * @return The serialized transaction.
+     * @return The serialized transaction string.
      */
     std::string rlpSerialize(bool includeSig = true) const;
 
@@ -183,10 +181,10 @@ class TxBlock {
       return *this;
     }
 
-    /// Equality operator. Checks the transaction hash.
+    /// Equality operator. Checks if both transaction hashes are equal.
     bool operator==(const TxBlock& tx) const { return this->hash() == tx.hash(); }
 
-    /// Inequality operator. Checks the transaction hash.
+    /// Inequality operator. Checks if both transaction hashes are different.
     bool operator!=(const TxBlock& tx) const { return this->hash() != tx.hash(); }
 };
 
@@ -199,15 +197,17 @@ class TxValidator {
     Address from;       ///< Sender address.
     std::string data;   ///< Arbitrary data (e.g. for contracts).
     uint64_t chainId;   ///< Chain ID where the tx will be broadcast.
-    uint64_t nHeight;   ///< Block height where the tx will be broadcast.
+    uint64_t nHeight;   ///< %Block height where the tx will be broadcast.
     uint256_t v;        ///< ECDSA recovery ID.
     uint256_t r;        ///< ECDSA first half.
     uint256_t s;        ///< ECDSA second half.
+
   public:
     /**
      * Raw constructor.
      * Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
+     * @param requiredChainId The chain ID of the transaction.
      */
     TxValidator(const std::string_view& bytes, const uint64_t& requiredChainId);
 
@@ -276,7 +276,7 @@ class TxValidator {
 
     /**
      * Create a SHA3 hash of the transaction. Calls `rlpSerialize()` before hashing.
-     * @param (optional) includeSig If `true`, includes the transaction signature (v/r/s).
+     * @param includeSig (optional) If `true`, includes the transaction signature (v/r/s).
      *                   Defaults to `true`.
      * @return The hash of the transaction, in bytes.
      */
@@ -285,13 +285,11 @@ class TxValidator {
     }
 
     /**
-     * Serialize the transaction to a string in RLP format.
-     * [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
-     * @param (optional) includeSig If `true`, includes the transaction signature (v/r/s).
+     * Serialize the transaction to a string in RLP format
+     * ([EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible).
+     * @param includeSig (optional) If `true`, includes the transaction signature (v/r/s).
      *                   Defaults to `true`.
-     * @param (optional) includeFrom If `true`, includes the sender address (for DB operations).
-     *                   Defaults to `false`.
-     * @return The serialized transaction.
+     * @return The serialized transaction string.
      */
     std::string rlpSerialize(bool includeSig = true) const;
 
@@ -319,10 +317,10 @@ class TxValidator {
       return *this;
     }
 
-    /// Equality operator. Checks the transaction hash.
+    /// Equality operator. Checks if both transaction hashes are equal.
     bool operator==(const TxValidator& tx) const { return this->hash() == tx.hash(); }
 
-    /// Inequality operator. Checks the transaction hash.
+    /// Inequality operator. Checks if both transaction hashes are different.
     bool operator!=(const TxValidator& tx) const { return this->hash() != tx.hash(); }
 };
 

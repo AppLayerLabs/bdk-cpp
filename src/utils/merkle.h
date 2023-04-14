@@ -11,17 +11,18 @@
 #include "utils.h"
 
 /**
- * Custom implementation of a Merkle tree.
- * Adapted from:
+ * Custom implementation of a %Merkle tree. Adapted from:
+ *
  * https://medium.com/coinmonks/implementing-merkle-tree-and-patricia-tree-b8badd6d9591
+ *
  * https://lab.miguelmota.com/merkletreejs/example/
  */
 class Merkle {
   private:
-    std::vector<std::vector<Hash>> tree;  ///< The Merkle tree itself.
+    std::vector<std::vector<Hash>> tree;  ///< The %Merkle tree itself.
 
     /**
-     * Insert a new layer in the Merkle tree.
+     * Insert a new layer in the %Merkle tree.
      * @param layer The list of hashes to convert into a layer.
      * @return The newly created layer.
      */
@@ -30,13 +31,14 @@ class Merkle {
   public:
     /**
      * Constructor.
-     * @param leaves The list of leaves to create the Merkle tree from.
+     * @param leaves The list of leaves to create the %Merkle tree from.
      */
     Merkle(const std::vector<Hash>& leaves);
 
     /**
-     * Constructor for %Block transactions.
-     * @param txs The list of transactions to create the Merkle tree from.
+     * Constructor for block transactions.
+     * TxType would be one of the enum types described in rdPoS.
+     * @param txs The list of transactions to create the %Merkle tree from.
      */
     template <typename TxType> Merkle(const std::vector<TxType>& txs) {
       // Mount the base leaves
@@ -54,22 +56,32 @@ class Merkle {
     /// Getter for `tree`.
     inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree; }
 
-    /// Get the root of the Merkle tree.
-    inline const Hash getRoot() const { if (this->tree.back().size() == 0) { return Hash(); } return this->tree.back().front(); }
+    /// Getter for `tree`, but returns only the root.
+    inline const Hash getRoot() const {
+      if (this->tree.back().size() == 0) return Hash();
+      return this->tree.back().front();
+    }
 
-    /// Get the leaves of the Merkle tree.
+    /// Getter for `tree`, but returns only the leaves.
     inline const std::vector<Hash>& getLeaves() const { return this->tree.front(); }
 
     /**
-     * Get the proof for a given leaf in the Merkle tree.
-     * @param leafIndex The index of the leaf.
+     * Get the proof for a given leaf in the %Merkle tree.
+     * @param leafIndex The index of the leaf to get the proof from.
      *                  Considers only the leaf layer (e.g. {A, B, C, D, E, F},
      *                  `getProof(2)` would get the proof for leaf C).
      * @return A list of proofs for the leaf.
      */
     const std::vector<Hash> getProof(const uint64_t leafIndex) const;
 
-    static bool verify(const std::vector<Hash> &proof, const Hash& leaf, const Hash& root);
+    /**
+     * Verify a leaf node's data integrity against its proof and the root hash.
+     * @param proof The leaf's proof list as per getProof().
+     * @param leaf The leaf to verify.
+     * @param root The tree's root.
+     * @return `true` if the leaf node is valid, `false` otherwise.
+     */
+    static bool verify(const std::vector<Hash>& proof, const Hash& leaf, const Hash& root);
 };
 
 /**

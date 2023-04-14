@@ -10,13 +10,10 @@
 
 #include "strings.h"
 
-/**
- * Custom Pseudo Random Number Generator (RNG) for use in rdPoS.
- */
-
+/// Custom Pseudo-Random Number Generator (PRNG) for use in rdPoS.
 class RandomGen {
   private:
-    Hash seed;  ///< RNG seed.
+    Hash seed;  ///< The seed used by the generator.
     mutable std::mutex seedLock;  ///< Mutex for managing read/write access to the seed.
 
   public:
@@ -46,8 +43,9 @@ class RandomGen {
     static inline uint256_t min() { return std::numeric_limits<result_type>::min(); }
 
     /**
-     * Shuffle the elements in a vector.
-     * @param v A vector of any given type.
+     * Shuffle the elements of a given vector.
+     * Vector is a std::vector of any given type.
+     * @param v The vector to shuffle.
      */
     template <typename Vector> void shuffle(Vector& v) {
       std::lock_guard lock(seedLock);
@@ -59,7 +57,8 @@ class RandomGen {
       }
     }
 
-    uint256_t operator()(); ///< Generate and return a new random seed.
+    /// Call operator that generates and returns a new random seed.
+    uint256_t operator()();
 };
 
 #endif  // RANDOMGEN_H

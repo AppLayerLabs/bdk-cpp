@@ -28,6 +28,7 @@ using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
 /**
+ * TODO: this isn't working on Doxygen
  * Helper function for debugging failed operations over HTTP.
  * @param cl The class where the operation failed.
  * @param func The function where the operation failed.
@@ -49,15 +50,19 @@ void fail(std::string_view cl, std::string_view func, boost::beast::error_code e
  * - grpcClient = "gRPCClient"
  * - utils = "Utils"
  * - httpServer = "HTTPServer"
- * - rdpos = "rdPoS"
- * - ABI = "ABI"
- * - P2P::ClientSession = "P2P::ClientSession"
- * - P2P::Server = "P2P::Server"
- * - P2P::ServerListener = "P2P::ServerListener"
- * - P2P::ServerSession = "P2P::ServerSession"
- * - P2P::Manager = "P2P::Manager"
- * - P2P::Parser = "P2P::Parser" <- Part of P2P::Manager
+ * - JsonRPCEncoding = "JsonRPC::Encoding"
+ * - JsonRPCDecoding = "JsonRPC::Decoding"
+ * - %rdPoS = "rdPoS"
+ * - %ABI = "ABI"
+ * - P2PClientSession = "P2P::ClientSession"
+ * - P2PServer = "P2P::Server"
+ * - P2PServerListener = "P2P::ServerListener"
+ * - P2PServerSession = "P2P::ServerSession"
+ * - P2PManager = "P2P::Manager"
+ * - P2PParser = "P2P::Parser"
+ * - P2PDiscoveryWorker = "P2P::DiscoveryWorker"
  * - contractManager = "ContractManager"
+ * - syncer = "Syncer"
  */
 namespace Log {
   const std::string blockchain = "Blockchain";
@@ -90,40 +95,41 @@ enum Networks { Mainnet, Testnet, LocalTestnet };
 
 /**
  * Abstraction of balance and nonce for a single account.
- * Used with %Address on %State in an unordered_map to track native accounts.
- * See `nativeAccounts` on %State for more info.
+ * Used with Address on State in an unordered_map to track native accounts.
+ * See `nativeAccounts` on State for more info.
  */
 struct Account {
-  uint256_t balance = 0;
-  uint64_t nonce = 0;
-  /// Default Constructor
+  uint256_t balance = 0;  ///< Account balance.
+  uint64_t nonce = 0;     ///< Account nonce.
+
+  /// Default Constructor.
   Account() {}
 
-  /// Copy Constructor
+  /// Copy Constructor.
   Account(const uint256_t& balance, const uint64_t& nonce) : balance(balance), nonce(nonce) {}
 
-  /// Move Constructor
+  /// Move Constructor.
   Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
 };
 
 /// Namespace for utility functions.
 namespace Utils {
   /**
-   * Log a string to a file called `log.txt`.
+   * %Log a string to a file called `log.txt`.
    * @param str The string to log.
    */
   void logToFile(std::string_view str);
 
   /**
-   * Log a string to a file called `debug.txt`.
-   * @param pfx The module prefix where this is being called (see %Log).
+   * %Log a string to a file called `debug.txt`.
+   * @param pfx The module prefix where this is being called (see Log).
    * @param func The function where this is being called.
    * @param data The contents to be stored.
    */
   void logToDebug(std::string_view pfx, std::string_view func, std::string_view data);
 
   /**
-   * Hash a given input using SHA3.
+   * %Hash a given input using SHA3.
    * @param input The string to hash.
    * @return The SHA3-hashed string.
    */
@@ -232,7 +238,7 @@ namespace Utils {
    * @param charAmount The total amount of characters the resulting string should have.
    *                   If this is less than the string's original size,
    *                   the string will remain untouched.
-   *                   e.g. `padLeft("aaa", 5)` = **"00aaa"**, `padLeft("aaa", 2)` = **"aaa"**
+   *                   e.g. `padLeft("aaa", 5)` = "00aaa", `padLeft("aaa", 2)` = "aaa"
    * @param sign (optional) The character to use as padding. Defaults to '0'.
    * @return The padded string.
    */
@@ -244,7 +250,7 @@ namespace Utils {
    * @param charAmount The total amount of characters the resulting string should have.
    *                   If this is less than the string's original size,
    *                   the string will remain untouched.
-   *                   e.g. `padRight("aaa", 5)` = **"aaa00"**, `padRight("aaa", 2)` = **"aaa"**
+   *                   e.g. `padRight("aaa", 5)` = "aaa00", `padRight("aaa", 2)` = "aaa"
    * @param sign (optional) The character to use as padding. Defaults to '0'.
    * @return The padded string.
    */
@@ -252,8 +258,8 @@ namespace Utils {
 
   /**
    * Convert a big-endian byte-stream represented on a templated collection to a templated integer value.
-   * `_In` will typically be either std::string or bytes.
-   * `T` will typically by unsigned, u160, u256 or bigint.
+   * `In` will typically be either std::string or bytes.
+   * `T` will typically be unsigned, u160, u256 or bigint.
    * @param bytes The byte stream to convert.
    * @return The converted integer type.
    */
@@ -283,121 +289,36 @@ namespace Utils {
 
   /**
    * Load HTTP port settings from a config file. Creates the file if it doesn't exist.
-   * @note Organize every "ruleset read-only" as an "Settings" defined class to avoid variable redefinition
+   * TODO: Organize every "ruleset read-only" as an "Settings" defined class to avoid variable redefinition
    * @return A JSON object with the settings.
    */
   json readConfigFile();
 
-  // DEPRECATED FUNCTIONS BELOW
-
-  /**
-   * Check if a string is in hex format.
-   * @deprecated
-   * Please use Hex when working with strings of behaviour type Hex
-   *
-   * @param input The string to check.
-   * @param strict (optional) If `true`, requires the "0x" prefix. Defaults to `false`.
-   * @return `true` if the string is a hex string, `false` otherwise.
-   */
-  bool isHex(std::string_view input, bool strict = false);
-
-  /**
-   * Convert an UTF-8 string to a hex string.
-   * @deprecated
-   * Please use Hex::fromUTF8 and avoid using pure strings
-   * @param input The UTF-8 string to convert.
-   * @return The converted hex string.
-   */
-  std::string utf8ToHex(const std::string_view input);
-
-  /**
-   * Convert a bytes string to a hex string.
-   * @deprecated
-   * Please use Hex when working with strings of behaviour type Hex
-   *
-   * @param b The bytes string to convert
-   * @return The converted hex string.
-   */
-  std::string bytesToHex(const std::string_view b);
-
-
-  /**
-   * Remove the "0x" prefix from a hex string and make it all lowercase.
-   * Same as `stripHexPrefix()` + `toLower()`.
-   * @deprecated
-   * Please use Hex when working with strings of behaviour type Hex
-   * @warning
-   * This function has an unsafe string manipulation!
-   *
-   * @param str The hex string to patch.
-   */
-  std::string patchHex(const std::string& str);
-
-  /**
-   * Remove the "0x" prefix from a hex string.
-   * @deprecated
-   * This function is unsafe due to modifying the string by reference of an Hex
-   * @param str The hex string to remove the "0x" from.
-   */
-  void stripHexPrefix(std::string& str);
-
-  /**
-   * Convert a given hex string to a 256-bit unsigned integer.
-   * @deprecated
-   * Please use Hex::getUint
-   * @param hex The hex string to convert.
-   * @return The converted unsigned 256-bit integer.
-   */
-  uint256_t hexToUint(std::string& hex);
-
-  /**
-   * Convert a hex string to a bytes string.
-   * @deprecated
-   * Please use Hex::bytes
-   *
-   * @param hex The hex string to convert.
-   * @return The converted bytes string.
-   */
-  std::string hexToBytes(std::string_view hex);
-
   /**
    * Tells how many bytes are required to store a given integer.
-   * @param _i The integer to check.
+   * @param i The integer to check.
    * @return The number of bytes required to store the integer.
    */
-  template <class T>
-  inline unsigned bytesRequired(T _i)
-  {
-  	static_assert(std::is_same<bigint, T>::value || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported"); //bigint does not carry sign bit on shift
-  	unsigned i = 0;
-  	for (; _i != 0; ++i, _i >>= 8) {}
-  	return i;
+  template <class T> inline unsigned bytesRequired(T i) {
+    // bigint does not carry sign bit on shift
+    static_assert(std::is_same<bigint, T>::value || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported");
+    unsigned ic = 0;
+    for (; i != 0; ++ic, i >>= 8) {}
+    return i;
   }
 
   /**
-   * Convert Unsigned Integer to Bytes, takes uint as little endian
-   * differently than the uintToBytes functions, there is no padding.
-   * @param _i The integer to convert.
+   * Convert an unsigned integer to bytes.
+   * Takes uint as little endian, differently than the uintToBytes functions, there is no padding.
+   * @param i The integer to convert.
    * @return The converted bytes string.
    */
-  template <class _T> std::string uintToBytes(_T _i)
-  {
-    std::string ret(bytesRequired(_i), 0x00);
+  template <class T> std::string uintToBytes(T i) {
+    std::string ret(bytesRequired(i), 0x00);
     uint8_t* b = reinterpret_cast<uint8_t*>(&ret.back());
-    for (; _i; _i >>= 8)
-      *(b--) = (uint8_t)(_i & 0xff);
+    for (; i; i >>= 8) *(b--) = (uint8_t)(i & 0xff);
     return ret;
   }
-
-  /**
-   * Check if an ECDSA signature is valid.
-   * @deprecated Moved to ecdsa
-   * @param r The first half of the ECDSA signature.
-   * @param s The second half of the ECDSA signature.
-   * @param v The recovery ID.
-   * @return `true` if the signature is valid, `false` otherwise.
-   */
-  bool verifySig(const uint256_t& r, const uint256_t& s, const uint8_t& v);
 };
 
 #endif  // UTILS_H

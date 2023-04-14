@@ -64,9 +64,21 @@ Options::Options(
   o.close();
 }
 
+const PrivKey Options::getValidatorPrivKey() const {
+  json options;
+  std::ifstream i(rootPath + "/options.json");
+  i >> options;
+  i.close();
+  if (options.contains("privKey")) {
+    const auto privKey = options["privKey"].get<std::string>();
+    return PrivKey(Hex::toBytes(privKey));
+  }
+  return PrivKey();
+}
+
 Options Options::fromFile(const std::string& rootPath) {
-  /// Check if rootPath is valid
   try {
+    // Check if rootPath is valid
     if (!std::filesystem::exists(rootPath + "/options.json")) {
       std::filesystem::create_directory(rootPath);
       return Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/0.0.1", 1, 8080, 8080, 8081, {});
@@ -113,14 +125,4 @@ Options Options::fromFile(const std::string& rootPath) {
     throw "Could not create blockchain directory.";
   }
 }
-const PrivKey Options::getValidatorPrivKey() const {
-  json options;
-  std::ifstream i(rootPath + "/options.json");
-  i >> options;
-  i.close();
-  if (options.contains("privKey")) {
-    const auto privKey = options["privKey"].get<std::string>();
-    return PrivKey(Hex::toBytes(privKey));
-  }
-  return PrivKey();
-}
+

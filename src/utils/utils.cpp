@@ -8,7 +8,7 @@ void fail(std::string_view cl, std::string_view func, boost::beast::error_code e
 }
 
 void Utils::logToFile(std::string_view str) {
-  /// Lock to prevent multiple memory write
+  // Lock to prevent multiple memory writes
   std::lock_guard lock(log_lock);
   std::ofstream log("log.txt", std::ios::app);
   log << str << std::endl;

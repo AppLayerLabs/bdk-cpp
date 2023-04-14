@@ -1,6 +1,6 @@
 #include "ecdsa.h"
 
-secp256k1_context const* Secp256k1::getCtx() {
+const secp256k1_context* Secp256k1::getCtx() {
   static std::unique_ptr<secp256k1_context, ContextDeleter> s_ctx{
     secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY)
   };

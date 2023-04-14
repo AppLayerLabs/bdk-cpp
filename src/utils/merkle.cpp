@@ -39,11 +39,11 @@ const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
   return ret;
 }
 
-bool Merkle::verify(const std::vector<Hash> &proof, const Hash& leaf, const Hash& root) {
+bool Merkle::verify(const std::vector<Hash>& proof, const Hash& leaf, const Hash& root) {
   Hash computedHash = leaf;
-  for (const Hash& hash : proof) {
-    computedHash = Utils::sha3(std::min(computedHash.get(), hash.get()) + std::max(computedHash.get(), hash.get()));
-  }
+  for (const Hash& hash : proof) computedHash = Utils::sha3(
+    std::min(computedHash.get(), hash.get()) + std::max(computedHash.get(), hash.get())
+  );
   return computedHash == root;
 }
 

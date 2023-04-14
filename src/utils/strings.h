@@ -7,10 +7,10 @@
 #include "utils.h"
 
 /**
- * Abstraction of a fixed-size string.
- * e.g. "FixedStr<10>" would have *exactly* 10 characters, no more, no less.
+ * Abstraction of a fixed-size string (`FixedStr<10>` would have
+ * *exactly* 10 characters, no more, no less).
  * This class is used as a base for both classes inheriting it
- * (e.g. Hash, Signature, etc.) and aliases (e.g. PrivKey, Pubkey, etc.).
+ * (e.g. Hash, Signature, etc.) and aliases (e.g. PrivKey, PubKey, etc.).
  */
 template <unsigned N> class FixedStr {
   protected:
@@ -32,47 +32,41 @@ template <unsigned N> class FixedStr {
     /// Move constructor.
     inline FixedStr(FixedStr&& other) noexcept { this->data = std::move(other.data); }
 
-    /// @returns true if this is the empty value (all zeroes)
-    explicit operator bool() const { return std::any_of(data.begin(), data.end(), [](uint8_t _b) { return _b != 0; }); }
-
     /// Getter for `data`.
     inline const std::string& get() const { return this->data; }
 
     /// Getter for `data`, but returns the raw C-style string.
     inline const char* raw() const { return this->data.data(); }
 
-    /// Getter for `data`, but returns the data in hex format, non-strict hex.
+    /**
+     * Getter for `data`, but returns the data in hex format.
+     * @param strict If `true`, returns the value with an appended "0x" prefix.
+     */
     inline const Hex hex(bool strict = false) const { return Hex::fromBytes(this->data, strict); }
 
     /**
      * Getter for `data`, but returns a read-only copy of the data string.
-     * @param size (optional) Number of chars to get. Defaults to the whole string.
-     * @param offset (optional) Index to start getting chars from. Defaults to start of the string.
+     * @param pos (optional) Index to start getting chars from. Defaults to the start of the string.
+     * @param len (optional) Number of chars to get. Defaults to the whole string.
      * @return A string view of the data string.
      */
     inline const std::string_view view(size_t pos = 0, size_t len = N) const {
       return std::string_view(&this->data[pos], len);
     }
 
-    /**
-     * Check if the data string is empty.
-     * @returns `true` if the data string is empty, `false` otherwise.
-     */
-    inline bool empty() const { return this->data.empty(); }
-
     /// Get the data string's size.
     inline size_t size() const { return this->data.size(); }
 
-    /// Get an iterator poiinting to the start of the data string.
+    /// Get an iterator pointing to the start of the data string.
     inline const std::string::const_iterator cbegin() const { return this->data.cbegin(); }
 
-    /// Get an iterator poiinting to the end of the data string.
+    /// Get an iterator pointing to the end of the data string.
     inline const std::string::const_iterator cend() const { return this->data.cend(); }
 
-    /// Equality operator.
+    /// Equality operator. Checks if both internal strings are the same.
     inline bool operator==(const FixedStr& other) const { return (this->data == other.data); }
 
-    /// Inquality operator.
+    /// Inequality operator. Checks if both internal strings are different.
     inline bool operator!=(const FixedStr& other) const { return (this->data != other.data); }
 
     /// Lesser operator. Does a lexicographical check on both data strings.
@@ -99,13 +93,19 @@ template <unsigned N> class FixedStr {
 
     /// Indexing operator.
     inline const char& operator[](const size_t pos) const { return data[pos]; }
+
+    /**
+     * Operator for checking the string's "real emptyness" (all zeroes).
+     * @return `true` if string is an empty value, `false` otherwise.
+     */
+    explicit operator bool() const { return std::any_of(data.begin(), data.end(), [](uint8_t _b) { return _b != 0; }); }
 };
 
 /// Abstraction of a 32-byte hash. Inherits `FixedStr<32>`.
 class Hash : public FixedStr<32> {
   public:
-    using FixedStr<32>::FixedStr; ///< Using parent constructor.
-    using FixedStr<32>::operator=; ///< Using parent operator=.
+    using FixedStr<32>::FixedStr; // Using parent constructor
+    using FixedStr<32>::operator=; // Using parent operator=
 
     /**
      * Constructor.
@@ -127,7 +127,7 @@ class Hash : public FixedStr<32> {
 /// Abstraction of a 65-byte ECDSA signature. Inherits `FixedStr<65>`.
 class Signature : public FixedStr<65> {
   public:
-    using FixedStr<65>::FixedStr; ///< Using parent constructor.
+    using FixedStr<65>::FixedStr; // Using parent constructor
 
     /// Get the first half (32 bytes) of the signature.
     uint256_t r() const;
@@ -135,28 +135,30 @@ class Signature : public FixedStr<65> {
     /// Get the second half (32 bytes) of the signature.
     uint256_t s() const;
 
-    /// Get the recovery ID (1 byte).
+    /// Get the recovery ID (1 byte) of the signature.
     uint8_t v() const;
 };
 
 /// Abstraction for a single 20-byte address (e.g. "1234567890abcdef..."). Inherits `FixedStr<20>`.
 class Address : public FixedStr<20> {
   public:
-    using FixedStr<20>::operator==; ///< Using parent operator.
-    using FixedStr<20>::operator!=; ///< Using parent operator.
-    using FixedStr<20>::operator<;  ///< Using parent operator.
-    using FixedStr<20>::operator<=; ///< Using parent operator.
-    using FixedStr<20>::operator>;  ///< Using parent operator.
-    using FixedStr<20>::operator>=; ///< Using parent operator.
-    using FixedStr<20>::operator=;  ///< Using parent operator.
+    // Using all parent operators.
+    using FixedStr<20>::operator==;
+    using FixedStr<20>::operator!=;
+    using FixedStr<20>::operator<;
+    using FixedStr<20>::operator<=;
+    using FixedStr<20>::operator>;
+    using FixedStr<20>::operator>=;
+    using FixedStr<20>::operator=;
 
+    /// Empty constructor for a zero address ("0x0000000000000000000000000000000000000000").
     inline Address() { this->data.resize(20, 0x00); };
+
     /**
      * Copy constructor.
      * @param add The address itself.
      * @param inBytes If `true`, treats the input as a raw bytes string.
      */
-    /// Copy constructor that accepts a string_view.
     Address(const std::string_view add, bool inBytes);
 
     /**
@@ -173,13 +175,14 @@ class Address : public FixedStr<20> {
     inline Address(Address&& other) : FixedStr<20>(std::move(other.data)) {};
 
     /**
-     * Convert the Address to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
-     * @return A copy of the checksummed Address as a Hex object.
+     * Convert the address to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
+     * @return A copy of the checksummed address as a Hex object.
      */
     Hex toChksum() const;
 
     /**
-     * Check if a given Address string is valid. If the address has both upper *and* lowercase letters, will also check the checksum.
+     * Check if a given address string is valid.
+     * If the address has both upper *and* lowercase letters, will also check the checksum.
      * @param add The address to be checked.
      * @param inBytes If `true`, treats the input as a raw bytes string.
      * @return `true` if the address is valid, `false` otherwise.
@@ -187,9 +190,10 @@ class Address : public FixedStr<20> {
     static bool isValid(const std::string_view add, bool inBytes);
 
     /**
-     * Check if an Address string is checksummed, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
+     * Check if an address string is checksummed, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
      * Uses `toChksum()` internally. Does not alter the original string.
      * @param add The string to check.
+     * @return `true` if the address is checksummed, `false` otherwise.
      */
     static bool isChksum(const std::string_view add);
 
