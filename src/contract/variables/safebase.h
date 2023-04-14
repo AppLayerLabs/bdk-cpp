@@ -28,7 +28,7 @@ class SafeBase {
     /// Boolean to check if the variable is already registered within the contract
     mutable bool registered = false;
     /// Should always be overridden by the child class
-    inline virtual void check() const {};
+    inline virtual void check() const { throw std::runtime_error("Derived Class from SafeBase does not override check()"); };
 
     inline bool isRegistered() const { return registered; }
     inline Contract* getOwner() const { return owner; }
@@ -48,8 +48,9 @@ class SafeBase {
     SafeBase(SafeBase& other) : owner(nullptr) {};
 
     /// Should always be overridden by the child class
-    inline virtual void commit() { registered = false; };
-    inline virtual void revert() const { registered = false; };
+    /// Child class should always do this->registered = false; at the end of commit() and revert()
+    inline virtual void commit() {  throw std::runtime_error("Derived Class from SafeBase does not override commit()"); };
+    inline virtual void revert() const { throw std::runtime_error("Derived Class from SafeBase does not override check()"); };
 };
 
 #endif // SAFEBASE_H

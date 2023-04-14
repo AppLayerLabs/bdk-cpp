@@ -77,7 +77,7 @@ std::vector<DBEntry> DB::getBatch(
     for (it->Seek(pfx); it->Valid(); it->Next()) {
       if (it->key().starts_with(pfx)) {
         auto keySlice = it->key();
-        keySlice.remove_prefix(2);
+        keySlice.remove_prefix(pfx.size());
         ret.emplace_back(keySlice.ToString(), it->value().ToString());
       }
     }
@@ -89,7 +89,7 @@ std::vector<DBEntry> DB::getBatch(
   for (it->Seek(pfx); it->Valid(); it->Next()) {
     if (it->key().starts_with(pfx)) {
       auto keySlice = it->key();
-      keySlice.remove_prefix(2);
+      keySlice.remove_prefix(pfx.size());
       for (const std::string& key : keys) {
         if (keySlice == leveldb::Slice(key)) {
           ret.emplace_back(keySlice.ToString(), it->value().ToString());

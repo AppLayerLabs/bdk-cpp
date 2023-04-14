@@ -1,6 +1,7 @@
 #include "rdpos.h"
 #include "storage.h"
 #include "state.h"
+#include "../contract/contractmanager.h"
 #include "../utils/block.h"
 
 rdPoS::rdPoS(const std::unique_ptr<DB>& db,
@@ -60,6 +61,8 @@ rdPoS::~rdPoS() {
     validatorsBatch.puts.emplace_back(Utils::uint64ToBytes(index), validator.get());
     ++index;
   }
+  this->db->putBatch(validatorsBatch, DBPrefix::validators);
+
 }
 
 bool rdPoS::validateBlock(const Block& block) const {

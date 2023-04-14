@@ -10,7 +10,7 @@
 
 /// TODO: somehow figure out a way to make loop (for (const auto& [key, value] : map) { ... }) work with this class
 template<typename Key, typename T>
-class SafeUnorderedMap : public SafeBase {
+  class SafeUnorderedMap : public SafeBase {
   private:
     std::unordered_map<Key, T, SafeHash> map;
     mutable std::unique_ptr<std::unordered_map<Key, T, SafeHash>> mapPtr;
@@ -97,8 +97,8 @@ class SafeUnorderedMap : public SafeBase {
 
     /// This returns begin and end of the tmp map, not the original map.
     /// Can be used within a find() + end() combo, iterating over it DOES NOT load temporary values.
-    inline std::unordered_map<Key,T>::const_iterator begin() const noexcept { check(); return mapPtr->begin(); }
-    inline std::unordered_map<Key,T>::const_iterator end() const noexcept { check(); return mapPtr->end(); }
+    inline std::unordered_map<Key,T>::iterator begin() const noexcept { check(); return mapPtr->begin(); }
+    inline std::unordered_map<Key,T>::iterator end() const noexcept { check(); return mapPtr->end(); }
 
     inline bool empty() const noexcept { check(); return (map.empty() || mapPtr->empty()); }
     /// TODO: This can only be used within a view/const function
@@ -314,14 +314,14 @@ class SafeUnorderedMap : public SafeBase {
     }
 
     /// iterator find(const Key& key);
-    const typename std::unordered_map<Key, T, SafeHash>::iterator find(const Key& key) {
+    typename std::unordered_map<Key, T, SafeHash>::iterator find(const Key& key) {
       checkKeyAndCopy(key);
       markAsUsed();
       return mapPtr->find(key);
     }
 
     /// const_iterator find(const Key& key) const;
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
+    const typename std::unordered_map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
       checkKeyAndCopy(key);
       return mapPtr->find(key);
     }

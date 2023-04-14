@@ -12,7 +12,8 @@
 #include "../utils/utils.h"
 #include "../utils/safehash.h"
 
-class Contract; // Forward declaration.
+/// Forward Declaration
+class rdPoS;
 
 /**
  * Addresses for the contracts that are deployed at protocol level
@@ -24,7 +25,8 @@ class Contract; // Forward declaration.
  */
 
 const std::unordered_map<std::string,Address> ProtocolContractAddresses = {
-  {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"), true)} // Sha3("randomDeterministicProofOfStake").substr(0,20)
+  {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"), true)},// Sha3("randomDeterministicProofOfStake").substr(0,20)
+  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"), true)} // Sha3("ContractManager").substr(0,20).
 };
 
 
@@ -34,32 +36,30 @@ const std::unordered_map<std::string,Address> ProtocolContractAddresses = {
  * Also acts as an access point for contracts to access each other.
  */
 
-class ContractManager {
+class ContractManager : Contract {
   private:
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<Contract>, SafeHash> contracts;
 
-    /// Pointer to the database.
-    const std::unique_ptr<DB>& db;
+    /// Reference back to the rdPoS contract.
+    std::unique_ptr<rdPoS>& rdpos;
 
   public:
     // TODO: constructor and destructor are not implemented because we don't know how contract loading/saving will work yet
 
     /**
      * Constructor. Automatically loads contracts from the database and deploys them.
-     * @param db Pointer to the database.
+     * @param db Pointer to the database.    Contract(const std::string& contractName,
+     * const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db
      */
-    ContractManager(const std::unique_ptr<DB>& db) : db(db) {}
+    ContractManager(const std::unique_ptr<DB>& db, std::unique_ptr<rdPoS>& rdpos) :
+      Contract("ContractManager", ProtocolContractAddresses.at("ContractManager"), Address(), 0, db), rdpos(rdpos) {
+      /// Load Contracts from DB.
+    }
 
     /// Destructor. Automatically saves contracts to the database before wiping them.
     ~ContractManager() {};
 
-    /**
-     * Get a contract object from the deployed list.
-     * @param address The address where the contract is deployed.
-     * @return The contract object, or a nullptr if contract is not found.
-     */
-    const std::unique_ptr<Contract>& getContract(Address address) const;
 
     /**
      * Process a transaction that calls a function from a given contract.
