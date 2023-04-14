@@ -304,7 +304,7 @@ namespace Utils {
     static_assert(std::is_same<bigint, T>::value || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported");
     unsigned ic = 0;
     for (; i != 0; ++ic, i >>= 8) {}
-    return i;
+    return ic;
   }
 
   /**

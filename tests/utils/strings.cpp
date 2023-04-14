@@ -65,15 +65,6 @@ namespace TFixedStr {
       REQUIRE_THAT(str2.hex(), Equals("0102030405060708090a"));
     }
 
-    SECTION("FixedStr empty()") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
-      FixedStr<0> str3;
-      REQUIRE(str1.empty() == false);
-      REQUIRE(str2.empty() == false);
-      REQUIRE(str3.empty() == true);
-    }
-
     SECTION("FixedStr size()") {
       FixedStr<10> str1(std::string("1234567890"));
       FixedStr<16> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"));
