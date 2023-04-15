@@ -35,14 +35,9 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Cannot connect to more than " + std::to_string(maxConnections_) + " clients");
       return;
     }
-    /// TODO: **URGENT** improve the client thread.
-    /// Some problems here: ioc lifetime might be shorther than ClientSession
-    /// The thread can still be running after the manager is destroyed *undefined behavior*
-    /// ClientSession doesn't die 5% of the time, no idea why, not sure how to reproduce (dangling threads!!!)
-    /// But stressing out the Manager (let's say 200 connections) could give us a few tips
-    /// Because of the reasons above, clientSessionsCount have been moved outside of the thread.
-    /// ioc.stop() is being called immediatelly, and the shared_ptr within the unordered_map is being deleted immediately.
-    /// The current solution of launching a new thread for each client is not ideal, but it works (for now, dangling threads can be problematic on production)
+    /// TODO: improve the client thread.
+    /// Make clientThread usable within a thread pool context.
+    /// PS: Using a thread pool causes .run() to not get executed (???).
     std::thread clientThread([&, host, port] {
       net::io_context ioc;
       auto client = std::make_shared<ClientSession>(ioc, host, port, *this, this->threadPool);
@@ -50,7 +45,8 @@ namespace P2P {
       ioc.run();
       Utils::logToFile("ClientSession thread exitted");
       ioc.stop();
-      unregisterSession(client);
+      /// Calling unregisterSessions here causes a deadlock (???)
+      /// unregisterSession(client);
     });
     clientThread.detach();
   }
