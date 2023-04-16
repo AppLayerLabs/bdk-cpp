@@ -1,4 +1,4 @@
-# subnetooor
+# orbitersdk
 
 Sparq subnet source code.
 
@@ -25,9 +25,9 @@ For **Debian 11 Bullseye or newer**:
 * **Debian 11 Bullseye and older**: CMake version from repos is too old (3.18.4), has to be installed manually from [their website](https://cmake.org/download)
 
 ## Compiling
-* Clone the project: `git clone https://github.com/subnetoors/subnetooor`
+* Clone the project: `git clone https://github.com/subnetoors/orbitersdk`
 * Go to the project's root folder, create a "build" folder and change to it:
-  * `cd subnetooor && mkdir build && cd build`
+  * `cd orbitersdk && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
   * Use `-DCMAKE_BUILD_TYPE=RelWithDebInfo` to build with debug symbols
   * Use `-DBUILD_TESTS=OFF` to disable unit testing compilation (this is ON by default)

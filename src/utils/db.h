@@ -1,92 +1,162 @@
 #ifndef DB_H
 #define DB_H
 
-#include <iostream>
+#include <cstring>
+#include <filesystem>
+#include <mutex>
+#include <string>
+#include <vector>
 
 #include <leveldb/db.h>
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include <leveldb/write_batch.h>
 
 #include "utils.h"
 
 /**
- * As subnets are meant to be run inside a sandbox, we can't create our own DB.
- * We have to use the DB that AvalancheGo provides for us through gRPC.
- * It's a simple key/value store database, similar to LevelDB, but it allows
- * for writing in batch and reading all keys using a given prefix.
- * Database structure is as follows:
- * 0001 -- Key: Block Hash            Value: Block
- * 0002 -- Key: Block nHeight         Value: Block Hash
- * 0003 -- Key: Tx Hash               Value: Transactions
- * 0004 -- Key: Address               Value: Native Balance + nNonce
- * 0005 -- ERC20 Tokens/State
- * 0006 -- ERC721 Tokens/State
- * 0007 -- Key: Tx Hash               Value: Block Hash
+ * Namespace for accessing database prefixes. Values are:
+ * - blocks = "0001"
+ * - blockHeightMaps = "0002"
+ * - nativeAccounts = "0003"
+ * - erc20Tokens = "0004"
+ * - erc721Tokens = "0005"
+ * - txToBlocks = "0006"
+ * - validators = "0007"
+ * - contracts = "0008"
+ * - rdPoS = "0009"
  */
-
 namespace DBPrefix {
-  const std::string blocks = "0001";
-  const std::string blockHeightMaps = "0002";
-  const std::string transactions = "0003";
-  const std::string nativeAccounts = "0004";
-  const std::string erc20Tokens = "0005";
-  const std::string erc721Tokens = "0006";
-  const std::string TxToBlocks = "0007";
-  const std::string validators = "0008";
-}
+  const std::string blocks = std::string("\x00\x01", 2);
+  const std::string blockHeightMaps = std::string("\x00\x02", 2);
+  const std::string nativeAccounts = std::string("\x00\x03", 2);
+  const std::string erc20Tokens = std::string("\x00\x04", 2);
+  const std::string erc721Tokens = std::string("\x00\x05", 2);
+  const std::string txToBlocks = std::string("\x00\x06", 2);
+  const std::string validators = std::string("\x00\x07", 2);
+  const std::string rdPoS = std::string("\x00\x08", 2);
+  const std::string contracts = std::string("\x00\x09", 2);
+  const std::string contractManager = std::string("\x00\x10", 2);
+};
 
+/// Struct for a database connection/endpoint.
 struct DBServer {
-  std::string host;
-  std::string version;
+  std::string host;     ///< Database host/address.
+  std::string version;  ///< Database version.
+
+  /**
+   * Constructor.
+   * @param host The database's host/address.
+   * @param version The database's version string.
+   */
   DBServer(std::string host, std::string version) : host(host), version(version) {};
 };
 
+/// Struct for a database entry (key/value).
 struct DBEntry {
-  std::string key;
-  std::string value;
+  std::string key;    ///< Entry key.
+  std::string value;  ///< Entry value.
+
+  /**
+   * Constructor.
+   * @param key The entry's key.
+   * @param value The entry's value.
+   */
   DBEntry(std::string key, std::string value) : key(key), value(value) {};
 };
 
-struct WriteBatchRequest {
-  std::vector<DBEntry> puts;
-  std::vector<std::string> dels;
-  int64_t id;
-  bool continues;
+/**
+ * Struct for a database batch request.
+ * Several requests can be grouped here to be issued at once.
+ */
+struct DBBatch {
+  std::vector<DBEntry> puts;      ///< List of entries to insert.
+  std::vector<std::string> dels;  ///< List of entries to delete.
+  uint64_t id;                    ///< Unique identifier for the batch request.
+  bool continues; ///< Indicates if writing will continue after gRPC request limit of *2^32 bytes*.
 };
 
-class DBService {
+/**
+ * Abstraction of a [LevelDB](https://github.com/google/leveldb) database.
+ *
+ * As subnets are meant to be run inside a sandbox, we can't create our own database.
+ * We have to use the one that AvalancheGo provides for us through gRPC.
+ *
+ * Keys can begin with prefixes that separate entries in several categories (see DBPrefix).
+ */
+class DB {
   private:
-    leveldb::DB* db;
-    leveldb::Options options;
-    std::mutex batchLock;
-    boost::filesystem::path dbPath;
+    leveldb::DB* db;              ///< Pointer to the database object itself.
+    leveldb::Options opts;        ///< Struct with options for managing the database.
+    mutable std::mutex batchLock; ///< Mutex for managing read/write access to batch operations.
 
   public:
-    DBService(std::string path) {
-      boost::replace_all(path, "/", "");
-      options.create_if_missing = true;
-      dbPath = boost::filesystem::current_path().string() + std::string("/") + path;
-      auto status = leveldb::DB::Open(this->options, dbPath.string(), &db);
-      if (!status.ok()) {
-        Utils::LogPrint(Log::db, __func__, "Failed to open DB: " + status.ToString());
-      }
-    }
-    inline bool close() { delete this->db; this->db = nullptr; return true; }
+    /**
+     * Constructor. Automatically creates the database if it doesn't exist. Throws on error.
+     * @param path The database's filesystem path (relative to the binary's current working directory).
+     */
+    DB(const std::string path);
 
-    bool has(const std::string& key, const std::string& prefix = "");
-    std::string get(const std::string& key, const std::string& prefix = "");
-    bool put(const std::string& key, const std::string& data, const std::string& prefix = "");
-    bool del(const std::string& key, const std::string& prefix = "");
-    bool writeBatch(WriteBatchRequest& request, const std::string& prefix = "");
+    /**
+     * Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
+     */
+    ~DB() { this->close(); }
 
-    // Read all keys starting with prefix and start.
-    std::vector<DBEntry> readBatch(const std::string& prefix);
+    /**
+     * Close the database. "Closing" a LevelDB database is just deleting its object.
+     * @return `true` if the database is closed successfully, `false` otherwise.
+     */
+    inline bool close() { delete this->db; this->db = nullptr; return (this->db == nullptr); }
 
-    // Read all keys from key vector.
-    std::vector<DBEntry> readBatch(const std::vector<std::string>& keys, const std::string& prefix);
+    /**
+     * Check if a key exists in the database.
+     * @param key The key to search for.
+     * @param pfx (optional) The prefix to search for. Defaults to an empty string.
+     * @return `true` if the key exists, `false` otherwise.
+     */
+    bool has(const std::string& key, const std::string& pfx = "");
 
-    // Remove the first 4 chars (the key) from a string.
-    inline std::string removeKeyPrefix(const std::string& key) { return key.substr(4); }
+    /**
+     * Get a value from a given key in the database.
+     * @param key The key to search for.
+     * @param pfx (optional) The prefix to search for. Defaults to an empty string.
+     * @return The requested value, or an empty string if the key doesn't exist.
+     */
+    std::string get(const std::string& key, const std::string& pfx = "") const;
+
+    /**
+     * Insert an entry into the database.
+     * @param key The key to insert.
+     * @param value The value to insert.
+     * @param pfx (optional) The prefix to insert the key into. Defaults to an empty string.
+     * @return `true` if the insert is successful, `false` otherwise.
+     */
+    bool put(const std::string& key, const std::string& value, const std::string& pfx = "") const;
+
+    /**
+     * Delete an entry from the database.
+     * @param key The key to delete.
+     * @param pfx (optional) The prefix to delete the key from. Defaults to an empty string.
+     * @return `true` if the deletion is successful, `false` otherwise.
+     */
+    bool del(const std::string& key, const std::string& pfx = "") const;
+
+    /**
+     * Do several put and/or delete operations in one go.
+     * @param batch The batch object with the operations to be done.
+     * @param pfx (optional) The prefix to operate on. Defaults to an empty string.
+     * @return `true` if all operations were successful, `false` otherwise.
+     */
+    bool putBatch(const DBBatch& batch, const std::string& pfx = "") const;
+
+    /**
+     * Get all entries from a given prefix.
+     * @param pfx The prefix string to get entries from. Works with strings.
+     * @param keys (optional) A list of keys to filter values from.
+     *             Defaults to an empty list (same as "get all entries").
+     * @return The list of database entries.
+     */
+    std::vector<DBEntry> getBatch(
+      const leveldb::Slice& pfx, const std::vector<std::string>& keys = {}
+    ) const;
 };
 
-#endif  // DB_H
+#endif // DB_H

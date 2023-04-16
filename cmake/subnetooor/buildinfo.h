@@ -25,7 +25,7 @@ struct buildinfo
     const char* build_type;
 };
 
-const struct buildinfo* subnetooor_get_buildinfo();
+const struct buildinfo* orbitersdk_get_buildinfo();
 
 #ifdef __cplusplus
 }

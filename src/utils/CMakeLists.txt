@@ -1,15 +1,28 @@
-file(GLOB SUBNETOOOR_UTILS_SRCS "*.cpp")
-file(GLOB SUBNETOOOR_UTILS_HDRS "*.h")
-
-add_library (subnetooor_utils
-  ${SUBNETOOOR_UTILS_SRCS}
-  ${SUBNETOOOR_UTILS_HDRS}
+set(UTILS_HEADERS
+  ${CMAKE_SOURCE_DIR}/src/utils/db.h
+  ${CMAKE_SOURCE_DIR}/src/utils/utils.h
+  ${CMAKE_SOURCE_DIR}/src/utils/strings.h
+  ${CMAKE_SOURCE_DIR}/src/utils/hex.h
+  ${CMAKE_SOURCE_DIR}/src/utils/json.hpp
+  ${CMAKE_SOURCE_DIR}/src/utils/merkle.h
+  ${CMAKE_SOURCE_DIR}/src/utils/ecdsa.h
+  ${CMAKE_SOURCE_DIR}/src/utils/randomgen.h
+  ${CMAKE_SOURCE_DIR}/src/utils/tx.h
+  ${CMAKE_SOURCE_DIR}/src/utils/block.h
+  ${CMAKE_SOURCE_DIR}/src/utils/options.h
+  PARENT_SCOPE
 )
 
-add_dependencies(subnetooor_utils gen-grpc ProtoFiles)
-target_link_libraries(subnetooor_utils PRIVATE
-  ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
-  ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-  absl::flags Secp256k1 aleth
+set(UTILS_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/utils/db.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/utils.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/strings.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/hex.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/merkle.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/ecdsa.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/randomgen.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/tx.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/block.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/options.cpp
+  PARENT_SCOPE
 )
-

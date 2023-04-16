@@ -1,13 +1,13 @@
-#include "core/subnet.h"
-#include "contract/abi.h"
-std::unique_ptr<Subnet> subnet;
+#include <iostream>
+#include "src/core/blockchain.h"
+#include <filesystem>
 
-// Let that good boi run
 int main() {
-  std::signal(SIGINT, SIG_IGN);
-  //std::signal(SIGTERM, SIG_IGN);
-  subnet = std::make_unique<Subnet>();
-  subnet->start();
+  /// Local binary path + /blockchain
+  std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
+  Blockchain blockchain(blockchainPath);
+  /// Start the blockchain syncing engine.
+  blockchain.start();
+  std::this_thread::sleep_for(std::chrono::hours(1000000));
   return 0;
 }
-

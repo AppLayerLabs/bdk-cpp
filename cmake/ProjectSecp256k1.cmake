@@ -15,6 +15,7 @@ ExternalProject_Add(
     DOWNLOAD_NAME secp256k1-ac8ccf29.tar.gz
     DOWNLOAD_NO_PROGRESS 1
     GIT_REPOSITORY https://github.com/bitcoin-core/secp256k1
+    GIT_TAG "bdf39000b9c6a0818e7149ccb500873d079e6e85"
     PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_LIST_DIR}/secp256k1/CMakeLists.txt <SOURCE_DIR>
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>

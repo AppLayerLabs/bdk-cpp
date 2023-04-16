@@ -1,13 +1,26 @@
-file(GLOB SUBNETOOOR_CONTRACT_SRCS "*.cpp")
-file(GLOB SUBNETOOOR_CONTRACT_HDRS "*.h")
-
-add_library (subnetooor_contract
-  ${SUBNETOOOR_CONTRACT_SRCS}
-  ${SUBNETOOOR_CONTRACT_HDRS}
+set(CONTRACT_HEADERS
+  ${CMAKE_SOURCE_DIR}/src/contract/abi.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint8_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint16_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint32_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint64_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint256_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebool.h
+  ${CMAKE_SOURCE_DIR}/src/contract/erc20.h
+  PARENT_SCOPE
 )
 
-target_include_directories(subnetooor_contract PRIVATE "../net")
-add_dependencies(subnetooor_contract gen-grpc ProtoFiles)
-target_link_libraries(subnetooor_contract PUBLIC subnetooor_utils ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
-  ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-  absl::flags Secp256k1 aleth)
+set(CONTRACT_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/contract/abi.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/contract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/erc20.cpp
+  PARENT_SCOPE
+)
+

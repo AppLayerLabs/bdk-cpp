@@ -1,13 +1,74 @@
-file(GLOB SUBNETOOOR_NET_SRCS "*.cpp")
-file(GLOB SUBNETOOOR_NET_HDRS "*.h")
+if(BUILD_AVALANCHEGO)
+  set(NET_HEADERS
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpparser.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pbase.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.h
+    PARENT_SCOPE
+  )
 
-add_library (subnetooor_net
-  ${SUBNETOOOR_NET_SRCS}
-  ${SUBNETOOOR_NET_HDRS}
-)
+  set(NET_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.cpp
+    PARENT_SCOPE
+  )
+else()
+  set(NET_HEADERS
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpparser.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pbase.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.h
+    PARENT_SCOPE
+  )
 
-target_include_directories(subnetooor_net PRIVATE gen-grpc ProtoFiles)
-add_dependencies(subnetooor_net gen-grpc ProtoFiles)
-target_link_libraries(subnetooor_net PUBLIC subnetooor_core subnetooor_utils PRIVATE ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
-  ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-  absl::flags Secp256k1 aleth gen-grpc ProtoFiles)
+  set(NET_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.cpp
+    PARENT_SCOPE
+  )
+endif()
+
