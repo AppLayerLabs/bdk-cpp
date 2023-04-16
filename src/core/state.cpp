@@ -3,11 +3,14 @@
 State::State(const std::unique_ptr<DB>& db,
              const std::unique_ptr<Storage>& storage,
              const std::unique_ptr<rdPoS>& rdpos,
-             const std::unique_ptr<P2P::ManagerNormal>& p2pManager) :
+             const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
+             const std::unique_ptr<Options>& options) :
              db(db),
              storage(storage),
              rdpos(rdpos),
-             p2pManager(p2pManager) {
+             p2pManager(p2pManager),
+             options(options),
+             contractManager(std::make_unique<ContractManager>(db, rdpos, options)){
   std::unique_lock lock(this->stateMutex);
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
@@ -99,8 +102,6 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
                                             + " got: " + tx.getNonce().str());
     return TxInvalid::InvalidNonce;
   }
-  /// TODO: check if calls contract
-
   return TxInvalid::NotInvalid;
 }
 
@@ -113,9 +114,20 @@ void State::processTransaction(const TxBlock& tx) {
   auto accountIt = this->accounts.find(tx.getFrom());
   auto& balance = accountIt->second.balance;
   auto& nonce = accountIt->second.nonce;
-  uint256_t txValueWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());  /// This need to change with payable contract functions
-  balance -= txValueWithFees;
-  this->accounts[tx.getTo()].balance += tx.getValue();
+  try {
+    if (this->contractManager->isContractCall(tx)) {
+      this->contractManager->callContract(tx);
+    }
+
+    uint256_t txValueWithFees = tx.getValue() + (tx.getGasLimit() *
+                                                 tx.getMaxFeePerGas());  /// This need to change with payable contract functions
+    balance -= txValueWithFees;
+    this->accounts[tx.getTo()].balance += tx.getValue();
+  } catch (const std::exception& e) {
+    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
+    uint256_t fees = tx.getGasLimit() * tx.getMaxFeePerGas();
+    balance -= fees;
+  }
   ++nonce;
 }
 
@@ -282,4 +294,42 @@ std::unique_ptr<TxBlock> State::getTxFromMempool(const Hash &txHash) const {
 void State::addBalance(const Address& addr) {
   std::unique_lock lock(this->stateMutex);
   this->accounts[addr].balance += uint256_t("1000000000000000000000");
+}
+
+std::string State::ethCall(const Address& addr, const std::string& data) {
+  std::shared_lock lock(this->stateMutex);
+  if (this->contractManager->isContractAddress(addr)) {
+    return this->contractManager->callContract(addr, data);
+  } else {
+    return "";
+  }
+}
+
+bool State::estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo) {
+  std::shared_lock lock(this->stateMutex);
+  auto [from, to, gasLimit, gasPrice, value, data] = callInfo;
+
+  /// Check balance/gasLimit/gasPrice if available.
+  if (from) {
+    if (value) {
+      uint256_t totalGas = 0;
+      if (gasLimit && gasPrice) {
+        totalGas = gasLimit * gasPrice;
+      }
+      auto it = this->accounts.find(from);
+      if (it == this->accounts.end()) return false;
+      if (it->second.balance < value + totalGas) return false;
+    }
+  }
+
+  if (this->contractManager->isContractAddress(to)) {
+    contractManager->validateCallContractWithTx(callInfo);
+  }
+
+  return true;
+}
+
+std::vector<std::pair<std::string, Address>> State::getContracts() const {
+  std::shared_lock lock(this->stateMutex);
+  return this->contractManager->getContracts();
 }

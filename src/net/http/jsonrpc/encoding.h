@@ -113,16 +113,16 @@ namespace JsonRPC {
 
     /**
      * JSON encode a eth_call response.
-     * TODO: eth_call IS NOT IMPLEMENTED YET.
+     * @params callInfo: tuple of (from, to, gas, gasPrice, value, data)
      */
-    json eth_call(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<Storage>& storage);
+    json eth_call(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<State>& state);
 
     /**
      * JSON encode a eth_estimateGas response
      * TODO: We don't really estimate gas because we don't have a Gas structure, it is fixed to 21000
      * @params callInfo: tuple of (from, to, gas, gasPrice, value, data)
      */
-    json eth_estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo);
+    json eth_estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<State>& state);
 
 
     /**

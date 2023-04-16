@@ -1,6 +1,7 @@
 #ifndef STATE_H
 #define STATE_H
 
+#include "../contract/contractmanager.h"
 #include "../utils/utils.h"
 #include "../utils/db.h"
 #include "storage.h"
@@ -29,7 +30,12 @@ class State {
     /// Pointer to P2P Manager
     const std::unique_ptr<P2P::ManagerNormal> &p2pManager;
 
+    /// Pointer to the Options
+    const std::unique_ptr<Options>& options;
+
     /// Pointer to ContractManager
+    const std::unique_ptr<ContractManager> contractManager;
+
     /// TODO: Add contract functionality to State after ContractManager is ready.
 
     /**
@@ -76,7 +82,8 @@ class State {
     State(const std::unique_ptr<DB>& db,
           const std::unique_ptr<Storage>& storage,
           const std::unique_ptr<rdPoS>& rdpos,
-          const std::unique_ptr<P2P::ManagerNormal>& p2pManager);
+          const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
+          const std::unique_ptr<Options>& options);
 
     ~State();
 
@@ -179,6 +186,22 @@ class State {
      */
     void addBalance(const Address& addr);
 
+    /**
+     * Make a eth_call to a contract.
+     * @param addr The contract address.
+     * @param data The data to be sent to the contract.
+     */
+    std::string ethCall(const Address& addr, const std::string& data);
+
+    /**
+     * "estimate gas" for callInfo for RPC.
+     * Doesn't really "estimate" gas, but rather tells if the transaction is valid or not.
+     * @param callInfo callInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
+     */
+    bool estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo);
+
+    /// Get list of contracts addresses and names.
+    std::vector<std::pair<std::string, Address>> getContracts() const;
 };
 
 

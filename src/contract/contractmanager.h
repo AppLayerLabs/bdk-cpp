@@ -48,10 +48,10 @@ class ContractManager : Contract {
     mutable std::shared_mutex contractsMutex;
 
     /// Reference back to the rdPoS contract.
-    std::unique_ptr<rdPoS>& rdpos;
+    const std::unique_ptr<rdPoS>& rdpos;
 
     /// Reference back to options
-    std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options;
 
     /// Derive a new contract address based on transaction sender + nonce.
     Address deriveContractAddress(const TxBlock& tx) const;
@@ -76,7 +76,7 @@ class ContractManager : Contract {
      * @param db Pointer to the database.    Contract(const std::string& contractName,
      * const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db
      */
-    ContractManager(const std::unique_ptr<DB>& db, std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Options>& options);
+    ContractManager(const std::unique_ptr<DB>& db, const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options);
 
     /// Destructor. Automatically saves contracts to the database before wiping them.
     ~ContractManager();
@@ -85,13 +85,19 @@ class ContractManager : Contract {
     * Override the default contract function call.
     * ContractManager process things in a non-standard (cannot use SafeVariables as contract creation actively writes to DB)
     */
-    void ethCall(const TxBlock& tx, bool commit = false) override;
+    void ethCall(const TxBlock& tx) override;
 
     /**
      * Override the default contract function call.
      * ContractManager process things in a non-standard (cannot use SafeVariables as contract creation actively writes to DB)
      */
     const std::string ethCall(const std::string& data) const override;
+
+    /**
+     * Override the default contract function call.
+     * ContractManager process things in a non-standard (cannot use SafeVariables as contract creation actively writes to DB)
+     */
+    void ethCall(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo) override;
 
     /**
      * Process a transaction that calls a function from a given contract.
@@ -104,7 +110,7 @@ class ContractManager : Contract {
      * @param tx The transaction to validate.
      * @return True if the transaction is valid, false otherwise.
      */
-    bool validateCallContract(const TxBlock& tx);
+    bool validateCallContractWithTx(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo);
 
     /**
      * Make a eth_call to a view function from the contract.
@@ -114,10 +120,21 @@ class ContractManager : Contract {
      */
     std::string callContract(const Address& address, const std::string& data) const;
 
-    /*
+    /**
      * Check if a transaction calls a contract
+     * @params tx The transaction to check.
      */
     bool isContractCall(const TxBlock& tx) const;
+
+    /**
+     * Validate a given contract call
+     */
+
+    /**
+     * Check if an address is a contract address.
+     * @params address the address to check.
+     */
+    bool isContractAddress(const Address& address) const;
 
     /// Get list of contracts addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;

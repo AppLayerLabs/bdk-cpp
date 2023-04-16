@@ -87,10 +87,10 @@ std::string parseJsonRpcRequest(
         ret = JsonRPC::Encoding::eth_blockNumber(storage);
         break;
       case JsonRPC::Methods::eth_call:
-        throw std::runtime_error("eth_call not implemented");
+        ret = JsonRPC::Encoding::eth_call(JsonRPC::Decoding::eth_call(request, storage), state);
         break;
       case JsonRPC::Methods::eth_estimateGas:
-        ret = JsonRPC::Encoding::eth_estimateGas(JsonRPC::Decoding::eth_estimateGas(request, storage));
+        ret = JsonRPC::Encoding::eth_estimateGas(JsonRPC::Decoding::eth_estimateGas(request, storage), state);
         break;
       case JsonRPC::Methods::eth_gasPrice:
         JsonRPC::Decoding::eth_gasPrice(request);

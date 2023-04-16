@@ -4,6 +4,9 @@
 #include "../../src/contract/abi.h"
 #include "../../src/utils/db.h"
 
+/// Forward Decleration.
+std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> txToInfo(const TxBlock& tx);
+
 class ReversibleContract : public Contract {
   private:
     SafeUnorderedMap<Address, uint256_t> balances;
@@ -11,7 +14,7 @@ class ReversibleContract : public Contract {
   protected:
     void registerContractFunctions() override {
       this->registerFunction(Hex::toBytes("0xae639329"), [this](const TxBlock &txBlock) {
-        Address from = txBlock.getFrom();
+        Address from = this->getCaller();
         std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
         ABI::Decoder decoder(types, txBlock.getData().substr(4));
         Address to = decoder.getData<Address>(0);
@@ -20,7 +23,7 @@ class ReversibleContract : public Contract {
       });
 
       this->registerFunction(Hex::toBytes("0x5b86f599"), [this](const TxBlock &txBlock) {
-        Address from = txBlock.getFrom();
+        Address from = this->getCaller();
         std::vector<ABI::Types> types = { ABI::Types::uint256 };
         ABI::Decoder decoder(types, txBlock.getData().substr(4));
         uint256_t amount = decoder.getData<uint256_t>(0);
@@ -75,14 +78,6 @@ namespace TReversibleContract {
       Address myAddress = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
       Address destinationAddress = Address(Utils::randBytes(20), true);
 
-      /*
-       *     TxBlock(
-       *             const Address to, const Address from, const std::string data,
-       *             const uint64_t chainId, const uint256_t nonce, const uint256_t value,
-       *             const uint256_t maxPriorityFeePerGas, const uint256_t maxFeePerGas, const uint256_t gasLimit, const PrivKey privKey
-       *           );
-       */
-
       ABI::Encoder::EncVar getBalanceMeVars;
       getBalanceMeVars.push_back(myAddress);
       ABI::Encoder getBalanceEncoder(getBalanceMeVars, "getBalance(address)");
@@ -111,7 +106,7 @@ namespace TReversibleContract {
         privKey
       );
 
-      REQUIRE_THROWS(contract.ethCall(txThrow, true));
+      REQUIRE_THROWS(contract.ethCall(txThrow));
 
       ABI::Encoder::EncVar increaseBalanceVars;
       increaseBalanceVars.push_back(uint256_t("1000000000000000000"));
@@ -129,13 +124,13 @@ namespace TReversibleContract {
         privKey
       );
 
-      contract.ethCall(txAddBalance, false);
+      contract.ethCall(txToInfo(txAddBalance));
       std::string getBalanceMeResultStr = contract.ethCall(getBalanceMeStr);
       ABI::Decoder getBalanceMeResultDecoder({ABI::Types::uint256}, getBalanceMeResultStr);
       uint256_t getBalanceMeResult = getBalanceMeResultDecoder.getData<uint256_t>(0);
       REQUIRE(getBalanceMeResult == uint256_t("0"));
 
-      contract.ethCall(txAddBalance, true);
+      contract.ethCall(txAddBalance);
 
       std::string getBalanceMeResultStr2 = contract.ethCall(getBalanceMeStr);
       ABI::Decoder getBalanceMeResultDecoder2({ABI::Types::uint256}, getBalanceMeResultStr2);
@@ -160,7 +155,7 @@ namespace TReversibleContract {
         privKey
       );
 
-      contract.ethCall(txSendTo, false);
+      contract.ethCall(txToInfo(txSendTo));
 
       std::string getBalanceMeResultStr3 = contract.ethCall(getBalanceMeStr);
       ABI::Decoder getBalanceMeResultDecoder3({ABI::Types::uint256}, getBalanceMeResultStr3);
@@ -172,7 +167,7 @@ namespace TReversibleContract {
       uint256_t getBalanceDestinationResult = getBalanceDestinationResultDecoder.getData<uint256_t>(0);
       REQUIRE(getBalanceDestinationResult == uint256_t("0"));
 
-      contract.ethCall(txSendTo, true);
+      contract.ethCall(txSendTo);
 
       std::string getBalanceMeResultStr4 = contract.ethCall(getBalanceMeStr);
       ABI::Decoder getBalanceMeResultDecoder4({ABI::Types::uint256}, getBalanceMeResultStr4);

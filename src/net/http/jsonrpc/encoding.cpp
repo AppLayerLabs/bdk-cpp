@@ -176,10 +176,30 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo) {
+    json eth_call(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
-      ret["result"] = "0x5208"; // Fixed to 21000 for now.
+      try {
+        const auto& [from, to, gas, gasPrice, value, data] = callInfo;
+        auto result = Hex::fromBytes(state->ethCall(to, data), true);
+        ret["result"] = result;
+      } catch (std::exception &e) {
+        ret["error"]["code"] = -32000;
+        ret["error"]["message"] = "Internal error: " + std::string(e.what());
+      }
+      return ret;
+    }
+
+    json eth_estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<State>& state) {
+      json ret;
+      ret["jsonrpc"] = "2.0";
+      try {
+        state->estimateGas(callInfo);
+        ret["result"] = "0x5208"; // Fixed to 21000 for now.
+      } catch (std::exception &e) {
+        ret["error"]["code"] = -32000;
+        ret["error"]["message"] = "Internal error: " + std::string(e.what());
+      }
       return ret;
     }
 

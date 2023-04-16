@@ -5,6 +5,9 @@
 
 #include <filesystem>
 
+/// Forward Decleration.
+std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> txToInfo(const TxBlock& tx);
+
 namespace TERC20 {
   TEST_CASE("ERC20 Class", "[contract][erc20]") {
     SECTION("ERC20 Class Constructor") {
@@ -86,7 +89,22 @@ namespace TERC20 {
           ownerPrivKey
         );
 
-        erc20.ethCall(transferTx, false);
+        auto randomPrivKey = PrivKey(Utils::randBytes(64));
+        TxBlock transferTxThrows = TxBlock(
+          contractAddress,
+          Secp256k1::toAddress(Secp256k1::toUPub(randomPrivKey)),
+          Hex::toBytes("0xa9059cbb") + transferEncoder.getRaw(),
+          8080,
+          0,
+          0,
+          0,
+          0,
+          0,
+          randomPrivKey
+        );
+
+        REQUIRE_THROWS(erc20.ethCall(txToInfo(transferTxThrows)));
+        erc20.ethCall(txToInfo(transferTx));
 
         std::string getBalanceMeResult = erc20.ethCall(getBalanceMeEncoder.getRaw());
         ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
@@ -96,7 +114,7 @@ namespace TERC20 {
         ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 0);
 
-        erc20.ethCall(transferTx, true);
+        erc20.ethCall(transferTx);
 
         getBalanceMeResult = erc20.ethCall(getBalanceMeEncoder.getRaw());
         getBalanceMeDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceMeResult);
@@ -159,13 +177,13 @@ namespace TERC20 {
           ownerPrivKey
         );
 
-        erc20.ethCall(approveTx, false);
+        erc20.ethCall(txToInfo(approveTx));
 
         std::string getAllowanceResult = erc20.ethCall(getAllowanceEncoder.getRaw());
         ABI::Decoder getAllowanceDecoder({ABI::Types::uint256}, getAllowanceResult);
         REQUIRE(getAllowanceDecoder.getData<uint256_t>(0) == 0);
 
-        erc20.ethCall(approveTx, true);
+        erc20.ethCall(approveTx);
 
         getAllowanceResult = erc20.ethCall(getAllowanceEncoder.getRaw());
         getAllowanceDecoder = ABI::Decoder({ABI::Types::uint256}, getAllowanceResult);
@@ -214,7 +232,7 @@ namespace TERC20 {
           ownerPrivKey
         );
 
-        erc20.ethCall(approveTx, true);
+        erc20.ethCall(approveTx);
 
         ABI::Encoder::EncVar transferFromVars;
         transferFromVars.push_back(owner);
@@ -234,7 +252,22 @@ namespace TERC20 {
           destinationOfApprovalPrivKey
         );
 
-        erc20.ethCall(transferFromTx, false);
+        auto randomPrivKey = PrivKey(Utils::randBytes(64));
+        TxBlock transferFromTxThrows = TxBlock(
+          contractAddress,
+          Secp256k1::toAddress(Secp256k1::toUPub(randomPrivKey)),
+          Hex::toBytes("0x23b872dd") + transferFromEncoder.getRaw(),
+          8080,
+          0,
+          0,
+          0,
+          0,
+          0,
+          randomPrivKey
+        );
+
+        REQUIRE_THROWS(erc20.ethCall(txToInfo(transferFromTxThrows)));
+        erc20.ethCall(txToInfo(transferFromTx));
 
         ABI::Encoder::EncVar getBalanceMeVars;
         getBalanceMeVars.push_back(owner);
@@ -250,7 +283,7 @@ namespace TERC20 {
         ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 0);
 
-        erc20.ethCall(transferFromTx, true);
+        erc20.ethCall(transferFromTx);
 
         getBalanceMeResult = erc20.ethCall(getBalanceMeEncoder.getRaw());
         getBalanceMeDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceMeResult);

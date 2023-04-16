@@ -131,7 +131,7 @@ class Contract : public ContractGlobals {
      * @param account Reference back to the account within the State class.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction
      */
-     virtual void ethCall(const TxBlock& tx, const uint256_t& txValue, bool commit = false) {
+     virtual void ethCall(const TxBlock& tx, const uint256_t& txValue) {
        this->caller = tx.getFrom();
        this->origin = tx.getFrom();
        this->value = txValue;
@@ -146,7 +146,7 @@ class Contract : public ContractGlobals {
          updateState(false);
          throw e;
        }
-       updateState(commit);
+       updateState(true);
      };
 
     /**
@@ -155,7 +155,7 @@ class Contract : public ContractGlobals {
      * @param tx The transaction to use for call.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction.
      */
-    virtual void ethCall(const TxBlock& tx, bool commit = false) {
+    virtual void ethCall(const TxBlock& tx) {
       this->caller = tx.getFrom();
       this->origin = tx.getFrom();
       this->value = 0;
@@ -170,15 +170,55 @@ class Contract : public ContractGlobals {
         updateState(false);
         throw e;
       }
-      updateState(commit);
+      updateState(true);
     };
 
     /**
-     * Invoke a const (solidity view) contract function using a data string.
-     * Used by RPC for answering `eth_call`.
-     * @param data The data string to use for call.
-     * @return An encoded %Solidity hex string with the desired function result.
+     * Invoke a contract function and simulate it.
+     * @param callInfo callInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
      */
+    virtual void ethCall(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo) {
+      auto [from, to, gasLimit, gasPrice, value, data] = callInfo;
+      this->origin = from;
+      this->caller = from;
+      this->value = value;
+      PrivKey mockupPrivKey(Hex::toBytes("2a616d189193e56994f22993ac4eb4dca0e2652afdc95d240739837ab83b21e2"));
+      Address mockupAddr = Secp256k1::toAddress(Secp256k1::toUPub(mockupPrivKey));
+      TxBlock tx(
+          this->getContractAddress(),
+          mockupAddr,
+          data,
+          this->getContractChainId(),
+          0,
+          value,
+          gasPrice,
+          gasPrice,
+          gasLimit,
+          mockupPrivKey
+        );
+
+      try {
+        std::string funcName = tx.getData().substr(0, 4);
+        if (value) {
+          auto it = this->payableFunctions.find(funcName);
+          if (it == this->payableFunctions.end()) {
+            throw std::runtime_error("Functor not found");
+          }
+          it->second(tx);
+        } else {
+          auto it = this->functions.find(funcName);
+          if (it == this->functions.end()) {
+            throw std::runtime_error("Functor not found");
+          }
+          it->second(tx);
+        }
+      } catch (const std::exception& e) {
+        updateState(false);
+        throw e;
+      }
+      updateState(false);
+    }
+
     virtual const std::string ethCall(const std::string& data) const {
       this->origin = Address();
       this->caller = Address();
@@ -203,6 +243,8 @@ class Contract : public ContractGlobals {
 
     /// Friend
     friend void registerVariableUse(Contract& contract, SafeBase& variable);
+
+    friend class ContractManager;
 };
 
 #endif  // CONTRACT_H

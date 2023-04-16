@@ -6,6 +6,18 @@
 #include "../../src/utils/options.h"
 #include <filesystem>
 
+std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> txToInfo(const TxBlock& tx) {
+  std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> callInfo;
+  auto& [from, to, gasLimit, gasPrice, value, data] = callInfo;
+  from = tx.getFrom();
+  to = tx.getTo();
+  gasLimit = uint64_t(tx.getGasLimit());
+  gasPrice = tx.getMaxFeePerGas();
+  value = tx.getValue();
+  data = tx.getData();
+  return callInfo;
+}
+
 
 namespace TContractManager {
   /// TODO: Add more testcases for ContractManager once it's integrated with State.
@@ -49,10 +61,27 @@ namespace TContractManager {
           privKey
         );
 
-        contractManager.validateCallContract(createNewERC2OTx);
+        auto randomPrivKey = PrivKey(Utils::randBytes(64));
+        TxBlock createNewERC2OTxThrow = TxBlock(
+          ProtocolContractAddresses.at("ContractManager"),
+          Secp256k1::toAddress(Secp256k1::toUPub(randomPrivKey)),
+          createNewERC20ContractData,
+          8080,
+          0,
+          0,
+          0,
+          0,
+          0,
+          randomPrivKey
+        );
+
+        REQUIRE_THROWS(contractManager.validateCallContractWithTx(txToInfo(createNewERC2OTxThrow)));
+
         REQUIRE(contractManager.getContracts().size() == 0);
 
         contractManager.callContract(createNewERC2OTx);
+
+        REQUIRE(contractManager.getContracts().size() == 1);
 
         const auto contractAddress = contractManager.getContracts()[0].second;
         ABI::Encoder::EncVar getBalanceMeVars;
