@@ -35,9 +35,11 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Cannot connect to more than " + std::to_string(maxConnections_) + " clients");
       return;
     }
-    /// TODO: improve the client thread.
-    /// Make clientThread usable within a thread pool context.
-    /// PS: Using a thread pool causes .run() to not get executed (???).
+    /// TODO: Move clientThread to a thread pool somehow (currently it gets stuck on .run() if you do)
+    /// WARNING:
+    /// If messing around with clientThread/ClientSessions, make SURE to delete the clientSession
+    /// From the sessions_ map in the ClientSession destructor.
+    /// Otherwise it will segfault trying to access the deleted object (ioc) in the ClientSession destructor.
     std::thread clientThread([&, host, port] {
       net::io_context ioc;
       auto client = std::make_shared<ClientSession>(ioc, host, port, *this, this->threadPool);
@@ -45,7 +47,7 @@ namespace P2P {
       ioc.run();
       Utils::logToFile("ClientSession thread exitted");
       ioc.stop();
-      /// Calling unregisterSessions here causes a deadlock (???)
+      /// TODO: Calling unregisterSession here causes a deadlock.
       /// unregisterSession(client);
     });
     clientThread.detach();
@@ -164,9 +166,10 @@ namespace P2P {
     this->discoveryWorker->stop();
     std::unique_lock lock(sessionsMutex);
     for (auto it = sessions_.begin(); it != sessions_.end();) {
-      auto& [key, value] = *it;
-      value->close();
+      std::weak_ptr<BaseSession> session = std::weak_ptr(it->second);
       it = sessions_.erase(it);
+      auto sessionPtr = session.lock();
+      if (sessionPtr) sessionPtr->close();
     }
     this->threadPool->wait_for_tasks();
     Utils::logToDebug(Log::P2PManager, __func__, "Stopping P2PManager");
