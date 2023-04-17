@@ -1,4 +1,0 @@
-<map id="Signature" name="Signature">
-<area shape="rect" id="node1" title="Abstraction of a 65&#45;byte ECDSA signature. Inherits FixedStr&lt;65&gt;." alt="" coords="23,80,107,107"/>
-<area shape="rect" id="node2" href="$classFixedStr.html" title=" " alt="" coords="5,5,125,32"/>
-</map>

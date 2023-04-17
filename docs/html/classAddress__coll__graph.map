@@ -1,4 +1,0 @@
-<map id="Address" name="Address">
-<area shape="rect" id="node1" title="Abstraction for a single 20&#45;byte address (e.g. &quot;1234567890abcdef...&quot;). Inherits FixedStr&lt;20&gt;." alt="" coords="28,80,103,107"/>
-<area shape="rect" id="node2" href="$classFixedStr.html" title=" " alt="" coords="5,5,125,32"/>
-</map>

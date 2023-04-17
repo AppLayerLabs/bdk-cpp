@@ -4,17 +4,17 @@
 namespace JsonRPC {
   namespace Decoding {
 
-    /// https://www.jsonrpc.org/specification
+    // https://www.jsonrpc.org/specification
     bool checkJsonRPCSpec(const json& request) {
       try {
-        /// "jsonrpc": "2.0" is a MUST
+        // "jsonrpc": "2.0" is a MUST
         if (!request.contains("jsonrpc")) return false;
         if (request["jsonrpc"].get<std::string>() != "2.0") return false;
 
-        /// "method" is a MUST
+        // "method" is a MUST
         if (!request.contains("method")) return false;
 
-        /// Params MUST be Object or Array.
+        // Params MUST be Object or Array.
         if (request.contains("params")) {
           if (!request["params"].is_object() && !request["params"].is_array()) return false;
         }
@@ -40,7 +40,7 @@ namespace JsonRPC {
 
     void web3_clientVersion(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("web3_clientVersion does not need params");
         }
@@ -53,7 +53,7 @@ namespace JsonRPC {
 
     std::string web3_sha3(const json& request) {
       try {
-        /// Data to hash will always be at index 0.
+        // Data to hash will always be at index 0.
         if (request["params"].size() != 1) {
           throw std::runtime_error("web3_sha3 needs 1 param");
         }
@@ -70,7 +70,7 @@ namespace JsonRPC {
 
     void net_version(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("net_version does not need params");
         }
@@ -83,7 +83,7 @@ namespace JsonRPC {
 
     void net_listening(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("net_listening does not need params");
         }
@@ -96,7 +96,7 @@ namespace JsonRPC {
 
     void net_peerCount(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("net_peerCount does not need params");
         }
@@ -109,7 +109,7 @@ namespace JsonRPC {
 
     void eth_protocolVersion(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("eth_protocolVersion does not need params");
         }
@@ -123,12 +123,12 @@ namespace JsonRPC {
     std::pair<Hash,bool> eth_getBlockByHash(const json& request) {
       static const std::regex hashFilter("^0x[0-9a-f]{64}$");
       try {
-        /// Defaults to false if not specified.
+        // Defaults to false if not specified.
         bool includeTransactions = false;
         if (request["params"].size() == 2) {
           includeTransactions = request["params"].at(1).get<bool>();
         }
-        /// Check block hash.
+        // Check block hash.
         std::string blockHash = request["params"].at(0).get<std::string>();
         if (!std::regex_match(blockHash, hashFilter)) {
           throw std::runtime_error("Invalid block hash hex");
@@ -143,13 +143,13 @@ namespace JsonRPC {
     std::pair<uint64_t,bool> eth_getBlockByNumber(const json& request, const std::unique_ptr<Storage> &storage) {
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
-        /// Defaults to false if not specified
+        // Defaults to false if not specified
         bool includeTransactions = false;
         if (request["params"].size() == 2) {
           includeTransactions = request["params"].at(1).get<bool>();
         }
 
-        /// eth_getBlockByNumber support flags for it params instead of hex number.
+        // eth_getBlockByNumber support flags for it params instead of hex number.
         std::string blockNumber = request["params"].at(0).get<std::string>();
         if (blockNumber == "latest") {
           return std::make_pair(storage->latest()->getNHeight(), includeTransactions);
@@ -173,7 +173,7 @@ namespace JsonRPC {
     Hash eth_getBlockTransactionCountByHash(const json& request) {
       static const std::regex hashFilter("^0x[0-9a-f]{64}$");
       try {
-        /// Check block hash.
+        // Check block hash.
         std::string blockHash = request["params"].at(0).get<std::string>();
         if (!std::regex_match(blockHash, hashFilter)) {
           throw std::runtime_error("Invalid block hash hex");
@@ -188,7 +188,7 @@ namespace JsonRPC {
     uint64_t eth_getBlockTransactionCountByNumber(const json& request, const std::unique_ptr<Storage> &storage) {
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
-        /// eth_getBlockTransactionCountByNumber support flags for it params instead of hex number.
+        // eth_getBlockTransactionCountByNumber support flags for it params instead of hex number.
         std::string blockNumber = request["params"].at(0).get<std::string>();
         if (blockNumber == "latest") {
           return storage->latest()->getNHeight();
@@ -211,7 +211,7 @@ namespace JsonRPC {
 
     void eth_chainId(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("eth_chainId does not need params");
         }
@@ -224,7 +224,7 @@ namespace JsonRPC {
 
     void eth_syncing(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("eth_syncing does not need params");
         }
@@ -237,7 +237,7 @@ namespace JsonRPC {
 
     void eth_coinbase(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("eth_coinbase does not need params");
         }
@@ -250,7 +250,7 @@ namespace JsonRPC {
 
     void eth_blockNumber(const json& request) {
       try {
-        /// No params are needed.
+        // No params are needed.
         if (!request["params"].empty()) {
           throw std::runtime_error("eth_blockNumber does not need params");
         }
@@ -288,7 +288,7 @@ namespace JsonRPC {
           throw std::runtime_error("Invalid params");
         }
 
-        /// Check from address. (optional)
+        // Check from address. (optional)
         if (txObject.contains("from") && !txObject["from"].is_null()) {
           std::string fromAddress = txObject["from"].get<std::string>();
           if (!std::regex_match(fromAddress, addressFilter)) {
@@ -296,13 +296,13 @@ namespace JsonRPC {
           }
           from = Address(Hex::toBytes(fromAddress), true);
         }
-        /// Check to address.
+        // Check to address.
         std::string toAddress = txObject["to"].get<std::string>();
         if (!std::regex_match(toAddress, addressFilter)) {
           throw std::runtime_error("Invalid to address hex");
         }
         to = Address(Hex::toBytes(toAddress), true);
-        /// Check gas (optional)
+        // Check gas (optional)
         if (txObject.contains("gas") && !txObject["gas"].is_null()) {
           std::string gasHex = txObject["gas"].get<std::string>();
           if (!std::regex_match(gasHex, numberFilter)) {
@@ -310,7 +310,7 @@ namespace JsonRPC {
           }
           gas = uint64_t(Hex(gasHex).getUint());
         }
-        /// Check gasPrice (optional)
+        // Check gasPrice (optional)
         if (txObject.contains("gasPrice") && !txObject["gasPrice"].is_null()) {
           std::string gasPriceHex = txObject["gasPrice"].get<std::string>();
           if (!std::regex_match(gasPriceHex, numberFilter)) {
@@ -318,7 +318,7 @@ namespace JsonRPC {
           }
           gasPrice = uint256_t(Hex(gasPriceHex).getUint());
         }
-        /// Check value (optional)
+        // Check value (optional)
         if (txObject.contains("value") && !txObject["value"].is_null()) {
           std::string valueHex = txObject["value"].get<std::string>();
           if (!std::regex_match(valueHex, numberFilter)) {
@@ -326,7 +326,7 @@ namespace JsonRPC {
           }
           value = uint256_t(Hex(valueHex).getUint());
         }
-        /// Check data (optional)
+        // Check data (optional)
         if (txObject.contains("data") && !txObject["data"].is_null()) {
           std::string dataHex = txObject["data"].get<std::string>();
           if (!Hex::isValid(dataHex, true)) {
@@ -367,7 +367,7 @@ namespace JsonRPC {
         } else {
           throw std::runtime_error("Invalid params");
         }
-        /// Check from address. (optional)
+        // Check from address. (optional)
         if (txObject.contains("from") && !txObject["from"].is_null()) {
           std::string fromAddress = txObject["from"].get<std::string>();
           if (!std::regex_match(fromAddress, addressFilter)) {
@@ -375,7 +375,7 @@ namespace JsonRPC {
           }
           from = Address(Hex::toBytes(fromAddress), true);
         }
-        /// Check to address. (optional)
+        // Check to address. (optional)
         if (txObject.contains("to") && !txObject["to"].is_null()) {
           std::string toAddress = txObject["to"].get<std::string>();
           if (!std::regex_match(toAddress, addressFilter)) {
@@ -383,18 +383,18 @@ namespace JsonRPC {
           }
           to = Address(Hex::toBytes(toAddress), true);
         }
-        /// Check gas (optional)
+        // Check gas (optional)
         if (txObject.contains("gas") && !txObject["gas"].is_null()) {
           std::string gasHex = txObject["gas"].get<std::string>();
           if (!std::regex_match(gasHex, numberFilter)) {
             throw std::runtime_error("Invalid gas hex");
           }
           gas = uint64_t(Hex(gasHex).getUint());
-        } else { /// eth_estimateGas set gas to max if not specified
-          /// TODO: Change this if we ever change gas dynamics with the chain
+        } else { // eth_estimateGas set gas to max if not specified
+          // TODO: Change this if we ever change gas dynamics with the chain
           gas = std::numeric_limits<uint64_t>::max();
         }
-        /// Check gasPrice (optional)
+        // Check gasPrice (optional)
         if (txObject.contains("gasPrice") && !txObject["gasPrice"].is_null()) {
           std::string gasPriceHex = txObject["gasPrice"].get<std::string>();
           if (!std::regex_match(gasPriceHex, numberFilter)) {
@@ -402,7 +402,7 @@ namespace JsonRPC {
           }
           gasPrice = uint256_t(Hex(gasPriceHex).getUint());
         }
-        /// Check value (optional)
+        // Check value (optional)
         if (txObject.contains("value") && !txObject["value"].is_null()) {
           std::string valueHex = txObject["value"].get<std::string>();
           if (!std::regex_match(valueHex, numberFilter)) {
@@ -410,7 +410,7 @@ namespace JsonRPC {
           }
           value = uint256_t(Hex(valueHex).getUint());
         }
-        /// Check data (optional)
+        // Check data (optional)
         if (txObject.contains("data") && !txObject["data"].is_null()) {
           std::string dataHex = txObject["data"].get<std::string>();
           if (!Hex::isValid(dataHex, true)) {

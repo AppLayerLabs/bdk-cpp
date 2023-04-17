@@ -16,37 +16,37 @@ namespace JsonRPC {
         }
         ret["result"]["hash"] = block->hash().hex(true);
         ret["result"]["parentHash"] = block->getPrevBlockHash().hex(true);
-        ret["result"]["sha3Uncles"] = Hash().hex(true); /// Uncles doesn't exists.
+        ret["result"]["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
         ret["result"]["miner"] = Secp256k1::toAddress(block->getValidatorPubKey()).hex(true);
-        ret["result"]["stateRoot"] = Hash().hex(true); /// No State root.
+        ret["result"]["stateRoot"] = Hash().hex(true); // No State root.
         ret["result"]["transactionsRoot"] = block->getTxMerkleRoot().hex(true);
-        ret["result"]["receiptsRoot"] = Hash().hex(true); /// No receiptsRoot.
-        ret["result"]["logsBloom"] = Hash().hex(true); /// No logsBloom.
+        ret["result"]["receiptsRoot"] = Hash().hex(true); // No receiptsRoot.
+        ret["result"]["logsBloom"] = Hash().hex(true); // No logsBloom.
         ret["result"]["difficulty"] = "0x1";
         ret["result"]["number"] = Hex::fromBytes(Utils::uintToBytes(block->getNHeight()),true).forRPC();
         ret["result"]["gasLimit"] = Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC();
-        ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC(); /// Arbitrary number
+        ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC(); // Arbitrary number
         ret["result"]["timestamp"] = Hex::fromBytes(Utils::uintToBytes(block->getTimestamp()),true).forRPC();
         ret["result"]["extraData"] = "0x0";
-        ret["result"]["mixHash"] = Hash().hex(true); /// No mixHash.
+        ret["result"]["mixHash"] = Hash().hex(true); // No mixHash.
         ret["result"]["nonce"] = "0x0";
         ret["result"]["totalDifficulty"] = "0x1";
         ret["result"]["baseFeePerGas"] = "0x9502f900";
-        ret["result"]["withdrawRoot"] = Hash().hex(true); /// No withdrawRoot.
-        ret["result"]["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC(); /// TODO: to get a block you have to serialize it entirely, this can be expensive.
+        ret["result"]["withdrawRoot"] = Hash().hex(true); // No withdrawRoot.
+        ret["result"]["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC(); // TODO: to get a block you have to serialize it entirely, this can be expensive.
         if (!includeTransactions) {
-          /// Only include the transaction hashes.
+          // Only include the transaction hashes.
           ret["result"]["transactions"] = json::array();
           for (const auto& tx : block->getTxs()) {
             ret["result"]["transactions"].push_back(tx.hash().hex(true));
           }
         } else {
-          /// Encode the transaction within the json response.
+          // Encode the transaction within the json response.
           ret["result"]["transactions"] = json::array();
           for (const auto& tx : block->getTxs()) {
             json txJson = json::object();
-            txJson["type"] = "0x0"; /// Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
-            txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC(); /// TODO: get the nonce from the transaction.
+            txJson["type"] = "0x0"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
+            txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC(); // TODO: get the nonce from the transaction.
             txJson["to"] = tx.getTo().hex(true);
             txJson["gas"] = Hex::fromBytes(Utils::uintToBytes(tx.getGasLimit()),true).forRPC();
             txJson["value"] = Hex::fromBytes(Utils::uintToBytes(tx.getValue()),true).forRPC();
@@ -235,12 +235,12 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = "2.0";
       auto txHash = tx.hash();
-      /// We can't move as we need to broadcast the tx (see below)
+      // We can't move as we need to broadcast the tx (see below)
       auto TxInvalid = state->addTx(TxBlock(tx));
       if (!TxInvalid) {
         ret["result"] = txHash.hex(true);
-        /// TODO: Make this use threadpool instead of blocking
-        /// TODO: Make tx broadcasting better, the current solution is not good.
+        // TODO: Make this use threadpool instead of blocking
+        // TODO: Make tx broadcasting better, the current solution is not good.
         p2p->broadcastTxBlock(tx);
       } else {
         ret["error"]["code"] = -32000;
@@ -371,12 +371,12 @@ namespace JsonRPC {
         ret["result"]["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
         ret["result"]["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
         ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-        ret["result"]["contractAddress"] = json::value_t::null; /// TODO: CHANGE THIS WHEN CREATING CONTRACTS!
+        ret["result"]["contractAddress"] = json::value_t::null; // TODO: CHANGE THIS WHEN CREATING CONTRACTS!
         ret["result"]["logs"] = json::array();
         ret["result"]["logsBloom"] = Hash().hex(true);
         ret["result"]["type"] = "0x00";
         ret["result"]["root"] = Hash().hex(true);
-        ret["result"]["status"] = "0x1"; /// TODO: change this when contracts are ready
+        ret["result"]["status"] = "0x1"; // TODO: change this when contracts are ready
         return ret;
       }
       ret["result"] = json::value_t::null;

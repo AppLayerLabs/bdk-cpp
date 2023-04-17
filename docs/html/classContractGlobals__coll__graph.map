@@ -1,5 +1,0 @@
-<map id="ContractGlobals" name="ContractGlobals">
-<area shape="rect" id="node1" title=" " alt="" coords="5,171,132,197"/>
-<area shape="rect" id="node2" href="$classAddress.html" title="Abstraction for a single 20&#45;byte address (e.g. &quot;1234567890abcdef...&quot;). Inherits FixedStr&lt;20&gt;." alt="" coords="31,81,106,108"/>
-<area shape="rect" id="node3" href="$classFixedStr.html" title=" " alt="" coords="9,5,129,32"/>
-</map>

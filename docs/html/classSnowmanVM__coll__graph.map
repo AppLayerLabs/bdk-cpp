@@ -1,6 +1,0 @@
-<map id="SnowmanVM" name="SnowmanVM">
-<area shape="rect" id="node1" title="Abstraction of AvalancheGo&#39;s SnowmanVM protocol." alt="" coords="69,171,176,197"/>
-<area shape="rect" id="node2" href="$structInitializeRequest.html" title="Internal struct that contains data for initializing the SnowmanVM." alt="" coords="5,81,136,108"/>
-<area shape="rect" id="node3" href="$classHash.html" title="Abstraction of a 32&#45;byte hash. Inherits FixedStr&lt;32&gt;." alt="" coords="161,81,215,108"/>
-<area shape="rect" id="node4" href="$classFixedStr.html" title=" " alt="" coords="128,5,248,32"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="Catch::CumulativeReporterBase" name="Catch::CumulativeReporterBase">
-<area shape="rect" id="node1" title="Utility base for reporters that need to handle all results at once." alt="" coords="65,155,295,181"/>
-<area shape="rect" id="node4" href="$classCatch_1_1JunitReporter.html" title=" " alt="" coords="5,229,157,256"/>
-<area shape="rect" id="node5" href="$classCatch_1_1SonarQubeReporter.html" title=" " alt="" coords="181,229,376,256"/>
-<area shape="rect" id="node2" href="$classCatch_1_1ReporterBase.html" title="This is the base class for all reporters." alt="" coords="103,80,257,107"/>
-<area shape="rect" id="node3" href="$classCatch_1_1IEventListener.html" title="The common base for all reporters and event listeners." alt="" coords="100,5,260,32"/>
-</map>

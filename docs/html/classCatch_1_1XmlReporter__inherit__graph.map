@@ -1,6 +1,0 @@
-<map id="Catch::XmlReporter" name="Catch::XmlReporter">
-<area shape="rect" id="node1" title=" " alt="" coords="42,229,191,256"/>
-<area shape="rect" id="node2" href="$classCatch_1_1StreamingReporterBase.html" title=" " alt="" coords="5,155,228,181"/>
-<area shape="rect" id="node3" href="$classCatch_1_1ReporterBase.html" title="This is the base class for all reporters." alt="" coords="39,80,194,107"/>
-<area shape="rect" id="node4" href="$classCatch_1_1IEventListener.html" title="The common base for all reporters and event listeners." alt="" coords="37,5,197,32"/>
-</map>

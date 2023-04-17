@@ -1,7 +1,0 @@
-<map id="Catch::ReporterConfig" name="Catch::ReporterConfig">
-<area shape="rect" id="node1" title=" " alt="" coords="93,199,257,225"/>
-<area shape="rect" id="node2" href="$classCatch_1_1Detail_1_1unique__ptr.html" title=" " alt="" coords="5,95,179,136"/>
-<area shape="rect" id="node3" href="$classCatch_1_1IStream.html" title=" " alt="" coords="27,5,146,32"/>
-<area shape="rect" id="node4" href="$classCatch_1_1IConfig.html" title=" " alt="" coords="211,102,323,129"/>
-<area shape="rect" id="node5" href="$classCatch_1_1Detail_1_1NonCopyable.html" title="Deriving classes become noncopyable and nonmovable." alt="" coords="170,5,371,32"/>
-</map>

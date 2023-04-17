@@ -1,8 +1,0 @@
-<map id="SafeUint256_t" name="SafeUint256_t">
-<area shape="rect" id="node1" title=" " alt="" coords="5,415,120,441"/>
-<area shape="rect" id="node2" href="$classSafeBase.html" title=" " alt="" coords="21,339,104,365"/>
-<area shape="rect" id="node3" href="$classContract.html" title="Native abstraction of a smart contract." alt="" coords="24,249,101,276"/>
-<area shape="rect" id="node4" href="$classContractGlobals.html" title=" " alt="" coords="181,172,307,199"/>
-<area shape="rect" id="node5" href="$classAddress.html" title="Abstraction for a single 20&#45;byte address (e.g. &quot;1234567890abcdef...&quot;). Inherits FixedStr&lt;20&gt;." alt="" coords="31,81,105,108"/>
-<area shape="rect" id="node6" href="$classFixedStr.html" title=" " alt="" coords="8,5,128,32"/>
-</map>

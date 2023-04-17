@@ -1,4 +1,0 @@
-<map id="Catch::FatalConditionHandlerGuard" name="Catch::FatalConditionHandlerGuard">
-<area shape="rect" id="node1" title="Simple RAII guard for (dis)engaging the FatalConditionHandler." alt="" coords="5,95,216,136"/>
-<area shape="rect" id="node2" href="$classCatch_1_1FatalConditionHandler.html" title="Wrapper for platform&#45;specific fatal error (signals/SEH) handlers." alt="" coords="5,5,216,32"/>
-</map>

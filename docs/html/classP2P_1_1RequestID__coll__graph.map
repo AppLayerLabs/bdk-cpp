@@ -1,4 +1,0 @@
-<map id="P2P::RequestID" name="P2P::RequestID">
-<area shape="rect" id="node1" title="Abstraction of a 8&#45;byte hash. Inherits FixedStr&lt;32&gt;." alt="" coords="5,80,127,107"/>
-<area shape="rect" id="node2" href="$classFixedStr.html" title=" " alt="" coords="10,5,122,32"/>
-</map>

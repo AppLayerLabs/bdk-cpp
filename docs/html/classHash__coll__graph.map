@@ -1,4 +1,0 @@
-<map id="Hash" name="Hash">
-<area shape="rect" id="node1" title="Abstraction of a 32&#45;byte hash. Inherits FixedStr&lt;32&gt;." alt="" coords="38,80,93,107"/>
-<area shape="rect" id="node2" href="$classFixedStr.html" title=" " alt="" coords="5,5,125,32"/>
-</map>
