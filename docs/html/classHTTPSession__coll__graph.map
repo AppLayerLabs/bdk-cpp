@@ -1,0 +1,5 @@
+<map id="HTTPSession" name="HTTPSession">
+<area shape="rect" id="node1" title="Helper class that handles an HTTP connection session." alt="" coords="55,96,161,123"/>
+<area shape="rect" id="node3" href="$classHTTPQueue.html" title="Helper class used for HTTP pipelining." alt="" coords="59,185,157,212"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,5,211,47"/>
+</map>

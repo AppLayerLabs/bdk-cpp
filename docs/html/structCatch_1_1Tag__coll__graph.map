@@ -1,0 +1,4 @@
+<map id="Catch::Tag" name="Catch::Tag">
+<area shape="rect" id="node1" title="A view of a tag string that provides case insensitive comparisons." alt="" coords="24,95,113,121"/>
+<area shape="rect" id="node2" href="$classCatch_1_1StringRef.html" title="A non&#45;owning string class (similar to the forthcoming std::string_view) Note that,..." alt="" coords="5,5,132,32"/>
+</map>

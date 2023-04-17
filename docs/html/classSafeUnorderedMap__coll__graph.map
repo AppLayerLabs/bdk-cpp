@@ -1,0 +1,8 @@
+<map id="SafeUnorderedMap&lt; Key, T &gt;" name="SafeUnorderedMap&lt; Key, T &gt;">
+<area shape="rect" id="node1" title="TODO: somehow figure out a way to make loop (for (const auto&amp; [key, value] : map) { ...." alt="" coords="5,415,223,441"/>
+<area shape="rect" id="node2" href="$classSafeBase.html" title=" " alt="" coords="73,339,155,365"/>
+<area shape="rect" id="node3" href="$classContract.html" title="Native abstraction of a smart contract." alt="" coords="75,249,153,276"/>
+<area shape="rect" id="node4" href="$classContractGlobals.html" title=" " alt="" coords="232,172,359,199"/>
+<area shape="rect" id="node5" href="$classAddress.html" title="Abstraction for a single 20&#45;byte address (e.g. &quot;1234567890abcdef...&quot;). Inherits FixedStr&lt;20&gt;." alt="" coords="82,81,157,108"/>
+<area shape="rect" id="node6" href="$classFixedStr.html" title=" " alt="" coords="59,5,179,32"/>
+</map>

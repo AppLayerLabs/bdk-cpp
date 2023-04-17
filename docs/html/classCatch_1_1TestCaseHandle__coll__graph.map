@@ -1,0 +1,8 @@
+<map id="Catch::TestCaseHandle" name="Catch::TestCaseHandle">
+<area shape="rect" id="node1" title="Wrapper over the test case information and the test case invoker." alt="" coords="295,184,466,211"/>
+<area shape="rect" id="node2" href="$structCatch_1_1TestCaseInfo.html" title="Various metadata about the test case." alt="" coords="219,95,369,121"/>
+<area shape="rect" id="node3" href="$classCatch_1_1Detail_1_1NonCopyable.html" title="Deriving classes become noncopyable and nonmovable." alt="" coords="5,5,207,32"/>
+<area shape="rect" id="node4" href="$classCatch_1_1StringRef.html" title="A non&#45;owning string class (similar to the forthcoming std::string_view) Note that,..." alt="" coords="231,5,357,32"/>
+<area shape="rect" id="node5" href="$structCatch_1_1SourceLineInfo.html" title=" " alt="" coords="382,5,545,32"/>
+<area shape="rect" id="node6" href="$classCatch_1_1ITestInvoker.html" title=" " alt="" coords="393,95,539,121"/>
+</map>

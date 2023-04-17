@@ -1,60 +1,47 @@
 #include "blockchain.h"
 
-
-
 Blockchain::Blockchain(std::string blockchainPath) :
-    options(std::make_unique<Options>(Options::fromFile(blockchainPath))),
-    db(std::make_unique<DB>(blockchainPath + "/database")),
-    storage(std::make_unique<Storage>(db, options)),
-    rdpos(std::make_unique<rdPoS>(db, storage, p2p, options, state)),
-    state(std::make_unique<State>(db, storage, rdpos, p2p, options)),
-    p2p(std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, state)),
-    http(std::make_unique<HTTPServer>(state, storage, p2p, options)),
-    syncer(std::make_unique<Syncer>(*this)) {
+  options(std::make_unique<Options>(Options::fromFile(blockchainPath))),
+  db(std::make_unique<DB>(blockchainPath + "/database")),
+  storage(std::make_unique<Storage>(db, options)),
+  rdpos(std::make_unique<rdPoS>(db, storage, p2p, options, state)),
+  state(std::make_unique<State>(db, storage, rdpos, p2p, options)),
+  p2p(std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, state)),
+  http(std::make_unique<HTTPServer>(state, storage, p2p, options)),
+  syncer(std::make_unique<Syncer>(*this))
+{}
 
-}
+void Blockchain::start() { p2p->startServer(); http->start(); syncer->start(); }
 
+void Blockchain::stop() { syncer->stop(); http->stop(); p2p->stop(); }
 
-void Blockchain::start() {
-  p2p->startServer();
-  http->start();
-  syncer->start();
-}
-
-void Blockchain::stop() {
-  syncer->stop();
-  http->stop();
-  p2p->stop();
-}
-
-const std::atomic<bool>& Blockchain::isSynced() const {
-  return this->syncer->isSynced();
-}
+const std::atomic<bool>& Blockchain::isSynced() const { return this->syncer->isSynced(); }
 
 void Syncer::updateCurrentlyConnectedNodes() {
   // Get the list of currently connected nodes
   std::vector<Hash> connectedNodes = blockchain.p2p->getSessionsIDs();
   while (connectedNodes.size() < blockchain.p2p->minConnections() && !this->stopSyncer) {
-    // If we have less than the minimum number of connections, wait for a bit for discoveryWorker to kick in and connect to more nodes
+    // If we have less than the minimum number of connections,
+    // wait for a bit for discoveryWorker to kick in and connect to more nodes
     std::this_thread::sleep_for(std::chrono::seconds(1));
     connectedNodes = blockchain.p2p->getSessionsIDs();
   }
 
   // Update information of already connected nodes
   for (auto& [nodeId, nodeInfo] : this->currentlyConnectedNodes) {
-    /// If node is not connected, remove it from the list
+    // If node is not connected, remove it from the list
     if (std::find(connectedNodes.begin(), connectedNodes.end(), nodeId) == connectedNodes.end()) {
       this->currentlyConnectedNodes.erase(nodeId);
       continue;
     }
-    /// If node is connected, update its information
+    // If node is connected, update its information
     auto newNodeInfo = blockchain.p2p->requestNodeInfo(nodeId);
-    /// If node is not responding, remove it from the list
+    // If node is not responding, remove it from the list
     if (newNodeInfo == P2P::NodeInfo()) {
       this->currentlyConnectedNodes.erase(nodeId);
       continue;
     }
-    /// If node is responding, update its information
+    // If node is responding, update its information
     this->currentlyConnectedNodes[nodeId] = newNodeInfo;
   }
 
@@ -69,30 +56,25 @@ void Syncer::updateCurrentlyConnectedNodes() {
   }
 }
 
-bool Syncer::checkLatestBlock() {
-  if (this->latestBlock != this->blockchain.storage->latest()) {
-    return true;
-  }
-  return false;
-}
+bool Syncer::checkLatestBlock() { return (this->latestBlock != this->blockchain.storage->latest()); }
 
 void Syncer::doSync() {
-  /// TODO: Fully implement Sync
+  // TODO: Fully implement Sync
   this->latestBlock = blockchain.storage->latest();
-  /// Get the list of currently connected nodes and their current height
+  // Get the list of currently connected nodes and their current height
   this->updateCurrentlyConnectedNodes();
   std::pair<Hash, uint64_t> highestNode = {Hash(), 0};
 
-  /// Get the highest node.
+  // Get the highest node.
   for (auto& [nodeId, nodeInfo] : this->currentlyConnectedNodes) {
     if (nodeInfo.latestBlockHeight > highestNode.second) {
       highestNode = {nodeId, nodeInfo.latestBlockHeight};
     }
   }
 
-  /// Sync from the best node.
+  // Sync from the best node.
   if (highestNode.second > this->latestBlock->getNHeight()) {
-    /// TODO. currently we are starting all the nodes from genesis (0)
+    // TODO: currently we are starting all the nodes from genesis (0)
   }
 
   this->latestBlock = blockchain.storage->latest();
@@ -101,14 +83,14 @@ void Syncer::doSync() {
 }
 
 void Syncer::doValidatorBlock() {
-  /// TODO: Improve this somehow.
-  /// Wait until we have enought transactions in the rdpos mempool.
+  // TODO: Improve this somehow.
+  // Wait until we have enough transactions in the rdpos mempool.
   while (this->blockchain.rdpos->getMempool().size() < rdPoS::minValidators * 2) {
     if (this->stopSyncer) return;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
-  /// Wait until we have at least one transaction in the state mempool.
+  // Wait until we have at least one transaction in the state mempool.
   while (this->blockchain.state->getMempoolSize() < 1) {
     if (this->stopSyncer) return;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -118,6 +100,7 @@ void Syncer::doValidatorBlock() {
   if (this->stopSyncer) return;
   auto mempool = this->blockchain.rdpos->getMempool();
   auto randomList = this->blockchain.rdpos->getRandomList();
+
   // Order the transactions in the proper manner.
   std::vector<TxValidator> randomHashTxs;
   std::vector<TxValidator> randomnessTxs;
@@ -128,7 +111,7 @@ void Syncer::doValidatorBlock() {
       if (tx.getFrom() == randomList[i]) {
         if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
           randomHashTxs.emplace_back(tx);
-          ++i;
+          i++;
           break;
         }
       }
@@ -140,7 +123,7 @@ void Syncer::doValidatorBlock() {
       if (tx.getFrom() == randomList[i]) {
         if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
           randomnessTxs.emplace_back(tx);
-          ++i;
+          i++;
           break;
         }
       }
@@ -148,28 +131,22 @@ void Syncer::doValidatorBlock() {
   }
   if (this->stopSyncer) return;
 
-  // Create the block and append to all chains, we can use any storage for latestblock
-  auto latestBlock = this->blockchain.storage->latest();
+  // Create the block and append to all chains, we can use any storage for latest block.
+  const std::shared_ptr<const Block> latestBlock = this->blockchain.storage->latest();
   Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
+
   // Append transactions towards block.
-  for (const auto &tx: randomHashTxs) {
-    block.appendTxValidator(tx);
-  }
-  for (const auto &tx: randomnessTxs) {
-    block.appendTxValidator(tx);
-  }
+  for (const auto& tx: randomHashTxs) block.appendTxValidator(tx);
+  for (const auto& tx: randomnessTxs) block.appendTxValidator(tx);
   if (this->stopSyncer) return;
 
-  /// Add transactions from the State
+  // Add transactions from state, sign, validate and process the block.
   this->blockchain.state->fillBlockWithTransactions(block);
-
   this->blockchain.rdpos->signBlock(block);
-  // Validate the block.
   if (!this->blockchain.state->validateNextBlock(block)) {
     Utils::logToDebug(Log::syncer, __func__, "Block is not valid!");
     throw std::runtime_error("Block is not valid!");
   }
-
   if (this->stopSyncer) return;
   Hash latestBlockHash = block.hash();
   this->blockchain.state->processNextBlock(std::move(block));
@@ -177,14 +154,15 @@ void Syncer::doValidatorBlock() {
     Utils::logToDebug(Log::syncer, __func__, "Block is not valid!");
     throw std::runtime_error("Block is not valid!");
   }
-  // Broadcast the Block!
+
+  // Broadcast the block through P2P
   if (this->stopSyncer) return;
   this->blockchain.p2p->broadcastBlock(this->blockchain.storage->latest());
   return;
 }
 
 void Syncer::doValidatorTx() {
-  /// There is nothing to do, validatorLoop will wait for the next block.
+  // There is nothing to do, validatorLoop will wait for the next block.
 }
 
 void Syncer::validatorLoop() {
@@ -192,7 +170,7 @@ void Syncer::validatorLoop() {
   this->blockchain.rdpos->startrdPoSWorker();
   while (!this->stopSyncer) {
     this->latestBlock = this->blockchain.storage->latest();
-    /// Check if validator is within the current validator list.
+    // Check if validator is within the current validator list.
     const auto currentRandomList = this->blockchain.rdpos->getRandomList();
     bool isBlockCreator = false;
     if (currentRandomList[0] == me) {
@@ -201,29 +179,24 @@ void Syncer::validatorLoop() {
     }
 
     if (this->stopSyncer) return;
-    if (!isBlockCreator) {
-      this->doValidatorTx();
-    }
+    if (!isBlockCreator) this->doValidatorTx();
 
     while (!this->checkLatestBlock() && !this->stopSyncer) {
-      /// Wait for next block to be created.
+      // Wait for next block to be created.
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
-
   return;
 }
 
 void Syncer::nonValidatorLoop() {
-  /// TODO: Improve tx broadcasting and syncing
-  while (!this->stopSyncer) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  }
+  // TODO: Improve tx broadcasting and syncing
+  while (!this->stopSyncer) std::this_thread::sleep_for(std::chrono::milliseconds(10));
   return;
 }
 
 bool Syncer::syncerLoop() {
-  /// Connect to all seed nodes from the config and start the discoveryThread.
+  // Connect to all seed nodes from the config and start the discoveryThread.
   auto discoveryNodeList = this->blockchain.options->getDiscoveryNodes();
   for (const auto &[ipAddress, port]: discoveryNodeList) {
     this->blockchain.p2p->connectToServer(ipAddress.to_string(), port);
@@ -232,6 +205,7 @@ bool Syncer::syncerLoop() {
   this->blockchain.p2p->startDiscovery();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+  // Sync the node with the network.
   this->doSync();
   if (this->stopSyncer) return false;
   if (this->blockchain.options->getIsValidator()) {
@@ -239,7 +213,6 @@ bool Syncer::syncerLoop() {
   } else {
     this->nonValidatorLoop();
   }
-
   return true;
 }
 
@@ -252,29 +225,7 @@ void Syncer::start() {
 
 void Syncer::stop() {
   this->stopSyncer = true;
-  if (this->syncerLoopFuture.valid()) {
-    this->syncerLoopFuture.wait();
-  }
+  if (this->syncerLoopFuture.valid()) this->syncerLoopFuture.wait();
   return;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

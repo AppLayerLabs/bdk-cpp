@@ -12,6 +12,7 @@
 #include <optional>
 #include <shared_mutex>
 
+// Forward declarations.
 class rdPoSWorker;
 class Storage;
 class Block;
@@ -20,14 +21,19 @@ class State;
 // "0x6fc5a2d6" -> Function for random tx
 // "0xcfffe746" -> Function for random hash tx
 
+/**
+ * Abstraction of a validator.
+ * Responsible for creating/signing/validating blocks.
+ */
 class Validator : public Address {
   public:
-    using Address::operator==; // Inherit == operator.
-    using Address::operator!=; // Inherit != operator.
-    using Address::operator<;  // Inherit < operator.
-    using Address::operator<=; // Inherit <= operator.
-    using Address::operator>;  // Inherit > operator.
-    using Address::operator>=; // Inherit >= operator.
+    // Using parent operators.
+    using Address::operator==;
+    using Address::operator!=;
+    using Address::operator<;
+    using Address::operator<=;
+    using Address::operator>;
+    using Address::operator>=;
 
     /// Constructor.
     Validator(const Address& add) : Address(add) {}
@@ -41,7 +47,7 @@ class Validator : public Address {
     /// Move constructor.
     Validator(Validator&& other) noexcept : Address(std::move(other.data), true) {}
 
-    /// Get an Address copy
+    /// Get a copy of the Validator address.
     const Address address() const { return Address(this->data, true); }
 
     /// Copy assignment operator.
@@ -57,102 +63,107 @@ class Validator : public Address {
     }
 };
 
+/// Abstraction of the %rdPoS (Random Deterministic Proof of Stake) consensus algorithm.
 class rdPoS : public Contract {
   private:
-
-    /// Pointer to Storage
+    /// Pointer to the blockchain's storage.
     const std::unique_ptr<Storage>& storage;
 
-    /// Pointer to P2P Manager (for sending/requesting TxValidators from other nodes)
+    /// Pointer to the P2P Manager (for sending/requesting TxValidators from other nodes).
     const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
-    /// Pointer to the State
+    /// Pointer to the blockchain state.
     const std::unique_ptr<State>& state;
 
-    /// Pointer to the Options
+    /// Pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
-    ///< Ordered list of validators.
+    /// Ordered list of validators.
     std::set<Validator> validators;
 
-    /// Shuffled version of `validatorList`, used at block creation/signing.
+    /// Shuffled version of `validators`, used at block creation/signing.
     std::vector<Validator> randomList;
 
-    /// Mempool for validator Transactions.
+    /// Mempool for validator transactions.
     std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool;
 
-    /// Private Key for operating a validator.
+    /// Private key for operating a validator.
     const PrivKey validatorKey;
 
+    /// Indicated whether this node is a Validator or not.
     const bool isValidator = false;
 
-    /// worker for rdPoS. 
+    /// Worker for rdPoS.
     const std::unique_ptr<rdPoSWorker> worker;
 
-    /// Randomness Generator
-    RandomGen randomGen;  
+    /// Randomness generator (for use in seeding).
+    RandomGen randomGen;
 
-    /// Best randomness seed (taken from the last block)
+    /// Best randomness seed (taken from the last block).
     Hash bestRandomSeed;
 
-    /// mutex for class members
+    /// Mutex for managing read/write access to the class members.
     mutable std::shared_mutex mutex;
 
-    /// Initializes the blockchain with the default information for rdPoS.
-    /// This function is called by the constructor if no previous blockchain is found.
+    /**
+     * Initializes the blockchain with the default information for rdPoS.
+     * Called by the constructor if no previous blockchain is found.
+     */
     void initializeBlockchain();
 
   public:
-    enum TxValidatorFunction {
-      INVALID,
-      RANDOMHASH,
-      RANDOMSEED
-    };
+    /// Enum for Validator transaction functions.
+    enum TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED }
+
     /**
      * Constructor.
      * @param db Pointer to the database.
-     * @param chainId The chain ID.
-     * @param storage Pointer to the blockchain history.
-     * @param p2p Pointer to the P2P Manager.
-     * @param validatorKey The private key of the validator, if any.
+     * @param storage Pointer to the blockchain's storage.
+     * @param p2p Pointer to the P2P connection manager.
+     * @param options Pointer to the options singleton.
+     * @param state Pointer to the blockchain's state.
      */
+    rdPoS(
+      const std::unique_ptr<DB>& db, const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<P2P::ManagerNormal>& p2p,
+      const std::unique_ptr<Options>& options, const std::unique_ptr<State>& state
+    );
 
-    rdPoS(const std::unique_ptr<DB>& db,
-          const std::unique_ptr<Storage>& storage,
-          const std::unique_ptr<P2P::ManagerNormal>& p2p,
-          const std::unique_ptr<Options>& options,
-          const std::unique_ptr<State>& state);
-
+    /// Destructor.
     ~rdPoS();
-    
+
     /// Enum for transaction types.
     enum TxType { addValidator, removeValidator, randomHash, randomSeed };
 
     /// Minimum number of required Validators for creating and signing blocks.
     static const uint32_t minValidators = 4;
 
-    /// Getter for validators, not a reference because the inner set can be changed.
+    /// Getter for `validators`. Not a reference because the inner set can be changed.
     const std::set<Validator> getValidators() const { std::shared_lock lock(this->mutex); return validators; }
 
-    /// Getter for randomList, not a reference because the inner vector can be changed.
+    /// Getter for `randomList`. Not a reference because the inner vector can be changed.
     const std::vector<Validator> getRandomList() const { std::shared_lock lock(this->mutex); return randomList; }
 
-    /// Getter for mempool, not a reference because the inner map can be changed.
+    /// Getter for `mempool`. Not a reference because the inner map can be changed.
     const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const { std::shared_lock lock(this->mutex); return validatorMempool; }
 
-    /// Getter for bestRandomSeed.
+    /// Getter for `bestRandomSeed`.
     const Hash getBestRandomSeed() const { std::shared_lock lock(this->mutex); return bestRandomSeed; }
 
-    /// Check if a given address is a validator
-    const bool isValidatorAddress(const Address& add) const { std::shared_lock lock(this->mutex); return validators.contains(Validator(add)); }
-
-    /// Getter for isValidator
+    /// Getter for `isValidator`.
     const bool getIsValidator() const { return isValidator; }
 
-    /// Getter for validator UPubKey
+    /// Getter for `validatorKey`, converted to an uncompressed public key.
     const UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey); }
 
-    /// Clear the mempool
+    /**
+     * Check if a given Address is a Validator.
+     * @param add The address to check.
+     * @return `true` if address is in the validator list, `false` otherwise.
+     */
+    const bool isValidatorAddress(const Address& add) const { std::shared_lock lock(this->mutex); return validators.contains(Validator(add)); }
+
+    /// Clear the mempool.
     void clearMempool() { std::unique_lock lock(this->mutex); validatorMempool.clear(); }
 
     /**
@@ -164,29 +175,30 @@ class rdPoS : public Contract {
 
     /**
      * Process a block.
-     * should be called from State, after a block is validated and before is added to Storage.
+     * Should be called from State, after a block is validated and before it is added to Storage.
      * @param block The block to process.
      * @return The new randomness seed to be used for the next block.
      */
     Hash processBlock(const Block& block);
 
     /**
-     * Signs a block using validatorKey
-     * returns false if we are not able to sign the block
+     * Sign a block using the Validator's private key.
+     * @return `true` on success, `false` if we are not able to sign the block.
      */
     void signBlock(Block& block);
 
     /**
      * Add a Validator transaction to the mempool.
-     * Should ONLY be called by the State, as State locks the current state mutex.
-     * Not allowing a race condition of addin transactions that are not for the current block nHeight
+     * Should ONLY be called by the State, as it locks the current state mutex,
+     * not allowing a race condition of adding transactions that are not for
+     * the current block height.
      * @param tx The transaction to add.
      * @return `true` if the transaction was added, `false` if invalid otherwise.
      */
     bool addValidatorTx(const TxValidator& tx);
- 
+
     /**
-     * Parse a transaction list.
+     * Parse a Validator transaction list.
      * Does NOT validate any of the block rdPoS transactions.
      * @param txs The list of transactions to parse.
      * @return The new randomness of given transaction set.
@@ -194,100 +206,105 @@ class rdPoS : public Contract {
     static Hash parseTxSeedList(const std::vector<TxValidator>& txs);
 
     /**
-     * Get TxValidator function, based on ABI
+     * Get a function from a given Validator transaction, based on ABI.
      * @param tx The transaction to parse.
-     * @return The TxValidator object.
+     * @return The function type.
      */
-
     static TxValidatorFunction getTxValidatorFunction(const TxValidator& tx);
 
     /**
-     * Function for getting if we can create a block from rdPoSWorker
+     * Check if a block can be created by rdPoSWorker.
+     * @return `true` if a block can be created, `false` otherwise.
      */
     const std::atomic<bool>& canCreateBlock() const;
 
-    /**
-     * Function for starting the rdPoS worker.
-     */
+    /// Start the rdPoSWorker.
     void startrdPoSWorker();
 
-    /**
-     * Function for stopping the rdPoS worker.
-     */
+    /// Stop the rdPoSWorker.
     void stoprdPoSWorker();
 
     friend rdPoSWorker;
 };
 
-// Worker Class for rdPoS. This separate the class from the rdPoS operation which runs rdPoS.
+/**
+ * Worker class for rdPoS.
+ * This separates the class from the %rdPoS operation which runs the %rdPoS consensus.
+ */
 class rdPoSWorker {
   private:
-    /// Reference back to the rdPoS object.
+    /// Reference to the parent rdPoS object.
     rdPoS& rdpos;
 
-    /// Boolean to stop the worker thread.
+    /// Flag for stopping the worker thread.
     std::atomic<bool> stopWorker = false;
 
-    /// Future object for the worker thread.
-    /// This is used to wait for the thread to finish after stopWorker is set to true.
+    /**
+     * Future object for the worker thread.
+     * Used to wait for the thread to finish after stopWorker is set to true.
+     */
     std::future<bool> workerFuture;
 
-    /// Atomic object to know if the worker is ready to create a block.
+    /// Flag for knowing if the worker is ready to create a block.
     std::atomic<bool> canCreateBlock = false;
 
-    /// Latest block.
+    /// Pointer to the latest block.
     std::shared_ptr<const Block> latestBlock;
 
-    /// Function to check if latest block has updated.
-    /// Does not update latestBlock, this is done by the workerLoop() function.
-    /// @return `true` if latestBlock has been updated, `false` otherwise.
+    /**
+     * Check if the latest block has updated.
+     * Does NOT update latestBlock per se, this is done by workerLoop().
+     * @return `true` if latest block has been updated, `false` otherwise.
+     */
     bool checkLatestBlock();
 
     /**
-     * Entry function for the workerThread.
-     * This function runs the workerLoop() function.
+     * Entry function for the worker thread (runs the workerLoop() function).
+     * TODO: document return
      */
     bool workerLoop();
 
     /**
-     * This function does the block creator rdPoS operation
-     * Wait for transactions to be added to the mempool.
+     * Wait for transactions to be added to the mempool and create a block by rdPoS consesus.
+     * Called by workerLoop().
      * TODO: this function should call State or Blockchain to let them know that we are ready to create a block.
-     * To be called by workerLoop().
      */
-
     void doBlockCreation();
 
     /**
-     * This function does the transaction creation related to rdPoS operation
-     * and broadcast it to the network.
-     * @param nHeight The nHeight for the transactions.
+     * Create a transaction by rdPoS consensus and broadcast it to the network.
+     * @param nHeight The block height for the transaction.
+     * @param me The Validator that will create the transaction.
      */
-
     void doTxCreation(const uint64_t& nHeight, const Validator& me);
-    
+
   public:
-    /// Constructor for rdPoSWorker.
-    /// @param rdpos 
+    /**
+     * Constructor.
+     * @param rdpos Reference to the parent rdPoS object.
+     */
     rdPoSWorker(rdPoS& rdpos) : rdpos(rdpos) {}
 
-    /// Destructor.
-    ~rdPoSWorker() { this->stop(); }; // stop the worker thread if it is still running.
+    /**
+     * Destructor.
+     * Automatically stops the worker thread if it's still running.
+     */
+    ~rdPoSWorker() { this->stop(); }
 
-    /// starter for workerFuture and workerLoop. Should only be called after node is synced.
-    void start();
-
-    /// stopper for workerFuture and workerLoop.
-    void stop();
-
-    /// Getter for the block boolean.
+    /// Getter for `canCreateBlock`.
     const std::atomic<bool>& getCanCreateBlock() const { return canCreateBlock; }
 
-    /// Setter for canCreateBlock.
+    /// Setter for `canCreateBlock`.
     void blockCreated() { canCreateBlock = false; }
+
+    /**
+     * Start workerFuture and workerLoop.
+     * Should only be called after node is synced.
+     */
+    void start();
+
+    /// Stop workerFuture and workerLoop.
+    void stop();
 };
-
-
-
 
 #endif // RDPOS_H

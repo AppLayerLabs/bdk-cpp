@@ -17,7 +17,7 @@
 using grpc::ServerContext;
 
 // Forward declarations.
-class Block;  // Include is not working, why? There's no circular dep here
+class Block;
 
 /**
  * Internal struct that contains data for initializing the SnowmanVM.
@@ -41,7 +41,7 @@ struct InitializeRequest {
 enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
 /**
- * Abstraction of AvalancheGo's SnowmanVM protocol.
+ * Abstraction of AvalancheGo's %SnowmanVM protocol.
  * See [Ava Labs' docs](https://github.com/ava-labs/avalanchego/tree/master/vms#readme) for more details.
  */
 class SnowmanVM {
@@ -64,7 +64,7 @@ class SnowmanVM {
     /// Cached block status. Lookup is made by block hash.
     std::unordered_map<Hash, BlockStatus, SafeHash> cachedBlockStatus;
 
-    /// Mutex for managing read/write access to the SnowmanVM object.
+    /// Mutex for managing read/write access to the class members.
     mutable std::mutex lock;
 
     /// Pointer to the blockchain history.
@@ -96,7 +96,7 @@ class SnowmanVM {
     void setPreferredBlockHash(const Hash& hash) { this->preferredBlockHash = hash; }
 
     /**
-     * Initialize the SnowmanVM services.
+     * Initialize the %SnowmanVM services.
      * Called by gRPCServer.
      * The initialization request is made by the AvalancheGo Daemon.
      * See vm.proto for more information.
@@ -116,7 +116,7 @@ class SnowmanVM {
     );
 
     /**
-     * Set the state of the SnowmanVM.
+     * Set the state of the %SnowmanVM.
      * Called by `initialize()` if no info is found on the database.
      * For more info about the SetState request, see vm.proto and
      * https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/bootstrap/bootstrapper.go#L111

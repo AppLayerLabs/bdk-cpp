@@ -1,0 +1,8 @@
+<map id="SafeAddress" name="SafeAddress">
+<area shape="rect" id="node1" title=" " alt="" coords="5,415,108,441"/>
+<area shape="rect" id="node2" href="$classSafeBase.html" title=" " alt="" coords="98,339,181,365"/>
+<area shape="rect" id="node3" href="$classContract.html" title="Native abstraction of a smart contract." alt="" coords="121,249,198,276"/>
+<area shape="rect" id="node4" href="$classContractGlobals.html" title=" " alt="" coords="236,172,363,199"/>
+<area shape="rect" id="node5" href="$classAddress.html" title="Abstraction for a single 20&#45;byte address (e.g. &quot;1234567890abcdef...&quot;). Inherits FixedStr&lt;20&gt;." alt="" coords="65,81,139,108"/>
+<area shape="rect" id="node6" href="$classFixedStr.html" title=" " alt="" coords="42,5,162,32"/>
+</map>

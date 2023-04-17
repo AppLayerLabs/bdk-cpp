@@ -1,0 +1,5 @@
+<map id="P2P::ManagerBase" name="P2P::ManagerBase">
+<area shape="rect" id="node1" title=" " alt="" coords="5,171,148,197"/>
+<area shape="rect" id="node2" href="$classHash.html" title="Abstraction of a 32&#45;byte hash. Inherits FixedStr&lt;32&gt;." alt="" coords="49,81,104,108"/>
+<area shape="rect" id="node3" href="$classFixedStr.html" title=" " alt="" coords="17,5,137,32"/>
+</map>

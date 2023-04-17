@@ -1,0 +1,12 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classSafeBase.html" title=" " alt="" coords="5,208,88,235"/>
+<area shape="rect" id="node2" href="$classSafeAddress.html" title=" " alt="" coords="193,5,296,32"/>
+<area shape="rect" id="node3" href="$classSafeBool.html" title=" " alt="" coords="205,56,285,83"/>
+<area shape="rect" id="node4" href="$classSafeString.html" title=" " alt="" coords="200,107,289,133"/>
+<area shape="rect" id="node5" href="$classSafeUint16__t.html" title=" " alt="" coords="191,157,298,184"/>
+<area shape="rect" id="node6" href="$classSafeUint256__t.html" title=" " alt="" coords="187,208,302,235"/>
+<area shape="rect" id="node7" href="$classSafeUint32__t.html" title=" " alt="" coords="191,259,298,285"/>
+<area shape="rect" id="node8" href="$classSafeUint64__t.html" title=" " alt="" coords="191,309,298,336"/>
+<area shape="rect" id="node9" href="$classSafeUint8__t.html" title=" " alt="" coords="195,360,294,387"/>
+<area shape="rect" id="node10" href="$classSafeUnorderedMap.html" title="TODO: somehow figure out a way to make loop (for (const auto&amp; [key, value] : map) { ...." alt="" coords="136,411,353,437"/>
+</map>

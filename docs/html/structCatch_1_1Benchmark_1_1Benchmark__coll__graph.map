@@ -1,0 +1,6 @@
+<map id="Catch::Benchmark::Benchmark" name="Catch::Benchmark::Benchmark">
+<area shape="rect" id="node1" title=" " alt="" coords="840,27,1063,54"/>
+<area shape="rect" id="node2" href="$structCatch_1_1Benchmark_1_1Detail_1_1BenchmarkFunction.html" title="We need to reinvent std::function because every piece of code that might add overhead in a measuremen..." alt="" coords="579,20,767,61"/>
+<area shape="rect" id="node3" href="$classCatch_1_1Detail_1_1unique__ptr.html" title=" " alt="" coords="315,5,521,76"/>
+<area shape="rect" id="node4" href="$structCatch_1_1Benchmark_1_1Detail_1_1BenchmarkFunction_1_1callable.html" title=" " alt="" coords="5,20,224,61"/>
+</map>

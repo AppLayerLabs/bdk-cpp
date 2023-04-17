@@ -48,7 +48,6 @@ Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& 
 Storage::~Storage() {
   DBBatch blockBatch, heightBatch, txToBlockBatch;
   std::shared_ptr<const Block> latest;
-
   {
     std::unique_lock<std::shared_mutex> lock(this->chainLock);
     latest = this->chain.back();
@@ -101,7 +100,7 @@ void Storage::initializeBlockchain() {
     Utils::logToDebug(Log::storage, __func__,
       std::string("Created genesis block: ") + Hex::fromBytes(genesis.hash().get()).get()
     );
-  }  
+  }
 }
 
 const TxBlock Storage::getTxFromBlockWithIndex(const std::string_view blockData, const uint64_t& txIndex) {
@@ -111,7 +110,7 @@ const TxBlock Storage::getTxFromBlockWithIndex(const std::string_view blockData,
   while (currentTx < txIndex) {
     uint32_t txSize = Utils::bytesToUint32(blockData.substr(index, 4));
     index += txSize + 4;
-    ++currentTx;
+    currentTx++;
   }
   uint64_t txSize = Utils::bytesToUint32(blockData.substr(index, 4));
   index += 4;
@@ -123,11 +122,13 @@ void Storage::pushBackInternal(Block&& block) {
   if (this->chain.size() != 0) {
     if (this->chain.back()->hash() != block.getPrevBlockHash()) {
       throw std::runtime_error("Block " + block.hash().hex().get()
-        + " does not have the correct previous block hash.");
+        + " does not have the correct previous block hash."
+      );
     }
     if (block.getNHeight() != this->chain.back()->getNHeight() + 1) {
       throw std::runtime_error("Block " + block.hash().hex().get()
-        + " does not have the correct height.");
+        + " does not have the correct height."
+      );
     }
   }
   this->chain.emplace_back(std::make_shared<Block>(std::move(block)));
@@ -138,7 +139,7 @@ void Storage::pushBackInternal(Block&& block) {
   this->blockHashByHeight.insert({newBlock->getNHeight(), newBlock->hash()});
   this->blockHeightByHash.insert({newBlock->hash(), newBlock->getNHeight()});
   const auto& Txs = newBlock->getTxs();
-  for (uint32_t i = 0; i < Txs.size(); ++i) {
+  for (uint32_t i = 0; i < Txs.size(); i++) {
     this->txByHash.insert({ Txs[i].hash(), { newBlock->hash(), i, newBlock->getNHeight() }});
   }
 }
@@ -148,11 +149,13 @@ void Storage::pushFrontInternal(Block&& block) {
   if (this->chain.size() != 0) {
     if (this->chain.front()->getPrevBlockHash() != block.hash()) {
       throw std::runtime_error("Block " + block.hash().hex().get()
-        + " does not have the correct previous block hash.");
+        + " does not have the correct previous block hash."
+      );
     }
     if (block.getNHeight() != this->chain.front()->getNHeight() - 1) {
       throw std::runtime_error("Block " + block.hash().hex().get()
-        + " does not have the correct height.");
+        + " does not have the correct height."
+      );
     }
   }
   this->chain.emplace_front(std::make_shared<Block>(std::move(block)));
@@ -163,7 +166,7 @@ void Storage::pushFrontInternal(Block&& block) {
   this->blockHashByHeight.insert({newBlock->getNHeight(), newBlock->hash()});
   this->blockHeightByHash.insert({newBlock->hash(), newBlock->getNHeight()});
   const auto& Txs = newBlock->getTxs();
-  for (uint32_t i = 0; i < Txs.size(); ++i) {
+  for (uint32_t i = 0; i < Txs.size(); i++) {
     this->txByHash.insert({Txs[i].hash(), { newBlock->hash(), i, newBlock->getNHeight()}});
   }
 }
@@ -182,9 +185,7 @@ void Storage::popBack() {
   // Delete block and its txs from the mappings, then pop it from the chain
   std::unique_lock<std::shared_mutex> lock(this->chainLock);
   std::shared_ptr<const Block> block = this->chain.back();
-  for (const TxBlock& tx : block->getTxs()) {
-    this->txByHash.erase(tx.hash());
-  }
+  for (const TxBlock& tx : block->getTxs()) this->txByHash.erase(tx.hash());
   this->blockByHash.erase(block->hash());
   this->chain.pop_back();
 }
@@ -193,9 +194,7 @@ void Storage::popFront() {
   // Delete block and its txs from the mappings, then pop it from the chain
   std::unique_lock<std::shared_mutex> lock(this->chainLock);
   std::shared_ptr<const Block> block = this->chain.front();
-  for (const TxBlock& tx : block->getTxs()) {
-    this->txByHash.erase(tx.hash());
-  }
+  for (const TxBlock& tx : block->getTxs()) this->txByHash.erase(tx.hash());
   this->blockByHash.erase(block->hash());
   this->chain.pop_front();
 }
@@ -212,12 +211,12 @@ StorageStatus Storage::blockExists(const Hash& hash) {
   } else {
     return StorageStatus::NotFound;
   }
+  return StorageStatus::NotFound;
 }
 
 StorageStatus Storage::blockExists(const uint64_t& height) {
   // Check chain first, then cache, then database
   std::shared_lock<std::shared_mutex> lock(this->chainLock);
-
   auto it = this->blockHashByHeight.find(height);
   if (it != this->blockHashByHeight.end()) {
     if (this->blockByHash.contains(it->second)) return StorageStatus::OnChain;
@@ -227,8 +226,6 @@ StorageStatus Storage::blockExists(const uint64_t& height) {
   } else {
     return StorageStatus::NotFound;
   }
-
-
   return StorageStatus::NotFound;
 }
 
@@ -250,7 +247,9 @@ const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
     }
     case StorageStatus::OnDB: {
       std::unique_lock lock(this->cacheLock);
-      this->cachedBlocks.insert({hash, std::make_shared<Block>(this->db->get(hash.get(), DBPrefix::blocks), this->options->getChainID())});
+      this->cachedBlocks.insert({hash, std::make_shared<Block>(
+        this->db->get(hash.get(), DBPrefix::blocks), this->options->getChainID()
+      )});
       return this->cachedBlocks[hash];
     }
   }
@@ -300,10 +299,9 @@ StorageStatus Storage::txExists(const Hash& tx) {
   }
 }
 
-const std::tuple<const std::shared_ptr<const TxBlock>,
-  const Hash,
-  const uint64_t,
-  const uint64_t> Storage::getTx(const Hash& tx) {
+const std::tuple<
+  const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
+> Storage::getTx(const Hash& tx) {
   // Check chain first, then cache, then database
   StorageStatus txStatus = this->txExists(tx);
   switch (txStatus) {
@@ -335,13 +333,12 @@ const std::tuple<const std::shared_ptr<const TxBlock>,
       return this->cachedTxs[tx];
     }
   }
-  return {nullptr, Hash(), 0, 0};
+  return { nullptr, Hash(), 0, 0 };
 }
 
-const std::tuple<const std::shared_ptr<const TxBlock>,
-  const Hash,
-  const uint64_t,
-  const uint64_t> Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) {
+const std::tuple<
+  const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
+> Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) {
   auto Status = this->blockExists(blockHash);
   switch (Status) {
     case StorageStatus::NotFound: {
@@ -371,13 +368,12 @@ const std::tuple<const std::shared_ptr<const TxBlock>,
       return this->cachedTxs[tx.hash()];
     }
   }
-  return { nullptr, Hash(), 0, 0};
+  return { nullptr, Hash(), 0, 0 };
 }
 
-const std::tuple<const std::shared_ptr<const TxBlock>,
-  const Hash,
-  const uint64_t,
-  const uint64_t> Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) {
+const std::tuple<
+  const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
+> Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) {
   auto Status = this->blockExists(blockHeight);
   switch (Status) {
     case StorageStatus::NotFound: {
@@ -407,7 +403,7 @@ const std::tuple<const std::shared_ptr<const TxBlock>,
       return this->cachedTxs[tx.hash()];
     }
   }
-  return { nullptr, Hash(), 0, 0};
+  return { nullptr, Hash(), 0, 0 };
 }
 
 const std::shared_ptr<const Block> Storage::latest() {
@@ -415,9 +411,7 @@ const std::shared_ptr<const Block> Storage::latest() {
   return this->chain.back();
 }
 
-uint64_t Storage::currentChainSize() {
-  return this->latest()->getNHeight() + 1;
-}
+uint64_t Storage::currentChainSize() { return this->latest()->getNHeight() + 1; }
 
 void Storage::periodicSaveToDB() {
   while (!this->stopPeriodicSave) {

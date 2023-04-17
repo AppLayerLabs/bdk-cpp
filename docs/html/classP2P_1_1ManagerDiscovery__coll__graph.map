@@ -1,0 +1,6 @@
+<map id="P2P::ManagerDiscovery" name="P2P::ManagerDiscovery">
+<area shape="rect" id="node1" title=" " alt="" coords="5,247,181,273"/>
+<area shape="rect" id="node2" href="$classP2P_1_1ManagerBase.html" title=" " alt="" coords="22,171,165,197"/>
+<area shape="rect" id="node3" href="$classHash.html" title="Abstraction of a 32&#45;byte hash. Inherits FixedStr&lt;32&gt;." alt="" coords="66,81,121,108"/>
+<area shape="rect" id="node4" href="$classFixedStr.html" title=" " alt="" coords="33,5,153,32"/>
+</map>

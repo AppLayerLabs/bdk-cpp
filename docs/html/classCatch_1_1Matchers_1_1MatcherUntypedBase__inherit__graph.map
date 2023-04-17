@@ -1,0 +1,47 @@
+<map id="Catch::Matchers::MatcherUntypedBase" name="Catch::Matchers::MatcherUntypedBase">
+<area shape="rect" id="node1" title=" " alt="" coords="5,707,193,748"/>
+<area shape="rect" id="node2" href="$classCatch_1_1Matchers_1_1MatcherBase.html" title=" " alt="" coords="241,145,429,201"/>
+<area shape="rect" id="node7" href="$classCatch_1_1Matchers_1_1MatcherBase.html" title=" " alt="" coords="241,397,429,439"/>
+<area shape="rect" id="node11" href="$classCatch_1_1Matchers_1_1MatcherBase.html" title=" " alt="" coords="241,568,429,609"/>
+<area shape="rect" id="node14" href="$classCatch_1_1Matchers_1_1MatcherBase.html" title=" " alt="" coords="241,669,429,711"/>
+<area shape="rect" id="node21" href="$classCatch_1_1Matchers_1_1MatcherBase.html" title=" " alt="" coords="241,735,429,791"/>
+<area shape="rect" id="node23" href="$classCatch_1_1Matchers_1_1MatcherBase.html" title=" " alt="" coords="241,845,429,887"/>
+<area shape="rect" id="node27" href="$classCatch_1_1Matchers_1_1MatcherBase.html" title=" " alt="" coords="241,972,429,1013"/>
+<area shape="rect" id="node29" href="$classCatch_1_1Matchers_1_1MatcherGenericBase.html" title=" " alt="" coords="241,1527,429,1568"/>
+<area shape="rect" id="node3" href="$classCatch_1_1Matchers_1_1ApproxMatcher.html" title=" " alt="" coords="489,5,724,47"/>
+<area shape="rect" id="node4" href="$classCatch_1_1Matchers_1_1ContainsMatcher.html" title=" " alt="" coords="511,71,703,127"/>
+<area shape="rect" id="node5" href="$classCatch_1_1Matchers_1_1EqualsMatcher.html" title=" " alt="" coords="491,152,722,193"/>
+<area shape="rect" id="node6" href="$classCatch_1_1Matchers_1_1UnorderedEqualsMatcher.html" title=" " alt="" coords="495,218,718,274"/>
+<area shape="rect" id="node8" href="$classCatch_1_1Matchers_1_1Detail_1_1MatchAllOf.html" title=" " alt="" coords="519,299,694,340"/>
+<area shape="rect" id="node9" href="$classCatch_1_1Matchers_1_1Detail_1_1MatchAnyOf.html" title=" " alt="" coords="519,364,694,405"/>
+<area shape="rect" id="node10" href="$classCatch_1_1Matchers_1_1Detail_1_1MatchNotOf.html" title=" " alt="" coords="519,429,694,471"/>
+<area shape="rect" id="node12" href="$classCatch_1_1Matchers_1_1ExceptionMessageMatcher.html" title=" " alt="" coords="507,495,706,536"/>
+<area shape="rect" id="node13" href="$classCatch_1_1Matchers_1_1ExceptionMessageMatchesMatcher.html" title=" " alt="" coords="507,561,706,617"/>
+<area shape="rect" id="node15" href="$classCatch_1_1Matchers_1_1RegexMatcher.html" title=" " alt="" coords="492,641,721,667"/>
+<area shape="rect" id="node16" href="$classCatch_1_1Matchers_1_1StringMatcherBase.html" title=" " alt="" coords="477,691,736,718"/>
+<area shape="rect" id="node17" href="$classCatch_1_1Matchers_1_1EndsWithMatcher.html" title=" " alt="" coords="801,587,997,628"/>
+<area shape="rect" id="node18" href="$classCatch_1_1Matchers_1_1StartsWithMatcher.html" title=" " alt="" coords="798,652,1001,693"/>
+<area shape="rect" id="node19" href="$classCatch_1_1Matchers_1_1StringContainsMatcher.html" title=" " alt="" coords="784,717,1015,759"/>
+<area shape="rect" id="node20" href="$classCatch_1_1Matchers_1_1StringEqualsMatcher.html" title=" " alt="" coords="791,783,1007,824"/>
+<area shape="rect" id="node22" href="$classCatch_1_1Matchers_1_1VectorContainsElementMatcher.html" title=" " alt="" coords="490,743,723,784"/>
+<area shape="rect" id="node24" href="$classCatch_1_1Matchers_1_1WithinAbsMatcher.html" title=" " alt="" coords="506,808,707,849"/>
+<area shape="rect" id="node25" href="$classCatch_1_1Matchers_1_1WithinRelMatcher.html" title=" " alt="" coords="507,873,706,915"/>
+<area shape="rect" id="node26" href="$classCatch_1_1Matchers_1_1WithinUlpsMatcher.html" title=" " alt="" coords="503,939,710,980"/>
+<area shape="rect" id="node28" href="$classCatch_1_1Matchers_1_1PredicateMatcher.html" title=" " alt="" coords="509,1004,705,1045"/>
+<area shape="rect" id="node30" href="$classCatch_1_1Matchers_1_1AllMatchMatcher.html" title=" " alt="" coords="511,1069,703,1111"/>
+<area shape="rect" id="node31" href="$classCatch_1_1Matchers_1_1AllTrueMatcher.html" title=" " alt="" coords="517,1135,696,1176"/>
+<area shape="rect" id="node32" href="$classCatch_1_1Matchers_1_1AnyMatchMatcher.html" title=" " alt="" coords="507,1200,707,1241"/>
+<area shape="rect" id="node33" href="$classCatch_1_1Matchers_1_1AnyTrueMatcher.html" title=" " alt="" coords="513,1265,700,1307"/>
+<area shape="rect" id="node34" href="$classCatch_1_1Matchers_1_1ContainsElementMatcher.html" title="Matcher for checking that an element in range is equal to specific element." alt="" coords="493,1331,721,1372"/>
+<area shape="rect" id="node35" href="$classCatch_1_1Matchers_1_1ContainsMatcherMatcher.html" title="Meta&#45;matcher for checking that an element in a range matches a specific matcher." alt="" coords="501,1396,712,1437"/>
+<area shape="rect" id="node36" href="$classCatch_1_1Matchers_1_1Detail_1_1MatchAllOfGeneric.html" title=" " alt="" coords="483,1461,731,1503"/>
+<area shape="rect" id="node37" href="$classCatch_1_1Matchers_1_1Detail_1_1MatchAnyOfGeneric.html" title=" " alt="" coords="479,1527,735,1568"/>
+<area shape="rect" id="node38" href="$classCatch_1_1Matchers_1_1Detail_1_1MatchNotOfGeneric.html" title=" " alt="" coords="482,1592,731,1633"/>
+<area shape="rect" id="node39" href="$classCatch_1_1Matchers_1_1HasSizeMatcher.html" title=" " alt="" coords="513,1657,700,1699"/>
+<area shape="rect" id="node40" href="$classCatch_1_1Matchers_1_1IsEmptyMatcher.html" title=" " alt="" coords="513,1723,701,1764"/>
+<area shape="rect" id="node41" href="$classCatch_1_1Matchers_1_1NoneMatchMatcher.html" title=" " alt="" coords="502,1788,711,1829"/>
+<area shape="rect" id="node42" href="$classCatch_1_1Matchers_1_1NoneTrueMatcher.html" title=" " alt="" coords="509,1853,705,1895"/>
+<area shape="rect" id="node43" href="$classCatch_1_1Matchers_1_1RangeEqualsMatcher.html" title="Matcher for checking that an element contains the same elements in the same order." alt="" coords="497,1919,716,1975"/>
+<area shape="rect" id="node44" href="$classCatch_1_1Matchers_1_1SizeMatchesMatcher.html" title=" " alt="" coords="498,2000,715,2041"/>
+<area shape="rect" id="node45" href="$classCatch_1_1Matchers_1_1UnorderedRangeEqualsMatcher.html" title="Matcher for checking that an element contains the same elements (but not necessarily in the same orde..." alt="" coords="479,2066,734,2122"/>
+</map>

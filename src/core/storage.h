@@ -16,7 +16,7 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
 
 /**
  * Abstraction of the blockchain history.
- * Used to store blocks in memory and on disk, and helps the %State process
+ * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
  */
 class Storage {
@@ -24,7 +24,7 @@ class Storage {
     /// Pointer to the database that contains the blockchain's entire history.
     const std::unique_ptr<DB>& db;
 
-    /// Pointer to the options.
+    /// Pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
     /**
@@ -53,9 +53,10 @@ class Storage {
     /// Cache space for blocks that will be included in the blockchain.
     mutable std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> cachedBlocks;
 
-    /// Cache space for transactions that will be included in the blockchain.
-    /// Value: tx, txBlockHash, txBlockIndex, txBlockHeight
-    mutable std::unordered_map<Hash, const std::tuple<const std::shared_ptr<const TxBlock>,const Hash,const uint64_t, const uint64_t>, SafeHash> cachedTxs;
+    /// Cache space for transactions that will be included in the blockchain (tx, txBlockHash, txBlockIndex, txBlockHeight).
+    mutable std::unordered_map<Hash,
+      const std::tuple<const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t>,
+    SafeHash> cachedTxs;
 
     /// Mutex for managing read/write access to the blockchain.
     mutable std::shared_mutex chainLock;
@@ -87,19 +88,18 @@ class Storage {
     void pushFrontInternal(Block&& block);
 
     /**
-     * Initializes the blockchain the first time the blockchain binary is ran.
-     * This function is called by the constructor.
-     * initializeBlockchain will only populate information related with the Storage class
-     * such as genesis and mappings.
+     * Initializes the blockchain the first time the blockchain binary is booted.
+     * Called by the constructor. Will only populate information related to
+     * the class, such as genesis and mappings.
      */
     void initializeBlockchain();
 
     /**
-     * Parse a given Tx from a serialize block data.
+     * Parse a given transaction from a serialized block data string.
      * Used to get only a specific transaction from a block.
-     * @params blockData The serialized block data.
-     * @params index The index of the transaction to get.
-     * @return const std::shared_ptr<const TxBlock> The transaction.
+     * @param blockData The serialized block data string.
+     * @param txIndex The index of the transaction to get.
+     * @return The transaction itself.
      */
     const TxBlock getTxFromBlockWithIndex(const std::string_view blockData, const uint64_t& txIndex);
 
@@ -108,10 +108,14 @@ class Storage {
      * Constructor. Automatically loads the chain from the database
      * and starts the periodic save thread.
      * @param db Pointer to the database.
+     * @param options Pointer to the options singleton.
      */
     Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options);
 
-    /// Destructor. Automatically saves the chain to the database.
+    /**
+     * Destructor.
+     * Automatically saves the chain to the database.
+     */
     ~Storage();
 
     /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
@@ -127,16 +131,15 @@ class Storage {
     void popFront();
 
     /**
-     * Check if a block exists anywhere in storage
-     * (memory/chain, then cache, then database).
-     * @param blockHash The block hash to search.
+     * Check if a block exists anywhere in storage (memory/chain, then cache, then database).
+     * @param hash The block hash to search.
      * @return An enum telling where the block is.
      */
     StorageStatus blockExists(const Hash& hash);
 
     /**
-     * Overload of `blockExists` that works with block height instead of hash.
-     * @param blockHeight The block height to search.
+     * Overload of blockExists() that works with block height instead of hash.
+     * @param height The block height to search.
      * @return An enum telling where the block is.
      */
     StorageStatus blockExists(const uint64_t& height);
@@ -144,20 +147,19 @@ class Storage {
     /**
      * Get a block from the chain using a given hash.
      * @param hash The block hash to get.
-     * @return The found block, or `nullptr` if block is not found.
+     * @return A pointer to the found block, or `nullptr` if block is not found.
      */
     const std::shared_ptr<const Block> getBlock(const Hash& hash);
 
     /**
      * Get a block from the chain using a given height.
      * @param height The block height to get.
-     * @return The found block, or `nullptr` if block is not found.
+     * @return A pointer to the found block, or `nullptr` if block is not found.
      */
     const std::shared_ptr<const Block> getBlock(const uint64_t& height);
 
     /**
-     * Check if a transaction exists anywhere in storage
-     * (memory/chain, then cache, then database).
+     * Check if a transaction exists anywhere in storage (memory/chain, then cache, then database).
      * @param tx The transaction to check.
      * @return An enum telling where the transaction is.
      */
@@ -166,50 +168,45 @@ class Storage {
     /**
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
-     * @return std::tuple<const std::shared_ptr<const TxBlock>, const Hash, const uint64_t>
-     * @return The found transaction, the block hash it's in, and the block height it's in.
+     * @return A tuple with the found transaction, block hash, index and height.
      */
-    const std::tuple<const std::shared_ptr<const TxBlock>,
-                     const Hash,
-                     const uint64_t,
-                     const uint64_t> getTx(const Hash& tx);
+    const std::tuple<
+      const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
+    > getTx(const Hash& tx);
 
     /**
-     * Get a Tx from a block with a specific index.
+     * Get a transaction from a block with a specific index.
      * @param blockHash The block hash
      * @param blockIndex the index within the block
-     * @return The found transaction, the block hash ti's in, and the block height it's in.
+     * @return A tuple with the found transaction, block hash, index and height.
      */
-    const std::tuple<const std::shared_ptr<const TxBlock>,
-                     const Hash,
-                     const uint64_t,
-                     const uint64_t> getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
+    const std::tuple<
+      const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
+    > getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
 
     /**
-     * Get a Tx from a block with a specific index.
+     * Get a transaction from a block with a specific index.
      * @param blockHeight The block height
-     * @param blockIndex the index within the block
-     * @return The found transaction, the block hash ti's in, and the block height it's in.
+     * @param blockIndex The index within the block.
+     * @return A tuple with the found transaction, block hash, index and height.
      */
-    const std::tuple<const std::shared_ptr<const TxBlock>,
-      const Hash,
-      const uint64_t,
-      const uint64_t> getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex);
+    const std::tuple<
+      const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
+    > getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex);
 
-
-  /**
+    /**
      * Get the most recently added block from the chain.
-     * @returns The latest block.
+     * @returns A pointer to the latest block.
      */
     const std::shared_ptr<const Block> latest();
 
-    /// Get the number of blocks currently in the chain. (nHeight of latest block + 1)
+    /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
     uint64_t currentChainSize();
 
-    /// Start the periodic save thread. Called by the constructor.
+    /// Start the periodic save thread. TODO: this should be called by the constructor.
     void periodicSaveToDB();
 
-    /// Stop the periodic save thread.
+    /// Stop the periodic save thread. TODO: this should be called by the destructor.
     void stopPeriodicSaveToDB() { this->stopPeriodicSave = true; }
 };
 

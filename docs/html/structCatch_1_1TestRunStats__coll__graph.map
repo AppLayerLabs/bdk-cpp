@@ -1,0 +1,7 @@
+<map id="Catch::TestRunStats" name="Catch::TestRunStats">
+<area shape="rect" id="node1" title=" " alt="" coords="75,199,225,225"/>
+<area shape="rect" id="node2" href="$structCatch_1_1TestRunInfo.html" title=" " alt="" coords="5,109,148,136"/>
+<area shape="rect" id="node3" href="$classCatch_1_1StringRef.html" title="A non&#45;owning string class (similar to the forthcoming std::string_view) Note that,..." alt="" coords="13,5,140,32"/>
+<area shape="rect" id="node4" href="$structCatch_1_1Totals.html" title=" " alt="" coords="172,109,277,136"/>
+<area shape="rect" id="node5" href="$structCatch_1_1Counts.html" title=" " alt="" coords="169,5,281,32"/>
+</map>
