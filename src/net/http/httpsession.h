@@ -12,7 +12,7 @@ namespace P2P {
 }
 
 /**
- * Helper class used for HTTP pipelining.
+ * Class used for HTTP pipelining.
  * TODO: explain better what this is and what it's used for.
  */
 class HTTPQueue {
@@ -52,14 +52,15 @@ class HTTPQueue {
      * Call operator.
      * Called by the HTTP handler to send a response.
      * @param msg The message to send as a response.
-     * TODO: same as `handle_request()` - also why does this have a struct inside it, why does it look similar to the work struct and why is it needed here?
+     * TODO: same as `handle_request()` - also why does this have a struct inside it,
+     * why does it look similar to the work struct and why is it needed here?
      */
     template<bool isRequest, class Body, class Fields> void operator()(
       http::message<isRequest, Body, Fields>&& msg
     );
 };
 
-/// Helper class that handles an HTTP connection session.
+/// Class that handles an HTTP connection session.
 class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
   private:
     /// TCP/IP stream socket.
@@ -81,32 +82,33 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
      */
     boost::optional<http::request_parser<http::string_body>> parser;
 
-    /// Reference to the state.
+    /// Reference pointer to the blockchain's state.
     const std::unique_ptr<State>& state;
 
-    /// Refence to the storage.
+    /// Reference pointer to the blockchain's storage.
     const std::unique_ptr<Storage>& storage;
 
-    /// Reference to the P2P manager.
+    /// Reference pointer to the P2P connection manager.
     const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
-    /// Reference to the Options
+    /// Reference pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
     /// Read whatever is on the internal buffer.
     void do_read();
 
     /**
-     * Callback to handle what is read from the internal buffer.
-     * Also tries to pipeline another request if the queue isn't full.
+     * Callback for do_read().
+     * Tries to pipeline another request if the queue isn't full.
      * @param ec The error code to parse.
      * @param bytes The number of read bytes.
      */
     void on_read(beast::error_code ec, std::size_t bytes);
 
     /**
-     * Callback to handle what is written to the internal buffer.
-     * Also automatically reads another request.
+     * Callback for when HTTPQueue writes something.
+     * Automatically reads another request.
+     * @param close If `true`, calls do_close() at the end.
      * @param ec The error code to parse.
      * @param bytes The number of written bytes.
      */
@@ -118,23 +120,26 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
   public:
     /**
      * Constructor.
-     * @param sock The socket to take ownership or.
-     * @param docroot Pointer to the root directory of the endpoint.
-     * @param unique_ptr reference to the state.
+     * @param sock The socket to take ownership of.
+     * @param docroot Reference pointer to the root directory of the endpoint.
+     * @param state Reference pointer to the blockchain's state.
+     * @param storage Reference pointer to the blockchain's storage.
+     * @param p2p Reference pointer to the P2P connection manager.
+     * @param options Reference pointer to the options singleton.
      */
     HTTPSession(
-      tcp::socket&& sock,
-      std::shared_ptr<const std::string>& docroot,
+      tcp::socket&& sock, std::shared_ptr<const std::string>& docroot,
       const std::unique_ptr<State>& state,
       const std::unique_ptr<Storage>& storage,
       const std::unique_ptr<P2P::ManagerNormal>& p2p,
       const std::unique_ptr<Options>& options
-    ) : stream(std::move(sock)), docroot(docroot), queue(*this), state(state), storage(storage), p2p(p2p), options(options)
+    ) : stream(std::move(sock)), docroot(docroot), queue(*this), state(state),
+    storage(storage), p2p(p2p), options(options)
     {}
 
     /// Start the HTTP session.
     void start();
-    
+
     friend class HTTPQueue;
 };
 

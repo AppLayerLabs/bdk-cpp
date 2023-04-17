@@ -48,26 +48,22 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_getBlockByHash:
         ret = JsonRPC::Encoding::eth_getBlockByHash(
-          JsonRPC::Decoding::eth_getBlockByHash(request),
-          storage
+          JsonRPC::Decoding::eth_getBlockByHash(request), storage
         );
         break;
       case JsonRPC::Methods::eth_getBlockByNumber:
         ret = JsonRPC::Encoding::eth_getBlockByNumber(
-          JsonRPC::Decoding::eth_getBlockByNumber(request, storage),
-          storage
+          JsonRPC::Decoding::eth_getBlockByNumber(request, storage), storage
         );
         break;
       case JsonRPC::Methods::eth_getBlockTransactionCountByHash:
         ret = JsonRPC::Encoding::eth_getBlockTransactionCountByHash(
-          JsonRPC::Decoding::eth_getBlockTransactionCountByHash(request),
-          storage
+          JsonRPC::Decoding::eth_getBlockTransactionCountByHash(request), storage
         );
         break;
       case JsonRPC::Methods::eth_getBlockTransactionCountByNumber:
         ret = JsonRPC::Encoding::eth_getBlockTransactionCountByNumber(
-          JsonRPC::Decoding::eth_getBlockTransactionCountByNumber(request, storage),
-          storage
+          JsonRPC::Decoding::eth_getBlockTransactionCountByNumber(request, storage), storage
         );
         break;
       case JsonRPC::Methods::eth_chainId:
@@ -87,10 +83,14 @@ std::string parseJsonRpcRequest(
         ret = JsonRPC::Encoding::eth_blockNumber(storage);
         break;
       case JsonRPC::Methods::eth_call:
-        ret = JsonRPC::Encoding::eth_call(JsonRPC::Decoding::eth_call(request, storage), state);
+        ret = JsonRPC::Encoding::eth_call(
+          JsonRPC::Decoding::eth_call(request, storage), state
+        );
         break;
       case JsonRPC::Methods::eth_estimateGas:
-        ret = JsonRPC::Encoding::eth_estimateGas(JsonRPC::Decoding::eth_estimateGas(request, storage), state);
+        ret = JsonRPC::Encoding::eth_estimateGas(
+          JsonRPC::Decoding::eth_estimateGas(request, storage), state
+        );
         break;
       case JsonRPC::Methods::eth_gasPrice:
         JsonRPC::Decoding::eth_gasPrice(request);
@@ -98,14 +98,12 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_getBalance:
         ret = JsonRPC::Encoding::eth_getBalance(
-          JsonRPC::Decoding::eth_getBalance(request, storage),
-          state
+          JsonRPC::Decoding::eth_getBalance(request, storage), state
         );
         break;
       case JsonRPC::Methods::eth_getTransactionCount:
         ret = JsonRPC::Encoding::eth_getTransactionCount(
-          JsonRPC::Decoding::eth_getTransactionCount(request, storage),
-          state
+          JsonRPC::Decoding::eth_getTransactionCount(request, storage), state
         );
         break;
       case JsonRPC::Methods::eth_getCode:
@@ -116,34 +114,30 @@ std::string parseJsonRpcRequest(
       case JsonRPC::Methods::eth_sendRawTransaction:
         ret = JsonRPC::Encoding::eth_sendRawTransaction(
           JsonRPC::Decoding::eth_sendRawTransaction(request, options->getChainID()),
-          state,
-          p2p
+          state, p2p
         );
         break;
       case JsonRPC::Methods::eth_getTransactionByHash:
         ret = JsonRPC::Encoding::eth_getTransactionByHash(
-            JsonRPC::Decoding::eth_getTransactionByHash(request),
-            storage,
-            state
-          );
+          JsonRPC::Decoding::eth_getTransactionByHash(request),
+          storage, state
+        );
         break;
       case JsonRPC::Methods::eth_getTransactionByBlockHashAndIndex:
         ret = JsonRPC::Encoding::eth_getTransactionByBlockHashAndIndex(
-            JsonRPC::Decoding::eth_getTransactionByBlockHashAndIndex(request),
-            storage
-          );
+          JsonRPC::Decoding::eth_getTransactionByBlockHashAndIndex(request), storage
+        );
         break;
       case JsonRPC::Methods::eth_getTransactionByBlockNumberAndIndex:
         ret = JsonRPC::Encoding::eth_getTransactionByBlockNumberAndIndex(
-            JsonRPC::Decoding::eth_getTransactionByBlockNumberAndIndex(request, storage),
-            storage
-          );
+          JsonRPC::Decoding::eth_getTransactionByBlockNumberAndIndex(request, storage),
+          storage
+        );
         break;
       case JsonRPC::Methods::eth_getTransactionReceipt:
         ret = JsonRPC::Encoding::eth_getTransactionReceipt(
-            JsonRPC::Decoding::eth_getTransactionReceipt(request),
-            storage
-          );
+          JsonRPC::Decoding::eth_getTransactionReceipt(request), storage
+        );
         break;
       default:
         ret["error"]["code"] = -32601;
@@ -170,3 +164,4 @@ std::string parseJsonRpcRequest(
   // Set back to the original id
   return ret.dump();
 }
+

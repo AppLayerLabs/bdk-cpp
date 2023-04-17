@@ -1,13 +1,12 @@
 #include "httplistener.h"
 
 HTTPListener::HTTPListener(
-  net::io_context& ioc, tcp::endpoint ep,
-  std::shared_ptr<const std::string>& docroot,
-  const std::unique_ptr<State>& state,
-  const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p,
-  const std::unique_ptr<Options>& options
-) : ioc(ioc), acc(net::make_strand(ioc)), docroot(docroot), state(state), storage(storage), p2p(p2p), options(options) {
+  net::io_context& ioc, tcp::endpoint ep, std::shared_ptr<const std::string>& docroot,
+  const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+  const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+) : ioc(ioc), acc(net::make_strand(ioc)), docroot(docroot),
+  state(state), storage(storage), p2p(p2p), options(options)
+{
   beast::error_code ec;
   this->acc.open(ep.protocol(), ec);  // Open the acceptor
   if (ec) { fail("HTTPListener", __func__, ec, "Failed to open the acceptor"); return; }

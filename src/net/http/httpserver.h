@@ -7,48 +7,51 @@
 /// Abstraction of an HTTP server.
 class HTTPServer {
   private:
-    /// Reference to the state.
+    /// Reference pointer to the blockchain's state.
     const std::unique_ptr<State>& state;
 
-    /// Reference to the storage.
+    /// Reference pointer to the blockchain's storage.
     const std::unique_ptr<Storage>& storage;
 
-    /// Reference to the P2P manager.
+    /// Reference pointer to the P2P connection manager.
     const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
-    /// Reference to the Options
+    /// Reference pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
-    /**
-     * Provides core I/O functionality.
-     * {x} is the maximum number of threads the object can use.
-     */
+    /// Provides core I/O functionality ({x} = max threads the object can use).
     net::io_context ioc{4};
 
-    /// Pointer to the listener.
+    /// Pointer to the HTTP listener.
     std::shared_ptr<HTTPListener> listener;
 
     /// The port where the server is running.
     const unsigned short port;
 
-    /// The run function. (effectively starts the server)
+    /// The run function (effectively starts the server).
     bool run();
 
-    /// Future for the run function.
-    std::future<bool> runFuture_;
+    /// Future for the run function so we know when it should stop.
+    std::future<bool> runFuture;
 
   public:
     /**
-     * Constructor.
-     * @param state unique_ptr reference to the state.
-     * @param port The port that the server will run at.
+     * Constructor. Does NOT automatically start the server.
+     * @param state Reference pointer to the blockchain's state.
+     * @param storage Reference pointer to the blockchain's storage.
+     * @param p2p Reference pointer to the P2P connection manager.
+     * @param options Reference pointer to the options singleton.
      */
-    HTTPServer(const std::unique_ptr<State>& state,
-               const std::unique_ptr<Storage>& storage,
-               const std::unique_ptr<P2P::ManagerNormal>& p2p,
-               const std::unique_ptr<Options>& options)
-      : state(state), storage(storage), p2p(p2p), options(options), port(options->getHttpPort()) {}
+    HTTPServer(
+      const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+    ) : state(state), storage(storage), p2p(p2p), options(options), port(options->getHttpPort())
+    {}
 
+    /**
+     * Destructor.
+     * Automatically stops the server.
+     */
     ~HTTPServer() { this->stop(); }
 
     void start(); ///< Start the server.
@@ -58,7 +61,7 @@ class HTTPServer {
      * Check if the server is currently active and running.
      * @return `true` if the server is running, `false` otherwise.
      */
-    bool running();
+    bool running() { return this->runFuture.valid(); }
 };
 
 #endif  // HTTPSERVER_H

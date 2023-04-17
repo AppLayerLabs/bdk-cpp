@@ -1,5 +1,5 @@
-#ifndef HTTPBASE_H
-#define HTTPBASE_H
+#ifndef HTTPPARSER_H
+#define HTTPPARSER_H
 
 #include <algorithm>
 #include <chrono>
@@ -47,23 +47,20 @@ namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-// Forward declaration!
-// httparser never access any of these members only passes them around
-// It is preferable to use forward declarations
+// It is preferable to use forward declarations here.
+// The parser functions never access any of these members, only passes them around.
 class State;
 class Storage;
-namespace P2P {
-  class ManagerNormal;
-}
+namespace P2P { class ManagerNormal; }
 
 /**
- * Parse a std::string JSON-RPC request body into a std::string JSON-RPC response body.
- * Handles all requests and errors.
- * @param body The request body
- * @param state Pointer to the state
- * @param storage Pointer to the storaeg
- * @param p2p Pointer to the p2p manager
- * @return The response body
+ * Parse a JSON-RPC request into a JSON-RPC response, handling all requests and errors.
+ * @param body The request string.
+ * @param state Reference pointer to the blockchain's state.
+ * @param storage Reference pointer to the blockchain's storage.
+ * @param p2p Reference pointer to the P2P connection manager.
+ * @param options Reference pointer to the options singleton.
+ * @return The response string.
  */
 std::string parseJsonRpcRequest(
   const std::string& body,
@@ -74,13 +71,16 @@ std::string parseJsonRpcRequest(
 );
 
 /**
- * Produce an HTTP response for the given request.
+ * Produce an HTTP response for a given request.
  * The type of the response object depends on the contents of the request,
  * so the interface requires the caller to pass a generic lambda to receive the response.
  * @param docroot The root directory of the endpoint.
  * @param req The request to handle.
  * @param send TODO: we're missing details on this, Allocator, Body, the function itself and where it's used
- * @param unique_ptr reference to the state.
+ * @param state Reference pointer to the blockchain's state.
+ * @param storage Reference pointer to the blockchain's storage.
+ * @param p2p Reference pointer to the P2P connection manager.
+ * @param options Reference pointer to the options singleton.
  */
 template<class Body, class Allocator, class Send> void handle_request(
   beast::string_view docroot,
@@ -168,4 +168,4 @@ template<class Body, class Allocator, class Send> void handle_request(
   return send(std::move(res));
 }
 
-#endif  // HTTPBASE_H
+#endif  // HTTPPARSER_H

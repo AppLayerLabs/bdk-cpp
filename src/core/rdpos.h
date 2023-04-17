@@ -113,7 +113,7 @@ class rdPoS : public Contract {
 
   public:
     /// Enum for Validator transaction functions.
-    enum TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED }
+    enum TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED };
 
     /**
      * Constructor.

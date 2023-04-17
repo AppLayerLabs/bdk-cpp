@@ -4,7 +4,7 @@
 #include "httpparser.h"
 #include "httpsession.h"
 
-/// Helper class that accepts incoming connections and dispatches sessions.
+/// Class for listening to, accepting and dispatching incoming connections/sessions.
 class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
   private:
     /// Provides core I/O functionality.
@@ -16,27 +16,24 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
     /// Pointer to the root directory of the endpoint.
     std::shared_ptr<const std::string> docroot;
 
-    /// Reference to the State
+    /// Reference pointer to the blockchain's state.
     const std::unique_ptr<State>& state;
 
-    /// Reference to the Storage
+    /// Reference pointer to the blockchain's storage.
     const std::unique_ptr<Storage>& storage;
 
-    /// Reference to the P2P manager.
+    /// Reference pointer to the P2P connection manager.
     const std::unique_ptr<P2P::ManagerNormal>& p2p;
 
-    /// Reference to the Options
+    /// Reference pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
-    /**
-     * Accept an incoming connection from the endpoint.
-     * The new connection gets its own strand.
-     */
+    /// Accept an incoming connection from the endpoint. The new connection gets its own strand.
     void do_accept();
 
     /**
-     * Callback to create a new HTTP session from the accepted incoming connection.
-     * Also automatically listens to another session when finished dispatching.
+     * Callback for do_accept().
+     * Automatically listens to another session when finished dispatching.
      * @param ec The error code to parse.
      * @param sock The socket to use for creating the HTTP session.
      */
@@ -47,20 +44,19 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
      * Constructor.
      * @param ioc Reference to the core I/O functionality object.
      * @param ep The endpoint (host and port) to listen to.
-     * @param Pointer to the root directory of the endpoint.
-     * @param unique_ptr reference to the state.
+     * @param docroot Reference pointer to the root directory of the endpoint.
+     * @param state Reference pointer to the blockchain's state.
+     * @param storage Reference pointer to the blockchain's storage.
+     * @param p2p Reference pointer to the P2P connection manager.
+     * @param options Reference pointer to the options singleton.
      */
     HTTPListener(
-      net::io_context& ioc, tcp::endpoint ep,
-      std::shared_ptr<const std::string>& docroot,
-      const std::unique_ptr<State>& state,
-      const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p,
-      const std::unique_ptr<Options>& options
+      net::io_context& ioc, tcp::endpoint ep, std::shared_ptr<const std::string>& docroot,
+      const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
     );
 
-    /// Start accepting incoming connections.
-    void start();
+    void start(); ///< Start accepting incoming connections.
 };
 
 #endif  // HTTPLISTENER_H
