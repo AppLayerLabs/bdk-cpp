@@ -25,30 +25,72 @@ namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 namespace P2P {
+  /// Manager focused exclusively at Discovery nodes.
   class ManagerDiscovery : public ManagerBase {
     protected:
-      // Handlers for client and server requests.
-      // Handle message (called from sessions) is public.
+      /**
+       * Handle a request from a client.
+       * @param session The session that sent the request.
+       * @param message The request message to handle.
+       */
       void handleRequest(std::shared_ptr<BaseSession>& session, const Message& message) override;
+
+      /**
+       * Handle an answer from a server.
+       * @param session The session that sent the answer.
+       * @param message The answer message to handle.
+       */
       void handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message) override;
 
     private:
-      // Handlers for command requests
+      /**
+       * Handle a `Ping` request.
+       * @param session The session that sent the request.
+       * @param message The request message to handle.
+       */
       void handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message);
+
+      /**
+       * Handle a `RequestNodes` request.
+       * @param session The session that sent the request.
+       * @param message The request message to handle.
+       */
       void handleRequestNodesRequest(std::shared_ptr<BaseSession>& session, const Message& message);
 
-      // Handlers for command answers
+      /**
+       * Handle a `Ping` answer.
+       * @param session The session that sent the answer.
+       * @param message The answer message to handle.
+       */
       void handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+
+      /**
+       * Handle a `RequestNodes` answer.
+       * @param session The session that sent the answer.
+       * @param message The answer message to handle.
+       */
       void handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
 
     public:
-      ManagerDiscovery(const boost::asio::ip::address& hostIp, const std::unique_ptr<Options>& options) :
-        ManagerBase(hostIp, NodeType::DISCOVERY_NODE, 200, options) {};
-      ~ManagerDiscovery() { this->stop(); }
-      
-      void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
+      /**
+       * Constructor.
+       * @param hostIp The manager's host IP/address.
+       * @param options Pointer to the options singleton.
+       */
+      ManagerDiscovery(
+        const boost::asio::ip::address& hostIp, const std::unique_ptr<Options>& options
+      ) : ManagerBase(hostIp, NodeType::DISCOVERY_NODE, 200, options) {};
 
+      /// Destructor. Automatically stops the manager.
+      ~ManagerDiscovery() { this->stop(); }
+
+      /**
+       * Handle a message from a session. Entry point for all the other handlers.
+       * @param session The session that sent the message.
+       * @param message The message to handle.
+       */
+      void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
   };
 };
 
-#endif
+#endif  // P2PMANAGERDISCOVERY_H

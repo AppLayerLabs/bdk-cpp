@@ -1,8 +1,6 @@
 #include "p2pmanagerdiscovery.h"
 
-
 namespace P2P {
-
   void ManagerDiscovery::handleMessage(std::shared_ptr<BaseSession> session, const Message message) {
     if (this->closed_) return;
     switch (message.type()) {
@@ -102,3 +100,4 @@ namespace P2P {
     requests_[message.id()]->setAnswer(message);
   }
 };
+

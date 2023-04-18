@@ -2,18 +2,11 @@
 #include "p2pbase.h"
 
 namespace P2P {
-  RequestID::RequestID(const uint64_t& value) {
-    this->data = Utils::uint64ToBytes(value);
-  }
+  RequestID::RequestID(const uint64_t& value) { this->data = Utils::uint64ToBytes(value); }
 
-  uint64_t RequestID::toUint64() const {
-    return Utils::bytesToUint64(data);
-  }
+  uint64_t RequestID::toUint64() const { return Utils::bytesToUint64(data); }
 
-  RequestID RequestID::random() {
-    return RequestID(Utils::randBytes(8));
-  }
-
+  RequestID RequestID::random() { return RequestID(Utils::randBytes(8)); }
 
   CommandType getCommandType(const std::string_view& message) {
     if (message.size() != 2) { throw std::runtime_error("Invalid Command Type size." + std::to_string(message.size())); }
@@ -21,10 +14,8 @@ namespace P2P {
     if (commandType > commandPrefixes.size()) { throw std::runtime_error("Invalid command type."); }
     return static_cast<CommandType>(commandType);
   }
-  
-  std::string getCommandPrefix(const CommandType& commType) {
-    return commandPrefixes[commType];
-  }
+
+  std::string getCommandPrefix(const CommandType& commType) { return commandPrefixes[commType]; }
 
   RequestType getRequestType(const std::string_view& message) {
     if (message.size() != 1) { throw std::runtime_error("Invalid Request Type size. " + std::to_string(message.size())); }
@@ -33,9 +24,7 @@ namespace P2P {
     return static_cast<RequestType>(requestType);
   }
 
-  std::string getRequestTypePrefix(const RequestType& type) {
-    return typePrefixes[type];
-  }
+  std::string getRequestTypePrefix(const RequestType& type) { return typePrefixes[type]; }
 
   Message RequestEncoder::ping() {
     std::string message;
@@ -51,7 +40,9 @@ namespace P2P {
     message += Utils::randBytes(8);
     message += getCommandPrefix(Info);
     message += Utils::uint64ToBytes(options->getVersion());
-    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch()
+    ).count();
     message += Utils::uint64ToBytes(currentEpoch);
     message += Utils::uint64ToBytes(latestBlock->getNHeight());
     message += latestBlock->hash().get();
@@ -110,30 +101,34 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message AnswerEncoder::info(const Message& request, const std::shared_ptr<const Block>& latestBlock, const std::unique_ptr<Options> &options) {
+  Message AnswerEncoder::info(const Message& request,
+    const std::shared_ptr<const Block>& latestBlock,
+    const std::unique_ptr<Options> &options
+  ) {
     std::string message;
     message += getRequestTypePrefix(Answering);
     message += request.id().get();
     message += getCommandPrefix(Info);
     message += Utils::uint64ToBytes(options->getVersion());
-    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch()
+    ).count();
     message += Utils::uint64ToBytes(currentEpoch);
     message += Utils::uint64ToBytes(latestBlock->getNHeight());
     message += latestBlock->hash().get();
     return Message(std::move(message));
   }
 
-  Message AnswerEncoder::requestNodes(const Message& request, const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes) {
+  Message AnswerEncoder::requestNodes(const Message& request,
+    const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes
+  ) {
     std::string message;
     message += getRequestTypePrefix(Answering);
     message += request.id().get();
     message += getCommandPrefix(RequestNodes);
     for (const auto& node : nodes) {
-      // NodeType
-      message += Utils::uint8ToBytes(std::get<0>(node.second));
-      // NodeID
-      message += node.first.get();
-
+      message += Utils::uint8ToBytes(std::get<0>(node.second)); // Node type
+      message += node.first.get();  // Node ID
       message += Utils::uint8ToBytes(std::get<1>(node.second).is_v4() ? 0 : 1);
       if (std::get<1>(node.second).is_v4()) {
         auto address = std::get<1>(node.second).to_v4().to_bytes();
@@ -147,7 +142,9 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message AnswerEncoder::requestValidatorTxs(const Message& request, const std::unordered_map<Hash, TxValidator, SafeHash>& txs) {
+  Message AnswerEncoder::requestValidatorTxs(const Message& request,
+    const std::unordered_map<Hash, TxValidator, SafeHash>& txs
+  ) {
     std::string message;
     message += getRequestTypePrefix(Answering);
     message += request.id().get();
@@ -177,7 +174,9 @@ namespace P2P {
     return NodeInfo(nodeVersion, nodeEpoch, nodeHeight, nodeHash);
   }
 
-  std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> AnswerDecoder::requestNodes(const Message& message) {
+  std::unordered_map<
+    Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash
+  > AnswerDecoder::requestNodes(const Message& message) {
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestNodes) { throw std::runtime_error("Invalid command."); }
     std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> nodes;
@@ -222,7 +221,9 @@ namespace P2P {
     return nodes;
   }
 
-  std::vector<TxValidator> AnswerDecoder::requestValidatorTxs(const Message& message, const uint64_t& requiredChainId) {
+  std::vector<TxValidator> AnswerDecoder::requestValidatorTxs(
+    const Message& message, const uint64_t& requiredChainId
+  ) {
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestValidatorTxs) { throw std::runtime_error("Invalid command."); }
     std::vector<TxValidator> txs;
@@ -295,3 +296,4 @@ namespace P2P {
     return Block(message.message(), requiredChainId);
   }
 }
+

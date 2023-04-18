@@ -2,7 +2,6 @@
 #include "p2pmanagerbase.h"
 
 namespace P2P {
-
   void ServerSession::run() {
     net::dispatch(ws_.get_executor(), beast::bind_front_handler(
       &ServerSession::on_run, shared_from_this()
@@ -13,7 +12,7 @@ namespace P2P {
 
   void ServerSession::handleError(const std::string& func, const beast::error_code& ec) {
     if (!this->closed_) {
-      Utils::logToDebug(Log::P2PServer, __func__, "Server Error Code: " + std::to_string(ec.value()) + " message: " + ec.message());
+      Utils::logToDebug(Log::P2PServer, func, "Server Error Code: " + std::to_string(ec.value()) + " message: " + ec.message());
       this->manager_.unregisterSession(shared_from_this());
       this->closed_ = true;
     }
@@ -179,12 +178,12 @@ namespace P2P {
   }
 
   void Server::stop() {
-    if (!this->runFuture_.valid()) {
+    if (!this->runFuture.valid()) {
       Utils::logToDebug(Log::P2PServer, __func__, "Server is not running");
       return;
     }
     this->ioc.stop();
-    this->runFuture_.get();
+    this->runFuture.get();
   }
 
   bool Server::run() {
@@ -207,13 +206,12 @@ namespace P2P {
   }
 
   bool Server::start() {
-    if (this->runFuture_.valid()) {
+    if (this->runFuture.valid()) {
       Utils::logToDebug(Log::P2PServer, __func__, "Server is already running");
       return false;
     }
-    this->runFuture_ = std::async(std::launch::async, &Server::run, this);
+    this->runFuture = std::async(std::launch::async, &Server::run, this);
     return true;
   }
-
-
 };
+

@@ -6,80 +6,100 @@
 #include "p2pbase.h"
 
 namespace P2P {
-  /// Forward declaration
+  // Forward declarations.
   class ManagerBase;
+
+  /**
+   * Worker class for the Discovery manager, as a separate thread.
+   * Responsible for the process of actually discovering other nodes.
+   */
   class DiscoveryWorker {
-  private:
-    /// Reference back to the Manager Object
-    ManagerBase& manager;
+    private:
+      /// Reference to the parent connection manager.
+      ManagerBase& manager;
 
-    /// Atomic bool for stopping the thread
-    std::atomic<bool> stopWorker = false;
+      /// Flag for stopping the thread.
+      std::atomic<bool> stopWorker = false;
 
-    /// Future object for the worker thread.
-    /// This is either checked for valid (running) to determine if the thread is running
-    /// And wait(), to waiting until thread is finished
-    std::future<bool> workerFuture;
+      /**
+       * Future object for the worker thread.
+       * This is checked for validity (running) to determine if the thread is running,
+       * and by wait(), to wait until thread is finished.
+       */
+      std::future<bool> workerFuture;
 
-    /// Mutex for requestedNodes
-    std::shared_mutex requestedNodesMutex;
+      /// Map for previously requested nodes (Node ID -> time of last request).
+      std::unordered_map<Hash, uint64_t, SafeHash> requestedNodes;
 
-    /**
-     * Unordered_map of previously requested nodes
-     * Key: Node ID
-     * Value: time of last request
-     */
-     std::unordered_map<Hash, uint64_t, SafeHash> requestedNodes;
+      /// Mutex for managing read/write access to requestedNodes.
+      std::shared_mutex requestedNodesMutex;
 
-    /**
-     * Refreshes the list of previously requested nodes
-     * Remove the nodes that were requested more than 60 seconds ago
-     */
+      /**
+       * Refresh the list of previously requested nodes.
+       * Removes the nodes that were requested more than 60 seconds ago.
+       */
+      void refreshRequestedNodes();
 
-    void refreshRequestedNodes();
-    /**
-     * List current connected nodes
-     * @return first: discovery nodes IDs, second: normal nodes IDs
-     */
-    std::pair<std::unordered_set<Hash, SafeHash>,std::unordered_set<Hash, SafeHash>> listConnectedNodes();
+      /**
+       * List the currently connected nodes.
+       * @return A pair with two sets of IDs - the first for Discovery nodes, the second for Normal nodes.
+       */
+      std::pair<
+        std::unordered_set<Hash, SafeHash>,std::unordered_set<Hash, SafeHash>
+      > listConnectedNodes();
 
-    /**
-     * Get nodes from connected nodes.
-     * @return a map of node IDs and their corresponding node type, IP and port
-     */
+      /**
+       * Get a connected node from the list.
+       * @param nodeId The node ID to search for.
+       * @return A map with matching node IDs and their corresponding type, IP and port.
+       */
+      std::unordered_map<
+        Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash
+      > getConnectedNodes(const Hash& nodeId);
 
-    std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> getConnectedNodes(const Hash& nodeId);
+      /**
+       * Connect to a node (checks if not connected already).
+       * @param nodeId The unique ID of the node for reference.
+       * @param nodeInfo Info about the node (type, IP, port).
+       */
+      void connectToNode(
+        const Hash& nodeId, const std::tuple<NodeType, boost::asio::ip::address,
+        unsigned short>& nodeInfo
+      );
 
-    /**
-     * Connects to a node
-     * Check if the node is already connected
-     * @param nodeId: Node ID
-     */
+      /**
+       * Entry point for the discovery process thread.
+       *
+       * We can summarize it like this:
+       * - Ask currently connected nodes to give us a list of nodes they are connected to.
+       * - Wait up to 5 seconds for looping the connected nodes.
+       * - If already asked in the last 60 seconds, skip the node.
+       * - Give priority to discovery nodes at first pass.
+       * - Do not connect to nodes that are already connected.
+       * - Connect to nodes that are not already connected.
+       * - If number of connections is over maxConnections, stop discovery.
+       * - As discovery nodes should be *hardcoded*, we cannot connect to other discovery nodes.
+       *
+       * @return `true` when the thread is forced to stop.
+       */
+      bool discoverLoop();
 
-    void connectToNode(const Hash& nodeId, const std::tuple<NodeType, boost::asio::ip::address, unsigned short>& nodeInfo);
-    /**
-     * Entry Function for the discovery thread.
-     */
-    bool discoverLoop();
+    public:
+      /**
+       * Constructor.
+       * @param manager Reference to the parent connection manager.
+       */
+      DiscoveryWorker(ManagerBase& manager) : manager(manager) {}
 
-  public:
+      /// Destructor. Automatically stops the worker thread.
+      ~DiscoveryWorker() { this->stop(); }
 
-    /// Constructor
-    DiscoveryWorker(ManagerBase& manager) : manager(manager) {}
+      /// Start the discovery thread.
+      void start();
 
-    /// Destructor
-    ~DiscoveryWorker() { this->stop(); }
-
-    /// Starts the discovery thread
-    void start();
-
-    /// Stops the discovery thread
-    /// Waits until the thread is finished
-    void stop();
-
+      /// Stop the discovery thread and wait until it is finished.
+      void stop();
   };
 };
 
-
-
-#endif /// DISCOVERYWORKER_H
+#endif // DISCOVERYWORKER_H

@@ -35,11 +35,11 @@ namespace P2P {
       Utils::logToDebug(Log::P2PManager, __func__, "Cannot connect to more than " + std::to_string(maxConnections_) + " clients");
       return;
     }
-    /// TODO: Move clientThread to a thread pool somehow (currently it gets stuck on .run() if you do)
-    /// WARNING:
-    /// If messing around with clientThread/ClientSessions, make SURE to delete the clientSession
-    /// From the sessions_ map in the ClientSession destructor.
-    /// Otherwise it will segfault trying to access the deleted object (ioc) in the ClientSession destructor.
+    // TODO: Move clientThread to a thread pool somehow (currently it gets stuck on .run() if you do)
+    // WARNING:
+    // If messing around with clientThread/ClientSessions, make SURE to delete the clientSession
+    // From the sessions_ map in the ClientSession destructor.
+    // Otherwise it will segfault trying to access the deleted object (ioc) in the ClientSession destructor.
     std::thread clientThread([&, host, port] {
       net::io_context ioc;
       auto client = std::make_shared<ClientSession>(ioc, host, port, *this, this->threadPool);
@@ -47,21 +47,21 @@ namespace P2P {
       ioc.run();
       Utils::logToFile("ClientSession thread exitted");
       ioc.stop();
-      /// TODO: Calling unregisterSession here causes a deadlock.
-      /// unregisterSession(client);
+      // TODO: Calling unregisterSession here causes a deadlock.
+      // unregisterSession(client);
     });
     clientThread.detach();
   }
 
   std::shared_ptr<Request> ManagerBase::sendMessageTo(const Hash& nodeId, const Message& message) {
     if (this->closed_) return nullptr;
-    std::shared_lock lockSession(sessionsMutex); /// ManagerBase::sendMessageTo doesn't change sessions_ map.
+    std::shared_lock lockSession(sessionsMutex); // ManagerBase::sendMessageTo doesn't change sessions_ map.
     if(!sessions_.contains(nodeId)) {
       Utils::logToDebug(Log::P2PManager, __func__, "Session does not exist for " + nodeId.hex().get());
       return nullptr;
     }
     auto session = sessions_[nodeId];
-    /// We can only request ping, info and requestNode to discovery nodes
+    // We can only request ping, info and requestNode to discovery nodes
     if (session->hostType() == NodeType::DISCOVERY_NODE && (message.command() != CommandType::Ping &&
         message.command() != CommandType::Info &&
         message.command() != CommandType::RequestNodes)) {
@@ -161,7 +161,6 @@ namespace P2P {
   }
 
   void ManagerBase::stop() {
-    /// Close all current sessions and set the flag to stop accepting new ones.
     this->closed_ = true;
     this->discoveryWorker->stop();
     std::unique_lock lock(sessionsMutex);
@@ -177,5 +176,5 @@ namespace P2P {
     p2pserver_->stop();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
-}; // namespace P2P
+};
 
