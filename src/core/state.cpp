@@ -296,10 +296,11 @@ void State::addBalance(const Address& addr) {
   this->accounts[addr].balance += uint256_t("1000000000000000000000");
 }
 
-std::string State::ethCall(const Address& addr, const std::string& data) {
+std::string State::ethCall(const ethCallInfo& callInfo) {
   std::shared_lock lock(this->stateMutex);
-  if (this->contractManager->isContractAddress(addr)) {
-    return this->contractManager->callContract(addr, data);
+  auto &address = std::get<1>(callInfo);
+  if (this->contractManager->isContractAddress(address)) {
+    return this->contractManager->callContract(callInfo);
   } else {
     return "";
   }

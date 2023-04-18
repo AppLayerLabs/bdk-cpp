@@ -42,11 +42,13 @@ class ContractLocals : public ContractGlobals {
     mutable Address origin;          /// Who called the contract
     mutable Address caller;          /// Who sent the tx
     mutable uint256_t value;         /// Value sent with the tx
+    mutable bool commit = false;     /// Tells if the contract should commit to variables or not.
 
   protected:
     const Address& getOrigin() const { return this->origin; }
     const Address& getCaller() const { return this->caller; }
     const uint256_t& getValue() const { return this->value; }
+    bool getCommit() const { return this->commit; }
 
     friend class ContractManager; /// ContractManager updates the contract locals before calling ethCall within a contract.
 };
@@ -93,29 +95,13 @@ class BaseContract : public ContractLocals {
     virtual ~BaseContract() { }
 
     /**
-     * Invoke a contract "payable" function using a transaction
-     * Used by the State/ContractManager class when calling `processNewBlock()`
-     * Should be overriden by derived classes.
-     * @param tx the Transaction to use for call
-     * @param account Reference back to the account within the State class.
-     * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction
-     */
-    virtual void ethCall(const TxBlock& tx, const uint256_t& txValue) { throw std::runtime_error("Derived Class from Contract does not override ethCall()"); }
-
-    /**
-     * Invoke a contract function using a transaction.
+     * Invoke a contract function using a transaction. (automatically differs between payable and non-payable functions)
      * Should be overriden by derived classes.
      * @param tx The transaction to use for call.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction.
      */
-    virtual void ethCall(const TxBlock& tx) { throw std::runtime_error("Derived Class from Contract does not override ethCall()"); }
+    virtual void ethCall(const ethCallInfo& data) { throw std::runtime_error("Derived Class from Contract does not override ethCall()"); }
 
-    /**
-     * Invoke a contract function and simulate it.
-     * Should be overriden by derived classes.
-     * @param callInfo callInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
-     */
-    virtual void ethCall(const ethCallInfo& callInfo) { throw std::runtime_error("Derived Class from Contract does not override ethCall()"); }
 
     /**
      * Do a contract call to a view function
@@ -123,7 +109,7 @@ class BaseContract : public ContractLocals {
      * @param data
      * @return
      */
-    virtual const std::string ethCall(const std::string& data) const { throw std::runtime_error("Derived Class from Contract does not override ethCall()"); }
+    virtual const std::string ethCallView(const ethCallInfo& data) const { throw std::runtime_error("Derived Class from Contract does not override ethCall()"); }
 
     const Address& getContractAddress() const { return this->contractAddress; }
     const Address& getContractCreator() const { return this->contractCreator; }
@@ -137,9 +123,9 @@ class BaseContract : public ContractLocals {
  */
 class DynamicContract : public BaseContract {
   private:
-    std::unordered_map<std::string, std::function<void(const TxBlock& tx)>> functions;
-    std::unordered_map<std::string, std::function<void(const TxBlock& tx)>> payableFunctions;
-    std::unordered_map<std::string, std::function<std::string(const std::string& str)>> viewFunctions;
+    std::unordered_map<std::string, std::function<void(const ethCallInfo& callInfo)>> functions;
+    std::unordered_map<std::string, std::function<void(const ethCallInfo& callInfo)>> payableFunctions;
+    std::unordered_map<std::string, std::function<std::string(const ethCallInfo& callInfo)>> viewFunctions;
 
     std::vector<std::reference_wrapper<SafeBase>> usedVariables;
     void registerVariableUse(SafeBase& variable) { usedVariables.emplace_back(variable); }
@@ -147,15 +133,15 @@ class DynamicContract : public BaseContract {
   protected:
     /// TODO: eth_call from another contract.
     /// Register by using function name + lambda.
-    void registerFunction(const std::string& functor, std::function<void(const TxBlock& tx)> f) {
+    void registerFunction(const std::string& functor, std::function<void(const ethCallInfo& tx)> f) {
       functions[functor] = f;
     }
 
-    void registerPayableFunction(const std::string& functor, std::function<void(const TxBlock& tx)> f) {
+    void registerPayableFunction(const std::string& functor, std::function<void(const ethCallInfo& tx)> f) {
       payableFunctions[functor] = f;
     }
 
-    void registerViewFunction(const std::string& functor, std::function<std::string(const std::string& str)> f) {
+    void registerViewFunction(const std::string& functor, std::function<std::string(const ethCallInfo& str)> f) {
       viewFunctions[functor] = f;
     }
 
@@ -163,8 +149,8 @@ class DynamicContract : public BaseContract {
 
     /// Updates the variables that were used by the contract
     /// Called by ethCall functions and contract constructors.
-    void updateState(bool commit) {
-      if (commit) {
+    void updateState(const bool commitToState) {
+      if (commitToState) {
         for (auto& variable : usedVariables) {
           variable.get().commit();
         }
@@ -194,100 +180,44 @@ class DynamicContract : public BaseContract {
     DynamicContract(const Address& address, const std::unique_ptr<DB> &db) : BaseContract(address, db) {}
 
     /**
-     * Invoke a contract "payable" function using a transaction
-     * Used by the State class when calling `processNewBlock()/validateNewBlock()`
-     * Can be overridden by child class if they need need to process the function call in a non-standard way (See ContractManager for example)
-     * @param tx the Transaction to use for call
-     * @param account Reference back to the account within the State class.
-     * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction
-     */
-     void ethCall(const TxBlock& tx, const uint256_t& txValue) override {
-       try {
-         std::string funcName = tx.getData().substr(0, 4);
-         auto func = this->payableFunctions.find(funcName);
-         if (func == this->payableFunctions.end()) {
-           throw std::runtime_error("Functor not found");
-         }
-         func->second(tx);
-       } catch (const std::exception& e) {
-         updateState(false);
-         throw e;
-       }
-       updateState(true);
-     };
-
-    /**
-     * Invoke a contract function using a transaction.
+     * Invoke a contract function using a transaction. automatically differs between payable and non-payable functions.
      * Used by the %State class when calling `processNewBlock()/validateNewBlock()`.
      * @param tx The transaction to use for call.
      * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction.
-     */
-    void ethCall(const TxBlock& tx) override {
-      try {
-        std::string funcName = tx.getData().substr(0, 4);
-        auto func = this->functions.find(funcName);
-        if (func == this->functions.end()) {
-          throw std::runtime_error("Functor not found");
-        }
-        func->second(tx);
-      } catch (const std::exception& e) {
-        updateState(false);
-        throw e;
-      }
-      updateState(true);
-    };
-
-    /**
-     * Invoke a contract function and simulate it.
-     * @param callInfo callInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
+     * ContractManager is responsible to set the commit flag (simulate or truly commit variables to state).
      */
     void ethCall(const ethCallInfo& callInfo) override {
-      auto [from, to, gasLimit, gasPrice, value, data] = callInfo;
-      PrivKey mockupPrivKey(Hex::toBytes("2a616d189193e56994f22993ac4eb4dca0e2652afdc95d240739837ab83b21e2"));
-      Address mockupAddr = Secp256k1::toAddress(Secp256k1::toUPub(mockupPrivKey));
-      TxBlock tx(
-          this->getContractAddress(),
-          mockupAddr,
-          data,
-          this->getContractChainId(),
-          0,
-          value,
-          gasPrice,
-          gasPrice,
-          gasLimit,
-          mockupPrivKey
-        );
-
       try {
-        std::string funcName = tx.getData().substr(0, 4);
+        std::string funcName = std::get<5>(callInfo).substr(0, 4);
+        const uint256_t& value = std::get<4>(callInfo);
         if (value) {
-          auto it = this->payableFunctions.find(funcName);
-          if (it == this->payableFunctions.end()) {
+          auto func = this->payableFunctions.find(funcName);
+          if (func == this->payableFunctions.end()) {
             throw std::runtime_error("Functor not found");
           }
-          it->second(tx);
+          func->second(callInfo);
         } else {
-          auto it = this->functions.find(funcName);
-          if (it == this->functions.end()) {
+          auto func = this->functions.find(funcName);
+          if (func == this->functions.end()) {
             throw std::runtime_error("Functor not found");
           }
-          it->second(tx);
+          func->second(callInfo);
         }
       } catch (const std::exception& e) {
         updateState(false);
         throw e;
       }
-      updateState(false);
-    }
+      updateState(this->getCommit());
+    };
 
     /**
      * Do a contract call to a view function
      * @param data
      * @return
      */
-    const std::string ethCall(const std::string& data) const override {
+    const std::string ethCallView(const ethCallInfo& data) const override {
       try {
-        std::string funcName = data.substr(0, 4);
+        std::string funcName = std::get<5>(data).substr(0, 4);
         auto func = this->viewFunctions.find(funcName);
         if (func == this->viewFunctions.end()) {
           throw std::runtime_error("Functor not found");

@@ -199,7 +199,7 @@ class State {
      * @param data The data to be sent to the contract.
      * @return The return of the called function as a data string.
      */
-    std::string ethCall(const Address& addr, const std::string& data);
+    std::string ethCall(const ethCallInfo& callInfo);
 
     /**
      * Estimate gas for callInfo in RPC.

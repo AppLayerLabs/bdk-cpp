@@ -6,15 +6,11 @@
 #include "../../src/utils/options.h"
 #include <filesystem>
 
-std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> txToInfo(const TxBlock& tx) {
-  std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> callInfo;
+ethCallInfo buildCallInfo(const Address& addressToCall, const std::string& dataToCall) {
+  ethCallInfo callInfo;
   auto& [from, to, gasLimit, gasPrice, value, data] = callInfo;
-  from = tx.getFrom();
-  to = tx.getTo();
-  gasLimit = uint64_t(tx.getGasLimit());
-  gasPrice = tx.getMaxFeePerGas();
-  value = tx.getValue();
-  data = tx.getData();
+  to = addressToCall;
+  data = dataToCall;
   return callInfo;
 }
 
@@ -75,7 +71,7 @@ namespace TContractManager {
           randomPrivKey
         );
 
-        REQUIRE_THROWS(contractManager.validateCallContractWithTx(txToInfo(createNewERC2OTxThrow)));
+        REQUIRE_THROWS(contractManager.validateCallContractWithTx(createNewERC2OTxThrow.txToCallInfo()));
 
         REQUIRE(contractManager.getContracts().size() == 0);
 
@@ -87,7 +83,7 @@ namespace TContractManager {
         ABI::Encoder::EncVar getBalanceMeVars;
         getBalanceMeVars.push_back(owner);
         ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-        std::string getBalanceMeResult = contractManager.callContract(contractAddress, getBalanceMeEncoder.getRaw());
+        std::string getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
         ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
       }
@@ -101,7 +97,7 @@ namespace TContractManager {
       ABI::Encoder::EncVar getBalanceMeVars;
       getBalanceMeVars.push_back(owner);
       ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-      std::string getBalanceMeResult = contractManager.callContract(contractAddress, getBalanceMeEncoder.getRaw());
+      std::string getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
       ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
       REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
 
@@ -153,7 +149,7 @@ namespace TContractManager {
         ABI::Encoder::EncVar getBalanceMeVars;
         getBalanceMeVars.push_back(owner);
         ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-        std::string getBalanceMeResult = contractManager.callContract(contractAddress, getBalanceMeEncoder.getRaw());
+        std::string getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
         ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
 
@@ -177,14 +173,14 @@ namespace TContractManager {
 
         contractManager.callContract(transferTx);
 
-        getBalanceMeResult = contractManager.callContract(contractAddress, getBalanceMeEncoder.getRaw());
+        getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
         getBalanceMeDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 500000000000000000);
 
         ABI::Encoder::EncVar getBalanceDestinationVars;
         getBalanceDestinationVars.push_back(destinationOfTransfer);
         ABI::Encoder getBalanceDestinationEncoder(getBalanceDestinationVars, "balanceOf(address)");
-        std::string getBalanceDestinationResult = contractManager.callContract(contractAddress, getBalanceDestinationEncoder.getRaw());
+        std::string getBalanceDestinationResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceDestinationEncoder.getRaw()));
         ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
       }
@@ -198,14 +194,14 @@ namespace TContractManager {
       ABI::Encoder::EncVar getBalanceMeVars;
       getBalanceMeVars.push_back(owner);
       ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-      std::string getBalanceMeResult = contractManager.callContract(contractAddress, getBalanceMeEncoder.getRaw());
+      std::string getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
       ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
       REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 500000000000000000);
 
       ABI::Encoder::EncVar getBalanceDestinationVars;
       getBalanceDestinationVars.push_back(destinationOfTransfer);
       ABI::Encoder getBalanceDestinationEncoder(getBalanceDestinationVars, "balanceOf(address)");
-      std::string getBalanceDestinationResult = contractManager.callContract(contractAddress, getBalanceDestinationEncoder.getRaw());
+      std::string getBalanceDestinationResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceDestinationEncoder.getRaw()));
       ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
       REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
     }

@@ -147,6 +147,13 @@ class TxBlock {
      */
     std::string rlpSerialize(bool includeSig = true) const;
 
+    /**
+     * Convert a TxBlock to a ethCallInfo object
+     * @param txBlock The TxBlock to convert.
+     * @return The equivalent ethCallInfo object.
+     */
+    ethCallInfo txToCallInfo() const;
+
     /// Copy assignment operator.
     TxBlock& operator=(const TxBlock& other) {
       this->to = other.to;

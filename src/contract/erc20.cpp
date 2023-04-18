@@ -63,42 +63,42 @@ ERC20::~ERC20() {
 }
 
 void ERC20::registerContractFunctions() {
-  this->registerViewFunction(Hex::toBytes("0x06fdde03"), [this](const std::string &str) {
+  this->registerViewFunction(Hex::toBytes("0x06fdde03"), [this](const ethCallInfo &callInfo) {
     return this->name();
   });
-  this->registerViewFunction(Hex::toBytes("0x95d89b41"), [this](const std::string &str) {
+  this->registerViewFunction(Hex::toBytes("0x95d89b41"), [this](const ethCallInfo &callInfo) {
     return this->symbol();
   });
-  this->registerViewFunction(Hex::toBytes("0x313ce567"), [this](const std::string &str) {
+  this->registerViewFunction(Hex::toBytes("0x313ce567"), [this](const ethCallInfo &callInfo) {
     return this->decimals();
   });
-  this->registerViewFunction(Hex::toBytes("0x18160ddd"), [this](const std::string &str) {
+  this->registerViewFunction(Hex::toBytes("0x18160ddd"), [this](const ethCallInfo &callInfo) {
     return this->totalSupply();
   });
-  this->registerViewFunction(Hex::toBytes("0x70a08231"), [this](const std::string &str) {
+  this->registerViewFunction(Hex::toBytes("0x70a08231"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address };
-    ABI::Decoder decoder(types, str.substr(4));
+    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
     return this->balanceOf(decoder.getData<Address>(0));
   });
-  this->registerViewFunction(Hex::toBytes("0xdd62ed3e"), [this](const std::string &str) {
+  this->registerViewFunction(Hex::toBytes("0xdd62ed3e"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address };
-    ABI::Decoder decoder(types, str.substr(4));
+    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
     return this->allowance(decoder.getData<Address>(0), decoder.getData<Address>(1));
   });
 
-  this->registerFunction(Hex::toBytes("0xa9059cbb"), [this](const TxBlock &tx) {
+  this->registerFunction(Hex::toBytes("0xa9059cbb"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, tx.getData().substr(4));
+    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
     this->transfer(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
   });
-  this->registerFunction(Hex::toBytes("0x095ea7b3"), [this](const TxBlock &tx) {
+  this->registerFunction(Hex::toBytes("0x095ea7b3"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, tx.getData().substr(4));
+    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
     this->approve(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
   });
-  this->registerFunction(Hex::toBytes("0x23b872dd"), [this](const TxBlock &tx) {
+  this->registerFunction(Hex::toBytes("0x23b872dd"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, tx.getData().substr(4));
+    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
     this->transferFrom(decoder.getData<Address>(0), decoder.getData<Address>(1), decoder.getData<uint256_t>(2));
   });
 }

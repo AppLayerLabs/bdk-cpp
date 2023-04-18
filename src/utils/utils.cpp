@@ -183,4 +183,3 @@ json Utils::readConfigFile() {
   json config = json::parse(configFile);
   return config;
 }
-

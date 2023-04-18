@@ -21,6 +21,9 @@ const std::vector<Hash> validatorPrivKeys {
   Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
 };
 
+// Forward declaration from contractmanager.cpp
+ethCallInfo buildCallInfo(const Address& addressToCall, const std::string& dataToCall);
+
 // This creates a valid block given the state within the rdPoS class.
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
@@ -2127,35 +2130,35 @@ namespace TState {
             ABI::Encoder::EncVar getBalanceMeVars;
             getBalanceMeVars.push_back(targetOfTransactions);
             ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-            std::string getBalanceMeNode1Result = state1->ethCall(contractAddress, getBalanceMeEncoder.getRaw());
+            std::string getBalanceMeNode1Result = state1->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
             ABI::Decoder getBalanceMeNode1Decoder({ABI::Types::uint256}, getBalanceMeNode1Result);
             REQUIRE(getBalanceMeNode1Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode2Result = state2->ethCall(contractAddress, getBalanceMeEncoder.getRaw());
+            std::string getBalanceMeNode2Result = state2->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
             ABI::Decoder getBalanceMeNode2Decoder({ABI::Types::uint256}, getBalanceMeNode2Result);
             REQUIRE(getBalanceMeNode2Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode3Result = state3->ethCall(contractAddress, getBalanceMeEncoder.getRaw());
+            std::string getBalanceMeNode3Result = state3->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
             ABI::Decoder getBalanceMeNode3Decoder({ABI::Types::uint256}, getBalanceMeNode3Result);
             REQUIRE(getBalanceMeNode3Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode4Result = state4->ethCall(contractAddress, getBalanceMeEncoder.getRaw());
+            std::string getBalanceMeNode4Result = state4->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
             ABI::Decoder getBalanceMeNode4Decoder({ABI::Types::uint256}, getBalanceMeNode4Result);
             REQUIRE(getBalanceMeNode4Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode5Result = state5->ethCall(contractAddress, getBalanceMeEncoder.getRaw());
+            std::string getBalanceMeNode5Result = state5->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
             ABI::Decoder getBalanceMeNode5Decoder({ABI::Types::uint256}, getBalanceMeNode5Result);
             REQUIRE(getBalanceMeNode5Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode6Result = state6->ethCall(contractAddress, getBalanceMeEncoder.getRaw());
+            std::string getBalanceMeNode6Result = state6->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
             ABI::Decoder getBalanceMeNode6Decoder({ABI::Types::uint256}, getBalanceMeNode6Result);
             REQUIRE(getBalanceMeNode6Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode7Result = state7->ethCall(contractAddress, getBalanceMeEncoder.getRaw());
+            std::string getBalanceMeNode7Result = state7->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
             ABI::Decoder getBalanceMeNode7Decoder({ABI::Types::uint256}, getBalanceMeNode7Result);
             REQUIRE(getBalanceMeNode7Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode8Result = state8->ethCall(contractAddress, getBalanceMeEncoder.getRaw());
+            std::string getBalanceMeNode8Result = state8->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
             ABI::Decoder getBalanceMeNode8Decoder({ABI::Types::uint256}, getBalanceMeNode8Result);
             REQUIRE(getBalanceMeNode8Decoder.getData<uint256_t>(0) == targetExpectedValue);
 

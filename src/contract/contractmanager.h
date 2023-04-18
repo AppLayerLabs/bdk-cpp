@@ -54,15 +54,15 @@ class ContractManager : BaseContract {
     const std::unique_ptr<Options>& options;
 
     /// Derive a new contract address based on transaction sender + nonce.
-    Address deriveContractAddress(const TxBlock& tx) const;
+    Address deriveContractAddress(const ethCallInfo& callInfo) const;
 
     /// Create a new ERC20 contract.
     /// function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
-    void createNewERC20Contract(const TxBlock& tx);
+    void createNewERC20Contract(const ethCallInfo& callInfo);
 
     /// Check if transaction can actually create a new ERC20 contract.
     /// function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
-    void validateCreateNewERC20Contract(const TxBlock& tx);
+    void validateCreateNewERC20Contract(const ethCallInfo& callInfo) const;
 
     /// Serialization function for
     /// function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
@@ -85,25 +85,19 @@ class ContractManager : BaseContract {
     * Override the default contract function call.
     * ContractManager process things in a non-standard (cannot use SafeVariables as contract creation actively writes to DB)
     */
-    void ethCall(const TxBlock& tx) override;
-
-    /**
-     * Override the default contract function call.
-     * ContractManager process things in a non-standard (cannot use SafeVariables as contract creation actively writes to DB)
-     */
-    const std::string ethCall(const std::string& data) const override;
-
-    /**
-     * Override the default contract function call.
-     * ContractManager process things in a non-standard (cannot use SafeVariables as contract creation actively writes to DB)
-     */
     void ethCall(const ethCallInfo& callInfo) override;
+
+    /**
+     * Override the default contract function call.
+     * ContractManager process things in a non-standard (cannot use SafeVariables as contract creation actively writes to DB)
+     */
+    const std::string ethCallView(const ethCallInfo& data) const override;
 
     /**
      * Process a transaction that calls a function from a given contract.
      * @param tx The transaction to process.
      */
-    void callContract(const TxBlock& tx);
+    void callContract(const TxBlock& callInfo);
 
     /**
      * Validate a transaction that calls a function from a given contract.
@@ -118,7 +112,7 @@ class ContractManager : BaseContract {
      * @param tx
      * @return
      */
-    std::string callContract(const Address& address, const std::string& data) const;
+    const std::string callContract(const ethCallInfo& callInfo) const;
 
     /**
      * Check if a transaction calls a contract

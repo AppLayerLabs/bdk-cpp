@@ -180,8 +180,7 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
-        const auto& [from, to, gas, gasPrice, value, data] = callInfo;
-        auto result = Hex::fromBytes(state->ethCall(to, data), true);
+        auto result = Hex::fromBytes(state->ethCall(callInfo), true);
         ret["result"] = result;
       } catch (std::exception &e) {
         ret["error"]["code"] = -32000;

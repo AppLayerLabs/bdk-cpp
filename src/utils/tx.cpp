@@ -373,6 +373,19 @@ std::string TxBlock::rlpSerialize(bool includeSig) const {
   return ret;
 }
 
+ethCallInfo TxBlock::txToCallInfo() const {
+  // ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
+  ethCallInfo ret;
+  auto& [from, to, gasLimit, gasPrice, value, data] = ret;
+  from = this->getFrom();
+  to = this->getTo();
+  gasLimit = this->getGasLimit();
+  gasPrice = this->getMaxFeePerGas();
+  value = this->getValue();
+  data = this->getData();
+  return ret;
+}
+
 TxValidator::TxValidator(const std::string_view& bytes, const uint64_t& requiredChainId) {
   uint64_t index = 0;
 

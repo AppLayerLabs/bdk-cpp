@@ -24,24 +24,25 @@ ContractManager::~ContractManager() {
   this->db->putBatch(contractsBatch, DBPrefix::contractManager);
 }
 
-Address ContractManager::deriveContractAddress(const TxBlock& tx) const {
+Address ContractManager::deriveContractAddress(const ethCallInfo& callInfo) const {
   /// Contract address = sha3(rlp(tx.from() + tx.nonce()).substr(12);
   uint8_t rlpSize = 0xc0;
   rlpSize += this->getCaller().size();
-  rlpSize += (tx.getNonce() < 0x80) ? 1 : 1 + Utils::bytesRequired(tx.getNonce());
+  /// As we don't have actually access to the nonce, we will use the number of contracts existing in the chain
+  rlpSize += (this->contracts.size() < 0x80) ? 1 : 1 + Utils::bytesRequired(this->contracts.size());
   std::string rlp;
   rlp += rlpSize;
   rlp += this->getCaller().get();
-  rlp += (tx.getNonce() < 0x80) ? (char)tx.getNonce() : (char)0x80 + Utils::bytesRequired(tx.getNonce());
+  rlp += (this->contracts.size() < 0x80) ? (char)this->contracts.size() : (char)0x80 + Utils::bytesRequired(this->contracts.size());
   return Address(Utils::sha3(rlp).get().substr(12), true);
 }
 
-void ContractManager::createNewERC20Contract(const TxBlock& tx) {
+void ContractManager::createNewERC20Contract(const ethCallInfo& callInfo) {
   if (this->caller != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can create new contracts");
   }
   /// Check if desired contract address already exists
-  const auto derivedContractAddress = this->deriveContractAddress(tx);
+  const auto derivedContractAddress = this->deriveContractAddress(callInfo);
   if (this->contracts.contains(derivedContractAddress)) {
     throw std::runtime_error("Contract already exists");
   }
@@ -55,7 +56,7 @@ void ContractManager::createNewERC20Contract(const TxBlock& tx) {
 
   /// Parse the constructor ABI
   std::vector<ABI::Types> types = { ABI::Types::string, ABI::Types::string, ABI::Types::uint256, ABI::Types::uint256};
-  ABI::Decoder decoder(types, tx.getData().substr(4));
+  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
 
   /// Check if decimals are within range
   if (decoder.getData<uint256_t>(2) > 255) {
@@ -74,12 +75,12 @@ void ContractManager::createNewERC20Contract(const TxBlock& tx) {
   return;
 }
 
-void ContractManager::validateCreateNewERC20Contract(const TxBlock &tx) {
+void ContractManager::validateCreateNewERC20Contract(const ethCallInfo &callInfo) const {
   if (this->caller != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can create new contracts");
   }
   /// Check if desired contract address already exists
-  const auto derivedContractAddress = this->deriveContractAddress(tx);
+  const auto derivedContractAddress = this->deriveContractAddress(callInfo);
   {
     std::shared_lock lock(this->contractsMutex);
     if (this->contracts.contains(derivedContractAddress)) {
@@ -95,7 +96,7 @@ void ContractManager::validateCreateNewERC20Contract(const TxBlock &tx) {
 
   /// Parse the constructor ABI
   std::vector<ABI::Types> types = { ABI::Types::string, ABI::Types::string, ABI::Types::uint256, ABI::Types::uint256};
-  ABI::Decoder decoder(types, tx.getData().substr(4));
+  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
 
   /// Check if decimals are within range
   if (decoder.getData<uint256_t>(2) > 255) {
@@ -105,45 +106,21 @@ void ContractManager::validateCreateNewERC20Contract(const TxBlock &tx) {
   return;
 }
 
-void ContractManager::ethCall(const TxBlock& tx) {
-  this->origin = tx.getFrom();
-  this->caller = tx.getFrom();
-  std::string functor = tx.getData().substr(0, 4);
-
-  /// function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
-  if (functor == Hex::toBytes("0xb74e5ed5")) {
-    this->createNewERC20Contract(tx);
-    return;
-  }
-  throw std::runtime_error("Invalid function call");
-}
-
 void ContractManager::ethCall(const ethCallInfo& callInfo) {
-  auto [from, to, gasLimit, gasPrice, value, data] = callInfo;
-  this->origin = from;
-  this->caller = from;
-  PrivKey mockupPrivKey(Hex::toBytes("2a616d189193e56994f22993ac4eb4dca0e2652afdc95d240739837ab83b21e2"));
-  Address mockupAddr = Secp256k1::toAddress(Secp256k1::toUPub(mockupPrivKey));
-  TxBlock tx(
-    mockupAddr,
-    this->getContractAddress(),
-    data,
-    this->getContractChainId(),
-    0,
-    value,
-    gasPrice,
-    gasPrice,
-    gasLimit,
-    mockupPrivKey
-  );
+  std::string functor = std::get<5>(callInfo).substr(0, 4);
 
-  std::string functor = data.substr(0, 4);
   /// function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
-  if (functor == Hex::toBytes("0xb74e5ed5")) {
-    this->validateCreateNewERC20Contract(tx);
-    return;
+  if (this->getCommit()) {
+    if (functor == Hex::toBytes("0xb74e5ed5")) {
+      this->createNewERC20Contract(callInfo);
+      return;
+    }
+  } else {
+    if (functor == Hex::toBytes("0xb74e5ed5")) {
+      this->validateCreateNewERC20Contract(callInfo);
+      return;
+    }
   }
-
   throw std::runtime_error("Invalid function call");
 }
 
@@ -161,8 +138,8 @@ std::string ContractManager::getDeployedContracts() const {
   return ABI::Encoder(vars).getRaw();
 }
 
-const std::string ContractManager::ethCall(const std::string& data) const {
-  std::string functor = data.substr(0, 4);
+const std::string ContractManager::ethCallView(const ethCallInfo& data) const {
+  std::string functor = std::get<5>(data).substr(0, 4);
 
   /// function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
   if (functor == Hex::toBytes("0xaa9a068f")) {
@@ -177,7 +154,14 @@ void ContractManager::callContract(const TxBlock& tx) {
     this->caller = tx.getFrom();
     this->origin = tx.getFrom();
     this->value = tx.getValue();
-    this->ethCall(tx);
+    this->commit = true;
+    try {
+      this->ethCall(tx.txToCallInfo());
+    } catch (std::exception &e) {
+      this->commit = false;
+      throw e;
+    }
+    this->commit = false;
     return;
   }
 
@@ -185,7 +169,14 @@ void ContractManager::callContract(const TxBlock& tx) {
     rdpos->caller = tx.getFrom();
     rdpos->origin = tx.getFrom();
     rdpos->value = tx.getValue();
-    rdpos->ethCall(tx);
+    rdpos->commit = true;
+    try {
+      rdpos->ethCall(tx.txToCallInfo());
+    } catch (std::exception &e) {
+      rdpos->commit = false;
+      throw e;
+    }
+    rdpos->commit = false;
     return;
   }
 
@@ -194,19 +185,18 @@ void ContractManager::callContract(const TxBlock& tx) {
     throw std::runtime_error("Contract does not exist");
   }
 
-  if (tx.getValue()) {
-    const auto& contract = contracts.at(tx.getTo());
-    contract->caller = tx.getFrom();
-    contract->origin = tx.getFrom();
-    contract->value = tx.getValue();
-    contract->ethCall(tx, tx.getValue());
-  } else {
-    const auto& contract = contracts.at(tx.getTo());
-    contract->caller = tx.getFrom();
-    contract->origin = tx.getFrom();
-    contract->value = 0;
-    contract->ethCall(tx);
+  const auto& contract = contracts.at(tx.getTo());
+  contract->caller = tx.getFrom();
+  contract->origin = tx.getFrom();
+  contract->value = tx.getValue();
+  contract->commit = true;
+  try {
+    contract->ethCall(tx.txToCallInfo());
+  } catch (std::exception &e) {
+    contract->commit = false;
+    throw e;
   }
+  contract->commit = false;
 }
 
 bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
@@ -216,6 +206,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     this->caller = from;
     this->origin = from;
     this->value = value;
+    this->commit = false;
     this->ethCall(callInfo);
     return true;
   }
@@ -224,6 +215,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     rdpos->caller = from;
     rdpos->origin = from;
     rdpos->value = value;
+    rdpos->commit = false;
     rdpos->ethCall(callInfo);
     return true;
   }
@@ -236,24 +228,26 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
   contract->caller = from;
   contract->origin = from;
   contract->value = value;
+  contract->commit = false;
   contract->ethCall(callInfo);
   return true;
 }
 
-std::string ContractManager::callContract(const Address& address, const std::string& data) const {
-  if (address == this->getContractAddress()) {
-    return this->ethCall(data);
+const std::string ContractManager::callContract(const ethCallInfo& callInfo) const {
+  const auto& [from, to, gasLimit, gasPrice, value, data] = callInfo;
+  if (to == this->getContractAddress()) {
+    return this->ethCallView(callInfo);
   }
 
-  if (address == ProtocolContractAddresses.at("rdPoS")) {
-    return rdpos->ethCall(data);
+  if (to == ProtocolContractAddresses.at("rdPoS")) {
+    return rdpos->ethCallView(callInfo);
   }
 
   std::shared_lock lock(this->contractsMutex);
-  if (!this->contracts.contains(address)) {
+  if (!this->contracts.contains(to)) {
     throw std::runtime_error("Contract does not exist");
   }
-  return this->contracts.at(address)->ethCall(data);
+  return this->contracts.at(to)->ethCallView(callInfo);
 }
 
 bool ContractManager::isContractCall(const TxBlock &tx) const {
