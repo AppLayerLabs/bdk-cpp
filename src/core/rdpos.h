@@ -130,7 +130,7 @@ class rdPoS : public BaseContract {
     );
 
     /// Destructor.
-    ~rdPoS();
+    ~rdPoS() override;
 
     /// Enum for transaction types.
     enum TxType { addValidator, removeValidator, randomHash, randomSeed };

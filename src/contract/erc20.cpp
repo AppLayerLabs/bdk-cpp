@@ -1,8 +1,8 @@
 #include "erc20.h"
 
 /// Default Constructor when loading contract from DB.
-ERC20::ERC20(const Address& address, const std::unique_ptr<DB> &db) :
-  DynamicContract(address, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
+ERC20::ERC20(ContractManager::ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
+  DynamicContract(interface, address, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
 
   this->_name = db->get("_name", DBPrefix::contracts + this->getContractAddress().get());
   this->_symbol = db->get("_symbol", DBPrefix::contracts + this->getContractAddress().get());
@@ -21,9 +21,9 @@ ERC20::ERC20(const Address& address, const std::unique_ptr<DB> &db) :
   updateState(true);
 }
 
-ERC20::ERC20(const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals, const uint256_t& mintValue,
+ERC20::ERC20(ContractManager::ContractManagerInterface &interface, const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals, const uint256_t& mintValue,
       const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db) :
-  DynamicContract("ERC20", address, creator, chainId, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
+  DynamicContract(interface, "ERC20", address, creator, chainId, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
   _name = erc20_name;
   _symbol = erc20_symbol;
   _decimals = erc20_decimals;

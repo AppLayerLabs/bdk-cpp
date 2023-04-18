@@ -51,6 +51,7 @@ class ContractLocals : public ContractGlobals {
     bool getCommit() const { return this->commit; }
 
     friend class ContractManager; /// ContractManager updates the contract locals before calling ethCall within a contract.
+    friend class ContractManagerInterface; /// ContractManagerInterface can set the commit flag.
 };
 
 /**
@@ -115,121 +116,6 @@ class BaseContract : public ContractLocals {
     const Address& getContractCreator() const { return this->contractCreator; }
     const uint64_t& getContractChainId() const { return this->contractChainId; }
     const std::string& getContractName() const { return this->contractName; }
-};
-
-/**
- * Native abstraction of a smart contract.
- * All contracts have to inherit this class.
- */
-class DynamicContract : public BaseContract {
-  private:
-    std::unordered_map<std::string, std::function<void(const ethCallInfo& callInfo)>> functions;
-    std::unordered_map<std::string, std::function<void(const ethCallInfo& callInfo)>> payableFunctions;
-    std::unordered_map<std::string, std::function<std::string(const ethCallInfo& callInfo)>> viewFunctions;
-
-    std::vector<std::reference_wrapper<SafeBase>> usedVariables;
-    void registerVariableUse(SafeBase& variable) { usedVariables.emplace_back(variable); }
-
-  protected:
-    /// TODO: eth_call from another contract.
-    /// Register by using function name + lambda.
-    void registerFunction(const std::string& functor, std::function<void(const ethCallInfo& tx)> f) {
-      functions[functor] = f;
-    }
-
-    void registerPayableFunction(const std::string& functor, std::function<void(const ethCallInfo& tx)> f) {
-      payableFunctions[functor] = f;
-    }
-
-    void registerViewFunction(const std::string& functor, std::function<std::string(const ethCallInfo& str)> f) {
-      viewFunctions[functor] = f;
-    }
-
-    virtual void registerContractFunctions() { throw std::runtime_error("Derived Class from Contract does not override registerContractFunctions()"); }
-
-    /// Updates the variables that were used by the contract
-    /// Called by ethCall functions and contract constructors.
-    void updateState(const bool commitToState) {
-      if (commitToState) {
-        for (auto& variable : usedVariables) {
-          variable.get().commit();
-        }
-      } else {
-        for (auto& variable : usedVariables) {
-          variable.get().revert();
-        }
-      }
-      usedVariables.clear();
-    }
-
-  public:
-    /**
-     * Constructor.
-     * @param address The address where the contract will be deployed.
-     * @param chainId The chain where the contract wil be deployed.
-     * @param contractManager Pointer to the contract manager.
-     */
-    DynamicContract(const std::string& contractName,
-      const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db
-    ) : BaseContract(contractName, address, creator, chainId, db) {}
-
-    /**
-     * Constructor.
-     * @param db
-     */
-    DynamicContract(const Address& address, const std::unique_ptr<DB> &db) : BaseContract(address, db) {}
-
-    /**
-     * Invoke a contract function using a transaction. automatically differs between payable and non-payable functions.
-     * Used by the %State class when calling `processNewBlock()/validateNewBlock()`.
-     * @param tx The transaction to use for call.
-     * @param commit Whether to commit the changes to the SafeVariables or just simulate the transaction.
-     * ContractManager is responsible to set the commit flag (simulate or truly commit variables to state).
-     */
-    void ethCall(const ethCallInfo& callInfo) override {
-      try {
-        std::string funcName = std::get<5>(callInfo).substr(0, 4);
-        const uint256_t& value = std::get<4>(callInfo);
-        if (value) {
-          auto func = this->payableFunctions.find(funcName);
-          if (func == this->payableFunctions.end()) {
-            throw std::runtime_error("Functor not found");
-          }
-          func->second(callInfo);
-        } else {
-          auto func = this->functions.find(funcName);
-          if (func == this->functions.end()) {
-            throw std::runtime_error("Functor not found");
-          }
-          func->second(callInfo);
-        }
-      } catch (const std::exception& e) {
-        updateState(false);
-        throw e;
-      }
-      updateState(this->getCommit());
-    };
-
-    /**
-     * Do a contract call to a view function
-     * @param data
-     * @return
-     */
-    const std::string ethCallView(const ethCallInfo& data) const override {
-      try {
-        std::string funcName = std::get<5>(data).substr(0, 4);
-        auto func = this->viewFunctions.find(funcName);
-        if (func == this->viewFunctions.end()) {
-          throw std::runtime_error("Functor not found");
-        }
-        return func->second(data);
-      } catch (std::exception &e) {
-        throw e;
-      }
-    }
-
-    /// Friend
-    friend void registerVariableUse(DynamicContract& contract, SafeBase& variable);
 };
 
 #endif  // CONTRACT_H

@@ -7,7 +7,7 @@
 #include "variables/safestring.h"
 #include "variables/safeuint8_t.h"
 #include "variables/safeuint256_t.h"
-#include "contract.h"
+#include "dynamiccontract.h"
 #include "../utils/db.h"
 #include "abi.h"
 
@@ -38,9 +38,9 @@ class ERC20 : public DynamicContract {
   public:
 
     /// Default Constructor when loading contract from DB.
-    ERC20(const Address& address, const std::unique_ptr<DB> &db);
+    ERC20(ContractManager::ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db);
     /// Constructor to be used when creating a new contract.
-    ERC20(const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals, const uint256_t& mintValue,
+    ERC20(ContractManager::ContractManagerInterface &interface, const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals, const uint256_t& mintValue,
           const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db);
 
     ~ERC20() override;

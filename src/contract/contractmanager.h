@@ -32,7 +32,6 @@ const std::unordered_map<std::string,Address> ProtocolContractAddresses = {
   {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"), true)} // Sha3("ContractManager").substr(0,20).
 };
 
-
 /**
  * Class that holds all current contract instances in the blockchain state.
  * Responsible for being the factory and deploying contracts in the chain.
@@ -64,10 +63,53 @@ class ContractManager : BaseContract {
     /// function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
     void validateCreateNewERC20Contract(const ethCallInfo& callInfo) const;
 
+    /// Create a new ERC20Wrapper Contract.
+    /// function createNewERC20WrapperContract() public {}
+    void createNewERC20WrapperContract(const ethCallInfo& callInfo);
+
+    /// Check if transaction can actually create a new ERC20 contract.
+    void validateCreateNewERC20WrapperContract(const ethCallInfo& callInfo) const;
+
     /// Serialization function for
     /// function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
     std::string getDeployedContracts() const;
+  public:
+    /// Interface class for DynamicContract to access ContractManager and interact with other dynamic contracts.
+    class ContractManagerInterface {
+    private:
+      /// Reference back to the contract manager
+      ContractManager& contractManager;
+    public:
+      /// Constructor
+      explicit ContractManagerInterface(ContractManager& contractManager) : contractManager(contractManager) {}
 
+      /// Call a contract function.
+      /// Used by DynamicContract to call other contracts
+      /// @param callInfo The call info
+      /// A given DynamicContract will only call another contract if it was firstly triggered by a transaction.
+      /// That means, we can use contractManager::commit to know if the call should commit or not.
+      /// THis function will only be called if a ContractManager::callContract or ContractManager::validateCallContractWithTx was called before.
+      void callContract(const ethCallInfo& callInfo);
+
+      /// Get a contract by address
+      /// Used by DynamicContract to access view/const functions of other contracts
+      template <typename T>
+      const T* getContract(const Address& address) const {
+        std::shared_lock<std::shared_mutex> lock(this->contractManager.contractsMutex);
+        auto it = this->contractManager.contracts.find(address);
+        if (it == this->contractManager.contracts.end()) {
+          throw std::runtime_error("ContractManager::getContract: contract at address " + address.hex().get() + " not found.");
+        }
+        T* ptr = dynamic_cast<T*>(it->second.get());
+        if (ptr == nullptr) {
+          throw std::runtime_error("ContractManager::getContract: Contract at address " + address.hex().get() + " is not of the requested type: " + typeid(T).name());
+        }
+        return ptr;
+      }
+    };
+
+  private:
+    ContractManagerInterface interface;
   public:
     // TODO: constructor and destructor are not implemented because we don't know how contract loading/saving will work yet
 
@@ -79,7 +121,7 @@ class ContractManager : BaseContract {
     ContractManager(const std::unique_ptr<DB>& db, const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options);
 
     /// Destructor. Automatically saves contracts to the database before wiping them.
-    ~ContractManager();
+    ~ContractManager() override;
 
     /**
     * Override the default contract function call.
@@ -132,6 +174,8 @@ class ContractManager : BaseContract {
 
     /// Get list of contracts addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;
+
+    friend class ContractManagerInterface;
 };
 
 #endif  // CONTRACTMANAGER_H

@@ -1,7 +1,9 @@
 set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/abi.h
   ${CMAKE_SOURCE_DIR}/src/contract/contract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.h
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.h
+  ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint8_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint16_t.h
@@ -18,9 +20,10 @@ set(CONTRACT_HEADERS
 
 set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/abi.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/contract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/erc20.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.cpp
   PARENT_SCOPE
 )
 
