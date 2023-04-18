@@ -1,5 +1,5 @@
 #include "contract.h"
 
-void registerVariableUse(Contract& contract, SafeBase& variable) {
+void registerVariableUse(DynamicContract& contract, SafeBase& variable) {
   contract.registerVariableUse(variable);
 }

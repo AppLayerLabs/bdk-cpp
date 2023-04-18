@@ -207,7 +207,7 @@ class State {
      * @param callInfo tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return `true` if the call is valid, `false` otherwise.
      */
-    bool estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo);
+    bool estimateGas(const ethCallInfo& callInfo);
 
     /// Get a list of contract addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;

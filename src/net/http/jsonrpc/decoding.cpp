@@ -261,8 +261,8 @@ namespace JsonRPC {
       }
     }
 
-    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_call(const json& request, const std::unique_ptr<Storage> &storage) {
-      std::tuple<Address, Address, uint64_t, uint256_t, uint256_t, std::string> result;
+    ethCallInfo eth_call(const json& request, const std::unique_ptr<Storage> &storage) {
+      ethCallInfo result;
       auto& [from, to, gas, gasPrice, value, data] = result;
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
@@ -341,8 +341,8 @@ namespace JsonRPC {
       }
     }
 
-    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage) {
-      std::tuple<Address, Address, uint64_t, uint256_t, uint256_t, std::string> result;
+    ethCallInfo eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage) {
+      ethCallInfo result;
       auto& [from, to, gas, gasPrice, value, data] = result;
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");

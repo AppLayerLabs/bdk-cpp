@@ -305,7 +305,7 @@ std::string State::ethCall(const Address& addr, const std::string& data) {
   }
 }
 
-bool State::estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo) {
+bool State::estimateGas(const ethCallInfo& callInfo) {
   std::shared_lock lock(this->stateMutex);
   auto [from, to, gasLimit, gasPrice, value, data] = callInfo;
 

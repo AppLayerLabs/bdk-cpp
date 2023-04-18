@@ -176,7 +176,7 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_call(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<State>& state) {
+    json eth_call(const ethCallInfo& callInfo, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
@@ -190,7 +190,7 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<State>& state) {
+    json eth_estimateGas(const ethCallInfo& callInfo, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {

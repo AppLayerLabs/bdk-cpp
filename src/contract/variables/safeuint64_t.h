@@ -13,7 +13,7 @@ class SafeUint64_t : public SafeBase {
   public:
 
     /// Only Variables built with this constructor will be registered within a contract.
-    SafeUint64_t(Contract* owner, const uint64_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint64_t>(value)) {};
+    SafeUint64_t(DynamicContract* owner, const uint64_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint64_t>(value)) {};
 
     SafeUint64_t(const uint64_t& value = 0) : SafeBase(nullptr), value(0), valuePtr(std::make_unique<uint64_t>(value)) {};
     SafeUint64_t(const SafeUint64_t& other) : SafeBase(nullptr) {

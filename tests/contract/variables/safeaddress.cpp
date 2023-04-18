@@ -1,5 +1,6 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safeaddress.h"
+#include "../../src/utils/utils.h"
 #include <iostream>
 
 namespace TSafeAddress {

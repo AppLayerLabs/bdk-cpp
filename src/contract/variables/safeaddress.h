@@ -12,7 +12,7 @@ class SafeAddress : public SafeBase {
     inline void check() const override { if (addressPtr == nullptr) { addressPtr = std::make_unique<Address>(address); } };
   public:
     /// Only Variables built with this constructor will be registered within a contract.
-    SafeAddress(Contract* owner, const Address& address = Address()) : SafeBase(owner), address(address), addressPtr(std::make_unique<Address>(address)) {};
+    SafeAddress(DynamicContract* owner, const Address& address = Address()) : SafeBase(owner), address(address), addressPtr(std::make_unique<Address>(address)) {};
 
     SafeAddress(const Address& address = Address()) : SafeBase(nullptr), address(Address()), addressPtr(std::make_unique<Address>(address)) {};
     SafeAddress(const SafeAddress& other) : SafeBase(nullptr) {

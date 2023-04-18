@@ -97,33 +97,38 @@ ABI::Encoder::Encoder(ABI::Encoder::EncVar data, std::string func) {
     funcTmp.erase(0, funcTmp.find("(") + 1);
     funcTmp.replace(funcTmp.find(")"), 1, ",");
     int pos, posct = 0;
-    while ((pos = funcTmp.find(",")) != std::string::npos) {
-      std::string funcType = funcTmp.substr(0, pos);
-      if (
-        funcType != "uint256" && funcType != "address" &&
-        funcType != "bool" && funcType != "bytes" &&
-        funcType != "string" && funcType != "uint256[]" &&
-        funcType != "address[]" && funcType != "bool[]" &&
-        funcType != "bytes[]" && funcType != "string[]"
-      ) {
-        throw std::runtime_error("Invalid function header type");
+    if (funcTmp == ",") {
+      // Function doesn't have any arguments
+      if (data.size() != 0) { throw std::runtime_error("Invalid function header"); }
+    } else {
+      while ((pos = funcTmp.find(",")) != std::string::npos) {
+        std::string funcType = funcTmp.substr(0, pos);
+        if (
+          funcType != "uint256" && funcType != "address" &&
+          funcType != "bool" && funcType != "bytes" &&
+          funcType != "string" && funcType != "uint256[]" &&
+          funcType != "address[]" && funcType != "bool[]" &&
+          funcType != "bytes[]" && funcType != "string[]"
+          ) {
+          throw std::runtime_error("Invalid function header type");
+        }
+        if (
+          (funcType == "uint256" && !std::holds_alternative<uint256_t>(data[posct])) ||
+          (funcType == "address" && !std::holds_alternative<Address>(data[posct])) ||
+          (funcType == "bool" && !std::holds_alternative<bool>(data[posct])) ||
+          (funcType == "bytes" && !std::holds_alternative<std::string>(data[posct])) ||
+          (funcType == "string" && !std::holds_alternative<std::string>(data[posct])) ||
+          (funcType == "uint256[]" && !std::holds_alternative<std::vector<uint256_t>>(data[posct])) ||
+          (funcType == "address[]" && !std::holds_alternative<std::vector<Address>>(data[posct])) ||
+          (funcType == "bool[]" && !std::holds_alternative<std::vector<bool>>(data[posct])) ||
+          (funcType == "bytes[]" && !std::holds_alternative<std::vector<std::string>>(data[posct])) ||
+          (funcType == "string[]" && !std::holds_alternative<std::vector<std::string>>(data[posct]))
+          ) {
+          throw std::runtime_error("Header and data types at position " + std::to_string(posct) + " don't match");
+        }
+        posct++;
+        funcTmp.erase(0, pos + 1);
       }
-      if (
-        (funcType == "uint256" && !std::holds_alternative<uint256_t>(data[posct])) ||
-        (funcType == "address" && !std::holds_alternative<Address>(data[posct])) ||
-        (funcType == "bool" && !std::holds_alternative<bool>(data[posct])) ||
-        (funcType == "bytes" && !std::holds_alternative<std::string>(data[posct])) ||
-        (funcType == "string" && !std::holds_alternative<std::string>(data[posct])) ||
-        (funcType == "uint256[]" && !std::holds_alternative<std::vector<uint256_t>>(data[posct])) ||
-        (funcType == "address[]" && !std::holds_alternative<std::vector<Address>>(data[posct])) ||
-        (funcType == "bool[]" && !std::holds_alternative<std::vector<bool>>(data[posct])) ||
-        (funcType == "bytes[]" && !std::holds_alternative<std::vector<std::string>>(data[posct])) ||
-        (funcType == "string[]" && !std::holds_alternative<std::vector<std::string>>(data[posct]))
-      ) {
-        throw std::runtime_error("Header and data types at position " + std::to_string(posct) + " don't match");
-      }
-      posct++;
-      funcTmp.erase(0, pos + 1);
     }
     this->data += encodeFunction(func);
   }

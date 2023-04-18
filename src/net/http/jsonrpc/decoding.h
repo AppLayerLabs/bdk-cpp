@@ -134,14 +134,14 @@ namespace JsonRPC {
      * @param storage Pointer to the blockchain's storage.
      * @return A tuple with the call response data (from, to, gas, gasPrice, value, data).
      */
-    std::tuple<Address, Address, uint64_t, uint256_t, uint256_t, std::string> eth_call(const json& request, const std::unique_ptr<Storage> &storage);
+    ethCallInfo eth_call(const json& request, const std::unique_ptr<Storage> &storage);
 
     /**
      * Check and parse a given `eth_estimateGas` request.
      * @param request The request object.
      * @return A tuple with the call response data (from, to, gas, gasPrice, value, data).
      */
-    std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string> eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage);
+    ethCallInfo eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage);
 
     /**
      * Check if `eth_gasPrice` is valid

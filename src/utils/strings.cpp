@@ -1,4 +1,5 @@
 #include "strings.h"
+#include "utils.h"
 
 Hash::Hash(uint256_t data) : FixedStr<32>(Utils::uint256ToBytes(data)) {};
 

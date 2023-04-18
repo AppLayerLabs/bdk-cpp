@@ -13,7 +13,7 @@ class SafeUint16_t : public SafeBase {
   public:
 
     /// Only Variables built with this constructor will be registered within a contract.
-    SafeUint16_t(Contract* owner, const uint16_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint16_t>(value)) {};
+    SafeUint16_t(DynamicContract* owner, const uint16_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint16_t>(value)) {};
 
     SafeUint16_t(const uint16_t& value = 0) : SafeBase(nullptr), value(0), valuePtr(std::make_unique<uint16_t>(value)) {};
     SafeUint16_t(const SafeUint16_t& other) : SafeBase(nullptr) {

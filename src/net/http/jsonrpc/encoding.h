@@ -115,15 +115,15 @@ namespace JsonRPC {
      * @param callInfo Info about the call (from, to, gas, gasPrice, value, data).
      * @param state Pointer to the blockchain's state.
      */
-    json eth_call(const std::tuple<Address, Address, uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<State>& state);
+    json eth_call(const ethCallInfo& callInfo, const std::unique_ptr<State>& state);
 
-    /**
+    /**,
      * Encode a `eth_estimateGas` response.
      * @param callInfo Info about the call (from, to, gas, gasPrice, value, data).
      * @param state Pointer to the blockchain's state.
      * TODO: We don't really estimate gas because we don't have a Gas structure, it is fixed to 21000
      */
-    json eth_estimateGas(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo, const std::unique_ptr<State>& state);
+    json eth_estimateGas(const ethCallInfo& callInfo, const std::unique_ptr<State>& state);
 
 
     /**

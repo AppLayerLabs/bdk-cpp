@@ -4,11 +4,11 @@
 #include <memory>
 
 /// Forward Declarations
-class Contract;
+class DynamicContract;
 
 class SafeBase;
 
-void registerVariableUse(Contract& contract, SafeBase& variable);
+void registerVariableUse(DynamicContract& contract, SafeBase& variable);
 
 class SafeBase {
   private:
@@ -19,7 +19,7 @@ class SafeBase {
     /// Because we don't need to register a variable that will be destroyed regardless if reverts or not.
     /// Variables of the contract should be initialized during the constructor of such contract
     /// Passing the contract as a pointer allows us to register it to the contract, and call commit()/revert() properly.
-    Contract* owner = nullptr;
+    DynamicContract* owner = nullptr;
 
   protected:
     /// Register the use of this variable within the contract
@@ -31,7 +31,7 @@ class SafeBase {
     inline virtual void check() const { throw std::runtime_error("Derived Class from SafeBase does not override check()"); };
 
     inline bool isRegistered() const { return registered; }
-    inline Contract* getOwner() const { return owner; }
+    inline DynamicContract* getOwner() const { return owner; }
 
   public:
 
@@ -41,7 +41,7 @@ class SafeBase {
 
     /// Normal Constructor.
     /// Only variables built with this constructor will be registered within the contract.
-    SafeBase(Contract* owner) : owner(owner) {};
+    SafeBase(DynamicContract* owner) : owner(owner) {};
 
     /// Normal Constructor for variables that are not registered within the contract.
     /// This should be used only within local variables within functions.

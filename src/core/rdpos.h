@@ -64,7 +64,7 @@ class Validator : public Address {
 };
 
 /// Abstraction of the %rdPoS (Random Deterministic Proof of Stake) consensus algorithm.
-class rdPoS : public Contract {
+class rdPoS : public BaseContract {
   private:
     /// Pointer to the blockchain's storage.
     const std::unique_ptr<Storage>& storage;

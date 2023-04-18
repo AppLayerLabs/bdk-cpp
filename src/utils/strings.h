@@ -2,9 +2,9 @@
 #define STRINGS_H
 
 #include <string>
+#include <openssl/rand.h>
 
 #include "hex.h"
-#include "utils.h"
 
 /**
  * Abstraction of a fixed-size string (`FixedStr<10>` would have

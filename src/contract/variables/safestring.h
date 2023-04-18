@@ -13,7 +13,7 @@ class SafeString : SafeBase {
     void check() const override { if (strPtr == nullptr) { strPtr = std::make_unique<std::string>(str); } }
   public:
     /// Only Only Variables built with this constructor will be registered within a contract.
-    SafeString(Contract* owner, const std::string& str = std::string()) : SafeBase(owner), strPtr(std::make_unique<std::string>(str)) {}
+    SafeString(DynamicContract* owner, const std::string& str = std::string()) : SafeBase(owner), strPtr(std::make_unique<std::string>(str)) {}
 
     /// Default constructor
     SafeString() : SafeBase(nullptr), strPtr(std::make_unique<std::string>()) {}

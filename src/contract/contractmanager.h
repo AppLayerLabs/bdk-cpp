@@ -39,10 +39,10 @@ const std::unordered_map<std::string,Address> ProtocolContractAddresses = {
  * Also acts as an access point for contracts to access each other.
  */
 
-class ContractManager : Contract {
+class ContractManager : BaseContract {
   private:
     /// List of currently deployed contracts.
-    std::unordered_map<Address, std::unique_ptr<Contract>, SafeHash> contracts;
+    std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
 
     /// Contracts mutex
     mutable std::shared_mutex contractsMutex;
@@ -97,7 +97,7 @@ class ContractManager : Contract {
      * Override the default contract function call.
      * ContractManager process things in a non-standard (cannot use SafeVariables as contract creation actively writes to DB)
      */
-    void ethCall(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo) override;
+    void ethCall(const ethCallInfo& callInfo) override;
 
     /**
      * Process a transaction that calls a function from a given contract.
@@ -110,7 +110,7 @@ class ContractManager : Contract {
      * @param tx The transaction to validate.
      * @return True if the transaction is valid, false otherwise.
      */
-    bool validateCallContractWithTx(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo);
+    bool validateCallContractWithTx(const ethCallInfo& callInfo);
 
     /**
      * Make a eth_call to a view function from the contract.

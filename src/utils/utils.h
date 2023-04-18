@@ -26,7 +26,8 @@ using json = nlohmann::ordered_json;
 using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
+/// ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
+using ethCallInfo = std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>;
 /**
  * TODO: this isn't working on Doxygen
  * Helper function for debugging failed operations over HTTP.

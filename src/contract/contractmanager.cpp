@@ -3,7 +3,7 @@
 #include "../core/rdpos.h"
 
 ContractManager::ContractManager(const std::unique_ptr<DB>& db, const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options) :
-  Contract("ContractManager", ProtocolContractAddresses.at("ContractManager"), Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true), 0, db), rdpos(rdpos), options(options) {
+  BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true), 0, db), rdpos(rdpos), options(options) {
   /// Load Contracts from DB.
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto& contract : contracts) {
@@ -62,7 +62,6 @@ void ContractManager::createNewERC20Contract(const TxBlock& tx) {
     throw std::runtime_error("Decimals must be between 0 and 255");
   }
 
-
   /// Create the contract
   this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20>(decoder.getData<std::string>(0),
                                                                                         decoder.getData<std::string>(1),
@@ -114,11 +113,12 @@ void ContractManager::ethCall(const TxBlock& tx) {
   /// function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
   if (functor == Hex::toBytes("0xb74e5ed5")) {
     this->createNewERC20Contract(tx);
+    return;
   }
   throw std::runtime_error("Invalid function call");
 }
 
-void ContractManager::ethCall(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo) {
+void ContractManager::ethCall(const ethCallInfo& callInfo) {
   auto [from, to, gasLimit, gasPrice, value, data] = callInfo;
   this->origin = from;
   this->caller = from;
@@ -173,39 +173,57 @@ const std::string ContractManager::ethCall(const std::string& data) const {
 }
 
 void ContractManager::callContract(const TxBlock& tx) {
-  try {
-    if (tx.getTo() == this->getContractAddress()) {
-      this->ethCall(tx);
-      return;
-    }
+  if (tx.getTo() == this->getContractAddress()) {
+    this->caller = tx.getFrom();
+    this->origin = tx.getFrom();
+    this->value = tx.getValue();
+    this->ethCall(tx);
+    return;
+  }
 
-    if (tx.getTo() == ProtocolContractAddresses.at("rdPoS")) {
-      rdpos->ethCall(tx);
-      return;
-    }
+  if (tx.getTo() == ProtocolContractAddresses.at("rdPoS")) {
+    rdpos->caller = tx.getFrom();
+    rdpos->origin = tx.getFrom();
+    rdpos->value = tx.getValue();
+    rdpos->ethCall(tx);
+    return;
+  }
 
-    std::unique_lock lock(this->contractsMutex);
-    if (!this->contracts.contains(tx.getTo())) {
-      throw std::runtime_error("Contract does not exist");
-    }
+  std::unique_lock lock(this->contractsMutex);
+  if (!this->contracts.contains(tx.getTo())) {
+    throw std::runtime_error("Contract does not exist");
+  }
 
-    if (tx.getValue()) {
-      this->contracts.at(tx.getTo())->ethCall(tx, tx.getValue());
-    } else {
-      this->contracts.at(tx.getTo())->ethCall(tx);
-    }
-  } catch (std::exception &e) {
-    Utils::logToDebug(Log::contractManager, __func__, "Transaction Reverted: " + tx.hash().hex().get() + " " + e.what());
+  if (tx.getValue()) {
+    const auto& contract = contracts.at(tx.getTo());
+    contract->caller = tx.getFrom();
+    contract->origin = tx.getFrom();
+    contract->value = tx.getValue();
+    contract->ethCall(tx, tx.getValue());
+  } else {
+    const auto& contract = contracts.at(tx.getTo());
+    contract->caller = tx.getFrom();
+    contract->origin = tx.getFrom();
+    contract->value = 0;
+    contract->ethCall(tx);
   }
 }
 
-bool ContractManager::validateCallContractWithTx(const std::tuple<Address,Address,uint64_t, uint256_t, uint256_t, std::string>& callInfo) {
+bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
   const auto& [from, to, gasLimit, gasPrice, value, data] = callInfo;
+
   if (to == this->getContractAddress()) {
+    this->caller = from;
+    this->origin = from;
+    this->value = value;
     this->ethCall(callInfo);
     return true;
   }
+
   if (to == ProtocolContractAddresses.at("rdPoS")) {
+    rdpos->caller = from;
+    rdpos->origin = from;
+    rdpos->value = value;
     rdpos->ethCall(callInfo);
     return true;
   }
@@ -214,7 +232,11 @@ bool ContractManager::validateCallContractWithTx(const std::tuple<Address,Addres
   if (!this->contracts.contains(to)) {
     return false;
   }
-  this->contracts.at(to)->ethCall(callInfo);
+  const auto& contract = contracts.at(to);
+  contract->caller = from;
+  contract->origin = from;
+  contract->value = value;
+  contract->ethCall(callInfo);
   return true;
 }
 

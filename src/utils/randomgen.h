@@ -8,7 +8,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
-#include "strings.h"
+#include "utils.h"
 
 /// Custom Pseudo-Random Number Generator (PRNG) for use in rdPoS.
 class RandomGen {

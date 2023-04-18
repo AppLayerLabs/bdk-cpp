@@ -5,7 +5,7 @@
 #include <secp256k1_ecdh.h>
 #include <secp256k1_recovery.h>
 
-#include "strings.h"
+#include "utils.h"
 
 using PrivKey = Hash;
 using PubKey = FixedStr<33>;

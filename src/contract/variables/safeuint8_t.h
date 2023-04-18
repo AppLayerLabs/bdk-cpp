@@ -13,7 +13,7 @@ class SafeUint8_t : public SafeBase {
   public:
 
     /// Only Variables built with this constructor will be registered within a contract.
-    SafeUint8_t(Contract* owner, const uint8_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint8_t>(value)) {};
+    SafeUint8_t(DynamicContract* owner, const uint8_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint8_t>(value)) {};
 
     SafeUint8_t(const uint8_t& value = 0) : SafeBase(nullptr), value(0), valuePtr(std::make_unique<uint8_t>(value)) {};
     SafeUint8_t(const SafeUint8_t& other) : SafeBase(nullptr) {

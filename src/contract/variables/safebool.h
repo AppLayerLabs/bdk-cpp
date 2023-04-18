@@ -13,7 +13,7 @@ class SafeBool : public SafeBase {
  public:
 
   /// Only Variables built with this constructor will be registered within a contract.
-  SafeBool(Contract* owner, bool value = false) : SafeBase(owner), value(false), valuePtr(std::make_unique<bool>(value)) {};
+  SafeBool(DynamicContract* owner, bool value = false) : SafeBase(owner), value(false), valuePtr(std::make_unique<bool>(value)) {};
 
   SafeBool(bool value = false) : SafeBase(nullptr), value(false), valuePtr(std::make_unique<bool>(value)) {};
   SafeBool(const SafeBool& other) : SafeBase(nullptr) {

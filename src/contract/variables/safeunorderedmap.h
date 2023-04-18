@@ -81,7 +81,7 @@ template<typename Key, typename T>
     
   public:
     /// Only Variables built with this constructor will be registered within a contract.
-    SafeUnorderedMap(Contract* owner, const std::unordered_map<Key, T, SafeHash>& map = {}) : SafeBase(owner), map(map) {}
+    SafeUnorderedMap(DynamicContract* owner, const std::unordered_map<Key, T, SafeHash>& map = {}) : SafeBase(owner), map(map) {}
 
     SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {}) : SafeBase(nullptr), mapPtr(std::make_unique<std::unordered_map<Key, T, SafeHash>>(map)) {}
     SafeUnorderedMap(const SafeUnorderedMap& other) : SafeBase(nullptr) {

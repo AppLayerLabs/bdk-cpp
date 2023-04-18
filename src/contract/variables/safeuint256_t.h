@@ -15,7 +15,7 @@ class SafeUint256_t : public SafeBase {
     inline void check() const override { if (valuePtr == nullptr) { valuePtr = std::make_unique<uint256_t>(value); } };
   public:
     /// Only Variables built with this constructor will be registered within a contract.
-    SafeUint256_t(Contract* owner, const uint256_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint256_t>(value)) {};
+    SafeUint256_t(DynamicContract* owner, const uint256_t& value = 0) : SafeBase(owner), value(0), valuePtr(std::make_unique<uint256_t>(value)) {};
 
     SafeUint256_t(const uint256_t& value = 0) : SafeBase(nullptr), value(0), valuePtr(std::make_unique<uint256_t>(value)) {};
     SafeUint256_t(const SafeUint256_t& other) : SafeBase(nullptr) {

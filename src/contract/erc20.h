@@ -15,7 +15,7 @@
  * C++ OrbiterSDK Recreation of a ERC20 Contract
  */
 
-class ERC20 : public Contract {
+class ERC20 : public DynamicContract {
   private:
     /// string internal _name;
     SafeString _name;
