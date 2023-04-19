@@ -30,24 +30,14 @@ For **Debian 11 Bullseye or newer**:
   * `cd orbitersdk && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
   * Use `-DCMAKE_BUILD_TYPE=RelWithDebInfo` to build with debug symbols
-  * Use `-DBUILD_TESTS=OFF` to disable unit testing compilation (this is ON by default)
+  * Use `-DDEBUG=OFF` debug mode (this is ON by default)
   * Use `-DUSE_LINT=ON` to run clang-tidy along the build (this is OFF by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
 * Build the executable: `cmake --build . -- -j$(nproc)`
   * If using the linter, pipe the stderr output to a file, e.g. `cmake --build . -- -j$(nproc) 2> log.txt`
 
 ## Deploying
 
-If you want a **manual** deploy, check [DEPLOY_SUBNET.md](DEPLOY_SUBNET.md).
-
 If you want an **assisted/automatic** deploy, there are helper scripts on the `scripts` folder:
 
-* **AIO-setup.sh** - Setup, deploy and start the Subnet. Five nodes will be deployed, all of them acting as validators.
-* **killAll.sh** - Stop the Subnet.
-* **startAll.sh** - Start the Subnet again.
-* **cleanAll.sh** - Clean the Subnet logs.
-* **rebuild.sh** - Stop the Subnet, refresh the build executable and start the Subnet again without having to re-deploy it.
-
-You can still get the details from the automatic deploy from the `AIO-setup.log` file.
-
-If you have to re-deploy the Subnet from scratch, stop it, `rm -rf ~/go/src` and run the setup again.
+* **AIO-setup.sh** - Setup, deploy and start the Subnet. Five validator nodes, six normal and one discovery node will be deployed, all of them acting as validators.
 

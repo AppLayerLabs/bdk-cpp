@@ -21,6 +21,7 @@ project(orbitersdk VERSION 1 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
+SET(DEBUG ON CACHE BOOL "Debug mode")
 if(DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -g -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector") # Provides faster compile time.
 else()
