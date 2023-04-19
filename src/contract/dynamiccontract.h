@@ -10,7 +10,6 @@
  */
 class DynamicContract : public BaseContract {
   private:
-    std::unique_ptr<uint256_t> _balance;
     ContractManager::ContractManagerInterface &interface;
 
     std::unordered_map<std::string, std::function<void(const ethCallInfo& callInfo)>> functions;
@@ -145,6 +144,9 @@ class DynamicContract : public BaseContract {
       interface.callContract(callInfo);
     }
 
+    uint256_t getBalance(const Address& address) const {
+      return interface.getBalanceFromAddress(address);
+    }
 
     void sendTokens(const Address& to, const uint256_t& amount) {
       interface.sendTokens(this->getContractAddress(), to, amount);
