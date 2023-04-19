@@ -10,6 +10,7 @@
  */
 class DynamicContract : public BaseContract {
   private:
+    std::unique_ptr<uint256_t> _balance;
     ContractManager::ContractManagerInterface &interface;
 
     std::unordered_map<std::string, std::function<void(const ethCallInfo& callInfo)>> functions;
@@ -18,6 +19,7 @@ class DynamicContract : public BaseContract {
 
     std::vector<std::reference_wrapper<SafeBase>> usedVariables;
     void registerVariableUse(SafeBase& variable) { usedVariables.emplace_back(variable); }
+
 
   protected:
     /// TODO: eth_call from another contract.
@@ -38,6 +40,7 @@ class DynamicContract : public BaseContract {
 
     /// Updates the variables that were used by the contract
     /// Called by ethCall functions and contract constructors.
+    /// Flag is set by ContractManager, except for when throwing.
     void updateState(const bool commitToState) {
       if (commitToState) {
         for (auto& variable : usedVariables) {
@@ -78,8 +81,7 @@ class DynamicContract : public BaseContract {
     void ethCall(const ethCallInfo& callInfo) override {
       try {
         std::string funcName = std::get<5>(callInfo).substr(0, 4);
-        const uint256_t& value = std::get<4>(callInfo);
-        if (value) {
+        if (this->isPayableFunction(funcName)) {
           auto func = this->payableFunctions.find(funcName);
           if (func == this->payableFunctions.end()) {
             throw std::runtime_error("Functor not found");
@@ -117,6 +119,14 @@ class DynamicContract : public BaseContract {
       }
     }
 
+    /**
+     * Check if a functor is registered as a payable function
+     */
+
+    bool isPayableFunction(const std::string& functor) const {
+      return this->payableFunctions.find(functor) != this->payableFunctions.end();
+    }
+
     /// Tries to cast a contract to a specific type, only const functions can be called on the casted contract
     template <typename T>
     const T* getContract(const Address& address) const {
@@ -135,6 +145,10 @@ class DynamicContract : public BaseContract {
       interface.callContract(callInfo);
     }
 
+
+    void sendTokens(const Address& to, const uint256_t& amount) {
+      interface.sendTokens(this->getContractAddress(), to, amount);
+    }
 
     friend void registerVariableUse(DynamicContract& contract, SafeBase& variable);
 };

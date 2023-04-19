@@ -10,7 +10,7 @@ State::State(const std::unique_ptr<DB>& db,
              rdpos(rdpos),
              p2pManager(p2pManager),
              options(options),
-             contractManager(std::make_unique<ContractManager>(db, rdpos, options)){
+             contractManager(std::make_unique<ContractManager>(this, db, rdpos, options)){
   std::unique_lock lock(this->stateMutex);
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
@@ -115,18 +115,22 @@ void State::processTransaction(const TxBlock& tx) {
   auto& balance = accountIt->second.balance;
   auto& nonce = accountIt->second.nonce;
   try {
-    if (this->contractManager->isContractCall(tx)) {
-      this->contractManager->callContract(tx);
-    }
-
     uint256_t txValueWithFees = tx.getValue() + (tx.getGasLimit() *
                                                  tx.getMaxFeePerGas());  /// This need to change with payable contract functions
     balance -= txValueWithFees;
     this->accounts[tx.getTo()].balance += tx.getValue();
+
+    if (this->contractManager->isContractCall(tx)) {
+      if (this->contractManager->isPayable(tx.txToCallInfo())) {
+        this->processingPayable = true;
+      }
+      this->contractManager->callContract(tx);
+      this->processingPayable = false;
+    }
+
   } catch (const std::exception& e) {
     Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
-    uint256_t fees = tx.getGasLimit() * tx.getMaxFeePerGas();
-    balance -= fees;
+    balance += tx.getValue();
   }
   ++nonce;
 }
@@ -328,6 +332,15 @@ bool State::estimateGas(const ethCallInfo& callInfo) {
   }
 
   return true;
+}
+
+void State::processContractPayable(std::unordered_map<Address, uint256_t, SafeHash>& payableMap) {
+  if (!this->processingPayable) {
+    throw std::runtime_error("Uh oh, contracts are going haywire! Cannot change State while not processing a payable contract.");
+  }
+  for (const auto& [address, amount] : payableMap) {
+    this->accounts[address].balance = amount;
+  }
 }
 
 std::vector<std::pair<std::string, Address>> State::getContracts() const {

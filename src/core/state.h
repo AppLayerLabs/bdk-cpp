@@ -74,6 +74,9 @@ class State {
      */
     void refreshMempool(const Block& block);
 
+    /// Flag indicating whether the state is currently processing a payable contract function
+    bool processingPayable = false;
+
   public:
     /**
      * Constructor.
@@ -209,8 +212,17 @@ class State {
      */
     bool estimateGas(const ethCallInfo& callInfo);
 
+    /**
+     * Get the current block number.
+     * @return The current block number.
+     */
+    void processContractPayable(std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
+
     /// Get a list of contract addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;
+
+    /// the Manager Interface cannot use getNativeBalance. as it will call a lock with the mutex.
+    friend class ContractManager::ContractManagerInterface;
 };
 
 #endif // STATE_H

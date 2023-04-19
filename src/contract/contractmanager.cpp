@@ -1,10 +1,12 @@
 #include "contractmanager.h"
 #include "erc20.h"
 #include "erc20wrapper.h"
+#include "nativewrapper.h"
 #include "../core/rdpos.h"
+#include "../core/state.h"
 
-ContractManager::ContractManager(const std::unique_ptr<DB>& db, const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options) :
-  BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true), 0, db),
+ContractManager::ContractManager(State* state, const std::unique_ptr<DB>& db, const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options) :
+  state(state), BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true), 0, db),
   rdpos(rdpos),
   options(options),
   interface(*this) {
@@ -22,6 +24,13 @@ ContractManager::ContractManager(const std::unique_ptr<DB>& db, const std::uniqu
     std::make_pair(contractAddress, std::make_unique<ERC20Wrapper>(this->interface, contractAddress, this->db)));
     continue;
   }
+  if (contract.value == "NativeWrapper") {
+    Address contractAddress(contract.key, true);
+    this->contracts.insert(
+    std::make_pair(contractAddress, std::make_unique<NativeWrapper>(this->interface, contractAddress, this->db)));
+    continue;
+  }
+
     throw std::runtime_error("Unknown contract: " + contract.value);
   }
 }
@@ -159,6 +168,70 @@ void ContractManager::validateCreateNewERC20WrapperContract(const ethCallInfo& c
   }
 }
 
+void ContractManager::createNewERC20NativeWrapperContract(const ethCallInfo& callInfo) {
+  if (this->caller != this->getContractCreator()) {
+    throw std::runtime_error("Only contract creator can create new contracts");
+  }
+  /// Check if desired contract address already exists
+  const auto derivedContractAddress = this->deriveContractAddress(callInfo);
+  if (this->contracts.contains(derivedContractAddress)) {
+    throw std::runtime_error("Contract already exists");
+  }
+
+  std::unique_lock lock(this->contractsMutex);
+  for (const auto& [protocolContractName, protocolContractAddress] : ProtocolContractAddresses) {
+    if (protocolContractAddress == derivedContractAddress) {
+      throw std::runtime_error("Contract already exists");
+    }
+  }
+
+  /// Parse the constructor ABI
+  std::vector<ABI::Types> types = { ABI::Types::string, ABI::Types::string, ABI::Types::uint256 };
+  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+
+  /// Check if decimals are within range
+  if (decoder.getData<uint256_t>(2) > 255) {
+    throw std::runtime_error("Decimals must be between 0 and 255");
+  }
+
+  /// Create the contract
+  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<NativeWrapper>(this->interface,
+                                                                                        decoder.getData<std::string>(0),
+                                                                                        decoder.getData<std::string>(1),
+                                                                                        uint8_t(decoder.getData<uint256_t>(2)),
+                                                                                        derivedContractAddress,
+                                                                                        this->getCaller(),
+                                                                                        this->options->getChainID(),
+                                                                                        this->db)));
+}
+
+void ContractManager::validateCreateNewERC20NativeWrapperContract(const ethCallInfo &callInfo) const {
+  if (this->caller != this->getContractCreator()) {
+    throw std::runtime_error("Only contract creator can create new contracts");
+  }
+  /// Check if desired contract address already exists
+  const auto derivedContractAddress = this->deriveContractAddress(callInfo);
+  if (this->contracts.contains(derivedContractAddress)) {
+    throw std::runtime_error("Contract already exists");
+  }
+
+  std::unique_lock lock(this->contractsMutex);
+  for (const auto& [protocolContractName, protocolContractAddress] : ProtocolContractAddresses) {
+    if (protocolContractAddress == derivedContractAddress) {
+      throw std::runtime_error("Contract already exists");
+    }
+  }
+
+  /// Parse the constructor ABI
+  std::vector<ABI::Types> types = { ABI::Types::string, ABI::Types::string, ABI::Types::uint256 };
+  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+
+  /// Check if decimals are within range
+  if (decoder.getData<uint256_t>(2) > 255) {
+    throw std::runtime_error("Decimals must be between 0 and 255");
+  }
+}
+
 void ContractManager::ethCall(const ethCallInfo& callInfo) {
   std::string functor = std::get<5>(callInfo).substr(0, 4);
   if (this->getCommit()) {
@@ -172,6 +245,11 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
       this->createNewERC20WrapperContract(callInfo);
       return;
     }
+    /// function createNewERC20NativeWrapperContract(string memory name, string memory symbol, uint8 decimals) public {}
+    if (functor == Hex::toBytes("0x8b0b8c4c")) {
+      this->createNewERC20NativeWrapperContract(callInfo);
+      return;
+    }
   } else {
     if (functor == Hex::toBytes("0xb74e5ed5")) {
       this->validateCreateNewERC20Contract(callInfo);
@@ -179,6 +257,10 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
     }
     if (functor == Hex::toBytes("0x97aa51a3")) {
       this->validateCreateNewERC20WrapperContract(callInfo);
+      return;
+    }
+    if (functor == Hex::toBytes("0x0x8b0b8c4c")) {
+      this->validateCreateNewERC20NativeWrapperContract(callInfo);
       return;
     }
   }
@@ -220,9 +302,11 @@ void ContractManager::callContract(const TxBlock& tx) {
       this->ethCall(tx.txToCallInfo());
     } catch (std::exception &e) {
       this->commit = false;
+      balances.clear();
       throw e;
     }
     this->commit = false;
+    balances.clear();
     return;
   }
 
@@ -235,14 +319,17 @@ void ContractManager::callContract(const TxBlock& tx) {
       rdpos->ethCall(tx.txToCallInfo());
     } catch (std::exception &e) {
       rdpos->commit = false;
+      balances.clear();
       throw e;
     }
     rdpos->commit = false;
+    balances.clear();
     return;
   }
 
   std::unique_lock lock(this->contractsMutex);
   if (!this->contracts.contains(tx.getTo())) {
+    balances.clear();
     throw std::runtime_error("Contract does not exist");
   }
 
@@ -255,41 +342,74 @@ void ContractManager::callContract(const TxBlock& tx) {
     contract->ethCall(tx.txToCallInfo());
   } catch (std::exception &e) {
     contract->commit = false;
+    balances.clear();
     throw e;
   }
+
+  if (contract->isPayableFunction(tx.getData().substr(0, 4))) {
+    this->state->processContractPayable(this->balances);
+  }
+
+  balances.clear();
   contract->commit = false;
+}
+
+bool ContractManager::isPayable(const ethCallInfo& callInfo) const {
+  const auto& address = std::get<1>(callInfo);
+  std::string functor = std::get<5>(callInfo).substr(0, 4);
+
+  std::shared_lock lock(this->contractsMutex);
+
+  auto it = this->contracts.find(address);
+  if (it == this->contracts.end()) {
+    return false;
+  }
+
+  return it->second->isPayableFunction(functor);
 }
 
 bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
   const auto& [from, to, gasLimit, gasPrice, value, data] = callInfo;
+  try {
+    if (this->getValue()) {
+      /// Payable, we need to "add" the balance to the contract
+      this->interface.populateBalance(to);
+      this->balances[to] += value;
+    }
+    if (to == this->getContractAddress()) {
+      this->caller = from;
+      this->origin = from;
+      this->value = value;
+      this->ethCall(callInfo);
+      balances.clear();
+      return true;
+    }
 
-  if (to == this->getContractAddress()) {
-    this->caller = from;
-    this->origin = from;
-    this->value = value;
-    this->ethCall(callInfo);
-    return true;
-  }
+    if (to == ProtocolContractAddresses.at("rdPoS")) {
+      rdpos->caller = from;
+      rdpos->origin = from;
+      rdpos->value = value;
+      rdpos->commit = false;
+      rdpos->ethCall(callInfo);
+      balances.clear();
+      return true;
+    }
 
-  if (to == ProtocolContractAddresses.at("rdPoS")) {
-    rdpos->caller = from;
-    rdpos->origin = from;
-    rdpos->value = value;
-    rdpos->commit = false;
-    rdpos->ethCall(callInfo);
-    return true;
+    std::shared_lock lock(this->contractsMutex);
+    if (!this->contracts.contains(to)) {
+      balances.clear();
+      return false;
+    }
+    const auto &contract = contracts.at(to);
+    contract->caller = from;
+    contract->origin = from;
+    contract->value = value;
+    contract->commit = false;
+    contract->ethCall(callInfo);
+  } catch (std::exception &e) {
+    balances.clear();
+    throw e;
   }
-
-  std::shared_lock lock(this->contractsMutex);
-  if (!this->contracts.contains(to)) {
-    return false;
-  }
-  const auto& contract = contracts.at(to);
-  contract->caller = from;
-  contract->origin = from;
-  contract->value = value;
-  contract->commit = false;
-  contract->ethCall(callInfo);
   return true;
 }
 
@@ -341,7 +461,7 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
 void ContractManager::ContractManagerInterface::callContract(const ethCallInfo& callInfo) {
   const auto& [from, to, gasLimit, gasPrice, value, data] = callInfo;
   if (value) {
-    throw std::runtime_error("Payable contract call not supported yet");
+    this->sendTokens(from, to, value);
   }
 
   if (!this->contractManager.contracts.contains(to)) {
@@ -358,5 +478,32 @@ void ContractManager::ContractManagerInterface::callContract(const ethCallInfo& 
     contract->commit = false;
     throw e;
   }
-  contract->commit = false;
+}
+
+void ContractManager::ContractManagerInterface::populateBalance(const Address &address) const {
+  if (!this->contractManager.balances.contains(address)) {
+    auto it = this->contractManager.state->accounts.find(address);
+    if (it != this->contractManager.state->accounts.end()) {
+      this->contractManager.balances[address] = it->second.balance;
+    } else {
+      this->contractManager.balances[address] = 0;
+    }
+  }
+}
+
+uint256_t ContractManager::ContractManagerInterface::getBalanceFromAddress(const Address& address) const {
+  this->populateBalance(address);
+  return this->contractManager.balances[address];
+}
+
+void ContractManager::ContractManagerInterface::sendTokens(const Address& from, const Address& to, const uint256_t& amount) {
+  this->populateBalance(from);
+  this->populateBalance(to);
+
+  if (this->contractManager.balances[to] < amount) {
+    throw std::runtime_error("Not enough balance");
+  }
+
+  this->contractManager.balances[from] -= amount;
+  this->contractManager.balances[to] += amount;
 }

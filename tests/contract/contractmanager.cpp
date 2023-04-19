@@ -34,7 +34,7 @@ namespace TContractManager {
         std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
         std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
-        ContractManager contractManager(db, rdpos, options);
+        ContractManager contractManager(nullptr, db, rdpos, options);
 
         ABI::Encoder::EncVar createNewERC20ContractVars;
         createNewERC20ContractVars.push_back(tokenName);
@@ -91,7 +91,7 @@ namespace TContractManager {
       std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
       std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
-      ContractManager contractManager(db, rdpos, options);
+      ContractManager contractManager(nullptr, db, rdpos, options);
 
       const auto contractAddress = contractManager.getContracts()[0].second;
       ABI::Encoder::EncVar getBalanceMeVars;
@@ -120,7 +120,7 @@ namespace TContractManager {
         std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
         std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
-        ContractManager contractManager(db, rdpos, options);
+        ContractManager contractManager(nullptr, db, rdpos, options);
 
         ABI::Encoder::EncVar createNewERC20ContractVars;
         createNewERC20ContractVars.push_back(tokenName);
@@ -188,7 +188,7 @@ namespace TContractManager {
       std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
       std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
-      ContractManager contractManager(db, rdpos, options);
+      ContractManager contractManager(nullptr, db, rdpos, options);
 
       const auto contractAddress = contractManager.getContracts()[0].second;
       ABI::Encoder::EncVar getBalanceMeVars;
