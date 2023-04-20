@@ -76,7 +76,7 @@ class NativeWrapper : public DynamicContract {
     /// function deposit() public payable
     void deposit();
 
-    /// function withdraw(uint256 _value) public
+    /// function withdraw(uint256 _value) public payable
     void withdraw(const uint256_t& _value);
 };
 

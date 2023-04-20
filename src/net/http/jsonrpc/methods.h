@@ -40,7 +40,7 @@ namespace JsonRPC {
    * eth_coinbase ============================== TODO: WAITING FOR OPTIONS
    * eth_accounts ============================== NOT IMPLEMENTED: NODE IS NOT A WALLET
    * eth_blockNumber =========================== DONE
-   * eth_call ================================== TODO: WAITING FOR CONTRACTS
+   * eth_call ================================== DONE
    * eth_estimateGas =========================== DONE
    * eth_createAccessList ====================== NOT IMPLEMENTED: NOT SUPPORTED BY THE BLOCKCHAIN, WE ARE NOT AN EVM
    * eth_gasPrice ============================== DONE

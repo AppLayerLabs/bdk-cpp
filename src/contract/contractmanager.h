@@ -86,7 +86,7 @@ class ContractManager : BaseContract {
     void validateCreateNewERC20WrapperContract(const ethCallInfo& callInfo) const;
 
     /// Create a new ERC20 Native Wrapper Contract.
-    /// function createNewERC20NativeWrapperContract() public {}
+    /// function createNewERC20NativeWrapperContract(string memory name, string memory symbol, uint8 decimals) public {}
     void createNewERC20NativeWrapperContract(const ethCallInfo& callInfo);
 
     /// Check if transaction can actually create a new ERC20 Native Wrapper contract.
