@@ -2,7 +2,7 @@
 
 Sparq subnet source code.
 
-If you are a developer, fill this form out for free support: https://forms.gle/m83ceG3XoJY3fpwU9
+If you are a developer, fill this form out for free support and additional incentives: https://forms.gle/m83ceG3XoJY3fpwU9
 
 ## Requirements
 * **GCC** with support for **C++20** or higher
