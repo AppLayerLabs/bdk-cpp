@@ -89,7 +89,7 @@ void ERC20Wrapper::withdraw(const Address& token, const uint256_t& value) {
   if (itUser == it->second.end()) {
     throw std::runtime_error("User not found");
   }
-  if (itUser->second < value) {
+  if (itUser->second <= value) {
     throw std::runtime_error("Not enough balance");
   }
 
@@ -107,7 +107,7 @@ void ERC20Wrapper::transferTo(const Address& token, const Address& to, const uin
   if (itUser == it->second.end()) {
     throw std::runtime_error("User not found");
   }
-  if (itUser->second < value) {
+  if (itUser->second <= value) {
     throw std::runtime_error("Not enough balance");
   }
 
