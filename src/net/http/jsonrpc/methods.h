@@ -63,10 +63,10 @@ namespace JsonRPC {
    * eth_getBalance ============================ DONE
    * eth_getStorageAt ========================== NOT IMPLEMENTED: WE DON'T SUPPORT STORAGE BECAUSE WE ARE NOT AN EVM
    * eth_getTransactionCount =================== DONE
-   * eth_getCode =============================== HALF DONE: ALWAYS ANSWER WITH "0x"
+   * eth_getCode =============================== HALF DONE: ALWAYS ANSWER WITH "0x" AS WE DON'T STORE ANY BYTECODE
    * eth_getProof ============================== NOT IMPLEMENTED: WE DON'T HAVE MERKLE PROOFS FOR ACCOUNTS, ONLY FOR TXS
    * eth_sendTransaction ======================= NOT IMPLEMENTED: NODE IS NOT A WALLET
-   * eth_sendRawTransaction ==================== HALF DONE, WAITING FOR BLOCKCHAIN TO PROPERLY BROADCAST TXS TO OTHER NODES
+   * eth_sendRawTransaction ==================== DONE
    * eth_getRawTransaction ===================== DONE
    * eth_getTransactionByHash ================== DONE
    * eth_getTransactionByBlockHashAndIndex ===== DONE
