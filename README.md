@@ -55,7 +55,7 @@ The AIO-setup.sh script will deploy a Subnet with 5 validator nodes, 6 normal no
 
 The deployed chain will have the following information by default:
 
-- ChainID: 8080
+- ChainID: 808080
 - Owner: 0x00dead00665771855a34155f5e7405489df2c3c6
 - Owner Private Key: 0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867
 - Owner Initial Balance: 1000000000000000000000 wei
