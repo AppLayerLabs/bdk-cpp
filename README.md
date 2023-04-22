@@ -20,7 +20,7 @@ If you are a developer, fill this form out for free support and additional incen
 ### One-liners
 
 For **Debian 11 Bullseye or newer**:
-* `sudo apt install build-essential cmake clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libleveldb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
+* `sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libleveldb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
 
 #### Caveats
 
@@ -33,7 +33,7 @@ We use [Doxygen](https://www.doxygen.nl/index.html) to generate documentation ov
 For a more detailed explanation of the project's structure, check the [docs](https://github.com/SparqNet/sparq-docs/tree/main/Sparq_en-US) repository.
 
 ## Compiling
-* Clone the project: `git clone https://github.com/subnetoors/orbitersdk`
+* Clone the project: `git clone https://github.com/SparqNet/orbitersdk-cpp
 * Go to the project's root folder, create a "build" folder and change to it:
   * `cd orbitersdk && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
