@@ -7,6 +7,7 @@
 #include <regex>
 #include <string_view>
 #include <thread>
+#include <atomic>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -128,6 +129,13 @@ namespace Utils {
    * @param data The contents to be stored.
    */
   void logToDebug(std::string_view pfx, std::string_view func, std::string_view data);
+
+  extern std::atomic<bool> logToCout;
+  /**
+   * Print a string to stdout.
+   * @param str The string to print.
+   */
+  void safePrint(std::string_view str);
 
   /**
    * %Hash a given input using SHA3.

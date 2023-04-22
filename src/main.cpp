@@ -4,6 +4,7 @@
 
 int main() {
   /// Local binary path + /blockchain
+  Utils::logToCout = true;
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
   Blockchain blockchain(blockchainPath);
   /// Start the blockchain syncing engine.

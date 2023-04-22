@@ -102,6 +102,9 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
                                             + " got: " + tx.getNonce().str());
     return TxInvalid::InvalidNonce;
   }
+
+
+
   return TxInvalid::NotInvalid;
 }
 
@@ -251,6 +254,10 @@ void State::processNextBlock(Block&& block) {
   this->refreshMempool(block);
 
   Utils::logToDebug(Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.) block bytes: " + Hex::fromBytes(block.serializeBlock()).get());
+  Utils::safePrint("Block: " + block.hash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
+  for (const auto& tx : block.getTxs()) {
+    Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
+  }
   /// Move block to storage.
   this->storage->pushBack(std::move(block));
   return;
@@ -275,6 +282,7 @@ TxInvalid State::addTx(TxBlock&& tx) {
   std::unique_lock lock(this->stateMutex);
   auto txHash = tx.hash();
   this->mempool.insert({txHash, std::move(tx)});
+  Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was added to the mempool");
   return TxInvalid;
 }
 

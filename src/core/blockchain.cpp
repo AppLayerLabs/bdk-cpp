@@ -198,6 +198,7 @@ void Syncer::nonValidatorLoop() {
 }
 
 bool Syncer::syncerLoop() {
+  Utils::safePrint("Starting OrbiterSDK Node...");
   Utils::logToDebug(Log::syncer, __func__, "Starting syncer loop.");
   // Connect to all seed nodes from the config and start the discoveryThread.
   auto discoveryNodeList = this->blockchain.options->getDiscoveryNodes();
@@ -211,6 +212,7 @@ bool Syncer::syncerLoop() {
   // Sync the node with the network.
   this->doSync();
   if (this->stopSyncer) return false;
+  Utils::safePrint("Synced with the network, starting the node.");
   if (this->blockchain.options->getIsValidator()) {
     this->validatorLoop();
   } else {

@@ -2,6 +2,9 @@
 
 std::mutex log_lock;
 std::mutex debug_mutex;
+std::mutex cout_mutex;
+
+std::atomic<bool> Utils::logToCout = false;
 
 void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what) {
   Utils::logToDebug(cl, func, std::string("HTTP Fail ") + what + " : " + ec.message());
@@ -20,6 +23,15 @@ void Utils::logToDebug(std::string_view pfx, std::string_view func, std::string_
   std::ofstream log("debug.txt", std::ios::app);
   log << pfx << "::" << func << " - " << data << std::endl;
   log.close();
+}
+
+void Utils::safePrint(std::string_view str) {
+  /// Never print if we are in a test
+  if (!Utils::logToCout) {
+    return;
+  }
+  std::lock_guard lock(cout_mutex);
+  std::cout << str << std::endl;
 }
 
 Hash Utils::sha3(const std::string_view input) {
