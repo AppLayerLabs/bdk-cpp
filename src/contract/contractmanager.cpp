@@ -259,7 +259,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
       this->validateCreateNewERC20WrapperContract(callInfo);
       return;
     }
-    if (functor == Hex::toBytes("0x0x8b0b8c4c")) {
+    if (functor == Hex::toBytes("0x8b0b8c4c")) {
       this->validateCreateNewERC20NativeWrapperContract(callInfo);
       return;
     }
