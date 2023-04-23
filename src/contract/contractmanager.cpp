@@ -446,6 +446,11 @@ bool ContractManager::isContractCall(const TxBlock &tx) const {
 
 bool ContractManager::isContractAddress(const Address &address) const {
   std::shared_lock(this->contractsMutex);
+  for (const auto& [protocolContractName, protocolContractAddress] : ProtocolContractAddresses) {
+    if (address == protocolContractAddress) {
+      return true;
+    }
+  }
   return this->contracts.contains(address);
 }
 
