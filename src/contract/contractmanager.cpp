@@ -303,7 +303,7 @@ void ContractManager::callContract(const TxBlock& tx) {
     } catch (std::exception &e) {
       this->commit = false;
       balances.clear();
-      throw e;
+      throw std::runtime_error(e.what());
     }
     this->commit = false;
     balances.clear();
@@ -320,7 +320,7 @@ void ContractManager::callContract(const TxBlock& tx) {
     } catch (std::exception &e) {
       rdpos->commit = false;
       balances.clear();
-      throw e;
+      throw std::runtime_error(e.what());
     }
     rdpos->commit = false;
     balances.clear();
@@ -343,7 +343,7 @@ void ContractManager::callContract(const TxBlock& tx) {
   } catch (std::exception &e) {
     contract->commit = false;
     balances.clear();
-    throw e;
+    throw std::runtime_error(e.what());
   }
 
   if (contract->isPayableFunction(tx.getData().substr(0, 4))) {
@@ -408,7 +408,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     balances.clear();
-    throw e;
+    throw std::runtime_error(e.what());
   }
   return true;
 }
@@ -481,7 +481,7 @@ void ContractManager::ContractManagerInterface::callContract(const ethCallInfo& 
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     contract->commit = false;
-    throw e;
+    throw std::runtime_error(e.what());
   }
 }
 

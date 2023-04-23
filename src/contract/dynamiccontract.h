@@ -95,7 +95,7 @@ class DynamicContract : public BaseContract {
         }
       } catch (const std::exception& e) {
         updateState(false);
-        throw e;
+        throw std::runtime_error(e.what());
       }
       updateState(this->getCommit());
     };
@@ -114,7 +114,7 @@ class DynamicContract : public BaseContract {
         }
         return func->second(data);
       } catch (std::exception &e) {
-        throw e;
+        throw std::runtime_error(e.what());
       }
     }
 
