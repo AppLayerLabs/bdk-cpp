@@ -246,7 +246,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
       return;
     }
     /// function createNewERC20NativeWrapperContract(string memory name, string memory symbol, uint8 decimals) public {}
-    if (functor == Hex::toBytes("0x8b0b8c4c")) {
+    if (functor == Hex::toBytes("0x9f90f4c7")) {
       this->createNewERC20NativeWrapperContract(callInfo);
       return;
     }
@@ -259,7 +259,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
       this->validateCreateNewERC20WrapperContract(callInfo);
       return;
     }
-    if (functor == Hex::toBytes("0x8b0b8c4c")) {
+    if (functor == Hex::toBytes("0x9f90f4c7")) {
       this->validateCreateNewERC20NativeWrapperContract(callInfo);
       return;
     }

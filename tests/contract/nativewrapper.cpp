@@ -58,7 +58,7 @@ namespace TNativeWrapper {
         createNewNativeWrapperContractVars.push_back(tokenSymbol);
         createNewNativeWrapperContractVars.push_back(tokenDecimals);
         ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
-        std::string createNativeWrapperContractData = Hex::toBytes("0x8b0b8c4c") + createNewNativeWrapperContractEncoder.getRaw();
+        std::string createNativeWrapperContractData = Hex::toBytes("0x9f90f4c7") + createNewNativeWrapperContractEncoder.getRaw();
 
         TxBlock createNewNativeWrapperTx = TxBlock(
           ProtocolContractAddresses.at("ContractManager"),
@@ -158,7 +158,7 @@ namespace TNativeWrapper {
         createNewNativeWrapperContractVars.push_back(tokenDecimals);
         ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
         std::string createNativeWrapperContractData =
-          Hex::toBytes("0x8b0b8c4c") + createNewNativeWrapperContractEncoder.getRaw();
+          Hex::toBytes("0x9f90f4c7") + createNewNativeWrapperContractEncoder.getRaw();
 
         TxBlock createNewNativeWrapperTx = TxBlock(
           ProtocolContractAddresses.at("ContractManager"),
@@ -250,7 +250,7 @@ namespace TNativeWrapper {
         createNewNativeWrapperContractVars.push_back(tokenDecimals);
         ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
         std::string createNativeWrapperContractData =
-          Hex::toBytes("0x8b0b8c4c") + createNewNativeWrapperContractEncoder.getRaw();
+          Hex::toBytes("0x9f90f4c7") + createNewNativeWrapperContractEncoder.getRaw();
 
         TxBlock createNewNativeWrapperTx = TxBlock(
           ProtocolContractAddresses.at("ContractManager"),
