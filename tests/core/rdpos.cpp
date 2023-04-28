@@ -52,10 +52,10 @@ void initialize(std::unique_ptr<DB>& db,
     db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
 
-    // Populate rdPoS DB with unique validators, not default.
+    // Populate rdPoS DB with unique rdPoS, not default.
     for (uint64_t i = 0; i < validatorPrivKeys.size(); ++i) {
       db->put(Utils::uint64ToBytes(i), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[i]))).get(),
-              DBPrefix::validators);
+              DBPrefix::rdPoS);
     }
   }
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
@@ -102,7 +102,7 @@ Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& 
   auto randomList = rdpos->getRandomList();
 
   Hash blockSignerPrivKey;           // Private key for the block signer.
-  std::vector<Hash> orderedPrivKeys; // Private keys for the validators in the order of the random list, limited to rdPoS::minValidators.
+  std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
   orderedPrivKeys.reserve(4);
   for (const auto& privKey : validatorPrivKeys) {
     if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
@@ -339,7 +339,7 @@ namespace TRdPoS {
       auto randomList = rdpos1->getRandomList();
 
       Hash blockSignerPrivKey;           // Private key for the block signer.
-      std::vector<Hash> orderedPrivKeys; // Private keys for the validators in the order of the random list, limited to rdPoS::minValidators.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
       orderedPrivKeys.reserve(4);
       for (const auto& privKey : validatorPrivKeys) {
         if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
@@ -617,7 +617,7 @@ namespace TRdPoS {
       auto randomList = rdpos1->getRandomList();
 
       Hash blockSignerPrivKey;           // Private key for the block signer.
-      std::vector<Hash> orderedPrivKeys; // Private keys for the validators in the order of the random list, limited to rdPoS::minValidators.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
       orderedPrivKeys.reserve(4);
       for (const auto& privKey : validatorPrivKeys) {
         if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {

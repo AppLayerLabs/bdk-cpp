@@ -17,24 +17,19 @@
  * - blocks = "0001"
  * - blockHeightMaps = "0002"
  * - nativeAccounts = "0003"
- * - erc20Tokens = "0004"
- * - erc721Tokens = "0005"
- * - txToBlocks = "0006"
- * - validators = "0007"
- * - contracts = "0008"
- * - rdPoS = "0009"
+ * - txToBlocks = "0004"
+ * - rdPoS = "0005"
+ * - contracts = "0006"
+ * - contractManager = "0007"
  */
 namespace DBPrefix {
   const std::string blocks = std::string("\x00\x01", 2);
   const std::string blockHeightMaps = std::string("\x00\x02", 2);
   const std::string nativeAccounts = std::string("\x00\x03", 2);
-  const std::string erc20Tokens = std::string("\x00\x04", 2);
-  const std::string erc721Tokens = std::string("\x00\x05", 2);
-  const std::string txToBlocks = std::string("\x00\x06", 2);
-  const std::string validators = std::string("\x00\x07", 2);
-  const std::string rdPoS = std::string("\x00\x08", 2);
-  const std::string contracts = std::string("\x00\x09", 2);
-  const std::string contractManager = std::string("\x00\x10", 2);
+  const std::string txToBlocks = std::string("\x00\x04", 2);
+  const std::string rdPoS = std::string("\x00\x05", 2);
+  const std::string contracts = std::string("\x00\x06", 2);
+  const std::string contractManager = std::string("\x00\x07", 2);
 };
 
 /// Struct for a database connection/endpoint.

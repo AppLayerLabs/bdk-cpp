@@ -78,10 +78,10 @@ class rdPoS : public BaseContract {
     /// Pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
-    /// Ordered list of validators.
+    /// Ordered list of rdPoS.
     std::set<Validator> validators;
 
-    /// Shuffled version of `validators`, used at block creation/signing.
+    /// Shuffled version of `rdPoS`, used at block creation/signing.
     std::vector<Validator> randomList;
 
     /// Mempool for validator transactions.
@@ -138,7 +138,7 @@ class rdPoS : public BaseContract {
     /// Minimum number of required Validators for creating and signing blocks.
     static const uint32_t minValidators = 4;
 
-    /// Getter for `validators`. Not a reference because the inner set can be changed.
+    /// Getter for `rdPoS`. Not a reference because the inner set can be changed.
     const std::set<Validator> getValidators() const { std::shared_lock lock(this->mutex); return validators; }
 
     /// Getter for `randomList`. Not a reference because the inner vector can be changed.

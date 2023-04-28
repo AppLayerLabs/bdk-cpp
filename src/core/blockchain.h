@@ -89,7 +89,7 @@ class Blockchain {
  * class is responsible for syncing both, broadcasting transactions and also
  * creating new blocks if the node is a Validator.
  * Currently it's *single threaded*, meaning that it doesn't require mutexes.
- * TODO: This function can also be responsible for slashing validators if they are not behaving correctlyng
+ * TODO: This function can also be responsible for slashing rdPoS if they are not behaving correctlyng
  * TODO: Maybe it is better to move rdPoSWorker to Syncer?
  */
 class Syncer {

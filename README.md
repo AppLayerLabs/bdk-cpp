@@ -47,11 +47,11 @@ For a more detailed explanation of the project's structure, check the [docs](htt
 
 If you want an **assisted/automatic** deploy, there are helper scripts on the `scripts` folder:
 
-* **AIO-setup.sh** - Setup, deploy and start the Subnet. Five validator nodes, six normal and one discovery node will be deployed, all of them acting as validators.
+* **AIO-setup.sh** - Setup, deploy and start the Subnet. Five validator nodes, six normal and one discovery node will be deployed, all of them acting as rdPoS.
 
 ## Setting up a local network
 
-The AIO-setup.sh script will deploy a Subnet with 5 validator nodes, 6 normal nodes and 1 discovery node. All of them will be validators.
+The AIO-setup.sh script will deploy a Subnet with 5 validator nodes, 6 normal nodes and 1 discovery node. All of them will be rdPoS.
 
 The deployed chain will have the following information by default:
 

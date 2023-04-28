@@ -66,10 +66,10 @@ namespace TP2P {
       db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
       db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
 
-      // Populate rdPoS DB with unique validators, not default.
+      // Populate rdPoS DB with unique rdPoS, not default.
       for (uint64_t i = 0; i < validatorPrivKeys.size(); ++i) {
         db->put(Utils::uint64ToBytes(i), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[i]))).get(),
-                DBPrefix::validators);
+                DBPrefix::rdPoS);
       }
       // Populate State DB with one address.
       /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
