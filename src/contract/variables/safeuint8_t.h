@@ -57,6 +57,7 @@ public:
   @brief Sum operator used to add two SafeUint8_t.
   @param other The SafeUint8_t to add.
   @return A new SafeUint8_t with the result of the sum.
+  @throws std::overflow_error if the sum overflows.
   */
   inline SafeUint8_t operator+(const SafeUint8_t &other) const {
     check();
@@ -70,6 +71,7 @@ public:
   @brief Sum operator used to add a SafeUint8_t and a uint8_t.
   @param other The uint8_t to add.
   @return A new SafeUint8_t with the result of the sum.
+  @throws std::overflow_error if the sum overflows.
   */
   inline SafeUint8_t operator+(const uint8_t &other) const {
     check();
@@ -83,6 +85,7 @@ public:
   @brief Subtraction operator used to subtract two SafeUint8_t.
   @param other The SafeUint8_t to subtract.
   @return A new SafeUint8_t with the result of the subtraction.
+  @throws std::underflow_error if the subtraction underflows.
   */
   inline SafeUint8_t operator-(const SafeUint8_t &other) const {
     check();
@@ -96,6 +99,7 @@ public:
   @brief Subtraction operator used to subtract a SafeUint8_t and a uint8_t.
   @param other The uint8_t to subtract.
   @return A new SafeUint8_t with the result of the subtraction.
+  @throws std::underflow_error if the subtraction underflows.
   */
   inline SafeUint8_t operator-(const uint8_t &other) const {
     check();
@@ -109,6 +113,8 @@ public:
   @brief Multiplication operator used to multiply two SafeUint8_t.
   @param other The SafeUint8_t to multiply.
   @return A new SafeUint8_t with the result of the multiplication.
+  @throws std::overflow_error if the multiplication overflows.
+  @throws std::domain_error if one of the operands is zero.
   */
   inline SafeUint8_t operator*(const SafeUint8_t &other) const {
     check();
@@ -125,6 +131,8 @@ public:
   @brief Multiplication operator used to multiply a SafeUint8_t and a uint8_t.
   @param other The uint8_t to multiply.
   @return A new SafeUint8_t with the result of the multiplication.
+  @throws std::overflow_error if the multiplication overflows.
+  @throws std::domain_error if one of the operands is zero.
   */
   inline SafeUint8_t operator*(const uint8_t &other) const {
     check();
@@ -141,6 +149,8 @@ public:
   @brief Division operator used to divide two SafeUint8_t.
   @param other The SafeUint8_t to divide.
   @return A new SafeUint8_t with the result of the division.
+  @throws std::domain_error if one of the operands is zero.
+  @throws std::domain_error if the division has a remainder.
   */
   inline SafeUint8_t operator/(const SafeUint8_t &other) const {
     check();
@@ -154,6 +164,7 @@ public:
   @brief Division operator used to divide a SafeUint8_t and a uint8_t.
   @param other The uint8_t to divide.
   @return A new SafeUint8_t with the result of the division.
+  @throws std::domain_error if one of the operands is zero.
   */
   inline SafeUint8_t operator/(const uint8_t &other) const {
     check();
@@ -168,6 +179,7 @@ public:
   SafeUint8_t.
   @param other The SafeUint8_t to divide.
   @return A new SafeUint8_t with the remainder of the division.
+  @throws std::domain_error if one of the operands is zero.
   */
   inline SafeUint8_t operator%(const SafeUint8_t &other) const {
     check();
@@ -182,6 +194,7 @@ public:
   SafeUint8_t and a uint8_t.
   @param other The uint8_t to divide.
   @return A new SafeUint8_t with the remainder of the division.
+  @throws std::domain_error if one of the operands is zero.
   */
   inline SafeUint8_t operator%(const uint8_t &other) const {
     check();
@@ -504,6 +517,7 @@ public:
   @brief Plus assignment operator used to add a SafeUint8_t to a SafeUint8_t.
   @param other The SafeUint8_t to add to the first one.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::overflow_error if the operation results in an overflow.
   */
   inline SafeUint8_t &operator+=(const SafeUint8_t &other) {
     check();
@@ -519,6 +533,7 @@ public:
   @brief Plus assignment operator used to add a uint8_t to a SafeUint8_t.
   @param other The uint8_t to add to the first one.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::overflow_error if the operation results in an overflow.
   */
   inline SafeUint8_t &operator+=(const uint8_t &other) {
     check();
@@ -535,6 +550,7 @@ public:
   SafeUint8_t.
   @param other The SafeUint8_t to subtract from the first one.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::underflow_error if the operation results in an underflow.
   */
   inline SafeUint8_t &operator-=(const SafeUint8_t &other) {
     check();
@@ -551,6 +567,7 @@ public:
   SafeUint8_t.
   @param other The uint8_t to subtract from the first one.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::underflow_error if the operation results in an underflow.
   */
   inline SafeUint8_t &operator-=(const uint8_t &other) {
     check();
@@ -567,6 +584,8 @@ public:
   SafeUint8_t.
   @param other The SafeUint8_t to multiply the first one by.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::overflow_error if the operation results in an overflow.
+  @throws std::domain_error if the operation results in a multiplication by
   */
   inline SafeUint8_t &operator*=(const SafeUint8_t &other) {
     check();
@@ -586,6 +605,8 @@ public:
   uint8_t.
   @param other The uint8_t to multiply the first one by.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::overflow_error if the operation results in an overflow.
+  @throws std::domain_error if the operation results in a multiplication by
   */
   inline SafeUint8_t &operator*=(const uint8_t &other) {
     check();
@@ -605,6 +626,7 @@ public:
   SafeUint8_t.
   @param other The SafeUint8_t to divide the first one by.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::domain_error if the operation results in a division by zero.
   */
   inline SafeUint8_t &operator/=(const SafeUint8_t &other) {
     check();
@@ -620,6 +642,7 @@ public:
   @brief Division assignment operator used to divide a SafeUint8_t by a uint8_t.
   @param other The uint8_t to divide the first one by.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::domain_error if the operation results in a division by zero.
   */
   inline SafeUint8_t &operator/=(const uint8_t &other) {
     check();
@@ -636,6 +659,7 @@ public:
   SafeUint8_t.
   @param other The SafeUint8_t to modulo the first one by.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::domain_error if the operation results in a modulo by zero.
   */
   inline SafeUint8_t &operator%=(const SafeUint8_t &other) {
     check();
@@ -651,6 +675,7 @@ public:
   @brief Modulo assignment operator used to modulo a SafeUint8_t by a uint8_t.
   @param other The uint8_t to modulo the first one by.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::domain_error if the operation results in a modulo by zero.
   */
   inline SafeUint8_t &operator%=(const uint8_t &other) {
     check();
@@ -794,6 +819,7 @@ public:
 
   /** Prefix increment operator used to increment a SafeUint8_t by 1.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::overflow_error if the SafeUint8_t is already at its maximum
   */
   inline SafeUint8_t &operator++() {
     check();
@@ -807,6 +833,7 @@ public:
 
   /** Prefix decrement operator used to decrement a SafeUint8_t by 1.
   @return A reference to the SafeUint8_t that was modified.
+  @throws std::underflow_error if the SafeUint8_t is already at its minimum
   */
   inline SafeUint8_t &operator--() {
     check();

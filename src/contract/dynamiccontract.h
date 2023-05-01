@@ -76,6 +76,7 @@ protected:
    * Template function for calling the register functions (registerFunction,
    * registerPayableFunction, registerViewFunction). Should be called by the
    * derived class.
+   *@throws std::runtime_error if the derived class does not override this
    */
   virtual void registerContractFunctions() {
     throw std::runtime_error("Derived Class from Contract does not override "
@@ -136,6 +137,8 @@ public:
    * between payable and non-payable functions. Used by the %State class when
    * calling `processNewBlock()/validateNewBlock()`.
    * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
+   * @throws std::runtime_error if the functor is not found.
+   * @throws std::runtime_error if the function throws an exception.
    */
   void ethCall(const ethCallInfo &callInfo) override {
     try {
@@ -165,6 +168,8 @@ public:
    * @param data Tuple of (from, to, gasLimit, gasPrice, value, data).
    * @return The result of the view function. If the function is not found,
    * throws an exception.
+   * @throws std::runtime_error if the functor is not found.
+   * @throws std::runtime_error if the function throws an exception.
    */
   const std::string ethCallView(const ethCallInfo &data) const override {
     try {

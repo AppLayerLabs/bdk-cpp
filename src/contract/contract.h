@@ -153,6 +153,7 @@ public:
    * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice,
    * value, data). Should be overriden by derived classes.
    * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+   * @throws std::runtime_error if the derived class does not override this
    */
   virtual void ethCall(const ethCallInfo &data) {
     throw std::runtime_error(
@@ -164,6 +165,7 @@ public:
    * Should be overriden by derived classes.
    * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
    * @return
+   * @throws std::runtime_error if the derived class does not override this
    */
   virtual const std::string ethCallView(const ethCallInfo &data) const {
     throw std::runtime_error(

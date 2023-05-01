@@ -50,6 +50,7 @@ protected:
 
   /** Template function to check if struct is initialized.
    * If not, initialize it.
+   @throws std::runtime_error if not overridden by the child class
    */
   inline virtual void check() const {
     throw std::runtime_error(
@@ -94,6 +95,7 @@ public:
   * Should always be overridden by the child class
   *Child class should always do this->registered = false; at the end of
   commit()
+  @throws std::runtime_error if not overridden by the child class
   */
   inline virtual void commit() {
     throw std::runtime_error(
@@ -105,6 +107,7 @@ public:
   * Should always be overridden by the child class
   * Child class should always do this->registered = false; at the end of
   revert()
+  @throws std::runtime_error if not overridden by the child class
   */
   inline virtual void revert() const {
     throw std::runtime_error(
