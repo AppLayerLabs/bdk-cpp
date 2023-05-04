@@ -39,7 +39,6 @@ configure_file(
 )
 
 # External project data
-set(LEVELDB_USE_STATIC_LIBS ON)
 set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
 set(BUILD_DISCOVERY ON CACHE BOOL "Build helper discovery node prorgam")
 set(BUILD_AVALANCHEGO OFF CACHE BOOL "Build with AvalancheGo wrapping")
@@ -67,16 +66,14 @@ set(Protobuf_USE_STATIC_LIBS ON)
 
 # Find system packages (built-in)
 find_package(Threads)
-find_package(Boost 1.74.0 REQUIRED COMPONENTS
-  chrono filesystem program_options system thread nowide
-)
+find_package(Boost 1.74.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(RocksDB REQUIRED)
 
 # Find system packages (custom)
 find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(Scrypt REQUIRED)
-find_package(LevelDB REQUIRED)
 
 # Add external modules
 include(cmake/ProjectBoostCertify.cmake)
@@ -119,13 +116,12 @@ link_directories(
   "${CMAKE_SOURCE_DIR}/build/deps/lib"
 )
 
-# TODO: change src/ to src/
 # Organize, compile and link orbitersdk libs
 add_subdirectory(src/contract)
 add_subdirectory(src/core)
 add_subdirectory(src/net)
 add_subdirectory(src/utils)
-add_subdirectory(tests/)
+add_subdirectory(tests)
 
 if(BUILD_AVALANCHEGO)
   # Generate gRPC files
@@ -386,7 +382,7 @@ if(BUILD_AVALANCHEGO)
   target_link_libraries(orbitersdk_lib PRIVATE
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS} ${Protobuf_LIBRARIES}
     ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags
-    ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
+    RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
   set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
@@ -398,7 +394,7 @@ if(BUILD_AVALANCHEGO)
   target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd
     orbitersdk_lib
-    ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${LEVELDB_LIBRARY}
+    ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} RocksDB::rocksdb
     ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
     absl::flags Secp256k1
   )
@@ -420,7 +416,7 @@ else()
 
   target_link_libraries(orbitersdk_lib PRIVATE
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-    ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
+    RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
   set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
@@ -431,27 +427,27 @@ else()
   add_dependencies(orbitersdkd orbitersdk_lib)
   target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd
-    orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
+    orbitersdk_lib RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
   )
 endif()
 
-
+# Compile and link the test executable
 if (BUILD_TESTS)
-  # Compile and link the test executable.
   add_executable(orbitersdkd-tests ${TESTS_HEADERS} ${TESTS_SOURCES})
-
   add_dependencies(orbitersdkd-tests orbitersdk_lib)
   target_include_directories(orbitersdkd-tests PRIVATE orbitersdk_lib  ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd-tests
-      orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
+    orbitersdk_lib RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
       )
 endif()
 
+# Compile and link the Discovery Node test executable
 if (BUILD_DISCOVERY)
   add_executable(orbitersdkd-discovery "${CMAKE_SOURCE_DIR}/src/main-discovery.cpp")
   add_dependencies(orbitersdkd-discovery orbitersdk_lib)
   target_include_directories(orbitersdkd-discovery PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd-discovery
-      orbitersdk_lib ${LEVELDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
-      )
+    orbitersdk_lib RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
+  )
 endif()
+
