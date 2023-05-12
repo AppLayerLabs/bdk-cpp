@@ -3,6 +3,8 @@
 
 Hash::Hash(uint256_t data) : FixedStr<32>(Utils::uint256ToBytes(data)) {};
 
+Hash::Hash(const std::string_view sv) { std::copy(sv.begin(), sv.end(), this->getRef().begin()); }
+
 const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data); }
 
 uint256_t Signature::r() const { return Utils::bytesToUint256(this->data.substr(0, 32)); }

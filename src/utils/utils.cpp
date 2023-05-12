@@ -35,10 +35,10 @@ void Utils::safePrint(std::string_view str) {
 }
 
 Hash Utils::sha3(const std::string_view input) {
-  std::string ret;
-  ethash_hash256 h = ethash_keccak256(reinterpret_cast<const unsigned char*>(&input[0]), input.size());
-  for (unsigned char byte : h.bytes) ret.push_back(byte); // Unsigned char to char warning?
-  Hash retH(std::move(ret));
+  ethash_hash256 h = ethash_keccak256(
+    reinterpret_cast<const unsigned char*>(input.data()), input.size()
+  );
+  Hash retH(std::string_view(reinterpret_cast<const char*>(h.bytes), 32));
   return retH;
 }
 
@@ -164,7 +164,7 @@ std::string Utils::randBytes(const int& size) {
 
 std::string Utils::padLeft(std::string str, unsigned int charAmount, char sign) {
   bool hasPrefix = (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X");
-  if (hasPrefix) { str = str.substr(2); }
+  if (hasPrefix) str = str.substr(2);
   size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
   std::string padded = (padding != 0) ? std::string(padding, sign) : "";
   return (hasPrefix ? "0x" : "") + padded + str;
@@ -172,10 +172,22 @@ std::string Utils::padLeft(std::string str, unsigned int charAmount, char sign) 
 
 std::string Utils::padRight(std::string str, unsigned int charAmount, char sign) {
   bool hasPrefix = (str.substr(0, 2) == "0x" || str.substr(0, 2) == "0X");
-  if (hasPrefix) { str = str.substr(2); }
+  if (hasPrefix) str = str.substr(2);
   size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
   std::string padded = (padding != 0) ? std::string(padding, sign) : "";
   return (hasPrefix ? "0x" : "") + str + padded;
+}
+
+std::string Utils::padLeftBytes(std::string str, unsigned int charAmount, char sign) {
+  size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
+  std::string padded = (padding != 0) ? std::string(padding, sign) : "";
+  return padded + str;
+}
+
+std::string Utils::padRightBytes(std::string str, unsigned int charAmount, char sign) {
+  size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
+  std::string padded = (padding != 0) ? std::string(padding, sign) : "";
+  return str + padded;
 }
 
 json Utils::readConfigFile() {
