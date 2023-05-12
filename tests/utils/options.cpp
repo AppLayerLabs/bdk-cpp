@@ -8,7 +8,7 @@ namespace TOptions {
     SECTION("Options from File (default)") {
       Options optionsWithPrivKey(
         "optionClassFromFileWithPrivKey",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         1,
         8080,
         8080,

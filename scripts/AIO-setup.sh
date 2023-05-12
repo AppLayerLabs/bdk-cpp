@@ -70,7 +70,7 @@ cp orbitersdkd-discovery local_testnet_discovery
 ## Create the JSON file for the Discovery Node
 echo '{
         "rootPath": "discoveryNode",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8080,
@@ -81,7 +81,7 @@ echo '{
 ## Create the JSON file for the Validators
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8081,
@@ -97,7 +97,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8082,
@@ -113,7 +113,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8083,
@@ -129,7 +129,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8084,
@@ -145,7 +145,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8085,
@@ -162,7 +162,7 @@ echo '{
 ## Create the json file for the Normal Nodes
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8086,
@@ -177,7 +177,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8087,
@@ -192,7 +192,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8088,
@@ -207,7 +207,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8089,
@@ -222,7 +222,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8110,
@@ -237,7 +237,7 @@ echo '{
 
 echo '{
         "rootPath": "blockchain",
-        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+        "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.0.2",
         "version": 1,
         "chainID": 808080,
         "wsPort": 8111,

@@ -19,7 +19,7 @@ void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std:
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   options = std::make_unique<Options>(
     "blocksTests",
-    "OrbiterSDK/cpp/linux_x86-64/0.0.1",
+    "OrbiterSDK/cpp/linux_x86-64/0.0.2",
     1,
     8080,
     8080,
