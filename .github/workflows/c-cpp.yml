@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: debian-latest
 
     steps:
       - name: Checkout repository
@@ -27,3 +27,14 @@ jobs:
 
       - name: Build with CMake
         run: cmake --build build
+        
+      - name: Generate Doxygen Documentation
+        run: |
+          mkdir docs
+          doxygen Doxyfile
+
+      - name: Publish Documentation
+        uses: actions/upload-artifact@v2
+        with:
+          name: Documentation
+          path: docs
