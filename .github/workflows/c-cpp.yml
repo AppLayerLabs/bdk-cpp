@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -27,6 +27,10 @@ jobs:
 
       - name: Build with CMake
         run: cmake --build build
+
+      - name: Run Catch2 Tests
+        working-directory: build
+        run: ./orbitersdkd-tests -d yes
         
       - name: Generate Doxygen Documentation
         run: |
