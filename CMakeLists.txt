@@ -69,16 +69,16 @@ find_package(Threads)
 find_package(Boost 1.74.0 REQUIRED COMPONENTS chrono filesystem program_options system thread nowide)
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(RocksDB REQUIRED)
 
 # Find system packages (custom)
 find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(Scrypt REQUIRED)
 
 # Add external modules
-include(cmake/ProjectBoostCertify.cmake)
-include(cmake/ProjectEthash.cmake)
-include(cmake/ProjectSecp256k1.cmake) # Bitcoin core fast implementation
+include(cmake/ProjectBoostCertify.cmake)  # Boost Certify
+include(cmake/ProjectEthash.cmake)        # Ethash
+include(cmake/ProjectSecp256k1.cmake)     # Bitcoin core fast implementation
+include(cmake/ProjectSpeedb.cmake)        # Speedb (Level/RocksDB drop-in replacement)
 
 # Build catch2 to a library.
 add_library(catch2
@@ -382,7 +382,7 @@ if(BUILD_AVALANCHEGO)
   target_link_libraries(orbitersdk_lib PRIVATE
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS} ${Protobuf_LIBRARIES}
     ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags
-    RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
+    ${SPEEDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
   set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
@@ -394,7 +394,7 @@ if(BUILD_AVALANCHEGO)
   target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd
     orbitersdk_lib
-    ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} RocksDB::rocksdb
+    ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${SPEEDB_LIBRARY}
     ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
     absl::flags Secp256k1
   )
@@ -416,7 +416,7 @@ else()
 
   target_link_libraries(orbitersdk_lib PRIVATE
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-    RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
+    ${SPEEDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
   set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
@@ -427,7 +427,7 @@ else()
   add_dependencies(orbitersdkd orbitersdk_lib)
   target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd
-    orbitersdk_lib RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
+    orbitersdk_lib ${SPEEDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
   )
 endif()
 
@@ -437,7 +437,7 @@ if (BUILD_TESTS)
   add_dependencies(orbitersdkd-tests orbitersdk_lib)
   target_include_directories(orbitersdkd-tests PRIVATE orbitersdk_lib  ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd-tests
-    orbitersdk_lib RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
+    orbitersdk_lib ${SPEEDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2
       )
 endif()
 
@@ -447,7 +447,7 @@ if (BUILD_DISCOVERY)
   add_dependencies(orbitersdkd-discovery orbitersdk_lib)
   target_include_directories(orbitersdkd-discovery PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd-discovery
-    orbitersdk_lib RocksDB::rocksdb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
+    orbitersdk_lib ${SPEEDB_LIBRARY} ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1
   )
 endif()
 
