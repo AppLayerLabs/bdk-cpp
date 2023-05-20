@@ -31,7 +31,7 @@ namespace ABI {
   /// Class that encodes and packs native data types into Solidity ABI strings.
   class Encoder {
     private:
-      std::string data; ///< Encoded Solidity ABI string.
+      std::string data; ///< Encoded Solidity ABI string, as RAW BYTES. Use Hex::fromBytes().get() to print it properly.
 
       /**
        * Encode a function header into Solidity ABI format.
@@ -123,10 +123,8 @@ namespace ABI {
       Encoder(const ABI::Encoder::EncVar& data, std::string_view func = "");
 
       /// Getter for `data`.
-      const std::string getData() const { return Hex::fromBytes(this->data).get(); }
-
-      /// Getter for `data`, but returns the raw bytes string.
-      const std::string &getRaw() const { return this->data; }
+      /// TODO: rename this to getData() or something similar (for consistency with Decoder's getData())
+      const std::string& getRaw() const { return this->data; }
 
       /**
        * Get the length of `data`.
