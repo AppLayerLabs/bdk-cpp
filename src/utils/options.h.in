@@ -87,7 +87,7 @@ class Options {
     );
 
     /// Tries to load options.json from rootPath
-    /// Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/0.0.1", 1, 8080, 8080, 8081) if not found.
+    /// Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/0.0.2", 2, 8080, 8080, 8081) if not found.
     /// @params rootPath: Path to data root folder
     /// @returns Options: Options object
     static Options fromFile(const std::string& rootPath);

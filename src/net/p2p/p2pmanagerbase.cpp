@@ -62,9 +62,8 @@ namespace P2P {
     }
     auto session = sessions_[nodeId];
     // We can only request ping, info and requestNode to discovery nodes
-    if (session->hostType() == NodeType::DISCOVERY_NODE && (message.command() != CommandType::Ping &&
-        message.command() != CommandType::Info &&
-        message.command() != CommandType::RequestNodes)) {
+    if (session->hostType() == NodeType::DISCOVERY_NODE && (message.command() == CommandType::Info ||
+        message.command() == CommandType::RequestValidatorTxs)) {
       Utils::logToDebug(Log::P2PManager, __func__, "Session is discovery, cannot send message");
       return nullptr;
     }
