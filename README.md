@@ -11,7 +11,7 @@ If you are a developer, fill this form out for free support and additional incen
 * **Boost 1.74** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
 * **CryptoPP 8.2.0** or higher
 * **gRPC** + **Protobuf 3.12** or higher + **libc-ares**
-* **LevelDB** + **libsnappy**
+* **RocksDB** + **libsnappy**
 * **libscrypt**
 * **OpenSSL 1.1.1**
 * **zlib**
@@ -20,7 +20,7 @@ If you are a developer, fill this form out for free support and additional incen
 ### One-liners
 
 For **Debian 11 Bullseye or newer**:
-* `sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libleveldb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
+* `sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
 
 #### Caveats
 

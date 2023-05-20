@@ -18,7 +18,7 @@ ExternalProject_Add(
     GIT_TAG "bdf39000b9c6a0818e7149ccb500873d079e6e85"
     PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_LIST_DIR}/secp256k1/CMakeLists.txt <SOURCE_DIR>
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${prefix}
                -DCMAKE_POSITION_INDEPENDENT_CODE=${BUILD_SHARED_LIBS}
                -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
@@ -26,7 +26,6 @@ ExternalProject_Add(
                ${_only_release_configuration}
                -DCMAKE_INSTALL_LIBDIR=lib
     LOG_CONFIGURE 1
-    BUILD_COMMAND ""
     ${_overwrite_install_command}
     LOG_INSTALL 1
     BUILD_BYPRODUCTS "${SECP256K1_LIBRARY}"
