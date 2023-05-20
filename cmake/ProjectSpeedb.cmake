@@ -18,7 +18,7 @@ ExternalProject_Add(
   GIT_TAG "speedb/v2.4.1"
   #URL https://github.com/speedb-io/speedb/releases/download/speedb/v2.4.1/speedb-2.4.1.tar.gz
   #URL_HASH SHA256=4e984515bbed0942d4ba22d8a219c752b0679d261a4baf7ac72c206f5ab1cd04
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${prefix}
              -DCMAKE_POSITION_INDEPENDENT_CODE=${BUILD_SHARED_LIBS}
              -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
              -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
@@ -36,6 +36,7 @@ ExternalProject_Add(
              -DWITH_TOOLS=OFF
              -DWITH_TRACE_TOOLS=OFF
   ${_overwrite_install_command}
+  BUILD_BYPRODUCTS "${SPEEDB_LIBRARY}"
 )
 
 # Create imported library
@@ -43,4 +44,4 @@ add_library(Speedb STATIC IMPORTED)
 set_property(TARGET Speedb PROPERTY IMPORTED_CONFIGURATIONS Release)
 set_property(TARGET Speedb PROPERTY IMPORTED_LOCATION_RELEASE "${SPEEDB_LIBRARY}")
 set_property(TARGET Speedb PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${SPEEDB_INCLUDE_DIR}")
-add_dependencies(Speedb speedb)
+add_dependencies(Speedb speedb SPEEDB_LIBRARY)
