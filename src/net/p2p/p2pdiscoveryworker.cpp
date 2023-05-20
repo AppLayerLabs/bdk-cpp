@@ -57,26 +57,23 @@ namespace P2P {
 
     Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Discovery thread started");
     while (!this->stopWorker) {
-      auto maxTime = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::high_resolution_clock::now().time_since_epoch()
-      ).count() + 5;
-
       // Check if we reached connection limit
       {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         std::shared_lock lock(this->manager.sessionsMutex);
         if (this->manager.sessions_.size() >= this->manager.minConnections()) {
           // If we don't have at least 11 connections, we don't sleep discovery.
           // This is to make sure that local_testnet can quickly start up a new
           // network, but still sleep discovery if the minimum is reached.
+          lock.unlock();
           Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Min connections reached, sleeping");
           std::this_thread::sleep_for(std::chrono::seconds(5)); // Only 1 second because we still want to reach maxConnections
-        }
-        if (this->manager.sessions_.size() >= this->manager.maxConnections()) {
+          lock.lock();
+        } else if (this->manager.sessions_.size() >= this->manager.maxConnections()) {
+          lock.unlock();
           Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Max connections reached, sleeping");
           std::this_thread::sleep_for(std::chrono::seconds(60));
           continue;
-        } else {
-          std::unique_lock lock(this->requestedNodesMutex);
         }
       }
 

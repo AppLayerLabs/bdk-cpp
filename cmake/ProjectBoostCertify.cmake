@@ -25,7 +25,6 @@ ExternalProject_Add(
              ${_windows_configuration}
              -DCMAKE_INSTALL_LIBDIR=lib
   LOG_CONFIGURE 1
-  BUILD_COMMAND ""
   ${_overwrite_install_command}
   LOG_INSTALL 1
   BUILD_BYPRODUCTS "${CERTIFY_BYPRODUCTS}"

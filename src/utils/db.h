@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-#include <leveldb/db.h>
-#include <leveldb/write_batch.h>
+#include <rocksdb/db.h>
+#include <rocksdb/write_batch.h>
 
 #include "utils.h"
 
@@ -70,17 +70,13 @@ struct DBBatch {
 };
 
 /**
- * Abstraction of a [LevelDB](https://github.com/google/leveldb) database.
- *
- * As subnets are meant to be run inside a sandbox, we can't create our own database.
- * We have to use the one that AvalancheGo provides for us through gRPC.
- *
- * Keys can begin with prefixes that separate entries in several categories (see DBPrefix).
+ * Abstraction of a [RocksDB](https://github.com/facebook/rocksdb) database.
+ * Keys begin with prefixes that separate entries in several categories (see DBPrefix).
  */
 class DB {
   private:
-    leveldb::DB* db;              ///< Pointer to the database object itself.
-    leveldb::Options opts;        ///< Struct with options for managing the database.
+    rocksdb::DB* db;              ///< Pointer to the database object itself.
+    rocksdb::Options opts;        ///< Struct with options for managing the database.
     mutable std::mutex batchLock; ///< Mutex for managing read/write access to batch operations.
 
   public:
@@ -96,7 +92,7 @@ class DB {
     ~DB() { this->close(); }
 
     /**
-     * Close the database. "Closing" a LevelDB database is just deleting its object.
+     * Close the database. "Closing" a RocksDB database is just deleting its object.
      * @return `true` if the database is closed successfully, `false` otherwise.
      */
     inline bool close() { delete this->db; this->db = nullptr; return (this->db == nullptr); }
@@ -150,7 +146,7 @@ class DB {
      * @return The list of database entries.
      */
     std::vector<DBEntry> getBatch(
-      const leveldb::Slice& pfx, const std::vector<std::string>& keys = {}
+      const rocksdb::Slice& pfx, const std::vector<std::string>& keys = {}
     ) const;
 };
 
