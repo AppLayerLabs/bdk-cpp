@@ -35,6 +35,9 @@ template <unsigned N> class FixedStr {
     /// Getter for `data`.
     inline const std::string& get() const { return this->data; }
 
+    /// Getter for `data`, but non-const, for use in sha3.
+    inline std::string& getRef() { return this->data; }
+
     /// Getter for `data`, but returns the raw C-style string.
     inline const char* raw() const { return this->data.data(); }
 
@@ -112,6 +115,12 @@ class Hash : public FixedStr<32> {
      * @param data The unsigned 256-bit number to convert into a hash string.
      */
     Hash(uint256_t data);
+
+    /**
+     * Constructor.
+     * @param sv The string view to convert into a hash string.
+     */
+    Hash(const std::string_view sv);
 
     /// Convert the hash string back to an unsigned 256-bit number.
     const uint256_t toUint256() const;
