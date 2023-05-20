@@ -265,6 +265,12 @@ namespace Utils {
    */
   std::string padRight(std::string str, unsigned int charAmount, char sign = '0');
 
+  /// Overload of padLeft() that works with byte strings.
+  std::string padLeftBytes(std::string str, unsigned int charAmount, char sign = '\x00');
+
+  /// Overload of padRight() that works with byte strings.
+  std::string padRightBytes(std::string str, unsigned int charAmount, char sign = '\x00');
+
   /**
    * Convert a big-endian byte-stream represented on a templated collection to a templated integer value.
    * `In` will typically be either std::string or bytes.
