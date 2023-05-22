@@ -43,7 +43,7 @@ CORES=$(grep -c ^processor /proc/cpuinfo)
 ## Build the project
 cd build_local_testnet
 cmake -DDEBUG=ON ..
-make
+make -j${CORES}
 
 ## Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory
 cp orbitersdkd ../local_testnet
@@ -250,70 +250,70 @@ echo '{
         ]
       }' >> local_testnet_normal6/blockchain/options.json
 
-# ## Launch the Discovery Node through tmux
-# echo "Launching the Discovery Node"
-# cd local_testnet_discovery
-# tmux new-session -d -s local_testnet_discovery './orbitersdkd-discovery || bash && bash'
+## Launch the Discovery Node through tmux
+echo "Launching the Discovery Node"
+cd local_testnet_discovery
+tmux new-session -d -s local_testnet_discovery './orbitersdkd-discovery || bash && bash'
 
-# sleep 1
+sleep 1
 
-# echo "Launching the Validators"
-# ## Launch the Validators through tmux, don't exit the tmux session when you close the terminal
-# echo "Launching Validator 1"
-# cd ../local_testnet_validator1
-# tmux new-session -d -s local_testnet_validator1 './orbitersdkd || bash && bash'
+echo "Launching the Validators"
+## Launch the Validators through tmux, don't exit the tmux session when you close the terminal
+echo "Launching Validator 1"
+cd ../local_testnet_validator1
+tmux new-session -d -s local_testnet_validator1 './orbitersdkd || bash && bash'
 
-# echo "Launching Validator 2"
-# cd ../local_testnet_validator2
-# tmux new-session -d -s local_testnet_validator2 './orbitersdkd || bash && bash'
+echo "Launching Validator 2"
+cd ../local_testnet_validator2
+tmux new-session -d -s local_testnet_validator2 './orbitersdkd || bash && bash'
 
-# echo "Launching Validator 3"
-# cd ../local_testnet_validator3
-# tmux new-session -d -s local_testnet_validator3 './orbitersdkd || bash && bash'
+echo "Launching Validator 3"
+cd ../local_testnet_validator3
+tmux new-session -d -s local_testnet_validator3 './orbitersdkd || bash && bash'
 
-# echo "Launching Validator 4"
-# cd ../local_testnet_validator4
-# tmux new-session -d -s local_testnet_validator4 './orbitersdkd || bash && bash'
+echo "Launching Validator 4"
+cd ../local_testnet_validator4
+tmux new-session -d -s local_testnet_validator4 './orbitersdkd || bash && bash'
 
-# echo "Launching Validator 5"
-# cd ../local_testnet_validator5
-# tmux new-session -d -s local_testnet_validator5 './orbitersdkd || bash && bash'
+echo "Launching Validator 5"
+cd ../local_testnet_validator5
+tmux new-session -d -s local_testnet_validator5 './orbitersdkd || bash && bash'
 
-# ## Launc the Normal Nodes through tmux, don't exit the tmux session when you close the terminal
+## Launc the Normal Nodes through tmux, don't exit the tmux session when you close the terminal
 
-# echo "Launching Normal Node 1"
-# cd ../local_testnet_normal1
-# tmux new-session -d -s local_testnet_normal1 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 1"
+cd ../local_testnet_normal1
+tmux new-session -d -s local_testnet_normal1 './orbitersdkd || bash && bash'
 
-# echo "Launching Normal Node 2"
-# cd ../local_testnet_normal2
-# tmux new-session -d -s local_testnet_normal2 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 2"
+cd ../local_testnet_normal2
+tmux new-session -d -s local_testnet_normal2 './orbitersdkd || bash && bash'
 
-# echo "Launching Normal Node 3"
-# cd ../local_testnet_normal3
-# tmux new-session -d -s local_testnet_normal3 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 3"
+cd ../local_testnet_normal3
+tmux new-session -d -s local_testnet_normal3 './orbitersdkd || bash && bash'
 
-# echo "Launching Normal Node 4"
-# cd ../local_testnet_normal4
-# tmux new-session -d -s local_testnet_normal4 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 4"
+cd ../local_testnet_normal4
+tmux new-session -d -s local_testnet_normal4 './orbitersdkd || bash && bash'
 
-# echo "Launching Normal Node 5"
-# cd ../local_testnet_normal5
-# tmux new-session -d -s local_testnet_normal5 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 5"
+cd ../local_testnet_normal5
+tmux new-session -d -s local_testnet_normal5 './orbitersdkd || bash && bash'
 
-# echo "Launching Normal Node 6"
-# cd ../local_testnet_normal6
-# tmux new-session -d -s local_testnet_normal6 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 6"
+cd ../local_testnet_normal6
+tmux new-session -d -s local_testnet_normal6 './orbitersdkd || bash && bash'
 
-# echo "All nodes are launched"
-# GREEN=$'\e[0;32m'
-# NC=$'\e[0m'
+echo "All nodes are launched"
+GREEN=$'\e[0;32m'
+NC=$'\e[0m'
 
-# echo "${GREEN}Success! All nodes are launched${NC}"
-# echo "You can now access the local testnet through your favorite web3 client"
-# echo "RPC URL: http://127.0.0.1:8090"
-# echo "ChainID: 808080"
-# echo "You can also attach your terminal to the tmux session to see the logs related to transactions and blocks being processed."
-# echo "\"tmux a -t local_testnet_validator1\" to attach to the tmux session of the first validator"
+echo "${GREEN}Success! All nodes are launched${NC}"
+echo "You can now access the local testnet through your favorite web3 client"
+echo "RPC URL: http://127.0.0.1:8090"
+echo "ChainID: 808080"
+echo "You can also attach your terminal to the tmux session to see the logs related to transactions and blocks being processed."
+echo "\"tmux a -t local_testnet_validator1\" to attach to the tmux session of the first validator"
 
 
