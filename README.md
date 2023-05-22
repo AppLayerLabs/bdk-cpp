@@ -85,6 +85,21 @@ Install the dependencies within this repository (provided in the previous sectio
 
 ```bash ./scripts/AIO-setup.sh```
 
+Also, there are some flags that can be used to customize the deployment:
+
+| Flag | Description | Default Value |
+|------|-------------|---------------|
+| --clean | Clean the build folder before building | false |
+| --no-deploy | Only build the project, don't deploy the network | false |
+| --debug=\<bool\> | Build in debug mode | true |
+| --cores=\<int\> | Number of cores to use for building | Maximum available |
+
+Example:
+
+```bash ./scripts/AIO-setup.sh --clean --no-deploy --debug=false --cores=4```
+
+The example above will clean the build folder, only build the project in release mode and use 4 cores for building. Remember that GCC uses around 1.5GB of RAM per core, so, for stability, it is recommended to use adjust the number of cores to the available RAM.
+
 It will automatically build the project with the default configuration (and added contracts if properly linked, see documentation on how to create a contract) and deploy the App-Chain.
 
 After the script finishes, you can connect with your favorite Ethereum wallet or RPC client to the App-Chain using the respective default RPC URL, port and ChainID.
