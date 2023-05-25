@@ -72,6 +72,15 @@ private:
   /// Reference back to options
   const std::unique_ptr<Options> &options;
 
+  // Create a new SimpleContract Contract
+  // function createNewSimpleContractContract(string memory name, uint256 value)
+  // public {}
+  void createNewSimpleContractContract(const ethCallInfo &callInfo);
+
+  // Check if transaction can actually create a new SimpleContract contract.
+  void
+  validateCreateNewSimpleContractContract(const ethCallInfo &callInfo) const;
+
   /// Derive a new contract address based on transaction sender + nonce.
   Address deriveContractAddress(const ethCallInfo &callInfo) const;
 
