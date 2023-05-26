@@ -117,7 +117,7 @@ namespace ABI {
        * @param data A list of variables to encode.
        * @param func (optional) The full function header to encode.
        *             Defaults to an empty string.
-       *@throws std::runtime_error if the function header is invalid or if header
+       *@throw std::runtime_error if the function header is invalid or if header
        *and data do not match.
        */
       Encoder(const ABI::Encoder::EncVar& data, std::string_view func = "");
@@ -146,9 +146,9 @@ namespace ABI {
        * Decode a 256-bit unsigned integer from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data string to decode.
-       * @start The index of the string to start decoding from.
+       * @param start The index of the string to start decoding from.
        * @return The decoded 256-bit unsigned integer.
-       *@throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       uint256_t decodeUint256(const std::string_view data, const uint64_t& start) const;
 
@@ -156,9 +156,9 @@ namespace ABI {
        * Decode a 20-byte address from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data string to decode.
-       * @start The index of the string to start decoding from.
+       * @param start The index of the string to start decoding from.
        * @return The decoded 20-byte address.
-       *@throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       Address decodeAddress(const std::string_view data, const uint64_t& start) const;
 
@@ -166,9 +166,9 @@ namespace ABI {
        * Decode a boolean from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data string to decode.
-       * @start The index of the string to start decoding from.
+       * @param start The index of the string to start decoding from.
        * @return The decoded boolean.
-       *@throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       bool decodeBool(const std::string_view data, const uint64_t& start) const;
 
@@ -180,7 +180,7 @@ namespace ABI {
        * @param data The Solidity data string to decode.
        * @param start The index of the string to start decoding from.
        * @return The decoded raw bytes or UTF-8 string.
-       *@throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::string decodeBytes(const std::string_view data, const uint64_t& start) const;
 
@@ -190,7 +190,7 @@ namespace ABI {
        * @param data The Solidity data string to decode.
        * @param start The index of the string to start decoding from.
        * @return The decoded 256-bit unsigned integer array.
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::vector<uint256_t> decodeUint256Arr(
         const std::string_view data, const uint64_t& start
@@ -202,7 +202,7 @@ namespace ABI {
        * @param data The Solidity data string to decode.
        * @param start The index of the string to start decoding from.
        * @return The decoded 20-byte address array.
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::vector<Address> decodeAddressArr(
         const std::string_view data, const uint64_t& start
@@ -214,7 +214,7 @@ namespace ABI {
        * @param data The Solidity data string to decode.
        * @param start The index of the string to start decoding from.
        * @return The decoded boolean array.
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::vector<bool> decodeBoolArr(
         const std::string_view data, const uint64_t& start
@@ -226,7 +226,7 @@ namespace ABI {
        * @param data The Solidity data string to decode.
        * @param start The index of the string to start decoding from.
        * @return The decoded raw bytes or UTF-8 string array.
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::vector<std::string> decodeBytesArr(
         const std::string_view data, const uint64_t& start
@@ -244,8 +244,8 @@ namespace ABI {
        * Get a specific data type from the decoded `data` list.
        * @param index The index of the data type to get.
        * @return The decoded data type.
-       * @throws std::out_of_range if index is out of range.
-       * @throws std::runtime_error if type mismatch.
+       * @throw std::out_of_range if index is out of range.
+       * @throw std::runtime_error if type mismatch.
        */
       template <typename T> T getData(const uint64_t &index) const {
         if (index >= this->data.size()) throw std::out_of_range("Index out of range");

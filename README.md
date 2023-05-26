@@ -35,6 +35,8 @@ For **Debian 11 Bullseye or newer**:
 
 We use [Doxygen](https://www.doxygen.nl/index.html) to generate documentation over the current source code. Run `doxygen` inside the project's root folder. Docs should be inside `docs/html`.
 
+You should do this after running `cmake ..` in the build directory, as some header files need to be generated first.
+
 For a more detailed explanation of the project's structure, check the [docs](https://github.com/SparqNet/sparq-docs/tree/main/Sparq_en-US) repository.
 
 ## Compiling

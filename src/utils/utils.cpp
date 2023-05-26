@@ -26,10 +26,7 @@ void Utils::logToDebug(std::string_view pfx, std::string_view func, std::string_
 }
 
 void Utils::safePrint(std::string_view str) {
-  /// Never print if we are in a test
-  if (!Utils::logToCout) {
-    return;
-  }
+  if (!Utils::logToCout) return; // Never print if we are in a test
   std::lock_guard lock(cout_mutex);
   std::cout << str << std::endl;
 }
@@ -197,7 +194,7 @@ json Utils::readConfigFile() {
     config["rpcport"] = 8080;
     config["p2pport"] = 8081;
     config["seedNodes"] = {
-            "127.0.0.1:8086", "127.0.0.1:8087", "127.0.0.1:8088", "127.0.0.1:8089"
+      "127.0.0.1:8086", "127.0.0.1:8087", "127.0.0.1:8088", "127.0.0.1:8089"
     };
     std::ofstream configFile("config.json");
     configFile << config.dump(2);
@@ -207,3 +204,4 @@ json Utils::readConfigFile() {
   json config = json::parse(configFile);
   return config;
 }
+

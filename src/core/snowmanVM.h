@@ -27,7 +27,7 @@ struct InitializeRequest {
   uint32_t networkId; ///< ID of the network to connect to.
   std::string subnetId; ///< ID of the subnet to connect to.
   std::string chainId; ///< ID of the chain to connect to.
-  std::string nodeId; // ID of the node to connect to.
+  std::string nodeId; ///< ID of the node to connect to.
   std::string xChainId; ///< See todo.
   std::string avaxAssetId; ///< See todo.
   std::string genesisBytes; ///< See todo.
