@@ -2,9 +2,11 @@
 #define ERC20WRAPPER_H
 
 #include <memory>
+#include <tuple>
 
 #include "../utils/db.h"
 #include "abi.h"
+#include "contractmanager.h"
 #include "dynamiccontract.h"
 #include "erc20.h"
 #include "variables/safeuint256_t.h"
@@ -44,6 +46,29 @@ public:
   ERC20Wrapper(ContractManager::ContractManagerInterface &interface,
                const Address &address, const Address &creator,
                const uint64_t &chainId, const std::unique_ptr<DB> &db);
+
+  /**
+   * Register contract class via ContractReflectionInterface.
+   */
+  static void registerContract() {
+    ContractReflectionInterface::registerContract<
+        ERC20Wrapper, ContractManager::ContractManagerInterface &,
+        const Address &, const Address &, const uint64_t &,
+        const std::unique_ptr<DB> &>(
+        std::vector<std::string>{},
+        std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance,
+                        "view", std::vector<std::string>{"tokenAddress"}),
+        std::make_tuple(
+            "getUserBalance", &ERC20Wrapper::getUserBalance, "view",
+            std::vector<std::string>{"tokenAddress", "userAddress"}),
+        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, "payable",
+                        std::vector<std::string>{"tokenAddress", "value"}),
+        std::make_tuple(
+            "transferTo", &ERC20Wrapper::transferTo, "payable",
+            std::vector<std::string>{"tokenAddress", "toAddress", "value"}),
+        std::make_tuple("deposit", &ERC20Wrapper::deposit, "payable",
+                        std::vector<std::string>{"tokenAddress", "value"}));
+  }
 
   /**
    * @brief Default Destructor

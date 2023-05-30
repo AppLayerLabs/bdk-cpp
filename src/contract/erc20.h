@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "../utils/contractreflectioninterface.h"
 #include "../utils/db.h"
 #include "abi.h"
 #include "dynamiccontract.h"
@@ -67,11 +68,42 @@ public:
    *@param chainId The chain where the contract wil be deployed.
    *@param db Reference to the database object.
    */
-  ERC20(ContractManager::ContractManagerInterface &interface,
-        const std::string &erc20_name, const std::string &erc20_symbol,
+  ERC20(const std::string &erc20_name, const std::string &erc20_symbol,
         const uint8_t &erc20_decimals, const uint256_t &mintValue,
+        ContractManager::ContractManagerInterface &interface,
         const Address &address, const Address &creator, const uint64_t &chainId,
         const std::unique_ptr<DB> &db);
+
+  /**
+   * Register contract class via ContractReflectionInterface.
+   */
+  static void registerContract() {
+    ContractReflectionInterface::registerContract<
+        ERC20, const std::string &, const std::string &, const uint8_t &,
+        const uint256_t &, ContractManager::ContractManagerInterface &,
+        const Address &, const Address &, const uint64_t &,
+        const std::unique_ptr<DB> &>(
+        std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals",
+                                 "mintValue"},
+        std::make_tuple("name", &ERC20::name, "view",
+                        std::vector<std::string>{}),
+        std::make_tuple("symbol", &ERC20::symbol, "view",
+                        std::vector<std::string>{}),
+        std::make_tuple("decimals", &ERC20::decimals, "view",
+                        std::vector<std::string>{}),
+        std::make_tuple("totalSupply", &ERC20::totalSupply, "view",
+                        std::vector<std::string>{}),
+        std::make_tuple("balanceOf", &ERC20::balanceOf, "view",
+                        std::vector<std::string>{"_owner"}),
+        std::make_tuple("transfer", &ERC20::transfer, "nonpayable",
+                        std::vector<std::string>{"_to", "_value"}),
+        std::make_tuple("approve", &ERC20::approve, "nonpayable",
+                        std::vector<std::string>{"_spender", "_value"}),
+        std::make_tuple("allowance", &ERC20::allowance, "view",
+                        std::vector<std::string>{"_owner", "_spender"}),
+        std::make_tuple("transferFrom", &ERC20::transferFrom, "nonpayable",
+                        std::vector<std::string>{"_from", "_to", "_value"}));
+  }
 
   /**
    * @brief Default Destructor.

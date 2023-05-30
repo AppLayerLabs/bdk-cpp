@@ -399,6 +399,15 @@ if(BUILD_AVALANCHEGO)
     absl::flags Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
   )
 
+  # Compile and link the ABI generator executable
+  add_executable(contractabigenerator "${CMAKE_SOURCE_DIR}/src/main-contract-abi.cpp")
+
+  add_dependencies(contractabigenerator orbitersdk_lib)
+  target_include_directories(contractabigenerator PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
+  target_link_libraries(contractabigenerator
+    orbitersdk_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
+  )
+
   # TODO: Implement tests for AvalancheGo compilation.
 else()
   add_library(orbitersdk_lib STATIC
@@ -427,6 +436,15 @@ else()
   add_dependencies(orbitersdkd orbitersdk_lib)
   target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
   target_link_libraries(orbitersdkd
+    orbitersdk_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
+  )
+
+  # Compile and link the ABI generator executable
+  add_executable(contractabigenerator "${CMAKE_SOURCE_DIR}/src/main-contract-abi.cpp")
+
+  add_dependencies(contractabigenerator orbitersdk_lib)
+  target_include_directories(contractabigenerator PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
+  target_link_libraries(contractabigenerator
     orbitersdk_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
   )
 endif()
