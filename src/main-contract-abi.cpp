@@ -1,5 +1,4 @@
 #include "contract/customcontracts.h"
-#include "contract/nativewrapper.h"
 #include "utils/contractreflectioninterface.h"
 
 

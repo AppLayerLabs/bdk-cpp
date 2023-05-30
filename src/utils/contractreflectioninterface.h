@@ -5,7 +5,6 @@
 #include "contract/dynamiccontract.h"
 #include "meta_all.hpp"
 #include "utils.h" // nlohmann::json
-#include <vector>
 
 /**
  * This namespace contains the reflection interface for the contract
