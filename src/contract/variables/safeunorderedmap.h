@@ -671,7 +671,12 @@ pointed to.
 */
   void commit() override {
     check();
+    // Move new values to the map
     map.merge(*mapPtr);
+    // Update already existing values
+    for (const auto &[key, value] : (*mapPtr)) {
+      map[key] = value;
+    }
     for (const auto &key : (*erasedKeys)) {
       map.erase(key);
     }
