@@ -11,6 +11,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint32_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint64_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint256_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint128_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
