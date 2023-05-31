@@ -14,7 +14,7 @@ RUN apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pk
 RUN apt-get install -y git
 
 # Set the working directory in the Docker container
-WORKDIR /app
+WORKDIR /orbitersdk-cpp
 
 # Clone the repository
 RUN git clone $REPO_URL .
