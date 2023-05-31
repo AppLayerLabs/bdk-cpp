@@ -1,5 +1,5 @@
-#ifndef SAFEUINT128_T_H
-#define SAFEUINT128_T_H
+#ifndef SAFEUINT160_T_H
+#define SAFEUINT160_T_H
 
 #include <memory>
 
@@ -7,23 +7,22 @@
 
 #include "safebase.h"
 
-
-// Typedef for uint128_t.
-using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+// Typedef for uint160_t.
+using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
 /**
- * Safe wrapper for a uint128 variable.
- * Used to safely store a uint128 within a contract.
+ * Safe wrapper for a uint160 variable.
+ * Used to safely store a uint160 within a contract.
  * @see SafeBase
  */
-class SafeUint128_t : public SafeBase {
+class SafeUint160_t : public SafeBase {
   private:
-    uint128_t value; ///< Value.
-    mutable std::unique_ptr<uint128_t> valuePtr; ///< Pointer to the value. check() requires this to be mutable.
+    uint160_t value; ///< Value.
+    mutable std::unique_ptr<uint160_t> valuePtr; ///< Pointer to the value. check() requires this to be mutable.
 
     /// Check if the pointer is initialized (and initialize it if not).
     inline void check() const override {
-      if (valuePtr == nullptr) valuePtr = std::make_unique<uint128_t>(value);
+      if (valuePtr == nullptr) valuePtr = std::make_unique<uint160_t>(value);
     };
 
   public:
@@ -32,25 +31,25 @@ class SafeUint128_t : public SafeBase {
      * @param owner The contract that owns the variable.
      * @param value The initial value. Defaults to 0.
      */
-    SafeUint128_t(DynamicContract* owner, const uint128_t& value = 0)
-      : SafeBase(owner), value(0), valuePtr(std::make_unique<uint128_t>(value))
+    SafeUint160_t(DynamicContract* owner, const uint160_t& value = 0)
+      : SafeBase(owner), value(0), valuePtr(std::make_unique<uint160_t>(value))
     {};
 
     /**
      * Empty constructor.
      * @param value The initial value. Defaults to 0.
      */
-    SafeUint128_t(const uint128_t& value = 0)
-      : SafeBase(nullptr), value(0), valuePtr(std::make_unique<uint128_t>(value))
+    SafeUint160_t(const uint160_t& value = 0)
+      : SafeBase(nullptr), value(0), valuePtr(std::make_unique<uint160_t>(value))
     {};
 
     /// Copy constructor.
-    SafeUint128_t(const SafeUint128_t& other) : SafeBase(nullptr) {
-      other.check(); value = 0; valuePtr = std::make_unique<uint128_t>(*other.valuePtr);
+    SafeUint160_t(const SafeUint160_t& other) : SafeBase(nullptr) {
+      other.check(); value = 0; valuePtr = std::make_unique<uint160_t>(*other.valuePtr);
     };
 
     /// Getter for the value. Returns the value from the pointer.
-    inline uint128_t get() const { check(); return *valuePtr; };
+    inline uint160_t get() const { check(); return *valuePtr; };
 
     /**
      * Commit the value. Updates the value from the pointer, nullifies it and
@@ -69,72 +68,72 @@ class SafeUint128_t : public SafeBase {
      * Addition operator.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t operator+(const SafeUint128_t& other) const {
+    inline SafeUint160_t operator+(const SafeUint160_t& other) const {
       check();
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() - other.get()) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() - other.get()) {
         throw std::overflow_error("Overflow in addition operation");
       }
-      return SafeUint128_t(*valuePtr + other.get());
+      return SafeUint160_t(*valuePtr + other.get());
     };
 
     /**
      * Addition operator.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t operator+(const uint128_t& other) const {
+    inline SafeUint160_t operator+(const uint160_t& other) const {
       check();
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() - other) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() - other) {
         throw std::overflow_error("Overflow in addition operation");
       }
-      return SafeUint128_t(*valuePtr + other);
+      return SafeUint160_t(*valuePtr + other);
     };
 
     /**
      * Addition operator.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t operator+(const uint64_t& other) const {
+    inline SafeUint160_t operator+(const uint64_t& other) const {
       check();
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() - other) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() - other) {
         throw std::overflow_error("Overflow in addition operation");
       }
-      return SafeUint128_t(*valuePtr + other);
+      return SafeUint160_t(*valuePtr + other);
     };
 
     /**
      * Subtraction operator.
      * @throw std::underflow_error if an underflow happens.
      */
-    inline SafeUint128_t operator-(const SafeUint128_t& other) const {
+    inline SafeUint160_t operator-(const SafeUint160_t& other) const {
       check();
       if (*valuePtr < other.get()) {
         throw std::underflow_error("Underflow in subtraction operation");
       }
-      return SafeUint128_t(*valuePtr - other.get());
+      return SafeUint160_t(*valuePtr - other.get());
     };
 
     /**
      * Subtraction operator.
      * @throw std::underflow_error if an underflow happens.
      */
-    inline SafeUint128_t operator-(const uint128_t& other) const {
+    inline SafeUint160_t operator-(const uint160_t& other) const {
       check();
       if (*valuePtr < other) {
         throw std::underflow_error("Underflow in subtraction operation");
       }
-      return SafeUint128_t(*valuePtr - other);
+      return SafeUint160_t(*valuePtr - other);
     };
 
     /**
      * Subtraction operator.
      * @throw std::underflow_error if an underflow happens.
      */
-    inline SafeUint128_t operator-(const uint64_t& other) const {
+    inline SafeUint160_t operator-(const uint64_t& other) const {
       check();
       if (*valuePtr < other) {
         throw std::underflow_error("Underflow in subtraction operation");
       }
-      return SafeUint128_t(*valuePtr - other);
+      return SafeUint160_t(*valuePtr - other);
     };
 
     /**
@@ -142,13 +141,13 @@ class SafeUint128_t : public SafeBase {
      * @throw std::domain_error if one of the operands is zero.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t operator*(const SafeUint128_t& other) const {
+    inline SafeUint160_t operator*(const SafeUint160_t& other) const {
       check();
       if (other.get() == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() / other.get()) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() / other.get()) {
         throw std::overflow_error("Overflow in multiplication operation");
       }
-      return SafeUint128_t(*valuePtr * other.get());
+      return SafeUint160_t(*valuePtr * other.get());
     };
 
     /**
@@ -156,13 +155,13 @@ class SafeUint128_t : public SafeBase {
      * @throw std::domain_error if one of the operands is zero.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t operator*(const uint128_t& other) const {
+    inline SafeUint160_t operator*(const uint160_t& other) const {
       check();
       if (other == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() / other) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication operation");
       }
-      return SafeUint128_t(*valuePtr * other);
+      return SafeUint160_t(*valuePtr * other);
     };
 
     /**
@@ -170,73 +169,73 @@ class SafeUint128_t : public SafeBase {
      * @throw std::domain_error if one of the operands is zero.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t operator*(const uint64_t& other) const {
+    inline SafeUint160_t operator*(const uint64_t& other) const {
       check();
       if (other == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() / other) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication operation");
       }
-      return SafeUint128_t(*valuePtr * other);
+      return SafeUint160_t(*valuePtr * other);
     };
 
     /**
      * Division operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t operator/(const SafeUint128_t& other) const {
+    inline SafeUint160_t operator/(const SafeUint160_t& other) const {
       check();
       if (*valuePtr == 0 || other.get() == 0) throw std::domain_error("Division by zero");
-      return SafeUint128_t(*valuePtr / other.get());
+      return SafeUint160_t(*valuePtr / other.get());
     };
 
     /**
      * Division operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t operator/(const uint128_t& other) const {
+    inline SafeUint160_t operator/(const uint160_t& other) const {
       check();
       if (*valuePtr == 0 || other == 0) throw std::domain_error("Division by zero");
-      return SafeUint128_t(*valuePtr / other);
+      return SafeUint160_t(*valuePtr / other);
     };
 
     /**
      * Division operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t operator/(const uint64_t& other) const {
+    inline SafeUint160_t operator/(const uint64_t& other) const {
       check();
       if (*valuePtr == 0 || other == 0) throw std::domain_error("Division by zero");
-      return SafeUint128_t(*valuePtr / other);
+      return SafeUint160_t(*valuePtr / other);
     };
 
     /**
      * Modulo operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t operator%(const SafeUint128_t& other) const {
+    inline SafeUint160_t operator%(const SafeUint160_t& other) const {
       check();
       if (*valuePtr == 0 || other.get() == 0) throw std::domain_error("Modulo by zero");
-      return SafeUint128_t(*valuePtr % other.get());
+      return SafeUint160_t(*valuePtr % other.get());
     };
 
     /**
      * Modulo operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t operator%(const uint128_t& other) const {
+    inline SafeUint160_t operator%(const uint160_t& other) const {
       check();
       if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulo by zero");
-      return SafeUint128_t(*valuePtr % other);
+      return SafeUint160_t(*valuePtr % other);
     };
 
     /**
      * Modulo operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t operator%(const uint64_t& other) const {
+    inline SafeUint160_t operator%(const uint64_t& other) const {
       check();
       if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulo by zero");
-      return SafeUint128_t(*valuePtr % other);
+      return SafeUint160_t(*valuePtr % other);
     };
 
     // =================
@@ -244,48 +243,48 @@ class SafeUint128_t : public SafeBase {
     // =================
 
     /// Bitwise AND operator.
-    inline SafeUint128_t operator&(const SafeUint128_t& other) const {
-      check(); return SafeUint128_t(*valuePtr & other.get());
+    inline SafeUint160_t operator&(const SafeUint160_t& other) const {
+      check(); return SafeUint160_t(*valuePtr & other.get());
     };
 
     /// Bitwise AND operator.
-    inline SafeUint128_t operator&(const uint128_t& other) const {
-      check(); return SafeUint128_t(*valuePtr & other);
+    inline SafeUint160_t operator&(const uint160_t& other) const {
+      check(); return SafeUint160_t(*valuePtr & other);
     };
 
     /// Bitwise AND operator.
-    inline SafeUint128_t operator&(const uint64_t& other) const {
-      check(); return SafeUint128_t(*valuePtr & other);
+    inline SafeUint160_t operator&(const uint64_t& other) const {
+      check(); return SafeUint160_t(*valuePtr & other);
     };
 
     /// Bitwise OR operator.
-    inline SafeUint128_t operator|(const SafeUint128_t& other) const {
-      check(); return SafeUint128_t(*valuePtr | other.get());
+    inline SafeUint160_t operator|(const SafeUint160_t& other) const {
+      check(); return SafeUint160_t(*valuePtr | other.get());
     };
 
     /// Bitwise OR operator.
-    inline SafeUint128_t operator|(const uint128_t& other) const {
-      check(); return SafeUint128_t(*valuePtr | other);
+    inline SafeUint160_t operator|(const uint160_t& other) const {
+      check(); return SafeUint160_t(*valuePtr | other);
     };
 
     /// Bitwise OR operator.
-    inline SafeUint128_t operator|(const uint64_t& other) const {
-      check(); return SafeUint128_t(*valuePtr | other);
+    inline SafeUint160_t operator|(const uint64_t& other) const {
+      check(); return SafeUint160_t(*valuePtr | other);
     };
 
     /// Bitwise XOR operator.
-    inline SafeUint128_t operator^(const SafeUint128_t& other) const {
-      check(); return SafeUint128_t(*valuePtr ^ other.get());
+    inline SafeUint160_t operator^(const SafeUint160_t& other) const {
+      check(); return SafeUint160_t(*valuePtr ^ other.get());
     };
 
     /// Bitwise XOR operator.
-    inline SafeUint128_t operator^(const uint128_t& other) const {
-      check(); return SafeUint128_t(*valuePtr ^ other);
+    inline SafeUint160_t operator^(const uint160_t& other) const {
+      check(); return SafeUint160_t(*valuePtr ^ other);
     };
 
     /// Bitwise XOR operator.
-    inline SafeUint128_t operator^(const uint64_t& other) const {
-      check(); return SafeUint128_t(*valuePtr ^ other);
+    inline SafeUint160_t operator^(const uint64_t& other) const {
+      check(); return SafeUint160_t(*valuePtr ^ other);
     };
 
     // =================
@@ -296,12 +295,12 @@ class SafeUint128_t : public SafeBase {
     inline bool operator!() const { check(); return !*valuePtr; };
 
     /// Logical AND operator.
-    inline bool operator&&(const SafeUint128_t& other) const {
+    inline bool operator&&(const SafeUint160_t& other) const {
       check(); return *valuePtr && other.get();
     };
 
     /// Logical AND operator.
-    inline bool operator&&(const uint128_t& other) const {
+    inline bool operator&&(const uint160_t& other) const {
       check(); return *valuePtr && other;
     };
 
@@ -311,12 +310,12 @@ class SafeUint128_t : public SafeBase {
     };
 
     /// Logical OR operator.
-    inline bool operator||(const SafeUint128_t& other) const {
+    inline bool operator||(const SafeUint160_t& other) const {
       check(); return *valuePtr || other.get();
     };
 
     /// Logical OR operator.
-    inline bool operator||(const uint128_t& other) const {
+    inline bool operator||(const uint160_t& other) const {
       check(); return *valuePtr || other;
     };
 
@@ -330,12 +329,12 @@ class SafeUint128_t : public SafeBase {
     // ====================
 
     /// Equality operator.
-    inline bool operator==(const SafeUint128_t& other) const {
+    inline bool operator==(const SafeUint160_t& other) const {
       check(); return *valuePtr == other.get();
     };
 
     /// Equality operator.
-    inline bool operator==(const uint128_t& other) const {
+    inline bool operator==(const uint160_t& other) const {
       check(); return *valuePtr == other;
     };
 
@@ -345,12 +344,12 @@ class SafeUint128_t : public SafeBase {
     };
 
     /// Inequality operator.
-    inline bool operator!=(const SafeUint128_t& other) const {
+    inline bool operator!=(const SafeUint160_t& other) const {
       check(); return *valuePtr != other.get();
     };
 
     /// Inequality operator.
-    inline bool operator!=(const uint128_t& other) const {
+    inline bool operator!=(const uint160_t& other) const {
       check(); return *valuePtr != other;
     };
 
@@ -360,12 +359,12 @@ class SafeUint128_t : public SafeBase {
     };
 
     /// Lesser operator.
-    inline bool operator<(const SafeUint128_t& other) const {
+    inline bool operator<(const SafeUint160_t& other) const {
       check(); return *valuePtr < other.get();
     };
 
     /// Lesser operator.
-    inline bool operator<(const uint128_t& other) const {
+    inline bool operator<(const uint160_t& other) const {
       check(); return *valuePtr < other;
     };
 
@@ -375,12 +374,12 @@ class SafeUint128_t : public SafeBase {
     };
 
     /// Lesser-or-equal operator.
-    inline bool operator<=(const SafeUint128_t& other) const {
+    inline bool operator<=(const SafeUint160_t& other) const {
       check(); return *valuePtr <= other.get();
     };
 
     /// Lesser-or-equal operator.
-    inline bool operator<=(const uint128_t& other) const {
+    inline bool operator<=(const uint160_t& other) const {
       check(); return *valuePtr <= other;
     };
 
@@ -390,12 +389,12 @@ class SafeUint128_t : public SafeBase {
     };
 
     /// Greater operator.
-    inline bool operator>(const SafeUint128_t& other) const {
+    inline bool operator>(const SafeUint160_t& other) const {
       check(); return *valuePtr > other.get();
     };
 
     /// Greater operator.
-    inline bool operator>(const uint128_t& other) const {
+    inline bool operator>(const uint160_t& other) const {
       check(); return *valuePtr > other;
     };
 
@@ -405,12 +404,12 @@ class SafeUint128_t : public SafeBase {
     };
 
     /// Greater-or-equal operator.
-    inline bool operator>=(const SafeUint128_t& other) const {
+    inline bool operator>=(const SafeUint160_t& other) const {
       check(); return *valuePtr >= other.get();
     };
 
     /// Greater-or-equal operator.
-    inline bool operator>=(const uint128_t& other) const {
+    inline bool operator>=(const uint160_t& other) const {
       check(); return *valuePtr >= other;
     };
 
@@ -424,17 +423,17 @@ class SafeUint128_t : public SafeBase {
     // ====================
 
     /// Assignment operator.
-    inline SafeUint128_t& operator=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator=(const SafeUint160_t& other) {
       check(); markAsUsed(); *valuePtr = other.get(); return *this;
     };
 
     /// Assignment operator.
-    inline SafeUint128_t& operator=(const uint128_t& other) {
+    inline SafeUint160_t& operator=(const uint160_t& other) {
       check(); markAsUsed(); *valuePtr = other; return *this;
     };
 
     /// Assignment operator.
-    inline SafeUint128_t& operator=(const uint64_t& other) {
+    inline SafeUint160_t& operator=(const uint64_t& other) {
       check(); markAsUsed(); *valuePtr = other; return *this;
     };
 
@@ -442,10 +441,10 @@ class SafeUint128_t : public SafeBase {
      * Addition assignment operator.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t& operator+=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator+=(const SafeUint160_t& other) {
       check();
       markAsUsed();
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() - other.get()) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() - other.get()) {
         throw std::overflow_error("Overflow in addition operation");
       }
       *valuePtr += other.get();
@@ -456,10 +455,10 @@ class SafeUint128_t : public SafeBase {
      * Addition assignment operator.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t& operator+=(const uint128_t& other) {
+    inline SafeUint160_t& operator+=(const uint160_t& other) {
       check();
       markAsUsed();
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() - other) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() - other) {
         throw std::overflow_error("Overflow in addition operation");
       }
       *valuePtr += other;
@@ -470,10 +469,10 @@ class SafeUint128_t : public SafeBase {
      * Addition assignment operator.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t& operator+=(const uint64_t& other) {
+    inline SafeUint160_t& operator+=(const uint64_t& other) {
       check();
       markAsUsed();
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() - other) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() - other) {
         throw std::overflow_error("Overflow in addition operation");
       }
       *valuePtr += other;
@@ -484,7 +483,7 @@ class SafeUint128_t : public SafeBase {
      * Subtraction assignment operator.
      * @throw std::underflow_error if an underflow happens.
      */
-    inline SafeUint128_t& operator-=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator-=(const SafeUint160_t& other) {
       check();
       markAsUsed();
       if (*valuePtr < other.get()) {
@@ -498,7 +497,7 @@ class SafeUint128_t : public SafeBase {
      * Subtraction assignment operator.
      * @throw std::underflow_error if an underflow happens.
      */
-    inline SafeUint128_t& operator-=(const uint128_t& other) {
+    inline SafeUint160_t& operator-=(const uint160_t& other) {
       check();
       markAsUsed();
       if (*valuePtr < other) {
@@ -512,7 +511,7 @@ class SafeUint128_t : public SafeBase {
      * Subtraction assignment operator.
      * @throw std::underflow_error if an underflow happens.
      */
-    inline SafeUint128_t& operator-=(const uint64_t& other) {
+    inline SafeUint160_t& operator-=(const uint64_t& other) {
       check();
       markAsUsed();
       if (*valuePtr < other) {
@@ -527,11 +526,11 @@ class SafeUint128_t : public SafeBase {
      * @throw std::domain_error if one of the operands is zero.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t& operator*=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator*=(const SafeUint160_t& other) {
       check();
       markAsUsed();
       if (other.get() == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() / other.get()) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() / other.get()) {
         throw std::overflow_error("Overflow in multiplication operation");
       }
       *valuePtr *= other.get();
@@ -543,11 +542,11 @@ class SafeUint128_t : public SafeBase {
      * @throw std::domain_error if one of the operands is zero.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t& operator*=(const uint128_t& other) {
+    inline SafeUint160_t& operator*=(const uint160_t& other) {
       check();
       markAsUsed();
       if (other == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() / other) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication operation");
       }
       *valuePtr *= other;
@@ -559,11 +558,11 @@ class SafeUint128_t : public SafeBase {
      * @throw std::domain_error if one of the operands is zero.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t& operator*=(const uint64_t& other) {
+    inline SafeUint160_t& operator*=(const uint64_t& other) {
       check();
       markAsUsed();
       if (other == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-      if (*valuePtr > std::numeric_limits<uint128_t>::max() / other) {
+      if (*valuePtr > std::numeric_limits<uint160_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication operation");
       }
       *valuePtr *= other;
@@ -574,7 +573,7 @@ class SafeUint128_t : public SafeBase {
      * Division assignment operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t& operator/=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator/=(const SafeUint160_t& other) {
       check();
       markAsUsed();
       if (*valuePtr == 0 || other.get() == 0) throw std::domain_error("Division by zero");
@@ -586,7 +585,7 @@ class SafeUint128_t : public SafeBase {
      * Division assignment operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t& operator/=(const uint128_t& other) {
+    inline SafeUint160_t& operator/=(const uint160_t& other) {
       check();
       markAsUsed();
       if (*valuePtr == 0 || other == 0) throw std::domain_error("Division by zero");
@@ -598,7 +597,7 @@ class SafeUint128_t : public SafeBase {
      * Division assignment operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t& operator/=(const uint64_t& other) {
+    inline SafeUint160_t& operator/=(const uint64_t& other) {
       check();
       markAsUsed();
       if (*valuePtr == 0 || other == 0) throw std::domain_error("Division by zero");
@@ -610,7 +609,7 @@ class SafeUint128_t : public SafeBase {
      * Modulo assignment operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t& operator%=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator%=(const SafeUint160_t& other) {
       check();
       markAsUsed();
       if (*valuePtr == 0 || other.get() == 0) throw std::domain_error("Modulo by zero");
@@ -622,7 +621,7 @@ class SafeUint128_t : public SafeBase {
      * Modulo assignment operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t& operator%=(const uint128_t& other) {
+    inline SafeUint160_t& operator%=(const uint160_t& other) {
       check();
       markAsUsed();
       if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulo by zero");
@@ -634,7 +633,7 @@ class SafeUint128_t : public SafeBase {
      * Modulo assignment operator.
      * @throw std::domain_error if one of the operands is zero.
      */
-    inline SafeUint128_t& operator%=(const uint64_t& other) {
+    inline SafeUint160_t& operator%=(const uint64_t& other) {
       check();
       markAsUsed();
       if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulo by zero");
@@ -643,47 +642,47 @@ class SafeUint128_t : public SafeBase {
     };
 
     /// Bitwise AND assignment operator.
-    inline SafeUint128_t& operator&=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator&=(const SafeUint160_t& other) {
       check(); markAsUsed(); *valuePtr &= other.get(); return *this;
     };
 
     /// Bitwise AND assignment operator.
-    inline SafeUint128_t& operator&=(const uint128_t& other) {
+    inline SafeUint160_t& operator&=(const uint160_t& other) {
       check(); markAsUsed(); *valuePtr &= other; return *this;
     };
 
     /// Bitwise AND assignment operator.
-    inline SafeUint128_t& operator&=(const uint64_t& other) {
+    inline SafeUint160_t& operator&=(const uint64_t& other) {
       check(); markAsUsed(); *valuePtr &= other; return *this;
     };
 
     /// Bitwise OR assignment operator.
-    inline SafeUint128_t& operator|=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator|=(const SafeUint160_t& other) {
       check(); markAsUsed(); *valuePtr |= other.get(); return *this;
     };
 
     /// Bitwise OR assignment operator.
-    inline SafeUint128_t& operator|=(const uint128_t& other) {
+    inline SafeUint160_t& operator|=(const uint160_t& other) {
       check(); markAsUsed(); *valuePtr |= other; return *this;
     };
 
     /// Bitwise OR assignment operator.
-    inline SafeUint128_t& operator|=(const uint64_t& other) {
+    inline SafeUint160_t& operator|=(const uint64_t& other) {
       check(); markAsUsed(); *valuePtr |= other; return *this;
     };
 
     /// Bitwise XOR assignment operator.
-    inline SafeUint128_t& operator^=(const SafeUint128_t& other) {
+    inline SafeUint160_t& operator^=(const SafeUint160_t& other) {
       check(); markAsUsed(); *valuePtr ^= other.get(); return *this;
     };
 
     /// Bitwise XOR assignment operator.
-    inline SafeUint128_t& operator^=(const uint128_t& other) {
+    inline SafeUint160_t& operator^=(const uint160_t& other) {
       check(); markAsUsed(); *valuePtr ^= other; return *this;
     };
 
     /// Bitwise XOR assignment operator.
-    inline SafeUint128_t& operator^=(const uint64_t& other) {
+    inline SafeUint160_t& operator^=(const uint64_t& other) {
       check(); markAsUsed(); *valuePtr ^= other; return *this;
     };
 
@@ -695,10 +694,10 @@ class SafeUint128_t : public SafeBase {
      * Increment operator.
      * @throw std::overflow_error if an overflow happens.
      */
-    inline SafeUint128_t& operator++() {
+    inline SafeUint160_t& operator++() {
       check();
       markAsUsed();
-      if (*valuePtr == std::numeric_limits<uint128_t>::max()) {
+      if (*valuePtr == std::numeric_limits<uint160_t>::max()) {
         throw std::overflow_error("Overflow in increment operation");
       }
       ++*valuePtr;
@@ -709,10 +708,10 @@ class SafeUint128_t : public SafeBase {
      * Decrement operator.
      * @throw std::underflow_error if an underflow happens.
      */
-    inline SafeUint128_t& operator--() {
+    inline SafeUint160_t& operator--() {
       check();
       markAsUsed();
-      if (*valuePtr == std::numeric_limits<uint128_t>::min()) {
+      if (*valuePtr == std::numeric_limits<uint160_t>::min()) {
         throw std::underflow_error("Underflow in decrement operation");
       }
       --*valuePtr;
@@ -720,4 +719,4 @@ class SafeUint128_t : public SafeBase {
     };
 };
 
-#endif  // SAFEUINT128_T_H
+#endif  // SAFEUINT160_T_H
