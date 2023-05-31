@@ -34,6 +34,9 @@ using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_back
 /// Typedef for uint256_t.
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
+/// Typedef for uint128_t.
+using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
 /// Typedef for uint160_t.
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
@@ -139,6 +142,14 @@ namespace Utils {
   std::string uint256ToBytes(const uint256_t& i);
 
   /**
+   * Convert a 128-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 128-bit integer as a bytes string.
+   */
+  std::string uint128ToBytes(const uint128_t& i);
+
+  /**
    * Convert a 160-bit unsigned integer to a bytes string.
    * Use `Hex()` to properly print it.
    * @param i The integer to convert.
@@ -192,6 +203,14 @@ namespace Utils {
    * @throw std::runtime_error if string size is invalid.
    */
   uint256_t bytesToUint256(const std::string_view b);
+
+  /**
+   * Convert a bytes string to a 128-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 128-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint128_t bytesToUint128(const std::string_view b);
 
   /**
    * Convert a bytes string to a 128-bit unsigned integer.

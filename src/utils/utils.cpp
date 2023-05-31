@@ -57,6 +57,24 @@ uint256_t Utils::bytesToUint256(const std::string_view b) {
   return ret;
 }
 
+std::string Utils::uint128ToBytes(const uint128_t &i) {
+  std::string ret(16, 0x00);
+  std::string tmp;
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  for (unsigned i = 0; i < tmp.size(); i++) ret[15 - i] = tmp[tmp.size() - i - 1];
+  return ret;
+}
+
+uint128_t Utils::bytesToUint128(const std::string_view b) {
+  if (b.size() != 16) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
+  );
+  uint128_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
 std::string Utils::uint160ToBytes(const uint160_t& i) {
   std::string ret(20, 0x00);
   std::string tmp;
