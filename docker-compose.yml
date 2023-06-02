@@ -8,6 +8,6 @@ services:
       - "8080-8099:8080-8099"
       - "8110-8111:8110-8111"
     volumes:
-      - /orbitersdk-cpp
+      - :/orbitersdk-cpp
     tty: true
     stdin_open: true
