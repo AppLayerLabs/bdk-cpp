@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  orbitersdk-cpp-dev:
+    build: 
+      context: .
+    ports:
+      - "8080-8099:8080-8099"
+      - "8110-8111:8110-8111"
+    volumes:
+      - :/orbitersdk-cpp
+    tty: true
+    stdin_open: true

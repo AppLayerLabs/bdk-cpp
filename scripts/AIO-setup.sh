@@ -88,13 +88,13 @@ if [ "$DEPLOY" = true ]; then
 
   ## Create the directories for the Validators and Discovery Node and copy the executables
   cd ../local_testnet
-  for i in {1..5}; do
+  for i in $(seq 1 5); do
   mkdir local_testnet_validator$i
   mkdir local_testnet_validator$i/blockchain
   cp orbitersdkd local_testnet_validator$i
   done
 
-  for i in {1..6}; do
+  for i in $(seq 1 6); do
   mkdir local_testnet_normal$i
   mkdir local_testnet_normal$i/blockchain
   cp orbitersdkd local_testnet_normal$i
