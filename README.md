@@ -83,7 +83,9 @@ Nodes will be deployed on the same machine, under the following ports and tmux s
 
 Install the dependencies within this repository (provided in the previous section) and execute the script:
 
-```bash ./scripts/AIO-setup.sh```
+```bash
+ ./scripts/AIO-setup.sh
+ ```
 
 Also, there are some flags that can be used to customize the deployment:
 
@@ -96,7 +98,9 @@ Also, there are some flags that can be used to customize the deployment:
 
 Example:
 
-```bash ./scripts/AIO-setup.sh --clean --no-deploy --debug=false --cores=4```
+```bash 
+./scripts/AIO-setup.sh --clean --no-deploy --debug=false --cores=4
+```
 
 The example above will clean the build folder, only build the project in release mode and use 4 cores for building. Remember that GCC uses around 1.5GB of RAM per core, so, for stability, it is recommended to use adjust the number of cores to the available RAM.
 
