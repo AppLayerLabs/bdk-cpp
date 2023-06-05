@@ -1,4 +1,5 @@
 #include "contract/customcontracts.h"
+#include "contract/simplecontract.h"
 #include "utils/contractreflectioninterface.h"
 
 
@@ -10,7 +11,7 @@ int main(int argc, char** argv) {
 
     std::string outputFilename = argv[1];
 
-    ContractReflectionInterface::writeContractToJson<NativeWrapper>(outputFilename);
+    ContractReflectionInterface::writeContractToJson<SimpleContract>(outputFilename);
 
     return 0;
 }

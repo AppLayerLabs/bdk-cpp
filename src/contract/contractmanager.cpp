@@ -4,6 +4,7 @@
 #include "erc20.h"
 #include "erc20wrapper.h"
 #include "nativewrapper.h"
+#include "simplecontract.h"
 
 ContractManager::ContractManager(State *state, const std::unique_ptr<DB> &db,
                                  const std::unique_ptr<rdPoS> &rdpos,
@@ -32,6 +33,12 @@ ContractManager::ContractManager(State *state, const std::unique_ptr<DB> &db,
                                this->interface, contractAddress, this->db)));
       continue;
     }
+    if (contract.value == "SimpleContract") {
+      Address contractAddress(contract.key, true);
+      this->contracts.insert(
+      std::make_pair(contractAddress, std::make_unique<SimpleContract>(this->interface, contractAddress, this->db)));
+      continue;
+    }
     if (contract.value == "NativeWrapper") {
       Address contractAddress(contract.key, true);
       this->contracts.insert(std::make_pair(
@@ -51,6 +58,65 @@ ContractManager::~ContractManager() {
         DBEntry(contractAddress.get(), contract->getContractName()));
   }
   this->db->putBatch(contractsBatch, DBPrefix::contractManager);
+}
+
+void ContractManager::createNewSimpleContractContract(const ethCallInfo& callInfo) {
+  // Check if caller is creator
+  if (this->caller != this->getContractCreator()) {
+    throw std::runtime_error("Only contract creator can create new contracts");
+  }
+
+  // Check if contract address already exists
+  const auto derivedContractAddress = this->deriveContractAddress(callInfo);
+  if (this->contracts.contains(derivedContractAddress)) {
+    throw std::runtime_error("Contract already exists");
+  }
+
+  std::unique_lock lock(this->contractsMutex);
+  for (const auto& [protocolContractName, protocolContractAddress] : ProtocolContractAddresses) {
+    if (protocolContractAddress == derivedContractAddress) {
+      throw std::runtime_error("Contract already exists");
+    }
+  }
+
+  // Parse the constructor ABI
+  std::vector<ABI::Types> types = { ABI::Types::string, ABI::Types::uint256 };
+  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+
+  // Register the function
+  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<SimpleContract>(
+    decoder.getData<std::string>(0),
+    decoder.getData<uint256_t>(1),
+    this->interface,
+    derivedContractAddress,
+    this->getCaller(),
+    this->options->getChainID(),
+    this->db
+  )));
+}
+
+void ContractManager::validateCreateNewSimpleContractContract(const ethCallInfo& callInfo) const {
+  // Check if caller is creator
+  if (this->caller != this->getContractCreator()) {
+    throw std::runtime_error("Only contract creator can create new contracts");
+  }
+
+  // Check if contract address already exists
+  const auto derivedContractAddress = this->deriveContractAddress(callInfo);
+  if (this->contracts.contains(derivedContractAddress)) {
+    throw std::runtime_error("Contract already exists");
+  }
+
+  std::unique_lock lock(this->contractsMutex);
+  for (const auto &[protocolContractName, protocolContractAddress]: ProtocolContractAddresses) {
+    if (protocolContractAddress == derivedContractAddress) {
+      throw std::runtime_error("Contract already exists");
+    }
+  }
+
+  // Parse the constructor ABI
+  std::vector<ABI::Types> types = {ABI::Types::string, ABI::Types::uint256};
+  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
 }
 
 Address
@@ -269,6 +335,10 @@ void ContractManager::ethCall(const ethCallInfo &callInfo) {
       this->createNewERC20Contract(callInfo);
       return;
     }
+    if (functor == Hex::toBytes("0x6de23252")) {
+      this->createNewSimpleContractContract(callInfo);
+      return;
+    }
     /// function createNewERC20WrapperContract() public {}
     if (functor == Hex::toBytes("0x97aa51a3")) {
       this->createNewERC20WrapperContract(callInfo);
@@ -283,6 +353,10 @@ void ContractManager::ethCall(const ethCallInfo &callInfo) {
   } else {
     if (functor == Hex::toBytes("0xb74e5ed5")) {
       this->validateCreateNewERC20Contract(callInfo);
+      return;
+    }
+    if (functor == Hex::toBytes("0x6de23252")) {
+      this->validateCreateNewSimpleContractContract(callInfo);
       return;
     }
     if (functor == Hex::toBytes("0x97aa51a3")) {

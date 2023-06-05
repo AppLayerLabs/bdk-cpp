@@ -28,67 +28,6 @@ struct MethodDescription {
 };
 
 /**
- * This function registers the core contract classes.
- *
- */
-void inline registerCoreContractClasses() {
-  meta::class_<ContractGlobals>();
-  meta::class_<ContractLocals>().base_<ContractGlobals>();
-  meta::class_<BaseContract>()
-      .base_<ContractLocals>()
-      .constructor_<std::string, Address, Address, uint64_t,
-                    std::unique_ptr<DB>>();
-  meta::class_<DynamicContract>()
-      .base_<BaseContract>()
-      .constructor_<ContractManager::ContractManagerInterface &, std::string,
-                    Address, Address, uint64_t, const std::unique_ptr<DB> &>();
-}
-
-static std::unordered_map<std::string, std::vector<std::string>>
-    constructorArgumentNamesMap; /// Map to store constructor argument names
-static std::unordered_map<std::string, std::string>
-    methodMutabilityMap; //// Map to store method mutability
-static std::unordered_map<std::string, std::vector<std::string>>
-    argumentNamesMap; /// Map to store method argument names
-
-/**
- * Template function to register a contract class.
- * @tparam TContract The contract class to register.
- * @tparam Args The constructor argument types.
- * @tparam Methods The methods to register.
- * @param ctorArgs The constructor argument names.
- * @param methods The methods to register.
- */
-template <typename TContract, typename... Args, typename... Methods>
-void inline registerContract(const std::vector<std::string> &ctorArgs,
-                             Methods &&...methods) {
-  meta::class_<TContract>().template constructor_<Args...>();
-
-  // Store constructor argument names in the constructorArgumentNamesMap
-  constructorArgumentNamesMap[typeid(TContract).name()] = ctorArgs;
-
-  // Register methods and store the stateMutability string and argument names
-  ((meta::class_<TContract>().method_(
-        std::get<0>(std::forward<Methods>(methods)),
-        std::get<1>(std::forward<Methods>(methods))),
-    methodMutabilityMap[std::get<0>(std::forward<Methods>(methods))] =
-        std::get<2>(std::forward<Methods>(methods)),
-    argumentNamesMap[std::get<0>(std::forward<Methods>(methods))] =
-        std::get<3>(std::forward<Methods>(methods))),
-   ...);
-}
-
-/**
- * Template function to get the constructor data structure of a contract.
- * @tparam TContract The contract to get the constructor data structure of.
- * @return The constructor data structure in ABI format.
- */
-template <typename TContract> bool isContractRegistered() {
-  const meta::class_type contractType = meta::resolve_type<TContract>();
-  return !contractType.get_constructors().empty();
-}
-
-/**
  * Template struct to map a type to an ABI type.
  * @tparam T The type to map.
  */
@@ -398,28 +337,28 @@ template <> struct TypeToEnum<const std::vector<bool> &> {
  * Specialization of TypeToEnum for std::string.
  */
 template <> struct TypeToEnum<std::string> {
-  static constexpr ABI::Types value = ABI::Types::bytes;
+  static constexpr ABI::Types value = ABI::Types::string;
 };
 
 /**
  * Specialization of TypeToEnum for reference to std::string.
  */
 template <> struct TypeToEnum<std::string &> {
-  static constexpr ABI::Types value = ABI::Types::bytes;
+  static constexpr ABI::Types value = ABI::Types::string;
 };
 
 /**
  * Specialization of TypeToEnum for const reference to std::string.
  */
 template <> struct TypeToEnum<const std::string &> {
-  static constexpr ABI::Types value = ABI::Types::bytes;
+  static constexpr ABI::Types value = ABI::Types::string;
 };
 
 /**
  * Specialization of TypeToEnum for std::vector<std::string>.
  */
 template <> struct TypeToEnum<std::vector<std::string>> {
-  static constexpr ABI::Types value = ABI::Types::bytesArr;
+  static constexpr ABI::Types value = ABI::Types::stringArr;
 };
 
 /**
@@ -427,7 +366,7 @@ template <> struct TypeToEnum<std::vector<std::string>> {
  * std::vector<std::string>.
  */
 template <> struct TypeToEnum<std::vector<std::string> &> {
-  static constexpr ABI::Types value = ABI::Types::bytesArr;
+  static constexpr ABI::Types value = ABI::Types::stringArr;
 };
 
 /**
@@ -435,7 +374,7 @@ template <> struct TypeToEnum<std::vector<std::string> &> {
  * std::vector<std::string>.
  */
 template <> struct TypeToEnum<const std::vector<std::string> &> {
-  static constexpr ABI::Types value = ABI::Types::bytesArr;
+  static constexpr ABI::Types value = ABI::Types::stringArr;
 };
 
 /**
@@ -527,7 +466,7 @@ static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
  * @param type The ABI type.
  * @return The ABI type string.
  */
-std::string inline getABITypeString(ABI::Types type) {
+std::string inline getStringFromABIEnum(ABI::Types type) {
   switch (type) {
   case ABI::Types::uint256:
     return "uint256";
@@ -545,9 +484,165 @@ std::string inline getABITypeString(ABI::Types type) {
     return "bytes";
   case ABI::Types::bytesArr:
     return "bytes[]";
+  case ABI::Types::string:
+    return "string";
+  case ABI::Types::stringArr:
+    return "string[]";
   default:
     return "";
   }
+}
+
+ABI::Types inline getABIEnumFromString(const std::string &type) {
+  if (type == "uint256") {
+    return ABI::Types::uint256;
+  } else if (type == "uint256[]") {
+    return ABI::Types::uint256Arr;
+  } else if (type == "address") {
+    return ABI::Types::address;
+  } else if (type == "address[]") {
+    return ABI::Types::addressArr;
+  } else if (type == "bool") {
+    return ABI::Types::boolean;
+  } else if (type == "bool[]") {
+    return ABI::Types::booleanArr;
+  } else if (type == "bytes") {
+    return ABI::Types::bytes;
+  } else if (type == "bytes[]") {
+    return ABI::Types::bytesArr;
+  } else if (type == "string") {
+    return ABI::Types::string;
+  } else if (type == "string[]") {
+    return ABI::Types::stringArr;
+  } else {
+    throw std::runtime_error("Invalid type");
+  }
+}
+
+/**
+ * This function registers the core contract classes.
+ *
+ */
+void inline registerCoreContractClasses() {
+  meta::class_<ContractGlobals>();
+  meta::class_<ContractLocals>().base_<ContractGlobals>();
+  meta::class_<BaseContract>()
+      .base_<ContractLocals>()
+      .constructor_<std::string, Address, Address, uint64_t,
+                    std::unique_ptr<DB>>();
+  meta::class_<DynamicContract>()
+      .base_<BaseContract>()
+      .constructor_<ContractManager::ContractManagerInterface &, std::string,
+                    Address, Address, uint64_t, const std::unique_ptr<DB> &>();
+}
+
+static std::unordered_map<std::string, std::vector<std::string>>
+    constructorArgumentNamesMap; /// Map to store constructor argument names
+static std::unordered_map<std::string, std::string>
+    methodMutabilityMap; //// Map to store method mutability
+static std::unordered_map<std::string, std::vector<std::string>>
+    argumentNamesMap; /// Map to store method argument names
+
+static std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; /// Map to store method argument types
+template <typename TContract>
+//function to populate methodArgumentsTypesMap
+void inline populateMethodArgumentsTypesMap() {
+  const meta::class_type contractType = meta::resolve_type<TContract>();
+  std::string methodName;
+  for (const meta::method &methods : contractType.get_methods()) {
+    methodName = methods.get_name();
+    auto arity = methods.get_type().get_arity();
+    if (arity > 0) {
+      std::vector<meta::argument> args = methods.get_arguments();
+      std::vector<std::string> argumentTypes;
+      for (size_t i = 0; i < args.size(); i++) {
+        meta::any_type type = args[i].get_type();
+        auto it = typeMap.find(type);
+        if (it != typeMap.end()) {
+          std::string stringType = getStringFromABIEnum(it->second);
+          argumentTypes.push_back(stringType);
+        }
+      }
+      methodArgumentsTypesMap[methodName] = argumentTypes;
+    }
+  }
+}
+
+void inline printMethodArgumentsTypesMap() {
+  for (auto const &x : methodArgumentsTypesMap) {
+    std::cout << "Method: " << x.first << std::endl;
+    std::cout << "Arguments: ";
+    for (auto const &y : x.second) {
+      std::cout << y << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+/**
+ * This function returns the type (or list of types) of a method's arguments.
+  * @param methodName The name of the method.
+  * @return The type (or list of types) of the method's arguments.
+  */
+std::vector<std::string> inline getMethodArgumentsTypesString(
+    const std::string &methodName) {
+  auto it = methodArgumentsTypesMap.find(methodName);
+  if (it != methodArgumentsTypesMap.end()) {
+    return it->second;
+  }
+  return std::vector<std::string>();
+}
+
+std::vector<ABI::Types> inline getMethodArgumentsTypesABI(
+    const std::string &methodName) {
+  auto it = methodArgumentsTypesMap.find(methodName);
+  if (it != methodArgumentsTypesMap.end()) {
+    std::vector<ABI::Types> types;
+    for (auto const &x : it->second) {
+      types.push_back(getABIEnumFromString(x));
+    }
+    return types;
+  }
+  return std::vector<ABI::Types>();
+}
+
+/**
+ * Template function to register a contract class.
+ * @tparam TContract The contract class to register.
+ * @tparam Args The constructor argument types.
+ * @tparam Methods The methods to register.
+ * @param ctorArgs The constructor argument names.
+ * @param methods The methods to register.
+ */
+template <typename TContract, typename... Args, typename... Methods>
+void inline registerContract(const std::vector<std::string> &ctorArgs,
+                             Methods &&...methods) {
+  meta::class_<TContract>().template constructor_<Args...>();
+
+  // Store constructor argument names in the constructorArgumentNamesMap
+  constructorArgumentNamesMap[typeid(TContract).name()] = ctorArgs;
+
+  // Register methods and store the stateMutability string and argument names
+  ((meta::class_<TContract>().method_(
+        std::get<0>(std::forward<Methods>(methods)),
+        std::get<1>(std::forward<Methods>(methods))),
+    methodMutabilityMap[std::get<0>(std::forward<Methods>(methods))] =
+        std::get<2>(std::forward<Methods>(methods)),
+    argumentNamesMap[std::get<0>(std::forward<Methods>(methods))] =
+        std::get<3>(std::forward<Methods>(methods))),
+   ...);
+
+   populateMethodArgumentsTypesMap<TContract>();
+}
+
+/**
+ * Template function to get the constructor data structure of a contract.
+ * @tparam TContract The contract to get the constructor data structure of.
+ * @return The constructor data structure in ABI format.
+ */
+template <typename TContract> bool isContractRegistered() {
+  const meta::class_type contractType = meta::resolve_type<TContract>();
+  return !contractType.get_constructors().empty();
 }
 
 /**
@@ -657,7 +752,7 @@ std::vector<MethodDescription> inline getConstructorDataStructure() {
 
           auto typeIt = typeMap.find(type);
           if (typeIt != typeMap.end()) {
-            std::string stringType = getABITypeString(typeIt->second);
+            std::string stringType = getStringFromABIEnum(typeIt->second);
             description.inputs.push_back({ctorArgNames[i], stringType});
           }
         }
@@ -701,7 +796,7 @@ std::vector<MethodDescription> inline getFunctionDataStructure() {
           meta::any_type type = args[i].get_type();
           auto it = typeMap.find(type);
           if (it != typeMap.end()) {
-            std::string stringType = getABITypeString(it->second);
+            std::string stringType = getStringFromABIEnum(it->second);
             description.inputs.push_back({argNames[i], stringType});
           }
         }
@@ -710,7 +805,7 @@ std::vector<MethodDescription> inline getFunctionDataStructure() {
     meta::any_type returnType = methods.get_type().get_return_type();
     auto it = typeMap.find(returnType);
     if (it != typeMap.end()) {
-      std::string stringType = getABITypeString(it->second);
+      std::string stringType = getStringFromABIEnum(it->second);
       description.outputs = {{"", stringType}};
     }
 
@@ -718,6 +813,30 @@ std::vector<MethodDescription> inline getFunctionDataStructure() {
   }
 
   return descriptions;
+}
+
+
+bool inline methodHasArguments(const std::string& methodName) {
+    auto it = argumentNamesMap.find(methodName);
+    if (it != argumentNamesMap.end()) {
+        const std::vector<std::string>& argumentNames = it->second;
+        return !argumentNames.empty();
+    }
+    return false;
+}
+
+std::string inline getMethodMutability(const std::string& methodName) {
+    auto it = methodMutabilityMap.find(methodName);
+    if (it != methodMutabilityMap.end()) {
+        return it->second;
+    }
+    throw std::runtime_error("Method " + methodName + " not found");
+}
+
+void inline printMethodMutabilityMap() {
+    for (const auto& entry : methodMutabilityMap) {
+        std::cout << "Method: " << entry.first << ", Mutability: " << entry.second << std::endl;
+    }
 }
 
 // JSON UTILS
