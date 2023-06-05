@@ -102,7 +102,7 @@ namespace JsonRPC {
     json eth_protocolVersion(const std::unique_ptr<Options>& options) {
       json ret;
       ret["jsonrpc"] = 2.0;
-      ret["result"] = std::to_string(options->getSDKVersion());
+      ret["result"] = options->getSDKVersion();
       return ret;
     }
 

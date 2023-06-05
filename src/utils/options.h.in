@@ -13,8 +13,14 @@ class Options {
     /// Path to data root folder.
     const std::string rootPath;
 
-    /// Version of the OrbiterSDK.
-    const uint64_t SDKVersion = @CMAKE_PROJECT_VERSION@;
+    /// Major version of the OrbiterSDK.
+    const uint64_t majorSDKVersion = @CMAKE_PROJECT_VERSION_MAJOR@;
+
+    /// Minor version of the OrbiterSDK.
+    const uint64_t minorSDKVersion = @CMAKE_PROJECT_VERSION_MINOR@;
+
+    /// Patch version of the OrbiterSDK.
+    const uint64_t patchSDKVersion = @CMAKE_PROJECT_VERSION_PATCH@;
 
     /// Version of the client (string for display/Web3).
     const std::string web3clientVersion;
@@ -84,7 +90,9 @@ class Options {
     /// Copy constructor.
     Options(const Options& other) :
       rootPath(other.rootPath),
-      SDKVersion(other.SDKVersion),
+      majorSDKVersion(other.majorSDKVersion),
+      minorSDKVersion(other.minorSDKVersion),
+      patchSDKVersion(other.patchSDKVersion),
       web3clientVersion(other.web3clientVersion),
       version(other.version),
       chainID(other.chainID),
@@ -98,8 +106,21 @@ class Options {
     /// Getter for `rootPath`.
     const std::string& getRootPath() const { return this->rootPath; }
 
-    /// Getter for `SDKVersion`.
-    const uint64_t& getSDKVersion() const { return this->SDKVersion; }
+    /// Getter for `majorSDKVersion`.
+    const uint64_t& getMajorSDKVersion() const { return this->majorSDKVersion; }
+
+    /// Getter for `minorSDKVersion`.
+    const uint64_t& getMinorSDKVersion() const { return this->minorSDKVersion; }
+
+    /// Getter for `patchSDKVersion`.
+    const uint64_t& getPatchSDKVersion() const { return this->patchSDKVersion; }
+
+    /// Getter for the full SDK version as a string.
+    const std::string getSDKVersion() const {
+      return std::to_string(this->majorSDKVersion)
+        + "." + std::to_string(this->minorSDKVersion)
+        + "." + std::to_string(this->patchSDKVersion);
+    }
 
     /// Getter for `web3clientVersion`.
     const std::string& getWeb3ClientVersion() const { return this->web3clientVersion; }
