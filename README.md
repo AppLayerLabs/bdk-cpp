@@ -83,10 +83,58 @@ Nodes will be deployed on the same machine, under the following ports and tmux s
 
 Install the dependencies within this repository (provided in the previous section) and execute the script:
 
-```bash ./scripts/AIO-setup.sh```
+```bash
+ ./scripts/AIO-setup.sh
+ ```
+
+Also, there are some flags that can be used to customize the deployment:
+
+| Flag | Description | Default Value |
+|------|-------------|---------------|
+| --clean | Clean the build folder before building | false |
+| --no-deploy | Only build the project, don't deploy the network | false |
+| --debug=\<bool\> | Build in debug mode | true |
+| --cores=\<int\> | Number of cores to use for building | Maximum available |
+
+Example:
+
+```bash 
+./scripts/AIO-setup.sh --clean --no-deploy --debug=false --cores=4
+```
+
+The example above will clean the build folder, only build the project in release mode and use 4 cores for building. Remember that GCC uses around 1.5GB of RAM per core, so, for stability, it is recommended to use adjust the number of cores to the available RAM.
 
 It will automatically build the project with the default configuration (and added contracts if properly linked, see documentation on how to create a contract) and deploy the App-Chain.
 
 After the script finishes, you can connect with your favorite Ethereum wallet or RPC client to the App-Chain using the respective default RPC URL, port and ChainID.
 
 Executing the script again will stop the current network and deploy a new one, with this you must reset your wallet or RPC client if needed (For example, metamask keeps track of nonces of accounts, while a network reset would set back the nonce to 0)
+
+## Developing on Docker
+
+If you want to develop on Docker, there is a Dockerfile that will build the project and deploy the network. It will also install tmux and vim for convenience. The Dockerfile is located on the root of the repository.
+
+* First, you need to install Docker on your machine. You can find the instructions for your OS here:
+  * [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
+  * [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
+  * [Docker for Linux](https://docs.docker.com/desktop/install/linux-install/)
+  
+* After installing Docker, you need to build the image. To do this, go to the root of the repository and run the following command:
+  
+  * Linux/Mac: `sudo docker build -t orbitersdk-cpp-dev:latest .`
+  * Windows: `docker build -t orbitersdk-cpp-dev:latest .`
+
+This will build the image and tag it as `orbitersdk-cpp-dev:latest`. You can change the tag to whatever you want, but remember to change it on the next step.
+
+* After building the image, you can run it with the following command:
+
+  * Linux/Mac: `sudo docker run -it -v /path/to/your/sdk:/orbitersdk-cpp  -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+  * Windows: `docker run -it -v /path/to/your/sdk:/orbitersdk-cpp  -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+
+When running the container, you need to expose the ports that you want to use. The example above exposes the ports 8080-8099 and 8110-8111, which are the ports used by the nodes. Also, you need to mount the folder where you have the SDK, in this case, the folder is `/path/to/your/sdk`. It's a good practice to save the SDK path on an environment variable, so you can use it on the command above this way:
+
+  * Linux/Mac: `sudo docker run -it -v $SDK_PATH:/orbitersdk-cpp  -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+  * Windows: `docker run -it -v %SDK_PATH%:/orbitersdk-cpp  -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+  
+After running the container, you will be the root user on the container. You can now develop on the container, and build and deploy the network with the scripts provided on the `scripts` folder. Remebering that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa. Also, you can integrate the container with your favorite IDE or editor, for example, you can use VSCode with the [Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker) to develop on the container.
+
