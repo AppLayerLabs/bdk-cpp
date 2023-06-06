@@ -467,73 +467,52 @@ static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
  * @return The ABI type string.
  */
 std::string inline getStringFromABIEnum(ABI::Types type) {
-  switch (type) {
-  case ABI::Types::uint256:
-    return "uint256";
-  case ABI::Types::uint256Arr:
-    return "uint256[]";
-  case ABI::Types::address:
-    return "address";
-  case ABI::Types::addressArr:
-    return "address[]";
-  case ABI::Types::boolean:
-    return "bool";
-  case ABI::Types::booleanArr:
-    return "bool[]";
-  case ABI::Types::bytes:
-    return "bytes";
-  case ABI::Types::bytesArr:
-    return "bytes[]";
-  case ABI::Types::string:
-    return "string";
-  case ABI::Types::stringArr:
-    return "string[]";
-  default:
+  const std::unordered_map<ABI::Types, std::string> typeMappings = {
+    {ABI::Types::uint256, "uint256"},
+    {ABI::Types::uint256Arr, "uint256[]"},
+    {ABI::Types::address, "address"},
+    {ABI::Types::addressArr, "address[]"},
+    {ABI::Types::boolean, "bool"},
+    {ABI::Types::booleanArr, "bool[]"},
+    {ABI::Types::bytes, "bytes"},
+    {ABI::Types::bytesArr, "bytes[]"},
+    {ABI::Types::string, "string"},
+    {ABI::Types::stringArr, "string[]"}
+  };
+
+  auto it = typeMappings.find(type);
+  if (it != typeMappings.end()) {
+    return it->second;
+  } else {
     return "";
   }
 }
 
-ABI::Types inline getABIEnumFromString(const std::string &type) {
-  if (type == "uint256") {
-    return ABI::Types::uint256;
-  } else if (type == "uint256[]") {
-    return ABI::Types::uint256Arr;
-  } else if (type == "address") {
-    return ABI::Types::address;
-  } else if (type == "address[]") {
-    return ABI::Types::addressArr;
-  } else if (type == "bool") {
-    return ABI::Types::boolean;
-  } else if (type == "bool[]") {
-    return ABI::Types::booleanArr;
-  } else if (type == "bytes") {
-    return ABI::Types::bytes;
-  } else if (type == "bytes[]") {
-    return ABI::Types::bytesArr;
-  } else if (type == "string") {
-    return ABI::Types::string;
-  } else if (type == "string[]") {
-    return ABI::Types::stringArr;
+/**
+ * This function returns the ABI type for a given ABI type string.
+ * @param type The ABI type string.
+ * @return The ABI type.
+ */
+ABI::Types inline getABIEnumFromString(const std::string& type) {
+  static const std::unordered_map<std::string, ABI::Types> typeMappings = {
+    {"uint256", ABI::Types::uint256},
+    {"uint256[]", ABI::Types::uint256Arr},
+    {"address", ABI::Types::address},
+    {"address[]", ABI::Types::addressArr},
+    {"bool", ABI::Types::boolean},
+    {"bool[]", ABI::Types::booleanArr},
+    {"bytes", ABI::Types::bytes},
+    {"bytes[]", ABI::Types::bytesArr},
+    {"string", ABI::Types::string},
+    {"string[]", ABI::Types::stringArr}
+  };
+
+  auto it = typeMappings.find(type);
+  if (it != typeMappings.end()) {
+    return it->second;
   } else {
     throw std::runtime_error("Invalid type");
   }
-}
-
-/**
- * This function registers the core contract classes.
- *
- */
-void inline registerCoreContractClasses() {
-  meta::class_<ContractGlobals>();
-  meta::class_<ContractLocals>().base_<ContractGlobals>();
-  meta::class_<BaseContract>()
-      .base_<ContractLocals>()
-      .constructor_<std::string, Address, Address, uint64_t,
-                    std::unique_ptr<DB>>();
-  meta::class_<DynamicContract>()
-      .base_<BaseContract>()
-      .constructor_<ContractManager::ContractManagerInterface &, std::string,
-                    Address, Address, uint64_t, const std::unique_ptr<DB> &>();
 }
 
 static std::unordered_map<std::string, std::vector<std::string>>
@@ -544,8 +523,12 @@ static std::unordered_map<std::string, std::vector<std::string>>
     argumentNamesMap; /// Map to store method argument names
 
 static std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; /// Map to store method argument types
+
+/**
+ * This function populates the constructor argument names map.
+ * @tparam TContract The contract type.
+ */
 template <typename TContract>
-//function to populate methodArgumentsTypesMap
 void inline populateMethodArgumentsTypesMap() {
   const meta::class_type contractType = meta::resolve_type<TContract>();
   std::string methodName;
@@ -568,19 +551,8 @@ void inline populateMethodArgumentsTypesMap() {
   }
 }
 
-void inline printMethodArgumentsTypesMap() {
-  for (auto const &x : methodArgumentsTypesMap) {
-    std::cout << "Method: " << x.first << std::endl;
-    std::cout << "Arguments: ";
-    for (auto const &y : x.second) {
-      std::cout << y << " ";
-    }
-    std::cout << std::endl;
-  }
-}
-
 /**
- * This function returns the type (or list of types) of a method's arguments.
+ * This function returns the type (or list of types) of a method's arguments in string format.
   * @param methodName The name of the method.
   * @return The type (or list of types) of the method's arguments.
   */
@@ -593,6 +565,11 @@ std::vector<std::string> inline getMethodArgumentsTypesString(
   return std::vector<std::string>();
 }
 
+/**
+ * This function returns the type (or list of types) of a method's arguments in ABI enum format.
+  * @param methodName The name of the method.
+  * @return The type (or list of types) of the method's arguments.
+  */
 std::vector<ABI::Types> inline getMethodArgumentsTypesABI(
     const std::string &methodName) {
   auto it = methodArgumentsTypesMap.find(methodName);
@@ -815,7 +792,11 @@ std::vector<MethodDescription> inline getFunctionDataStructure() {
   return descriptions;
 }
 
-
+/**
+ * Helper function to check if a method has arguments.
+  * @param methodName The name of the method to check.
+  * @return True if the method has arguments, false otherwise.
+  */
 bool inline methodHasArguments(const std::string& methodName) {
     auto it = argumentNamesMap.find(methodName);
     if (it != argumentNamesMap.end()) {
@@ -825,18 +806,17 @@ bool inline methodHasArguments(const std::string& methodName) {
     return false;
 }
 
+/**
+ * Getter for the mutability of a method.
+  * @param methodName The name of the method to get the mutability of.
+  * @return The mutability of the method.
+  */
 std::string inline getMethodMutability(const std::string& methodName) {
     auto it = methodMutabilityMap.find(methodName);
     if (it != methodMutabilityMap.end()) {
         return it->second;
     }
     throw std::runtime_error("Method " + methodName + " not found");
-}
-
-void inline printMethodMutabilityMap() {
-    for (const auto& entry : methodMutabilityMap) {
-        std::cout << "Method: " << entry.first << ", Mutability: " << entry.second << std::endl;
-    }
 }
 
 // JSON UTILS

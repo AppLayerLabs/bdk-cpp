@@ -3,7 +3,6 @@
 
 #include <memory>
 
-#include "../utils/contractreflectioninterface.h"
 #include "../utils/db.h"
 #include "abi.h"
 #include "dynamiccontract.h"

@@ -52,8 +52,8 @@ void SimpleContract::setValue(uint256_t argValue) {
 
 void SimpleContract::registerContractFunctions() {
   registerContract();
-  registerMemberFunction("getName", &SimpleContract::getName, this);
-  registerMemberFunction("getValue", &SimpleContract::getValue, this);
-  registerMemberFunction("setName", &SimpleContract::setName, this);
-  registerMemberFunction("setValue", &SimpleContract::setValue, this);
+  this->registerMemberFunction("getName", &SimpleContract::getName, this);
+  this->registerMemberFunction("getValue", &SimpleContract::getValue, this);
+  this->registerMemberFunction("setName", &SimpleContract::setName, this);
+  this->registerMemberFunction("setValue", &SimpleContract::setValue, this);
 }
