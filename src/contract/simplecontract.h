@@ -86,25 +86,6 @@ void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(), 
   }
 }
 
-template<typename T, typename Tuple, std::size_t... I>
-auto apply_impl(T&& t, Tuple&& tup, std::index_sequence<I...>)
-{
-    return (std::forward<T>(t))(std::get<I>(std::forward<Tuple>(tup))...);
-}
-
-template<typename MemFunc, typename T, typename... Args, std::size_t... Is>
-auto apply(MemFunc memFunc, T* instance, std::tuple<Args...>& tup, std::index_sequence<Is...>) {
-    return (instance->*memFunc)(std::get<Is>(tup)...);
-}
-
-template<typename T, typename... Args, std::size_t... Is>
-auto create_tuple_from_decoder(ABI::Decoder& decoder, const std::vector<ABI::Types>& types, std::index_sequence<Is...>)
-{
-    return std::make_tuple(std::visit([](auto&& arg) {
-        return arg;
-    }, decoder.getDataDispatch(Is, types[Is]))...);
-}
-
 template <typename R, typename... Args, typename T>
 void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(Args...), T* instance) {
   std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString(funcSignature);
@@ -119,12 +100,16 @@ void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(Arg
     fullSignature += args[args.size() - 1] + ")";
   }
   this->registerFunction(Utils::sha3(fullSignature).get().substr(0,4), [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
-        std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI(funcSignature);
-        ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI(funcSignature);
+    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    std::vector<std::variant<uint256_t, std::vector<uint256_t>, Address,
+                           std::vector<Address>, bool, std::vector<bool>,
+                           std::string, std::vector<std::string>>> dataVector;
+    for (int i = 0; i < types.size(); i++) {
+            dataVec.push_back(decoder.getDataDispatch(i, types[i]));
+        }
 
-        auto args = create_tuple_from_decoder<Args...>(decoder, types, std::index_sequence_for<Args...>{});
-
-        return apply(memFunc, instance, args, std::index_sequence_for<Args...>{});
+        return callFuncWithTuple(instance, memFunc, dataVec, std::index_sequence_for<Args...>());
     });
 }
 
