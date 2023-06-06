@@ -10,6 +10,9 @@ RUN apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pk
 # Set the working directory in the Docker container
 WORKDIR /orbitersdk-cpp
 
+# Copy the local folder to the container
+COPY . /orbitersdk-cpp
+
 # Create the synchronized directory
 RUN mkdir /orbitersdk-volume
 

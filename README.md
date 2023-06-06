@@ -128,13 +128,10 @@ This will build the image and tag it as `orbitersdk-cpp-dev:latest`. You can cha
 
 * After building the image, you can run it with the following command:
 
-  * Linux/Mac: `sudo docker run -it -v /path/to/your/sdk:/orbitersdk-cpp  -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
-  * Windows: `docker run -it -v /path/to/your/sdk:/orbitersdk-cpp  -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+  * Linux/Mac: `sudo docker run -it -v $(pwd):/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+  * Windows: `docker run -it -v  %cd%:/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
 
-When running the container, you need to expose the ports that you want to use. The example above exposes the ports 8080-8099 and 8110-8111, which are the ports used by the nodes. Also, you need to mount the folder where you have the SDK, in this case, the folder is `/path/to/your/sdk`. It's a good practice to save the SDK path on an environment variable, so you can use it on the command above this way:
-
-  * Linux/Mac: `sudo docker run -it -v $SDK_PATH:/orbitersdk-cpp  -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
-  * Windows: `docker run -it -v %SDK_PATH%:/orbitersdk-cpp  -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+When running the container, you need to expose the ports that you want to use. The example above exposes the ports 8080-8099 and 8110-8111, which are the ports used by the nodes. Also, you need to mount the folder where you have the SDK, in this case, we are mounting the current folder (`$(pwd)` on Linux/Mac and `%cd%` on Windows) to the `/orbitersdk-volume` folder on the container.
   
 After running the container, you will be the root user on the container. You can now develop on the container, and build and deploy the network with the scripts provided on the `scripts` folder. Remebering that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa. Also, you can integrate the container with your favorite IDE or editor, for example, you can use VSCode with the [Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker) to develop on the container.
 
