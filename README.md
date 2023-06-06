@@ -121,15 +121,27 @@ If you want to develop on Docker, there is a Dockerfile that will build the proj
   
 * After installing Docker, you need to build the image. To do this, go to the root of the repository and run the following command:
   
-  * Linux/Mac: `sudo docker build -t orbitersdk-cpp-dev:latest .`
-  * Windows: `docker build -t orbitersdk-cpp-dev:latest .`
+  * Linux/Mac:
+   ``` bash
+   sudo docker build -t orbitersdk-cpp-dev:latest .
+   ```
+   * Windows:
+   ``` bash
+    docker build -t orbitersdk-cpp-dev:latest .
+    ```
 
 This will build the image and tag it as `orbitersdk-cpp-dev:latest`. You can change the tag to whatever you want, but remember to change it on the next step.
 
 * After building the image, you can run it with the following command:
 
-  * Linux/Mac: `sudo docker run -it -v $(pwd):/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
-  * Windows: `docker run -it -v  %cd%:/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+  * Linux/Mac:
+  ``` bash
+  sudo docker run -it -v $(pwd):/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest
+  ```
+  * Windows:
+  ```bash
+  docker run -it -v %cd%:/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest
+  ```
 
 When running the container, you need to expose the ports that you want to use. The example above exposes the ports 8080-8099 and 8110-8111, which are the ports used by the nodes. Also, you need to mount the folder where you have the SDK, in this case, we are mounting the current folder (`$(pwd)` on Linux/Mac and `%cd%` on Windows) to the `/orbitersdk-volume` folder on the container.
   
