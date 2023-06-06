@@ -54,16 +54,6 @@ void SimpleContract::registerContractFunctions() {
   registerContract();
   registerMemberFunction("getName", &SimpleContract::getName, this);
   registerMemberFunction("getValue", &SimpleContract::getValue, this);
-  // registerMemberFunction("setName", &SimpleContract::setName, this);
+  registerMemberFunction("setName", &SimpleContract::setName, this);
   registerMemberFunction("setValue", &SimpleContract::setValue, this);
-  this->registerFunction(Utils::sha3("setName(string)").get().substr(0,4), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::string };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    return this->setName(decoder.getData<std::string>(0));
-  });
-  // this->registerFunction(Utils::sha3("setValue(uint256)").get().substr(0,4), [this](const ethCallInfo &callInfo) {
-  //   std::vector<ABI::Types> types = { ABI::Types::uint256 };
-  //   ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-  //   return this->setValue(decoder.getData<uint256_t>(0));
-  // });
 }

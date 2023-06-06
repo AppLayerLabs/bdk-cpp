@@ -2,7 +2,7 @@
 #define ABI_H
 
 #include <string>
-
+#include <any>
 #include "../utils/hex.h"
 #include "../utils/json.hpp"
 #include "../utils/utils.h"
@@ -268,8 +268,7 @@ public:
     throw std::runtime_error("Type mismatch");
   }
 
-  std::variant<uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-               bool, std::vector<bool>, std::string, std::vector<std::string>>
+  std::any
   getDataDispatch(int index, ABI::Types type) {
     switch (type) {
     case ABI::Types::uint256:

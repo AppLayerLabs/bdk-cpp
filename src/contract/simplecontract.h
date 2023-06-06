@@ -5,6 +5,7 @@
 #include "src/utils/contractreflectioninterface.h"
 #include "variables/safestring.h"
 #include "variables/safeuint256_t.h"
+#include <any>
 
 class SimpleContract : public DynamicContract {
 private:
@@ -86,6 +87,23 @@ void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(), 
   }
 }
 
+
+template <typename T, typename R, typename... Args, std::size_t... Is>
+auto tryCallFuncWithTuple(T* instance, R(T::*memFunc)(Args...),
+                          const std::vector<std::any>& dataVec,
+                          std::index_sequence<Is...>) {
+    try {
+        return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
+    } catch (const std::bad_any_cast& ex) {
+        std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
+        ((errorMessage += ("\nAttempted to cast to type: " + std::string(typeid(Args).name()) +
+                          ", Actual type in the any: " +
+                          (dataVec[Is].has_value() ? std::string(dataVec[Is].type().name()) : "Empty any"))), ...);
+        throw std::runtime_error(errorMessage);
+    }
+}
+
+
 template <typename R, typename... Args, typename T>
 void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(Args...), T* instance) {
   std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString(funcSignature);
@@ -102,14 +120,11 @@ void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(Arg
   this->registerFunction(Utils::sha3(fullSignature).get().substr(0,4), [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI(funcSignature);
     ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    std::vector<std::variant<uint256_t, std::vector<uint256_t>, Address,
-                           std::vector<Address>, bool, std::vector<bool>,
-                           std::string, std::vector<std::string>>> dataVector;
+    std::vector<std::any> dataVector;
     for (int i = 0; i < types.size(); i++) {
-            dataVec.push_back(decoder.getDataDispatch(i, types[i]));
+            dataVector.push_back(decoder.getDataDispatch(i, types[i]));
         }
-
-        return callFuncWithTuple(instance, memFunc, dataVec, std::index_sequence_for<Args...>());
+        return tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
     });
 }
 
