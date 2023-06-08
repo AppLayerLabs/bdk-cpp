@@ -39,8 +39,11 @@ enum Types {
 /// Class that encodes and packs native data types into Solidity ABI strings.
 class Encoder {
 private:
-  std::string data; ///< Encoded Solidity ABI string, as RAW BYTES. Use
-                    ///< Hex::fromBytes().get() to print it properly.
+  /**
+  * Encoded Solidity ABI string, as RAW BYTES.
+  * Use Hex::fromBytes().get() to print it properly.
+  */
+  std::string data;
 
   /**
    * Encode a function header into Solidity ABI format.
@@ -268,6 +271,13 @@ public:
     throw std::runtime_error("Type mismatch");
   }
 
+  /**
+  * Get a specific data type from the decoded `data` list.
+  * @param index The index of the data type to get.
+  * @param type The expected Solidity type of the data.
+  * @return The decoded data type.
+  * @throws std::runtime_error if type mismatch.
+  */
   std::any
   getDataDispatch(int index, ABI::Types type) {
     switch (type) {
