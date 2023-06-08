@@ -35,32 +35,12 @@ ERC20Wrapper::~ERC20Wrapper() {
 }
 
 void ERC20Wrapper::registerContractFunctions() {
-  this->registerViewFunction(Hex::toBytes("0x43ab265f"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    return this->getContractBalance(decoder.getData<Address>(0));
-  });
-  this->registerViewFunction(Hex::toBytes("0x6805d6ad"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    return this->getUserBalance(decoder.getData<Address>(0), decoder.getData<Address>(1));
-  });
-  this->registerFunction(Hex::toBytes("0xf3fef3a3"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    this->withdraw(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
-  });
-  this->registerFunction(Hex::toBytes("0xa5f2a152"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    this->transferTo(decoder.getData<Address>(0), decoder.getData<Address>(1), decoder.getData<uint256_t>(2));
-  });
-  this->registerFunction(Hex::toBytes("0x47e7ef24"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    this->deposit(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
-  });
-  return;
+  registerContract();
+  this->registerMemberFunction("getContractBalance", &ERC20Wrapper::getContractBalance, this);
+  this->registerMemberFunction("getUserBalance", &ERC20Wrapper::getUserBalance, this);
+  this->registerMemberFunction("withdraw", &ERC20Wrapper::withdraw, this);
+  this->registerMemberFunction("transferTo", &ERC20Wrapper::transferTo, this);
+  this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, this);
 }
 
 std::string ERC20Wrapper::getContractBalance(const Address& token) const {

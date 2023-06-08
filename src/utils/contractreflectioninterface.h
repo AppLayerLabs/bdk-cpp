@@ -484,7 +484,7 @@ std::string inline getStringFromABIEnum(ABI::Types type) {
   if (it != typeMappings.end()) {
     return it->second;
   } else {
-    return "";
+    throw std::runtime_error("Unsupported ABI type");
   }
 }
 
@@ -552,12 +552,27 @@ void inline populateMethodArgumentsTypesMap() {
 }
 
 /**
+ * Template function to get the constructor data structure of a contract.
+ * @tparam TContract The contract to get the constructor data structure of.
+ * @return The constructor data structure in ABI format.
+ */
+template <typename TContract> bool isContractRegistered() {
+  using DecayedT = std::remove_reference_t<std::remove_pointer_t<TContract>>;
+  const meta::class_type contractType = meta::resolve_type<DecayedT>();
+  return !contractType.get_constructors().empty();
+}
+
+/**
  * This function returns the type (or list of types) of a method's arguments in string format.
   * @param methodName The name of the method.
   * @return The type (or list of types) of the method's arguments.
   */
+template <typename TContract>
 std::vector<std::string> inline getMethodArgumentsTypesString(
     const std::string &methodName) {
+  if (!isContractRegistered<TContract>()) {
+    throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " not registered");
+  }
   auto it = methodArgumentsTypesMap.find(methodName);
   if (it != methodArgumentsTypesMap.end()) {
     return it->second;
@@ -570,8 +585,12 @@ std::vector<std::string> inline getMethodArgumentsTypesString(
   * @param methodName The name of the method.
   * @return The type (or list of types) of the method's arguments.
   */
+template <typename TContract>
 std::vector<ABI::Types> inline getMethodArgumentsTypesABI(
     const std::string &methodName) {
+  if (!isContractRegistered<TContract>()) {
+    throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " not registered");
+  }
   auto it = methodArgumentsTypesMap.find(methodName);
   if (it != methodArgumentsTypesMap.end()) {
     std::vector<ABI::Types> types;
@@ -610,16 +629,6 @@ void inline registerContract(const std::vector<std::string> &ctorArgs,
    ...);
 
    populateMethodArgumentsTypesMap<TContract>();
-}
-
-/**
- * Template function to get the constructor data structure of a contract.
- * @tparam TContract The contract to get the constructor data structure of.
- * @return The constructor data structure in ABI format.
- */
-template <typename TContract> bool isContractRegistered() {
-  const meta::class_type contractType = meta::resolve_type<TContract>();
-  return !contractType.get_constructors().empty();
 }
 
 /**
@@ -797,7 +806,11 @@ std::vector<MethodDescription> inline getFunctionDataStructure() {
   * @param methodName The name of the method to check.
   * @return True if the method has arguments, false otherwise.
   */
+template <typename Contract>
 bool inline methodHasArguments(const std::string& methodName) {
+    if (!isContractRegistered<Contract>()) {
+        throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
+    }
     auto it = argumentNamesMap.find(methodName);
     if (it != argumentNamesMap.end()) {
         const std::vector<std::string>& argumentNames = it->second;
@@ -811,7 +824,11 @@ bool inline methodHasArguments(const std::string& methodName) {
   * @param methodName The name of the method to get the mutability of.
   * @return The mutability of the method.
   */
+template <typename Contract>
 std::string inline getMethodMutability(const std::string& methodName) {
+    if (!isContractRegistered<Contract>()) {
+        throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
+    }
     auto it = methodMutabilityMap.find(methodName);
     if (it != methodMutabilityMap.end()) {
         return it->second;

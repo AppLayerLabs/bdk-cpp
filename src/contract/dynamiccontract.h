@@ -113,8 +113,8 @@ protected:
    */
   template <typename R, typename T>
   void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)() const, T* instance) {
-    bool hasArgs = ContractReflectionInterface::methodHasArguments(funcSignature);
-    std::string methodMutability = ContractReflectionInterface::getMethodMutability(funcSignature);
+    bool hasArgs = ContractReflectionInterface::methodHasArguments<decltype(*instance)>(funcSignature);
+    std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
 
     if (hasArgs) {
       throw std::runtime_error("Invalid function signature.");
@@ -154,8 +154,8 @@ protected:
    */
   template <typename R, typename T>
   void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(), T* instance) {
-    bool hasArgs = ContractReflectionInterface::methodHasArguments(funcSignature);
-    std::string methodMutability = ContractReflectionInterface::getMethodMutability(funcSignature);
+    bool hasArgs = ContractReflectionInterface::methodHasArguments<decltype(*instance)>(funcSignature);
+    std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
 
     if (hasArgs) {
       throw std::runtime_error("Invalid function signature.");
@@ -184,7 +184,7 @@ protected:
   }
 
   /**
-   * Template helper function for calling a member function with no arguments.
+   * Template helper function for calling a non-const member function with no arguments.
     * @param instance Pointer to the instance of the class.
     * @param memFunc Pointer to the member function.
     * @param dataVec Vector of anys containing the arguments.
@@ -195,6 +195,38 @@ protected:
   auto tryCallFuncWithTuple(T* instance, R(T::*memFunc)(Args...),
                             const std::vector<std::any>& dataVec,
                             std::index_sequence<Is...>) {
+    if (sizeof...(Args) > dataVec.size()) {
+      throw std::runtime_error("Not enough arguments provided for function. Expected: " +
+                              std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size()));
+    }
+
+    try {
+      return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
+    } catch (const std::bad_any_cast& ex) {
+      std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
+      ((errorMessage += ("\nAttempted to cast to type: " + std::string(typeid(Args).name()) +
+                        ", Actual type: " +
+                        (dataVec[Is].has_value() ? std::string(dataVec[Is].type().name()) : "Empty any"))), ...);
+      throw std::runtime_error(errorMessage);
+    }
+  }
+
+  /**
+   * Template helper function for calling a const member function with no arguments.
+   * @param instance Pointer to the instance of the class.
+   * @param memFunc Pointer to the member function.
+   * @param dataVec Vector of anys containing the arguments.
+   * @param Is Index sequence for the arguments.
+   * @return The return value of the function.
+   */
+  template <typename T, typename R, typename... Args, std::size_t... Is>
+  auto tryCallFuncWithTuple(T* instance, R(T::*memFunc)(Args...) const, 
+                            const std::vector<std::any>& dataVec,
+                            std::index_sequence<Is...>) {
+      if (sizeof...(Args) != dataVec.size()) {
+          throw std::runtime_error("Not enough arguments provided for function. Expected: " +
+                                  std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size()));
+      }
       try {
           return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
       } catch (const std::bad_any_cast& ex) {
@@ -206,6 +238,7 @@ protected:
       }
   }
 
+
   /**
    * Template for registering a non-const member function with arguments.
    * @param funcSignature Solidity function signature.
@@ -214,8 +247,8 @@ protected:
    */
   template <typename R, typename... Args, typename T>
   void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(Args...), T* instance) {
-    std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString(funcSignature);
-    std::string methodMutability = ContractReflectionInterface::getMethodMutability(funcSignature);
+    std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString<decltype(*instance)>(funcSignature);
+    std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
     std::ostringstream fullSignatureStream;
     fullSignatureStream << funcSignature << "(";
     if (!args.empty()) {
@@ -227,7 +260,11 @@ protected:
     std::string fullSignature = fullSignatureStream.str();
 
     auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
-      std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI(funcSignature);
+      std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
+      if (types.size() != sizeof...(Args)) {
+        throw std::runtime_error("Mismatched argument types in function " + funcSignature + ". Expected: " +
+                                 std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(types.size()));
+      }
       ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
       std::vector<std::any> dataVector;
       for (size_t i = 0; i < types.size(); i++) {
@@ -237,7 +274,48 @@ protected:
     };
 
     if (methodMutability == "view") {
+      throw std::runtime_error("View must be const because it does not modify the state.");
+    } else if (methodMutability == "nonpayable") {
       this->registerFunction(Utils::sha3(fullSignature).get().substr(0, 4), registrationFunc);
+    } else if (methodMutability == "payable") {
+      this->registerPayableFunction(Utils::sha3(fullSignature).get().substr(0, 4), registrationFunc);
+    } else {
+      throw std::runtime_error("Invalid function signature.");
+    }
+  }
+
+  /**
+   * Template for registering a const member function with arguments.
+   * @param funcSignature Solidity function signature.
+   * @param memFunc Pointer to the member function.
+   * @param instance Pointer to the instance of the class.
+   */
+  template <typename R, typename... Args, typename T>
+  void registerMemberFunction(const std::string& funcSignature, R(T::*memFunc)(Args...) const, T* instance) {
+    std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString<decltype(*instance)>(funcSignature);
+    std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
+    std::ostringstream fullSignatureStream;
+    fullSignatureStream << funcSignature << "(";
+    if (!args.empty()) {
+      std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(fullSignatureStream, ","));
+      fullSignatureStream << args.back();
+    }
+    fullSignatureStream << ")";
+
+    std::string fullSignature = fullSignatureStream.str();
+
+    auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
+      std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
+      ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+      std::vector<std::any> dataVector;
+      for (size_t i = 0; i < types.size(); i++) {
+        dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+      }
+      return tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
+    };
+
+    if (methodMutability == "view") {
+      this->registerViewFunction(Utils::sha3(fullSignature).get().substr(0, 4), registrationFunc);
     } else if (methodMutability == "nonpayable") {
       this->registerFunction(Utils::sha3(fullSignature).get().substr(0, 4), registrationFunc);
     } else if (methodMutability == "payable") {

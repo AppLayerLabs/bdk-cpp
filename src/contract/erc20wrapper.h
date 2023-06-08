@@ -61,12 +61,12 @@ public:
         std::make_tuple(
             "getUserBalance", &ERC20Wrapper::getUserBalance, "view",
             std::vector<std::string>{"tokenAddress", "userAddress"}),
-        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, "payable",
+        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, "nonpayable",
                         std::vector<std::string>{"tokenAddress", "value"}),
         std::make_tuple(
-            "transferTo", &ERC20Wrapper::transferTo, "payable",
+            "transferTo", &ERC20Wrapper::transferTo, "nonpayable",
             std::vector<std::string>{"tokenAddress", "toAddress", "value"}),
-        std::make_tuple("deposit", &ERC20Wrapper::deposit, "payable",
+        std::make_tuple("deposit", &ERC20Wrapper::deposit, "nonpayable",
                         std::vector<std::string>{"tokenAddress", "value"}));
   }
 

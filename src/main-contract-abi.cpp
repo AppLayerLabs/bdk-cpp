@@ -1,5 +1,5 @@
 #include "contract/customcontracts.h"
-#include "contract/simplecontract.h"
+#include "contract/erc20.h"
 #include "utils/contractreflectioninterface.h"
 
 
@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
 
     std::string outputFilename = argv[1];
 
-    ContractReflectionInterface::writeContractToJson<SimpleContract>(outputFilename);
+    ContractReflectionInterface::writeContractToJson<ERC20>(outputFilename);
 
     return 0;
 }

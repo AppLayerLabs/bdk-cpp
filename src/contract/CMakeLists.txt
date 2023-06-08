@@ -5,7 +5,6 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.h
   ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.h
-  ${CMAKE_SOURCE_DIR}/src/contract/simplecontract.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint8_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint16_t.h
@@ -28,7 +27,6 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/simplecontract.cpp
   PARENT_SCOPE
 )
 

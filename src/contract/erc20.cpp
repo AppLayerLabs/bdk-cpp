@@ -87,54 +87,16 @@ ERC20::~ERC20() {
 }
 
 void ERC20::registerContractFunctions() {
-  this->registerViewFunction(
-      Hex::toBytes("0x06fdde03"),
-      [this](const ethCallInfo &callInfo) { return this->name(); });
-  this->registerViewFunction(
-      Hex::toBytes("0x95d89b41"),
-      [this](const ethCallInfo &callInfo) { return this->symbol(); });
-  this->registerViewFunction(
-      Hex::toBytes("0x313ce567"),
-      [this](const ethCallInfo &callInfo) { return this->decimals(); });
-  this->registerViewFunction(
-      Hex::toBytes("0x18160ddd"),
-      [this](const ethCallInfo &callInfo) { return this->totalSupply(); });
-  this->registerViewFunction(
-      Hex::toBytes("0x70a08231"), [this](const ethCallInfo &callInfo) {
-        std::vector<ABI::Types> types = {ABI::Types::address};
-        ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-        return this->balanceOf(decoder.getData<Address>(0));
-      });
-  this->registerViewFunction(Hex::toBytes("0xdd62ed3e"), [this](
-                                                             const ethCallInfo
-                                                                 &callInfo) {
-    std::vector<ABI::Types> types = {ABI::Types::address, ABI::Types::address};
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    return this->allowance(decoder.getData<Address>(0),
-                           decoder.getData<Address>(1));
-  });
-
-  this->registerFunction(Hex::toBytes("0xa9059cbb"), [this](const ethCallInfo
-                                                                &callInfo) {
-    std::vector<ABI::Types> types = {ABI::Types::address, ABI::Types::uint256};
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    this->transfer(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
-  });
-  this->registerFunction(Hex::toBytes("0x095ea7b3"), [this](const ethCallInfo
-                                                                &callInfo) {
-    std::vector<ABI::Types> types = {ABI::Types::address, ABI::Types::uint256};
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-    this->approve(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
-  });
-  this->registerFunction(
-      Hex::toBytes("0x23b872dd"), [this](const ethCallInfo &callInfo) {
-        std::vector<ABI::Types> types = {
-            ABI::Types::address, ABI::Types::address, ABI::Types::uint256};
-        ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-        this->transferFrom(decoder.getData<Address>(0),
-                           decoder.getData<Address>(1),
-                           decoder.getData<uint256_t>(2));
-      });
+  registerContract();
+  this->registerMemberFunction("name", &ERC20::name, this);
+  this->registerMemberFunction("symbol", &ERC20::symbol, this);
+  this->registerMemberFunction("decimals", &ERC20::decimals, this);
+  this->registerMemberFunction("totalSupply", &ERC20::totalSupply, this);
+  this->registerMemberFunction("balanceOf", &ERC20::balanceOf, this);
+  this->registerMemberFunction("allowance", &ERC20::allowance, this);
+  this->registerMemberFunction("transfer", &ERC20::transfer, this);
+  this->registerMemberFunction("approve", &ERC20::approve, this);
+  this->registerMemberFunction("transferFrom", &ERC20::transferFrom, this);
 }
 
 void ERC20::_mintValue(const Address &address, const uint256_t &value) {
