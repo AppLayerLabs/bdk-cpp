@@ -38,27 +38,16 @@ class Validator : public Address {
     /// Constructor.
     Validator(const Address& add) : Address(add) {}
 
-    /// Move constructor.
-    Validator(const Address&& add) : Address(std::move(add)) {}
 
     /// Copy constructor.
-    Validator(const Validator& other) : Address(other.data, true) {}
-
-    /// Move constructor.
-    Validator(Validator&& other) noexcept : Address(std::move(other.data), true) {}
+    Validator(const Validator& other) : Address(other.data_)  {}
 
     /// Get a copy of the Validator address.
-    const Address address() const { return Address(this->data, true); }
+    const Address address() const { return Address(this->data_); }
 
     /// Copy assignment operator.
     Validator& operator=(const Validator& other) {
-      this->data = other.data;
-      return *this;
-    }
-
-    /// Move assignment operator.
-    Validator& operator=(Validator&& other) noexcept {
-      this->data = std::move(other.data);
+      this->data_ = other.data_;
       return *this;
     }
 };

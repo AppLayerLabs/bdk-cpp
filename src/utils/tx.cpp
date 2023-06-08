@@ -1,20 +1,20 @@
 #include "tx.h"
 
-TxBlock::TxBlock(const std::string_view& bytes, const uint64_t& requiredChainId) {
+TxBlock::TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId) {
   uint64_t index = 0;
-  const auto txData = bytes.substr(1);
+  const auto txData = bytes.subspan(1);
 
   // Check if Tx is type 2
-  if (uint8_t(bytes[0]) != 0x02) throw std::runtime_error("Tx is not type 2");
+  if (bytes[0] != 0x02) throw std::runtime_error("Tx is not type 2");
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list
-  if (uint8_t(txData[0]) < 0xf7) throw std::runtime_error("Tx is not a list");
+  if (txData[0] < 0xf7) throw std::runtime_error("Tx is not a list");
 
   // Get list length
-  uint8_t listLengthSize = uint8_t(txData[index]) - 0xf7;
+  uint8_t listLengthSize = txData[index] - 0xf7;
   index++;
   uint64_t listLength = Utils::fromBigEndian<uint64_t>(
-    std::string_view(&txData[index], listLengthSize)
+    txData.subspan(index, listLengthSize)
   );
   index += listLengthSize; // Index is now at rlp[0] size
 
@@ -27,137 +27,136 @@ TxBlock::TxBlock(const std::string_view& bytes, const uint64_t& requiredChainId)
 
   // If chainId > 0, get chainId from string.
   // chainId can be a small string or the byte itself
-  const uint8_t chainIdLength = (uint8_t(txData[index]) >= 0x80)
-                              ? uint8_t(txData[index]) - 0x80 : 0;
+  const uint8_t chainIdLength = (txData[index] >= 0x80)
+                              ? txData[index] - 0x80 : 0;
   if (chainIdLength != 0) {
     if (chainIdLength > 0x37) throw std::runtime_error("ChainId is too large");
     index++; // Index at rlp[0] payload
-    uint64_t chainId = 0;
     this->chainId = Utils::fromBigEndian<uint64_t>(
-      std::string_view(&txData[index], chainIdLength)
+      txData.subspan(index, chainIdLength)
     );
     index += chainIdLength; // Index at rlp[1] size
   } else {
-    this->chainId = (uint8_t(txData[index]) == 0x80)
-                  ? 0 : Utils::fromBigEndian<uint64_t>(std::string_view(&txData[index], 1));
+    this->chainId = (txData[index] == 0x80)
+                  ? 0 : Utils::fromBigEndian<uint64_t>(txData.subspan(index, 1));
     index++; // Index at rlp[1] size
   }
 
   // If nonce > 0, get nonce from string.
   // nonce can be a small string or the byte itself
-  const uint8_t nonceLength = (uint8_t(txData[index]) >= 0x80)
-                                ? uint8_t(txData[index]) - 0x80 : 0;
+  const uint8_t nonceLength = (txData[index] >= 0x80)
+                                ? txData[index] - 0x80 : 0;
   if (nonceLength != 0) {
     if (nonceLength > 0x37) throw std::runtime_error("Nonce is too large");
     index++; // Index at rlp[1] payload
     uint64_t nonce = 0;
     this->nonce = Utils::fromBigEndian<uint64_t>(
-      std::string_view(&txData[index], nonceLength)
+      txData.subspan(index, nonceLength)
     );
     index += nonceLength; // Index at rlp[2] size
   } else {
-    this->nonce = (uint8_t(txData[index]) == 0x80)
-                    ? 0 : Utils::fromBigEndian<uint64_t>(std::string_view(&txData[index], 1));
+    this->nonce = (txData[index] == 0x80)
+                    ? 0 : Utils::fromBigEndian<uint64_t>(txData.subspan(index, 1));
     index++; // Index at rlp[2] size
   }
 
   // If maxPriorityFeePerGas > 0, get maxPriorityFeePerGas from string.
   // maxPriorityFeePerGas can be a small string or the byte itself
-  const uint8_t maxPriorityFeePerGasLength = (uint8_t(txData[index]) >= 0x80)
-                              ? uint8_t(txData[index]) - 0x80 : 0;
+  const uint8_t maxPriorityFeePerGasLength = txData[index] >= 0x80
+                              ? txData[index] - 0x80 : 0;
   if (maxPriorityFeePerGasLength != 0) {
     if (maxPriorityFeePerGasLength > 0x37) throw std::runtime_error("MaxPriorityFeePerGas is too large");
     index++; // Index at rlp[2] payload
     uint64_t maxPriorityFeePerGas = 0;
     this->maxPriorityFeePerGas = Utils::fromBigEndian<uint256_t>(
-      std::string_view(&txData[index], maxPriorityFeePerGasLength)
+      txData.subspan(index, maxPriorityFeePerGasLength)
     );
     index += maxPriorityFeePerGasLength; // Index at rlp[3] size
   } else {
-    this->maxPriorityFeePerGas = (uint8_t(txData[index]) == 0x80)
-                  ? 0 : Utils::fromBigEndian<uint256_t>(std::string_view(&txData[index], 1));
+    this->maxPriorityFeePerGas = txData[index] == 0x80
+                  ? 0 : Utils::fromBigEndian<uint256_t>(txData.subspan(index, 1));
     index++; // Index at rlp[3] size
   }
 
   // If maxFeePerGas > 0, get nonce from string.
   // maxFeePerGas can be a small string or the byte itself
-  const uint8_t maxFeePerGasLength = (uint8_t(txData[index]) >= 0x80)
-                                             ? uint8_t(txData[index]) - 0x80 : 0;
+  const uint8_t maxFeePerGasLength = txData[index] >= 0x80
+                                             ? txData[index] - 0x80 : 0;
   if (maxFeePerGasLength != 0) {
     if (maxFeePerGasLength > 0x37) throw std::runtime_error("MaxFeePerGas is too large");
     index++; // Index at rlp[3] payload
     uint64_t maxFeePerGas = 0;
     this->maxFeePerGas = Utils::fromBigEndian<uint256_t>(
-      std::string_view(&txData[index], maxFeePerGasLength)
+      txData.subspan(index, maxFeePerGasLength)
     );
     index += maxFeePerGasLength; // Index at rlp[4] size
   } else {
-    this->maxFeePerGas = (uint8_t(txData[index]) == 0x80)
-                                 ? 0 : Utils::fromBigEndian<uint256_t>(std::string_view(&txData[index], 1));
+    this->maxFeePerGas = txData[index] == 0x80
+                                 ? 0 : Utils::fromBigEndian<uint256_t>(txData.subspan(index, 1));
     index++; // Index at rlp[4] size
   }
 
   // If gasLimit > 0, get gasLimit from string.
   // gasLimit can be a small string or the byte itself
-  const uint8_t gasLimitLength = (uint8_t(txData[index]) >= 0x80)
-                                ? uint8_t(txData[index]) - 0x80 : 0;
+  const uint8_t gasLimitLength = txData[index] >= 0x80
+                                ? txData[index] - 0x80 : 0;
   if (gasLimitLength != 0) {
     if (gasLimitLength > 0x37) throw std::runtime_error("GasLimit is too large");
     index++; // Index at rlp[0] payload
     uint64_t gasLimit = 0;
     this->gasLimit = Utils::fromBigEndian<uint64_t>(
-      std::string_view(&txData[index], gasLimitLength)
+      txData.subspan(index, gasLimitLength)
     );
     index += gasLimitLength; // Index at rlp[1] size
   } else {
-    this->gasLimit = (uint8_t(txData[index]) == 0x80)
-                    ? 0 : Utils::fromBigEndian<uint64_t>(std::string_view(&txData[index], 1));
+    this->gasLimit = txData[index] == 0x80
+                    ? 0 : Utils::fromBigEndian<uint64_t>(txData.subspan(index, 1));
     index++; // Index at rlp[1] size
   }
 
   // Get receiver addess (to) - small string.
   // We don't actually need to get the size, because to/from has a size of 20
-  if (uint8_t(txData[index]) != 0x94) throw std::runtime_error(
+  if (txData[index] != 0x94) throw std::runtime_error(
     "Receiver address (to) is not a 20 byte string (address)"
   );
   index++; // Index at rlp[5] payload
-  this->to = Address(std::string_view(&txData[index], 20), true);
+  this->to = Address(txData.subspan(index, 20));
   index += 20; // Index at rlp[6] size
 
   // Get value - small string or byte itself.
-  uint8_t valueLength = (uint8_t(txData[index]) >= 0x80 ? uint8_t(txData[index]) - 0x80 : 0);
+  uint8_t valueLength = txData[index] >= 0x80 ? txData[index] - 0x80 : 0;
   if (valueLength != 0) {
     if (valueLength > 0x37) throw std::runtime_error("Value is not a small string");
     index++; // Index at rlp[6] payload
     this->value = Utils::fromBigEndian<uint256_t>(
-      std::string_view(&txData[index], valueLength)
+      txData.subspan(index, valueLength)
     );
     index += valueLength; // Index at rlp[7] size
   } else {
-    this->value = (uint8_t(txData[index]) == 0x80)
-      ? 0 : Utils::fromBigEndian<uint256_t>(std::string_view(&txData[index], 1));
+    this->value = txData[index] == 0x80
+      ? 0 : Utils::fromBigEndian<uint256_t>(txData.subspan(index, 1));
     index++; // Index at rlp[7] size
   }
 
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
   if (uint8_t(txData[index]) < 0x80) {
-    this->data = txData[index];
-    index++; // Index at rlp[8] size
+    this->data.assign(txData.begin() + index, txData.begin() + index + 1);
+    index++; // Index at rlp[8] payload
   } else if (uint8_t(txData[index]) < 0xb7) {
     uint8_t dataLength = txData[index] - 0x80;
     index++; // Index at rlp[8] payload
     if (dataLength > 0) {
-      this->data = txData.substr(index, dataLength);
+      this->data.assign(txData.begin() + index, txData.begin() + index + dataLength);
       index += dataLength; // Index at rlp[8] size
     }
   } else if (uint8_t(txData[index]) < 0xc0) {
     uint8_t dataLengthSize = txData[index] - 0xb7;
     index++; // Index at rlp[8] payload size
     uint64_t dataLength = Utils::fromBigEndian<uint64_t>(
-      std::string_view(&txData[index], dataLengthSize)
+      txData.subspan(index, dataLengthSize)
     );
     index += dataLengthSize; // Index at rlp[8] payload
-    this->data = txData.substr(index, dataLength);
+    this->data.assign(txData.begin() + index, txData.begin() + index + dataLength);
     index += dataLength; // Index at rlp[8] size
   } else {
     throw std::runtime_error("Data is too large");
@@ -165,14 +164,14 @@ TxBlock::TxBlock(const std::string_view& bytes, const uint64_t& requiredChainId)
 
   // Get access list
   // ALWAYS 0xc0 (empty list)
-  if (uint8_t(txData[index]) != 0xc0) throw std::runtime_error("Access list is not empty");
+  if (txData[index] != 0xc0) throw std::runtime_error("Access list is not empty");
   index++; // Index at rlp[9] size
 
   // Get v - always byte itself (1 byte)
-  if (uint8_t(txData[index]) == 0x80) {
+  if (txData[index] == 0x80) {
     this->v = 0;
   } else {
-    this->v = Utils::fromBigEndian<uint8_t>(std::string_view(&txData[index], 1));
+    this->v = Utils::fromBigEndian<uint8_t>(txData.subspan(index, 1));
     if (this->v > 0x01) throw std::runtime_error("V is not 0 or 1");
   }
   ++index; // Index at rlp[10] size
@@ -181,21 +180,21 @@ TxBlock::TxBlock(const std::string_view& bytes, const uint64_t& requiredChainId)
   uint8_t rLength = txData[index] - 0x80;
   if (rLength > 0x20) throw std::runtime_error("R is bigger than 32 bytes");
   index++; // Index at rlp[10] payload
-  this->r = Utils::fromBigEndian<uint256_t>(std::string_view(&txData[index], rLength));
+  this->r = Utils::fromBigEndian<uint256_t>(txData.subspan(index, rLength));
   index += rLength; // Index at rlp[11] size
 
   // Get s - small string
   uint8_t sLength = txData[index] - 0x80;
   if (sLength > 0x20) throw std::runtime_error("S is bigger than 32 bytes");
   index++; // Index at rlp[11] payload
-  this->s = Utils::fromBigEndian<uint256_t>(std::string_view(&txData[index], sLength));
+  this->s = Utils::fromBigEndian<uint256_t>(txData.subspan(index, sLength));
   index += sLength; // Index at rlp[12] size
 
   if (!Secp256k1::verifySig(this->r, this->s, this->v)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
   Signature sig = Secp256k1::makeSig(this->r, this->s, this->v);
-  std::string txMessage = this->rlpSerialize(false);
+  auto txMessage = this->rlpSerialize(false);
   Hash msgHash = Utils::sha3(txMessage); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
   if (!key) throw std::runtime_error("Invalid tx signature - cannot recover public key");
@@ -204,7 +203,7 @@ TxBlock::TxBlock(const std::string_view& bytes, const uint64_t& requiredChainId)
 }
 
 TxBlock::TxBlock(
-  const Address to, const Address from, const std::string data,
+  const Address to, const Address from, const Bytes& data,
   const uint64_t chainId, const uint256_t nonce, const uint256_t value,
   const uint256_t maxPriorityFeePerGas, const uint256_t maxFeePerGas, const uint256_t gasLimit, const PrivKey privKey
 ) : to(to), from(from), data(data), chainId(chainId), nonce(nonce),
@@ -216,8 +215,8 @@ TxBlock::TxBlock(
 
   Hash hash = this->hash(false);
   Signature sig = Secp256k1::sign(hash, privKey);
-  this->r = Utils::bytesToUint256(sig.view(0, 32));
-  this->s = Utils::bytesToUint256(sig.view(32,32));
+  this->r = Utils::bytesToUint256(sig.view_const(0, 32));
+  this->s = Utils::bytesToUint256(sig.view_const(32,32));
   this->v = sig[64];
 
   if (pubKey != Secp256k1::recover(sig, hash)) {
@@ -228,8 +227,8 @@ TxBlock::TxBlock(
   }
 }
 
-std::string TxBlock::rlpSerialize(bool includeSig) const {
-  std::string ret("\x02");
+Bytes TxBlock::rlpSerialize(bool includeSig) const {
+  Bytes ret = { 0x02 };
   uint64_t total_size = 0;
   uint64_t reqBytesChainId = Utils::bytesRequired(this->chainId);
   uint64_t reqBytesNonce = Utils::bytesRequired(this->nonce);
@@ -268,107 +267,111 @@ std::string TxBlock::rlpSerialize(bool includeSig) const {
   // Serialize everything
   if (total_size <= 55) {
     ret.reserve(total_size + 1);
-    ret += char(total_size + 0xc0);
+    ret.insert(ret.end(), char(total_size + 0xc0));
   } else {
     uint64_t sizeBytes = Utils::bytesRequired(total_size);
     ret.reserve(total_size + sizeBytes + 1);
-    ret += char(sizeBytes + 0xf7);
-    ret += Utils::uintToBytes(total_size);
+    ret.insert(ret.end(), char(sizeBytes + 0xf7));
+    Utils::appendBytes(ret, Utils::uintToBytes(total_size));
   }
 
   // chainId
   if (this->chainId == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (this->chainId < 0x80) {
-    ret += char(this->chainId);
+    ret.insert(ret.end(), char(this->chainId));
   } else {
-    ret += char(reqBytesChainId + 0x80);
-    ret += Utils::uintToBytes(this->chainId);
+    ret.insert(ret.end(), char(reqBytesChainId + 0x80));
+    Utils::appendBytes(ret, Utils::uintToBytes(this->chainId));
   }
   // Nonce
   if (this->nonce == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (this->nonce < 0x80) {
-    ret += char(this->nonce);
+    ret.insert(ret.end(), char(this->nonce));
   } else {
-    ret += char(reqBytesNonce + 0x80);
-    ret += Utils::uintToBytes(this->nonce);
+    ret.insert(ret.end(), char(reqBytesNonce + 0x80));
+    Utils::appendBytes(ret, Utils::uintToBytes(this->nonce));
   }
 
   // max Priority Fee Per Gas
   if (this->maxPriorityFeePerGas == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (this->maxPriorityFeePerGas < 0x80) {
-    ret += char(this->maxPriorityFeePerGas);
+    ret.insert(ret.end(), char(this->maxPriorityFeePerGas));
   } else {
-    ret += char(reqBytesMaxPriorityFeePerGas + 0x80);
-    ret += Utils::uintToBytes(this->maxPriorityFeePerGas);
+    ret.insert(ret.end(), char(reqBytesMaxPriorityFeePerGas + 0x80));
+    Utils::appendBytes(ret, Utils::uintToBytes(this->maxPriorityFeePerGas));
   }
 
   // max Fee Per Gas
   if (this->maxFeePerGas == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (this->maxFeePerGas < 0x80) {
-    ret += char(this->maxFeePerGas);
+    ret.insert(ret.end(), char(this->maxFeePerGas));
   } else {
-    ret += char(reqBytesMaxFeePerGas + 0x80);
-    ret += Utils::uintToBytes(this->maxFeePerGas);
+    ret.insert(ret.end(), char(reqBytesMaxFeePerGas + 0x80));
+    Utils::appendBytes(ret, Utils::uintToBytes(this->maxFeePerGas));
   }
 
   // Gas Limit
   if (this->gasLimit == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (this->gasLimit < 0x80) {
-    ret += char(this->gasLimit);
+    ret.insert(ret.end(), char(this->gasLimit));
   } else {
-    ret += char(reqBytesGasLimit + 0x80);
-    ret += Utils::uintToBytes(this->gasLimit);
+    ret.insert(ret.end(), char(reqBytesGasLimit + 0x80));
+    Utils::appendBytes(ret, Utils::uintToBytes(this->gasLimit));
   }
 
   // To
-  ret += char(0x94);
-  ret += this->to.get();
+  ret.insert(ret.end(), 0x94);
+  Utils::appendBytes(ret, this->to.get());
 
   // Value
   if (this->value == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (this->value < 0x80) {
-    ret += char(this->value);
+    ret.insert(ret.end(), char(this->value));
   } else {
-    ret += char(reqBytesValue + 0x80);
-    ret += Utils::uintToBytes(this->value);
+    ret.insert(ret.end(), char(reqBytesValue + 0x80));
+    Utils::appendBytes(ret, Utils::uintToBytes(this->value));
   }
 
   // Data
   if (this->data.size() == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (reqBytesData <= 55) {
-    ret += char(reqBytesData + 0x80);
-    ret += this->data;
+    ret.insert(ret.end(), char(reqBytesData + 0x80));
+    ret.insert(ret.end(), this->data.begin(), this->data.end());
   } else {
-    ret += char(Utils::bytesRequired(reqBytesData) + 0xb7);
-    ret += Utils::uintToBytes(reqBytesData);
-    ret += this->data;
+    ret.insert(ret.end(), char(Utils::bytesRequired(reqBytesData) + 0xb7));
+    Utils::appendBytes(ret, Utils::uintToBytes(reqBytesData));
+    ret.insert(ret.end(), this->data.begin(), this->data.end());
   }
 
   // Access List
-  ret += char(0xc0);
+  ret.insert(ret.end(), 0xc0);
 
   // V/chainId
   if (includeSig) {
-    ret += (this->v == 0x00) ? char(0x80) : char(this->v);
+    if (this->v == 0x00) {
+      ret.insert(ret.end(), 0x80);
+    } else {
+      ret.insert(ret.end(), this->v);
+    }
   }
 
   // R
   if (includeSig) {
-    ret += char(reqBytesR + 0x80);
-    ret += Utils::uintToBytes(this->r);
+    ret.insert(ret.end(), char(reqBytesR + 0x80));
+    Utils::appendBytes(ret, Utils::uintToBytes(this->r));
   }
 
   // S
   if (includeSig) {
-    ret += char(reqBytesS + 0x80);
-    ret += Utils::uintToBytes(this->s);
+    ret.insert(ret.end(), char(reqBytesS + 0x80));
+    Utils::appendBytes(ret, Utils::uintToBytes(this->s));
   }
   return ret;
 }
@@ -376,27 +379,32 @@ std::string TxBlock::rlpSerialize(bool includeSig) const {
 ethCallInfo TxBlock::txToCallInfo() const {
   // ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
   ethCallInfo ret;
-  auto& [from, to, gasLimit, gasPrice, value, data] = ret;
+  auto& [from, to, gasLimit, gasPrice, value, functor, data] = ret;
   from = this->getFrom();
   to = this->getTo();
   gasLimit = this->getGasLimit();
   gasPrice = this->getMaxFeePerGas();
   value = this->getValue();
-  data = this->getData();
+  if (this->data.size() >= 4) {
+    functor = Utils::create_view_span(this->data).subspan(0, 4);
+  }
+  if (this->data.size() > 4) {
+    data = Utils::create_view_span(this->data).subspan(4);
+  }
   return ret;
 }
 
-TxValidator::TxValidator(const std::string_view& bytes, const uint64_t& requiredChainId) {
+TxValidator::TxValidator(const BytesArrView bytes, const uint64_t& requiredChainId) {
   uint64_t index = 0;
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list
-  if (uint8_t(bytes[0]) < 0xf7) throw std::runtime_error("Tx is not a list");
+  if (bytes[0] < 0xf7) throw std::runtime_error("Tx is not a list");
 
   // Get list length
-  uint8_t listLengthSize = uint8_t(bytes[index]) - 0xf7;
+  uint8_t listLengthSize = bytes[index] - 0xf7;
   index++;
   uint64_t listLength = Utils::fromBigEndian<uint64_t>(
-    std::string_view(&bytes[index], listLengthSize)
+    bytes.subspan(index, listLengthSize)
   );
   index += listLengthSize; // Index is now at rlp[0] size
 
@@ -409,52 +417,52 @@ TxValidator::TxValidator(const std::string_view& bytes, const uint64_t& required
 
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
   if (uint8_t(bytes[index]) < 0x80) {
-    this->data = bytes[index];
+    this->data.assign(bytes.begin() + index, bytes.begin() + index + 1);
     index++; // Index at rlp[1] size
-  } else if (uint8_t(bytes[index]) < 0xb7) {
+  } else if (bytes[index] < 0xb7) {
     uint8_t dataLength = bytes[index] - 0x80;
     index++; // Index at rlp[0] payload
     if (dataLength > 0) {
-      this->data = bytes.substr(index, dataLength);
+      this->data.assign(bytes.begin() + index, bytes.begin() + index + dataLength);
       index += dataLength; // Index at rlp[1] size
     }
   } else {
     uint8_t dataLengthSize = bytes[index] - 0xb7;
     index++; // Index at rlp[0] payload size
     uint64_t dataLength = Utils::fromBigEndian<uint64_t>(
-      std::string_view(&bytes[index], dataLengthSize)
+      bytes.subspan(index, dataLengthSize)
     );
     index += dataLengthSize; // Index at rlp[0] payload
-    this->data = bytes.substr(index, dataLength);
+    this->data.assign(bytes.begin() + index, bytes.begin() + index + dataLength);
     index += dataLength; // Index at rlp[1] size
   }
 
   // Get nHeight - can be a small string or the byte itself
-  const uint8_t nHeightLength = (uint8_t(bytes[index]) >= 0x80) ? uint8_t(bytes[index]) - 0x80 : 0;
+  const uint8_t nHeightLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;
   if (nHeightLength != 0) {
     index++; // Index at rlp[1] payload
     this->nHeight = Utils::fromBigEndian<uint64_t>(
-      std::string_view(&bytes[index], nHeightLength)
+      bytes.subspan(index, nHeightLength)
     );
     index += nHeightLength; // Index at rlp[2] size
   } else {
-    this->nHeight = (uint8_t(bytes[index]) == 0x80)
-      ? 0 : Utils::fromBigEndian<uint64_t>(std::string_view(&bytes[index], 1));
+    this->nHeight = (bytes[index] == 0x80)
+      ? 0 : Utils::fromBigEndian<uint64_t>(bytes.subspan(index, 1));
     index++; // Index at rlp[2] size
   }
 
   // Get v - small string or the byte itself
-  uint8_t vLength = (uint8_t(bytes[index]) >= 0x80) ? uint8_t(bytes[index]) - 0x80 : 0;
+  uint8_t vLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;
   if (vLength != 0) {
     if (vLength > 0x37) throw std::runtime_error("V is not a small string");
     index++; // Index at rlp[2] payload
     this->v = Utils::fromBigEndian<uint256_t>(
-      std::string_view(&bytes[index], vLength)
+      bytes.subspan(index, vLength)
     );
     index += vLength; // Index at rlp[3] size
   } else {
-    this->v = (uint8_t(bytes[index]) == 0x80)
-      ? 0 : Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], 1));
+    this->v = (bytes[index] == 0x80)
+      ? 0 : Utils::fromBigEndian<uint256_t>(bytes.subspan(index, 1));
     index++; // Index at rlp[3] size
   }
 
@@ -462,14 +470,14 @@ TxValidator::TxValidator(const std::string_view& bytes, const uint64_t& required
   uint8_t rLength = bytes[index] - 0x80;
   if (rLength > 0x37) throw std::runtime_error("R is not a small string");
   index++; // Index at rlp[3] payload
-  this->r = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], rLength));
+  this->r = Utils::fromBigEndian<uint256_t>(bytes.subspan(index, rLength));
   index += rLength; // Index at rlp[4] size
 
   // Get s - small string
   uint8_t sLength = bytes[index] - 0x80;
   if (sLength > 0x37) throw std::runtime_error("S is not a small string");
   index++; // Index at rlp[4] payload
-  this->s = Utils::fromBigEndian<uint256_t>(std::string_view(&bytes[index], sLength));
+  this->s = Utils::fromBigEndian<uint256_t>(bytes.subspan(index, sLength));
   index += sLength; // Index at rlp[5] size. rlp[5] doesn't exist on Validator txs
 
   // Get chainId - calculated from v
@@ -496,7 +504,7 @@ TxValidator::TxValidator(const std::string_view& bytes, const uint64_t& required
 }
 
 TxValidator::TxValidator(
-  const Address from, const std::string data, const uint64_t chainId,
+  const Address from, const Bytes& data, const uint64_t chainId,
   const uint64_t nHeight, const PrivKey privKey
 ) : from(from), data(data), chainId(chainId), nHeight(nHeight) {
   UPubKey pubKey = Secp256k1::toUPub(privKey);
@@ -505,8 +513,8 @@ TxValidator::TxValidator(
   if (add != this->from) throw std::runtime_error("Private key does not match sender address (from)");
 
   Signature sig = Secp256k1::sign(hash, privKey);
-  this->r = Utils::bytesToUint256(sig.view(0, 32));
-  this->s = Utils::bytesToUint256(sig.view(32,32));
+  this->r = Utils::bytesToUint256(sig.view_const(0, 32));
+  this->s = Utils::bytesToUint256(sig.view_const(32,32));
   uint8_t recoveryIds = sig[64];
   this->v = recoveryIds + (this->chainId * 2 + 35);
 
@@ -518,8 +526,8 @@ TxValidator::TxValidator(
   }
 }
 
-std::string TxValidator::rlpSerialize(bool includeSig) const {
-  std::string ret;
+Bytes TxValidator::rlpSerialize(bool includeSig) const {
+  Bytes ret;
   uint64_t total_size = 0;
   uint64_t reqBytesData = this->data.size();
   uint64_t reqBytesnHeight = Utils::bytesRequired(this->nHeight);
@@ -550,67 +558,67 @@ std::string TxValidator::rlpSerialize(bool includeSig) const {
   // Serialize everything
   if (total_size <= 55) {
     ret.reserve(total_size + 1);
-    ret += char(total_size + 0xc0);
+    ret.insert(ret.end(), total_size + 0xc0);
   } else {
     uint64_t sizeBytes = Utils::bytesRequired(total_size);
     ret.reserve(total_size + sizeBytes + 1);
-    ret += char(sizeBytes + 0xf7);
-    ret += Utils::uintToBytes(total_size);
+    ret.insert(ret.end(), sizeBytes + 0xf7);
+    Utils::appendBytes(ret, Utils::uintToBytes(total_size));
   }
 
   // Data
   if (this->data.size() == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (reqBytesData <= 55) {
-    ret += char(reqBytesData + 0x80);
-    ret += this->data;
+    ret.insert(ret.end(), reqBytesData + 0x80);
+    ret.insert(ret.end(), this->data.begin(), this->data.end());
   } else {
-    ret += char(Utils::bytesRequired(reqBytesData) + 0xb7);
-    ret += Utils::uintToBytes(reqBytesData);
-    ret += this->data;
+    ret.insert(ret.end(), char(Utils::bytesRequired(reqBytesData) + 0xb7));
+    Utils::appendBytes(ret, Utils::uintToBytes(reqBytesData));
+    ret.insert(ret.end(), this->data.begin(), this->data.end());
   }
 
   // nHeight
   if (this->nHeight == 0) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else if (this->nHeight < 0x80) {
-    ret += char(this->nHeight);
+    ret.insert(ret.end(), this->nHeight);
   } else {
-    ret += char(reqBytesnHeight + 0x80);
-    ret += Utils::uintToBytes(this->nHeight);
+    ret.insert(ret.end(), reqBytesnHeight + 0x80);
+    Utils::appendBytes(ret, Utils::uintToBytes(this->nHeight));
   }
 
   // V/chainId
   if (includeSig) {
     if (this->v < 0x80) {
-      ret += char(this->v);
+      ret.insert(ret.end(), uint8_t(this->v));
     } else {
-      ret += char(reqBytesV + 0x80);
-      ret += Utils::uintToBytes(this->v);
+      ret.insert(ret.end(), reqBytesV + 0x80);
+      Utils::appendBytes(ret, Utils::uintToBytes(this->v));
     }
   } else {
     if (this->chainId < 0x80) {
-      ret += char(this->chainId);
+      ret.insert(ret.end(), this->chainId);
     } else {
-      ret += char(reqBytesV + 0x80);
-      ret += Utils::uintToBytes(this->chainId);
+      ret.insert(ret.end(), reqBytesV + 0x80);
+      Utils::appendBytes(ret, Utils::uintToBytes(this->chainId));
     }
   }
 
   // R
   if (!includeSig) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else {
-    ret += char(reqBytesR + 0x80);
-    ret += Utils::uintToBytes(this->r);
+    ret.insert(ret.end(), reqBytesR + 0x80);
+    Utils::appendBytes(ret, Utils::uintToBytes(this->r));
   }
 
   // S
   if (!includeSig) {
-    ret += char(0x80);
+    ret.insert(ret.end(), 0x80);
   } else {
-    ret += char(reqBytesS + 0x80);
-    ret += Utils::uintToBytes(this->s);
+    ret.insert(ret.end(), reqBytesS + 0x80);
+    Utils::appendBytes(ret, Utils::uintToBytes(this->s));
   }
 
   return ret;

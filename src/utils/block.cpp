@@ -1,24 +1,24 @@
 #include "block.h"
 #include "../core/rdpos.h"
 
-Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
+Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
   try {
     // Split the bytes string
     if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
-    this->validatorSig = Signature(bytes.substr(0, 65));
-    this->prevBlockHash = Hash(bytes.substr(65, 32));
-    this->blockRandomness = Hash(bytes.substr(97, 32));
-    this->validatorMerkleRoot = Hash(bytes.substr(129, 32));
-    this->txMerkleRoot = Hash(bytes.substr(161, 32));
-    this->timestamp = Utils::bytesToUint64(bytes.substr(193, 8));
-    this->nHeight = Utils::bytesToUint64(bytes.substr(201, 8));
-    uint64_t txValidatorStart = Utils::bytesToUint64(bytes.substr(209, 8));
+    this->validatorSig = Signature(bytes.subspan(0, 65));
+    this->prevBlockHash = Hash(bytes.subspan(65, 32));
+    this->blockRandomness = Hash(bytes.subspan(97, 32));
+    this->validatorMerkleRoot = Hash(bytes.subspan(129, 32));
+    this->txMerkleRoot = Hash(bytes.subspan(161, 32));
+    this->timestamp = Utils::bytesToUint64(bytes.subspan(193, 8));
+    this->nHeight = Utils::bytesToUint64(bytes.subspan(201, 8));
+    uint64_t txValidatorStart = Utils::bytesToUint64(bytes.subspan(209, 8));
 
     // Count how many block txs are in the block
     uint64_t txCount = 0;
     uint64_t index = 217; // Start of block tx range
     while (index < txValidatorStart) {
-      uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
+      uint64_t txSize = Utils::bytesToUint32(bytes.subspan(index, 4));
       index += txSize + 4;
       txCount++;
     }
@@ -27,7 +27,7 @@ Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
     uint64_t valTxCount = 0;
     index = txValidatorStart;
     while (index < bytes.size()) {
-      uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
+      uint64_t txSize = Utils::bytesToUint32(bytes.subspan(index, 4));
       index += txSize + 4;
       valTxCount++;
     }
@@ -39,9 +39,9 @@ Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
     unsigned int thrNum = std::thread::hardware_concurrency();
     if (thrNum <= 1 || txCount <= 2000) {
       for (uint64_t i = 0; i < txCount; ++i) {
-        uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
+        uint64_t txSize = Utils::bytesToUint32(bytes.subspan(index, 4));
         index += 4;
-        this->txs.emplace_back(bytes.substr(index, txSize), requiredChainId);
+        this->txs.emplace_back(bytes.subspan(index, txSize), requiredChainId);
         index += txSize;
       }
     } else {
@@ -65,10 +65,10 @@ Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
           [&, startIdx, nTxs](){
             std::vector<TxBlock> txVec;
             uint64_t idx = startIdx;
-            for (uint64_t i = 0; i < nTxs; i++) {
-              uint64_t len = Utils::bytesToUint32(bytes.substr(idx, 4));
+            for (uint64_t ii = 0; ii < nTxs; ii++) {
+              uint64_t len = Utils::bytesToUint32(bytes.subspan(idx, 4));
               idx += 4;
-              txVec.emplace_back(bytes.substr(idx, len), requiredChainId);
+              txVec.emplace_back(bytes.subspan(idx, len), requiredChainId);
               idx += len;
             }
             return txVec;
@@ -78,8 +78,8 @@ Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
 
         // Update offset, skip if this is the last thread
         if (i < txsPerThr.size() - 1) {
-          for (uint64_t i = 0; i < nTxs; i++) {
-            uint64_t len = Utils::bytesToUint32(bytes.substr(thrOff, 4));
+          for (uint64_t ii = 0; ii < nTxs; ii++) {
+            uint64_t len = Utils::bytesToUint32(bytes.subspan(thrOff, 4));
             thrOff += len + 4;
           }
         }
@@ -95,15 +95,14 @@ Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
     // Deserialize the Validator transactions normally, no need to thread
     index = txValidatorStart;
     for (uint64_t i = 0; i < valTxCount; ++i) {
-      uint64_t txSize = Utils::bytesToUint32(bytes.substr(index, 4));
+      uint64_t txSize = Utils::bytesToUint32(bytes.subspan(index, 4));
       index += 4;
-      this->txValidators.emplace_back(bytes.substr(index, txSize), requiredChainId);
+      this->txValidators.emplace_back(bytes.subspan(index, txSize), requiredChainId);
       if (txValidators.back().getNHeight() != this->nHeight) {
         throw std::runtime_error("Invalid validator tx height");
       }
       index += txSize;
     }
-
     // Sanity check the Merkle roots, block randomness and signature
     auto expectedTxMerkleRoot = Merkle(txs).getRoot();
     auto expectedValidatorMerkleRoot = Merkle(txValidators).getRoot();
@@ -123,7 +122,6 @@ Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
     )) {
       throw std::runtime_error("Invalid validator signature");
     }
-
     // Get the signature and finalize the block
     this->validatorPubKey = Secp256k1::recover(this->validatorSig, msgHash);
     this->finalized = true;
@@ -136,49 +134,50 @@ Block::Block(std::string_view bytes, const uint64_t& requiredChainId) {
   }
 }
 
-const std::string Block::serializeHeader() const {
-  // Block header = 218 bytes = {
+const Bytes Block::serializeHeader() const {
+  // Block header = 144 bytes = {
   //  bytes(prevBlockHash) + bytes(blockRandomness) +
   //  bytes(validatorMerkleRoot) + bytes(txMerkleRoot) +
   //  bytes(timestamp) + bytes(nHeight)
   // }
-  std::string ret;
-  ret += this->prevBlockHash.get();
-  ret += this->blockRandomness.get();
-  ret += this->validatorMerkleRoot.get();
-  ret += this->txMerkleRoot.get();
-  ret += Utils::uint64ToBytes(this->timestamp);
-  ret += Utils::uint64ToBytes(this->nHeight);
+  Bytes ret;
+  ret.reserve(144);
+  ret.insert(ret.end(), this->prevBlockHash.cbegin(), this->prevBlockHash.cend());
+  ret.insert(ret.end(), this->blockRandomness.cbegin(), this->blockRandomness.cend());
+  ret.insert(ret.end(), this->validatorMerkleRoot.cbegin(), this->validatorMerkleRoot.cend());
+  ret.insert(ret.end(), this->txMerkleRoot.cbegin(), this->txMerkleRoot.cend());
+  Utils::appendBytes(ret, Utils::uint64ToBytes(this->timestamp));
+  Utils::appendBytes(ret, Utils::uint64ToBytes(this->nHeight));
   return ret;
 }
 
-const std::string Block::serializeBlock() const {
-  std::string ret;
+const Bytes Block::serializeBlock() const {
+  Bytes ret;
   // Block = bytes(validatorSig) + bytes(BlockHeader) +
   // TxValidatorStart + [TXs] + [TxValidators]
-  ret += this->validatorSig.get();
-  ret += this->serializeHeader();
+  ret.insert(ret.end(), this->validatorSig.cbegin(), this->validatorSig.cend());
+  Utils::appendBytes(ret, this->serializeHeader());
 
   // Fill in the txValidatorStart with 0s for now, keep track of the index
   uint64_t txValidatorStartLoc = ret.size();
-  ret += Utils::uint64ToBytes(0);
+  ret.insert(ret.end(), 8, 0x00);
 
   // Serialize the transactions [4 Bytes + Tx Bytes]
   for (const auto &tx : this->txs) {
-    std::string txBytes = tx.rlpSerialize();
-    ret += Utils::uint32ToBytes(txBytes.size());
-    ret += txBytes;
+    Bytes txBytes = tx.rlpSerialize();
+    Utils::appendBytes(ret, Utils::uint32ToBytes(txBytes.size()));
+    ret.insert(ret.end(), txBytes.begin(), txBytes.end());
   }
 
   // Insert the txValidatorStart
-  std::string txValidatorStart = Utils::uint64ToBytes(ret.size());
+  BytesArr<8> txValidatorStart = Utils::uint64ToBytes(ret.size());
   std::memcpy(&ret[txValidatorStartLoc], txValidatorStart.data(), 8);
 
   // Serialize the Validator Transactions [4 Bytes + Tx Bytes]
   for (const auto &tx : this->txValidators) {
-    std::string txBytes = tx.rlpSerialize();
-    ret += Utils::uint32ToBytes(txBytes.size());
-    ret += txBytes;
+    Bytes txBytes = tx.rlpSerialize();
+    Utils::appendBytes(ret, Utils::uint32ToBytes(txBytes.size()));
+    ret.insert(ret.end(), txBytes.begin(), txBytes.end());
   }
 
   return ret;

@@ -8,14 +8,14 @@
 using Catch::Matchers::Equals;
 
 namespace TBlock {
-  TEST_CASE("Block Class (Throw)", "[utils][block]") {
+  TEST_CASE("Block Class (Throw)", "[utils][block][throw]") {
     SECTION("Block with invalid size") {
       bool catched = false;
-      std::string_view str(Hex::toBytes(
+      Bytes bytes(Hex::toBytes(
         "0x9890a27da5231bd842529fa107a6e137e807fb8086f6c740d39a37681e1394317e2b38f540f3a9ed7f0b4f6835fc67613dcb52d2e8b3afa193840441902cc030f2febfaa0a1edd774318d1fe6e3bf1aec16082457f7a66f7fd4bef8ddded9b76d7b9da8a2d15d02eae1743ddcfb9e34fe0374ceaec6e96fb8489d16c6886441697610af9744109384ae774b20eb22cce3677a4c836f57ca30eafc308af2d04cf93ada88ad0fb6968ce6ea1556cc24af1234b8b2d93a0e37a417f53148662659ccdbaa2ed5233d712a2ea93ea0a08e360c72018fa10a8d7"
       ));
-      REQUIRE(str.length() < 217);
-      try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
+      REQUIRE(bytes.size() < 217);
+      try { Block b(bytes, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
 
@@ -33,15 +33,16 @@ namespace TBlock {
 
       // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
-      std::string randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed += seed.get();
+      Bytes randomSeed; // Concatenated random seed of block.
+      for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed);
 
       std::vector<TxValidator> txValidators;
       Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
 
       // Create 8 TxValidator transactions with type 0xcfffe746 (random hash)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        Bytes data = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(data, Utils::sha3(seed.get()));
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight + 1, txValidatorPrivKey
         ); // nHeight here is wrong on purpose, +1 so it can throw
@@ -49,7 +50,8 @@ namespace TBlock {
 
       // Create 8 TxValidator transactions with type 0x6fc5a2d6 (random seed)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        Bytes data = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(data, seed.get());
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight + 1, txValidatorPrivKey
         ); // nHeight here is wrong on purpose, +1 so it can throw
@@ -62,7 +64,7 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       bool catched = false;
-      std::string str = newBlock.serializeBlock();
+      Bytes str = newBlock.serializeBlock();
       try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -81,15 +83,16 @@ namespace TBlock {
 
       // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
-      std::string randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed += seed.get();
+      Bytes randomSeed; // Concatenated random seed of block.
+      for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed.get());
 
       std::vector<TxValidator> txValidators;
       Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
 
       // Create 8 TxValidator transactions with type 0xcfffe746 (random hash)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        Bytes data = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(data, Utils::sha3(seed.get()));
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight, txValidatorPrivKey
         );
@@ -97,7 +100,8 @@ namespace TBlock {
 
       // Create 8 TxValidator transactions with type 0x6fc5a2d6 (random seed)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        Bytes data = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(data, seed.get());
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight, txValidatorPrivKey
         );
@@ -110,8 +114,10 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       bool catched = false;
-      std::string str = newBlock.serializeBlock();
-      str.replace(161, 2, "\xb0\x0b"); // Replace 2 bytes on tx merkle root to make it invalid and throw
+      Bytes str = newBlock.serializeBlock();
+      // Replace 2 bytes to merkle root invalid
+      str[161] = 0xb0;
+      str[162] = 0x0b;
       try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -130,15 +136,16 @@ namespace TBlock {
 
       // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
-      std::string randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed += seed.get();
+      Bytes randomSeed; // Concatenated random seed of block.
+      for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed);
 
       std::vector<TxValidator> txValidators;
       Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
 
       // Create 8 TxValidator transactions with type 0xcfffe746 (random hash)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        Bytes data = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(data, Utils::sha3(seed.get()));
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight, txValidatorPrivKey
         );
@@ -146,7 +153,8 @@ namespace TBlock {
 
       // Create 8 TxValidator transactions with type 0x6fc5a2d6 (random seed)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        Bytes data = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(data, seed);
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight, txValidatorPrivKey
         );
@@ -159,8 +167,10 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       bool catched = false;
-      std::string str = newBlock.serializeBlock();
-      str.replace(129, 2, "\xb0\x0b"); // Replace 2 bytes on validator merkle root to make it invalid and throw
+      Bytes str = newBlock.serializeBlock();
+      // Replace 2 bytes on validator merkle root to make it invalid and throw
+      str[129] = 0xb0;
+      str[130] = 0x0b;
       try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -179,15 +189,16 @@ namespace TBlock {
 
       // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
-      std::string randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed += seed.get();
+      Bytes randomSeed; // Concatenated random seed of block.
+      for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed);
 
       std::vector<TxValidator> txValidators;
       Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
 
       // Create 8 TxValidator transactions with type 0xcfffe746 (random hash)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        Bytes data = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(data, Utils::sha3(seed.get()));
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight, txValidatorPrivKey
         );
@@ -195,7 +206,8 @@ namespace TBlock {
 
       // Create 8 TxValidator transactions with type 0x6fc5a2d6 (random seed)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        Bytes data = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(data, seed);
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight, txValidatorPrivKey
         );
@@ -208,8 +220,10 @@ namespace TBlock {
       newBlock.finalize(blockValidatorPrivKey, timestamp+1);
 
       bool catched = false;
-      std::string str = newBlock.serializeBlock();
-      str.replace(97, 2, "\xb0\x0b"); // Replace 2 bytes on block randomness to make it invalid and throw
+      Bytes str = newBlock.serializeBlock();
+      // Replace 2 bytes on block randomness to make it invalid and throw
+      str[97] = 0xb0;
+      str[98] = 0x0b;
       try { Block b(str, 8080); } catch (std::exception& e) { catched = true; }
       REQUIRE(catched == true);
     }
@@ -228,15 +242,16 @@ namespace TBlock {
 
       // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
-      std::string randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed += seed.get();
+      Bytes randomSeed; // Concatenated random seed of block.
+      for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed);
 
       std::vector<TxValidator> txValidators;
       Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
 
       // Create 8 TxValidator transactions with type 0xcfffe746 (random hash)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        Bytes data = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(data, Utils::sha3(seed.get()));
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight, txValidatorPrivKey
         );
@@ -244,7 +259,8 @@ namespace TBlock {
 
       // Create 8 TxValidator transactions with type 0x6fc5a2d6 (random seed)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        Bytes data = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(data, seed);
         txValidators.emplace_back(
           validatorAddress, data, 8080, nHeight, txValidatorPrivKey
         );
@@ -260,16 +276,19 @@ namespace TBlock {
       bool catchedR = false;
       bool catchedS = false;
       bool catchedV = false;
-      std::string strR = newBlock.serializeBlock();
-      std::string strS = newBlock.serializeBlock();
-      std::string strV = newBlock.serializeBlock();
+      Bytes strR = newBlock.serializeBlock();
+      Bytes strS = newBlock.serializeBlock();
+      Bytes strV = newBlock.serializeBlock();
       // Make signature R over Secp256k1::ecConst, making signature invalid.
       // Which equals to 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
-      strR.replace(0, 16, "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"); // Replace 2 bytes in Validator sig to make it invalid and throw
+      strR.erase(strR.begin(), strR.begin() + 16);
+      strR.insert(strR.begin(), 16, 0xff); // Replace 2 bytes in Validator sig to make it invalid and throw
       // Make signature S over Secp256k1::ecConst, making signature invalid
-      strS.replace(32, 16, "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff");
+      strS.erase(strS.begin() + 32, strS.begin() + 48);
+      strS.insert(strS.begin() + 32, 16, 0xff);
       // Make signature V over 1, making signature invalid
-      strV.replace(64,1, "\xff");
+      strV.erase(strV.begin() + 64, strV.begin() + 65);
+      strV.insert(strV.begin() + 64, 1, 0xff);
       try { Block b(strR, 8080); } catch (std::exception& e) { catchedR = true; }
       try { Block b(strS, 8080); } catch (std::exception& e) { catchedS = true; }
       try { Block b(strV, 8080); } catch (std::exception& e) { catchedV = true; }

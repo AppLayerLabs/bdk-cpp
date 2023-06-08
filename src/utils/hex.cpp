@@ -35,7 +35,7 @@ bool Hex::isValid(const std::string_view hex, bool strict) {
   return true;
 }
 
-Hex Hex::fromBytes(std::string_view bytes, bool strict) {
+Hex Hex::fromBytes(const std::span<const uint8_t> bytes, bool strict) {
   auto beg = bytes.begin();
   auto end = bytes.end();
   static const char* digits = "0123456789abcdef";
@@ -47,10 +47,6 @@ Hex Hex::fromBytes(std::string_view bytes, bool strict) {
     hex[off++] = digits[*beg & 0x0f];
   }
   return Hex(std::move(hex), strict);
-}
-
-Hex Hex::fromBytes(const char* bytes, size_t size, bool strict) {
-  return Hex::fromBytes(std::string_view(bytes, size), strict);
 }
 
 Hex Hex::fromUTF8(std::string_view str, bool strict) {
@@ -82,38 +78,39 @@ std::string Hex::forRPC() const {
   return retHex;
 };
 
-std::string Hex::toBytes(const std::string_view hex) {
-  std::string ret;
+Bytes Hex::toBytes(const std::string_view hex) {
+  Bytes ret;
   size_t i = (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? 2 : 0;
   const static std::string_view filter("0123456789abcdefABCDEF");
-  if (hex.find_first_not_of(filter, i) != std::string::npos) {
+  auto pos = hex.find_first_not_of(filter, i);
+  if (pos != std::string::npos) {
     throw std::runtime_error(std::string(__func__) + ": Invalid hex string: "
-      + std::string(hex) + " filter: " + std::string(filter));
+      + std::string(hex) + " filter: " + std::string(filter) + " at pos: " + std::to_string(pos));
   }
   if (hex.size() % 2) {
     int h = Hex::toInt(hex[i++]);
-    ret += (char) uint8_t(h);
+    ret.emplace_back(uint8_t(h));
   }
   for (; i < hex.size(); i += 2) {
     int h = Hex::toInt(hex[i]);
     int l = Hex::toInt(hex[i + 1]);
-    ret += (char) uint8_t(h * 16 + l);
+    ret.emplace_back(uint8_t(h * 16 + l));
   }
   return ret;
 }
 
-std::string Hex::bytes() const {
+Bytes Hex::bytes() const {
   // Parse two by two chars until the end
-  std::string ret;
+  Bytes ret;
   uint32_t i = (this->strict) ? 2 : 0; // Strict offset ("0x")
   if (hex.size() % 2) {
     int h = Hex::toInt(this->hex[i++]);
-    ret += (char) uint8_t(h);
+    ret.emplace_back(uint8_t(h));
   }
   for (; i < this->hex.size(); i += 2) {
     int h = Hex::toInt(this->hex[i]);
     int l = Hex::toInt(this->hex[i + 1]);
-    ret += (char) uint8_t(h * 16 + l);
+    ret.emplace_back(uint8_t(h * 16 + l));
   }
   return ret;
 }

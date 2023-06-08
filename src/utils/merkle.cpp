@@ -1,11 +1,20 @@
 #include "merkle.h"
 
+
 std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
   std::vector<Hash> ret;
   for (uint64_t i = 0; i < layer.size(); i += 2) ret.emplace_back((
     (i + 1 < layer.size())
-      ? Utils::sha3(std::min(layer[i].get(), layer[i + 1].get())
-        + std::max(layer[i].get(), layer[i + 1].get()))
+      ? Utils::sha3(
+          /// Lambda to concatenate
+          Bytes([&]() -> Bytes {
+            Bytes bytes;
+            bytes.reserve(64);
+            Utils::appendBytes(bytes, std::min(layer[i], layer[i + 1]));
+            Utils::appendBytes(bytes, std::max(layer[i], layer[i + 1]));
+            return bytes;
+          }()
+        ))
       : layer[i]
   ));
   return ret;
@@ -42,7 +51,14 @@ const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
 bool Merkle::verify(const std::vector<Hash>& proof, const Hash& leaf, const Hash& root) {
   Hash computedHash = leaf;
   for (const Hash& hash : proof) computedHash = Utils::sha3(
-    std::min(computedHash.get(), hash.get()) + std::max(computedHash.get(), hash.get())
+      /// Lambda to concatenate
+      Bytes([&]() -> Bytes {
+        Bytes bytes;
+        bytes.reserve(64);
+        Utils::appendBytes(bytes, std::min(computedHash, hash));
+        Utils::appendBytes(bytes, std::max(computedHash, hash));
+        return bytes;
+      }())
   );
   return computedHash == root;
 }

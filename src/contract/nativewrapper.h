@@ -83,7 +83,7 @@ public:
    * @brief Returns the name of the ERC20 token.
    * @return The name of the ERC20 token.
    */
-  std::string name() const;
+  Bytes name() const;
 
   /// function symbol() public view returns (string memory) { return _symbol; }
 
@@ -91,7 +91,7 @@ public:
    * @brief Returns the symbol of the ERC20 token.
    * @return The symbol of the ERC20 token.
    */
-  std::string symbol() const;
+  Bytes symbol() const;
 
   /// function decimals() public view returns (uint8) { return _decimals; }
 
@@ -99,7 +99,7 @@ public:
    * @brief Returns the decimals of the ERC20 token.
    * @return The decimals of the ERC20 token.
    */
-  std::string decimals() const;
+  Bytes decimals() const;
 
   /// function totalSupply() public view returns (uint256) { return
   /// _totalSupply; }
@@ -108,7 +108,7 @@ public:
    * @brief Returns the total supply of the ERC20 token.
    * @return The total supply of the ERC20 token.
    */
-  std::string totalSupply() const;
+  Bytes totalSupply() const;
 
   /// function balanceOf(address _owner) public view returns (uint256) { return
   /// _balances[_owner]; }
@@ -118,7 +118,7 @@ public:
    * @param _owner The address to query the balance of.
    * @return The balance of the specified address.
    */
-  std::string balanceOf(const Address &_owner) const;
+  Bytes balanceOf(const Address &_owner) const;
 
   /// function transfer(address _to, uint256 _value) public returns (bool)
 
@@ -151,7 +151,7 @@ public:
    * @return The amount which _spender is still allowed to withdraw from
    * _owner.
    */
-  std::string allowance(const Address &_owner, const Address &_spender) const;
+  Bytes allowance(const Address &_owner, const Address &_spender) const;
 
   /// function transferFrom(address _from, address _to, uint _value) public
   /// returns (bool)

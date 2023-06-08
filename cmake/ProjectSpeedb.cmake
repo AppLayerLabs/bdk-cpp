@@ -37,6 +37,7 @@ ExternalProject_Add(
              -DWITH_TRACE_TOOLS=OFF
   ${_overwrite_install_command}
   BUILD_BYPRODUCTS "${SPEEDB_LIBRARY}"
+  UPDATE_COMMAND  ""
 )
 
 # Create imported library

@@ -51,7 +51,7 @@ namespace JsonRPC {
       }
     }
 
-    std::string web3_sha3(const json& request) {
+    Bytes web3_sha3(const json& request) {
       try {
         // Data to hash will always be at index 0.
         if (request["params"].size() != 1) {
@@ -261,9 +261,9 @@ namespace JsonRPC {
       }
     }
 
-    ethCallInfo eth_call(const json& request, const std::unique_ptr<Storage> &storage) {
-      ethCallInfo result;
-      auto& [from, to, gas, gasPrice, value, data] = result;
+    ethCallInfoAllocated eth_call(const json& request, const std::unique_ptr<Storage> &storage) {
+      ethCallInfoAllocated result;
+      auto& [from, to, gas, gasPrice, value, functor, data] = result;
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
@@ -294,14 +294,14 @@ namespace JsonRPC {
           if (!std::regex_match(fromAddress, addressFilter)) {
             throw std::runtime_error("Invalid from address hex");
           }
-          from = Address(Hex::toBytes(fromAddress), true);
+          from = Address(Hex::toBytes(fromAddress));
         }
         // Check to address.
         std::string toAddress = txObject["to"].get<std::string>();
         if (!std::regex_match(toAddress, addressFilter)) {
           throw std::runtime_error("Invalid to address hex");
         }
-        to = Address(Hex::toBytes(toAddress), true);
+        to = Address(Hex::toBytes(toAddress));
         // Check gas (optional)
         if (txObject.contains("gas") && !txObject["gas"].is_null()) {
           std::string gasHex = txObject["gas"].get<std::string>();
@@ -329,10 +329,13 @@ namespace JsonRPC {
         // Check data (optional)
         if (txObject.contains("data") && !txObject["data"].is_null()) {
           std::string dataHex = txObject["data"].get<std::string>();
-          if (!Hex::isValid(dataHex, true)) {
-            throw std::runtime_error("Invalid data hex");
+          auto bytes = Hex::toBytes(dataHex);
+          if (bytes.size() >= 4) {
+            functor = Functor(Bytes(bytes.begin(), bytes.begin() + 4));
           }
-          data = Hex::toBytes(dataHex);
+          if (bytes.size() > 4) {
+            data = std::vector<uint8_t>(bytes.begin() + 4, bytes.end());
+          }
         }
         return result;
       } catch (std::exception &e) {
@@ -341,9 +344,9 @@ namespace JsonRPC {
       }
     }
 
-    ethCallInfo eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage) {
-      ethCallInfo result;
-      auto& [from, to, gas, gasPrice, value, data] = result;
+    ethCallInfoAllocated eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage) {
+      ethCallInfoAllocated result;
+      auto& [from, to, gas, gasPrice, value, functor, data] = result;
       static const std::regex addressFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numberFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
       try {
@@ -373,7 +376,7 @@ namespace JsonRPC {
           if (!std::regex_match(fromAddress, addressFilter)) {
             throw std::runtime_error("Invalid from address hex");
           }
-          from = Address(Hex::toBytes(fromAddress), true);
+          from = Address(Hex::toBytes(fromAddress));
         }
         // Check to address. (optional)
         if (txObject.contains("to") && !txObject["to"].is_null()) {
@@ -381,7 +384,7 @@ namespace JsonRPC {
           if (!std::regex_match(toAddress, addressFilter)) {
             throw std::runtime_error("Invalid to address hex");
           }
-          to = Address(Hex::toBytes(toAddress), true);
+          to = Address(Hex::toBytes(toAddress));
         }
         // Check gas (optional)
         if (txObject.contains("gas") && !txObject["gas"].is_null()) {
@@ -413,10 +416,13 @@ namespace JsonRPC {
         // Check data (optional)
         if (txObject.contains("data") && !txObject["data"].is_null()) {
           std::string dataHex = txObject["data"].get<std::string>();
-          if (!Hex::isValid(dataHex, true)) {
-            throw std::runtime_error("Invalid data hex");
+          auto bytes = Hex::toBytes(dataHex);
+          if (bytes.size() >= 4) {
+            functor = Functor(Bytes(bytes.begin(), bytes.begin() + 4));
           }
-          data = Hex::toBytes(dataHex);
+          if (bytes.size() > 4) {
+            data = std::vector<uint8_t>(bytes.begin() + 4, bytes.end());
+          }
         }
         return result;
       } catch (std::exception &e) {
@@ -454,7 +460,7 @@ namespace JsonRPC {
         if (!std::regex_match(address, addressFilter)) {
           throw std::runtime_error("Invalid address hex");
         }
-        return Address(Hex::toBytes(address), true);
+        return Address(Hex::toBytes(address));
       } catch (std::exception &e) {
         Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_getBalance: ") + e.what());
         throw std::runtime_error("Error while decoding eth_getBalance: " + std::string(e.what()));
@@ -479,7 +485,7 @@ namespace JsonRPC {
         if (!std::regex_match(address, addressFilter)) {
           throw std::runtime_error("Invalid address hex");
         }
-        return Address(Hex::toBytes(address), true);
+        return Address(Hex::toBytes(address));
       } catch (std::exception &e) {
         Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_getTransactionCount: ") + e.what());
         throw std::runtime_error("Error while decoding eth_getTransactionCount: " + std::string(e.what()));
@@ -504,7 +510,7 @@ namespace JsonRPC {
         if (!std::regex_match(address, addressFilter)) {
           throw std::runtime_error("Invalid address hex");
         }
-        return Address(Hex::toBytes(address), true);
+        return Address(Hex::toBytes(address));
       } catch (std::exception &e) {
         Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_getCode: ") + e.what());
         throw std::runtime_error("Error while decoding eth_getCode: " + std::string(e.what()));

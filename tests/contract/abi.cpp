@@ -16,10 +16,11 @@ namespace TABI {
       eV.push_back(uint256_t("12038189571283151234217456623442137"));
 
       ABI::Encoder e(eV, "testUint(uint256)");
-      std::string eS = e.getRaw();
+      auto functor = e.getFunctor();
+      Bytes eS = e.getData();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("c7a16965"));
-      REQUIRE(eS.substr(4) == Hex::toBytes(
+      REQUIRE(functor == Hex::toBytes("c7a16965"));
+      REQUIRE(eS == Hex::toBytes(
         "0000000000000000000000000000000000025187505f9a7cca5c5178e81858d9"
       ));
     }
@@ -31,16 +32,18 @@ namespace TABI {
       eV.push_back(uint256_t("238745423894452554435879784534423784946532544278453254451345"));
 
       ABI::Encoder e(eV, "testMultipleUint(uint256,uint256,uint256)");
-      std::string eS = e.getRaw();
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("aab4c13b"));
-      REQUIRE(eS.substr(4, 32) == Hex::toBytes(
+      REQUIRE(functor == Hex::toBytes("aab4c13b"));
+
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "000000000000000000000000aca04e2e6a9c731a64f56964ab72e6c8270786a2"
       ));
-      REQUIRE(eS.substr(36, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
         "000000000000000000240e3c8296e085da6a626254ed08dd8b03286c83bbe17b"
       ));
-      REQUIRE(eS.substr(68, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
         "000000000000002608ca87ae5c3b4312e205f41a89f288579ccd19f908317091"
       ));
     }
@@ -55,25 +58,26 @@ namespace TABI {
       });
 
       ABI::Encoder e(eV, "testUintArr(uint256[])");
-      std::string eS = e.getRaw();
+      BytesArrView eS = e.getData();
+      auto functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("d1a4e446"));
-      REQUIRE(eS.substr(4, 32) == Hex::toBytes(
+      REQUIRE(functor == Hex::toBytes("d1a4e446"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000020"
       ));
-      REQUIRE(eS.substr(36, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000004"
       ));
-      REQUIRE(eS.substr(68, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
         "0000000000000000000000000000dd5c2b23fbb5fb408500075ff573e1383853"
       ));
-      REQUIRE(eS.substr(100, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 3, eS.begin() + 32 * 4) == Hex::toBytes(
         "000000000000000000000000000000000000000065b9be246336b3f36607ab20"
       ));
-      REQUIRE(eS.substr(132, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 4, eS.begin() + 32 * 5) == Hex::toBytes(
         "0000000000000000000bbab3b46bd0328e1d17617db2abfefc19046a083e14ba"
       ));
-      REQUIRE(eS.substr(164, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 5, eS.begin() + 32 * 6) == Hex::toBytes(
         "00000000000000000000000000000278d7b6df6a4c94873a7d6559bcab95e2b4"
       ));
     }
@@ -83,16 +87,17 @@ namespace TABI {
       eV.push_back("Hello World!");
 
       ABI::Encoder e(eV, "testString(string)");
-      std::string eS = e.getRaw();
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("61cb5a01"));
-      REQUIRE(eS.substr(4, 32) == Hex::toBytes(
+      REQUIRE(functor.asBytes() == Hex::toBytes("61cb5a01"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000020"
       ));
-      REQUIRE(eS.substr(36, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000c"
       ));
-      REQUIRE(eS.substr(68, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
         "48656c6c6f20576f726c64210000000000000000000000000000000000000000"
       ));
     }
@@ -104,16 +109,17 @@ namespace TABI {
       eV.push_back(true);
 
       ABI::Encoder e(eV, "testMultipleBool(bool,bool,bool)");
-      std::string eS = e.getRaw();
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("49fdef10"));
-      REQUIRE(eS.substr(4, 32) == Hex::toBytes(
+      REQUIRE(functor.asBytes() == Hex::toBytes("49fdef10"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000001"
       ));
-      REQUIRE(eS.substr(36, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(68, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000001"
       ));
     }
@@ -123,7 +129,7 @@ namespace TABI {
       eV.push_back(std::vector<std::string>{
         "First String", "Second String", "Third String"
       });
-      eV.push_back(std::vector<uint256_t>{
+        eV.push_back(std::vector<uint256_t>{
         uint256_t("129838151824165123321245841287434198"),
         uint256_t("2134584124125984418451243118545129854235"),
         uint256_t("1234812315823541285534458693557693548423844235"),
@@ -131,71 +137,73 @@ namespace TABI {
       });
 
       ABI::Encoder e(eV, "testStringArrWithUintArr(string[],uint256[])");
-      std::string eS = e.getRaw();
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("023c4a5e"));
-      REQUIRE(eS.substr(4, 32) == Hex::toBytes(
+      REQUIRE(functor.asBytes() == Hex::toBytes("023c4a5e"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000040"
       ));
-      REQUIRE(eS.substr(36, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000180"
       ));
-      REQUIRE(eS.substr(68, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000003"
       ));
-      REQUIRE(eS.substr(100, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 3, eS.begin() + 32 * 4) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000060"
       ));
-      REQUIRE(eS.substr(132, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 4, eS.begin() + 32 * 5) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000000a0"
       ));
-      REQUIRE(eS.substr(164, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 5, eS.begin() + 32 * 6) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000000e0"
       ));
-      REQUIRE(eS.substr(196, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 6, eS.begin() + 32 * 7) == Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000c"
       ));
-      REQUIRE(eS.substr(228, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 7, eS.begin() + 32 * 8) == Hex::toBytes(
         "466972737420537472696e670000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(260, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 8, eS.begin() + 32 * 9) == Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000d"
       ));
-      REQUIRE(eS.substr(292, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 9, eS.begin() + 32 * 10) == Hex::toBytes(
         "5365636f6e6420537472696e6700000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(324, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 10, eS.begin() + 32 * 11) == Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000c"
       ));
-      REQUIRE(eS.substr(356, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 11, eS.begin() + 32 * 12) == Hex::toBytes(
         "546869726420537472696e670000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(388, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 12, eS.begin() + 32 * 13) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000004"
       ));
-      REQUIRE(eS.substr(420, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 13, eS.begin() + 32 * 14) == Hex::toBytes(
         "0000000000000000000000000000000000190183df26aa795c3b01e079ae4fd6"
       ));
-      REQUIRE(eS.substr(452, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 14, eS.begin() + 32 * 15) == Hex::toBytes(
         "0000000000000000000000000000000645e1f2c6dad3d9f1675c8163df32551b"
       ));
-      REQUIRE(eS.substr(484, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 15, eS.begin() + 32 * 16)== Hex::toBytes(
         "00000000000000000000000000375ef34102454b2b5222061ed99b03a148918b"
       ));
-      REQUIRE(eS.substr(516, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 16, eS.begin() + 32 * 17) == Hex::toBytes(
         "00000000000000000000000005af3cf248a13bc919ac44299b86c8a94ba65892"
       ));
     }
 
     SECTION("Encode Address (Single)") {
       ABI::Encoder::EncVar eV;
-      eV.push_back(Address(std::string("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1"), false));
+      eV.push_back(Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")));
 
       ABI::Encoder e(eV, "testAddress(address)");
-      std::string eS = e.getRaw();
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("42f45790"));
-      REQUIRE(eS.substr(4) == Hex::toBytes(
+      REQUIRE(functor.asBytes() == Hex::toBytes("42f45790"));
+      REQUIRE(Bytes(eS.begin(), eS.end()) == Hex::toBytes(
         "000000000000000000000000873630b0fae5f8c69392abdabb3b15270d137ca1"
       ));
     }
@@ -205,23 +213,24 @@ namespace TABI {
       eV.push_back(Hex::toBytes("0xc8191d2e98e7cd9201cef777f85bf857"));
 
       ABI::Encoder e(eV, "testBytes(bytes)");
-      std::string eS = e.getRaw();
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("3ca8b1a7"));
-      REQUIRE(eS.substr(4, 32) == Hex::toBytes(
+      REQUIRE(functor.asBytes() == Hex::toBytes("3ca8b1a7"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000020"
       ));
-      REQUIRE(eS.substr(36, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(68, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
         "c8191d2e98e7cd9201cef777f85bf85700000000000000000000000000000000"
       ));
     }
 
     SECTION("Encode Bytes (Array) + String (Array)") {
       ABI::Encoder::EncVar eV;
-      eV.push_back(std::vector<std::string>{
+      eV.push_back(std::vector<Bytes>{
         Hex::toBytes("0x81a1217428d6d8ff7a419e87cfc948d2"),
         Hex::toBytes("0x2d96cf448d1d455d9013572ac07edefc"),
         Hex::toBytes("0xc584d0de5dbddca6e74686a3c154bb28"),
@@ -232,91 +241,92 @@ namespace TABI {
       });
 
       ABI::Encoder e(eV, "testBytesArrWithStrArr(bytes[],string[])");
-      std::string eS = e.getRaw();
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("f1881d9f"));
-      REQUIRE(eS.substr(4, 32) == Hex::toBytes(
+      REQUIRE(functor.asBytes() == Hex::toBytes("f1881d9f"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000040"
       ));
-      REQUIRE(eS.substr(36, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000001e0"
       ));
-      REQUIRE(eS.substr(68, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000004"
       ));
-      REQUIRE(eS.substr(100, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 3, eS.begin() + 32 * 4) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000080"
       ));
-      REQUIRE(eS.substr(132, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 4, eS.begin() + 32 * 5) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000000c0"
       ));
-      REQUIRE(eS.substr(164, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 5, eS.begin() + 32 * 6) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000100"
       ));
-      REQUIRE(eS.substr(196, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 6, eS.begin() + 32 * 7) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000140"
       ));
-      REQUIRE(eS.substr(228, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 7, eS.begin() + 32 * 8) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(260, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 8, eS.begin() + 32 * 9) == Hex::toBytes(
         "81a1217428d6d8ff7a419e87cfc948d200000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(292, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 9, eS.begin() + 32 * 10) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(324, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 10, eS.begin() + 32 * 11) == Hex::toBytes(
         "2d96cf448d1d455d9013572ac07edefc00000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(356, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 11, eS.begin() + 32 * 12) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(388, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 12, eS.begin() + 32 * 13) == Hex::toBytes(
         "c584d0de5dbddca6e74686a3c154bb2800000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(420, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 13, eS.begin() + 32 * 14) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(452, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 14, eS.begin() + 32 * 15) == Hex::toBytes(
         "db6f06ea16ab61dca14053001c6b581500000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(484, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 15, eS.begin() + 32 * 16) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000004"
       ));
-      REQUIRE(eS.substr(516, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 16, eS.begin() + 32 * 17) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000080"
       ));
-      REQUIRE(eS.substr(548, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 17, eS.begin() + 32 * 18) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000000c0"
       ));
-      REQUIRE(eS.substr(580, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 18, eS.begin() + 32 * 19) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000100"
       ));
-      REQUIRE(eS.substr(612, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 19, eS.begin() + 32 * 20) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000140"
       ));
-      REQUIRE(eS.substr(644, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 20, eS.begin() + 32 * 21) == Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000c"
       ));
-      REQUIRE(eS.substr(676, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 21, eS.begin() + 32 * 22) == Hex::toBytes(
         "466972737420537472696e670000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(708, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 22, eS.begin() + 32 * 23) == Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000d"
       ));
-      REQUIRE(eS.substr(740, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 23, eS.begin() + 32 * 24) == Hex::toBytes(
         "5365636f6e6420537472696e6700000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(772, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 24, eS.begin() + 32 * 25)== Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000c"
       ));
-      REQUIRE(eS.substr(804, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 25, eS.begin() + 32 * 26) == Hex::toBytes(
         "546869726420537472696e670000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(836, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 26, eS.begin() + 32 * 27) == Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000c"
       ));
-      REQUIRE(eS.substr(868, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 27, eS.begin() + 32 * 28) == Hex::toBytes(
         "466f72746820537472696e670000000000000000000000000000000000000000"
       ));
     }
@@ -332,14 +342,14 @@ namespace TABI {
       });
       eV.push_back(true);
       eV.push_back(std::vector<bool>{false, true, false});
-      eV.push_back(Address(std::string("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1"), false));
+      eV.push_back(Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")));
       eV.push_back(std::vector<Address>{
-        Address(std::string("0x2D061c095b06efed6A54b6e9B3f50f1b55cce2FF"), false),
-        Address(std::string("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1"), false),
-        Address(std::string("0xA462f6A66CC4465fA2d5E90EFA6757f615125760"), false)
+        Address(Hex::toBytes("0x2D061c095b06efed6A54b6e9B3f50f1b55cce2FF")),
+        Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")),
+        Address(Hex::toBytes("0xA462f6A66CC4465fA2d5E90EFA6757f615125760"))
       });
       eV.push_back(Hex::toBytes("0xec05537ed99fc9053e29368726573b25"));
-      eV.push_back(std::vector<std::string>{
+      eV.push_back(std::vector<Bytes>{
         Hex::toBytes("0xadfae295d92644d19f69e4f20f28d0ae"),
         Hex::toBytes("0x6777b56cd127407ae1b1cc309905521e"),
         Hex::toBytes("0x52719fe16375c2446b109dfcf9336c38"),
@@ -351,199 +361,200 @@ namespace TABI {
       });
 
       ABI::Encoder e(eV, "testAll(uint256,uint256[],bool,bool[],address,address[],bytes,bytes[],string,string[])");
-      std::string eS = e.getRaw();
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
 
-      REQUIRE(eS.substr(0, 4) == Hex::toBytes("d8d2684c"));
-      REQUIRE(eS.substr(4, 32) == Hex::toBytes(
+      REQUIRE(functor == Hex::toBytes("d8d2684c"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "000000000000000000000000000000000003b6c3fc7f2d151440685a319c408c"
       ));
-      REQUIRE(eS.substr(36, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000140"
       ));
-      REQUIRE(eS.substr(68, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000001"
       ));
-      REQUIRE(eS.substr(100, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 3, eS.begin() + 32 * 4) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000001e0"
       ));
-      REQUIRE(eS.substr(132, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 4, eS.begin() + 32 * 5) == Hex::toBytes(
         "000000000000000000000000873630b0fae5f8c69392abdabb3b15270d137ca1"
       ));
-      REQUIRE(eS.substr(164, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 5, eS.begin() + 32 * 6) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000260"
       ));
-      REQUIRE(eS.substr(196, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 6, eS.begin() + 32 * 7) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000002e0"
       ));
-      REQUIRE(eS.substr(228, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 7, eS.begin() + 32 * 8) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000320"
       ));
-      REQUIRE(eS.substr(260, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 8, eS.begin() + 32 * 9) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000004c0"
       ));
-      REQUIRE(eS.substr(292, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 9, eS.begin() + 32 * 10) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000500"
       ));
-      REQUIRE(eS.substr(324, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 10, eS.begin() + 32 * 11) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000004"
       ));
-      REQUIRE(eS.substr(356, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 11, eS.begin() + 32 * 12) == Hex::toBytes(
         "00000000000000000000000000000000000000000401313ead502c4caecd00cc"
       ));
-      REQUIRE(eS.substr(388, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 12, eS.begin() + 32 * 13) == Hex::toBytes(
         "00000000000000000000000000001b80c04c816f5d3f60d46e2c568de014a3f7"
       ));
-      REQUIRE(eS.substr(420, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 13, eS.begin() + 32 * 14) == Hex::toBytes(
         "0000000000000000000000000000000006e001fc95fc94cdd826174c57e3d91b"
       ));
-      REQUIRE(eS.substr(452, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 14, eS.begin() + 32 * 15) == Hex::toBytes(
         "0000000000000000000000000000000000000000000001f49e59b0c3edac7363"
       ));
-      REQUIRE(eS.substr(484, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 15, eS.begin() + 32 * 16) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000003"
       ));
-      REQUIRE(eS.substr(516, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 16, eS.begin() + 32 * 17) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(548, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 17, eS.begin() + 32 * 18) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000001"
       ));
-      REQUIRE(eS.substr(580, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 18, eS.begin() + 32 * 19) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(612, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 19, eS.begin() + 32 * 20) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000003"
       ));
-      REQUIRE(eS.substr(644, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 20, eS.begin() + 32 * 21) == Hex::toBytes(
         "0000000000000000000000002d061c095b06efed6a54b6e9b3f50f1b55cce2ff"
       ));
-      REQUIRE(eS.substr(676, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 21, eS.begin() + 32 * 22) == Hex::toBytes(
         "000000000000000000000000873630b0fae5f8c69392abdabb3b15270d137ca1"
       ));
-      REQUIRE(eS.substr(708, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 22, eS.begin() + 32 * 23)== Hex::toBytes(
         "000000000000000000000000a462f6a66cc4465fa2d5e90efa6757f615125760"
       ));
-      REQUIRE(eS.substr(740, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 23, eS.begin() + 32 * 24) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(772, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 24, eS.begin() + 32 * 25) == Hex::toBytes(
         "ec05537ed99fc9053e29368726573b2500000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(804, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 25, eS.begin() + 32 * 26) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000004"
       ));
-      REQUIRE(eS.substr(836, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 26, eS.begin() + 32 * 27) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000080"
       ));
-      REQUIRE(eS.substr(868, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 27, eS.begin() + 32 * 28) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000000c0"
       ));
-      REQUIRE(eS.substr(900, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 28, eS.begin() + 32 * 29) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000100"
       ));
-      REQUIRE(eS.substr(932, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 29, eS.begin() + 32 * 30) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000140"
       ));
-      REQUIRE(eS.substr(964, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 30, eS.begin() + 32 * 31) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(996, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 31, eS.begin() + 32 * 32) == Hex::toBytes(
         "adfae295d92644d19f69e4f20f28d0ae00000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1028, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 32, eS.begin() + 32 * 33) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(1060, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 33, eS.begin() + 32 * 34) == Hex::toBytes(
         "6777b56cd127407ae1b1cc309905521e00000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1092, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 34, eS.begin() + 32 * 35) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(1124, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 35, eS.begin() + 32 * 36) == Hex::toBytes(
         "52719fe16375c2446b109dfcf9336c3800000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1156, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 36, eS.begin() + 32 * 37) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(1188, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 37, eS.begin() + 32 * 38)== Hex::toBytes(
         "6763b32cbd1c695a694d66fe2e729c9700000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1220, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 38, eS.begin() + 32 * 39) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000010"
       ));
-      REQUIRE(eS.substr(1252, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 39, eS.begin() + 32 * 40) == Hex::toBytes(
         "54686973206973206120737472696e6700000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1284, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 40, eS.begin() + 32 * 41) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000007"
       ));
-      REQUIRE(eS.substr(1316, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 41, eS.begin() + 32 * 42) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000000e0"
       ));
-      REQUIRE(eS.substr(1348, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 42, eS.begin() + 32 * 43) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000120"
       ));
-      REQUIRE(eS.substr(1380, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 43, eS.begin() + 32 * 44) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000160"
       ));
-      REQUIRE(eS.substr(1412, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 44, eS.begin() + 32 * 45) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000001a0"
       ));
-      REQUIRE(eS.substr(1444, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 45, eS.begin() + 32 * 46) == Hex::toBytes(
         "00000000000000000000000000000000000000000000000000000000000001e0"
       ));
-      REQUIRE(eS.substr(1476, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 46, eS.begin() + 32 * 47) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000220"
       ));
-      REQUIRE(eS.substr(1508, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 47, eS.begin() + 32 * 48) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000260"
       ));
-      REQUIRE(eS.substr(1540, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 48, eS.begin() + 32 * 49) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000003"
       ));
-      REQUIRE(eS.substr(1572, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 49, eS.begin() + 32 * 50) == Hex::toBytes(
         "5965730000000000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1604, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 50, eS.begin() + 32 * 51) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000004"
       ));
-      REQUIRE(eS.substr(1636, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 51, eS.begin() + 32 * 52) == Hex::toBytes(
         "5468697300000000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1668, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 52, eS.begin() + 32 * 53) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000002"
       ));
-      REQUIRE(eS.substr(1700, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 53, eS.begin() + 32 * 54) == Hex::toBytes(
         "4973000000000000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1732, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 54, eS.begin() + 32 * 55) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000001"
       ));
-      REQUIRE(eS.substr(1764, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 55, eS.begin() + 32 * 56) == Hex::toBytes(
         "4100000000000000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1796, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 56, eS.begin() + 32 * 57) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000006"
       ));
-      REQUIRE(eS.substr(1828, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 57, eS.begin() + 32 * 58) == Hex::toBytes(
         "537472696e670000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1860, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 58, eS.begin() + 32 * 59) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000005"
       ));
-      REQUIRE(eS.substr(1892, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 59, eS.begin() + 32 * 60) == Hex::toBytes(
         "4172726179000000000000000000000000000000000000000000000000000000"
       ));
-      REQUIRE(eS.substr(1924, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 60, eS.begin() + 32 * 61) == Hex::toBytes(
         "000000000000000000000000000000000000000000000000000000000000000e"
       ));
-      REQUIRE(eS.substr(1956, 32) == Hex::toBytes(
+      REQUIRE(Bytes(eS.begin() + 32 * 61, eS.begin() + 32 * 62) == Hex::toBytes(
         "486f7720737475706964206c6f6c000000000000000000000000000000000000"
       ));
     }
 
     SECTION("Decode Uint256 (Array)") {
-      std::string ABI = Hex::toBytes("0x"
+      Bytes ABI = Hex::toBytes("0x"
         "0000000000000000000000000000000000000000000000000000000000000020"
         "0000000000000000000000000000000000000000000000000000000000000003"
         "0000000000000000000000000000000000000000000000002017594d84130397"
@@ -561,7 +572,7 @@ namespace TABI {
     }
 
     SECTION("Decode Address (Array)") {
-      std::string ABI = Hex::toBytes("0x"
+      Bytes ABI = Hex::toBytes("0x"
         "0000000000000000000000000000000000000000000000000000000000000020"
         "0000000000000000000000000000000000000000000000000000000000000003"
         "0000000000000000000000005b38da6a701c568545dcfcb03fcb875f56beddc4"
@@ -573,13 +584,13 @@ namespace TABI {
       ABI::Decoder d(types, ABI);
       std::vector<Address> dV = d.getData<std::vector<Address>>(0);
 
-      REQUIRE(dV[0] == Address(Hex::toBytes("0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"), true));
-      REQUIRE(dV[1] == Address(Hex::toBytes("0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2"), true));
-      REQUIRE(dV[2] == Address(Hex::toBytes("0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"), true));
+      REQUIRE(dV[0] == Address(Hex::toBytes("0x5B38Da6a701c568545dCfcB03FcB875f56beddC4")));
+      REQUIRE(dV[1] == Address(Hex::toBytes("0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2")));
+      REQUIRE(dV[2] == Address(Hex::toBytes("0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db")));
     }
 
     SECTION("Decode Bool (Array)") {
-      std::string ABI = Hex::toBytes("0x"
+      Bytes ABI = Hex::toBytes("0x"
         "0000000000000000000000000000000000000000000000000000000000000020"
         "0000000000000000000000000000000000000000000000000000000000000003"
         "0000000000000000000000000000000000000000000000000000000000000001"
@@ -597,7 +608,7 @@ namespace TABI {
     }
 
     SECTION("Decode Bytes (Single)") {
-      std::string ABI = Hex::toBytes("0x"
+      Bytes ABI = Hex::toBytes("0x"
         "0000000000000000000000000000000000000000000000000000000000000020"
         "0000000000000000000000000000000000000000000000000000000000000004"
         "0adf1f1a00000000000000000000000000000000000000000000000000000000"
@@ -605,13 +616,13 @@ namespace TABI {
       std::vector<ABI::Types> types = {ABI::Types::bytes};
 
       ABI::Decoder d(types, ABI);
-      std::string bytes = d.getData<std::string>(0);
+      Bytes bytes = d.getData<Bytes>(0);
 
       REQUIRE(bytes == Hex::toBytes("0x0adf1f1a"));
     }
 
     SECTION("Decode Bytes (Array)") {
-      std::string ABI = Hex::toBytes("0x"
+      Bytes ABI = Hex::toBytes("0x"
         "0000000000000000000000000000000000000000000000000000000000000020"
         "0000000000000000000000000000000000000000000000000000000000000004"
         "0000000000000000000000000000000000000000000000000000000000000080"
@@ -630,7 +641,7 @@ namespace TABI {
       std::vector<ABI::Types> types = {ABI::Types::bytesArr};
 
       ABI::Decoder d(types, ABI);
-      std::vector<std::string> dV = d.getData<std::vector<std::string>>(0);
+      std::vector<Bytes> dV = d.getData<std::vector<Bytes>>(0);
 
       REQUIRE(dV[0] == Hex::toBytes("0x0adf1f1a"));
       REQUIRE(dV[1] == Hex::toBytes("0xfffadcba"));
@@ -639,7 +650,7 @@ namespace TABI {
     }
 
     SECTION("Decode String (Single)") {
-      std::string ABI = Hex::toBytes("0x"
+      Bytes ABI = Hex::toBytes("0x"
         "0000000000000000000000000000000000000000000000000000000000000020"
         "000000000000000000000000000000000000000000000000000000000000000e"
         "5468697320697320612074657374000000000000000000000000000000000000"
@@ -653,7 +664,7 @@ namespace TABI {
     }
 
     SECTION("Decode String (Array)") {
-      std::string ABI = Hex::toBytes("0x"
+      Bytes ABI = Hex::toBytes("0x"
         "0000000000000000000000000000000000000000000000000000000000000020"
         "0000000000000000000000000000000000000000000000000000000000000004"
         "0000000000000000000000000000000000000000000000000000000000000080"
@@ -681,7 +692,7 @@ namespace TABI {
     }
 
     SECTION("Decode Bytes (Array) + String (Array)") {
-      std::string ABI = Hex::toBytes("0x"
+      Bytes ABI = Hex::toBytes("0x"
         "0000000000000000000000000000000000000000000000000000000000000040"
         "00000000000000000000000000000000000000000000000000000000000001e0"
         "0000000000000000000000000000000000000000000000000000000000000004"
@@ -715,7 +726,7 @@ namespace TABI {
       std::vector<ABI::Types> types = {ABI::Types::stringArr, ABI::Types::bytesArr};
       ABI::Decoder d(types, ABI);
       std::vector<std::string> stringArr = d.getData<std::vector<std::string>>(0);
-      std::vector<std::string> bytesArr = d.getData<std::vector<std::string>>(1);
+      std::vector<Bytes> bytesArr = d.getData<std::vector<Bytes>>(1);
 
       REQUIRE(stringArr[0] == "This is the first test");
       REQUIRE(stringArr[1] == "This is the second test");

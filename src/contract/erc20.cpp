@@ -4,18 +4,19 @@
 ERC20::ERC20(ContractManager::ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
   DynamicContract(interface, address, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
 
-  this->_name = db->get("_name", DBPrefix::contracts + this->getContractAddress().get());
-  this->_symbol = db->get("_symbol", DBPrefix::contracts + this->getContractAddress().get());
-  this->_decimals = Utils::bytesToUint8(db->get("_decimals", DBPrefix::contracts + this->getContractAddress().get()));
-  this->_totalSupply = Utils::bytesToUint256(db->get("_totalSupply", DBPrefix::contracts + this->getContractAddress().get()));
-  auto balances = db->getBatch(DBPrefix::contracts + this->getContractAddress().get() + "_balances");
+  this->_name = Utils::bytesToString(db->get(std::string("_name"), this->getDBPrefix()));
+  this->_symbol = Utils::bytesToString(db->get(std::string("_symbol"), this->getDBPrefix()));
+  this->_decimals = Utils::bytesToUint8(db->get(std::string("_decimals"), this->getDBPrefix()));
+  this->_totalSupply = Utils::bytesToUint256(db->get(std::string("_totalSupply"), this->getDBPrefix()));
+  auto balances = db->getBatch(this->getNewPrefix("_balances"));
   for (const auto& dbEntry : balances) {
-    this->_balances[Address(dbEntry.key, true)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
+    this->_balances[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
 
-  auto allowances = db->getBatch(DBPrefix::contracts + this->getContractAddress().get() + "_allowed");
+  auto allowances = db->getBatch(this->getNewPrefix("_allowed"));
   for (const auto& dbEntry : allowances) {
-    this->_allowed[Address(dbEntry.key, true)][Address(dbEntry.value.substr(0, 20), true)] = Utils::fromBigEndian<uint256_t>(dbEntry.value.substr(20));
+    BytesArrView valueView(dbEntry.value);
+    this->_allowed[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
   this->registerContractFunctions();
   updateState(true);
@@ -33,33 +34,28 @@ ERC20::ERC20(ContractManager::ContractManagerInterface &interface, const std::st
 }
 
 ERC20::~ERC20() {
-  DBBatch balancesBatch;
-  DBBatch allowanceBatch;
+  DBBatch batchOperations;
 
-  this->db->put("_name", _name.get(), DBPrefix::contracts + this->getContractAddress().get());
-  this->db->put("_symbol", _symbol.get(), DBPrefix::contracts + this->getContractAddress().get());
-  this->db->put("_decimals", Utils::uint8ToBytes(_decimals.get()), DBPrefix::contracts + this->getContractAddress().get());
-  this->db->put("_totalSupply", Utils::uint256ToBytes(_totalSupply.get()), DBPrefix::contracts + this->getContractAddress().get());
+  this->db->put(std::string("_name"), _name.get(), this->getDBPrefix());
+  this->db->put(std::string("_symbol"), _symbol.get(), this->getDBPrefix());
+  this->db->put(std::string("_decimals"), Utils::uint8ToBytes(_decimals.get()), this->getDBPrefix());
+  this->db->put(std::string("_totalSupply"), Utils::uint256ToBytes(_totalSupply.get()), this->getDBPrefix());
 
   for (auto it = _balances.cbegin(); it != _balances.cend(); ++it) {
-    std::string key = it->first.get();
-    std::string value;
-    value += Utils::uintToBytes(it->second);
-    balancesBatch.puts.emplace_back(DBEntry(key, value));
+    const auto& key = it->first.get();
+    Bytes value = Utils::uintToBytes(it->second);
+    batchOperations.push_back(key, value, this->getNewPrefix("_balances"));
   }
 
   for (auto it = _allowed.cbegin(); it != _allowed.cend(); ++it) {
     for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
-      std::string key = it->first.get();
-      std::string value;
-      value += it2->first.get();
-      value += Utils::uintToBytes(it2->second);
-      allowanceBatch.puts.emplace_back(DBEntry(key, value));
+      const auto& key = it->first.get();
+      Bytes value = it2->first.asBytes();
+      Utils::appendBytes(value, Utils::uintToBytes(it2->second));
+      batchOperations.push_back(key, value, this->getNewPrefix("_allowed"));
     }
   }
-  this->db->putBatch(balancesBatch, DBPrefix::contracts + this->getContractAddress().get() + "_balances");
-  this->db->putBatch(allowanceBatch, DBPrefix::contracts + this->getContractAddress().get() + "_allowed");
-  this->registerContractFunctions();
+  this->db->putBatch(batchOperations);
 }
 
 void ERC20::registerContractFunctions() {
@@ -77,28 +73,28 @@ void ERC20::registerContractFunctions() {
   });
   this->registerViewFunction(Hex::toBytes("0x70a08231"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     return this->balanceOf(decoder.getData<Address>(0));
   });
   this->registerViewFunction(Hex::toBytes("0xdd62ed3e"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     return this->allowance(decoder.getData<Address>(0), decoder.getData<Address>(1));
   });
 
   this->registerFunction(Hex::toBytes("0xa9059cbb"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     this->transfer(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
   });
   this->registerFunction(Hex::toBytes("0x095ea7b3"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     this->approve(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
   });
   this->registerFunction(Hex::toBytes("0x23b872dd"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     this->transferFrom(decoder.getData<Address>(0), decoder.getData<Address>(1), decoder.getData<uint256_t>(2));
   });
 }
@@ -109,28 +105,28 @@ void ERC20::_mintValue(const Address& address, const uint256_t& value) {
   _totalSupply += value;
 }
 
-std::string ERC20::name() const {
-  return ABI::Encoder({this->_name.get()}).getRaw();
+Bytes ERC20::name() const {
+  return ABI::Encoder({this->_name.get()}).getData();
 }
 
-std::string ERC20::symbol() const {
-  return ABI::Encoder({this->_symbol.get()}).getRaw();
+Bytes ERC20::symbol() const {
+  return ABI::Encoder({this->_symbol.get()}).getData();
 }
 
-std::string ERC20::decimals() const {
-  return ABI::Encoder({this->_decimals.get()}).getRaw();
+Bytes ERC20::decimals() const {
+  return ABI::Encoder({this->_decimals.get()}).getData();
 }
 
-std::string ERC20::totalSupply() const {
-  return ABI::Encoder({this->_totalSupply.get()}).getRaw();
+Bytes ERC20::totalSupply() const {
+  return ABI::Encoder({this->_totalSupply.get()}).getData();
 }
 
-std::string ERC20::balanceOf(const Address& _owner) const {
+Bytes ERC20::balanceOf(const Address& _owner) const {
   const auto& it = std::as_const(this->_balances).find(_owner);
   if (it == this->_balances.end()) {
-    return ABI::Encoder({0}).getRaw();
+    return ABI::Encoder({0}).getData();
   } else {
-    return ABI::Encoder({it->second}).getRaw();
+    return ABI::Encoder({it->second}).getData();
   }
 }
 
@@ -143,16 +139,16 @@ void ERC20::approve(const Address& _spender, const uint256_t& _value) {
   this->_allowed[this->getCaller()][_spender] = _value;
 }
 
-std::string ERC20::allowance(const Address& _owner, const Address& _spender) const {
+Bytes ERC20::allowance(const Address& _owner, const Address& _spender) const {
   const auto& it = std::as_const(this->_allowed).find(_owner);
   if (it == this->_allowed.end()) {
-    return ABI::Encoder({0}).getRaw();
+    return ABI::Encoder({0}).getData();
   } else {
     const auto& it2 = it->second.find(_spender);
     if (it2 == it->second.end()) {
-      return ABI::Encoder({0}).getRaw();
+      return ABI::Encoder({0}).getData();
     } else {
-      return ABI::Encoder({it2->second}).getRaw();
+      return ABI::Encoder({it2->second}).getData();
     }
   }
 }

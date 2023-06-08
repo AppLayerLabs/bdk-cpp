@@ -97,6 +97,7 @@ private:
   /* Contract-specific variables */
   std::string contractName; ///< Name of the contract, used to identify the
                             ///< Contract Class.
+  Bytes dbPrefix;           ///< Prefix for the contract DB.
   Address contractAddress;  ///< Address where the contract is deployed.
   Address contractCreator;  ///< Address of the creator of the contract.
   uint64_t contractChainId; ///< Chain where the contract is deployed.
@@ -114,14 +115,16 @@ public:
                const std::unique_ptr<DB> &db)
       : contractName(contractName), contractAddress(address),
         contractCreator(creator), contractChainId(chainId), db(db) {
-    db->put("contractName", contractName,
-            DBPrefix::contracts + contractAddress.get());
-    db->put("contractAddress", contractAddress.get(),
-            DBPrefix::contracts + contractAddress.get());
-    db->put("contractCreator", contractCreator.get(),
-            DBPrefix::contracts + contractAddress.get());
-    db->put("contractChainId", Utils::uint64ToBytes(contractChainId),
-            DBPrefix::contracts + contractAddress.get());
+    dbPrefix = [&]() -> Bytes {
+      Bytes prefix = DBPrefix::contracts;
+      prefix.reserve(prefix.size() + contractAddress.size());
+      prefix.insert(prefix.end(), contractAddress.cbegin(), contractAddress.cend());
+      return prefix;
+    }();
+    db->put(std::string("contractName"), contractName, this->getDBPrefix());
+    db->put(std::string("contractAddress"), contractAddress.get(), this->getDBPrefix());
+    db->put(std::string("contractCreator"), contractCreator.get(), this->getDBPrefix());
+    db->put(std::string("contractChainId"), Utils::uint64ToBytes(contractChainId), this->getDBPrefix());
   }
 
   /**
@@ -131,13 +134,15 @@ public:
    */
   BaseContract(const Address &address, const std::unique_ptr<DB> &db)
       : contractAddress(address), db(db) {
-    this->contractName =
-        db->get("contractName", DBPrefix::contracts + contractAddress.get());
-    this->contractCreator = Address(
-        db->get("contractCreator", DBPrefix::contracts + contractAddress.get()),
-        true);
-    this->contractChainId = Utils::bytesToUint64(db->get(
-        "contractChainId", DBPrefix::contracts + contractAddress.get()));
+    this->dbPrefix = [&]() -> Bytes {
+      Bytes prefix = DBPrefix::contracts;
+      prefix.reserve(prefix.size() + contractAddress.size());
+      prefix.insert(prefix.end(), contractAddress.cbegin(), contractAddress.cend());
+      return prefix;
+    }();
+    this->contractName = Utils::bytesToString(db->get(std::string("contractName"), this->getDBPrefix()));
+    this->contractCreator = Address(db->get(std::string("contractCreator"), this->getDBPrefix()));
+    this->contractChainId = Utils::bytesToUint64(db->get(std::string("contractChainId"), this->getDBPrefix()));
   }
 
   /**
@@ -167,7 +172,7 @@ public:
    * @return
    * @throws std::runtime_error if the derived class does not override this
    */
-  virtual const std::string ethCallView(const ethCallInfo &data) const {
+  virtual const Bytes ethCallView(const ethCallInfo &data) const {
     throw std::runtime_error(
         "Derived Class from Contract does not override ethCall()");
   }
@@ -195,6 +200,24 @@ public:
    * @return The contract name.
    */
   const std::string &getContractName() const { return this->contractName; }
+
+  /**
+   * Getter for `dbPrefix`.
+   * @return The contract dbPrefix.
+   */
+  const Bytes &getDBPrefix() const { return this->dbPrefix; }
+
+  /**
+   * Creates a new DB prefix appending a new string to the current prefix.
+   * @param newPrefix The new prefix to append.
+   * @return The new prefix.
+   */
+  const Bytes getNewPrefix(const std::string &newPrefix) const {
+    Bytes prefix = this->dbPrefix;
+    prefix.reserve(prefix.size() + newPrefix.size());
+    prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
+    return prefix;
+  }
 };
 
 #endif // CONTRACT_H

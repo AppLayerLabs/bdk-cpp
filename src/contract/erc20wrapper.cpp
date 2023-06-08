@@ -3,9 +3,10 @@
 ERC20Wrapper::ERC20Wrapper(ContractManager::ContractManagerInterface &interface, const Address& contractAddress, const std::unique_ptr<DB> &db) :
     DynamicContract(interface, contractAddress, db), _tokensAndBalances(this) {
   registerContractFunctions();
-  auto tokensAndBalances = this->db->getBatch(DBPrefix::contracts + this->getContractAddress().get() + "_tokensAndBalances");
+  auto tokensAndBalances = this->db->getBatch(this->getNewPrefix("_tokensAndBalances"));
   for (const auto& dbEntry : tokensAndBalances) {
-    this->_tokensAndBalances[Address(dbEntry.key, true)][Address(dbEntry.value.substr(0, 20), true)] = Utils::fromBigEndian<uint256_t>(dbEntry.value.substr(20));
+    BytesArrView valueView(dbEntry.value);
+    this->_tokensAndBalances[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
   updateState(true);
 }
@@ -22,62 +23,60 @@ ERC20Wrapper::~ERC20Wrapper() {
 
   for (auto it = _tokensAndBalances.cbegin(); it != _tokensAndBalances.cend(); ++it) {
     for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
-      std::string key = it->first.get();
-      std::string value;
-      value += it2->first.get();
-      value += Utils::uintToBytes(it2->second);
-      tokensAndBalancesBatch.puts.emplace_back(DBEntry(key, value));
+      const auto& key = it->first.get();
+      Bytes value = it2->first.asBytes();
+      Utils::appendBytes(value, Utils::uintToBytes(it2->second));
+      tokensAndBalancesBatch.push_back(key, value, this->getNewPrefix("_tokensAndBalances"));
     }
   }
 
-  this->db->putBatch(tokensAndBalancesBatch, DBPrefix::contracts + this->getContractAddress().get() + "_tokensAndBalances");
-  return;
+  this->db->putBatch(tokensAndBalancesBatch);
 }
 
 void ERC20Wrapper::registerContractFunctions() {
   this->registerViewFunction(Hex::toBytes("0x43ab265f"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     return this->getContractBalance(decoder.getData<Address>(0));
   });
   this->registerViewFunction(Hex::toBytes("0x6805d6ad"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     return this->getUserBalance(decoder.getData<Address>(0), decoder.getData<Address>(1));
   });
   this->registerFunction(Hex::toBytes("0xf3fef3a3"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     this->withdraw(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
   });
   this->registerFunction(Hex::toBytes("0xa5f2a152"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     this->transferTo(decoder.getData<Address>(0), decoder.getData<Address>(1), decoder.getData<uint256_t>(2));
   });
   this->registerFunction(Hex::toBytes("0x47e7ef24"), [this](const ethCallInfo &callInfo) {
     std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
     this->deposit(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
   });
   return;
 }
 
-std::string ERC20Wrapper::getContractBalance(const Address& token) const {
+Bytes ERC20Wrapper::getContractBalance(const Address& token) const {
   auto* ERC20Token = this->getContract<ERC20>(token);
   return ERC20Token->balanceOf(this->getContractAddress());
 }
 
-std::string ERC20Wrapper::getUserBalance(const Address& token, const Address& user) const {
+Bytes ERC20Wrapper::getUserBalance(const Address& token, const Address& user) const {
   auto it = this->_tokensAndBalances.find(token);
   if (it == this->_tokensAndBalances.end()) {
-    return ABI::Encoder({0}).getRaw();
+    return ABI::Encoder({0}).getData();
   }
   auto itUser = it->second.find(user);
   if (itUser == it->second.end()) {
-    return ABI::Encoder({0}).getRaw();
+    return ABI::Encoder({0}).getData();
   }
-  return ABI::Encoder({itUser->second}).getRaw();
+  return ABI::Encoder({itUser->second}).getData();
 }
 
 void ERC20Wrapper::withdraw(const Address& token, const uint256_t& value) {

@@ -79,7 +79,7 @@ mkdir local_testnet
 ## Build the project
 cd build_local_testnet
 cmake -DDEBUG=$DEBUG ..
-make -j${CORES}
+cmake --build . --target orbitersdkd orbitersdkd-discovery -- -j${CORES}
 
 if [ "$DEPLOY" = true ]; then
   ## Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory

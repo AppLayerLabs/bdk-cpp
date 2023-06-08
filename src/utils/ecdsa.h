@@ -8,8 +8,8 @@
 #include "utils.h"
 
 using PrivKey = Hash;
-using PubKey = FixedStr<33>;
-using UPubKey = FixedStr<65>;
+using PubKey = FixedBytes<33>;
+using UPubKey = FixedBytes<65>;
 
 /// Namespace for abstracting secp256k1 functions.
 namespace Secp256k1 {

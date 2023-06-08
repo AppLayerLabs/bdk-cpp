@@ -13,15 +13,15 @@ private:
   ContractManager::ContractManagerInterface
       &interface; ///< Reference to the contract manager interface.
 
-  std::unordered_map<std::string,
-                     std::function<void(const ethCallInfo &callInfo)>>
+  std::unordered_map<Functor,
+                     std::function<void(const ethCallInfo &callInfo)>, SafeHash>
       functions; ///< Map of functions that can be called by the contract.
-  std::unordered_map<std::string,
-                     std::function<void(const ethCallInfo &callInfo)>>
+  std::unordered_map<Functor,
+                     std::function<void(const ethCallInfo &callInfo)>, SafeHash>
       payableFunctions; ///< Map of payable functions that can be called by the
                         ///< contract.
-  std::unordered_map<std::string,
-                     std::function<std::string(const ethCallInfo &callInfo)>>
+  std::unordered_map<Functor,
+                     std::function<Bytes(const ethCallInfo &callInfo)>, SafeHash>
       viewFunctions; ///< Map of view/const functions that can be called by the
                      ///< contract.
 
@@ -45,7 +45,7 @@ protected:
    * @param functor Solidity function signature.
    * @param f Function to be called.
    */
-  void registerFunction(const std::string &functor,
+  void registerFunction(const Functor &functor,
                         std::function<void(const ethCallInfo &tx)> f) {
     functions[functor] = f;
   }
@@ -56,7 +56,7 @@ protected:
    * @param functor Solidity function signature.
    * @param f Function to be called.
    */
-  void registerPayableFunction(const std::string &functor,
+  void registerPayableFunction(const Functor &functor,
                                std::function<void(const ethCallInfo &tx)> f) {
     payableFunctions[functor] = f;
   }
@@ -67,8 +67,8 @@ protected:
    * @param f Function to be called.
    */
   void
-  registerViewFunction(const std::string &functor,
-                       std::function<std::string(const ethCallInfo &str)> f) {
+  registerViewFunction(const Functor &functor,
+                       std::function<Bytes(const ethCallInfo &str)> f) {
     viewFunctions[functor] = f;
   }
 
@@ -142,7 +142,7 @@ public:
    */
   void ethCall(const ethCallInfo &callInfo) override {
     try {
-      std::string funcName = std::get<5>(callInfo).substr(0, 4);
+      Functor funcName = std::get<5>(callInfo);
       if (this->isPayableFunction(funcName)) {
         auto func = this->payableFunctions.find(funcName);
         if (func == this->payableFunctions.end()) {
@@ -171,9 +171,9 @@ public:
    * @throws std::runtime_error if the functor is not found.
    * @throws std::runtime_error if the function throws an exception.
    */
-  const std::string ethCallView(const ethCallInfo &data) const override {
+  const Bytes ethCallView(const ethCallInfo &data) const override {
     try {
-      std::string funcName = std::get<5>(data).substr(0, 4);
+      Functor funcName = std::get<5>(data);
       auto func = this->viewFunctions.find(funcName);
       if (func == this->viewFunctions.end()) {
         throw std::runtime_error("Functor not found");
@@ -191,7 +191,7 @@ public:
    * otherwise.
    */
 
-  bool isPayableFunction(const std::string &functor) const {
+  bool isPayableFunction(const Functor &functor) const {
     return this->payableFunctions.find(functor) != this->payableFunctions.end();
   }
 
@@ -215,13 +215,14 @@ public:
   void callContract(const Address &address, const ABI::Encoder &encoder,
                     const uint256_t &callValue = 0) {
     ethCallInfo callInfo;
-    auto &[from, to, gas, gasPrice, value, data] = callInfo;
+    auto &[from, to, gas, gasPrice, value, functor, data] = callInfo;
     from = this->getContractAddress();
     to = address;
     gas = 0;
     gasPrice = 0;
     value = callValue;
-    data = encoder.getRaw();
+    functor = encoder.getFunctor();
+    data = encoder.getData();
     interface.callContract(callInfo);
   }
 

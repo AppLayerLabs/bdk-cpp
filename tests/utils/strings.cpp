@@ -4,158 +4,132 @@
 using Catch::Matchers::Equals;
 
 namespace TFixedStr {
-  TEST_CASE("FixedStr Class", "[utils][strings]") {
-    SECTION("FixedStr Default Constructor") {
-      FixedStr<10> str1;
-      FixedStr<20> str2;
-      REQUIRE_THAT(str1.get(), Equals(std::string(10, 0x00)));
-      REQUIRE_THAT(str2.get(), Equals(std::string(20, 0x00)));
+  TEST_CASE("FixedBytes Class", "[utils][strings]") {
+    SECTION("FixedBytes Default Constructor") {
+      FixedBytes<10> str1;
+      FixedBytes<20> str2;
+      REQUIRE(str1.asBytes() == Bytes(10, 0x00));
+      REQUIRE(str2.asBytes() == Bytes(20, 0x00));
     }
 
-    SECTION("FixedStr Copy String Constructor") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
-      REQUIRE_THAT(str1.get(),  Equals("1234567890"));
-      REQUIRE_THAT(str2.get(), Equals("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
+    SECTION("FixedBytes Copy Bytes Constructor") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
+      REQUIRE(str1.asBytes() == Bytes({'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}));
+      REQUIRE(str2.asBytes() == Bytes({0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a}));
     }
 
-    SECTION("FixedStr Move String Constructor") {
-      std::string inputStr1 = "1234567890";
-      std::string inputStr2 = "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a";
-      FixedStr<10> str1(std::move(inputStr1));
-      FixedStr<10> str2(std::move(inputStr2));
-      REQUIRE_THAT(str1.get(), Equals("1234567890"));
-      REQUIRE_THAT(str2.get(), Equals("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
-      REQUIRE_THAT(inputStr1, Equals(""));
-      REQUIRE_THAT(inputStr2, Equals(""));
+    SECTION("FixedBytes Copy FixedBytes Constructor") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(str1);
+      REQUIRE(str1.asBytes() == Bytes({'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}));
+      REQUIRE(str2.asBytes() == Bytes({'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}));
     }
 
-    SECTION("FixedStr Copy FixedStr Constructor") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(str1);
-      REQUIRE_THAT(str1.get(), Equals("1234567890"));
-      REQUIRE_THAT(str2.get(), Equals("1234567890"));
+    SECTION("FixedBytes Getter") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
+      REQUIRE(str1.get() == BytesArr<10>({'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}));
+      REQUIRE(str2.get() == BytesArr<10>({0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a}));
     }
 
-    SECTION("FixedStr Move FixedStr Constructor") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::move(str1));
-      REQUIRE_THAT(str1.get(), Equals(""));
-      REQUIRE_THAT(str2.get(), Equals("1234567890"));
+    SECTION("FixedBytes const char* getter") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
+      REQUIRE_THAT(std::string(reinterpret_cast<const char*>(str1.raw()), str1.size()), Equals("1234567890"));
+      REQUIRE_THAT(std::string(reinterpret_cast<const char*>(str2.raw()), str2.size()), Equals("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
     }
 
-    SECTION("FixedStr Getter") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
-      REQUIRE_THAT(str1.get(), Equals("1234567890"));
-      REQUIRE_THAT(str2.get(), Equals("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
-    }
-
-    SECTION("FixedStr const char* getter") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
-      REQUIRE_THAT(str1.raw(), Equals("1234567890"));
-      REQUIRE_THAT(str2.raw(), Equals("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
-    }
-
-    SECTION("FixedStr hex()") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
+    SECTION("FixedBytes hex()") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
       REQUIRE_THAT(str1.hex(), Equals("31323334353637383930"));
       REQUIRE_THAT(str2.hex(), Equals("0102030405060708090a"));
     }
 
-    SECTION("FixedStr size()") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<16> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"));
-      FixedStr<10> str3;
+    SECTION("FixedBytes size()") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<16> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"));
+      FixedBytes<10> str3;
       REQUIRE(str1.size() == 10);
       REQUIRE(str2.size() == 16);
       REQUIRE(str3.size() == 10);
     }
 
-    SECTION("FixedStr cbegin()") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
+    SECTION("FixedBytes cbegin()") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
       REQUIRE(*str1.cbegin() == '1');
       REQUIRE(*str2.cbegin() == '\x01');
     }
 
-    SECTION("FixedStr cend()") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
+    SECTION("FixedBytes cend()") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a"));
       REQUIRE(*(str1.cend() - 1) == '0');
       REQUIRE(*(str2.cend() - 1) == '\x0a');
     }
 
-    SECTION("FixedStr operator==(FixedStr)") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("1234567890"));
-      FixedStr<10> str3(std::string("1234567890"));
+    SECTION("FixedBytes operator==(FixedBytes)") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("1234567890"));
+      FixedBytes<10> str3(std::string("1234567890"));
       REQUIRE(str1 == str2);
       REQUIRE(str1 == str3);
       REQUIRE(str2 == str3);
     }
 
-    SECTION("FixedStr operator!=(FixedStr)") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("1234567890"));
-      FixedStr<10> str3(std::string("1234567891"));
+    SECTION("FixedBytes operator!=(FixedBytes)") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("1234567890"));
+      FixedBytes<10> str3(std::string("1234567891"));
       REQUIRE(str1 != str3);
       REQUIRE(str2 != str3);
     }
 
-    SECTION("FixedStr operator<(FixedStr)") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("1234567891"));
-      FixedStr<10> str3(std::string("1234567892"));
+    SECTION("FixedBytes operator<(FixedBytes)") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("1234567891"));
+      FixedBytes<10> str3(std::string("1234567892"));
       REQUIRE(str1 < str2);
       REQUIRE(str1 < str3);
       REQUIRE(str2 < str3);
     }
 
-    SECTION("FixedStr operator>(FixedStr)") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("1234567891"));
-      FixedStr<10> str3(std::string("1234567892"));
+    SECTION("FixedBytes operator>(FixedBytes)") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("1234567891"));
+      FixedBytes<10> str3(std::string("1234567892"));
       REQUIRE(str2 > str1);
       REQUIRE(str3 > str2);
       REQUIRE(str3 > str1);
     }
 
-    SECTION("FixedStr operator<=(FixedStr)") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("1234567891"));
-      FixedStr<10> str3(std::string("1234567891"));
+    SECTION("FixedBytes operator<=(FixedBytes)") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("1234567891"));
+      FixedBytes<10> str3(std::string("1234567891"));
       REQUIRE(str1 <= str2);
       REQUIRE(str2 <= str3);
       REQUIRE(str1 <= str3);
     }
 
-    SECTION("FixedStr operator>=(FixedStr)") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("1234567891"));
-      FixedStr<10> str3(std::string("1234567891"));
+    SECTION("FixedBytes operator>=(FixedBytes)") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("1234567891"));
+      FixedBytes<10> str3(std::string("1234567891"));
       REQUIRE(str2 >= str1);
       REQUIRE(str3 >= str2);
       REQUIRE(str3 >= str1);
     }
 
-    SECTION("FixedStr Copy Assigment Operator") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2(std::string("1234567891"));
+    SECTION("FixedBytes Copy Assigment Operator") {
+      FixedBytes<10> str1(std::string("1234567890"));
+      FixedBytes<10> str2(std::string("1234567891"));
       str1 = str2;
       REQUIRE(str1 == str2);
-      REQUIRE_THAT(str1.get(), Equals("1234567891"));
-      REQUIRE_THAT(str2.get(), Equals("1234567891"));
-    }
-
-    SECTION("FixedStr Copy Move Operator") {
-      FixedStr<10> str1(std::string("1234567890"));
-      FixedStr<10> str2;
-      str2 = std::move(str1);
-      REQUIRE_THAT(str2.get(), Equals("1234567890"));
-      REQUIRE_THAT(str1.get(), Equals(""));
+      REQUIRE(str1.asBytes() == Bytes({'1', '2', '3', '4', '5', '6', '7', '8', '9', '1'}));
+      REQUIRE(str2.asBytes() == Bytes({'1', '2', '3', '4', '5', '6', '7', '8', '9', '1'}));
     }
   }
 }
@@ -204,60 +178,11 @@ namespace TSignature {
 namespace TAddress {
   TEST_CASE("Address Class", "[utils]") {
     SECTION("Address Copy Constructor") {
-      Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
+      Address addr1(Bytes({0x71, 0xc7, 0x65, 0x6e, 0xc7, 0xab, 0x88, 0xb0, 0x98, 0xde, 0xfb, 0x75, 0x1b, 0x74, 0x01, 0xb5, 0xf6, 0xd8, 0x97, 0x6f}));
       Address addr2(std::string("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"), true);
       REQUIRE(addr1 == addr2);
       REQUIRE_THAT(addr1.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
-      REQUIRE_THAT(addr2.get(), Equals("\x71\xc7\x65\x6e\xc7\xab\x88\xb0\x98\xde\xfb\x75\x1b\x74\x01\xb5\xf6\xd8\x97\x6f"));
-
-      bool catch1 = false;
-      bool catch2 = false;
-      bool catch3 = false;
-      try {
-        Address addrWrong1(Hex::toBytes("0x123456"), true);
-      } catch (std::exception &e) { catch1 = true; }
-      try {
-        Address addrWrong1(std::string("0x123456"), false);
-      } catch (std::exception &e) { catch2 = true; }
-      try {
-        Address addWrong2(std::string("0xxyzw"), false);
-      } catch (std::exception &e) { catch3 = true; }
-      REQUIRE(catch1 == true);
-      REQUIRE(catch2 == true);
-      REQUIRE(catch3 == true);
-    }
-
-    SECTION("Address Move String Constructor") {
-      std::string str("0x71c7656ec7ab88b098defb751b7401b5f6d8976f");
-      Address addr1(std::move(str), false);
-      REQUIRE_THAT(addr1.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
-      REQUIRE_THAT(str, Equals(""));
-
-      bool catch1 = false;
-      bool catch2 = false;
-      bool catch3 = false;
-      std::string str1(Hex::toBytes("0x123456"));
-      std::string str2("0x123456");
-      std::string str3("0xxyzw");
-      try {
-        Address addrWrong1(std::move(str1), true);
-      } catch (std::exception &e) { catch1 = true; }
-      try {
-        Address addrWrong1(std::move(str2), false);
-      } catch (std::exception &e) { catch2 = true; }
-      try {
-        Address addWrong2(std::move(str3), false);
-      } catch (std::exception &e) { catch3 = true; }
-      REQUIRE(catch1 == true);
-      REQUIRE(catch2 == true);
-      REQUIRE(catch3 == true);
-    }
-
-    SECTION("Address Move Address Constructor") {
-      Address addr1(std::string("0x71c7656ec7ab88b098defb751b7401b5f6d8976f"), false);
-      Address addr2(std::move(addr1));
-      REQUIRE_THAT(addr1.get(), Equals(""));
-      REQUIRE_THAT(addr2.hex(), Equals("71c7656ec7ab88b098defb751b7401b5f6d8976f"));
+      REQUIRE(addr2.get() == BytesArr<20>({0x71, 0xc7, 0x65, 0x6e, 0xc7, 0xab, 0x88, 0xb0, 0x98, 0xde, 0xfb, 0x75, 0x1b, 0x74, 0x01, 0xb5, 0xf6, 0xd8, 0x97, 0x6f}));
     }
 
     SECTION("Address toChksum") {
@@ -265,7 +190,7 @@ namespace TAddress {
       std::string inputChecksum = inputAddress.toChksum();
       Address outputAddress(inputChecksum, false);
       Address expectedOutputAddress(std::string("0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359"), false);
-      REQUIRE_THAT(outputAddress.get(), Equals(expectedOutputAddress.get()));
+      REQUIRE(outputAddress == expectedOutputAddress);
     }
 
     SECTION("Address isValid") {

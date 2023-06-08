@@ -13,16 +13,15 @@
 /**
  * Abstraction of a block.
  *
- * Does NOT check transaction logic or signatures, it's only the block's
- * structure/data and some functions to manage it.
- *
+ * Does NOT check transaction logic but does check Tx Signature validty.
+ * Logic is handled by State.
  * (Summed up) Structure is as follows:
  *
  * ```
  * OUTSIDE OF BLOCK HEADER:
  *   65 BYTES - VALIDATOR SIGNATURE
  *
- * BLOCK HEADER:
+ * BLOCK HEADER (144 BYTES):
  *   32 BYTES - PREV BLOCK HASH
  *   32 BYTES - BLOCK RANDOMNESS
  *   32 BYTES - VALIDATOR MERKLE ROOT
@@ -93,7 +92,7 @@ class Block {
      * @param bytes The raw block data string to parse.
      * @param requiredChainId The chain ID that the block and its transactions belong to.
      */
-    Block(std::string_view bytes, const uint64_t& requiredChainId);
+    Block(const BytesArrView bytes, const uint64_t& requiredChainId);
 
     /**
      * Constructor from creation.
@@ -176,13 +175,13 @@ class Block {
      * Validator Merkle Root + Transaction Merkle Root + timestamp + nHeight).
      * @return The serialized header string.
      */
-    const std::string serializeHeader() const;
+    const Bytes serializeHeader() const;
 
     /**
      * Serialize the entire block and its contents.
      * @return The serialized block string.
      */
-    const std::string serializeBlock() const;
+    const Bytes serializeBlock() const;
 
     /**
      * SHA3-hash the block header (calls serializeHeader() internally).

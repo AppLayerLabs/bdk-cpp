@@ -22,7 +22,7 @@ const std::vector<Hash> validatorPrivKeys {
 };
 
 // Forward declaration from contractmanager.cpp
-ethCallInfo buildCallInfo(const Address& addressToCall, const std::string& dataToCall);
+ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 // This creates a valid block given the state within the rdPoS class.
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
@@ -57,7 +57,7 @@ void initialize(std::unique_ptr<DB>& db,
     // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
     // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
     genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1678887538000000);
-    db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
+    db->put(Utils::stringToBytes("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
 
@@ -68,10 +68,12 @@ void initialize(std::unique_ptr<DB>& db,
     }
     // Populate State DB with one address.
     /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
-    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true);
+    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
     /// See ~State for encoding
     uint256_t desiredBalance("1000000000000000000000");
-    std::string value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance)) + Utils::uintToBytes(desiredBalance) + '\x00';
+    Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
+    Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
+    value.insert(value.end(), 0x00);
     db->put(dev1.get(), value, DBPrefix::nativeAccounts);
   }
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
@@ -115,7 +117,7 @@ namespace TState {
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateConstructorTest");
-        REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) ==
+        REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) ==
                 uint256_t("1000000000000000000000"));
       }
       // Wait a little until everyone has been destructed.
@@ -128,9 +130,9 @@ namespace TState {
       std::unique_ptr<Options> options;
       //// Check if opening the state loads successfully from DB.
       initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "stateConstructorTest");
-      REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) ==
+      REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) ==
               uint256_t("1000000000000000000000"));
-      REQUIRE(state->getNativeNonce(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) == 0);
+      REQUIRE(state->getNativeNonce(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) == 0);
     }
 
     SECTION("State Class addBalance to random Addresses") {
@@ -145,7 +147,7 @@ namespace TState {
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateAddBalanceTest");
 
         for (uint64_t i = 0; i < 1024; ++i) {
-          std::pair<Address, uint256_t> randomAddress = std::make_pair(Address(Utils::randBytes(20), true),
+          std::pair<Address, uint256_t> randomAddress = std::make_pair(Address(Utils::randBytes(20)),
                                                                        uint256_t("1000000000000000000000"));
           state->addBalance(randomAddress.first);
           addresses.push_back(randomAddress);
@@ -205,7 +207,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       {
         std::unique_ptr<DB> db;
@@ -224,7 +226,7 @@ namespace TState {
           transactions.emplace_back(
             targetOfTransactions,
             me,
-            "",
+            Bytes(),
             8080,
             state->getNativeNonce(me),
             1000000000000000000,
@@ -262,7 +264,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       {
         std::unique_ptr<DB> db;
@@ -280,7 +282,7 @@ namespace TState {
           TxBlock tx(
             targetOfTransactions,
             me,
-            "",
+            Bytes(),
             8080,
             state->getNativeNonce(me),
             1000000000000000000,
@@ -327,7 +329,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       {
         std::unique_ptr<DB> db;
@@ -347,7 +349,7 @@ namespace TState {
           TxBlock tx(
             targetOfTransactions,
             me,
-            "",
+            Bytes(),
             8080,
             state->getNativeNonce(me),
             1000000000000000000,
@@ -399,7 +401,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       std::unique_ptr<Block> latestBlock = nullptr;
       {
@@ -424,7 +426,7 @@ namespace TState {
             txs.emplace_back(
               targetOfTransactions,
               me,
-              "",
+              Bytes(),
               8080,
               state->getNativeNonce(me),
               1000000000000000000,
@@ -699,11 +701,11 @@ namespace TState {
       // Test tx broadcasting
       for (const auto &privkey: randomAccounts) {
         Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
-        Address targetOfTransactions = Address(Utils::randBytes(20), true);
+        Address targetOfTransactions = Address(Utils::randBytes(20));
         TxBlock tx(
           targetOfTransactions,
           me,
-          "",
+          Bytes(),
           8080,
           state1->getNativeNonce(me),
           1000000000000000000,
@@ -964,7 +966,7 @@ namespace TState {
             while (randomHashTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                     randomHashTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -976,7 +978,7 @@ namespace TState {
             while (randomnessTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                     randomnessTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1041,7 +1043,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       std::unique_ptr<DB> db1;
@@ -1288,7 +1290,7 @@ namespace TState {
             while (randomHashTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                     randomHashTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1300,7 +1302,7 @@ namespace TState {
             while (randomnessTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                     randomnessTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1326,7 +1328,7 @@ namespace TState {
               TxBlock tx(
                 targetOfTransactions,
                 me,
-                "",
+                Bytes(),
                 8080,
                 state1->getNativeNonce(me),
                 1000000000000000000,
@@ -1403,7 +1405,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       std::unique_ptr<DB> db1;
@@ -1650,7 +1652,7 @@ namespace TState {
             while (randomHashTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                     randomHashTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1662,7 +1664,7 @@ namespace TState {
             while (randomnessTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                     randomnessTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1688,7 +1690,7 @@ namespace TState {
               TxBlock tx(
                 targetOfTransactions,
                 me,
-                "",
+                Bytes(),
                 8080,
                 state1->getNativeNonce(me),
                 1000000000000000000,
@@ -1771,7 +1773,7 @@ namespace TState {
       PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       std::unique_ptr<DB> db1;
@@ -2007,7 +2009,7 @@ namespace TState {
             while (randomHashTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                     randomHashTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -2019,7 +2021,7 @@ namespace TState {
             while (randomnessTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                     randomnessTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -2053,7 +2055,8 @@ namespace TState {
               createNewERC20ContractVars.push_back(tokenDecimals);
               createNewERC20ContractVars.push_back(tokenSupply);
               ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
-              std::string createNewERC20ContractData = Hex::toBytes("0xb74e5ed5") + createNewERC20ContractEncoder.getRaw();
+              Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
+              Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
 
               TxBlock createNewERC2OTx = TxBlock(
                 ProtocolContractAddresses.at("ContractManager"),
@@ -2077,7 +2080,8 @@ namespace TState {
               transferVars.push_back(targetOfTransactions);
               transferVars.push_back(10000000000000000);
               ABI::Encoder transferEncoder(transferVars);
-              std::string transferData = Hex::toBytes("0xa9059cbb") + transferEncoder.getRaw();
+              Bytes transferData = Hex::toBytes("0xa9059cbb");
+              Utils::appendBytes(transferData, transferEncoder.getData());
 
               TxBlock transferERC20 = TxBlock(
                 ERC20ContractAddress,
@@ -2130,35 +2134,35 @@ namespace TState {
             ABI::Encoder::EncVar getBalanceMeVars;
             getBalanceMeVars.push_back(targetOfTransactions);
             ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-            std::string getBalanceMeNode1Result = state1->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode1Result = state1->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode1Decoder({ABI::Types::uint256}, getBalanceMeNode1Result);
             REQUIRE(getBalanceMeNode1Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode2Result = state2->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode2Result = state2->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode2Decoder({ABI::Types::uint256}, getBalanceMeNode2Result);
             REQUIRE(getBalanceMeNode2Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode3Result = state3->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode3Result = state3->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode3Decoder({ABI::Types::uint256}, getBalanceMeNode3Result);
             REQUIRE(getBalanceMeNode3Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode4Result = state4->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode4Result = state4->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode4Decoder({ABI::Types::uint256}, getBalanceMeNode4Result);
             REQUIRE(getBalanceMeNode4Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode5Result = state5->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode5Result = state5->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode5Decoder({ABI::Types::uint256}, getBalanceMeNode5Result);
             REQUIRE(getBalanceMeNode5Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode6Result = state6->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode6Result = state6->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode6Decoder({ABI::Types::uint256}, getBalanceMeNode6Result);
             REQUIRE(getBalanceMeNode6Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode7Result = state7->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode7Result = state7->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode7Decoder({ABI::Types::uint256}, getBalanceMeNode7Result);
             REQUIRE(getBalanceMeNode7Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode8Result = state8->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode8Result = state8->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode8Decoder({ABI::Types::uint256}, getBalanceMeNode8Result);
             REQUIRE(getBalanceMeNode8Decoder.getData<uint256_t>(0) == targetExpectedValue);
 

@@ -58,7 +58,7 @@ public:
    * @param token The address of the token.
    * @return The balance of the contract for a specific token.
    */
-  std::string getContractBalance(const Address &token) const;
+  Bytes getContractBalance(const Address &token) const;
 
   /// function getUserBalance(address _token, address _user) public view returns
   /// (uint256) { return _tokensAndBalances[_token][_user]; }
@@ -69,7 +69,7 @@ public:
    * @param user The address of the user.
    * @return The balance of a user for a specific token.
    */
-  std::string getUserBalance(const Address &token, const Address &user) const;
+  Bytes getUserBalance(const Address &token, const Address &user) const;
 
   /// function withdraw (address _token, uint256 _value) public returns (bool)
 

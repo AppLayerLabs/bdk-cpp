@@ -51,7 +51,7 @@ namespace THex {
     }
 
     SECTION("Hex FromBytes") {
-      std::string bytes = "\x12\x34";
+      Bytes bytes{0x12, 0x34};
       Hex hex = Hex::fromBytes(bytes, false);
       Hex hexStrict = Hex::fromBytes(bytes, true);
       REQUIRE_THAT(hex.get(), Equals("1234"));
@@ -77,14 +77,14 @@ namespace THex {
     SECTION("Hex ToBytes") {
       std::string_view hexStr("0x1234");
       std::string_view hexStr2("5678");
-      std::string bytesStr = Hex::toBytes(hexStr);
-      std::string bytesStr2 = Hex::toBytes(hexStr2);
+      Bytes bytesStr = Hex::toBytes(hexStr);
+      Bytes bytesStr2 = Hex::toBytes(hexStr2);
       REQUIRE(Hex::fromBytes(bytesStr).get() == "1234");
       REQUIRE(Hex::fromBytes(bytesStr2).get() == "5678");
 
       bool catched = false;
       std::string_view wrongStr("xyzw");
-      try { std::string s = Hex::toBytes(wrongStr); } catch (std::exception &e) { catched = true; }
+      try { Bytes s = Hex::toBytes(wrongStr); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
 
@@ -92,8 +92,8 @@ namespace THex {
       std::string hexStr = "0x1234";
       Hex hex(hexStr, false);
       Hex hexStrict(hexStr, true);
-      REQUIRE_THAT(hex.bytes(), Equals("\x12\x34"));
-      REQUIRE_THAT(hexStrict.bytes(), Equals("\x12\x34"));
+      REQUIRE(hex.bytes() == Bytes{0x12, 0x34});
+      REQUIRE(hexStrict.bytes() == Bytes{0x12, 0x34});
     }
 
     SECTION("Hex Get") {

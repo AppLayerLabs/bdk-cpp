@@ -101,7 +101,7 @@ class Storage {
      * @param txIndex The index of the transaction to get.
      * @return The transaction itself.
      */
-    const TxBlock getTxFromBlockWithIndex(const std::string_view blockData, const uint64_t& txIndex);
+    const TxBlock getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex);
 
   public:
     /**

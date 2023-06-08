@@ -134,8 +134,8 @@ namespace P2P {
     try {
       if (this->receiveBuffer_.size() >= 11) {
         if (this->manager_.isClosed()) return;
-        std::string messageStr = boost::beast::buffers_to_string(this->receiveBuffer_.data());
-        Message message(std::move(messageStr));
+        Bytes messageBytes(boost::asio::buffers_begin(this->receiveBuffer_.data()), boost::asio::buffers_end(this->receiveBuffer_.data()));
+        Message message(std::move(messageBytes));
         this->threadPool->push_task(
           &ManagerBase::handleMessage, &this->manager_, shared_from_this(), message
         );
@@ -156,7 +156,7 @@ namespace P2P {
   void ClientSession::write(const Message& data) {
     writeLock_.lock();
     size_t n = boost::asio::buffer_copy(
-      this->answerBuffer_.prepare(data.raw().size()), boost::asio::buffer(data.raw())
+      this->answerBuffer_.prepare(data.raw().size()), boost::asio::buffer(data.raw().data(), data.raw().size())
     );
     this->answerBuffer_.commit(n);
     ws_.async_write(this->answerBuffer_.data(), beast::bind_front_handler(

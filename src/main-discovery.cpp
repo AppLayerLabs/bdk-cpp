@@ -17,5 +17,5 @@ int main() {
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   p2p.startDiscovery();
   /// Sleep Forever
-  std::this_thread::sleep_for(std::chrono::hours(1000000));
+  std::this_thread::sleep_for(std::chrono::days(1000000));
 }

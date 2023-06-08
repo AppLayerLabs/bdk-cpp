@@ -48,7 +48,7 @@ void initialize(std::unique_ptr<DB>& db,
     // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
     // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
     genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1678887538000000);
-    db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
+    db->put(Utils::stringToBytes("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
 
@@ -134,8 +134,10 @@ Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& 
   std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
   for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
     Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
-    std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(randomSeeds[i].get()).get();
-    std::string randomTxData = Hex::toBytes("0x6fc5a2d6") + randomSeeds[i].get();
+    Bytes hashTxData = Hex::toBytes("0xcfffe746");
+    Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i].get()));
+    Bytes randomTxData = Hex::toBytes("0x6fc5a2d6");
+    Utils::appendBytes(randomTxData, randomSeeds[i].get());
     randomHashTxs.emplace_back(
       validatorAddress,
       hashTxData,
@@ -196,14 +198,14 @@ namespace TRdPoS {
 
         auto validators = rdpos->getValidators();
         REQUIRE(rdpos->getValidators().size() == 8);
-        REQUIRE(validators.contains(Address(Hex::toBytes("1531bfdf7d48555a0034e4647fa46d5a04c002c3"), true)));
-        REQUIRE(validators.contains(Address(Hex::toBytes("e3dff2cc3f367df7d0254c834a0c177064d7c7f5"), true)));
-        REQUIRE(validators.contains(Address(Hex::toBytes("24e10d8ebe80abd3d3fddd89a26f08f3888d1380"), true)));
-        REQUIRE(validators.contains(Address(Hex::toBytes("b5f7152a2589c6cc2535c5facedfc853194d60a5"), true)));
-        REQUIRE(validators.contains(Address(Hex::toBytes("098ff62812043f5106db718e5c4349111de3b6b4"), true)));
-        REQUIRE(validators.contains(Address(Hex::toBytes("50d2ce9815e0e2354de7834f6fdd4d6946442a24"), true)));
-        REQUIRE(validators.contains(Address(Hex::toBytes("7c2b2a0a75e10b49e652d99bba8afee3a6bc78dd"), true)));
-        REQUIRE(validators.contains(Address(Hex::toBytes("6e67067edc1b4837b67c0b1def689eddee257521"), true)));
+        REQUIRE(validators.contains(Address(Hex::toBytes("1531bfdf7d48555a0034e4647fa46d5a04c002c3"))));
+        REQUIRE(validators.contains(Address(Hex::toBytes("e3dff2cc3f367df7d0254c834a0c177064d7c7f5"))));
+        REQUIRE(validators.contains(Address(Hex::toBytes("24e10d8ebe80abd3d3fddd89a26f08f3888d1380"))));
+        REQUIRE(validators.contains(Address(Hex::toBytes("b5f7152a2589c6cc2535c5facedfc853194d60a5"))));
+        REQUIRE(validators.contains(Address(Hex::toBytes("098ff62812043f5106db718e5c4349111de3b6b4"))));
+        REQUIRE(validators.contains(Address(Hex::toBytes("50d2ce9815e0e2354de7834f6fdd4d6946442a24"))));
+        REQUIRE(validators.contains(Address(Hex::toBytes("7c2b2a0a75e10b49e652d99bba8afee3a6bc78dd"))));
+        REQUIRE(validators.contains(Address(Hex::toBytes("6e67067edc1b4837b67c0b1def689eddee257521"))));
         REQUIRE(rdpos->getBestRandomSeed() == Hash()); // Genesis blocks randomness is 0.
 
         auto randomList = rdpos->getRandomList();
@@ -214,14 +216,14 @@ namespace TRdPoS {
         }
 
         // Check ordering of random list. deterministic.
-        REQUIRE(randomList[0] == Address(Hex::toBytes("50d2ce9815e0e2354de7834f6fdd4d6946442a24"), true));
-        REQUIRE(randomList[1] == Address(Hex::toBytes("6e67067edc1b4837b67c0b1def689eddee257521"), true));
-        REQUIRE(randomList[2] == Address(Hex::toBytes("24e10d8ebe80abd3d3fddd89a26f08f3888d1380"), true));
-        REQUIRE(randomList[3] == Address(Hex::toBytes("7c2b2a0a75e10b49e652d99bba8afee3a6bc78dd"), true));
-        REQUIRE(randomList[4] == Address(Hex::toBytes("1531bfdf7d48555a0034e4647fa46d5a04c002c3"), true));
-        REQUIRE(randomList[5] == Address(Hex::toBytes("b5f7152a2589c6cc2535c5facedfc853194d60a5"), true));
-        REQUIRE(randomList[6] == Address(Hex::toBytes("e3dff2cc3f367df7d0254c834a0c177064d7c7f5"), true));
-        REQUIRE(randomList[7] == Address(Hex::toBytes("098ff62812043f5106db718e5c4349111de3b6b4"), true));
+        REQUIRE(randomList[0] == Address(Hex::toBytes("50d2ce9815e0e2354de7834f6fdd4d6946442a24")));
+        REQUIRE(randomList[1] == Address(Hex::toBytes("6e67067edc1b4837b67c0b1def689eddee257521")));
+        REQUIRE(randomList[2] == Address(Hex::toBytes("24e10d8ebe80abd3d3fddd89a26f08f3888d1380")));
+        REQUIRE(randomList[3] == Address(Hex::toBytes("7c2b2a0a75e10b49e652d99bba8afee3a6bc78dd")));
+        REQUIRE(randomList[4] == Address(Hex::toBytes("1531bfdf7d48555a0034e4647fa46d5a04c002c3")));
+        REQUIRE(randomList[5] == Address(Hex::toBytes("b5f7152a2589c6cc2535c5facedfc853194d60a5")));
+        REQUIRE(randomList[6] == Address(Hex::toBytes("e3dff2cc3f367df7d0254c834a0c177064d7c7f5")));
+        REQUIRE(randomList[7] == Address(Hex::toBytes("098ff62812043f5106db718e5c4349111de3b6b4")));
       }
       
       std::unique_ptr<DB> db;
@@ -367,8 +369,10 @@ namespace TRdPoS {
       std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
-        std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(randomSeeds[i].get()).get();
-        std::string randomTxData = Hex::toBytes("0x6fc5a2d6") + randomSeeds[i].get();
+        Bytes hashTxData = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i].get()));
+        Bytes randomTxData = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(randomTxData, randomSeeds[i]);
         txValidators.emplace_back(
           validatorAddress,
           hashTxData,
@@ -644,8 +648,10 @@ namespace TRdPoS {
       std::vector<Hash> randomSeeds(orderedPrivKeys.size(), Hash::random());
       for (uint64_t i = 0; i < orderedPrivKeys.size(); ++i) {
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(orderedPrivKeys[i]));
-        std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(randomSeeds[i].get()).get();
-        std::string randomTxData = Hex::toBytes("0x6fc5a2d6") + randomSeeds[i].get();
+        Bytes hashTxData = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(hashTxData, Utils::sha3(randomSeeds[i].get()));
+        Bytes randomTxData = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(randomTxData, randomSeeds[i]);
         txValidators.emplace_back(
           validatorAddress,
           hashTxData,
@@ -915,7 +921,7 @@ namespace TRdPoS {
           while (randomHashTxs.size() != rdPoS::minValidators) {
             for (const auto [txHash, tx]: mempool) {
               if (tx.getFrom() == randomList[i]) {
-                if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                   randomHashTxs.emplace_back(tx);
                   ++i;
                   break;
@@ -927,7 +933,7 @@ namespace TRdPoS {
           while (randomnessTxs.size() != rdPoS::minValidators) {
             for (const auto [txHash, tx]: mempool) {
               if (tx.getFrom() == randomList[i]) {
-                if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                   randomnessTxs.emplace_back(tx);
                   ++i;
                   break;

@@ -46,9 +46,9 @@ namespace JsonRPC {
     /**
      * Get the string (in bytes) to hash.
      * @param request The request object.
-     * @return The string to be hashed.
+     * @return The bytes to be hashed
      */
-    std::string web3_sha3(const json& request);
+    Bytes web3_sha3(const json& request);
 
     /**
     * Check if `net_version` is valid.
@@ -132,16 +132,16 @@ namespace JsonRPC {
      * Check and parse a given `eth_call` request.
      * @param request The request object.
      * @param storage Pointer to the blockchain's storage.
-     * @return A tuple with the call response data (from, to, gas, gasPrice, value, data).
+     * @return A tuple with the call response data (from, to, gas, gasPrice, value, functor, data).
      */
-    ethCallInfo eth_call(const json& request, const std::unique_ptr<Storage> &storage);
+    ethCallInfoAllocated eth_call(const json& request, const std::unique_ptr<Storage> &storage);
 
     /**
      * Check and parse a given `eth_estimateGas` request.
      * @param request The request object.
-     * @return A tuple with the call response data (from, to, gas, gasPrice, value, data).
+     * @return A tuple with the call response data (from, to, gas, gasPrice, value, functor, data).
      */
-    ethCallInfo eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage);
+    ethCallInfoAllocated eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage);
 
     /**
      * Check if `eth_gasPrice` is valid
