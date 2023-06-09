@@ -774,13 +774,13 @@ void registerContractAndGetData(json &contractData) {
 /**
  * This function writes the contract data of a contract to a JSON file.
  * @tparam Contract The contract to write the data of.
- * @param outputFilename The name of the output file.
  */
 template <typename Contract>
-void writeContractToJson(std::string &outputFileName) {
+void writeContractToJson() {
   json contractData;
   registerContractAndGetData<Contract>(contractData);
-  // check if outputFileName ends with .json, if not, append .json
+
+  std::string outputFileName = typeid(Contract).name();
   if (outputFileName.substr(outputFileName.find_last_of(".") + 1) != "json") {
     outputFileName += ".json";
   }
@@ -794,6 +794,23 @@ void writeContractToJson(std::string &outputFileName) {
 
   std::ofstream jsonFile(fullOutputFileName);
   jsonFile << std::setw(4) << contractData << std::endl;
+}
+
+/**
+* This function writes the contract data of a list of contracts to JSON files.
+* @tparam FirstContract The first contract to write the data of.
+* @tparam RestContracts The rest of the contracts to write the data of.
+* @return 0 if successful.
+*/
+template <typename FirstContract, typename... RestContracts>
+int writeContractsToJson() {
+    writeContractToJson<FirstContract>();
+
+    if constexpr (sizeof...(RestContracts) > 0) {
+        return writeContractsToJson<RestContracts...>();
+    }
+
+    return 0;
 }
 
 } // namespace ContractReflectionInterface
