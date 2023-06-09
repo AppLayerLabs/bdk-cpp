@@ -10,6 +10,9 @@ ContractManager::ContractManager(State* state, const std::unique_ptr<DB>& db, co
   rdpos(rdpos),
   options(options),
   interface(std::make_unique<ContractManagerInterface>(*this)) {
+  ERC20::registerContract();
+  this->addCreateContractFunc("0xb74e5ed5", [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20>(callInfo); });
+  this->addValidateContractFunc("0xb74e5ed5", [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20>(callInfo); });
   /// Load Contracts from DB.
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto& contract : contracts) {
@@ -227,35 +230,74 @@ void ContractManager::validateCreateNewERC20NativeWrapperContract(const ethCallI
   }
 }
 
+template <typename TContract>
+std::pair<Address, ABI::Decoder> ContractManager::setupNewContract(const ethCallInfo &callInfo) {
+  // Check if caller is creator
+  if (this->caller != this->getContractCreator()) {
+    throw std::runtime_error("Only contract creator can create new contracts");
+  }
+
+  // Check if contract address already exists
+  const Address derivedContractAddress = this->deriveContractAddress(callInfo);
+  if (this->contracts.contains(derivedContractAddress)) {
+    throw std::runtime_error("Contract already exists");
+  }
+
+  std::unique_lock lock(this->contractsMutex);
+  for (const auto &[protocolContractName, protocolContractAddress] :
+       ProtocolContractAddresses) {
+    if (protocolContractAddress == derivedContractAddress) {
+      throw std::runtime_error("Contract already exists");
+    }
+  }
+
+  // Parse the constructor ABI
+  // TContract::registerContract(*this);
+  std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
+  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+
+  return std::make_pair(derivedContractAddress, decoder);
+}
+
+template <typename TContract>
+void ContractManager::createNewContract(const ethCallInfo &callInfo) {
+  auto setupResult = this->setupNewContract<TContract>(callInfo);
+  // Simply can't do ``auto [derivedContractAddress, decoder] =
+  // setupNewContract<TContract>(callInfo);`` because the compiler is too stupid
+  // to figure out the types
+  if (!ContractReflectionInterface::isContractRegistered<TContract>()) {
+    throw std::runtime_error("Contract class is not registered");
+  }
+  Address derivedContractAddress = setupResult.first;
+  ABI::Decoder decoder = setupResult.second;
+  this->contracts.insert(std::make_pair(
+      derivedContractAddress,
+      std::make_unique<TContract>(decoder.getData<std::string>(0),
+                                                                                        decoder.getData<std::string>(1),
+                                                                                        uint8_t(decoder.getData<uint256_t>(2)),
+                                                                                        decoder.getData<uint256_t>(3),
+                                                                                        *this->interface, derivedContractAddress,
+                                                                                        this->getCaller(), this->options->getChainID(),
+                                                                                        this->db)));
+}
+
+template <typename TContract>
+void ContractManager::validateNewContract(const ethCallInfo &callInfo) {
+  this->setupNewContract<TContract>(callInfo);
+}
+
 void ContractManager::ethCall(const ethCallInfo& callInfo) {
   std::string functor = std::get<5>(callInfo).substr(0, 4);
   if (this->getCommit()) {
-    /// function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
-    if (functor == Hex::toBytes("0xb74e5ed5")) {
-      this->createNewERC20Contract(callInfo);
-      return;
-    }
-    /// function createNewERC20WrapperContract() public {}
-    if (functor == Hex::toBytes("0x97aa51a3")) {
-      this->createNewERC20WrapperContract(callInfo);
-      return;
-    }
-    /// function createNewERC20NativeWrapperContract(string memory name, string memory symbol, uint8 decimals) public {}
-    if (functor == Hex::toBytes("0x9f90f4c7")) {
-      this->createNewERC20NativeWrapperContract(callInfo);
+    auto createIt = createContractFuncs.find(functor);
+    if (createIt != createContractFuncs.end()) {
+      createIt->second(callInfo);
       return;
     }
   } else {
-    if (functor == Hex::toBytes("0xb74e5ed5")) {
-      this->validateCreateNewERC20Contract(callInfo);
-      return;
-    }
-    if (functor == Hex::toBytes("0x97aa51a3")) {
-      this->validateCreateNewERC20WrapperContract(callInfo);
-      return;
-    }
-    if (functor == Hex::toBytes("0x9f90f4c7")) {
-      this->validateCreateNewERC20NativeWrapperContract(callInfo);
+    auto validateIt = validateContractFuncs.find(functor);
+    if (validateIt != validateContractFuncs.end()) {
+      validateIt->second(callInfo);
       return;
     }
   }

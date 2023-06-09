@@ -57,6 +57,11 @@ private:
   /// successful.
   std::unordered_map<Address, uint256_t, SafeHash> balances;
 
+  std::unordered_map<std::string, std::function<void(const ethCallInfo &)>>
+      createContractFuncs;
+  std::unordered_map<std::string, std::function<void(const ethCallInfo &)>>
+      validateContractFuncs;
+
   /// Address of the contract that is currently being called.
   Address currentActiveContract = Address();
 
@@ -108,7 +113,6 @@ private:
   /// address[] memory) {}
   std::string getDeployedContracts() const;
 
-private:
   std::unique_ptr<ContractManagerInterface> interface; ///< Interface to be passed to
                                       ///< DynamicContract
 
@@ -196,6 +200,28 @@ public:
    * @return True if the address is a contract address, false otherwise.
    */
   bool isContractAddress(const Address &address) const;
+
+  template <typename TContract>
+  std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo);
+
+  template <typename TContract>
+  void createNewContract(const ethCallInfo &callInfo);
+
+  template <typename TContract>
+  void validateNewContract(const ethCallInfo &callInfo);
+
+  void addCreateContractFunc(const std::string &functor,
+                        std::function<void(const ethCallInfo &)> createFunc) {
+    auto val = Hex::toBytes(functor);
+    createContractFuncs[val] = createFunc;
+  }
+
+  void addValidateContractFunc(
+      const std::string &functor,
+      std::function<void(const ethCallInfo &)> validateFunc) {
+    validateContractFuncs[functor] = validateFunc;
+    auto val = Hex::toBytes(functor);
+  }
 
   /**
    * Get list of contracts addresses and names.
