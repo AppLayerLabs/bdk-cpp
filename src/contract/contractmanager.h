@@ -18,6 +18,7 @@
 /// Forward Declaration
 class rdPoS;
 class State;
+class ContractManagerInterface;
 
 /**
  * Addresses for the contracts that are deployed at protocol level
@@ -107,86 +108,8 @@ private:
   /// address[] memory) {}
   std::string getDeployedContracts() const;
 
-public:
-  /// Interface class for DynamicContract to access ContractManager and interact
-  /// with other dynamic contracts.
-  class ContractManagerInterface {
-  private:
-    /// Reference back to the contract manager
-    ContractManager &contractManager;
-
-  public:
-    /// Constructor
-    explicit ContractManagerInterface(ContractManager &contractManager)
-        : contractManager(contractManager) {}
-
-    /// Populate a given address with the balance of the State
-    void populateBalance(const Address &address) const;
-
-    /// Call a contract function.
-    /// Used by DynamicContract to call other contracts
-    /// @param callInfo The call info
-    /// A given DynamicContract will only call another contract if it was
-    /// firstly triggered by a transaction. That means, we can use
-    /// contractManager::commit to know if the call should commit or not. This
-    /// function will only be called if a ContractManager::callContract or
-    /// ContractManager::validateCallContractWithTx was called before.
-    void callContract(const ethCallInfo &callInfo);
-
-    /**
-     * @brief Get a contract by address
-     * Used by DynamicContract to access view/const functions of other contracts
-     * @tparam T The contract type
-     * @param address The address of the contract
-     * @return A pointer to the contract
-     * @throw runtime_error if contract not found or if contract is not of the
-     * requested type
-     */
-    template <typename T> const T *getContract(const Address &address) const {
-      std::shared_lock<std::shared_mutex> lock(
-          this->contractManager.contractsMutex);
-      auto it = this->contractManager.contracts.find(address);
-      if (it == this->contractManager.contracts.end()) {
-        throw std::runtime_error(
-            "ContractManager::getContract: contract at address " +
-            address.hex().get() + " not found.");
-      }
-      T *ptr = dynamic_cast<T *>(it->second.get());
-      if (ptr == nullptr) {
-        throw std::runtime_error(
-            "ContractManager::getContract: Contract at address " +
-            address.hex().get() +
-            " is not of the requested type: " + typeid(T).name());
-      }
-      return ptr;
-    }
-
-    /**
-     * @brief Returns the balance from the State
-     * Doesn't take account of current transaction being processed.
-     * @param address The address to get the balance from.
-     * @return The balance of the address.
-     */
-    uint256_t getBalanceFromAddress(const Address &address) const;
-
-    /// Send tokens to a given address
-    /// Used by DynamicContract to send Tokens to other Contracts
-    /// @param address The address to send the tokens to.
-    /// @param amount The amount of tokens to send.
-
-    /**
-     * @brief Uses currentActiveContract to know which contract is sending the
-     * tokens.
-     * @param address The address to send the tokens to.
-     * @param amount The amount of tokens to send.
-     * @throw runtime_error if there is not enough balance to send the tokens.
-     */
-    void sendTokens(const Address &from, const Address &to,
-                    const uint256_t &amount);
-  };
-
 private:
-  ContractManagerInterface interface; ///< Interface to be passed to
+  std::unique_ptr<ContractManagerInterface> interface; ///< Interface to be passed to
                                       ///< DynamicContract
 
 public:
@@ -285,5 +208,82 @@ public:
                                          ///< so it can access private members
                                          ///< of ContractManager
 };
+
+/// Interface class for DynamicContract to access ContractManager and interact
+  /// with other dynamic contracts.
+  class ContractManagerInterface {
+  private:
+    /// Reference back to the contract manager
+    ContractManager &contractManager;
+
+  public:
+    /// Constructor
+    explicit ContractManagerInterface(ContractManager &contractManager)
+        : contractManager(contractManager) {}
+
+    /// Populate a given address with the balance of the State
+    void populateBalance(const Address &address) const;
+
+    /// Call a contract function.
+    /// Used by DynamicContract to call other contracts
+    /// @param callInfo The call info
+    /// A given DynamicContract will only call another contract if it was
+    /// firstly triggered by a transaction. That means, we can use
+    /// contractManager::commit to know if the call should commit or not. This
+    /// function will only be called if a ContractManager::callContract or
+    /// ContractManager::validateCallContractWithTx was called before.
+    void callContract(const ethCallInfo &callInfo);
+
+    /**
+     * @brief Get a contract by address
+     * Used by DynamicContract to access view/const functions of other contracts
+     * @tparam T The contract type
+     * @param address The address of the contract
+     * @return A pointer to the contract
+     * @throw runtime_error if contract not found or if contract is not of the
+     * requested type
+     */
+    template <typename T> const T *getContract(const Address &address) const {
+      std::shared_lock<std::shared_mutex> lock(
+          this->contractManager.contractsMutex);
+      auto it = this->contractManager.contracts.find(address);
+      if (it == this->contractManager.contracts.end()) {
+        throw std::runtime_error(
+            "ContractManager::getContract: contract at address " +
+            address.hex().get() + " not found.");
+      }
+      T *ptr = dynamic_cast<T *>(it->second.get());
+      if (ptr == nullptr) {
+        throw std::runtime_error(
+            "ContractManager::getContract: Contract at address " +
+            address.hex().get() +
+            " is not of the requested type: " + typeid(T).name());
+      }
+      return ptr;
+    }
+
+    /**
+     * @brief Returns the balance from the State
+     * Doesn't take account of current transaction being processed.
+     * @param address The address to get the balance from.
+     * @return The balance of the address.
+     */
+    uint256_t getBalanceFromAddress(const Address &address) const;
+
+    /// Send tokens to a given address
+    /// Used by DynamicContract to send Tokens to other Contracts
+    /// @param address The address to send the tokens to.
+    /// @param amount The amount of tokens to send.
+
+    /**
+     * @brief Uses currentActiveContract to know which contract is sending the
+     * tokens.
+     * @param address The address to send the tokens to.
+     * @param amount The amount of tokens to send.
+     * @throw runtime_error if there is not enough balance to send the tokens.
+     */
+    void sendTokens(const Address &from, const Address &to,
+                    const uint256_t &amount);
+  };
 
 #endif // CONTRACTMANAGER_H

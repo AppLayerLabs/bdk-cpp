@@ -52,7 +52,7 @@ public:
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  NativeWrapper(ContractManager::ContractManagerInterface &interface,
+  NativeWrapper(ContractManagerInterface &interface,
                 const Address &address, const std::unique_ptr<DB> &db);
 
   /**
@@ -68,14 +68,14 @@ public:
   */
   NativeWrapper(const std::string &erc20_name, const std::string &erc20_symbol,
                 const uint8_t &erc20_decimals,
-                ContractManager::ContractManagerInterface &interface,
+                ContractManagerInterface &interface,
                 const Address &address, const Address &creator,
                 const uint64_t &chainId, const std::unique_ptr<DB> &db);
 
   static void registerContract() {
     ContractReflectionInterface::registerContract<
         NativeWrapper, std::string &, std::string &, uint8_t &,
-        ContractManager::ContractManagerInterface &, const Address &,
+        ContractManagerInterface &, const Address &,
         const Address &, const uint64_t &, const std::unique_ptr<DB> &>(
         std::vector<std::string>{"erc20_name", "erc20_symbol",
                                  "erc20_decimals"},

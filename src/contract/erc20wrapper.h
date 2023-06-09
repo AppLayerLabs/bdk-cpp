@@ -32,8 +32,7 @@ public:
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  ERC20Wrapper(ContractManager::ContractManagerInterface &interface,
-               const Address &contractAddress, const std::unique_ptr<DB> &db);
+  ERC20Wrapper(ContractManagerInterface &interface, const Address &contractAddress, const std::unique_ptr<DB> &db);
 
   /**
    * @brief Default Constructor when building a new contract
@@ -43,7 +42,7 @@ public:
    * @param chainId The chain id of the contract.
    * @param db Reference to the database object.
    */
-  ERC20Wrapper(ContractManager::ContractManagerInterface &interface,
+  ERC20Wrapper(ContractManagerInterface &interface,
                const Address &address, const Address &creator,
                const uint64_t &chainId, const std::unique_ptr<DB> &db);
 
@@ -52,7 +51,7 @@ public:
    */
   static void registerContract() {
     ContractReflectionInterface::registerContract<
-        ERC20Wrapper, ContractManager::ContractManagerInterface &,
+        ERC20Wrapper, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &>(
         std::vector<std::string>{},

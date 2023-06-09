@@ -222,7 +222,7 @@ class State {
     std::vector<std::pair<std::string, Address>> getContracts() const;
 
     /// the Manager Interface cannot use getNativeBalance. as it will call a lock with the mutex.
-    friend class ContractManager::ContractManagerInterface;
+    friend class ContractManagerInterface;
 };
 
 #endif // STATE_H

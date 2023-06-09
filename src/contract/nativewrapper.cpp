@@ -2,7 +2,7 @@
 
 /// Default Constructor when loading contract from DB.
 NativeWrapper::NativeWrapper(
-    ContractManager::ContractManagerInterface &interface,
+    ContractManagerInterface &interface,
     const Address &address, const std::unique_ptr<DB> &db)
     : DynamicContract(interface, address, db), _name(this), _symbol(this),
       _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
@@ -36,7 +36,7 @@ NativeWrapper::NativeWrapper(
 NativeWrapper::NativeWrapper(
     const std::string &erc20_name, const std::string &erc20_symbol,
     const uint8_t &erc20_decimals,
-    ContractManager::ContractManagerInterface &interface,
+    ContractManagerInterface &interface,
     const Address &address, const Address &creator, const uint64_t &chainId,
     const std::unique_ptr<DB> &db)
     : DynamicContract(interface, "NativeWrapper", address, creator, chainId,

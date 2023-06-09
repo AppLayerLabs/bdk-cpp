@@ -11,7 +11,7 @@
  */
 class DynamicContract : public BaseContract {
 private:
-  ContractManager::ContractManagerInterface
+  ContractManagerInterface
       &interface; ///< Reference to the contract manager interface.
 
   std::unordered_map<std::string,
@@ -335,7 +335,7 @@ public:
    * @param chainId The chain where the contract wil be deployed.
    * @param db Reference to the database object.
    */
-  DynamicContract(ContractManager::ContractManagerInterface &interface,
+  DynamicContract(ContractManagerInterface &interface,
                   const std::string &contractName, const Address &address,
                   const Address &creator, const uint64_t &chainId,
                   const std::unique_ptr<DB> &db)
@@ -348,9 +348,8 @@ public:
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  DynamicContract(ContractManager::ContractManagerInterface &interface,
-                  const Address &address, const std::unique_ptr<DB> &db)
-      : BaseContract(address, db), interface(interface) {}
+  DynamicContract(ContractManagerInterface &interface, const Address &address,
+  const std::unique_ptr<DB> &db): BaseContract(address, db), interface(interface) {}
 
   /**
    * Invoke a contract function using a  tuple of (from, to, gasLimit, gasPrice,

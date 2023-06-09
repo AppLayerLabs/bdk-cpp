@@ -52,7 +52,7 @@ public:
   @param address The address where the contract will be deployed.
   @param db Reference to the database object.
   */
-  ERC20(ContractManager::ContractManagerInterface &interface,
+  ERC20(ContractManagerInterface &interface,
         const Address &address, const std::unique_ptr<DB> &db);
 
   /**
@@ -69,9 +69,8 @@ public:
    */
   ERC20(const std::string &erc20_name, const std::string &erc20_symbol,
         const uint8_t &erc20_decimals, const uint256_t &mintValue,
-        ContractManager::ContractManagerInterface &interface,
-        const Address &address, const Address &creator, const uint64_t &chainId,
-        const std::unique_ptr<DB> &db);
+        ContractManagerInterface &interface, const Address &address,
+        const Address &creator, const uint64_t &chainId, const std::unique_ptr<DB> &db);
 
   /**
    * Register contract class via ContractReflectionInterface.
@@ -79,7 +78,7 @@ public:
   static void registerContract() {
     ContractReflectionInterface::registerContract<
         ERC20, const std::string &, const std::string &, const uint8_t &,
-        const uint256_t &, ContractManager::ContractManagerInterface &,
+        const uint256_t &, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &>(
         std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals",
