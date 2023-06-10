@@ -28,6 +28,67 @@ struct MethodDescription {
 };
 
 /**
+ * This function registers the core contract classes.
+ *
+ */
+void inline registerCoreContractClasses() {
+  meta::class_<ContractGlobals>();
+  meta::class_<ContractLocals>().base_<ContractGlobals>();
+  meta::class_<BaseContract>()
+      .base_<ContractLocals>()
+      .constructor_<std::string, Address, Address, uint64_t,
+                    std::unique_ptr<DB>>();
+  meta::class_<DynamicContract>()
+      .base_<BaseContract>()
+      .constructor_<ContractManager::ContractManagerInterface &, std::string,
+                    Address, Address, uint64_t, const std::unique_ptr<DB> &>();
+}
+
+static std::unordered_map<std::string, std::vector<std::string>>
+    constructorArgumentNamesMap; /// Map to store constructor argument names
+static std::unordered_map<std::string, std::string>
+    methodMutabilityMap; //// Map to store method mutability
+static std::unordered_map<std::string, std::vector<std::string>>
+    argumentNamesMap; /// Map to store method argument names
+
+/**
+ * Template function to register a contract class.
+ * @tparam TContract The contract class to register.
+ * @tparam Args The constructor argument types.
+ * @tparam Methods The methods to register.
+ * @param ctorArgs The constructor argument names.
+ * @param methods The methods to register.
+ */
+template <typename TContract, typename... Args, typename... Methods>
+void inline registerContract(const std::vector<std::string> &ctorArgs,
+                             Methods &&...methods) {
+  meta::class_<TContract>().template constructor_<Args...>();
+
+  // Store constructor argument names in the constructorArgumentNamesMap
+  constructorArgumentNamesMap[typeid(TContract).name()] = ctorArgs;
+
+  // Register methods and store the stateMutability string and argument names
+  ((meta::class_<TContract>().method_(
+        std::get<0>(std::forward<Methods>(methods)),
+        std::get<1>(std::forward<Methods>(methods))),
+    methodMutabilityMap[std::get<0>(std::forward<Methods>(methods))] =
+        std::get<2>(std::forward<Methods>(methods)),
+    argumentNamesMap[std::get<0>(std::forward<Methods>(methods))] =
+        std::get<3>(std::forward<Methods>(methods))),
+   ...);
+}
+
+/**
+ * Template function to get the constructor data structure of a contract.
+ * @tparam TContract The contract to get the constructor data structure of.
+ * @return The constructor data structure in ABI format.
+ */
+template <typename TContract> bool isContractRegistered() {
+  const meta::class_type contractType = meta::resolve_type<TContract>();
+  return !contractType.get_constructors().empty();
+}
+
+/**
  * Template struct to map a type to an ABI type.
  * @tparam T The type to map.
  */
