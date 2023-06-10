@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "../utils/db.h"
+#include "../utils/contractreflectioninterface.h"
 #include "abi.h"
 #include "dynamiccontract.h"
 #include "variables/safestring.h"
@@ -66,11 +67,43 @@ public:
   @param chainId The chain id of the contract.
   @param db Reference to the database object.
   */
-  NativeWrapper(ContractManager::ContractManagerInterface &interface,
-                const std::string &erc20_name, const std::string &erc20_symbol,
-                const uint8_t &erc20_decimals, const Address &address,
-                const Address &creator, const uint64_t &chainId,
-                const std::unique_ptr<DB> &db);
+  NativeWrapper(const std::string &erc20_name, const std::string &erc20_symbol,
+                const uint8_t &erc20_decimals,
+                ContractManager::ContractManagerInterface &interface,
+                const Address &address, const Address &creator,
+                const uint64_t &chainId, const std::unique_ptr<DB> &db);
+
+  static void registerContract() {
+    ContractReflectionInterface::registerContract<
+        NativeWrapper, std::string &, std::string &, uint8_t &,
+        ContractManager::ContractManagerInterface &, const Address &,
+        const Address &, const uint64_t &, const std::unique_ptr<DB> &>(
+        std::vector<std::string>{"erc20_name", "erc20_symbol",
+                                 "erc20_decimals"},
+        std::make_tuple("name", &NativeWrapper::name, "view",
+                        std::vector<std::string>{}),
+        std::make_tuple("symbol", &NativeWrapper::symbol, "view",
+                        std::vector<std::string>{}),
+        std::make_tuple("decimals", &NativeWrapper::decimals, "view",
+                        std::vector<std::string>{}),
+        std::make_tuple("totalSupply", &NativeWrapper::totalSupply, "view",
+                        std::vector<std::string>{}),
+        std::make_tuple("balanceOf", &NativeWrapper::balanceOf, "view",
+                        std::vector<std::string>{"_owner"}),
+        std::make_tuple("transfer", &NativeWrapper::transfer, "nonpayable",
+                        std::vector<std::string>{"_to", "_value"}),
+        std::make_tuple("approve", &NativeWrapper::approve, "nonpayable",
+                        std::vector<std::string>{"_spender", "_value"}),
+        std::make_tuple("allowance", &NativeWrapper::allowance, "view",
+                        std::vector<std::string>{"_owner", "_spender"}),
+        std::make_tuple("transferFrom", &NativeWrapper::transferFrom,
+                        "nonpayable",
+                        std::vector<std::string>{"_from", "_to", "_value"}),
+        std::make_tuple("deposit", &NativeWrapper::deposit, "payable",
+                        std::vector<std::string>{}),
+        std::make_tuple("withdraw", &NativeWrapper::withdraw, "payable",
+                        std::vector<std::string>{"_value"}));
+  }
 
   /**
    * @brief Default Destructor.

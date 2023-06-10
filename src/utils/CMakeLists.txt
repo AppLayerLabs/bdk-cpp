@@ -10,6 +10,8 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/tx.h
   ${CMAKE_SOURCE_DIR}/src/utils/block.h
   ${CMAKE_SOURCE_DIR}/src/utils/options.h
+  ${CMAKE_SOURCE_DIR}/src/utils/meta_all.hpp
+  ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.h
   PARENT_SCOPE
 )
 
