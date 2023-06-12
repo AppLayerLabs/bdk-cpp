@@ -62,7 +62,7 @@ For a more detailed explanation of the project's structure, check the [docs](htt
 
 * Clone the project: `git clone https://github.com/SparqNet/orbitersdk-cpp
 * Go to the project's root folder, create a "build" folder and change to it:
-  * `cd orbitersdk && mkdir build && cd build`
+  * `cd orbitersdk-cpp && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
   * Use `-DCMAKE_BUILD_TYPE=RelWithDebInfo` to build with debug symbols
   * Use `-DDEBUG=OFF` to build without debug symbols (ON by default)
