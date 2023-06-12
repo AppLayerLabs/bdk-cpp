@@ -71,7 +71,7 @@ private:
 
   /// Reference back to options
   const std::unique_ptr<Options> &options;
-
+  
   /// Derive a new contract address based on transaction sender + nonce.
   Address deriveContractAddress(const ethCallInfo &callInfo) const;
 

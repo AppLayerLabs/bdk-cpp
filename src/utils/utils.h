@@ -8,6 +8,7 @@
 #include <string_view>
 #include <thread>
 #include <atomic>
+#include <cxxabi.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -334,6 +335,23 @@ namespace Utils {
     for (; i; i >>= 8) *(b--) = (uint8_t)(i & 0xff);
     return ret;
   }
+
+  template <typename T>
+  std::string getRealTypeName() {
+    int status;
+    char* demangledName = nullptr;
+
+    std::string mangledName = typeid(T).name();
+    demangledName = abi::__cxa_demangle(mangledName.c_str(), 0, 0, &status);
+
+    if(status == 0 && demangledName != nullptr) {
+        std::string realName(demangledName);
+        free(demangledName);
+        return realName;
+    } else {
+        return mangledName;
+    }
+}
 };
 
 #endif  // UTILS_H

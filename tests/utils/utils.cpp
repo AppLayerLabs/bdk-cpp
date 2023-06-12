@@ -29,7 +29,7 @@ namespace TUtils {
     }
 
     SECTION("uint64ToBytes Test") {
-      uint64_t uint64Input = uint64_t(11155010102558518614);
+      uint64_t uint64Input = uint64_t(11155010102558518614ULL);
       auto uint64Output = Utils::uint64ToBytes(uint64Input);
       std::string uint64ExpectedOutput = "\x9a\xce\x8e\x96\x24\xe4\xed\x56";
       REQUIRE_THAT(uint64Output, Equals(uint64ExpectedOutput));
@@ -96,7 +96,7 @@ namespace TUtils {
     SECTION("bytesToUint64 Test") {
       FixedStr<8> bytesStr(std::string("\x9a\xce\x8e\x96\x24\xe4\xed\x56"));
       auto uint64Output = Utils::bytesToUint64(bytesStr.view());
-      uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614);
+      uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614ULL);
       REQUIRE(uint64Output == uint64ExpectedOutput);
 
       bool catchLo = false;
@@ -213,7 +213,7 @@ namespace TUtils {
       auto uint160Output5To25 = Utils::fromBigEndian<uint160_t>(inputBytes.substr(5, 20));
       uint256_t uint256ExpectedOutput = uint256_t("7267489482988504755957722036644729207517128093499486419604741885099068616246");
       uint64_t uint64ExpectedOutput12To20 = uint64_t(1128445296761190221);
-      uint64_t uint64ExpectedOutput20To28 = uint64_t(15784145542011884812);
+      uint64_t uint64ExpectedOutput20To28 = uint64_t(15784145542011884812ULL);
       uint64_t uint64ExpectedOutput24To28 = uint64_t(313464076);
       uint32_t uint32ExpectedOutput28To32 = uint32_t(2415128118);
       uint160_t uint160ExpectedOutput5To25 = uint160_t("459205820946237488389499242237511570682479951378");
