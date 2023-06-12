@@ -2,7 +2,7 @@
 #define CONTRACTREFLECTIONINTERFACE_H
 
 #include "contract/contract.h"
-#include "contract/dynamiccontract.h"
+#include "contract/abi.h"
 #include "meta_all.hpp"
 #include "utils.h" // nlohmann::json
 
@@ -26,6 +26,13 @@ struct MethodDescription {
   std::string stateMutability;
   std::string type;
 };
+
+static std::unordered_map<std::string, std::vector<std::string>>
+    constructorArgumentNamesMap; /// Map to store constructor argument names
+static std::unordered_map<std::string, std::string>
+    methodMutabilityMap; //// Map to store method mutability
+static std::unordered_map<std::string, std::vector<std::string>>
+    argumentNamesMap; /// Map to store method argument names
 
 /**
  * Template struct to map a type to an ABI type.
@@ -515,13 +522,6 @@ ABI::Types inline getABIEnumFromString(const std::string& type) {
   }
 }
 
-static std::unordered_map<std::string, std::vector<std::string>>
-    constructorArgumentNamesMap; ///< Map to store constructor argument names
-static std::unordered_map<std::string, std::string>
-    methodMutabilityMap; ///< Map to store method mutability
-static std::unordered_map<std::string, std::vector<std::string>>
-    argumentNamesMap; ///< Map to store method argument names
-
 static std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
 
 /**
@@ -893,10 +893,11 @@ void registerContractAndGetData(json &contractData) {
  * @param outputFilename The name of the output file.
  */
 template <typename Contract>
-void writeContractToJson(std::string &outputFileName) {
+void writeContractToJson() {
   json contractData;
   registerContractAndGetData<Contract>(contractData);
-  // check if outputFileName ends with .json, if not, append .json
+
+  std::string outputFileName = Utils::getRealTypeName<Contract>();
   if (outputFileName.substr(outputFileName.find_last_of(".") + 1) != "json") {
     outputFileName += ".json";
   }
@@ -910,6 +911,23 @@ void writeContractToJson(std::string &outputFileName) {
 
   std::ofstream jsonFile(fullOutputFileName);
   jsonFile << std::setw(4) << contractData << std::endl;
+}
+
+/**
+  * This function writes the contract data of a list of contracts to JSON files.
+  * @tparam FirstContract The first contract to write the data of.
+  * @tparam RestContracts The rest of the contracts to write the data of.
+  * @return 0 if successful.
+  */
+template <typename FirstContract, typename... RestContracts>
+int writeContractsToJson() {
+    writeContractToJson<FirstContract>();
+
+    if constexpr (sizeof...(RestContracts) > 0) {
+        return writeContractsToJson<RestContracts...>();
+    }
+
+    return 0;
 }
 
 } // namespace ContractReflectionInterface

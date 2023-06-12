@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "../utils/db.h"
+#include "../utils/contractreflectioninterface.h"
 #include "abi.h"
 #include "dynamiccontract.h"
 #include "variables/safestring.h"
