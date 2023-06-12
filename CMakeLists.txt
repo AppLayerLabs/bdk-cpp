@@ -40,7 +40,7 @@ configure_file(
 
 # External project data
 set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
-set(BUILD_DISCOVERY ON CACHE BOOL "Build helper discovery node prorgam")
+set(BUILD_DISCOVERY ON CACHE BOOL "Build helper discovery node program")
 set(BUILD_AVALANCHEGO OFF CACHE BOOL "Build with AvalancheGo wrapping")
 set(BUILD_TOOLS OFF CACHE BOOL "Build tools related to subnet")
 set(USE_LINT OFF CACHE BOOL "Run linter on compile (clang-tidy)")
