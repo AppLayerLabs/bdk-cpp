@@ -1,120 +1,88 @@
 #ifndef SAFEBOOL_H
 #define SAFEBOOL_H
 
-#include "safebase.h"
 #include <memory>
+
+#include "safebase.h"
 
 /**
  * Safe wrapper for a bool variable.
- * This class is used to safely store a bool variable within a contract.
+ * Used to safely store a bool within a contract.
  * @see SafeBase
  */
 class SafeBool : public SafeBase {
-private:
-  bool value;                             ///< value for the bool variable.
-  mutable std::unique_ptr<bool> valuePtr; ///< Pointer to the value.
+  private:
+    bool value; ///< Value.
+    mutable std::unique_ptr<bool> valuePtr; ///< Pointer to the value. check() requires this to be mutable.
 
-  /**
-   * Check if the valuePtr is initialized.
-   * If not, initialize it.
-   */
-  inline void check() const override {
-    if (valuePtr == nullptr) {
-      valuePtr = std::make_unique<bool>(value);
+    /// Check if the pointer is initialized (and initialize it if not).
+    inline void check() const override {
+      if (valuePtr == nullptr) { valuePtr = std::make_unique<bool>(value); }
+    };
+
+  public:
+    /**
+     * Constructor.
+     * @param owner The contract that owns the variable.
+     * @param value The initial value. Defaults to `false`.
+     */
+    SafeBool(DynamicContract* owner, bool value = false)
+      : SafeBase(owner), value(false), valuePtr(std::make_unique<bool>(value))
+    {};
+
+    /**
+     * Empty constructor.
+     * @param value The initial value. Defaults to `false`.
+     */
+    SafeBool(bool value = false)
+      : SafeBase(nullptr), value(false), valuePtr(std::make_unique<bool>(value))
+    {};
+
+    /// Copy constructor.
+    SafeBool(const SafeBool& other) : SafeBase(nullptr) {
+      other.check();
+      value = other.value;
+      valuePtr = std::make_unique<bool>(*other.valuePtr);
     }
-  };
 
-public:
-  /**
-   * Constructor.
-   * Only Variables built with this constructor will be registered within a
-   * contract.
-   * @param owner The contract that owns this variable.
-   * @param value The bool initial value (default: false).
-   */
-  SafeBool(DynamicContract *owner, bool value = false)
-      : SafeBase(owner), value(false),
-        valuePtr(std::make_unique<bool>(value)){};
+    /// Getter for the value. Returns the value from the pointer.
+    inline const bool& get() const { check(); return *valuePtr; };
 
-  /**
-   * Normal Constructor.
-   * @param value The bool initial value (default: false).
-   */
-  SafeBool(bool value = false)
-      : SafeBase(nullptr), value(false),
-        valuePtr(std::make_unique<bool>(value)){};
+    /// Explicit conversion operator used to get the value.
+    explicit operator bool() const { check(); return *valuePtr; }
 
-  /**
-   * Constructor used to create a SafeBool from another SafeBool (copy
-   * constructor).
-   * @param other The SafeBool to copy.
-   */
-  SafeBool(const SafeBool &other) : SafeBase(nullptr) {
-    other.check();
-    value = other.value;
-    valuePtr = std::make_unique<bool>(*other.valuePtr);
-  }
+    /**
+     * Commit the value. Updates the value from the pointer, nullifies it and
+     * unregisters the variable.
+     */
+    inline void commit() override {
+      check();
+      value = *valuePtr;
+      valuePtr = nullptr;
+      registered = false;
+    };
 
-  /**
-   * Assignment operator used to copy a SafeBool.
-   * @param other The SafeBool to copy.
-   * @return A reference to this SafeBool.
-   */
-  inline SafeBool &operator=(const SafeBool &other) {
-    check();
-    markAsUsed();
-    *valuePtr = other.get();
-    return *this;
-  }
+    /// Revert the value. Nullifies the pointer and unregisters the variable.
+    inline void revert() const override {
+      valuePtr = nullptr;
+      registered = false;
+    };
 
-  /**
-   * Assignment operator used to set the value of a SafeBool.
-   * @param value The value to set.
-   * @return A reference to this SafeBool.
-   */
-  inline SafeBool &operator=(bool value) {
-    check();
-    markAsUsed();
-    *valuePtr = value;
-    return *this;
-  }
+    /// Assignment operator.
+    inline SafeBool& operator=(bool value) {
+      check();
+      markAsUsed();
+      *valuePtr = value;
+      return *this;
+    }
 
-  /**
-   * Explicit conversion operator used to get the value of a SafeBool.
-   * @return The value of the SafeBool.
-   */
-  explicit operator bool() const {
-    check();
-    return *valuePtr;
-  }
-
-  /**
-   * Getter for the value of the SafeBool.
-   * @return The value of the SafeBool.
-   */
-  inline const bool &get() const {
-    check();
-    return *valuePtr;
-  };
-
-  /**
-   *  Commit the value of the SafeBool, i.e. update the value of the SafeBool to
-   * the value of the pointer.
-   */
-  inline void commit() override {
-    check();
-    value = *valuePtr;
-    valuePtr = nullptr;
-    registered = false;
-  };
-
-  /**
-   * Revert the value of the SafeBool, i.e. nullify the pointer.
-   */
-  inline void revert() const override {
-    valuePtr = nullptr;
-    registered = false;
-  };
+    /// Assignment operator.
+    inline SafeBool& operator=(const SafeBool& other) {
+      check();
+      markAsUsed();
+      *valuePtr = other.get();
+      return *this;
+    }
 };
 
-#endif // SAFEBOOL_H
+#endif  // SAFEBOOL_H

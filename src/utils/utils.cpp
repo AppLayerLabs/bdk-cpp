@@ -26,10 +26,7 @@ void Utils::logToDebug(std::string_view pfx, std::string_view func, std::string_
 }
 
 void Utils::safePrint(std::string_view str) {
-  /// Never print if we are in a test
-  if (!Utils::logToCout) {
-    return;
-  }
+  if (!Utils::logToCout) return; // Never print if we are in a test
   std::lock_guard lock(cout_mutex);
   std::cout << str << std::endl;
 }
@@ -56,6 +53,24 @@ uint256_t Utils::bytesToUint256(const std::string_view b) {
     + ": Invalid bytes size - expected 32, got " + std::to_string(b.size())
   );
   uint256_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+std::string Utils::uint128ToBytes(const uint128_t &i) {
+  std::string ret(16, 0x00);
+  std::string tmp;
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  for (unsigned i = 0; i < tmp.size(); i++) ret[15 - i] = tmp[tmp.size() - i - 1];
+  return ret;
+}
+
+uint128_t Utils::bytesToUint128(const std::string_view b) {
+  if (b.size() != 16) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
+  );
+  uint128_t ret;
   boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
   return ret;
 }
@@ -197,7 +212,7 @@ json Utils::readConfigFile() {
     config["rpcport"] = 8080;
     config["p2pport"] = 8081;
     config["seedNodes"] = {
-            "127.0.0.1:8086", "127.0.0.1:8087", "127.0.0.1:8088", "127.0.0.1:8089"
+      "127.0.0.1:8086", "127.0.0.1:8087", "127.0.0.1:8088", "127.0.0.1:8089"
     };
     std::ofstream configFile("config.json");
     configFile << config.dump(2);
@@ -207,3 +222,4 @@ json Utils::readConfigFile() {
   json config = json::parse(configFile);
   return config;
 }
+

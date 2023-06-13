@@ -204,6 +204,7 @@ namespace P2P {
        * @param port The server's port.
        * @param threads The number of threads the server will use.
        * @param manager Reference to the parent connection manager.
+       * @param threadPool Reference pointer to the thread pool.
        */
       Server(
         boost::asio::ip::address address, unsigned short port,

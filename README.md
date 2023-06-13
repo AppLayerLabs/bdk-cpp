@@ -29,9 +29,9 @@ Install the following dependencies on your system:
 * **GCC** with support for **C++20** or higher
 * **CMake 3.19.0** or higher
 * **Boost 1.74** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
+* **OpenSSL 1.1.1**
 * **CryptoPP 8.2.0** or higher
 * **libscrypt**
-* **OpenSSL 1.1.1**
 * **zlib**
 * **libsnappy** for database compression
 * (optional) **clang-tidy** for linting
@@ -46,7 +46,7 @@ If building with AvalancheGo support, you'll also need:
 ### One-liners
 
 For **Debian 11 Bullseye or newer**:
-* `sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
+* `sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libscrypt-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
 
 #### Caveats
 
@@ -54,7 +54,9 @@ For **Debian 11 Bullseye or newer**:
 
 ## Documentation
 
-We use [Doxygen](https://www.doxygen.nl/index.html) to generate documentation over the current source code, To generate the documentation, run `doxygen` inside the project's root folder.
+We use [Doxygen](https://www.doxygen.nl/index.html) to generate documentation over the current source code. Run `doxygen` inside the project's root folder. Docs should be inside `docs/html`.
+
+You should do this after running `cmake ..` in the build directory, as some header files need to be generated first.
 
 For a more detailed explanation of the project's structure, check the [docs](https://github.com/SparqNet/sparq-docs/tree/main/Sparq_en-US) repository.
 
@@ -64,11 +66,11 @@ For a more detailed explanation of the project's structure, check the [docs](htt
 * Go to the project's root folder, create a "build" folder and change to it:
   * `cd orbitersdk-cpp && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
-  * Use `-DCMAKE_BUILD_TYPE=RelWithDebInfo` to build with debug symbols
-  * Use `-DDEBUG=OFF` to build without debug symbols (ON by default)
-  * Use `-DUSE_LINT=ON` to run clang-tidy along the build (this is OFF by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
+  * Use `-DCMAKE_BUILD_TYPE={Debug,RelWithDebInfo,Release}` to set the respective debug/release builds (Debug by default)
+  * Use `-DDEBUG=OFF` to build without debug flags (ON by default)
+  * Use `-DUSE_LINT=ON` to run clang-tidy along the build (OFF by default, WILL TAKE SIGNIFICANTLY LONGER TO COMPILE)
 * Build the executable: `cmake --build . -- -j$(nproc)`
-  * If using the linter, pipe the stderr output to a file, e.g. `cmake --build . -- -j$(nproc) 2> log.txt`
+  * If using the linter, pipe stderr to a file (e.g. `cmake --build . -- -j$(nproc) 2> log.txt`)
 
 ## Deploying
 
@@ -93,19 +95,19 @@ Note that, when re-deploying, if your wallet or RPC client keeps track of accoun
 
 The deployed chain will have the following information by default:
 
-- ChainID: 808080
-- Owner: 0x00dead00665771855a34155f5e7405489df2c3c6
-- Owner Private Key: 0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867
-- Owner Initial Balance: 1000000000000000000000 wei
-- ContractManager Address: 0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61
-- rdPoS Address: 0xb23aa52dbeda59277ab8a962c69f5971f22904cf
-- Default RPC URL: http://127.0.0.1:8090
+* ChainID: **808080**
+* Owner: **0x00dead00665771855a34155f5e7405489df2c3c6**
+* Owner Private Key: **0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867**
+* Owner Initial Balance: **1000000000000000000000 wei**
+* ContractManager Address: **0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61**
+* rdPoS Address: **0xb23aa52dbeda59277ab8a962c69f5971f22904cf**
+* Default RPC URL: **http://127.0.0.1:8090**
 
-Nodes will be deployed on the same machine, under the following ports and tmux sessions:
+Nodes are all deployed on the same machine, under the following ports and tmux sessions:
 
 | Session Name             | Node Type | P2P Port | HTTP Port | Validator Key                                                      |
 |--------------------------|-----------|----------|-----------|--------------------------------------------------------------------|
-| local_testnet_discovery  | Discovery | 8080     | 8090      | XXXXX                                                              |
+| local_testnet_discovery  | Discovery | 8080     | 8090      | XXXX                                                               |
 | local_testnet_validator1 | Validator | 8081     | 8090      | 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759 |
 | local_testnet_validator2 | Validator | 8082     | 8091      | 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4 |
 | local_testnet_validator3 | Validator | 8083     | 8092      | 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751 |

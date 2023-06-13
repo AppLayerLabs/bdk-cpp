@@ -47,50 +47,46 @@ bool Merkle::verify(const std::vector<Hash>& proof, const Hash& leaf, const Hash
   return computedHash == root;
 }
 
-//TODO: Wait Ita finish Tx
-//PNode* PNode::getChild(char id) const {
-//  auto it = std::find_if(
-//  std::begin(this->children), std::end(this->children),
-//    [&id](const PNode& node){ return node.getId() == id; }
-//  );
-//
-//  return (it != this->children.end()) ? &*it : NULL;
-//}
+PNode* PNode::getChild(char id) {
+  auto it = std::find_if(
+  std::begin(this->children), std::end(this->children),
+    [&id](const PNode& node){ return node.getId() == id; }
+  );
 
-//TODO: Wait Ita finish Tx
-//void Patricia::addLeaf(Hash branch, std::string data) const {
-//  PNode* tmpRoot = &this->root;
-//  std::string str = branch.hex();
-//  for (int i = 0; i < str.length(); i++) {
-//    PNode* child = tmpRoot->getChild(str[i]);
-//    if (child == NULL) tmpRoot->addChild(str[i]);
-//    tmpRoot = tmpRoot->getChild(str[i]);
-//  }
-//  tmpRoot->setData(data);
-//}
+  return (it != this->children.end()) ? &*it : NULL;
+}
 
-//TODO: Wait Ita finish Tx
-//std::string Patricia::getLeaf(Hash branch) const {
-//  PNode* tmpRoot = &this->root;
-//  std::string str = branch.hex();
-//  for (int i = 0; i < str.length(); i++) {
-//    tmpRoot = tmpRoot->getChild(str[i]);
-//    if (tmpRoot == NULL) return "";
-//  }
-//  return (!tmpRoot->getData().empty()) ? tmpRoot->getData() : "";
-//}
+void Patricia::addLeaf(Hash branch, std::string data) {
+  PNode* tmpRoot = &this->root;
+  std::string str = branch.hex();
+  for (int i = 0; i < str.length(); i++) {
+    PNode* child = tmpRoot->getChild(str[i]);
+    if (child == NULL) tmpRoot->addChild(str[i]);
+    tmpRoot = tmpRoot->getChild(str[i]);
+  }
+  tmpRoot->setData(data);
+}
 
-//TODO: Wait Ita finish Tx
-//bool Patricia::delLeaf(Hash branch) const {
-//  PNode* tmpRoot = &this->root;
-//  std::string str = branch.hex();
-//  for (int i = 0; i < str.length(); i++) {
-//    tmpRoot = tmpRoot->getChild(str[i]);
-//    if (tmpRoot == NULL) return false;
-//  }
-//  if (!tmpRoot->getData().empty()) {
-//    tmpRoot->setData("");
-//    return true;
-//  } else return false;
-//}
+std::string Patricia::getLeaf(Hash branch) {
+  PNode* tmpRoot = &this->root;
+  std::string str = branch.hex();
+  for (int i = 0; i < str.length(); i++) {
+    tmpRoot = tmpRoot->getChild(str[i]);
+    if (tmpRoot == NULL) return "";
+  }
+  return (!tmpRoot->getData().empty()) ? tmpRoot->getData() : "";
+}
+
+bool Patricia::delLeaf(Hash branch) {
+  PNode* tmpRoot = &this->root;
+  std::string str = branch.hex();
+  for (int i = 0; i < str.length(); i++) {
+    tmpRoot = tmpRoot->getChild(str[i]);
+    if (tmpRoot == NULL) return false;
+  }
+  if (!tmpRoot->getData().empty()) {
+    tmpRoot->setData("");
+    return true;
+  } else return false;
+}
 
