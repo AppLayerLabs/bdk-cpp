@@ -14,13 +14,13 @@
 
 /// Namespace for accessing database prefixes.
 namespace DBPrefix {
-  const std::string blocks = std::string("\x00\x01", 2);          ///< "blocks" = "0001"
-  const std::string blockHeightMaps = std::string("\x00\x02", 2); ///< "blockHeightMaps" = "0002"
-  const std::string nativeAccounts = std::string("\x00\x03", 2);  ///< "nativeAccounts" = "0003"
-  const std::string txToBlocks = std::string("\x00\x04", 2);      ///< "txToBlocks" = "0004"
-  const std::string rdPoS = std::string("\x00\x05", 2);           ///< "rdPoS" = "0005"
-  const std::string contracts = std::string("\x00\x06", 2);       ///< "contracts" = "0006"
-  const std::string contractManager = std::string("\x00\x07", 2); ///< "contractManager" = "0007"
+  const Bytes blocks =  { 0x00, 0x01 };          ///< "blocks" = "0001"
+  const Bytes blockHeightMaps =  { 0x00, 0x02 }; ///< "blockHeightMaps" = "0002"
+  const Bytes nativeAccounts =  { 0x00, 0x03 };  ///< "nativeAccounts" = "0003"
+  const Bytes txToBlocks =  { 0x00, 0x04 };      ///< "txToBlocks" = "0004"
+  const Bytes rdPoS =  { 0x00, 0x05 };           ///< "rdPoS" = "0005"
+  const Bytes contracts =  { 0x00, 0x06 };       ///< "contracts" = "0006"
+  const Bytes contractManager =  { 0x00, 0x07 }; ///< "contractManager" = "0007"
 };
 
 /// Struct for a database connection/endpoint.

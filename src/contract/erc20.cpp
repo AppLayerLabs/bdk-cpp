@@ -82,13 +82,13 @@ void ERC20::_mintValue(const Address& address, const uint256_t& value) {
   _totalSupply += value;
 }
 
-Bytes ERC20::name() const { return ABI::Encoder({this->_name.get()}).getRaw(); }
+Bytes ERC20::name() const { return ABI::Encoder({this->_name.get()}).getData(); }
 
-Bytes ERC20::symbol() const { return ABI::Encoder({this->_symbol.get()}).getRaw(); }
+Bytes ERC20::symbol() const { return ABI::Encoder({this->_symbol.get()}).getData(); }
 
-Bytes ERC20::decimals() const { return ABI::Encoder({this->_decimals.get()}).getRaw(); }
+Bytes ERC20::decimals() const { return ABI::Encoder({this->_decimals.get()}).getData(); }
 
-Bytes ERC20::totalSupply() const { return ABI::Encoder({this->_totalSupply.get()}).getRaw(); }
+Bytes ERC20::totalSupply() const { return ABI::Encoder({this->_totalSupply.get()}).getData(); }
 
 Bytes ERC20::balanceOf(const Address& _owner) const {
   const auto& it = std::as_const(this->_balances).find(_owner);

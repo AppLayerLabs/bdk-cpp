@@ -162,7 +162,7 @@ namespace Utils {
    * @param i The integer to convert.
    * @return The converted 128-bit integer as a bytes string.
    */
-  std::string uint128ToBytes(const uint128_t& i);
+  BytesArr<16> uint128ToBytes(const uint128_t& i);
 
   /**
    * Convert a 160-bit unsigned integer to a bytes string.
@@ -225,7 +225,7 @@ namespace Utils {
    * @return The converted 128-bit integer.
    * @throw std::runtime_error if string size is invalid.
    */
-  uint128_t bytesToUint128(const std::string_view b);
+  uint128_t bytesToUint128(const BytesArrView b);
 
   /**
    * Convert a bytes string to a 128-bit unsigned integer.
@@ -292,10 +292,10 @@ namespace Utils {
   Bytes padRightBytes(const BytesArrView bytes, unsigned int charAmount, uint8_t sign = 0x00);
 
   /// Overload of padLeft() that works with byte strings.
-  std::string padLeftBytes(std::string str, unsigned int charAmount, char sign = '\x00');
+  std::string padLeft(std::string str, unsigned int charAmount, char sign = '\x00');
 
   /// Overload of padRight() that works with byte strings.
-  std::string padRightBytes(std::string str, unsigned int charAmount, char sign = '\x00');
+  std::string padRight(std::string str, unsigned int charAmount, char sign = '\x00');
 
   /**
    * Convert a big-endian byte-stream represented on a templated collection to a templated integer value.

@@ -102,7 +102,7 @@ namespace TUtils {
 
     SECTION("bytesToUint128 Test") {
       BytesArr<16> bytesArr = BytesArr<16> {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9 };
-      auto uint128Output = Utils::bytesToUint128(bytesArr.view());
+      auto uint128Output = Utils::bytesToUint128(bytesArr);
       uint128_t uint128ExpectedOutput = uint128_t("340282366920938463463374607431768211401");
       REQUIRE(uint128Output == uint128ExpectedOutput);
 

@@ -2,6 +2,7 @@
 #define ABI_H
 
 #include <string>
+#include <any>
 
 #include "../utils/hex.h"
 #include "../utils/json.hpp"
@@ -282,6 +283,29 @@ namespace ABI {
         if (std::holds_alternative<T>(this->data_[index])) return std::get<T>(this->data_[index]);
         throw std::runtime_error("Type mismatch");
       }
+
+    /**
+     * Get a specific data type from the decoded `data` list.
+     * @param index The index of the data type to get.
+     * @param type The expected Solidity type of the data.
+     * @return The decoded data type.
+     * @throw std::runtime_error if type mismatch.
+     */
+    std::any getDataDispatch(int index, ABI::Types type) {
+      switch (type) {
+        case ABI::Types::uint256: return this->getData<uint256_t>(index);
+        case ABI::Types::uint256Arr: return this->getData<std::vector<uint256_t>>(index);
+        case ABI::Types::address: return this->getData<Address>(index);
+        case ABI::Types::addressArr: return this->getData<std::vector<Address>>(index);
+        case ABI::Types::boolean: return this->getData<bool>(index);
+        case ABI::Types::booleanArr: return this->getData<std::vector<bool>>(index);
+        case ABI::Types::bytes: return this->getData<Bytes>(index);
+        case ABI::Types::bytesArr: return this->getData<std::vector<Bytes>>(index);
+        case ABI::Types::string: return this->getData<std::string>(index);
+        case ABI::Types::stringArr: return this->getData<std::vector<std::string>>(index);
+        default: throw std::runtime_error("Invalid ABI::Types type");
+      }
+    }
 
       /**
        * Get the size of the `data` list.

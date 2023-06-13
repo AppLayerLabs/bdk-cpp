@@ -57,8 +57,8 @@ uint256_t Utils::bytesToUint256(const BytesArrView b) {
   return ret;
 }
 
-BytesArr<32> Utils::uint128ToBytes(const uint128_t &i) {
-  BytesArr<32> ret;
+BytesArr<16> Utils::uint128ToBytes(const uint128_t &i) {
+  BytesArr<16> ret;
   Bytes tmp;
   tmp.reserve(16);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
@@ -67,7 +67,7 @@ BytesArr<32> Utils::uint128ToBytes(const uint128_t &i) {
   return ret;
 }
 
-uint128_t Utils::bytesToUint128(const std::string_view b) {
+uint128_t Utils::bytesToUint128(const BytesArrView b) {
   if (b.size() != 16) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
   );

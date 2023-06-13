@@ -141,7 +141,7 @@ namespace JsonRPC {
      * @param state Pointer to the blockchain's state.
      * @return The encoded JSON response.
      */
-    json eth_call(const ethCallInfo& callInfo, const std::unique_ptr<State>& state);
+    json eth_call(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state);
 
     /**,
      * Encode a `eth_estimateGas` response.

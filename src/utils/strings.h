@@ -137,11 +137,6 @@ template <unsigned N> class FixedBytes {
       std::copy(other.begin(), other.end(), this->data_.begin()); return *this;
     }
 
-    /// Move assignment operator.
-    inline FixedStr& operator=(FixedStr&& str) {
-      if (&str != this) this->data = std::move(str.data); return *this;
-    }
-
     /// Indexing operator.
     inline const Byte& operator[](const size_t pos) const { return this->data_[pos]; }
 

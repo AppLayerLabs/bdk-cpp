@@ -87,11 +87,11 @@ void ContractManager::createNewERC20Contract(const ethCallInfo& callInfo) {
   }
 
   /// Create the contract
-  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20>(this->interface,
-                                                                                        decoder.getData<std::string>(0),
+  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20>(decoder.getData<std::string>(0),
                                                                                         decoder.getData<std::string>(1),
                                                                                         uint8_t(decoder.getData<uint256_t>(2)),
                                                                                         decoder.getData<uint256_t>(3),
+                                                                                        this->interface,
                                                                                         derivedContractAddress,
                                                                                         this->getCaller(),
                                                                                         this->options->getChainID(),
@@ -199,10 +199,10 @@ void ContractManager::createNewERC20NativeWrapperContract(const ethCallInfo& cal
   }
 
   /// Create the contract
-  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<NativeWrapper>(this->interface,
-                                                                                        decoder.getData<std::string>(0),
+  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<NativeWrapper>(decoder.getData<std::string>(0),
                                                                                         decoder.getData<std::string>(1),
                                                                                         uint8_t(decoder.getData<uint256_t>(2)),
+                                                                                        this->interface,
                                                                                         derivedContractAddress,
                                                                                         this->getCaller(),
                                                                                         this->options->getChainID(),

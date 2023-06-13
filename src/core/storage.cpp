@@ -8,7 +8,7 @@ Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& 
 
   // Get the latest block from the database
   Utils::logToDebug(Log::storage, __func__, "Loading latest block");
-  auto blockBytes = this->db->get(std::string("latest"), DBPrefix::blocks);
+  auto blockBytes = this->db->get(Utils::stringToBytes("latest"), DBPrefix::blocks);
   Block latest(blockBytes, this->options->getChainID());
   uint64_t depth = latest.getNHeight();
   Utils::logToDebug(Log::storage, __func__,
