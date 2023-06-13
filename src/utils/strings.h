@@ -137,6 +137,10 @@ template <unsigned N> class FixedBytes {
       std::copy(other.begin(), other.end(), this->data_.begin()); return *this;
     }
 
+    /// Move assignment operator.
+    inline FixedStr& operator=(FixedStr&& str) {
+      if (&str != this) this->data = std::move(str.data); return *this;
+    }
 
     /// Indexing operator.
     inline const Byte& operator[](const size_t pos) const { return this->data_[pos]; }
@@ -224,6 +228,7 @@ class Address : public FixedBytes<20> {
      * Copy constructor.
      * @param add The address itself.
      * @param inBytes If `true`, treats the input as a raw bytes string.
+     * @throw std::runtime_error if address has wrong size or is invalid.
      */
     Address(const std::string_view add, bool inBytes);
 
@@ -248,6 +253,7 @@ class Address : public FixedBytes<20> {
      * Move constructor.
      * @param add The address itself.
      * @param inBytes If `true`, treats the input as a raw bytes string.
+     * @throw std::runtime_error if address has wrong size or is invalid.
      */
     Address(BytesArr<20>&& add) : FixedBytes<20>(std::move(add)) { }
 

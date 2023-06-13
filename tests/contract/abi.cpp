@@ -10,10 +10,10 @@
 using Catch::Matchers::Equals;
 
 namespace TABI {
-  TEST_CASE("ABI Namespace", "[contract][abi]") {
-    SECTION("Encode Uint256 (Single)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(uint256_t("12038189571283151234217456623442137"));
+TEST_CASE("ABI Namespace", "[contract][abi]") {
+  SECTION("Encode Uint256 (Single)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(uint256_t("12038189571283151234217456623442137"));
 
       ABI::Encoder e(eV, "testUint(uint256)");
       auto functor = e.getFunctor();
@@ -25,11 +25,13 @@ namespace TABI {
       ));
     }
 
-    SECTION("Encode Uint256 (Multiple)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(uint256_t("985521342366467353964568564348544758443523147426"));
-      eV.push_back(uint256_t("3453441424448154428346543455122894428593523456453894523"));
-      eV.push_back(uint256_t("238745423894452554435879784534423784946532544278453254451345"));
+  SECTION("Encode Uint256 (Multiple)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(uint256_t("985521342366467353964568564348544758443523147426"));
+    eV.push_back(
+        uint256_t("3453441424448154428346543455122894428593523456453894523"));
+    eV.push_back(uint256_t(
+        "238745423894452554435879784534423784946532544278453254451345"));
 
       ABI::Encoder e(eV, "testMultipleUint(uint256,uint256,uint256)");
       auto eS = Utils::create_view_span(e.getData());
@@ -48,14 +50,13 @@ namespace TABI {
       ));
     }
 
-    SECTION("Encode Uint256 (Array)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(std::vector<uint256_t>{
+  SECTION("Encode Uint256 (Array)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(std::vector<uint256_t>{
         uint256_t("19283178512315252514312458124312935128381523"),
         uint256_t("31482535189448189541125434144"),
         uint256_t("1123444185124184138124378143891242186794252455823414458"),
-        uint256_t("215345189442554346421356134551234851234484")
-      });
+        uint256_t("215345189442554346421356134551234851234484")});
 
       ABI::Encoder e(eV, "testUintArr(uint256[])");
       BytesArrView eS = e.getData();
@@ -82,9 +83,9 @@ namespace TABI {
       ));
     }
 
-    SECTION("Encode String (Single)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back("Hello World!");
+  SECTION("Encode String (Single)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back("Hello World!");
 
       ABI::Encoder e(eV, "testString(string)");
       auto eS = Utils::create_view_span(e.getData());
@@ -102,11 +103,11 @@ namespace TABI {
       ));
     }
 
-    SECTION("Encode Bool (Multiple)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(true);
-      eV.push_back(false);
-      eV.push_back(true);
+  SECTION("Encode Bool (Multiple)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(true);
+    eV.push_back(false);
+    eV.push_back(true);
 
       ABI::Encoder e(eV, "testMultipleBool(bool,bool,bool)");
       auto eS = Utils::create_view_span(e.getData());
@@ -133,8 +134,7 @@ namespace TABI {
         uint256_t("129838151824165123321245841287434198"),
         uint256_t("2134584124125984418451243118545129854235"),
         uint256_t("1234812315823541285534458693557693548423844235"),
-        uint256_t("32452893445892345238552138945234454324523194514")
-      });
+        uint256_t("32452893445892345238552138945234454324523194514")});
 
       ABI::Encoder e(eV, "testStringArrWithUintArr(string[],uint256[])");
       auto eS = Utils::create_view_span(e.getData());
@@ -208,9 +208,9 @@ namespace TABI {
       ));
     }
 
-    SECTION("Encode Bytes (Single)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(Hex::toBytes("0xc8191d2e98e7cd9201cef777f85bf857"));
+  SECTION("Encode Bytes (Single)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(Hex::toBytes("0xc8191d2e98e7cd9201cef777f85bf857"));
 
       ABI::Encoder e(eV, "testBytes(bytes)");
       auto eS = Utils::create_view_span(e.getData());
@@ -234,11 +234,11 @@ namespace TABI {
         Hex::toBytes("0x81a1217428d6d8ff7a419e87cfc948d2"),
         Hex::toBytes("0x2d96cf448d1d455d9013572ac07edefc"),
         Hex::toBytes("0xc584d0de5dbddca6e74686a3c154bb28"),
-        Hex::toBytes("0xdb6f06ea16ab61dca14053001c6b5815")
-      });
-      eV.push_back(std::vector<std::string>{
-        "First String", "Second String", "Third String", "Forth String" // Someone fix this typo for the love of the cosmos
-      });
+        Hex::toBytes("0xdb6f06ea16ab61dca14053001c6b5815")});
+    eV.push_back(std::vector<std::string>{
+        "First String", "Second String", "Third String",
+        "Forth String" // Someone fix this typo for the love of the cosmos
+    });
 
       ABI::Encoder e(eV, "testBytesArrWithStrArr(bytes[],string[])");
       auto eS = Utils::create_view_span(e.getData());
@@ -331,10 +331,10 @@ namespace TABI {
       ));
     }
 
-    SECTION("Encode All") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(uint256_t("19283816759128317851231551416451212"));
-      eV.push_back(std::vector<uint256_t>{
+  SECTION("Encode All") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(uint256_t("19283816759128317851231551416451212"));
+    eV.push_back(std::vector<uint256_t>{
         uint256_t("1239381517249318561241694412"),
         uint256_t("2395843472138412758912309213482574123672567"),
         uint256_t("9138482765346472349817634647689124123"),
@@ -353,12 +353,10 @@ namespace TABI {
         Hex::toBytes("0xadfae295d92644d19f69e4f20f28d0ae"),
         Hex::toBytes("0x6777b56cd127407ae1b1cc309905521e"),
         Hex::toBytes("0x52719fe16375c2446b109dfcf9336c38"),
-        Hex::toBytes("0x6763b32cbd1c695a694d66fe2e729c97")
-      });
-      eV.push_back("This is a string");
-      eV.push_back(std::vector<std::string>{
-        "Yes", "This", "Is", "A", "String", "Array", "How stupid lol"
-      });
+        Hex::toBytes("0x6763b32cbd1c695a694d66fe2e729c97")});
+    eV.push_back("This is a string");
+    eV.push_back(std::vector<std::string>{"Yes", "This", "Is", "A", "String",
+                                          "Array", "How stupid lol"});
 
       ABI::Encoder e(eV, "testAll(uint256,uint256[],bool,bool[],address,address[],bytes,bytes[],string,string[])");
       auto eS = Utils::create_view_span(e.getData());
@@ -563,13 +561,13 @@ namespace TABI {
       );
       std::vector<ABI::Types> types = {ABI::Types::uint256Arr};
 
-      ABI::Decoder d(types, ABI);
-      std::vector<uint256_t> dV = d.getData<std::vector<uint256_t>>(0);
+    ABI::Decoder d(types, ABI);
+    std::vector<uint256_t> dV = d.getData<std::vector<uint256_t>>(0);
 
-      REQUIRE(dV[0] == uint256_t(2312415123141231511));
-      REQUIRE(dV[1] == uint256_t(2734526262645));
-      REQUIRE(dV[2] == uint256_t(389234263123421));
-    }
+    REQUIRE(dV[0] == uint256_t(2312415123141231511));
+    REQUIRE(dV[1] == uint256_t(2734526262645));
+    REQUIRE(dV[2] == uint256_t(389234263123421));
+  }
 
     SECTION("Decode Address (Array)") {
       Bytes ABI = Hex::toBytes("0x"
@@ -581,8 +579,8 @@ namespace TABI {
       );
       std::vector<ABI::Types> types = {ABI::Types::addressArr};
 
-      ABI::Decoder d(types, ABI);
-      std::vector<Address> dV = d.getData<std::vector<Address>>(0);
+    ABI::Decoder d(types, ABI);
+    std::vector<Address> dV = d.getData<std::vector<Address>>(0);
 
       REQUIRE(dV[0] == Address(Hex::toBytes("0x5B38Da6a701c568545dCfcB03FcB875f56beddC4")));
       REQUIRE(dV[1] == Address(Hex::toBytes("0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2")));
@@ -599,13 +597,13 @@ namespace TABI {
       );
       std::vector<ABI::Types> types = {ABI::Types::booleanArr};
 
-      ABI::Decoder d(types, ABI);
-      std::vector<bool> dV = d.getData<std::vector<bool>>(0);
+    ABI::Decoder d(types, ABI);
+    std::vector<bool> dV = d.getData<std::vector<bool>>(0);
 
-      REQUIRE(dV[0] == true);
-      REQUIRE(dV[1] == false);
-      REQUIRE(dV[2] == true);
-    }
+    REQUIRE(dV[0] == true);
+    REQUIRE(dV[1] == false);
+    REQUIRE(dV[2] == true);
+  }
 
     SECTION("Decode Bytes (Single)") {
       Bytes ABI = Hex::toBytes("0x"
@@ -618,8 +616,8 @@ namespace TABI {
       ABI::Decoder d(types, ABI);
       Bytes bytes = d.getData<Bytes>(0);
 
-      REQUIRE(bytes == Hex::toBytes("0x0adf1f1a"));
-    }
+    REQUIRE(bytes == Hex::toBytes("0x0adf1f1a"));
+  }
 
     SECTION("Decode Bytes (Array)") {
       Bytes ABI = Hex::toBytes("0x"
@@ -643,11 +641,11 @@ namespace TABI {
       ABI::Decoder d(types, ABI);
       std::vector<Bytes> dV = d.getData<std::vector<Bytes>>(0);
 
-      REQUIRE(dV[0] == Hex::toBytes("0x0adf1f1a"));
-      REQUIRE(dV[1] == Hex::toBytes("0xfffadcba"));
-      REQUIRE(dV[2] == Hex::toBytes("0x0113ffedc231"));
-      REQUIRE(dV[3] == Hex::toBytes("0xaaaa"));
-    }
+    REQUIRE(dV[0] == Hex::toBytes("0x0adf1f1a"));
+    REQUIRE(dV[1] == Hex::toBytes("0xfffadcba"));
+    REQUIRE(dV[2] == Hex::toBytes("0x0113ffedc231"));
+    REQUIRE(dV[3] == Hex::toBytes("0xaaaa"));
+  }
 
     SECTION("Decode String (Single)") {
       Bytes ABI = Hex::toBytes("0x"
@@ -657,11 +655,11 @@ namespace TABI {
       );
       std::vector<ABI::Types> types = {ABI::Types::string};
 
-      ABI::Decoder d(types, ABI);
-      std::string str = d.getData<std::string>(0);
+    ABI::Decoder d(types, ABI);
+    std::string str = d.getData<std::string>(0);
 
-      REQUIRE(str == "This is a test");
-    }
+    REQUIRE(str == "This is a test");
+  }
 
     SECTION("Decode String (Array)") {
       Bytes ABI = Hex::toBytes("0x"
@@ -682,14 +680,15 @@ namespace TABI {
       );
       std::vector<ABI::Types> types = {ABI::Types::stringArr};
 
-      ABI::Decoder d(types, ABI);
-      std::vector<std::string> dV = d.getData<std::vector<std::string>>(0);
+    ABI::Decoder d(types, ABI);
+    std::vector<std::string> dV = d.getData<std::vector<std::string>>(0);
 
-      REQUIRE(dV[0] == "This is the first test");
-      REQUIRE(dV[1] == "This is the second test");
-      REQUIRE(dV[2] == "This is the third test");
-      REQUIRE(dV[3] == "This is the forth test"); // Someone fix this typo for the love of the cosmos
-    }
+    REQUIRE(dV[0] == "This is the first test");
+    REQUIRE(dV[1] == "This is the second test");
+    REQUIRE(dV[2] == "This is the third test");
+    REQUIRE(dV[3] == "This is the forth test"); // Someone fix this typo for the
+                                                // love of the cosmos
+  }
 
     SECTION("Decode Bytes (Array) + String (Array)") {
       Bytes ABI = Hex::toBytes("0x"
@@ -728,15 +727,251 @@ namespace TABI {
       std::vector<std::string> stringArr = d.getData<std::vector<std::string>>(0);
       std::vector<Bytes> bytesArr = d.getData<std::vector<Bytes>>(1);
 
-      REQUIRE(stringArr[0] == "This is the first test");
-      REQUIRE(stringArr[1] == "This is the second test");
-      REQUIRE(stringArr[2] == "This is the third test");
-      REQUIRE(stringArr[3] == "This is the forth test"); // Someone fix this typo for the love of the cosmos
-      REQUIRE(bytesArr[0] == Hex::toBytes("0x0adf1f1a"));
-      REQUIRE(bytesArr[1] == Hex::toBytes("0xfffadcba"));
-      REQUIRE(bytesArr[2] == Hex::toBytes("0x0113ffedc231"));
-      REQUIRE(bytesArr[3] == Hex::toBytes("0xaaaa"));
-    }
+    REQUIRE(stringArr[0] == "This is the first test");
+    REQUIRE(stringArr[1] == "This is the second test");
+    REQUIRE(stringArr[2] == "This is the third test");
+    REQUIRE(stringArr[3] ==
+            "This is the forth test"); // Someone fix this typo for the love of
+                                       // the cosmos
+    REQUIRE(bytesArr[0] == Hex::toBytes("0x0adf1f1a"));
+    REQUIRE(bytesArr[1] == Hex::toBytes("0xfffadcba"));
+    REQUIRE(bytesArr[2] == Hex::toBytes("0x0113ffedc231"));
+    REQUIRE(bytesArr[3] == Hex::toBytes("0xaaaa"));
+  }
+
+  SECTION("JSONEncoder") {
+    const std::string addToAddressListExpected = Hex::toBytes(
+        "0x5fd673e8000000000000000000000000000000000000000000000000000000000000"
+        "0020000000000000000000000000000000000000000000000000000000000000000200"
+        "00000000000000000000002e913a79206280b3882860b3ef4df8204a62c8b100000000"
+        "00000000000000002e913a79206280b3882860b3ef4df8204a62c8b1");
+    const std::string addToStringListExpected = Hex::toBytes(
+        "0xece49551000000000000000000000000000000000000000000000000000000000000"
+        "0020000000000000000000000000000000000000000000000000000000000000000200"
+        "0000000000000000000000000000000000000000000000000000000000004000000000"
+        "000000000000000000000000000000000000000000000000000000c000000000000000"
+        "0000000000000000000000000000000000000000000000005261616161616161616161"
+        "6161616161616161616161616161616161616161616161616161616161616161616161"
+        "6161616161616161616161616161616161616161616161616161616161616161616161"
+        "6161000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000004f62626262626262626262626262626262626262626262"
+        "6262626262626262626262626262626262626262626262626262626262626262626262"
+        "6262626262626262626262626262626262626262626200000000000000000000000000"
+        "00000000");
+    const std::string addToStringListFourExpected = Hex::toBytes(
+        "0xece49551000000000000000000000000000000000000000000000000000000000000"
+        "0020000000000000000000000000000000000000000000000000000000000000000400"
+        "0000000000000000000000000000000000000000000000000000000000008000000000"
+        "000000000000000000000000000000000000000000000000000000e000000000000000"
+        "0000000000000000000000000000000000000000000000016000000000000000000000"
+        "000000000000000000000000000000000000000001c000000000000000000000000000"
+        "0000000000000000000000000000000000002461616161616161616161616161616161"
+        "6161616161616161616161616161616161616161000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000005862626262626262626262626262626262626262626262626262"
+        "6262626262626262626262626262626262626262626262626262626262626262626262"
+        "6262626262626262626262626262626262626262626262626262626200000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000286363"
+        "6363636363636363636363636363636363636363636363636363636363636363636363"
+        "6363630000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000046464646400000000000000"
+        "000000000000000000000000000000000000000000");
+    const std::string addToBytesListExpected = Hex::toBytes(
+        "0x8ab94fd6000000000000000000000000000000000000000000000000000000000000"
+        "0020000000000000000000000000000000000000000000000000000000000000000200"
+        "0000000000000000000000000000000000000000000000000000000000004000000000"
+        "0000000000000000000000000000000000000000000000000000008000000000000000"
+        "00000000000000000000000000000000000000000000000002aaaa0000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "00000000000000000000000000000000000002bbbb0000000000000000000000000000"
+        "00000000000000000000000000000000");
+    const std::string addToBytesListFourExpected = Hex::toBytes(
+        "0x8ab94fd6000000000000000000000000000000000000000000000000000000000000"
+        "0020000000000000000000000000000000000000000000000000000000000000000400"
+        "0000000000000000000000000000000000000000000000000000000000008000000000"
+        "000000000000000000000000000000000000000000000000000000c000000000000000"
+        "0000000000000000000000000000000000000000000000010000000000000000000000"
+        "0000000000000000000000000000000000000000014000000000000000000000000000"
+        "000000000000000000000000000000000000090aaaaaaaaaaaaaaaaa00000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000001fbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "bbbbbbbbbbbbbbbbbb0000000000000000000000000000000000000000000000000000"
+        "000000000000020ccc0000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "120ddddddddddddddddddddddddddddddddddd0000000000000000000000000000");
+    const std::string testMultipleByteArrayExpected = Hex::toBytes(
+        "0x70afa559000000000000000000000000000000000000000000000000000000000000"
+        "0040000000000000000000000000000000000000000000000000000000000000012000"
+        "0000000000000000000000000000000000000000000000000000000000000200000000"
+        "0000000000000000000000000000000000000000000000000000004000000000000000"
+        "0000000000000000000000000000000000000000000000008000000000000000000000"
+        "00000000000000000000000000000000000000000002aaaa0000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "00000000000000000000000000000002bbbb0000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000200000000000000000000000000000000000000000000000000"
+        "0000000000004000000000000000000000000000000000000000000000000000000000"
+        "0000008000000000000000000000000000000000000000000000000000000000000000"
+        "02cccc0000000000000000000000000000000000000000000000000000000000000000"
+        "000000000000000000000000000000000000000000000000000000000002dddd000000"
+        "000000000000000000000000000000000000000000000000000000");
+    const std::string addMultipleToByteListExpected = Hex::toBytes(
+        "0xf953151e000000000000000000000000000000000000000000000000000000000000"
+        "004000000000000000000000000000000000000000000000000000000000000000c000"
+        "00000000000000000000000000000000000000000000000000000000000046aaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "00000000000000000000000000000000000002bbbb0000000000000000000000000000"
+        "00000000000000000000000000000000");
+    const std::string addMultipleToStringListExpected = Hex::toBytes(
+        "0x4aee7a8d000000000000000000000000000000000000000000000000000000000000"
+        "0040000000000000000000000000000000000000000000000000000000000000008000"
+        "0000000000000000000000000000000000000000000000000000000000000361616100"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000362626200000000000000"
+        "00000000000000000000000000000000000000000000");
+    const std::string testAlmostAllExpected = Hex::toBytes(
+        "0x1608f4b100000000000000000000000000000000000000000000000000007614cf69"
+        "b633000000000000000000000000c4ea73d428ab6589c36905d0f0b01f3051740ff800"
+        "0000000000000000000000000000000000000000000000000000000000000100000000"
+        "0000000000000000000000000000000000000000000000000000010000000000000000"
+        "0000000000000000000000000000000000000000000000014000000000000000000000"
+        "000000000000000000000000000000000000000002e000000000000000000000000000"
+        "0000000000000000000000000000000000046000000000000000000000000000000000"
+        "000000000000000000000000000004e000000000000000000000000000000000000000"
+        "00000000000000000000000002aaaa0000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000016d4c6f72656d20697073756d20646f6c6f722073697420616d65742c20"
+        "636f6e73656374657475722061646970697363696e6720656c69742e2050656c6c656e"
+        "746573717565206567657420706f72747469746f7220746f72746f722c206574207469"
+        "6e636964756e74206e6962682e2041656e65616e2065726174207175616d2c206d6178"
+        "696d757320696420677261766964612073697420616d65742c2072686f6e6375732073"
+        "6564206e756c6c612e20437572616269747572206d6178696d75732074656c6c757320"
+        "6469616d2c2076656c2076756c7075746174652073617069656e206d6178696d757320"
+        "76697461652e204475697320636f6e73656374657475722c2066656c69732061742065"
+        "666669636974757220636f6e73656374657475722c20746f72746f72206e69736c2062"
+        "6962656e64756d206d61757269732c20656765742076656e656e617469732061756775"
+        "65206a7573746f206574206f72636953696d706c652000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000030000000000000000000000000000000000000000000000000000000000000060"
+        "00000000000000000000000000000000000000000000000000000000000000a0000000"
+        "0000000000000000000000000000000000000000000000000000000120000000000000"
+        "0000000000000000000000000000000000000000000000000005616161616100000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000054626262626262626262626262626262"
+        "6262626262626262626262626262626262626262626262626262626262626262626262"
+        "6262626262626262626262626262626262626262626262626262626262626262626200"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000003636363000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "0003000000000000000000000000c4ea73d428ab6589c36905d0f0b01f3051740ff800"
+        "0000000000000000000000c4ea73d428ab6589c36905d0f0b01f3051740ff800000000"
+        "0000000000000000c4ea73d428ab6589c36905d0f0b01f3051740ff800000000000000"
+        "0000000000000000000000000000000000000000000000000300000000000000000000"
+        "0000000000000000000000000000000000000000006000000000000000000000000000"
+        "000000000000000000000000000000000000a000000000000000000000000000000000"
+        "000000000000000000000000000000e000000000000000000000000000000000000000"
+        "000000000000000000000000020aaa0000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "000000000000020bbb0000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "21aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00"
+        "000000000000000000000000000000000000000000000000000000000000");
+
+    boost::filesystem::path sourceFilePath(__FILE__);
+    // We are three levels deep in the folder structure
+    boost::filesystem::path rootProjectFolder =
+        sourceFilePath.parent_path().parent_path().parent_path();
+    boost::filesystem::path contractPath =
+        rootProjectFolder / "tests" / "ArrayTest.json";
+
+    std::ifstream contractFile(contractPath.string());
+    json contractJson = json::parse(contractFile);
+
+    ABI::JSONEncoder contract(contractJson);
+
+    std::string addToAddressList = Hex::toBytes(contract(
+        "addToAddressListArr",
+        json::array({json::array(
+            {Hex::toBytes("0x2E913a79206280B3882860B3eF4dF8204a62C8B1"),
+             Hex::toBytes("0x2E913a79206280B3882860B3eF4dF8204a62C8B1")})})));
+
+    std::string addToStringList = Hex::toBytes(contract(
+        "addToStringListArr",
+        json::array({json::array({"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                                  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                                  "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                                  "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"})})));
+
+    std::string addToStringListFour = Hex::toBytes(
+        contract("addToStringListArr",
+                 json::array({json::array(
+                     {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                      "cccccccccccccccccccccccccccccccccccccccc", "dddd"})})));
+
+    std::string addToBytesList = Hex::toBytes(contract(
+        "addToByteListArr", json::array({json::array({"0xaaaa", "0xbbbb"})})));
+
+    std::string addToBytesListFour = Hex::toBytes(contract(
+        "addToByteListArr",
+        json::array({json::array(
+            {"0xaaaaaaaaaaaaaaaaa",
+             "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+             "0xccc", "0xddddddddddddddddddddddddddddddddddd"})})));
+
+    std::string testMultipleByteArray = Hex::toBytes(
+        contract("testMultipleByteArray",
+                 json::array({json::array({"0xaaaa", "0xbbbb"}),
+                              json::array({"0xcccc", "0xdddd"})})));
+
+    std::string addMultipleToByteList = Hex::toBytes(
+        contract("addMultipleToByteList",
+                 json::array({"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                              "0xbbbb"})));
+
+    std::string addMultipleToStringList = Hex::toBytes(
+        contract("addMultipleToStringList", json::array({"aaa", "bbb"})));
+
+    // This should do it lmao.
+    // testAlmostAll(uint256 item1, address item2, bool item3, bytes item4,
+    // string item5, string[] item6, address[] item7, bytes[] item8)
+    std::string testAlmostAll = Hex::toBytes(contract(
+        "testAlmostAll",
+        json::array(
+            {"129831751235123",
+             Hex::toBytes("0xc4ea73d428ab6589c36905d0f0b01f3051740ff8"), "1",
+             "0xaaaa",
+             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
+             "Pellentesque eget porttitor tortor, et tincidunt nibh. Aenean "
+             "erat quam, maximus id gravida sit amet, rhoncus sed nulla. "
+             "Curabitur maximus tellus diam, vel vulputate sapien maximus "
+             "vitae. Duis consectetur, felis at efficitur consectetur, tortor "
+             "nisl bibendum mauris, eget venenatis augue justo et orciSimple ",
+             json::array({"aaaaa",
+                          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                          "ccc"}),
+             json::array(
+                 {Hex::toBytes("0xc4ea73d428ab6589c36905d0f0b01f3051740ff8"),
+                  Hex::toBytes("0xc4ea73d428ab6589c36905d0f0b01f3051740ff8"),
+                  Hex::toBytes("0xc4ea73d428ab6589c36905d0f0b01f3051740ff8")}),
+             json::array({"0xaaa", "0xbbb",
+                          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                          "aaaaaaaaaaaaaaaa"})})));
+
+    REQUIRE(addToAddressList == addToAddressListExpected);
+    REQUIRE(addToStringList == addToStringListExpected);
+    REQUIRE(addToStringListFour == addToStringListFourExpected);
+    REQUIRE(addToBytesList == addToBytesListExpected);
+    REQUIRE(addToBytesListFour == addToBytesListFourExpected);
+    REQUIRE(testMultipleByteArray == testMultipleByteArrayExpected);
+    REQUIRE(addMultipleToByteList == addMultipleToByteListExpected);
+    REQUIRE(addMultipleToStringList == addMultipleToStringListExpected);
+    REQUIRE(testAlmostAll == testAlmostAllExpected);
   }
 } // namespace TABI
-

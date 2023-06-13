@@ -14,7 +14,7 @@ class Syncer;
 
 /**
  * Master class that represents the blockchain as a whole.
- * Contains and acts as the middleman of every other part of the core and net protocols.
+ * Contains, and acts as the middleman of, every other part of the core and net protocols.
  * Those parts interact with one another by communicating through this class.
  */
 class Blockchain {
@@ -31,7 +31,7 @@ class Blockchain {
   public:
     /**
      * Constructor.
-     * @param blockhainPath Root path of the blockchain.
+     * @param blockchainPath Root path of the blockchain.
      */
     Blockchain(std::string blockchainPath);
 
@@ -80,6 +80,13 @@ class Blockchain {
      */
     const std::atomic<bool>& isSynced() const;
 
+    /**
+     * Parse a given RPC message.
+     * @param msg The message to parse.
+     * @return A response to the parsed message as a string.
+     */
+    std::string parseRPC(std::string& msg);
+
     friend class Syncer;
 };
 
@@ -89,7 +96,7 @@ class Blockchain {
  * class is responsible for syncing both, broadcasting transactions and also
  * creating new blocks if the node is a Validator.
  * Currently it's *single threaded*, meaning that it doesn't require mutexes.
- * TODO: This function can also be responsible for slashing rdPoS if they are not behaving correctlyng
+ * TODO: This could also be responsible for slashing rdPoS if they are not behaving correctly
  * TODO: Maybe it is better to move rdPoSWorker to Syncer?
  */
 class Syncer {
@@ -117,6 +124,7 @@ class Syncer {
      * If the node is a Validator and it has to create a new block,
      * this function will be called, the new block will be created based on the
      * current State and rdPoS objects, and then it will be broadcasted.
+     * @throw std::runtime_error if block is invalid.
      */
     void doValidatorBlock();
 

@@ -15,16 +15,12 @@ class Storage;
 namespace JsonRPC {
   /**
    * Namespace for decoding JSON-RPC data.
-   *
    * All functions require a JSON object that is the request itself to be operated on.
-   *
-   * All functions except for eth_call() and eth_estimateGas() will throw
-   * if the request is invalid for some reason.
    */
   namespace Decoding {
     /**
      * Helper function to check if a given JSON-RPC request is valid.
-     * Does not check if the method called is valid, only if the request follows JSON-RPC 2.0 spec.
+     * Does NOT check if the method called is valid, only if the request follows JSON-RPC 2.0 spec.
      * @param request The request object.
      * @return `true` if request is valid, `false` otherwise.
      */
@@ -32,7 +28,7 @@ namespace JsonRPC {
 
     /**
      * Helper function to get the method of the JSON-RPC request.
-     * @param json The request object.
+     * @param request The request object.
      * @return The method inside the request, or `invalid` if the method is not found.
      */
     Methods getMethod(const json& request);
@@ -87,7 +83,9 @@ namespace JsonRPC {
      * @param storage Pointer to the blockchain's storage (in case of "latest" or "pending" block).
      * @return A pair of block height and bool (include transactions).
      */
-    std::pair<uint64_t,bool> eth_getBlockByNumber(const json& request, const std::unique_ptr<Storage> &storage);
+    std::pair<uint64_t,bool> eth_getBlockByNumber(
+      const json& request, const std::unique_ptr<Storage>& storage
+    );
 
     /**
      * Get the block hash of a `eth_getBlockTransactionCountByHash` request.
@@ -102,7 +100,9 @@ namespace JsonRPC {
      * @param storage Pointer to the blockchain's storage (in case of "latest" or "pending" block).
      * @return The block number.
      */
-    uint64_t eth_getBlockTransactionCountByNumber(const json& request, const std::unique_ptr<Storage> &storage);
+    uint64_t eth_getBlockTransactionCountByNumber(
+      const json& request, const std::unique_ptr<Storage>& storage
+    );
 
     /**
      * Check if `eth_chainId` is valid.
@@ -134,14 +134,15 @@ namespace JsonRPC {
      * @param storage Pointer to the blockchain's storage.
      * @return A tuple with the call response data (from, to, gas, gasPrice, value, functor, data).
      */
-    ethCallInfoAllocated eth_call(const json& request, const std::unique_ptr<Storage> &storage);
+    ethCallInfoAllocated eth_call(const json& request, const std::unique_ptr<Storage>& storage);
 
     /**
      * Check and parse a given `eth_estimateGas` request.
      * @param request The request object.
+     * @param storage Reference pointer to the blockchain's storage.
      * @return A tuple with the call response data (from, to, gas, gasPrice, value, functor, data).
      */
-    ethCallInfoAllocated eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage);
+    ethCallInfoAllocated eth_estimateGas(const json& request, const std::unique_ptr<Storage>& storage);
 
     /**
      * Check if `eth_gasPrice` is valid
@@ -155,7 +156,7 @@ namespace JsonRPC {
      * @param storage Pointer to the blockchain's storage.
      * @return The requested address.
      */
-    Address eth_getBalance(const json& request, const std::unique_ptr<Storage> &storage);
+    Address eth_getBalance(const json& request, const std::unique_ptr<Storage>& storage);
 
     /**
      * Parse an `eth_getTransactionCount` address and check if it is valid.
@@ -198,9 +199,12 @@ namespace JsonRPC {
     /**
      * Parse a `eth_getTransactionByBlockNumberAndIndex` request and check if it is valid.
      * @param request The request object.
+     * @param storage Reference pointer to the blockchain's storage.
      * @return A pair of block height and index.
      */
-    std::pair<uint64_t,uint64_t> eth_getTransactionByBlockNumberAndIndex(const json& request, const std::unique_ptr<Storage> &storage);
+    std::pair<uint64_t,uint64_t> eth_getTransactionByBlockNumberAndIndex(
+      const json& request, const std::unique_ptr<Storage>& storage
+    );
 
     /**
      * Parse a `eth_getTransactionReceipt` request and check if it is valid.

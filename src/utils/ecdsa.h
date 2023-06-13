@@ -47,7 +47,7 @@ namespace Secp256k1 {
    * @param r The first half (32 bytes) of the ECDSA signature.
    * @param s The second half (32 bytes) of the ECDSA signature.
    * @param v The recovery id (1 byte).
-   * @returns The full ECDSA signature.
+   * @return The full ECDSA signature.
    */
   Signature makeSig(const uint256_t& r, const uint256_t& s, const uint8_t& v);
 
@@ -63,14 +63,14 @@ namespace Secp256k1 {
   /**
    * Derive an uncompressed public key from a private one.
    * @param key The private key to derive from.
-   * @returns The derived uncompressed public key.
+   * @return The derived uncompressed public key.
    */
   UPubKey toUPub(const PrivKey& key);
 
   /**
    * Derive an uncompressed public key from a compressed public one.
    * @param key The compressed public key to derive from.
-   * @returns The derived uncompressed public key.
+   * @return The derived uncompressed public key.
    */
   UPubKey toUPub(const PubKey& key);
 

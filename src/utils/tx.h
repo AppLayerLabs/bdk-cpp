@@ -7,7 +7,7 @@
 
 /**
  * Abstraction of a block transaction.
- * All transactions are final, they're defined as such during construction.
+ * All transactions are final and defined as such during construction.
  */
 class TxBlock {
   private:
@@ -27,16 +27,15 @@ class TxBlock {
 
   public:
     /**
-     * Raw constructor. Throws on parsing failure.
+     * Raw constructor.
      * @param bytes The raw tx bytes to parse.
      * @param requiredChainId The chain ID of the transaction.
+     * @throw std::runtime_error on any parsing failure.
      */
     TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId);
 
     /**
-     * Manual constructor.
-     * Leave fields blank ("" or 0) if they're not required.
-     * Throws on signing failure.
+     * Manual constructor. Leave fields blank ("" or 0) if they're not required.
      * @param to The receiver address.
      * @param from The sender address.
      * @param data The arbitrary data string.
@@ -47,6 +46,7 @@ class TxBlock {
      * @param maxFeePerGas The maximum fee per gas of the transaction.
      * @param gasLimit The gas limit of the transaction.
      * @param privKey The private key used to sign the transaction.
+     * @throw std::runtime_error on signing failure or sender mismatch.
      */
     TxBlock(
       const Address to, const Address from, const Bytes& data,
@@ -197,7 +197,7 @@ class TxBlock {
 
 /**
  * Abstraction of a Validator transaction.
- * All transactions are final, they're defined as such during construction.
+ * All transactions are final and defined as such during construction.
  */
 class TxValidator {
   private:
@@ -212,21 +212,20 @@ class TxValidator {
   public:
     /**
      * Raw constructor.
-     * Throws on parsing failure.
      * @param bytes The raw tx bytes to parse.
      * @param requiredChainId The chain ID of the transaction.
+     * @throw std::runtime_error on any parsing failure.
      */
     TxValidator(const BytesArrView bytes, const uint64_t& requiredChainId);
 
     /**
-     * Manual constructor.
-     * Leave fields blank ("" or 0) if they're not required.
-     * Throws on signing failure.
+     * Manual constructor. Leave fields blank ("" or 0) if they're not required.
      * @param from The sender address.
      * @param data The arbitrary data string.
      * @param chainId The chain ID of the transaction.
      * @param nHeight The block height of the transaction.
      * @param privKey The private key used to sign the transaction.
+     * @throw std::runtime_error on signing failure or sender mismatch.
      */
     TxValidator(
       const Address from, const Bytes& data, const uint64_t chainId,

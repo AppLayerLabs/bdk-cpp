@@ -1,16 +1,14 @@
 #include "state.h"
 
-State::State(const std::unique_ptr<DB>& db,
-             const std::unique_ptr<Storage>& storage,
-             const std::unique_ptr<rdPoS>& rdpos,
-             const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
-             const std::unique_ptr<Options>& options) :
-             db(db),
-             storage(storage),
-             rdpos(rdpos),
-             p2pManager(p2pManager),
-             options(options),
-             contractManager(std::make_unique<ContractManager>(this, db, rdpos, options)){
+State::State(
+  const std::unique_ptr<DB>& db,
+  const std::unique_ptr<Storage>& storage,
+  const std::unique_ptr<rdPoS>& rdpos,
+  const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
+  const std::unique_ptr<Options>& options
+) : db(db), storage(storage), rdpos(rdpos), p2pManager(p2pManager), options(options),
+contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
+{
   std::unique_lock lock(this->stateMutex);
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
@@ -122,29 +120,28 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
 }
 
 void State::processTransaction(const TxBlock& tx) {
-  /// Lock is already called by processNextBlock
-  /// processNextBlock already calls validateTransaction in every tx.
-  /// As it calls validateNextBlock as a sanity check.
-
-  /// TODO: Contract calling, including "payable" functions.
+  // Lock is already called by processNextBlock.
+  // processNextBlock already calls validateTransaction in every tx, as it
+  // calls validateNextBlock as a sanity check.
+  // TODO: Contract calling, including "payable" functions.
   auto accountIt = this->accounts.find(tx.getFrom());
   auto& balance = accountIt->second.balance;
   auto& nonce = accountIt->second.nonce;
   try {
-    uint256_t txValueWithFees = tx.getValue() + (tx.getGasLimit() *
-                                                 tx.getMaxFeePerGas());  /// This need to change with payable contract functions
+    uint256_t txValueWithFees = tx.getValue() + (
+      tx.getGasLimit() * tx.getMaxFeePerGas()
+    ); // This needs to change with payable contract functions
     balance -= txValueWithFees;
     this->accounts[tx.getTo()].balance += tx.getValue();
-
     if (this->contractManager->isContractCall(tx)) {
-      if (this->contractManager->isPayable(tx.txToCallInfo())) {
-        this->processingPayable = true;
-      }
+      if (this->contractManager->isPayable(tx.txToCallInfo())) this->processingPayable = true;
       this->contractManager->callContract(tx);
       this->processingPayable = false;
     }
-
   } catch (const std::exception& e) {
+    Utils::logToDebug(Log::state, __func__,
+      "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
+    );
     if(this->processingPayable) {
       balance += tx.getValue();
       this->accounts[tx.getTo()].balance -= tx.getValue();
@@ -153,7 +150,7 @@ void State::processTransaction(const TxBlock& tx) {
     Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
     balance += tx.getValue();
   }
-  ++nonce;
+  nonce++;
 }
 
 void State::refreshMempool(const Block& block) {
@@ -271,6 +268,11 @@ void State::processNextBlock(Block&& block) {
   /// Refresh the mempool based on the block transactions;
   this->refreshMempool(block);
 
+  Utils::logToDebug(Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.) block bytes: " + Hex::fromBytes(block.serializeBlock()).get());
+  Utils::safePrint("Block: " + block.hash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
+  for (const auto& tx : block.getTxs()) {
+    Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
+  }
   /// Move block to storage.
   this->storage->pushBack(std::move(block));
   return;
@@ -295,6 +297,7 @@ TxInvalid State::addTx(TxBlock&& tx) {
   std::unique_lock lock(this->stateMutex);
   auto txHash = tx.hash();
   this->mempool.insert({txHash, std::move(tx)});
+  Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was added to the mempool");
   return TxInvalid;
 }
 
@@ -355,15 +358,14 @@ bool State::estimateGas(const ethCallInfo& callInfo) {
 }
 
 void State::processContractPayable(std::unordered_map<Address, uint256_t, SafeHash>& payableMap) {
-  if (!this->processingPayable) {
-    throw std::runtime_error("Uh oh, contracts are going haywire! Cannot change State while not processing a payable contract.");
-  }
-  for (const auto& [address, amount] : payableMap) {
-    this->accounts[address].balance = amount;
-  }
+  if (!this->processingPayable) throw std::runtime_error(
+    "Uh oh, contracts are going haywire! Cannot change State while not processing a payable contract."
+  );
+  for (const auto& [address, amount] : payableMap) this->accounts[address].balance = amount;
 }
 
 std::vector<std::pair<std::string, Address>> State::getContracts() const {
   std::shared_lock lock(this->stateMutex);
   return this->contractManager->getContracts();
 }
+

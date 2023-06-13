@@ -10,6 +10,7 @@
 #include <atomic>
 #include <array>
 #include <span>
+#include <cxxabi.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -23,11 +24,23 @@
 
 #include "json.hpp"
 
+/// @file utils.h
+
 class Hash;
 
+/// Typedef for json.
 using json = nlohmann::ordered_json;
+
+/// Typedef for bigint.
 using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
+
+/// Typedef for uint256_t.
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint128_t.
+using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint160_t.
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
 using Byte = uint8_t;
@@ -46,8 +59,8 @@ using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, ui
 
 
 /**
- * TODO: this isn't working on Doxygen
- * Helper function for debugging failed operations over HTTP.
+ * @fn void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what)
+ * @brief Helper function for debugging failed operations over HTTP.
  * @param cl The class where the operation failed.
  * @param func The function where the operation failed.
  * @param ec Boost Beast error code.
@@ -55,57 +68,31 @@ using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, ui
  */
 void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what);
 
-/**
- * Namespace with string prefixes for each blockchain module, for printing log/debug messages.
- * Values are as follows:
- * - blockchain = "Blockchain"
- * - storage = "Storage"
- * - snowmanVM = "SnowmanVM"
- * - block = "Block"
- * - db = "DB"
- * - state = "State"
- * - grpcServer = "gRPCServer"
- * - grpcClient = "gRPCClient"
- * - utils = "Utils"
- * - httpServer = "HTTPServer"
- * - JsonRPCEncoding = "JsonRPC::Encoding"
- * - JsonRPCDecoding = "JsonRPC::Decoding"
- * - %rdPoS = "rdPoS"
- * - %ABI = "ABI"
- * - P2PClientSession = "P2P::ClientSession"
- * - P2PServer = "P2P::Server"
- * - P2PServerListener = "P2P::ServerListener"
- * - P2PServerSession = "P2P::ServerSession"
- * - P2PManager = "P2P::Manager"
- * - P2PParser = "P2P::Parser"
- * - P2PDiscoveryWorker = "P2P::DiscoveryWorker"
- * - contractManager = "ContractManager"
- * - syncer = "Syncer"
- */
+/// Namespace with string prefixes for each blockchain module, for printing log/debug messages.
 namespace Log {
-  const std::string blockchain = "Blockchain";
-  const std::string storage = "Storage";
-  const std::string snowmanVM = "SnowmanVM";
-  const std::string block = "Block";
-  const std::string db = "DB";
-  const std::string state = "State";
-  const std::string grpcServer = "gRPCServer";
-  const std::string grpcClient = "gRPCClient";
-  const std::string utils = "Utils";
-  const std::string httpServer = "HTTPServer";
-  const std::string JsonRPCEncoding = "JsonRPC::Encoding";
-  const std::string JsonRPCDecoding = "JsonRPC::Decoding";
-  const std::string rdPoS = "rdPoS";
-  const std::string ABI = "ABI";
-  const std::string P2PClientSession = "P2P::ClientSession";
-  const std::string P2PServer = "P2P::Server";
-  const std::string P2PServerListener = "P2P::ServerListener";
-  const std::string P2PServerSession = "P2P::ServerSession";
-  const std::string P2PManager = "P2P::Manager";
-  const std::string P2PParser = "P2P::Parser";
-  const std::string P2PDiscoveryWorker = "P2P::DiscoveryWorker";
-  const std::string contractManager = "ContractManager";
-  const std::string syncer = "Syncer";
+  const std::string blockchain = "Blockchain";                    ///< String for `Blockchain`.
+  const std::string storage = "Storage";                          ///< String for `Storage`.
+  const std::string snowmanVM = "SnowmanVM";                      ///< String for `SnowmanVM`.
+  const std::string block = "Block";                              ///< String for `Block`.
+  const std::string db = "DB";                                    ///< String for `DB`.
+  const std::string state = "State";                              ///< String for `State`.
+  const std::string grpcServer = "gRPCServer";                    ///< String for `gRPCServer`.
+  const std::string grpcClient = "gRPCClient";                    ///< String for `gRPCClient`.
+  const std::string utils = "Utils";                              ///< String for `Utils`.
+  const std::string httpServer = "HTTPServer";                    ///< String for `HTTPServer`.
+  const std::string JsonRPCEncoding = "JsonRPC::Encoding";        ///< String for `JsonRPC::Encoding`.
+  const std::string JsonRPCDecoding = "JsonRPC::Decoding";        ///< String for `JsonRPC::Decoding`.
+  const std::string rdPoS = "rdPoS";                              ///< String for `rdPoS`.
+  const std::string ABI = "ABI";                                  ///< String for `ABI`.
+  const std::string P2PClientSession = "P2P::ClientSession";      ///< String for `P2P::ClientSession`.
+  const std::string P2PServer = "P2P::Server";                    ///< String for `P2P::Server`.
+  const std::string P2PServerListener = "P2P::ServerListener";    ///< String for `P2P::ServerListener`.
+  const std::string P2PServerSession = "P2P::ServerSession";      ///< String for `P2P::ServerSession`.
+  const std::string P2PManager = "P2P::Manager";                  ///< String for `P2P::Manager`.
+  const std::string P2PParser = "P2P::Parser";                    ///< String for `P2P::Parser`.
+  const std::string P2PDiscoveryWorker = "P2P::DiscoveryWorker";  ///< String for `P2P::DiscoveryWorker`.
+  const std::string contractManager = "ContractManager";          ///< String for `ContractManager`.
+  const std::string syncer = "Syncer";                            ///< String for `Syncer`.
 }
 
 /// Enum for network type.
@@ -132,6 +119,8 @@ struct Account {
 
 /// Namespace for utility functions.
 namespace Utils {
+  extern std::atomic<bool> logToCout; ///< Indicates whether logging to stdout is allowed (for safePrint()).
+
   /**
    * %Log a string to a file called `log.txt`.
    * @param str The string to log.
@@ -146,7 +135,6 @@ namespace Utils {
    */
   void logToDebug(std::string_view pfx, std::string_view func, std::string_view data);
 
-  extern std::atomic<bool> logToCout;
   /**
    * Print a string to stdout.
    * @param str The string to print.
@@ -167,6 +155,14 @@ namespace Utils {
    * @return The converted 256-bit integer as a bytes string.
    */
   BytesArr<32> uint256ToBytes(const uint256_t& i);
+
+  /**
+   * Convert a 128-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 128-bit integer as a bytes string.
+   */
+  std::string uint128ToBytes(const uint128_t& i);
 
   /**
    * Convert a 160-bit unsigned integer to a bytes string.
@@ -217,8 +213,9 @@ namespace Utils {
 
   /**
    * Convert a bytes string to a 256-bit unsigned integer.
-   * @param b The bytes string to convert.'
+   * @param b The bytes string to convert.
    * @return The converted 256-bit integer.
+   * @throw std::runtime_error if string size is invalid.
    */
   uint256_t bytesToUint256(const BytesArrView b);
 
@@ -226,6 +223,15 @@ namespace Utils {
    * Convert a bytes string to a 128-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 128-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint128_t bytesToUint128(const std::string_view b);
+
+  /**
+   * Convert a bytes string to a 128-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 128-bit integer.
+   * @throw std::runtime_error if string size is invalid.
    */
   uint160_t bytesToUint160(const BytesArrView b);
 
@@ -233,6 +239,7 @@ namespace Utils {
    * Convert a bytes string to a 64-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 64-bit integer.
+   * @throw std::runtime_error if string size is invalid.
    */
   uint64_t bytesToUint64(const BytesArrView b);
 
@@ -240,6 +247,7 @@ namespace Utils {
    * Convert a bytes string to a 32-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 32-bit integer.
+   * @throw std::runtime_error if string size is invalid.
    */
   uint32_t bytesToUint32(const BytesArrView b);
 
@@ -247,6 +255,7 @@ namespace Utils {
    * Convert a bytes string to a 16-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 16-bit integer.
+   * @throw std::runtime_error if string size is invalid.
    */
   uint16_t bytesToUint16(const BytesArrView b);
 
@@ -254,6 +263,7 @@ namespace Utils {
    * Convert a bytes string to a 8-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 8-bit integer.
+   * @throw std::runtime_error if string size is invalid.
    */
    uint8_t bytesToUint8(const BytesArrView b);
 
@@ -281,6 +291,12 @@ namespace Utils {
    */
   Bytes padRightBytes(const BytesArrView bytes, unsigned int charAmount, uint8_t sign = 0x00);
 
+  /// Overload of padLeft() that works with byte strings.
+  std::string padLeftBytes(std::string str, unsigned int charAmount, char sign = '\x00');
+
+  /// Overload of padRight() that works with byte strings.
+  std::string padRightBytes(std::string str, unsigned int charAmount, char sign = '\x00');
+
   /**
    * Convert a big-endian byte-stream represented on a templated collection to a templated integer value.
    * `In` will typically be either std::string or bytes.
@@ -297,7 +313,7 @@ namespace Utils {
   }
 
   /**
-   * Convert a string to all-lowercase.
+   * Convert a string to all-lowercase. Conversion is done in-place.
    * @param str The string to convert.
    */
   inline void toLower(std::string& str) {
@@ -305,7 +321,7 @@ namespace Utils {
   }
 
   /**
-   * Convert a string to all-uppercase.
+   * Convert a string to all-uppercase. Conversion is done in-place.
    * @param str The string to convert.
    */
   inline void toUpper(std::string& str) {
@@ -314,9 +330,9 @@ namespace Utils {
 
   /**
    * Load HTTP port settings from a config file. Creates the file if it doesn't exist.
-   * TODO: Organize every "ruleset read-only" as an "Settings" defined class to avoid variable redefinition
    * @return A JSON object with the settings.
    */
+  // TODO: Organize every "ruleset read-only" as a "Settings" defined class to avoid variable redefinition
   json readConfigFile();
 
   /**
@@ -344,6 +360,24 @@ namespace Utils {
     for (; i; i >>= 8) *(b--) = (uint8_t)(i & 0xff);
     return ret;
   }
+
+  template <typename T>
+  std::string getRealTypeName() {
+    int status;
+    char* demangledName = nullptr;
+
+    std::string mangledName = typeid(T).name();
+    demangledName = abi::__cxa_demangle(mangledName.c_str(), 0, 0, &status);
+
+    if(status == 0 && demangledName != nullptr) {
+        std::string realName(demangledName);
+        free(demangledName);
+        return realName;
+    } else {
+        return mangledName;
+    }
+  }
+
 
 
   /**

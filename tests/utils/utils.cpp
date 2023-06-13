@@ -28,6 +28,13 @@ namespace TUtils {
       REQUIRE(uint160Output == uint160ExpectedOutput);
     }
 
+    SECTION("uint128ToBytes Test") {
+      uint128_t uint128Input = uint128_t("340282366920938463463374607431768211401");
+      auto uint128Output = Utils::uint128ToBytes(uint128Input);
+      BytesArr<16> uint128ExpectedOutput = BytesArr<16> {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9 };
+      REQUIRE(uint128Output == uint128ExpectedOutput);
+    }
+
     SECTION("uint64ToBytes Test") {
       uint64_t uint64Input = uint64_t(11155010102558518614);
       auto uint64Output = Utils::uint64ToBytes(uint64Input);
@@ -91,6 +98,23 @@ namespace TUtils {
       try { Utils::bytesToUint160(hiStr); } catch (std::exception &e) { catchHi = true; }
       REQUIRE(catchLo == true);
       REQUIRE(catchHi == true);
+    }
+
+    SECTION("bytesToUint128 Test") {
+      BytesArr<16> bytesArr = BytesArr<16> {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9 };
+      auto uint128Output = Utils::bytesToUint128(bytesArr.view());
+      uint128_t uint128ExpectedOutput = uint128_t("340282366920938463463374607431768211401");
+      REQUIRE(uint128Output == uint128ExpectedOutput);
+
+      bool catchLo = false;
+      bool catchHi = false;
+      Bytes loStr = Hex::toBytes("0xfffffffffffffffffffffffffffff");
+      Bytes hiStr = Hex::toBytes("0xfffffffffffffffffffffffffffffffff");
+      try { Utils::bytesToUint128(loStr); } catch (std::exception &e) { catchLo = true; }
+      try { Utils::bytesToUint128(hiStr); } catch (std::exception &e) { catchHi = true; }
+      REQUIRE(catchLo == true);
+      REQUIRE(catchHi == true);
+
     }
 
     SECTION("bytesToUint64 Test") {
@@ -213,7 +237,7 @@ namespace TUtils {
       auto uint160Output5To25 = Utils::fromBigEndian<uint160_t>(inputBytes.substr(5, 20));
       uint256_t uint256ExpectedOutput = uint256_t("7267489482988504755957722036644729207517128093499486419604741885099068616246");
       uint64_t uint64ExpectedOutput12To20 = uint64_t(1128445296761190221);
-      uint64_t uint64ExpectedOutput20To28 = uint64_t(15784145542011884812);
+      uint64_t uint64ExpectedOutput20To28 = uint64_t(15784145542011884812ULL);
       uint64_t uint64ExpectedOutput24To28 = uint64_t(313464076);
       uint32_t uint32ExpectedOutput28To32 = uint32_t(2415128118);
       uint160_t uint160ExpectedOutput5To25 = uint160_t("459205820946237488389499242237511570682479951378");

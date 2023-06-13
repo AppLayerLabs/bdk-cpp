@@ -12,17 +12,28 @@
 
 #include "utils.h"
 
-/**
- * Namespace for accessing database prefixes. Values are:
- * - blocks = "0001"
- * - blockHeightMaps = "0002"
- * - nativeAccounts = "0003"
- * - txToBlocks = "0004"
- * - rdPoS = "0005"
- * - contracts = "0006"
- * - contractManager = "0007"
- */
+/// Namespace for accessing database prefixes.
 namespace DBPrefix {
+  const std::string blocks = std::string("\x00\x01", 2);          ///< "blocks" = "0001"
+  const std::string blockHeightMaps = std::string("\x00\x02", 2); ///< "blockHeightMaps" = "0002"
+  const std::string nativeAccounts = std::string("\x00\x03", 2);  ///< "nativeAccounts" = "0003"
+  const std::string txToBlocks = std::string("\x00\x04", 2);      ///< "txToBlocks" = "0004"
+  const std::string rdPoS = std::string("\x00\x05", 2);           ///< "rdPoS" = "0005"
+  const std::string contracts = std::string("\x00\x06", 2);       ///< "contracts" = "0006"
+  const std::string contractManager = std::string("\x00\x07", 2); ///< "contractManager" = "0007"
+};
+
+/// Struct for a database connection/endpoint.
+struct DBServer {
+  std::string host;     ///< Database host/address.
+  std::string version;  ///< Database version.
+
+  /**
+   * Constructor.
+   * @param host The database's host/address.
+   * @param version The database's version string.
+   */
+  DBServer(std::string host, std::string version) : host(host), version(version) {};
   const Bytes blocks = { 0x00, 0x01 };
   const Bytes blockHeightMaps = { 0x00, 0x02 };
   const Bytes nativeAccounts = { 0x00, 0x03 };
@@ -116,8 +127,8 @@ class DBBatch {
 };
 
 /**
- * Abstraction of a [RocksDB](https://github.com/facebook/rocksdb) database.
- * Keys begin with prefixes that separate entries in several categories (see DBPrefix).
+ * Abstraction of a [Speedb](https://github.com/speedb-io/speedb) database (Speedb is a RocksDB drop-in replacement).
+ * Keys begin with prefixes that separate entries in several categories. See DBPrefix.
  */
 class DB {
   private:
@@ -127,18 +138,17 @@ class DB {
 
   public:
     /**
-     * Constructor. Automatically creates the database if it doesn't exist. Throws on error.
+     * Constructor. Automatically creates the database if it doesn't exist.
      * @param path The database's filesystem path (relative to the binary's current working directory).
+     * @throw std::runtime_error if database opening fails.
      */
     DB(const std::string path);
 
-    /**
-     * Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
-     */
+    /// Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
     ~DB() { this->close(); }
 
     /**
-     * Close the database. "Closing" a RocksDB database is just deleting its object.
+     * Close the database (which is really just deleting its object from memory).
      * @return `true` if the database is closed successfully, `false` otherwise.
      */
     inline bool close() { delete this->db; this->db = nullptr; return (this->db == nullptr); }
@@ -235,6 +245,8 @@ class DB {
      * Do several put and/or delete operations in one go.
      * Pfx is already included in DBBatch keys.
      * @param batch The batch object with the operations to be done.
+     * @param batch The batch object with the put/del operations to be done.
+     * @param pfx (optional) The prefix to operate on. Defaults to an empty string.
      * @return `true` if all operations were successful, `false` otherwise.
      */
     bool putBatch(const DBBatch& batch) const;

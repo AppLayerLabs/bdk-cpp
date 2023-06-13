@@ -22,9 +22,15 @@ ERC20::ERC20(ContractManager::ContractManagerInterface &interface, const Address
   updateState(true);
 }
 
-ERC20::ERC20(ContractManager::ContractManagerInterface &interface, const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals, const uint256_t& mintValue,
-      const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db) :
-  DynamicContract(interface, "ERC20", address, creator, chainId, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
+ERC20::ERC20(
+  const std::string& erc20_name, const std::string& erc20_symbol,
+  const uint8_t& erc20_decimals, const uint256_t& mintValue,
+  ContractManager::ContractManagerInterface& interface,
+  const Address& address, const Address& creator, const uint64_t& chainId,
+  const std::unique_ptr<DB>& db
+) : DynamicContract(interface, "ERC20", address, creator, chainId, db),
+  _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this)
+{
   _name = erc20_name;
   _symbol = erc20_symbol;
   _decimals = erc20_decimals;
@@ -59,83 +65,43 @@ ERC20::~ERC20() {
 }
 
 void ERC20::registerContractFunctions() {
-  this->registerViewFunction(Hex::toBytes("0x06fdde03"), [this](const ethCallInfo &callInfo) {
-    return this->name();
-  });
-  this->registerViewFunction(Hex::toBytes("0x95d89b41"), [this](const ethCallInfo &callInfo) {
-    return this->symbol();
-  });
-  this->registerViewFunction(Hex::toBytes("0x313ce567"), [this](const ethCallInfo &callInfo) {
-    return this->decimals();
-  });
-  this->registerViewFunction(Hex::toBytes("0x18160ddd"), [this](const ethCallInfo &callInfo) {
-    return this->totalSupply();
-  });
-  this->registerViewFunction(Hex::toBytes("0x70a08231"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    return this->balanceOf(decoder.getData<Address>(0));
-  });
-  this->registerViewFunction(Hex::toBytes("0xdd62ed3e"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    return this->allowance(decoder.getData<Address>(0), decoder.getData<Address>(1));
-  });
-
-  this->registerFunction(Hex::toBytes("0xa9059cbb"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    this->transfer(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
-  });
-  this->registerFunction(Hex::toBytes("0x095ea7b3"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    this->approve(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
-  });
-  this->registerFunction(Hex::toBytes("0x23b872dd"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    this->transferFrom(decoder.getData<Address>(0), decoder.getData<Address>(1), decoder.getData<uint256_t>(2));
-  });
+  registerContract();
+  this->registerMemberFunction("name", &ERC20::name, this);
+  this->registerMemberFunction("symbol", &ERC20::symbol, this);
+  this->registerMemberFunction("decimals", &ERC20::decimals, this);
+  this->registerMemberFunction("totalSupply", &ERC20::totalSupply, this);
+  this->registerMemberFunction("balanceOf", &ERC20::balanceOf, this);
+  this->registerMemberFunction("allowance", &ERC20::allowance, this);
+  this->registerMemberFunction("transfer", &ERC20::transfer, this);
+  this->registerMemberFunction("approve", &ERC20::approve, this);
+  this->registerMemberFunction("transferFrom", &ERC20::transferFrom, this);
 }
-
 
 void ERC20::_mintValue(const Address& address, const uint256_t& value) {
   _balances[address] += value;
   _totalSupply += value;
 }
 
-Bytes ERC20::name() const {
-  return ABI::Encoder({this->_name.get()}).getData();
-}
+Bytes ERC20::name() const { return ABI::Encoder({this->_name.get()}).getRaw(); }
 
-Bytes ERC20::symbol() const {
-  return ABI::Encoder({this->_symbol.get()}).getData();
-}
+Bytes ERC20::symbol() const { return ABI::Encoder({this->_symbol.get()}).getRaw(); }
 
-Bytes ERC20::decimals() const {
-  return ABI::Encoder({this->_decimals.get()}).getData();
-}
+Bytes ERC20::decimals() const { return ABI::Encoder({this->_decimals.get()}).getRaw(); }
 
-Bytes ERC20::totalSupply() const {
-  return ABI::Encoder({this->_totalSupply.get()}).getData();
-}
+Bytes ERC20::totalSupply() const { return ABI::Encoder({this->_totalSupply.get()}).getRaw(); }
 
 Bytes ERC20::balanceOf(const Address& _owner) const {
   const auto& it = std::as_const(this->_balances).find(_owner);
-  if (it == this->_balances.end()) {
-    return ABI::Encoder({0}).getData();
-  } else {
-    return ABI::Encoder({it->second}).getData();
-  }
+  return (it == this->_balances.end())
+    ? ABI::Encoder({0}).getData() : ABI::Encoder({it->second}).getData();
 }
 
-void ERC20::transfer(const Address& _to, const uint256_t& _value) {
+void ERC20::transfer(const Address &_to, const uint256_t &_value) {
   this->_balances[this->getCaller()] -= _value;
   this->_balances[_to] += _value;
 }
 
-void ERC20::approve(const Address& _spender, const uint256_t& _value) {
+void ERC20::approve(const Address &_spender, const uint256_t &_value) {
   this->_allowed[this->getCaller()][_spender] = _value;
 }
 
@@ -153,7 +119,9 @@ Bytes ERC20::allowance(const Address& _owner, const Address& _spender) const {
   }
 }
 
-void ERC20::transferFrom(const Address& _from, const Address& _to, const uint256_t& _value) {
+void ERC20::transferFrom(
+  const Address &_from, const Address &_to, const uint256_t &_value
+) {
   this->_allowed[_from][this->getCaller()] -= _value;
   this->_balances[_from] -= _value;
   this->_balances[_to] += _value;

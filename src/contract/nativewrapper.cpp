@@ -22,9 +22,15 @@ NativeWrapper::NativeWrapper(ContractManager::ContractManagerInterface &interfac
   updateState(true);
 }
 
-NativeWrapper::NativeWrapper(ContractManager::ContractManagerInterface &interface, const std::string& erc20_name, const std::string& erc20_symbol, const uint8_t& erc20_decimals,
-             const Address& address, const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db) :
-  DynamicContract(interface, "NativeWrapper", address, creator, chainId, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
+NativeWrapper::NativeWrapper(
+  const std::string &erc20_name, const std::string &erc20_symbol,
+  const uint8_t &erc20_decimals,
+  ContractManager::ContractManagerInterface &interface,
+  const Address &address, const Address &creator,
+  const uint64_t &chainId,const std::unique_ptr<DB> &db
+) : DynamicContract(interface, "NativeWrapper", address, creator, chainId, db),
+  _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this)
+{
   _name = erc20_name;
   _symbol = erc20_symbol;
   _decimals = erc20_decimals;
@@ -58,54 +64,19 @@ NativeWrapper::~NativeWrapper() {
 }
 
 void NativeWrapper::registerContractFunctions() {
-  this->registerViewFunction(Hex::toBytes("0x06fdde03"), [this](const ethCallInfo &callInfo) {
-    return this->name();
-  });
-  this->registerViewFunction(Hex::toBytes("0x95d89b41"), [this](const ethCallInfo &callInfo) {
-    return this->symbol();
-  });
-  this->registerViewFunction(Hex::toBytes("0x313ce567"), [this](const ethCallInfo &callInfo) {
-    return this->decimals();
-  });
-  this->registerViewFunction(Hex::toBytes("0x18160ddd"), [this](const ethCallInfo &callInfo) {
-    return this->totalSupply();
-  });
-  this->registerViewFunction(Hex::toBytes("0x70a08231"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    return this->balanceOf(decoder.getData<Address>(0));
-  });
-  this->registerViewFunction(Hex::toBytes("0xdd62ed3e"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    return this->allowance(decoder.getData<Address>(0), decoder.getData<Address>(1));
-  });
-
-  this->registerFunction(Hex::toBytes("0xa9059cbb"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    this->transfer(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
-  });
-  this->registerFunction(Hex::toBytes("0x095ea7b3"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    this->approve(decoder.getData<Address>(0), decoder.getData<uint256_t>(1));
-  });
-  this->registerFunction(Hex::toBytes("0x23b872dd"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::address, ABI::Types::address, ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    this->transferFrom(decoder.getData<Address>(0), decoder.getData<Address>(1), decoder.getData<uint256_t>(2));
-  });
-  this->registerPayableFunction(Hex::toBytes("0xd0e30db0"), [this](const ethCallInfo &callInfo) {
-    this->deposit();
-  });
-  this->registerPayableFunction(Hex::toBytes("0x2e1a7d4d"), [this](const ethCallInfo &callInfo) {
-    std::vector<ABI::Types> types = { ABI::Types::uint256 };
-    ABI::Decoder decoder(types, std::get<6>(callInfo));
-    this->withdraw(decoder.getData<uint256_t>(0));
-  });
+  registerContract();
+  this->registerMemberFunction("name", &NativeWrapper::name, this);
+  this->registerMemberFunction("symbol", &NativeWrapper::symbol, this);
+  this->registerMemberFunction("decimals", &NativeWrapper::decimals, this);
+  this->registerMemberFunction("totalSupply", &NativeWrapper::totalSupply, this);
+  this->registerMemberFunction("balanceOf", &NativeWrapper::balanceOf, this);
+  this->registerMemberFunction("allowance", &NativeWrapper::allowance, this);
+  this->registerMemberFunction("transfer", &NativeWrapper::transfer, this);
+  this->registerMemberFunction("approve", &NativeWrapper::approve, this);
+  this->registerMemberFunction("transferFrom", &NativeWrapper::transferFrom, this);
+  this->registerMemberFunction("deposit", &NativeWrapper::deposit, this);
+  this->registerMemberFunction("withdraw", &NativeWrapper::withdraw, this);
 }
-
 
 void NativeWrapper::_mintValue(const Address& address, const uint256_t& value) {
   _balances[address] += value;
@@ -137,12 +108,12 @@ Bytes NativeWrapper::balanceOf(const Address& _owner) const {
   }
 }
 
-void NativeWrapper::transfer(const Address& _to, const uint256_t& _value) {
+void NativeWrapper::transfer(const Address &_to, const uint256_t &_value) {
   this->_balances[this->getCaller()] -= _value;
   this->_balances[_to] += _value;
 }
 
-void NativeWrapper::approve(const Address& _spender, const uint256_t& _value) {
+void NativeWrapper::approve(const Address &_spender, const uint256_t &_value) {
   this->_allowed[this->getCaller()][_spender] = _value;
 }
 
@@ -160,7 +131,9 @@ Bytes NativeWrapper::allowance(const Address& _owner, const Address& _spender) c
   }
 }
 
-void NativeWrapper::transferFrom(const Address& _from, const Address& _to, const uint256_t& _value) {
+void NativeWrapper::transferFrom(
+  const Address &_from, const Address &_to, const uint256_t &_value
+) {
   this->_allowed[_from][this->getCaller()] -= _value;
   this->_balances[_from] -= _value;
   this->_balances[_to] += _value;
@@ -170,7 +143,7 @@ void NativeWrapper::deposit() {
   this->_balances[this->getCaller()] += this->getValue();
 }
 
-void NativeWrapper::withdraw(const uint256_t& _value) {
+void NativeWrapper::withdraw(const uint256_t &_value) {
   this->_balances[this->getCaller()] -= _value;
   this->sendTokens(this->getCaller(), _value);
 }

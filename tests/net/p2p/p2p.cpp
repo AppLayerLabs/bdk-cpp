@@ -15,7 +15,7 @@ namespace TP2P {
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
     options = std::make_unique<Options>(
       folderPath,
-      "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+      "OrbiterSDK/cpp/linux_x86-64/0.0.3",
       1,
       8080,
       serverPort,
@@ -85,7 +85,7 @@ namespace TP2P {
     if (!validatorKey) {
       options = std::make_unique<Options>(
         folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
         1,
         8080,
         serverPort,
@@ -95,7 +95,7 @@ namespace TP2P {
     } else {
       options = std::make_unique<Options>(
         folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
         1,
         8080,
         serverPort,

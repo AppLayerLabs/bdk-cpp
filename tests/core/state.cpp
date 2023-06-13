@@ -80,7 +80,7 @@ void initialize(std::unique_ptr<DB>& db,
   if (!validatorKey) {
     options = std::make_unique<Options>(
       folderName,
-      "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+      "OrbiterSDK/cpp/linux_x86-64/0.0.3",
       1,
       8080,
       serverPort,
@@ -90,7 +90,7 @@ void initialize(std::unique_ptr<DB>& db,
   } else {
     options = std::make_unique<Options>(
       folderName,
-      "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+      "OrbiterSDK/cpp/linux_x86-64/0.0.3",
       1,
       8080,
       serverPort,
@@ -579,7 +579,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
         "stateDiscoveryNodeNetworkCapabilities",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
         1,
         8080,
         8090,
@@ -819,7 +819,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
         "stateDiscoveryNodeNetworkCapabilities",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
         1,
         8080,
         8090,
@@ -1130,7 +1130,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
         "statedDiscoveryNodeNetworkCapabilitiesWithTx",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
         1,
         8080,
         8090,
@@ -1492,7 +1492,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
         "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
         1,
         8080,
         8090,
@@ -1852,7 +1852,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
         "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
         1,
         8080,
         8090,

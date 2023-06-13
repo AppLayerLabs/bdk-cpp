@@ -16,82 +16,56 @@
 class ContractManager;
 class State;
 
-/// Global variables for contracts, such as current block Height, timestamp and
-/// coinbase
+/// Class that maintains global variables for contracts.
 class ContractGlobals {
-protected:
-  /* Global variables */
-  static Address coinbase; ///< Coinbase address (creator of current block).
-  static uint256_t blockHeight;    ///< Current block height.
-  static uint256_t blockTimestamp; ///< Current block timestamp.
-public:
-  /**
-   * Getter for `coinbase`.
-   * @return The coinbase address (creator of current block).
-   */
-  static const Address &getCoinbase() { return coinbase; }
+  protected:
+    static Address coinbase;          ///< Coinbase address (creator of current block).
+    static uint256_t blockHeight;     ///< Current block height.
+    static uint256_t blockTimestamp;  ///< Current block timestamp.
 
-  /**
-   * Getter for `blockHeight`.
-   * @return The current block height.
-   */
-  static const uint256_t &getBlockHeight() { return blockHeight; }
+  public:
+    /// Getter for `coinbase`.
+    static const Address& getCoinbase() { return coinbase; }
 
-  /**
-   * Getter for `blockTimestamp`.
-   * @return The current block timestamp.
-   */
-  static const uint256_t &getBlockTimestamp() { return blockTimestamp; }
+    /// Getter for `blockHeight`.
+    static const uint256_t& getBlockHeight() { return blockHeight; }
 
-  // Forward declaration of friend classes.
-  friend State; // State can update private global vars, this is done before
-                // calling ethCall() with a TxBlock.
+    /// Getter for `getBlockTimestamp`.
+    static const uint256_t& getBlockTimestamp() { return blockTimestamp; }
+
+    /// State is a friend as it can update private global vars (e.g. before ethCall() with a TxBlock).
+    friend State;
 };
 
+/// Class that maintains local variables for contracts.
 class ContractLocals : public ContractGlobals {
-private:
-  mutable Address origin;  ///< Who called the contract
-  mutable Address caller;  ///< Who sent the tx
-  mutable uint256_t value; ///< Value sent with the tx
-  mutable bool commit =
-      false; ///< Tells if the contract should commit to variables or not.
+  private:
+    mutable Address origin;       ///< Who called the contract.
+    mutable Address caller;       ///< Who sent the transaction.
+    mutable uint256_t value;      ///< Value sent within the transaction.
+    mutable bool commit = false;  ///< Indicates whether the contract should commit to variables.
 
-protected:
-  /**
-   * Getter for `origin`.
-   * @return The origin address (who called the contract).
-   */
-  const Address &getOrigin() const { return this->origin; }
+  protected:
+    /// Getter for `origin`.
+    const Address& getOrigin() const { return this->origin; }
 
-  /**
-   * Getter for `caller`.
-   * @return The caller address (who sent the tx).
-   */
-  const Address &getCaller() const { return this->caller; }
+    /// Getter for `caller`.
+    const Address& getCaller() const { return this->caller; }
 
-  /**
-   * Getter for `value`.
-   * @return The value sent with the tx.
-   */
-  const uint256_t &getValue() const { return this->value; }
+    /// Getter for `value`.
+    const uint256_t& getValue() const { return this->value; }
 
-  /**
-   * Getter for `commit` flag.
-   * @return The commit flag.
-   */
-  bool getCommit() const { return this->commit; }
+    /// Getter for `commit`.
+    bool getCommit() const { return this->commit; }
 
-  // Forward declaration of friend classes.
-  friend class ContractManager; /// ContractManager updates the contract locals
-                                /// before calling ethCall within a contract.
-  friend class ContractManagerInterface; /// ContractManagerInterface can set
-                                         /// the commit flag.
+    /// ContractManager is a friend as it can update private local vars (e.g. before ethCall() within a contract).
+    friend class ContractManager;
+
+    /// ContractManagerInterface is a friend as it can set the commit flag.
+    friend class ContractManagerInterface;
 };
 
-/**
- * Base class for all contracts.
- */
-
+/// Base class for all contracts.
 class BaseContract : public ContractLocals {
 private:
   /* Contract-specific variables */
@@ -145,79 +119,63 @@ public:
     this->contractChainId = Utils::bytesToUint64(db->get(std::string("contractChainId"), this->getDBPrefix()));
   }
 
-  /**
-   * Destructor.
-   */
+    /**
+     * Destructor.
+     * All derived classes should override it in order to call DB functions.
+     */
+    virtual ~BaseContract() {}
 
-  /// All derived classes should override the destructor in order to call DB
-  /// functions.
+    /**
+     * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice,
+     * value, data). Should be overriden by derived classes.
+     * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @throw std::runtime_error if the derived class does not override this.
+     */
+    virtual void ethCall(const ethCallInfo& data) {
+      throw std::runtime_error("Derived Class from Contract does not override ethCall()");
+    }
 
-  virtual ~BaseContract() {}
-
-  /**
-   * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice,
-   * value, data). Should be overriden by derived classes.
-   * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
-   * @throws std::runtime_error if the derived class does not override this
-   */
-  virtual void ethCall(const ethCallInfo &data) {
-    throw std::runtime_error(
-        "Derived Class from Contract does not override ethCall()");
-  }
-
-  /**
-   * Do a contract call to a view function
-   * Should be overriden by derived classes.
-   * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
-   * @return
-   * @throws std::runtime_error if the derived class does not override this
-   */
+    /**
+     * Do a contract call to a view function.
+     * Should be overriden by derived classes.
+     * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @return A string with the answer to the call.
+     * @throw std::runtime_error if the derived class does not override this.
+     */
   virtual const Bytes ethCallView(const ethCallInfo &data) const {
     throw std::runtime_error(
         "Derived Class from Contract does not override ethCall()");
   }
 
-  /**
-   * Getter for `contractAddress`.
-   * @return The contract address.
-   */
-  const Address &getContractAddress() const { return this->contractAddress; }
+    /// Getter for `contractAddress`.
+    const Address& getContractAddress() const { return this->contractAddress; }
 
-  /**
-   * Getter for `contractCreator`.
-   * @return The contract creator address.
-   */
-  const Address &getContractCreator() const { return this->contractCreator; }
+    /// Getter for `contractCreator`.
+    const Address& getContractCreator() const { return this->contractCreator; }
 
-  /**
-   * Getter for `contractChainId`.
-   * @return The contract chain id.
-   */
-  const uint64_t &getContractChainId() const { return this->contractChainId; }
+    /// Getter for `contractChainId`.
+    const uint64_t& getContractChainId() const { return this->contractChainId; }
 
-  /**
-   * Getter for `contractName`.
-   * @return The contract name.
-   */
-  const std::string &getContractName() const { return this->contractName; }
+    /// Getter for `contractName`.
+    const std::string& getContractName() const { return this->contractName; }
 
-  /**
-   * Getter for `dbPrefix`.
-   * @return The contract dbPrefix.
-   */
-  const Bytes &getDBPrefix() const { return this->dbPrefix; }
+    /**
+     * Getter for `dbPrefix`.
+     * @return The contract dbPrefix.
+     */
+    const Bytes &getDBPrefix() const { return this->dbPrefix; }
 
-  /**
-   * Creates a new DB prefix appending a new string to the current prefix.
-   * @param newPrefix The new prefix to append.
-   * @return The new prefix.
-   */
-  const Bytes getNewPrefix(const std::string &newPrefix) const {
-    Bytes prefix = this->dbPrefix;
-    prefix.reserve(prefix.size() + newPrefix.size());
-    prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
-    return prefix;
-  }
+    /**
+     * Creates a new DB prefix appending a new string to the current prefix.
+     * @param newPrefix The new prefix to append.
+     * @return The new prefix.
+     */
+    const Bytes getNewPrefix(const std::string &newPrefix) const {
+      Bytes prefix = this->dbPrefix;
+      prefix.reserve(prefix.size() + newPrefix.size());
+      prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
+      return prefix;
+    }
 };
 
 #endif // CONTRACT_H

@@ -21,7 +21,10 @@ void Syncer::updateCurrentlyConnectedNodes() {
   // Get the list of currently connected nodes
   std::vector<Hash> connectedNodes = blockchain.p2p->getSessionsIDs();
   while (connectedNodes.size() < blockchain.p2p->minConnections() && !this->stopSyncer) {
-    Utils::logToDebug(Log::syncer, __func__, "Waiting for discoveryWorker to connect to more nodes, current connected to: " + std::to_string(connectedNodes.size()));
+    Utils::logToDebug(Log::syncer, __func__,
+      "Waiting for discoveryWorker to connect to more nodes, currently connected to: "
+      + std::to_string(connectedNodes.size())
+    );
     // If we have less than the minimum number of connections,
     // wait for a bit for discoveryWorker to kick in and connect to more nodes
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -163,7 +166,7 @@ void Syncer::doValidatorBlock() {
 }
 
 void Syncer::doValidatorTx() {
-  // There is nothing to do, validatorLoop will wait for the next block.
+  ; // There is nothing to do, validatorLoop will wait for the next block.
 }
 
 void Syncer::validatorLoop() {
