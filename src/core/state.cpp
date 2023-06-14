@@ -12,9 +12,9 @@ contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
   std::unique_lock lock(this->stateMutex);
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
-    /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
+    // Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
     Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
-    /// See ~State for encoding
+    // See ~State for encoding
     uint256_t desiredBalance("1000000000000000000000");
     Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
     Utils::appendBytes(value,Utils::uintToBytes(desiredBalance));

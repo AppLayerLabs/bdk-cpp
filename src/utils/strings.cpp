@@ -3,7 +3,10 @@
 
 Hash::Hash(const uint256_t& data) : FixedBytes<32>(Utils::uint256ToBytes(data)) {};
 
-Hash::Hash(const std::string_view sv) { if (sv.size() != 32) throw std::invalid_argument("Hash must be 32 bytes long."); std::copy(sv.begin(), sv.end(), this->data_.begin()); }
+Hash::Hash(const std::string_view sv) {
+  if (sv.size() != 32) throw std::invalid_argument("Hash must be 32 bytes long.");
+  std::copy(sv.begin(), sv.end(), this->data_.begin());
+}
 
 const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data_); }
 

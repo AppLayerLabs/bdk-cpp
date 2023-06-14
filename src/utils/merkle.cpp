@@ -6,7 +6,7 @@ std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
   for (uint64_t i = 0; i < layer.size(); i += 2) ret.emplace_back((
     (i + 1 < layer.size())
       ? Utils::sha3(
-          /// Lambda to concatenate
+          // Lambda to concatenate
           Bytes([&]() -> Bytes {
             Bytes bytes;
             bytes.reserve(64);
@@ -51,7 +51,7 @@ const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
 bool Merkle::verify(const std::vector<Hash>& proof, const Hash& leaf, const Hash& root) {
   Hash computedHash = leaf;
   for (const Hash& hash : proof) computedHash = Utils::sha3(
-      /// Lambda to concatenate
+      // Lambda to concatenate
       Bytes([&]() -> Bytes {
         Bytes bytes;
         bytes.reserve(64);

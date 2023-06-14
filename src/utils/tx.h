@@ -260,7 +260,7 @@ class TxValidator {
     /// Getter for `data`.
     inline const Bytes& getData() const { return this->data; }
 
-    /// Getter for 'functor' within Data
+    /// Getter for the functor within `data`.
     inline const Functor getFunctor() const { return Functor(Bytes(this->data.begin(), this->data.begin() + 4)); }
 
     /// Getter for `chainId`.

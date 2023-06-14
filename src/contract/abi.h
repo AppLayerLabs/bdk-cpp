@@ -21,7 +21,7 @@ namespace ABI {
    * - boolArr = bool[] (Solidity) = vector<bool> (C++)
    * - bytes = bytes (Solidity) = Bytes (C++)
    * - bytesArr = bytes[] (Solidity) = std::vector<Bytes> (C++)
-   * - string = string (Solidity) = Bytes (C++)
+   * - string = string (Solidity) = std::string (C++)
    * - stringArr = string[] (Solidity) = std::vector<std::string> (C++)
    */
   enum Types {

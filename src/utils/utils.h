@@ -50,7 +50,10 @@ using BytesArr = std::array<Byte, N>;
 using BytesArrView = std::span<const Byte, std::dynamic_extent>;
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>;
 
-/// ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data)
+/**
+ * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data)
+ * ...
+ */
 /// **ATTENTION**: Be aware that we are using BytesArrView, so you MUST be sure that the data allocated in the BytesArrView is valid during the whole life of the tuple.
 /// If you need ethCallInfo to own the data, use ethCallInfoAllocated instead.
 using ethCallInfo = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, BytesArrView>;
@@ -291,10 +294,10 @@ namespace Utils {
    */
   Bytes padRightBytes(const BytesArrView bytes, unsigned int charAmount, uint8_t sign = 0x00);
 
-  /// Overload of padLeft() that works with byte strings.
+  /// Overload of padLeftBytes() that works with normal strings.
   std::string padLeft(std::string str, unsigned int charAmount, char sign = '\x00');
 
-  /// Overload of padRight() that works with byte strings.
+  /// Overload of padRightBytes() that works with normal strings.
   std::string padRight(std::string str, unsigned int charAmount, char sign = '\x00');
 
   /**
@@ -381,7 +384,7 @@ namespace Utils {
 
 
   /**
-   * Convert an vector to span.
+   * Convert a vector to span.
    * @param vec The vector to convert.
    * @return The converted span.
    */
@@ -390,7 +393,7 @@ namespace Utils {
   }
 
   /**
-  * Convert an "subvector" to span.
+  * Convert a "subvector" to span.
   * @param vec The vector to convert.
   * @return The converted span.
   */
@@ -403,7 +406,7 @@ namespace Utils {
   }
 
   /**
-   * Convert an vector to const span.
+   * Convert a vector to const span.
    * @param vec The vector to convert.
    * @return The converted span.
    */
@@ -412,7 +415,7 @@ namespace Utils {
   }
 
   /**
-   * Convert an "subvector" to const span.
+   * Convert a "subvector" to const span.
    * @param vec
    * @return The converted span.
    */
@@ -435,7 +438,7 @@ namespace Utils {
   }
 
   /**
-   * Convert an "subarray"s to span.
+   * Convert a "subarray" to span.
    * @param vec
    * @return The converted span.
    */
@@ -459,7 +462,7 @@ namespace Utils {
   }
 
   /**
-   * Convert an "subarray"s to const span.
+   * Convert a "subarray" to const span.
    * @param vec
    * @return The converted span.
    */
@@ -473,7 +476,7 @@ namespace Utils {
   }
 
   /**
-   * Convert an string to const span.
+   * Convert a string to const span.
    * @param str
    * @return The converted span.
    */
@@ -482,7 +485,7 @@ namespace Utils {
   }
 
   /**
-   * Convert an substring to span.
+   * Convert a substring to span.
    * @param str
    * @return The converted span.
    */
@@ -494,7 +497,7 @@ namespace Utils {
   }
 
   /**
-   * Append a vector to another
+   * Append a vector to another.
    * @tparam T std::vector, std::string, std::span, std::array
    * @param vec The vector to append to.
    * @param bytes The vector to append.
@@ -510,7 +513,7 @@ namespace Utils {
   }
 
   /**
-   * Converts a given bytes vector/array to a string
+   * Convert a given bytes vector/array to a string.
    * @tparam T std::vector, std::span, std::array
    */
   template<typename T>
@@ -519,7 +522,7 @@ namespace Utils {
   }
 
   /**
-   * Converts a given string to a bytes vector
+   * Convert a given string to a bytes vector.
    * @param str The string to convert
    * @return The converted bytes vector
    */

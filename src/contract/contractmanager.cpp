@@ -239,7 +239,7 @@ void ContractManager::validateCreateNewERC20NativeWrapperContract(const ethCallI
 void ContractManager::ethCall(const ethCallInfo& callInfo) {
   Functor functor = std::get<5>(callInfo);
   if (this->getCommit()) {
-    /// function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
+    // function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
     if (functor == Hex::toBytes("0xb74e5ed5")) {
       this->createNewERC20Contract(callInfo);
       return;
@@ -249,7 +249,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
       this->createNewERC20WrapperContract(callInfo);
       return;
     }
-    /// function createNewERC20NativeWrapperContract(string memory name, string memory symbol, uint8 decimals) public {}
+    // function createNewERC20NativeWrapperContract(string memory name, string memory symbol, uint8 decimals) public {}
     if (functor == Hex::toBytes("0x9f90f4c7")) {
       this->createNewERC20NativeWrapperContract(callInfo);
       return;
@@ -288,7 +288,7 @@ Bytes ContractManager::getDeployedContracts() const {
 const Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
   const auto& functor = std::get<5>(data);
 
-  /// function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
+  // function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
   if (functor == Hex::toBytes("0xaa9a068f")) {
     return this->getDeployedContracts();
   }

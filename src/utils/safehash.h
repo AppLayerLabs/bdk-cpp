@@ -140,7 +140,7 @@ struct SafeHash {
    */
   size_t operator()(const Hash& hash) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    /// Fast compatible object for hashing 32 bytes of data.
+    // Fast compatible object for hashing 32 bytes of data.
     uint64_t const* data = reinterpret_cast<uint64_t const*>(hash.raw());
     return splitmix(boost::hash_range(data, data + 4) + FIXED_RANDOM);
   }

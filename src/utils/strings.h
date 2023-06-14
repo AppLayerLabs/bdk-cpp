@@ -182,6 +182,7 @@ class Hash : public FixedBytes<32> {
     }
 };
 
+/// Abstraction of a functor (the first 4 bytes of a function's keccak hash). Inherits FixedBytes<4>.
 class Functor : public FixedBytes<4> {
   public:
     using FixedBytes<4>::FixedBytes; // Using parent constructor
