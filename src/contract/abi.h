@@ -119,7 +119,7 @@ namespace ABI {
        * @param data A list of variables to encode.
        * @param func (optional) The full function header to encode.
        *             Defaults to an empty string.
-       *@throws std::runtime_error if the function header is invalid or if header
+       *@throw std::runtime_error if the function header is invalid or if header
        *and data do not match.
        * TODO: change std::string_view func to be only the function name, and derive the respective argument types from data.
        */
