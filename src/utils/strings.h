@@ -167,7 +167,6 @@ class Address : public FixedStr<20> {
      * Copy constructor.
      * @param add The address itself.
      * @param inBytes If `true`, treats the input as a raw bytes string.
-     * @throw std::runtime_error if address has wrong size or is invalid.
      */
     Address(const std::string_view add, bool inBytes);
 
@@ -175,7 +174,6 @@ class Address : public FixedStr<20> {
      * Move constructor.
      * @param add The address itself.
      * @param inBytes If `true`, treats the input as a raw bytes string.
-     * @throw std::runtime_error if address has wrong size or is invalid.
      */
     Address(std::string&& add, bool inBytes);
 

@@ -6,93 +6,146 @@
 
 /**
  * Safe wrapper for an Address variable.
- * Used to safely store an Address within a contract.
+ * This class is used to safely store an Address variable within a contract.
  * @see SafeBase
  * @see Address
  */
 class SafeAddress : public SafeBase {
-  private:
-    Address address; ///< Value.
-    mutable std::unique_ptr<Address> addressPtr; ///< Pointer to the value. check() requires this to be mutable.
+private:
+  Address address; ///< Address value.
+  mutable std::unique_ptr<Address>
+      addressPtr; ///< Pointer to the address value.
 
-    /// Check if the pointer is initialized (and initialize it if not).
-    inline void check() const override {
-      if (addressPtr == nullptr) addressPtr = std::make_unique<Address>(address);
-    };
-
-  public:
-    /**
-     * Constructor.
-     * @param owner The contract that owns the variable.
-     * @param address The initial value. Defaults to an empty address.
-     */
-    SafeAddress(DynamicContract* owner, const Address& address = Address())
-      : SafeBase(owner), address(address), addressPtr(std::make_unique<Address>(address))
-    {};
-
-    /**
-     * Empty constructor.
-     * @param address The initial value. Defaults to an empty address.
-     */
-    SafeAddress(const Address& address = Address())
-      : SafeBase(nullptr), address(Address()), addressPtr(std::make_unique<Address>(address))
-    {};
-
-    /// Copy constructor.
-    SafeAddress(const SafeAddress& other) : SafeBase(nullptr) {
-      check();
-      address = other.address;
-      addressPtr = std::make_unique<Address>(*other.addressPtr);
+  /**
+   * Check if the addressPtr is initialized.
+   * If not, initialize it.
+   */
+  inline void check() const override {
+    if (addressPtr == nullptr) {
+      addressPtr = std::make_unique<Address>(address);
     }
+  };
 
-    /// Getter for the value. Returns the value from the pointer.
-    inline const Address& get() const { check(); return *addressPtr; };
+public:
+  /// Only Variables built with this constructor will be registered within a
+  /// contract.
 
-    /// Commit the value. Updates the value from the pointer and nullifies it.
-    inline void commit() override {
-      check();
-      address = *addressPtr;
-      addressPtr = nullptr;
-    };
+  /**
+   * Constructor
+   * Only variables built with this constructor will be registered within a
+   * contract.
+   * @param owner The contract that owns this variable.
+   * @param address The address initial value (default: Address()).
+   */
+  SafeAddress(DynamicContract *owner, const Address &address = Address())
+      : SafeBase(owner), address(address),
+        addressPtr(std::make_unique<Address>(address)){};
 
-    /// Revert the value. Nullifies the pointer.
-    inline void revert() const override { addressPtr = nullptr; };
+  /**
+   * Constructor
+   * @param address The address initial value (default: Address()).
+   */
+  SafeAddress(const Address &address = Address())
+      : SafeBase(nullptr), address(Address()),
+        addressPtr(std::make_unique<Address>(address)){};
 
-    /// Assignment operator.
-    inline Address& operator=(const Address& address) {
-      check();
-      markAsUsed();
-      *addressPtr = address;
-      return *addressPtr;
-    };
+  /**
+   * Constructor used to create a SafeAddress from another SafeAddress (copy
+   * constructor).
+   * @param address The address initial value (default: Address()).
+   */
+  SafeAddress(const SafeAddress &other) : SafeBase(nullptr) {
+    check();
+    address = other.address;
+    addressPtr = std::make_unique<Address>(*other.addressPtr);
+  }
 
-    /// Assignment operator.
-    inline Address& operator=(const SafeAddress& other) {
-      check();
-      markAsUsed();
-      *addressPtr = other.get();
-      return *addressPtr;
-    };
+  /**
+  Assignment operator.
+  @param address The address to be assigned.
+  @return The assigned address value.
+  */
+  inline Address &operator=(const Address &address) {
+    check();
+    markAsUsed();
+    *addressPtr = address;
+    return *addressPtr;
+  };
 
-    /// Equality operator.
-    inline bool operator==(const Address& other) const {
-      check(); return (*addressPtr == other);
-    }
+  /**
+  Assignment operator from another SafeAddress.
+  @param other The other SafeAddress.
+  @return The assigned address value.
+  */
+  inline Address &operator=(const SafeAddress &other) {
+    check();
+    markAsUsed();
+    *addressPtr = other.get();
+    return *addressPtr;
+  };
 
-    /// Equality operator.
-    inline bool operator==(const SafeAddress& other) const {
-      check(); return (*addressPtr == other.get());
-    }
+  /**
+  Equality operator from another SafeAddress.
+  @param other The other SafeAddress.
+  @return True if the addresses are equal, false otherwise.
+  */
+  inline bool operator==(const SafeAddress &other) const {
+    check();
+    return (*addressPtr == other.get());
+  }
 
-    /// Inequality operator.
-    inline bool operator!=(const Address& other) const {
-      check(); return (*addressPtr != other);
-    }
+  /**
+  Equality operator from an Address.
+  @param other The Address.
+  @return True if the addresses are equal, false otherwise.
+  */
+  inline bool operator==(const Address &other) const {
+    check();
+    return (*addressPtr == other);
+  }
 
-    /// Inequality operator.
-    inline bool operator!=(const SafeAddress& other) const {
-      check(); return (*addressPtr != other.get());
-    }
+  /** Inequality operator from another SafeAddress.
+  @param other The other SafeAddress.
+  @return True if the addresses are not equal, false otherwise.
+  */
+  inline bool operator!=(const SafeAddress &other) const {
+    check();
+    return (*addressPtr != other.get());
+  }
+
+  /**
+  Inequality operator from an Address.
+  @param other The Address.
+  @return True if the addresses are not equal, false otherwise.
+  */
+  inline bool operator!=(const Address &other) const {
+    check();
+    return (*addressPtr != other);
+  }
+
+  /**
+   * Getter for the address value.
+   * @return The address value.
+   */
+  inline const Address &get() const {
+    check();
+    return *addressPtr;
+  };
+
+  /**
+   * Commit the address value, i.e., update the address value with the value of
+   * the addressPtr.
+   */
+  inline void commit() override {
+    check();
+    address = *addressPtr;
+    addressPtr = nullptr;
+  };
+
+  /**
+   * Revert the address value, i.e., nullify the addressPtr.
+   */
+  inline void revert() const override { addressPtr = nullptr; };
 };
 
-#endif  // SAFEADDRESS_H
+#endif // SAFEADDRESS_H

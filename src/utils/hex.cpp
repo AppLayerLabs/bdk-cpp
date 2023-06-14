@@ -1,7 +1,7 @@
 #include "hex.h"
 
-Hex::Hex(const std::string_view value, bool strict) : strict(strict) {
-  std::string ret(value);
+Hex::Hex(const std::string_view v, bool strict) : strict(strict) {
+  std::string ret(v);
   if (strict) {
     if (ret[0] != '0' && (ret[1] != 'x' || ret[1] != 'X')) ret.insert(0, "0x");
   } else {
@@ -11,7 +11,7 @@ Hex::Hex(const std::string_view value, bool strict) : strict(strict) {
   this->hex = std::move(ret);
 }
 
-Hex::Hex(std::string&& value, bool strict) : hex(std::move(value)), strict(strict) {
+Hex::Hex(std::string&& v, bool strict) : hex(std::move(v)), strict(strict) {
   if (strict) {
     if (this->hex[0] != '0' && (this->hex[1] != 'x' || this->hex[1] != 'X')) {
       this->hex.insert(0, "0x");

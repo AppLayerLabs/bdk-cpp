@@ -59,6 +59,7 @@ class State {
      * Process a transaction within a block. Called by processNextBlock().
      * If the process fails, any state change that this transaction would cause has to be reverted.
      * @param tx The transaction to process.
+     * @return 'true' if transaction was processed, 'false' if process failed.
      */
     void processTransaction(const TxBlock& tx);
 
@@ -84,7 +85,6 @@ class State {
      * @param rdpos Pointer to the rdPoS object.
      * @param p2pManager Pointer to the P2P connection manager.
      * @param options Pointer to the options singleton.
-     * @throw std::runtime_error on any database size mismatch.
      */
     State(
       const std::unique_ptr<DB>& db,
@@ -135,7 +135,6 @@ class State {
      * DOES update the state.
      * Appends block to Storage after processing.
      * @param block The block to process.
-     * @throw std::runtime_error if block is invalid.
      */
     void processNextBlock(Block&& block);
 
@@ -177,7 +176,7 @@ class State {
 
     /**
      * Get a transaction from the mempool.
-     * @param txHash The transaction Hash.
+     * @params  txHash The transaction Hash.
      * @return A pointer to the transaction, or `nullptr` if not found.
      * We cannot directly copy the transaction, since TxBlock doesn't have a
      * default constructor, thus making it impossible to return
@@ -189,7 +188,7 @@ class State {
     /**
      * Add balance to a given account.
      * Used through HTTP RPC to add balance to a given address
-     * NOTE: ONLY TO BE USED WITHIN THE TESTNET OF A GIVEN CHAIN.
+     * NOTE: ONLY TO BE USED WITHIN THE TESTNET OF A GIVEN APP-CHAIN.
      * THIS FUNCTION ALLOWS ANYONE TO GIVE THEMSELVES NATIVE TOKENS.
      * IF CALLING THIS FUNCTION WITHIN A MULTI-NODE NETWORK, YOU HAVE TO CALL
      * IT ON ALL NODES IN ORDER TO BE VALID.
@@ -199,7 +198,8 @@ class State {
 
     /**
      * Simulate an `eth_call` to a contract.
-     * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
+     * @param addr The contract address.
+     * @param data The data to be sent to the contract.
      * @return The return of the called function as a data string.
      */
     std::string ethCall(const ethCallInfo& callInfo);
@@ -207,15 +207,14 @@ class State {
     /**
      * Estimate gas for callInfo in RPC.
      * Doesn't really "estimate" gas, but rather tells if the transaction is valid or not.
-     * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
+     * @param callInfo tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return `true` if the call is valid, `false` otherwise.
      */
     bool estimateGas(const ethCallInfo& callInfo);
 
     /**
-     * Update the State's account balances after a contract call. Called by ContractManager.
-     * @param payableMap A map of the accounts to update and their respective new balances.
-     * @throw std::runtime_error on an attempt to change State while not processing a payable contract.
+     * Get the current block number.
+     * @return The current block number.
      */
     void processContractPayable(std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
 

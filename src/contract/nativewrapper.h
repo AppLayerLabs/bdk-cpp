@@ -12,17 +12,39 @@
 #include "variables/safeuint8_t.h"
 #include "variables/safeunorderedmap.h"
 
-/// Template for a NativeWrapper contract.
+/**
+ * C++ OrbiterSDK Recreation of a NativeWrapper Contract
+ */
+
 class NativeWrapper : public DynamicContract {
-  private:
-    /// Solidity: string internal _name;
-    SafeString _name;
+private:
+  /// string internal _name;
+  SafeString _name;
+  /// string internal _symbol;
+  SafeString _symbol;
+  /// uint8 internal _decimals;
+  SafeUint8_t _decimals;
+  /// uint256 internal _totalSupply;
+  SafeUint256_t _totalSupply;
+  /// mapping(address => uint256) internal _balances;
+  SafeUnorderedMap<Address, uint256_t> _balances;
+  /// mapping(address => mapping(address => uint256)) internal _allowed;
+  SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>>
+      _allowed;
 
-    /// Solidity: string internal _symbol;
-    SafeString _symbol;
+  /**
+   * Internal function that mints new tokens and assign them to the specified
+   * address. It updates both the balance of the address and the total supply of
+   * the ERC-20 token
+   * @param account The account that will receive the created tokens.
+   * @param value The amount that will be created.
+   */
+  void _mintValue(const Address &address, const uint256_t &value);
 
-    /// Solidity: uint8 internal _decimals;
-    SafeUint8_t _decimals;
+  /**
+   * Function for calling the register functions for contracts
+   */
+  void registerContractFunctions() override;
 
 public:
   /**
@@ -51,136 +73,8 @@ public:
                 const Address &address, const Address &creator,
                 const uint64_t &chainId, const std::unique_ptr<DB> &db);
 
-    /// Solidity: mapping(address => mapping(address => uint256)) internal _allowed;
-    SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>> _allowed;
-
-    /**
-     * Mint new tokens and assign them to the specified address.
-     * Updates both balance of the address and total supply of the token.
-     * @param address The account that will receive the created tokens.
-     * @param value The amount of tokens that will be created.
-     */
-    void _mintValue(const Address& address, const uint256_t& value);
-
-    /// Function for calling the register functions for contracts
-    void registerContractFunctions() override;
-
-  public:
-    /**
-     * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
-     * @param address The address where the contract will be deployed.
-     * @param db Reference to the database object.
-     */
-    NativeWrapper(
-      ContractManager::ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
-    );
-
-    /**
-     * Constructor to be used when creating a new contract.
-     * @param erc20_name The name of the token.
-     * @param erc20_symbol The symbol of the token.
-     * @param erc20_decimals The decimals of the token.
-     * @param interface Reference to the contract manager interface.
-     * @param address The address where the contract will be deployed.
-     * @param creator The address of the creator of the contract.
-     * @param chainId The chain id of the contract.
-     * @param db Reference to the database object.
-     */
-    NativeWrapper(
-      const std::string &erc20_name, const std::string &erc20_symbol,
-      const uint8_t &erc20_decimals,
-      ContractManager::ContractManagerInterface &interface,
-      const Address &address, const Address &creator,
-      const uint64_t &chainId, const std::unique_ptr<DB> &db
-    );
-
-    /// Destructor.
-    ~NativeWrapper() override;
-
-    /**
-     * Get the name of the token. Solidity counterpart:
-     * function name() public view returns (string memory) { return _name; }
-     * @return The name of the token.
-     */
-    std::string name() const;
-
-    /**
-     * Get the symbol/ticker of the token. Solidity counterpart:
-     * function symbol() public view returns (string memory) { return _symbol; }
-     * @return The symbol/ticker of the token.
-     */
-    std::string symbol() const;
-
-    /**
-     * Get the number of decimals of the token. Solidity counterpart:
-     * function decimals() public view returns (uint8) { return _decimals; }
-     * @return The decimals of the token.
-     */
-    std::string decimals() const;
-
-    /**
-     * Get the total supply of the token. Solidity counterpart:
-     * function totalSupply() public view returns (uint256) { return _totalSupply; }
-     * @return The total supply of the token.
-     */
-    std::string totalSupply() const;
-
-    /**
-     * Get the token balance of a specified address. Solidity counterpart:
-     * function balanceOf(address _owner) public view returns (uint256) { return _balances[_owner]; }
-     * @param _owner The address to get the balance from.
-     * @return The total token balance of the address.
-     */
-    std::string balanceOf(const Address& _owner) const;
-
-    /**
-     * Transfer an amount of tokens from the caller's account to a given address.
-     * Solidity counterpart: function transfer(address _to, uint256 _value) public returns (bool)
-     * @param _to The address to transfer to.
-     * @param _value The amount to be transferred.
-     */
-    void transfer(const Address& _to, const uint256_t& _value);
-
-    /**
-     * Approve a given address to spend a specified amount of tokens on behalf of the caller.
-     * Solidity counterpart: function approve(address _spender, uint256 _value) public returns (bool)
-     * @param _spender The address which will spend the funds.
-     * @param _value The amount of tokens to be spent.
-     */
-    void approve(const Address& _spender, const uint256_t& _value);
-
-    /**
-     * Get the amount that spender is still allowed to withdraw from owner.
-     * Solidity counterpart: function allowance(address _owner, address _spender) public view returns (uint256)
-     * @param _owner The address of the account that owns the tokens.
-     * @param _spender The address of the account able to transfer the tokens.
-     * @return The remaining allowed amount.
-     */
-    std::string allowance(const Address& _owner, const Address& _spender) const;
-
-    /**
-     * Transfer tokens from one address to another. Solidity counterpart:
-     * function transferFrom(address _from, address _to, uint _value) public returns (bool)
-     * @param _from The address to send tokens from.
-     * @param _to The address to send tokens to.
-     * @param _value The amount of tokens to be sent.
-     */
-    void transferFrom(const Address& _from, const Address& _to, const uint256_t& _value);
-
-    /// Deposit tokens to the contract. Solidity counterpart: function deposit() public payable
-    void deposit();
-
-    /**
-     * Withdraw tokens from the contract. Solidity counterpart: function withdraw(uint256 _value) public payable
-     * @param _value The amount of tokens to be withdrawn.
-     */
-    void withdraw(const uint256_t& _value);
-
-    /// Register contract using ContractReflectionInterface.
-    static void registerContract() {
-      ContractReflectionInterface::registerContract<
+  static void registerContract() {
+    ContractReflectionInterface::registerContract<
         NativeWrapper, std::string &, std::string &, uint8_t &,
         ContractManagerInterface &, const Address &,
         const Address &, const uint64_t &, const std::unique_ptr<DB> &>(
@@ -320,4 +214,4 @@ public:
   void withdraw(const uint256_t &_value);
 };
 
-#endif // NATIVEWRAPPER_H
+#endif /// NATIVEWRAPPER_H

@@ -249,7 +249,7 @@ namespace THTTPJsonRPC{
 
       json eth_protocolVersionResponse = requestMethod("eth_protocolVersion", json::array());
 
-      REQUIRE(eth_protocolVersionResponse["result"] == "0.0.3");
+      REQUIRE(eth_protocolVersionResponse["result"] == "1");
 
       json eth_getBlockByHashResponse = requestMethod("eth_getBlockByHash", json::array({newBestBlock.hash().hex(true), true}));
       REQUIRE(eth_getBlockByHashResponse["result"]["number"] == "0x1");

@@ -50,26 +50,18 @@ void HTTPSession::do_read() {
 
 void HTTPSession::on_read(beast::error_code ec, std::size_t bytes) {
   boost::ignore_unused(bytes);
-  // This means the other side closed the connection
-  if (ec == http::error::end_of_stream) return this->do_close();
+  if (ec == http::error::end_of_stream) return this->do_close(); // This means the other side closed the connection
   if (ec) return fail("HTTPSession", __func__, ec, "Failed to close connection");
-  // Send the response
-  handle_request(
-    *this->docroot, this->parser->release(), this->queue,
-    this->state, this->storage, this->p2p, this->options
-  );
-  // If queue still has free space, try to pipeline another request
-  if (!this->queue.full()) this->do_read();
+  handle_request(*this->docroot, this->parser->release(), this->queue, this->state, this->storage, this->p2p, this->options); // Send the response
+  if (!this->queue.full()) this->do_read(); // If queue still has free space, try to pipeline another request
 }
 
 void HTTPSession::on_write(bool close, beast::error_code ec, std::size_t bytes) {
   boost::ignore_unused(bytes);
   if (ec) return fail("HTTPSession", __func__, ec, "Failed to write to buffer");
-  // This means we should close the connection, usually because the
-  // response indicated the "Connection: close" semantic
+  // This means we should close the connection, usually because the response indicated the "Connection: close" semantic
   if (close) return this->do_close();
-  // Inform the queue that a write was completed and read another request
-  if (this->queue.on_write()) this->do_read();
+  if (this->queue.on_write()) this->do_read(); // Inform the queue that a write was completed and read another request
 }
 
 void HTTPSession::do_close() {

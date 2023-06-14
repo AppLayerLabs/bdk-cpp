@@ -18,9 +18,8 @@ using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
  * to a given type (`boost::lexical_cast<%HexTo<uint256_t>>(hexStr)`).
  */
 template <typename ElemT> struct HexTo {
-  ElemT value;  ///< The value to hold.
-  operator ElemT() const { return value; } ///< Operator to get the value.
-  /// Stream operator.
+  ElemT value;
+  operator ElemT() const { return value; }
   friend std::istream& operator>>(std::istream& in, HexTo& out) {
     in >> std::hex >> out.value;
     return in;
@@ -44,7 +43,6 @@ class Hex {
      * Move constructor.
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @throw std::runtime_error if hex string is invalid.
      */
     Hex(std::string&& value, bool strict = false);
 
@@ -52,7 +50,6 @@ class Hex {
      * Copy constructor.
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @throw std::runtime_error if hex string is invalid.
      */
     Hex(const std::string_view value, bool strict = false);
 
@@ -111,7 +108,6 @@ class Hex {
      * Static overload of bytes().
      * @param hex The hex string to convert to bytes.
      * @return The converted bytes string.
-     * @throw std::runtime_error if hex string is invalid.
      */
     static std::string toBytes(const std::string_view hex);
 

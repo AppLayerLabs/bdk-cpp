@@ -3,4 +3,3 @@
 void registerVariableUse(DynamicContract& contract, SafeBase& variable) {
   contract.registerVariableUse(variable);
 }
-

@@ -78,13 +78,10 @@ class rdPoS : public BaseContract {
     /// Pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
-    /// Pointer to the worker object.
-    const std::unique_ptr<rdPoSWorker> worker;
-
-    /// Ordered list of rdPoS validators.
+    /// Ordered list of rdPoS.
     std::set<Validator> validators;
 
-    /// Shuffled version of the validator list, used at block creation/signing.
+    /// Shuffled version of `rdPoS`, used at block creation/signing.
     std::vector<Validator> randomList;
 
     /// Mempool for validator transactions.
@@ -95,6 +92,9 @@ class rdPoS : public BaseContract {
 
     /// Indicated whether this node is a Validator or not.
     const bool isValidator = false;
+
+    /// Worker for rdPoS.
+    const std::unique_ptr<rdPoSWorker> worker;
 
     /// Randomness generator (for use in seeding).
     RandomGen randomGen;
@@ -122,7 +122,6 @@ class rdPoS : public BaseContract {
      * @param p2p Pointer to the P2P connection manager.
      * @param options Pointer to the options singleton.
      * @param state Pointer to the blockchain's state.
-     * @throw std::runtime_error if there are no Validators registered in the database.
      */
     rdPoS(
       const std::unique_ptr<DB>& db, const std::unique_ptr<Storage>& storage,
@@ -139,7 +138,7 @@ class rdPoS : public BaseContract {
     /// Minimum number of required Validators for creating and signing blocks.
     static const uint32_t minValidators = 4;
 
-    /// Getter for `validators`. Not a reference because the inner set can be changed.
+    /// Getter for `rdPoS`. Not a reference because the inner set can be changed.
     const std::set<Validator> getValidators() const { std::shared_lock lock(this->mutex); return validators; }
 
     /// Getter for `randomList`. Not a reference because the inner vector can be changed.
@@ -179,13 +178,12 @@ class rdPoS : public BaseContract {
      * Should be called from State, after a block is validated and before it is added to Storage.
      * @param block The block to process.
      * @return The new randomness seed to be used for the next block.
-     * @throw std::runtime_error if block is not finalized.
      */
     Hash processBlock(const Block& block);
 
     /**
      * Sign a block using the Validator's private key.
-     * @param block The block to sign.
+     * @return `true` on success, `false` if we are not able to sign the block.
      */
     void signBlock(Block& block);
 
@@ -226,7 +224,6 @@ class rdPoS : public BaseContract {
     /// Stop the rdPoSWorker.
     void stoprdPoSWorker();
 
-    /// Worker class is a friend.
     friend rdPoSWorker;
 };
 

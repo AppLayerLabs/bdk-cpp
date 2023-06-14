@@ -361,7 +361,9 @@ namespace P2P {
 
   /**
    * Abstraction of a %P2P message.
+   *
    * The structure is a bytes string (1 byte = 2 chars), as follows:
+   *
    * ```
    * 0x            00         0000000000000000       0000        00000000000000000000000000000000...
    * What:    Request Flag        Random ID       Command ID                Data...

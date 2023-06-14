@@ -92,7 +92,6 @@ class Block {
      * Constructor from network/RPC.
      * @param bytes The raw block data string to parse.
      * @param requiredChainId The chain ID that the block and its transactions belong to.
-     * @throw std::runtime_error on any invalid block parameter (size, signature, etc.).
      */
     Block(std::string_view bytes, const uint64_t& requiredChainId);
 

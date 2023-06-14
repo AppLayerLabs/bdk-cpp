@@ -7,20 +7,27 @@
 class HTTPSession;  // HTTPQueue depends on HTTPSession and vice-versa
 class State;
 class Storage;
-namespace P2P { class ManagerNormal; }
+namespace P2P {
+  class ManagerNormal;
+}
 
-/// Class used for HTTP pipelining.
+/**
+ * Class used for HTTP pipelining.
+ * TODO: explain better what this is and what it's used for.
+ */
 class HTTPQueue {
   private:
-    /// Type-erased, saved work item.
-    struct work {
-      virtual ~work() = default;      ///< Default destructor.
-      virtual void operator()() = 0;  ///< Default call operator.
-    };
+    /// Maximum number of responses to queue.
+    unsigned int limit = 8;
 
-    unsigned int limit = 8; ///< Maximum number of responses to queue.
-    HTTPSession& session;   ///< Reference to the HTTP session that is handling the queue.
-    std::vector<std::unique_ptr<work>> items; ///< Array of pointers to work structs.
+    /// Type-erased, saved work item. TODO: what is this?
+    struct work { virtual ~work() = default; virtual void operator()() = 0; };
+
+    /// Reference to the HTTP session that is handling the queue.
+    HTTPSession& session;
+
+    /// Array of pointers to work structs.
+    std::vector<std::unique_ptr<work>> items;
 
   public:
     /**
@@ -45,6 +52,8 @@ class HTTPQueue {
      * Call operator.
      * Called by the HTTP handler to send a response.
      * @param msg The message to send as a response.
+     * TODO: same as `handle_request()` - also why does this have a struct inside it,
+     * why does it look similar to the work struct and why is it needed here?
      */
     template<bool isRequest, class Body, class Fields> void operator()(
       http::message<isRequest, Body, Fields>&& msg

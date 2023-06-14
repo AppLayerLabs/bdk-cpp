@@ -208,7 +208,7 @@ namespace P2P {
 
       /**
        * Broadcast a block transaction to all connected nodes.
-       * @param txBlock The transaction to broadcast.
+       * @param tx The transaction to broadcast.
        */
       void broadcastTxBlock(const TxBlock& txBlock);
 

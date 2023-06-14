@@ -7,58 +7,61 @@
 #include <filesystem>
 #include <boost/asio/ip/address.hpp>
 
-/// Singleton class for global node data.
 class Options {
   private:
-    /// Path to data root folder.
+    /// Path to data root folder
     const std::string rootPath;
 
-    /// Major version of the OrbiterSDK.
-    const uint64_t majorSDKVersion = @CMAKE_PROJECT_VERSION_MAJOR@;
+    /// Version of the OrbiterSDK
+    const uint64_t SDKVersion = @CMAKE_PROJECT_VERSION@;
 
-    /// Minor version of the OrbiterSDK.
-    const uint64_t minorSDKVersion = @CMAKE_PROJECT_VERSION_MINOR@;
-
-    /// Patch version of the OrbiterSDK.
-    const uint64_t patchSDKVersion = @CMAKE_PROJECT_VERSION_PATCH@;
-
-    /// Version of the client (string for display/Web3).
+    /// clientVersion
     const std::string web3clientVersion;
 
-    /// Version of the blockchain.
+    /// chain version
     const uint64_t version;
 
-    /// Chain ID of the blockchain.
+    /// ChainID
     const uint64_t chainID;
 
-    /// Websocket server port.
+    /// Websocket Server Port
     const uint16_t wsPort;
 
-    /// HTTP server port.
+    /// HTTP Server Port
     const uint16_t httpPort;
 
-    /// Coinbase address (if found), used by rdPoS.
+    /// Coinbase Address (if found), used by rdPoS.
     const Address coinbase;
 
-    /// Indicates whether the node is a Validator, set by constructor or if found on file.
+    /// isValidator (Set by constructor or if found on file.
     const bool isValidator;
 
-    /// List of known Discovery nodes.
+    /// Discovery node list
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
 
   public:
-    /**
-     * Constructor for a normal node.
-     * Populates coinbase() and isValidator() with false.
-     * Creates option.json file within rootPath.
-     * @param rootPath Path to data root folder.
-     * @param web3clientVersion Version of the client.
-     * @param version Version of the chain.
-     * @param chainID Chain ID of the chain.
-     * @param wsPort Websocket server port.
-     * @param httpPort HTTP server port.
-     * @param discoveryNodes List of known Discovery nodes.
-     */
+    /// Copy Constructor
+    Options(const Options& other) :
+      rootPath(other.rootPath),
+      SDKVersion(other.SDKVersion),
+      web3clientVersion(other.web3clientVersion),
+      version(other.version),
+      chainID(other.chainID),
+      wsPort(other.wsPort),
+      httpPort(other.httpPort),
+      coinbase(other.coinbase),
+      isValidator(other.isValidator),
+      discoveryNodes(other.discoveryNodes){}
+
+    /// Constructor for Options
+    /// Populates coinbase() and isValidator() with false
+    /// Creates option.json file within rootPath
+    /// @params rootPath: Path to data root folder
+    /// @params web3clientVersion: Version of the OrbiterSDK
+    /// @params version: chain version
+    /// @params chainID: ChainID
+    /// @params wsPort: Websocket Server Port
+    /// @params httpPort: HTTP Server Port
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID,
@@ -66,19 +69,15 @@ class Options {
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes
     );
 
-    /**
-     * Constructor for a Validator node.
-     * Populates coinbase() and isValidator() with privKey address and true respectively.
-     * Creates option.json file within rootPath.
-     * @param rootPath Path to data root folder.
-     * @param web3clientVersion Version of the client.
-     * @param version Version of the chain.
-     * @param chainID Chain ID of the chain.
-     * @param wsPort Websocket server port.
-     * @param httpPort HTTP server port.
-     * @param discoveryNodes List of known Discovery nodes.
-     * @param privKey Private key of the Validator.
-     */
+    /// Constructor for Options
+    /// Populates coinbase() and isValidator() with privKey address and true respectively
+    /// Creates option.json file within rootPath
+    /// @params rootPath: Path to data root folder
+    /// @params web3clientVersion: Version of the OrbiterSDK
+    /// @params version: chain version
+    /// @params chainID: ChainID
+    /// @params wsPort: Websocket Server Port
+    /// @params httpPort: HTTP Server Port
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID,
@@ -87,79 +86,24 @@ class Options {
       const PrivKey& privKey
     );
 
-    /// Copy constructor.
-    Options(const Options& other) :
-      rootPath(other.rootPath),
-      majorSDKVersion(other.majorSDKVersion),
-      minorSDKVersion(other.minorSDKVersion),
-      patchSDKVersion(other.patchSDKVersion),
-      web3clientVersion(other.web3clientVersion),
-      version(other.version),
-      chainID(other.chainID),
-      wsPort(other.wsPort),
-      httpPort(other.httpPort),
-      coinbase(other.coinbase),
-      isValidator(other.isValidator),
-      discoveryNodes(other.discoveryNodes)
-    {}
-
-    /// Getter for `rootPath`.
-    const std::string& getRootPath() const { return this->rootPath; }
-
-    /// Getter for `majorSDKVersion`.
-    const uint64_t& getMajorSDKVersion() const { return this->majorSDKVersion; }
-
-    /// Getter for `minorSDKVersion`.
-    const uint64_t& getMinorSDKVersion() const { return this->minorSDKVersion; }
-
-    /// Getter for `patchSDKVersion`.
-    const uint64_t& getPatchSDKVersion() const { return this->patchSDKVersion; }
-
-    /// Getter for the full SDK version as a string.
-    const std::string getSDKVersion() const {
-      return std::to_string(this->majorSDKVersion)
-        + "." + std::to_string(this->minorSDKVersion)
-        + "." + std::to_string(this->patchSDKVersion);
-    }
-
-    /// Getter for `web3clientVersion`.
-    const std::string& getWeb3ClientVersion() const { return this->web3clientVersion; }
-
-    /// Getter for `version`.
-    const uint64_t& getVersion() const { return this->version; }
-
-    /// Getter for `chainID`.
-    const uint64_t& getChainID() const { return this->chainID; }
-
-    /// Getter for `wsPort`.
-    const uint16_t& getWsPort() const { return this->wsPort; }
-
-    /// Getter for `httpPort`.
-    const uint16_t& getHttpPort() const { return this->httpPort; }
-
-    /// Getter for `coinbase`.
-    const Address& getCoinbase() const { return this->coinbase; }
-
-    /// Getter for `isValidator`.
-    const bool& getIsValidator() const { return this->isValidator; }
-
-    /// Getter for `discoveryNodes`.
-    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes; }
-
-    /**
-     * Get the Validator node's private key from the JSON file.
-     * @return The Validator node's private key, or an empty private key if missing.
-     */
-    const PrivKey getValidatorPrivKey() const;
-
-    /**
-     * Load an options.json file from a given path and construct the singleton object.
-     * Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081) if not found.
-     * @param rootPath Path to data root folder.
-     * @return The constructed options object.
-     * @throw std::runtime_error on failure.
-     */
+    /// Tries to load options.json from rootPath
+    /// Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/0.0.3", 2, 8080, 8080, 8081) if not found.
+    /// @params rootPath: Path to data root folder
+    /// @returns Options: Options object
     static Options fromFile(const std::string& rootPath);
+
+    /// Options Getters
+    const std::string& getRootPath() const { return this->rootPath; }
+    const uint64_t& getSDKVersion() const { return this->SDKVersion; }
+    const std::string& getWeb3ClientVersion() const { return this->web3clientVersion; }
+    const uint64_t& getVersion() const { return this->version; }
+    const uint64_t& getChainID() const { return this->chainID; }
+    const uint16_t& getWsPort() const { return this->wsPort; }
+    const uint16_t& getHttpPort() const { return this->httpPort; }
+    const Address& getCoinbase() const { return this->coinbase; }
+    const bool& getIsValidator() const { return this->isValidator; }
+    const PrivKey getValidatorPrivKey() const;
+    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes; }
 };
 
 #endif // OPTIONS_H

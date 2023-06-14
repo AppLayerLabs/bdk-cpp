@@ -13,7 +13,7 @@ std::string parseJsonRpcRequest(
     json request = json::parse(body);
     if (!JsonRPC::Decoding::checkJsonRPCSpec(request)) {
       ret["error"]["code"] = -32600;
-      ret["error"]["message"] = "Invalid request - does not conform to JSON-RPC 2.0 spec";
+      ret["error"]["message"] = "Invalid Request, does not conform to JSON-RPC 2.0 spec";
       return ret.dump();
     }
 
