@@ -5,6 +5,7 @@
 #include "contract/abi.h"
 #include "meta_all.hpp"
 #include "utils.h" // nlohmann::json
+#include <tuple>
 
 /**
  * This namespace contains the reflection interface for the contract
@@ -27,362 +28,66 @@ struct MethodDescription {
   std::string type;
 };
 
-static std::unordered_map<std::string, std::vector<std::string>>
+extern std::unordered_map<std::string, std::vector<std::string>>
     constructorArgumentNamesMap; /// Map to store constructor argument names
-static std::unordered_map<std::string, std::string>
+extern std::unordered_map<std::string, std::string>
     methodMutabilityMap; //// Map to store method mutability
-static std::unordered_map<std::string, std::vector<std::string>>
+extern std::unordered_map<std::string, std::vector<std::string>>
     argumentNamesMap; /// Map to store method argument names
 
-/**
- * Template struct to map a type to an ABI type.
- * @tparam T The type to map.
- */
-template <typename T> struct TypeToEnum;
+// Forward declaration of TypeToEnum struct
+template <typename T>
+struct TypeToEnum;
 
-/**
- * Specialization of TypeToEnum for uint256_t.
- */
-template <> struct TypeToEnum<uint256_t> {
+// Helper struct to determine the ABI type based on the input type
+template <typename T>
+struct ABIType {
   static constexpr ABI::Types value = ABI::Types::uint256;
 };
 
-/**
- * Specialization of TypeToEnum for reference to uint256_t.
- */
-template <> struct TypeToEnum<uint256_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to uint256_t.
- */
-template <> struct TypeToEnum<const uint256_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-/**
- * Specialization of TypeToEnum for std::vector<uint256_t>.
- */
-template <> struct TypeToEnum<std::vector<uint256_t>> {
+// Specialization for std::vector<T>
+template <typename T>
+struct ABIType<std::vector<T>> {
   static constexpr ABI::Types value = ABI::Types::uint256Arr;
 };
 
-/**
- * Specialization of TypeToEnum for reference to std::vector<uint256_t>.
- */
-template <> struct TypeToEnum<std::vector<uint256_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to
- * std::vector<uint256_t>.
- */
-
-template <> struct TypeToEnum<const std::vector<uint256_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for uint8_t.
- */
-template <> struct TypeToEnum<uint8_t> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for reference to uint8_t.
- */
-template <> struct TypeToEnum<uint8_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to uint8_t.
- */
-template <> struct TypeToEnum<const uint8_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for std::vector<uint8_t>.
- */
-template <> struct TypeToEnum<std::vector<uint8_t>> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for reference to std::vector<uint8_t>.
- */
-template <> struct TypeToEnum<std::vector<uint8_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to std::vector<uint8_t>.
- */
-
-template <> struct TypeToEnum<const std::vector<uint8_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for uint16_t.
- */
-template <> struct TypeToEnum<uint16_t> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for reference to uint16_t.
- */
-template <> struct TypeToEnum<uint16_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to uint16_t.
- */
-template <> struct TypeToEnum<const uint16_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for std::vector<uint16_t>.
- */
-template <> struct TypeToEnum<std::vector<uint16_t>> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for reference to std::vector<uint16_t>.
- */
-template <> struct TypeToEnum<std::vector<uint16_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to std::vector<uint16_t>.
- */
-template <> struct TypeToEnum<const std::vector<uint16_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for uint32_t.
- */
-template <> struct TypeToEnum<uint32_t> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for reference to uint32_t.
- */
-template <> struct TypeToEnum<uint32_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to uint32_t.
- */
-template <> struct TypeToEnum<const uint32_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for std::vector<uint32_t>.
- */
-template <> struct TypeToEnum<std::vector<uint32_t>> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for reference to std::vector<uint32_t>.
- */
-template <> struct TypeToEnum<std::vector<uint32_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to std::vector<uint32_t>.
- */
-template <> struct TypeToEnum<const std::vector<uint32_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for uint64_t.
- */
-template <> struct TypeToEnum<uint64_t> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for reference to uint64_t.
- */
-template <> struct TypeToEnum<uint64_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to uint64_t.
- */
-template <> struct TypeToEnum<const uint64_t &> {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-/**
- * Specialization of TypeToEnum for std::vector<uint64_t>.
- */
-template <> struct TypeToEnum<std::vector<uint64_t>> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for reference to std::vector<uint64_t>.
- */
-template <> struct TypeToEnum<std::vector<uint64_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to std::vector<uint64_t>.
- */
-template <> struct TypeToEnum<const std::vector<uint64_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-// TODO: Add support for uint128_t
-
-/**
- * Specialization of TypeToEnum for Address.
- */
-template <> struct TypeToEnum<Address> {
+// Specialization for Address
+template <>
+struct ABIType<Address> {
   static constexpr ABI::Types value = ABI::Types::address;
 };
 
-/**
- * Specialization of TypeToEnum for reference to Address.
- */
-template <> struct TypeToEnum<Address &> {
-  static constexpr ABI::Types value = ABI::Types::address;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to Address.
- */
-template <> struct TypeToEnum<const Address &> {
-  static constexpr ABI::Types value = ABI::Types::address;
-};
-
-/**
- * Specialization of TypeToEnum for std::vector<Address>.
- */
-template <> struct TypeToEnum<std::vector<Address>> {
-  static constexpr ABI::Types value = ABI::Types::addressArr;
-};
-
-/**
- * Specialization of TypeToEnum for reference to std::vector<Address>.
- */
-template <> struct TypeToEnum<std::vector<Address> &> {
-  static constexpr ABI::Types value = ABI::Types::addressArr;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to
- * std::vector<Address>.
- */
-template <> struct TypeToEnum<const std::vector<Address> &> {
-  static constexpr ABI::Types value = ABI::Types::addressArr;
-};
-
-/**
- * Specialization of TypeToEnum for bool.
- */
-template <> struct TypeToEnum<bool> {
+// Specialization for bool
+template <>
+struct ABIType<bool> {
   static constexpr ABI::Types value = ABI::Types::boolean;
 };
 
-/**
- * Specialization of TypeToEnum for reference to bool.
- */
-template <> struct TypeToEnum<bool &> {
-  static constexpr ABI::Types value = ABI::Types::boolean;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to bool.
- */
-template <> struct TypeToEnum<const bool &> {
-  static constexpr ABI::Types value = ABI::Types::boolean;
-};
-
-/**
- * Specialization of TypeToEnum for std::vector<bool>.
- */
-template <> struct TypeToEnum<std::vector<bool>> {
-  static constexpr ABI::Types value = ABI::Types::booleanArr;
-};
-
-/**
- * Specialization of TypeToEnum for reference to std::vector<bool>.
- */
-template <> struct TypeToEnum<std::vector<bool> &> {
-  static constexpr ABI::Types value = ABI::Types::booleanArr;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to
- * std::vector<bool>.
- */
-template <> struct TypeToEnum<const std::vector<bool> &> {
-  static constexpr ABI::Types value = ABI::Types::booleanArr;
-};
-
-/**
- * Specialization of TypeToEnum for std::string.
- */
-template <> struct TypeToEnum<std::string> {
+// Specialization for std::string
+template <>
+struct ABIType<std::string> {
   static constexpr ABI::Types value = ABI::Types::string;
 };
 
-/**
- * Specialization of TypeToEnum for reference to std::string.
- */
-template <> struct TypeToEnum<std::string &> {
-  static constexpr ABI::Types value = ABI::Types::string;
+// Helper struct to map a type to an ABI type
+template <typename T>
+struct TypeToEnum {
+  static constexpr ABI::Types value = ABIType<T>::value;
 };
 
-/**
- * Specialization of TypeToEnum for const reference to std::string.
- */
-template <> struct TypeToEnum<const std::string &> {
-  static constexpr ABI::Types value = ABI::Types::string;
-};
+// Specializations for reference types and const reference types
+template <typename T>
+struct TypeToEnum<T&> : TypeToEnum<T> {};
 
-/**
- * Specialization of TypeToEnum for std::vector<std::string>.
- */
-template <> struct TypeToEnum<std::vector<std::string>> {
-  static constexpr ABI::Types value = ABI::Types::stringArr;
-};
+template <typename T>
+struct TypeToEnum<const T&> : TypeToEnum<T> {};
 
-/**
- * Specialization of TypeToEnum for reference to
- * std::vector<std::string>.
- */
-template <> struct TypeToEnum<std::vector<std::string> &> {
-  static constexpr ABI::Types value = ABI::Types::stringArr;
-};
+// Specializations for vector reference types and const reference types
+template <typename T>
+struct TypeToEnum<std::vector<T>&> : TypeToEnum<std::vector<T>> {};
 
-/**
- * Specialization of TypeToEnum for const reference to
- * std::vector<std::string>.
- */
-template <> struct TypeToEnum<const std::vector<std::string> &> {
-  static constexpr ABI::Types value = ABI::Types::stringArr;
-};
+template <typename T>
+struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
 
 /**
  * This map is used to map a type to an ABI type.
@@ -391,82 +96,53 @@ template <> struct TypeToEnum<const std::vector<std::string> &> {
 static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
     {meta::resolve_type<uint256_t>(), TypeToEnum<uint256_t>::value},
     {meta::resolve_type<uint256_t &>(), TypeToEnum<uint256_t &>::value},
-    {meta::resolve_type<const uint256_t &>(),
-     TypeToEnum<const uint256_t &>::value},
-    {meta::resolve_type<std::vector<uint256_t>>(),
-     TypeToEnum<std::vector<uint256_t>>::value},
-    {meta::resolve_type<std::vector<uint256_t> &>(),
-     TypeToEnum<std::vector<uint256_t> &>::value},
-    {meta::resolve_type<const std::vector<uint256_t> &>(),
-     TypeToEnum<const std::vector<uint256_t> &>::value},
+    {meta::resolve_type<const uint256_t &>(), TypeToEnum<const uint256_t &>::value},
+    {meta::resolve_type<std::vector<uint256_t>>(), TypeToEnum<std::vector<uint256_t>>::value},
+    {meta::resolve_type<std::vector<uint256_t> &>(), TypeToEnum<std::vector<uint256_t> &>::value},
+    {meta::resolve_type<const std::vector<uint256_t> &>(), TypeToEnum<const std::vector<uint256_t> &>::value},
     {meta::resolve_type<uint8_t>(), TypeToEnum<uint8_t>::value},
     {meta::resolve_type<uint8_t &>(), TypeToEnum<uint8_t &>::value},
     {meta::resolve_type<const uint8_t &>(), TypeToEnum<const uint8_t &>::value},
-    {meta::resolve_type<std::vector<uint8_t>>(),
-     TypeToEnum<std::vector<uint8_t>>::value},
-    {meta::resolve_type<std::vector<uint8_t> &>(),
-     TypeToEnum<std::vector<uint8_t> &>::value},
-    {meta::resolve_type<const std::vector<uint8_t> &>(),
-     TypeToEnum<const std::vector<uint8_t> &>::value},
+    {meta::resolve_type<std::vector<uint8_t>>(), TypeToEnum<std::vector<uint8_t>>::value},
+    {meta::resolve_type<std::vector<uint8_t> &>(), TypeToEnum<std::vector<uint8_t> &>::value},
+    {meta::resolve_type<const std::vector<uint8_t> &>(), TypeToEnum<const std::vector<uint8_t> &>::value},
     {meta::resolve_type<uint16_t>(), TypeToEnum<uint16_t>::value},
     {meta::resolve_type<uint16_t &>(), TypeToEnum<uint16_t &>::value},
-    {meta::resolve_type<const uint16_t &>(),
-     TypeToEnum<const uint16_t &>::value},
-    {meta::resolve_type<std::vector<uint16_t>>(),
-     TypeToEnum<std::vector<uint16_t>>::value},
-    {meta::resolve_type<std::vector<uint16_t> &>(),
-     TypeToEnum<std::vector<uint16_t> &>::value},
-    {meta::resolve_type<const std::vector<uint16_t> &>(),
-     TypeToEnum<const std::vector<uint16_t> &>::value},
+    {meta::resolve_type<const uint16_t &>(), TypeToEnum<const uint16_t &>::value},
+    {meta::resolve_type<std::vector<uint16_t>>(), TypeToEnum<std::vector<uint16_t>>::value},
+    {meta::resolve_type<std::vector<uint16_t> &>(), TypeToEnum<std::vector<uint16_t> &>::value},
+    {meta::resolve_type<const std::vector<uint16_t> &>(), TypeToEnum<const std::vector<uint16_t> &>::value},
     {meta::resolve_type<uint32_t>(), TypeToEnum<uint32_t>::value},
     {meta::resolve_type<uint32_t &>(), TypeToEnum<uint32_t &>::value},
-    {meta::resolve_type<const uint32_t &>(),
-     TypeToEnum<const uint32_t &>::value},
-    {meta::resolve_type<std::vector<uint32_t>>(),
-     TypeToEnum<std::vector<uint32_t>>::value},
-    {meta::resolve_type<std::vector<uint32_t> &>(),
-     TypeToEnum<std::vector<uint32_t> &>::value},
-    {meta::resolve_type<const std::vector<uint32_t> &>(),
-     TypeToEnum<const std::vector<uint32_t> &>::value},
+    {meta::resolve_type<const uint32_t &>(), TypeToEnum<const uint32_t &>::value},
+    {meta::resolve_type<std::vector<uint32_t>>(), TypeToEnum<std::vector<uint32_t>>::value},
+    {meta::resolve_type<std::vector<uint32_t> &>(), TypeToEnum<std::vector<uint32_t> &>::value},
+    {meta::resolve_type<const std::vector<uint32_t> &>(), TypeToEnum<const std::vector<uint32_t> &>::value},
     {meta::resolve_type<uint64_t>(), TypeToEnum<uint64_t>::value},
     {meta::resolve_type<uint64_t &>(), TypeToEnum<uint64_t &>::value},
-    {meta::resolve_type<const uint64_t &>(),
-     TypeToEnum<const uint64_t &>::value},
-    {meta::resolve_type<std::vector<uint64_t>>(),
-     TypeToEnum<std::vector<uint64_t>>::value},
-    {meta::resolve_type<std::vector<uint64_t> &>(),
-     TypeToEnum<std::vector<uint64_t> &>::value},
-    {meta::resolve_type<const std::vector<uint64_t> &>(),
-     TypeToEnum<const std::vector<uint64_t> &>::value},
+    {meta::resolve_type<const uint64_t &>(), TypeToEnum<const uint64_t &>::value},
+    {meta::resolve_type<std::vector<uint64_t>>(), TypeToEnum<std::vector<uint64_t>>::value},
+    {meta::resolve_type<std::vector<uint64_t> &>(), TypeToEnum<std::vector<uint64_t> &>::value},
+    {meta::resolve_type<const std::vector<uint64_t> &>(), TypeToEnum<const std::vector<uint64_t> &>::value},
     // TODO: Add support for uint128_t
     {meta::resolve_type<Address>(), TypeToEnum<Address>::value},
     {meta::resolve_type<Address &>(), TypeToEnum<Address &>::value},
     {meta::resolve_type<const Address &>(), TypeToEnum<const Address &>::value},
-    {meta::resolve_type<std::vector<Address>>(),
-     TypeToEnum<std::vector<Address>>::value},
-    {meta::resolve_type<std::vector<Address> &>(),
-     TypeToEnum<std::vector<Address> &>::value},
-    {meta::resolve_type<const std::vector<Address> &>(),
-     TypeToEnum<const std::vector<Address> &>::value},
+    {meta::resolve_type<std::vector<Address>>(), TypeToEnum<std::vector<Address>>::value},
+    {meta::resolve_type<std::vector<Address> &>(), TypeToEnum<std::vector<Address> &>::value},
+    {meta::resolve_type<const std::vector<Address> &>(), TypeToEnum<const std::vector<Address> &>::value},
     {meta::resolve_type<bool>(), TypeToEnum<bool>::value},
     {meta::resolve_type<bool &>(), TypeToEnum<bool &>::value},
     {meta::resolve_type<const bool &>(), TypeToEnum<const bool &>::value},
-    {meta::resolve_type<std::vector<bool>>(),
-     TypeToEnum<std::vector<bool>>::value},
-    {meta::resolve_type<std::vector<bool> &>(),
-     TypeToEnum<std::vector<bool> &>::value},
-    {meta::resolve_type<const std::vector<bool> &>(),
-     TypeToEnum<const std::vector<bool> &>::value},
+    {meta::resolve_type<std::vector<bool>>(), TypeToEnum<std::vector<bool>>::value},
+    {meta::resolve_type<std::vector<bool> &>(), TypeToEnum<std::vector<bool> &>::value},
+    {meta::resolve_type<const std::vector<bool> &>(), TypeToEnum<const std::vector<bool> &>::value},
     {meta::resolve_type<std::string>(), TypeToEnum<std::string>::value},
-    {meta::resolve_type<const std::string &>(),
-     TypeToEnum<const std::string &>::value},
+    {meta::resolve_type<const std::string &>(), TypeToEnum<const std::string &>::value},
     {meta::resolve_type<std::string &>(), TypeToEnum<std::string &>::value},
-    {meta::resolve_type<std::vector<std::string>>(),
-     TypeToEnum<std::vector<std::string>>::value},
-    {meta::resolve_type<std::vector<std::string> &>(),
-     TypeToEnum<std::vector<std::string> &>::value},
-    {meta::resolve_type<const std::vector<std::string> &>(),
-     TypeToEnum<const std::vector<std::string> &>::value}};
+    {meta::resolve_type<std::vector<std::string>>(), TypeToEnum<std::vector<std::string>>::value},
+    {meta::resolve_type<std::vector<std::string> &>(), TypeToEnum<std::vector<std::string> &>::value},
+    {meta::resolve_type<const std::vector<std::string> &>(), TypeToEnum<const std::vector<std::string> &>::value}};
 
 /**
  * This function returns the ABI type string for a given ABI type.
@@ -522,7 +198,7 @@ ABI::Types inline getABIEnumFromString(const std::string& type) {
   }
 }
 
-static std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
+extern std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
 
 /**
  * This function populates the constructor argument names map.
@@ -660,7 +336,6 @@ template <typename Contract>
 std::vector<ABI::Types> inline getConstructorArgumentTypes() {
   const meta::class_type contractType = meta::resolve_type<Contract>();
   std::vector<ABI::Types> constructorArgumentTypes;
-  std::vector<ABI::Types> argumentTypes;
 
   for (const meta::constructor &ctor : contractType.get_constructors()) {
     std::vector<meta::argument> args = ctor.get_arguments();
@@ -683,23 +358,9 @@ std::vector<ABI::Types> inline getConstructorArgumentTypes() {
     }
   }
 
-  for (const meta::method &methods : contractType.get_methods()) {
-    auto arity = methods.get_type().get_arity();
-    if (arity > 0) {
-      auto args = methods.get_arguments();
-      for (const meta::argument &arg : args) {
-        meta::any_type type = arg.get_type();
-
-        auto it = typeMap.find(type);
-        if (it != typeMap.end()) {
-          argumentTypes.push_back(it->second);
-        }
-      }
-    }
-  }
-
-  return argumentTypes;
+  return constructorArgumentTypes;
 }
+
 
 /**
  * Template function to get the constructor ABI data structure of a contract.
@@ -808,8 +469,9 @@ std::vector<MethodDescription> inline getFunctionDataStructure() {
   */
 template <typename Contract>
 bool inline methodHasArguments(const std::string& methodName) {
+    using DecayedContract = std::decay_t<Contract>;
     if (!isContractRegistered<Contract>()) {
-        throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
+      throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " is not registered.");
     }
     auto it = argumentNamesMap.find(methodName);
     if (it != argumentNamesMap.end()) {
@@ -827,7 +489,7 @@ bool inline methodHasArguments(const std::string& methodName) {
 template <typename Contract>
 std::string inline getMethodMutability(const std::string& methodName) {
     if (!isContractRegistered<Contract>()) {
-        throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
+      throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " is not registered.");
     }
     auto it = methodMutabilityMap.find(methodName);
     if (it != methodMutabilityMap.end()) {

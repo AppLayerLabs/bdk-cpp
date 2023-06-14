@@ -4,6 +4,7 @@
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
+#include <any>
 
 #include "abi.h"
 #include "contract.h"
@@ -14,6 +15,7 @@
 #include "../utils/strings.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
+#include "../utils/contractreflectioninterface.h"
 
 /// Forward Declaration
 class rdPoS;
@@ -202,26 +204,98 @@ public:
   bool isContractAddress(const Address &address) const;
 
   template <typename TContract>
-  std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo);
-
-  template <typename TContract>
-  void createNewContract(const ethCallInfo &callInfo);
-
-  template <typename TContract>
-  void validateNewContract(const ethCallInfo &callInfo);
-
-  void addCreateContractFunc(const std::string &functor,
-                        std::function<void(const ethCallInfo &)> createFunc) {
-    auto val = Hex::toBytes(functor);
-    createContractFuncs[val] = createFunc;
+  std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
+  // Check if caller is creator
+  if (this->caller != this->getContractCreator()) {
+    throw std::runtime_error("Only contract creator can create new contracts");
   }
 
-  void addValidateContractFunc(
-      const std::string &functor,
-      std::function<void(const ethCallInfo &)> validateFunc) {
-    validateContractFuncs[functor] = validateFunc;
-    auto val = Hex::toBytes(functor);
+  // Check if contract address already exists
+  const Address derivedContractAddress = this->deriveContractAddress(callInfo);
+  if (this->contracts.contains(derivedContractAddress)) {
+    throw std::runtime_error("Contract already exists");
   }
+
+  std::unique_lock lock(this->contractsMutex);
+  for (const auto &[protocolContractName, protocolContractAddress] :
+       ProtocolContractAddresses) {
+    if (protocolContractAddress == derivedContractAddress) {
+      throw std::runtime_error("Contract already exists");
+    }
+  }
+  std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
+  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
+  return std::make_pair(derivedContractAddress, decoder);
+}
+
+template <typename TContract, typename... Args, std::size_t... Is>
+std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
+                                                   const std::vector<std::any>& dataVec,
+                                                   std::index_sequence<Is...>) {
+    try {
+        return std::make_unique<TContract>(std::any_cast<Args>(dataVec[Is])...,
+                                           *this->interface, derivedContractAddress,
+                                           this->getCaller(), this->options->getChainID(),
+                                           this->db);
+    } catch (const std::bad_any_cast& ex) {
+        throw std::runtime_error("Mismatched argument types for contract constructor");
+    }
+}
+
+template <typename TContract, typename... Args>
+std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
+                                                   const std::vector<std::any>& dataVec) {
+    if (sizeof...(Args) != dataVec.size()) {
+        throw std::runtime_error("Not enough arguments provided for contract constructor");
+    }
+
+    return createContractWithTuple<TContract, Args...>(
+        derivedContractAddress, dataVec, std::index_sequence_for<Args...>());
+}
+
+template <typename TContract, typename... ArgTypes>
+void createNewContract(const ethCallInfo& callInfo) {
+    auto setupResult = this->setupNewContract<TContract>(callInfo);
+
+    if (!ContractReflectionInterface::isContractRegistered<TContract>()) {
+        throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " is not registered");
+    }
+
+    Address derivedContractAddress = setupResult.first;
+    ABI::Decoder decoder = setupResult.second;
+
+    std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
+    std::vector<std::any> dataVector;
+
+    for (size_t i = 0; i < types.size(); i++) {
+        dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+    }
+
+    auto contract = createContractWithTuple<TContract, ArgTypes...>(derivedContractAddress, dataVector);
+
+    this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
+}
+
+
+
+
+template <typename TContract>
+void validateNewContract(const ethCallInfo &callInfo) {
+  this->setupNewContract<TContract>(callInfo);
+}
+
+void addCreateContractFunc(const std::string &functor,
+                      std::function<void(const ethCallInfo &)> createFunc) {
+  auto val = Hex::toBytes(functor);
+  createContractFuncs[val] = createFunc;
+}
+
+void addValidateContractFunc(
+    const std::string &functor,
+    std::function<void(const ethCallInfo &)> validateFunc) {
+  validateContractFuncs[functor] = validateFunc;
+  auto val = Hex::toBytes(functor);
+}
 
   /**
    * Get list of contracts addresses and names.

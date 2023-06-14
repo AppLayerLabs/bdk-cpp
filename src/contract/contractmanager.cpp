@@ -14,29 +14,39 @@ ContractManager::ContractManager(State *state, const std::unique_ptr<DB> &db,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"),
                   true),
           0, db),
-      rdpos(rdpos), options(options), interface(*this) {
+      rdpos(rdpos), options(options), interface(std::make_unique<ContractManagerInterface>(*this)) {
   /// Load Contracts from DB.
+  ERC20::registerContract();
+  ERC20Wrapper::registerContract();
+  NativeWrapper::registerContract();
+  this->addCreateContractFunc("0xb74e5ed5", [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20, const std::string&, const std::string&, const uint256_t&, const uint256_t&>(callInfo); });
+  this->addValidateContractFunc("0xb74e5ed5", [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20>(callInfo); });
+  // this->addCreateContractFunc("0x97aa51a3", [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20Wrapper>(callInfo); });
+  // this->addValidateContractFunc("0x97aa51a3", [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20Wrapper>(callInfo); });
+  // this->addCreateContractFunc("0x9f90f4c7", [&](const ethCallInfo &callInfo) { this->createNewContract<NativeWrapper>(callInfo); });
+  // this->addValidateContractFunc("0x9f90f4c7", [&](const ethCallInfo &callInfo) { this->validateNewContract<NativeWrapper>(callInfo); });
+
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto &contract : contracts) {
     if (contract.value == "ERC20") {
       Address contractAddress(contract.key, true);
       this->contracts.insert(std::make_pair(
           contractAddress,
-          std::make_unique<ERC20>(this->interface, contractAddress, this->db)));
+          std::make_unique<ERC20>(*this->interface, contractAddress, this->db)));
       continue;
     }
     if (contract.value == "ERC20Wrapper") {
       Address contractAddress(contract.key, true);
       this->contracts.insert(std::make_pair(
           contractAddress, std::make_unique<ERC20Wrapper>(
-                               this->interface, contractAddress, this->db)));
+                               *this->interface, contractAddress, this->db)));
       continue;
     }
     if (contract.value == "NativeWrapper") {
       Address contractAddress(contract.key, true);
       this->contracts.insert(std::make_pair(
           contractAddress, std::make_unique<NativeWrapper>(
-                               this->interface, contractAddress, this->db)));
+                               *this->interface, contractAddress, this->db)));
       continue;
     }
 
@@ -166,7 +176,7 @@ void ContractManager::createNewERC20WrapperContract(
 
   this->contracts.insert(std::make_pair(
       derivedContractAddress,
-      std::make_unique<ERC20Wrapper>(this->interface, derivedContractAddress,
+      std::make_unique<ERC20Wrapper>(*this->interface, derivedContractAddress,
                                      this->getCaller(),
                                      this->options->getChainID(), this->db)));
 }
@@ -258,62 +268,6 @@ void ContractManager::validateCreateNewERC20NativeWrapperContract(
   }
 }
 
-template <typename TContract>
-std::pair<Address, ABI::Decoder> ContractManager::setupNewContract(const ethCallInfo &callInfo) {
-  // Check if caller is creator
-  if (this->caller != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can create new contracts");
-  }
-
-  // Check if contract address already exists
-  const Address derivedContractAddress = this->deriveContractAddress(callInfo);
-  if (this->contracts.contains(derivedContractAddress)) {
-    throw std::runtime_error("Contract already exists");
-  }
-
-  std::unique_lock lock(this->contractsMutex);
-  for (const auto &[protocolContractName, protocolContractAddress] :
-       ProtocolContractAddresses) {
-    if (protocolContractAddress == derivedContractAddress) {
-      throw std::runtime_error("Contract already exists");
-    }
-  }
-
-  // Parse the constructor ABI
-  // TContract::registerContract(*this);
-  std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
-  ABI::Decoder decoder(types, std::get<5>(callInfo).substr(4));
-
-  return std::make_pair(derivedContractAddress, decoder);
-}
-
-template <typename TContract>
-void ContractManager::createNewContract(const ethCallInfo &callInfo) {
-  auto setupResult = this->setupNewContract<TContract>(callInfo);
-  // Simply can't do ``auto [derivedContractAddress, decoder] =
-  // setupNewContract<TContract>(callInfo);`` because the compiler is too stupid
-  // to figure out the types
-  if (!ContractReflectionInterface::isContractRegistered<TContract>()) {
-    throw std::runtime_error("Contract class is not registered");
-  }
-  Address derivedContractAddress = setupResult.first;
-  ABI::Decoder decoder = setupResult.second;
-  this->contracts.insert(std::make_pair(
-      derivedContractAddress,
-      std::make_unique<TContract>(decoder.getData<std::string>(0),
-                                                                                        decoder.getData<std::string>(1),
-                                                                                        uint8_t(decoder.getData<uint256_t>(2)),
-                                                                                        decoder.getData<uint256_t>(3),
-                                                                                        *this->interface, derivedContractAddress,
-                                                                                        this->getCaller(), this->options->getChainID(),
-                                                                                        this->db)));
-}
-
-template <typename TContract>
-void ContractManager::validateNewContract(const ethCallInfo &callInfo) {
-  this->setupNewContract<TContract>(callInfo);
-}
-
 void ContractManager::ethCall(const ethCallInfo& callInfo) {
   std::string functor = std::get<5>(callInfo).substr(0, 4);
   if (this->getCommit()) {
@@ -329,7 +283,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
       return;
     }
   }
-  throw std::runtime_error("Invalid function call");
+  throw std::runtime_error("Invalid function call for functor " + Hex::fromBytes(functor).get());
 }
 
 std::string ContractManager::getDeployedContracts() const {
@@ -533,7 +487,7 @@ ContractManager::getContracts() const {
   return contracts;
 }
 
-void ContractManager::ContractManagerInterface::callContract(
+void ContractManagerInterface::callContract(
     const ethCallInfo &callInfo) {
   const auto &[from, to, gasLimit, gasPrice, value, data] = callInfo;
   if (value) {

@@ -18,7 +18,7 @@ void initialize(std::unique_ptr<Options>& options,
                 const PrivKey& ownerPrivKey,
                 const std::string& tokenName,
                 const std::string& tokenSymbol,
-                const uint8_t& tokenDecimals,
+                const uint256_t& tokenDecimals,
                 const uint256_t& tokenSupply,
                 bool deleteDB = true) {
   if (deleteDB) {
@@ -72,7 +72,7 @@ namespace TERC20 {
         std::string dbName = "erc20ClassConstructor";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
-        uint8_t tokenDecimals = 18;
+        uint256_t tokenDecimals = 18;
         uint256_t tokenSupply = 1000000000000000000;
         initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals, tokenSupply);
 
@@ -112,7 +112,7 @@ namespace TERC20 {
       std::string dbName = "erc20ClassConstructor";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
-      uint8_t tokenDecimals = 18;
+      uint256_t tokenDecimals = 18;
       uint256_t tokenSupply = 1000000000000000000;
       initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals, tokenSupply, false);
 
@@ -157,7 +157,7 @@ namespace TERC20 {
         std::string dbName = "erc20ClassTransfer";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
-        uint8_t tokenDecimals = 18;
+        uint256_t tokenDecimals = 18;
         uint256_t tokenSupply = 1000000000000000000;
         initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
                    tokenSupply);
@@ -232,7 +232,7 @@ namespace TERC20 {
       std::string dbName = "erc20ClassTransfer";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
-      uint8_t tokenDecimals = 18;
+      uint256_t tokenDecimals = 18;
       uint256_t tokenSupply = 1000000000000000000;
       initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
                    tokenSupply, false);
@@ -267,7 +267,7 @@ namespace TERC20 {
         std::string dbName = "erc20ClassApprove";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
-        uint8_t tokenDecimals = 18;
+        uint256_t tokenDecimals = 18;
         uint256_t tokenSupply = 1000000000000000000;
         initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
                    tokenSupply);
@@ -315,7 +315,7 @@ namespace TERC20 {
       std::string dbName = "erc20ClassApprove";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
-      uint8_t tokenDecimals = 18;
+      uint256_t tokenDecimals = 18;
       uint256_t tokenSupply = 1000000000000000000;
       initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
                  tokenSupply, false);
@@ -343,7 +343,7 @@ namespace TERC20 {
         std::string dbName = "erc20ClassTransferFrom";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
-        uint8_t tokenDecimals = 18;
+        uint256_t tokenDecimals = 18;
         uint256_t tokenSupply = 1000000000000000000;
         initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
                    tokenSupply);
@@ -437,7 +437,7 @@ namespace TERC20 {
       std::string dbName = "erc20ClassTransferFrom";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
-      uint8_t tokenDecimals = 18;
+      uint256_t tokenDecimals = 18;
       uint256_t tokenSupply = 1000000000000000000;
       initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
                  tokenSupply, false);

@@ -366,13 +366,13 @@ public:
       if (this->isPayableFunction(funcName)) {
         auto func = this->payableFunctions.find(funcName);
         if (func == this->payableFunctions.end()) {
-          throw std::runtime_error("Functor not found");
+          throw std::runtime_error("Functor not found for payable function");
         }
         func->second(callInfo);
       } else {
         auto func = this->functions.find(funcName);
         if (func == this->functions.end()) {
-          throw std::runtime_error("Functor not found");
+          throw std::runtime_error("Functor not found for non-payable function");
         }
         func->second(callInfo);
       }
@@ -396,7 +396,7 @@ public:
       std::string funcName = std::get<5>(data).substr(0, 4);
       auto func = this->viewFunctions.find(funcName);
       if (func == this->viewFunctions.end()) {
-        throw std::runtime_error("Functor not found");
+        throw std::runtime_error("Functor not found for view function");
       }
       return func->second(data);
     } catch (std::exception &e) {
