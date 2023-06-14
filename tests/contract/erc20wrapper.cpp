@@ -8,7 +8,7 @@
 
 #include <filesystem>
 
-/// Forward Decleration.
+// Forward declaration.
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 void initialize(std::unique_ptr<Options>& options,

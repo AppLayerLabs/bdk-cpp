@@ -8,7 +8,7 @@
 #include "../../src/core/state.h"
 #include "../../src/core/rdpos.h"
 
-/// Forward Decleration.
+// Forward declaration.
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 void initialize(std::unique_ptr<DB>& db,

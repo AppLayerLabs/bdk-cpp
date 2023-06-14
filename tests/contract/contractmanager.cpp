@@ -6,11 +6,11 @@
 #include "../../src/utils/options.h"
 #include <filesystem>
 
-/// Forward Decleration.
+// Forward declaration.
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 namespace TContractManager {
-  /// TODO: Add more testcases for ContractManager once it's integrated with State.
+  // TODO: Add more testcases for ContractManager once it's integrated with State.
   TEST_CASE("ContractManager class", "[contract][contractmanager]") {
     SECTION("ContractManager createNewContractERC20Contract()") {
       if (std::filesystem::exists("ContractManagerTestCreateNew")) {
