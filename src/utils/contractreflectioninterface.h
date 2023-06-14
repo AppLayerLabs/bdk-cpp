@@ -35,168 +35,60 @@ extern std::unordered_map<std::string, std::string>
 extern std::unordered_map<std::string, std::vector<std::string>>
     argumentNamesMap; /// Map to store method argument names
 
-// Forward declaration of TypeToEnum struct
-template <typename T>
-struct TypeToEnum;
-
-// Helper struct to determine the ABI type based on the input type
-template <typename T>
-struct ABIType {
-  static constexpr ABI::Types value = ABI::Types::uint256;
-};
-
-// Specialization for std::vector<T>
-template <typename T>
-struct ABIType<std::vector<T>> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-// Specialization for Address
-template <>
-struct ABIType<Address> {
-  static constexpr ABI::Types value = ABI::Types::address;
-};
-
-// Specialization for bool
-template <>
-struct ABIType<bool> {
-  static constexpr ABI::Types value = ABI::Types::boolean;
-};
-
-// Specialization for std::string
-template <>
-struct ABIType<std::string> {
-  static constexpr ABI::Types value = ABI::Types::string;
-};
-
-// Helper struct to map a type to an ABI type
-template <typename T>
-struct TypeToEnum {
-  static constexpr ABI::Types value = ABIType<T>::value;
-};
-
-// Specializations for reference types and const reference types
-template <typename T>
-struct TypeToEnum<T&> : TypeToEnum<T> {};
-
-template <typename T>
-struct TypeToEnum<const T&> : TypeToEnum<T> {};
-
-// Specializations for vector reference types and const reference types
-template <typename T>
-struct TypeToEnum<std::vector<T>&> : TypeToEnum<std::vector<T>> {};
-
-template <typename T>
-struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
-
 /**
  * This map is used to map a type to an ABI type.
  *
  */
 static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
-    {meta::resolve_type<uint256_t>(), TypeToEnum<uint256_t>::value},
-    {meta::resolve_type<uint256_t &>(), TypeToEnum<uint256_t &>::value},
-    {meta::resolve_type<const uint256_t &>(), TypeToEnum<const uint256_t &>::value},
-    {meta::resolve_type<std::vector<uint256_t>>(), TypeToEnum<std::vector<uint256_t>>::value},
-    {meta::resolve_type<std::vector<uint256_t> &>(), TypeToEnum<std::vector<uint256_t> &>::value},
-    {meta::resolve_type<const std::vector<uint256_t> &>(), TypeToEnum<const std::vector<uint256_t> &>::value},
-    {meta::resolve_type<uint8_t>(), TypeToEnum<uint8_t>::value},
-    {meta::resolve_type<uint8_t &>(), TypeToEnum<uint8_t &>::value},
-    {meta::resolve_type<const uint8_t &>(), TypeToEnum<const uint8_t &>::value},
-    {meta::resolve_type<std::vector<uint8_t>>(), TypeToEnum<std::vector<uint8_t>>::value},
-    {meta::resolve_type<std::vector<uint8_t> &>(), TypeToEnum<std::vector<uint8_t> &>::value},
-    {meta::resolve_type<const std::vector<uint8_t> &>(), TypeToEnum<const std::vector<uint8_t> &>::value},
-    {meta::resolve_type<uint16_t>(), TypeToEnum<uint16_t>::value},
-    {meta::resolve_type<uint16_t &>(), TypeToEnum<uint16_t &>::value},
-    {meta::resolve_type<const uint16_t &>(), TypeToEnum<const uint16_t &>::value},
-    {meta::resolve_type<std::vector<uint16_t>>(), TypeToEnum<std::vector<uint16_t>>::value},
-    {meta::resolve_type<std::vector<uint16_t> &>(), TypeToEnum<std::vector<uint16_t> &>::value},
-    {meta::resolve_type<const std::vector<uint16_t> &>(), TypeToEnum<const std::vector<uint16_t> &>::value},
-    {meta::resolve_type<uint32_t>(), TypeToEnum<uint32_t>::value},
-    {meta::resolve_type<uint32_t &>(), TypeToEnum<uint32_t &>::value},
-    {meta::resolve_type<const uint32_t &>(), TypeToEnum<const uint32_t &>::value},
-    {meta::resolve_type<std::vector<uint32_t>>(), TypeToEnum<std::vector<uint32_t>>::value},
-    {meta::resolve_type<std::vector<uint32_t> &>(), TypeToEnum<std::vector<uint32_t> &>::value},
-    {meta::resolve_type<const std::vector<uint32_t> &>(), TypeToEnum<const std::vector<uint32_t> &>::value},
-    {meta::resolve_type<uint64_t>(), TypeToEnum<uint64_t>::value},
-    {meta::resolve_type<uint64_t &>(), TypeToEnum<uint64_t &>::value},
-    {meta::resolve_type<const uint64_t &>(), TypeToEnum<const uint64_t &>::value},
-    {meta::resolve_type<std::vector<uint64_t>>(), TypeToEnum<std::vector<uint64_t>>::value},
-    {meta::resolve_type<std::vector<uint64_t> &>(), TypeToEnum<std::vector<uint64_t> &>::value},
-    {meta::resolve_type<const std::vector<uint64_t> &>(), TypeToEnum<const std::vector<uint64_t> &>::value},
+    {meta::resolve_type<uint256_t>(), ABI::TypeToEnum<uint256_t>::value},
+    {meta::resolve_type<uint256_t &>(), ABI::TypeToEnum<uint256_t &>::value},
+    {meta::resolve_type<const uint256_t &>(), ABI::TypeToEnum<const uint256_t &>::value},
+    {meta::resolve_type<std::vector<uint256_t>>(), ABI::TypeToEnum<std::vector<uint256_t>>::value},
+    {meta::resolve_type<std::vector<uint256_t> &>(), ABI::TypeToEnum<std::vector<uint256_t> &>::value},
+    {meta::resolve_type<const std::vector<uint256_t> &>(), ABI::TypeToEnum<const std::vector<uint256_t> &>::value},
+    {meta::resolve_type<uint8_t>(), ABI::TypeToEnum<uint8_t>::value},
+    {meta::resolve_type<uint8_t &>(), ABI::TypeToEnum<uint8_t &>::value},
+    {meta::resolve_type<const uint8_t &>(), ABI::TypeToEnum<const uint8_t &>::value},
+    {meta::resolve_type<std::vector<uint8_t>>(), ABI::TypeToEnum<std::vector<uint8_t>>::value},
+    {meta::resolve_type<std::vector<uint8_t> &>(), ABI::TypeToEnum<std::vector<uint8_t> &>::value},
+    {meta::resolve_type<const std::vector<uint8_t> &>(), ABI::TypeToEnum<const std::vector<uint8_t> &>::value},
+    {meta::resolve_type<uint16_t>(), ABI::TypeToEnum<uint16_t>::value},
+    {meta::resolve_type<uint16_t &>(), ABI::TypeToEnum<uint16_t &>::value},
+    {meta::resolve_type<const uint16_t &>(), ABI::TypeToEnum<const uint16_t &>::value},
+    {meta::resolve_type<std::vector<uint16_t>>(), ABI::TypeToEnum<std::vector<uint16_t>>::value},
+    {meta::resolve_type<std::vector<uint16_t> &>(), ABI::TypeToEnum<std::vector<uint16_t> &>::value},
+    {meta::resolve_type<const std::vector<uint16_t> &>(), ABI::TypeToEnum<const std::vector<uint16_t> &>::value},
+    {meta::resolve_type<uint32_t>(), ABI::TypeToEnum<uint32_t>::value},
+    {meta::resolve_type<uint32_t &>(), ABI::TypeToEnum<uint32_t &>::value},
+    {meta::resolve_type<const uint32_t &>(), ABI::TypeToEnum<const uint32_t &>::value},
+    {meta::resolve_type<std::vector<uint32_t>>(), ABI::TypeToEnum<std::vector<uint32_t>>::value},
+    {meta::resolve_type<std::vector<uint32_t> &>(), ABI::TypeToEnum<std::vector<uint32_t> &>::value},
+    {meta::resolve_type<const std::vector<uint32_t> &>(), ABI::TypeToEnum<const std::vector<uint32_t> &>::value},
+    {meta::resolve_type<uint64_t>(), ABI::TypeToEnum<uint64_t>::value},
+    {meta::resolve_type<uint64_t &>(), ABI::TypeToEnum<uint64_t &>::value},
+    {meta::resolve_type<const uint64_t &>(), ABI::TypeToEnum<const uint64_t &>::value},
+    {meta::resolve_type<std::vector<uint64_t>>(), ABI::TypeToEnum<std::vector<uint64_t>>::value},
+    {meta::resolve_type<std::vector<uint64_t> &>(), ABI::TypeToEnum<std::vector<uint64_t> &>::value},
+    {meta::resolve_type<const std::vector<uint64_t> &>(), ABI::TypeToEnum<const std::vector<uint64_t> &>::value},
     // TODO: Add support for uint128_t
-    {meta::resolve_type<Address>(), TypeToEnum<Address>::value},
-    {meta::resolve_type<Address &>(), TypeToEnum<Address &>::value},
-    {meta::resolve_type<const Address &>(), TypeToEnum<const Address &>::value},
-    {meta::resolve_type<std::vector<Address>>(), TypeToEnum<std::vector<Address>>::value},
-    {meta::resolve_type<std::vector<Address> &>(), TypeToEnum<std::vector<Address> &>::value},
-    {meta::resolve_type<const std::vector<Address> &>(), TypeToEnum<const std::vector<Address> &>::value},
-    {meta::resolve_type<bool>(), TypeToEnum<bool>::value},
-    {meta::resolve_type<bool &>(), TypeToEnum<bool &>::value},
-    {meta::resolve_type<const bool &>(), TypeToEnum<const bool &>::value},
-    {meta::resolve_type<std::vector<bool>>(), TypeToEnum<std::vector<bool>>::value},
-    {meta::resolve_type<std::vector<bool> &>(), TypeToEnum<std::vector<bool> &>::value},
-    {meta::resolve_type<const std::vector<bool> &>(), TypeToEnum<const std::vector<bool> &>::value},
-    {meta::resolve_type<std::string>(), TypeToEnum<std::string>::value},
-    {meta::resolve_type<const std::string &>(), TypeToEnum<const std::string &>::value},
-    {meta::resolve_type<std::string &>(), TypeToEnum<std::string &>::value},
-    {meta::resolve_type<std::vector<std::string>>(), TypeToEnum<std::vector<std::string>>::value},
-    {meta::resolve_type<std::vector<std::string> &>(), TypeToEnum<std::vector<std::string> &>::value},
-    {meta::resolve_type<const std::vector<std::string> &>(), TypeToEnum<const std::vector<std::string> &>::value}};
-
-/**
- * This function returns the ABI type string for a given ABI type.
- * @param type The ABI type.
- * @return The ABI type string.
- */
-std::string inline getStringFromABIEnum(ABI::Types type) {
-  const std::unordered_map<ABI::Types, std::string> typeMappings = {
-    {ABI::Types::uint256, "uint256"},
-    {ABI::Types::uint256Arr, "uint256[]"},
-    {ABI::Types::address, "address"},
-    {ABI::Types::addressArr, "address[]"},
-    {ABI::Types::boolean, "bool"},
-    {ABI::Types::booleanArr, "bool[]"},
-    {ABI::Types::bytes, "bytes"},
-    {ABI::Types::bytesArr, "bytes[]"},
-    {ABI::Types::string, "string"},
-    {ABI::Types::stringArr, "string[]"}
-  };
-
-  auto it = typeMappings.find(type);
-  if (it != typeMappings.end()) {
-    return it->second;
-  } else {
-    throw std::runtime_error("Unsupported ABI type");
-  }
-}
-
-/**
- * This function returns the ABI type for a given ABI type string.
- * @param type The ABI type string.
- * @return The ABI type.
- */
-ABI::Types inline getABIEnumFromString(const std::string& type) {
-  static const std::unordered_map<std::string, ABI::Types> typeMappings = {
-    {"uint256", ABI::Types::uint256},
-    {"uint256[]", ABI::Types::uint256Arr},
-    {"address", ABI::Types::address},
-    {"address[]", ABI::Types::addressArr},
-    {"bool", ABI::Types::boolean},
-    {"bool[]", ABI::Types::booleanArr},
-    {"bytes", ABI::Types::bytes},
-    {"bytes[]", ABI::Types::bytesArr},
-    {"string", ABI::Types::string},
-    {"string[]", ABI::Types::stringArr}
-  };
-
-  auto it = typeMappings.find(type);
-  if (it != typeMappings.end()) {
-    return it->second;
-  } else {
-    throw std::runtime_error("Invalid type");
-  }
-}
+    {meta::resolve_type<Address>(), ABI::TypeToEnum<Address>::value},
+    {meta::resolve_type<Address &>(), ABI::TypeToEnum<Address &>::value},
+    {meta::resolve_type<const Address &>(), ABI::TypeToEnum<const Address &>::value},
+    {meta::resolve_type<std::vector<Address>>(), ABI::TypeToEnum<std::vector<Address>>::value},
+    {meta::resolve_type<std::vector<Address> &>(), ABI::TypeToEnum<std::vector<Address> &>::value},
+    {meta::resolve_type<const std::vector<Address> &>(), ABI::TypeToEnum<const std::vector<Address> &>::value},
+    {meta::resolve_type<bool>(), ABI::TypeToEnum<bool>::value},
+    {meta::resolve_type<bool &>(), ABI::TypeToEnum<bool &>::value},
+    {meta::resolve_type<const bool &>(), ABI::TypeToEnum<const bool &>::value},
+    {meta::resolve_type<std::vector<bool>>(), ABI::TypeToEnum<std::vector<bool>>::value},
+    {meta::resolve_type<std::vector<bool> &>(), ABI::TypeToEnum<std::vector<bool> &>::value},
+    {meta::resolve_type<const std::vector<bool> &>(), ABI::TypeToEnum<const std::vector<bool> &>::value},
+    {meta::resolve_type<std::string>(), ABI::TypeToEnum<std::string>::value},
+    {meta::resolve_type<const std::string &>(), ABI::TypeToEnum<const std::string &>::value},
+    {meta::resolve_type<std::string &>(), ABI::TypeToEnum<std::string &>::value},
+    {meta::resolve_type<std::vector<std::string>>(), ABI::TypeToEnum<std::vector<std::string>>::value},
+    {meta::resolve_type<std::vector<std::string> &>(), ABI::TypeToEnum<std::vector<std::string> &>::value},
+    {meta::resolve_type<const std::vector<std::string> &>(), ABI::TypeToEnum<const std::vector<std::string> &>::value}};
 
 extern std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
 
@@ -218,7 +110,7 @@ void inline populateMethodArgumentsTypesMap() {
         meta::any_type type = args[i].get_type();
         auto it = typeMap.find(type);
         if (it != typeMap.end()) {
-          std::string stringType = getStringFromABIEnum(it->second);
+          std::string stringType = ABI::getStringFromABIEnum(it->second);
           argumentTypes.push_back(stringType);
         }
       }
@@ -271,7 +163,7 @@ std::vector<ABI::Types> inline getMethodArgumentsTypesABI(
   if (it != methodArgumentsTypesMap.end()) {
     std::vector<ABI::Types> types;
     for (auto const &x : it->second) {
-      types.push_back(getABIEnumFromString(x));
+      types.push_back(ABI::getABIEnumFromString(x));
     }
     return types;
   }
@@ -305,25 +197,6 @@ void inline registerContract(const std::vector<std::string> &ctorArgs,
    ...);
 
    populateMethodArgumentsTypesMap<TContract>();
-}
-
-/**
- * Template helper to check if a type is one of a list of types.
- * @tparam T The type to check.
- * @tparam Ts The list of types to check against.
- */
-template <typename T, typename... Ts>
-constexpr bool isAnyOf = (... || std::is_same_v<T, Ts>);
-
-/**
- * Template function to check if a type is a known type.
- * @tparam T The type to check.
- * @return True if the type is a known type, false otherwise.
- */
-template <typename T> constexpr bool isKnownType() {
-  return isAnyOf<T, uint256_t, std::vector<uint256_t>, Address,
-                 std::vector<Address>, bool, std::vector<bool>, std::string,
-                 std::vector<std::string>>;
 }
 
 /**
@@ -399,7 +272,7 @@ std::vector<MethodDescription> inline getConstructorDataStructure() {
 
           auto typeIt = typeMap.find(type);
           if (typeIt != typeMap.end()) {
-            std::string stringType = getStringFromABIEnum(typeIt->second);
+            std::string stringType = ABI::getStringFromABIEnum(typeIt->second);
             description.inputs.push_back({ctorArgNames[i], stringType});
           }
         }
@@ -443,7 +316,7 @@ std::vector<MethodDescription> inline getFunctionDataStructure() {
           meta::any_type type = args[i].get_type();
           auto it = typeMap.find(type);
           if (it != typeMap.end()) {
-            std::string stringType = getStringFromABIEnum(it->second);
+            std::string stringType = ABI::getStringFromABIEnum(it->second);
             description.inputs.push_back({argNames[i], stringType});
           }
         }
@@ -452,7 +325,7 @@ std::vector<MethodDescription> inline getFunctionDataStructure() {
     meta::any_type returnType = methods.get_type().get_return_type();
     auto it = typeMap.find(returnType);
     if (it != typeMap.end()) {
-      std::string stringType = getStringFromABIEnum(it->second);
+      std::string stringType = ABI::getStringFromABIEnum(it->second);
       description.outputs = {{"", stringType}};
     }
 
