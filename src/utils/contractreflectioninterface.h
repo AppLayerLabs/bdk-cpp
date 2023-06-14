@@ -27,11 +27,11 @@ struct MethodDescription {
   std::string type;
 };
 
-static std::unordered_map<std::string, std::vector<std::string>>
+extern std::unordered_map<std::string, std::vector<std::string>>
     constructorArgumentNamesMap; /// Map to store constructor argument names
-static std::unordered_map<std::string, std::string>
+extern std::unordered_map<std::string, std::string>
     methodMutabilityMap; //// Map to store method mutability
-static std::unordered_map<std::string, std::vector<std::string>>
+extern std::unordered_map<std::string, std::vector<std::string>>
     argumentNamesMap; /// Map to store method argument names
 
 /**
@@ -522,7 +522,7 @@ ABI::Types inline getABIEnumFromString(const std::string& type) {
   }
 }
 
-static std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
+extern std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
 
 /**
  * This function populates the constructor argument names map.
