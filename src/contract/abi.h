@@ -153,7 +153,7 @@ namespace ABI {
        * @param data The Solidity data bytes to decode.
        * @start The index of the vector to start decoding from.
        * @return The decoded 256-bit unsigned integer.
-       *@throws std::runtime_error if data is too short.
+       *@throw std::runtime_error if data is too short.
        */
       uint256_t decodeUint256(const BytesArrView data, const uint64_t& start) const;
 
@@ -163,7 +163,7 @@ namespace ABI {
        * @param data The Solidity data bytes to decode.
        * @start The index of the vector to start decoding from.
        * @return The decoded 20-byte address.
-       *@throws std::runtime_error if data is too short.
+       *@throw std::runtime_error if data is too short.
        */
       Address decodeAddress(const BytesArrView data, const uint64_t& start) const;
 
@@ -173,7 +173,7 @@ namespace ABI {
        * @param data The Solidity data bytes to decode.
        * @start The index of the vector to start decoding from.
        * @return The decoded boolean.
-       *@throws std::runtime_error if data is too short.
+       *@throw std::runtime_error if data is too short.
        */
       bool decodeBool(const BytesArrView data, const uint64_t& start) const;
 
@@ -199,7 +199,7 @@ namespace ABI {
        * @param data The Solidity data bytes to decode.
        * @param start The index of the vector to start decoding from.
        * @return The decoded string
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::string decodeString(const BytesArrView data, const uint64_t& start) const;
 
@@ -209,7 +209,7 @@ namespace ABI {
        * @param data The Solidity data bytes to decode.
        * @param start The index of the vector to start decoding from.
        * @return The decoded 256-bit unsigned integer array.
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::vector<uint256_t> decodeUint256Arr(
         const BytesArrView data, const uint64_t& start
@@ -221,7 +221,7 @@ namespace ABI {
        * @param data The Solidity data bytes to decode.
        * @param start The index of the vector to start decoding from.
        * @return The decoded 20-byte address array.
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::vector<Address> decodeAddressArr(
         const BytesArrView data, const uint64_t& start
@@ -233,7 +233,7 @@ namespace ABI {
        * @param data The Solidity data bytes to decode.
        * @param start The index of the vector to start decoding from.
        * @return The decoded boolean array.
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::vector<bool> decodeBoolArr(
         const BytesArrView data, const uint64_t& start
@@ -245,7 +245,7 @@ namespace ABI {
        * @param data The Solidity data bytes to decode.
        * @param start The index of the vector to start decoding from.
        * @return The decoded raw bytes.
-       * @throws std::runtime_error if data is too short.
+       * @throw std::runtime_error if data is too short.
        */
       std::vector<Bytes> decodeBytesArr(
         const BytesArrView data, const uint64_t& start
@@ -257,7 +257,7 @@ namespace ABI {
         * @param data The Solidity data bytes to decode.
         * @param start The index of the vector to start decoding from.
         * @return The decoded raw bytes.
-        * @throws std::runtime_error if data is too short.
+        * @throw std::runtime_error if data is too short.
         */
       std::vector<std::string> decodeStringArr(
         const BytesArrView data, const uint64_t& start
@@ -275,8 +275,8 @@ namespace ABI {
        * Get a specific data type from the decoded `data` list.
        * @param index The index of the data type to get.
        * @return The decoded data type.
-       * @throws std::out_of_range if index is out of range.
-       * @throws std::runtime_error if type mismatch.
+       * @throw std::out_of_range if index is out of range.
+       * @throw std::runtime_error if type mismatch.
        */
       template <typename T> T getData(const uint64_t &index) const {
         if (index >= this->data_.size()) throw std::out_of_range("Index out of range");

@@ -48,10 +48,10 @@ ContractManager::~ContractManager() {
 }
 
 Address ContractManager::deriveContractAddress(const ethCallInfo& callInfo) const {
-  /// Contract address = sha3(rlp(tx.from() + tx.nonce()).substr(12);
+  // Contract address = sha3(rlp(tx.from() + tx.nonce()).substr(12);
   uint8_t rlpSize = 0xc0;
   rlpSize += this->getCaller().size();
-  /// As we don't have actually access to the nonce, we will use the number of contracts existing in the chain
+  // As we don't have actually access to the nonce, we will use the number of contracts existing in the chain
   rlpSize += (this->contracts.size() < 0x80) ? 1 : 1 + Utils::bytesRequired(this->contracts.size());
   Bytes rlp;
   rlp.insert(rlp.end(), rlpSize);
@@ -77,16 +77,16 @@ void ContractManager::createNewERC20Contract(const ethCallInfo& callInfo) {
     }
   }
 
-  /// Parse the constructor ABI
+  // Parse the constructor ABI
   std::vector<ABI::Types> types = { ABI::Types::string, ABI::Types::string, ABI::Types::uint256, ABI::Types::uint256};
   ABI::Decoder decoder(types, std::get<6>(callInfo));
 
-  /// Check if decimals are within range
+  // Check if decimals are within range
   if (decoder.getData<uint256_t>(2) > 255) {
     throw std::runtime_error("Decimals must be between 0 and 255");
   }
 
-  /// Create the contract
+  // Create the contract
   this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20>(decoder.getData<std::string>(0),
                                                                                         decoder.getData<std::string>(1),
                                                                                         uint8_t(decoder.getData<uint256_t>(2)),
@@ -103,7 +103,7 @@ void ContractManager::validateCreateNewERC20Contract(const ethCallInfo &callInfo
   if (this->caller != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can create new contracts");
   }
-  /// Check if desired contract address already exists
+  // Check if desired contract address already exists
   const auto derivedContractAddress = this->deriveContractAddress(callInfo);
   {
     std::shared_lock lock(this->contractsMutex);
@@ -134,7 +134,7 @@ void ContractManager::createNewERC20WrapperContract(const ethCallInfo& callInfo)
   if (this->caller != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can create new contracts");
   }
-  /// Check if desired contract address already exists
+  // Check if desired contract address already exists
   const auto derivedContractAddress = this->deriveContractAddress(callInfo);
   if (this->contracts.contains(derivedContractAddress)) {
     throw std::runtime_error("Contract already exists");
@@ -158,7 +158,7 @@ void ContractManager::validateCreateNewERC20WrapperContract(const ethCallInfo& c
   if (this->caller != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can create new contracts");
   }
-  /// Check if desired contract address already exists
+  // Check if desired contract address already exists
   const auto derivedContractAddress = this->deriveContractAddress(callInfo);
   if (this->contracts.contains(derivedContractAddress)) {
     throw std::runtime_error("Contract already exists");
@@ -176,7 +176,7 @@ void ContractManager::createNewERC20NativeWrapperContract(const ethCallInfo& cal
   if (this->caller != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can create new contracts");
   }
-  /// Check if desired contract address already exists
+  // Check if desired contract address already exists
   const auto derivedContractAddress = this->deriveContractAddress(callInfo);
   if (this->contracts.contains(derivedContractAddress)) {
     throw std::runtime_error("Contract already exists");
@@ -189,16 +189,16 @@ void ContractManager::createNewERC20NativeWrapperContract(const ethCallInfo& cal
     }
   }
 
-  /// Parse the constructor ABI
+  // Parse the constructor ABI
   std::vector<ABI::Types> types = { ABI::Types::string, ABI::Types::string, ABI::Types::uint256 };
   ABI::Decoder decoder(types, std::get<6>(callInfo));
 
-  /// Check if decimals are within range
+  // Check if decimals are within range
   if (decoder.getData<uint256_t>(2) > 255) {
     throw std::runtime_error("Decimals must be between 0 and 255");
   }
 
-  /// Create the contract
+  // Create the contract
   this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<NativeWrapper>(decoder.getData<std::string>(0),
                                                                                         decoder.getData<std::string>(1),
                                                                                         uint8_t(decoder.getData<uint256_t>(2)),
@@ -213,7 +213,7 @@ void ContractManager::validateCreateNewERC20NativeWrapperContract(const ethCallI
   if (this->caller != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can create new contracts");
   }
-  /// Check if desired contract address already exists
+  // Check if desired contract address already exists
   const auto derivedContractAddress = this->deriveContractAddress(callInfo);
   if (this->contracts.contains(derivedContractAddress)) {
     throw std::runtime_error("Contract already exists");
@@ -226,11 +226,11 @@ void ContractManager::validateCreateNewERC20NativeWrapperContract(const ethCallI
     }
   }
 
-  /// Parse the constructor ABI
+  // Parse the constructor ABI
   std::vector<ABI::Types> types = { ABI::Types::string, ABI::Types::string, ABI::Types::uint256 };
   ABI::Decoder decoder(types, std::get<6>(callInfo));
 
-  /// Check if decimals are within range
+  // Check if decimals are within range
   if (decoder.getData<uint256_t>(2) > 255) {
     throw std::runtime_error("Decimals must be between 0 and 255");
   }
@@ -378,7 +378,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
   try {
     if (this->getValue()) {
-      /// Payable, we need to "add" the balance to the contract
+      // Payable, we need to "add" the balance to the contract
       this->interface.populateBalance(to);
       this->balances[to] += value;
     }

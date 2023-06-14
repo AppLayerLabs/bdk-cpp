@@ -1,6 +1,6 @@
 #include "erc20.h"
 
-/// Default Constructor when loading contract from DB.
+// Default Constructor when loading contract from DB.
 ERC20::ERC20(ContractManager::ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
   DynamicContract(interface, address, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
 

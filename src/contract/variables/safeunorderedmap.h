@@ -22,7 +22,7 @@ private:
   mutable std::unique_ptr<std::unordered_map<Key, T, SafeHash>> mapPtr; ///< Pointer to the value.
   mutable std::unique_ptr<std::unordered_set<Key, SafeHash>> erasedKeys; ///< Pointer to the set of erased keys.
 
-  /// Check if pointers are initialized (and initialize them if not).
+  ///< Check if pointers are initialized (and initialize them if not).
   inline void check() const override {
     if (mapPtr == nullptr) mapPtr = std::make_unique<std::unordered_map<Key, T, SafeHash>>();
     if (erasedKeys == nullptr) erasedKeys = std::make_unique<std::unordered_set<Key, SafeHash>>();
@@ -106,7 +106,7 @@ public:
   SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {})
     : SafeBase(nullptr), mapPtr(std::make_unique<std::unordered_map<Key, T, SafeHash>>(map)) {}
 
-  /// Copy constructor.
+  ///< Copy constructor.
   SafeUnorderedMap(const SafeUnorderedMap& other) : SafeBase(nullptr) {
     other.check();
     map = other.map;
@@ -155,7 +155,7 @@ public:
     registered = false;
   }
 
-  /// Revert the value. Nullifies the pointers and unregisters the variable.
+  ///< Revert the value. Nullifies the pointers and unregisters the variable.
   void revert() const override { mapPtr = nullptr; erasedKeys = nullptr; registered = false; }
 
   /**
