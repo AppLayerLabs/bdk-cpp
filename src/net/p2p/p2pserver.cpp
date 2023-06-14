@@ -12,7 +12,9 @@ namespace P2P {
 
   void ServerSession::handleError(const std::string& func, const beast::error_code& ec) {
     if (!this->closed_) {
-      Utils::logToDebug(Log::P2PServer, func, "Server Error Code: " + std::to_string(ec.value()) + " message: " + ec.message());
+      Utils::logToDebug(Log::P2PServer, func,
+        "Server Error Code: " + std::to_string(ec.value()) + " message: " + ec.message()
+      );
       this->manager_.unregisterSession(shared_from_this());
       this->closed_ = true;
     }
@@ -31,7 +33,10 @@ namespace P2P {
     }));
 
     // Accept the websocket handshake
-    http::async_read(ws_.next_layer(), buffer_, upgrade_request_, beast::bind_front_handler(&ServerSession::accept, shared_from_this()));
+    http::async_read(
+      ws_.next_layer(), buffer_, upgrade_request_,
+      beast::bind_front_handler(&ServerSession::accept, shared_from_this())
+    );
   }
 
   void ServerSession::accept(beast::error_code ec, size_t bytes_transferred) {
@@ -41,36 +46,53 @@ namespace P2P {
     try {
       this->hostNodeId_ = Hash(Hex::toBytes(std::string(this->upgrade_request_["X-Node-Id"])));
     } catch (std::exception &e) {
-      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Id header is not valid from: " + this->host_ + " at " + std::to_string(this->port_));
+      Utils::logToDebug(Log::P2PServer, __func__,
+        "ServerSession: X-Node-Id header is not valid from: "
+        + this->host_ + " at " + std::to_string(this->port_)
+      );
     }
 
     std::string nodeTypeStr = std::string(this->upgrade_request_["X-Node-Type"]);
     if (nodeTypeStr.size() == 1) {
       if (!std::isdigit(nodeTypeStr[0])) {
-        Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Type header is not a valid digit from " + this->hostNodeId_.hex().get());
+        Utils::logToDebug(Log::P2PServer, __func__,
+          "ServerSession: X-Node-Type header is not a valid digit from "
+          + this->hostNodeId_.hex().get()
+        );
         return;
       }
       this->hostType_ = (NodeType)std::stoi(nodeTypeStr);
     } else {
-      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-Type header is not valid from " + this->hostNodeId_.hex().get());
+      Utils::logToDebug(Log::P2PServer, __func__,
+        "ServerSession: X-Node-Type header is not valid from "
+        + this->hostNodeId_.hex().get()
+      );
       return;
     }
 
     std::string serverPortStr = std::string(this->upgrade_request_["X-Node-ServerPort"]);
     if (serverPortStr.size() > 0) {
       if (!std::all_of(serverPortStr.begin(), serverPortStr.end(), ::isdigit)) {
-        Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-ServerPort header is not a valid digit from " + this->hostNodeId_.hex().get());
+        Utils::logToDebug(Log::P2PServer, __func__,
+          "ServerSession: X-Node-ServerPort header is not a valid digit from "
+          + this->hostNodeId_.hex().get()
+        );
         return;
       }
       this->hostServerPort_ = std::stoi(serverPortStr);
     } else {
-      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession: X-Node-ServerPort header is not valid from " + this->hostNodeId_.hex().get());
+      Utils::logToDebug(Log::P2PServer, __func__,
+        "ServerSession: X-Node-ServerPort header is not valid from "
+        + this->hostNodeId_.hex().get()
+      );
       return;
     }
 
     buffer_.consume(buffer_.size());
     Utils::logToFile("Server: async_accept");
-    ws_.async_accept(upgrade_request_, beast::bind_front_handler(&ServerSession::on_accept, shared_from_this()));
+    ws_.async_accept(upgrade_request_, beast::bind_front_handler(
+      &ServerSession::on_accept, shared_from_this()
+    ));
   }
 
   void ServerSession::on_accept(beast::error_code ec) {
@@ -88,22 +110,24 @@ namespace P2P {
     boost::ignore_unused(bytes_transferred);
     //std::cout << "Request received!" << std::endl;
     if (ec) { handleError(__func__, ec); return; }
-
     try {
       if (buffer_.size() >= 11) {
-        if (this->manager_.isClosed())  {
-          return;
-        }
+        if (this->manager_.isClosed()) return;
         std::string messageStr = boost::beast::buffers_to_string(buffer_.data());
         Message message(std::move(messageStr));
         this->threadPool->push_task(
           &ManagerBase::handleMessage, &this->manager_, shared_from_this(), message
         );
       } else {
-        Utils::logToDebug(Log::P2PServer, __func__, "Message too short: " + this->hostNodeId_.hex().get() + " too short");
+        Utils::logToDebug(Log::P2PServer, __func__,
+          "Message too short: " + this->hostNodeId_.hex().get() + " too short"
+        );
       }
     } catch (std::exception &e) {
-      Utils::logToDebug(Log::P2PServer, __func__, "ServerSession exception from: " + this->hostNodeId_.hex().get() + " " + std::string(e.what()));
+      Utils::logToDebug(Log::P2PServer, __func__,
+        "ServerSession exception from: " + this->hostNodeId_.hex().get()
+        + " " + std::string(e.what())
+      );
     }
     buffer_.consume(buffer_.size());
     read();
@@ -115,7 +139,9 @@ namespace P2P {
     if (ws_.is_open()) { // Check if the stream is open, before commiting to it.
       // Copy string to buffer
       writeLock_.lock();
-      size_t n = boost::asio::buffer_copy(this->answerBuffer_.prepare(response.raw().size()), boost::asio::buffer(response.raw()));
+      size_t n = boost::asio::buffer_copy(
+        this->answerBuffer_.prepare(response.raw().size()), boost::asio::buffer(response.raw())
+      );
       this->answerBuffer_.commit(n);
       // Write to the socket
       ws_.async_write(this->answerBuffer_.data(), beast::bind_front_handler(
@@ -145,9 +171,7 @@ namespace P2P {
     Utils::logToFile("Server Session disconnected: " + host_ + ":" + std::to_string(port_));
   }
 
-  void Server::listener::run() {
-    accept();
-  }
+  void Server::listener::run() { accept(); }
 
   void Server::listener::accept() {
     // The new connection gets its own strand
@@ -158,7 +182,9 @@ namespace P2P {
 
   void Server::listener::on_accept(beast::error_code ec, tcp::socket socket) {
     if (ec) {
-      Utils::logToDebug(Log::P2PServerListener, __func__, "Server listener error: " + ec.message());
+      Utils::logToDebug(Log::P2PServerListener, __func__,
+        "Server listener error: " + ec.message()
+      );
       return; // Close the listener regardless of the error
     } else {
       std::make_shared<ServerSession>(
@@ -187,7 +213,9 @@ namespace P2P {
   }
 
   bool Server::run() {
-    Utils::logToDebug(Log::P2PServer, __func__, "Starting server on " + this->address.to_string() + ":" + std::to_string(this->port));
+    Utils::logToDebug(Log::P2PServer, __func__,
+      "Starting server on " + this->address.to_string() + ":" + std::to_string(this->port)
+    );
     // Restart is needed to .run() the ioc again, otherwise it returns instantly.
 
     ioc.restart();

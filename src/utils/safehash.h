@@ -20,7 +20,7 @@
  * `uint64_t`, but it's better than nothing since nodes keep different hashes.
  */
 struct SafeHash {
-  using clock = std::chrono::steady_clock;
+  using clock = std::chrono::steady_clock;  ///< Typedef for a less verbose clock.
 
   /**
    * %Hash a given unsigned integer.

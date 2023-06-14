@@ -22,10 +22,13 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20wrapper.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/nativewrapper.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/contractabigenerator.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint8_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint16_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint32_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint64_t.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint128_t.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint160_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint256_t.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safestring.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp

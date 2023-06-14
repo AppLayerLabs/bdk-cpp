@@ -214,8 +214,10 @@ namespace P2P {
 
       /**
        * Handle a message from a session.
-       * The shared_ptr here is not a reference because handleMessage is called from another thread, requiring a copy of the pointer.
-       * Other handler functions are called from the same thread (from handleMessage) and therefore can use a reference.
+       * The shared_ptr here is not a reference because handleMessage
+       * is called from another thread, requiring a copy of the pointer.
+       * Other handler functions are called from the same thread
+       * (from handleMessage) and therefore can use a reference.
        * Overriden by inherited object.
        * @param session The session to send an answer to.
        * @param message The message to handle.

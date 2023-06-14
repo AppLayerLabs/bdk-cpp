@@ -312,9 +312,7 @@ const std::tuple<
       std::shared_lock<std::shared_mutex> lock(this->chainLock);
       const auto& [blockHash, blockIndex, blockHeight] = this->txByHash.find(tx)->second;
       const auto transaction = blockByHash[blockHash]->getTxs()[blockIndex];
-      if (transaction.hash() != tx) {
-        throw std::runtime_error("Tx hash mismatch");
-      }
+      if (transaction.hash() != tx) throw std::runtime_error("Tx hash mismatch");
       return {std::make_shared<const TxBlock>(transaction), blockHash, blockIndex, blockHeight};
     }
     case StorageStatus::OnCache: {
