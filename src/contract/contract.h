@@ -69,8 +69,7 @@ class ContractLocals : public ContractGlobals {
 class BaseContract : public ContractLocals {
 private:
   /* Contract-specific variables */
-  std::string contractName; ///< Name of the contract, used to identify the
-                            ///< Contract Class.
+  std::string contractName; ///< Name of the contract, used to identify the Contract Class.
   Bytes dbPrefix;           ///< Prefix for the contract DB.
   Address contractAddress;  ///< Address where the contract is deployed.
   Address contractCreator;  ///< Address of the creator of the contract.
@@ -159,10 +158,7 @@ public:
     /// Getter for `contractName`.
     const std::string& getContractName() const { return this->contractName; }
 
-    /**
-     * Getter for `dbPrefix`.
-     * @return The contract dbPrefix.
-     */
+    /// Getter for `dbPrefix`.
     const Bytes &getDBPrefix() const { return this->dbPrefix; }
 
     /**

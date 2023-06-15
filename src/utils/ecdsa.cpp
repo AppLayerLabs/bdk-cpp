@@ -13,21 +13,16 @@ UPubKey Secp256k1::recover(const Signature& sig, const Hash& msg) {
   auto* ctx = Secp256k1::getCtx();
 
   secp256k1_ecdsa_recoverable_signature rawSig;
-  if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
-    ctx, &rawSig, sig.raw(), v
-  )) return UPubKey();
+  if (!secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &rawSig, sig.raw(), v))
+    return UPubKey();
 
   secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig,
-                               msg.raw()
-  )) return UPubKey();
+  if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig, msg.raw()))
+    return UPubKey();
 
   BytesArr<65> serializedPubkey;
   size_t serializedPubkeySize = serializedPubkey.size();
-  secp256k1_ec_pubkey_serialize(
-    ctx, serializedPubkey.data(),
-    &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED
-  );
+  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
 
   assert(serializedPubkeySize == serializedPubkey.size());
   assert(serializedPubkey[0] == 0x04); // Expect single byte header of value 0x04 = uncompressed pubkey
@@ -59,16 +54,12 @@ UPubKey Secp256k1::toUPub(const PrivKey& key) {
   auto* ctx = Secp256k1::getCtx();
 
   secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ec_pubkey_create(
-    ctx, &rawPubkey, key.raw()
-  )) return UPubKey();
+  if (!secp256k1_ec_pubkey_create(ctx, &rawPubkey, key.raw()))
+    return UPubKey();
 
   BytesArr<65> serializedPubkey;
   auto serializedPubkeySize = serializedPubkey.size();
-  secp256k1_ec_pubkey_serialize(
-    ctx, serializedPubkey.data(),
-    &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED
-  );
+  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
 
   // Expect single byte header of value 0x04 = uncompressed pubkey
   assert(serializedPubkey.size() == serializedPubkeySize);
@@ -80,16 +71,12 @@ UPubKey Secp256k1::toUPub(const PubKey& key) {
   auto* ctx = Secp256k1::getCtx();
 
   secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ec_pubkey_parse(
-    ctx, &rawPubkey, key.raw(), key.size()
-  )) return UPubKey();
+  if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey, key.raw(), key.size()))
+    return UPubKey();
 
   BytesArr<65> serializedPubkey;
   auto serializedPubkeySize = serializedPubkey.size();
-  secp256k1_ec_pubkey_serialize(
-    ctx, serializedPubkey.data(),
-    &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED
-  );
+  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_UNCOMPRESSED);
 
   // Expect single byte header of value 0x04 = uncompressed pubkey
   assert(serializedPubkey.size() == serializedPubkeySize);
@@ -101,16 +88,12 @@ PubKey Secp256k1::toPub(const PrivKey& key) {
   auto* ctx = Secp256k1::getCtx();
 
   secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ec_pubkey_create(
-    ctx, &rawPubkey, key.raw()
-  )) return PubKey();
+  if (!secp256k1_ec_pubkey_create(ctx, &rawPubkey, key.raw()))
+    return PubKey();
 
   BytesArr<33> serializedPubkey;
   auto serializedPubkeySize = serializedPubkey.size();
-  secp256k1_ec_pubkey_serialize(
-    ctx, serializedPubkey.data(),
-    &serializedPubkeySize, &rawPubkey, SECP256K1_EC_COMPRESSED
-  );
+  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(), &serializedPubkeySize, &rawPubkey, SECP256K1_EC_COMPRESSED);
 
   // Expect single byte header of value 0x02 or 0x03 == compressed pubkey
   assert(serializedPubkey.size() == serializedPubkeySize);
@@ -131,19 +114,14 @@ Signature Secp256k1::sign(const Hash& msg, const PrivKey& key) {
   auto* ctx = Secp256k1::getCtx();
 
   secp256k1_ecdsa_recoverable_signature rawSig;
-  if (!secp256k1_ecdsa_sign_recoverable(ctx, &rawSig,
-    msg.raw(),
-    key.raw(),
-    nullptr, nullptr
-  )) return Signature();
+  if (!secp256k1_ecdsa_sign_recoverable(ctx, &rawSig, msg.raw(), key.raw(), nullptr, nullptr))
+    return Signature();
 
   int v = 0;
 
 
   BytesArr<64> sig;
-  secp256k1_ecdsa_recoverable_signature_serialize_compact(
-    ctx, sig.data(), &v, &rawSig
-  );
+  secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, sig.data(), &v, &rawSig);
 
   auto sigView = Utils::create_view_span(sig);
   uint8_t rawV = v;
@@ -163,23 +141,14 @@ bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig
   auto* ctx = Secp256k1::getCtx();
 
   secp256k1_ecdsa_signature rawSig;
-  if (!secp256k1_ecdsa_signature_parse_compact(
-    ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.raw())
-  )) {
+  if (!secp256k1_ecdsa_signature_parse_compact(ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.raw())))
     return false;
-  }
 
   secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey,
-                                 reinterpret_cast<const unsigned char*>(key.raw()), key.size()
-  )) {
+  if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.raw()), key.size()))
     return false;
-  }
 
-  int ret = secp256k1_ecdsa_verify(ctx, &rawSig,
-                                   reinterpret_cast<const unsigned char*>(msg.raw()), &rawPubkey
-  );
-
+  int ret = secp256k1_ecdsa_verify(ctx, &rawSig, reinterpret_cast<const unsigned char*>(msg.raw()), &rawPubkey);
   return ret;
 }
 

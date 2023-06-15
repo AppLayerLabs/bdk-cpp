@@ -130,7 +130,11 @@ public:
     checkKeyAndCopy(key); markAsUsed(); return mapPtr->find(key);
   }
 
-  /// Const overload of find().
+  /**
+   * Find a given key.
+   * @param key The key to find.
+   * @return An const iterator to the found key and its value.
+   */
   const typename std::unordered_map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
     checkKeyAndCopy(key); return mapPtr->find(key);
   }
@@ -197,8 +201,11 @@ public:
    */
   inline bool empty() const noexcept { check(); return (map.empty() || mapPtr->empty()); }
 
-  // TODO: This can only be used within a view/const function.
-  /// Get the number of items in the map.
+  /**
+   * Get the size of the original map.
+   * ATTENTION: Only use this with care, it only return the size of the original map..
+   * @return The size of the original map.
+   */
   inline size_t size() const noexcept { check(); return map.size(); }
 
   // TODO: Find a way to implement loops, clear and iterators.

@@ -8,15 +8,11 @@
 
 #include "hex.h"
 
-/**
- * Abstraction of a fixed-size bytes container (`FixedBytes<10>` would have
- * *exactly* 10 characters, no more, no less).
- * This class is used as a base for both classes inheriting it
- * (e.g. Hash, Signature, etc.) and aliases (e.g. PrivKey, PubKey, etc.).
- */
 
 // TODO:
 // It is possible to implement **fast** operators for some types, such as Address, Functor and Hash.
+// Taking advantage that memory located within the array are contiguous, we can cast the data to
+// a pointer of native types (such as uint64_t*) and compare them faster than using a for loop.
 // See the following example:
 // /// Fast equality operator for h256.
 // template<> inline bool FixedHash<32>::operator==(FixedHash<32> const& _other) const
@@ -26,6 +22,12 @@
 //   return (hash1[0] == hash2[0]) && (hash1[1] == hash2[1]) && (hash1[2] == hash2[2]) && (hash1[3] == hash2[3]);
 // }
 
+/**
+ * Abstraction of a fixed-size bytes container (`FixedBytes<10>` would have
+ * *exactly* 10 characters, no more, no less).
+ * This class is used as a base for both classes inheriting it
+ * (e.g. Hash, Signature, etc.) and aliases (e.g. PrivKey, PubKey, etc.).
+ */
 
 template <unsigned N> class FixedBytes {
   protected:

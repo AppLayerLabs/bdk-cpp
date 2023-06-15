@@ -13,24 +13,23 @@ ContractManager::ContractManager(State* state, const std::unique_ptr<DB>& db, co
   /// Load Contracts from DB.
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto& contract : contracts) {
-   if (Utils::bytesToString(contract.value) == "ERC20") {
-     Address contractAddress(contract.key);
-     this->contracts.insert(std::make_pair(contractAddress, std::make_unique<ERC20>(this->interface, contractAddress, this->db)));
-     continue;
-   }
-  if (Utils::bytesToString(contract.value) == "ERC20Wrapper") {
-    Address contractAddress(contract.key);
-    this->contracts.insert(
-    std::make_pair(contractAddress, std::make_unique<ERC20Wrapper>(this->interface, contractAddress, this->db)));
-    continue;
-  }
-  if (Utils::bytesToString(contract.value) == "NativeWrapper") {
-    Address contractAddress(contract.key);
-    this->contracts.insert(
-    std::make_pair(contractAddress, std::make_unique<NativeWrapper>(this->interface, contractAddress, this->db)));
-    continue;
-  }
-
+    if (Utils::bytesToString(contract.value) == "ERC20") {
+      Address contractAddress(contract.key);
+      this->contracts.insert(std::make_pair(contractAddress, std::make_unique<ERC20>(this->interface, contractAddress, this->db)));
+      continue;
+    }
+    if (Utils::bytesToString(contract.value) == "ERC20Wrapper") {
+      Address contractAddress(contract.key);
+      this->contracts.insert(
+      std::make_pair(contractAddress, std::make_unique<ERC20Wrapper>(this->interface, contractAddress, this->db)));
+      continue;
+    }
+    if (Utils::bytesToString(contract.value) == "NativeWrapper") {
+      Address contractAddress(contract.key);
+      this->contracts.insert(
+      std::make_pair(contractAddress, std::make_unique<NativeWrapper>(this->interface, contractAddress, this->db)));
+      continue;
+    }
     throw std::runtime_error("Unknown contract: " + Utils::bytesToString(contract.value));
   }
 }
@@ -87,15 +86,17 @@ void ContractManager::createNewERC20Contract(const ethCallInfo& callInfo) {
   }
 
   // Create the contract
-  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20>(decoder.getData<std::string>(0),
-                                                                                        decoder.getData<std::string>(1),
-                                                                                        uint8_t(decoder.getData<uint256_t>(2)),
-                                                                                        decoder.getData<uint256_t>(3),
-                                                                                        this->interface,
-                                                                                        derivedContractAddress,
-                                                                                        this->getCaller(),
-                                                                                        this->options->getChainID(),
-                                                                                        this->db)));
+  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20>(
+          decoder.getData<std::string>(0),
+          decoder.getData<std::string>(1),
+          uint8_t(decoder.getData<uint256_t>(2)),
+          decoder.getData<uint256_t>(3),
+          this->interface,
+          derivedContractAddress,
+          this->getCaller(),
+          this->options->getChainID(),
+          this->db
+          )));
   return;
 }
 
@@ -147,11 +148,13 @@ void ContractManager::createNewERC20WrapperContract(const ethCallInfo& callInfo)
     }
   }
 
-  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20Wrapper>(this->interface,
-                                                                                               derivedContractAddress,
-                                                                                               this->getCaller(),
-                                                                                               this->options->getChainID(),
-                                                                                               this->db)));
+  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20Wrapper>(
+          this->interface,
+          derivedContractAddress,
+          this->getCaller(),
+          this->options->getChainID(),
+          this->db
+          )));
 }
 
 void ContractManager::validateCreateNewERC20WrapperContract(const ethCallInfo& callInfo) const {
@@ -199,14 +202,16 @@ void ContractManager::createNewERC20NativeWrapperContract(const ethCallInfo& cal
   }
 
   // Create the contract
-  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<NativeWrapper>(decoder.getData<std::string>(0),
-                                                                                        decoder.getData<std::string>(1),
-                                                                                        uint8_t(decoder.getData<uint256_t>(2)),
-                                                                                        this->interface,
-                                                                                        derivedContractAddress,
-                                                                                        this->getCaller(),
-                                                                                        this->options->getChainID(),
-                                                                                        this->db)));
+  this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<NativeWrapper>(
+          decoder.getData<std::string>(0),
+          decoder.getData<std::string>(1),
+          uint8_t(decoder.getData<uint256_t>(2)),
+          this->interface,
+          derivedContractAddress,
+          this->getCaller(),
+          this->options->getChainID(),
+          this->db
+          )));
 }
 
 void ContractManager::validateCreateNewERC20NativeWrapperContract(const ethCallInfo &callInfo) const {

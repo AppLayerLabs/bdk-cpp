@@ -34,13 +34,6 @@ struct DBServer {
    * @param version The database's version string.
    */
   DBServer(std::string host, std::string version) : host(host), version(version) {};
-  const Bytes blocks = { 0x00, 0x01 };
-  const Bytes blockHeightMaps = { 0x00, 0x02 };
-  const Bytes nativeAccounts = { 0x00, 0x03 };
-  const Bytes txToBlocks = { 0x00, 0x04 };
-  const Bytes rdPoS = { 0x00, 0x05 };
-  const Bytes contracts = { 0x00, 0x06 };
-  const Bytes contractManager = { 0x00, 0x07 };
 };
 
 /// Struct for a database entry (key/value).
@@ -244,9 +237,7 @@ class DB {
     /**
      * Do several put and/or delete operations in one go.
      * Pfx is already included in DBBatch keys.
-     * @param batch The batch object with the operations to be done.
      * @param batch The batch object with the put/del operations to be done.
-     * @param pfx (optional) The prefix to operate on. Defaults to an empty string.
      * @return `true` if all operations were successful, `false` otherwise.
      */
     bool putBatch(const DBBatch& batch) const;

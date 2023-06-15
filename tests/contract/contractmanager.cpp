@@ -66,49 +66,33 @@ namespace TContractManager {
           randomPrivKey
         );
 
-        std::cout << "Calling createNewERC20Contract() with invalid txToCallInfo() should throw an exception." << std::endl;
         REQUIRE_THROWS(contractManager.validateCallContractWithTx(createNewERC2OTxThrow.txToCallInfo()));
-
-        std::cout << "Calling createNewERC20Contract() with valid txToCallInfo() should not throw an exception." << std::endl;
 
         REQUIRE(contractManager.getContracts().size() == 0);
 
-        std::cout << "Called!" << std::endl;
-
         contractManager.callContract(createNewERC2OTx);
-
-        std::cout << "uhhh" << std::endl;
 
         REQUIRE(contractManager.getContracts().size() == 1);
 
         const auto contractAddress = contractManager.getContracts()[0].second;
-        std::cout << "Contract address: " << contractAddress.hex() << std::endl;
         ABI::Encoder::EncVar getBalanceMeVars;
         getBalanceMeVars.push_back(owner);
         ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-        std::cout << "trying to get balance" << std::endl;
-        std::cout << "Functor: " << getBalanceMeEncoder.getFunctor().hex() << std::endl;
         Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-        std::cout << "Got balance: " << std::endl;
         ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
       }
 
-      std::cout << "Trying to load contract from disk." << std::endl;
       std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
       std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
 
-      std::cout << "Loaded!" << std::endl;
-
       const auto contractAddress = contractManager.getContracts()[0].second;
       ABI::Encoder::EncVar getBalanceMeVars;
       getBalanceMeVars.push_back(owner);
       ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-      std::cout << "Trying to load contract from disk." << std::endl;
       Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-      std::cout << "Bruh" << std::endl;
       ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
       REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
 

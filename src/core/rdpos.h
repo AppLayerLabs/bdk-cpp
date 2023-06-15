@@ -22,7 +22,7 @@ class State;
 // "0xcfffe746" -> Function for random hash tx
 
 /**
- * Abstraction of a validator.
+ * Abstraction of a validator, same as Address but different type.
  * Responsible for creating/signing/validating blocks.
  */
 class Validator : public Address {
@@ -38,11 +38,13 @@ class Validator : public Address {
     /// Constructor.
     Validator(const Address& add) : Address(add) {}
 
-
     /// Copy constructor.
     Validator(const Validator& other) : Address(other.data_)  {}
 
-    /// Get a copy of the Validator address.
+    /**
+     * Getter for the address.
+     * @return The address.
+     */
     const Address address() const { return Address(this->data_); }
 
     /// Copy assignment operator.
