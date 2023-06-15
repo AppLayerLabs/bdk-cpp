@@ -26,6 +26,7 @@
 
 /// @file utils.h
 
+// Forward declaration.
 class Hash;
 
 /// Typedef for json.
@@ -45,21 +46,24 @@ using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 
 using Byte = uint8_t;
 using Bytes = std::vector<Byte>;
-template <std::size_t N>
-using BytesArr = std::array<Byte, N>;
+template <std::size_t N> using BytesArr = std::array<Byte, N>;
 using BytesArrView = std::span<const Byte, std::dynamic_extent>;
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>;
 
 /**
- * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data)
- * ...
+ * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
+ * **ATTENTION**: Be aware that we are using BytesArrView, so you MUST
+ * be sure that the data allocated in the BytesArrView is valid during
+ * the whole life of the tuple.
+ * If you need ethCallInfo to own the data, use ethCallInfoAllocated instead.
  */
-/// **ATTENTION**: Be aware that we are using BytesArrView, so you MUST be sure that the data allocated in the BytesArrView is valid during the whole life of the tuple.
-/// If you need ethCallInfo to own the data, use ethCallInfoAllocated instead.
 using ethCallInfo = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, BytesArrView>;
-/// This is the same as ethCallInfo, but using Bytes instead of BytesArrView, truly allocating the data, some places need it such as tests.
-using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, Bytes>;
 
+/**
+ * Same as ethCallInfo, but using Bytes instead of BytesArrView, truly
+ * allocating and owning the data. Some places need it such as tests.
+ */
+using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, Bytes>;
 
 /**
  * @fn void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what)
@@ -380,8 +384,6 @@ namespace Utils {
         return mangledName;
     }
   }
-
-
 
   /**
    * Convert a vector to span.
