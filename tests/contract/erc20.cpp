@@ -436,8 +436,6 @@ namespace TERC20 {
           getBalanceDestinationEncoder.getFunctor(),
           getBalanceDestinationEncoder.getData()
         ));
-                                                                                              getBalanceDestinationEncoder.getFunctor(),
-                                                                                              getBalanceDestinationEncoder.getData()));
         ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 0);
 
@@ -455,8 +453,6 @@ namespace TERC20 {
           getBalanceDestinationEncoder.getFunctor(),
           getBalanceDestinationEncoder.getData()
         ));
-                                                                                  getBalanceDestinationEncoder.getFunctor(),
-                                                                                  getBalanceDestinationEncoder.getData()));
         getBalanceDestinationDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
       }
@@ -489,8 +485,6 @@ namespace TERC20 {
         getBalanceDestinationEncoder.getFunctor(),
         getBalanceDestinationEncoder.getData()
       ));
-                                                                                            getBalanceDestinationEncoder.getFunctor(),
-                                                                                            getBalanceDestinationEncoder.getData()));
       ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
       REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
     }

@@ -18,6 +18,9 @@ jobs:
       
       - name: Install CMake
         run: sudo apt-get update && sudo apt-get install -y cmake
+      
+      - name: Print gcc version
+        run: gcc --version
 
       - name: Install project dependencies
         run: sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc
