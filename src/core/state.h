@@ -202,7 +202,7 @@ class State {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The return of the called function as a data string.
      */
-    std::string ethCall(const ethCallInfo& callInfo);
+    Bytes ethCall(const ethCallInfo& callInfo);
 
     /**
      * Estimate gas for callInfo in RPC.

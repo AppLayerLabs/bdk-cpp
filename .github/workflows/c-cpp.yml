@@ -21,6 +21,24 @@ jobs:
       - name: Install CMake
         run: sudo apt-get update && sudo apt-get install -y cmake
 
+      - name: Install GCC 12.2.0
+        run: |
+          sudo apt-get install -y libmpc-dev
+          wget https://ftp.gnu.org/gnu/gcc/gcc-12.2.0/gcc-12.2.0.tar.gz
+          tar xf gcc-12.2.0.tar.gz
+          cd gcc-12.2.0
+          ./contrib/download_prerequisites
+          ./configure -v --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --prefix=/usr/local/gcc-12.2.0 --enable-checking=release --enable-languages=c,c++,fortran --disable-multilib --program-suffix=-12.2.0
+          make -j$(nproc)
+          sudo make install-strip
+          echo "/usr/local/gcc-12.2.0/bin" >> $GITHUB_PATH
+          echo "/usr/local/gcc-12.2.0/lib64" >> $GITHUB_ENV
+          cd ..
+          rm -rf gcc-12.2.0.tar.gz gcc-12.2.0
+      
+      - name: Print gcc version
+        run: gcc --version
+
       - name: Install project dependencies
         run: sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc
 

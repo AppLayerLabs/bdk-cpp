@@ -23,20 +23,20 @@ namespace TDB {
       DB db("testDB");
       std::string key = "d41472b71899ccc0cf16c09ac97af95e";
       std::string value = "5ea04e91c96033ae312af0bb22ec3e370c7789dc28858ea0135966ee2966a616";
-      std::string pfx = "0001";
+      Bytes pfx{0x00, 0x01};
 
       // Create
       REQUIRE(db.put(key, value, pfx));
       REQUIRE(db.has(key, pfx));
 
       // Read
-      REQUIRE(db.get(key, pfx) == value);
+      REQUIRE(Utils::bytesToString(db.get(key, pfx)) == value);
 
       // Update
       std::string newValue = "f5ea6cbe8cddc3f73bc40e156ced5ef0f80d75bd6794ba18a457c46edaeee6a4";
       REQUIRE(db.put(key, newValue, pfx));
       REQUIRE(db.has(key, pfx));
-      REQUIRE(db.get(key, pfx) == newValue);
+      REQUIRE(Utils::bytesToString(db.get(key, pfx)) == newValue);
 
       // Delete
       REQUIRE(db.del(key, pfx));
@@ -49,25 +49,29 @@ namespace TDB {
     SECTION("Batched CRUD (Create + Read + Update + Delete)") {
       // Open
       DB db("testDB");
-      std::string pfx = DBPrefix::blocks;
-      std::vector<DBEntry> putB;
-      std::vector<std::string> delB;
+      Bytes pfx = DBPrefix::blocks;
+      DBBatch batchP;
+      DBBatch batchD;
+      std::vector<Bytes> keys;
       for (int i = 0; i < 32; i++) {
-        putB.emplace_back(DBEntry(Hash::random().get(), Hash::random().get()));
-        delB.emplace_back(putB[i].key);
+        batchP.push_back(Hash::random().asBytes(), Hash::random().asBytes(), pfx);
+        batchD.delete_key(batchP.getPuts()[i].key, pfx);
       }
 
       // Create
-      DBBatch batchP;
-      batchP.puts = putB;
-      REQUIRE(db.putBatch(batchP, pfx));
-      for (DBEntry entry : batchP.puts) REQUIRE(db.has(entry.key, pfx));
+      std::cout << "BatchPuts: " << batchP.getPuts().size() << std::endl;
+
+      REQUIRE(db.putBatch(batchP));
+      for (const DBEntry& entry : batchP.getPuts()) {
+        /// No need to pass prefix as entry.key already contains it
+        REQUIRE(db.has(entry.key));
+      }
 
       // Read
       std::vector<DBEntry> getB = db.getBatch(pfx);
       REQUIRE(!getB.empty());
-      for (DBEntry getE : getB) {
-        for (DBEntry putE : putB) {
+      for (const DBEntry& getE : getB) {
+        for (const DBEntry& putE : batchP.getPuts()) {
           if (getE.key == putE.key) {
             REQUIRE(getE.value == putE.value);
           }
@@ -77,14 +81,16 @@ namespace TDB {
       // Update
       DBBatch newPutB;
       for (int i = 0; i < 32; i++) {
-        newPutB.puts.emplace_back(DBEntry(putB[i].key, Hash::random().get()));
+        newPutB.push_back(batchP.getPuts()[i].key, Hash::random().asBytes(), pfx);
       }
-      REQUIRE(db.putBatch(newPutB, pfx));
-      for (DBEntry entry : newPutB.puts) REQUIRE(db.has(entry.key, pfx));
+      REQUIRE(db.putBatch(newPutB));
+      /// No need to pass prefix as entry.key already contains it
+      for (const DBEntry& entry : newPutB.getPuts()) REQUIRE(db.has(entry.key));
       std::vector<DBEntry> newGetB = db.getBatch(pfx);
+
       REQUIRE(!newGetB.empty());
-      for (DBEntry newGetE : newGetB) {
-        for (DBEntry newPutE : newPutB.puts) {
+      for (const DBEntry& newGetE : newGetB) {
+        for (const DBEntry& newPutE : newPutB.getPuts()) {
           if (newGetE.key == newPutE.key) {
             REQUIRE(newGetE.value == newPutE.value);
           }
@@ -92,10 +98,9 @@ namespace TDB {
       }
 
       // Delete
-      DBBatch batchD;
-      batchD.dels = delB;
-      REQUIRE(db.putBatch(batchD, pfx));
-      for (std::string key : batchD.dels) REQUIRE(!db.has(key, pfx));
+      REQUIRE(db.putBatch(batchD));
+      /// No need to pass prefix as key already contains it
+      for (const Bytes& key : batchD.getDels()) REQUIRE(!db.has(key));
 
       // Close
       REQUIRE(db.close());
@@ -103,9 +108,9 @@ namespace TDB {
 
     SECTION("Throws/Errors") {
       DB db("testDB");
-      REQUIRE(!db.has("dummy"));
-      REQUIRE(db.get("dummy").empty());
-      REQUIRE(db.getBatch("0001", {"dummy"}).empty());
+      REQUIRE(!db.has(Utils::stringToBytes("dummy")));
+      REQUIRE(db.get(Utils::stringToBytes("dummy")).empty());
+      REQUIRE(db.getBatch(Utils::stringToBytes("0001"), {Utils::stringToBytes(("dummy"))}).empty());
       REQUIRE(db.close());
     }
 

@@ -80,13 +80,6 @@ class Blockchain {
      */
     const std::atomic<bool>& isSynced() const;
 
-    /**
-     * Parse a given RPC message.
-     * @param msg The message to parse.
-     * @return A response to the parsed message as a string.
-     */
-    std::string parseRPC(std::string& msg);
-
     friend class Syncer;
 };
 

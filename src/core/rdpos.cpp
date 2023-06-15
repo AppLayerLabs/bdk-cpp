@@ -39,7 +39,7 @@ rdPoS::rdPoS(const std::unique_ptr<DB>& db,
   Utils::logToDebug(Log::rdPoS, __func__, "Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
   // TODO: check if no index is missing from DB.
   for (const auto& validator : validatorsDb) {
-    this->validators.insert(Validator(Address(validator.value, true)));
+    this->validators.insert(Validator(Address(validator.value)));
   }
 
   // Load latest randomness from DB, populate and shuffle the random list.
@@ -57,10 +57,10 @@ rdPoS::~rdPoS() {
   // Save rdPoS to DB.
   uint64_t index = 0;
   for (const auto &validator : validators) {
-    validatorsBatch.puts.emplace_back(Utils::uint64ToBytes(index), validator.get());
+    validatorsBatch.push_back(Utils::uint64ToBytes(index), validator.get(), DBPrefix::rdPoS);
     index++;
   }
-  this->db->putBatch(validatorsBatch, DBPrefix::rdPoS);
+  this->db->putBatch(validatorsBatch);
 }
 
 bool rdPoS::validateBlock(const Block& block) const {
@@ -180,8 +180,26 @@ bool rdPoS::validateBlock(const Block& block) const {
       return false;
     }
     // Check if the randomHash transaction matches the random transaction.
-    std::string_view hash = std::string_view(hashTx.getData()).substr(4);
-    std::string_view random = std::string_view(seedTx.getData()).substr(4);
+    BytesArrView hashTxData = hashTx.getData();
+    BytesArrView seedTxData = seedTx.getData();
+    BytesArrView hash = hashTxData.subspan(4);
+    BytesArrView random = seedTxData.subspan(4);
+
+    // Size sanity check, should be 32 bytes.
+    if (hash.size() != 32) {
+      Utils::logToDebug(Log::rdPoS, __func__,
+        std::string("TxValidator ") + hashTx.hash().hex().get() + " (hash) is not 32 bytes."
+      );
+      return false;
+    }
+
+    if (random.size() != 32) {
+      Utils::logToDebug(Log::rdPoS, __func__,
+        std::string("TxValidator ") + seedTx.hash().hex().get() + " (random) is not 32 bytes."
+      );
+      return false;
+    }
+
     if (Utils::sha3(random) != hash) {
       Utils::logToDebug(Log::rdPoS, __func__,
         std::string("TxValidator ") + seedTx.hash().hex().get()
@@ -256,7 +274,7 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
     validatorMempool.emplace(tx.hash(), tx);
     return true;
   } else if (txs.size() == 1) { // We already have one transaction from this sender, check if it is the same function.
-    if (txs[0].getData().substr(0,4) == tx.getData().substr(0,4)) {
+    if (txs[0].getFunctor() == tx.getFunctor()) {
       Utils::logToDebug(Log::rdPoS, __func__, "TxValidator sender already has a transaction for this function.");
       return false;
     }
@@ -275,24 +293,25 @@ void rdPoS::initializeBlockchain() {
     Utils::logToDebug(Log::rdPoS,__func__, "No rdPoS in DB, initializing.");
     // TODO: CHANGE THIS ON PUBLIC!!! THOSE PRIVATE KEYS SHOULD ONLY BE USED FOR LOCAL TESTING
     // 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759
-    this->db->put(Utils::uint64ToBytes(0), Address(Hex::toBytes("0x7588b0f553d1910266089c58822e1120db47e572"), true).get(), DBPrefix::rdPoS);
+    this->db->put(Utils::uint64ToBytes(0), Address(Hex::toBytes("0x7588b0f553d1910266089c58822e1120db47e572")).get(), DBPrefix::rdPoS);
     // 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4
-    this->db->put(Utils::uint64ToBytes(1), Address(Hex::toBytes("0xcabf34a268847a610287709d841e5cd590cc5c00"), true).get(), DBPrefix::rdPoS);
+    this->db->put(Utils::uint64ToBytes(1), Address(Hex::toBytes("0xcabf34a268847a610287709d841e5cd590cc5c00")).get(), DBPrefix::rdPoS);
     // 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751
-    this->db->put(Utils::uint64ToBytes(2), Address(Hex::toBytes("0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3"), true).get(), DBPrefix::rdPoS);
+    this->db->put(Utils::uint64ToBytes(2), Address(Hex::toBytes("0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3")).get(), DBPrefix::rdPoS);
     // 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7
-    this->db->put(Utils::uint64ToBytes(3), Address(Hex::toBytes("0x795083c42583842774febc21abb6df09e784fce5"), true).get(), DBPrefix::rdPoS);
+    this->db->put(Utils::uint64ToBytes(3), Address(Hex::toBytes("0x795083c42583842774febc21abb6df09e784fce5")).get(), DBPrefix::rdPoS);
     // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
-    this->db->put(Utils::uint64ToBytes(4), Address(Hex::toBytes("0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"), true).get(), DBPrefix::rdPoS);
+    this->db->put(Utils::uint64ToBytes(4), Address(Hex::toBytes("0xbec7b74f70c151707a0bfb20fe3767c6e65499e0")).get(), DBPrefix::rdPoS);
   }
 }
 
 Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
-  std::string seed;
+  Bytes seed;
+  seed.reserve(txs.size() * 32);
   if (txs.size() == 0) return Hash();
   for (const TxValidator& tx : txs) {
     if (rdPoS::getTxValidatorFunction(tx) == TxValidatorFunction::RANDOMSEED) {
-      seed += tx.getData().substr(4,32);
+      seed.insert(seed.end(), tx.getData().begin() + 4, tx.getData().end());
     }
   }
   return Utils::sha3(seed);
@@ -303,14 +322,14 @@ const std::atomic<bool>& rdPoS::canCreateBlock() const {
 }
 
 rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) {
-  constexpr std::string_view randomHashHash("\xcf\xff\xe7\x46",4);
-  constexpr std::string_view randomSeedHash("\x6f\xc5\xa2\xd6",4);
+  constexpr Functor randomHashHash(Bytes{0xcf, 0xff, 0xe7, 0x46});
+  constexpr Functor randomSeedHash(Bytes{0x6f, 0xc5, 0xa2, 0xd6});
   if (tx.getData().size() != 36) {
     Utils::logToDebug(Log::rdPoS, __func__, "TxValidator data size is not 36 bytes.");
     // Both RandomHash and RandomSeed are 32 bytes, so if the data size is not 36 bytes, it is invalid.
     return TxValidatorFunction::INVALID;
   }
-  std::string_view functionABI = std::string_view(tx.getData()).substr(0, 4);
+  Functor functionABI = tx.getFunctor();
   if (functionABI == randomHashHash) {
     return TxValidatorFunction::RANDOMHASH;
   } else if (functionABI == randomSeedHash) {
@@ -427,24 +446,30 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
   Hash randomness = Hash::random();
   Hash randomHash = Utils::sha3(randomness.get());
   Utils::logToDebug(Log::rdPoS, __func__, "Creating random Hash transaction");
+  Bytes randomHashBytes = Hex::toBytes("0xcfffe746");
+  randomHashBytes.insert(randomHashBytes.end(), randomHash.get().begin(), randomHash.get().end());
   TxValidator randomHashTx(
     me.address(),
-    Hex::toBytes("0xcfffe746") + randomHash.get(),
+    randomHashBytes,
     this->rdpos.options->getChainID(),
     nHeight,
     this->rdpos.validatorKey
   );
 
+  Bytes seedBytes = Hex::toBytes("0x6fc5a2d6");
+  seedBytes.insert(seedBytes.end(), randomness.get().begin(), randomness.get().end());
   TxValidator seedTx(
     me.address(),
-    Hex::toBytes("0x6fc5a2d6") + randomness.get(),
+    seedBytes,
     this->rdpos.options->getChainID(),
     nHeight,
     this->rdpos.validatorKey
   );
 
   // Sanity check if tx is valid
-  if (Utils::sha3(std::string_view(seedTx.getData()).substr(4)) != std::string_view(randomHashTx.getData().substr(4))) {
+  BytesArrView randomHashTxView(randomHashTx.getData());
+  BytesArrView randomSeedTxView(seedTx.getData());
+  if (Utils::sha3(randomSeedTxView.subspan(4)) != randomHashTxView.subspan(4)) {
     Utils::logToDebug(Log::rdPoS, __func__, "RandomHash transaction is not valid!!!");
     return;
   }

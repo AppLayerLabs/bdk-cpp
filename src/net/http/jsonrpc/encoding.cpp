@@ -71,7 +71,7 @@ namespace JsonRPC {
       return ret;
     }
 
-    json web3_sha3(const std::string& data) {
+    json web3_sha3(const BytesArrView data) {
       json ret;
       ret["jsonrpc"] = "2.0";
       ret["result"] = Utils::sha3(data).hex(true);
@@ -165,7 +165,7 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_call(const ethCallInfo& callInfo, const std::unique_ptr<State>& state) {
+    json eth_call(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
@@ -178,7 +178,7 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_estimateGas(const ethCallInfo& callInfo, const std::unique_ptr<State>& state) {
+    json eth_estimateGas(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {

@@ -26,8 +26,8 @@ class State;
  * Instead, they are deployed in the constructor of State.
  */
 const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
-  {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"), true)}, // Sha3("randomDeterministicProofOfStake").substr(0,20)
-  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"), true)} // Sha3("ContractManager").substr(0,20)
+  {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"))}, // Sha3("randomDeterministicProofOfStake").substr(0,20)
+  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))} // Sha3("ContractManager").substr(0,20)
 };
 
 /**
@@ -101,7 +101,7 @@ class ContractManager : BaseContract {
      * Get a serialized string with the deployed contracts. Solidity counterpart:
      * function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
      */
-    std::string getDeployedContracts() const;
+    Bytes getDeployedContracts() const;
 
   public:
     /// Interface class for DynamicContract to access ContractManager and interact with other dynamic contracts.
@@ -211,7 +211,7 @@ class ContractManager : BaseContract {
      * @return A string with the requested info.
      * @throw std::runtime_error if the call is not valid.
      */
-    const std::string ethCallView(const ethCallInfo& data) const override;
+    const Bytes ethCallView(const ethCallInfo& data) const override;
 
     /**
      * Process a transaction that calls a function from a given contract.
@@ -242,7 +242,7 @@ class ContractManager : BaseContract {
      * @throw std::runtime_error if the call to the ethCall function fails
      * or if the contract does not exist.
      */
-    const std::string callContract(const ethCallInfo& callInfo) const;
+    const Bytes callContract(const ethCallInfo& callInfo) const;
 
     /**
      * Check if a transaction calls a contract

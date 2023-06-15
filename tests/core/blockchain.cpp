@@ -131,7 +131,7 @@ namespace TBlockchain {
     SECTION("Blockchain multiple nodes, move 10 blocks forward 1 tx per block.") {
       PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address me = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetBalance = 0;
       uint256_t myBalance("1000000000000000000000");
       std::shared_ptr<const Block> bestBlock;
@@ -241,7 +241,7 @@ namespace TBlockchain {
           TxBlock tx(
               targetOfTransactions,
               me,
-              "",
+              Bytes(),
               8080,
               blockchainValidator1->getState()->getNativeNonce(me),
               1000000000000000000,

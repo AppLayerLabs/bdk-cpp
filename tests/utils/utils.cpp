@@ -6,94 +6,110 @@
 using Catch::Matchers::Equals;
 
 namespace TUtils {
-  TEST_CASE("Utils Namespace", "[utils]") {
+  TEST_CASE("Utils Namespace", "[utilsitself][utils]") {
     SECTION("Sha3 Test") {
       std::string sha3Input = "My SHA3 Input";
-      auto sha3Output = Utils::sha3(sha3Input);
-      std::string sha3ExpectedOutput = "\x10\x11\x40\xd6\xe7\x50\x6f\x80\x4c\xf7\xb0\x37\x0f\xa9\x0b\x04\xc5\xe9\x37\x4d\xdb\x0c\x8c\xbe\x12\xaf\x15\x0c\x8f\xf3\xee\x36";
-      REQUIRE_THAT(sha3Output.get(), Equals(sha3ExpectedOutput));
+      auto sha3Output = Utils::sha3(Utils::stringToBytes(sha3Input));
+      Bytes sha3ExpectedOutput = Bytes{0x10, 0x11, 0x40, 0xd6, 0xe7, 0x50, 0x6f, 0x80, 0x4c, 0xf7, 0xb0, 0x37, 0x0f, 0xa9, 0x0b, 0x04, 0xc5, 0xe9, 0x37, 0x4d, 0xdb, 0x0c, 0x8c, 0xbe, 0x12, 0xaf, 0x15, 0x0c, 0x8f, 0xf3, 0xee, 0x36};
+      REQUIRE(sha3Output == sha3ExpectedOutput);
     }
 
     SECTION("uint256ToBytes Test") {
       uint256_t uint256Input = uint256_t("91830918212381802449294565349763096207758814059154440393436864477986483867239");
       auto uint256Output = Utils::uint256ToBytes(uint256Input);
-      std::string uint256ExpectedOutput = "\xcb\x06\x75\x32\x90\xff\xac\x16\x72\x05\xd0\xf5\x3b\x64\xac\xfd\x80\xbe\x11\xed\xbb\x26\xa2\x24\xbe\xd9\x23\x9a\xe6\x74\x0e\x67";
-      REQUIRE_THAT(uint256Output, Equals(uint256ExpectedOutput));
-    }
-
-    SECTION("uint128ToBytes Test") {
-      uint128_t uint128Input = uint128_t("340282366920938463463374607431768211401");
-      auto uint128Output = Utils::uint128ToBytes(uint128Input);
-      std::string uint128ExpectedOutput = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xc9";
-      REQUIRE_THAT(uint128Output, Equals(uint128ExpectedOutput));
+      BytesArr<32> uint256ExpectedOutput = BytesArr<32> {0xcb, 0x06, 0x75, 0x32, 0x90, 0xff, 0xac, 0x16, 0x72, 0x05, 0xd0, 0xf5, 0x3b, 0x64, 0xac, 0xfd, 0x80, 0xbe, 0x11, 0xed, 0xbb, 0x26, 0xa2, 0x24, 0xbe, 0xd9, 0x23, 0x9a, 0xe6, 0x74, 0x0e, 0x67};
+      REQUIRE(uint256Output == uint256ExpectedOutput);
     }
 
     SECTION("uint160ToBytes Test") {
       uint160_t uint160Input = uint160_t("506797479317435130489084083375319966488594602593");
       auto uint160Output = Utils::uint160ToBytes(uint160Input);
-      std::string uint160ExpectedOutput = "\x58\xc5\x95\xbe\xdf\x1d\xea\x53\x2c\xf0\x6a\xf9\x09\x1a\x51\xb7\x5a\x11\xda\x61";
-      REQUIRE_THAT(uint160Output, Equals(uint160ExpectedOutput));
+      BytesArr<20> uint160ExpectedOutput = BytesArr<20> {0x58, 0xc5, 0x95, 0xbe, 0xdf, 0x1d, 0xea, 0x53, 0x2c, 0xf0, 0x6a, 0xf9, 0x09, 0x1a, 0x51, 0xb7, 0x5a, 0x11, 0xda, 0x61};
+      REQUIRE(uint160Output == uint160ExpectedOutput);
+    }
+
+    SECTION("uint128ToBytes Test") {
+      uint128_t uint128Input = uint128_t("340282366920938463463374607431768211401");
+      auto uint128Output = Utils::uint128ToBytes(uint128Input);
+      BytesArr<16> uint128ExpectedOutput = BytesArr<16> {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9 };
+      REQUIRE(uint128Output == uint128ExpectedOutput);
     }
 
     SECTION("uint64ToBytes Test") {
-      uint64_t uint64Input = uint64_t(11155010102558518614ULL);
+      uint64_t uint64Input = uint64_t(11155010102558518614);
       auto uint64Output = Utils::uint64ToBytes(uint64Input);
-      std::string uint64ExpectedOutput = "\x9a\xce\x8e\x96\x24\xe4\xed\x56";
-      REQUIRE_THAT(uint64Output, Equals(uint64ExpectedOutput));
+      BytesArr<8> uint64ExpectedOutput = BytesArr<8> {0x9a, 0xce, 0x8e, 0x96, 0x24, 0xe4, 0xed, 0x56};
+      REQUIRE(uint64Output == uint64ExpectedOutput);
     }
 
     SECTION("uint32ToBytes Test") {
       uint32_t uint32Input = 2004601498;
       auto uint32Output = Utils::uint32ToBytes(uint32Input);
-      std::string uint32ExpectedOutput = "\x77\x7b\xca\x9a";
-      REQUIRE_THAT(uint32Output, Equals(uint32ExpectedOutput));
+      BytesArr<4> uint32ExpectedOutput = BytesArr<4> {0x77, 0x7b, 0xca, 0x9a};
+      REQUIRE(uint32Output == uint32ExpectedOutput);
     }
 
     SECTION("uint16ToBytes Test") {
       uint16_t uint16Input = 65452;
       auto uint16Output = Utils::uint16ToBytes(uint16Input);
-      std::string uint16ExpectedOutput = "\xff\xac";
-      REQUIRE_THAT(uint16Output, Equals(uint16ExpectedOutput));
+      BytesArr<2> uint16ExpectedOutput = BytesArr<2> {0xff, 0xac};
+      REQUIRE(uint16Output == uint16ExpectedOutput);
     }
 
     SECTION("uint8ToBytes Test") {
       uint8_t uint8Input = 120;
       auto uint8Output = Utils::uint8ToBytes(uint8Input);
-      std::string uint8ExpectedOutput = "\x78";
-      REQUIRE_THAT(uint8Output, Equals(uint8ExpectedOutput));
+      BytesArr<1> uint8ExpectedOutput = BytesArr<1> {0x78};
+      REQUIRE(uint8Output == uint8ExpectedOutput);
     }
 
     SECTION("randBytes Test") {
-      std::string randBytesOutput = Utils::randBytes(32);
+      Bytes randBytesOutput = Utils::randBytes(32);
       REQUIRE(randBytesOutput.size() == 32);
     }
 
     SECTION("bytesToUint256 Test") {
-      FixedStr<32> bytesStr(std::string("\xcb\x06\x75\x32\x90\xff\xac\x16\x72\x05\xd0\xf5\x3b\x64\xac\xfd\x80\xbe\x11\xed\xbb\x26\xa2\x24\xbe\xd9\x23\x9a\xe6\x74\x0e\x67"));
-      auto uint256Output = Utils::bytesToUint256(bytesStr.view());
+      FixedBytes<32> bytesStr(std::string("\xcb\x06\x75\x32\x90\xff\xac\x16\x72\x05\xd0\xf5\x3b\x64\xac\xfd\x80\xbe\x11\xed\xbb\x26\xa2\x24\xbe\xd9\x23\x9a\xe6\x74\x0e\x67"));
+      auto uint256Output = Utils::bytesToUint256(bytesStr.get());
       uint256_t uint256ExpectedOutput = uint256_t("91830918212381802449294565349763096207758814059154440393436864477986483867239");
       REQUIRE(uint256Output == uint256ExpectedOutput);
 
       bool catchLo = false;
       bool catchHi = false;
-      std::string_view loStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-      std::string_view hiStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+      Bytes loStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+      Bytes hiStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
       try { Utils::bytesToUint256(loStr); } catch (std::exception &e) { catchLo = true; }
       try { Utils::bytesToUint256(hiStr); } catch (std::exception &e) { catchHi = true; }
       REQUIRE(catchLo == true);
       REQUIRE(catchHi == true);
     }
 
+    SECTION("bytesToUint160 Test") {
+      FixedBytes<20> bytesStr(std::string("\x58\xc5\x95\xbe\xdf\x1d\xea\x53\x2c\xf0\x6a\xf9\x09\x1a\x51\xb7\x5a\x11\xda\x61"));
+      auto uint160Output = Utils::bytesToUint160(bytesStr.get());
+      uint160_t uint160ExpectedOutput = uint160_t("506797479317435130489084083375319966488594602593");
+      REQUIRE(uint160Output == uint160ExpectedOutput);
+
+      bool catchLo = false;
+      bool catchHi = false;
+      Bytes loStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffff");
+      Bytes hiStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffff");
+      try { Utils::bytesToUint160(loStr); } catch (std::exception &e) { catchLo = true; }
+      try { Utils::bytesToUint160(hiStr); } catch (std::exception &e) { catchHi = true; }
+      REQUIRE(catchLo == true);
+      REQUIRE(catchHi == true);
+    }
+
     SECTION("bytesToUint128 Test") {
-      FixedStr<16> bytesStr(std::string("\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xc9"));
-      auto uint128Output = Utils::bytesToUint128(bytesStr.view());
+      BytesArr<16> bytesArr = BytesArr<16> {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xc9 };
+      auto uint128Output = Utils::bytesToUint128(bytesArr);
       uint128_t uint128ExpectedOutput = uint128_t("340282366920938463463374607431768211401");
       REQUIRE(uint128Output == uint128ExpectedOutput);
 
       bool catchLo = false;
       bool catchHi = false;
-      std::string_view loStr = Hex::toBytes("0xfffffffffffffffffffffffffffff");
-      std::string_view hiStr = Hex::toBytes("0xfffffffffffffffffffffffffffffffff");
+      Bytes loStr = Hex::toBytes("0xfffffffffffffffffffffffffffff");
+      Bytes hiStr = Hex::toBytes("0xfffffffffffffffffffffffffffffffff");
       try { Utils::bytesToUint128(loStr); } catch (std::exception &e) { catchLo = true; }
       try { Utils::bytesToUint128(hiStr); } catch (std::exception &e) { catchHi = true; }
       REQUIRE(catchLo == true);
@@ -101,32 +117,16 @@ namespace TUtils {
 
     }
 
-    SECTION("bytesToUint160 Test") {
-      FixedStr<20> bytesStr(std::string("\x58\xc5\x95\xbe\xdf\x1d\xea\x53\x2c\xf0\x6a\xf9\x09\x1a\x51\xb7\x5a\x11\xda\x61"));
-      auto uint160Output = Utils::bytesToUint160(bytesStr.view());
-      uint160_t uint160ExpectedOutput = uint160_t("506797479317435130489084083375319966488594602593");
-      REQUIRE(uint160Output == uint160ExpectedOutput);
-
-      bool catchLo = false;
-      bool catchHi = false;
-      std::string_view loStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffff");
-      std::string_view hiStr = Hex::toBytes("0xffffffffffffffffffffffffffffffffffffffffff");
-      try { Utils::bytesToUint160(loStr); } catch (std::exception &e) { catchLo = true; }
-      try { Utils::bytesToUint160(hiStr); } catch (std::exception &e) { catchHi = true; }
-      REQUIRE(catchLo == true);
-      REQUIRE(catchHi == true);
-    }
-
     SECTION("bytesToUint64 Test") {
-      FixedStr<8> bytesStr(std::string("\x9a\xce\x8e\x96\x24\xe4\xed\x56"));
-      auto uint64Output = Utils::bytesToUint64(bytesStr.view());
-      uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614ULL);
+      FixedBytes<8> bytesStr(std::string("\x9a\xce\x8e\x96\x24\xe4\xed\x56"));
+      auto uint64Output = Utils::bytesToUint64(bytesStr.get());
+      uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614);
       REQUIRE(uint64Output == uint64ExpectedOutput);
 
       bool catchLo = false;
       bool catchHi = false;
-      std::string_view loStr = Hex::toBytes("0xffffffffffffff");
-      std::string_view hiStr = Hex::toBytes("0xffffffffffffffffff");
+      Bytes loStr = Hex::toBytes("0xffffffffffffff");
+      Bytes hiStr = Hex::toBytes("0xffffffffffffffffff");
       try { Utils::bytesToUint64(loStr); } catch (std::exception &e) { catchLo = true; }
       try { Utils::bytesToUint64(hiStr); } catch (std::exception &e) { catchHi = true; }
       REQUIRE(catchLo == true);
@@ -134,15 +134,15 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint32 Test") {
-      FixedStr<4> bytesStr(std::string("\x77\x7b\xca\x9a"));
-      auto uint32Output = Utils::bytesToUint32(bytesStr.view());
+      FixedBytes<4> bytesStr(std::string("\x77\x7b\xca\x9a"));
+      auto uint32Output = Utils::bytesToUint32(bytesStr.get());
       uint32_t uint32ExpectedOutput = 2004601498;
       REQUIRE(uint32Output == uint32ExpectedOutput);
 
       bool catchLo = false;
       bool catchHi = false;
-      std::string_view loStr = Hex::toBytes("0xffffff");
-      std::string_view hiStr = Hex::toBytes("0xffffffffff");
+      Bytes loStr = Hex::toBytes("0xffffff");
+      Bytes hiStr = Hex::toBytes("0xffffffffff");
       try { Utils::bytesToUint32(loStr); } catch (std::exception &e) { catchLo = true; }
       try { Utils::bytesToUint32(hiStr); } catch (std::exception &e) { catchHi = true; }
       REQUIRE(catchLo == true);
@@ -150,15 +150,15 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint16 Test") {
-      FixedStr<2> bytesStr(std::string("\xff\xac"));
-      auto uint16Output = Utils::bytesToUint16(bytesStr.view());
+      FixedBytes<2> bytesStr(std::string("\xff\xac"));
+      auto uint16Output = Utils::bytesToUint16(bytesStr.get());
       uint16_t uint16ExpectedOutput = 65452;
       REQUIRE(uint16Output == uint16ExpectedOutput);
 
       bool catchLo = false;
       bool catchHi = false;
-      std::string_view loStr = Hex::toBytes("0xff");
-      std::string_view hiStr = Hex::toBytes("0xffffff");
+      Bytes loStr = Hex::toBytes("0xff");
+      Bytes hiStr = Hex::toBytes("0xffffff");
       try { Utils::bytesToUint16(loStr); } catch (std::exception &e) { catchLo = true; }
       try { Utils::bytesToUint16(hiStr); } catch (std::exception &e) { catchHi = true; }
       REQUIRE(catchLo == true);
@@ -166,15 +166,15 @@ namespace TUtils {
     }
 
     SECTION("bytesToUint8 Test") {
-      FixedStr<1> bytesStr(std::string("\x78"));
-      auto uint8Output = Utils::bytesToUint8(bytesStr.view());
+      FixedBytes<1> bytesStr(std::string("\x78"));
+      auto uint8Output = Utils::bytesToUint8(bytesStr.get());
       uint8_t uint8ExpectedOutput = 120;
       REQUIRE(uint8Output == uint8ExpectedOutput);
 
       bool catchLo = false;
       bool catchHi = false;
-      std::string_view loStr = Hex::toBytes("0x");
-      std::string_view hiStr = Hex::toBytes("0xffff");
+      Bytes loStr = Hex::toBytes("0x");
+      Bytes hiStr = Hex::toBytes("0xffff");
       try { Utils::bytesToUint8(loStr); } catch (std::exception &e) { catchLo = true; }
       try { Utils::bytesToUint8(hiStr); } catch (std::exception &e) { catchHi = true; }
       REQUIRE(catchLo == true);
@@ -206,24 +206,24 @@ namespace TUtils {
       REQUIRE(Hex::toInt('F') == 15); // F
     }
 
-    SECTION("padLeft Test") {
-      std::string inputStr = "abcdef";
-      std::string outputStr = Utils::padLeft(inputStr, 10, '0');
-      std::string outputStr2 = Utils::padLeft(inputStr, 20, '1');
-      std::string expectedOutputStr = "0000abcdef";
-      std::string expectedOutputStr2 = "11111111111111abcdef";
-      REQUIRE_THAT(outputStr, Equals(expectedOutputStr));
-      REQUIRE_THAT(outputStr2, Equals(expectedOutputStr2));
+    SECTION("padLeftBytes Test") {
+      Bytes inputBytes = Hex::toBytes("0xabcdef");
+      Bytes outputBytes = Utils::padLeftBytes(inputBytes, 10, 0x00);
+      Bytes outputBytes2 = Utils::padLeftBytes(inputBytes, 20, 0x11);
+      Bytes expectedOutputBytes = Hex::toBytes("0x00000000000000abcdef");
+      Bytes expectedOutputBytes2 = Hex::toBytes("0x1111111111111111111111111111111111abcdef");
+      REQUIRE(outputBytes == expectedOutputBytes);
+      REQUIRE(outputBytes2 == expectedOutputBytes2);
     }
 
-    SECTION("padRight Test") {
-      std::string inputStr = "abcdef";
-      std::string outputStr = Utils::padRight(inputStr, 10, '0');
-      std::string outputStr2 = Utils::padRight(inputStr, 20, '1');
-      std::string expectedOutputStr = "abcdef0000";
-      std::string expectedOutputStr2 = "abcdef11111111111111";
-      REQUIRE_THAT(outputStr, Equals(expectedOutputStr));
-      REQUIRE_THAT(outputStr2, Equals(expectedOutputStr2));
+    SECTION("padRightBytes Test") {
+      Bytes inputBytes = Hex::toBytes("0xabcdef");
+      Bytes outputBytes = Utils::padRightBytes(inputBytes, 10, 0x00);
+      Bytes outputBytes2 = Utils::padRightBytes(inputBytes, 20, 0x11);
+      Bytes expectedOutputBytes = Hex::toBytes("0xabcdef00000000000000");
+      Bytes expectedOutputBytes2 =Hex::toBytes("0xabcdef1111111111111111111111111111111111");
+      REQUIRE(outputBytes == expectedOutputBytes);
+      REQUIRE(outputBytes2 == expectedOutputBytes2);
     }
 
     SECTION("fromBigEndian Test") {

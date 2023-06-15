@@ -12,37 +12,39 @@ contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
   std::unique_lock lock(this->stateMutex);
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
-    /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
-    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true);
-    /// See ~State for encoding
+    // Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
+    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
+    // See ~State for encoding
     uint256_t desiredBalance("1000000000000000000000");
-    std::string value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance)) + Utils::uintToBytes(desiredBalance) + '\x00';
+    Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
+    Utils::appendBytes(value,Utils::uintToBytes(desiredBalance));
+    value.insert(value.end(), 0x00);
     db->put(dev1.get(), value, DBPrefix::nativeAccounts);
     accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   }
 
   for (auto const dbEntry : accountsFromDB) {
-    std::string_view data(dbEntry.value);
+    BytesArrView data(dbEntry.value);
     if (dbEntry.key.size() != 20) {
       Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, address from DB size mismatch");
       throw std::runtime_error("Error when loading State from DB, address from DB size mismatch");
     }
-    uint8_t balanceSize = Utils::fromBigEndian<uint8_t>(data.substr(0,1));
+    uint8_t balanceSize = Utils::fromBigEndian<uint8_t>(data.subspan(0,1));
     if (data.size() + 1 < data.size()) {
       Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on balanceSize");
       throw std::runtime_error("Error when loading State from DB, value from DB size mismatch on balanceSize");
     }
 
-    uint256_t balance = Utils::fromBigEndian<uint256_t>(data.substr(1, balanceSize));
-    uint8_t nonceSize = Utils::fromBigEndian<uint8_t>(data.substr(1 + balanceSize, 1));
+    uint256_t balance = Utils::fromBigEndian<uint256_t>(data.subspan(1, balanceSize));
+    uint8_t nonceSize = Utils::fromBigEndian<uint8_t>(data.subspan(1 + balanceSize, 1));
 
     if (2 + balanceSize + nonceSize != data.size()) {
       Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on nonceSize");
       throw std::runtime_error("Error when loading State from DB, value from DB size mismatch on nonceSize");
     }
-    uint64_t nonce = Utils::fromBigEndian<uint64_t>(data.substr(2 + balanceSize, nonceSize));
+    uint64_t nonce = Utils::fromBigEndian<uint64_t>(data.subspan(2 + balanceSize, nonceSize));
 
-    this->accounts.insert({Address(dbEntry.key, true), Account(std::move(balance), std::move(nonce))});
+    this->accounts.insert({Address(dbEntry.key), Account(std::move(balance), std::move(nonce))});
   }
 }
 
@@ -58,13 +60,24 @@ State::~State() {
   std::unique_lock lock(this->stateMutex);
   for (const auto& [address, account] : this->accounts) {
     // Serialize Balance.
-    std::string serializedStr = (account.balance == 0) ? std::string(1, 0x00) : Utils::uintToBytes(Utils::bytesRequired(account.balance)) + Utils::uintToBytes(account.balance);
+    Bytes serializedBytes;
+    if (account.balance == 0) {
+      serializedBytes = Bytes(1, 0x00);
+    } else {
+      serializedBytes = Utils::uintToBytes(Utils::bytesRequired(account.balance));
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.balance));
+    }
     // Serialize Account.
-    serializedStr += (account.nonce == 0) ? std::string(1, 0x00) : Utils::uintToBytes(Utils::bytesRequired(account.nonce)) + Utils::uintToBytes(account.nonce);
-    accountsBatch.puts.emplace_back(DBEntry(address.get(), std::move(serializedStr)));
+    if (account.nonce == 0) {
+      Utils::appendBytes(serializedBytes, Bytes(1, 0x00));
+    } else {
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(Utils::bytesRequired(account.nonce)));
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.nonce));
+    }
+    accountsBatch.push_back(address.get(), serializedBytes, DBPrefix::nativeAccounts);
   }
 
-  this->db->putBatch(accountsBatch, DBPrefix::nativeAccounts);
+  this->db->putBatch(accountsBatch);
 }
 
 TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
@@ -129,6 +142,12 @@ void State::processTransaction(const TxBlock& tx) {
     Utils::logToDebug(Log::state, __func__,
       "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
     );
+    if(this->processingPayable) {
+      balance += tx.getValue();
+      this->accounts[tx.getTo()].balance -= tx.getValue();
+      this->processingPayable = false;
+    }
+    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
     balance += tx.getValue();
   }
   nonce++;
@@ -304,19 +323,19 @@ void State::addBalance(const Address& addr) {
   this->accounts[addr].balance += uint256_t("1000000000000000000000");
 }
 
-std::string State::ethCall(const ethCallInfo& callInfo) {
+Bytes State::ethCall(const ethCallInfo& callInfo) {
   std::shared_lock lock(this->stateMutex);
   auto &address = std::get<1>(callInfo);
   if (this->contractManager->isContractAddress(address)) {
     return this->contractManager->callContract(callInfo);
   } else {
-    return "";
+    return {};
   }
 }
 
 bool State::estimateGas(const ethCallInfo& callInfo) {
   std::shared_lock lock(this->stateMutex);
-  auto [from, to, gasLimit, gasPrice, value, data] = callInfo;
+  auto [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
 
   /// Check balance/gasLimit/gasPrice if available.
   if (from) {

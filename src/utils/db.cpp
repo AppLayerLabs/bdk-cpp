@@ -12,65 +12,22 @@ DB::DB(const std::string path) {
   }
 }
 
-bool DB::has(const std::string& key, const std::string& pfx) {
-  rocksdb::Iterator *it = this->db->NewIterator(rocksdb::ReadOptions());
-  std::string strForSlice = std::string(pfx + key);
-  rocksdb::Slice slice(strForSlice);
-  for (it->Seek(slice); it->Valid(); it->Next()) {
-    if (it->key() == slice) { delete it; return true; }
-  }
-  delete it;
-  return false;
-}
-
-std::string DB::get(const std::string& key, const std::string& pfx) const {
-  rocksdb::Iterator *it = this->db->NewIterator(rocksdb::ReadOptions());
-  std::string strForSlice = std::string(pfx + key);
-  rocksdb::Slice slice(strForSlice);
-  for (it->Seek(slice); it->Valid(); it->Next()) {
-    if (it->key().ToString() == slice) {
-      std::string value = it->value().ToString();
-      delete it;
-      return value;
-    }
-  }
-  delete it;
-  return "";
-}
-
-bool DB::put(const std::string& key, const std::string& value, const std::string& pfx) const {
-  auto status = this->db->Put(rocksdb::WriteOptions(), pfx + key, value);
-  if (!status.ok()) {
-    Utils::logToDebug(Log::db, __func__, "Failed to put key: " + key);
-    return false;
-  }
-  return true;
-}
-
-bool DB::del(const std::string& key, const std::string& pfx) const {
-  auto status = this->db->Delete(rocksdb::WriteOptions(), pfx + key);
-  if (!status.ok()) {
-    Utils::logToDebug(Log::db, __func__, "Failed to delete key: " + key);
-    return false;
-  }
-  return true;
-}
-
-bool DB::putBatch(const DBBatch& batch, const std::string& pfx) const {
+bool DB::putBatch(const DBBatch& batch) const {
   std::lock_guard lock(batchLock);
   rocksdb::WriteBatch wb;
-  for (const std::string key : batch.dels) wb.Delete(pfx + key);
-  for (const DBEntry entry : batch.puts) wb.Put(pfx + entry.key, entry.value);
+  for (const rocksdb::Slice &deletes : batch.getDelsSlices()) { wb.Delete(deletes); };
+  for (const auto& entry : batch.getPutsSlices()) wb.Put(entry.first, entry.second);
   rocksdb::Status s = this->db->Write(rocksdb::WriteOptions(), &wb);
   return s.ok();
 }
 
 std::vector<DBEntry> DB::getBatch(
-  const rocksdb::Slice& pfx, const std::vector<std::string>& keys
+  const Bytes& bytesPfx, const std::vector<Bytes>& keys
 ) const {
   std::lock_guard lock(batchLock);
   std::vector<DBEntry> ret;
   rocksdb::Iterator *it = this->db->NewIterator(rocksdb::ReadOptions());
+  rocksdb::Slice pfx(reinterpret_cast<const char*>(bytesPfx.data()), bytesPfx.size());
 
   // Search for all entries
   if (keys.empty()) {
@@ -78,7 +35,7 @@ std::vector<DBEntry> DB::getBatch(
       if (it->key().starts_with(pfx)) {
         auto keySlice = it->key();
         keySlice.remove_prefix(pfx.size());
-        ret.emplace_back(keySlice.ToString(), it->value().ToString());
+        ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()), Bytes(it->value().data(), it->value().data() + it->value().size()));
       }
     }
     delete it;
@@ -90,9 +47,9 @@ std::vector<DBEntry> DB::getBatch(
     if (it->key().starts_with(pfx)) {
       auto keySlice = it->key();
       keySlice.remove_prefix(pfx.size());
-      for (const std::string& key : keys) {
-        if (keySlice == rocksdb::Slice(key)) {
-          ret.emplace_back(keySlice.ToString(), it->value().ToString());
+      for (const Bytes& key : keys) {
+        if (keySlice == rocksdb::Slice(reinterpret_cast<const char*>(key.data()), key.size())) {
+          ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()), Bytes(it->value().data(), it->value().data() + it->value().size()));
         }
       }
     }

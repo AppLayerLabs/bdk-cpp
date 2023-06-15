@@ -1,10 +1,10 @@
-# A given network has a minimum requirement of 5 Validators, 6 Normal Nodes and 1 Discovery Node.
-# Discovery Nodes are described within the options.json file.
-# This script is meant to be executed within the root directory of this project.
-# It will create a new directory called "local_testnet" and will create
-# new directories for each Validator and Discovery Node created (5 and 1 respectively).
-# This script is also meant to build the project within a new folder called "build_local_testnet".
-# It does not clean the build folder, only the local_testnet folder.
+## A given network has a minimum requirement of 5 Validators, 6 Normal Nodes and 1 Discovery Node.
+## Discovery Nodes are described within the options.json file.
+## This script is meant to be executed within the   main directory of this project
+## It will create a new directory, called "local_testnet" and will create
+## New directories for each Validator and Discovery Node created (5 and 1 respectively)
+## This script is also meant to build the project within a new folder called "build_local_testnet"
+## It does not clean the build folder, only the local_testnet folder
 
 # Kill the tmux terminals "local_testnet_validatorX" and "local_testnet_discovery"
 tmux kill-session -t local_testnet_validator1
@@ -326,46 +326,46 @@ if [ "$DEPLOY" = true ]; then
   cd ../local_testnet_validator1
   tmux new-session -d -s local_testnet_validator1 './orbitersdkd || bash && bash'
 
-  echo "Launching Validator 2"
-  cd ../local_testnet_validator2
-  tmux new-session -d -s local_testnet_validator2 './orbitersdkd || bash && bash'
+echo "Launching Validator 2"
+cd ../local_testnet_validator2
+tmux new-session -d -s local_testnet_validator2 './orbitersdkd || bash && bash'
 
-  echo "Launching Validator 3"
-  cd ../local_testnet_validator3
-  tmux new-session -d -s local_testnet_validator3 './orbitersdkd || bash && bash'
+echo "Launching Validator 3"
+cd ../local_testnet_validator3
+tmux new-session -d -s local_testnet_validator3 './orbitersdkd || bash && bash'
 
-  echo "Launching Validator 4"
-  cd ../local_testnet_validator4
-  tmux new-session -d -s local_testnet_validator4 './orbitersdkd || bash && bash'
+echo "Launching Validator 4"
+cd ../local_testnet_validator4
+tmux new-session -d -s local_testnet_validator4 './orbitersdkd || bash && bash'
 
-  echo "Launching Validator 5"
-  cd ../local_testnet_validator5
-  tmux new-session -d -s local_testnet_validator5 './orbitersdkd || bash && bash'
+echo "Launching Validator 5"
+cd ../local_testnet_validator5
+tmux new-session -d -s local_testnet_validator5 './orbitersdkd || bash && bash'
 
   # Launch the Normal Nodes through tmux, don't exit the tmux session when closing the terminal
   echo "Launching Normal Node 1"
   cd ../local_testnet_normal1
   tmux new-session -d -s local_testnet_normal1 './orbitersdkd || bash && bash'
 
-  echo "Launching Normal Node 2"
-  cd ../local_testnet_normal2
-  tmux new-session -d -s local_testnet_normal2 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 2"
+cd ../local_testnet_normal2
+tmux new-session -d -s local_testnet_normal2 './orbitersdkd || bash && bash'
 
-  echo "Launching Normal Node 3"
-  cd ../local_testnet_normal3
-  tmux new-session -d -s local_testnet_normal3 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 3"
+cd ../local_testnet_normal3
+tmux new-session -d -s local_testnet_normal3 './orbitersdkd || bash && bash'
 
-  echo "Launching Normal Node 4"
-  cd ../local_testnet_normal4
-  tmux new-session -d -s local_testnet_normal4 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 4"
+cd ../local_testnet_normal4
+tmux new-session -d -s local_testnet_normal4 './orbitersdkd || bash && bash'
 
-  echo "Launching Normal Node 5"
-  cd ../local_testnet_normal5
-  tmux new-session -d -s local_testnet_normal5 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 5"
+cd ../local_testnet_normal5
+tmux new-session -d -s local_testnet_normal5 './orbitersdkd || bash && bash'
 
-  echo "Launching Normal Node 6"
-  cd ../local_testnet_normal6
-  tmux new-session -d -s local_testnet_normal6 './orbitersdkd || bash && bash'
+echo "Launching Normal Node 6"
+cd ../local_testnet_normal6
+tmux new-session -d -s local_testnet_normal6 './orbitersdkd || bash && bash'
 
   # Finish deploying
   GREEN=$'\e[0;32m'

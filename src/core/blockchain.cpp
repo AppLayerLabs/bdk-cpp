@@ -113,7 +113,7 @@ void Syncer::doValidatorBlock() {
     for (const auto [txHash, tx]: mempool) {
       if (this->stopSyncer) return;
       if (tx.getFrom() == randomList[i]) {
-        if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+        if (tx.getFunctor() == Hex::toBytes("0xcfffe746")) {
           randomHashTxs.emplace_back(tx);
           i++;
           break;
@@ -125,7 +125,7 @@ void Syncer::doValidatorBlock() {
   while (randomnessTxs.size() != rdPoS::minValidators) {
     for (const auto [txHash, tx]: mempool) {
       if (tx.getFrom() == randomList[i]) {
-        if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+        if (tx.getFunctor() == Hex::toBytes("0x6fc5a2d6")) {
           randomnessTxs.emplace_back(tx);
           i++;
           break;

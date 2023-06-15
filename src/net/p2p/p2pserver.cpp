@@ -108,13 +108,15 @@ namespace P2P {
 
   void ServerSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
-    //std::cout << "Request received!" << std::endl;
     if (ec) { handleError(__func__, ec); return; }
+
     try {
       if (buffer_.size() >= 11) {
-        if (this->manager_.isClosed()) return;
-        std::string messageStr = boost::beast::buffers_to_string(buffer_.data());
-        Message message(std::move(messageStr));
+        if (this->manager_.isClosed())  {
+          return;
+        }
+        Bytes messageBytes(boost::asio::buffers_begin(this->buffer_.data()), boost::asio::buffers_end(this->buffer_.data()));
+        Message message(std::move(messageBytes));
         this->threadPool->push_task(
           &ManagerBase::handleMessage, &this->manager_, shared_from_this(), message
         );
@@ -139,9 +141,7 @@ namespace P2P {
     if (ws_.is_open()) { // Check if the stream is open, before commiting to it.
       // Copy string to buffer
       writeLock_.lock();
-      size_t n = boost::asio::buffer_copy(
-        this->answerBuffer_.prepare(response.raw().size()), boost::asio::buffer(response.raw())
-      );
+      size_t n = boost::asio::buffer_copy(this->answerBuffer_.prepare(response.raw().size()), boost::asio::buffer(response.raw().data(), response.raw().size()));
       this->answerBuffer_.commit(n);
       // Write to the socket
       ws_.async_write(this->answerBuffer_.data(), beast::bind_front_handler(

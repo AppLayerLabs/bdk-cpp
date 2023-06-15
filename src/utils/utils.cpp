@@ -31,24 +31,24 @@ void Utils::safePrint(std::string_view str) {
   std::cout << str << std::endl;
 }
 
-Hash Utils::sha3(const std::string_view input) {
-  ethash_hash256 h = ethash_keccak256(
-    reinterpret_cast<const unsigned char*>(input.data()), input.size()
-  );
-  Hash retH(std::string_view(reinterpret_cast<const char*>(h.bytes), 32));
-  return retH;
+Hash Utils::sha3(const BytesArrView input) {
+  ethash_hash256 h = ethash_keccak256(input.data(), input.size());
+  BytesArr<32> ret;
+  std::copy(reinterpret_cast<const Byte*>(h.bytes), reinterpret_cast<const Byte*>(h.bytes + 32), ret.begin());
+  return std::move(ret);
 }
 
-std::string Utils::uint256ToBytes(const uint256_t& i) {
-  std::string ret(32, 0x00);
-  std::string tmp;
+BytesArr<32> Utils::uint256ToBytes(const uint256_t& i) {
+  BytesArr<32> ret;
+  Bytes tmp;
+  tmp.reserve(32);
+  ret.fill(0x00);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
-  // Replace bytes from tmp to ret to make it 32 bytes in size
-  for (unsigned i = 0; i < tmp.size(); i++) ret[31 - i] = tmp[tmp.size() - i - 1];
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[31 - ii] = tmp[tmp.size() - ii - 1];
   return ret;
 }
 
-uint256_t Utils::bytesToUint256(const std::string_view b) {
+uint256_t Utils::bytesToUint256(const BytesArrView b) {
   if (b.size() != 32) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 32, got " + std::to_string(b.size())
   );
@@ -57,16 +57,17 @@ uint256_t Utils::bytesToUint256(const std::string_view b) {
   return ret;
 }
 
-std::string Utils::uint128ToBytes(const uint128_t &i) {
-  std::string ret(16, 0x00);
-  std::string tmp;
+BytesArr<16> Utils::uint128ToBytes(const uint128_t &i) {
+  BytesArr<16> ret;
+  Bytes tmp;
+  tmp.reserve(16);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
   // Replace bytes from tmp to ret to make it 32 bytes in size.
-  for (unsigned i = 0; i < tmp.size(); i++) ret[15 - i] = tmp[tmp.size() - i - 1];
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[15 - ii] = tmp[tmp.size() - ii - 1];
   return ret;
 }
 
-uint128_t Utils::bytesToUint128(const std::string_view b) {
+uint128_t Utils::bytesToUint128(const BytesArrView b) {
   if (b.size() != 16) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
   );
@@ -75,16 +76,17 @@ uint128_t Utils::bytesToUint128(const std::string_view b) {
   return ret;
 }
 
-std::string Utils::uint160ToBytes(const uint160_t& i) {
-  std::string ret(20, 0x00);
-  std::string tmp;
+BytesArr<20> Utils::uint160ToBytes(const uint160_t& i) {
+  BytesArr<20> ret;
+  Bytes tmp;
+  tmp.reserve(20);
+  ret.fill(0x00);
   boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
-  // Replace bytes from tmp to ret to make it 32 bytes in size.
-  for (unsigned i = 0; i < tmp.size(); i++) ret[19 - i] = tmp[tmp.size() - i - 1];
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[19 - ii] = tmp[tmp.size() - ii - 1];
   return ret;
 }
 
-uint160_t Utils::bytesToUint160(const std::string_view b) {
+uint160_t Utils::bytesToUint160(const BytesArrView b) {
   if (b.size() != 20) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 20, got " + std::to_string(b.size())
   );
@@ -93,8 +95,8 @@ uint160_t Utils::bytesToUint160(const std::string_view b) {
   return ret;
 }
 
-std::string Utils::uint64ToBytes(const uint64_t& i) {
-  std::string ret(8, 0x00);
+BytesArr<8> Utils::uint64ToBytes(const uint64_t& i) {
+  BytesArr<8> ret;
   std::memcpy(&ret[0], &i, 8);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     std::reverse(ret.begin(), ret.end());
@@ -102,7 +104,7 @@ std::string Utils::uint64ToBytes(const uint64_t& i) {
   return ret;
 }
 
-uint64_t Utils::bytesToUint64(const std::string_view b) {
+uint64_t Utils::bytesToUint64(const BytesArrView b) {
   if (b.size() != 8) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 8, got " + std::to_string(b.size())
   );
@@ -114,8 +116,8 @@ uint64_t Utils::bytesToUint64(const std::string_view b) {
   return ret;
 }
 
-std::string Utils::uint32ToBytes(const uint32_t& i) {
-  std::string ret(4, 0x00);
+BytesArr<4> Utils::uint32ToBytes(const uint32_t& i) {
+  BytesArr<4> ret;
   std::memcpy(&ret[0], &i, 4);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     std::reverse(ret.begin(), ret.end());
@@ -123,7 +125,7 @@ std::string Utils::uint32ToBytes(const uint32_t& i) {
   return ret;
 }
 
-uint32_t Utils::bytesToUint32(const std::string_view b) {
+uint32_t Utils::bytesToUint32(const BytesArrView b) {
   if (b.size() != 4) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 4, got " + std::to_string(b.size())
   );
@@ -135,8 +137,8 @@ uint32_t Utils::bytesToUint32(const std::string_view b) {
   return ret;
 }
 
-std::string Utils::uint16ToBytes(const uint16_t& i) {
-  std::string ret(2, 0x00);
+BytesArr<2> Utils::uint16ToBytes(const uint16_t& i) {
+  BytesArr<2> ret;
   std::memcpy(&ret[0], &i, 2);
   #if __BYTE_ORDER == __LITTLE_ENDIAN
     std::reverse(ret.begin(), ret.end());
@@ -144,7 +146,7 @@ std::string Utils::uint16ToBytes(const uint16_t& i) {
   return ret;
 }
 
-uint16_t Utils::bytesToUint16(const std::string_view b) {
+uint16_t Utils::bytesToUint16(const BytesArrView b) {
   if (b.size() != 2) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 2, got " + std::to_string(b.size())
   );
@@ -156,13 +158,13 @@ uint16_t Utils::bytesToUint16(const std::string_view b) {
   return ret;
 }
 
-std::string Utils::uint8ToBytes(const uint8_t& i) {
-  std::string ret(1, 0x00);
+BytesArr<1> Utils::uint8ToBytes(const uint8_t& i) {
+  BytesArr<1> ret;
   std::memcpy(&ret[0], &i, 1);
   return ret;
 }
 
-uint8_t Utils::bytesToUint8(const std::string_view b) {
+uint8_t Utils::bytesToUint8(const BytesArrView b) {
   if (b.size() != 1) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 1, got " + std::to_string(b.size())
   );
@@ -171,8 +173,8 @@ uint8_t Utils::bytesToUint8(const std::string_view b) {
   return ret;
 }
 
-std::string Utils::randBytes(const int& size) {
-  std::string bytes(size, 0x00);
+Bytes Utils::randBytes(const int& size) {
+  Bytes bytes(size, 0x00);
   RAND_bytes((unsigned char*)bytes.data(), size);
   return bytes;
 }
@@ -193,17 +195,24 @@ std::string Utils::padRight(std::string str, unsigned int charAmount, char sign)
   return (hasPrefix ? "0x" : "") + str + padded;
 }
 
-std::string Utils::padLeftBytes(std::string str, unsigned int charAmount, char sign) {
-  size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
-  std::string padded = (padding != 0) ? std::string(padding, sign) : "";
-  return padded + str;
+Bytes Utils::padLeftBytes(const BytesArrView bytes, unsigned int charAmount, uint8_t sign) {
+  size_t padding = (charAmount > bytes.size()) ? (charAmount - bytes.size()) : 0;
+  Bytes padded = (padding != 0) ? Bytes(padding, sign) : Bytes(0, 0x00);
+  padded.reserve(bytes.size() + padded.size());
+  padded.insert(padded.end(), bytes.begin(), bytes.end());
+  return padded;
 }
 
-std::string Utils::padRightBytes(std::string str, unsigned int charAmount, char sign) {
-  size_t padding = (charAmount > str.length()) ? (charAmount - str.length()) : 0;
-  std::string padded = (padding != 0) ? std::string(padding, sign) : "";
-  return str + padded;
+Bytes Utils::padRightBytes(const BytesArrView bytes, unsigned int charAmount, uint8_t sign) {
+  size_t padding = (charAmount > bytes.size()) ? (charAmount - bytes.size()) : 0;
+  Bytes padded = (padding != 0) ? Bytes(padding, sign) : Bytes(0, 0x00);
+  Bytes ret;
+  ret.reserve(bytes.size() + padded.size());
+  ret.insert(ret.end(), bytes.begin(), bytes.end());
+  ret.insert(ret.end(), padded.begin(), padded.end());
+  return ret;
 }
+
 
 json Utils::readConfigFile() {
   if (!std::filesystem::exists("config.json")) {
@@ -222,4 +231,3 @@ json Utils::readConfigFile() {
   json config = json::parse(configFile);
   return config;
 }
-

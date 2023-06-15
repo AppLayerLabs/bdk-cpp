@@ -83,28 +83,28 @@ class NativeWrapper : public DynamicContract {
      * function name() public view returns (string memory) { return _name; }
      * @return The name of the token.
      */
-    std::string name() const;
+    Bytes name() const;
 
     /**
      * Get the symbol/ticker of the token. Solidity counterpart:
      * function symbol() public view returns (string memory) { return _symbol; }
      * @return The symbol/ticker of the token.
      */
-    std::string symbol() const;
+    Bytes symbol() const;
 
     /**
      * Get the number of decimals of the token. Solidity counterpart:
      * function decimals() public view returns (uint8) { return _decimals; }
      * @return The decimals of the token.
      */
-    std::string decimals() const;
+    Bytes decimals() const;
 
     /**
      * Get the total supply of the token. Solidity counterpart:
      * function totalSupply() public view returns (uint256) { return _totalSupply; }
      * @return The total supply of the token.
      */
-    std::string totalSupply() const;
+    Bytes totalSupply() const;
 
     /**
      * Get the token balance of a specified address. Solidity counterpart:
@@ -112,7 +112,7 @@ class NativeWrapper : public DynamicContract {
      * @param _owner The address to get the balance from.
      * @return The total token balance of the address.
      */
-    std::string balanceOf(const Address& _owner) const;
+    Bytes balanceOf(const Address& _owner) const;
 
     /**
      * Transfer an amount of tokens from the caller's account to a given address.
@@ -137,7 +137,7 @@ class NativeWrapper : public DynamicContract {
      * @param _spender The address of the account able to transfer the tokens.
      * @return The remaining allowed amount.
      */
-    std::string allowance(const Address& _owner, const Address& _spender) const;
+    Bytes allowance(const Address& _owner, const Address& _spender) const;
 
     /**
      * Transfer tokens from one address to another. Solidity counterpart:

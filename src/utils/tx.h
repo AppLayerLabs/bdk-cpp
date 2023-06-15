@@ -13,7 +13,7 @@ class TxBlock {
   private:
     Address to;                     ///< Receiver address.
     Address from;                   ///< Sender address.
-    std::string data;               ///< Arbitrary data (e.g. for contracts).
+    Bytes data;               ///< Arbitrary data (e.g. for contracts).
     uint64_t chainId;               ///< Chain ID where the tx will be broadcast.
     uint256_t nonce;                ///< Sender address nonce.
     uint256_t value;                ///< Value, in Wei.
@@ -32,7 +32,7 @@ class TxBlock {
      * @param requiredChainId The chain ID of the transaction.
      * @throw std::runtime_error on any parsing failure.
      */
-    TxBlock(const std::string_view& bytes, const uint64_t& requiredChainId);
+    TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId);
 
     /**
      * Manual constructor. Leave fields blank ("" or 0) if they're not required.
@@ -49,7 +49,7 @@ class TxBlock {
      * @throw std::runtime_error on signing failure or sender mismatch.
      */
     TxBlock(
-      const Address to, const Address from, const std::string data,
+      const Address to, const Address from, const Bytes& data,
       const uint64_t chainId, const uint256_t nonce, const uint256_t value,
       const uint256_t maxPriorityFeePerGas, const uint256_t maxFeePerGas,
       const uint256_t gasLimit, const PrivKey privKey
@@ -94,7 +94,7 @@ class TxBlock {
     inline const Address& getFrom() const { return this->from; }
 
     /// Getter for `data`.
-    inline const std::string& getData() const { return this->data; }
+    inline const Bytes& getData() const { return this->data; }
 
     /// Getter for `chainId`.
     inline const uint64_t& getChainId() const { return this->chainId; }
@@ -145,7 +145,7 @@ class TxBlock {
      *                   Defaults to `true`.
      * @return The serialized transaction string.
      */
-    std::string rlpSerialize(bool includeSig = true) const;
+    Bytes rlpSerialize(bool includeSig = true) const;
 
     /**
      * Convert a TxBlock to a ethCallInfo object
@@ -202,7 +202,7 @@ class TxBlock {
 class TxValidator {
   private:
     Address from;       ///< Sender address.
-    std::string data;   ///< Arbitrary data (e.g. for contracts).
+    Bytes data;   ///< Arbitrary data (e.g. for contracts).
     uint64_t chainId;   ///< Chain ID where the tx will be broadcast.
     uint64_t nHeight;   ///< %Block height where the tx will be broadcast.
     uint256_t v;        ///< ECDSA recovery ID.
@@ -216,7 +216,7 @@ class TxValidator {
      * @param requiredChainId The chain ID of the transaction.
      * @throw std::runtime_error on any parsing failure.
      */
-    TxValidator(const std::string_view& bytes, const uint64_t& requiredChainId);
+    TxValidator(const BytesArrView bytes, const uint64_t& requiredChainId);
 
     /**
      * Manual constructor. Leave fields blank ("" or 0) if they're not required.
@@ -228,7 +228,7 @@ class TxValidator {
      * @throw std::runtime_error on signing failure or sender mismatch.
      */
     TxValidator(
-      const Address from, const std::string data, const uint64_t chainId,
+      const Address from, const Bytes& data, const uint64_t chainId,
       const uint64_t nHeight, const PrivKey privKey
     );
 
@@ -258,7 +258,10 @@ class TxValidator {
     inline const Address& getFrom() const { return this->from; }
 
     /// Getter for `data`.
-    inline const std::string_view getData() const { return this->data; }
+    inline const Bytes& getData() const { return this->data; }
+
+    /// Getter for the functor within `data`.
+    inline const Functor getFunctor() const { return Functor(Bytes(this->data.begin(), this->data.begin() + 4)); }
 
     /// Getter for `chainId`.
     inline const uint64_t& getChainId() const { return this->chainId; }
@@ -297,7 +300,7 @@ class TxValidator {
      *                   Defaults to `true`.
      * @return The serialized transaction string.
      */
-    std::string rlpSerialize(bool includeSig = true) const;
+    Bytes rlpSerialize(bool includeSig = true) const;
 
     /// Copy assignment operator.
     TxValidator& operator=(const TxValidator& other) {

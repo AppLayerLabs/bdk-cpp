@@ -49,10 +49,10 @@ namespace P2P {
    * - "01" = Answer
    * - "02" = Broadcast
    */
-  inline extern const std::vector<std::string> typePrefixes {
-    std::string("\x00", 1), // Request
-    std::string("\x01", 1), // Answer
-    std::string("\x02", 1)  // Broadcast
+  inline extern const std::vector<Bytes> typePrefixes {
+    Bytes(1, 0x00), // Request
+    Bytes(1, 0x01), // Answer
+    Bytes(1, 0x02)  // Broadcast
   };
 
   /**
@@ -66,14 +66,14 @@ namespace P2P {
    * - "0005" = BroadcastTx
    * - "0006" = BroadcastBlock
    */
-  inline extern const std::vector<std::string> commandPrefixes {
-    std::string("\x00\x00", 2), // Ping
-    std::string("\x00\x01", 2), // Info
-    std::string("\x00\x02", 2), // RequestNodes
-    std::string("\x00\x03", 2), // RequestValidatorTxs
-    std::string("\x00\x04", 2), // BroadcastValidatorTx
-    std::string("\x00\x05", 2), // BroadcastTx
-    std::string("\x00\x06", 2)  // BroadcastBlock
+  inline extern const std::vector<Bytes> commandPrefixes {
+    Bytes{0x00, 0x00}, // Ping
+    Bytes{0x00, 0x01}, // Info
+    Bytes{0x00, 0x02}, // RequestNodes
+    Bytes{0x00, 0x03}, // RequestValidatorTxs
+    Bytes{0x00, 0x04}, // BroadcastValidatorTx
+    Bytes{0x00, 0x05}, // BroadcastTx
+    Bytes{0x00, 0x06}  // BroadcastBlock
   };
 
   /**
@@ -81,35 +81,35 @@ namespace P2P {
    * @param message The message to parse.
    * @return The request type.
    */
-  RequestType getRequestType(const std::string_view& message);
+  RequestType getRequestType(const BytesArrView message);
 
   /**
    * Get the 1-byte prefix of a given request inside typePrefixes.
    * @param type The request type to parse.
    * @return The prefix string.
    */
-  std::string getRequestTypePrefix(const RequestType& type);
+  const Bytes& getRequestTypePrefix(const RequestType& type);
 
   /**
    * Get the type of a command within a message.
    * @param message The message to parse.
    * @return The command type.
    */
-  CommandType getCommandType(const std::string_view& message);
+  CommandType getCommandType(const BytesArrView message);
 
   /**
    * Get the 2-byte prefix of a given command inside commandPrefixes.
    * @param commType The command type to parse.
    * @return The prefix string.
    */
-  std::string getCommandPrefix(const CommandType& commType);
+  const Bytes& getCommandPrefix(const CommandType& commType);
 
-  /// Abstraction of an 8-byte/64-bit hash that represents a unique ID for a request. Inherits `FixedStr<8>`.
-  class RequestID : public FixedStr<8> {
+  /// Abstraction of an 8-byte/64-bit hash that represents a unique ID for a request. Inherits `FixedBytes<8>`.
+  class RequestID : public FixedBytes<8> {
     public:
       // Using parent constructor and operator=.
-      using FixedStr<8>::FixedStr;
-      using FixedStr<8>::operator=;
+      using FixedBytes<8>::FixedBytes;
+      using FixedBytes<8>::operator=;
 
       /**
        * Constructor.
@@ -372,10 +372,10 @@ namespace P2P {
   class Message {
     private:
       /// The internal message data to be read/written, stored as bytes.
-      std::string _rawMessage;
+      Bytes _rawMessage;
 
       /// Raw string move constructor. Throws on invalid size.
-      Message(std::string&& raw) : _rawMessage(std::move(raw)) {
+      Message(Bytes&& raw) : _rawMessage(std::move(raw)) {
         if (_rawMessage.size() < 11) throw std::runtime_error("Invalid message size.");
       }
 
@@ -392,19 +392,19 @@ namespace P2P {
       Message(Message&& message) { this->_rawMessage = std::move(message._rawMessage); }
 
       /// Get the request type of the message.
-      const RequestType type() const { return getRequestType(_rawMessage.substr(0,1)); }
+      const RequestType type() const { return getRequestType(BytesArrView(_rawMessage).subspan(0,1)); }
 
       /// Get the request ID of the message.
-      const RequestID id() const { return RequestID(_rawMessage.substr(1, 8)); }
+      const RequestID id() const { return RequestID(BytesArrView(_rawMessage).subspan(1, 8)); }
 
       /// Get the command type of the message.
-      const CommandType command() const { return getCommandType(_rawMessage.substr(9,2)); }
+      const CommandType command() const { return getCommandType(BytesArrView(_rawMessage).subspan(9,2)); }
 
       /// Get the message data (without the flags and IDs).
-      const std::string_view message() const { return std::string_view(_rawMessage).substr(11); }
+      const BytesArrView message() const { return BytesArrView(_rawMessage).subspan(11); }
 
       /// Get the whole message.
-      const std::string_view raw() const { return _rawMessage; }
+      const BytesArrView raw() const { return _rawMessage; }
 
       /// Get the message's size.
       const size_t size() const { return _rawMessage.size(); }

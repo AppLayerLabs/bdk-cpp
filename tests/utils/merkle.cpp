@@ -9,12 +9,14 @@ using Catch::Matchers::Equals;
 namespace TMerkle {
   TEST_CASE("Merkle Tests", "[utils][merkle]") {
     SECTION("Simple Merkle Tree") {
-      std::vector<std::string> unhashedLeafs = {
-        "ab", "bc", "cd", "de", "ef", "fg",
-        "gh", "hi", "ij", "jk", "km", "mn"
+      std::vector<Bytes> unhashedLeafs = {
+        Utils::stringToBytes("ab"), Utils::stringToBytes("bc"), Utils::stringToBytes("cd"),
+        Utils::stringToBytes("de"), Utils::stringToBytes("ef"), Utils::stringToBytes("fg"),
+        Utils::stringToBytes("gh"), Utils::stringToBytes("hi"), Utils::stringToBytes("ij"),
+        Utils::stringToBytes("jk"), Utils::stringToBytes("km"), Utils::stringToBytes("mn")
       };
       std::vector<Hash> hashedLeafs;
-      for(const std::string& leaf : unhashedLeafs) hashedLeafs.emplace_back(Utils::sha3(leaf));
+      for(const Bytes& leaf : unhashedLeafs) hashedLeafs.emplace_back(Utils::sha3(leaf));
 
       Merkle tree(hashedLeafs);
       std::vector<Hash> proof = tree.getProof(3);

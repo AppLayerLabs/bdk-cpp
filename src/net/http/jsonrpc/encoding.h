@@ -37,7 +37,7 @@ namespace JsonRPC {
      * @param data The string to be hashed.
      * @return The encoded JSON response.
      */
-    json web3_sha3(const std::string& data);
+    json web3_sha3(const BytesArrView data);
 
     /**
      * Encode a `net_version` response.
@@ -65,7 +65,6 @@ namespace JsonRPC {
      * @param options Pointer to the options singleton.
      * @return The encoded JSON response.
      */
-    // TODO: Waiting for options
     json eth_protocolVersion(const std::unique_ptr<Options>& options);
 
     /**
@@ -138,20 +137,20 @@ namespace JsonRPC {
 
     /**
      * Encode a `eth_call` response.
-     * @param callInfo Info about the call (from, to, gas, gasPrice, value, data).
+     * @param callInfo Info about the call (from, to, gas, gasPrice, value, functor, data).
      * @param state Pointer to the blockchain's state.
      * @return The encoded JSON response.
      */
-    json eth_call(const ethCallInfo& callInfo, const std::unique_ptr<State>& state);
+    json eth_call(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state);
 
     /**,
      * Encode a `eth_estimateGas` response.
-     * @param callInfo Info about the call (from, to, gas, gasPrice, value, data).
+     * @param callInfo Info about the call (from, to, gas, gasPrice, value, functor, data).
      * @param state Pointer to the blockchain's state.
      * @return The encoded JSON response.
      */
     // TODO: We don't really estimate gas because we don't have a Gas structure, it is fixed to 21000
-    json eth_estimateGas(const ethCallInfo& callInfo, const std::unique_ptr<State>& state);
+    json eth_estimateGas(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state);
 
     /**
      * Encode a `eth_gasPrice` response.

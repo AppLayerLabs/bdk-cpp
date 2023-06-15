@@ -105,28 +105,6 @@ template <> struct TypeToEnum<const uint8_t &> {
 };
 
 /**
- * Specialization of TypeToEnum for std::vector<uint8_t>.
- */
-template <> struct TypeToEnum<std::vector<uint8_t>> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for reference to std::vector<uint8_t>.
- */
-template <> struct TypeToEnum<std::vector<uint8_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
- * Specialization of TypeToEnum for const reference to std::vector<uint8_t>.
- */
-
-template <> struct TypeToEnum<const std::vector<uint8_t> &> {
-  static constexpr ABI::Types value = ABI::Types::uint256Arr;
-};
-
-/**
  * Specialization of TypeToEnum for uint16_t.
  */
 template <> struct TypeToEnum<uint16_t> {
@@ -385,6 +363,50 @@ template <> struct TypeToEnum<const std::vector<std::string> &> {
 };
 
 /**
+ * Specialization of TypeToEnum for Bytes.
+ */
+  template <> struct TypeToEnum<Bytes> {
+    static constexpr ABI::Types value = ABI::Types::string;
+  };
+
+/**
+ * Specialization of TypeToEnum for reference to Bytes.
+ */
+  template <> struct TypeToEnum<Bytes &> {
+    static constexpr ABI::Types value = ABI::Types::string;
+  };
+
+/**
+ * Specialization of TypeToEnum for const reference to Bytes.
+ */
+  template <> struct TypeToEnum<const Bytes &> {
+    static constexpr ABI::Types value = ABI::Types::string;
+  };
+
+/**
+ * Specialization of TypeToEnum for std::vector<Bytes>.
+ */
+  template <> struct TypeToEnum<std::vector<Bytes>> {
+    static constexpr ABI::Types value = ABI::Types::stringArr;
+  };
+
+/**
+ * Specialization of TypeToEnum for reference to
+ * std::vector<Bytes>.
+ */
+  template <> struct TypeToEnum<std::vector<Bytes> &> {
+    static constexpr ABI::Types value = ABI::Types::stringArr;
+  };
+
+/**
+ * Specialization of TypeToEnum for const reference to
+ * std::vector<Bytes>.
+ */
+  template <> struct TypeToEnum<const std::vector<Bytes> &> {
+    static constexpr ABI::Types value = ABI::Types::stringArr;
+  };
+
+/**
  * This map is used to map a type to an ABI type.
  *
  */
@@ -399,15 +421,6 @@ static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
      TypeToEnum<std::vector<uint256_t> &>::value},
     {meta::resolve_type<const std::vector<uint256_t> &>(),
      TypeToEnum<const std::vector<uint256_t> &>::value},
-    {meta::resolve_type<uint8_t>(), TypeToEnum<uint8_t>::value},
-    {meta::resolve_type<uint8_t &>(), TypeToEnum<uint8_t &>::value},
-    {meta::resolve_type<const uint8_t &>(), TypeToEnum<const uint8_t &>::value},
-    {meta::resolve_type<std::vector<uint8_t>>(),
-     TypeToEnum<std::vector<uint8_t>>::value},
-    {meta::resolve_type<std::vector<uint8_t> &>(),
-     TypeToEnum<std::vector<uint8_t> &>::value},
-    {meta::resolve_type<const std::vector<uint8_t> &>(),
-     TypeToEnum<const std::vector<uint8_t> &>::value},
     {meta::resolve_type<uint16_t>(), TypeToEnum<uint16_t>::value},
     {meta::resolve_type<uint16_t &>(), TypeToEnum<uint16_t &>::value},
     {meta::resolve_type<const uint16_t &>(),
@@ -466,7 +479,17 @@ static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
     {meta::resolve_type<std::vector<std::string> &>(),
      TypeToEnum<std::vector<std::string> &>::value},
     {meta::resolve_type<const std::vector<std::string> &>(),
-     TypeToEnum<const std::vector<std::string> &>::value}};
+     TypeToEnum<const std::vector<std::string> &>::value},
+    {meta::resolve_type<Bytes>(), TypeToEnum<Bytes>::value},
+    {meta::resolve_type<const std::string &>(),
+     TypeToEnum<const Bytes &>::value},
+    {meta::resolve_type<Bytes &>(), TypeToEnum<Bytes &>::value},
+    {meta::resolve_type<std::vector<Bytes>>(),
+      TypeToEnum<std::vector<Bytes>>::value},
+    {meta::resolve_type<std::vector<std::string> &>(),
+      TypeToEnum<std::vector<Bytes> &>::value},
+    {meta::resolve_type<const std::vector<Bytes> &>(),
+      TypeToEnum<const std::vector<Bytes> &>::value}};
 
 /**
  * This function returns the ABI type string for a given ABI type.

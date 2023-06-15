@@ -3,6 +3,7 @@
 
 #include <string>
 #include <any>
+
 #include "../utils/hex.h"
 #include "../utils/json.hpp"
 #include "../utils/utils.h"
@@ -18,8 +19,8 @@ namespace ABI {
    * - addressArr = address[] (Solidity) = std::vector<Address> (C++)
    * - bool = bool (Solidity) = bool (C++)
    * - boolArr = bool[] (Solidity) = vector<bool> (C++)
-   * - bytes = bytes (Solidity) = std::string (C++)
-   * - bytesArr = bytes[] (Solidity) = std::vector<std::string> (C++)
+   * - bytes = bytes (Solidity) = Bytes (C++)
+   * - bytesArr = bytes[] (Solidity) = std::vector<Bytes> (C++)
    * - string = string (Solidity) = std::string (C++)
    * - stringArr = string[] (Solidity) = std::vector<std::string> (C++)
    */
@@ -31,11 +32,8 @@ namespace ABI {
   /// Class that encodes and packs native data types into Solidity ABI strings.
   class Encoder {
     private:
-      /**
-       * Encoded Solidity ABI string, as RAW BYTES.
-       * Use Hex::fromBytes().get() to print it properly.
-       */
-      std::string data;
+      Bytes data_; ///< Encoded Solidity ABI string, as RAW BYTES. Use Hex::fromBytes().get() to print it properly.
+      Functor functor; ///< Functor of the function to call. (if any)
 
       /**
        * Encode a function header into Solidity ABI format.
@@ -45,28 +43,28 @@ namespace ABI {
        * @param func The function header to encode.
        * @return The encoded functor hex string.
        */
-      std::string encodeFunction(std::string_view func) const;
+      Functor encodeFunction(const std::string_view func) const;
 
       /**
        * Encode a 256-bit unsigned integer into Solidity ABI format.
        * @param num The 256-bit unsigned integer to encode.
        * @return The encoded uint256 hex string, padded 32 hex bytes to the LEFT.
        */
-      std::string encodeUint256(const uint256_t num) const;
+      Bytes encodeUint256(const uint256_t& num) const;
 
       /**
        * Encode a 20-byte address into Solidity ABI format.
        * @param add The 20-byte address to encode.
        * @return The encoded address hex string, padded 32 bytes to the LEFT.
        */
-      std::string encodeAddress(const Address &add) const;
+      Bytes encodeAddress(const Address& add) const;
 
       /**
        * Encode a boolean into Solidity ABI format.
        * @param b The boolean to encode.
        * @return The encoded boolean hex string, padded 32 bytes to the LEFT.
        */
-      std::string encodeBool(bool b) const;
+      Bytes encodeBool(bool b) const;
 
       /**
        * Encode a raw bytes or UTF-8 string into Solidity ABI format.
@@ -76,45 +74,42 @@ namespace ABI {
        * @return The encoded hex bytes or string,
        *         padded to the nearest multiple of 32 bytes to the RIGHT.
        */
-      std::string encodeBytes(std::string_view bytes) const;
+      Bytes encodeBytes(const BytesArrView bytes) const;
 
       /**
        * Encode a 256-bit unsigned integer array into Solidity ABI format.
        * @param numV The 256-bit unsigned integer array to encode.
-       * @return The encoded uint256[] hex string, with the proper offsets and
-       * lengths.
+       * @return The encoded uint256[] hex string, with the proper offsets and lengths.
        */
-      std::string encodeUint256Arr(const std::vector<uint256_t> &numV) const;
+      Bytes encodeUint256Arr(const std::vector<uint256_t>& numV) const;
 
       /**
        * Encode a 20-byte address array into Solidity ABI format.
        * @param addV The 20-byte address array to encode.
-       * @return The encoded address[] hex string, with the proper offsets and
-       * lengths.
+       * @return The encoded address[] hex string, with the proper offsets and lengths.
        */
-      std::string encodeAddressArr(const std::vector<Address> &addV) const;
+      Bytes encodeAddressArr(const std::vector<Address>& addV) const;
 
       /**
        * Encode a boolean array into Solidity ABI format.
        * @param bV The boolean array to encode.
        * @return The encoded bool[] hex string, with the proper offsets and lengths.
        */
-      std::string encodeBoolArr(const std::vector<bool> &bV) const;
+      Bytes encodeBoolArr(const std::vector<bool>& bV) const;
 
       /**
        * Encode a raw bytes or UTF-8 string array into Solidity ABI format.
        * See `encodeBytes()` for more details.
        * @param bytesV The raw bytes or UTF-8 string array to encode.
-       * @return The encoded bytes[] or string[] hex string, with the proper offsets
-       * and lengths.
+       * @return The encoded bytes[] or string[] hex string, with the proper offsets and lengths.
        */
-      std::string encodeBytesArr(const std::vector<std::string> &bytesV) const;
+      Bytes encodeBytesArr(const std::vector<BytesArrView>& bytesV) const;
 
     public:
       /// Alias for variant type, for easier handling.
       typedef std::vector<std::variant<
         uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, std::string, std::vector<std::string>
+        bool, std::vector<bool>, Bytes, std::vector<Bytes>, std::string, std::vector<std::string>
       >> EncVar;
 
       /**
@@ -122,19 +117,25 @@ namespace ABI {
        * Automatically encodes the data during construction.
        * Throws on error.
        * @param data A list of variables to encode.
-       * @param func (optional) The full function header to encode. Defaults to an empty string.
-       * @throw std::runtime_error if the function header is invalid or if header and data do not match.
+       * @param func (optional) The full function header to encode.
+       *             Defaults to an empty string.
+       *@throw std::runtime_error if the function header is invalid or if header
+       *and data do not match.
+       * TODO: change std::string_view func to be only the function name, and derive the respective argument types from data.
        */
-      Encoder(const ABI::Encoder::EncVar &data, std::string_view func = "");
+      Encoder(const ABI::Encoder::EncVar& data, const std::string_view func = "");
 
       /// Getter for `data`.
-      const std::string& getRaw() const { return this->data; }
+      const Bytes& getData() const { return this->data_; }
+
+      /// Getter for 'functor'
+      const Functor& getFunctor() const { return this->functor; }
 
       /**
        * Get the length of `data`.
        * @return The total size of the data string.
        */
-      size_t getDataLen() const { return this->data.length(); }
+      size_t size() const { return this->data_.size(); }
   };
 
   /// Class that unpacks and decodes a Solidity ABI string into their original data types.
@@ -143,105 +144,132 @@ namespace ABI {
       /// List with the decoded native data types.
       std::vector<std::variant<
         uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, std::string, std::vector<std::string>
-      >> data;
+        bool, std::vector<bool>, Bytes, std::vector<Bytes>, std::string, std::vector<std::string>
+      >> data_;
 
       /**
        * Decode a 256-bit unsigned integer from the given Solidity data string.
        * Throws if data is too short.
-       * @param data The Solidity data string to decode.
-       * @start The index of the string to start decoding from.
+       * @param data The Solidity data bytes to decode.
+       * @start The index of the vector to start decoding from.
        * @return The decoded 256-bit unsigned integer.
-       * @throw std::runtime_error if data is too short.
+       *@throw std::runtime_error if data is too short.
        */
-      uint256_t decodeUint256(const std::string_view data,
-                              const uint64_t &start) const;
+      uint256_t decodeUint256(const BytesArrView data, const uint64_t& start) const;
 
       /**
        * Decode a 20-byte address from the given Solidity data string.
        * Throws if data is too short.
-       * @param data The Solidity data string to decode.
-       * @start The index of the string to start decoding from.
+       * @param data The Solidity data bytes to decode.
+       * @start The index of the vector to start decoding from.
        * @return The decoded 20-byte address.
-       * @throw std::runtime_error if data is too short.
+       *@throw std::runtime_error if data is too short.
        */
-      Address decodeAddress(const std::string_view data,
-                            const uint64_t &start) const;
+      Address decodeAddress(const BytesArrView data, const uint64_t& start) const;
 
       /**
        * Decode a boolean from the given Solidity data string.
        * Throws if data is too short.
-       * @param data The Solidity data string to decode.
-       * @start The index of the string to start decoding from.
+       * @param data The Solidity data bytes to decode.
+       * @start The index of the vector to start decoding from.
        * @return The decoded boolean.
-       * @throw std::runtime_error if data is too short.
+       *@throw std::runtime_error if data is too short.
        */
-      bool decodeBool(const std::string_view data, const uint64_t &start) const;
+      bool decodeBool(const BytesArrView data, const uint64_t& start) const;
 
       /**
-       * Decode a raw bytes or UTF-8 string from the given Solidity data string.
+       * Decode a raw bytes from the given Solidity data string.
        * Decoding bytes and string in Solidity is done the exact same way,
        * as we are dealing with data as raw bytes anyway.
+       * We differentiate the return types for convenience.
        * Throws if data is too short.
-       * @param data The Solidity data string to decode.
-       * @param start The index of the string to start decoding from.
-       * @return The decoded raw bytes or UTF-8 string.
+       * @param data The Solidity data bytes to decode.
+       * @param start The index of the vector to start decoding from.
+       * @return The decoded raw bytes
+       * @throws std::runtime_error if data is too short.
+       */
+      Bytes decodeBytes(const BytesArrView data, const uint64_t& start) const;
+
+      /**
+       * Decode a raw UTF-8 string from the given Solidity data string.
+       * Decoding bytes and string in Solidity is done the exact same way,
+       * as we are dealing with data as raw bytes anyway.
+       * We differentiate the return types for convenience.
+       * Throws if data is too short.
+       * @param data The Solidity data bytes to decode.
+       * @param start The index of the vector to start decoding from.
+       * @return The decoded string
        * @throw std::runtime_error if data is too short.
        */
-      std::string decodeBytes(const std::string_view data,
-                              const uint64_t &start) const;
+      std::string decodeString(const BytesArrView data, const uint64_t& start) const;
 
       /**
        * Decode a 256-bit unsigned integer array from the given Solidity data
        * string. Throws if data is too short.
-       * @param data The Solidity data string to decode.
-       * @param start The index of the string to start decoding from.
+       * @param data The Solidity data bytes to decode.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded 256-bit unsigned integer array.
        * @throw std::runtime_error if data is too short.
        */
-      std::vector<uint256_t> decodeUint256Arr(const std::string_view data,
-                                              const uint64_t &start) const;
+      std::vector<uint256_t> decodeUint256Arr(
+        const BytesArrView data, const uint64_t& start
+      ) const;
 
       /**
        * Decode a 20-byte address array from the given Solidity data string.
        * Throws if data is too short.
-       * @param data The Solidity data string to decode.
-       * @param start The index of the string to start decoding from.
+       * @param data The Solidity data bytes to decode.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded 20-byte address array.
        * @throw std::runtime_error if data is too short.
        */
-      std::vector<Address> decodeAddressArr(const std::string_view data,
-                                            const uint64_t &start) const;
+      std::vector<Address> decodeAddressArr(
+        const BytesArrView data, const uint64_t& start
+      ) const;
 
       /**
        * Decode a boolean array from the given Solidity data string.
        * Throws if data is too short.
-       * @param data The Solidity data string to decode.
-       * @param start The index of the string to start decoding from.
+       * @param data The Solidity data bytes to decode.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded boolean array.
        * @throw std::runtime_error if data is too short.
        */
-      std::vector<bool> decodeBoolArr(const std::string_view data,
-                                      const uint64_t &start) const;
+      std::vector<bool> decodeBoolArr(
+        const BytesArrView data, const uint64_t& start
+      ) const;
 
       /**
-       * Decode a raw bytes or UTF-8 string array from the given Solidity data
+       * Decode a raw bytes array from the given Solidity data
        * string. See `decodeBytes()` for more details. Throws if data is too short.
-       * @param data The Solidity data string to decode.
-       * @param start The index of the string to start decoding from.
-       * @return The decoded raw bytes or UTF-8 string array.
+       * @param data The Solidity data bytes to decode.
+       * @param start The index of the vector to start decoding from.
+       * @return The decoded raw bytes.
        * @throw std::runtime_error if data is too short.
        */
-      std::vector<std::string> decodeBytesArr(const std::string_view data,
-                                              const uint64_t &start) const;
+      std::vector<Bytes> decodeBytesArr(
+        const BytesArrView data, const uint64_t& start
+      ) const;
 
-    public:
+      /**
+        * Decode a raw bytes array from the given Solidity data
+        * string. See `decodeBytes()` for more details. Throws if data is too short.
+        * @param data The Solidity data bytes to decode.
+        * @param start The index of the vector to start decoding from.
+        * @return The decoded raw bytes.
+        * @throw std::runtime_error if data is too short.
+        */
+      std::vector<std::string> decodeStringArr(
+        const BytesArrView data, const uint64_t& start
+      ) const;
+
+  public:
       /**
        * Constructor. Automatically decodes the data during construction.
        * @param types An ordered list of expected Solidity types to decode.
        * @param bytes The full Solidity ABI string to decode, AS A RAW BYTES STRING.
        */
-      Decoder(const std::vector<ABI::Types> &types, const std::string_view bytes);
+      Decoder(const std::vector<ABI::Types>& types, const BytesArrView bytes);
 
       /**
        * Get a specific data type from the decoded `data` list.
@@ -251,41 +279,39 @@ namespace ABI {
        * @throw std::runtime_error if type mismatch.
        */
       template <typename T> T getData(const uint64_t &index) const {
-        if (index >= this->data.size())
-          throw std::out_of_range("Index out of range");
-        if (std::holds_alternative<T>(this->data[index]))
-          return std::get<T>(this->data[index]);
+        if (index >= this->data_.size()) throw std::out_of_range("Index out of range");
+        if (std::holds_alternative<T>(this->data_[index])) return std::get<T>(this->data_[index]);
         throw std::runtime_error("Type mismatch");
       }
 
-      /**
-       * Get a specific data type from the decoded `data` list.
-       * @param index The index of the data type to get.
-       * @param type The expected Solidity type of the data.
-       * @return The decoded data type.
-       * @throw std::runtime_error if type mismatch.
-       */
-      std::any getDataDispatch(int index, ABI::Types type) {
-        switch (type) {
-          case ABI::Types::uint256: return this->getData<uint256_t>(index);
-          case ABI::Types::uint256Arr: return this->getData<std::vector<uint256_t>>(index);
-          case ABI::Types::address: return this->getData<Address>(index);
-          case ABI::Types::addressArr: return this->getData<std::vector<Address>>(index);
-          case ABI::Types::boolean: return this->getData<bool>(index);
-          case ABI::Types::booleanArr: return this->getData<std::vector<bool>>(index);
-          case ABI::Types::bytes: return this->getData<std::string>(index);
-          case ABI::Types::bytesArr: return this->getData<std::vector<std::string>>(index);
-          case ABI::Types::string: return this->getData<std::string>(index);
-          case ABI::Types::stringArr: return this->getData<std::vector<std::string>>(index);
-          default: throw std::runtime_error("Invalid ABI::Types type");
-        }
+    /**
+     * Get a specific data type from the decoded `data` list.
+     * @param index The index of the data type to get.
+     * @param type The expected Solidity type of the data.
+     * @return The decoded data type.
+     * @throw std::runtime_error if type mismatch.
+     */
+    std::any getDataDispatch(int index, ABI::Types type) {
+      switch (type) {
+        case ABI::Types::uint256: return this->getData<uint256_t>(index);
+        case ABI::Types::uint256Arr: return this->getData<std::vector<uint256_t>>(index);
+        case ABI::Types::address: return this->getData<Address>(index);
+        case ABI::Types::addressArr: return this->getData<std::vector<Address>>(index);
+        case ABI::Types::boolean: return this->getData<bool>(index);
+        case ABI::Types::booleanArr: return this->getData<std::vector<bool>>(index);
+        case ABI::Types::bytes: return this->getData<Bytes>(index);
+        case ABI::Types::bytesArr: return this->getData<std::vector<Bytes>>(index);
+        case ABI::Types::string: return this->getData<std::string>(index);
+        case ABI::Types::stringArr: return this->getData<std::vector<std::string>>(index);
+        default: throw std::runtime_error("Invalid ABI::Types type");
       }
+    }
 
       /**
        * Get the size of the `data` list.
        * @return The total number of decoded types.
        */
-      size_t getDataSize() const { return this->data.size(); }
+      size_t getDataSize() const { return this->data_.size(); }
   };
 }; // namespace ABI
 

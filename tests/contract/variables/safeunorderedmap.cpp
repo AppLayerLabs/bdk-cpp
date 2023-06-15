@@ -8,7 +8,7 @@ namespace TSafeUnorderedMap {
   TEST_CASE("SafeUnorderedMap Class", "[contracts][variables][safeunorderedmap]") {
     SECTION("SafeUnorderedMap Constructor") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20), true);
+      auto randomAddress = Address(Utils::randBytes(20));
       safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
       /// Size should NOT count temporary variables
       REQUIRE(safeUnorderedMap.size() == 0);
@@ -26,7 +26,7 @@ namespace TSafeUnorderedMap {
     SECTION("SafeUnorderedMap Insert") {
       std::vector<Address> randomAddresses;
       for (uint64_t i = 0; i < 100; ++i) {
-        randomAddresses.emplace_back(Address(Utils::randBytes(20), true));
+        randomAddresses.emplace_back(Address(Utils::randBytes(20)));
       }
 
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
@@ -57,7 +57,7 @@ namespace TSafeUnorderedMap {
     SECTION("SafeUnorderedMap insert_or_assign") {
       std::vector<Address> randomAddresses;
       for (uint64_t i = 0; i < 100; ++i) {
-        randomAddresses.emplace_back(Address(Utils::randBytes(20), true));
+        randomAddresses.emplace_back(Address(Utils::randBytes(20)));
       }
 
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
@@ -88,7 +88,7 @@ namespace TSafeUnorderedMap {
     SECTION("SafeUnorderedMap emplace") {
       std::vector<Address> randomAddresses;
       for (uint64_t i = 0; i < 100; ++i) {
-        randomAddresses.emplace_back(Address(Utils::randBytes(20), true));
+        randomAddresses.emplace_back(Address(Utils::randBytes(20)));
       }
 
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
@@ -118,7 +118,7 @@ namespace TSafeUnorderedMap {
 
     SECTION("SafeUnorderedMap erase") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20), true);
+      auto randomAddress = Address(Utils::randBytes(20));
       safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
       /// Size should NOT count temporary variables
       REQUIRE(safeUnorderedMap.size() == 0);
@@ -137,7 +137,7 @@ namespace TSafeUnorderedMap {
 
     SECTION("SafeUnorderedMap at") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20), true);
+      auto randomAddress = Address(Utils::randBytes(20));
       safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
       /// Size should NOT count temporary variables
       REQUIRE(safeUnorderedMap.size() == 0);
@@ -148,12 +148,12 @@ namespace TSafeUnorderedMap {
       REQUIRE(safeUnorderedMap.size() == 1);
       REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
       REQUIRE(safeUnorderedMap.at(randomAddress) == uint256_t("19283815712031512"));
-      REQUIRE_THROWS(safeUnorderedMap.at(Address(Utils::randBytes(20), true)));
+      REQUIRE_THROWS(safeUnorderedMap.at(Address(Utils::randBytes(20))));
     }
 
     SECTION("SafeUnorderedMap operator[]") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20), true);
+      auto randomAddress = Address(Utils::randBytes(20));
       safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
       /// Size should NOT count temporary variables
       REQUIRE(safeUnorderedMap.size() == 0);
@@ -167,7 +167,7 @@ namespace TSafeUnorderedMap {
 
     SECTION("SafeUnorderedMap operator=") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20), true);
+      auto randomAddress = Address(Utils::randBytes(20));
       safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
       /// Size should NOT count temporary variables
       REQUIRE(safeUnorderedMap.size() == 0);
@@ -185,7 +185,7 @@ namespace TSafeUnorderedMap {
 
     SECTION("SafeUnorderedMap count") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20), true);
+      auto randomAddress = Address(Utils::randBytes(20));
       safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
       /// Size should NOT count temporary variables
       REQUIRE(safeUnorderedMap.size() == 0);
@@ -196,12 +196,12 @@ namespace TSafeUnorderedMap {
       REQUIRE(safeUnorderedMap.size() == 1);
       REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
       REQUIRE(safeUnorderedMap.count(randomAddress) == 1);
-      REQUIRE(safeUnorderedMap.count(Address(Utils::randBytes(20), true)) == 0);
+      REQUIRE(safeUnorderedMap.count(Address(Utils::randBytes(20))) == 0);
     }
 
     SECTION("SafeUnorderedMap find") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20), true);
+      auto randomAddress = Address(Utils::randBytes(20));
       safeUnorderedMap[randomAddress] = uint256_t("19285123125124152");
       /// Size should NOT count temporary variables
       REQUIRE(safeUnorderedMap.size() == 0);
@@ -213,12 +213,12 @@ namespace TSafeUnorderedMap {
       REQUIRE(safeUnorderedMap.size() == 1);
       REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("64512342624123513"));
       REQUIRE(safeUnorderedMap.count(randomAddress) == 1);
-      REQUIRE(safeUnorderedMap.count(Address(Utils::randBytes(20), true)) == 0);
+      REQUIRE(safeUnorderedMap.count(Address(Utils::randBytes(20))) == 0);
     }
 
     SECTION("SafeUnorderedMap contains") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-      auto randomAddress = Address(Utils::randBytes(20), true);
+      auto randomAddress = Address(Utils::randBytes(20));
       safeUnorderedMap[randomAddress] = uint256_t("19283815712031512");
       /// Size should NOT count temporary variables
       REQUIRE(safeUnorderedMap.size() == 0);
@@ -229,7 +229,7 @@ namespace TSafeUnorderedMap {
       REQUIRE(safeUnorderedMap.size() == 1);
       REQUIRE(safeUnorderedMap[randomAddress] == uint256_t("19283815712031512"));
       REQUIRE(safeUnorderedMap.contains(randomAddress));
-      REQUIRE(!safeUnorderedMap.contains(Address(Utils::randBytes(20), true)));
+      REQUIRE(!safeUnorderedMap.contains(Address(Utils::randBytes(20))));
     }
   }
 }
