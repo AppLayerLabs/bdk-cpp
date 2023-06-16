@@ -23,7 +23,7 @@ private:
   /// string internal _symbol;
   SafeString _symbol;
   /// uint8 internal _decimals;
-  SafeUint256_t _decimals;
+  SafeUint8_t _decimals;
   /// uint256 internal _totalSupply;
   SafeUint256_t _totalSupply;
   /// mapping(address => uint256) internal _balances;
@@ -47,6 +47,7 @@ private:
   void registerContractFunctions() override;
 
 public:
+  using ConstructorArguments = std::tuple<const std::string&, const std::string&, const uint8_t&, const uint256_t&>;
   /**
   @brief Default Constructor when loading contract from DB.
   @param interface Reference to the contract manager interface.
@@ -69,7 +70,7 @@ public:
    *@param db Reference to the database object.
    */
   ERC20(const std::string &erc20_name, const std::string &erc20_symbol,
-        const uint256_t &erc20_decimals, const uint256_t &mintValue,
+        const uint8_t &erc20_decimals, const uint256_t &mintValue,
         ContractManagerInterface &interface, const Address &address,
         const Address &creator, const uint64_t &chainId, const std::unique_ptr<DB> &db);
 
@@ -78,7 +79,7 @@ public:
    */
   static void registerContract() {
     ContractReflectionInterface::registerContract<
-        ERC20, const std::string &, const std::string &, const uint256_t &,
+        ERC20, const std::string &, const std::string &, const uint8_t &,
         const uint256_t &, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &>(

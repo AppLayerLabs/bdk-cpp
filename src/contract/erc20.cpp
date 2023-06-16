@@ -8,7 +8,7 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const 
       db->get("_name", DBPrefix::contracts + this->getContractAddress().get());
   this->_symbol = db->get("_symbol", DBPrefix::contracts +
                                          this->getContractAddress().get());
-  this->_decimals = Utils::bytesToUint256(db->get(
+  this->_decimals = Utils::bytesToUint8(db->get(
       "_decimals", DBPrefix::contracts + this->getContractAddress().get()));
   this->_totalSupply = Utils::bytesToUint256(db->get(
       "_totalSupply", DBPrefix::contracts + this->getContractAddress().get()));
@@ -30,7 +30,7 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const 
   updateState(true);
 }
 
-ERC20::ERC20(const std::string &erc20_name, const std::string &erc20_symbol, const uint256_t &erc20_decimals, const uint256_t &mintValue, ContractManagerInterface &interface,
+ERC20::ERC20(const std::string &erc20_name, const std::string &erc20_symbol, const uint8_t &erc20_decimals, const uint256_t &mintValue, ContractManagerInterface &interface,
         const Address &address, const Address &creator, const uint64_t &chainId, const std::unique_ptr<DB> &db) :
   DynamicContract(interface, "ERC20", address, creator, chainId, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
   _name = erc20_name;
@@ -49,7 +49,7 @@ ERC20::~ERC20() {
                 DBPrefix::contracts + this->getContractAddress().get());
   this->db->put("_symbol", _symbol.get(),
                 DBPrefix::contracts + this->getContractAddress().get());
-  this->db->put("_decimals", Utils::uint256ToBytes(_decimals.get()),
+  this->db->put("_decimals", Utils::uint8ToBytes(_decimals.get()),
                 DBPrefix::contracts + this->getContractAddress().get());
   this->db->put("_totalSupply", Utils::uint256ToBytes(_totalSupply.get()),
                 DBPrefix::contracts + this->getContractAddress().get());

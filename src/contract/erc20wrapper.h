@@ -26,6 +26,8 @@ private:
   void registerContractFunctions() override;
 
 public:
+  using ConstructorArguments =
+      std::tuple<>;
   /**
    * @brief Default Constructor when loading contract from DB.
    * @param interface Reference to the contract manager interface.

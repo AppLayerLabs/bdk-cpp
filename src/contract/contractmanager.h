@@ -228,33 +228,41 @@ public:
   return std::make_pair(derivedContractAddress, decoder);
 }
 
-template <typename TContract, typename... Args, std::size_t... Is>
+template <typename TContract, typename TTuple, std::size_t... Is>
 std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
                                                    const std::vector<std::any>& dataVec,
                                                    std::index_sequence<Is...>) {
     try {
-        return std::make_unique<TContract>(std::any_cast<Args>(dataVec[Is])...,
+        return std::make_unique<TContract>(std::any_cast<typename std::tuple_element<Is, TTuple>::type>(dataVec[Is])...,
                                            *this->interface, derivedContractAddress,
                                            this->getCaller(), this->options->getChainID(),
                                            this->db);
     } catch (const std::bad_any_cast& ex) {
-        throw std::runtime_error("Mismatched argument types for contract constructor");
+        throw std::runtime_error("Mismatched argument types for contract constructor. Expected: " +
+                                 Utils::getRealTypeName<TTuple>());
     }
 }
 
-template <typename TContract, typename... Args>
+
+template <typename TContract, typename TTuple>
 std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
                                                    const std::vector<std::any>& dataVec) {
-    if (sizeof...(Args) != dataVec.size()) {
-        throw std::runtime_error("Not enough arguments provided for contract constructor");
+    constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
+
+    if (TupleSize != dataVec.size()) {
+        throw std::runtime_error("Not enough arguments provided for contract constructor. Expected: " +
+                                 std::to_string(TupleSize) + ", got: " + std::to_string(dataVec.size()));
     }
 
-    return createContractWithTuple<TContract, Args...>(
-        derivedContractAddress, dataVec, std::index_sequence_for<Args...>());
+    return createContractWithTuple<TContract, TTuple>(
+        derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{});
 }
 
-template <typename TContract, typename... ArgTypes>
+
+template <typename TContract>
 void createNewContract(const ethCallInfo& callInfo) {
+    using ConstructorArguments = typename TContract::ConstructorArguments;
+
     auto setupResult = this->setupNewContract<TContract>(callInfo);
 
     if (!ContractReflectionInterface::isContractRegistered<TContract>()) {
@@ -271,13 +279,10 @@ void createNewContract(const ethCallInfo& callInfo) {
         dataVector.push_back(decoder.getDataDispatch(i, types[i]));
     }
 
-    auto contract = createContractWithTuple<TContract, ArgTypes...>(derivedContractAddress, dataVector);
+    auto contract = createContractWithTuple<TContract, ConstructorArguments>(derivedContractAddress, dataVector);
 
     this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
 }
-
-
-
 
 template <typename TContract>
 void validateNewContract(const ethCallInfo &callInfo) {
