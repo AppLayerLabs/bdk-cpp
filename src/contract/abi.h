@@ -24,6 +24,14 @@ namespace ABI {
  * - stringArr = string[] (Solidity) = std::vector<std::string> (C++)
  */
 enum Types {
+  uint8,
+  uint8Arr,
+  uint16,
+  uint16Arr,
+  uint32,
+  uint32Arr,
+  uint64,
+  uint64Arr,
   uint256,
   uint256Arr,
   address,
@@ -64,7 +72,7 @@ struct ABIType<std::vector<T>> {
 };
 
 /**
-* Specialization for uint256_t.
+* Specialization for address.
 */
 template <>
 struct ABIType<Address> {
@@ -72,7 +80,7 @@ struct ABIType<Address> {
 };
 
 /**
-* Specialization for Address.
+* Specialization for bool.
 */
 template <>
 struct ABIType<bool> {
@@ -80,11 +88,43 @@ struct ABIType<bool> {
 };
 
 /**
-* Specialization for bool.
+* Specialization for std::string.
 */
 template <>
 struct ABIType<std::string> {
   static constexpr Types value = Types::string;
+};
+
+/**
+* Specialization for uint8_t.
+*/
+template <>
+struct ABIType<uint8_t> {
+  static constexpr Types value = Types::uint8;
+};
+
+/**
+* Specialization for uint16_t.
+*/
+template <>
+struct ABIType<uint16_t> {
+  static constexpr Types value = Types::uint16;
+};
+
+/**
+* Specialization for uint32_t.
+*/
+template <>
+struct ABIType<uint32_t> {
+  static constexpr Types value = Types::uint32;
+};
+
+/**
+* Specialization for uint64_t.
+*/
+template <>
+struct ABIType<uint64_t> {
+  static constexpr Types value = Types::uint64;
 };
 
 /**
@@ -131,6 +171,14 @@ struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
  */
 std::string inline getStringFromABIEnum(Types type) {
   const std::unordered_map<Types, std::string> typeMappings = {
+    {Types::uint8, "uint8"},
+    {Types::uint8Arr, "uint8[]"},
+    {Types::uint16, "uint16"},
+    {Types::uint16Arr, "uint16[]"},
+    {Types::uint32, "uint32"},
+    {Types::uint32Arr, "uint32[]"},
+    {Types::uint64, "uint64"},
+    {Types::uint64Arr, "uint64[]"},
     {Types::uint256, "uint256"},
     {Types::uint256Arr, "uint256[]"},
     {Types::address, "address"},
@@ -158,6 +206,14 @@ std::string inline getStringFromABIEnum(Types type) {
  */
 Types inline getABIEnumFromString(const std::string& type) {
   static const std::unordered_map<std::string, Types> typeMappings = {
+    {"uint8", Types::uint8},
+    {"uint8[]", Types::uint8Arr},
+    {"uint16", Types::uint16},
+    {"uint16[]", Types::uint16Arr},
+    {"uint32", Types::uint32},
+    {"uint32[]", Types::uint32Arr},
+    {"uint64", Types::uint64},
+    {"uint64[]", Types::uint64Arr},
     {"uint256", Types::uint256},
     {"uint256[]", Types::uint256Arr},
     {"address", Types::address},
@@ -198,6 +254,40 @@ private:
   std::string encodeFunction(std::string_view func) const;
 
   /**
+  * Template function to encode uints of any size.
+  * @tparam T The type of the uint.
+  * @param val The uint value.
+  * @return The encoded uint.
+  */
+  template <typename T>
+  std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>>
+  encodeAndAddUint(T val) {
+      this->data += encodeUint256(val);
+  }
+
+  /**
+  * Encode a 256-bit unsigned integer into Solidity ABI format.
+  * @param num The 256-bit unsigned integer to encode.
+  * @return The encoded uint256 hex string, padded 32 hex bytes to the LEFT.
+  */
+  void encodeAndAddUint(uint256_t val);
+
+  /**
+  * Encode any uint array into Solidity ABI format.
+  * @tparam T The type of the uint array.
+  * @param arr The uint array.
+  * @return The encoded uint array hex string, padded 32 hex bytes to the LEFT.
+  */
+  template <typename T>
+  std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>>
+  encodeAndAddUintArr(std::vector<T> arr, uint64_t nextOffset, std::string& dynamicStr) {
+      std::vector<T> argData = arr;
+      this->data += Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32);
+      nextOffset += 32 + (32 * argData.size());
+      dynamicStr += encodeUint256Arr(argData).substr(32);
+  }
+
+  /**
    * Encode a 256-bit unsigned integer into Solidity ABI format.
    * @param num The 256-bit unsigned integer to encode.
    * @return The encoded uint256 hex string, padded 32 hex bytes to the LEFT.
@@ -227,6 +317,40 @@ private:
    *         padded to the nearest multiple of 32 bytes to the RIGHT.
    */
   std::string encodeBytes(std::string_view bytes) const;
+  
+  /**
+   * Encode a 8-bit unsigned integer array into Solidity ABI format.
+   * @param numV The 256-bit unsigned integer array to encode.
+   * @return The encoded uint256[] hex string, with the proper offsets and
+   * lengths.
+   */
+  std::string encodeUint256Arr(const std::vector<uint8_t> &numV) const;
+
+  /**
+   * Encode a 16-bit unsigned integer array into Solidity ABI format.
+   * @param numV The 16-bit unsigned integer array to encode.
+   * @return The encoded uint16[] hex string, with the proper offsets and
+   * lengths.
+   */
+  std::string encodeUint256Arr(const std::vector<uint16_t> &numV) const;
+
+  /**
+   * Encode a 32-bit unsigned integer array into Solidity ABI format.
+   * @param numV The 32-bit unsigned integer array to encode.
+   * @return The encoded uint32[] hex string, with the proper offsets and
+   * lengths.
+   */
+
+  std::string encodeUint256Arr(const std::vector<uint32_t> &numV) const;
+
+  /**
+   * Encode a 64-bit unsigned integer array into Solidity ABI format.
+   * @param numV The 64-bit unsigned integer array to encode.
+   * @return The encoded uint64[] hex string, with the proper offsets and
+   * lengths.
+   */
+
+  std::string encodeUint256Arr(const std::vector<uint64_t> &numV) const;
 
   /**
    * Encode a 256-bit unsigned integer array into Solidity ABI format.
@@ -263,8 +387,9 @@ private:
 public:
   /// Alias for variant type, for easier handling.
   typedef std::vector<std::variant<
-      uint256_t, std::vector<uint256_t>, Address, std::vector<Address>, bool,
-      std::vector<bool>, std::string, std::vector<std::string>>>
+      uint8_t, std::vector<uint8_t>, uint16_t, std::vector<uint16_t>, uint32_t, std::vector<uint32_t>, uint64_t,
+      std::vector<uint64_t>, uint256_t, std::vector<uint256_t>, Address, std::vector<Address>, bool, std::vector<bool>,
+      std::string, std::vector<std::string>>>
       EncVar;
 
   /**
@@ -296,9 +421,9 @@ public:
 class Decoder {
 private:
   /// List with the decoded native data types.
-  std::vector<std::variant<uint256_t, std::vector<uint256_t>, Address,
-                           std::vector<Address>, bool, std::vector<bool>,
-                           std::string, std::vector<std::string>>>
+  std::vector<std::variant<uint8_t, std::vector<uint8_t>, uint16_t, std::vector<uint16_t>, uint32_t, std::vector<uint32_t>,
+                           uint64_t, std::vector<uint64_t>, uint256_t, std::vector<uint256_t>, Address,
+                           std::vector<Address>, bool, std::vector<bool>, std::string, std::vector<std::string>>>
       data;
 
   /**
@@ -311,6 +436,28 @@ private:
    */
   uint256_t decodeUint256(const std::string_view data,
                           const uint64_t &start) const;
+
+  /**
+  * Template for decoding any unsigned integer type.
+  * @tparam T The unsigned integer type to decode.
+  * @param bytes The Solidity data string to decode.
+  * @param dataIdx The index of the string to start decoding from.
+  */
+  template <typename T>
+  std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>>
+  decodeAndAddUint(const std::string_view& bytes, uint64_t& dataIdx) {
+    this->data.emplace_back(decodeUint256(bytes, dataIdx));
+  }
+
+  /**
+  * Decode a 256-bit unsigned integer from the given Solidity data string.
+  * Throws if data is too short.
+  * @param data The Solidity data string to decode.
+  * @start The index of the string to start decoding from.
+  * @return The decoded 256-bit unsigned integer.
+  *@throws std::runtime_error if data is too short.
+  */
+  void decodeAndAddUint(uint256_t, const std::string_view& bytes, uint64_t& dataIdx);
 
   /**
    * Decode a 20-byte address from the given Solidity data string.
@@ -356,6 +503,30 @@ private:
    */
   std::vector<uint256_t> decodeUint256Arr(const std::string_view data,
                                           const uint64_t &start) const;
+
+  /**
+  * Template for decoding any unsigned integer array type.
+  * @tparam T The unsigned integer type to decode.
+  * @param bytes The Solidity data string to decode.
+  * @param dataIdx The index of the string to start decoding from.
+  */
+  template <typename T>
+  std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>>
+  decodeAndAddUintArr(const std::string_view& bytes, uint64_t& dataIdx) {
+    this->data.emplace_back(decodeUint256Arr(bytes, dataIdx));
+  }
+
+  /**
+  * Decode a 256-bit unsigned integer array from the given Solidity data
+  * string. Throws if data is too short.
+  * @param data The Solidity data string to decode.
+  * @param start The index of the string to start decoding from.
+  * @return The decoded 256-bit unsigned integer array.
+  * @throws std::runtime_error if data is too short.
+  */
+  void decodeAndAddUintArr(uint256_t, const std::string_view& bytes, uint64_t& dataIdx) {
+    this->data.emplace_back(decodeUint256Arr(bytes, dataIdx));
+  }
 
   /**
    * Decode a 20-byte address array from the given Solidity data string.

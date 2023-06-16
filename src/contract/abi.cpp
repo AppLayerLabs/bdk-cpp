@@ -8,6 +8,10 @@ std::string ABI::Encoder::encodeUint256(const uint256_t num) const {
   return Hash(num).get();
 }
 
+void ABI::Encoder::encodeAndAddUint(uint256_t val) {
+  this->data += this->encodeUint256(val);
+}
+
 std::string ABI::Encoder::encodeAddress(const Address& add) const {
   return Utils::padLeftBytes(add.get(), 32);
 }
@@ -22,6 +26,38 @@ std::string ABI::Encoder::encodeBytes(std::string_view bytes) const {
   std::string len = Utils::padLeftBytes(Utils::uintToBytes(bytes.length()), 32);
   std::string data = Utils::padRightBytes(std::string(bytes), pad);
   return len + data;
+}
+
+std::string ABI::Encoder::encodeUint256Arr(const std::vector<uint8_t>& numV) const {
+  std::string arrOff = Utils::padLeftBytes("\x20", 32);
+  std::string arrLen = Utils::padLeftBytes(Utils::uintToBytes(numV.size()), 32);
+  std::string arrData = "";
+  for (uint8_t num : numV) arrData += encodeUint256(num);
+  return arrOff + arrLen + arrData;
+}
+
+std::string ABI::Encoder::encodeUint256Arr(const std::vector<uint16_t>& numV) const {
+  std::string arrOff = Utils::padLeftBytes("\x20", 32);
+  std::string arrLen = Utils::padLeftBytes(Utils::uintToBytes(numV.size()), 32);
+  std::string arrData = "";
+  for (uint16_t num : numV) arrData += encodeUint256(num);
+  return arrOff + arrLen + arrData;
+}
+
+std::string ABI::Encoder::encodeUint256Arr(const std::vector<uint32_t>& numV) const {
+  std::string arrOff = Utils::padLeftBytes("\x20", 32);
+  std::string arrLen = Utils::padLeftBytes(Utils::uintToBytes(numV.size()), 32);
+  std::string arrData = "";
+  for (uint32_t num : numV) arrData += encodeUint256(num);
+  return arrOff + arrLen + arrData;
+}
+
+std::string ABI::Encoder::encodeUint256Arr(const std::vector<uint64_t>& numV) const {
+  std::string arrOff = Utils::padLeftBytes("\x20", 32);
+  std::string arrLen = Utils::padLeftBytes(Utils::uintToBytes(numV.size()), 32);
+  std::string arrData = "";
+  for (uint64_t num : numV) arrData += encodeUint256(num);
+  return arrOff + arrLen + arrData;
 }
 
 std::string ABI::Encoder::encodeUint256Arr(const std::vector<uint256_t>& numV) const {
@@ -131,9 +167,21 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, std::string_view func) {
   uint64_t nextOffset = 32 * data.size();
   std::string dynamicStr = "";
   for (auto arg : data) {
+    // uint8 (static)
+    if (std::holds_alternative<uint8_t>(arg)) {
+    encodeAndAddUint(std::get<uint8_t>(arg));
+    // uint16 (static)
+    } else if (std::holds_alternative<uint16_t>(arg)) {
+      encodeAndAddUint(std::get<uint16_t>(arg));
+    // uint32 (static)
+    } else if (std::holds_alternative<uint32_t>(arg)) {
+      encodeAndAddUint(std::get<uint32_t>(arg));
+    // uint64 (static)
+    } else if (std::holds_alternative<uint64_t>(arg)) {
+      encodeAndAddUint(std::get<uint64_t>(arg));
     // uint256 (static)
-    if (std::holds_alternative<uint256_t>(arg)) {
-      this->data += encodeUint256(std::get<uint256_t>(arg));
+    } else if (std::holds_alternative<uint256_t>(arg)) {
+      encodeAndAddUint(std::get<uint256_t>(arg));
     // address (static)
     } else if (std::holds_alternative<Address>(arg)) {
       this->data += encodeAddress(std::get<Address>(arg));
@@ -146,6 +194,18 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, std::string_view func) {
       this->data += Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32);
       nextOffset += 32 * (packed.length() / 32); // Both offset and packed in bytes
       dynamicStr += packed;
+    // uint8[] (dynamic)
+    } else if (std::holds_alternative<std::vector<uint8_t>>(arg)) {
+      encodeAndAddUintArr(std::get<std::vector<uint8_t>>(arg), nextOffset, dynamicStr);
+    // uint16[] (dynamic)
+    } else if (std::holds_alternative<std::vector<uint16_t>>(arg)) {
+      encodeAndAddUintArr(std::get<std::vector<uint16_t>>(arg), nextOffset, dynamicStr);
+    // uint32[] (dynamic)
+    } else if (std::holds_alternative<std::vector<uint32_t>>(arg)) {
+      encodeAndAddUintArr(std::get<std::vector<uint32_t>>(arg), nextOffset, dynamicStr);
+    // uint64[] (dynamic)
+    } else if (std::holds_alternative<std::vector<uint64_t>>(arg)) {
+      encodeAndAddUintArr(std::get<std::vector<uint64_t>>(arg), nextOffset, dynamicStr);
     // uint256[] (dynamic)
     } else if (std::holds_alternative<std::vector<uint256_t>>(arg)) {
       std::vector<uint256_t> argData = std::get<std::vector<uint256_t>>(arg);
@@ -181,6 +241,10 @@ uint256_t ABI::Decoder::decodeUint256(const std::string_view data, const uint64_
   std::string tmp;
   std::copy(data.begin() + start, data.begin() + start + 32, std::back_inserter(tmp));
   return Utils::bytesToUint256(tmp);
+}
+
+void ABI::Decoder::decodeAndAddUint(uint256_t, const std::string_view& bytes, uint64_t& dataIdx) {
+    this->data.emplace_back(this->decodeUint256(bytes, dataIdx));
 }
 
 Address ABI::Decoder::decodeAddress(const std::string_view data, const uint64_t& start) const {
@@ -353,10 +417,26 @@ ABI::Decoder::Decoder(const std::vector<ABI::Types>& types, const std::string_vi
   uint64_t argIdx = 0;
   uint64_t dataIdx = 0;
   while (argIdx < types.size()) {
-    if (types[argIdx] == ABI::Types::uint256) {
-      this->data.emplace_back(decodeUint256(bytes, dataIdx));
+    if (types[argIdx] == ABI::Types::uint8) {
+      decodeAndAddUint(uint8_t(), bytes, dataIdx);
+    } else if (types[argIdx] == ABI::Types::uint16) {
+      decodeAndAddUint(uint16_t(), bytes, dataIdx);
+    } else if (types[argIdx] == ABI::Types::uint32) {
+      decodeAndAddUint(uint32_t(), bytes, dataIdx);
+    } else if (types[argIdx] == ABI::Types::uint64) {
+      decodeAndAddUint(uint64_t(), bytes, dataIdx);
+    } else if (types[argIdx] == ABI::Types::uint256) {
+      decodeAndAddUint(uint256_t(), bytes, dataIdx);
+    } else if (types[argIdx] == ABI::Types::uint8Arr) {
+      decodeAndAddUintArr(uint8_t(), bytes, dataIdx);
+    } else if (types[argIdx] == ABI::Types::uint16Arr) {
+      decodeAndAddUintArr(uint16_t(), bytes, dataIdx);
+    } else if (types[argIdx] == ABI::Types::uint32Arr) {
+      decodeAndAddUintArr(uint32_t(), bytes, dataIdx);
+    } else if (types[argIdx] == ABI::Types::uint64Arr) {
+      decodeAndAddUintArr(uint64_t(), bytes, dataIdx);
     } else if (types[argIdx] == ABI::Types::uint256Arr) {
-      this->data.emplace_back(decodeUint256Arr(bytes, dataIdx));
+      decodeAndAddUintArr(uint256_t(), bytes, dataIdx);
     } else if (types[argIdx] == ABI::Types::address) {
       this->data.emplace_back(decodeAddress(bytes, dataIdx));
     } else if (types[argIdx] == ABI::Types::addressArr) {
