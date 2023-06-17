@@ -83,33 +83,6 @@ private:
   /// Derive a new contract address based on transaction sender + nonce.
   Address deriveContractAddress(const ethCallInfo &callInfo) const;
 
-  /// Create a new ERC20 contract.
-  /// function createNewERC20Contract(string memory name, string memory symbol,
-  /// uint8 decimals, uint256 supply) public {}
-  void createNewERC20Contract(const ethCallInfo &callInfo);
-
-  /// Check if transaction can actually create a new ERC20 contract.
-  /// function createNewERC20Contract(string memory name, string memory symbol,
-  /// uint8 decimals, uint256 supply) public {}
-  void validateCreateNewERC20Contract(const ethCallInfo &callInfo) const;
-
-  /// Create a new ERC20Wrapper Contract.
-  /// function createNewERC20WrapperContract() public {}
-  void createNewERC20WrapperContract(const ethCallInfo &callInfo);
-
-  /// Check if transaction can actually create a new ERC20 contract.
-  void validateCreateNewERC20WrapperContract(const ethCallInfo &callInfo) const;
-
-  /// Create a new ERC20 Native Wrapper Contract.
-  /// function createNewERC20NativeWrapperContract(string memory name, string
-  /// memory symbol, uint8 decimals) public {}
-  void createNewERC20NativeWrapperContract(const ethCallInfo &callInfo);
-
-  /// Check if transaction can actually create a new ERC20 Native Wrapper
-  /// contract.
-  void validateCreateNewERC20NativeWrapperContract(
-      const ethCallInfo &callInfo) const;
-
   /// Serialization function for
   /// function getDeployedContracts() public view returns (string[] memory,
   /// address[] memory) {}
@@ -274,9 +247,21 @@ void createNewContract(const ethCallInfo& callInfo) {
 
     std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
     std::vector<std::any> dataVector;
+    
+    std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
+        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
+        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
+        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
+        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
+    };
 
     for (size_t i = 0; i < types.size(); i++) {
-        dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+        if (castFunctions.count(types[i]) > 0) {
+            uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+            dataVector.push_back(castFunctions[types[i]](value));
+        } else {
+            dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+        }
     }
 
     auto contract = createContractWithTuple<TContract, ConstructorArguments>(derivedContractAddress, dataVector);

@@ -594,8 +594,16 @@ public:
   std::any
   getDataDispatch(int index, Types type) {
     switch (type) {
+    case Types::uint8:
+    case Types::uint16:
+    case Types::uint32:
+    case Types::uint64:
     case Types::uint256:
       return this->getData<uint256_t>(index);
+    case Types::uint8Arr:
+    case Types::uint16Arr:
+    case Types::uint32Arr:
+    case Types::uint64Arr:
     case Types::uint256Arr:
       return this->getData<std::vector<uint256_t>>(index);
     case Types::address:
