@@ -176,6 +176,36 @@ public:
    */
   bool isContractAddress(const Address &address) const;
 
+  /**
+  * Load contracts from the database.
+  * @param contract The contract to load.
+  * @param contractAddress The contract address.
+  * @return True if the contract was loaded, false otherwise.
+  */
+  template <typename Contract, typename... Rest>
+  bool loadFromDB(const auto& contract, const Address& contractAddress) {
+    if (contract.value == Utils::getRealTypeName<Contract>()) {
+      this->contracts.insert(std::make_pair(
+        contractAddress,
+        std::make_unique<Contract>(*this->interface, contractAddress, this->db)
+      ));
+      return true;
+    }
+
+    if constexpr (sizeof...(Rest) > 0) {
+      return loadFromDB<Rest...>(contract, contractAddress);
+    }
+
+    return false;
+  }
+
+  /**
+  * Setup data for a new contract before creating/validating it.
+  * @param callInfo The call info to process.
+  * @return A pair containing the contract address and the ABI decoder.
+  * @throw runtime_error if non contract creator tries to create a contract.
+  * @throw runtime_error if contract already exists.
+  */
   template <typename TContract>
   std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
   // Check if caller is creator
@@ -201,6 +231,14 @@ public:
   return std::make_pair(derivedContractAddress, decoder);
 }
 
+/**
+* Helper function to create a new contract from a given call info.
+* @param derivedContractAddress The address of the contract to create.
+* @param dataVec The vector of arguments to pass to the contract constructor.
+* @param Is The indices of the arguments to pass to the contract constructor.
+* @throw runtime_error if contract arguments are invalid.
+* @return A unique pointer to the new contract.
+*/
 template <typename TContract, typename TTuple, std::size_t... Is>
 std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
                                                    const std::vector<std::any>& dataVec,
@@ -216,7 +254,13 @@ std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContrac
     }
 }
 
-
+/**
+* Helper function to create a new contract from a given call info.
+* @param derivedContractAddress The address of the contract to create.
+* @param dataVec The vector of arguments to pass to the contract constructor.
+* @throw runtime_error if the size of the vector does not match the number of
+* arguments of the contract constructor.
+*/
 template <typename TContract, typename TTuple>
 std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
                                                    const std::vector<std::any>& dataVec) {
@@ -231,7 +275,12 @@ std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContrac
         derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{});
 }
 
-
+/**
+* Create a new contract from a given call info.
+* @param callInfo The call info to process.
+* @throw runtime_error if the call to the ethCall function fails or if the
+* contract is does not exist.
+*/
 template <typename TContract>
 void createNewContract(const ethCallInfo& callInfo) {
     using ConstructorArguments = typename TContract::ConstructorArguments;
@@ -269,11 +318,23 @@ void createNewContract(const ethCallInfo& callInfo) {
     this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
 }
 
+/**
+* Validate a new contract from a given call info.
+* @param callInfo The call info to process.
+* @throw runtime_error if the call to the ethCall function fails or if the
+* contract is does not exist.
+*/
 template <typename TContract>
 void validateNewContract(const ethCallInfo &callInfo) {
   this->setupNewContract<TContract>(callInfo);
 }
 
+/**
+* Adds contract create and validate functions to the respective maps
+* @tparam Contract Contract type
+* @param createFunc Function to create a new contract
+* @param validateFunc Function to validate a new contract
+*/
 template <typename Contract>
 void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc,
                       std::function<void(const ethCallInfo &)> validateFunc) {
@@ -294,6 +355,31 @@ void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc,
 
     createContractFuncs[functor] = createFunc;
     validateContractFuncs[functor] = validateFunc;
+}
+
+/**
+* Add all createContract and validateContract functions for a list of contracts.
+* @tparam Contract The contract to add.
+* @tparam Rest The rest of the contracts to add.
+*/
+template<typename Contract, typename... Rest>
+void addAllContractFuncs() {
+    this->addContractFuncs<Contract>(
+        [&](const ethCallInfo &callInfo) { this->createNewContract<Contract>(callInfo); },
+        [&](const ethCallInfo &callInfo) { this->validateNewContract<Contract>(callInfo); }
+    );
+    // Recursively call addAllContractFuncs for the rest of the contracts
+    // Initializer list is a trick for the base case (stop recursion when Rest is empty)
+    (void)std::initializer_list<int>{((void)addAllContractFuncs<Rest>(), 0)...};
+}
+
+/**
+* Register all contracts from a list of contracts.
+* @tparam Contracts The contracts to register.
+*/
+template<typename... Contracts>
+void registerContracts() {
+    ((Contracts::registerContract()), ...);
 }
   /**
    * Get list of contracts addresses and names.

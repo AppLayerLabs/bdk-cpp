@@ -1,6 +1,7 @@
 #include "contractmanager.h"
 #include "../core/rdpos.h"
 #include "../core/state.h"
+#include "customcontracts.h"
 #include "erc20.h"
 #include "erc20wrapper.h"
 #include "nativewrapper.h"
@@ -15,50 +16,19 @@ ContractManager::ContractManager(State *state, const std::unique_ptr<DB> &db,
                   true),
           0, db),
       rdpos(rdpos), options(options), interface(std::make_unique<ContractManagerInterface>(*this)) {
-  /// Load Contracts from DB.
-  ERC20::registerContract();
-  ERC20Wrapper::registerContract();
-  NativeWrapper::registerContract();
-
-  this->addContractFuncs<ERC20>(
-    [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20>(callInfo); },
-    [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20>(callInfo); }
-  );
-  this->addContractFuncs<ERC20Wrapper>(
-    [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20Wrapper>(callInfo); },
-    [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20Wrapper>(callInfo); }
-  );
-  this->addContractFuncs<NativeWrapper>(
-    [&](const ethCallInfo &callInfo) { this->createNewContract<NativeWrapper>(callInfo); },
-    [&](const ethCallInfo &callInfo) { this->validateNewContract<NativeWrapper>(callInfo); }
-  );
-
+  
+  registerContracts<ERC20, ERC20Wrapper, NativeWrapper>();
+  addAllContractFuncs<ERC20, ERC20Wrapper, NativeWrapper>();
+  
+  // Load Contracts from DB.
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto &contract : contracts) {
-    if (contract.value == "ERC20") {
       Address contractAddress(contract.key, true);
-      this->contracts.insert(std::make_pair(
-          contractAddress,
-          std::make_unique<ERC20>(*this->interface, contractAddress, this->db)));
-      continue;
-    }
-    if (contract.value == "ERC20Wrapper") {
-      Address contractAddress(contract.key, true);
-      this->contracts.insert(std::make_pair(
-          contractAddress, std::make_unique<ERC20Wrapper>(
-                               *this->interface, contractAddress, this->db)));
-      continue;
-    }
-    if (contract.value == "NativeWrapper") {
-      Address contractAddress(contract.key, true);
-      this->contracts.insert(std::make_pair(
-          contractAddress, std::make_unique<NativeWrapper>(
-                               *this->interface, contractAddress, this->db)));
-      continue;
-    }
 
-    throw std::runtime_error("Unknown contract: " + contract.value);
-  }
+      if (!loadFromDB<ERC20, ERC20Wrapper, NativeWrapper>(contract, contractAddress)) {
+        throw std::runtime_error("Unknown contract: " + contract.value);
+      }
+    }
 }
 
 ContractManager::~ContractManager() {
