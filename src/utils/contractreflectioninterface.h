@@ -234,6 +234,22 @@ std::vector<ABI::Types> inline getConstructorArgumentTypes() {
   return constructorArgumentTypes;
 }
 
+/**
+* Template function to get the list of constructor argument types of a
+* contract.
+* @tparam Contract The contract to get the constructor argument types of.
+* @return The list of constructor argument in string format.
+*/
+template <typename TContract>
+std::vector<std::string> inline getConstructorArgumentTypesString() {
+  std::vector<ABI::Types> types = getConstructorArgumentTypes<TContract>();
+  std::vector<std::string> typesString;
+  for (auto const &x : types) {
+    typesString.push_back(ABI::getStringFromABIEnum(x));
+  }
+  return typesString;
+}
+
 
 /**
  * Template function to get the constructor ABI data structure of a contract.

@@ -19,12 +19,19 @@ ContractManager::ContractManager(State *state, const std::unique_ptr<DB> &db,
   ERC20::registerContract();
   ERC20Wrapper::registerContract();
   NativeWrapper::registerContract();
-  this->addCreateContractFunc("0xb74e5ed5", [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20>(callInfo); });
-  this->addValidateContractFunc("0xb74e5ed5", [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20>(callInfo); });
-  this->addCreateContractFunc("0x97aa51a3", [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20Wrapper>(callInfo); });
-  this->addValidateContractFunc("0x97aa51a3", [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20Wrapper>(callInfo); });
-  this->addCreateContractFunc("0x9f90f4c7", [&](const ethCallInfo &callInfo) { this->createNewContract<NativeWrapper>(callInfo); });
-  this->addValidateContractFunc("0x9f90f4c7", [&](const ethCallInfo &callInfo) { this->validateNewContract<NativeWrapper>(callInfo); });
+
+  this->addContractFuncs<ERC20>(
+    [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20>(callInfo); },
+    [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20>(callInfo); }
+  );
+  this->addContractFuncs<ERC20Wrapper>(
+    [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20Wrapper>(callInfo); },
+    [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20Wrapper>(callInfo); }
+  );
+  this->addContractFuncs<NativeWrapper>(
+    [&](const ethCallInfo &callInfo) { this->createNewContract<NativeWrapper>(callInfo); },
+    [&](const ethCallInfo &callInfo) { this->validateNewContract<NativeWrapper>(callInfo); }
+  );
 
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto &contract : contracts) {

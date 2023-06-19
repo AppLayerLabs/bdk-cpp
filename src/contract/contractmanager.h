@@ -274,19 +274,27 @@ void validateNewContract(const ethCallInfo &callInfo) {
   this->setupNewContract<TContract>(callInfo);
 }
 
-void addCreateContractFunc(const std::string &functor,
-                      std::function<void(const ethCallInfo &)> createFunc) {
-  auto val = Hex::toBytes(functor);
-  createContractFuncs[val] = createFunc;
-}
+template <typename Contract>
+void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc,
+                      std::function<void(const ethCallInfo &)> validateFunc) {
+    std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
 
-void addValidateContractFunc(
-    const std::string &functor,
-    std::function<void(const ethCallInfo &)> validateFunc) {
-  validateContractFuncs[functor] = validateFunc;
-  auto val = Hex::toBytes(functor);
-}
+    std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
 
+    std::ostringstream createFullSignatureStream;
+    createFullSignatureStream << createSignature << "(";
+
+    if (!args.empty()) {
+        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(createFullSignatureStream, ","));
+        createFullSignatureStream << args.back();
+    }
+    createFullSignatureStream << ")";
+
+    std::string functor = Utils::sha3(createFullSignatureStream.str()).get().substr(0, 4);
+
+    createContractFuncs[functor] = createFunc;
+    validateContractFuncs[functor] = validateFunc;
+}
   /**
    * Get list of contracts addresses and names.
    * @return A vector of pairs of contract names and addresses.
