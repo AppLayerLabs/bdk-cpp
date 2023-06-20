@@ -1,0 +1,45 @@
+{
+  "name": "OrbiterSDK C++ Dev Container",
+  "build": {
+      "dockerfile": "Dockerfile.dev"
+  },
+  "runArgs": [
+      "-v", "/orbitersdk-volume"
+  ],
+  "forwardPorts": [8080, 8099, 8110, 8111],
+  "settings": {
+      "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "mounts": [
+      "source=${localWorkspaceFolder},target=/orbitersdk-volume,type=bind,consistency=cached"
+  ],
+  "postCreateCommand": "nohup unison -repeat 1 /orbitersdk-volume /orbitersdk-cpp -auto -batch \
+      -ignore 'Name {build}' \
+      -ignore 'Name {build_local_testnet}' \
+      -ignore 'Name {.vscode}' \
+      -ignore 'Name {proto/metrics.pb.cc}' \
+      -ignore 'Name {proto/metrics.pb.h}' \
+      -ignore 'Name {proto/vm.grpc.pb.cc}' \
+      -ignore 'Name {proto/vm.grpc.pb.h}' \
+      -ignore 'Name {proto/vm.pb.cc}' \
+      -ignore 'Name {proto/vm.pb.h}' \
+      -ignore 'Name {storageVM}' \
+      -ignore 'Name {info.txt}' \
+      -ignore 'Name {.vscode}' \
+      -ignore 'Name {vmInfo.txt}' \
+      -ignore 'Name {*.[pP][bB].[hH]}' \
+      -ignore 'Name {tests/node_modules}' \
+      -ignore 'Name {depends/x86_64-pc-linux-gnu}' \
+      -ignore 'Name {scripts/AIO-setup.log}' \
+      -ignore 'Name {compile_commands.json}' \
+      -ignore 'Name {.cache}' \
+      -ignore 'Name {Dockerfile}' \
+      -ignore 'Name {docker-compose.yml}' \
+      -ignore 'Name {sync.prf}' \
+      -ignore 'Name {kateproject}' \
+      -ignore 'Name {*.o}' \
+      -ignore 'Name {*.gch}' \
+      > /dev/null 2>&1 & \
+      /bin/bash",
+  "extensions": ["ms-vscode.cpptools", "ms-vscode.cmake-tools"]
+}
