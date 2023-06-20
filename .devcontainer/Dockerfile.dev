@@ -5,7 +5,7 @@ FROM debian:bookworm
 RUN apt-get update && apt-get upgrade -y
 
 # Install dependencies
-RUN apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc nano vim git ninja-build
+RUN apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc nano vim git ninja-build gdb
 
 # Set the working directory in the Docker container
 WORKDIR /orbitersdk-cpp
