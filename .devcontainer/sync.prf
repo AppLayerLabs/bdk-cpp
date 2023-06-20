@@ -1,9 +1,0 @@
-# Unison synchronization profile
-root = /orbitersdk-volume
-root = /orbitersdk-cpp
-
-# Specify synchronization options
-auto = true
-batch = true
-prefer = newer
-perms = 0
