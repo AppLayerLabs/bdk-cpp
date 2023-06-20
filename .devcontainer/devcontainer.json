@@ -11,7 +11,7 @@
       "terminal.integrated.shell.linux": "/bin/bash"
   },
   "mounts": [
-      "source=${localWorkspaceFolder},target=/orbitersdk-volume,type=bind,consistency=cached"
+      "source=${localWorkspaceFolder},target=/orbitersdk-cpp,type=bind,consistency=cached"
   ],
   "postCreateCommand": "nohup unison -repeat 1 /orbitersdk-volume /orbitersdk-cpp -auto -batch \
       -ignore 'Name {build}' \
