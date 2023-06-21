@@ -1,15 +1,16 @@
 {
   "name": "OrbiterSDK C++ Dev Container",
   "build": {
-      "dockerfile": "Dockerfile.dev"
+    "dockerfile": "Dockerfile.dev"
   },
   "forwardPorts": [8080, 8099, 8110, 8111],
+  "workspaceFolder": "/orbitersdk-cpp",
   "settings": {
-      "terminal.integrated.shell.linux": "/bin/bash"
+    "terminal.integrated.shell.linux": "/bin/bash"
   },
-  "mounts": [
-    "source=${localWorkspaceFolder},target=/orbitersdk-cpp,type=bind,consistency=cached"
+  "volumes": [
+    "orbitersdk-cpp-data:/orbitersdk-volume"
   ],
-  "runArgs": [ "-it", "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
+  "runArgs": ["-it", "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],
   "extensions": ["ms-vscode.cpptools", "ms-vscode.cmake-tools"]
 }
