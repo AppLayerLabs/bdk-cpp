@@ -4,7 +4,6 @@
     "dockerfile": "Dockerfile.dev"
   },
   "forwardPorts": [8080, 8099, 8110, 8111],
-  "workspaceFolder": "/orbitersdk-cpp",
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash"
   },
