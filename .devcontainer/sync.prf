@@ -1,6 +1,6 @@
 # Unison synchronization profile
-root = /orbitersdk-volume
 root = /orbitersdk-cpp
+root = /orbitersdk-data
 
 # Specify synchronization options
 auto = true

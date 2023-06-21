@@ -5,7 +5,7 @@
       "name": "linux-release",
       "displayName": "Linux Release",
       "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build_local_testnet",
+      "binaryDir": "/orbitersdk-data/build_local_testnet",
       "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -25,7 +25,7 @@
       "name": "linux-debug",
       "displayName": "Linux Debug",
       "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build_local_testnet",
+      "binaryDir": "/orbitersdk-data/build_local_testnet",
       "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
