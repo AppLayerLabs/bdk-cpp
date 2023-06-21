@@ -1,6 +1,7 @@
 build/
 *.o
 *.gch
+.vs
 proto/metrics.pb.cc
 proto/metrics.pb.h
 proto/vm.grpc.pb.cc
