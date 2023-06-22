@@ -2,9 +2,6 @@
 #include "../core/rdpos.h"
 #include "../core/state.h"
 #include "customcontracts.h"
-#include "erc20.h"
-#include "erc20wrapper.h"
-#include "nativewrapper.h"
 
 ContractManager::ContractManager(State *state, const std::unique_ptr<DB> &db,
                                  const std::unique_ptr<rdPoS> &rdpos,
@@ -17,15 +14,15 @@ ContractManager::ContractManager(State *state, const std::unique_ptr<DB> &db,
           0, db),
       rdpos(rdpos), options(options), interface(std::make_unique<ContractManagerInterface>(*this)) {
   
-  registerContracts<ERC20, ERC20Wrapper, NativeWrapper>();
-  addAllContractFuncs<ERC20, ERC20Wrapper, NativeWrapper>();
+  registerContracts<ContractTypes>();
+  addAllContractFuncs<ContractTypes>();
   
   // Load Contracts from DB.
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto &contract : contracts) {
       Address contractAddress(contract.key, true);
 
-      if (!loadFromDB<ERC20, ERC20Wrapper, NativeWrapper>(contract, contractAddress)) {
+      if (!loadFromDB<ContractTypes>(contract, contractAddress)) {
         throw std::runtime_error("Unknown contract: " + contract.value);
       }
     }

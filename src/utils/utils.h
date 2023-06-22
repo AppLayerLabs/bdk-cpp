@@ -117,6 +117,21 @@ struct Account {
 
 /// Namespace for utility functions.
 namespace Utils {
+
+  /**
+  * Template for identifying if a type is a tuple.
+  * @tparam T The type to check.
+  */
+  template <typename T>
+  struct is_tuple : std::false_type {};
+
+  /**
+  * Template explicit specialization for identifying if a type is a tuple.
+  * @tparam Ts The types to check.
+  */
+  template <typename... Ts>
+  struct is_tuple<std::tuple<Ts...>> : std::true_type {};
+
   /**
    * %Log a string to a file called `log.txt`.
    * @param str The string to log.
@@ -336,6 +351,12 @@ namespace Utils {
     return ret;
   }
 
+  /**
+  * Get the real type name of a type.
+  * For example, `getRealTypeName<std::string>()` will return "std::basic_string<char, std::char_traits<char>, std::allocator<char> >"
+  * @tparam T The type to get the name of.
+  * @return The real type name.
+  */
   template <typename T>
   std::string getRealTypeName() {
     int status;
@@ -351,7 +372,7 @@ namespace Utils {
     } else {
         return mangledName;
     }
-}
+  }
 };
 
 #endif  // UTILS_H
