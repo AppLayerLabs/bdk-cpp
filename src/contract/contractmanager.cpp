@@ -9,25 +9,25 @@ ContractManager::ContractManager(State* state, const std::unique_ptr<DB>& db, co
   state(state), BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), 0, db),
   rdpos(rdpos),
   options(options),
-  interface(*this) {
+  interface(std::make_unique<ContractManagerInterface>(*this)) {
   /// Load Contracts from DB.
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto& contract : contracts) {
     if (Utils::bytesToString(contract.value) == "ERC20") {
       Address contractAddress(contract.key);
-      this->contracts.insert(std::make_pair(contractAddress, std::make_unique<ERC20>(this->interface, contractAddress, this->db)));
+      this->contracts.insert(std::make_pair(contractAddress, std::make_unique<ERC20>(*this->interface, contractAddress, this->db)));
       continue;
     }
     if (Utils::bytesToString(contract.value) == "ERC20Wrapper") {
       Address contractAddress(contract.key);
       this->contracts.insert(
-      std::make_pair(contractAddress, std::make_unique<ERC20Wrapper>(this->interface, contractAddress, this->db)));
+      std::make_pair(contractAddress, std::make_unique<ERC20Wrapper>(*this->interface, contractAddress, this->db)));
       continue;
     }
     if (Utils::bytesToString(contract.value) == "NativeWrapper") {
       Address contractAddress(contract.key);
       this->contracts.insert(
-      std::make_pair(contractAddress, std::make_unique<NativeWrapper>(this->interface, contractAddress, this->db)));
+      std::make_pair(contractAddress, std::make_unique<NativeWrapper>(*this->interface, contractAddress, this->db)));
       continue;
     }
     throw std::runtime_error("Unknown contract: " + Utils::bytesToString(contract.value));
@@ -91,7 +91,7 @@ void ContractManager::createNewERC20Contract(const ethCallInfo& callInfo) {
           decoder.getData<std::string>(1),
           uint8_t(decoder.getData<uint256_t>(2)),
           decoder.getData<uint256_t>(3),
-          this->interface,
+          *this->interface,
           derivedContractAddress,
           this->getCaller(),
           this->options->getChainID(),
@@ -149,7 +149,7 @@ void ContractManager::createNewERC20WrapperContract(const ethCallInfo& callInfo)
   }
 
   this->contracts.insert(std::make_pair(derivedContractAddress, std::make_unique<ERC20Wrapper>(
-          this->interface,
+          *this->interface,
           derivedContractAddress,
           this->getCaller(),
           this->options->getChainID(),
@@ -206,7 +206,7 @@ void ContractManager::createNewERC20NativeWrapperContract(const ethCallInfo& cal
           decoder.getData<std::string>(0),
           decoder.getData<std::string>(1),
           uint8_t(decoder.getData<uint256_t>(2)),
-          this->interface,
+          *this->interface,
           derivedContractAddress,
           this->getCaller(),
           this->options->getChainID(),
@@ -384,7 +384,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
   try {
     if (this->getValue()) {
       // Payable, we need to "add" the balance to the contract
-      this->interface.populateBalance(to);
+      this->interface->populateBalance(to);
       this->balances[to] += value;
     }
     if (to == this->getContractAddress()) {
@@ -475,7 +475,7 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
   return contracts;
 }
 
-void ContractManager::ContractManagerInterface::callContract(const ethCallInfo& callInfo) {
+void ContractManagerInterface::callContract(const ethCallInfo& callInfo) {
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
   if (value) {
     this->sendTokens(from, to, value);
@@ -497,7 +497,7 @@ void ContractManager::ContractManagerInterface::callContract(const ethCallInfo& 
   }
 }
 
-void ContractManager::ContractManagerInterface::populateBalance(const Address &address) const {
+void ContractManagerInterface::populateBalance(const Address &address) const {
   if (!this->contractManager.balances.contains(address)) {
     auto it = this->contractManager.state->accounts.find(address);
     if (it != this->contractManager.state->accounts.end()) {
@@ -508,12 +508,12 @@ void ContractManager::ContractManagerInterface::populateBalance(const Address &a
   }
 }
 
-uint256_t ContractManager::ContractManagerInterface::getBalanceFromAddress(const Address& address) const {
+uint256_t ContractManagerInterface::getBalanceFromAddress(const Address& address) const {
   this->populateBalance(address);
   return this->contractManager.balances[address];
 }
 
-void ContractManager::ContractManagerInterface::sendTokens(const Address& from, const Address& to, const uint256_t& amount) {
+void ContractManagerInterface::sendTokens(const Address& from, const Address& to, const uint256_t& amount) {
   this->populateBalance(from);
   this->populateBalance(to);
 

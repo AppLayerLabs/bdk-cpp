@@ -1,7 +1,7 @@
 #include "nativewrapper.h"
 
 // Default Constructor when loading contract from DB.
-NativeWrapper::NativeWrapper(ContractManager::ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
+NativeWrapper::NativeWrapper(ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
   DynamicContract(interface, address, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
 
   this->_name = Utils::bytesToString(db->get(std::string("_name"), this->getDBPrefix()));
@@ -25,7 +25,7 @@ NativeWrapper::NativeWrapper(ContractManager::ContractManagerInterface &interfac
 NativeWrapper::NativeWrapper(
   const std::string &erc20_name, const std::string &erc20_symbol,
   const uint8_t &erc20_decimals,
-  ContractManager::ContractManagerInterface &interface,
+  ContractManagerInterface &interface,
   const Address &address, const Address &creator,
   const uint64_t &chainId,const std::unique_ptr<DB> &db
 ) : DynamicContract(interface, "NativeWrapper", address, creator, chainId, db),

@@ -52,7 +52,7 @@ class NativeWrapper : public DynamicContract {
      * @param db Reference to the database object.
      */
     NativeWrapper(
-      ContractManager::ContractManagerInterface& interface,
+      ContractManagerInterface& interface,
       const Address& address, const std::unique_ptr<DB>& db
     );
 
@@ -70,7 +70,7 @@ class NativeWrapper : public DynamicContract {
     NativeWrapper(
       const std::string &erc20_name, const std::string &erc20_symbol,
       const uint8_t &erc20_decimals,
-      ContractManager::ContractManagerInterface &interface,
+      ContractManagerInterface &interface,
       const Address &address, const Address &creator,
       const uint64_t &chainId, const std::unique_ptr<DB> &db
     );
@@ -161,7 +161,7 @@ class NativeWrapper : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         NativeWrapper, std::string &, std::string &, uint8_t &,
-        ContractManager::ContractManagerInterface &, const Address &,
+        ContractManagerInterface &, const Address &,
         const Address &, const uint64_t &, const std::unique_ptr<DB> &
       >(
         std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},

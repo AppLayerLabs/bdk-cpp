@@ -14,7 +14,7 @@
 class DynamicContract : public BaseContract {
   private:
     /// Reference to the contract manager interface.
-    ContractManager::ContractManagerInterface& interface;
+    ContractManagerInterface& interface;
 
     /// Map of functions that can be called by the contract.
     std::unordered_map<
@@ -329,7 +329,7 @@ class DynamicContract : public BaseContract {
      * @param db Reference to the database object.
      */
     DynamicContract(
-      ContractManager::ContractManagerInterface& interface,
+      ContractManagerInterface& interface,
       const std::string& contractName, const Address& address,
       const Address& creator, const uint64_t& chainId,
       const std::unique_ptr<DB>& db
@@ -342,7 +342,7 @@ class DynamicContract : public BaseContract {
      * @param db Reference to the database object.
      */
     DynamicContract(
-      ContractManager::ContractManagerInterface& interface,
+      ContractManagerInterface& interface,
       const Address& address, const std::unique_ptr<DB>& db
     ) : BaseContract(address, db), interface(interface) {}
 

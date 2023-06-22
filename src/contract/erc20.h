@@ -52,7 +52,7 @@ class ERC20 : public DynamicContract {
      * @param db Reference to the database object.
     */
     ERC20(
-      ContractManager::ContractManagerInterface& interface,
+      ContractManagerInterface& interface,
       const Address& address, const std::unique_ptr<DB>& db
     );
 
@@ -71,7 +71,7 @@ class ERC20 : public DynamicContract {
     ERC20(
       const std::string &erc20_name, const std::string &erc20_symbol,
       const uint8_t &erc20_decimals, const uint256_t &mintValue,
-      ContractManager::ContractManagerInterface &interface,
+      ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
       const std::unique_ptr<DB> &db
     );
@@ -159,7 +159,7 @@ class ERC20 : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         ERC20, const std::string &, const std::string &, const uint8_t &,
-        const uint256_t &, ContractManager::ContractManagerInterface &,
+        const uint256_t &, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &
       >(

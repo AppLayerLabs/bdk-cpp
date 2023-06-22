@@ -1,7 +1,7 @@
 #include "erc20wrapper.h"
 
 ERC20Wrapper::ERC20Wrapper(
-  ContractManager::ContractManagerInterface& interface,
+  ContractManagerInterface& interface,
   const Address& contractAddress, const std::unique_ptr<DB>& db
 ) : DynamicContract(interface, contractAddress, db), _tokensAndBalances(this) {
   registerContractFunctions();
@@ -14,7 +14,7 @@ ERC20Wrapper::ERC20Wrapper(
 }
 
 ERC20Wrapper::ERC20Wrapper(
-  ContractManager::ContractManagerInterface& interface, const Address& address,
+  ContractManagerInterface& interface, const Address& address,
   const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB>& db
 ) : DynamicContract(interface, "ERC20Wrapper", address, creator, chainId, db),
   _tokensAndBalances(this)
