@@ -110,7 +110,7 @@ struct SafeHash {
 
   /**
    * Wrapper for 'splitmix()'
-   * @param Address A Address (FixedBytes<20>) object
+   * @param address A Address (FixedBytes<20>) object
    * @returns The same as `splitmix()`
    */
   size_t operator()(const Address& address) const {
@@ -123,7 +123,7 @@ struct SafeHash {
 
   /**
    * Wrapper for 'splitmix()'.
-   * @param Functor A functor (FixedBytes<4>) object.
+   * @param functor A functor (FixedBytes<4>) object.
    */
   size_t operator()(const Functor& functor) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
@@ -165,7 +165,7 @@ struct SafeHash {
 
   /**
    * Wrapper for `splitmix()`.
-   * @param str A %FixedBytes of any size.
+   * @param bytes A %FixedBytes of any size.
    * @returns The same as `splitmix()`.
    */
   template <unsigned N> size_t operator()(const FixedBytes<N>& bytes) const {

@@ -79,9 +79,11 @@ protected:
 public:
   /**
    * Constructor.
+   * @param contractName The name of the contract.
    * @param address The address where the contract will be deployed.
-   * @param chainId The chain where the contract wil be deployed.
-   * @param contractManager Pointer to the contract manager.
+   * @param creator The address of the creator of the contract.
+   * @param chainId The chain where the contract will be deployed.
+   * @param db Pointer to the DB instance.
    */
   BaseContract(const std::string &contractName, const Address &address,
                const Address &creator, const uint64_t &chainId,

@@ -206,34 +206,34 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
 }
 
 uint256_t ABI::Decoder::decodeUint256(const BytesArrView data, const uint64_t& start) const {
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for uint256");
   return Utils::bytesToUint256(data.subspan(start, 32));
 }
 
 Address ABI::Decoder::decodeAddress(const BytesArrView data, const uint64_t& start) const {
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for address");
   return Address(data.subspan(start + 12, 20));
 }
 
 bool ABI::Decoder::decodeBool(const BytesArrView data, const uint64_t& start) const {
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for bool");
   return (data[start + 31] == 0x01);  // Bool value ("00"/"01") is at the very end
 }
 
 Bytes ABI::Decoder::decodeBytes(const BytesArrView data, const uint64_t& start) const {
   // Get bytes offset
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for bytes");
   Bytes tmp(data.begin() + start, data.begin() + start + 32);
   uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Get bytes length
   tmp.clear();
-  if (bytesStart + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (bytesStart + 32 > data.size()) throw std::runtime_error("Data too short for bytes");
   tmp.insert(tmp.end(), data.begin() + bytesStart, data.begin() + bytesStart + 32);
   uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Size sanity check
-  if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short");
+  if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short for bytes");
 
   // Get bytes data
   tmp.clear();
@@ -243,18 +243,18 @@ Bytes ABI::Decoder::decodeBytes(const BytesArrView data, const uint64_t& start) 
 
 std::string ABI::Decoder::decodeString(const BytesArrView data, const uint64_t &start) const {
   // Get bytes offset
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for string");
   std::string tmp(data.begin() + start, data.begin() + start + 32);
   uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Get bytes length
   tmp.clear();
-  if (bytesStart + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (bytesStart + 32 > data.size()) throw std::runtime_error("Data too short for string");
   tmp.insert(tmp.end(), data.begin() + bytesStart, data.begin() + bytesStart + 32);
   uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Size sanity check
-  if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short");
+  if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short for string");
 
   // Get bytes data
   tmp.clear();
@@ -265,19 +265,19 @@ std::string ABI::Decoder::decodeString(const BytesArrView data, const uint64_t &
 
 std::vector<uint256_t> ABI::Decoder::decodeUint256Arr(const BytesArrView data, const uint64_t& start) const {
   // Get array offset
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for uint256[]");
   Bytes tmp(data.begin() + start, data.begin() + start + 32);
   uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Get array length
   tmp.clear();
 
-  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for uint256[]");
   tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
   uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Size sanity check
-  if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short");
+  if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short for uint256[]");
 
   // Get array data
   std::vector<uint256_t> tmpArr;
@@ -293,18 +293,18 @@ std::vector<uint256_t> ABI::Decoder::decodeUint256Arr(const BytesArrView data, c
 
 std::vector<Address> ABI::Decoder::decodeAddressArr(const BytesArrView data, const uint64_t& start) const {
   // Get array offset
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for address[]");
   Bytes tmp(data.begin() + start, data.begin() + start + 32);
   uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Get array length
   tmp.clear();
-  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for address[]");
   tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
   uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Size sanity check
-  if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short");
+  if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short for address[]");
 
   // Get array data
   std::vector<Address> tmpArr;
@@ -320,18 +320,18 @@ std::vector<Address> ABI::Decoder::decodeAddressArr(const BytesArrView data, con
 
 std::vector<bool> ABI::Decoder::decodeBoolArr(const BytesArrView data, const uint64_t& start) const {
   // Get array offset
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for bool[]");
   Bytes tmp(data.begin() + start, data.begin() + start + 32);
   uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Get array length
   tmp.clear();
-  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for bool[]");
   tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
   uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Size sanity check
-  if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short");
+  if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short for bool[]");
 
   // Get array data
   std::vector<bool> tmpArr;
@@ -343,13 +343,13 @@ std::vector<bool> ABI::Decoder::decodeBoolArr(const BytesArrView data, const uin
 
 std::vector<Bytes> ABI::Decoder::decodeBytesArr(const BytesArrView data, const uint64_t& start) const {
   // Get array offset
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for bytes[]");
   Bytes tmp(data.begin() + start, data.begin() + start + 32);
   uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Get array length
   tmp.clear();
-  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for bytes[]");
   tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
   uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
@@ -366,7 +366,7 @@ std::vector<Bytes> ABI::Decoder::decodeBytesArr(const BytesArrView data, const u
     uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
     // Individual size sanity check
-    if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short");
+    if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short for bytes[]");
 
     // Get bytes data
     tmp.clear();
@@ -379,13 +379,13 @@ std::vector<Bytes> ABI::Decoder::decodeBytesArr(const BytesArrView data, const u
 
 std::vector<std::string> ABI::Decoder::decodeStringArr(const BytesArrView data, const uint64_t &start) const {
   // Get array offset
-  if (start + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for string[]");
   std::string tmp(data.begin() + start, data.begin() + start + 32);
   uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
   // Get array length
   tmp.clear();
-  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short");
+  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for string[]");
   tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
   uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
@@ -402,7 +402,7 @@ std::vector<std::string> ABI::Decoder::decodeStringArr(const BytesArrView data, 
     uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
     // Individual size sanity check
-    if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short");
+    if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short for string[]");
 
     // Get bytes data
     tmp.clear();
@@ -417,7 +417,9 @@ ABI::Decoder::Decoder(const std::vector<ABI::Types>& types, const BytesArrView b
   uint64_t argIdx = 0;
   uint64_t dataIdx = 0;
   while (argIdx < types.size()) {
-    if (types[argIdx] == ABI::Types::uint256) {
+    if (types[argIdx] == ABI::Types::uint256 || types[argIdx] == ABI::Types::uint8 ||
+        types[argIdx] == ABI::Types::uint16 || types[argIdx] == ABI::Types::uint32 ||
+        types[argIdx] == ABI::Types::uint64) {
       this->data_.emplace_back(decodeUint256(bytes, dataIdx));
     } else if (types[argIdx] == ABI::Types::uint256Arr) {
       this->data_.emplace_back(decodeUint256Arr(bytes, dataIdx));
@@ -438,7 +440,7 @@ ABI::Decoder::Decoder(const std::vector<ABI::Types>& types, const BytesArrView b
     } else if (types[argIdx] == ABI::Types::stringArr) {
       this->data_.emplace_back(decodeStringArr(bytes, dataIdx));
     } else {
-      throw std::runtime_error("Unknown type");
+      throw std::runtime_error("Unknown type to decode");
     }
     dataIdx += 32;
     argIdx++;

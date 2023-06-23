@@ -25,6 +25,12 @@ class ERC20Wrapper : public DynamicContract {
     void registerContractFunctions() override;
 
   public:
+
+    /**
+    * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+    */
+    using ConstructorArguments = std::tuple<>;
+    
     /**
      * Constructor for loading contract from DB.
      * @param interface Reference to the contract manager interface.
@@ -32,7 +38,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param db Reference pointer to the database object.
      */
     ERC20Wrapper(
-      ContractManager::ContractManagerInterface& interface,
+      ContractManagerInterface& interface,
       const Address& contractAddress, const std::unique_ptr<DB>& db
     );
 
@@ -45,7 +51,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param db Reference pointer to the database object.
      */
     ERC20Wrapper(
-      ContractManager::ContractManagerInterface& interface,
+      ContractManagerInterface& interface,
       const Address& address, const Address& creator,
       const uint64_t& chainId, const std::unique_ptr<DB>& db
     );
@@ -53,7 +59,7 @@ class ERC20Wrapper : public DynamicContract {
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContract<
-        ERC20Wrapper, ContractManager::ContractManagerInterface &,
+        ERC20Wrapper, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &
       >(

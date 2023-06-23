@@ -14,7 +14,7 @@
 class DynamicContract : public BaseContract {
   private:
     /// Reference to the contract manager interface.
-    ContractManager::ContractManagerInterface& interface;
+    ContractManagerInterface& interface;
 
     /// Map of functions that can be called by the contract.
     std::unordered_map<
@@ -133,12 +133,15 @@ class DynamicContract : public BaseContract {
 
     /**
      * Template helper function for calling a non-const member function with no arguments.
-      * @param instance Pointer to the instance of the class.
-      * @param memFunc Pointer to the member function.
-      * @param dataVec Vector of anys containing the arguments.
-      * @param Is Index sequence for the arguments.
-      * @return The return value of the function.
-      */
+     * @tparam T Type of the class.
+     * @tparam R Return type of the function.
+     * @tparam Args Argument types of the function.
+     * @tparam Is Indices of the arguments.
+     * @param instance Pointer to the instance of the class.
+     * @param memFunc Pointer to the member function.
+     * @param dataVec Vector of arguments.
+     * @return Return value of the function.
+     */
     template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(
       T* instance, R(T::*memFunc)(Args...), const std::vector<std::any>& dataVec, std::index_sequence<Is...>
     ) {
@@ -161,10 +164,13 @@ class DynamicContract : public BaseContract {
 
     /**
      * Template helper function for calling a const member function with no arguments.
+     * @tparam T Type of the class.
+     * @tparam R Return type of the function.
+     * @tparam Args Argument types of the function.
+     * @tparam Is Index sequence for the arguments.
      * @param instance Pointer to the instance of the class.
      * @param memFunc Pointer to the member function.
      * @param dataVec Vector of anys containing the arguments.
-     * @param Is Index sequence for the arguments.
      * @return The return value of the function.
      */
     template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(
@@ -329,7 +335,7 @@ class DynamicContract : public BaseContract {
      * @param db Reference to the database object.
      */
     DynamicContract(
-      ContractManager::ContractManagerInterface& interface,
+      ContractManagerInterface& interface,
       const std::string& contractName, const Address& address,
       const Address& creator, const uint64_t& chainId,
       const std::unique_ptr<DB>& db
@@ -342,7 +348,7 @@ class DynamicContract : public BaseContract {
      * @param db Reference to the database object.
      */
     DynamicContract(
-      ContractManager::ContractManagerInterface& interface,
+      ContractManagerInterface& interface,
       const Address& address, const std::unique_ptr<DB>& db
     ) : BaseContract(address, db), interface(interface) {}
 

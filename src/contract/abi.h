@@ -11,23 +11,245 @@
 /// Namespace for Solidity ABI-related operations.
 namespace ABI {
   /**
-   * Enum for the types of Solidity variables.
-   * Equivalency is as follows:
-   * - uint256 = uint256 (Solidity) = uint256_t (C++)
-   * - uint256Arr = uint256[] (Solidity) = std::vector<uint256_t> (C++)
-   * - address = address (Solidity) = Address (C++)
-   * - addressArr = address[] (Solidity) = std::vector<Address> (C++)
-   * - bool = bool (Solidity) = bool (C++)
-   * - boolArr = bool[] (Solidity) = vector<bool> (C++)
-   * - bytes = bytes (Solidity) = Bytes (C++)
-   * - bytesArr = bytes[] (Solidity) = std::vector<Bytes> (C++)
-   * - string = string (Solidity) = std::string (C++)
-   * - stringArr = string[] (Solidity) = std::vector<std::string> (C++)
-   */
-  enum Types {
-    uint256, uint256Arr, address, addressArr, boolean, booleanArr,
-    bytes, bytesArr, string, stringArr
+ * Enum for the types of Solidity variables.
+ * Equivalency is as follows:
+ * - uint8 = uint8 (Solidity) = uint8_t (C++)
+ * - uint8Arr = uint8[] (Solidity) = std::vector<uint8_t> (C++)
+ * - uint16 = uint16 (Solidity) = uint16_t (C++)
+ * - uint16Arr = uint16[] (Solidity) = std::vector<uint16_t> (C++)
+ * - uint32 = uint32 (Solidity) = uint32_t (C++)
+ * - uint32Arr = uint32[] (Solidity) = std::vector<uint32_t> (C++)
+ * - uint64 = uint64 (Solidity) = uint64_t (C++)
+ * - uint64Arr = uint64[] (Solidity) = std::vector<uint64_t> (C++)
+ * - uint256 = uint256 (Solidity) = uint256_t (C++)
+ * - uint256Arr = uint256[] (Solidity) = std::vector<uint256_t> (C++)
+ * - address = address (Solidity) = Address (C++)
+ * - addressArr = address[] (Solidity) = std::vector<Address> (C++)
+ * - bool = bool (Solidity) = bool (C++)
+ * - boolArr = bool[] (Solidity) = vector<bool> (C++)
+ * - bytes = bytes (Solidity) = Bytes (C++)
+ * - bytesArr = bytes[] (Solidity) = std::vector<Bytes> (C++)
+ * - string = string (Solidity) = std::string (C++)
+ * - stringArr = string[] (Solidity) = std::vector<std::string> (C++)
+ */
+enum Types {
+  uint8,
+  uint8Arr,
+  uint16,
+  uint16Arr,
+  uint32,
+  uint32Arr,
+  uint64,
+  uint64Arr,
+  uint256,
+  uint256Arr,
+  address,
+  addressArr,
+  boolean,
+  booleanArr,
+  bytes,
+  bytesArr,
+  string,
+  stringArr
+};
+
+/**
+* Enum for the types of Solidity functions.
+*@tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct TypeToEnum;
+
+/**
+* Helper struct to map a type to an ABI type.
+* Specializations for each type are defined below.
+* @tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct ABIType {
+  static constexpr Types value = Types::uint256; ///< Default ABI type is uint256.
+};
+
+/**
+* Specialization for std::vector<T>.
+* This is used for all vector types, including bytesArr and stringArr.
+* @tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct ABIType<std::vector<T>> {
+  static constexpr Types value = Types::uint256Arr; ///< ABI type is uint256Arr.
+};
+
+/**
+* Specialization for address.
+*/
+template <>
+struct ABIType<Address> {
+  static constexpr Types value = Types::address; ///< ABI type is address.
+};
+
+/**
+* Specialization for bool.
+*/
+template <>
+struct ABIType<bool> {
+  static constexpr Types value = Types::boolean; ///< ABI type is boolean.
+};
+
+/**
+* Specialization for std::string.
+*/
+template <>
+struct ABIType<std::string> {
+  static constexpr Types value = Types::string; ///< ABI type is string.
+};
+
+/**
+* Specialization for Bytes.
+*/
+template <>
+struct ABIType<Bytes> {
+  static constexpr Types value = Types::bytes; ///< ABI type is bytes.
+};
+
+/**
+* Specialization for uint8_t.
+*/
+template <>
+struct ABIType<uint8_t> {
+  static constexpr Types value = Types::uint8; ///< ABI type is uint8.
+};
+
+/**
+* Specialization for uint16_t.
+*/
+template <>
+struct ABIType<uint16_t> {
+  static constexpr Types value = Types::uint16; ///< ABI type is uint16.
+};
+
+/**
+* Specialization for uint32_t.
+*/
+template <>
+struct ABIType<uint32_t> {
+  static constexpr Types value = Types::uint32; ///< ABI type is uint32.
+};
+
+/**
+* Specialization for uint64_t.
+*/
+template <>
+struct ABIType<uint64_t> {
+  static constexpr Types value = Types::uint64; ///< ABI type is uint64.
+};
+
+/**
+* Struct to map a type to an ABI type.
+* @tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct TypeToEnum {
+  static constexpr Types value = ABIType<T>::value; ///< ABI type.
+};
+
+/**
+* Specializations for reference types
+* @tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct TypeToEnum<T&> : TypeToEnum<T> {};
+
+/**
+* Specializations for const reference types
+* @tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct TypeToEnum<const T&> : TypeToEnum<T> {};
+
+/**
+* Specializations for vector reference types
+* @tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct TypeToEnum<std::vector<T>&> : TypeToEnum<std::vector<T>> {};
+
+/**
+* Specializations for const vector reference types
+* @tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
+
+/**
+ * This function returns the ABI type string for a given ABI type.
+ * @param type The ABI type.
+ * @return The ABI type string.
+ */
+std::string inline getStringFromABIEnum(Types type) {
+  const std::unordered_map<Types, std::string> typeMappings = {
+    {Types::uint8, "uint8"},
+    {Types::uint8Arr, "uint8[]"},
+    {Types::uint16, "uint16"},
+    {Types::uint16Arr, "uint16[]"},
+    {Types::uint32, "uint32"},
+    {Types::uint32Arr, "uint32[]"},
+    {Types::uint64, "uint64"},
+    {Types::uint64Arr, "uint64[]"},
+    {Types::uint256, "uint256"},
+    {Types::uint256Arr, "uint256[]"},
+    {Types::address, "address"},
+    {Types::addressArr, "address[]"},
+    {Types::boolean, "bool"},
+    {Types::booleanArr, "bool[]"},
+    {Types::bytes, "bytes"},
+    {Types::bytesArr, "bytes[]"},
+    {Types::string, "string"},
+    {Types::stringArr, "string[]"}
   };
+
+  auto it = typeMappings.find(type);
+  if (it != typeMappings.end()) {
+    return it->second;
+  } else {
+    throw std::runtime_error("Unsupported ABI type");
+  }
+}
+
+/**
+ * This function returns the ABI type for a given ABI type string.
+ * @param type The ABI type string.
+ * @return The ABI type.
+ */
+Types inline getABIEnumFromString(const std::string& type) {
+  static const std::unordered_map<std::string, Types> typeMappings = {
+    {"uint8", Types::uint8},
+    {"uint8[]", Types::uint8Arr},
+    {"uint16", Types::uint16},
+    {"uint16[]", Types::uint16Arr},
+    {"uint32", Types::uint32},
+    {"uint32[]", Types::uint32Arr},
+    {"uint64", Types::uint64},
+    {"uint64[]", Types::uint64Arr},
+    {"uint256", Types::uint256},
+    {"uint256[]", Types::uint256Arr},
+    {"address", Types::address},
+    {"address[]", Types::addressArr},
+    {"bool", Types::boolean},
+    {"bool[]", Types::booleanArr},
+    {"bytes", Types::bytes},
+    {"bytes[]", Types::bytesArr},
+    {"string", Types::string},
+    {"string[]", Types::stringArr}
+  };
+
+  auto it = typeMappings.find(type);
+  if (it != typeMappings.end()) {
+    return it->second;
+  } else {
+    throw std::runtime_error("Invalid type");
+  }
+}
 
   /// Class that encodes and packs native data types into Solidity ABI strings.
   class Encoder {
@@ -151,7 +373,7 @@ namespace ABI {
        * Decode a 256-bit unsigned integer from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data bytes to decode.
-       * @start The index of the vector to start decoding from.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded 256-bit unsigned integer.
        *@throw std::runtime_error if data is too short.
        */
@@ -161,7 +383,7 @@ namespace ABI {
        * Decode a 20-byte address from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data bytes to decode.
-       * @start The index of the vector to start decoding from.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded 20-byte address.
        *@throw std::runtime_error if data is too short.
        */
@@ -171,7 +393,7 @@ namespace ABI {
        * Decode a boolean from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data bytes to decode.
-       * @start The index of the vector to start decoding from.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded boolean.
        *@throw std::runtime_error if data is too short.
        */
@@ -269,7 +491,7 @@ namespace ABI {
        * @param types An ordered list of expected Solidity types to decode.
        * @param bytes The full Solidity ABI string to decode, AS A RAW BYTES STRING.
        */
-      Decoder(const std::vector<ABI::Types>& types, const BytesArrView bytes);
+      Decoder(const std::vector<Types>& types, const BytesArrView bytes);
 
       /**
        * Get a specific data type from the decoded `data` list.
@@ -291,18 +513,28 @@ namespace ABI {
      * @return The decoded data type.
      * @throw std::runtime_error if type mismatch.
      */
-    std::any getDataDispatch(int index, ABI::Types type) {
+    std::any getDataDispatch(int index, Types type) {
       switch (type) {
-        case ABI::Types::uint256: return this->getData<uint256_t>(index);
-        case ABI::Types::uint256Arr: return this->getData<std::vector<uint256_t>>(index);
-        case ABI::Types::address: return this->getData<Address>(index);
-        case ABI::Types::addressArr: return this->getData<std::vector<Address>>(index);
-        case ABI::Types::boolean: return this->getData<bool>(index);
-        case ABI::Types::booleanArr: return this->getData<std::vector<bool>>(index);
-        case ABI::Types::bytes: return this->getData<Bytes>(index);
-        case ABI::Types::bytesArr: return this->getData<std::vector<Bytes>>(index);
-        case ABI::Types::string: return this->getData<std::string>(index);
-        case ABI::Types::stringArr: return this->getData<std::vector<std::string>>(index);
+        case Types::uint256:
+        case Types::uint8:
+        case Types::uint16:
+        case Types::uint32:
+        case Types::uint64:
+        return this->getData<uint256_t>(index);
+        case Types::uint8Arr:
+        case Types::uint16Arr:
+        case Types::uint32Arr:
+        case Types::uint64Arr:
+        case Types::uint256Arr:
+        return this->getData<std::vector<uint256_t>>(index);
+        case Types::address: return this->getData<Address>(index);
+        case Types::addressArr: return this->getData<std::vector<Address>>(index);
+        case Types::boolean: return this->getData<bool>(index);
+        case Types::booleanArr: return this->getData<std::vector<bool>>(index);
+        case Types::bytes: return this->getData<Bytes>(index);
+        case Types::bytesArr: return this->getData<std::vector<Bytes>>(index);
+        case Types::string: return this->getData<std::string>(index);
+        case Types::stringArr: return this->getData<std::vector<std::string>>(index);
         default: throw std::runtime_error("Invalid ABI::Types type");
       }
     }
