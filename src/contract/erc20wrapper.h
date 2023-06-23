@@ -25,6 +25,8 @@ class ERC20Wrapper : public DynamicContract {
     void registerContractFunctions() override;
 
   public:
+
+    using ConstructorArguments = std::tuple<>;
     /**
      * Constructor for loading contract from DB.
      * @param interface Reference to the contract manager interface.
