@@ -30,6 +30,9 @@ jobs:
       - name: Print GCC version
         run: gcc --version
 
+      - name: Install CA certificates
+        run: apt-get install -y ca-certificates
+
       - name: Configure CMake
         run: cmake -S . -B build
 
