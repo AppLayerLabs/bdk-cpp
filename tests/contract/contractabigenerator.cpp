@@ -25,9 +25,9 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(j[0]["inputs"][1]["internalType"] == "string");
     REQUIRE(j[0]["inputs"][1]["name"] == "erc20_symbol");
     REQUIRE(j[0]["inputs"][1]["type"] == "string");
-    REQUIRE(j[0]["inputs"][2]["internalType"] == "uint256");
+    REQUIRE(j[0]["inputs"][2]["internalType"] == "uint8");
     REQUIRE(j[0]["inputs"][2]["name"] == "erc20_decimals");
-    REQUIRE(j[0]["inputs"][2]["type"] == "uint256");
+    REQUIRE(j[0]["inputs"][2]["type"] == "uint8");
     REQUIRE(j[0]["inputs"][3]["internalType"] == "uint256");
     REQUIRE(j[0]["inputs"][3]["name"] == "mintValue");
     REQUIRE(j[0]["inputs"][3]["type"] == "uint256");
@@ -183,9 +183,9 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(j[0]["inputs"][1]["internalType"] == "string");
     REQUIRE(j[0]["inputs"][1]["name"] == "erc20_symbol");
     REQUIRE(j[0]["inputs"][1]["type"] == "string");
-    REQUIRE(j[0]["inputs"][2]["internalType"] == "uint256");
+    REQUIRE(j[0]["inputs"][2]["internalType"] == "uint8");
     REQUIRE(j[0]["inputs"][2]["name"] == "erc20_decimals");
-    REQUIRE(j[0]["inputs"][2]["type"] == "uint256");
+    REQUIRE(j[0]["inputs"][2]["type"] == "uint8");
     REQUIRE(j[1]["name"] == "name");
     REQUIRE(j[1]["stateMutability"] == "view");
     REQUIRE(j[1]["type"] == "function");

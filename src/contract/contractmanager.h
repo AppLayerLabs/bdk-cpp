@@ -82,96 +82,90 @@ class ContractManager : BaseContract {
     /// Derive a new contract address based on transaction sender and nonce.
     Address deriveContractAddress(const ethCallInfo &callInfo) const;
 
-    /**
-     * Create a new ERC20 contract. Solidity counterpart:
-     * function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
-     */
-    void createNewERC20Contract(const ethCallInfo &callInfo);
+     /**
+  * Setup data for a new contract before creating/validating it.
+  * @param callInfo The call info to process.
+  * @return A pair containing the contract address and the ABI decoder.
+  * @throw runtime_error if non contract creator tries to create a contract.
+  * @throw runtime_error if contract already exists.
+  */
+  template <typename TContract>
+  std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
+    // Check if caller is creator
+    if (this->caller != this->getContractCreator()) {
+      throw std::runtime_error("Only contract creator can create new contracts");
+    }
 
-    /// Check if transaction can actually create a new ERC20 contract.
-    void validateCreateNewERC20Contract(const ethCallInfo &callInfo) const;
+    // Check if contract address already exists
+    const Address derivedContractAddress = this->deriveContractAddress(callInfo);
+    if (this->contracts.contains(derivedContractAddress)) {
+      throw std::runtime_error("Contract already exists");
+    }
 
-    /**
-     * Create a new ERC20Wrapper Contract. Solidity counterpart:
-     * function createNewERC20WrapperContract() public {}
-     */
-    void createNewERC20WrapperContract(const ethCallInfo &callInfo);
-
-    /// Check if transaction can actually create a new ERC20Wrapper contract.
-    void validateCreateNewERC20WrapperContract(const ethCallInfo &callInfo) const;
-
-    /**
-     * Create a new ERC20NativeWrapper Contract. Solidity counterpart:
-     * function createNewERC20NativeWrapperContract(string memory name, string memory symbol, uint8 decimals) public {}
-     */
-    void createNewERC20NativeWrapperContract(const ethCallInfo &callInfo);
-
-    /// Check if transaction can actually create a new ERC20NativeWrapper contract.
-    void validateCreateNewERC20NativeWrapperContract(const ethCallInfo &callInfo) const;
-
-    /**
-     * Get a serialized string with the deployed contracts. Solidity counterpart:
-     * function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
-     */
-    Bytes getDeployedContracts() const;
-
-    template <typename TContract>
-      std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
-      // Check if caller is creator
-      if (this->caller != this->getContractCreator()) {
-        throw std::runtime_error("Only contract creator can create new contracts");
-      }
-
-      // Check if contract address already exists
-      const Address derivedContractAddress = this->deriveContractAddress(callInfo);
-      if (this->contracts.contains(derivedContractAddress)) {
+    std::unique_lock lock(this->contractsMutex);
+    for (const auto &[protocolContractName, protocolContractAddress] :
+        ProtocolContractAddresses) {
+      if (protocolContractAddress == derivedContractAddress) {
         throw std::runtime_error("Contract already exists");
       }
-
-      std::unique_lock lock(this->contractsMutex);
-      for (const auto &[protocolContractName, protocolContractAddress] :
-          ProtocolContractAddresses) {
-        if (protocolContractAddress == derivedContractAddress) {
-          throw std::runtime_error("Contract already exists");
-        }
-      }
-      std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
-      ABI::Decoder decoder(types, std::get<6>(callInfo));
-      return std::make_pair(derivedContractAddress, decoder);
+    }
+    std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
+    return std::make_pair(derivedContractAddress, decoder);
   }
 
+  /**
+  * Helper function to create a new contract from a given call info.
+  * @param derivedContractAddress The address of the contract to create.
+  * @param dataVec The vector of arguments to pass to the contract constructor.
+  * @param Is The indices of the arguments to pass to the contract constructor.
+  * @throw runtime_error if contract arguments are invalid.
+  * @return A unique pointer to the new contract.
+  */
   template <typename TContract, typename TTuple, std::size_t... Is>
   std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
                                                     const std::vector<std::any>& dataVec,
                                                     std::index_sequence<Is...>) {
-      try {
-          return std::make_unique<TContract>(std::any_cast<typename std::tuple_element<Is, TTuple>::type>(dataVec[Is])...,
-                                            *this->interface, derivedContractAddress,
-                                            this->getCaller(), this->options->getChainID(),
-                                            this->db);
-      } catch (const std::bad_any_cast& ex) {
-          throw std::runtime_error("Mismatched argument types for contract constructor. Expected: " +
-                                  Utils::getRealTypeName<TTuple>());
-      }
+    try {
+      return std::make_unique<TContract>(std::any_cast<typename std::tuple_element<Is, TTuple>::type>(dataVec[Is])...,
+                                        *this->interface, derivedContractAddress,
+                                        this->getCaller(), this->options->getChainID(),
+                                        this->db);
+    } catch (const std::bad_any_cast& ex) {
+        throw std::runtime_error("Mismatched argument types for contract constructor. Expected: " +
+                                Utils::getRealTypeName<TTuple>());
+    }
   }
 
-
-template <typename TContract, typename TTuple>
-std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
-                                                   const std::vector<std::any>& dataVec) {
+  /**
+  * Helper function to create a new contract from a given call info.
+  * @param derivedContractAddress The address of the contract to create.
+  * @param dataVec The vector of arguments to pass to the contract constructor.
+  * @throw runtime_error if the size of the vector does not match the number of
+  * arguments of the contract constructor.
+  */
+  template <typename TContract, typename TTuple>
+  std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
+                                                    const std::vector<std::any>& dataVec) {
     constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
 
     if (TupleSize != dataVec.size()) {
-        throw std::runtime_error("Not enough arguments provided for contract constructor. Expected: " +
-                                 std::to_string(TupleSize) + ", got: " + std::to_string(dataVec.size()));
+      throw std::runtime_error("Not enough arguments provided for contract constructor. Expected: " +
+                              std::to_string(TupleSize) + ", got: " + std::to_string(dataVec.size()));
     }
 
     return createContractWithTuple<TContract, TTuple>(
-        derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{});
-}
+      derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{});
+  }
 
-template <typename TContract>
-void createNewContract(const ethCallInfo& callInfo) {
+  /**
+  * Create a new contract from a given call info.
+  * @param callInfo The call info to process.
+  * @throw runtime_error if the call to the ethCall function fails or if the
+  * contract is does not exist.
+  */
+  template <typename TContract>
+  void createNewContract(const ethCallInfo& callInfo) {
     using ConstructorArguments = typename TContract::ConstructorArguments;
 
     auto setupResult = this->setupNewContract<TContract>(callInfo);
@@ -187,42 +181,178 @@ void createNewContract(const ethCallInfo& callInfo) {
     std::vector<std::any> dataVector;
     
     std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
-        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
-        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
-        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
-        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
+      {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
+      {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
+      {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
+      {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
     };
 
     for (size_t i = 0; i < types.size(); i++) {
         if (castFunctions.count(types[i]) > 0) {
-            uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-            dataVector.push_back(castFunctions[types[i]](value));
+          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+          dataVector.push_back(castFunctions[types[i]](value));
         } else {
-            dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
         }
     }
 
     auto contract = createContractWithTuple<TContract, ConstructorArguments>(derivedContractAddress, dataVector);
-
     this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
-}
+  }
 
-template <typename TContract>
-void validateNewContract(const ethCallInfo &callInfo) {
-  this->setupNewContract<TContract>(callInfo);
-}
+  /**
+  * Validate a new contract from a given call info.
+  * @param callInfo The call info to process.
+  * @throw runtime_error if the call to the ethCall function fails or if the
+  * contract is does not exist.
+  */
+  template <typename TContract>
+  void validateNewContract(const ethCallInfo &callInfo) {
+    this->setupNewContract<TContract>(callInfo);
+  }
 
-void addCreateContractFunc(const std::string &functor,
-                      std::function<void(const ethCallInfo &)> createFunc) {
-  auto val = Hex::toBytes(functor);
-  createContractFuncs[val] = createFunc;
-}
+  /**
+  * Adds contract create and validate functions to the respective maps
+  * @tparam Contract Contract type
+  * @param createFunc Function to create a new contract
+  * @param validateFunc Function to validate a new contract
+  */
+  template <typename Contract>
+  void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc,
+                        std::function<void(const ethCallInfo &)> validateFunc) {
+    std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
 
-void addValidateContractFunc(const std::string &functor,
-    std::function<void(const ethCallInfo &)> validateFunc) {
-  auto val = Hex::toBytes(functor);
-  validateContractFuncs[val] = validateFunc;
-}
+    std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
+
+    std::ostringstream createFullSignatureStream;
+    createFullSignatureStream << createSignature << "(";
+
+    if (!args.empty()) {
+        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(createFullSignatureStream, ","));
+        createFullSignatureStream << args.back();
+    }
+    createFullSignatureStream << ")";
+
+    Functor functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
+
+    createContractFuncs[functor.asBytes()] = createFunc;
+    validateContractFuncs[functor.asBytes()] = validateFunc;
+  }
+  /**
+  * Struct for calling the registerContract function of a contract.
+  * @tparam TContract The contract to register.
+  */
+  template <class T>
+  struct RegisterContract {
+    RegisterContract() { T::registerContract(); }
+  };
+
+  /**
+  * Helper function to register all contracts.
+  * @tparam Tuple The tuple of contracts to register.
+  * @tparam Is The indices of the tuple.
+  */
+  template <typename Tuple, std::size_t... Is>
+  void registerContractsHelper(std::index_sequence<Is...>)
+  {
+    (RegisterContract<std::tuple_element_t<Is, Tuple>>(), ...);
+  }
+
+  /**
+  * Register all contracts in the tuple.
+  * @tparam Tuple The tuple of contracts to register.
+  */
+  template <typename Tuple>
+  std::enable_if_t<Utils::is_tuple<Tuple>::value, void>
+  registerContracts() {
+    registerContractsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
+  }
+
+  /**
+  * Register all contracts in the variadic template.
+  * @tparam Contracts The contracts to register.
+  */
+  template <typename Tuple, std::size_t... Is>
+  void addAllContractFuncsHelper(std::index_sequence<Is...>) {
+    ((this->addContractFuncs<std::tuple_element_t<Is, Tuple>>(
+      [&](const ethCallInfo &callInfo) { this->createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); },
+      [&](const ethCallInfo &callInfo) { this->validateNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); }
+    )), ...);
+  }
+
+  /**
+  * Add all contract functions to the respective maps.
+  * @tparam Contracts The contracts to add.
+  */
+  template <typename... Contracts>
+  std::enable_if_t<!Utils::is_tuple<std::tuple<Contracts...>>::value, void>
+  addAllContractFuncs() {
+    (void)std::initializer_list<int>{((void)addAllContractFuncs<Contracts>(), 0)...};
+  }
+
+  /**
+  * Add all contract functions to the respective maps using the helper function.
+  * @tparam Tuple The tuple of contracts to add.
+  */
+  template <typename Tuple>
+  std::enable_if_t<Utils::is_tuple<Tuple>::value, void>
+  addAllContractFuncs() {
+    addAllContractFuncsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
+  }
+
+  /**
+  * Helper function to load all contracts from the database.
+  * @tparam Tuple The tuple of contracts to load.
+  * @tparam Is The indices of the tuple.
+  * @param contract The contract to load.
+  * @param contractAddress The address of the contract.
+  * @return True if the contract exists in the database, false otherwise.
+  */
+  template <typename Tuple, std::size_t... Is>
+  bool loadFromDBHelper(const auto& contract, const Address& contractAddress, std::index_sequence<Is...>) {
+    return (loadFromDBT<std::tuple_element_t<Is, Tuple>>(contract, contractAddress) || ...);
+  }
+
+  /**
+  * Load all contracts from the database.
+  * @tparam Tuple The tuple of contracts to load.
+  * @param contract The contract to load.
+  * @param contractAddress The address of the contract.
+  * @return True if the contract exists in the database, false otherwise.
+  */
+  template <typename T>
+  bool loadFromDBT(const auto& contract, const Address& contractAddress) {
+    // Here we disable this template when T is a tuple
+    static_assert(!Utils::is_tuple<T>::value, "Must not be a tuple");
+    if (Utils::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
+      this->contracts.insert(std::make_pair(
+        contractAddress,
+        std::make_unique<T>(*this->interface, contractAddress, this->db)
+      ));
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+  * Load all contracts from the database using the helper function.
+  * @tparam Tuple The tuple of contracts to load.
+  * @param contract The contract to load.
+  * @param contractAddress The address of the contract.
+  * @return True if the contract exists in the database, false otherwise.
+  */
+  template <typename Tuple>
+  std::enable_if_t<Utils::is_tuple<Tuple>::value, bool>
+  loadFromDB(const auto& contract, const Address& contractAddress) {
+    return loadFromDBHelper<Tuple>(contract, contractAddress, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
+  }
+
+  /**
+  * Get a serialized string with the deployed contracts. Solidity counterpart:
+  * function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
+  */
+  Bytes getDeployedContracts() const;
 
   std::unique_ptr<ContractManagerInterface> interface; ///< Interface to be passed to DynamicContract.
 

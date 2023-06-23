@@ -60,7 +60,7 @@ namespace TNativeWrapper {
         createNewNativeWrapperContractVars.push_back(tokenSymbol);
         createNewNativeWrapperContractVars.push_back(tokenDecimals);
         ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
-        Bytes createNativeWrapperContractData = Hex::toBytes("0x9f90f4c7");
+        Bytes createNativeWrapperContractData = Hex::toBytes("0xb296fad4");
         Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder.getData());
 
         TxBlock createNewNativeWrapperTx = TxBlock(
@@ -160,7 +160,7 @@ namespace TNativeWrapper {
         createNewNativeWrapperContractVars.push_back(tokenSymbol);
         createNewNativeWrapperContractVars.push_back(tokenDecimals);
         ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
-        Bytes createNativeWrapperContractData = Hex::toBytes("0x9f90f4c7");
+        Bytes createNativeWrapperContractData = Hex::toBytes("0xb296fad4");
         Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder.getData());
 
         TxBlock createNewNativeWrapperTx = TxBlock(
@@ -252,7 +252,7 @@ namespace TNativeWrapper {
         createNewNativeWrapperContractVars.push_back(tokenSymbol);
         createNewNativeWrapperContractVars.push_back(tokenDecimals);
         ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
-        Bytes createNativeWrapperContractData = Hex::toBytes("0x9f90f4c7");
+        Bytes createNativeWrapperContractData = Hex::toBytes("0xb296fad4");
         Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder.getData());
 
         TxBlock createNewNativeWrapperTx = TxBlock(

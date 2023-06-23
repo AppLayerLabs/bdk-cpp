@@ -36,7 +36,7 @@ namespace TUtils {
     }
 
     SECTION("uint64ToBytes Test") {
-      uint64_t uint64Input = uint64_t(11155010102558518614);
+      uint64_t uint64Input = uint64_t(11155010102558518614ULL);
       auto uint64Output = Utils::uint64ToBytes(uint64Input);
       BytesArr<8> uint64ExpectedOutput = BytesArr<8> {0x9a, 0xce, 0x8e, 0x96, 0x24, 0xe4, 0xed, 0x56};
       REQUIRE(uint64Output == uint64ExpectedOutput);
@@ -120,7 +120,7 @@ namespace TUtils {
     SECTION("bytesToUint64 Test") {
       FixedBytes<8> bytesStr(std::string("\x9a\xce\x8e\x96\x24\xe4\xed\x56"));
       auto uint64Output = Utils::bytesToUint64(bytesStr.get());
-      uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614);
+      uint64_t uint64ExpectedOutput = uint64_t(11155010102558518614ULL);
       REQUIRE(uint64Output == uint64ExpectedOutput);
 
       bool catchLo = false;

@@ -105,6 +105,14 @@ struct ABIType<std::string> {
 };
 
 /**
+* Specialization for Bytes.
+*/
+template <>
+struct ABIType<Bytes> {
+  static constexpr Types value = Types::bytes;
+};
+
+/**
 * Specialization for uint8_t.
 */
 template <>
