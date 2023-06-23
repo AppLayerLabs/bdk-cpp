@@ -27,8 +27,8 @@ namespace ABI {
  * - addressArr = address[] (Solidity) = std::vector<Address> (C++)
  * - bool = bool (Solidity) = bool (C++)
  * - boolArr = bool[] (Solidity) = vector<bool> (C++)
- * - bytes = bytes (Solidity) = std::string (C++)
- * - bytesArr = bytes[] (Solidity) = std::vector<std::string> (C++)
+ * - bytes = bytes (Solidity) = Bytes (C++)
+ * - bytesArr = bytes[] (Solidity) = std::vector<Bytes> (C++)
  * - string = string (Solidity) = std::string (C++)
  * - stringArr = string[] (Solidity) = std::vector<std::string> (C++)
  */
