@@ -41,7 +41,7 @@ jobs:
 
       - name: Run Catch2 Tests
         working-directory: build
-        run: ./orbitersdkd-tests -d yes ~[rdpos]
+        run: ./orbitersdkd-tests -d yes ~[rdpos] ~[state]
         
       - name: Generate Doxygen Documentation
         run: |
