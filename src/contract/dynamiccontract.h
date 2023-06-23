@@ -4,7 +4,6 @@
 #include <any>
 #include "contract.h"
 #include "contractmanager.h"
-#include "../utils/contractreflectioninterface.h"
 #include "../utils/safehash.h"
 
 /**

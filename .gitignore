@@ -1,5 +1,7 @@
 ABI/
 build/
+debug.txt
+log.txt
 *.o
 *.gch
 proto/metrics.pb.cc
