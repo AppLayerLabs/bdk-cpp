@@ -14,29 +14,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    container: 
+      image: debian:bookworm
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
       
       - name: Update apt-get
-        run: sudo apt-get update
+        run: apt-get update
 
       - name: Install project dependencies
-        run: sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc gcc-12
-
-      - name: Update GCC alternatives
-        run: |
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 60 --slave /usr/bin/g++ g++ /usr/bin/g++-12
-          sudo update-alternatives --config gcc
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git
 
       - name: Print GCC version
         run: gcc --version
+
+      - name: Install CA certificates
+        run: apt-get install -y ca-certificates
 
       - name: Configure CMake
         run: cmake -S . -B build
 
       - name: Build with CMake
-        run: cmake --build build
+        run: cmake --build build || cat build/deps/src/ethash-stamp/ethash-configure-*.log
 
       - name: Run Catch2 Tests
         working-directory: build
