@@ -14,6 +14,7 @@
 #include "../utils/strings.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
+#include "../utils/contractreflectioninterface.h"
 
 // Forward declarations.
 class rdPoS;
@@ -58,6 +59,16 @@ class ContractManager : BaseContract {
 
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
+
+    /**
+    * Map of contract functors and  create/validate functions.
+    * Used to create and validate contracts.
+    */
+  
+    std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash>
+      createContractFuncs;
+    std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash>
+      validateContractFuncs;
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;
@@ -104,8 +115,76 @@ class ContractManager : BaseContract {
      */
     Bytes getDeployedContracts() const;
 
-  private:
-    std::unique_ptr<ContractManagerInterface> interface; ///< Interface to be passed to DynamicContract.
+  template <typename TContract>
+  std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
+    // Check if caller is creator
+    if (this->caller != this->getContractCreator()) {
+      throw std::runtime_error("Only contract creator can create new contracts");
+    }
+
+    // Check if contract address already exists
+    const Address derivedContractAddress = this->deriveContractAddress(callInfo);
+    if (this->contracts.contains(derivedContractAddress)) {
+      throw std::runtime_error("Contract already exists");
+    }
+
+    std::unique_lock lock(this->contractsMutex);
+    for (const auto &[protocolContractName, protocolContractAddress] :
+        ProtocolContractAddresses) {
+      if (protocolContractAddress == derivedContractAddress) {
+        throw std::runtime_error("Contract already exists");
+      }
+    }
+
+    // Parse the constructor ABI
+    // TContract::registerContract(*this);
+    std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
+    ABI::Decoder decoder(types, std::get<6>(callInfo));
+
+    return std::make_pair(derivedContractAddress, decoder);
+  }
+
+  template <typename TContract>
+  void createNewContract(const ethCallInfo &callInfo) {
+    auto setupResult = this->setupNewContract<TContract>(callInfo);
+    // Simply can't do ``auto [derivedContractAddress, decoder] =
+    // setupNewContract<TContract>(callInfo);`` because the compiler is too stupid
+    // to figure out the types
+    if (!ContractReflectionInterface::isContractRegistered<TContract>()) {
+      throw std::runtime_error("Contract class is not registered");
+    }
+    Address derivedContractAddress = setupResult.first;
+    ABI::Decoder decoder = setupResult.second;
+    this->contracts.insert(std::make_pair(
+        derivedContractAddress,
+        std::make_unique<TContract>(decoder.getData<std::string>(0),
+                                                                                          decoder.getData<std::string>(1),
+                                                                                          uint8_t(decoder.getData<uint256_t>(2)),
+                                                                                          decoder.getData<uint256_t>(3),
+                                                                                          *this->interface, derivedContractAddress,
+                                                                                          this->getCaller(), this->options->getChainID(),
+                                                                                          this->db)));
+  }
+
+  template <typename TContract>
+  void validateNewContract(const ethCallInfo &callInfo) {
+    this->setupNewContract<TContract>(callInfo);
+  }
+
+  void addCreateContractFunc(const std::string &functor,
+                        std::function<void(const ethCallInfo &)> createFunc) {
+    auto val = Hex::toBytes(functor);
+    createContractFuncs[val] = createFunc;
+  }
+
+  void addValidateContractFunc(
+      const std::string &functor,
+      std::function<void(const ethCallInfo &)> validateFunc) {
+    auto val = Hex::toBytes(functor);
+    validateContractFuncs[val] = validateFunc;
+  }
+
+  std::unique_ptr<ContractManagerInterface> interface; ///< Interface to be passed to DynamicContract.
 
   public:
     /**

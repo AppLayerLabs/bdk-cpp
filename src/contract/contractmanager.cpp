@@ -1,7 +1,5 @@
 #include "contractmanager.h"
-#include "erc20.h"
-#include "erc20wrapper.h"
-#include "nativewrapper.h"
+#include "customcontracts.h"
 #include "../core/rdpos.h"
 #include "../core/state.h"
 
@@ -10,6 +8,9 @@ ContractManager::ContractManager(State* state, const std::unique_ptr<DB>& db, co
   rdpos(rdpos),
   options(options),
   interface(std::make_unique<ContractManagerInterface>(*this)) {
+  ERC20::registerContract();
+  this->addCreateContractFunc("0xb74e5ed5", [&](const ethCallInfo &callInfo) { this->createNewContract<ERC20>(callInfo); });
+  this->addValidateContractFunc("0xb74e5ed5", [&](const ethCallInfo &callInfo) { this->validateNewContract<ERC20>(callInfo); });
   /// Load Contracts from DB.
   auto contracts = this->db->getBatch(DBPrefix::contractManager);
   for (const auto& contract : contracts) {
@@ -244,32 +245,15 @@ void ContractManager::validateCreateNewERC20NativeWrapperContract(const ethCallI
 void ContractManager::ethCall(const ethCallInfo& callInfo) {
   Functor functor = std::get<5>(callInfo);
   if (this->getCommit()) {
-    // function createNewERC20Contract(string memory name, string memory symbol, uint8 decimals, uint256 supply) public {}
-    if (functor == Hex::toBytes("0xb74e5ed5")) {
-      this->createNewERC20Contract(callInfo);
-      return;
-    }
-    /// function createNewERC20WrapperContract() public {}
-    if (functor == Hex::toBytes("0x97aa51a3")) {
-      this->createNewERC20WrapperContract(callInfo);
-      return;
-    }
-    // function createNewERC20NativeWrapperContract(string memory name, string memory symbol, uint8 decimals) public {}
-    if (functor == Hex::toBytes("0x9f90f4c7")) {
-      this->createNewERC20NativeWrapperContract(callInfo);
+    auto createIt = createContractFuncs.find(functor.asBytes());
+    if (createIt != createContractFuncs.end()) {
+      createIt->second(callInfo);
       return;
     }
   } else {
-    if (functor == Hex::toBytes("0xb74e5ed5")) {
-      this->validateCreateNewERC20Contract(callInfo);
-      return;
-    }
-    if (functor == Hex::toBytes("0x97aa51a3")) {
-      this->validateCreateNewERC20WrapperContract(callInfo);
-      return;
-    }
-    if (functor == Hex::toBytes("0x9f90f4c7")) {
-      this->validateCreateNewERC20NativeWrapperContract(callInfo);
+    auto validateIt = validateContractFuncs.find(functor.asBytes());
+    if (validateIt != validateContractFuncs.end()) {
+      validateIt->second(callInfo);
       return;
     }
   }

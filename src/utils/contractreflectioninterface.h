@@ -264,22 +264,7 @@ std::vector<ABI::Types> inline getConstructorArgumentTypes() {
     }
   }
 
-  for (const meta::method &methods : contractType.get_methods()) {
-    auto arity = methods.get_type().get_arity();
-    if (arity > 0) {
-      auto args = methods.get_arguments();
-      for (const meta::argument &arg : args) {
-        meta::any_type type = arg.get_type();
-
-        auto it = typeMap.find(type);
-        if (it != typeMap.end()) {
-          argumentTypes.push_back(it->second);
-        }
-      }
-    }
-  }
-
-  return argumentTypes;
+  return constructorArgumentTypes;
 }
 
 /**
