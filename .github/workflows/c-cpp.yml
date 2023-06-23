@@ -33,9 +33,8 @@ jobs:
       - name: Configure CMake
         run: cmake -S . -B build
 
-        - name: Build with CMake
-          run: cmake --build build || cat build/deps/src/ethash-stamp/ethash-configure-*.log
-
+      - name: Build with CMake
+        run: cmake --build build || cat build/deps/src/ethash-stamp/ethash-configure-*.log
 
       - name: Run Catch2 Tests
         working-directory: build
