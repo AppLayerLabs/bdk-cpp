@@ -46,6 +46,9 @@ class ERC20 : public DynamicContract {
 
   public:
 
+    /**
+    * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+    */
     using ConstructorArguments = std::tuple<const std::string&, const std::string&, const uint8_t&, const uint256_t&>;
     /**
      * Constructor for loading contract from DB.

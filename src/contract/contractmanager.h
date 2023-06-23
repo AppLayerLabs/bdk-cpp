@@ -66,9 +66,9 @@ class ContractManager : BaseContract {
     */
   
     std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash>
-      createContractFuncs;
+      createContractFuncs; ///< Map of contract functors and create functions.
     std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash>
-      validateContractFuncs;
+      validateContractFuncs; ///< Map of contract functors and validate functions.
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;
@@ -116,11 +116,13 @@ class ContractManager : BaseContract {
 
   /**
   * Helper function to create a new contract from a given call info.
+  * @tparam TContract The contract type to create.
+  * @tparam TTuple The tuple type of the contract constructor arguments.
+  * @tparam Is The indices of the tuple.
   * @param derivedContractAddress The address of the contract to create.
   * @param dataVec The vector of arguments to pass to the contract constructor.
-  * @param Is The indices of the arguments to pass to the contract constructor.
-  * @throw runtime_error if contract arguments are invalid.
-  * @return A unique pointer to the new contract.
+  * @return A unique pointer to the newly created contract.
+  * @throw runtime_error if any argument type mismatches.
   */
   template <typename TContract, typename TTuple, std::size_t... Is>
   std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,

@@ -20,11 +20,11 @@ namespace meta = meta_hpp;
  *
  */
 struct MethodDescription {
-  std::string name;
-  std::vector<std::pair<std::string, std::string>> inputs;
-  std::vector<std::pair<std::string, std::string>> outputs;
-  std::string stateMutability;
-  std::string type;
+  std::string name; ///< Name of the method.
+  std::vector<std::pair<std::string, std::string>> inputs; ///< Vector of pairs of input names and types.
+  std::vector<std::pair<std::string, std::string>> outputs; ///< Vector of pairs of output names and types.
+  std::string stateMutability; ///< State mutability of the method.
+  std::string type; ///< Type of the method.
 };
 
 extern std::unordered_map<std::string, std::vector<std::string>>

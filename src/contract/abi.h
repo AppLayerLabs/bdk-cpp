@@ -67,7 +67,7 @@ struct TypeToEnum;
 */
 template <typename T>
 struct ABIType {
-  static constexpr Types value = Types::uint256;
+  static constexpr Types value = Types::uint256; ///< Default ABI type is uint256.
 };
 
 /**
@@ -77,7 +77,7 @@ struct ABIType {
 */
 template <typename T>
 struct ABIType<std::vector<T>> {
-  static constexpr Types value = Types::uint256Arr;
+  static constexpr Types value = Types::uint256Arr; ///< ABI type is uint256Arr.
 };
 
 /**
@@ -85,7 +85,7 @@ struct ABIType<std::vector<T>> {
 */
 template <>
 struct ABIType<Address> {
-  static constexpr Types value = Types::address;
+  static constexpr Types value = Types::address; ///< ABI type is address.
 };
 
 /**
@@ -93,7 +93,7 @@ struct ABIType<Address> {
 */
 template <>
 struct ABIType<bool> {
-  static constexpr Types value = Types::boolean;
+  static constexpr Types value = Types::boolean; ///< ABI type is boolean.
 };
 
 /**
@@ -101,7 +101,7 @@ struct ABIType<bool> {
 */
 template <>
 struct ABIType<std::string> {
-  static constexpr Types value = Types::string;
+  static constexpr Types value = Types::string; ///< ABI type is string.
 };
 
 /**
@@ -109,7 +109,7 @@ struct ABIType<std::string> {
 */
 template <>
 struct ABIType<Bytes> {
-  static constexpr Types value = Types::bytes;
+  static constexpr Types value = Types::bytes; ///< ABI type is bytes.
 };
 
 /**
@@ -117,7 +117,7 @@ struct ABIType<Bytes> {
 */
 template <>
 struct ABIType<uint8_t> {
-  static constexpr Types value = Types::uint8;
+  static constexpr Types value = Types::uint8; ///< ABI type is uint8.
 };
 
 /**
@@ -125,7 +125,7 @@ struct ABIType<uint8_t> {
 */
 template <>
 struct ABIType<uint16_t> {
-  static constexpr Types value = Types::uint16;
+  static constexpr Types value = Types::uint16; ///< ABI type is uint16.
 };
 
 /**
@@ -133,7 +133,7 @@ struct ABIType<uint16_t> {
 */
 template <>
 struct ABIType<uint32_t> {
-  static constexpr Types value = Types::uint32;
+  static constexpr Types value = Types::uint32; ///< ABI type is uint32.
 };
 
 /**
@@ -141,7 +141,7 @@ struct ABIType<uint32_t> {
 */
 template <>
 struct ABIType<uint64_t> {
-  static constexpr Types value = Types::uint64;
+  static constexpr Types value = Types::uint64; ///< ABI type is uint64.
 };
 
 /**
@@ -150,7 +150,7 @@ struct ABIType<uint64_t> {
 */
 template <typename T>
 struct TypeToEnum {
-  static constexpr Types value = ABIType<T>::value;
+  static constexpr Types value = ABIType<T>::value; ///< ABI type.
 };
 
 /**
@@ -373,7 +373,7 @@ Types inline getABIEnumFromString(const std::string& type) {
        * Decode a 256-bit unsigned integer from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data bytes to decode.
-       * @start The index of the vector to start decoding from.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded 256-bit unsigned integer.
        *@throw std::runtime_error if data is too short.
        */
@@ -383,7 +383,7 @@ Types inline getABIEnumFromString(const std::string& type) {
        * Decode a 20-byte address from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data bytes to decode.
-       * @start The index of the vector to start decoding from.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded 20-byte address.
        *@throw std::runtime_error if data is too short.
        */
@@ -393,7 +393,7 @@ Types inline getABIEnumFromString(const std::string& type) {
        * Decode a boolean from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data bytes to decode.
-       * @start The index of the vector to start decoding from.
+       * @param start The index of the vector to start decoding from.
        * @return The decoded boolean.
        *@throw std::runtime_error if data is too short.
        */

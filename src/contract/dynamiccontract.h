@@ -133,12 +133,15 @@ class DynamicContract : public BaseContract {
 
     /**
      * Template helper function for calling a non-const member function with no arguments.
-      * @param instance Pointer to the instance of the class.
-      * @param memFunc Pointer to the member function.
-      * @param dataVec Vector of anys containing the arguments.
-      * @param Is Index sequence for the arguments.
-      * @return The return value of the function.
-      */
+     * @tparam T Type of the class.
+     * @tparam R Return type of the function.
+     * @tparam Args Argument types of the function.
+     * @tparam Is Indices of the arguments.
+     * @param instance Pointer to the instance of the class.
+     * @param memFunc Pointer to the member function.
+     * @param dataVec Vector of arguments.
+     * @return Return value of the function.
+     */
     template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(
       T* instance, R(T::*memFunc)(Args...), const std::vector<std::any>& dataVec, std::index_sequence<Is...>
     ) {
@@ -161,10 +164,13 @@ class DynamicContract : public BaseContract {
 
     /**
      * Template helper function for calling a const member function with no arguments.
+     * @tparam T Type of the class.
+     * @tparam R Return type of the function.
+     * @tparam Args Argument types of the function.
+     * @tparam Is Index sequence for the arguments.
      * @param instance Pointer to the instance of the class.
      * @param memFunc Pointer to the member function.
      * @param dataVec Vector of anys containing the arguments.
-     * @param Is Index sequence for the arguments.
      * @return The return value of the function.
      */
     template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(

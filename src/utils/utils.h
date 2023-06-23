@@ -44,11 +44,11 @@ using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 /// Typedef for uint160_t.
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
-using Byte = uint8_t;
-using Bytes = std::vector<Byte>;
-template <std::size_t N> using BytesArr = std::array<Byte, N>;
-using BytesArrView = std::span<const Byte, std::dynamic_extent>;
-using BytesArrMutableView = std::span<Byte, std::dynamic_extent>;
+using Byte = uint8_t; ///< Typedef for Byte.
+using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
+template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
+using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
+using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
 
 /**
  * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
@@ -418,6 +418,8 @@ namespace Utils {
   /**
   * Convert a "subvector" to span.
   * @param vec The vector to convert.
+  * @param start The start index of the subvector.
+  * @param size The size of the subvector.
   * @return The converted span.
   */
   inline BytesArrMutableView create_span(Bytes& vec, size_t start, size_t size) {
@@ -439,7 +441,9 @@ namespace Utils {
 
   /**
    * Convert a "subvector" to const span.
-   * @param vec
+   * @param vec The vector to convert.
+   * @param start The start index of the subvector.
+   * @param size The size of the subvector.
    * @return The converted span.
    */
    inline BytesArrView create_view_span(const Bytes& vec, size_t start, size_t size) {
@@ -451,20 +455,22 @@ namespace Utils {
    }
 
   /**
-   * Convert an array to span.
-   * @param vec
-   * @return The converted span.
-   */
+  * Template for converting a fixed-size array to span.
+  * @param arr The array to convert.
+  * @return The converted span.
+  */
   template<std::size_t N>
   inline BytesArrMutableView create_span(BytesArr<N>& arr) {
     return BytesArrMutableView(arr.data(), arr.size());
   }
 
   /**
-   * Convert a "subarray" to span.
-   * @param vec
-   * @return The converted span.
-   */
+  * Convert a "subarray" to span.
+  * @param arr The array to convert.
+  * @param start The start index of the subarray.
+  * @param size The size of the subarray.
+  * @return The converted span.
+  */
   template<std::size_t N>
   inline BytesArrMutableView create_span(BytesArr<N>& arr, size_t start, size_t size) {
     if (start + size > arr.size()) {
@@ -475,10 +481,10 @@ namespace Utils {
   }
 
   /**
-   * Convert an array to const span.
-   * @param vec
-   * @return The converted span.
-   */
+  * Convert an array to const span.
+  * @param arr The array to convert.
+  * @return The converted span.
+  */
   template<std::size_t N>
   inline BytesArrView create_view_span(const BytesArr<N>& arr) {
     return BytesArrView(arr.data(), arr.size());
@@ -486,7 +492,9 @@ namespace Utils {
 
   /**
    * Convert a "subarray" to const span.
-   * @param vec
+   * @param arr The array to convert.
+   * @param start The start index of the subarray.
+   * @param size The size of the subarray.
    * @return The converted span.
    */
   template<std::size_t N>
@@ -509,7 +517,9 @@ namespace Utils {
 
   /**
    * Convert a substring to span.
-   * @param str
+   * @param str The string to convert.
+   * @param start The start index of the substring.
+   * @param size The size of the substring.
    * @return The converted span.
    */
   inline BytesArrView create_view_span(const std::string_view str, size_t start, size_t size) {

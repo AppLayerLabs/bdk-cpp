@@ -47,8 +47,26 @@ struct DBEntry {
    * @param value The entry's value.
    */
   DBEntry(const Bytes& key, const Bytes& value) : key(key), value(value) {};
+
+  /**
+  * Move constructor (key/value)
+  * @param key The entry's key.
+  * @param value The entry's value.
+  */
   DBEntry(Bytes&& key, Bytes&& value) : key(std::move(key)), value(std::move(value)) {};
+
+  /**
+  * Move constructor (value)
+  * @param key The entry's key.
+  * @param value The entry's value.
+  */
   DBEntry(const Bytes& key, Bytes&& value) : key(key), value(std::move(value)) {};
+
+  /**
+  * Move constructor (key)
+  * @param key The entry's key.
+  * @param value The entry's value.
+  */
   DBEntry(Bytes&& key, const Bytes& value) : key(std::move(key)), value(value) {};
 };
 
@@ -71,6 +89,7 @@ class DBBatch {
      * Add an puts entry to the batch.
      * @param key The entry's key.
      * @param value The entry's value.
+     * @param prefix The entry's prefix.
      */
     void push_back(const BytesArrView key, const BytesArrView value, const Bytes& prefix) {
       Bytes tmp = prefix;
@@ -84,7 +103,7 @@ class DBBatch {
     /**
      * Add an delete entry to the batch.
      * @param key The entry's key.
-     * @param value The entry's value.
+     * @param prefix The entry's prefix.
      */
     void delete_key(const BytesArrView key, const Bytes& prefix) {
       Bytes tmp = prefix;
@@ -232,6 +251,13 @@ class DB {
       }
       return true;
     }
+
+    /**
+    * Delete an entry from the database.
+    * @param key The key to delete.
+    * @param pfx (optional) The prefix to delete the key from. Defaults to an empty string.
+    * @return `true` if the deletion is successful, `false` otherwise.
+    */
     bool del(const char* key, const Bytes pfx = {}) const { return this->del(std::string(key), pfx); }
 
     /**
@@ -244,10 +270,9 @@ class DB {
 
     /**
      * Get all entries from a given prefix.
-     * @param pfx The prefix string to get entries from. Works with strings.
-     * @param keys (optional) A list of keys to filter values from.
-     *             Defaults to an empty list (same as "get all entries").
-     * @return The list of database entries.
+     * @param bytesPfx The prefix to search for.
+     * @param keys (optional) A list of keys to search for. Defaults to an empty list.
+     * @return A list of DBEntry objects.
      */
     std::vector<DBEntry> getBatch(
       const Bytes& bytesPfx, const std::vector<Bytes>& keys = {}

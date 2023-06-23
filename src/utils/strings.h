@@ -248,11 +248,9 @@ class Address : public FixedBytes<20> {
     Address(const BytesArr<N>& add) { if (add.size() != 20) { throw std::invalid_argument("Invalid address size"); } std::copy(add.begin(), add.end(), this->data_.begin()); }
 
     /**
-     * Move constructor.
-     * @param add The address itself.
-     * @param inBytes If `true`, treats the input as a raw bytes string.
-     * @throw std::runtime_error if address has wrong size or is invalid.
-     */
+    * Move constructor.
+    * @param add The address itself.
+    */
     Address(BytesArr<20>&& add) : FixedBytes<20>(std::move(add)) { }
 
     /// Copy constructor.
