@@ -96,9 +96,10 @@ Bytes ERC20::balanceOf(const Address& _owner) const {
     ? ABI::Encoder({0}).getData() : ABI::Encoder({it->second}).getData();
 }
 
-void ERC20::transfer(const Address &_to, const uint256_t &_value) {
+std::string ERC20::transfer(const Address &_to, const uint256_t &_value) {
   this->_balances[this->getCaller()] -= _value;
   this->_balances[_to] += _value;
+  return "0";
 }
 
 void ERC20::approve(const Address &_spender, const uint256_t &_value) {
