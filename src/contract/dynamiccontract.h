@@ -76,13 +76,16 @@ class DynamicContract : public BaseContract {
      * @tparam R Return type of the function.
      * @tparam T Class type.
      * @tparam MemFunc Member function type.
-     * @param instance Pointer to the instance of the class.
-     * @param memFunc Pointer to the member function.
-     * @return A ReturnType object.
      */
     template <typename R, typename T>
     struct RegisterHelper {
         template <typename MemFunc>
+        /**
+        * Create a ReturnType object by calling the member function.
+        * @param instance Pointer to the instance of the class.
+        * @param memFunc Pointer to the member function.
+        * @return A ReturnType object.
+        */
         static ReturnType createReturnType(T* instance, MemFunc memFunc) {
             return ReturnType((instance->*memFunc)());
         }
@@ -92,13 +95,16 @@ class DynamicContract : public BaseContract {
     * Helper function for registering a void payable/non-payable function.
     * @tparam T Class type.
     * @tparam MemFunc Member function type.
-    * @param instance Pointer to the instance of the class.
-    * @param memFunc Pointer to the member function.
-    * @return A ReturnType object (empty).
     */
     template <typename T>
     struct RegisterHelper<void, T> {
         template <typename MemFunc>
+        /**
+        * Create a ReturnType object by calling the member function.
+        * @param instance Pointer to the instance of the class.
+        * @param memFunc Pointer to the member function.
+        * @return A ReturnType object (default constructed).
+        */
         static ReturnType createReturnType(T* instance, MemFunc memFunc) {
             (instance->*memFunc)(); // Call the function even though it's void
             // Handle void case here: return a default ReturnType, or throw an exception, etc.

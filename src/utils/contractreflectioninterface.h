@@ -1,10 +1,8 @@
 #ifndef CONTRACTREFLECTIONINTERFACE_H
 #define CONTRACTREFLECTIONINTERFACE_H
 
-#include "contract/contract.h"
 #include "contract/abi.h"
 #include "meta_all.hpp"
-#include "utils.h" // nlohmann::json
 
 /**
  * This namespace contains the reflection interface for the contract
@@ -14,18 +12,6 @@
 
 namespace ContractReflectionInterface {
 namespace meta = meta_hpp;
-
-/**
- * This struct contains the structure for the contract ABI object.
- *
- */
-struct MethodDescription {
-  std::string name; ///< Name of the method.
-  std::vector<std::pair<std::string, std::string>> inputs; ///< Vector of pairs of input names and types.
-  std::vector<std::pair<std::string, std::string>> outputs; ///< Vector of pairs of output names and types.
-  std::string stateMutability; ///< State mutability of the method.
-  std::string type; ///< Type of the method.
-};
 
 extern std::unordered_map<std::string, std::vector<std::string>>
     constructorArgumentNamesMap; /// Map to store constructor argument names
@@ -289,9 +275,12 @@ std::vector<std::string> inline getConstructorArgumentTypesString() {
  * @return The constructor ABI data structure.
  */
 template <typename Contract>
-std::vector<MethodDescription> inline getConstructorDataStructure() {
+std::vector<ABI::MethodDescription> inline getConstructorDataStructure() {
+  if (!isContractRegistered<Contract>()) {
+    throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
+  }
   const meta::class_type contractType = meta::resolve_type<Contract>();
-  std::vector<MethodDescription> descriptions;
+  std::vector<ABI::MethodDescription> descriptions;
 
   auto it = constructorArgumentNamesMap.find(typeid(Contract).name());
   if (it != constructorArgumentNamesMap.end()) {
@@ -311,7 +300,7 @@ std::vector<MethodDescription> inline getConstructorDataStructure() {
       // We are considering only the constructors with the same number of
       // arguments as provided names
       if (args.size() == ctorArgNames.size()) {
-        MethodDescription description;
+        ABI::MethodDescription description;
         description.type = "constructor";
         description.stateMutability = "nonpayable";
 
@@ -339,14 +328,14 @@ std::vector<MethodDescription> inline getConstructorDataStructure() {
  * @return The function ABI data structure.
  */
 template <typename Contract>
-std::vector<MethodDescription> inline getFunctionDataStructure() {
+std::vector<ABI::MethodDescription> inline getFunctionDataStructure() {
   const meta::class_type contractType = meta::resolve_type<Contract>();
-  std::vector<MethodDescription> descriptions;
+  std::vector<ABI::MethodDescription> descriptions;
 
   for (const meta::method &methods : contractType.get_methods()) {
     auto arity = methods.get_type().get_arity();
 
-    MethodDescription description;
+    ABI::MethodDescription description;
     description.name = methods.get_name();
     description.type = "function";
 
@@ -418,99 +407,6 @@ std::string inline getMethodMutability(const std::string& methodName) {
     throw std::runtime_error("Method " + methodName + " not found");
 }
 
-// JSON UTILS
-// Maybe move to a separate file? It uses reflection, but it's not reflection
-// itself.
-
-/**
- * This function converts a MethodDescription object to JSON format.
- * @param jsonObject The JSON object to convert to.
- * @param description The MethodDescription object to convert.
- */
-inline void to_json(json &jsonObject, const MethodDescription &description) {
-  jsonObject["name"] = description.name;
-  jsonObject["stateMutability"] = description.stateMutability;
-  jsonObject["type"] = description.type;
-
-  for (auto &input : description.inputs) {
-    jsonObject["inputs"].push_back({{"internalType", input.second},
-                                    {"name", input.first},
-                                    {"type", input.second}});
-  }
-
-  for (auto &output : description.outputs) {
-    jsonObject["outputs"].push_back({{"internalType", output.second},
-                                     {"name", output.first},
-                                     {"type", output.second}});
-  }
-}
-
-/**
- * This function registers a contract and gets the contract data in JSON format.
- * @tparam Contract The contract to register.
- * @param contractData The JSON object to store the contract data in.
- */
-template <typename Contract>
-void registerContractAndGetData(json &contractData) {
-  Contract::registerContract();
-  auto constructorData = getConstructorDataStructure<Contract>();
-  auto functionData = getFunctionDataStructure<Contract>();
-
-  // Convert constructor and function data into JSON format
-  for (const auto &constructor : constructorData) {
-    json ctorJson;
-    to_json(ctorJson, constructor);
-    contractData.push_back(ctorJson);
-  }
-  for (const auto &function : functionData) {
-    json funcJson;
-    to_json(funcJson, function);
-    contractData.push_back(funcJson);
-  }
-}
-
-/**
- * This function writes the contract data of a contract to a JSON file.
- * @tparam Contract The contract to write the data of.
- * @param outputFilename The name of the output file.
- */
-template <typename Contract>
-void writeContractToJson() {
-  json contractData;
-  registerContractAndGetData<Contract>(contractData);
-
-  std::string outputFileName = Utils::getRealTypeName<Contract>();
-  if (outputFileName.substr(outputFileName.find_last_of(".") + 1) != "json") {
-    outputFileName += ".json";
-  }
-
-  const std::string dirName = "ABI";
-  if (!std::filesystem::exists(dirName)) {
-    std::filesystem::create_directory(dirName);
-  }
-
-  const std::string fullOutputFileName = dirName + "/" + outputFileName;
-
-  std::ofstream jsonFile(fullOutputFileName);
-  jsonFile << std::setw(4) << contractData << std::endl;
-}
-
-/**
-  * This function writes the contract data of a list of contracts to JSON files.
-  * @tparam FirstContract The first contract to write the data of.
-  * @tparam RestContracts The rest of the contracts to write the data of.
-  * @return 0 if successful.
-  */
-template <typename FirstContract, typename... RestContracts>
-int writeContractsToJson() {
-    writeContractToJson<FirstContract>();
-
-    if constexpr (sizeof...(RestContracts) > 0) {
-        return writeContractsToJson<RestContracts...>();
-    }
-
-    return 0;
-}
 
 } // namespace ContractReflectionInterface
 

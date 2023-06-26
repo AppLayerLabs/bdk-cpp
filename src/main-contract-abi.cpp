@@ -1,5 +1,5 @@
-#include "contract/customcontracts.h"
+#include "utils/jsonabi.h"
 
 int main() {
-    return ContractReflectionInterface::writeContractsToJson<ERC20, ERC20Wrapper, NativeWrapper>();
+    return JsonAbi::writeContractsToJson<ContractTypes>();
 }

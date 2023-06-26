@@ -251,6 +251,17 @@ Types inline getABIEnumFromString(const std::string& type) {
   }
 }
 
+  /**
+  * This struct contains the structure for the contract ABI object.
+  */
+  struct MethodDescription {
+    std::string name; ///< Name of the method.
+    std::vector<std::pair<std::string, std::string>> inputs; ///< Vector of pairs of input names and types.
+    std::vector<std::pair<std::string, std::string>> outputs; ///< Vector of pairs of output names and types.
+    std::string stateMutability; ///< State mutability of the method.
+    std::string type; ///< Type of the method.
+  };
+
   /// Class that encodes and packs native data types into Solidity ABI strings.
   class Encoder {
     private:
