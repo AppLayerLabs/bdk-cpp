@@ -21,8 +21,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: list files inside /tests directory
-        run: ls -R tests
+      - name: print all the json contents inside tests folder
+        run: |
+          find . -name "*.json" -type f -print0 | while IFS= read -r -d $'\0' line; do
+            echo "$line"
+            cat "$line"
+          done
       
       - name: Update apt-get
         run: apt-get update

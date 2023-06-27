@@ -516,6 +516,36 @@ class DynamicContract : public BaseContract {
     }
 
     /**
+    * Call a contract view function based on the basic requirements of a contract call.
+    * @tparam R The return type of the view function.
+    * @tparam C The contract type.
+    * @tparam Args The argument types of the view function.
+    * @param address The address of the contract to call.
+    * @param func The view function to call.
+    * @param args The arguments to pass to the view function.
+    * @return The result of the view function.
+    */
+    template <typename R, typename C, typename... Args>
+    R callContractViewFunction(const Address& address, R(C::*func)(const Args&...) const, const Args&... args) const {
+        const C* contract = this->getContract<C>(address);
+        return (contract->*func)(std::forward<const Args&>(args)...);
+    }
+
+    /**
+    * Call a contract view function based on the basic requirements of a contract call.
+    * @tparam R The return type of the view function.
+    * @tparam C The contract type.
+    * @param address The address of the contract to call.
+    * @param func The view function to call.
+    * @return The result of the view function.
+    */
+    template <typename R, typename C>
+    R callContractViewFunction(const Address& address, R(C::*func)() const) const {
+        const C* contract = this->getContract<C>(address);
+        return (contract->*func)();
+    }
+    
+    /**
      * Get the balance of a contract.
      * @param address The address of the contract.
      * @return The balance of the contract.

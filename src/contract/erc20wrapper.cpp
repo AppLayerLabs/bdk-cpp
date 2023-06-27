@@ -47,9 +47,8 @@ void ERC20Wrapper::registerContractFunctions() {
 }
 
 Bytes ERC20Wrapper::getContractBalance(const Address& token) const {
-  auto* ERC20Token = this->getContract<ERC20>(token);
-  return ERC20Token->balanceOf(this->getContractAddress());
-}
+  return this->callContractViewFunction(token, &ERC20::balanceOf, this->getContractAddress());
+  }
 
 Bytes ERC20Wrapper::getUserBalance(const Address& token, const Address& user) const {
   auto it = this->_tokensAndBalances.find(token);
