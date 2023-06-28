@@ -108,13 +108,6 @@
                 "name": "_value",
                 "type": "uint256"
             }
-        ],
-        "outputs": [
-            {
-                "internalType": "string",
-                "name": "",
-                "type": "string"
-            }
         ]
     },
     {

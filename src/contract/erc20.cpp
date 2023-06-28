@@ -61,9 +61,6 @@ ERC20::~ERC20() {
       Bytes value = it2->first.asBytes();
       Utils::appendBytes(value, Utils::uintToBytes(it2->second));
       batchOperations.push_back(key, value, this->getNewPrefix("_allowed"));
-
-      std::cout << "Allowed key: " << Hex::fromBytes(key)
-        << " Allowed value: " << it2->second << std::endl;
     }
   }
   this->db->putBatch(batchOperations);
@@ -127,34 +124,9 @@ Bytes ERC20::allowance(const Address& _owner, const Address& _spender) const {
 void ERC20::transferFrom(
   const Address &_from, const Address &_to, const uint256_t &_value
 ) {
-
-  std::cout << "transferFrom commit state: " << this->getCommit() << std::endl;
-
-  //print balances
-  std::cout << "from balance before: " << _balances[_from]
-            << ", to balance before: " << _balances[_to]
-            << ", allowed before: " << _allowed[_from][this->getCaller()]
-            << std::endl;
-
-  std::cout << std::endl;
-
-  std::cout << "value to transfer: " << _value
-            << ", from: " << Hex::fromBytes(_from.asBytes())
-            << ", to: " << Hex::fromBytes(_to.asBytes())
-            << ", caller: " << Hex::fromBytes(this->getCaller().asBytes())
-            << std::endl;
-
-
-
   this->_allowed[_from][this->getCaller()] -= _value;
   this->_balances[_from] -= _value;
   this->_balances[_to] += _value;
-
-  //print balances
-  std::cout << "from balance after: " << _balances[_from]
-            << ", to balance after: " << _balances[_to]
-            << ", allowed after: " << _allowed[_from][this->getCaller()]
-            << std::endl;
 }
 
 

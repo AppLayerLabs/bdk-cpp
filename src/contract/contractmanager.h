@@ -442,17 +442,23 @@ class ContractManagerInterface {
     void populateBalance(const Address& address) const;
 
     /**
-     * Call a contract function. Used by DynamicContract to call other contracts.
-     * A given DynamicContract will only call another contract if
-     * it was first triggered by a transaction.
-     * That means we can use contractManager::commit() to know if
-     * the call should commit or not.
-     * This function will only be called if ContractManager::callContract()
-     * or ContractManager::validateCallContractWithTx() was called before.
-     * @param callInfo The call info.
-     */
-    void callContract(const ethCallInfo& callInfo);
-
+    * Call a contract function. Used by DynamicContract to call other contracts.
+    * A given DynamicContract will only call another contract if
+    * it was first triggered by a transaction.
+    * That means we can use contractManager::commit() to know if
+    * the call should commit or not.
+    * This function will only be called if ContractManager::callContract()
+    * or ContractManager::validateCallContractWithTx() was called before.
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @tparam Args The arguments types.
+    * @param fromAddr The address of the caller.
+    * @param targetAddr The address of the contract to call.
+    * @param value Flag to indicate if the function is payable.
+    * @param func The function to call.
+    * @param args The arguments to pass to the function.
+    * @return The return value of the function.
+    */
     template <typename R, typename C, typename... Args>
     R callContractFunction(const Address& fromAddr, 
                            const Address& targetAddr, 
@@ -472,7 +478,48 @@ class ContractManagerInterface {
         contract->value = value;
         contract->commit = this->contractManager.getCommit();
         try {
-          return (contract->*func)(std::forward<const Args&>(args)...);
+          return contract->callContractFunction(func, std::forward<const Args&>(args)...);
+        } catch (const std::exception& e) {
+          contract->commit = false;
+          throw std::runtime_error(e.what());
+        }
+    }
+
+    /**
+    * Call a contract function with no arguments. Used by DynamicContract to call other contracts.
+    * A given DynamicContract will only call another contract if
+    * it was first triggered by a transaction.
+    * That means we can use contractManager::commit() to know if
+    * the call should commit or not.
+    * This function will only be called if ContractManager::callContract()
+    * or ContractManager::validateCallContractWithTx() was called before.
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @param fromAddr The address of the caller.
+    * @param targetAddr The address of the contract to call.
+    * @param value Flag to indicate if the function is payable.
+    * @param func The function to call.
+    * @return The return value of the function.
+    */
+    template <typename R, typename C>
+    R callContractFunction(const Address& fromAddr, 
+                           const Address& targetAddr, 
+                           const uint256_t& value, 
+                           R(C::*func)()) {
+        if (value) {
+          this->sendTokens(fromAddr, targetAddr, value);
+        }
+        else {
+          if (!this->contractManager.contracts.contains(targetAddr)) {
+            throw std::runtime_error("Contract does not exist");
+          }
+        }
+        C* contract = this->getContract<C>(targetAddr);
+        contract->caller = fromAddr;
+        contract->value = value;
+        contract->commit = this->contractManager.getCommit();
+        try {
+          return contract->callContractFunction(func);
         } catch (const std::exception& e) {
           contract->commit = false;
           throw std::runtime_error(e.what());
@@ -501,6 +548,14 @@ class ContractManagerInterface {
       return ptr;
     }
 
+    /**
+     * Get a contract by its address (non-const).
+     * Used by DynamicContract to access view/const functions of other contracts.
+     * @tparam T The contract type.
+     * @param address The address of the contract.
+     * @return A pointer to the contract.
+     * @throw runtime_error if contract is not found or not of the requested type.
+     */
     template <typename T> T* getContract(const Address& address) {
       auto it = this->contractManager.contracts.find(address);
       if (it == this->contractManager.contracts.end()) throw std::runtime_error(

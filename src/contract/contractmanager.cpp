@@ -266,28 +266,6 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
   return contracts;
 }
 
-void ContractManagerInterface::callContract(const ethCallInfo& callInfo) {
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
-  if (value) {
-    this->sendTokens(from, to, value);
-  }
-
-  if (!this->contractManager.contracts.contains(to)) {
-    throw std::runtime_error("Contract does not exist");
-  }
-
-  const auto& contract = this->contractManager.contracts.at(to);
-  contract->caller = from;
-  contract->value = value;
-  contract->commit = this->contractManager.getCommit();
-  try {
-    contract->ethCall(callInfo);
-  } catch (std::exception &e) {
-    contract->commit = false;
-    throw std::runtime_error(e.what());
-  }
-}
-
 void ContractManagerInterface::populateBalance(const Address &address) const {
   if (!this->contractManager.balances.contains(address)) {
     auto it = this->contractManager.state->accounts.find(address);

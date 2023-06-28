@@ -69,9 +69,7 @@ void ERC20Wrapper::withdraw(const Address& token, const uint256_t& value) {
   if (itUser == it->second.end()) throw std::runtime_error("User not found");
   if (itUser->second <= value) throw std::runtime_error("Not enough balance");
   itUser->second -= value;
-  ABI::Encoder encoder({this->getCaller(), value}, "transfer(address,uint256)");
-  this->callContract(token, encoder);
-  // this->callContractFunction(token, &ERC20::transfer, this->getCaller(), value);
+  this->callContractFunction(token, &ERC20::transfer, this->getCaller(), value);
 }
 
 void ERC20Wrapper::transferTo(const Address& token, const Address& to, const uint256_t& value) {
@@ -81,18 +79,11 @@ void ERC20Wrapper::transferTo(const Address& token, const Address& to, const uin
   if (itUser == it->second.end()) throw std::runtime_error("User not found");
   if (itUser->second <= value) throw std::runtime_error("Not enough balance");
   itUser->second -= value;
-  ABI::Encoder encoder({to, value}, "transfer(address,uint256)");
-  this->callContract(token, encoder);
-  // this->callContractFunction(token, &ERC20::transfer, to, value);
+  this->callContractFunction(token, &ERC20::transfer, to, value);
 }
 
 void ERC20Wrapper::deposit(const Address& token, const uint256_t& value) {
-  // ABI::Encoder encoder(
-  //   {this->getCaller(), this->getContractAddress(), value},
-  //   "transferFrom(address,address,uint256)"
-  // );
-  // this->callContract(token, encoder);
-  this->callContractFunction(token, &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), value);
+  this->callContractFunction<void>(token, &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), value);
   this->_tokensAndBalances[token][this->getCaller()] += value;
 }
 
