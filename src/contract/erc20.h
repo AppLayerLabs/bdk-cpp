@@ -130,7 +130,7 @@ class ERC20 : public DynamicContract {
      * @param _to The address to transfer to.
      * @param _value The amount to be transferred.
      */
-    std::string transfer(const Address& _to, const uint256_t& _value);
+    void transfer(const Address& _to, const uint256_t& _value);
 
     /**
      * Set the allowance of the specified address to the specified amount of ERC20 tokens.

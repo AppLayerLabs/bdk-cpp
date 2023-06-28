@@ -397,11 +397,27 @@ class DynamicContract : public BaseContract {
      *                      ContractManager is responsible for setting this.
      */
     void updateState(const bool commitToState) {
-      for (auto& var : usedVariables) {
-        if (commitToState) var.get().commit(); else var.get().revert();
-      }
-      usedVariables.clear();
+    std::cout << "Starting updateState with commitToState = " 
+              << (commitToState ? "true" : "false") << "\n";
+              
+    for (auto& var : usedVariables) {
+        std::cout << "Processing variable" << std::endl;
+        
+        if (commitToState) {
+            std::cout << "Committing variable" << std::endl;
+            var.get().commit(); 
+        } else {
+            std::cout << "Reverting variable" << std::endl;
+            var.get().revert();
+        }
     }
+    
+    std::cout << "Clearing used variables...\n";
+    usedVariables.clear();
+    std::cout << "Finished updateState.\n";
+}
+
+
 
   public:
     /**
@@ -494,6 +510,10 @@ class DynamicContract : public BaseContract {
       return interface.getContract<T>(address);
     }
 
+    template <typename T> T* getContract(const Address& address) {
+      return interface.getContract<T>(address);
+    }
+
     /**
      * Call a contract based on the basic requirements of a contract call.
      * @param address The address of the contract to call.
@@ -544,7 +564,25 @@ class DynamicContract : public BaseContract {
         const C* contract = this->getContract<C>(address);
         return (contract->*func)();
     }
-    
+
+    template <typename R, typename C, typename... Args>
+    R callContractFunction(const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args) {
+        return this->interface.callContractFunction(this->getContractAddress(),
+                                                    targetAddr, 
+                                                    0, 
+                                                    func, 
+                                                    std::forward<const Args&>(args)...);
+    }
+
+    template <typename R, typename C, typename... Args>
+    R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args) {
+        return this->interface.callContractFunction(this->getContractAddress(),
+                                                    address, 
+                                                    value, 
+                                                    func, 
+                                                    std::forward<const Args&>(args)...);
+    }
+
     /**
      * Get the balance of a contract.
      * @param address The address of the contract.

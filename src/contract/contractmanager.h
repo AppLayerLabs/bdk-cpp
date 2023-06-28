@@ -453,6 +453,32 @@ class ContractManagerInterface {
      */
     void callContract(const ethCallInfo& callInfo);
 
+    template <typename R, typename C, typename... Args>
+    R callContractFunction(const Address& fromAddr, 
+                           const Address& targetAddr, 
+                           const uint256_t& value, 
+                           R(C::*func)(const Args&...), 
+                           const Args&... args) {
+        if (value) {
+          this->sendTokens(fromAddr, targetAddr, value);
+        }
+        else {
+          if (!this->contractManager.contracts.contains(targetAddr)) {
+            throw std::runtime_error("Contract does not exist");
+          }
+        }
+        C* contract = this->getContract<C>(targetAddr);
+        contract->caller = fromAddr;
+        contract->value = value;
+        contract->commit = this->contractManager.getCommit();
+        try {
+          return (contract->*func)(std::forward<const Args&>(args)...);
+        } catch (const std::exception& e) {
+          contract->commit = false;
+          throw std::runtime_error(e.what());
+        }
+    }
+
     /**
      * Get a contract by its address.
      * Used by DynamicContract to access view/const functions of other contracts.
@@ -462,7 +488,6 @@ class ContractManagerInterface {
      * @throw runtime_error if contract is not found or not of the requested type.
      */
     template <typename T> const T* getContract(const Address &address) const {
-      std::shared_lock<std::shared_mutex> lock(this->contractManager.contractsMutex);
       auto it = this->contractManager.contracts.find(address);
       if (it == this->contractManager.contracts.end()) throw std::runtime_error(
         "ContractManager::getContract: contract at address " +
@@ -471,7 +496,21 @@ class ContractManagerInterface {
       T* ptr = dynamic_cast<T*>(it->second.get());
       if (ptr == nullptr) throw std::runtime_error(
         "ContractManager::getContract: Contract at address " +
-        address.hex().get() + " is not of the requested type: " + typeid(T).name()
+        address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
+      );
+      return ptr;
+    }
+
+    template <typename T> T* getContract(const Address& address) {
+      auto it = this->contractManager.contracts.find(address);
+      if (it == this->contractManager.contracts.end()) throw std::runtime_error(
+        "ContractManager::getContract: contract at address " +
+        address.hex().get() + " not found."
+      );
+      T* ptr = dynamic_cast<T*>(it->second.get());
+      if (ptr == nullptr) throw std::runtime_error(
+        "ContractManager::getContract: Contract at address " +
+        address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
       );
       return ptr;
     }

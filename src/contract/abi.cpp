@@ -107,7 +107,7 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
         funcType != "string" && funcType != "uint256[]" &&
         funcType != "address[]" && funcType != "bool[]" &&
         funcType != "bytes[]" && funcType != "string[]"
-      ) throw std::runtime_error("Invalid function header type");
+      ) throw std::runtime_error("Invalid function header type: " + std::string(funcType));
       if (
         (funcType == "uint256" && !std::holds_alternative<uint256_t>(data[ct])) ||
         (funcType == "address" && !std::holds_alternative<Address>(data[ct])) ||
