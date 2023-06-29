@@ -52,7 +52,6 @@ namespace P2P {
   }
 
   bool DiscoveryWorker::discoverLoop() {
-    bool foundNodesToConnect = false;
     bool discoveryPass = false;
 
     Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Discovery thread started");

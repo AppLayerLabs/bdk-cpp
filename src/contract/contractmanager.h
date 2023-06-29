@@ -76,7 +76,7 @@ class ContractManager : BaseContract {
     const std::unique_ptr<Options>& options;
 
     /// Derive a new contract address based on transaction sender and nonce.
-    Address deriveContractAddress(const ethCallInfo &callInfo) const;
+    Address deriveContractAddress() const;
 
     /**
      * Setup data for a new contract before creating/validating it.
@@ -93,7 +93,7 @@ class ContractManager : BaseContract {
       }
 
       // Check if contract address already exists
-      const Address derivedContractAddress = this->deriveContractAddress(callInfo);
+      const Address derivedContractAddress = this->deriveContractAddress();
       if (this->contracts.contains(derivedContractAddress)) {
         throw std::runtime_error("Contract already exists");
       }

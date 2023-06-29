@@ -36,7 +36,7 @@ ContractManager::~ContractManager() {
   this->db->putBatch(contractsBatch);
 }
 
-Address ContractManager::deriveContractAddress(const ethCallInfo& callInfo) const {
+Address ContractManager::deriveContractAddress() const {
   // Contract address = sha3(rlp(tx.from() + tx.nonce()).substr(12);
   uint8_t rlpSize = 0xc0;
   rlpSize += this->getCaller().size();
