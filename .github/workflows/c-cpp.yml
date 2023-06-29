@@ -21,8 +21,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: print ERC20ABI.json content
-        run: cat tests/ERC20ABI.json
+      - name: Move json ABI files to ABI directory
+        run: |
+          mkdir ABI
+          mv tests/ContractManagerABI.json ABI
+          mv tests/ERC20ABI.json ABI
+          mv tests/ERC20Wrapper.json ABI
+          mv tests/NativeWrapper.json ABI
       
       - name: Update apt-get
         run: apt-get update
