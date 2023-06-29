@@ -658,6 +658,24 @@ class DynamicContract : public BaseContract {
     }
 
     /**
+    * Call the create function of a contract.
+    * @tparam TContract The contract type.
+    * @tparam Args The arguments of the contract constructor.
+    * @param from The address of the sender.
+    * @param gas The gas limit.
+    * @param gasPrice The gas price.
+    * @param value The caller value.
+    * @param args The arguments to pass to the constructor.
+    * @return The address of the created contract.
+    */
+    template<typename TContract, typename... Args>
+    Address callCreateContract(const Address &from, const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
+        ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
+        ABI::Encoder encoder(vars);
+        return this->interface.callCreateContract<TContract>(from, gas, gasPrice, value, std::move(encoder));
+    }
+
+    /**
      * Get the balance of a contract.
      * @param address The address of the contract.
      * @return The balance of the contract.

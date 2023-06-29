@@ -527,6 +527,43 @@ class ContractManagerInterface {
     }
 
     /**
+    * Call the createNewContract function of a contract. Used by DynamicContract to create new contracts.
+    * @tparam TContract The contract type.
+    * @param fromAddr The address of the caller.
+    * @param gasValue Caller gas limit.
+    * @param gasPriceValue Caller gas price.
+    * @param callValue The caller value.
+    * @param encoder The ABI encoder.
+    * @return The address of the new contract.
+    */
+    template <typename TContract>
+    Address callCreateContract(const Address &fromAddr, const uint256_t &gasValue,
+                               const uint256_t &gasPriceValue, const uint256_t &callValue,
+                               const ABI::Encoder &encoder) {
+      ethCallInfo callInfo;
+      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract";
+      std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
+      std::ostringstream createFullSignatureStream;
+      createFullSignatureStream << createSignature << "(";
+      if (!args.empty()) {
+        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(createFullSignatureStream, ","));
+        createFullSignatureStream << args.back();
+      }
+      createFullSignatureStream << ")";
+
+      auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
+      from = fromAddr;
+      to = this->contractManager.deriveContractAddress();
+      gas = gasValue;
+      gasPrice = gasPriceValue;
+      value = callValue;
+      functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
+      data = encoder.getData();
+      this->contractManager.ethCall(callInfo);
+      return to;
+    }
+
+    /**
      * Get a contract by its address.
      * Used by DynamicContract to access view/const functions of other contracts.
      * @tparam T The contract type.

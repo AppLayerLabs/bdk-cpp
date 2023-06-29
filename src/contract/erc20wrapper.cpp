@@ -83,7 +83,7 @@ void ERC20Wrapper::transferTo(const Address& token, const Address& to, const uin
 }
 
 void ERC20Wrapper::deposit(const Address& token, const uint256_t& value) {
-  this->callContractFunction<void>(token, &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), value);
+  this->callContractFunction(token, &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), value);
   this->_tokensAndBalances[token][this->getCaller()] += value;
 }
 
