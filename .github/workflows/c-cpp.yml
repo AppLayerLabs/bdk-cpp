@@ -26,8 +26,8 @@ jobs:
           mkdir ABI
           mv tests/ContractManagerABI.json ABI
           mv tests/ERC20ABI.json ABI
-          mv tests/ERC20Wrapper.json ABI
-          mv tests/NativeWrapper.json ABI
+          mv tests/ERC20WrapperABI.json ABI
+          mv tests/NativeWrapperABI.json ABI
       
       - name: Update apt-get
         run: apt-get update

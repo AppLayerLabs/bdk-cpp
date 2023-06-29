@@ -27,21 +27,21 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
 
   SECTION("ContractABIGenerator check file content ERC20") {
     std::ifstream generatedFile("ABI/ERC20.json");
-    std::ifstream testFile("tests/ERC20ABI.json");
+    std::ifstream testFile("ABI/ERC20ABI.json");
 
     testABIFiles(generatedFile, testFile);
   }
 
   SECTION("ContractABIGenerator check file content ERC20Wrapper") {
     std::ifstream generatedFile("ABI/ERC20Wrapper.json");
-    std::ifstream testFile("tests/ERC20WrapperABI.json");
+    std::ifstream testFile("ABI/ERC20WrapperABI.json");
 
     testABIFiles(generatedFile, testFile);
   }
 
   SECTION("ContractABIGenerator check file content NativeWrapper") {
     std::ifstream generatedFile("ABI/NativeWrapper.json");
-    std::ifstream testFile("tests/NativeWrapperABI.json");
+    std::ifstream testFile("ABI/NativeWrapperABI.json");
 
     testABIFiles(generatedFile, testFile);
   }
@@ -49,7 +49,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
   SECTION("ContractABIGenerator check file content ContractManager") {
 
     std::ifstream generatedFile("ABI/ContractManager.json");
-    std::ifstream testFile("tests/ContractManagerABI.json");
+    std::ifstream testFile("ABI/ContractManagerABI.json");
 
     testABIFiles(generatedFile, testFile);
   }
