@@ -27,7 +27,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
 
   SECTION("ContractABIGenerator check file content ERC20") {
     std::ifstream generatedFile("ABI/ERC20.json");
-    std::ifstream testFile("tests/ERC20ABI.json");
+    std::ifstream testFile("tests/ERC20.json");
 
     testABIFiles(generatedFile, testFile);
   }
