@@ -20,15 +20,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Print current directory
-        run: pwd
-
-      - name: List files in the test directory
-        run: ls -l tests/
-
-      - name: Print the contents of the test file
-        run: cat tests/ERC20.json
       
       - name: Update apt-get
         run: apt-get update
