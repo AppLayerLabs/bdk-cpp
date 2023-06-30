@@ -5,6 +5,7 @@
 #include "contractreflectioninterface.h"
 #include "utils.h" //nlohmann/json.hpp
 
+/// Namespace for managing and converting contract ABI data to JSON format.
 namespace JsonAbi {
 
 /**
