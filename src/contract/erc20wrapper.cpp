@@ -46,20 +46,20 @@ void ERC20Wrapper::registerContractFunctions() {
   this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, this);
 }
 
-Bytes ERC20Wrapper::getContractBalance(const Address& token) const {
+uint256_t ERC20Wrapper::getContractBalance(const Address& token) const {
   return this->callContractViewFunction(token, &ERC20::balanceOf, this->getContractAddress());
 }
 
-Bytes ERC20Wrapper::getUserBalance(const Address& token, const Address& user) const {
+uint256_t ERC20Wrapper::getUserBalance(const Address& token, const Address& user) const {
   auto it = this->_tokensAndBalances.find(token);
   if (it == this->_tokensAndBalances.end()) {
-    return ABI::Encoder({0}).getData();
+    return 0;
   }
   auto itUser = it->second.find(user);
   if (itUser == it->second.end()) {
-    return ABI::Encoder({0}).getData();
+    return 0;
   }
-  return ABI::Encoder({itUser->second}).getData();
+  return itUser->second;
 }
 
 void ERC20Wrapper::withdraw(const Address& token, const uint256_t& value) {

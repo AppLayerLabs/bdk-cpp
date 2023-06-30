@@ -27,9 +27,9 @@
         "type": "function",
         "outputs": [
             {
-                "internalType": "bytes",
+                "internalType": "string",
                 "name": "",
-                "type": "bytes"
+                "type": "string"
             }
         ]
     },
@@ -39,9 +39,9 @@
         "type": "function",
         "outputs": [
             {
-                "internalType": "bytes",
+                "internalType": "string",
                 "name": "",
-                "type": "bytes"
+                "type": "string"
             }
         ]
     },
@@ -51,9 +51,9 @@
         "type": "function",
         "outputs": [
             {
-                "internalType": "bytes",
+                "internalType": "uint8",
                 "name": "",
-                "type": "bytes"
+                "type": "uint8"
             }
         ]
     },
@@ -63,9 +63,9 @@
         "type": "function",
         "outputs": [
             {
-                "internalType": "bytes",
+                "internalType": "uint256",
                 "name": "",
-                "type": "bytes"
+                "type": "uint256"
             }
         ]
     },
@@ -82,9 +82,9 @@
         ],
         "outputs": [
             {
-                "internalType": "bytes",
+                "internalType": "uint256",
                 "name": "",
-                "type": "bytes"
+                "type": "uint256"
             }
         ]
     },
@@ -140,9 +140,9 @@
         ],
         "outputs": [
             {
-                "internalType": "bytes",
+                "internalType": "uint256",
                 "name": "",
-                "type": "bytes"
+                "type": "uint256"
             }
         ]
     },

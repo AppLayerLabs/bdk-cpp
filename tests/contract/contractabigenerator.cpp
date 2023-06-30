@@ -5,16 +5,29 @@
 using ContractToTest = std::tuple<ERC20, ERC20Wrapper, NativeWrapper>;
 
 void testABIFiles(std::ifstream &generatedFile, std::ifstream &testFile) {
-    std::string generatedFileContent((std::istreambuf_iterator<char>(generatedFile)),
-                                     std::istreambuf_iterator<char>());
-    std::string testFileContent((std::istreambuf_iterator<char>(testFile)),
-                                std::istreambuf_iterator<char>());
+  if (!generatedFile.is_open() || !testFile.is_open()) {
+      if (!generatedFile.is_open()) {
+          throw std::runtime_error("Error: Could not open generatedFile.");
+      }
+      if (!testFile.is_open()) {
+          throw std::runtime_error("Error: Could not open testFile.");
+      }
+  }
 
-    REQUIRE(generatedFileContent == testFileContent);
+  std::string generatedFileContent((std::istreambuf_iterator<char>(generatedFile)),
+                                    std::istreambuf_iterator<char>());
+  std::string testFileContent((std::istreambuf_iterator<char>(testFile)),
+                              std::istreambuf_iterator<char>());
 
-    generatedFile.close();
-    testFile.close();
+  std::cout << "Generated file content: " << generatedFileContent << std::endl;
+  std::cout << "Test file content: " << testFileContent << std::endl;
+
+  REQUIRE(generatedFileContent == testFileContent);
+
+  generatedFile.close();
+  testFile.close();
 }
+
 
 TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
   SECTION("ContractABIGenerator writeContractsToJson") {

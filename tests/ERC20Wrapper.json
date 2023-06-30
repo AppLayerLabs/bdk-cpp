@@ -17,9 +17,9 @@
         ],
         "outputs": [
             {
-                "internalType": "bytes",
+                "internalType": "uint256",
                 "name": "",
-                "type": "bytes"
+                "type": "uint256"
             }
         ]
     },
@@ -41,9 +41,9 @@
         ],
         "outputs": [
             {
-                "internalType": "bytes",
+                "internalType": "uint256",
                 "name": "",
-                "type": "bytes"
+                "type": "uint256"
             }
         ]
     },
