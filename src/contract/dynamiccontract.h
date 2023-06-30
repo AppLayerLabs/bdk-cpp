@@ -103,11 +103,11 @@ class DynamicContract : public BaseContract {
         * @param instance Pointer to the instance of the class.
         * @param memFunc Pointer to the member function.
         * @return A ReturnType object (default constructed).
+        * TODO: Decide if this is the best way to handle void functions.
         */
         static ReturnType createReturnType(T* instance, MemFunc memFunc) {
-            (instance->*memFunc)(); // Call the function even though it's void
-            // Handle void case here: return a default ReturnType, or throw an exception, etc.
-            return ReturnType{}; // I don't know the best way to handle this
+            (instance->*memFunc)();
+            return ReturnType{};
         }
     };
 
