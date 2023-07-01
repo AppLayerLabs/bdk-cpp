@@ -20,7 +20,7 @@ class DynamicContract : public BaseContract {
     * The return type can be a single value or a vector of values.
     */
     typedef std::variant<uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, Bytes, std::vector<Bytes>, std::string, std::vector<std::string>> ReturnType;
+        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>> ReturnType;
 
     /**
     * Map of non-payable functions that can be called by the contract.
@@ -456,19 +456,25 @@ class DynamicContract : public BaseContract {
      * @throw std::runtime_error if the functor is not found or the function throws an exception.
      */
     const Bytes ethCallView(const ethCallInfo& data) const override {
-    try {
-      Functor funcName = std::get<5>(data);
-      auto func = this->viewFunctions.find(funcName);
-      if (func == this->viewFunctions.end()) throw std::runtime_error("Functor not found");
+      try {
+        Functor funcName = std::get<5>(data);
+        auto func = this->viewFunctions.find(funcName);
+        if (func == this->viewFunctions.end()) throw std::runtime_error("Functor not found");
 
-      ReturnType result = func->second(data);
-      ABI::Encoder::EncVar resultVec {result};
-      return ABI::Encoder(resultVec).getData();
-      
-    } catch (std::exception& e) {
-      throw std::runtime_error(e.what());
+        ReturnType result = func->second(data);
+
+        if (std::holds_alternative<BytesEncoded>(result)) {
+          return std::get<BytesEncoded>(result).data;
+        }
+        else {
+          ABI::Encoder::EncVar resultVec {result};
+          return ABI::Encoder(resultVec).getData();
+        }
+          
+      } catch (std::exception& e) {
+        throw std::runtime_error(e.what());
+      }
     }
-  }
 
     /**
      * Check if a functor is registered as a payable function.

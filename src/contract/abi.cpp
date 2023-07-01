@@ -162,12 +162,18 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
       Utils::appendBytes(this->data_, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
       nextOffset += 32 * (packed.size() / 32); // Both offset and packed in bytes
       dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
-    // uint256[] (dynamic)
-      } else if (std::holds_alternative<std::vector<uint256_t>>(arg)) {
-      const std::vector<uint256_t>& argData = std::get<std::vector<uint256_t>>(arg);
+      // bytes wrapper
+    } else if (std::holds_alternative<BytesEncoded>(arg)) {
+      const Bytes &packed = encodeBytes(std::get<BytesEncoded>(arg).data);
       Utils::appendBytes(this->data_, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
-      nextOffset += 32 + (32 * argData.size());  // Length + items, in bytes
-      Utils::appendBytes(dynamicBytes, encodeUint256Arr(argData));
+      nextOffset += 32 * (packed.size() / 32); // Both offset and packed in bytes
+      dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
+      // uint256[] (dynamic)
+    } else if (std::holds_alternative<std::vector<uint256_t>>(arg)) {
+    const std::vector<uint256_t>& argData = std::get<std::vector<uint256_t>>(arg);
+    Utils::appendBytes(this->data_, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+    nextOffset += 32 + (32 * argData.size());  // Length + items, in bytes
+    Utils::appendBytes(dynamicBytes, encodeUint256Arr(argData));
     // address[] (dynamic)
     } else if (std::holds_alternative<std::vector<Address>>(arg)) {
       const std::vector<Address>& argData = std::get<std::vector<Address>>(arg);
