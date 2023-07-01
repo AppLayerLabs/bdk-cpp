@@ -46,7 +46,13 @@ using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 
 using Byte = uint8_t; ///< Typedef for Byte.
 using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
-struct BytesEncodedStruct { Bytes data; }; ///< Struct for Bytes type that will be encoded in an function return.
+
+/**
+* Struct for Bytes type that will be encoded in an function return.
+*/
+struct BytesEncodedStruct {
+   Bytes data; ///< Bytes data.
+   };
 using BytesEncoded = BytesEncodedStruct; ///< Typedef for BytesEncoded.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
