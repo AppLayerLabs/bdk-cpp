@@ -151,6 +151,7 @@ namespace TERC20Wrapper {
           ownerPrivKey
         );
 
+        // Try to deposit without approving first.
         REQUIRE_THROWS(contractManager->callContract(depositTx));
 
         ABI::Encoder::EncVar approveVars;

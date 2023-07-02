@@ -89,7 +89,7 @@ class ERC20 : public DynamicContract {
      * function name() public view returns (string memory) { return _name; }
      * @return The name of the ERC20 token.
      */
-    Bytes name() const;
+    std::string name() const;
 
 
     /**
@@ -97,7 +97,7 @@ class ERC20 : public DynamicContract {
      * function symbol() public view returns (string memory) { return _symbol; }
      * @return The symbol/ticker of the ERC20 token.
      */
-    Bytes symbol() const;
+    std::string symbol() const;
 
 
     /**
@@ -105,7 +105,7 @@ class ERC20 : public DynamicContract {
      * function decimals() public view returns (uint8) { return _decimals; }
      * @return The decimals of the ERC20 token.
      */
-    Bytes decimals() const;
+    uint8_t decimals() const;
 
 
     /**
@@ -113,7 +113,7 @@ class ERC20 : public DynamicContract {
      * function totalSupply() public view returns (uint256) { return _totalSupply; }
      * @return The total supply of the ERC20 token.
      */
-    Bytes totalSupply() const;
+    uint256_t totalSupply() const;
 
     /**
      * Get the balance of the ERC20 token from the specified address. Solidity counterpart:
@@ -121,7 +121,7 @@ class ERC20 : public DynamicContract {
      * @param _owner The address to get the balance from.
      * @return The total balance of the specified address.
      */
-    Bytes balanceOf(const Address& _owner) const;
+    uint256_t balanceOf(const Address& _owner) const;
 
 
     /**
@@ -147,7 +147,7 @@ class ERC20 : public DynamicContract {
      * @param _spender The address to check the allowance for.
      * @return The remaining allowed amount from spender.
      */
-    Bytes allowance(const Address& _owner, const Address& _spender) const;
+    uint256_t allowance(const Address& _owner, const Address& _spender) const;
 
     /**
      * Transfer an amount of ERC20 tokens from one address to another.

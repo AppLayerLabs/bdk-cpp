@@ -20,15 +20,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Change JSON file permissions
+        run: chmod +r tests/*.json
       
       - name: Update apt-get
         run: apt-get update
 
       - name: Install project dependencies
         run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git doxygen
-
-      - name: Print GCC version
-        run: gcc --version
 
       - name: Install CA certificates
         run: apt-get install -y ca-certificates
@@ -37,7 +37,7 @@ jobs:
         run: cmake -S . -B build
 
       - name: Build with CMake
-        run: cmake --build build || cat build/deps/src/ethash-stamp/ethash-configure-*.log
+        run: cmake --build build
 
       - name: Run Catch2 Tests
         working-directory: build

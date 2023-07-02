@@ -49,7 +49,6 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId) {
   if (nonceLength != 0) {
     if (nonceLength > 0x37) throw std::runtime_error("Nonce is too large");
     index++; // Index at rlp[1] payload
-    uint64_t nonce = 0;
     this->nonce = Utils::fromBigEndian<uint64_t>(
       txData.subspan(index, nonceLength)
     );
@@ -67,7 +66,6 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId) {
   if (maxPriorityFeePerGasLength != 0) {
     if (maxPriorityFeePerGasLength > 0x37) throw std::runtime_error("MaxPriorityFeePerGas is too large");
     index++; // Index at rlp[2] payload
-    uint64_t maxPriorityFeePerGas = 0;
     this->maxPriorityFeePerGas = Utils::fromBigEndian<uint256_t>(
       txData.subspan(index, maxPriorityFeePerGasLength)
     );
@@ -85,7 +83,6 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId) {
   if (maxFeePerGasLength != 0) {
     if (maxFeePerGasLength > 0x37) throw std::runtime_error("MaxFeePerGas is too large");
     index++; // Index at rlp[3] payload
-    uint64_t maxFeePerGas = 0;
     this->maxFeePerGas = Utils::fromBigEndian<uint256_t>(
       txData.subspan(index, maxFeePerGasLength)
     );
@@ -103,7 +100,6 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId) {
   if (gasLimitLength != 0) {
     if (gasLimitLength > 0x37) throw std::runtime_error("GasLimit is too large");
     index++; // Index at rlp[0] payload
-    uint64_t gasLimit = 0;
     this->gasLimit = Utils::fromBigEndian<uint64_t>(
       txData.subspan(index, gasLimitLength)
     );

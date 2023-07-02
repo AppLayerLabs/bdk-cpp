@@ -36,7 +36,7 @@ ContractManager::~ContractManager() {
   this->db->putBatch(contractsBatch);
 }
 
-Address ContractManager::deriveContractAddress(const ethCallInfo& callInfo) const {
+Address ContractManager::deriveContractAddress() const {
   // Contract address = sha3(rlp(tx.from() + tx.nonce()).substr(12);
   uint8_t rlpSize = 0xc0;
   rlpSize += this->getCaller().size();
@@ -64,7 +64,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
       return;
     }
   }
-  throw std::runtime_error("Invalid function call");
+  throw std::runtime_error("Invalid function call with functor: " + Utils::bytesToString(functor.asBytes()));
 }
 
 Bytes ContractManager::getDeployedContracts() const {
@@ -264,28 +264,6 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
     contracts.push_back({contract->getContractName(), address});
   }
   return contracts;
-}
-
-void ContractManagerInterface::callContract(const ethCallInfo& callInfo) {
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
-  if (value) {
-    this->sendTokens(from, to, value);
-  }
-
-  if (!this->contractManager.contracts.contains(to)) {
-    throw std::runtime_error("Contract does not exist");
-  }
-
-  const auto& contract = this->contractManager.contracts.at(to);
-  contract->caller = from;
-  contract->value = value;
-  contract->commit = this->contractManager.getCommit();
-  try {
-    contract->ethCall(callInfo);
-  } catch (std::exception &e) {
-    contract->commit = false;
-    throw std::runtime_error(e.what());
-  }
 }
 
 void ContractManagerInterface::populateBalance(const Address &address) const {

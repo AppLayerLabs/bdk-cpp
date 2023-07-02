@@ -81,7 +81,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param token The address of the token.
      * @return The contract's given token balance.
      */
-    Bytes getContractBalance(const Address& token) const;
+    uint256_t getContractBalance(const Address& token) const;
 
     /**
      * Get the balance of a specific user for a specific token. Solidity counterpart:
@@ -90,7 +90,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param user The address of the user.
      * @return The user's given token balance.
      */
-    Bytes getUserBalance(const Address& token, const Address& user) const;
+    uint256_t getUserBalance(const Address& token, const Address& user) const;
 
     /**
      * Withdraw a specific amount of tokens from the contract. Solidity counterpart:
