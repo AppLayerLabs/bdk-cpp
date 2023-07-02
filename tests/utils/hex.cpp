@@ -74,6 +74,15 @@ namespace THex {
       REQUIRE_THAT(hexStrict.get(), Equals("0x1234"));
     }
 
+    SECTION("Hex IsValid") {
+      REQUIRE(Hex::isValid("0x1a2b3c4d5e6f7890", true));
+      REQUIRE(Hex::isValid("1a2b3c4d5e6f7890", false));
+      REQUIRE(!Hex::isValid("0x81684g837h3892j", true));
+      REQUIRE(!Hex::isValid("81684g837h3892j", false));
+      REQUIRE(!Hex::isValid("1a2b3c4d5e6f7890", true));
+      REQUIRE(!Hex::isValid("0x1a2b3c4d5e6f7890", false));
+    }
+
     SECTION("Hex ToBytes") {
       std::string_view hexStr("0x1234");
       std::string_view hexStr2("5678");
