@@ -166,10 +166,28 @@ getConstructorsABI(json &abis) { /* do nothing */
 }
 
 /**
+* Register a tuple of contracts
+* @tparam Tuple The tuple of contracts to register.
+* @tparam Index The index of the contract to register.
+*/
+template <typename Tuple, std::size_t Index = 0>
+void registerContracts()
+{
+    using ContractType = typename std::tuple_element<Index, Tuple>::type;
+    ContractType::registerContract();
+    
+    if constexpr(Index + 1 < std::tuple_size<Tuple>::value)
+    {
+        registerContracts<Tuple, Index + 1>();
+    }
+}
+
+/**
  * Write manager ABI to a JSON file
  * @tparam ContractTuple The tuple of contracts to get the constructors of.
  */
 template <typename ContractTuple> void writeManagerABI() {
+  registerContracts<ContractTuple>();
   json managerABI;
   getConstructorsABI<ContractTuple, 0>(managerABI);
   managerABI.push_back(
