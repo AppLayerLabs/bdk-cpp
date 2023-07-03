@@ -4,7 +4,7 @@
 #include <iostream>
 
 namespace TSafeAddress {
-  TEST_CASE("SafeAddress Class", "[contracts][variables][safeaddress]") {
+  TEST_CASE("SafeAddress Class", "[contract][variables][safeaddress]") {
     SECTION("SafeAddress constructor") {
       Address randomAddress(Utils::randBytes(20));
       SafeAddress commitedAddress(randomAddress);

@@ -4,7 +4,7 @@
 
 
 namespace TSafeUint160_t {
-  TEST_CASE("SafeUint160_t Class", "[contracts][variables][safeuint160_t]") {
+  TEST_CASE("SafeUint160_t Class", "[contract][variables][safeuint160_t]") {
     SECTION("SafeUint160_t constructor (Commit and Revert") {
       SafeUint160_t commitedValue(uint160_t("146150163733090291820368483271628301965593254"));
       SafeUint160_t revertedValue(uint160_t("146150163733090291820368483271628301965593254"));

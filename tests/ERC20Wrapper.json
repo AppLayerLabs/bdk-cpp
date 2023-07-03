@@ -11,7 +11,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "tokenAddress",
+                "name": "token",
                 "type": "address"
             }
         ],
@@ -30,12 +30,12 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "tokenAddress",
+                "name": "token",
                 "type": "address"
             },
             {
                 "internalType": "address",
-                "name": "userAddress",
+                "name": "user",
                 "type": "address"
             }
         ],
@@ -54,7 +54,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "tokenAddress",
+                "name": "token",
                 "type": "address"
             },
             {
@@ -71,12 +71,12 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "tokenAddress",
+                "name": "token",
                 "type": "address"
             },
             {
                 "internalType": "address",
-                "name": "toAddress",
+                "name": "to",
                 "type": "address"
             },
             {
@@ -93,7 +93,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "tokenAddress",
+                "name": "token",
                 "type": "address"
             },
             {
