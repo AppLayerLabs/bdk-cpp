@@ -38,7 +38,7 @@ The project has a Dockerfile at the root of the repository that will build the p
   * **For Linux/Mac**: `sudo docker run -it -v $(pwd):/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
   * **For Windows**: `docker run -it -v %cd%:/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
 
-Remeber that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
+Remember that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
 
 Also, you can integrate the container with your favorite IDE or editor, e.g. [VSCode + Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker).
 
@@ -46,7 +46,7 @@ Also, you can integrate the container with your favorite IDE or editor, e.g. [VS
 
 Install the following dependencies on your system:
 
-* **GCC** with support for **C++20** or higher
+* **GCC** with support for **C++23** or higher
 * **CMake 3.19.0** or higher
 * **Boost 1.74** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
 * **OpenSSL 1.1.1**

@@ -19,9 +19,6 @@ void testABIFiles(std::ifstream &generatedFile, std::ifstream &testFile) {
   std::string testFileContent((std::istreambuf_iterator<char>(testFile)),
                               std::istreambuf_iterator<char>());
 
-  std::cout << "Generated file content: " << generatedFileContent << std::endl;
-  std::cout << "Test file content: " << testFileContent << std::endl;
-
   REQUIRE(generatedFileContent == testFileContent);
 
   generatedFile.close();

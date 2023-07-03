@@ -18,7 +18,7 @@ endif()
 
 # Project data
 project(orbitersdk VERSION 0.0.3 DESCRIPTION "Sparq subnet")
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 SET(DEBUG ON CACHE BOOL "Debug mode")
