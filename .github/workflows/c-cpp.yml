@@ -12,29 +12,41 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+
+    container: 
+      image: debian:bookworm
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      
+      - name: Update apt-get
+        run: apt-get update
 
-      - name: Change JSON file permissions
-        run: chmod +r tests/*.json
+      - name: Install project dependencies
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git
 
-      - name: Run docker container and execute commands
+      - name: Print GCC version
+        run: gcc --version
+
+      - name: Install CA certificates
+        run: apt-get install -y ca-certificates
+
+      - name: Configure CMake
+        run: cmake -S . -B build
+
+      - name: Build with CMake
+        run: cmake --build build || cat build/deps/src/ethash-stamp/ethash-configure-*.log
+
+      - name: Run Catch2 Tests
+        working-directory: build
+        run: ./orbitersdkd-tests -d yes ~[rdpos] ~[state]
+        
+      - name: Generate Doxygen Documentation
         run: |
-          docker run -v $GITHUB_WORKSPACE:/work -w /work debian:bookworm /bin/bash -c "\
-          apt-get update && \
-          DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git doxygen && \
-          apt-get install -y ca-certificates && \
-          cmake -S . -B build && \
-          cmake --build build && \
-          cd build && \
-          ./orbitersdkd-tests -d yes ~[rdpos] ~[state] ~[p2p] && \
-          cd .. && \
-          mkdir docs && \
-          doxygen Doxyfile"
+          mkdir docs
+          doxygen Doxyfile
 
       - name: Publish Documentation
         uses: actions/upload-artifact@v2
