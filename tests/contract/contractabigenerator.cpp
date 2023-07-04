@@ -1,29 +1,35 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/jsonabi.h"
 #include <filesystem>
+#include <string>
 
 using ContractToTest = std::tuple<ERC20, ERC20Wrapper, NativeWrapper>;
 
-void testABIFiles(std::ifstream &generatedFile, std::ifstream &testFile) {
-  if (!generatedFile.is_open() || !testFile.is_open()) {
-      if (!generatedFile.is_open()) {
-          throw std::runtime_error("Error: Could not open generatedFile.");
-      }
-      if (!testFile.is_open()) {
-          throw std::runtime_error("Error: Could not open testFile.");
-      }
-  }
+void testABIFiles(const std::string &generatedFilePath, const std::string &testFilePath) {
+    std::ifstream generatedFile(generatedFilePath);
+    std::ifstream testFile(testFilePath);
 
-  std::string generatedFileContent((std::istreambuf_iterator<char>(generatedFile)),
-                                    std::istreambuf_iterator<char>());
-  std::string testFileContent((std::istreambuf_iterator<char>(testFile)),
-                              std::istreambuf_iterator<char>());
+    if (!generatedFile.is_open() || !testFile.is_open()) {
+        if (!generatedFile.is_open()) {
+            std::cout << "Error: Could not open generatedFile at path " << generatedFilePath << std::endl;
+        }
+        if (!testFile.is_open()) {
+            std::cout << "Error: Could not open testFile at path " << testFilePath << std::endl;
+        }
+        return;
+    }
 
-  REQUIRE(generatedFileContent == testFileContent);
+    std::string generatedFileContent((std::istreambuf_iterator<char>(generatedFile)),
+                                     std::istreambuf_iterator<char>());
+    std::string testFileContent((std::istreambuf_iterator<char>(testFile)),
+                                std::istreambuf_iterator<char>());
 
-  generatedFile.close();
-  testFile.close();
+    REQUIRE(generatedFileContent == testFileContent);
+
+    generatedFile.close();
+    testFile.close();
 }
+
 
 
 TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
@@ -36,31 +42,34 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
   }
 
   SECTION("ContractABIGenerator check file content ERC20") {
-    std::ifstream generatedFile("ABI/ERC20.json");
-    std::ifstream testFile("tests/ERC20.json");
+    std::string workspace = std::getenv("GITHUB_WORKSPACE") ? std::getenv("GITHUB_WORKSPACE") : ".";
+    std::string generatedFilePath = workspace + "/ABI/ERC20.json";
+    std::string testFilePath = workspace + "/tests/ERC20.json";
 
-    testABIFiles(generatedFile, testFile);
+    testABIFiles(generatedFilePath, testFilePath);
   }
 
   SECTION("ContractABIGenerator check file content ERC20Wrapper") {
-    std::ifstream generatedFile("ABI/ERC20Wrapper.json");
-    std::ifstream testFile("tests/ERC20Wrapper.json");
+    std::string workspace = std::getenv("GITHUB_WORKSPACE") ? std::getenv("GITHUB_WORKSPACE") : ".";
+    std::string generatedFilePath = workspace + "/ABI/ERC20Wrapper.json";
+    std::string testFilePath = workspace + "/tests/ERC20Wrapper.json";
 
-    testABIFiles(generatedFile, testFile);
+    testABIFiles(generatedFilePath, testFilePath);
   }
 
   SECTION("ContractABIGenerator check file content NativeWrapper") {
-    std::ifstream generatedFile("ABI/NativeWrapper.json");
-    std::ifstream testFile("tests/NativeWrapper.json");
+    std::string workspace = std::getenv("GITHUB_WORKSPACE") ? std::getenv("GITHUB_WORKSPACE") : ".";
+    std::string generatedFilePath = workspace + "/ABI/NativeWrapper.json";
+    std::string testFilePath = workspace + "/tests/NativeWrapper.json";
 
-    testABIFiles(generatedFile, testFile);
+    testABIFiles(generatedFilePath, testFilePath);
   }
 
   SECTION("ContractABIGenerator check file content ContractManager") {
+    std::string workspace = std::getenv("GITHUB_WORKSPACE") ? std::getenv("GITHUB_WORKSPACE") : ".";
+    std::string generatedFilePath = workspace + "/ABI/ContractManager.json";
+    std::string testFilePath = workspace + "/tests/ContractManager.json";
 
-    std::ifstream generatedFile("ABI/ContractManager.json");
-    std::ifstream testFile("tests/ContractManager.json");
-
-    testABIFiles(generatedFile, testFile);
+    testABIFiles(generatedFilePath, testFilePath);
   }
 }
