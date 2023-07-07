@@ -44,6 +44,12 @@ namespace P2P {
 
     public:
 
+      /**
+      * Constructor for the ClientFactory.
+      * @param manager Reference to the manager.
+      * @param threadCount Number of threads to use.
+      * @param threadPool Reference to the thread pool.
+      */
       ClientFactory(ManagerBase& manager, const uint8_t &threadCount, const std::unique_ptr<BS::thread_pool_light>& threadPool) :
         work_guard_(boost::asio::make_work_guard(io_context_)),
         connectorStrand_(io_context_.get_executor()),

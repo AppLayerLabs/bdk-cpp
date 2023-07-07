@@ -180,7 +180,7 @@ namespace P2P {
 
       /**
        * Connect to a given websocket server.
-       * @param host The websocket's host.
+       * @param address The websocket's address.
        * @param port The websocket's port.
        */
       void connectToServer(const boost::asio::ip::address& address, uint16_t port);

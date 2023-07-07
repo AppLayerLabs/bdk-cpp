@@ -22,9 +22,11 @@ namespace P2P {
       const std::unique_ptr<BS::thread_pool_light>& threadPool_;
     public:
       /**
-       * Constructor.
-       * @param ioc Reference to the core I/O functionality object.
-       * @param endpoint The endpoint (host and port) to listen to.
+       * Constructor for the ServerListener.
+       * @param io_context Reference to the server io_context.
+       * @param endpoint The endpoint to listen on.
+       * @param manager Reference to the manager.
+       * @param threadPool Reference to the thread pool.
        */
       ServerListener(net::io_context& io_context,
                      tcp::endpoint endpoint,
@@ -49,6 +51,11 @@ namespace P2P {
       void stop();  ///< Stop accepting incoming connections.
   };
 
+  /**
+  * Server class
+  * This class has the purpose of opening a tcp socket and listening for incoming connections.
+  * Creating a new ServerSession for each connection.
+  */
   class Server {
     private:
       /// io_context for the server.
@@ -75,6 +82,14 @@ namespace P2P {
       const std::unique_ptr<BS::thread_pool_light>& threadPool_;
 
     public:
+      /**
+      * Constructor for the server.
+      * @param localAddress Reference to the local address.
+      * @param localPort The local port.
+      * @param threadCount Reference to the thread count.
+      * @param manager Reference to the manager.
+      * @param threadPool Reference to the thread pool.
+      */
       Server(const net::ip::address &localAddress,
              const uint16_t &localPort,
              const uint8_t& threadCount,

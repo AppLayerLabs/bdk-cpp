@@ -22,6 +22,11 @@ namespace P2P {
   /// Forward declaration of the ManagerBase class.
   class ManagerBase;
 
+  /**
+  * The session class is the base class for both the client and server sessions.
+  * It contains the basic functionality for reading and writing messages to the
+  * socket.
+  */
   class Session : public std::enable_shared_from_this<Session> {
     protected:
       /// The socket used to communicate with the client.
@@ -51,22 +56,17 @@ namespace P2P {
       /// Reference to the thread pool.
       const std::unique_ptr<BS::thread_pool_light>& threadPool_;
 
-      /// The write strand for the socket.
-      /// It is not necessary a read strand because the read operations are always executed by a single thread.
-      net::strand<net::any_io_executor> readStrand_;
-      net::strand<net::any_io_executor> writeStrand_;
+      net::strand<net::any_io_executor> readStrand_; ///< Strand for read operations.
+      net::strand<net::any_io_executor> writeStrand_; ///< Strand for write operations.
 
-      /// Pointers for incoming and outgoing data.
-      std::shared_ptr<Message> inboundMessage_;
-      std::shared_ptr<const Message> outboundMessage_;
+      std::shared_ptr<Message> inboundMessage_; ///< Pointer to the inbound message.
+      std::shared_ptr<const Message> outboundMessage_; ///< Pointer to the outbound message.
 
-      /// Arrays for inbound and outbound handshake messages.
-      BytesArr<3> inboundHandshake_;
-      BytesArr<3> outboundHandshake_;
+      BytesArr<3> inboundHandshake_; ///< Array for the inbound handshake.
+      BytesArr<3> outboundHandshake_; ///< Array for the outbound handshake.
 
-      /// Array for the header of the message.
-      BytesArr<8> inboundHeader_;
-      BytesArr<8> outboundHeader_;
+      BytesArr<8> inboundHeader_; ///< Array for the inbound header.
+      BytesArr<8> outboundHeader_; ///< Array for the outbound header.
 
       /// Queue and mutex for outgoing messages.
       std::deque<std::shared_ptr<const Message>> outboundMessages_;

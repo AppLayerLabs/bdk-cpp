@@ -437,6 +437,7 @@ i       * Constructor.
        * @param command The request's command type.
        * @param id The request's ID.
        * @param nodeId The request's host node ID.
+        * @param message The request's message.
        */
       Request(const CommandType& command, const RequestID& id, const NodeID& nodeId, const std::shared_ptr<const Message>& message) :
               _command(command), _id(id), _nodeId(nodeId), _message(message) {};

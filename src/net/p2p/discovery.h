@@ -59,7 +59,7 @@ namespace P2P {
     /**
      * Connect to a node (checks if not connected already).
      * @param nodeId The unique ID of the node for reference.
-     * @param nodeInfo Info about the node (type, IP, port).
+     * @param nodeType The type of the node (Discovery or Normal).
      */
     void connectToNode(const NodeID& nodeId, NodeType nodeType);
 

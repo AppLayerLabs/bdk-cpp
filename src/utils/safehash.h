@@ -186,7 +186,7 @@ struct SafeHash {
 
   /**
    * Wrapper for `splitmix()`.
-   * @param a std::pair<boost::asio::ip::address, uint16_t> object.
+   * @param nodeId A std::pair<boost::asio::ip::address, uint16_t> object.
    * @returns The same as `splitmix()`.
    */
   size_t operator()(const std::pair<boost::asio::ip::address, uint16_t>& nodeId) const {
