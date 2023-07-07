@@ -74,6 +74,8 @@ namespace P2P {
 
   void ManagerBase::answerSession(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
     if (this->closed_) return;
+    std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_); // ManagerBase::answerSession doesn't change sessions_ map.
+                                                                           // But we still need to be sure that the session io_context doesn't get deleted while we are using it.
     if (auto ptr = session.lock()) {
       ptr->write(message);
     } else {
