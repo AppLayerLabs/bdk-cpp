@@ -12,6 +12,7 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/options.h
   ${CMAKE_SOURCE_DIR}/src/utils/meta_all.hpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.h
+  ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.h
   PARENT_SCOPE
 )
 
@@ -27,5 +28,6 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/block.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/options.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.cpp
   PARENT_SCOPE
 )

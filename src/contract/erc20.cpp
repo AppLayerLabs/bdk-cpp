@@ -40,8 +40,10 @@ ERC20::ERC20(
 }
 
 ERC20::~ERC20() {
+
   DBBatch batchOperations;
 
+  
   this->db->put(std::string("_name"), _name.get(), this->getDBPrefix());
   this->db->put(std::string("_symbol"), _symbol.get(), this->getDBPrefix());
   this->db->put(std::string("_decimals"), Utils::uint8ToBytes(_decimals.get()), this->getDBPrefix());
@@ -82,18 +84,18 @@ void ERC20::_mintValue(const Address& address, const uint256_t& value) {
   _totalSupply += value;
 }
 
-Bytes ERC20::name() const { return ABI::Encoder({this->_name.get()}).getData(); }
+std::string ERC20::name() const { return this->_name.get(); }
 
-Bytes ERC20::symbol() const { return ABI::Encoder({this->_symbol.get()}).getData(); }
+std::string  ERC20::symbol() const { return this->_symbol.get(); }
 
-Bytes ERC20::decimals() const { return ABI::Encoder({this->_decimals.get()}).getData(); }
+uint8_t ERC20::decimals() const { return this->_decimals.get(); }
 
-Bytes ERC20::totalSupply() const { return ABI::Encoder({this->_totalSupply.get()}).getData(); }
+uint256_t ERC20::totalSupply() const { return this->_totalSupply.get(); }
 
-Bytes ERC20::balanceOf(const Address& _owner) const {
+uint256_t ERC20::balanceOf(const Address& _owner) const {
   const auto& it = std::as_const(this->_balances).find(_owner);
   return (it == this->_balances.end())
-    ? ABI::Encoder({0}).getData() : ABI::Encoder({it->second}).getData();
+    ? 0 : it->second;
 }
 
 void ERC20::transfer(const Address &_to, const uint256_t &_value) {
@@ -105,16 +107,16 @@ void ERC20::approve(const Address &_spender, const uint256_t &_value) {
   this->_allowed[this->getCaller()][_spender] = _value;
 }
 
-Bytes ERC20::allowance(const Address& _owner, const Address& _spender) const {
+uint256_t ERC20::allowance(const Address& _owner, const Address& _spender) const {
   const auto& it = std::as_const(this->_allowed).find(_owner);
   if (it == this->_allowed.end()) {
-    return ABI::Encoder({0}).getData();
+    return 0;
   } else {
     const auto& it2 = it->second.find(_spender);
     if (it2 == it->second.end()) {
-      return ABI::Encoder({0}).getData();
+      return 0;
     } else {
-      return ABI::Encoder({it2->second}).getData();
+      return it2->second;
     }
   }
 }

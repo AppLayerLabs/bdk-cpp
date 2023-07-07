@@ -4,7 +4,7 @@
 
 
 namespace TSafeUint256_t {
-  TEST_CASE("SafeUint256_t Class", "[contracts][variables][safeuint256_t]") {
+  TEST_CASE("SafeUint256_t Class", "[contract][variables][safeuint256_t]") {
     SECTION("SafeUint256_t constructor (Commit and Revert") {
       SafeUint256_t commitedValue(uint256_t("1927831865120318940191371489123952378115126713"));
       SafeUint256_t revertedValue(uint256_t("1927831865120318940191371489123952378115126713"));

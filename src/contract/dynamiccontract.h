@@ -15,19 +15,38 @@ class DynamicContract : public BaseContract {
     /// Reference to the contract manager interface.
     ContractManagerInterface& interface;
 
-    /// Map of functions that can be called by the contract.
-    std::unordered_map<
-      Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
-    > functions;
+    /**
+    * Variant type for the possible return types of a non-payable/payable function.
+    * The return type can be a single value or a vector of values.
+    */
+    typedef std::variant<uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
+        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>> ReturnType;
 
-    /// Map of payable functions that can be called by the contract.
+    /**
+    * Map of non-payable functions that can be called by the contract.
+    * The key is the function signature (first 4 hex bytes of keccak).
+    * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
+    */
     std::unordered_map<
-      Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
-    > payableFunctions;
+    Functor, std::function<ReturnType(const ethCallInfo& callInfo)>, SafeHash
+  > publicFunctions;
 
-    /// Map of view/const functions that can be called by the contract.
+  /**
+  * Map of payable functions that can be called by the contract.
+  * The key is the function signature (first 4 hex bytes of keccak).
+  * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
+  */
+  std::unordered_map<
+    Functor, std::function<ReturnType(const ethCallInfo& callInfo)>, SafeHash
+  > payableFunctions;
+
+    /**
+    * Map of view functions that can be called by the contract.
+    * The key is the function signature (first 4 hex bytes of keccak).
+    * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
+    */
     std::unordered_map<
-      Functor, std::function<Bytes(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<ReturnType(const ethCallInfo& callInfo)>, SafeHash
     > viewFunctions;
 
     /// Vector of variables that were used by the contract.
@@ -39,10 +58,9 @@ class DynamicContract : public BaseContract {
      * @param functor Solidity function signature (first 4 hex bytes of keccak).
      * @param f Function to be called.
      */
-    void registerFunction(
-      const Functor& functor, std::function<void(const ethCallInfo& tx)> f
-    ) {
-      functions[functor] = f;
+    void registerFunction(const Functor& functor,
+                         std::function<ReturnType(const ethCallInfo& tx)> f) {
+      publicFunctions[functor] = f;
     }
 
     /**
@@ -52,6 +70,47 @@ class DynamicContract : public BaseContract {
     inline void registerVariableUse(SafeBase& variable) { usedVariables.emplace_back(variable); }
 
   protected:
+    /**
+     * Helper function for registering a payable/non-payable function.
+     * @tparam R Return type of the function.
+     * @tparam T Class type.
+     * @tparam MemFunc Member function type.
+     */
+    template <typename R, typename T>
+    struct RegisterHelper {
+        template <typename MemFunc>
+        /**
+        * Create a ReturnType object by calling the member function.
+        * @param instance Pointer to the instance of the class.
+        * @param memFunc Pointer to the member function.
+        * @return A ReturnType object.
+        */
+        static ReturnType createReturnType(T* instance, MemFunc memFunc) {
+            return ReturnType((instance->*memFunc)());
+        }
+    };
+
+    /**
+    * Helper function for registering a void payable/non-payable function.
+    * @tparam T Class type.
+    * @tparam MemFunc Member function type.
+    */
+    template <typename T>
+    struct RegisterHelper<void, T> {
+        template <typename MemFunc>
+        /**
+        * Create a ReturnType object by calling the member function.
+        * @param instance Pointer to the instance of the class.
+        * @param memFunc Pointer to the member function.
+        * @return A ReturnType object (default constructed).
+        * TODO: Decide if this is the best way to handle void functions.
+        */
+        static ReturnType createReturnType(T* instance, MemFunc memFunc) {
+            (instance->*memFunc)();
+            return ReturnType{};
+        }
+    };
+
     /**
      * Template for registering a const member function with no arguments.
      * @param funcSignature Solidity function signature.
@@ -69,18 +128,18 @@ class DynamicContract : public BaseContract {
 
       const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
         {"view", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) {
-            return (instance->*memFunc)();
+          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
+            return ReturnType{(instance->*memFunc)()};
           });
         }},
         {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) {
-            return (instance->*memFunc)();
+          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
+            return ReturnType{(instance->*memFunc)()};
           });
         }},
         {"payable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) {
-            return (instance->*memFunc)();
+          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
+            return ReturnType{(instance->*memFunc)()};
           });
         }}
       };
@@ -111,13 +170,13 @@ class DynamicContract : public BaseContract {
       const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
         {"view", []() { throw std::runtime_error("View must be const because it does not modify the state."); }},
         {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) {
-            return (instance->*memFunc)();
+          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
+             return RegisterHelper<R, T>::createReturnType(instance, memFunc);
           });
         }},
         {"payable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) {
-            return (instance->*memFunc)();
+          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
+             return RegisterHelper<R, T>::createReturnType(instance, memFunc);
           });
         }}
       };
@@ -143,14 +202,23 @@ class DynamicContract : public BaseContract {
      */
     template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(
       T* instance, R(T::*memFunc)(Args...), const std::vector<std::any>& dataVec, std::index_sequence<Is...>
-    ) {
-      if (sizeof...(Args) > dataVec.size()) throw std::runtime_error(
-        "Not enough arguments provided for function. Expected: " +
-        std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size())
-      );
+    ) -> std::conditional_t<std::is_void<R>::value, ReturnType, R> {
+      if (sizeof...(Args) > dataVec.size()) {
+        throw std::runtime_error(
+          "Not enough arguments provided for function. Expected: " +
+          std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size())
+        );
+      }
 
       try {
-        return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
+        if constexpr (!std::is_void<R>::value) {
+          // If R is not void, just return the result as before
+          return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
+        } else {
+          // If R is void, perform the function call but then return an empty variant
+          (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
+          return ReturnType{};
+        }
       } catch (const std::bad_any_cast& ex) {
         std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
         ((errorMessage += (
@@ -221,7 +289,8 @@ class DynamicContract : public BaseContract {
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
         for (size_t i = 0; i < types.size(); i++) dataVector.push_back(decoder.getDataDispatch(i, types[i]));
-        return tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
+        auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
+        return ReturnType(result);
       };
 
       if (methodMutability == "view") {
@@ -256,12 +325,13 @@ class DynamicContract : public BaseContract {
 
       std::string fullSignature = fullSignatureStream.str();
 
-      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
+      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> ReturnType {
         std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
         for (size_t i = 0; i < types.size(); i++) dataVector.push_back(decoder.getDataDispatch(i, types[i]));
-        return tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
+        auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
+        return ReturnType(result);
       };
 
       if (methodMutability == "view") {
@@ -281,10 +351,10 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerPayableFunction(
-      const Functor& functor, std::function<void(const ethCallInfo& tx)> f
-    ) {
-      payableFunctions[functor] = f;
-    }
+    const Functor& functor,
+          std::function<ReturnType(const ethCallInfo& tx)> f) {
+    payableFunctions[functor] = f;
+  }
 
     /**
      * Register a view/const function, adding it to the view functions map.
@@ -292,7 +362,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerViewFunction(
-      const Functor& functor, std::function<Bytes(const ethCallInfo& str)> f
+      const Functor& functor, std::function<ReturnType(const ethCallInfo& str)> f
     ) {
       viewFunctions[functor] = f;
     }
@@ -322,6 +392,8 @@ class DynamicContract : public BaseContract {
       }
       usedVariables.clear();
     }
+
+
 
   public:
     /**
@@ -366,8 +438,8 @@ class DynamicContract : public BaseContract {
           if (func == this->payableFunctions.end()) throw std::runtime_error("Functor not found");
           func->second(callInfo);
         } else {
-          auto func = this->functions.find(funcName);
-          if (func == this->functions.end()) throw std::runtime_error("Functor not found");
+          auto func = this->publicFunctions.find(funcName);
+          if (func == this->publicFunctions.end()) throw std::runtime_error("Functor not found");
           func->second(callInfo);
         }
       } catch (const std::exception& e) {
@@ -388,7 +460,17 @@ class DynamicContract : public BaseContract {
         Functor funcName = std::get<5>(data);
         auto func = this->viewFunctions.find(funcName);
         if (func == this->viewFunctions.end()) throw std::runtime_error("Functor not found");
-        return func->second(data);
+
+        ReturnType result = func->second(data);
+
+        if (std::holds_alternative<BytesEncoded>(result)) {
+          return std::get<BytesEncoded>(result).data;
+        }
+        else {
+          ABI::Encoder::EncVar resultVec {result};
+          return ABI::Encoder(resultVec).getData();
+        }
+          
       } catch (std::exception& e) {
         throw std::runtime_error(e.what());
       }
@@ -415,24 +497,182 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-     * Call a contract based on the basic requirements of a contract call.
-     * @param address The address of the contract to call.
-     * @param encoder The ABI encoder.
-     * @param callValue The value to send with the call.
-     */
-    void callContract(
-      const Address& address, const ABI::Encoder& encoder, const uint256_t& callValue = 0
-    ) {
-      ethCallInfo callInfo;
-      auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
-      from = this->getContractAddress();
-      to = address;
-      gas = 0;
-      gasPrice = 0;
-      value = callValue;
-      functor = encoder.getFunctor();
-      data = encoder.getData();
-      interface.callContract(callInfo);
+    * Try to cast a contract to a specific type (non-const).
+    * @tparam T The type to cast to.
+    * @param address The address of the contract to cast.
+    * @return A pointer to the casted contract.
+    */
+    template <typename T> T* getContract(const Address& address) {
+      return interface.getContract<T>(address);
+    }
+
+    /**
+    * Call a contract view function based on the basic requirements of a contract call.
+    * @tparam R The return type of the view function.
+    * @tparam C The contract type.
+    * @tparam Args The argument types of the view function.
+    * @param address The address of the contract to call.
+    * @param func The view function to call.
+    * @param args The arguments to pass to the view function.
+    * @return The result of the view function.
+    */
+    template <typename R, typename C, typename... Args>
+    R callContractViewFunction(const Address& address, R(C::*func)(const Args&...) const, const Args&... args) const {
+        const C* contract = this->getContract<C>(address);
+        return (contract->*func)(std::forward<const Args&>(args)...);
+    }
+
+    /**
+    * Call a contract view function based on the basic requirements of a contract call.
+    * @tparam R The return type of the view function.
+    * @tparam C The contract type.
+    * @param address The address of the contract to call.
+    * @param func The view function to call.
+    * @return The result of the view function.
+    */
+    template <typename R, typename C>
+    R callContractViewFunction(const Address& address, R(C::*func)() const) const {
+        const C* contract = this->getContract<C>(address);
+        return (contract->*func)();
+    }
+
+    /**
+    * Call a contract function (non-view) based on the basic requirements of a contract call.
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @tparam Args The argument types of the function.
+    * @param targetAddr The address of the contract to call.
+    * @param func The function to call.
+    * @param args The arguments to pass to the function.
+    * @return The result of the function.
+    */
+    template <typename R, typename C, typename... Args>
+    R callContractFunction(const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args) {
+        return this->interface.callContractFunction(this->getContractAddress(),
+                                                    targetAddr, 
+                                                    0, 
+                                                    func, 
+                                                    std::forward<const Args&>(args)...);
+    }
+
+    /**
+    * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @tparam Args The argument types of the function.
+    * @param value Flag to send value with the call.
+    * @param address The address of the contract to call.
+    * @param func The function to call.
+    * @param args The arguments to pass to the function.
+    * @return The result of the function.
+    */
+    template <typename R, typename C, typename... Args>
+    R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args) {
+        return this->interface.callContractFunction(this->getContractAddress(),
+                                                    address, 
+                                                    value, 
+                                                    func, 
+                                                    std::forward<const Args&>(args)...);
+    }
+
+    /**
+    * Call a contract function (non-view) based on the basic requirements of a contract call with no arguments
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @param targetAddr The address of the contract to call.
+    * @param func The function to call.
+    * @return The result of the function.
+    */
+    template <typename R, typename C>
+    R callContractFunction(const Address& targetAddr, R(C::*func)()) {
+        return this->interface.callContractFunction(this->getContractAddress(),
+                                                    targetAddr, 
+                                                    0, 
+                                                    func);
+    }
+
+    /**
+    * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag and no arguments
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @param value Flag to send value with the call.
+    * @param address The address of the contract to call.
+    * @param func The function to call.
+    * @return The result of the function.
+    */
+    template <typename R, typename C>
+    R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)()) {
+        return this->interface.callContractFunction(this->getContractAddress(),
+                                                    address, 
+                                                    value, 
+                                                    func);
+    }
+
+    /**
+    * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call.
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @tparam Args The argument types of the function.
+    * @param func The function to call.
+    * @param args The arguments to pass to the function.
+    * @return The result of the function.
+    */
+    template <typename R, typename C, typename... Args>
+    R callContractFunction(R (C::*func)(const Args&...), const Args&... args) {
+      struct UpdateState {
+        C* contract;
+        UpdateState(C* contract) : contract(contract) {}
+        ~UpdateState() { contract->updateState(contract->getCommit()); }
+      } updateState(static_cast<C*>(this));
+      
+      try {
+        return (static_cast<C*>(this)->*func)(std::forward<const Args&>(args)...);
+      } catch (const std::exception& e) {
+        this->updateState(false);
+        throw std::runtime_error(e.what());
+      }
+    }
+
+    /**
+    * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call with no arguments
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @tparam Args The argument types of the function.
+    * @param func The function to call.
+    * @return The result of the function.
+    */
+    template <typename R, typename C>
+    R callContractFunction(R (C::*func)()) {
+      struct UpdateState {
+        C* contract;
+        UpdateState(C* contract) : contract(contract) {}
+        ~UpdateState() { contract->updateState(contract->getCommit()); }
+      } updateState(static_cast<C*>(this));
+      
+      try {
+        return (static_cast<C*>(this)->*func)();
+      } catch (const std::exception& e) {
+        this->updateState(false);
+        throw std::runtime_error(e.what());
+      }
+    }
+
+    /**
+    * Call the create function of a contract.
+    * @tparam TContract The contract type.
+    * @tparam Args The arguments of the contract constructor.
+    * @param from The address of the sender.
+    * @param gas The gas limit.
+    * @param gasPrice The gas price.
+    * @param value The caller value.
+    * @param args The arguments to pass to the constructor.
+    * @return The address of the created contract.
+    */
+    template<typename TContract, typename... Args>
+    Address callCreateContract(const Address &from, const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
+        ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
+        ABI::Encoder encoder(vars);
+        return this->interface.callCreateContract<TContract>(from, gas, gasPrice, value, std::move(encoder));
     }
 
     /**

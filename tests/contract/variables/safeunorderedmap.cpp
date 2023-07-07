@@ -5,7 +5,7 @@
 
 
 namespace TSafeUnorderedMap {
-  TEST_CASE("SafeUnorderedMap Class", "[contracts][variables][safeunorderedmap]") {
+  TEST_CASE("SafeUnorderedMap Class", "[contract][variables][safeunorderedmap]") {
     SECTION("SafeUnorderedMap Constructor") {
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
       auto randomAddress = Address(Utils::randBytes(20));

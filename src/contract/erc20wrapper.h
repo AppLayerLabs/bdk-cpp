@@ -59,16 +59,16 @@ class ERC20Wrapper : public DynamicContract {
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContract<
-        ERC20Wrapper, ContractManagerInterface &,
-        const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
+        ERC20Wrapper, ContractManagerInterface&,
+        const Address&, const Address&, const uint64_t&,
+        const std::unique_ptr<DB>&
       >(
         std::vector<std::string>{},
-        std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, "view", std::vector<std::string>{"tokenAddress"}),
-        std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, "view", std::vector<std::string>{"tokenAddress", "userAddress"}),
-        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, "nonpayable", std::vector<std::string>{"tokenAddress", "value"}),
-        std::make_tuple("transferTo", &ERC20Wrapper::transferTo, "nonpayable", std::vector<std::string>{"tokenAddress", "toAddress", "value"}),
-        std::make_tuple("deposit", &ERC20Wrapper::deposit, "nonpayable", std::vector<std::string>{"tokenAddress", "value"})
+        std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, "view", std::vector<std::string>{"token"}),
+        std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, "view", std::vector<std::string>{"token", "user"}),
+        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, "nonpayable", std::vector<std::string>{"token", "value"}),
+        std::make_tuple("transferTo", &ERC20Wrapper::transferTo, "nonpayable", std::vector<std::string>{"token", "to", "value"}),
+        std::make_tuple("deposit", &ERC20Wrapper::deposit, "nonpayable", std::vector<std::string>{"token", "value"})
       );
     }
 
@@ -81,7 +81,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param token The address of the token.
      * @return The contract's given token balance.
      */
-    Bytes getContractBalance(const Address& token) const;
+    uint256_t getContractBalance(const Address& token) const;
 
     /**
      * Get the balance of a specific user for a specific token. Solidity counterpart:
@@ -90,7 +90,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param user The address of the user.
      * @return The user's given token balance.
      */
-    Bytes getUserBalance(const Address& token, const Address& user) const;
+    uint256_t getUserBalance(const Address& token, const Address& user) const;
 
     /**
      * Withdraw a specific amount of tokens from the contract. Solidity counterpart:

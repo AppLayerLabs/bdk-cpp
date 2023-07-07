@@ -1,5 +1,25 @@
 # orbitersdk
 
+</p>
+<p align="center">
+    <a href="https://github.com/SparqNet/orbitersdk-cpp/graphs/contributors" alt="Contributors">
+        <img src="https://img.shields.io/github/contributors/SparqNet/orbitersdk-cpp" /></a>
+    <a href="https://github.com/SparqNet/orbitersdk-cpp/pulse" alt="Activity">
+        <img src="https://img.shields.io/github/commit-activity/m/SparqNet/orbitersdk-cpp" /></a>
+    <a href="https://github.com/SparqNet/orbitersdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main">
+        <img src="https://github.com/SparqNet/orbitersdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main" alt="build status"></a>
+    <a href="https://discord.com/channels/1072297918897340506/1085807995595788378">
+        <img src="https://img.shields.io/discord/308323056592486420?logo=discord"
+            alt="chat on Discord"></a>
+    <a href="https://twitter.com/intent/follow?screen_name=SparqNet">
+        <img src="https://img.shields.io/twitter/follow/SparqNet?style=social&logo=twitter"
+            alt="follow on Twitter"></a>
+  <!-- link for telegram -->
+    <a href="https://t.me/SparqOfficial">
+        <img src="https://img.shields.io/badge/chat-on%20telegram-blue.svg"
+            alt="chat on Telegram"></a>
+</p>
+
 Sparq subnet source code. See [Chapter 3.3 on the docs](https://github.com/SparqNet/sparq-docs/blob/main/Sparq_en-US/ch3/3-3.md) for an expanded version of this file.
 
 If you are a developer, fill this form out for free support and additional incentives: https://forms.gle/m83ceG3XoJY3fpwU9
@@ -18,7 +38,7 @@ The project has a Dockerfile at the root of the repository that will build the p
   * **For Linux/Mac**: `sudo docker run -it -v $(pwd):/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
   * **For Windows**: `docker run -it -v %cd%:/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
 
-Remeber that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
+Remember that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
 
 Also, you can integrate the container with your favorite IDE or editor, e.g. [VSCode + Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker).
 
@@ -26,7 +46,7 @@ Also, you can integrate the container with your favorite IDE or editor, e.g. [VS
 
 Install the following dependencies on your system:
 
-* **GCC** with support for **C++20** or higher
+* **GCC** with support for **C++23** or higher
 * **CMake 3.19.0** or higher
 * **Boost 1.74** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
 * **OpenSSL 1.1.1**

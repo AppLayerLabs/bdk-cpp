@@ -4,7 +4,7 @@
 
 
 namespace TSafeUint8_t {
-  TEST_CASE("SafeUint8_t Class", "[contracts][variables][safeuint8_t]") {
+  TEST_CASE("SafeUint8_t Class", "[contract][variables][safeuint8_t]") {
     SECTION("SafeUint8_t constructor (Commit and Revert") {
       SafeUint8_t commitedValue(uint8_t(17));
       SafeUint8_t revertedValue(uint8_t(17));

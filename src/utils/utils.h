@@ -46,6 +46,14 @@ using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 
 using Byte = uint8_t; ///< Typedef for Byte.
 using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
+
+/**
+* Struct for Bytes type that will be encoded in an function return.
+*/
+struct BytesEncodedStruct {
+   Bytes data; ///< Bytes data.
+   };
+using BytesEncoded = BytesEncodedStruct; ///< Typedef for BytesEncoded.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
@@ -536,14 +544,13 @@ namespace Utils {
 
   /**
    * Append a vector to another.
-   * @tparam T std::vector, std::string, std::span, std::array
-   * @param vec The vector to append to.
-   * @param bytes The vector to append.
-   * The reason for having such function is that calling .insert() on a vector
-   * with a function as a parameter is not possible, as we need to call begin() and end() from the reterned value.
-   * and we are argumenting two different function calls.
-   * This function is a workaround for that.
+   * This function is a workaround for calling insert() on a vector with a function
+   * as a parameter, since that is not possible as we need to call begin() and end()
+   * from the returned value, and we are argumenting two different function calls.
    * Inline is used for best performance.
+   * @tparam T Can be either std::vector, std::string, std::span, or std::array.
+   * @param vec The vector to append to.
+   * @param bytes The vector to be appended.
    */
   template<typename T>
   inline void appendBytes(Bytes& vec, const T& bytes) {
@@ -552,7 +559,9 @@ namespace Utils {
 
   /**
    * Convert a given bytes vector/array to a string.
-   * @tparam T std::vector, std::span, std::array
+   * Each byte is properly converted to its respective ASCII char value.
+   * @tparam T Can be either std::vector, std::span, or std::array.
+   * @return The converted bytes as a string.
    */
   template<typename T>
   inline std::string bytesToString(const T& bytes) {
@@ -561,8 +570,9 @@ namespace Utils {
 
   /**
    * Convert a given string to a bytes vector.
-   * @param str The string to convert
-   * @return The converted bytes vector
+   * Each ASCII char is properly converted to its respective byte value.
+   * @param str The string to convert.
+   * @return The converted string as a bytes vector.
    */
   inline Bytes stringToBytes(const std::string& str) {
     return Bytes(str.cbegin(), str.cend());

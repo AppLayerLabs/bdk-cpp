@@ -76,7 +76,7 @@ class ContractManager : BaseContract {
     const std::unique_ptr<Options>& options;
 
     /// Derive a new contract address based on transaction sender and nonce.
-    Address deriveContractAddress(const ethCallInfo &callInfo) const;
+    Address deriveContractAddress() const;
 
     /**
      * Setup data for a new contract before creating/validating it.
@@ -93,7 +93,7 @@ class ContractManager : BaseContract {
       }
 
       // Check if contract address already exists
-      const Address derivedContractAddress = this->deriveContractAddress(callInfo);
+      const Address derivedContractAddress = this->deriveContractAddress();
       if (this->contracts.contains(derivedContractAddress)) {
         throw std::runtime_error("Contract already exists");
       }
@@ -442,16 +442,126 @@ class ContractManagerInterface {
     void populateBalance(const Address& address) const;
 
     /**
-     * Call a contract function. Used by DynamicContract to call other contracts.
-     * A given DynamicContract will only call another contract if
-     * it was first triggered by a transaction.
-     * That means we can use contractManager::commit() to know if
-     * the call should commit or not.
-     * This function will only be called if ContractManager::callContract()
-     * or ContractManager::validateCallContractWithTx() was called before.
-     * @param callInfo The call info.
-     */
-    void callContract(const ethCallInfo& callInfo);
+    * Call a contract function. Used by DynamicContract to call other contracts.
+    * A given DynamicContract will only call another contract if
+    * it was first triggered by a transaction.
+    * That means we can use contractManager::commit() to know if
+    * the call should commit or not.
+    * This function will only be called if ContractManager::callContract()
+    * or ContractManager::validateCallContractWithTx() was called before.
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @tparam Args The arguments types.
+    * @param fromAddr The address of the caller.
+    * @param targetAddr The address of the contract to call.
+    * @param value Flag to indicate if the function is payable.
+    * @param func The function to call.
+    * @param args The arguments to pass to the function.
+    * @return The return value of the function.
+    */
+    template <typename R, typename C, typename... Args>
+    R callContractFunction(const Address& fromAddr, 
+                           const Address& targetAddr, 
+                           const uint256_t& value, 
+                           R(C::*func)(const Args&...), 
+                           const Args&... args) {
+        if (value) {
+          this->sendTokens(fromAddr, targetAddr, value);
+        }
+        else {
+          if (!this->contractManager.contracts.contains(targetAddr)) {
+            throw std::runtime_error("Contract does not exist");
+          }
+        }
+        C* contract = this->getContract<C>(targetAddr);
+        contract->caller = fromAddr;
+        contract->value = value;
+        contract->commit = this->contractManager.getCommit();
+        try {
+          return contract->callContractFunction(func, std::forward<const Args&>(args)...);
+        } catch (const std::exception& e) {
+          contract->commit = false;
+          throw std::runtime_error(e.what());
+        }
+    }
+
+    /**
+    * Call a contract function with no arguments. Used by DynamicContract to call other contracts.
+    * A given DynamicContract will only call another contract if
+    * it was first triggered by a transaction.
+    * That means we can use contractManager::commit() to know if
+    * the call should commit or not.
+    * This function will only be called if ContractManager::callContract()
+    * or ContractManager::validateCallContractWithTx() was called before.
+    * @tparam R The return type of the function.
+    * @tparam C The contract type.
+    * @param fromAddr The address of the caller.
+    * @param targetAddr The address of the contract to call.
+    * @param value Flag to indicate if the function is payable.
+    * @param func The function to call.
+    * @return The return value of the function.
+    */
+    template <typename R, typename C>
+    R callContractFunction(const Address& fromAddr, 
+                           const Address& targetAddr, 
+                           const uint256_t& value, 
+                           R(C::*func)()) {
+        if (value) {
+          this->sendTokens(fromAddr, targetAddr, value);
+        }
+        else {
+          if (!this->contractManager.contracts.contains(targetAddr)) {
+            throw std::runtime_error("Contract does not exist");
+          }
+        }
+        C* contract = this->getContract<C>(targetAddr);
+        contract->caller = fromAddr;
+        contract->value = value;
+        contract->commit = this->contractManager.getCommit();
+        try {
+          return contract->callContractFunction(func);
+        } catch (const std::exception& e) {
+          contract->commit = false;
+          throw std::runtime_error(e.what());
+        }
+    }
+
+    /**
+    * Call the createNewContract function of a contract. Used by DynamicContract to create new contracts.
+    * @tparam TContract The contract type.
+    * @param fromAddr The address of the caller.
+    * @param gasValue Caller gas limit.
+    * @param gasPriceValue Caller gas price.
+    * @param callValue The caller value.
+    * @param encoder The ABI encoder.
+    * @return The address of the new contract.
+    */
+    template <typename TContract>
+    Address callCreateContract(const Address &fromAddr, const uint256_t &gasValue,
+                               const uint256_t &gasPriceValue, const uint256_t &callValue,
+                               const ABI::Encoder &encoder) {
+      ethCallInfo callInfo;
+      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract";
+      std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
+      std::ostringstream createFullSignatureStream;
+      createFullSignatureStream << createSignature << "(";
+      if (!args.empty()) {
+        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(createFullSignatureStream, ","));
+        createFullSignatureStream << args.back();
+      }
+      createFullSignatureStream << ")";
+
+      auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
+      from = fromAddr;
+      to = this->contractManager.deriveContractAddress();
+      gas = gasValue;
+      gasPrice = gasPriceValue;
+      value = callValue;
+      functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
+      data = encoder.getData();
+      this->contractManager.ethCall(callInfo);
+      return to;
+    }
 
     /**
      * Get a contract by its address.
@@ -462,7 +572,6 @@ class ContractManagerInterface {
      * @throw runtime_error if contract is not found or not of the requested type.
      */
     template <typename T> const T* getContract(const Address &address) const {
-      std::shared_lock<std::shared_mutex> lock(this->contractManager.contractsMutex);
       auto it = this->contractManager.contracts.find(address);
       if (it == this->contractManager.contracts.end()) throw std::runtime_error(
         "ContractManager::getContract: contract at address " +
@@ -471,7 +580,29 @@ class ContractManagerInterface {
       T* ptr = dynamic_cast<T*>(it->second.get());
       if (ptr == nullptr) throw std::runtime_error(
         "ContractManager::getContract: Contract at address " +
-        address.hex().get() + " is not of the requested type: " + typeid(T).name()
+        address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
+      );
+      return ptr;
+    }
+
+    /**
+     * Get a contract by its address (non-const).
+     * Used by DynamicContract to access view/const functions of other contracts.
+     * @tparam T The contract type.
+     * @param address The address of the contract.
+     * @return A pointer to the contract.
+     * @throw runtime_error if contract is not found or not of the requested type.
+     */
+    template <typename T> T* getContract(const Address& address) {
+      auto it = this->contractManager.contracts.find(address);
+      if (it == this->contractManager.contracts.end()) throw std::runtime_error(
+        "ContractManager::getContract: contract at address " +
+        address.hex().get() + " not found."
+      );
+      T* ptr = dynamic_cast<T*>(it->second.get());
+      if (ptr == nullptr) throw std::runtime_error(
+        "ContractManager::getContract: Contract at address " +
+        address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
       );
       return ptr;
     }

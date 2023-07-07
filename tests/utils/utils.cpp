@@ -181,31 +181,6 @@ namespace TUtils {
       REQUIRE(catchHi == true);
     }
 
-    SECTION("Hex::toInt Test") {
-      REQUIRE(Hex::toInt('0') == 0); // 0
-      REQUIRE(Hex::toInt('1') == 1); // 1
-      REQUIRE(Hex::toInt('2') == 2); // 2
-      REQUIRE(Hex::toInt('3') == 3); // 3
-      REQUIRE(Hex::toInt('4') == 4); // 4
-      REQUIRE(Hex::toInt('5') == 5); // 5
-      REQUIRE(Hex::toInt('6') == 6); // 6
-      REQUIRE(Hex::toInt('7') == 7); // 7
-      REQUIRE(Hex::toInt('8') == 8); // 8
-      REQUIRE(Hex::toInt('9') == 9); // 9
-      REQUIRE(Hex::toInt('a') == 10); // a
-      REQUIRE(Hex::toInt('b') == 11); // b
-      REQUIRE(Hex::toInt('c') == 12); // c
-      REQUIRE(Hex::toInt('d') == 13); // d
-      REQUIRE(Hex::toInt('e') == 14); // e
-      REQUIRE(Hex::toInt('f') == 15); // f
-      REQUIRE(Hex::toInt('A') == 10); // A
-      REQUIRE(Hex::toInt('B') == 11); // B
-      REQUIRE(Hex::toInt('C') == 12); // C
-      REQUIRE(Hex::toInt('D') == 13); // D
-      REQUIRE(Hex::toInt('E') == 14); // E
-      REQUIRE(Hex::toInt('F') == 15); // F
-    }
-
     SECTION("padLeftBytes Test") {
       Bytes inputBytes = Hex::toBytes("0xabcdef");
       Bytes outputBytes = Utils::padLeftBytes(inputBytes, 10, 0x00);
@@ -221,7 +196,7 @@ namespace TUtils {
       Bytes outputBytes = Utils::padRightBytes(inputBytes, 10, 0x00);
       Bytes outputBytes2 = Utils::padRightBytes(inputBytes, 20, 0x11);
       Bytes expectedOutputBytes = Hex::toBytes("0xabcdef00000000000000");
-      Bytes expectedOutputBytes2 =Hex::toBytes("0xabcdef1111111111111111111111111111111111");
+      Bytes expectedOutputBytes2 = Hex::toBytes("0xabcdef1111111111111111111111111111111111");
       REQUIRE(outputBytes == expectedOutputBytes);
       REQUIRE(outputBytes2 == expectedOutputBytes2);
     }
@@ -263,6 +238,32 @@ namespace TUtils {
       Utils::toUpper(outputStr);
       std::string expectedOutputStr = "ABCDEF";
       REQUIRE_THAT(outputStr, Equals(expectedOutputStr));
+    }
+
+    SECTION("appendBytes Test") {
+      Bytes int1 = Bytes{0x78, 0xF0, 0xB2, 0x91};
+      Bytes int2 = Bytes{0xAC, 0x26, 0x0E, 0x43};
+      Bytes res = Bytes{0x78, 0xF0, 0xB2, 0x91, 0xAC, 0x26, 0x0E, 0x43};
+      Utils::appendBytes(int1, int2);
+      REQUIRE(int1 == res);
+    }
+
+    SECTION("bytesToString Test") {
+      Bytes b1 = Bytes{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37};
+      Bytes b2 = Bytes{0x30, 0x42, 0x34, 0x48, 0x52, 0x36, 0x33, 0x39};
+      std::string s1 = Utils::bytesToString(b1);
+      std::string s2 = Utils::bytesToString(b2);
+      REQUIRE_THAT(s1, Equals("01234567"));
+      REQUIRE_THAT(s2, Equals("0B4HR639"));
+    }
+
+    SECTION("stringToBytes Test") {
+      std::string s1 = "01234567";
+      std::string s2 = "0B4HR639";
+      Bytes b1 = Utils::stringToBytes(s1);
+      Bytes b2 = Utils::stringToBytes(s2);
+      REQUIRE(b1 == Bytes{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37});
+      REQUIRE(b2 == Bytes{0x30, 0x42, 0x34, 0x48, 0x52, 0x36, 0x33, 0x39});
     }
   }
 }
