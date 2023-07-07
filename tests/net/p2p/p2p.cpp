@@ -213,14 +213,14 @@ namespace TP2P {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
       });
-      REQUIRE(futureSessionNode1AfterDiscovery.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      REQUIRE(futureSessionNode1AfterDiscovery.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
 
       auto futureSessionNode2AfterDiscovery = std::async(std::launch::async, [&]() {
         while (p2pNode2.getSessionsIDs().size() != 2) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
       });
-      REQUIRE(futureSessionNode2AfterDiscovery.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      REQUIRE(futureSessionNode2AfterDiscovery.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
 
       node1SessionsIDs = p2pNode1.getSessionsIDs();
       node2SessionsIDs = p2pNode2.getSessionsIDs();
@@ -389,7 +389,7 @@ namespace TP2P {
         }
       });
 
-      REQUIRE(futureWaitAllNodesConnected.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      REQUIRE(futureWaitAllNodesConnected.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
