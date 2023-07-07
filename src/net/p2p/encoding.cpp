@@ -1,5 +1,4 @@
-#include "p2pencoding.h"
-#include "p2pbase.h"
+#include "encoding.h"
 
 namespace P2P {
   RequestID::RequestID(const uint64_t& value) { this->data_ = Utils::uint64ToBytes(value); }
@@ -119,23 +118,23 @@ namespace P2P {
   }
 
   Message AnswerEncoder::requestNodes(const Message& request,
-    const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes
+    const std::unordered_map<NodeID, NodeType, SafeHash>& nodes
   ) {
     Bytes message = getRequestTypePrefix(Answering);
     Utils::appendBytes(message, request.id());
     Utils::appendBytes(message, getCommandPrefix(RequestNodes));
-    for (const auto& node : nodes) {
-      Utils::appendBytes(message, Utils::uint8ToBytes(std::get<0>(node.second))); // Node type
-      Utils::appendBytes(message, node.first); // Node ID
-      Utils::appendBytes(message, Utils::uint8ToBytes(std::get<1>(node.second).is_v4() ? 0 : 1));
-      if (std::get<1>(node.second).is_v4()) {
-        auto address = std::get<1>(node.second).to_v4().to_bytes();
-        Utils::appendBytes(message, address);
+    for (const auto& [nodeId, nodeType] : nodes) {
+      const auto& [address, port] = nodeId;
+      Utils::appendBytes(message, Utils::uint8ToBytes(nodeType)); // Node type
+      Utils::appendBytes(message, Utils::uint8ToBytes(address.is_v4() ? 0 : 1));
+      if (address.is_v4()) {
+        auto addressBytes = address.to_v4().to_bytes();
+        Utils::appendBytes(message, addressBytes);
       } else {
-        auto address = std::get<1>(node.second).to_v6().to_bytes();
-        Utils::appendBytes(message, address);
+        auto addressBytes = address.to_v6().to_bytes();
+        Utils::appendBytes(message, addressBytes);
       }
-      Utils::appendBytes(message, Utils::uint16ToBytes(uint16_t(std::get<2>(node.second))));
+      Utils::appendBytes(message, Utils::uint16ToBytes(uint16_t(port)));
     }
     return Message(std::move(message));
   }
@@ -172,47 +171,37 @@ namespace P2P {
   }
 
   std::unordered_map<
-    Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash
+      NodeID, NodeType, SafeHash
   > AnswerDecoder::requestNodes(const Message& message) {
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestNodes) { throw std::runtime_error("Invalid command."); }
-    std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> nodes;
+    std::unordered_map<NodeID, NodeType, SafeHash> nodes;
+
     BytesArrView data = message.message();
+    Utils::logToDebug(Log::P2PRequestDecoder, __func__, std::string("Data size: ") + std::to_string(data.size()) + " data: " + Hex::fromBytes(data).get());
     size_t index = 0;
     while (index < data.size()) {
-      if (data.size() < 40) { throw std::runtime_error("Invalid data size."); }
-      std::tuple<NodeType, boost::asio::ip::address, unsigned short> node;
-      std::get<0>(node) = static_cast<NodeType>(Utils::bytesToUint8(data.subspan(index, 1)));
+      boost::asio::ip::address address;
+      if (data.size() < 8) { throw std::runtime_error("Invalid data size."); }
+      NodeType nodeType = NodeType(Utils::bytesToUint8(data.subspan(index, 1)));
       index += 1;
-      Hash nodeId = Hash(data.subspan(index, 32));
-      index += 32;
       uint8_t ipVersion = Utils::bytesToUint8(data.subspan(index, 1));
       index += 1; // Move index to IP address
       if (ipVersion == 0) { // V4
-        std::string ip;
-        auto ipBytes = data.subspan(index, 4);
-        for (const char& byte : ipBytes) {
-          ip += std::to_string(uint8_t(byte));
-          ip += '.';
-        }
-        ip.pop_back();
-        std::get<1>(node) = boost::asio::ip::address::from_string(ip);
+        BytesArr<4> ipBytes;
+        std::copy(data.begin() + index, data.begin() + index + 4, ipBytes.begin());
+        address = boost::asio::ip::address_v4(ipBytes);
         index += 4;
       } else if (ipVersion == 1) { // V6
-        std::string ip;
-        auto ipBytes = data.subspan(index, 16);
-        for (const char& byte : ipBytes) {
-          ip += std::to_string(uint8_t(byte));
-          ip += ':';
-        }
-        ip.pop_back();
-        std::get<1>(node) = boost::asio::ip::address::from_string(ip);
+        BytesArr<16> ipBytes;
+        std::copy(data.begin() + index, data.begin() + index + 16, ipBytes.begin());
+        address = boost::asio::ip::address_v6(ipBytes);
         index += 16;
       } else {
         throw std::runtime_error("Invalid ip version.");
       }
-      std::get<2>(node) = Utils::bytesToUint16(data.subspan(index, 2));
-      nodes[nodeId] = node;
+      auto port = Utils::bytesToUint16(data.subspan(index, 2));
+      nodes.insert({NodeID(address, port), nodeType});
       index += 2;
     }
     return nodes;

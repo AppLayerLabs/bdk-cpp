@@ -178,11 +178,28 @@ struct SafeHash {
    * @param a std::unordered_map object.
    * @returns The same as `splitmix()`.
    */
-   template <typename Key, typename T>
-   size_t operator()(const std::unordered_map<Key, T, SafeHash>& a) const {
-     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-     return splitmix(std::hash<std::unordered_map<Key, T, SafeHash>>()(a) + FIXED_RANDOM);
-   }
+  template <typename Key, typename T>
+  size_t operator()(const std::unordered_map<Key, T, SafeHash>& a) const {
+    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
+    return splitmix(std::hash<std::unordered_map<Key, T, SafeHash>>()(a) + FIXED_RANDOM);
+  }
+
+  /**
+   * Wrapper for `splitmix()`.
+   * @param a std::pair<boost::asio::ip::address, uint16_t> object.
+   * @returns The same as `splitmix()`.
+   */
+  size_t operator()(const std::pair<boost::asio::ip::address, uint16_t>& nodeId) const {
+    /// Make it compatible with SafeHash<Bytes>.
+    Bytes bytes;
+    if (nodeId.first.is_v4()) {
+      Utils::appendBytes(bytes, nodeId.first.to_v4().to_bytes());
+    } else {
+      Utils::appendBytes(bytes, nodeId.first.to_v6().to_bytes());
+    }
+    Utils::appendBytes(bytes, Utils::uint16ToBytes(nodeId.second));
+    return SafeHash()(bytes);
+  }
 };
 
 /**

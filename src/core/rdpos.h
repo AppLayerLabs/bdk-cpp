@@ -7,7 +7,7 @@
 #include "../utils/safehash.h"
 #include "../utils/randomgen.h"
 #include "../utils/options.h"
-#include "../net/p2p/p2pmanagernormal.h"
+#include "../net/p2p/managernormal.h"
 
 #include <optional>
 #include <shared_mutex>

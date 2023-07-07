@@ -1,28 +1,10 @@
-#ifndef P2PMANAGERDISCOVERY_H
-#define P2PMANAGERDISCOVERY_H
+#ifndef P2P_MANAGER_DISCOVERY_H
+#define P2P_MANAGER_DISCOVERY_H
 
-#include <iostream>
-#include <shared_mutex>
+#include "managerbase.h"
 
-#include <boost/asio/dispatch.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/websocket.hpp>
-
-#include "../../utils/utils.h"
-#include "../../utils/safehash.h"
-
-#include "p2pmanagerbase.h"
-#include "p2pbase.h"
-#include "p2pclient.h"
-#include "p2pencoding.h"
-#include "p2pserver.h"
-
-namespace beast = boost::beast;         // from <boost/beast.hpp>
-namespace http = beast::http;           // from <boost/beast/http.hpp>
-namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
-namespace net = boost::asio;            // from <boost/asio.hpp>
-using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+#include <algorithm>
+#include <iterator>
 
 namespace P2P {
   /// Manager focused exclusively at Discovery nodes.
@@ -33,14 +15,14 @@ namespace P2P {
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handleRequest(std::shared_ptr<BaseSession>& session, const Message& message) override;
+      void handleRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) override;
 
       /**
        * Handle an answer from a server.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message) override;
+      void handleAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) override;
 
     private:
       /**
@@ -48,28 +30,28 @@ namespace P2P {
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handlePingRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestNodes` request.
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handleRequestNodesRequest(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleRequestNodesRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `Ping` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handlePingAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestNodes` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleRequestNodesAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
     public:
       /**
@@ -89,7 +71,7 @@ namespace P2P {
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      void handleMessage(std::shared_ptr<BaseSession> session, const Message message) override;
+      void handleMessage(std::weak_ptr<Session> session, const std::shared_ptr<const Message> message) override;
   };
 };
 

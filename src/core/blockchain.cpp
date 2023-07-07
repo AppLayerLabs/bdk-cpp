@@ -11,7 +11,7 @@ Blockchain::Blockchain(std::string blockchainPath) :
   syncer(std::make_unique<Syncer>(*this))
 {}
 
-void Blockchain::start() { p2p->startServer(); http->start(); syncer->start(); }
+void Blockchain::start() { p2p->start(); http->start(); syncer->start(); }
 
 void Blockchain::stop() { syncer->stop(); http->stop(); p2p->stop(); }
 
@@ -19,7 +19,7 @@ const std::atomic<bool>& Blockchain::isSynced() const { return this->syncer->isS
 
 void Syncer::updateCurrentlyConnectedNodes() {
   // Get the list of currently connected nodes
-  std::vector<Hash> connectedNodes = blockchain.p2p->getSessionsIDs();
+  std::vector<P2P::NodeID> connectedNodes = blockchain.p2p->getSessionsIDs();
   while (connectedNodes.size() < blockchain.p2p->minConnections() && !this->stopSyncer) {
     Utils::logToDebug(Log::syncer, __func__,
       "Waiting for discoveryWorker to connect to more nodes, currently connected to: "
@@ -67,7 +67,7 @@ void Syncer::doSync() {
   this->latestBlock = blockchain.storage->latest();
   // Get the list of currently connected nodes and their current height
   this->updateCurrentlyConnectedNodes();
-  std::pair<Hash, uint64_t> highestNode = {Hash(), 0};
+  std::pair<P2P::NodeID, uint64_t> highestNode = {P2P::NodeID(), 0};
 
   // Get the highest node.
   for (auto& [nodeId, nodeInfo] : this->currentlyConnectedNodes) {
@@ -206,7 +206,7 @@ bool Syncer::syncerLoop() {
   // Connect to all seed nodes from the config and start the discoveryThread.
   auto discoveryNodeList = this->blockchain.options->getDiscoveryNodes();
   for (const auto &[ipAddress, port]: discoveryNodeList) {
-    this->blockchain.p2p->connectToServer(ipAddress.to_string(), port);
+    this->blockchain.p2p->connectToServer(ipAddress, port);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   this->blockchain.p2p->startDiscovery();
@@ -233,6 +233,7 @@ void Syncer::start() {
 
 void Syncer::stop() {
   this->stopSyncer = true;
+  this->blockchain.rdpos->stoprdPoSWorker(); // Stop the rdPoS worker.
   if (this->syncerLoopFuture.valid()) this->syncerLoopFuture.wait();
   return;
 }

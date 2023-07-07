@@ -5,6 +5,7 @@
 #include "../../../utils/block.h"
 #include "../../../utils/tx.h"
 #include "../../../utils/options.h"
+#include "../../p2p/managernormal.h"
 
 // Forward declarations.
 namespace P2P { class ManagerNormal; }
