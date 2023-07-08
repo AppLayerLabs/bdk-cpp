@@ -43,8 +43,8 @@ class HTTPServer {
      * @param options Reference pointer to the options singleton.
      */
     HTTPServer(
-      const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+        const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+        const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
     ) : state(state), storage(storage), p2p(p2p), options(options), port(options->getHttpPort())
     {}
 

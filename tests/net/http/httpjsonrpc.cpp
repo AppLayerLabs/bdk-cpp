@@ -1,7 +1,7 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/utils.h"
 #include "../../src/utils/options.h"
-#include "../../src/net/p2p/p2pmanagernormal.h"
+#include "../../src/net/p2p/managernormal.h"
 #include "../../src/net/http/httpserver.h"
 #include "../../src/core/state.h"
 #include "../../src/core/storage.h"

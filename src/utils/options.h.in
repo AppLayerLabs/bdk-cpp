@@ -132,7 +132,7 @@ class Options {
     const uint64_t& getChainID() const { return this->chainID; }
 
     /// Getter for `wsPort`.
-    const uint16_t& getWsPort() const { return this->wsPort; }
+    const uint16_t& getP2PPort() const { return this->wsPort; }
 
     /// Getter for `httpPort`.
     const uint16_t& getHttpPort() const { return this->httpPort; }

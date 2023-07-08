@@ -3,8 +3,8 @@
 #include "../../src/core/storage.h"
 #include "../../src/core/state.h"
 #include "../../src/utils/db.h"
-#include "../../src/net/p2p/p2pmanagernormal.h"
-#include "../../src/net/p2p/p2pmanagerdiscovery.h"
+#include "../../src/net/p2p/managernormal.h"
+#include "../../src/net/p2p/managerdiscovery.h"
 #include "../../src/contract/abi.h"
 
 #include <filesystem>
@@ -601,33 +601,34 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
-
-      // Wait everyone be connected with the discovery node.
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -650,21 +651,22 @@ namespace TState {
       p2p7->startDiscovery();
       p2p8->startDiscovery();
 
-      // Wait for discovery to take effect
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
       // Wait for nodes to connect.
-      while (p2pDiscovery->getSessionsIDs().size() != 8 ||
-             p2p1->getSessionsIDs().size() != 8 ||
-             p2p2->getSessionsIDs().size() != 8 ||
-             p2p3->getSessionsIDs().size() != 8 ||
-             p2p4->getSessionsIDs().size() != 8 ||
-             p2p5->getSessionsIDs().size() != 8 ||
-             p2p6->getSessionsIDs().size() != 8 ||
-             p2p7->getSessionsIDs().size() != 8 ||
-             p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -718,9 +720,23 @@ namespace TState {
         p2p1->broadcastTxBlock(tx);
       }
 
-      /// Wait for the transactions to be broadcasted.
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       REQUIRE(state1->getMempool().size() == 100);
+      /// Wait for the transactions to be broadcasted.
+      auto broadcastFuture = std::async(std::launch::async, [&]() {
+        while (state1->getMempool().size() != 100 ||
+               state2->getMempool().size() != 100 ||
+               state3->getMempool().size() != 100 ||
+               state4->getMempool().size() != 100 ||
+               state5->getMempool().size() != 100 ||
+               state6->getMempool().size() != 100 ||
+               state7->getMempool().size() != 100 ||
+               state8->getMempool().size() != 100) {
+          std::this_thread::sleep_for(std::chrono::microseconds(10));
+        }
+      });
+
+      REQUIRE(broadcastFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+
       REQUIRE(state1->getMempool() == state2->getMempool());
       REQUIRE(state1->getMempool() == state3->getMempool());
       REQUIRE(state1->getMempool() == state4->getMempool());
@@ -841,33 +857,34 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
-
-      // Wait everyone be connected with the discovery node.
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -894,17 +911,21 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      while (p2pDiscovery->getSessionsIDs().size() != 8 ||
-             p2p1->getSessionsIDs().size() != 8 ||
-             p2p2->getSessionsIDs().size() != 8 ||
-             p2p3->getSessionsIDs().size() != 8 ||
-             p2p4->getSessionsIDs().size() != 8 ||
-             p2p5->getSessionsIDs().size() != 8 ||
-             p2p6->getSessionsIDs().size() != 8 ||
-             p2p7->getSessionsIDs().size() != 8 ||
-             p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -1165,33 +1186,37 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // Wait everyone be connected with the discovery node.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -1218,17 +1243,22 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      while (p2pDiscovery->getSessionsIDs().size() != 8 ||
-             p2p1->getSessionsIDs().size() != 8 ||
-             p2p2->getSessionsIDs().size() != 8 ||
-             p2p3->getSessionsIDs().size() != 8 ||
-             p2p4->getSessionsIDs().size() != 8 ||
-             p2p5->getSessionsIDs().size() != 8 ||
-             p2p6->getSessionsIDs().size() != 8 ||
-             p2p7->getSessionsIDs().size() != 8 ||
-             p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      // Wait for nodes to connect.
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -1274,9 +1304,12 @@ namespace TState {
       // Loop for block creation.
       uint64_t blocks = 0;
       while (blocks < 10) {
-        while (rdpos1->getMempool().size() != 8) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+        auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
+          while (rdpos1->getMempool().size() != 8) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+        REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
         for (auto &blockCreator: rdPoSreferences) {
           if (blockCreator.get()->canCreateBlock()) {
@@ -1527,33 +1560,34 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
-
-      // Wait everyone be connected with the discovery node.
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -1580,17 +1614,21 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      while (p2pDiscovery->getSessionsIDs().size() != 8 ||
-             p2p1->getSessionsIDs().size() != 8 ||
-             p2p2->getSessionsIDs().size() != 8 ||
-             p2p3->getSessionsIDs().size() != 8 ||
-             p2p4->getSessionsIDs().size() != 8 ||
-             p2p5->getSessionsIDs().size() != 8 ||
-             p2p6->getSessionsIDs().size() != 8 ||
-             p2p7->getSessionsIDs().size() != 8 ||
-             p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -1636,9 +1674,13 @@ namespace TState {
       // Loop for block creation.
       uint64_t blocks = 0;
       while (blocks < 10) {
-        while (rdpos1->getMempool().size() != 8) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+        auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
+          while (rdpos1->getMempool().size() != 8) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+
+        REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
         for (auto &blockCreator: rdPoSreferences) {
           if (blockCreator.get()->canCreateBlock()) {
@@ -1723,8 +1765,21 @@ namespace TState {
             REQUIRE(storage1->latest()->hash() == latestBlockHash);
             // Broadcast the Block!
             p2p1->broadcastBlock(storage1->latest());
+
+            auto broadcastBlockFuture = std::async(std::launch::async, [&]() {
+              while (storage2->latest()->hash() != latestBlockHash ||
+                     storage3->latest()->hash() != latestBlockHash ||
+                     storage4->latest()->hash() != latestBlockHash ||
+                     storage5->latest()->hash() != latestBlockHash ||
+                     storage6->latest()->hash() != latestBlockHash ||
+                     storage7->latest()->hash() != latestBlockHash ||
+                     storage8->latest()->hash() != latestBlockHash) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+              }
+            });
+
             // Sleep for blocks to be broadcasted and accepted.
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            REQUIRE(broadcastBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
             // Check if the block was accepted by all nodes.
             REQUIRE(storage1->latest()->hash() == storage2->latest()->hash());
@@ -1884,33 +1939,37 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // Wait everyone be connected with the discovery node.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -1933,21 +1992,22 @@ namespace TState {
       p2p7->startDiscovery();
       p2p8->startDiscovery();
 
-      // Wait for discovery to take effect
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
       // Wait for nodes to connect.
-      while(p2pDiscovery->getSessionsIDs().size() != 8 ||
-            p2p1->getSessionsIDs().size() != 8 ||
-            p2p2->getSessionsIDs().size() != 8 ||
-            p2p3->getSessionsIDs().size() != 8 ||
-            p2p4->getSessionsIDs().size() != 8 ||
-            p2p5->getSessionsIDs().size() != 8 ||
-            p2p6->getSessionsIDs().size() != 8 ||
-            p2p7->getSessionsIDs().size() != 8 ||
-            p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -1993,9 +2053,13 @@ namespace TState {
       // Loop for block creation.
       uint64_t blocks = 0;
       while (blocks < 10) {
-        while (rdpos1->getMempool().size() != 8) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+        auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
+          while (rdpos1->getMempool().size() != 8) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+
+        REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
         for (auto &blockCreator: rdPoSreferences) {
           if (blockCreator.get()->canCreateBlock()) {
@@ -2117,8 +2181,20 @@ namespace TState {
             REQUIRE(storage1->latest()->hash() == latestBlockHash);
             // Broadcast the Block!
             p2p1->broadcastBlock(storage1->latest());
+
+            auto broadcastBlockFuture = std::async(std::launch::async, [&]() {
+              while (storage2->latest()->hash() != latestBlockHash ||
+                     storage3->latest()->hash() != latestBlockHash ||
+                     storage4->latest()->hash() != latestBlockHash ||
+                     storage5->latest()->hash() != latestBlockHash ||
+                     storage6->latest()->hash() != latestBlockHash ||
+                     storage7->latest()->hash() != latestBlockHash ||
+                     storage8->latest()->hash() != latestBlockHash) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+              }
+            });
             // Sleep for blocks to be broadcasted and accepted.
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            REQUIRE(broadcastBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
             // Check if the block was accepted by all nodes.
             REQUIRE(storage1->latest()->hash() == storage2->latest()->hash());

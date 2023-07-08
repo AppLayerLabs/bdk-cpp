@@ -1,12 +1,12 @@
-#include "p2pmanagerbase.h"
+#include "managerbase.h"
 
 namespace P2P {
   void DiscoveryWorker::refreshRequestedNodes() {
     std::unique_lock lock(this->requestedNodesMutex);
     for (auto it = this->requestedNodes.begin(); it != this->requestedNodes.end();) {
       if (std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::high_resolution_clock::now().time_since_epoch()).count() - it->second > 60
-      ) {
+          std::chrono::high_resolution_clock::now().time_since_epoch()).count() - it->second > 60
+          ) {
         this->requestedNodes.erase(it++);
       } else {
         it++;
@@ -15,11 +15,11 @@ namespace P2P {
   }
 
   std::pair<
-    std::unordered_set<Hash, SafeHash>,std::unordered_set<Hash, SafeHash>
+    std::unordered_set<NodeID, SafeHash>, std::unordered_set<NodeID, SafeHash>
   > DiscoveryWorker::listConnectedNodes() {
-    std::pair<std::unordered_set<Hash, SafeHash>,std::unordered_set<Hash,SafeHash>> connectedNodes;
+    std::pair<std::unordered_set<NodeID, SafeHash>, std::unordered_set<NodeID ,SafeHash>> connectedNodes;
     std::shared_lock requestedNodesLock(this->requestedNodesMutex);
-    std::shared_lock sessionsLock(this->manager.sessionsMutex);
+    std::shared_lock sessionsLock(this->manager.sessionsMutex_);
     for (const auto& [nodeId, session] : this->manager.sessions_) {
       // Skip nodes that were already requested in the last 60 seconds
       if (this->requestedNodes.contains(nodeId)) continue;
@@ -32,23 +32,14 @@ namespace P2P {
     return connectedNodes;
   }
 
-  std::unordered_map<
-    Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash
-  > DiscoveryWorker::getConnectedNodes(const Hash& nodeId) {
+  std::unordered_map<NodeID, NodeType, SafeHash> DiscoveryWorker::getConnectedNodes(const NodeID& nodeId) {
     return this->manager.requestNodes(nodeId);
   }
 
-  void DiscoveryWorker::connectToNode(
-    const Hash& nodeId, const std::tuple<NodeType, boost::asio::ip::address,
-    unsigned short>& nodeInfo
-  ) {
-    const auto& [nodeType, nodeIp, nodePort] = nodeInfo;
+  void DiscoveryWorker::connectToNode(const NodeID& nodeId, NodeType nodeType) {
+    const auto& [nodeIp, nodePort] = nodeId;
     if (nodeType == NodeType::DISCOVERY_NODE) return; // Do not connect to new discovery nodes
-    {
-      std::shared_lock(this->manager.sessionsMutex);
-      if (this->manager.sessions_.contains(nodeId)) return; // Node is already connected
-    }
-    this->manager.connectToServer(nodeIp.to_string(), nodePort);
+    this->manager.connectToServer(nodeIp, nodePort);
   }
 
   bool DiscoveryWorker::discoverLoop() {
@@ -59,7 +50,7 @@ namespace P2P {
       // Check if we reached connection limit
       {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::shared_lock lock(this->manager.sessionsMutex);
+        std::shared_lock lock(this->manager.sessionsMutex_);
         if (this->manager.sessions_.size() >= this->manager.minConnections()) {
           // If we don't have at least 11 connections, we don't sleep discovery.
           // This is to make sure that local_testnet can quickly start up a new
@@ -99,7 +90,7 @@ namespace P2P {
           // Add requested node to list of requested nodes
           std::unique_lock(this->requestedNodesMutex);
           this->requestedNodes[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::high_resolution_clock::now().time_since_epoch()
+              std::chrono::high_resolution_clock::now().time_since_epoch()
           ).count();
         }
         discoveryPass = true;
@@ -121,7 +112,7 @@ namespace P2P {
           // Add requested node to list of requested nodes
           std::unique_lock(this->requestedNodesMutex);
           this->requestedNodes[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::high_resolution_clock::now().time_since_epoch()
+              std::chrono::high_resolution_clock::now().time_since_epoch()
           ).count();
         }
       }

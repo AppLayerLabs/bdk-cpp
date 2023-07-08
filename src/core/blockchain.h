@@ -4,7 +4,7 @@
 #include "storage.h"
 #include "rdpos.h"
 #include "state.h"
-#include "../net/p2p/p2pmanagerbase.h"
+#include "../net/p2p/managerbase.h"
 #include "../net/http/httpserver.h"
 #include "../utils/options.h"
 #include "../utils/db.h"
@@ -22,8 +22,8 @@ class Blockchain {
     const std::unique_ptr<Options> options; ///< Pointer to the options singleton.
     const std::unique_ptr<DB> db; ///< Pointer to the database.
     const std::unique_ptr<Storage> storage; ///< Pointer to the blockchain storage.
-    const std::unique_ptr<rdPoS> rdpos; ///< Pointer to the rdPoS object (consensus).
     const std::unique_ptr<State> state; ///< Pointer to the blockchain state.
+    const std::unique_ptr<rdPoS> rdpos; ///< Pointer to the rdPoS object (consensus).
     const std::unique_ptr<P2P::ManagerNormal> p2p; ///< Pointer to the P2P connection manager.
     const std::unique_ptr<HTTPServer> http; ///< Pointer to the HTTP server.
     const std::unique_ptr<Syncer> syncer; ///< Pointer to the blockchain syncer.
@@ -98,7 +98,7 @@ class Syncer {
     Blockchain& blockchain;
 
     /// List of currently connected nodes and their info.
-    std::unordered_map<Hash, P2P::NodeInfo, SafeHash> currentlyConnectedNodes;
+    std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> currentlyConnectedNodes;
 
     /// Pointer to the blockchain's latest block.
     std::shared_ptr<const Block> latestBlock;

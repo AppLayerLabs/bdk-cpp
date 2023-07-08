@@ -1,7 +1,7 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/utils.h"
-#include "../../src/net/p2p/p2pmanagernormal.h"
-#include "../../src/net/p2p/p2pmanagerdiscovery.h"
+#include "../../src/net/p2p/managernormal.h"
+#include "../../src/net/p2p/managerdiscovery.h"
 #include "../../src/core/rdpos.h"
 #include "../../src/core/storage.h"
 #include "../../src/core/state.h"
@@ -14,40 +14,40 @@ namespace TP2P {
   void initializeOptions(std::unique_ptr<Options>& options, std::string folderPath, uint64_t serverPort) {
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
     options = std::make_unique<Options>(
-      folderPath,
-      "OrbiterSDK/cpp/linux_x86-64/0.0.3",
-      1,
-      8080,
-      serverPort,
-      9999,
-      peers
+        folderPath,
+        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+        1,
+        8080,
+        serverPort,
+        9999,
+        peers
     );
   }
 
   const std::vector<Hash> validatorPrivKeys {
-    Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
-    Hash(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
-    Hash(Hex::toBytes("0x8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da")),
-    Hash(Hex::toBytes("0x9048f5e80549e244b7899e85a4ef69512d7d68613a3dba828266736a580e7745")),
-    Hash(Hex::toBytes("0x0b6f5ad26f6eb79116da8c98bed5f3ed12c020611777d4de94c3c23b9a03f739")),
-    Hash(Hex::toBytes("0xa69eb3a3a679e7e4f6a49fb183fb2819b7ab62f41c341e2e2cc6288ee22fbdc7")),
-    Hash(Hex::toBytes("0xd9b0613b7e4ccdb0f3a5ab0956edeb210d678db306ab6fae1e2b0c9ebca1c2c5")),
-    Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
+      Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
+      Hash(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
+      Hash(Hex::toBytes("0x8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da")),
+      Hash(Hex::toBytes("0x9048f5e80549e244b7899e85a4ef69512d7d68613a3dba828266736a580e7745")),
+      Hash(Hex::toBytes("0x0b6f5ad26f6eb79116da8c98bed5f3ed12c020611777d4de94c3c23b9a03f739")),
+      Hash(Hex::toBytes("0xa69eb3a3a679e7e4f6a49fb183fb2819b7ab62f41c341e2e2cc6288ee22fbdc7")),
+      Hash(Hex::toBytes("0xd9b0613b7e4ccdb0f3a5ab0956edeb210d678db306ab6fae1e2b0c9ebca1c2c5")),
+      Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
   };
 
   // We initialize the blockchain database
   // To make sure that if the genesis is changed within the main source code
   // The tests will still work, as tests uses own genesis block.
   void initializeFullChain(std::unique_ptr<DB>& db,
-                  std::unique_ptr<Storage>& storage,
-                  std::unique_ptr<P2P::ManagerNormal>& p2p,
-                  std::unique_ptr<rdPoS>& rdpos,
-                  std::unique_ptr<State>& state,
-                  std::unique_ptr<Options>& options,
-                  PrivKey validatorKey,
-                  uint64_t serverPort,
-                  bool clearDb,
-                  std::string folderName) {
+                           std::unique_ptr<Storage>& storage,
+                           std::unique_ptr<P2P::ManagerNormal>& p2p,
+                           std::unique_ptr<rdPoS>& rdpos,
+                           std::unique_ptr<State>& state,
+                           std::unique_ptr<Options>& options,
+                           PrivKey validatorKey,
+                           uint64_t serverPort,
+                           bool clearDb,
+                           std::string folderName) {
     std::string dbName = folderName + "/db";
     if (clearDb) {
       if (std::filesystem::exists(dbName)) {
@@ -84,24 +84,24 @@ namespace TP2P {
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
     if (!validatorKey) {
       options = std::make_unique<Options>(
-        folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
-        1,
-        8080,
-        serverPort,
-        9999,
-        discoveryNodes
+          folderName,
+          "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+          1,
+          8080,
+          serverPort,
+          9999,
+          discoveryNodes
       );
     } else {
       options = std::make_unique<Options>(
-        folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
-        1,
-        8080,
-        serverPort,
-        9999,
-        discoveryNodes,
-        validatorKey
+          folderName,
+          "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+          1,
+          8080,
+          serverPort,
+          9999,
+          discoveryNodes,
+          validatorKey
       );
     }
 
@@ -111,7 +111,7 @@ namespace TP2P {
     state = std::make_unique<State>(db, storage, rdpos, p2p, options);
   }
 
-  TEST_CASE("P2P Manager", "[net][p2p][errorring]") {
+  TEST_CASE("P2P Manager", "[p2p]") {
     SECTION ("P2P::Manager Simple 3 node network") {
       std::unique_ptr<Options> options1;
       std::unique_ptr<Options> options2;
@@ -123,125 +123,138 @@ namespace TP2P {
       P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options2, nullptr, nullptr);
       P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options3, nullptr, nullptr);
 
-			Hash node1Id = p2pNode1.nodeId();
-			Hash node2Id = p2pNode2.nodeId();
-			Hash node3Id = p2pNode3.nodeId();
+      P2P::NodeID node1Id = { boost::asio::ip::address::from_string("127.0.0.1"), 8080 };
+      P2P::NodeID node2Id = { boost::asio::ip::address::from_string("127.0.0.1"), 8081 };
+      P2P::NodeID node3Id = { boost::asio::ip::address::from_string("127.0.0.1"), 8082 };
 
-      p2pNode1.startServer();
-      p2pNode2.startServer();
-      p2pNode3.startServer();
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2pNode1.start();
+      p2pNode2.start();
+      p2pNode3.start();
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       REQUIRE(p2pNode1.isServerRunning() == true);
       REQUIRE(p2pNode2.isServerRunning() == true);
       REQUIRE(p2pNode3.isServerRunning() == true);
 
-			p2pNode1.connectToServer("127.0.0.1", 8081);
-			p2pNode1.connectToServer("127.0.0.1", 8082);
-			p2pNode2.connectToServer("127.0.0.1", 8082);
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2pNode1.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
+      p2pNode1.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8082);
+      p2pNode2.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8082);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Start discovery
       p2pNode1.startDiscovery();
       p2pNode2.startDiscovery();
       p2pNode3.startDiscovery();
 
-			auto node1SessionsIDs = p2pNode1.getSessionsIDs();
-			auto node2SessionsIDs = p2pNode2.getSessionsIDs();
-			auto node3SessionsIDs = p2pNode3.getSessionsIDs();
+      auto node1SessionsIDs = p2pNode1.getSessionsIDs();
+      auto node2SessionsIDs = p2pNode2.getSessionsIDs();
+      auto node3SessionsIDs = p2pNode3.getSessionsIDs();
 
-			REQUIRE(node1SessionsIDs.size() == 2);
-			REQUIRE(node2SessionsIDs.size() == 2);
-			REQUIRE(node3SessionsIDs.size() == 2);
+      REQUIRE(node1SessionsIDs.size() == 2);
+      REQUIRE(node2SessionsIDs.size() == 2);
+      REQUIRE(node3SessionsIDs.size() == 2);
 
-			// Try pinging each other
-			for (auto session : node1SessionsIDs) {
-				p2pNode1.ping(session);
-			}
+      // Try pinging each other
+      for (auto session : node1SessionsIDs) {
+        p2pNode1.ping(session);
+      }
 
-			for (auto session : node2SessionsIDs) {
-				p2pNode2.ping(session);
-			}
+      for (auto session : node2SessionsIDs) {
+        p2pNode2.ping(session);
+      }
 
       for (auto session : node3SessionsIDs) {
-				p2pNode3.ping(session);
-			}
+        p2pNode3.ping(session);
+      }
 
       // Stop discovery on nodes, disconnect and check.
-			p2pNode1.stopDiscovery();
-			p2pNode2.stopDiscovery();
-			p2pNode3.stopDiscovery();
-			p2pNode1.disconnectSession(node2Id);
+      p2pNode1.stopDiscovery();
+      p2pNode2.stopDiscovery();
+      p2pNode3.stopDiscovery();
+      p2pNode1.disconnectSession(node2Id);
 
-      while(p2pNode1.getSessionsIDs().size() != 1) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
 
-      while(p2pNode2.getSessionsIDs().size() != 1) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto futureSessionNode1 = std::async(std::launch::async, [&]() {
+        while (p2pNode1.getSessionsIDs().size() != 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+      REQUIRE(futureSessionNode1.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+
+      auto futureSessionNode2 = std::async(std::launch::async, [&]() {
+        while (p2pNode2.getSessionsIDs().size() != 1) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+      REQUIRE(futureSessionNode2.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
 
       node1SessionsIDs = p2pNode1.getSessionsIDs();
-			node2SessionsIDs = p2pNode2.getSessionsIDs();
-			node3SessionsIDs = p2pNode3.getSessionsIDs();
+      node2SessionsIDs = p2pNode2.getSessionsIDs();
+      node3SessionsIDs = p2pNode3.getSessionsIDs();
 
       REQUIRE(node1SessionsIDs.size() == 1);
-			REQUIRE(node2SessionsIDs.size() == 1);
-			REQUIRE(node3SessionsIDs.size() == 2);
+      REQUIRE(node2SessionsIDs.size() == 1);
+      REQUIRE(node3SessionsIDs.size() == 2);
 
       // Request Nodes from Node 3.
-			auto nodesFromNode1 = p2pNode3.requestNodes(node1Id);
-			auto nodesFromNode2 = p2pNode3.requestNodes(node2Id);
+      auto nodesFromNode1 = p2pNode3.requestNodes(node1Id);
+      auto nodesFromNode2 = p2pNode3.requestNodes(node2Id);
 
       REQUIRE(nodesFromNode1 == nodesFromNode2); // Node 1 and Node 2 should have the same nodes (only connected to the same node 3)
 
       // Start discovery, should recover the lost connection
-			p2pNode1.startDiscovery();
-			p2pNode2.startDiscovery();
-			p2pNode3.startDiscovery();
+      p2pNode1.startDiscovery();
+      p2pNode2.startDiscovery();
+      p2pNode3.startDiscovery();
 
-      while(p2pNode1.getSessionsIDs().size() != 2) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      auto futureSessionNode1AfterDiscovery = std::async(std::launch::async, [&]() {
+        while (p2pNode1.getSessionsIDs().size() != 2) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+      REQUIRE(futureSessionNode1AfterDiscovery.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+
+      auto futureSessionNode2AfterDiscovery = std::async(std::launch::async, [&]() {
+        while (p2pNode2.getSessionsIDs().size() != 2) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+      REQUIRE(futureSessionNode2AfterDiscovery.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+
+      node1SessionsIDs = p2pNode1.getSessionsIDs();
+      node2SessionsIDs = p2pNode2.getSessionsIDs();
+      node3SessionsIDs = p2pNode3.getSessionsIDs();
+
+      REQUIRE(node1SessionsIDs.size() == 2);
+      REQUIRE(node2SessionsIDs.size() == 2);
+      REQUIRE(node3SessionsIDs.size() == 2);
+
+      // Try pinging again each other again.
+      for (auto session : node1SessionsIDs) {
+        p2pNode1.ping(session);
       }
 
-      while(p2pNode2.getSessionsIDs().size() != 2) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      for (auto session : node2SessionsIDs) {
+        p2pNode2.ping(session);
       }
 
-			node1SessionsIDs = p2pNode1.getSessionsIDs();
-			node2SessionsIDs = p2pNode2.getSessionsIDs();
-			node3SessionsIDs = p2pNode3.getSessionsIDs();
-
-			REQUIRE(node1SessionsIDs.size() == 2);
-			REQUIRE(node2SessionsIDs.size() == 2);
-			REQUIRE(node3SessionsIDs.size() == 2);
-
-			// Try pinging again each other again.
-			for (auto session : node1SessionsIDs) {
-				p2pNode1.ping(session);
-			}
-
-			for (auto session : node2SessionsIDs) {
-				p2pNode2.ping(session);
-			}
-
-			for (auto session : node3SessionsIDs) {
-				p2pNode3.ping(session);
-			}
-			// Stop the servers
-			p2pNode1.stop();
-			p2pNode2.stop();
-			p2pNode3.stop();
+      for (auto session : node3SessionsIDs) {
+        p2pNode3.ping(session);
+      }
+      // Stop the servers
+      p2pNode1.stop();
+      p2pNode2.stop();
+      p2pNode3.stop();
 
 
-			REQUIRE(p2pNode1.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode2.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode3.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode1.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode2.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode3.getSessionsIDs().size() == 0);
 
-			REQUIRE(p2pNode1.isServerRunning() == false);
-			REQUIRE(p2pNode2.isServerRunning() == false);
-			REQUIRE(p2pNode3.isServerRunning() == false);
+      REQUIRE(p2pNode1.isServerRunning() == false);
+      REQUIRE(p2pNode2.isServerRunning() == false);
+      REQUIRE(p2pNode3.isServerRunning() == false);
     }
 
     SECTION("2 Node Network, request info") {
@@ -262,13 +275,13 @@ namespace TP2P {
       initializeFullChain(db2, storage2, p2p2, rdpos2, state2, options2, PrivKey(), 8081, true, "p2pRequestInfoNode2");
 
       /// Start the servers
-      p2p1->startServer();
-      p2p2->startServer();
+      p2p1->start();
+      p2p2->start();
 
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       /// Connect to each other
-      p2p1->connectToServer("127.0.0.1", 8081);
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -282,7 +295,7 @@ namespace TP2P {
       REQUIRE(p2p2NodeInfo.latestBlockHash == storage2->latest()->hash());
     }
 
-		SECTION("10 P2P::ManagerNormal 1 P2P::ManagerDiscovery") {
+    SECTION("10 P2P::ManagerNormal 1 P2P::ManagerDiscovery") {
       std::unique_ptr<Options> options1;
       std::unique_ptr<Options> options2;
       std::unique_ptr<Options> options3;
@@ -306,46 +319,46 @@ namespace TP2P {
       initializeOptions(options9, "testP2PManagerDiscoveryNetworkNode9", 8088);
       initializeOptions(options10, "testP2PManagerDiscoveryNetworkNode10", 8089);
 
-			P2P::ManagerDiscovery p2pDiscoveryNode(boost::asio::ip::address::from_string("127.0.0.1"), optionsDiscovery);
+      P2P::ManagerDiscovery p2pDiscoveryNode(boost::asio::ip::address::from_string("127.0.0.1"), optionsDiscovery);
       P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options1, nullptr, nullptr);
       P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options2, nullptr, nullptr);
       P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options3, nullptr, nullptr);
-			P2P::ManagerNormal p2pNode4(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options4, nullptr, nullptr);
-			P2P::ManagerNormal p2pNode5(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options5, nullptr, nullptr);
-			P2P::ManagerNormal p2pNode6(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options6, nullptr, nullptr);
-			P2P::ManagerNormal p2pNode7(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options7, nullptr, nullptr);
-			P2P::ManagerNormal p2pNode8(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options8, nullptr, nullptr);
-			P2P::ManagerNormal p2pNode9(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options9, nullptr, nullptr);
-			P2P::ManagerNormal p2pNode10(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options10, nullptr, nullptr);
-      
+      P2P::ManagerNormal p2pNode4(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options4, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode5(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options5, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode6(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options6, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode7(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options7, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode8(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options8, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode9(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options9, nullptr, nullptr);
+      P2P::ManagerNormal p2pNode10(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options10, nullptr, nullptr);
 
-			p2pDiscoveryNode.startServer();
-			p2pNode1.startServer();
-			p2pNode2.startServer();
-			p2pNode3.startServer();
-			p2pNode4.startServer();
-			p2pNode5.startServer();
-			p2pNode6.startServer();
-			p2pNode7.startServer();
-			p2pNode8.startServer();
-			p2pNode9.startServer();
-			p2pNode10.startServer();
-      
 
-			p2pNode1.connectToServer("127.0.0.1", 8090);
-			p2pNode2.connectToServer("127.0.0.1", 8090);
-			p2pNode3.connectToServer("127.0.0.1", 8090);
-			p2pNode4.connectToServer("127.0.0.1", 8090);
-			p2pNode5.connectToServer("127.0.0.1", 8090);
-			p2pNode6.connectToServer("127.0.0.1", 8090);
-			p2pNode7.connectToServer("127.0.0.1", 8090);
-			p2pNode8.connectToServer("127.0.0.1", 8090);
-			p2pNode9.connectToServer("127.0.0.1", 8090);
-			p2pNode10.connectToServer("127.0.0.1", 8090);
-      
+      p2pDiscoveryNode.start();
+      p2pNode1.start();
+      p2pNode2.start();
+      p2pNode3.start();
+      p2pNode4.start();
+      p2pNode5.start();
+      p2pNode6.start();
+      p2pNode7.start();
+      p2pNode8.start();
+      p2pNode9.start();
+      p2pNode10.start();
+
+
+      p2pNode1.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode2.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode3.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode4.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode5.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode6.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode7.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode8.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode9.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2pNode10.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+
       // Wait until all peers are connected to the discovery node.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      
+
       // Start discovery
       p2pDiscoveryNode.startDiscovery();
       p2pNode1.startDiscovery();
@@ -358,135 +371,137 @@ namespace TP2P {
       p2pNode8.startDiscovery();
       p2pNode9.startDiscovery();
       p2pNode10.startDiscovery();
-      
-			// After a while, the discovery thread should have found all the nodes and connected between each other.
-      while(p2pDiscoveryNode.getSessionsIDs().size() != 10 ||
-            p2pNode1.getSessionsIDs().size() != 10 ||
-            p2pNode2.getSessionsIDs().size() != 10 ||
-            p2pNode3.getSessionsIDs().size() != 10 ||
-            p2pNode4.getSessionsIDs().size() != 10 ||
-            p2pNode5.getSessionsIDs().size() != 10 ||
-            p2pNode6.getSessionsIDs().size() != 10 ||
-            p2pNode7.getSessionsIDs().size() != 10 ||
-            p2pNode8.getSessionsIDs().size() != 10 ||
-            p2pNode9.getSessionsIDs().size() != 10 ||
-            p2pNode10.getSessionsIDs().size() != 10) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
-      
 
+      // After a while, the discovery thread should have found all the nodes and connected between each other.
+      auto futureWaitAllNodesConnected = std::async(std::launch::async, [&]() {
+        while(p2pDiscoveryNode.getSessionsIDs().size() != 10 ||
+              p2pNode1.getSessionsIDs().size() != 10 ||
+              p2pNode2.getSessionsIDs().size() != 10 ||
+              p2pNode3.getSessionsIDs().size() != 10 ||
+              p2pNode4.getSessionsIDs().size() != 10 ||
+              p2pNode5.getSessionsIDs().size() != 10 ||
+              p2pNode6.getSessionsIDs().size() != 10 ||
+              p2pNode7.getSessionsIDs().size() != 10 ||
+              p2pNode8.getSessionsIDs().size() != 10 ||
+              p2pNode9.getSessionsIDs().size() != 10 ||
+              p2pNode10.getSessionsIDs().size() != 10) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+      });
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      
+      REQUIRE(futureWaitAllNodesConnected.wait_for(std::chrono::seconds(10)) != std::future_status::timeout);
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
       auto nodeDiscoverySessionsIDs = p2pDiscoveryNode.getSessionsIDs();
-			auto node1SessionsIDs = p2pNode1.getSessionsIDs();
-			auto node2SessionsIDs = p2pNode2.getSessionsIDs();
-			auto node3SessionsIDs = p2pNode3.getSessionsIDs();
-			auto node4SessionsIDs = p2pNode4.getSessionsIDs();
-			auto node5SessionsIDs = p2pNode5.getSessionsIDs();
-			auto node6SessionsIDs = p2pNode6.getSessionsIDs();
-			auto node7SessionsIDs = p2pNode7.getSessionsIDs();
-			auto node8SessionsIDs = p2pNode8.getSessionsIDs();
-			auto node9SessionsIDs = p2pNode9.getSessionsIDs();
-			auto node10SessionsIDs = p2pNode10.getSessionsIDs();
-      
-      REQUIRE(nodeDiscoverySessionsIDs.size() == 10);
-			REQUIRE(node1SessionsIDs.size() == 10);
-			REQUIRE(node2SessionsIDs.size() == 10);
-			REQUIRE(node3SessionsIDs.size() == 10);
-			REQUIRE(node4SessionsIDs.size() == 10);
-			REQUIRE(node5SessionsIDs.size() == 10);
-			REQUIRE(node6SessionsIDs.size() == 10);
-			REQUIRE(node7SessionsIDs.size() == 10);
-			REQUIRE(node8SessionsIDs.size() == 10);
-			REQUIRE(node9SessionsIDs.size() == 10);
-			REQUIRE(node10SessionsIDs.size() == 10);
-			// Try pinging each other.
+      auto node1SessionsIDs = p2pNode1.getSessionsIDs();
+      auto node2SessionsIDs = p2pNode2.getSessionsIDs();
+      auto node3SessionsIDs = p2pNode3.getSessionsIDs();
+      auto node4SessionsIDs = p2pNode4.getSessionsIDs();
+      auto node5SessionsIDs = p2pNode5.getSessionsIDs();
+      auto node6SessionsIDs = p2pNode6.getSessionsIDs();
+      auto node7SessionsIDs = p2pNode7.getSessionsIDs();
+      auto node8SessionsIDs = p2pNode8.getSessionsIDs();
+      auto node9SessionsIDs = p2pNode9.getSessionsIDs();
+      auto node10SessionsIDs = p2pNode10.getSessionsIDs();
 
-			for (auto session : nodeDiscoverySessionsIDs) {
-				p2pDiscoveryNode.ping(session);
-			}
+      REQUIRE(nodeDiscoverySessionsIDs.size() == 10);
+      REQUIRE(node1SessionsIDs.size() == 10);
+      REQUIRE(node2SessionsIDs.size() == 10);
+      REQUIRE(node3SessionsIDs.size() == 10);
+      REQUIRE(node4SessionsIDs.size() == 10);
+      REQUIRE(node5SessionsIDs.size() == 10);
+      REQUIRE(node6SessionsIDs.size() == 10);
+      REQUIRE(node7SessionsIDs.size() == 10);
+      REQUIRE(node8SessionsIDs.size() == 10);
+      REQUIRE(node9SessionsIDs.size() == 10);
+      REQUIRE(node10SessionsIDs.size() == 10);
+      // Try pinging each other.
+
+      for (auto session : nodeDiscoverySessionsIDs) {
+        p2pDiscoveryNode.ping(session);
+      }
 
       for (auto session : node1SessionsIDs) {
-				p2pNode1.ping(session);
-			}
-      
+        p2pNode1.ping(session);
+      }
+
       for (auto session : node2SessionsIDs) {
-				p2pNode2.ping(session);
-			}
-      
+        p2pNode2.ping(session);
+      }
+
       for (auto session : node3SessionsIDs) {
-				p2pNode3.ping(session);
-			}
-      
+        p2pNode3.ping(session);
+      }
+
       for (auto session : node4SessionsIDs) {
-				p2pNode4.ping(session);
-			}
+        p2pNode4.ping(session);
+      }
 
-			for (auto session : node5SessionsIDs) {
-				p2pNode5.ping(session);
-			}
+      for (auto session : node5SessionsIDs) {
+        p2pNode5.ping(session);
+      }
 
-			for (auto session : node6SessionsIDs) {
-				p2pNode6.ping(session);
-			}
+      for (auto session : node6SessionsIDs) {
+        p2pNode6.ping(session);
+      }
 
-			for (auto session : node7SessionsIDs) {
-				p2pNode7.ping(session);
-			}
+      for (auto session : node7SessionsIDs) {
+        p2pNode7.ping(session);
+      }
 
-			for (auto session : node8SessionsIDs) {
-				p2pNode8.ping(session);
-			}
+      for (auto session : node8SessionsIDs) {
+        p2pNode8.ping(session);
+      }
 
-			for (auto session : node9SessionsIDs) {
-				p2pNode9.ping(session);
-			}
+      for (auto session : node9SessionsIDs) {
+        p2pNode9.ping(session);
+      }
 
-			for (auto session : node10SessionsIDs) {
-				p2pNode10.ping(session);
-			}
-      
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-			// Close all the nodes.
-			p2pDiscoveryNode.stop();
-			p2pNode1.stop();
-			p2pNode2.stop();
-			p2pNode3.stop();
-			p2pNode4.stop();
-			p2pNode5.stop();
-			p2pNode6.stop();
-			p2pNode7.stop();
-			p2pNode8.stop();
-			p2pNode9.stop();
-			p2pNode10.stop();
+      for (auto session : node10SessionsIDs) {
+        p2pNode10.ping(session);
+      }
 
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      
-			REQUIRE(p2pDiscoveryNode.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode1.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode2.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode3.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode4.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode5.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode6.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode7.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode8.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode9.getSessionsIDs().size() == 0);
-			REQUIRE(p2pNode10.getSessionsIDs().size() == 0);
 
-			REQUIRE(p2pDiscoveryNode.isServerRunning() == false);
-			REQUIRE(p2pNode1.isServerRunning() == false);
-			REQUIRE(p2pNode2.isServerRunning() == false);
-			REQUIRE(p2pNode3.isServerRunning() == false);
-			REQUIRE(p2pNode4.isServerRunning() == false);
-			REQUIRE(p2pNode5.isServerRunning() == false);
-			REQUIRE(p2pNode6.isServerRunning() == false);
-			REQUIRE(p2pNode7.isServerRunning() == false);
-			REQUIRE(p2pNode8.isServerRunning() == false);
-			REQUIRE(p2pNode9.isServerRunning() == false);
-			REQUIRE(p2pNode10.isServerRunning() == false);
-		}
+      // Close all the nodes.
+      p2pDiscoveryNode.stop();
+      p2pNode1.stop();
+      p2pNode2.stop();
+      p2pNode3.stop();
+      p2pNode4.stop();
+      p2pNode5.stop();
+      p2pNode6.stop();
+      p2pNode7.stop();
+      p2pNode8.stop();
+      p2pNode9.stop();
+      p2pNode10.stop();
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      REQUIRE(p2pDiscoveryNode.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode1.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode2.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode3.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode4.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode5.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode6.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode7.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode8.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode9.getSessionsIDs().size() == 0);
+      REQUIRE(p2pNode10.getSessionsIDs().size() == 0);
+
+      REQUIRE(p2pDiscoveryNode.isServerRunning() == false);
+      REQUIRE(p2pNode1.isServerRunning() == false);
+      REQUIRE(p2pNode2.isServerRunning() == false);
+      REQUIRE(p2pNode3.isServerRunning() == false);
+      REQUIRE(p2pNode4.isServerRunning() == false);
+      REQUIRE(p2pNode5.isServerRunning() == false);
+      REQUIRE(p2pNode6.isServerRunning() == false);
+      REQUIRE(p2pNode7.isServerRunning() == false);
+      REQUIRE(p2pNode8.isServerRunning() == false);
+      REQUIRE(p2pNode9.isServerRunning() == false);
+      REQUIRE(p2pNode10.isServerRunning() == false);
+    }
   }
 };

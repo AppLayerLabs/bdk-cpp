@@ -7,14 +7,14 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.h
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.h
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pbase.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/encoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/session.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/client.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/server.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managerbase.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managerdiscovery.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managernormal.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.h
     PARENT_SCOPE
   )
 
@@ -25,13 +25,14 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/encoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/session.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/client.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/server.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managerbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managerdiscovery.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managernormal.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.cpp
     PARENT_SCOPE
   )
 else()
@@ -43,14 +44,14 @@ else()
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.h
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.h
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pbase.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.h
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/encoding.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/session.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/client.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/server.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managerbase.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managerdiscovery.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managernormal.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.h
     PARENT_SCOPE
   )
 
@@ -61,13 +62,14 @@ else()
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerbase.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagernormal.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pmanagerdiscovery.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pserver.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pencoding.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/p2p/p2pdiscoveryworker.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/encoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/session.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/client.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/server.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managerbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managerdiscovery.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/managernormal.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.cpp
     PARENT_SCOPE
   )
 endif()

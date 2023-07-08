@@ -1,6 +1,5 @@
 #include "encoding.h"
 
-#include "../../p2p/p2pmanagernormal.h"
 #include "../../../core/storage.h"
 #include "../../../core/state.h"
 

@@ -1,6 +1,6 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/core/blockchain.h"
-#include "../../src/net/p2p/p2pmanagerdiscovery.h"
+#include "../../src/net/p2p/managerdiscovery.h"
 #include <filesystem>
 
 /// Forward decleration from tests/net/http/httpjsonrpc.cpp
@@ -84,7 +84,7 @@ namespace TBlockchain {
                    PrivKey(), {"127.0.0.1", 8100}, blockchain4);
 
         /// Start the blockchain nodes.
-        p2pDiscovery->startServer();
+        p2pDiscovery->start();
         p2pDiscovery->startDiscovery();
         blockchain1->start();
         blockchain2->start();
@@ -97,12 +97,16 @@ namespace TBlockchain {
         REQUIRE(!blockchain4->getOptions()->getIsValidator());
 
         /// Wait everyone to connect.
-        while (blockchain1->getP2P()->getSessionsIDs().size() != 4 ||
-               blockchain2->getP2P()->getSessionsIDs().size() != 4 ||
-               blockchain3->getP2P()->getSessionsIDs().size() != 4 ||
-               blockchain4->getP2P()->getSessionsIDs().size() != 4) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        auto connectFuture = std::async(std::launch::async, [&]() {
+          while (blockchain1->getP2P()->getSessionsIDs().size() != 4 ||
+                 blockchain2->getP2P()->getSessionsIDs().size() != 4 ||
+                 blockchain3->getP2P()->getSessionsIDs().size() != 4 ||
+                 blockchain4->getP2P()->getSessionsIDs().size() != 4) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          }
+        });
+
+        REQUIRE(connectFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
         REQUIRE(blockchain1->getP2P()->getSessionsIDs().size() == 4);
         REQUIRE(blockchain2->getP2P()->getSessionsIDs().size() == 4);
@@ -203,8 +207,10 @@ namespace TBlockchain {
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode6);
 
         /// Start the discovery node.
-        p2pDiscovery->startServer();
+        p2pDiscovery->start();
         p2pDiscovery->startDiscovery();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         /// Start the validator nodes.
         blockchainValidator1->start();
@@ -222,19 +228,23 @@ namespace TBlockchain {
         blockchainNode6->start();
 
         /// Wait everyone to sync
-        while (!blockchainValidator1->isSynced() ||
-               !blockchainValidator2->isSynced() ||
-               !blockchainValidator3->isSynced() ||
-               !blockchainValidator4->isSynced() ||
-               !blockchainValidator5->isSynced() ||
-               !blockchainNode1->isSynced() ||
-               !blockchainNode2->isSynced() ||
-               !blockchainNode3->isSynced() ||
-               !blockchainNode4->isSynced() ||
-               !blockchainNode5->isSynced() ||
-               !blockchainNode6->isSynced()) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        auto syncFuture = std::async(std::launch::async, [&]() {
+          while (!blockchainValidator1->isSynced() ||
+                 !blockchainValidator2->isSynced() ||
+                 !blockchainValidator3->isSynced() ||
+                 !blockchainValidator4->isSynced() ||
+                 !blockchainValidator5->isSynced() ||
+                 !blockchainNode1->isSynced() ||
+                 !blockchainNode2->isSynced() ||
+                 !blockchainNode3->isSynced() ||
+                 !blockchainNode4->isSynced() ||
+                 !blockchainNode5->isSynced() ||
+                 !blockchainNode6->isSynced()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          }
+        });
+
+        REQUIRE(syncFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 
         uint64_t blocks = 0;
         while (blocks < 10) {
@@ -250,6 +260,26 @@ namespace TBlockchain {
               1000000000,
               privKey
           );
+
+          /// Commment this out and IT WILL NOT WORK.
+          /// Waiting for rdPoSWorker rework.
+          auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
+            while (blockchainValidator1->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainValidator2->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainValidator3->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainValidator4->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainValidator5->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainNode1->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainNode2->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainNode3->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainNode4->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainNode5->getrdPoS()->getMempool().size() != 8 ||
+                   blockchainNode6->getrdPoS()->getMempool().size() != 8) {
+              std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+          });
+
+          REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 
           myBalance -= tx.getValue() + (tx.getMaxFeePerGas() * tx.getGasLimit());
           targetBalance += tx.getValue();
@@ -272,23 +302,80 @@ namespace TBlockchain {
           REQUIRE(sendRawTxResponse["result"].get<std::string>() == tx.hash().hex(true).get());
 
           /// Wait for the new best block to be broadcasted and accepted by all nodes
-          auto latestBlock = blockchainNode1->getStorage()->latest();
-          while (latestBlock->hash() == blockchainNode1->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainNode2->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainNode3->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainNode4->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainNode5->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainNode6->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainValidator1->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainValidator2->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainValidator3->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainValidator4->getStorage()->latest()->hash() ||
-                 latestBlock->hash() == blockchainValidator5->getStorage()->latest()->hash()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
-          }
           ++blocks;
+          auto blockFuture = std::async(std::launch::async, [&]() {
+            while (blocks != blockchainNode1->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainNode2->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainNode3->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainNode4->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainNode5->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainNode6->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainValidator1->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainValidator2->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainValidator3->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainValidator4->getStorage()->latest()->getNHeight() ||
+                   blocks != blockchainValidator5->getStorage()->latest()->getNHeight()) {
+              std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+          });
+
+          std::cout << "Before: " << std::endl;
+          std::cout << blockchainNode1->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode2->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode3->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode4->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode5->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode6->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator1->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator2->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator3->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator4->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator5->getStorage()->latest()->getNHeight() << std::endl;
+
+          std::cout << "P2P Connections Count: " << std::endl;
+          std::cout << blockchainNode1->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode2->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode3->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode4->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode5->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode6->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator1->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator2->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator3->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator4->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator5->getP2P()->getSessionsIDs().size() << std::endl;
+
+          auto wait = blockFuture.wait_for(std::chrono::seconds(10));
+          std::cout << "After: " << std::endl;
+
+          std::cout << blockchainNode1->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode2->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode3->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode4->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode5->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainNode6->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator1->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator2->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator3->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator4->getStorage()->latest()->getNHeight() << std::endl;
+          std::cout << blockchainValidator5->getStorage()->latest()->getNHeight() << std::endl;
+
+          std::cout << "P2P Connections Count: " << std::endl;
+          std::cout << blockchainNode1->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode2->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode3->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode4->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode5->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainNode6->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator1->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator2->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator3->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator4->getP2P()->getSessionsIDs().size() << std::endl;
+          std::cout << blockchainValidator5->getP2P()->getSessionsIDs().size() << std::endl;
+
+          REQUIRE(wait != std::future_status::timeout);
+
           /// Everyone should be on the same block
-          std::this_thread::sleep_for(std::chrono::seconds(2));
           REQUIRE(blockchainValidator1->getStorage()->latest()->getNHeight() == blocks);
           REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainValidator2->getStorage()->latest()->hash());
           REQUIRE(blockchainValidator1->getStorage()->latest()->hash() == blockchainValidator3->getStorage()->latest()->hash());

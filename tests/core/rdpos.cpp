@@ -4,8 +4,8 @@
 #include "../../src/core/state.h"
 #include "../../src/utils/db.h"
 #include "../../src/utils/options.h"
-#include "../../src/net/p2p/p2pmanagernormal.h"
-#include "../../src/net/p2p/p2pmanagerdiscovery.h"
+#include "../../src/net/p2p/managernormal.h"
+#include "../../src/net/p2p/managerdiscovery.h"
 
 #include <filesystem>
 #include <utility>
@@ -26,7 +26,7 @@ const std::vector<Hash> validatorPrivKeys {
 // The tests will still work, as tests uses own genesis block.
 void initialize(std::unique_ptr<DB>& db, 
                 std::unique_ptr<Storage>& storage, 
-                std::unique_ptr<P2P::ManagerNormal>& p2p, 
+                std::unique_ptr<P2P::ManagerNormal>& p2p,
                 PrivKey validatorKey,
                 std::unique_ptr<rdPoS>& rdpos,
                 std::unique_ptr<Options>& options,
@@ -305,7 +305,7 @@ namespace TRdPoS {
     }
   }
 
-  TEST_CASE("rdPoS Class With Network Functionality", "[core][rdpos][net][p2p]") {
+  TEST_CASE("rdPoS Class With Network Functionality", "[core][rdpos][net]") {
     SECTION("Two Nodes instances, simple transaction broadcast") {
       // Initialize two different node instances, with different ports and DBs.
       std::unique_ptr<DB> db1;
@@ -328,10 +328,10 @@ namespace TRdPoS {
 
 
       // Start respective p2p servers, and connect each other.
-      p2p1->startServer();
-      p2p2->startServer();
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-      p2p1->connectToServer("127.0.0.1", 8081);
+      p2p1->start();
+      p2p2->start();
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
 
@@ -410,7 +410,7 @@ namespace TRdPoS {
       rdpos1->clearMempool();
 
       // Request the transactions from node 1 to node 2
-      std::vector<Hash> nodesIds = p2p1->getSessionsIDs();
+      std::vector<P2P::NodeID> nodesIds = p2p1->getSessionsIDs();
       REQUIRE(nodesIds.size() == 1);
       auto transactionList = p2p1->requestValidatorTxs(nodesIds[0]);
 
@@ -532,35 +532,39 @@ namespace TRdPoS {
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
-      p2p9->startServer();
-      p2p10->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
+      p2p9->start();
+      p2p10->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
-      p2p9->connectToServer("127.0.0.1", 8090);
-      p2p10->connectToServer("127.0.0.1", 8090);
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p9->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p10->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // Wait for connection towards discovery node.
-      while(p2pDiscovery->getSessionsIDs().size() != 10)
-      {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async (std::launch::async, [&] {
+        while(p2pDiscovery->getSessionsIDs().size() != 10)
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 10);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -586,22 +590,25 @@ namespace TRdPoS {
       p2p9->startDiscovery();
       p2p10->startDiscovery();
 
-      while(p2pDiscovery->getSessionsIDs().size() != 10 ||
-            p2p1->getSessionsIDs().size() != 10 ||
-            p2p2->getSessionsIDs().size() != 10 ||
-            p2p3->getSessionsIDs().size() != 10 ||
-            p2p4->getSessionsIDs().size() != 10 ||
-            p2p5->getSessionsIDs().size() != 10 ||
-            p2p6->getSessionsIDs().size() != 10 ||
-            p2p7->getSessionsIDs().size() != 10 ||
-            p2p8->getSessionsIDs().size() != 10 ||
-            p2p9->getSessionsIDs().size() != 10 ||
-            p2p10->getSessionsIDs().size() != 10) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
-      }
+
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while(p2p1->getSessionsIDs().size() != 10 ||
+              p2p2->getSessionsIDs().size() != 10 ||
+              p2p3->getSessionsIDs().size() != 10 ||
+              p2p4->getSessionsIDs().size() != 10 ||
+              p2p5->getSessionsIDs().size() != 10 ||
+              p2p6->getSessionsIDs().size() != 10 ||
+              p2p7->getSessionsIDs().size() != 10 ||
+              p2p8->getSessionsIDs().size() != 10 ||
+              p2p9->getSessionsIDs().size() != 10 ||
+              p2p10->getSessionsIDs().size() != 10) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
-      // TODO: this is done because there is a mess of mutexes within broadcast
       // Making so that the broadcast down this line takes too long to complete
       p2p1->stopDiscovery();
       p2p2->stopDiscovery();
@@ -677,7 +684,24 @@ namespace TRdPoS {
         p2p1->broadcastTxValidator(tx);
       }
 
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      /// Wait till transactions are broadcasted
+      auto finalMempool = rdpos1->getMempool();
+
+      auto broadcastFuture = std::async(std::launch::async, [&]() {
+        while(rdpos2->getMempool() != rdpos1->getMempool() ||
+              rdpos3->getMempool() != rdpos1->getMempool() ||
+            rdpos4->getMempool() != rdpos1->getMempool() ||
+            rdpos5->getMempool() != rdpos1->getMempool() ||
+            rdpos6->getMempool() != rdpos1->getMempool() ||
+            rdpos7->getMempool() != rdpos1->getMempool() ||
+            rdpos8->getMempool() != rdpos1->getMempool() ||
+            rdpos9->getMempool() != rdpos1->getMempool() ||
+            rdpos10->getMempool() != rdpos1->getMempool()) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+      });
+
+      REQUIRE(broadcastFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Check if all mempools matchs
       auto node1Mempool = rdpos1->getMempool();
@@ -703,7 +727,7 @@ namespace TRdPoS {
     }
   }
 
-  TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality, move 10 blocks forward", "[core][rdpos][net][p2p][heavy]") {
+  TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality, move 10 blocks forward", "[core][rdpos][net][heavy]") {
     // Initialize 8 different node instances, with different ports and DBs.
     std::unique_ptr<DB> db1;
     std::unique_ptr<Storage> storage1;
@@ -802,31 +826,36 @@ namespace TRdPoS {
     rdPoSreferences.emplace_back(rdpos8);
 
     // Start servers
-    p2pDiscovery->startServer();
-    p2p1->startServer();
-    p2p2->startServer();
-    p2p3->startServer();
-    p2p4->startServer();
-    p2p5->startServer();
-    p2p6->startServer();
-    p2p7->startServer();
-    p2p8->startServer();
+    p2pDiscovery->start();
+    p2p1->start();
+    p2p2->start();
+    p2p3->start();
+    p2p4->start();
+    p2p5->start();
+    p2p6->start();
+    p2p7->start();
+    p2p8->start();
 
     // Connect nodes to the discovery node.
-    p2p1->connectToServer("127.0.0.1", 8090);
-    p2p2->connectToServer("127.0.0.1", 8090);
-    p2p3->connectToServer("127.0.0.1", 8090);
-    p2p4->connectToServer("127.0.0.1", 8090);
-    p2p5->connectToServer("127.0.0.1", 8090);
-    p2p6->connectToServer("127.0.0.1", 8090);
-    p2p7->connectToServer("127.0.0.1", 8090);
-    p2p8->connectToServer("127.0.0.1", 8090);
+    p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
     // Wait for connection towards discovery node.
-    while(p2pDiscovery->getSessionsIDs().size() != 8)
-    {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+    auto discoveryFuture = std::async(std::launch::async, [&]() {
+      while(p2pDiscovery->getSessionsIDs().size() != 8)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    });
+
+    REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+
 
     REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
     REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -848,20 +877,24 @@ namespace TRdPoS {
     p2p7->startDiscovery();
     p2p8->startDiscovery();
 
-    while(p2pDiscovery->getSessionsIDs().size() != 8 ||
-          p2p1->getSessionsIDs().size() != 8 ||
-          p2p2->getSessionsIDs().size() != 8 ||
-          p2p3->getSessionsIDs().size() != 8 ||
-          p2p4->getSessionsIDs().size() != 8 ||
-          p2p5->getSessionsIDs().size() != 8 ||
-          p2p6->getSessionsIDs().size() != 8 ||
-          p2p7->getSessionsIDs().size() != 8 ||
-          p2p8->getSessionsIDs().size() != 8) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+
+    auto connectionFuture = std::async(std::launch::async, [&]() {
+      while(p2pDiscovery->getSessionsIDs().size() != 8 ||
+            p2p1->getSessionsIDs().size() != 8 ||
+            p2p2->getSessionsIDs().size() != 8 ||
+            p2p3->getSessionsIDs().size() != 8 ||
+            p2p4->getSessionsIDs().size() != 8 ||
+            p2p5->getSessionsIDs().size() != 8 ||
+            p2p6->getSessionsIDs().size() != 8 ||
+            p2p7->getSessionsIDs().size() != 8 ||
+            p2p8->getSessionsIDs().size() != 8) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    });
+
+    REQUIRE(connectionFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
     // Stop discovery after all nodes have connected to each other.
-    // TODO: this is done because there is a mess of mutexes within broadcast
     // Making so that the broadcast down this line takes too long to complete
     p2p1->stopDiscovery();
     p2p2->stopDiscovery();
@@ -875,14 +908,6 @@ namespace TRdPoS {
 
 
     // After a while, the discovery thread should have found all the nodes and connected between each other.
-    while (p2pDiscovery->getSessionsIDs().size() != 8) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-    // Sleep an extra second
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
 
     REQUIRE(rdpos1->getIsValidator());
     REQUIRE(rdpos2->getIsValidator());
@@ -905,9 +930,13 @@ namespace TRdPoS {
     // Loop for block creation.
     uint64_t blocks = 0;
     while (blocks < 10) {
-      while (rdpos1->getMempool().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      }
+      auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
+        while (rdpos1->getMempool().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       for (auto &blockCreator: rdPoSreferences) {
         if (blockCreator.get()->canCreateBlock()) {
@@ -992,7 +1021,7 @@ namespace TRdPoS {
         }
       }
     }
-    /// TODO: This is done for the same reason as stopDiscovery.
+
     rdpos1->stoprdPoSWorker();
     rdpos2->stoprdPoSWorker();
     rdpos3->stoprdPoSWorker();
