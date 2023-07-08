@@ -29,10 +29,17 @@ namespace P2P {
 
   void ServerListener::stop() {
     // Cancel is not available under Windows systems
-    #ifndef __MINGW32__
-    acceptor_.cancel(); // Cancel the acceptor.
-    #endif
-    acceptor_.close(); // Close the acceptor.
+    boost::system::error_code ec;
+    acceptor_.cancel(ec); // Cancel the acceptor.
+    if (ec) {
+      Utils::logToDebug(Log::P2PServerListener, __func__, "Failed to cancel acceptor operations: " + ec.message());
+      return;
+    }
+    acceptor_.close(ec); // Close the acceptor.
+    if (ec) {
+      Utils::logToDebug(Log::P2PServerListener, __func__, "Failed to close acceptor: " + ec.message());
+      return;
+    }
   }
 
   bool Server::run() {
