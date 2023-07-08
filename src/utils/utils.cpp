@@ -19,7 +19,7 @@ void Utils::logToFile(std::string_view str) {
 }
 
 void Utils::logToDebug(std::string_view pfx, std::string_view func, std::string_view data) {
-  //  std::lock_guard lock(debug_mutex);
+  std::lock_guard lock(debug_mutex);
   std::ofstream log("debug.txt", std::ios::app);
   log << pfx << "::" << func << " - " << data << std::endl;
   log.close();
