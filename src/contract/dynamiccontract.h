@@ -49,9 +49,6 @@ class DynamicContract : public BaseContract {
       Functor, std::function<ReturnType(const ethCallInfo& callInfo)>, SafeHash
     > viewFunctions;
 
-    /// Vector of variables that were used by the contract.
-    std::vector<std::reference_wrapper<SafeBase>> usedVariables;
-
     /**
      * Register a callable function (a function that is called by a transaction),
      * adding it to the callable functions map.
@@ -67,7 +64,7 @@ class DynamicContract : public BaseContract {
      * Register a variable that was used by the contract.
      * @param variable Reference to the variable.
      */
-    inline void registerVariableUse(SafeBase& variable) { usedVariables.emplace_back(variable); }
+    inline void registerVariableUse(SafeBase& variable) { interface.registerVariableUse(variable); }
 
   protected:
     /**
@@ -378,23 +375,6 @@ class DynamicContract : public BaseContract {
       );
     }
 
-    /**
-     * Update the variables that were used by the contract.
-     * Called by ethCall functions and contract constructors.
-     * Flag is set by ContractManager, except for when throwing.
-     * @param commitToState If `true`, commits the changes made to SafeVariables to the state.
-     *                      If `false`, just simulates the transaction.
-     *                      ContractManager is responsible for setting this.
-     */
-    void updateState(const bool commitToState) {
-      for (auto& var : usedVariables) {
-        if (commitToState) var.get().commit(); else var.get().revert();
-      }
-      usedVariables.clear();
-    }
-
-
-
   public:
     /**
      * Constructor for creating the contract from scratch.
@@ -443,10 +423,8 @@ class DynamicContract : public BaseContract {
           func->second(callInfo);
         }
       } catch (const std::exception& e) {
-        updateState(false);
         throw std::runtime_error(e.what());
       }
-      updateState(this->getCommit());
     };
 
     /**
@@ -549,9 +527,10 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C, typename... Args>
     R callContractFunction(const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args) {
         return this->interface.callContractFunction(this->getContractAddress(),
-                                                    targetAddr, 
-                                                    0, 
-                                                    func, 
+                                                    targetAddr,
+                                                    0,
+                                                    this->getCommit(),
+                                                    func,
                                                     std::forward<const Args&>(args)...);
     }
 
@@ -570,7 +549,8 @@ class DynamicContract : public BaseContract {
     R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args) {
         return this->interface.callContractFunction(this->getContractAddress(),
                                                     address, 
-                                                    value, 
+                                                    value,
+                                                    this->getCommit(),
                                                     func, 
                                                     std::forward<const Args&>(args)...);
     }
@@ -587,7 +567,8 @@ class DynamicContract : public BaseContract {
     R callContractFunction(const Address& targetAddr, R(C::*func)()) {
         return this->interface.callContractFunction(this->getContractAddress(),
                                                     targetAddr, 
-                                                    0, 
+                                                    0,
+                                                    this->getCommit(),
                                                     func);
     }
 
@@ -604,7 +585,8 @@ class DynamicContract : public BaseContract {
     R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)()) {
         return this->interface.callContractFunction(this->getContractAddress(),
                                                     address, 
-                                                    value, 
+                                                    value,
+                                                    this->getCommit(),
                                                     func);
     }
 
@@ -619,16 +601,9 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C, typename... Args>
     R callContractFunction(R (C::*func)(const Args&...), const Args&... args) {
-      struct UpdateState {
-        C* contract;
-        UpdateState(C* contract) : contract(contract) {}
-        ~UpdateState() { contract->updateState(contract->getCommit()); }
-      } updateState(static_cast<C*>(this));
-      
       try {
         return (static_cast<C*>(this)->*func)(std::forward<const Args&>(args)...);
       } catch (const std::exception& e) {
-        this->updateState(false);
         throw std::runtime_error(e.what());
       }
     }
@@ -643,16 +618,9 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C>
     R callContractFunction(R (C::*func)()) {
-      struct UpdateState {
-        C* contract;
-        UpdateState(C* contract) : contract(contract) {}
-        ~UpdateState() { contract->updateState(contract->getCommit()); }
-      } updateState(static_cast<C*>(this));
-      
       try {
         return (static_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
-        this->updateState(false);
         throw std::runtime_error(e.what());
       }
     }
@@ -669,10 +637,10 @@ class DynamicContract : public BaseContract {
     * @return The address of the created contract.
     */
     template<typename TContract, typename... Args>
-    Address callCreateContract(const Address &from, const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
+    Address callCreateContract(const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
         ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
         ABI::Encoder encoder(vars);
-        return this->interface.callCreateContract<TContract>(from, gas, gasPrice, value, std::move(encoder));
+        return this->interface.callCreateContract<TContract>(this->getContractAddress(), gas, gasPrice, value, std::move(encoder));
     }
 
     /**

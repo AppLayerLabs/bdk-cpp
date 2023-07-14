@@ -14,14 +14,15 @@ ContractManager::ContractManager(State* state, const std::unique_ptr<DB>& db, co
   addAllContractFuncs<ContractTypes>();
   
   // Load Contracts from DB.
-  auto contracts = this->db->getBatch(DBPrefix::contractManager);
-  for (const auto &contract : contracts) {
+  auto contractsFromDB = this->db->getBatch(DBPrefix::contractManager);
+  for (const auto &contract : contractsFromDB) {
       Address contractAddress(contract.key);
 
       if (!loadFromDB<ContractTypes>(contract, contractAddress)) {
         throw std::runtime_error("Unknown contract: " + Utils::bytesToString(contract.value));
       }
     }
+  this->updateState(true);
 }
 
 ContractManager::~ContractManager() {
@@ -93,10 +94,10 @@ const Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
 }
 
 void ContractManager::callContract(const TxBlock& tx) {
-  this->commit = true;
   auto callInfo = tx.txToCallInfo();
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
   if (to == this->getContractAddress()) {
+    this->commit = true;
     this->caller = from;
     this->origin = from;
     this->value = value;
@@ -116,7 +117,7 @@ void ContractManager::callContract(const TxBlock& tx) {
     rdpos->caller = from;
     rdpos->origin = from;
     rdpos->value = value;
-    rdpos->commit = this->commit;
+    rdpos->commit = true;
     try {
       rdpos->ethCall(callInfo);
     } catch (std::exception &e) {
@@ -144,6 +145,7 @@ void ContractManager::callContract(const TxBlock& tx) {
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     contract->commit = false;
+    this->updateState(false);
     balances.clear();
     throw std::runtime_error(e.what());
   }
@@ -153,6 +155,7 @@ void ContractManager::callContract(const TxBlock& tx) {
   }
 
   balances.clear();
+  this->updateState(true);
   contract->commit = false;
 }
 
@@ -210,8 +213,10 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     balances.clear();
+    this->updateState(false);
     throw std::runtime_error(e.what());
   }
+  this->updateState(false);
   balances.clear();
   return true;
 }

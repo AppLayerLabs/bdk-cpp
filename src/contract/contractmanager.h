@@ -15,6 +15,7 @@
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
+#include "variables/safeunorderedmap.h"
 
 // Forward declarations.
 class rdPoS;
@@ -49,8 +50,8 @@ class ContractManager : BaseContract {
     /**
      * Temporary map of balances within the chain.
      * Used during callContract with a payable function.
-     * Cleared after the callContract function commited to the state if
-     * `getCommit() == true` and the ethCall was successful.
+     * Cleared after the callContract function commited to the state on the end
+     * of callContract(TxBlock&) if everything was succesfull.
      */
     std::unordered_map<Address, uint256_t, SafeHash> balances;
 
@@ -63,8 +64,11 @@ class ContractManager : BaseContract {
     /// Map of contract functors and create functions, used to create contracts.
     std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash> createContractFuncs;
 
-    /// Map of contract functors and validate functions, used to validate contracts.
+    /// Map of contract functors and validate functions, used to  contracts.
     std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash> validateContractFuncs;
+
+    /// Vector of variables that were used by contracts called by CM.
+    std::vector<std::reference_wrapper<SafeBase>> usedVariables;
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;
@@ -77,6 +81,27 @@ class ContractManager : BaseContract {
 
     /// Derive a new contract address based on transaction sender and nonce.
     Address deriveContractAddress() const;
+
+    /**
+     * Update the variables that were used by the contract.
+     * Called by ethCall functions and contract constructors.
+     * Flag is set by ContractManager, except for when throwing.
+     * @param commitToState If `true`, commits the changes made to SafeVariables to the state.
+     *                      If `false`, just simulates the transaction.
+     *                      ContractManager is responsible for setting this.
+     */
+    void updateState(const bool commitToState) {
+      if (commitToState) {
+        for (auto rbegin = usedVariables.rbegin(); rbegin != usedVariables.rend(); ++rbegin) {
+          rbegin->get().commit();
+        }
+      } else {
+        for (auto rbegin = usedVariables.rbegin(); rbegin != usedVariables.rend(); ++rbegin) {
+          rbegin->get().revert();
+        }
+      }
+      usedVariables.clear();
+    }
 
     /**
      * Setup data for a new contract before creating/validating it.
@@ -190,6 +215,10 @@ class ContractManager : BaseContract {
       }
 
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(derivedContractAddress, dataVector);
+      /// Update the inner variables of the contract.
+      /// The constructor can set SafeVariables values from the constructor.
+      /// We need to take account of that and set the variables accordingly.
+      this->updateState(true);
       this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
     }
 
@@ -428,7 +457,6 @@ class ContractManagerInterface {
   private:
     /// Reference to the contract manager.
     ContractManager& contractManager;
-
   public:
     /**
      * Constructor.
@@ -437,6 +465,12 @@ class ContractManagerInterface {
     explicit ContractManagerInterface(ContractManager& contractManager)
       : contractManager(contractManager)
     {}
+
+    /**
+     * Register a variable that was used a given contract.
+     * @param variable Reference to the variable.
+     */
+    inline void registerVariableUse(SafeBase& variable) { this->contractManager.usedVariables.emplace_back(variable); }
 
     /// Populate a given address with its balance from the State.
     void populateBalance(const Address& address) const;
@@ -462,7 +496,8 @@ class ContractManagerInterface {
     template <typename R, typename C, typename... Args>
     R callContractFunction(const Address& fromAddr, 
                            const Address& targetAddr, 
-                           const uint256_t& value, 
+                           const uint256_t& value,
+                           const bool& commit,
                            R(C::*func)(const Args&...), 
                            const Args&... args) {
         if (value) {
@@ -476,7 +511,7 @@ class ContractManagerInterface {
         C* contract = this->getContract<C>(targetAddr);
         contract->caller = fromAddr;
         contract->value = value;
-        contract->commit = this->contractManager.getCommit();
+        contract->commit = commit;
         try {
           return contract->callContractFunction(func, std::forward<const Args&>(args)...);
         } catch (const std::exception& e) {
@@ -504,7 +539,8 @@ class ContractManagerInterface {
     template <typename R, typename C>
     R callContractFunction(const Address& fromAddr, 
                            const Address& targetAddr, 
-                           const uint256_t& value, 
+                           const uint256_t& value,
+                           const bool& commit,
                            R(C::*func)()) {
         if (value) {
           this->sendTokens(fromAddr, targetAddr, value);
@@ -517,7 +553,7 @@ class ContractManagerInterface {
         C* contract = this->getContract<C>(targetAddr);
         contract->caller = fromAddr;
         contract->value = value;
-        contract->commit = this->contractManager.getCommit();
+        contract->commit = commit;
         try {
           return contract->callContractFunction(func);
         } catch (const std::exception& e) {
