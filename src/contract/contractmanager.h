@@ -61,11 +61,11 @@ class ContractManager : BaseContract {
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
 
+    /// Set of recently created contracts.
+    std::unordered_set<Address, SafeHash> recentlyCreatedContracts;
+
     /// Map of contract functors and create functions, used to create contracts.
     std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash> createContractFuncs;
-
-    /// Map of contract functors and validate functions, used to  contracts.
-    std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash> validateContractFuncs;
 
     /// Vector of variables that were used by contracts called by CM.
     std::vector<std::reference_wrapper<SafeBase>> usedVariables;
@@ -90,18 +90,7 @@ class ContractManager : BaseContract {
      *                      If `false`, just simulates the transaction.
      *                      ContractManager is responsible for setting this.
      */
-    void updateState(const bool commitToState) {
-      if (commitToState) {
-        for (auto rbegin = usedVariables.rbegin(); rbegin != usedVariables.rend(); ++rbegin) {
-          rbegin->get().commit();
-        }
-      } else {
-        for (auto rbegin = usedVariables.rbegin(); rbegin != usedVariables.rend(); ++rbegin) {
-          rbegin->get().revert();
-        }
-      }
-      usedVariables.clear();
-    }
+    void updateState(const bool commitToState);
 
     /**
      * Setup data for a new contract before creating/validating it.
@@ -219,18 +208,8 @@ class ContractManager : BaseContract {
       /// The constructor can set SafeVariables values from the constructor.
       /// We need to take account of that and set the variables accordingly.
       this->updateState(true);
+      this->recentlyCreatedContracts.insert(derivedContractAddress);
       this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
-    }
-
-    /**
-     * Validate a new contract from a given call info.
-     * @param callInfo The call info to process.
-     * @throw runtime_error if the call to the ethCall function fails or if the
-     * contract is does not exist.
-     */
-    template <typename TContract>
-    void validateNewContract(const ethCallInfo &callInfo) {
-      this->setupNewContract<TContract>(callInfo);
     }
 
     /**
@@ -240,7 +219,7 @@ class ContractManager : BaseContract {
      * @param validateFunc Function to validate a new contract
      */
     template <typename Contract>
-    void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc, std::function<void(const ethCallInfo &)> validateFunc) {
+    void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
       std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
       std::ostringstream createFullSignatureStream;
@@ -252,7 +231,6 @@ class ContractManager : BaseContract {
       createFullSignatureStream << ")";
       Functor functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
       createContractFuncs[functor.asBytes()] = createFunc;
-      validateContractFuncs[functor.asBytes()] = validateFunc;
     }
 
     /**
@@ -289,9 +267,7 @@ class ContractManager : BaseContract {
     template <typename Tuple, std::size_t... Is>
     void addAllContractFuncsHelper(std::index_sequence<Is...>) {
       ((this->addContractFuncs<std::tuple_element_t<Is, Tuple>>(
-        [&](const ethCallInfo &callInfo) { this->createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); },
-        [&](const ethCallInfo &callInfo) { this->validateNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); }
-      )), ...);
+        [&](const ethCallInfo &callInfo) { this->createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); })), ...);
     }
 
     /**

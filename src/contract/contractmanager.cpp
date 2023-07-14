@@ -50,20 +50,29 @@ Address ContractManager::deriveContractAddress() const {
   return Address(Utils::sha3(rlp).view_const(12));
 }
 
-void ContractManager::ethCall(const ethCallInfo& callInfo) {
-  Functor functor = std::get<5>(callInfo);
-  if (this->getCommit()) {
-    auto createIt = createContractFuncs.find(functor.asBytes());
-    if (createIt != createContractFuncs.end()) {
-      createIt->second(callInfo);
-      return;
+void ContractManager::updateState(const bool commitToState) {
+  if (commitToState) {
+    for (auto rbegin = usedVariables.rbegin(); rbegin != usedVariables.rend(); ++rbegin) {
+      rbegin->get().commit();
     }
   } else {
-    auto validateIt = validateContractFuncs.find(functor.asBytes());
-    if (validateIt != validateContractFuncs.end()) {
-      validateIt->second(callInfo);
-      return;
+    for (auto rbegin = usedVariables.rbegin(); rbegin != usedVariables.rend(); ++rbegin) {
+      rbegin->get().revert();
     }
+    for (const Address& badContract : this->recentlyCreatedContracts) {
+      this->contracts.erase(badContract);
+    }
+  }
+  this->recentlyCreatedContracts.clear();
+  usedVariables.clear();
+}
+
+void ContractManager::ethCall(const ethCallInfo& callInfo) {
+  Functor functor = std::get<5>(callInfo);
+  auto createIt = createContractFuncs.find(functor.asBytes());
+  if (createIt != createContractFuncs.end()) {
+    createIt->second(callInfo);
+    return;
   }
   throw std::runtime_error("Invalid function call with functor: " + Utils::bytesToString(functor.asBytes()));
 }
@@ -105,9 +114,11 @@ void ContractManager::callContract(const TxBlock& tx) {
       this->ethCall(callInfo);
     } catch (std::exception &e) {
       this->commit = false;
+      this->updateState(false);
       balances.clear();
       throw std::runtime_error(e.what());
     }
+    this->updateState(true);
     this->commit = false;
     balances.clear();
     return;
@@ -122,10 +133,12 @@ void ContractManager::callContract(const TxBlock& tx) {
       rdpos->ethCall(callInfo);
     } catch (std::exception &e) {
       rdpos->commit = false;
+      this->updateState(false);
       balances.clear();
       throw std::runtime_error(e.what());
     }
     rdpos->commit = false;
+    this->updateState(true);
     balances.clear();
     return;
   }
@@ -187,6 +200,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       this->value = value;
       this->ethCall(callInfo);
       balances.clear();
+      this->updateState(false);
       return true;
     }
 
@@ -197,6 +211,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       rdpos->commit = false;
       rdpos->ethCall(callInfo);
       balances.clear();
+      this->updateState(false);
       return true;
     }
 

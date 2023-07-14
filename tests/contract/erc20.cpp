@@ -213,11 +213,8 @@ namespace TERC20 {
           randomPrivKey
         );
 
-        std::cout << "REQUIRE THROW" << std::endl;
         REQUIRE_THROWS(contractManager->validateCallContractWithTx(transferTxThrows.txToCallInfo()));
-        std::cout << "DONT THROW" << std::endl;
         contractManager->validateCallContractWithTx(transferTx.txToCallInfo());
-        std::cout << "THROWED" << std::endl;
 
         Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
         ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
