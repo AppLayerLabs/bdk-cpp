@@ -19,7 +19,6 @@ NativeWrapper::NativeWrapper(ContractManagerInterface &interface, const Address&
     this->_allowed[Address(dbEntry.key)][Address(keyView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(keyView.subspan(20));
   }
   this->registerContractFunctions();
-  updateState(true);
 }
 
 NativeWrapper::NativeWrapper(
@@ -35,7 +34,6 @@ NativeWrapper::NativeWrapper(
   _symbol = erc20_symbol;
   _decimals = erc20_decimals;
   this->registerContractFunctions();
-  updateState(true);
 }
 
 NativeWrapper::~NativeWrapper() {
