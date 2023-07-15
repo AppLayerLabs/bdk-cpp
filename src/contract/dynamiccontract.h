@@ -629,7 +629,6 @@ class DynamicContract : public BaseContract {
     * Call the create function of a contract.
     * @tparam TContract The contract type.
     * @tparam Args The arguments of the contract constructor.
-    * @param from The address of the sender.
     * @param gas The gas limit.
     * @param gasPrice The gas price.
     * @param value The caller value.

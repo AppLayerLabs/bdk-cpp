@@ -463,7 +463,8 @@ class ContractManagerInterface {
     * @tparam Args The arguments types.
     * @param fromAddr The address of the caller.
     * @param targetAddr The address of the contract to call.
-    * @param value Flag to indicate if the function is payable.
+    * @param value Flag to indicate if the function is payable.,
+    * @param commit Flag to set contract->commit same as caller.
     * @param func The function to call.
     * @param args The arguments to pass to the function.
     * @return The return value of the function.
@@ -508,6 +509,7 @@ class ContractManagerInterface {
     * @param fromAddr The address of the caller.
     * @param targetAddr The address of the contract to call.
     * @param value Flag to indicate if the function is payable.
+    * @param commit Flag to set contract->commit same as caller.
     * @param func The function to call.
     * @return The return value of the function.
     */
