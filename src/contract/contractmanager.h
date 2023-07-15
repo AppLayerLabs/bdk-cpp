@@ -216,7 +216,6 @@ class ContractManager : BaseContract {
      * Adds contract create and validate functions to the respective maps
      * @tparam Contract Contract type
      * @param createFunc Function to create a new contract
-     * @param validateFunc Function to validate a new contract
      */
     template <typename Contract>
     void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc) {
