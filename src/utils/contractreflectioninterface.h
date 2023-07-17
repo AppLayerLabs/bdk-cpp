@@ -199,7 +199,7 @@ std::vector<ABI::Types> inline getMethodArgumentsTypesABI(
 template <typename TContract, typename... Args, typename... Methods>
 void inline registerContract(const std::vector<std::string> &ctorArgs,
                              Methods &&...methods) {
-  meta::class_<TContract>().template constructor_<Args...>();
+  meta::class_<TContract>().template constructor_<Args...>(meta::constructor_policy::as_shared_pointer);
 
   // Store constructor argument names in the constructorArgumentNamesMap
   constructorArgumentNamesMap[typeid(TContract).name()] = ctorArgs;
