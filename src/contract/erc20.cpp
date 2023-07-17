@@ -19,7 +19,6 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const 
     this->_allowed[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
   this->registerContractFunctions();
-  updateState(true);
 }
 
 ERC20::ERC20(
@@ -36,7 +35,6 @@ ERC20::ERC20(
   _decimals = erc20_decimals;
   _mintValue(creator, mintValue);
   this->registerContractFunctions();
-  updateState(true);
 }
 
 ERC20::~ERC20() {

@@ -15,6 +15,7 @@
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
+#include "variables/safeunorderedmap.h"
 
 // Forward declarations.
 class rdPoS;
@@ -49,8 +50,8 @@ class ContractManager : BaseContract {
     /**
      * Temporary map of balances within the chain.
      * Used during callContract with a payable function.
-     * Cleared after the callContract function commited to the state if
-     * `getCommit() == true` and the ethCall was successful.
+     * Cleared after the callContract function commited to the state on the end
+     * of callContract(TxBlock&) if everything was succesfull.
      */
     std::unordered_map<Address, uint256_t, SafeHash> balances;
 
@@ -60,11 +61,14 @@ class ContractManager : BaseContract {
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
 
+    /// Set of recently created contracts.
+    std::unordered_set<Address, SafeHash> recentlyCreatedContracts;
+
     /// Map of contract functors and create functions, used to create contracts.
     std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash> createContractFuncs;
 
-    /// Map of contract functors and validate functions, used to validate contracts.
-    std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash> validateContractFuncs;
+    /// Vector of variables that were used by contracts called by CM.
+    std::vector<std::reference_wrapper<SafeBase>> usedVariables;
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;
@@ -77,6 +81,16 @@ class ContractManager : BaseContract {
 
     /// Derive a new contract address based on transaction sender and nonce.
     Address deriveContractAddress() const;
+
+    /**
+     * Update the variables that were used by the contract.
+     * Called by ethCall functions and contract constructors.
+     * Flag is set by ContractManager, except for when throwing.
+     * @param commitToState If `true`, commits the changes made to SafeVariables to the state.
+     *                      If `false`, just simulates the transaction.
+     *                      ContractManager is responsible for setting this.
+     */
+    void updateState(const bool commitToState);
 
     /**
      * Setup data for a new contract before creating/validating it.
@@ -190,28 +204,21 @@ class ContractManager : BaseContract {
       }
 
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(derivedContractAddress, dataVector);
+      /// Update the inner variables of the contract.
+      /// The constructor can set SafeVariables values from the constructor.
+      /// We need to take account of that and set the variables accordingly.
+      this->updateState(true);
+      this->recentlyCreatedContracts.insert(derivedContractAddress);
       this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
-    }
-
-    /**
-     * Validate a new contract from a given call info.
-     * @param callInfo The call info to process.
-     * @throw runtime_error if the call to the ethCall function fails or if the
-     * contract is does not exist.
-     */
-    template <typename TContract>
-    void validateNewContract(const ethCallInfo &callInfo) {
-      this->setupNewContract<TContract>(callInfo);
     }
 
     /**
      * Adds contract create and validate functions to the respective maps
      * @tparam Contract Contract type
      * @param createFunc Function to create a new contract
-     * @param validateFunc Function to validate a new contract
      */
     template <typename Contract>
-    void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc, std::function<void(const ethCallInfo &)> validateFunc) {
+    void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
       std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
       std::ostringstream createFullSignatureStream;
@@ -223,7 +230,6 @@ class ContractManager : BaseContract {
       createFullSignatureStream << ")";
       Functor functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
       createContractFuncs[functor.asBytes()] = createFunc;
-      validateContractFuncs[functor.asBytes()] = validateFunc;
     }
 
     /**
@@ -260,9 +266,7 @@ class ContractManager : BaseContract {
     template <typename Tuple, std::size_t... Is>
     void addAllContractFuncsHelper(std::index_sequence<Is...>) {
       ((this->addContractFuncs<std::tuple_element_t<Is, Tuple>>(
-        [&](const ethCallInfo &callInfo) { this->createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); },
-        [&](const ethCallInfo &callInfo) { this->validateNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); }
-      )), ...);
+        [&](const ethCallInfo &callInfo) { this->createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); })), ...);
     }
 
     /**
@@ -428,7 +432,6 @@ class ContractManagerInterface {
   private:
     /// Reference to the contract manager.
     ContractManager& contractManager;
-
   public:
     /**
      * Constructor.
@@ -437,6 +440,12 @@ class ContractManagerInterface {
     explicit ContractManagerInterface(ContractManager& contractManager)
       : contractManager(contractManager)
     {}
+
+    /**
+     * Register a variable that was used a given contract.
+     * @param variable Reference to the variable.
+     */
+    inline void registerVariableUse(SafeBase& variable) { this->contractManager.usedVariables.emplace_back(variable); }
 
     /// Populate a given address with its balance from the State.
     void populateBalance(const Address& address) const;
@@ -454,7 +463,8 @@ class ContractManagerInterface {
     * @tparam Args The arguments types.
     * @param fromAddr The address of the caller.
     * @param targetAddr The address of the contract to call.
-    * @param value Flag to indicate if the function is payable.
+    * @param value Flag to indicate if the function is payable.,
+    * @param commit Flag to set contract->commit same as caller.
     * @param func The function to call.
     * @param args The arguments to pass to the function.
     * @return The return value of the function.
@@ -462,7 +472,8 @@ class ContractManagerInterface {
     template <typename R, typename C, typename... Args>
     R callContractFunction(const Address& fromAddr, 
                            const Address& targetAddr, 
-                           const uint256_t& value, 
+                           const uint256_t& value,
+                           const bool& commit,
                            R(C::*func)(const Args&...), 
                            const Args&... args) {
         if (value) {
@@ -476,7 +487,7 @@ class ContractManagerInterface {
         C* contract = this->getContract<C>(targetAddr);
         contract->caller = fromAddr;
         contract->value = value;
-        contract->commit = this->contractManager.getCommit();
+        contract->commit = commit;
         try {
           return contract->callContractFunction(func, std::forward<const Args&>(args)...);
         } catch (const std::exception& e) {
@@ -498,13 +509,15 @@ class ContractManagerInterface {
     * @param fromAddr The address of the caller.
     * @param targetAddr The address of the contract to call.
     * @param value Flag to indicate if the function is payable.
+    * @param commit Flag to set contract->commit same as caller.
     * @param func The function to call.
     * @return The return value of the function.
     */
     template <typename R, typename C>
     R callContractFunction(const Address& fromAddr, 
                            const Address& targetAddr, 
-                           const uint256_t& value, 
+                           const uint256_t& value,
+                           const bool& commit,
                            R(C::*func)()) {
         if (value) {
           this->sendTokens(fromAddr, targetAddr, value);
@@ -517,7 +530,7 @@ class ContractManagerInterface {
         C* contract = this->getContract<C>(targetAddr);
         contract->caller = fromAddr;
         contract->value = value;
-        contract->commit = this->contractManager.getCommit();
+        contract->commit = commit;
         try {
           return contract->callContractFunction(func);
         } catch (const std::exception& e) {
