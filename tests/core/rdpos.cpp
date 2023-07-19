@@ -62,7 +62,7 @@ void initialize(std::unique_ptr<DB>& db,
   if (!validatorKey) {
     options = std::make_unique<Options>(
         folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+        "OrbiterSDK/cpp/linux_x86-64/0.1.0",
         1,
         8080,
         serverPort,
@@ -72,7 +72,7 @@ void initialize(std::unique_ptr<DB>& db,
   } else {
     options = std::make_unique<Options>(
       folderName,
-      "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+      "OrbiterSDK/cpp/linux_x86-64/0.1.0",
       1,
       8080,
       serverPort,
@@ -522,7 +522,7 @@ namespace TRdPoS {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           "rdPoSdiscoveryNodeTestBroadcast",
-          "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
           1,
           8080,
           8090,
@@ -805,7 +805,7 @@ namespace TRdPoS {
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
     std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
       "rdPoSdiscoveryNodeTestMove10Blocks",
-      "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+      "OrbiterSDK/cpp/linux_x86-64/0.1.0",
       1,
       8080,
       8090,
