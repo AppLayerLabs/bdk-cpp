@@ -23,33 +23,45 @@ tmux kill-session -t local_testnet_discovery
 # Set default values
 CLEAN=false # Clean the build folder
 DEPLOY=true # Deploy the executables to the local_testnet folder
-DEBUG=ON    # Build the project with debug flags
+ONLY_DEPLOY=false # Only deploy, do not build
+DEBUG=ON # Build the project in debug mode
 CORES=$(grep -c ^processor /proc/cpuinfo) # Number of cores for parallel build
 
 for arg in "$@"
 do
-  case $arg in
-    --clean)
-      CLEAN=true
-      shift
-      ;;
-    --no-deploy)
-      DEPLOY=false
-      shift
-      ;;
-    --debug=*)
-      DEBUG="${arg#*=}"
-      shift
-      ;;
-    --cores=*)
-      CORES="${arg#*=}"
-      shift
-      ;;
-    *)
-      shift
-      ;;
-  esac
+    case $arg in
+        --clean)
+        CLEAN=true
+        shift
+        ;;
+        --no-deploy)
+        DEPLOY=false
+        shift
+        ;;
+        --only-deploy)
+        ONLY_DEPLOY=true
+        DEPLOY=true
+        shift
+        ;;
+        --debug=*)
+        DEBUG="${arg#*=}"
+        shift
+        ;;
+        --cores=*)
+        CORES="${arg#*=}"
+        shift
+        ;;
+        *)
+        shift
+        ;;
+    esac
 done
+
+#If no-deploy and only-deploy are passed, exit
+if [ "$DEPLOY" = false ] && [ "$ONLY_DEPLOY" = true ]; then
+  echo "Please run this script with either the --no-deploy flag or the --only-deploy flag"
+  exit 1
+fi
 
 # Check if the user is running this script from the main directory of the project
 if [ ! -f "scripts/AIO-setup.sh" ]; then
@@ -57,7 +69,15 @@ if [ ! -f "scripts/AIO-setup.sh" ]; then
   exit 1
 fi
 
-# Clean the build folder if the user specified the --clean flag
+# If only-deploy is true and build_local_testnet doesn't exist, exit
+if [ "$ONLY_DEPLOY" = true ]; then
+  if [ ! -d "build_local_testnet" ]; then
+    echo "Please run this script with the --only-deploy flag after compiling the project"
+    exit 1
+  fi
+fi
+
+## Clean the build folder if the user specified the --clean flag
 if [ "$CLEAN" = true ]; then
   if [ -d "build_local_testnet" ]; then
     rm -rf build_local_testnet
@@ -76,13 +96,18 @@ if [ -d "local_testnet" ]; then
 fi
 mkdir local_testnet
 
-# Build the project
-cd build_local_testnet
-cmake -DDEBUG=$DEBUG ..
-make -j${CORES}
+if [ "$ONLY_DEPLOY" = false ]; then
+  ## Build the project
+  cd build_local_testnet
+  cmake -DDEBUG=$DEBUG ..
+  make -j${CORES}
+fi
 
 if [ "$DEPLOY" = true ]; then
-  # Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory
+  if [ "$ONLY_DEPLOY" = true ]; then
+    cd build_local_testnet
+  fi
+  ## Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory
   cp orbitersdkd ../local_testnet
   cp orbitersdkd-discovery ../local_testnet
 

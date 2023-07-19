@@ -224,22 +224,23 @@ namespace TState {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           state->addBalance(me);
           transactions.emplace_back(
-            targetOfTransactions,
-            me,
-            Bytes(),
-            8080,
-            state->getNativeNonce(me),
-            1000000000000000000,
-            21000,
-            1000000000,
-            1000000000,
-            privkey
+              targetOfTransactions,
+              me,
+              Bytes(),
+              8080,
+              state->getNativeNonce(me),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              privkey
           );
 
           /// Take note of expected balance and nonce
           val.first =
-            state->getNativeBalance(me) - (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
-            transactions.back().getValue();
+              state->getNativeBalance(me) -
+              (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
+              transactions.back().getValue();
           val.second = state->getNativeNonce(me) + 1;
           targetExpectedValue += transactions.back().getValue();
         }
@@ -280,16 +281,16 @@ namespace TState {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           state->addBalance(me);
           TxBlock tx(
-            targetOfTransactions,
-            me,
-            Bytes(),
-            8080,
-            state->getNativeNonce(me),
-            1000000000000000000,
-            21000,
-            1000000000,
-            1000000000,
-            privkey
+              targetOfTransactions,
+              me,
+              Bytes(),
+              8080,
+              state->getNativeNonce(me),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              privkey
           );
 
           /// Take note of expected balance and nonce
@@ -347,16 +348,16 @@ namespace TState {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           state->addBalance(me);
           TxBlock tx(
-            targetOfTransactions,
-            me,
-            Bytes(),
-            8080,
-            state->getNativeNonce(me),
-            1000000000000000000,
-            21000,
-            1000000000,
-            1000000000,
-            privkey
+              targetOfTransactions,
+              me,
+              Bytes(),
+              8080,
+              state->getNativeNonce(me),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              privkey
           );
 
           if (me[0] <= 0x08) {
@@ -424,16 +425,16 @@ namespace TState {
           for (auto &[privkey, account]: randomAccounts) {
             Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
             txs.emplace_back(
-              targetOfTransactions,
-              me,
-              Bytes(),
-              8080,
-              state->getNativeNonce(me),
-              1000000000000000000,
-              21000,
-              1000000000,
-              1000000000,
-              privkey
+                targetOfTransactions,
+                me,
+                Bytes(),
+                8080,
+                state->getNativeNonce(me),
+                1000000000000000000,
+                21000,
+                1000000000,
+                1000000000,
+                privkey
             );
             /// Take note of expected balance and nonce
             account.first = state->getNativeBalance(me) - (txs.back().getMaxFeePerGas() * txs.back().getGasLimit()) -
@@ -578,16 +579,16 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "stateDiscoveryNodeNetworkCapabilities",
-        "OrbiterSDK/cpp/linux_x86-64/0.1.0",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "stateDiscoveryNodeNetworkCapabilities",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // References for the rdPoS workers vector.
       std::vector<std::reference_wrapper<std::unique_ptr<rdPoS>>> rdPoSreferences;
@@ -705,16 +706,16 @@ namespace TState {
         Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
         Address targetOfTransactions = Address(Utils::randBytes(20));
         TxBlock tx(
-          targetOfTransactions,
-          me,
-          Bytes(),
-          8080,
-          state1->getNativeNonce(me),
-          1000000000000000000,
-          21000,
-          1000000000,
-          1000000000,
-          privkey
+            targetOfTransactions,
+            me,
+            Bytes(),
+            8080,
+            state1->getNativeNonce(me),
+            1000000000000000000,
+            21000,
+            1000000000,
+            1000000000,
+            privkey
         );
         state1->addTx(TxBlock(tx));
         p2p1->broadcastTxBlock(tx);
@@ -834,16 +835,16 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "stateDiscoveryNodeNetworkCapabilities",
-        "OrbiterSDK/cpp/linux_x86-64/0.1.0",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "stateDiscoveryNodeNetworkCapabilities",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // References for the rdPoS workers vector.
       std::vector<std::reference_wrapper<std::unique_ptr<rdPoS>>> rdPoSreferences;
@@ -1150,16 +1151,16 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "statedDiscoveryNodeNetworkCapabilitiesWithTx",
-        "OrbiterSDK/cpp/linux_x86-64/0.1.0",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "statedDiscoveryNodeNetworkCapabilitiesWithTx",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // Initialize state with all balances
       for (const auto &[privkey, account]: randomAccounts) {
@@ -1359,16 +1360,16 @@ namespace TState {
             for (auto &[privkey, val]: randomAccounts) {
               Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
               TxBlock tx(
-                targetOfTransactions,
-                me,
-                Bytes(),
-                8080,
-                state1->getNativeNonce(me),
-                1000000000000000000,
-                21000,
-                1000000000,
-                1000000000,
-                privkey
+                  targetOfTransactions,
+                  me,
+                  Bytes(),
+                  8080,
+                  state1->getNativeNonce(me),
+                  1000000000000000000,
+                  21000,
+                  1000000000,
+                  1000000000,
+                  privkey
               );
 
               /// Take note of expected balance and nonce
@@ -1431,7 +1432,8 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, 1000 transactions per block, broadcast blocks.") {
+    SECTION(
+        "State test with networking capabilities, 8 nodes, rdPoS fully active, 1000 transactions per block, broadcast blocks.") {
       // Create random accounts for the transactions.
       std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
       for (uint64_t i = 0; i < 1000; ++i) {
@@ -1524,16 +1526,16 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-        "OrbiterSDK/cpp/linux_x86-64/0.1.0",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // Initialize state with all balances
       for (const auto &[privkey, account]: randomAccounts) {
@@ -1730,16 +1732,16 @@ namespace TState {
             for (auto &[privkey, val]: randomAccounts) {
               Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
               TxBlock tx(
-                targetOfTransactions,
-                me,
-                Bytes(),
-                8080,
-                state1->getNativeNonce(me),
-                1000000000000000000,
-                21000,
-                1000000000,
-                1000000000,
-                privkey
+                  targetOfTransactions,
+                  me,
+                  Bytes(),
+                  8080,
+                  state1->getNativeNonce(me),
+                  1000000000000000000,
+                  21000,
+                  1000000000,
+                  1000000000,
+                  privkey
               );
 
               /// Take note of expected balance and nonce
@@ -1822,8 +1824,11 @@ namespace TState {
       // Sleep so it can conclude the last operations.
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+  }
 
-    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, 1 ERC20 transactions per block, broadcast blocks.") {
+  TEST_CASE("State Fail", "[statefail]") {
+    SECTION(
+        "State test with networking capabilities, 8 nodes, rdPoS fully active, 1 ERC20 transactions per block, broadcast blocks.") {
       // Create random accounts for the transactions.
       PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
@@ -1838,7 +1843,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<State> state1;
       std::unique_ptr<Options> options1;
-      initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true, "stateNode1NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true,
+                 "stateNode1NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -1847,7 +1853,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<State> state2;
       std::unique_ptr<Options> options2;
-      initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true, "stateNode2NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true,
+                 "stateNode2NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -1856,7 +1863,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos3;
       std::unique_ptr<State> state3;
       std::unique_ptr<Options> options3;
-      initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true, "stateNode3NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true,
+                 "stateNode3NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -1865,7 +1873,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos4;
       std::unique_ptr<State> state4;
       std::unique_ptr<Options> options4;
-      initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true, "stateNode4NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true,
+                 "stateNode4NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -1874,7 +1883,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos5;
       std::unique_ptr<State> state5;
       std::unique_ptr<Options> options5;
-      initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true, "stateNode5NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true,
+                 "stateNode5NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -1883,7 +1893,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos6;
       std::unique_ptr<State> state6;
       std::unique_ptr<Options> options6;
-      initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true, "stateNode6NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true,
+                 "stateNode6NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -1892,7 +1903,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos7;
       std::unique_ptr<State> state7;
       std::unique_ptr<Options> options7;
-      initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true, "stateNode7NetworkCapabilitiesWithTxERC20BlockBroadcast");
+      initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true,
+                 "stateNode7NetworkCapabilitiesWithTxERC20BlockBroadcast");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -1901,21 +1913,22 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos8;
       std::unique_ptr<State> state8;
       std::unique_ptr<Options> options8;
-      initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true, "stateNode8NetworkCapabilitiesWithTxERC20BlockBroadcast");
+      initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true,
+                 "stateNode8NetworkCapabilitiesWithTxERC20BlockBroadcast");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-        "OrbiterSDK/cpp/linux_x86-64/0.1.0",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // Initialize state with all balances
       state1->addBalance(owner);
@@ -2123,16 +2136,16 @@ namespace TState {
               Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
 
               TxBlock createNewERC2OTx = TxBlock(
-                ProtocolContractAddresses.at("ContractManager"),
-                owner,
-                createNewERC20ContractData,
-                8080,
-                state1->getNativeNonce(owner),
-                0,
-                21000,
-                1000000000,
-                1000000000,
-                ownerPrivKey
+                  ProtocolContractAddresses.at("ContractManager"),
+                  owner,
+                  createNewERC20ContractData,
+                  8080,
+                  state1->getNativeNonce(owner),
+                  0,
+                  21000,
+                  1000000000,
+                  1000000000,
+                  ownerPrivKey
               );
 
               block.appendTx(createNewERC2OTx);
@@ -2148,16 +2161,16 @@ namespace TState {
               Utils::appendBytes(transferData, transferEncoder.getData());
 
               TxBlock transferERC20 = TxBlock(
-                ERC20ContractAddress,
-                owner,
-                transferData,
-                8080,
-                state1->getNativeNonce(owner),
-                0,
-                21000,
-                1000000000,
-                1000000000,
-                ownerPrivKey
+                  ERC20ContractAddress,
+                  owner,
+                  transferData,
+                  8080,
+                  state1->getNativeNonce(owner),
+                  0,
+                  21000,
+                  1000000000,
+                  1000000000,
+                  ownerPrivKey
               );
 
               targetExpectedValue += 10000000000000000;
@@ -2210,35 +2223,43 @@ namespace TState {
             ABI::Encoder::EncVar getBalanceMeVars;
             getBalanceMeVars.push_back(targetOfTransactions);
             ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-            Bytes getBalanceMeNode1Result = state1->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+            Bytes getBalanceMeNode1Result = state1->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode1Decoder({ABI::Types::uint256}, getBalanceMeNode1Result);
             REQUIRE(getBalanceMeNode1Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            Bytes getBalanceMeNode2Result = state2->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+            Bytes getBalanceMeNode2Result = state2->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode2Decoder({ABI::Types::uint256}, getBalanceMeNode2Result);
             REQUIRE(getBalanceMeNode2Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            Bytes getBalanceMeNode3Result = state3->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+            Bytes getBalanceMeNode3Result = state3->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode3Decoder({ABI::Types::uint256}, getBalanceMeNode3Result);
             REQUIRE(getBalanceMeNode3Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            Bytes getBalanceMeNode4Result = state4->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+            Bytes getBalanceMeNode4Result = state4->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode4Decoder({ABI::Types::uint256}, getBalanceMeNode4Result);
             REQUIRE(getBalanceMeNode4Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            Bytes getBalanceMeNode5Result = state5->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+            Bytes getBalanceMeNode5Result = state5->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode5Decoder({ABI::Types::uint256}, getBalanceMeNode5Result);
             REQUIRE(getBalanceMeNode5Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            Bytes getBalanceMeNode6Result = state6->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+            Bytes getBalanceMeNode6Result = state6->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode6Decoder({ABI::Types::uint256}, getBalanceMeNode6Result);
             REQUIRE(getBalanceMeNode6Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            Bytes getBalanceMeNode7Result = state7->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+            Bytes getBalanceMeNode7Result = state7->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode7Decoder({ABI::Types::uint256}, getBalanceMeNode7Result);
             REQUIRE(getBalanceMeNode7Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            Bytes getBalanceMeNode8Result = state8->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+            Bytes getBalanceMeNode8Result = state8->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode8Decoder({ABI::Types::uint256}, getBalanceMeNode8Result);
             REQUIRE(getBalanceMeNode8Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
