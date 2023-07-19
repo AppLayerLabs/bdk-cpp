@@ -11,7 +11,7 @@ on:
       - development
 
 jobs:
-  build:
+  setup:
     runs-on: ubuntu-latest
 
     container: 
@@ -33,16 +33,67 @@ jobs:
       - name: Install CA certificates
         run: apt-get install -y ca-certificates
 
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    container: 
+      image: debian:bookworm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
       - name: Configure CMake
         run: cmake -S . -B build
 
       - name: Build with CMake
         run: cmake --build build || cat build/deps/src/ethash-stamp/ethash-configure-*.log
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: build
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    container: 
+      image: debian:bookworm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+
       - name: Run Catch2 Tests
         working-directory: build
         run: ./orbitersdkd-tests -d yes
-        
+
+  documentation:
+    needs: test
+    runs-on: ubuntu-latest
+
+    container: 
+      image: debian:bookworm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+
       - name: Generate Doxygen Documentation
         run: |
           mkdir docs
