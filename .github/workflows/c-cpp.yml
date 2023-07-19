@@ -79,6 +79,9 @@ jobs:
           name: build
           path: build
 
+      - name: Give execute permissions
+        run: chmod +x ./build/orbitersdkd-tests
+
       - name: Run Catch2 Tests
         working-directory: build
         run: ./orbitersdkd-tests -d yes
