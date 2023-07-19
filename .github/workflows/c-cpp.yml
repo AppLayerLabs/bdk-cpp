@@ -44,10 +44,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install CMake
+      - name: Install dependencies
         run: |
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y cmake
+          DEBIAN_FRONTEND=noninteractive apt-get install -y cmake build-essential
+      
       
       - name: Configure CMake
         run: cmake -S . -B build
