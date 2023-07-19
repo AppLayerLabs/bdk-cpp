@@ -43,6 +43,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Install CMake
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y cmake
       
       - name: Configure CMake
         run: cmake -S . -B build
