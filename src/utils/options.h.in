@@ -86,7 +86,7 @@ class Options {
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const PrivKey& privKey
     );
-
+    
     /// Copy constructor.
     Options(const Options& other) :
       rootPath(other.rootPath),

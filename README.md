@@ -139,4 +139,3 @@ Nodes are all deployed on the same machine, under the following ports and tmux s
 | local_testnet_normal4    | Normal | 8089     | 8098      | XXXX |
 | local_testnet_normal5    | Normal | 8110     | 8099      | XXXX |
 | local_testnet_normal6    | Normal | 8111     | 8100      | XXXX |
-
