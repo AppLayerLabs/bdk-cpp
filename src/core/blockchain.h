@@ -4,7 +4,7 @@
 #include "storage.h"
 #include "rdpos.h"
 #include "state.h"
-#include "../net/p2p/p2pmanagerbase.h"
+#include "../net/p2p/managerbase.h"
 #include "../net/http/httpserver.h"
 #include "../utils/options.h"
 #include "../utils/db.h"
@@ -14,7 +14,7 @@ class Syncer;
 
 /**
  * Master class that represents the blockchain as a whole.
- * Contains and acts as the middleman of every other part of the core and net protocols.
+ * Contains, and acts as the middleman of, every other part of the core and net protocols.
  * Those parts interact with one another by communicating through this class.
  */
 class Blockchain {
@@ -22,8 +22,8 @@ class Blockchain {
     const std::unique_ptr<Options> options; ///< Pointer to the options singleton.
     const std::unique_ptr<DB> db; ///< Pointer to the database.
     const std::unique_ptr<Storage> storage; ///< Pointer to the blockchain storage.
-    const std::unique_ptr<rdPoS> rdpos; ///< Pointer to the rdPoS object (consensus).
     const std::unique_ptr<State> state; ///< Pointer to the blockchain state.
+    const std::unique_ptr<rdPoS> rdpos; ///< Pointer to the rdPoS object (consensus).
     const std::unique_ptr<P2P::ManagerNormal> p2p; ///< Pointer to the P2P connection manager.
     const std::unique_ptr<HTTPServer> http; ///< Pointer to the HTTP server.
     const std::unique_ptr<Syncer> syncer; ///< Pointer to the blockchain syncer.
@@ -31,7 +31,7 @@ class Blockchain {
   public:
     /**
      * Constructor.
-     * @param blockhainPath Root path of the blockchain.
+     * @param blockchainPath Root path of the blockchain.
      */
     Blockchain(std::string blockchainPath);
 
@@ -89,7 +89,7 @@ class Blockchain {
  * class is responsible for syncing both, broadcasting transactions and also
  * creating new blocks if the node is a Validator.
  * Currently it's *single threaded*, meaning that it doesn't require mutexes.
- * TODO: This function can also be responsible for slashing rdPoS if they are not behaving correctlyng
+ * TODO: This could also be responsible for slashing rdPoS if they are not behaving correctly
  * TODO: Maybe it is better to move rdPoSWorker to Syncer?
  */
 class Syncer {
@@ -98,7 +98,7 @@ class Syncer {
     Blockchain& blockchain;
 
     /// List of currently connected nodes and their info.
-    std::unordered_map<Hash, P2P::NodeInfo, SafeHash> currentlyConnectedNodes;
+    std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> currentlyConnectedNodes;
 
     /// Pointer to the blockchain's latest block.
     std::shared_ptr<const Block> latestBlock;
@@ -117,6 +117,7 @@ class Syncer {
      * If the node is a Validator and it has to create a new block,
      * this function will be called, the new block will be created based on the
      * current State and rdPoS objects, and then it will be broadcasted.
+     * @throw std::runtime_error if block is invalid.
      */
     void doValidatorBlock();
 

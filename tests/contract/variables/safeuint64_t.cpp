@@ -4,7 +4,7 @@
 
 
 namespace TSafeUint64_t {
-  TEST_CASE("SafeUint64_t Class", "[contracts][variables][safeuint64_t]") {
+  TEST_CASE("SafeUint64_t Class", "[contract][variables][safeuint64_t]") {
     SECTION("SafeUint64_t constructor (Commit and Revert") {
       SafeUint64_t commitedValue(uint64_t(192381851023));
       SafeUint64_t revertedValue(uint64_t(192381851023));

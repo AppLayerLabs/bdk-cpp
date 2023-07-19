@@ -1,7 +1,7 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/utils.h"
 #include "../../src/utils/options.h"
-#include "../../src/net/p2p/p2pmanagernormal.h"
+#include "../../src/net/p2p/managernormal.h"
 #include "../../src/net/http/httpserver.h"
 #include "../../src/core/state.h"
 #include "../../src/core/storage.h"
@@ -121,7 +121,7 @@ void initialize(std::unique_ptr<DB>& db,
     // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
     // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
     genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")),1678887538000000);
-    db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
+    db->put(Utils::stringToBytes("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
 
@@ -132,16 +132,18 @@ void initialize(std::unique_ptr<DB>& db,
     }
     // Populate State DB with one address.
     /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
-    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true);
+    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
     /// See ~State for encoding
     uint256_t desiredBalance("1000000000000000000000");
-    std::string value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance)) + Utils::uintToBytes(desiredBalance) + '\x00';
+    Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
+    Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
+    value.insert(value.end(), 0x00);
     db->put(dev1.get(), value, DBPrefix::nativeAccounts);
   }
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   options = std::make_unique<Options>(
     folderPath,
-    "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+    "OrbiterSDK/cpp/linux_x86-64/0.1.0",
     1,
     8080,
     serverPort,
@@ -187,7 +189,7 @@ namespace THTTPJsonRPC{
 
 
       /// Make random transactions within a given block, we need to include requests for getting txs and blocks
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
       for (uint64_t i = 0; i < 100; ++i) {
@@ -201,7 +203,7 @@ namespace THTTPJsonRPC{
         transactions.emplace_back(
           targetOfTransactions,
           me,
-          "",
+          Bytes(),
           8080,
           state->getNativeNonce(me),
           1000000000000000000,
@@ -229,7 +231,7 @@ namespace THTTPJsonRPC{
 
       json web3_clientVersionResponse = requestMethod("web3_clientVersion", json::array());
 
-      REQUIRE(web3_clientVersionResponse["result"] == "OrbiterSDK/cpp/linux_x86-64/0.0.3");
+      REQUIRE(web3_clientVersionResponse["result"] == "OrbiterSDK/cpp/linux_x86-64/0.1.0");
 
       json web3_sha3Response = requestMethod("web3_sha3", json::array({"0x68656c6c6f20776f726c64"}));
 
@@ -249,7 +251,7 @@ namespace THTTPJsonRPC{
 
       json eth_protocolVersionResponse = requestMethod("eth_protocolVersion", json::array());
 
-      REQUIRE(eth_protocolVersionResponse["result"] == "1");
+      REQUIRE(eth_protocolVersionResponse["result"] == "0.1.0");
 
       json eth_getBlockByHashResponse = requestMethod("eth_getBlockByHash", json::array({newBestBlock.hash().hex(true), true}));
       REQUIRE(eth_getBlockByHashResponse["result"]["number"] == "0x1");
@@ -364,7 +366,7 @@ namespace THTTPJsonRPC{
       auto txToSend = TxBlock(
         targetOfTransactions,
         Secp256k1::toAddress(Secp256k1::toUPub(randomAccounts.begin()->first)),
-        "",
+        Bytes(),
         8080,
         state->getNativeNonce(Secp256k1::toAddress(Secp256k1::toUPub(randomAccounts.begin()->first))),
         1000000000000000000,

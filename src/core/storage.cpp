@@ -8,7 +8,8 @@ Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& 
 
   // Get the latest block from the database
   Utils::logToDebug(Log::storage, __func__, "Loading latest block");
-  Block latest(this->db->get("latest", DBPrefix::blocks), this->options->getChainID());
+  auto blockBytes = this->db->get(Utils::stringToBytes("latest"), DBPrefix::blocks);
+  Block latest(blockBytes, this->options->getChainID());
   uint64_t depth = latest.getNHeight();
   Utils::logToDebug(Log::storage, __func__,
     std::string("Got latest block: ") + latest.hash().hex().get()
@@ -46,7 +47,7 @@ Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& 
 }
 
 Storage::~Storage() {
-  DBBatch blockBatch, heightBatch, txToBlockBatch;
+  DBBatch batchedOperations;
   std::shared_ptr<const Block> latest;
   {
     std::unique_lock<std::shared_mutex> lock(this->chainLock);
@@ -55,19 +56,18 @@ Storage::~Storage() {
       // Batch block to be saved to the database.
       // We can't call this->popBack() because of the mutex
       std::shared_ptr<const Block> block = this->chain.front();
-      blockBatch.puts.emplace_back(DBEntry(
-        block->hash().get(), block->serializeBlock()
-      ));
-      heightBatch.puts.emplace_back(DBEntry(
-        Utils::uint64ToBytes(block->getNHeight()), block->hash().get()
-      ));
+      batchedOperations.push_back(block->hash().get(), block->serializeBlock(), DBPrefix::blocks);
+      batchedOperations.push_back(Utils::uint64ToBytes(block->getNHeight()), block->hash().get(), DBPrefix::blockHeightMaps);
 
       // Batch txs to be saved to the database and delete them from the mappings
       auto Txs = block->getTxs();
       for (uint32_t i = 0; i < Txs.size(); i++) {
         const auto TxHash = Txs[i].hash();
-        std::string value = block->hash().get() + Utils::uint32ToBytes(i) + Utils::uint64ToBytes(block->getNHeight());
-        txToBlockBatch.puts.emplace_back(DBEntry(TxHash.get(), value));
+        Bytes value = block->hash().asBytes();
+        value.reserve(value.size() + 4 + 8);
+        Utils::appendBytes(value, Utils::uint32ToBytes(i));
+        Utils::appendBytes(value, Utils::uint64ToBytes(block->getNHeight()));
+        batchedOperations.push_back(TxHash.get(), value, DBPrefix::txToBlocks);
         this->txByHash.erase(TxHash);
       }
 
@@ -78,14 +78,12 @@ Storage::~Storage() {
   }
 
   // Batch save to database
-  this->db->putBatch(blockBatch, DBPrefix::blocks);
-  this->db->putBatch(heightBatch, DBPrefix::blockHeightMaps);
-  this->db->putBatch(txToBlockBatch, DBPrefix::txToBlocks);
-  this->db->put("latest", latest->serializeBlock(), DBPrefix::blocks);
+  this->db->putBatch(batchedOperations);
+  this->db->put(std::string("latest"), latest->serializeBlock(), DBPrefix::blocks);
 }
 
 void Storage::initializeBlockchain() {
-  if (!this->db->has("latest", DBPrefix::blocks)) {
+  if (!this->db->has(std::string("latest"), DBPrefix::blocks)) {
     // Create a new genesis block if one doesn't exist (fresh new blockchain)
     Utils::logToDebug(Log::storage, __func__, "No history found, creating genesis block.");
     Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
@@ -94,7 +92,7 @@ void Storage::initializeBlockchain() {
     // Private: 0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867
     // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
     genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1656356646000000);
-    this->db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
+    this->db->put(std::string("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     this->db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     this->db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
     Utils::logToDebug(Log::storage, __func__,
@@ -103,18 +101,18 @@ void Storage::initializeBlockchain() {
   }
 }
 
-const TxBlock Storage::getTxFromBlockWithIndex(const std::string_view blockData, const uint64_t& txIndex) {
+const TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) {
   uint64_t index = 217; // Start of block tx range
   /// Count txs until index.
   uint64_t currentTx = 0;
   while (currentTx < txIndex) {
-    uint32_t txSize = Utils::bytesToUint32(blockData.substr(index, 4));
+    uint32_t txSize = Utils::bytesToUint32(blockData.subspan(index, 4));
     index += txSize + 4;
     currentTx++;
   }
-  uint64_t txSize = Utils::bytesToUint32(blockData.substr(index, 4));
+  uint64_t txSize = Utils::bytesToUint32(blockData.subspan(index, 4));
   index += 4;
-  return TxBlock(blockData.substr(index, txSize), this->options->getChainID());
+  return TxBlock(blockData.subspan(index, txSize), this->options->getChainID());
 }
 
 void Storage::pushBackInternal(Block&& block) {
@@ -232,7 +230,6 @@ StorageStatus Storage::blockExists(const uint64_t& height) {
 const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
   // Check chain first, then cache, then database
   StorageStatus blockStatus = this->blockExists(hash);
-  Utils::logToDebug(Log::storage, __func__, "hash: " + hash.get());
   switch (blockStatus) {
     case StorageStatus::NotFound: {
       return nullptr;
@@ -312,9 +309,7 @@ const std::tuple<
       std::shared_lock<std::shared_mutex> lock(this->chainLock);
       const auto& [blockHash, blockIndex, blockHeight] = this->txByHash.find(tx)->second;
       const auto transaction = blockByHash[blockHash]->getTxs()[blockIndex];
-      if (transaction.hash() != tx) {
-        throw std::runtime_error("Tx hash mismatch");
-      }
+      if (transaction.hash() != tx) throw std::runtime_error("Tx hash mismatch");
       return {std::make_shared<const TxBlock>(transaction), blockHash, blockIndex, blockHeight};
     }
     case StorageStatus::OnCache: {
@@ -322,11 +317,12 @@ const std::tuple<
       return this->cachedTxs[tx];
     }
     case StorageStatus::OnDB: {
-      std::string txData(this->db->get(tx.get(), DBPrefix::txToBlocks));
-      Hash blockHash = Hash(std::string_view(txData).substr(0, 32));
-      uint64_t blockIndex = Utils::bytesToUint32(std::string_view(txData).substr(32, 4));
-      uint64_t blockHeight = Utils::bytesToUint64(std::string_view(txData).substr(36,8));
-      std::string blockData(this->db->get(blockHash.get(), DBPrefix::blocks));
+      Bytes txData(this->db->get(tx.get(), DBPrefix::txToBlocks));
+      BytesArrView txDataView(txData);
+      Hash blockHash = Hash(txDataView.subspan(0, 32));
+      uint64_t blockIndex = Utils::bytesToUint32(txDataView.subspan(32, 4));
+      uint64_t blockHeight = Utils::bytesToUint64(txDataView.subspan(36,8));
+      Bytes blockData(this->db->get(blockHash.get(), DBPrefix::blocks));
       auto Tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
       std::unique_lock(this->cacheLock);
       this->cachedTxs.insert({tx, {std::make_shared<const TxBlock>(Tx), blockHash, blockIndex, blockHeight}});
@@ -360,7 +356,7 @@ const std::tuple<
       return this->cachedTxs[txHash];
     }
     case StorageStatus::OnDB: {
-      std::string blockData = this->db->get(blockHash.get(), DBPrefix::blocks);
+      Bytes blockData = this->db->get(blockHash.get(), DBPrefix::blocks);
       auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
       std::unique_lock lock(this->cacheLock);
       auto blockHeight = this->blockHeightByHash[blockHash];
@@ -395,7 +391,7 @@ const std::tuple<
     }
     case StorageStatus::OnDB: {
       auto blockHash = this->blockHashByHeight.find(blockHeight)->second;
-      std::string blockData = this->db->get(blockHash.get(), DBPrefix::blocks);
+      Bytes blockData = this->db->get(blockHash.get(), DBPrefix::blocks);
       auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
       std::unique_lock lock(this->cacheLock);
       auto blockHeight = this->blockHeightByHash[blockHash];

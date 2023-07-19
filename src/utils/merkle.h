@@ -126,7 +126,7 @@ class PNode {
      * @param id The ID of the child node.
      * @return A pointer to the child node, or a NULL pointer if not found.
      */
-    PNode* getChild(char id) const;
+    PNode* getChild(char id);
 };
 
 /**
@@ -138,6 +138,7 @@ class PNode {
 class Patricia {
   private:
     PNode root; ///< Root node.
+
   public:
     Patricia() : root('/') {}; ///< Constructor. Sets the ID of the root node to `/`.
 
@@ -146,14 +147,14 @@ class Patricia {
      * @param branch The hash string to use as a base for creating the branch.
      * @param data The data string to add to the leaf node.
      */
-    void addLeaf(Hash branch, std::string data) const;
+    void addLeaf(Hash branch, std::string data);
 
     /**
      * Get data from a leaf node in a given branch.
      * @param branch The hash string to use as a base for searching the branch.
      * @return The data string contained in the leaf node.
      */
-    std::string getLeaf(Hash branch) const;
+    std::string getLeaf(Hash branch);
 
     /**
      * Remove data from a leaf node in a given branch.
@@ -161,7 +162,7 @@ class Patricia {
      * @param branch The hash string to use as a base for removing data from the branch.
      * @return `true` if the removal was successful, `false` otherwise.
      */
-    bool delLeaf(Hash branch) const;
+    bool delLeaf(Hash branch);
 };
 
 #endif  // MERKLE_H

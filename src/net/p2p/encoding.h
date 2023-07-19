@@ -1,5 +1,5 @@
-#ifndef P2PENCODING_H
-#define P2PENCODING_H
+#ifndef P2P_ENCODING_H
+#define P2P_ENCODING_H
 
 #include <future>
 
@@ -11,11 +11,10 @@
 
 namespace P2P {
   // Forward declarations.
-  class Manager;
   class Message;
 
   /// Enum for identifying which type of connection is being made.
-  enum ConnectionType { SERVER, CLIENT };
+  enum ConnectionType { INBOUND, OUTBOUND };
 
   /**
    * Enum for identifying from which type is a given node.
@@ -49,10 +48,10 @@ namespace P2P {
    * - "01" = Answer
    * - "02" = Broadcast
    */
-  inline extern const std::vector<std::string> typePrefixes {
-    std::string("\x00", 1), // Request
-    std::string("\x01", 1), // Answer
-    std::string("\x02", 1)  // Broadcast
+  inline extern const std::vector<Bytes> typePrefixes {
+    Bytes(1, 0x00), // Request
+    Bytes(1, 0x01), // Answer
+    Bytes(1, 0x02)  // Broadcast
   };
 
   /**
@@ -66,14 +65,14 @@ namespace P2P {
    * - "0005" = BroadcastTx
    * - "0006" = BroadcastBlock
    */
-  inline extern const std::vector<std::string> commandPrefixes {
-    std::string("\x00\x00", 2), // Ping
-    std::string("\x00\x01", 2), // Info
-    std::string("\x00\x02", 2), // RequestNodes
-    std::string("\x00\x03", 2), // RequestValidatorTxs
-    std::string("\x00\x04", 2), // BroadcastValidatorTx
-    std::string("\x00\x05", 2), // BroadcastTx
-    std::string("\x00\x06", 2)  // BroadcastBlock
+  inline extern const std::vector<Bytes> commandPrefixes {
+    Bytes{0x00, 0x00}, // Ping
+    Bytes{0x00, 0x01}, // Info
+    Bytes{0x00, 0x02}, // RequestNodes
+    Bytes{0x00, 0x03}, // RequestValidatorTxs
+    Bytes{0x00, 0x04}, // BroadcastValidatorTx
+    Bytes{0x00, 0x05}, // BroadcastTx
+    Bytes{0x00, 0x06}  // BroadcastBlock
   };
 
   /**
@@ -81,38 +80,38 @@ namespace P2P {
    * @param message The message to parse.
    * @return The request type.
    */
-  RequestType getRequestType(const std::string_view& message);
+  RequestType getRequestType(const BytesArrView message);
 
   /**
    * Get the 1-byte prefix of a given request inside typePrefixes.
    * @param type The request type to parse.
    * @return The prefix string.
    */
-  std::string getRequestTypePrefix(const RequestType& type);
+  const Bytes& getRequestTypePrefix(const RequestType& type);
 
   /**
    * Get the type of a command within a message.
    * @param message The message to parse.
    * @return The command type.
    */
-  CommandType getCommandType(const std::string_view& message);
+  CommandType getCommandType(const BytesArrView message);
 
   /**
    * Get the 2-byte prefix of a given command inside commandPrefixes.
    * @param commType The command type to parse.
    * @return The prefix string.
    */
-  std::string getCommandPrefix(const CommandType& commType);
+  const Bytes& getCommandPrefix(const CommandType& commType);
 
-  /// Abstraction of an 8-byte/64-bit hash that represents a unique ID for a request. Inherits `FixedStr<8>`.
-  class RequestID : public FixedStr<8> {
+  /// Abstraction of an 8-byte/64-bit hash that represents a unique ID for a request. Inherits `FixedBytes<8>`.
+  class RequestID : public FixedBytes<8> {
     public:
       // Using parent constructor and operator=.
-      using FixedStr<8>::FixedStr;
-      using FixedStr<8>::operator=;
+      using FixedBytes<8>::FixedBytes;
+      using FixedBytes<8>::operator=;
 
       /**
-       * Constructor.
+i       * Constructor.
        * @param value The unsigned number to convert into a hash string.
        */
       RequestID(const uint64_t& value);
@@ -123,6 +122,8 @@ namespace P2P {
       /// Generate a random hash.
       static RequestID random();
   };
+
+  using NodeID = std::pair<boost::asio::ip::address, uint16_t>;
 
   /// Struct with information about a given node.
   struct NodeInfo {
@@ -255,7 +256,7 @@ namespace P2P {
        * @return The formatted answer.
        */
       static Message requestNodes(const Message& request,
-        const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes
+        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes
       );
 
       /**
@@ -292,7 +293,7 @@ namespace P2P {
        * @return A list of requested nodes.
        */
       static std::unordered_map<
-        Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash
+        NodeID, NodeType, SafeHash
       > requestNodes(const Message& message);
 
       /**
@@ -361,9 +362,7 @@ namespace P2P {
 
   /**
    * Abstraction of a %P2P message.
-   *
    * The structure is a bytes string (1 byte = 2 chars), as follows:
-   *
    * ```
    * 0x            00         0000000000000000       0000        00000000000000000000000000000000...
    * What:    Request Flag        Random ID       Command ID                Data...
@@ -374,10 +373,12 @@ namespace P2P {
   class Message {
     private:
       /// The internal message data to be read/written, stored as bytes.
-      std::string _rawMessage;
+      /// Sessions has directly access to it
+      /// As it can use the vector for its buffer.
+      Bytes _rawMessage;
 
       /// Raw string move constructor. Throws on invalid size.
-      Message(std::string&& raw) : _rawMessage(std::move(raw)) {
+      explicit Message(Bytes&& raw) : _rawMessage(std::move(raw)) {
         if (_rawMessage.size() < 11) throw std::runtime_error("Invalid message size.");
       }
 
@@ -387,6 +388,8 @@ namespace P2P {
       }
 
     public:
+      /// Default constructor.
+      Message() = default;
       /// Copy constructor.
       Message(const Message& message) { this->_rawMessage = message._rawMessage; }
 
@@ -394,19 +397,19 @@ namespace P2P {
       Message(Message&& message) { this->_rawMessage = std::move(message._rawMessage); }
 
       /// Get the request type of the message.
-      const RequestType type() const { return getRequestType(_rawMessage.substr(0,1)); }
+      const RequestType type() const { return getRequestType(BytesArrView(_rawMessage).subspan(0,1)); }
 
       /// Get the request ID of the message.
-      const RequestID id() const { return RequestID(_rawMessage.substr(1, 8)); }
+      const RequestID id() const { return RequestID(BytesArrView(_rawMessage).subspan(1, 8)); }
 
       /// Get the command type of the message.
-      const CommandType command() const { return getCommandType(_rawMessage.substr(9,2)); }
+      const CommandType command() const { return getCommandType(BytesArrView(_rawMessage).subspan(9,2)); }
 
       /// Get the message data (without the flags and IDs).
-      const std::string_view message() const { return std::string_view(_rawMessage).substr(11); }
+      const BytesArrView message() const { return BytesArrView(_rawMessage).subspan(11); }
 
       /// Get the whole message.
-      const std::string_view raw() const { return _rawMessage; }
+      const BytesArrView raw() const { return _rawMessage; }
 
       /// Get the message's size.
       const size_t size() const { return _rawMessage.size(); }
@@ -414,19 +417,19 @@ namespace P2P {
       friend class RequestEncoder;
       friend class AnswerEncoder;
       friend class BroadcastEncoder;
-      friend class ClientSession;
-      friend class ServerSession;
+      friend class Session;
       friend class Request;
   };
 
   /// Abstraction of a %P2P request, passed through the network.
   class Request {
     private:
-      CommandType _command;           ///< Command type.
-      RequestID _id;                  ///< Request ID.
-      Hash _nodeId;                   ///< Host node ID.
-      std::promise<Message> _answer;  ///< Answer to the request.
-      bool _isAnswered = false;       ///< Indicates whether the request was answered.
+      CommandType _command;                                                                 ///< Command type.
+      RequestID _id;                                                                        ///< Request ID.
+      NodeID _nodeId;                                                                       ///< Host node ID.
+      std::promise<const std::shared_ptr<const Message>> _answer;                           ///< Answer to the request.
+      const std::shared_ptr<const Message> _message;                                        ///< The request message. Used if we need to ask another node.
+      bool _isAnswered = false;                                                             ///< Indicates whether the request was answered.
 
     public:
       /**
@@ -434,8 +437,10 @@ namespace P2P {
        * @param command The request's command type.
        * @param id The request's ID.
        * @param nodeId The request's host node ID.
+        * @param message The request's message.
        */
-      Request(const CommandType& command, const RequestID& id, const Hash& nodeId) : _command(command), _id(id), _nodeId(nodeId) {};
+      Request(const CommandType& command, const RequestID& id, const NodeID& nodeId, const std::shared_ptr<const Message>& message) :
+              _command(command), _id(id), _nodeId(nodeId), _message(message) {};
 
       /// Getter for `_command`.
       const CommandType& command() const { return _command; };
@@ -444,17 +449,17 @@ namespace P2P {
       const RequestID& id() const { return _id; };
 
       /// Getter for `_nodeId`.
-      const Hash& nodeId() const { return _nodeId; };
+      const NodeID& nodeId() const { return _nodeId; };
 
       /// Getter for `_answer`.
-      std::future<Message> answerFuture() { return _answer.get_future(); };
+      std::future<const std::shared_ptr<const Message>> answerFuture() { return _answer.get_future(); };
 
       /// Getter for `_isAnswered`.
       const bool isAnswered() const { return _isAnswered; };
 
       /// Setter for `_answer`. Also sets `_isAnswered` to `true`.
-      void setAnswer(const Message& answer) { _answer.set_value(answer); _isAnswered = true; };
+      void setAnswer(const std::shared_ptr<const Message> answer) { _answer.set_value(answer); _isAnswered = true; };
   };
 };
 
-#endif  // P2PENCODING_H
+#endif  // P2P_ENCODING_H

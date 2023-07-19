@@ -4,34 +4,108 @@ on:
   push:
     branches:
       - main
+      - development
   pull_request:
     branches:
       - main
+      - development
 
 jobs:
-  build:
+  setup:
     runs-on: ubuntu-latest
+
+    container: 
+      image: debian:bookworm
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
       
-      - name: Install CMake
-        run: sudo apt-get update && sudo apt-get install -y cmake
+      - name: Update apt-get
+        run: apt-get update
 
       - name: Install project dependencies
-        run: sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git doxygen
 
+      - name: Print GCC version
+        run: gcc --version
+
+      - name: Install CA certificates
+        run: apt-get install -y ca-certificates
+
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    container: 
+      image: debian:bookworm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Update apt-get
+        run: apt-get update
+
+      - name: Install project dependencies
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git
+      
       - name: Configure CMake
         run: cmake -S . -B build
 
       - name: Build with CMake
-        run: cmake --build build
+        run: cmake --build build || cat build/deps/src/ethash-stamp/ethash-configure-*.log
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: build
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    container: 
+      image: debian:bookworm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+
+      - name: Install project dependencies
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git
+        
+      - name: Give execute permissions
+        run: chmod +x ./build/orbitersdkd-tests
 
       - name: Run Catch2 Tests
         working-directory: build
         run: ./orbitersdkd-tests -d yes
-        
+
+  documentation:
+    needs: test
+    runs-on: ubuntu-latest
+
+    container: 
+      image: debian:bookworm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+
       - name: Generate Doxygen Documentation
         run: |
           mkdir docs

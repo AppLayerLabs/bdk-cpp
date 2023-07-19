@@ -83,10 +83,10 @@ std::string parseJsonRpcRequest(
  * @param options Reference pointer to the options singleton.
  */
 template<class Body, class Allocator, class Send> void handle_request(
-  beast::string_view docroot,
-  http::request<Body, http::basic_fields<Allocator>>&& req,
-  Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+    beast::string_view docroot,
+    http::request<Body, http::basic_fields<Allocator>>&& req,
+    Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+    const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
 ) {
   // Returns a bad request response
   const auto bad_request = [&req](beast::string_view why){
@@ -122,17 +122,14 @@ template<class Body, class Allocator, class Send> void handle_request(
   };
 
   // Make sure we can handle the method
-  if (req.method() != http::verb::post && req.method() != http::verb::options) {
+  if (req.method() != http::verb::post && req.method() != http::verb::options)
     return send(bad_request("Unknown HTTP-method"));
-  }
 
   // Request path must be absolute and not contain ".."
   if (
     req.target().empty() || req.target()[0] != '/' ||
     req.target().find("..") != beast::string_view::npos
-    ) {
-    return send(bad_request("Illegal request-target"));
-  }
+  ) return send(bad_request("Illegal request-target"));
 
   // Respond to OPTIONS, Metamask requests it
   if (req.method() == http::verb::options) {
@@ -148,8 +145,6 @@ template<class Body, class Allocator, class Send> void handle_request(
   }
 
   std::string request = req.body();
-
-
   std::string answer = parseJsonRpcRequest(request, state, storage, p2p, options);
 
   http::response<http::string_body> res{http::status::ok, req.version()};

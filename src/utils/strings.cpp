@@ -1,43 +1,36 @@
 #include "strings.h"
 #include "utils.h"
 
-Hash::Hash(uint256_t data) : FixedStr<32>(Utils::uint256ToBytes(data)) {};
+Hash::Hash(const uint256_t& data) : FixedBytes<32>(Utils::uint256ToBytes(data)) {};
 
-Hash::Hash(const std::string_view sv) { std::copy(sv.begin(), sv.end(), this->getRef().begin()); }
+Hash::Hash(const std::string_view sv) {
+  if (sv.size() != 32) throw std::invalid_argument("Hash must be 32 bytes long.");
+  std::copy(sv.begin(), sv.end(), this->data_.begin());
+}
 
-const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data); }
+const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data_); }
 
-uint256_t Signature::r() const { return Utils::bytesToUint256(this->data.substr(0, 32)); }
+uint256_t Signature::r() const { return Utils::bytesToUint256(this->view_const(0, 32)); }
 
-uint256_t Signature::s() const { return Utils::bytesToUint256(this->data.substr(32, 32)); }
+uint256_t Signature::s() const { return Utils::bytesToUint256(this->view_const(32, 32)); }
 
-uint8_t Signature::v() const { return Utils::bytesToUint8(this->data.substr(64, 1)); }
+uint8_t Signature::v() const { return Utils::bytesToUint8(this->view_const(64, 1)); }
 
 Address::Address(const std::string_view add, bool inBytes) {
   if (inBytes) {
     if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-    this->data = add;
+    std::copy(add.begin(), add.end(), this->data_.begin());
   } else {
     if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
-    this->data = std::move(Hex::toBytes(add));
-  }
-}
-
-Address::Address(std::string&& add, bool inBytes) {
-  if (inBytes) {
-    if (add.size() != 20) throw std::invalid_argument("Address must be 20 bytes long.");
-    this->data = std::move(add);
-  } else {
-    if (!Address::isValid(add, false)) throw std::invalid_argument("Invalid Hex address.");
-    add = Hex::toBytes(add);
-    this->data = std::move(add);
+    auto bytes = Hex::toBytes(add);
+    std::copy(bytes.begin(), bytes.end(), this->data_.begin());
   }
 }
 
 Hex Address::toChksum() const {
   // Hash requires lowercase address without "0x"
-  std::string str = Hex::fromBytes(this->data, false).get();
-  Hex hash = Utils::sha3(str).hex();
+  std::string str = Hex::fromBytes(this->data_, false).get();
+  Hex hash = Utils::sha3(Utils::create_view_span(str)).hex();
   for (int i = 0; i < str.length(); i++) {
     if (!std::isdigit(str[i])) {  // Only check letters (A-F)
       // If character hash is 8-F then make it uppercase

@@ -1,67 +1,65 @@
-#include "p2pencoding.h"
-#include "p2pbase.h"
+#include "encoding.h"
 
 namespace P2P {
-  RequestID::RequestID(const uint64_t& value) { this->data = Utils::uint64ToBytes(value); }
+  RequestID::RequestID(const uint64_t& value) { this->data_ = Utils::uint64ToBytes(value); }
 
-  uint64_t RequestID::toUint64() const { return Utils::bytesToUint64(data); }
+  uint64_t RequestID::toUint64() const { return Utils::bytesToUint64(this->data_); }
 
   RequestID RequestID::random() { return RequestID(Utils::randBytes(8)); }
 
-  CommandType getCommandType(const std::string_view& message) {
+  CommandType getCommandType(const BytesArrView message) {
     if (message.size() != 2) { throw std::runtime_error("Invalid Command Type size." + std::to_string(message.size())); }
     uint16_t commandType = Utils::bytesToUint16(message);
     if (commandType > commandPrefixes.size()) { throw std::runtime_error("Invalid command type."); }
     return static_cast<CommandType>(commandType);
   }
 
-  std::string getCommandPrefix(const CommandType& commType) { return commandPrefixes[commType]; }
+  const Bytes& getCommandPrefix(const CommandType& commType) { return commandPrefixes[commType]; }
 
-  RequestType getRequestType(const std::string_view& message) {
+  RequestType getRequestType(const BytesArrView message) {
     if (message.size() != 1) { throw std::runtime_error("Invalid Request Type size. " + std::to_string(message.size())); }
     uint8_t requestType = Utils::bytesToUint8(message);
     if (requestType > typePrefixes.size()) { throw std::runtime_error("Invalid request type."); }
     return static_cast<RequestType>(requestType);
   }
 
-  std::string getRequestTypePrefix(const RequestType& type) { return typePrefixes[type]; }
+  const Bytes& getRequestTypePrefix(const RequestType& type) { return typePrefixes[type]; }
 
   Message RequestEncoder::ping() {
-    std::string message;
-    message += getRequestTypePrefix(Requesting);
-    message += Utils::randBytes(8);
-    message += getCommandPrefix(Ping);
+    Bytes message = getRequestTypePrefix(Requesting);
+    message.reserve(message.size() + 8 + 2);
+    Utils::appendBytes(message, Utils::randBytes(8));
+    Utils::appendBytes(message, getCommandPrefix(Ping));
     return Message(std::move(message));
   }
 
   Message RequestEncoder::info(const std::shared_ptr<const Block>& latestBlock, const std::unique_ptr<Options> &options) {
-    std::string message;
-    message += getRequestTypePrefix(Requesting);
-    message += Utils::randBytes(8);
-    message += getCommandPrefix(Info);
-    message += Utils::uint64ToBytes(options->getVersion());
+    Bytes message = getRequestTypePrefix(Requesting);
+    message.reserve(message.size() + 8 + 2 + 8 + 8 + 8 + 32);
+    Utils::appendBytes(message, Utils::randBytes(8));
+    Utils::appendBytes(message, getCommandPrefix(Info));
+    Utils::appendBytes(message, Utils::uint64ToBytes(options->getVersion()));
     uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::system_clock::now().time_since_epoch()
     ).count();
-    message += Utils::uint64ToBytes(currentEpoch);
-    message += Utils::uint64ToBytes(latestBlock->getNHeight());
-    message += latestBlock->hash().get();
+    Utils::appendBytes(message, Utils::uint64ToBytes(currentEpoch));
+    Utils::appendBytes(message, Utils::uint64ToBytes(latestBlock->getNHeight()));
+    Utils::appendBytes(message, latestBlock->hash());
     return Message(std::move(message));
   }
 
   Message RequestEncoder::requestNodes() {
-    std::string message;
-    message += getRequestTypePrefix(Requesting);
-    message += Utils::randBytes(8);
-    message += getCommandPrefix(RequestNodes);
+    Bytes message = getRequestTypePrefix(Requesting);
+    message.reserve(message.size() + 8 + 2);
+    Utils::appendBytes(message, Utils::randBytes(8));
+    Utils::appendBytes(message, getCommandPrefix(RequestNodes));
     return Message(std::move(message));
   }
 
   Message RequestEncoder::requestValidatorTxs() {
-    std::string message;
-    message += getRequestTypePrefix(Requesting);
-    message += Utils::randBytes(8);
-    message += getCommandPrefix(RequestValidatorTxs);
+    Bytes message = getRequestTypePrefix(Requesting);
+    Utils::appendBytes(message, Utils::randBytes(8));
+    Utils::appendBytes(message, getCommandPrefix(RequestValidatorTxs));
     return Message(std::move(message));
   }
 
@@ -74,10 +72,10 @@ namespace P2P {
   NodeInfo RequestDecoder::info(const Message& message) {
     if (message.size() != 67) { throw std::runtime_error("Invalid Info message size."); }
     if (message.command() != Info) { throw std::runtime_error("Invalid Info message command."); }
-    uint64_t nodeVersion = Utils::bytesToUint64(message.message().substr(0, 8));
-    uint64_t nodeEpoch = Utils::bytesToUint64(message.message().substr(8, 8));
-    uint64_t nodeHeight = Utils::bytesToUint64(message.message().substr(16, 8));
-    Hash nodeHash(message.message().substr(24, 32));
+    uint64_t nodeVersion = Utils::bytesToUint64(message.message().subspan(0, 8));
+    uint64_t nodeEpoch = Utils::bytesToUint64(message.message().subspan(8, 8));
+    uint64_t nodeHeight = Utils::bytesToUint64(message.message().subspan(16, 8));
+    Hash nodeHash(message.message().subspan(24, 32));
     return NodeInfo(nodeVersion, nodeEpoch, nodeHeight, nodeHash);
   }
 
@@ -94,10 +92,10 @@ namespace P2P {
   }
 
   Message AnswerEncoder::ping(const Message& request) {
-    std::string message;
-    message += getRequestTypePrefix(Answering);
-    message += request.id().get();
-    message += getCommandPrefix(Ping);
+    Bytes message = getRequestTypePrefix(Answering);
+    message.reserve(message.size() + 8 + 2);
+    Utils::appendBytes(message, request.id());
+    Utils::appendBytes(message, getCommandPrefix(Ping));
     return Message(std::move(message));
   }
 
@@ -105,39 +103,38 @@ namespace P2P {
     const std::shared_ptr<const Block>& latestBlock,
     const std::unique_ptr<Options> &options
   ) {
-    std::string message;
-    message += getRequestTypePrefix(Answering);
-    message += request.id().get();
-    message += getCommandPrefix(Info);
-    message += Utils::uint64ToBytes(options->getVersion());
+    Bytes message = getRequestTypePrefix(Answering);
+    message.reserve(message.size() + 8 + 2 + 8 + 8 + 8 + 32);
+    Utils::appendBytes(message, request.id());
+    Utils::appendBytes(message, getCommandPrefix(Info));
+    Utils::appendBytes(message, Utils::uint64ToBytes(options->getVersion()));
     uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::system_clock::now().time_since_epoch()
     ).count();
-    message += Utils::uint64ToBytes(currentEpoch);
-    message += Utils::uint64ToBytes(latestBlock->getNHeight());
-    message += latestBlock->hash().get();
+    Utils::appendBytes(message, Utils::uint64ToBytes(currentEpoch));
+    Utils::appendBytes(message, Utils::uint64ToBytes(latestBlock->getNHeight()));
+    Utils::appendBytes(message, latestBlock->hash());
     return Message(std::move(message));
   }
 
   Message AnswerEncoder::requestNodes(const Message& request,
-    const std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash>& nodes
+    const std::unordered_map<NodeID, NodeType, SafeHash>& nodes
   ) {
-    std::string message;
-    message += getRequestTypePrefix(Answering);
-    message += request.id().get();
-    message += getCommandPrefix(RequestNodes);
-    for (const auto& node : nodes) {
-      message += Utils::uint8ToBytes(std::get<0>(node.second)); // Node type
-      message += node.first.get();  // Node ID
-      message += Utils::uint8ToBytes(std::get<1>(node.second).is_v4() ? 0 : 1);
-      if (std::get<1>(node.second).is_v4()) {
-        auto address = std::get<1>(node.second).to_v4().to_bytes();
-        message += std::string(address.begin(), address.end());
+    Bytes message = getRequestTypePrefix(Answering);
+    Utils::appendBytes(message, request.id());
+    Utils::appendBytes(message, getCommandPrefix(RequestNodes));
+    for (const auto& [nodeId, nodeType] : nodes) {
+      const auto& [address, port] = nodeId;
+      Utils::appendBytes(message, Utils::uint8ToBytes(nodeType)); // Node type
+      Utils::appendBytes(message, Utils::uint8ToBytes(address.is_v4() ? 0 : 1));
+      if (address.is_v4()) {
+        auto addressBytes = address.to_v4().to_bytes();
+        Utils::appendBytes(message, addressBytes);
       } else {
-        auto address = std::get<1>(node.second).to_v6().to_bytes();
-        message += std::string(address.begin(), address.end());
+        auto addressBytes = address.to_v6().to_bytes();
+        Utils::appendBytes(message, addressBytes);
       }
-      message += Utils::uint16ToBytes(uint16_t(std::get<2>(node.second)));
+      Utils::appendBytes(message, Utils::uint16ToBytes(uint16_t(port)));
     }
     return Message(std::move(message));
   }
@@ -145,14 +142,13 @@ namespace P2P {
   Message AnswerEncoder::requestValidatorTxs(const Message& request,
     const std::unordered_map<Hash, TxValidator, SafeHash>& txs
   ) {
-    std::string message;
-    message += getRequestTypePrefix(Answering);
-    message += request.id().get();
-    message += getCommandPrefix(RequestValidatorTxs);
+    Bytes message = getRequestTypePrefix(Answering);
+    Utils::appendBytes(message, request.id());
+    Utils::appendBytes(message, getCommandPrefix(RequestValidatorTxs));
     for (const auto& validatorTx : txs) {
-      std::string rlp = validatorTx.second.rlpSerialize();
-      message += Utils::uint32ToBytes(rlp.size());
-      message += rlp;
+      Bytes rlp = validatorTx.second.rlpSerialize();
+      Utils::appendBytes(message, Utils::uint32ToBytes(rlp.size()));
+      message.insert(message.end(), rlp.begin(), rlp.end());
     }
     return Message(std::move(message));
   }
@@ -167,55 +163,45 @@ namespace P2P {
   NodeInfo AnswerDecoder::info(const Message& message) {
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != Info) { throw std::runtime_error("Invalid command."); }
-    uint64_t nodeVersion = Utils::bytesToUint64(message.message().substr(0, 8));
-    uint64_t nodeEpoch = Utils::bytesToUint64(message.message().substr(8, 8));
-    uint64_t nodeHeight = Utils::bytesToUint64(message.message().substr(16, 8));
-    Hash nodeHash(message.message().substr(24, 32));
+    uint64_t nodeVersion = Utils::bytesToUint64(message.message().subspan(0, 8));
+    uint64_t nodeEpoch = Utils::bytesToUint64(message.message().subspan(8, 8));
+    uint64_t nodeHeight = Utils::bytesToUint64(message.message().subspan(16, 8));
+    Hash nodeHash(message.message().subspan(24, 32));
     return NodeInfo(nodeVersion, nodeEpoch, nodeHeight, nodeHash);
   }
 
   std::unordered_map<
-    Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash
+      NodeID, NodeType, SafeHash
   > AnswerDecoder::requestNodes(const Message& message) {
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestNodes) { throw std::runtime_error("Invalid command."); }
-    std::unordered_map<Hash, std::tuple<NodeType, boost::asio::ip::address, unsigned short>, SafeHash> nodes;
-    std::string_view data = message.message();
+    std::unordered_map<NodeID, NodeType, SafeHash> nodes;
+
+    BytesArrView data = message.message();
+    Utils::logToDebug(Log::P2PRequestDecoder, __func__, std::string("Data size: ") + std::to_string(data.size()) + " data: " + Hex::fromBytes(data).get());
     size_t index = 0;
     while (index < data.size()) {
-      if (data.size() < 40) { throw std::runtime_error("Invalid data size."); }
-      std::tuple<NodeType, boost::asio::ip::address, unsigned short> node;
-      std::get<0>(node) = static_cast<NodeType>(Utils::bytesToUint8(data.substr(index, 1)));
+      boost::asio::ip::address address;
+      if (data.size() < 8) { throw std::runtime_error("Invalid data size."); }
+      NodeType nodeType = NodeType(Utils::bytesToUint8(data.subspan(index, 1)));
       index += 1;
-      Hash nodeId = Hash(std::string(data.substr(index, 32)));
-      index += 32;
-      uint8_t ipVersion = Utils::bytesToUint8(data.substr(index, 1));
+      uint8_t ipVersion = Utils::bytesToUint8(data.subspan(index, 1));
       index += 1; // Move index to IP address
       if (ipVersion == 0) { // V4
-        std::string ip;
-        auto ipBytes = data.substr(index, 4);
-        for (const char& byte : ipBytes) {
-          ip += std::to_string(uint8_t(byte));
-          ip += '.';
-        }
-        ip.pop_back();
-        std::get<1>(node) = boost::asio::ip::address::from_string(ip);
+        BytesArr<4> ipBytes;
+        std::copy(data.begin() + index, data.begin() + index + 4, ipBytes.begin());
+        address = boost::asio::ip::address_v4(ipBytes);
         index += 4;
       } else if (ipVersion == 1) { // V6
-        std::string ip;
-        auto ipBytes = data.substr(index, 16);
-        for (const char& byte : ipBytes) {
-          ip += std::to_string(uint8_t(byte));
-          ip += ':';
-        }
-        ip.pop_back();
-        std::get<1>(node) = boost::asio::ip::address::from_string(ip);
+        BytesArr<16> ipBytes;
+        std::copy(data.begin() + index, data.begin() + index + 16, ipBytes.begin());
+        address = boost::asio::ip::address_v6(ipBytes);
         index += 16;
       } else {
         throw std::runtime_error("Invalid ip version.");
       }
-      std::get<2>(node) = Utils::bytesToUint16(data.substr(index, 2));
-      nodes[nodeId] = node;
+      auto port = Utils::bytesToUint16(data.subspan(index, 2));
+      nodes.insert({NodeID(address, port), nodeType});
       index += 2;
     }
     return nodes;
@@ -227,14 +213,14 @@ namespace P2P {
     if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
     if (message.command() != RequestValidatorTxs) { throw std::runtime_error("Invalid command."); }
     std::vector<TxValidator> txs;
-    std::string_view data = message.message();
+    BytesArrView data = message.message();
     size_t index = 0;
     while (index < data.size()) {
       if (data.size() < 4) { throw std::runtime_error("Invalid data size."); }
-      uint32_t txSize = Utils::bytesToUint32(data.substr(index, 4));
+      uint32_t txSize = Utils::bytesToUint32(data.subspan(index, 4));
       index += 4;
       if (data.size() < txSize) { throw std::runtime_error("Invalid data size."); }
-      std::string_view txData = data.substr(index, txSize);
+      BytesArrView txData = data.subspan(index, txSize);
       index += txSize;
       txs.emplace_back(txData, requiredChainId);
     }
@@ -242,36 +228,33 @@ namespace P2P {
   }
 
   Message BroadcastEncoder::broadcastValidatorTx(const TxValidator& tx) {
-    std::string message;
-    message += getRequestTypePrefix(Broadcasting);
+    Bytes message = getRequestTypePrefix(Broadcasting);
     // We need to use std::hash instead of SafeHash
     // Because hashing with SafeHash will always be different between nodes
-    message += Utils::uint64ToBytes(FNVHash()(tx.rlpSerialize()));
-    message += getCommandPrefix(BroadcastValidatorTx);
-    message += tx.rlpSerialize();
+    Utils::appendBytes(message, Utils::uint64ToBytes(FNVHash()(tx.rlpSerialize())));
+    Utils::appendBytes(message, getCommandPrefix(BroadcastValidatorTx));
+    Utils::appendBytes(message, tx.rlpSerialize());
     return Message(std::move(message));
   }
 
   Message BroadcastEncoder::broadcastTx(const TxBlock& tx) {
-    std::string message;
-    message += getRequestTypePrefix(Broadcasting);
+    Bytes message = getRequestTypePrefix(Broadcasting);
     // We need to use std::hash instead of SafeHash
     // Because hashing with SafeHash will always be different between nodes
-    message += Utils::uint64ToBytes(FNVHash()(tx.rlpSerialize()));
-    message += getCommandPrefix(BroadcastTx);
-    message += tx.rlpSerialize();
+    Utils::appendBytes(message, Utils::uint64ToBytes(FNVHash()(tx.rlpSerialize())));
+    Utils::appendBytes(message, getCommandPrefix(BroadcastTx));
+    Utils::appendBytes(message, tx.rlpSerialize());
     return Message(std::move(message));
   }
 
   Message BroadcastEncoder::broadcastBlock(const std::shared_ptr<const Block>& block) {
-    std::string message;
-    message += getRequestTypePrefix(Broadcasting);
+    Bytes message = getRequestTypePrefix(Broadcasting);
     // We need to use std::hash instead of SafeHash
     // Because hashing with SafeHash will always be different between nodes
-    std::string serializedBlock = block->serializeBlock();
-    message += Utils::uint64ToBytes(FNVHash()(serializedBlock));
-    message += getCommandPrefix(BroadcastBlock);
-    message += serializedBlock;
+    Bytes serializedBlock = block->serializeBlock();
+    Utils::appendBytes(message, Utils::uint64ToBytes(FNVHash()(serializedBlock)));
+    Utils::appendBytes(message, getCommandPrefix(BroadcastBlock));
+    message.insert(message.end(), serializedBlock.begin(), serializedBlock.end());
     return Message(std::move(message));
   }
 

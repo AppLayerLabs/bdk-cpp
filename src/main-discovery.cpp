@@ -1,5 +1,5 @@
 
-#include "net/p2p/p2pmanagerdiscovery.h"
+#include "net/p2p/managerdiscovery.h"
 #include "utils/options.h"
 #include "iostream"
 
@@ -13,9 +13,9 @@ int main() {
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/discoveryNode");
   const std::unique_ptr<Options> options(std::make_unique<Options>(Options::fromFile(blockchainPath)));
   P2P::ManagerDiscovery p2p(boost::asio::ip::address::from_string("127.0.0.1"), options);
-  p2p.startServer();
+  p2p.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   p2p.startDiscovery();
   /// Sleep Forever
-  std::this_thread::sleep_for(std::chrono::hours(1000000));
+  std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::hours(std::numeric_limits<int>::max()));
 }

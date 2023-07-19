@@ -4,7 +4,7 @@
 
 
 namespace TSafeUint32_t {
-  TEST_CASE("SafeUint32_t Class", "[contracts][variables][safeuint32_t]") {
+  TEST_CASE("SafeUint32_t Class", "[contract][variables][safeuint32_t]") {
     SECTION("SafeUint32_t constructor (Commit and Revert") {
       SafeUint32_t commitedValue(uint32_t(429496));
       SafeUint32_t revertedValue(uint32_t(429496));

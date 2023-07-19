@@ -9,6 +9,6 @@ int main() {
   Blockchain blockchain(blockchainPath);
   /// Start the blockchain syncing engine.
   blockchain.start();
-  std::this_thread::sleep_for(std::chrono::hours(1000000));
+  std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::hours(std::numeric_limits<int>::max()));
   return 0;
 }

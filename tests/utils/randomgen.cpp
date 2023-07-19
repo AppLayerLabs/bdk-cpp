@@ -8,7 +8,8 @@ using Catch::Matchers::Equals;
 namespace TRandomGen {
   TEST_CASE("RandomGen Class", "[utils][randomgen]") {
     SECTION("RandomGen Constructor") {
-      Hash seed(std::string("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"));
+      Bytes bytes(32, 0x00);
+      Hash seed(bytes);
       RandomGen generator(seed);
 
       uint256_t firstRandom = generator();

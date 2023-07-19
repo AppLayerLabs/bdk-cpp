@@ -1,6 +1,5 @@
 #include "encoding.h"
 
-#include "../../p2p/p2pmanagernormal.h"
 #include "../../../core/storage.h"
 #include "../../../core/state.h"
 
@@ -10,10 +9,7 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = 2.0;
       try {
-        if (block == nullptr) {
-          ret["result"] = json::value_t::null;
-          return ret;
-        }
+        if (block == nullptr) { ret["result"] = json::value_t::null; return ret; }
         ret["result"]["hash"] = block->hash().hex(true);
         ret["result"]["parentHash"] = block->getPrevBlockHash().hex(true);
         ret["result"]["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
@@ -33,17 +29,13 @@ namespace JsonRPC {
         ret["result"]["totalDifficulty"] = "0x1";
         ret["result"]["baseFeePerGas"] = "0x9502f900";
         ret["result"]["withdrawRoot"] = Hash().hex(true); // No withdrawRoot.
-        ret["result"]["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC(); // TODO: to get a block you have to serialize it entirely, this can be expensive.
-        if (!includeTransactions) {
-          // Only include the transaction hashes.
-          ret["result"]["transactions"] = json::array();
-          for (const auto& tx : block->getTxs()) {
+        // TODO: to get a block you have to serialize it entirely, this can be expensive.
+        ret["result"]["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC();
+        ret["result"]["transactions"] = json::array();
+        for (const auto& tx : block->getTxs()) {
+          if (!includeTransactions) { // Only include the transaction hashes.
             ret["result"]["transactions"].push_back(tx.hash().hex(true));
-          }
-        } else {
-          // Encode the transaction within the json response.
-          ret["result"]["transactions"] = json::array();
-          for (const auto& tx : block->getTxs()) {
+          } else { // Include the transactions as a whole.
             json txJson = json::object();
             txJson["type"] = "0x0"; // Legacy Transactions ONLY. TODO: change this to 0x2 when we support EIP-1559
             txJson["nonce"] = Hex::fromBytes(Utils::uintToBytes(tx.getNonce()),true).forRPC(); // TODO: get the nonce from the transaction.
@@ -61,7 +53,7 @@ namespace JsonRPC {
         }
         ret["result"]["withdrawls"] = json::array();
         ret["result"]["uncles"] = json::array();
-      } catch (std::exception &e) {
+      } catch (std::exception& e) {
         json error;
         error["jsonrpc"] = 2.0;
         error["error"]["code"] = -32603;
@@ -78,7 +70,7 @@ namespace JsonRPC {
       return ret;
     }
 
-    json web3_sha3(const std::string& data) {
+    json web3_sha3(const BytesArrView data) {
       json ret;
       ret["jsonrpc"] = "2.0";
       ret["result"] = Utils::sha3(data).hex(true);
@@ -109,7 +101,7 @@ namespace JsonRPC {
     json eth_protocolVersion(const std::unique_ptr<Options>& options) {
       json ret;
       ret["jsonrpc"] = 2.0;
-      ret["result"] = std::to_string(options->getSDKVersion());
+      ret["result"] = options->getSDKVersion();
       return ret;
     }
 
@@ -129,9 +121,7 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = "2.0";
       auto block = storage->getBlock(blockHash);
-      if (block == nullptr) {
-        ret["result"] = json::value_t::null;
-      }
+      if (block == nullptr) ret["result"] = json::value_t::null;
       ret["result"] = Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true).forRPC();
       return ret;
     }
@@ -140,9 +130,7 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = "2.0";
       auto block = storage->getBlock(blockNumber);
-      if (block == nullptr) {
-        ret["result"] = json::value_t::null;
-      }
+      if (block == nullptr) ret["result"] = json::value_t::null;
       ret["result"] = Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true).forRPC();
       return ret;
     }
@@ -176,26 +164,26 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_call(const ethCallInfo& callInfo, const std::unique_ptr<State>& state) {
+    json eth_call(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
         auto result = Hex::fromBytes(state->ethCall(callInfo), true);
         ret["result"] = result;
-      } catch (std::exception &e) {
+      } catch (std::exception& e) {
         ret["error"]["code"] = -32000;
         ret["error"]["message"] = "Internal error: " + std::string(e.what());
       }
       return ret;
     }
 
-    json eth_estimateGas(const ethCallInfo& callInfo, const std::unique_ptr<State>& state) {
+    json eth_estimateGas(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
         state->estimateGas(callInfo);
         ret["result"] = "0x5208"; // Fixed to 21000 for now.
-      } catch (std::exception &e) {
+      } catch (std::exception& e) {
         ret["error"]["code"] = -32000;
         ret["error"]["message"] = "Internal error: " + std::string(e.what());
       }
@@ -278,7 +266,7 @@ namespace JsonRPC {
       }
 
       auto txOnChain = storage->getTx(txHash);
-      const auto &[tx, blockHash, blockIndex, blockHeight] = txOnChain;
+      const auto& [tx, blockHash, blockIndex, blockHeight] = txOnChain;
       if (tx != nullptr) {
         ret["result"]["blockHash"] = blockHash.hex(true);
         ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
@@ -383,3 +371,4 @@ namespace JsonRPC {
     }
   }
 }
+

@@ -51,7 +51,7 @@ namespace THex {
     }
 
     SECTION("Hex FromBytes") {
-      std::string bytes = "\x12\x34";
+      Bytes bytes{0x12, 0x34};
       Hex hex = Hex::fromBytes(bytes, false);
       Hex hexStrict = Hex::fromBytes(bytes, true);
       REQUIRE_THAT(hex.get(), Equals("1234"));
@@ -74,17 +74,26 @@ namespace THex {
       REQUIRE_THAT(hexStrict.get(), Equals("0x1234"));
     }
 
+    SECTION("Hex IsValid") {
+      REQUIRE(Hex::isValid("0x1a2b3c4d5e6f7890", true));
+      REQUIRE(Hex::isValid("1a2b3c4d5e6f7890", false));
+      REQUIRE(!Hex::isValid("0x81684g837h3892j", true));
+      REQUIRE(!Hex::isValid("81684g837h3892j", false));
+      REQUIRE(!Hex::isValid("1a2b3c4d5e6f7890", true));
+      REQUIRE(!Hex::isValid("0x1a2b3c4d5e6f7890", false));
+    }
+
     SECTION("Hex ToBytes") {
       std::string_view hexStr("0x1234");
       std::string_view hexStr2("5678");
-      std::string bytesStr = Hex::toBytes(hexStr);
-      std::string bytesStr2 = Hex::toBytes(hexStr2);
+      Bytes bytesStr = Hex::toBytes(hexStr);
+      Bytes bytesStr2 = Hex::toBytes(hexStr2);
       REQUIRE(Hex::fromBytes(bytesStr).get() == "1234");
       REQUIRE(Hex::fromBytes(bytesStr2).get() == "5678");
 
       bool catched = false;
       std::string_view wrongStr("xyzw");
-      try { std::string s = Hex::toBytes(wrongStr); } catch (std::exception &e) { catched = true; }
+      try { Bytes s = Hex::toBytes(wrongStr); } catch (std::exception &e) { catched = true; }
       REQUIRE(catched == true);
     }
 
@@ -92,8 +101,8 @@ namespace THex {
       std::string hexStr = "0x1234";
       Hex hex(hexStr, false);
       Hex hexStrict(hexStr, true);
-      REQUIRE_THAT(hex.bytes(), Equals("\x12\x34"));
-      REQUIRE_THAT(hexStrict.bytes(), Equals("\x12\x34"));
+      REQUIRE(hex.bytes() == Bytes{0x12, 0x34});
+      REQUIRE(hexStrict.bytes() == Bytes{0x12, 0x34});
     }
 
     SECTION("Hex Get") {
@@ -125,6 +134,37 @@ namespace THex {
 
     // Cannot test string_view::substr with Catch2
     // REQUIRE_THAT(hex.substr_view(0, 2), Equals("12")); throws template errors
+
+    SECTION("Hex ToInt") {
+      // Yes I know this is overkill (it could be more tho) but you can never be too sure lol
+      std::unordered_map<char, int> map = {
+        {'0', 0}, {'1', 1}, {'2', 2}, {'3', 3}, {'4', 4}, {'5', 5}, {'6', 6},
+        {'7', 7}, {'8', 8}, {'9', 9}, {'a', 10}, {'A', 10}, {'b', 11}, {'B', 11},
+        {'c', 12}, {'C', 12}, {'d', 13}, {'D', 13}, {'e', 14}, {'E', 14},
+        {'f', 15}, {'F', 15}, {'g', -1}, {'G', -1}, {'h', -1}, {'H', -1},
+        {'!', -1}, {'@', -1}, {'#', -1}, {'$', -1}, {'%', -1}, {'&', -1},
+        {'*', -1}, {'(', -1}, {')', -1}, {'-', -1}, {'+', -1}, {'_', -1},
+        {'=', -1}, {',', -1}, {'.', -1}, {'<', -1}, {'>', -1}, {';', -1},
+        {':', -1}, {'/', -1}, {'?', -1}, {'~', -1}, {'^', -1}, {'[', -1},
+        {']', -1}, {'{', -1}, {'}', -1}, {'"', -1}, {'|', -1}
+      };
+      for (std::pair<char, int> p : map) REQUIRE(Hex::toInt(p.first) == p.second);
+    }
+
+    SECTION("Hex ForRPC") {
+      Hex h1(std::string("0x41"), true);
+      Hex h2(std::string("0x400"), true);
+      Hex h3(std::string("0x"), true);
+      Hex h4(std::string("0x0400"), true);
+      Hex h5(std::string("ff"), false);
+      Hex h6(std::string("0x00007a6f00"), true);
+      REQUIRE_THAT(h1.forRPC(), Equals("0x41"));
+      REQUIRE_THAT(h2.forRPC(), Equals("0x400"));
+      REQUIRE_THAT(h3.forRPC(), Equals("0x0"));
+      REQUIRE_THAT(h4.forRPC(), Equals("0x400"));
+      REQUIRE_THAT(h5.forRPC(), Equals("0xff"));
+      REQUIRE_THAT(h6.forRPC(), Equals("0x7a6f00"));
+    }
 
     SECTION("Hex operator+= (std::string)") {
       std::string hexStr = "0x1234";

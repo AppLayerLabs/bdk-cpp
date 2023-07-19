@@ -19,7 +19,7 @@ void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std:
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   options = std::make_unique<Options>(
     "blocksTests",
-    "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+    "OrbiterSDK/cpp/linux_x86-64/0.1.0",
     1,
     8080,
     8080,
@@ -35,8 +35,8 @@ void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std:
 TxBlock createRandomTx(const uint64_t& requiredChainId) {
   PrivKey txPrivKey = PrivKey::random();
   Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
-  Address to(Utils::randBytes(20), true);
-  std::string data = Utils::randBytes(32);
+  Address to(Utils::randBytes(20));
+  Bytes data = Utils::randBytes(32);
   uint64_t chainId = requiredChainId;
   uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
   uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
@@ -48,17 +48,18 @@ TxBlock createRandomTx(const uint64_t& requiredChainId) {
 }
 
 // Random list of TxValidator transactions and the corresponding seedRandomness.
-std::pair<std::vector<TxValidator>, std::string> createRandomTxValidatorList(uint64_t nHeight, uint64_t N, const uint64_t& requiredChainId) {
-  std::pair<std::vector<TxValidator>, std::string> ret;
-  std::string randomnessStr;
+std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t nHeight, uint64_t N, const uint64_t& requiredChainId) {
+  std::pair<std::vector<TxValidator>, Bytes> ret;
+  Bytes randomnessStr;
   ret.first.reserve(N);
 
   std::vector<Hash> seeds(N, Hash::random());
   for (const auto& seed : seeds) {
-    ret.second += seed.get();
+    Utils::appendBytes(ret.second, seed);
     PrivKey txValidatorPrivKey = PrivKey::random();
     Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
-    std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+    Bytes hashTxData = Hex::toBytes("0xcfffe746");
+    Utils::appendBytes(hashTxData, Utils::sha3(seed.get()));
     ret.first.emplace_back(
       validatorAddress,
       hashTxData,
@@ -66,7 +67,8 @@ std::pair<std::vector<TxValidator>, std::string> createRandomTxValidatorList(uin
       nHeight,
       txValidatorPrivKey
     );
-    std::string seedTxData = Hex::toBytes("0x6fc5a2d6") + seed.get();
+    Bytes seedTxData = Hex::toBytes("0x6fc5a2d6");
+    Utils::appendBytes(seedTxData, seed.get());
     ret.first.emplace_back(
       validatorAddress,
       seedTxData,
@@ -93,7 +95,7 @@ Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHei
 
   // Create and append 8 randomSeeds
   auto randomnessResult = createRandomTxValidatorList(nHeight, validatorCount, requiredChainId);
-  std::string randomSeed = randomnessResult.second;
+  Bytes randomSeed = randomnessResult.second;
   std::vector<TxValidator> txValidators = randomnessResult.first;
 
   // Append transactions to block.
@@ -125,7 +127,7 @@ namespace TStorage {
       REQUIRE(genesis->getTxValidators().size() == 0);
       REQUIRE(genesis->getTxs().size() == 0);
       REQUIRE(genesis->getValidatorPubKey() == UPubKey(Hex::toBytes("04eb4c1da10ca5f1e52d1cba87f627931b5a980dba6d910d6aa756db62fc71ea78db1a18a2c364fb348bb28e0b0a3c6563a0522626eecfe32cdab30746365f5747")));
-      REQUIRE(Secp256k1::toAddress(genesis->getValidatorPubKey()) == Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true));
+      REQUIRE(Secp256k1::toAddress(genesis->getValidatorPubKey()) == Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")));
       REQUIRE(genesis->isFinalized() == true);
     }
 

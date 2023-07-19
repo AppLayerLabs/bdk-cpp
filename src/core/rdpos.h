@@ -7,7 +7,7 @@
 #include "../utils/safehash.h"
 #include "../utils/randomgen.h"
 #include "../utils/options.h"
-#include "../net/p2p/p2pmanagernormal.h"
+#include "../net/p2p/managernormal.h"
 
 #include <optional>
 #include <shared_mutex>
@@ -22,7 +22,7 @@ class State;
 // "0xcfffe746" -> Function for random hash tx
 
 /**
- * Abstraction of a validator.
+ * Abstraction of a validator, same as Address but different type.
  * Responsible for creating/signing/validating blocks.
  */
 class Validator : public Address {
@@ -38,27 +38,18 @@ class Validator : public Address {
     /// Constructor.
     Validator(const Address& add) : Address(add) {}
 
-    /// Move constructor.
-    Validator(const Address&& add) : Address(std::move(add)) {}
-
     /// Copy constructor.
-    Validator(const Validator& other) : Address(other.data, true) {}
+    Validator(const Validator& other) : Address(other.data_)  {}
 
-    /// Move constructor.
-    Validator(Validator&& other) noexcept : Address(std::move(other.data), true) {}
-
-    /// Get a copy of the Validator address.
-    const Address address() const { return Address(this->data, true); }
+    /**
+     * Getter for the address.
+     * @return The address.
+     */
+    const Address address() const { return Address(this->data_); }
 
     /// Copy assignment operator.
     Validator& operator=(const Validator& other) {
-      this->data = other.data;
-      return *this;
-    }
-
-    /// Move assignment operator.
-    Validator& operator=(Validator&& other) noexcept {
-      this->data = std::move(other.data);
+      this->data_ = other.data_;
       return *this;
     }
 };
@@ -78,10 +69,13 @@ class rdPoS : public BaseContract {
     /// Pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
-    /// Ordered list of rdPoS.
+    /// Pointer to the worker object.
+    const std::unique_ptr<rdPoSWorker> worker;
+
+    /// Ordered list of rdPoS validators.
     std::set<Validator> validators;
 
-    /// Shuffled version of `rdPoS`, used at block creation/signing.
+    /// Shuffled version of the validator list, used at block creation/signing.
     std::vector<Validator> randomList;
 
     /// Mempool for validator transactions.
@@ -92,9 +86,6 @@ class rdPoS : public BaseContract {
 
     /// Indicated whether this node is a Validator or not.
     const bool isValidator = false;
-
-    /// Worker for rdPoS.
-    const std::unique_ptr<rdPoSWorker> worker;
 
     /// Randomness generator (for use in seeding).
     RandomGen randomGen;
@@ -122,6 +113,7 @@ class rdPoS : public BaseContract {
      * @param p2p Pointer to the P2P connection manager.
      * @param options Pointer to the options singleton.
      * @param state Pointer to the blockchain's state.
+     * @throw std::runtime_error if there are no Validators registered in the database.
      */
     rdPoS(
       const std::unique_ptr<DB>& db, const std::unique_ptr<Storage>& storage,
@@ -138,7 +130,7 @@ class rdPoS : public BaseContract {
     /// Minimum number of required Validators for creating and signing blocks.
     static const uint32_t minValidators = 4;
 
-    /// Getter for `rdPoS`. Not a reference because the inner set can be changed.
+    /// Getter for `validators`. Not a reference because the inner set can be changed.
     const std::set<Validator> getValidators() const { std::shared_lock lock(this->mutex); return validators; }
 
     /// Getter for `randomList`. Not a reference because the inner vector can be changed.
@@ -178,12 +170,13 @@ class rdPoS : public BaseContract {
      * Should be called from State, after a block is validated and before it is added to Storage.
      * @param block The block to process.
      * @return The new randomness seed to be used for the next block.
+     * @throw std::runtime_error if block is not finalized.
      */
     Hash processBlock(const Block& block);
 
     /**
      * Sign a block using the Validator's private key.
-     * @return `true` on success, `false` if we are not able to sign the block.
+     * @param block The block to sign.
      */
     void signBlock(Block& block);
 
@@ -224,6 +217,7 @@ class rdPoS : public BaseContract {
     /// Stop the rdPoSWorker.
     void stoprdPoSWorker();
 
+    /// Worker class is a friend.
     friend rdPoSWorker;
 };
 

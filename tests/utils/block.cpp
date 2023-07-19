@@ -73,16 +73,10 @@ namespace TBlock {
       REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
       REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
 
-      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
-      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
-      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
-      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTimestamp() == 1678400201859);
       REQUIRE(newBlock.getNHeight() == 92137812);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
-      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
       REQUIRE(newBlock.isFinalized() == false);
     }
 
@@ -158,16 +152,10 @@ namespace TBlock {
       REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
       REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
 
-      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
-      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
-      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
-      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTimestamp() == 1678400843316);
       REQUIRE(newBlock.getNHeight() == 100);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
-      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
       REQUIRE(newBlock.isFinalized() == false);
     }
 
@@ -187,15 +175,16 @@ namespace TBlock {
 
       // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
-      std::string randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed += seed.get();
+      Bytes randomSeed; // Concatenated random seed of block.
+      for (const auto &seed : randomSeeds) randomSeed.insert(randomSeed.end(), seed.get().begin(), seed.get().end());
 
       std::vector<TxValidator> txValidators;
       Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
 
       // Create 8 TxValidator transactions with type 0xcfffe746 (random hash)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        Bytes data = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(data, Utils::sha3(seed.get()));
         txValidators.emplace_back(
           validatorAddress,
           data,
@@ -207,7 +196,8 @@ namespace TBlock {
 
       // Create 8 TxValidator transactions with type 0x6fc5a2d6 (random seed)
       for (const auto &seed : randomSeeds) {
-        std::string data = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        Bytes data = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(data, seed);
         txValidators.emplace_back(
           validatorAddress,
           data,
@@ -283,16 +273,10 @@ namespace TBlock {
       REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
       REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
 
-      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
-      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
-      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
-      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTimestamp() == 1678464099412510);
       REQUIRE(newBlock.getNHeight() == 331653115);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
-      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
       REQUIRE(newBlock.isFinalized() == false);
     }
 
@@ -309,8 +293,8 @@ namespace TBlock {
       for (uint64_t i = 0; i < 500; ++i) {
         PrivKey txPrivKey = PrivKey::random();
         Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
-        Address to(Utils::randBytes(20), true);
-        std::string data = Utils::randBytes(32);
+        Address to(Utils::randBytes(20));
+        Bytes data = Utils::randBytes(32);
         uint64_t chainId = 8080;
         uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
         uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
@@ -332,8 +316,8 @@ namespace TBlock {
 
       // Create and append 32 randomSeeds
       std::vector<Hash> randomSeeds(32, Hash::random());
-      std::string randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed += seed.get();
+      Bytes randomSeed; // Concatenated random seed of block.
+      for (const auto &seed : randomSeeds) randomSeed.insert(randomSeed.end(), seed.get().begin(), seed.get().end());
 
       std::vector<TxValidator> txValidators;
 
@@ -341,7 +325,8 @@ namespace TBlock {
       for (const auto &seed : randomSeeds) {
         PrivKey txValidatorPrivKey = PrivKey::random();
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
-        std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        Bytes hashTxData = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(hashTxData, Utils::sha3(seed.get()));
         txValidators.emplace_back(
           validatorAddress,
           hashTxData,
@@ -349,7 +334,8 @@ namespace TBlock {
           nHeight,
           txValidatorPrivKey
         );
-        std::string seedTxData = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        Bytes seedTxData = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(seedTxData, seed);
         txValidators.emplace_back(
           validatorAddress,
           seedTxData,
@@ -425,16 +411,10 @@ namespace TBlock {
       REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
       REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
 
-      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
-      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
-      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
-      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTimestamp() == 64545214244);
       REQUIRE(newBlock.getNHeight() == 6414363551);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
-      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
       REQUIRE(newBlock.isFinalized() == false);
     }
 
@@ -461,8 +441,8 @@ namespace TBlock {
           for (uint64_t j = 0; j < coreJobs; ++j) {
             PrivKey txPrivKey = PrivKey::random();
             Address from = Secp256k1::toAddress(Secp256k1::toUPub(txPrivKey));
-            Address to(Utils::randBytes(20), true);
-            std::string data = Utils::randBytes(32);
+            Address to(Utils::randBytes(20));
+            Bytes data = Utils::randBytes(32);
             uint64_t chainId = 8080;
             uint256_t nonce = Utils::bytesToUint32(Utils::randBytes(4));
             uint256_t value = Utils::bytesToUint64(Utils::randBytes(8));
@@ -492,8 +472,8 @@ namespace TBlock {
 
       // Create and append 32 randomSeeds
       std::vector<Hash> randomSeeds(128, Hash::random());
-      std::string randomSeed; // Concatenated random seed of block.
-      for (const auto &seed : randomSeeds) randomSeed += seed.get();
+      Bytes randomSeed; // Concatenated random seed of block.
+      for (const auto &seed : randomSeeds) Utils::appendBytes(randomSeed, seed.get());
 
       std::vector<TxValidator> txValidators;
 
@@ -501,7 +481,8 @@ namespace TBlock {
       for (const auto &seed : randomSeeds) {
         PrivKey txValidatorPrivKey = PrivKey::random();
         Address validatorAddress = Secp256k1::toAddress(Secp256k1::toUPub(txValidatorPrivKey));
-        std::string hashTxData = Hex::toBytes("0xcfffe746") + Utils::sha3(seed.get()).get();
+        Bytes hashTxData = Hex::toBytes("0xcfffe746");
+        Utils::appendBytes(hashTxData, Utils::sha3(seed.get()));
         txValidators.emplace_back(
           validatorAddress,
           hashTxData,
@@ -509,7 +490,8 @@ namespace TBlock {
           nHeight,
           txValidatorPrivKey
         );
-        std::string seedTxData = Hex::toBytes("0x6fc5a2d6") + seed.get();
+        Bytes seedTxData = Hex::toBytes("0x6fc5a2d6");
+        Utils::appendBytes(seedTxData, seed);
         txValidators.emplace_back(
           validatorAddress,
           seedTxData,
@@ -585,16 +567,10 @@ namespace TBlock {
       REQUIRE(blockPtr->getValidatorPubKey() == reconstructedBlock.getValidatorPubKey());
       REQUIRE(blockPtr->isFinalized() == reconstructedBlock.isFinalized());
 
-      REQUIRE(newBlock.getValidatorSig().get() == std::string(""));
-      REQUIRE(newBlock.getPrevBlockHash().get() == std::string(""));
-      REQUIRE(newBlock.getBlockRandomness().get() == std::string(""));
-      REQUIRE(newBlock.getValidatorMerkleRoot().get() == std::string(""));
-      REQUIRE(newBlock.getTxMerkleRoot().get() == std::string(""));
       REQUIRE(newBlock.getTimestamp() == 230915972837112);
       REQUIRE(newBlock.getNHeight() == 239178513);
       REQUIRE(newBlock.getTxValidators().size() == 0);
       REQUIRE(newBlock.getTxs().size() == 0);
-      REQUIRE(newBlock.getValidatorPubKey().get() == std::string(""));
       REQUIRE(newBlock.isFinalized() == false);
     }
   }

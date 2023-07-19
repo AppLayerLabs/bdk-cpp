@@ -7,13 +7,13 @@ using Catch::Matchers::Equals;
 namespace TSecp256k1 {
   TEST_CASE("Secp256k1 Tests", "[utils][secp256k1]") {
     SECTION("Recover Public Key from Signature") {
-      Hash msg = Utils::sha3("Hello World!");
-      Signature sig(Hex(std::string("e7a9dc85504bf4f79732e55c25fded4dd5471dfc28a6e35463aab7e8dfb180b5414520f0e8f18ec174fc2e14ce4c98f12faf58344c00af87c50b7bc502ac6b5f01")).bytes());
+      Hash msg = Utils::sha3(Utils::create_view_span(std::string("Hello World!")));
+      Signature sig(Hex::toBytes("e7a9dc85504bf4f79732e55c25fded4dd5471dfc28a6e35463aab7e8dfb180b5414520f0e8f18ec174fc2e14ce4c98f12faf58344c00af87c50b7bc502ac6b5f01"));
       UPubKey uPubKey = Secp256k1::recover(sig, msg);
       auto address = Secp256k1::toAddress(uPubKey);
       REQUIRE_THAT(uPubKey.hex(), Equals("0431212407a958f50d1b7ee2bf0c44ad2e01090a917660f71bf5b41f470026d3a584bfbc977bbdf9b82b5473fdfabeb76186dfec0ce86c82f14fe1d933c3996089"));
 
-      Signature sigWrongV(Hex(std::string("e7a9dc85504bf4f79732e55c25fded4dd5471dfc28a6e35463aab7e8dfb180b5414520f0e8f18ec174fc2e14ce4c98f12faf58344c00af87c50b7bc502ac6b5f04")).bytes());
+      Signature sigWrongV(Hex::toBytes("e7a9dc85504bf4f79732e55c25fded4dd5471dfc28a6e35463aab7e8dfb180b5414520f0e8f18ec174fc2e14ce4c98f12faf58344c00af87c50b7bc502ac6b5f04"));
       UPubKey keyWrongV = Secp256k1::recover(sigWrongV, msg);
       REQUIRE_THAT(keyWrongV.hex(), Equals("0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"));
       // TODO: how can parse_compact() and recover() fail?
@@ -145,8 +145,8 @@ namespace TSecp256k1 {
     }
 
     SECTION("Sign Message and Recover Signature") {
-      Hash msg = Utils::sha3("Hello World!");
-      PrivKey key(Hex(std::string("21ce34f85520a26a29c8b4d94c883006a52f839fa61f13b86094b9fcdca558fa")).bytes());
+      Hash msg = Utils::sha3(Utils::create_view_span(std::string("Hello World!")));
+      PrivKey key(Hex::toBytes("21ce34f85520a26a29c8b4d94c883006a52f839fa61f13b86094b9fcdca558fa"));
       Signature sig = Secp256k1::sign(msg, key);
       REQUIRE_THAT(sig.hex(), Equals("de6235ae53213a745170457ff9c91292953ac73fc6da5cb7fd9ce48b440cd3b17f57934495e6ab9328018b05510bbfd18ce440dd37bc694c4ee17db846d4ad7301"));
       REQUIRE_THAT(Secp256k1::recover(sig, msg).hex(), Equals("044093c50188db83575dcbbf03cc5fde6feea015d6a1822b990cad3a17418889fd8d1cff667985c4a8547575e17527c98c41cc5fbcf680051f76a60ea6caa2c00b"));
@@ -157,10 +157,10 @@ namespace TSecp256k1 {
     }
 
     SECTION("Sign Message and Verify Signature") {
-      Hash msg = Utils::sha3("Hello World!");
-      UPubKey key(Hex(std::string("04836c5d13e068e4d28d9cdfb22b2cf74628260edb4e6a54ec429b5c4f86728bc97f5ce677d27b0892579fe22ed7a0fec237388e232d3ec4848d4bc4b70681cb6e")).bytes());
-      UPubKey fakeKey(Hex(std::string("04836c5d13e068e4d28d9cdfb22b2cf74628260edb4e6a54ec429b5c4f86728bc97f5ce677d27b0892579fe22ed7a0fec237388e232d3ec4848d4bc4b70681cb6f")).bytes());
-      Signature sig(Hex(std::string("97026a63106bcc73fde07c53042df4940d571b510fa586d79baa8bd9252092681286b729bc30d7044e0e69e5f6246b5f9ff88c30c1cf0017e615867d565b977801")).bytes());
+      Hash msg = Utils::sha3(Utils::create_view_span(std::string("Hello World!")));
+      UPubKey key(Hex::toBytes("04836c5d13e068e4d28d9cdfb22b2cf74628260edb4e6a54ec429b5c4f86728bc97f5ce677d27b0892579fe22ed7a0fec237388e232d3ec4848d4bc4b70681cb6e"));
+      UPubKey fakeKey(Hex::toBytes("04836c5d13e068e4d28d9cdfb22b2cf74628260edb4e6a54ec429b5c4f86728bc97f5ce677d27b0892579fe22ed7a0fec237388e232d3ec4848d4bc4b70681cb6f"));
+      Signature sig(Hex::toBytes("97026a63106bcc73fde07c53042df4940d571b510fa586d79baa8bd9252092681286b729bc30d7044e0e69e5f6246b5f9ff88c30c1cf0017e615867d565b977801"));
       REQUIRE(Secp256k1::verify(msg, key, sig));
       REQUIRE(!Secp256k1::verify(msg, fakeKey, sig));
     }

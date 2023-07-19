@@ -3,8 +3,8 @@
 #include "../../src/core/storage.h"
 #include "../../src/core/state.h"
 #include "../../src/utils/db.h"
-#include "../../src/net/p2p/p2pmanagernormal.h"
-#include "../../src/net/p2p/p2pmanagerdiscovery.h"
+#include "../../src/net/p2p/managernormal.h"
+#include "../../src/net/p2p/managerdiscovery.h"
 #include "../../src/contract/abi.h"
 
 #include <filesystem>
@@ -22,7 +22,7 @@ const std::vector<Hash> validatorPrivKeys {
 };
 
 // Forward declaration from contractmanager.cpp
-ethCallInfo buildCallInfo(const Address& addressToCall, const std::string& dataToCall);
+ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 // This creates a valid block given the state within the rdPoS class.
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
@@ -57,7 +57,7 @@ void initialize(std::unique_ptr<DB>& db,
     // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
     // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
     genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1678887538000000);
-    db->put("latest", genesis.serializeBlock(), DBPrefix::blocks);
+    db->put(Utils::stringToBytes("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
 
@@ -68,17 +68,19 @@ void initialize(std::unique_ptr<DB>& db,
     }
     // Populate State DB with one address.
     /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
-    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true);
+    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
     /// See ~State for encoding
     uint256_t desiredBalance("1000000000000000000000");
-    std::string value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance)) + Utils::uintToBytes(desiredBalance) + '\x00';
+    Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
+    Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
+    value.insert(value.end(), 0x00);
     db->put(dev1.get(), value, DBPrefix::nativeAccounts);
   }
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   if (!validatorKey) {
     options = std::make_unique<Options>(
       folderName,
-      "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+      "OrbiterSDK/cpp/linux_x86-64/0.1.0",
       1,
       8080,
       serverPort,
@@ -88,7 +90,7 @@ void initialize(std::unique_ptr<DB>& db,
   } else {
     options = std::make_unique<Options>(
       folderName,
-      "OrbiterSDK/cpp/linux_x86-64/0.0.3",
+      "OrbiterSDK/cpp/linux_x86-64/0.1.0",
       1,
       8080,
       serverPort,
@@ -115,7 +117,7 @@ namespace TState {
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateConstructorTest");
-        REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) ==
+        REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) ==
                 uint256_t("1000000000000000000000"));
       }
       // Wait a little until everyone has been destructed.
@@ -128,9 +130,9 @@ namespace TState {
       std::unique_ptr<Options> options;
       //// Check if opening the state loads successfully from DB.
       initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "stateConstructorTest");
-      REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) ==
+      REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) ==
               uint256_t("1000000000000000000000"));
-      REQUIRE(state->getNativeNonce(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"), true)) == 0);
+      REQUIRE(state->getNativeNonce(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) == 0);
     }
 
     SECTION("State Class addBalance to random Addresses") {
@@ -145,7 +147,7 @@ namespace TState {
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateAddBalanceTest");
 
         for (uint64_t i = 0; i < 1024; ++i) {
-          std::pair<Address, uint256_t> randomAddress = std::make_pair(Address(Utils::randBytes(20), true),
+          std::pair<Address, uint256_t> randomAddress = std::make_pair(Address(Utils::randBytes(20)),
                                                                        uint256_t("1000000000000000000000"));
           state->addBalance(randomAddress.first);
           addresses.push_back(randomAddress);
@@ -205,7 +207,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       {
         std::unique_ptr<DB> db;
@@ -222,22 +224,23 @@ namespace TState {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           state->addBalance(me);
           transactions.emplace_back(
-            targetOfTransactions,
-            me,
-            "",
-            8080,
-            state->getNativeNonce(me),
-            1000000000000000000,
-            21000,
-            1000000000,
-            1000000000,
-            privkey
+              targetOfTransactions,
+              me,
+              Bytes(),
+              8080,
+              state->getNativeNonce(me),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              privkey
           );
 
           /// Take note of expected balance and nonce
           val.first =
-            state->getNativeBalance(me) - (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
-            transactions.back().getValue();
+              state->getNativeBalance(me) -
+              (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
+              transactions.back().getValue();
           val.second = state->getNativeNonce(me) + 1;
           targetExpectedValue += transactions.back().getValue();
         }
@@ -262,7 +265,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       {
         std::unique_ptr<DB> db;
@@ -278,16 +281,16 @@ namespace TState {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           state->addBalance(me);
           TxBlock tx(
-            targetOfTransactions,
-            me,
-            "",
-            8080,
-            state->getNativeNonce(me),
-            1000000000000000000,
-            21000,
-            1000000000,
-            1000000000,
-            privkey
+              targetOfTransactions,
+              me,
+              Bytes(),
+              8080,
+              state->getNativeNonce(me),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              privkey
           );
 
           /// Take note of expected balance and nonce
@@ -327,7 +330,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       {
         std::unique_ptr<DB> db;
@@ -345,16 +348,16 @@ namespace TState {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           state->addBalance(me);
           TxBlock tx(
-            targetOfTransactions,
-            me,
-            "",
-            8080,
-            state->getNativeNonce(me),
-            1000000000000000000,
-            21000,
-            1000000000,
-            1000000000,
-            privkey
+              targetOfTransactions,
+              me,
+              Bytes(),
+              8080,
+              state->getNativeNonce(me),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              privkey
           );
 
           if (me[0] <= 0x08) {
@@ -399,7 +402,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       std::unique_ptr<Block> latestBlock = nullptr;
       {
@@ -422,16 +425,16 @@ namespace TState {
           for (auto &[privkey, account]: randomAccounts) {
             Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
             txs.emplace_back(
-              targetOfTransactions,
-              me,
-              "",
-              8080,
-              state->getNativeNonce(me),
-              1000000000000000000,
-              21000,
-              1000000000,
-              1000000000,
-              privkey
+                targetOfTransactions,
+                me,
+                Bytes(),
+                8080,
+                state->getNativeNonce(me),
+                1000000000000000000,
+                21000,
+                1000000000,
+                1000000000,
+                privkey
             );
             /// Take note of expected balance and nonce
             account.first = state->getNativeBalance(me) - (txs.back().getMaxFeePerGas() * txs.back().getGasLimit()) -
@@ -576,16 +579,16 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "stateDiscoveryNodeNetworkCapabilities",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "stateDiscoveryNodeNetworkCapabilities",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // References for the rdPoS workers vector.
       std::vector<std::reference_wrapper<std::unique_ptr<rdPoS>>> rdPoSreferences;
@@ -599,33 +602,34 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
-
-      // Wait everyone be connected with the discovery node.
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -648,21 +652,22 @@ namespace TState {
       p2p7->startDiscovery();
       p2p8->startDiscovery();
 
-      // Wait for discovery to take effect
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
       // Wait for nodes to connect.
-      while (p2pDiscovery->getSessionsIDs().size() != 8 ||
-             p2p1->getSessionsIDs().size() != 8 ||
-             p2p2->getSessionsIDs().size() != 8 ||
-             p2p3->getSessionsIDs().size() != 8 ||
-             p2p4->getSessionsIDs().size() != 8 ||
-             p2p5->getSessionsIDs().size() != 8 ||
-             p2p6->getSessionsIDs().size() != 8 ||
-             p2p7->getSessionsIDs().size() != 8 ||
-             p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -699,26 +704,40 @@ namespace TState {
       // Test tx broadcasting
       for (const auto &privkey: randomAccounts) {
         Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
-        Address targetOfTransactions = Address(Utils::randBytes(20), true);
+        Address targetOfTransactions = Address(Utils::randBytes(20));
         TxBlock tx(
-          targetOfTransactions,
-          me,
-          "",
-          8080,
-          state1->getNativeNonce(me),
-          1000000000000000000,
-          21000,
-          1000000000,
-          1000000000,
-          privkey
+            targetOfTransactions,
+            me,
+            Bytes(),
+            8080,
+            state1->getNativeNonce(me),
+            1000000000000000000,
+            21000,
+            1000000000,
+            1000000000,
+            privkey
         );
         state1->addTx(TxBlock(tx));
         p2p1->broadcastTxBlock(tx);
       }
 
-      /// Wait for the transactions to be broadcasted.
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       REQUIRE(state1->getMempool().size() == 100);
+      /// Wait for the transactions to be broadcasted.
+      auto broadcastFuture = std::async(std::launch::async, [&]() {
+        while (state1->getMempool().size() != 100 ||
+               state2->getMempool().size() != 100 ||
+               state3->getMempool().size() != 100 ||
+               state4->getMempool().size() != 100 ||
+               state5->getMempool().size() != 100 ||
+               state6->getMempool().size() != 100 ||
+               state7->getMempool().size() != 100 ||
+               state8->getMempool().size() != 100) {
+          std::this_thread::sleep_for(std::chrono::microseconds(10));
+        }
+      });
+
+      REQUIRE(broadcastFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+
       REQUIRE(state1->getMempool() == state2->getMempool());
       REQUIRE(state1->getMempool() == state3->getMempool());
       REQUIRE(state1->getMempool() == state4->getMempool());
@@ -816,16 +835,16 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "stateDiscoveryNodeNetworkCapabilities",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "stateDiscoveryNodeNetworkCapabilities",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // References for the rdPoS workers vector.
       std::vector<std::reference_wrapper<std::unique_ptr<rdPoS>>> rdPoSreferences;
@@ -839,33 +858,34 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
-
-      // Wait everyone be connected with the discovery node.
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -892,17 +912,21 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      while (p2pDiscovery->getSessionsIDs().size() != 8 ||
-             p2p1->getSessionsIDs().size() != 8 ||
-             p2p2->getSessionsIDs().size() != 8 ||
-             p2p3->getSessionsIDs().size() != 8 ||
-             p2p4->getSessionsIDs().size() != 8 ||
-             p2p5->getSessionsIDs().size() != 8 ||
-             p2p6->getSessionsIDs().size() != 8 ||
-             p2p7->getSessionsIDs().size() != 8 ||
-             p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -964,7 +988,7 @@ namespace TState {
             while (randomHashTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                     randomHashTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -976,7 +1000,7 @@ namespace TState {
             while (randomnessTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                     randomnessTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1041,7 +1065,7 @@ namespace TState {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       std::unique_ptr<DB> db1;
@@ -1127,16 +1151,16 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "statedDiscoveryNodeNetworkCapabilitiesWithTx",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "statedDiscoveryNodeNetworkCapabilitiesWithTx",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // Initialize state with all balances
       for (const auto &[privkey, account]: randomAccounts) {
@@ -1163,33 +1187,37 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // Wait everyone be connected with the discovery node.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -1216,17 +1244,22 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      while (p2pDiscovery->getSessionsIDs().size() != 8 ||
-             p2p1->getSessionsIDs().size() != 8 ||
-             p2p2->getSessionsIDs().size() != 8 ||
-             p2p3->getSessionsIDs().size() != 8 ||
-             p2p4->getSessionsIDs().size() != 8 ||
-             p2p5->getSessionsIDs().size() != 8 ||
-             p2p6->getSessionsIDs().size() != 8 ||
-             p2p7->getSessionsIDs().size() != 8 ||
-             p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      // Wait for nodes to connect.
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -1272,9 +1305,12 @@ namespace TState {
       // Loop for block creation.
       uint64_t blocks = 0;
       while (blocks < 10) {
-        while (rdpos1->getMempool().size() != 8) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+        auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
+          while (rdpos1->getMempool().size() != 8) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+        REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
         for (auto &blockCreator: rdPoSreferences) {
           if (blockCreator.get()->canCreateBlock()) {
@@ -1288,7 +1324,7 @@ namespace TState {
             while (randomHashTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                     randomHashTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1300,7 +1336,7 @@ namespace TState {
             while (randomnessTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                     randomnessTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1324,16 +1360,16 @@ namespace TState {
             for (auto &[privkey, val]: randomAccounts) {
               Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
               TxBlock tx(
-                targetOfTransactions,
-                me,
-                "",
-                8080,
-                state1->getNativeNonce(me),
-                1000000000000000000,
-                21000,
-                1000000000,
-                1000000000,
-                privkey
+                  targetOfTransactions,
+                  me,
+                  Bytes(),
+                  8080,
+                  state1->getNativeNonce(me),
+                  1000000000000000000,
+                  21000,
+                  1000000000,
+                  1000000000,
+                  privkey
               );
 
               /// Take note of expected balance and nonce
@@ -1396,14 +1432,15 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, 1000 transactions per block, broadcast blocks.") {
+    SECTION(
+        "State test with networking capabilities, 8 nodes, rdPoS fully active, 1000 transactions per block, broadcast blocks.") {
       // Create random accounts for the transactions.
       std::unordered_map<PrivKey, std::pair<uint256_t, uint64_t>, SafeHash> randomAccounts;
       for (uint64_t i = 0; i < 1000; ++i) {
         randomAccounts.insert({PrivKey(Utils::randBytes(32)), std::make_pair(0, 0)});
       }
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       std::unique_ptr<DB> db1;
@@ -1489,16 +1526,16 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // Initialize state with all balances
       for (const auto &[privkey, account]: randomAccounts) {
@@ -1525,33 +1562,34 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
-
-      // Wait everyone be connected with the discovery node.
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -1578,17 +1616,21 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      while (p2pDiscovery->getSessionsIDs().size() != 8 ||
-             p2p1->getSessionsIDs().size() != 8 ||
-             p2p2->getSessionsIDs().size() != 8 ||
-             p2p3->getSessionsIDs().size() != 8 ||
-             p2p4->getSessionsIDs().size() != 8 ||
-             p2p5->getSessionsIDs().size() != 8 ||
-             p2p6->getSessionsIDs().size() != 8 ||
-             p2p7->getSessionsIDs().size() != 8 ||
-             p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -1634,9 +1676,13 @@ namespace TState {
       // Loop for block creation.
       uint64_t blocks = 0;
       while (blocks < 10) {
-        while (rdpos1->getMempool().size() != 8) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+        auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
+          while (rdpos1->getMempool().size() != 8) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+
+        REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
         for (auto &blockCreator: rdPoSreferences) {
           if (blockCreator.get()->canCreateBlock()) {
@@ -1650,7 +1696,7 @@ namespace TState {
             while (randomHashTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                     randomHashTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1662,7 +1708,7 @@ namespace TState {
             while (randomnessTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                     randomnessTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -1686,16 +1732,16 @@ namespace TState {
             for (auto &[privkey, val]: randomAccounts) {
               Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
               TxBlock tx(
-                targetOfTransactions,
-                me,
-                "",
-                8080,
-                state1->getNativeNonce(me),
-                1000000000000000000,
-                21000,
-                1000000000,
-                1000000000,
-                privkey
+                  targetOfTransactions,
+                  me,
+                  Bytes(),
+                  8080,
+                  state1->getNativeNonce(me),
+                  1000000000000000000,
+                  21000,
+                  1000000000,
+                  1000000000,
+                  privkey
               );
 
               /// Take note of expected balance and nonce
@@ -1721,8 +1767,21 @@ namespace TState {
             REQUIRE(storage1->latest()->hash() == latestBlockHash);
             // Broadcast the Block!
             p2p1->broadcastBlock(storage1->latest());
+
+            auto broadcastBlockFuture = std::async(std::launch::async, [&]() {
+              while (storage2->latest()->hash() != latestBlockHash ||
+                     storage3->latest()->hash() != latestBlockHash ||
+                     storage4->latest()->hash() != latestBlockHash ||
+                     storage5->latest()->hash() != latestBlockHash ||
+                     storage6->latest()->hash() != latestBlockHash ||
+                     storage7->latest()->hash() != latestBlockHash ||
+                     storage8->latest()->hash() != latestBlockHash) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+              }
+            });
+
             // Sleep for blocks to be broadcasted and accepted.
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            REQUIRE(broadcastBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
             // Check if the block was accepted by all nodes.
             REQUIRE(storage1->latest()->hash() == storage2->latest()->hash());
@@ -1765,13 +1824,16 @@ namespace TState {
       // Sleep so it can conclude the last operations.
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+  }
 
-    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, 1 ERC20 transactions per block, broadcast blocks.") {
+  TEST_CASE("State Fail", "[statefail]") {
+    SECTION(
+        "State test with networking capabilities, 8 nodes, rdPoS fully active, 1 ERC20 transactions per block, broadcast blocks.") {
       // Create random accounts for the transactions.
       PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
 
-      Address targetOfTransactions = Address(Utils::randBytes(20), true);
+      Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
       // Initialize 8 different node instances, with different ports and DBs.
       std::unique_ptr<DB> db1;
@@ -1781,7 +1843,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<State> state1;
       std::unique_ptr<Options> options1;
-      initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true, "stateNode1NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true,
+                 "stateNode1NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -1790,7 +1853,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<State> state2;
       std::unique_ptr<Options> options2;
-      initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true, "stateNode2NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true,
+                 "stateNode2NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -1799,7 +1863,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos3;
       std::unique_ptr<State> state3;
       std::unique_ptr<Options> options3;
-      initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true, "stateNode3NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true,
+                 "stateNode3NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -1808,7 +1873,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos4;
       std::unique_ptr<State> state4;
       std::unique_ptr<Options> options4;
-      initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true, "stateNode4NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true,
+                 "stateNode4NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -1817,7 +1883,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos5;
       std::unique_ptr<State> state5;
       std::unique_ptr<Options> options5;
-      initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true, "stateNode5NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true,
+                 "stateNode5NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -1826,7 +1893,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos6;
       std::unique_ptr<State> state6;
       std::unique_ptr<Options> options6;
-      initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true, "stateNode6NetworkCapabilitiesWithERC20TxBlockBroadcast");
+      initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true,
+                 "stateNode6NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -1835,7 +1903,8 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos7;
       std::unique_ptr<State> state7;
       std::unique_ptr<Options> options7;
-      initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true, "stateNode7NetworkCapabilitiesWithTxERC20BlockBroadcast");
+      initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true,
+                 "stateNode7NetworkCapabilitiesWithTxERC20BlockBroadcast");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -1844,21 +1913,22 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos8;
       std::unique_ptr<State> state8;
       std::unique_ptr<Options> options8;
-      initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true, "stateNode8NetworkCapabilitiesWithTxERC20BlockBroadcast");
+      initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true,
+                 "stateNode8NetworkCapabilitiesWithTxERC20BlockBroadcast");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-        "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-        "OrbiterSDK/cpp/linux_x86-64/0.0.3",
-        1,
-        8080,
-        8090,
-        9999,
-        discoveryNodes
+          "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
+          "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+          1,
+          8080,
+          8090,
+          9999,
+          discoveryNodes
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-        boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+          boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
       // Initialize state with all balances
       state1->addBalance(owner);
@@ -1882,33 +1952,37 @@ namespace TState {
       rdPoSreferences.emplace_back(rdpos8);
 
       // Start servers
-      p2pDiscovery->startServer();
-      p2p1->startServer();
-      p2p2->startServer();
-      p2p3->startServer();
-      p2p4->startServer();
-      p2p5->startServer();
-      p2p6->startServer();
-      p2p7->startServer();
-      p2p8->startServer();
+      p2pDiscovery->start();
+      p2p1->start();
+      p2p2->start();
+      p2p3->start();
+      p2p4->start();
+      p2p5->start();
+      p2p6->start();
+      p2p7->start();
+      p2p8->start();
 
       // Connect nodes to the discovery node.
-      p2p1->connectToServer("127.0.0.1", 8090);
-      p2p2->connectToServer("127.0.0.1", 8090);
-      p2p3->connectToServer("127.0.0.1", 8090);
-      p2p4->connectToServer("127.0.0.1", 8090);
-      p2p5->connectToServer("127.0.0.1", 8090);
-      p2p6->connectToServer("127.0.0.1", 8090);
-      p2p7->connectToServer("127.0.0.1", 8090);
-      p2p8->connectToServer("127.0.0.1", 8090);
+      p2p1->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p2->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p3->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p4->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p5->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p6->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p7->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      p2p8->connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
       // Wait everyone be connected with the discovery node.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // After a while, the discovery thread should have found all the nodes and connected between each other.
-      while (p2pDiscovery->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto discoveryFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery->getSessionsIDs().size() == 8);
       REQUIRE(p2p1->getSessionsIDs().size() == 1);
@@ -1931,21 +2005,22 @@ namespace TState {
       p2p7->startDiscovery();
       p2p8->startDiscovery();
 
-      // Wait for discovery to take effect
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
       // Wait for nodes to connect.
-      while(p2pDiscovery->getSessionsIDs().size() != 8 ||
-            p2p1->getSessionsIDs().size() != 8 ||
-            p2p2->getSessionsIDs().size() != 8 ||
-            p2p3->getSessionsIDs().size() != 8 ||
-            p2p4->getSessionsIDs().size() != 8 ||
-            p2p5->getSessionsIDs().size() != 8 ||
-            p2p6->getSessionsIDs().size() != 8 ||
-            p2p7->getSessionsIDs().size() != 8 ||
-            p2p8->getSessionsIDs().size() != 8) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      auto connectionsFuture = std::async(std::launch::async, [&]() {
+        while (p2pDiscovery->getSessionsIDs().size() != 8 ||
+               p2p1->getSessionsIDs().size() != 8 ||
+               p2p2->getSessionsIDs().size() != 8 ||
+               p2p3->getSessionsIDs().size() != 8 ||
+               p2p4->getSessionsIDs().size() != 8 ||
+               p2p5->getSessionsIDs().size() != 8 ||
+               p2p6->getSessionsIDs().size() != 8 ||
+               p2p7->getSessionsIDs().size() != 8 ||
+               p2p8->getSessionsIDs().size() != 8) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+      });
+
+      REQUIRE(connectionsFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Stop discovery after all nodes have connected to each other.
       // TODO: this is done because there is a mess of mutexes within broadcast
@@ -1991,9 +2066,13 @@ namespace TState {
       // Loop for block creation.
       uint64_t blocks = 0;
       while (blocks < 10) {
-        while (rdpos1->getMempool().size() != 8) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+        auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
+          while (rdpos1->getMempool().size() != 8) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+
+        REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
         for (auto &blockCreator: rdPoSreferences) {
           if (blockCreator.get()->canCreateBlock()) {
@@ -2007,7 +2086,7 @@ namespace TState {
             while (randomHashTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0xcfffe746")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
                     randomHashTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -2019,7 +2098,7 @@ namespace TState {
             while (randomnessTxs.size() != rdPoS::minValidators) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
-                  if (tx.getData().substr(0, 4) == Hex::toBytes("0x6fc5a2d6")) {
+                  if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
                     randomnessTxs.emplace_back(tx);
                     ++i;
                     break;
@@ -2053,19 +2132,20 @@ namespace TState {
               createNewERC20ContractVars.push_back(tokenDecimals);
               createNewERC20ContractVars.push_back(tokenSupply);
               ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
-              std::string createNewERC20ContractData = Hex::toBytes("0xb74e5ed5") + createNewERC20ContractEncoder.getRaw();
+              Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
+              Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
 
               TxBlock createNewERC2OTx = TxBlock(
-                ProtocolContractAddresses.at("ContractManager"),
-                owner,
-                createNewERC20ContractData,
-                8080,
-                state1->getNativeNonce(owner),
-                0,
-                21000,
-                1000000000,
-                1000000000,
-                ownerPrivKey
+                  ProtocolContractAddresses.at("ContractManager"),
+                  owner,
+                  createNewERC20ContractData,
+                  8080,
+                  state1->getNativeNonce(owner),
+                  0,
+                  21000,
+                  1000000000,
+                  1000000000,
+                  ownerPrivKey
               );
 
               block.appendTx(createNewERC2OTx);
@@ -2077,19 +2157,20 @@ namespace TState {
               transferVars.push_back(targetOfTransactions);
               transferVars.push_back(10000000000000000);
               ABI::Encoder transferEncoder(transferVars);
-              std::string transferData = Hex::toBytes("0xa9059cbb") + transferEncoder.getRaw();
+              Bytes transferData = Hex::toBytes("0xa9059cbb");
+              Utils::appendBytes(transferData, transferEncoder.getData());
 
               TxBlock transferERC20 = TxBlock(
-                ERC20ContractAddress,
-                owner,
-                transferData,
-                8080,
-                state1->getNativeNonce(owner),
-                0,
-                21000,
-                1000000000,
-                1000000000,
-                ownerPrivKey
+                  ERC20ContractAddress,
+                  owner,
+                  transferData,
+                  8080,
+                  state1->getNativeNonce(owner),
+                  0,
+                  21000,
+                  1000000000,
+                  1000000000,
+                  ownerPrivKey
               );
 
               targetExpectedValue += 10000000000000000;
@@ -2113,8 +2194,20 @@ namespace TState {
             REQUIRE(storage1->latest()->hash() == latestBlockHash);
             // Broadcast the Block!
             p2p1->broadcastBlock(storage1->latest());
+
+            auto broadcastBlockFuture = std::async(std::launch::async, [&]() {
+              while (storage2->latest()->hash() != latestBlockHash ||
+                     storage3->latest()->hash() != latestBlockHash ||
+                     storage4->latest()->hash() != latestBlockHash ||
+                     storage5->latest()->hash() != latestBlockHash ||
+                     storage6->latest()->hash() != latestBlockHash ||
+                     storage7->latest()->hash() != latestBlockHash ||
+                     storage8->latest()->hash() != latestBlockHash) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+              }
+            });
             // Sleep for blocks to be broadcasted and accepted.
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            REQUIRE(broadcastBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
             // Check if the block was accepted by all nodes.
             REQUIRE(storage1->latest()->hash() == storage2->latest()->hash());
@@ -2130,35 +2223,43 @@ namespace TState {
             ABI::Encoder::EncVar getBalanceMeVars;
             getBalanceMeVars.push_back(targetOfTransactions);
             ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-            std::string getBalanceMeNode1Result = state1->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode1Result = state1->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode1Decoder({ABI::Types::uint256}, getBalanceMeNode1Result);
             REQUIRE(getBalanceMeNode1Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode2Result = state2->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode2Result = state2->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode2Decoder({ABI::Types::uint256}, getBalanceMeNode2Result);
             REQUIRE(getBalanceMeNode2Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode3Result = state3->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode3Result = state3->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode3Decoder({ABI::Types::uint256}, getBalanceMeNode3Result);
             REQUIRE(getBalanceMeNode3Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode4Result = state4->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode4Result = state4->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode4Decoder({ABI::Types::uint256}, getBalanceMeNode4Result);
             REQUIRE(getBalanceMeNode4Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode5Result = state5->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode5Result = state5->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode5Decoder({ABI::Types::uint256}, getBalanceMeNode5Result);
             REQUIRE(getBalanceMeNode5Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode6Result = state6->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode6Result = state6->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode6Decoder({ABI::Types::uint256}, getBalanceMeNode6Result);
             REQUIRE(getBalanceMeNode6Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode7Result = state7->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode7Result = state7->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode7Decoder({ABI::Types::uint256}, getBalanceMeNode7Result);
             REQUIRE(getBalanceMeNode7Decoder.getData<uint256_t>(0) == targetExpectedValue);
 
-            std::string getBalanceMeNode8Result = state8->ethCall(buildCallInfo(contractAddress, getBalanceMeEncoder.getRaw()));
+            Bytes getBalanceMeNode8Result = state8->ethCall(
+                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
             ABI::Decoder getBalanceMeNode8Decoder({ABI::Types::uint256}, getBalanceMeNode8Result);
             REQUIRE(getBalanceMeNode8Decoder.getData<uint256_t>(0) == targetExpectedValue);
 

@@ -1,28 +1,7 @@
-#ifndef P2PMANAGERNORMAL_H
-#define P2PMANAGERNORMAL_H
+#ifndef P2P_MANAGER_NORMAL_H
+#define P2P_MANAGER_NORMAL_H
 
-#include <iostream>
-#include <shared_mutex>
-
-#include <boost/asio/dispatch.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/websocket.hpp>
-
-#include "../../utils/utils.h"
-#include "../../utils/safehash.h"
-
-#include "p2pmanagerbase.h"
-#include "p2pbase.h"
-#include "p2pclient.h"
-#include "p2pencoding.h"
-#include "p2pserver.h"
-
-namespace beast = boost::beast;         // from <boost/beast.hpp>
-namespace http = beast::http;           // from <boost/beast/http.hpp>
-namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
-namespace net = boost::asio;            // from <boost/asio.hpp>
-using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+#include "managerbase.h"
 
 // Forward declaration.
 class rdPoS;
@@ -38,21 +17,21 @@ namespace P2P {
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handleRequest(std::shared_ptr<BaseSession>& session, const Message& message) override;
+      void handleRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) override;
 
       /**
        * Handle an answer from a server.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleAnswer(std::shared_ptr<BaseSession>& session, const Message& message) override;
+      void handleAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) override;
 
       /**
        * Handle a broadcast from a node.
        * @param session The session that sent the broadcast.
        * @param message The broadcast message to handle.
        */
-      void handleBroadcast(std::shared_ptr<BaseSession>& session, const Message& message) override;
+      void handleBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
     private:
       /// Pointer to the rdPoS object.
@@ -80,84 +59,84 @@ namespace P2P {
        * Broadcast a message to all connected nodes.
        * @param message The message to broadcast.
        */
-      void broadcastMessage(const Message& message);
+      void broadcastMessage(const std::shared_ptr<const Message> message);
 
       /**
        * Handle a `Ping` request.
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handlePingRequest(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handlePingRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `Info` request.
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handleInfoRequest(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleInfoRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestNodes` request.
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handleRequestNodesRequest(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleRequestNodesRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestValidatorTxs` request.
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handleTxValidatorRequest(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleTxValidatorRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `Ping` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handlePingAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handlePingAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `Info` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleInfoAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleInfoAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestNodes` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleRequestNodesAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleRequestNodesAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestValidatorTxs` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleTxValidatorAnswer(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleTxValidatorAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a Validator transaction broadcast message.
        * @param session The node that sent the broadcast.
        * @param message The message that was broadcast.
        */
-      void handleTxValidatorBroadcast(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleTxValidatorBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a block transaction broadcast message.
        * @param session The node that sent the broadcast.
        * @param message The message that was broadcast.
        */
-      void handleTxBroadcast(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleTxBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a block broadcast message.
        * @param session The node that sent the broadcast.
        * @param message The message that was broadcast.
        */
-      void handleBlockBroadcast(std::shared_ptr<BaseSession>& session, const Message& message);
+      void handleBlockBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
     public:
       /**
@@ -184,21 +163,21 @@ namespace P2P {
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      void handleMessage(std::shared_ptr<BaseSession> session, Message message) override;
+      void handleMessage(std::weak_ptr<Session> session, const std::shared_ptr<const Message> message) override;
 
       /**
        * Request Validator transactions from a given node.
        * @param nodeId The ID of the node to request.
        * @return A list of the node's Validator transactions.
        */
-      std::vector<TxValidator> requestValidatorTxs(const Hash& nodeId);
+      std::vector<TxValidator> requestValidatorTxs(const NodeID& nodeId);
 
       /**
        * Request info about a given node.
        * @param nodeId The ID of the node to request.
        * @return A struct with the node's info.
        */
-      NodeInfo requestNodeInfo(const Hash& nodeId);
+      NodeInfo requestNodeInfo(const NodeID& nodeId);
 
       /**
        * Broadcast a Validator transaction to all connected nodes.
@@ -208,7 +187,7 @@ namespace P2P {
 
       /**
        * Broadcast a block transaction to all connected nodes.
-       * @param tx The transaction to broadcast.
+       * @param txBlock The transaction to broadcast.
        */
       void broadcastTxBlock(const TxBlock& txBlock);
 

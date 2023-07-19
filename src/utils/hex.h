@@ -8,8 +8,17 @@
 #include <regex>
 #include <string_view>
 #include <thread>
+#include <span>
 
 #include <boost/multiprecision/cpp_int.hpp>
+
+using Byte = uint8_t;
+using Bytes = std::vector<Byte>;
+template <std::size_t N>
+using BytesArr = std::array<Byte, N>;
+using BytesArrView = std::span<const Byte, std::dynamic_extent>;
+using BytesArrMutableView = std::span<Byte, std::dynamic_extent>;
+
 
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
@@ -18,8 +27,9 @@ using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
  * to a given type (`boost::lexical_cast<%HexTo<uint256_t>>(hexStr)`).
  */
 template <typename ElemT> struct HexTo {
-  ElemT value;
-  operator ElemT() const { return value; }
+  ElemT value;  ///< The value to hold.
+  operator ElemT() const { return value; } ///< Operator to get the value.
+  /// Stream operator.
   friend std::istream& operator>>(std::istream& in, HexTo& out) {
     in >> std::hex >> out.value;
     return in;
@@ -43,6 +53,7 @@ class Hex {
      * Move constructor.
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
+     * @throw std::runtime_error if hex string is invalid.
      */
     Hex(std::string&& value, bool strict = false);
 
@@ -50,6 +61,7 @@ class Hex {
      * Copy constructor.
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
+     * @throw std::runtime_error if hex string is invalid.
      */
     Hex(const std::string_view value, bool strict = false);
 
@@ -59,16 +71,7 @@ class Hex {
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
      * @return The constructed Hex object.
      */
-    static Hex fromBytes(std::string_view bytes, bool strict = false);
-
-    /**
-     * Overload of `fromBytes()` that works with pure C strings.
-     * @param bytes The byte string.
-     * @param size The size of the byte string.
-     * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @return The constructed Hex object.
-     */
-    static Hex fromBytes(const char* bytes, size_t size, bool strict = false);
+    static Hex fromBytes(const BytesArrView bytes, bool strict = false);
 
     /**
      * Build a Hex object from a UTF-8 string ("example" = "6578616d706c65").
@@ -102,14 +105,15 @@ class Hex {
      * Convert internal hex data to bytes.
      * @return The converted bytes string.
      */
-    std::string bytes() const;
+    Bytes bytes() const;
 
     /**
      * Static overload of bytes().
      * @param hex The hex string to convert to bytes.
      * @return The converted bytes string.
+     * @throw std::runtime_error if hex string is invalid.
      */
-    static std::string toBytes(const std::string_view hex);
+    static Bytes toBytes(const std::string_view hex);
 
     /// Getter for `hex`.
     inline const std::string& get() const { return this->hex; }
