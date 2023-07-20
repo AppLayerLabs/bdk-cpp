@@ -42,7 +42,7 @@ struct SafeHash {
    * @param i A 64-bit unsigned integer.
    * @returns The same as `splitmix()`.
    */
-  size_t operator()(uint64_t i) const {
+  size_t operator()(const uint64_t& i) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
     return splitmix(i + FIXED_RANDOM);
   }
