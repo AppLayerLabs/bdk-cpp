@@ -35,6 +35,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safevector.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safearray.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp

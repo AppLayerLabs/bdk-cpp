@@ -3,6 +3,8 @@
 #include <filesystem>
 
 int main() {
+  std::array<int, 5> arr;
+  return 0;
   /// Local binary path + /blockchain
   Utils::logToCout = true;
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
