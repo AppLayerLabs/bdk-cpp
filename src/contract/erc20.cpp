@@ -82,6 +82,11 @@ void ERC20::_mintValue(const Address& address, const uint256_t& value) {
   _totalSupply += value;
 }
 
+void ERC20::_burnValue(const Address& address, const uint256_t& value) {
+  _balances[address] -= value;
+  _totalSupply -= value;
+}
+
 std::string ERC20::name() const { return this->_name.get(); }
 
 std::string  ERC20::symbol() const { return this->_symbol.get(); }

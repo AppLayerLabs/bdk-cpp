@@ -14,7 +14,7 @@
 
 /// Template for an ERC20 contract.
 class ERC20 : public DynamicContract {
-  private:
+  protected:
     /// Solidity: string internal _name;
     SafeString _name;
 
@@ -40,6 +40,14 @@ class ERC20 : public DynamicContract {
      * @param value The amount of tokens that will be created.
      */
     void _mintValue(const Address& address, const uint256_t& value);
+
+    /**
+     * Burn tokens from the specified address.
+     * Updates both balance of the address and total supply of the ERC-20 token.
+     * @param address The account that will lose the tokens.
+     * @param value The amount of tokens that will be burned.
+     */
+    void _burnValue(const Address& address, const uint256_t& value);
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
