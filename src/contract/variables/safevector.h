@@ -4,7 +4,6 @@
 #include <vector>
 #include <map>
 #include "safebase.h"
-#include "../utils/safehash.h"
 
 /**
  * Safe wrapper for std::vector.
@@ -240,137 +239,137 @@ class SafeVector : public SafeBase {
       }
     }
 
-  /// Erase element
-  /// Returns the index of the first element following the removed elements.
-  std::size_t erase(std::size_t pos) {
-    checkIndexAndCopy(pos);
-    markAsUsed();
-    // Shift elements from the right of pos to fill the gap.
-    for (std::size_t i = pos; i < maxIndex_ - 1; ++i) {
-      auto iter = tmp_->find(i + 1);
-      if (iter != tmp_->end()) {
-        tmp_->insert_or_assign(i, iter->second); // shift the element
-      } else {
-        tmp_->insert_or_assign(i, vector_[i + 1]); // copy and shift the element from the original vector
+    /// Erase element
+    /// Returns the index of the first element following the removed elements.
+    std::size_t erase(std::size_t pos) {
+      checkIndexAndCopy(pos);
+      markAsUsed();
+      // Shift elements from the right of pos to fill the gap.
+      for (std::size_t i = pos; i < maxIndex_ - 1; ++i) {
+        auto iter = tmp_->find(i + 1);
+        if (iter != tmp_->end()) {
+          tmp_->insert_or_assign(i, iter->second); // shift the element
+        } else {
+          tmp_->insert_or_assign(i, vector_[i + 1]); // copy and shift the element from the original vector
+        }
       }
+      // Remove the last element.
+      tmp_->erase(maxIndex_ - 1);
+      --maxIndex_;
+      return pos;
     }
-    // Remove the last element.
-    tmp_->erase(maxIndex_ - 1);
-    --maxIndex_;
-    return pos;
-  }
 
-  /// Erase range of elements
-  /// Returns the index of the first element following the removed elements.
-  std::size_t erase(std::size_t first, std::size_t last) {
-    check();
-    markAsUsed();
-    if (first > last || last > maxIndex_) {
-      throw std::out_of_range("Indices out of range");
-    }
-    // Compute the number of elements to be removed.
-    std::size_t numToRemove = last - first;
-    // Shift elements from the right of last to fill the gap.
-    for (std::size_t i = first; i < maxIndex_ - numToRemove; ++i) {
-      auto iter = tmp_->find(i + numToRemove);
-      if (iter != tmp_->end()) {
-        tmp_->insert_or_assign(i, iter->second); // shift the element
-      } else {
-        tmp_->insert_or_assign(i, vector_[i + numToRemove]); // copy and shift the element from the original vector
+    /// Erase range of elements
+    /// Returns the index of the first element following the removed elements.
+    std::size_t erase(std::size_t first, std::size_t last) {
+      check();
+      markAsUsed();
+      if (first > last || last > maxIndex_) {
+        throw std::out_of_range("Indices out of range");
       }
-    }
-    // Remove the last numToRemove elements.
-    for (std::size_t i = 0; i < numToRemove; ++i) {
-      tmp_->erase(maxIndex_ - 1 - i);
-    }
-    maxIndex_ -= numToRemove;
-    return first;
-  }
-
-  /// Appends the given element value to the end of the container.
-  void push_back(const T& value) {
-    check();
-    markAsUsed();
-    tmp_->emplace(maxIndex_, value);
-    ++maxIndex_;
-  }
-
-  /// Emplace element at the end of the container.
-  void emplace_back(T&& value) {
-    check();
-    markAsUsed();
-    tmp_->emplace(maxIndex_, std::move(value));
-    ++maxIndex_;
-  }
-
-  /// Removes the last element of the container.
-  void pop_back() {
-    check();
-    markAsUsed();
-    tmp_->erase(maxIndex_ - 1);
-    --maxIndex_;
-  }
-
-  /// Changes the number of elements stored (default-constructed elements are appended)
-  void resize(std::size_t count) {
-    check();
-    if (count < maxIndex_) {
-      for (std::size_t i = count; i < maxIndex_; ++i) {
-        tmp_->erase(i);
+      // Compute the number of elements to be removed.
+      std::size_t numToRemove = last - first;
+      // Shift elements from the right of last to fill the gap.
+      for (std::size_t i = first; i < maxIndex_ - numToRemove; ++i) {
+        auto iter = tmp_->find(i + numToRemove);
+        if (iter != tmp_->end()) {
+          tmp_->insert_or_assign(i, iter->second); // shift the element
+        } else {
+          tmp_->insert_or_assign(i, vector_[i + numToRemove]); // copy and shift the element from the original vector
+        }
       }
-    } else if (count > maxIndex_) {
-      for (std::size_t i = maxIndex_; i < count; ++i) {
-        tmp_->emplace(i, T());
+      // Remove the last numToRemove elements.
+      for (std::size_t i = 0; i < numToRemove; ++i) {
+        tmp_->erase(maxIndex_ - 1 - i);
       }
+      maxIndex_ -= numToRemove;
+      return first;
     }
-    maxIndex_ = count;
-    markAsUsed();
-  }
 
-  /// Changes the number of elements stored (new elements are appended and initialized with `value`)
-  void resize(std::size_t count, const T& value) {
-    check();
-    if (count < maxIndex_) {
-      for (std::size_t i = count; i < maxIndex_; ++i) {
-        tmp_->erase(i);
-      }
-    } else if (count > maxIndex_) {
-      for (std::size_t i = maxIndex_; i < count; ++i) {
-        tmp_->emplace(i, value);
-      }
+    /// Appends the given element value to the end of the container.
+    void push_back(const T& value) {
+      check();
+      markAsUsed();
+      tmp_->emplace(maxIndex_, value);
+      ++maxIndex_;
     }
-    maxIndex_ = count;
-    markAsUsed();
-  }
 
-  /// Commit function.
-  void commit() override {
-    check();
-    if (clear_) {
-      vector_.clear();
+    /// Emplace element at the end of the container.
+    void emplace_back(T&& value) {
+      check();
+      markAsUsed();
+      tmp_->emplace(maxIndex_, std::move(value));
+      ++maxIndex_;
+    }
+
+    /// Removes the last element of the container.
+    void pop_back() {
+      check();
+      markAsUsed();
+      tmp_->erase(maxIndex_ - 1);
+      --maxIndex_;
+    }
+
+    /// Changes the number of elements stored (default-constructed elements are appended)
+    void resize(std::size_t count) {
+      check();
+      if (count < maxIndex_) {
+        for (std::size_t i = count; i < maxIndex_; ++i) {
+          tmp_->erase(i);
+        }
+      } else if (count > maxIndex_) {
+        for (std::size_t i = maxIndex_; i < count; ++i) {
+          tmp_->emplace(i, T());
+        }
+      }
+      maxIndex_ = count;
+      markAsUsed();
+    }
+
+    /// Changes the number of elements stored (new elements are appended and initialized with `value`)
+    void resize(std::size_t count, const T& value) {
+      check();
+      if (count < maxIndex_) {
+        for (std::size_t i = count; i < maxIndex_; ++i) {
+          tmp_->erase(i);
+        }
+      } else if (count > maxIndex_) {
+        for (std::size_t i = maxIndex_; i < count; ++i) {
+          tmp_->emplace(i, value);
+        }
+      }
+      maxIndex_ = count;
+      markAsUsed();
+    }
+
+    /// Commit function.
+    void commit() override {
+      check();
+      if (clear_) {
+        vector_.clear();
+        clear_ = false;
+      }
+      /// Erase difference in size.
+      if (vector_.size() > maxIndex_) {
+        vector_.erase(vector_.begin() + maxIndex_, vector_.end());
+      }
+
+      for (auto& it : *tmp_) {
+        if (it.first < vector_.size()) {
+          vector_[it.first] = it.second;
+        } else {
+          vector_.emplace_back(it.second);
+        }
+      }
+      maxIndex_ = vector_.size();
+    }
+
+    /// Rollback function.
+    void revert() const override {
+      tmp_ = nullptr;
       clear_ = false;
+      maxIndex_ = vector_.size();
     }
-    /// Erase difference in size.
-    if (vector_.size() > maxIndex_) {
-      vector_.erase(vector_.begin() + maxIndex_, vector_.end());
-    }
-
-    for (auto& it : *tmp_) {
-      if (it.first < vector_.size()) {
-        vector_[it.first] = it.second;
-      } else {
-        vector_.emplace_back(it.second);
-      }
-    }
-    maxIndex_ = vector_.size();
-  }
-
-  /// Rollback function.
-  void revert() const override {
-    tmp_ = nullptr;
-    clear_ = false;
-    maxIndex_ = vector_.size();
-  }
 };
 
 #endif /// SAFEVECTOR_H
