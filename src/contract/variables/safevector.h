@@ -23,10 +23,10 @@
 template <typename T>
 class SafeVector : public SafeBase {
   private:
-    std::vector<T> vector_;
-    mutable std::unique_ptr<std::map<uint64_t, T>> tmp_;
-    mutable uint64_t maxIndex_ = 0;
-    mutable bool clear_ = false;
+    std::vector<T> vector_; ///< The original vector.
+    mutable std::unique_ptr<std::map<uint64_t, T>> tmp_; ///< The temporary map.
+    mutable uint64_t maxIndex_ = 0; ///< The maximum index of the vector.
+    mutable bool clear_ = false; ///< Whether the vector should be cleared.
 
     /// Check the tmp_ variables!
     inline void check() const {
@@ -53,6 +53,10 @@ class SafeVector : public SafeBase {
     /// Default Constructor.
     SafeVector() : SafeBase(nullptr) {};
 
+    /**
+    * Constructor with owner.
+    * @param owner The owner of the variable.
+    */
     SafeVector(DynamicContract* owner) : SafeBase(owner) {};
 
     /// SafeVector( size_type count, const T& value );
