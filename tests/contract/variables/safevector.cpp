@@ -342,6 +342,16 @@ namespace TSafeVector {
       REQUIRE(safeVectorThreeCommit[1] == "test3");
       safeVectorThreeCommit.revert();
       REQUIRE(safeVectorThreeCommit.size() == 3);
+      REQUIRE(safeVectorThreeCommit[0] == "test1");
+      REQUIRE(safeVectorThreeCommit[1] == "test2");
+      REQUIRE(safeVectorThreeCommit[2] == "test3");
+      safeVectorThreeCommit.erase(1);
+      REQUIRE(safeVectorThreeCommit.size() == 2);
+      REQUIRE(safeVectorThreeCommit[0] == "test1");
+      REQUIRE(safeVectorThreeCommit[1] == "test3");
+      safeVectorThreeCommit.commit();
+      safeVectorThreeCommit.revert();
+      REQUIRE(safeVectorThreeCommit.size() == 2);
     }
 
     SECTION("SafeVector erase(first, last)") {
@@ -564,8 +574,7 @@ namespace TSafeVector {
       REQUIRE(safeVectorFiveCommitHigher[1] == "test2");
       REQUIRE(safeVectorFiveCommitHigher[2] == "test3");
       safeVectorFiveCommitHigher.resize(8, "TEST");
-      safeVectorFiveCommitHigher.commit();
-      safeVectorFiveCommitHigher.revert();
+      REQUIRE(safeVectorFiveCommitHigher.size() == 8);
       REQUIRE(safeVectorFiveCommitHigher[0] == "test1");
       REQUIRE(safeVectorFiveCommitHigher[1] == "test2");
       REQUIRE(safeVectorFiveCommitHigher[2] == "test3");
@@ -574,6 +583,8 @@ namespace TSafeVector {
       REQUIRE(safeVectorFiveCommitHigher[5] == "TEST");
       REQUIRE(safeVectorFiveCommitHigher[6] == "TEST");
       REQUIRE(safeVectorFiveCommitHigher[7] == "TEST");
+      safeVectorFiveCommitHigher.revert();
+      REQUIRE(safeVectorFiveCommitHigher.size() == 3);
     }
   }
 }
