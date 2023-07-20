@@ -15,8 +15,8 @@
 template <typename T, unsigned N>
 class SafeArray : public SafeBase {
   private:
-    std::array<T, N> array_;
-    mutable std::unique_ptr<std::map<uint64_t, T>> tmp_;
+    std::array<T, N> array_; ///< The original array
+    mutable std::unique_ptr<std::map<uint64_t, T>> tmp_; ///< The temporary array
 
     /// Check the tmp_ variables!
     inline void check() const {
@@ -120,6 +120,10 @@ class SafeArray : public SafeBase {
       return N;
     }
 
+    /**
+    * Fill the array with a value
+    * @param value The value to fill the array with
+    */
     inline void fill(const T& value) {
       for (uint64_t i = 0; i < N; ++i) {
         tmp_->insert_or_assign(i, value);
