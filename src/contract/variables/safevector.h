@@ -37,7 +37,7 @@ class SafeVector : public SafeBase {
     }
 
     /// Check a index and copy if necessary.
-    inline void checkIndexAndCopy(const uint64_t& index) {
+    inline void checkIndexAndCopy(const uint64_t& index) const {
       this->check();
       if (index >= maxIndex_) {
         throw std::out_of_range("Index out of range");
@@ -373,6 +373,11 @@ class SafeVector : public SafeBase {
       tmp_ = nullptr;
       clear_ = false;
       maxIndex_ = vector_.size();
+    }
+
+    /// Get the inner vector (for const functions!)
+    inline const std::vector<T>& get() const {
+      return vector_;
     }
 };
 

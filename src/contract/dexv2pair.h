@@ -97,10 +97,6 @@ class DEXV2Pair : public ERC20 {
 
     /**
      * Constructor to be used when creating a new contract.
-     * @param erc20_name The name of the ERC20 token.
-     * @param erc20_symbol The symbol of the ERC20 token.
-     * @param erc20_decimals The decimals of the ERC20 token.
-     * @param mintValue The amount of tokens that will be minted.
      * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
