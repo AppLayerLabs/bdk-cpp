@@ -1,4 +1,5 @@
 #include "dexv2pair.h"
+#include "dexv2factory.h"
 
 // Default Constructor when loading contract from DB.
 DEXV2Pair::DEXV2Pair(ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
@@ -77,8 +78,23 @@ void DEXV2Pair::_update(const uint256_t& balance0, const uint256_t& balance1, co
 }
 
 bool DEXV2Pair::_mintFee(uint112_t reserve0, uint112_t reserve1) {
-  /// TODO: Add _mintFee after DEXFactory is implemented.
-
+  Address feeTo = this->callContractViewFunction(this->factory_.get(), &DEXV2Factory::feeTo);
+  bool feeOn = (feeTo) ? true : false;
+  uint256_t _kLast = this->kLast_.get();
+  if (feeOn) {
+    if (_kLast != 0) {
+      uint256_t rootK = boost::multiprecision::sqrt(uint256_t(reserve0) * uint256_t(reserve1));
+      uint256_t rootKLast = boost::multiprecision::sqrt(_kLast);
+      if (rootK > rootKLast) {
+        uint256_t numerator = this->_totalSupply.get() * (rootK - rootKLast);
+        uint256_t denominator = rootK * 5 + rootKLast;
+        uint256_t liquidity = numerator / denominator;
+        if (liquidity > 0) this->_mintValue(feeTo, liquidity);
+      }
+    }
+  } else if (_kLast != 0) {
+    this->kLast_ = 0;
+  }
 }
 
 void DEXV2Pair::initialize(const Address& token0, const Address& token1) {
