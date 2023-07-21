@@ -12,9 +12,6 @@
  */
 class DynamicContract : public BaseContract {
   private:
-    /// Reference to the contract manager interface.
-    ContractManagerInterface& interface;
-
     /**
     * Variant type for the possible return types of a non-payable/payable function.
     * The return type can be a single value or a vector of values.
@@ -67,6 +64,9 @@ class DynamicContract : public BaseContract {
     inline void registerVariableUse(SafeBase& variable) { interface.registerVariableUse(variable); }
 
   protected:
+    /// Reference to the contract manager interface.
+    ContractManagerInterface& interface;
+
     /**
      * Helper function for registering a payable/non-payable function.
      * @tparam R Return type of the function.
