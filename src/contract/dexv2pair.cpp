@@ -95,12 +95,17 @@ bool DEXV2Pair::_mintFee(uint112_t reserve0, uint112_t reserve1) {
   } else if (_kLast != 0) {
     this->kLast_ = 0;
   }
+  return feeOn;
 }
 
 void DEXV2Pair::initialize(const Address& token0, const Address& token1) {
   if (this->factory_ != this->getCaller()) throw std::runtime_error("DEXV2Pair: FORBIDDEN");
   this->token0_ = token0;
   this->token1_ = token1;
+}
+
+std::pair<uint256_t, uint256_t> DEXV2Pair::getReservess() const {
+  return std::make_pair(this->reserve0_.get(), this->reserve1_.get());
 }
 
 BytesEncoded DEXV2Pair::getReserves() const {

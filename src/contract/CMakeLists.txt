@@ -25,6 +25,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/erc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/dexv2pair.h
   ${CMAKE_SOURCE_DIR}/src/contract/dexv2factory.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dexv2library.h
   ${CMAKE_SOURCE_DIR}/src/contract/customcontracts.h
   ${CMAKE_SOURCE_DIR}/src/contract/uq112x112.h
   PARENT_SCOPE
@@ -39,6 +40,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dexv2pair.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dexv2factory.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/dexv2library.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.cpp
   PARENT_SCOPE
 )
