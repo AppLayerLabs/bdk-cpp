@@ -6,374 +6,418 @@
 #include "safebase.h"
 
 /**
- * Safe wrapper for std::vector.
- * This class employs a std::map for temporary storage of changes to the vector,
- * ensuring efficient memory usage without necessitating a full vector copy or
- * initializing an entire vector of nullptrs for each access.
- * An std::map is preferred over an std::unordered_map because of its inherent ordering.
+ * Safe wrapper for `std::vector`.
+ * This class employs a `std::map` for temporary storage of changes to the vector,
+ * ensuring efficient memory usage without needing a full vector copy or
+ * initializing an entire vector of `nullptr`s for each access.
+ * `std::map` is preferred over `std::unordered_map` due to its inherent ordering.
  * This allows safe and efficient access to indices within the current size of the vector.
  * Additionally, ordered iteration over newly accessed keys and prior keys is required.
- * For instance, with a vector of size 10, accessing indices 3, 5, 7, 10, 11, 12, 13 should
- * allow for sequential iteration over those exact indices when committing.
+ * For instance, with a vector of size 10, accessing indices 3, 5, 7, 10, etc.
+ * should allow for sequential iteration over those exact indices when committing.
  * Trying to access elements out of bounds will throw an exception.
  * @tparam T Defines the type of the vector elements.
  * @see SafeBase
  */
-
-template <typename T>
-class SafeVector : public SafeBase {
+template <typename T> class SafeVector : public SafeBase {
   private:
-    std::vector<T> vector_; ///< The original vector.
-    mutable std::unique_ptr<std::map<uint64_t, T>> tmp_; ///< The temporary map.
-    mutable uint64_t maxIndex_ = 0; ///< The maximum index of the vector.
-    mutable bool clear_ = false; ///< Whether the vector should be cleared.
+    std::vector<T> vector_;                               ///< Original vector.
+    mutable std::unique_ptr<std::map<uint64_t, T>> tmp_;  ///< Temporary map.
+    mutable uint64_t maxIndex_ = 0;                       ///< Maximum index of the vector.
+    mutable bool clear_ = false;                          ///< Whether the vector should be cleared.
 
-    /// Check the tmp_ variables!
+    /// Check if the temporary map is initialized (and initialize if it not).
     inline void check() const {
-      if (tmp_ == nullptr) {
-        tmp_ = std::make_unique<std::map<uint64_t, T>>();
-        maxIndex_ = vector_.size();
+      if (this->tmp_ == nullptr) {
+        this->tmp_ = std::make_unique<std::map<uint64_t, T>>();
+        this->maxIndex_ = this->vector_.size();
       }
     }
 
-    /// Check a index and copy if necessary.
+    /**
+     * Check if a specific index exists in the temporary map, copying it from the original vector if not.
+     * @param index The index to check.
+     * @throw std::out_of_range if index is bigger than the maximum index of the vector.
+     */
     inline void checkIndexAndCopy(const uint64_t& index) {
       this->check();
-      if (index >= maxIndex_) {
-        throw std::out_of_range("Index out of range");
-      }
-      if (tmp_->contains(index)) {
-        return;
-      }
-      tmp_->emplace(index, vector_[index]);
+      if (index >= this->maxIndex_) throw std::out_of_range("Index out of range");
+      if (this->tmp_->contains(index)) return;
+      this->tmp_->emplace(index, this->vector_[index]);
     }
 
   public:
-
-    /// Default Constructor.
+    /// Default Ccnstructor.
     SafeVector() : SafeBase(nullptr) {};
 
     /**
-    * Constructor with owner.
-    * @param owner The owner of the variable.
-    */
+     * Constructor with owner.
+     * @param owner The owner of the variable.
+     */
     SafeVector(DynamicContract* owner) : SafeBase(owner) {};
 
-    /// SafeVector( size_type count, const T& value );
+    /**
+     * Constructor that fills a specific number of indices with the given value.
+     * @param count The number of indices to fill.
+     * @param value The value to initialize.
+     */
     SafeVector(std::size_t count, const T& value) {
       check();
-      for (std::size_t i = 0; i < count; ++i) {
-        tmp_->emplace(i, value);
-        ++maxIndex_;
+      for (std::size_t i = 0; i < count; i++) {
+        this->tmp_->emplace(i, value);
+        this->maxIndex_++;
       }
     }
 
-    /// explicit SafeVector( size_type count );
+    /**
+     * Constructor that fills a specific number of indices with empty values.
+     * @param count The number of indices to fill.
+     */
     explicit SafeVector(std::size_t count) {
       check();
-      for (std::size_t i = 0; i < count; ++i) {
-        tmp_->emplace(i, T());
-        ++maxIndex_;
+      for (std::size_t i = 0; i < count; i++) {
+        this->tmp_->emplace(i, T());
+        this->maxIndex_++;
       }
     }
 
-    /// template< class InputIt > SafeVector( InputIt first, InputIt last );
-    template< class InputIt >
-    SafeVector(InputIt first, InputIt last) {
+    /**
+     * Constructor that fills indices using iterators.
+     * @tparam InputIt The type of iterator to use.
+     * @param first Iterator to the beginning of the type vector.
+     * @param last Iterator to the end of the type vector.
+     */
+    template <class InputIt> SafeVector(InputIt first, InputIt last) {
       check();
       uint64_t i = 0;
-      for (auto it = first; it != last; ++it, ++i) {
-        tmp_->emplace(i, *it);
-        ++maxIndex_;
+      for (auto it = first; it != last; it++, i++) {
+        this->tmp_->emplace(i, *it);
+        this->maxIndex_++;
       }
     }
 
-    /// SafeVector( const SafeVector& other );
+    /// Copy constructor.
     SafeVector(const SafeVector& other) {
       check();
       other.check();
-      *tmp_ = *(other.tmp_);
-      maxIndex_ = other.maxIndex_;
+      *this->tmp_ = *(other.tmp_);
+      this->maxIndex_ = other.maxIndex_;
     }
 
-    /// SafeVector( std::initializer_list<T> init );
+    /**
+     * Constructor that fills indices using an initializer list.
+     * @param init The list to use.
+     */
     SafeVector(std::initializer_list<T> init) {
       check();
       for (const auto& val : init) {
-        tmp_->emplace(maxIndex_, val);
-        ++maxIndex_;
+        this->tmp_->emplace(this->maxIndex_, val);
+        this->maxIndex_++;
       }
     }
 
-    /// Replaces the contents with count copies of value value.
+    /**
+     * Replace the contents of the temporary map with a number of copies of a given value.
+     * @param count The number of indices to replace.
+     * @param value The value to use as a replacement.
+     */
     inline void assign(std::size_t count, const T& value) {
       check();
-      tmp_->clear();
-      for (std::size_t i = 0; i < count; ++i) {
-        tmp_->emplace(i, value);
-      }
-      maxIndex_ = count;
-      clear_ = true;
+      this->tmp_->clear();
+      for (std::size_t i = 0; i < count; i++) this->tmp_->emplace(i, value);
+      this->maxIndex_ = count;
+      this->clear_ = true;
     }
 
-    /// Replaces the contents with elements from the input range [first, last).
-    template<class InputIt>
-    inline void assign(InputIt first, InputIt last) {
+    /**
+     * Replace the contents of the temporary map with elements from the input range [first, last).
+     * @tparam InputIt The type of iterator to use.
+     * @param first Iterator to the beginning of the type vector.
+     * @param last Iterator to the end of the type vector.
+     */
+    template<class InputIt> inline void assign(InputIt first, InputIt last) {
       check();
-      tmp_->clear();
+      this->tmp_->clear();
       uint64_t i = 0;
-      for (auto it = first; it != last; ++it, ++i) {
-        tmp_->emplace(i, *it);
-      }
-      maxIndex_ = i;
-      clear_ = true;
+      for (auto it = first; it != last; it++, i++) this->tmp_->emplace(i, *it);
+      this->maxIndex_ = i;
+      this->clear_ = true;
     }
 
-    /// Replaces the contents with the elements from the initializer list ilist.
+    /**
+     * Replace the contents of the temporary map with elements from an initializer list.
+     * @param ilist The list to use.
+     */
     inline void assign(std::initializer_list<T> ilist) {
       check();
-      tmp_->clear();
+      this->tmp_->clear();
       uint64_t i = 0;
       for (const auto& val : ilist) {
-        tmp_->emplace(i, val);
-        ++i;
+        this->tmp_->emplace(i, val);
+        i++;
       }
-      maxIndex_ = i;
-      clear_ = true;
+      this->maxIndex_ = i;
+      this->clear_ = true;
     }
 
-    /// Access specified element with bounds checking
+    /**
+     * Access a specified element of the temporary map with bounds checking.
+     * @param pos The position of the index to access.
+     * @return The element at the given index.
+     */
     inline T& at(std::size_t pos) {
       checkIndexAndCopy(pos);
       markAsUsed();
-      return tmp_->at(pos);
+      return this->tmp_->at(pos);
     }
 
-    /// Access specified element with bounds checking (const version)
+    /**
+     * Const overload of at().
+     * @param pos The position of the index to access.
+     * @return The element at the given index.
+     */
     const T& at(std::size_t pos) const {
       checkIndexAndCopy(pos);
-      return tmp_->at(pos);
+      return this->tmp_->at(pos);
     }
 
-    /// Access specified element
+    /**
+     * Access a specified element of the temporary map without bounds checking.
+     * @param pos The position of the index to access.
+     * @return The element at the given index.
+     */
     inline T& operator[](std::size_t pos) {
       checkIndexAndCopy(pos);
       markAsUsed();
-      return (*tmp_)[pos];
+      return (*this->tmp_)[pos];
     }
 
-    /// Access specified element (const version)
+    /**
+     * Const overload of operator[].
+     * @param pos The position of the index to access.
+     * @return The element at the given index.
+     */
     inline const T& operator[](std::size_t pos) const {
       checkIndexAndCopy(pos);
-      return (*tmp_)[pos];
+      return (*this->tmp_)[pos];
     }
 
-    /// Return the ORIGINAL vector const begin()
-    inline std::vector<T>::const_iterator cbegin() const {
-      return vector_.cbegin();
-    }
+    /// Get an iterator to the beginning of the original vector.
+    inline std::vector<T>::const_iterator cbegin() const { return this->vector_.cbegin(); }
 
-    /// Return the ORIGINAL vector const end()
-    inline std::vector<T>::const_iterator cend() const {
-      return vector_.cend();
-    }
+    /// Get an iterator to the end of the original vector.
+    inline std::vector<T>::const_iterator cend() const { return this->vector_.cend(); }
 
-    /// Return the ORIGINAL vector const crbegin()
-    inline std::vector<T>::const_reverse_iterator crbegin() const {
-      return vector_.crbegin();
-    }
+    /// Get a reverse iterator to the beginning of the original vector.
+    inline std::vector<T>::const_reverse_iterator crbegin() const { return this->vector_.crbegin(); }
 
-    /// Return the ORIGINAL vector const crend()
-    inline std::vector<T>::const_reverse_iterator crend() const {
-      return vector_.crend();
-    }
+    /// Get a reverse iterator to the end of the original vector.
+    inline std::vector<T>::const_reverse_iterator crend() const { return this->vector_.crend(); }
 
-    /// Check if vector is empty
-    inline bool empty() const {
-      return (maxIndex_ == 0);
-    }
+    /**
+     * Check if the original vector is empty (has no elements).
+     * @return `true` if vector is empty, `false` otherwise.
+     */
+    inline bool empty() const { return (this->maxIndex_ == 0); }
 
-    /// Vector size.
-    inline std::size_t size() const {
-      check();
-      return maxIndex_;
-    }
+    /**
+     * Get the current size of the original vector.
+     * @return The size of the vector.
+     */
+    inline std::size_t size() const { check(); return this->maxIndex_; }
 
-    /// Vector max_size.
-    inline std::size_t max_size() const {
-      return std::numeric_limits<size_t>::max() - 1;
-    }
+    /**
+     * Get the maximum possible size of the original vector.
+     * @return The maximum size.
+     */
+    inline std::size_t max_size() const { return std::numeric_limits<size_t>::max() - 1; }
 
-    /// Clear vector
+    /// Clear the temporary map.
     inline void clear() {
       check();
       markAsUsed();
-      tmp_->clear();
-      maxIndex_ = 0;
-      clear_ = true;
+      this->tmp_->clear();
+      this->maxIndex_ = 0;
+      this->clear_ = true;
     }
 
-    /// Insert element
-    /// This is not directly 1:1 to std::vector
-    /// As the temporary cannot return a std::vector<T>::iterator (it is a std::map).
-    /// We use a uint64_t which is the index of the inserted element.
+    /**
+     * Insert an element into the temporary map.
+     * This is not directly 1:1 to std::vector, as the temporary map can't
+     * return an iterator to it (it is a std::map after all), so we use a
+     * uint64_t as the key for the index of the inserted element.
+     * @param pos The position of the index to insert the value.
+     * @param value The value to insert.
+     * @return The index of the inserted element.
+     * @throw std::out_of_range if pos is bigger than the maximum size of the vector.
+     */
     uint64_t insert(const uint64_t& pos, const T& value) {
       check();
       markAsUsed();
-      if (pos == maxIndex_) {
-        tmp_->insert_or_assign(pos, value);
-        ++maxIndex_;
+      if (pos == this->maxIndex_) {
+        this->tmp_->insert_or_assign(pos, value);
+        this->maxIndex_++;
         return pos;
-      } else if (pos < maxIndex_) {
-        /// Move all elements from pos to maxIndex_ one position to the right.
-        /// So we can fit the new element at pos.
-        for (uint64_t i = maxIndex_; i > pos; --i) {
-          auto iter = tmp_->find(i - 1);
-          if (iter != tmp_->end()) {
-            tmp_->insert_or_assign(i, iter->second); // shift the element,
-          } else {
-            tmp_->insert_or_assign(i, vector_[i - 1]); // copy and shift the element from the original vector
-          }
+      } else if (pos < this->maxIndex_) {
+        // Move all elements from pos to maxIndex_ one position to the right, so we can fit the new element at pos.
+        for (uint64_t i = this->maxIndex_; i > pos; i--) {
+          auto iter = this->tmp_->find(i - 1);
+          this->tmp_->insert_or_assign(i, (iter != this->tmp_->end())
+            ? iter->second          // Shift the element from the iterator if the element was found there
+            : this->vector_[i - 1]   // Copy and shift the element from the original vector if not
+          );
         }
-        tmp_->insert_or_assign(pos, value);
-        ++maxIndex_;
+        this->tmp_->insert_or_assign(pos, value);
+        this->maxIndex_++;
         return pos;
       } else {
         throw std::out_of_range("pos out of range");
       }
     }
 
-    /// Erase element
-    /// Returns the index of the first element following the removed elements.
+    /**
+     * Erase an element from the temporary map.
+     * @param pos The position of the index to erase.
+     * @return The index of the first element following the removed one.
+     */
     std::size_t erase(std::size_t pos) {
       checkIndexAndCopy(pos);
       markAsUsed();
       // Shift elements from the right of pos to fill the gap.
-      for (std::size_t i = pos; i < maxIndex_ - 1; ++i) {
-        auto iter = tmp_->find(i + 1);
-        if (iter != tmp_->end()) {
-          tmp_->insert_or_assign(i, iter->second); // shift the element
-        } else {
-          tmp_->insert_or_assign(i, vector_[i + 1]); // copy and shift the element from the original vector
-        }
+      for (std::size_t i = pos; i < this->maxIndex_ - 1; i++) {
+        auto iter = this->tmp_->find(i + 1);
+        this->tmp_->insert_or_assign(i, (iter != this->tmp_->end())
+          ? iter->second          // Shift the element from the iterator if the element was found there
+          : this->vector_[i + 1]   // Copy and shift the element from the original vector if not
+        );
       }
       // Remove the last element.
-      tmp_->erase(maxIndex_ - 1);
-      --maxIndex_;
+      this->tmp_->erase(this->maxIndex_ - 1);
+      this->maxIndex_--;
       return pos;
     }
 
-    /// Erase range of elements
-    /// Returns the index of the first element following the removed elements.
+    /**
+     * Erase a range of elements from the temporary map.
+     * @param first The first index position to erase.
+     * @param last The last index position to erase.
+     * @return The index of the first element following the removed ones.
+     * @throw std::out_of_range if first is bigger thanlast, or last is bigger than the maximum size of the vector.
+     */
     std::size_t erase(std::size_t first, std::size_t last) {
       check();
       markAsUsed();
-      if (first > last || last > maxIndex_) {
-        throw std::out_of_range("Indices out of range");
-      }
+      if (first > last || last > this->maxIndex_) throw std::out_of_range("Indices out of range");
       // Compute the number of elements to be removed.
       std::size_t numToRemove = last - first;
       // Shift elements from the right of last to fill the gap.
-      for (std::size_t i = first; i < maxIndex_ - numToRemove; ++i) {
-        auto iter = tmp_->find(i + numToRemove);
-        if (iter != tmp_->end()) {
-          tmp_->insert_or_assign(i, iter->second); // shift the element
-        } else {
-          tmp_->insert_or_assign(i, vector_[i + numToRemove]); // copy and shift the element from the original vector
-        }
+      for (std::size_t i = first; i < this->maxIndex_ - numToRemove; ++i) {
+        auto iter = this->tmp_->find(i + numToRemove);
+        this->tmp_->insert_or_assign(i, (iter != this->tmp_->end())
+          ? iter->second                    // Shift the element from the iterator if the element was found there
+          : this->vector_[i + numToRemove]   // Copy and shift the element from the original vector if not
+        );
       }
       // Remove the last numToRemove elements.
-      for (std::size_t i = 0; i < numToRemove; ++i) {
-        tmp_->erase(maxIndex_ - 1 - i);
-      }
-      maxIndex_ -= numToRemove;
+      for (std::size_t i = 0; i < numToRemove; i++) this->tmp_->erase(this->maxIndex_ - 1 - i);
+      this->maxIndex_ -= numToRemove;
       return first;
     }
 
-    /// Appends the given element value to the end of the container.
+    /**
+     * Append (copy) an element to the end of the temporary map.
+     * @param value The value to append.
+     */
     void push_back(const T& value) {
       check();
       markAsUsed();
-      tmp_->emplace(maxIndex_, value);
-      ++maxIndex_;
+      this->tmp_->emplace(this->maxIndex_, value);
+      this->maxIndex_++;
     }
 
-    /// Emplace element at the end of the container.
+    /**
+     * Emplace (move) an element to the end of the temporary map.
+     * @param value The value to append.
+     */
     void emplace_back(T&& value) {
       check();
       markAsUsed();
-      tmp_->emplace(maxIndex_, std::move(value));
-      ++maxIndex_;
+      this->tmp_->emplace(this->maxIndex_, std::move(value));
+      this->maxIndex_++;
     }
 
-    /// Removes the last element of the container.
+    /// Remove the last element of the temporary map.
     void pop_back() {
       check();
       markAsUsed();
-      tmp_->erase(maxIndex_ - 1);
-      --maxIndex_;
+      this->tmp_->erase(this->maxIndex_ - 1);
+      this->maxIndex_--;
     }
 
-    /// Changes the number of elements stored (default-constructed elements are appended)
+    /**
+     * Resize the temporary map to a given new size.
+     * If the new size is greater, default-constructed elements are appended.
+     * If the new size is smaller, extra elements are erased.
+     * @param count The number of items the temporary map should hold.
+     */
     void resize(std::size_t count) {
       check();
-      if (count < maxIndex_) {
-        for (std::size_t i = count; i < maxIndex_; ++i) {
-          tmp_->erase(i);
-        }
-      } else if (count > maxIndex_) {
-        for (std::size_t i = maxIndex_; i < count; ++i) {
-          tmp_->emplace(i, T());
-        }
+      if (count < this->maxIndex_) {
+        for (std::size_t i = count; i < this->maxIndex_; i++) this->tmp_->erase(i);
+      } else if (count > this->maxIndex_) {
+        for (std::size_t i = this->maxIndex_; i < count; i++) this->tmp_->emplace(i, T());
       }
-      maxIndex_ = count;
+      this->maxIndex_ = count;
       markAsUsed();
     }
 
     /// Changes the number of elements stored (new elements are appended and initialized with `value`)
+    /**
+     * Overload of resize() that replaces new default-constructed elements with a given predefined value.
+     * @param count The number of items the temporary map should hold.
+     * @param value The value to fill extra indices with, if necessary.
+     */
     void resize(std::size_t count, const T& value) {
       check();
-      if (count < maxIndex_) {
-        for (std::size_t i = count; i < maxIndex_; ++i) {
-          tmp_->erase(i);
-        }
-      } else if (count > maxIndex_) {
-        for (std::size_t i = maxIndex_; i < count; ++i) {
-          tmp_->emplace(i, value);
-        }
+      if (count < this->maxIndex_) {
+        for (std::size_t i = count; i < this->maxIndex_; i++) this->tmp_->erase(i);
+      } else if (count > this->maxIndex_) {
+        for (std::size_t i = this->maxIndex_; i < count; i++) this->tmp_->emplace(i, value);
       }
-      maxIndex_ = count;
+      this->maxIndex_ = count;
       markAsUsed();
     }
 
-    /// Commit function.
+    /**
+     * Commit the value.
+     * Updates the original vector from the temporary map and clears it, or,
+     * clears the original vector if the temporary map is set to empty.
+     */
     void commit() override {
       check();
-      if (clear_) {
-        vector_.clear();
-        clear_ = false;
-      }
-      /// Erase difference in size.
-      if (vector_.size() > maxIndex_) {
-        vector_.erase(vector_.begin() + maxIndex_, vector_.end());
+      if (this->clear_) { this->vector_.clear(); this->clear_ = false; }
+
+      // Erase difference in size.
+      if (this->vector_.size() > this->maxIndex_) {
+        this->vector_.erase(this->vector_.begin() + this->maxIndex_, this->vector_.end());
       }
 
-      for (auto& it : *tmp_) {
-        if (it.first < vector_.size()) {
-          vector_[it.first] = it.second;
+      for (auto& it : *this->tmp_) {
+        if (it.first < this->vector_.size()) {
+          this->vector_[it.first] = it.second;
         } else {
-          vector_.emplace_back(it.second);
+          this->vector_.emplace_back(it.second);
         }
       }
-      maxIndex_ = vector_.size();
+      this->maxIndex_ = this->vector_.size();
     }
 
-    /// Rollback function.
+    /// Revert the value. Nullifies the temporary map.
     void revert() const override {
-      tmp_ = nullptr;
-      clear_ = false;
-      maxIndex_ = vector_.size();
+      this->tmp_ = nullptr;
+      this->clear_ = false;
+      this->maxIndex_ = this->vector_.size();
     }
 };
 
-#endif /// SAFEVECTOR_H
+#endif // SAFEVECTOR_H

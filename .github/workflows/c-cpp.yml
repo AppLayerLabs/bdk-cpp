@@ -109,6 +109,12 @@ jobs:
           name: build
           path: build
 
+      - name : Update apt-get
+        run: apt-get update
+
+      - name : Install Doxygen
+        run: apt-get install -y doxygen
+
       - name: Generate Doxygen Documentation
         run: |
           mkdir docs
