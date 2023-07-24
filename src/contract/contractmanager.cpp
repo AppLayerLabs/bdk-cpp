@@ -74,7 +74,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
     createIt->second(callInfo);
     return;
   }
-  throw std::runtime_error("Invalid function call with functor: " + Utils::bytesToString(functor.asBytes()));
+  throw std::runtime_error("Invalid function call with functor: " + functor.hex().get());
 }
 
 Bytes ContractManager::getDeployedContracts() const {
