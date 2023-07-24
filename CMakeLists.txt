@@ -17,7 +17,7 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
 endif()
 
 # Project data
-project(orbitersdk VERSION 0.1.0 DESCRIPTION "Sparq subnet")
+project(orbitersdk VERSION 0.1.1 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)

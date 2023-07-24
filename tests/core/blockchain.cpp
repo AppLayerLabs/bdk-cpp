@@ -56,7 +56,7 @@ namespace TBlockchain {
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
             "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-            "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+            "OrbiterSDK/cpp/linux_x86-64/0.1.1",
             1,
             8080,
             8100,
@@ -68,19 +68,19 @@ namespace TBlockchain {
 
         /// Initialize multiple blockchain nodes.
         std::unique_ptr<Blockchain> blockchain1;
-        initialize("blockchainInitializeTestNode1", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8080, 8101,
+        initialize("blockchainInitializeTestNode1", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8080, 8101,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain1);
 
         std::unique_ptr<Blockchain> blockchain2;
-        initialize("blockchainInitializeTestNode2", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8081, 8102,
+        initialize("blockchainInitializeTestNode2", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8081, 8102,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain2);
 
         std::unique_ptr<Blockchain> blockchain3;
-        initialize("blockchainInitializeTestNode3", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8082, 8103,
+        initialize("blockchainInitializeTestNode3", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8082, 8103,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain3);
 
         std::unique_ptr<Blockchain> blockchain4;
-        initialize("blockchainInitializeTestNode4", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8083, 8104,
+        initialize("blockchainInitializeTestNode4", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8083, 8104,
                    PrivKey(), {"127.0.0.1", 8100}, blockchain4);
 
         /// Start the blockchain nodes.
@@ -126,7 +126,7 @@ namespace TBlockchain {
         blockchain4->stop();
       }
       std::unique_ptr<Blockchain> blockchain1;
-      initialize("blockchainInitializeTestNode1", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8080, 8101,
+      initialize("blockchainInitializeTestNode1", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8080, 8101,
                  PrivKey(), {"127.0.0.1", 8100}, blockchain1, false);
 
       REQUIRE(blockchain1->getStorage()->latest()->hash() == bestBlock->hash());
@@ -145,7 +145,7 @@ namespace TBlockchain {
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
             "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-            "OrbiterSDK/cpp/linux_x86-64/0.1.0",
+            "OrbiterSDK/cpp/linux_x86-64/0.1.1",
             1,
             8080,
             8100,
@@ -157,53 +157,53 @@ namespace TBlockchain {
 
         /// Create the validator nodes (5 in total)
         std::unique_ptr<Blockchain> blockchainValidator1;
-        initialize("blockchainMove10BlocksTestValidator1", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8080, 8101,
+        initialize("blockchainMove10BlocksTestValidator1", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8080, 8101,
                    PrivKey(Hex::toBytes("0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759")),
                    {"127.0.0.1", 8100}, blockchainValidator1);
 
         std::unique_ptr<Blockchain> blockchainValidator2;
-        initialize("blockchainMove10BlocksTestValidator2", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8081, 8102,
+        initialize("blockchainMove10BlocksTestValidator2", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8081, 8102,
                    PrivKey(Hex::toBytes("0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4")),
                    {"127.0.0.1", 8100}, blockchainValidator2);
 
         std::unique_ptr<Blockchain> blockchainValidator3;
-        initialize("blockchainMove10BlocksTestValidator3", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8082, 8103,
+        initialize("blockchainMove10BlocksTestValidator3", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8082, 8103,
                    PrivKey(Hex::toBytes("0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751")),
                    {"127.0.0.1", 8100}, blockchainValidator3);
 
         std::unique_ptr<Blockchain> blockchainValidator4;
-        initialize("blockchainMove10BlocksTestValidator4", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8083, 8104,
+        initialize("blockchainMove10BlocksTestValidator4", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8083, 8104,
                    PrivKey(Hex::toBytes("0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7")),
                    {"127.0.0.1", 8100}, blockchainValidator4);
 
         std::unique_ptr<Blockchain> blockchainValidator5;
-        initialize("blockchainMove10BlocksTestValidator5", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8084, 8105,
+        initialize("blockchainMove10BlocksTestValidator5", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8084, 8105,
                    PrivKey(Hex::toBytes("0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6")),
                    {"127.0.0.1", 8100}, blockchainValidator5);
 
         /// Create the normal nodes (6 in total)
         std::unique_ptr<Blockchain> blockchainNode1;
-        initialize("blockchainMove10BlocksTestNode1", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8085, 8106,
+        initialize("blockchainMove10BlocksTestNode1", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8085, 8106,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode1);
 
         std::unique_ptr<Blockchain> blockchainNode2;
-        initialize("blockchainMove10BlocksTestNode2", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8086, 8107,
+        initialize("blockchainMove10BlocksTestNode2", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8086, 8107,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode2);
 
         std::unique_ptr<Blockchain> blockchainNode3;
-        initialize("blockchainMove10BlocksTestNode3", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8087, 8108,
+        initialize("blockchainMove10BlocksTestNode3", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8087, 8108,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode3);
 
         std::unique_ptr<Blockchain> blockchainNode4;
-        initialize("blockchainMove10BlocksTestNode4", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8088, 8109,
+        initialize("blockchainMove10BlocksTestNode4", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8088, 8109,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode4);
 
         std::unique_ptr<Blockchain> blockchainNode5;
-        initialize("blockchainMove10BlocksTestNode5", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8089, 8110,
+        initialize("blockchainMove10BlocksTestNode5", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8089, 8110,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode5);
 
         std::unique_ptr<Blockchain> blockchainNode6;
-        initialize("blockchainMove10BlocksTestNode6", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8090, 8111,
+        initialize("blockchainMove10BlocksTestNode6", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8090, 8111,
                    PrivKey(), {"127.0.0.1", 8100}, blockchainNode6);
 
         /// Start the discovery node.
@@ -405,7 +405,7 @@ namespace TBlockchain {
       }
 
       std::unique_ptr<Blockchain> blockchainNode1;
-      initialize("blockchainMove10BlocksTestNode1", "OrbiterSDK/cpp/linux_x86-64/0.1.0", 8080, 8080, 8085, 8106,
+      initialize("blockchainMove10BlocksTestNode1", "OrbiterSDK/cpp/linux_x86-64/0.1.1", 8080, 8080, 8085, 8106,
                  PrivKey(), {"127.0.0.1", 8100}, blockchainNode1, false);
 
       REQUIRE(blockchainNode1->getStorage()->latest()->hash() == bestBlock->hash());
