@@ -275,7 +275,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     json j;
     std::ifstream i("ABI/ContractManager.json");
     i >> j;
-    REQUIRE(j.size() == 4); // 3 contracts functions + getDeployedContracts
+    REQUIRE(j.size() == 6); // 6 contracts functions + getDeployedContracts
     REQUIRE(j[0]["name"] == "createNewERC20Contract");
     REQUIRE(j[0]["stateMutability"] == "nonpayable");
     REQUIRE(j[0]["type"] == "function");
@@ -306,14 +306,15 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(j[2]["inputs"][2]["internalType"] == "uint8");
     REQUIRE(j[2]["inputs"][2]["name"] == "erc20_decimals");
     REQUIRE(j[2]["inputs"][2]["type"] == "uint8");
-    REQUIRE(j[3]["name"] == "getDeployedContracts");
-    REQUIRE(j[3]["stateMutability"] == "view");
-    REQUIRE(j[3]["type"] == "function");
-    REQUIRE(j[3]["outputs"][0]["internalType"] == "string[]");
-    REQUIRE(j[3]["outputs"][0]["name"] == "");
-    REQUIRE(j[3]["outputs"][0]["type"] == "string[]");
-    REQUIRE(j[3]["outputs"][1]["internalType"] == "address[]");
-    REQUIRE(j[3]["outputs"][1]["name"] == "");
-    REQUIRE(j[3]["outputs"][1]["type"] == "address[]");
+    /// TODO: Add DEXV2 contracts.
+    REQUIRE(j[5]["name"] == "getDeployedContracts");
+    REQUIRE(j[5]["stateMutability"] == "view");
+    REQUIRE(j[5]["type"] == "function");
+    REQUIRE(j[5]["outputs"][0]["internalType"] == "string[]");
+    REQUIRE(j[5]["outputs"][0]["name"] == "");
+    REQUIRE(j[5]["outputs"][0]["type"] == "string[]");
+    REQUIRE(j[5]["outputs"][1]["internalType"] == "address[]");
+    REQUIRE(j[5]["outputs"][1]["name"] == "");
+    REQUIRE(j[5]["outputs"][1]["type"] == "address[]");
   }
 }

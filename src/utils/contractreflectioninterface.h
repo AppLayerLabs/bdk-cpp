@@ -88,16 +88,24 @@ static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
  */
 ABI::Types inline getABIEnumFromString(const std::string& type) {
   static const std::unordered_map<std::string, ABI::Types> typeMappings = {
-    {"uint256", ABI::Types::uint256},
-    {"uint256[]", ABI::Types::uint256Arr},
-    {"address", ABI::Types::address},
-    {"address[]", ABI::Types::addressArr},
-    {"bool", ABI::Types::boolean},
-    {"bool[]", ABI::Types::booleanArr},
-    {"bytes", ABI::Types::bytes},
-    {"bytes[]", ABI::Types::bytesArr},
-    {"string", ABI::Types::string},
-    {"string[]", ABI::Types::stringArr}
+      {"uint8", ABI::Types::uint8},
+      {"uint8[]", ABI::Types::uint8Arr},
+      {"uint16", ABI::Types::uint16},
+      {"uint16[]", ABI::Types::uint16Arr},
+      {"uint32", ABI::Types::uint32},
+      {"uint32[]", ABI::Types::uint32Arr},
+      {"uint64", ABI::Types::uint64},
+      {"uint64[]", ABI::Types::uint64Arr},
+      {"uint256", ABI::Types::uint256},
+      {"uint256[]", ABI::Types::uint256Arr},
+      {"address", ABI::Types::address},
+      {"address[]", ABI::Types::addressArr},
+      {"bool", ABI::Types::boolean},
+      {"bool[]", ABI::Types::booleanArr},
+      {"bytes", ABI::Types::bytes},
+      {"bytes[]", ABI::Types::bytesArr},
+      {"string", ABI::Types::string},
+      {"string[]", ABI::Types::stringArr}
   };
 
   auto it = typeMappings.find(type);

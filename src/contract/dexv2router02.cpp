@@ -112,7 +112,7 @@ void DEXV2Router02::_swap(const std::vector<uint256_t>& amounts, const std::vect
   }
 }
 
-bool DEXV2Router02::ensure(const uint64_t& deadline) {
+bool DEXV2Router02::ensure(const uint256_t& deadline) {
   if (deadline < this->getBlockTimestamp()) {
     throw std::runtime_error("DEXV2Router02::ensure: EXPIRED");
   }
@@ -135,7 +135,7 @@ BytesEncoded DEXV2Router02::addLiquidity(
     const uint256_t& amountAMin,
     const uint256_t& amountBMin,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   auto [amountA, amountB] = this->_addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
@@ -152,7 +152,7 @@ BytesEncoded DEXV2Router02::addLiquidityNative(
     const uint256_t& amountTokenMin,
     const uint256_t& amountNativeMin,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   auto [amountToken, amountNative] = this->_addLiquidity(token, this->wrappedNative_.get(), amountTokenDesired, amountNativeMin, amountTokenMin, amountNativeMin);
@@ -175,7 +175,7 @@ BytesEncoded DEXV2Router02::removeLiquidity(
     const uint256_t& amountAMin,
     const uint256_t& amountBMin,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   auto pair = DEXV2Library::pairFor(this->interface, this->factory_.get(), tokenA, tokenB);
@@ -196,7 +196,7 @@ BytesEncoded DEXV2Router02::removeLiquidityNative(
     const uint256_t& amountTokenMin,
     const uint256_t& amountNativeMin,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   auto amounts = ABI::Decoder({ABI::Types::uint256, ABI::Types::uint256}, this->removeLiquidity(
@@ -214,7 +214,7 @@ std::vector<uint256_t> DEXV2Router02::swapExactTokensForTokens(
     const uint256_t& amountOutMin,
     const std::vector<Address>& path,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   auto amounts = DEXV2Library::getAmountsOut(this->interface, this->factory_.get(), amountIn, path);
@@ -233,7 +233,7 @@ std::vector<uint256_t> DEXV2Router02::swapTokensForExactTokens(
     const uint256_t& amountInMax,
     const std::vector<Address>& path,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   auto amounts = DEXV2Library::getAmountsIn(this->interface, this->factory_.get(), amountOut, path);
@@ -251,7 +251,7 @@ std::vector<uint256_t> DEXV2Router02::swapExactNativeForTokens(
     const uint256_t& amountOutMin,
     const std::vector<Address>& path,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   if(path[0] != this->wrappedNative_.get()) {
@@ -274,7 +274,7 @@ std::vector<uint256_t> DEXV2Router02::swapTokensForExactNative(
     const uint256_t& amountInMax,
     const std::vector<Address>& path,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   if(path.back() != this->wrappedNative_.get()) {
@@ -298,7 +298,7 @@ std::vector<uint256_t> DEXV2Router02::swapExactTokensForNative(
     const uint256_t& amountOutMin,
     const std::vector<Address>& path,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   if(path.back() != this->wrappedNative_.get()) {
@@ -322,7 +322,7 @@ std::vector<uint256_t> DEXV2Router02::swapNativeForExactTokens(
     const uint256_t& amountInMax,
     const std::vector<Address>& path,
     const Address& to,
-    const uint64_t& deadline
+    const uint256_t& deadline
 ) {
   this->ensure(deadline);
   if(path[0] != this->wrappedNative_.get()) {

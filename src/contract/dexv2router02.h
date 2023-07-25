@@ -60,7 +60,7 @@ class DEXV2Router02 : public DynamicContract {
      * So we can make it a bool function.
      * @param deadline The timestamp to check against. (SECONDS!!!)
      */
-    bool ensure(const uint64_t& deadline);
+    bool ensure(const uint256_t& deadline);
 
   public:
 
@@ -130,7 +130,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountAMin,
       const uint256_t& amountBMin,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -151,7 +151,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountTokenMin,
       const uint256_t& amountNativeMin,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -175,7 +175,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountAMin,
       const uint256_t& amountBMin,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -197,7 +197,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountTokenMin,
       const uint256_t& amountNativeMin,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -216,7 +216,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountOutMin,
       const std::vector<Address>& path,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -235,7 +235,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountInMax,
       const std::vector<Address>& path,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -252,7 +252,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountOutMin,
       const std::vector<Address>& path,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -271,7 +271,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountInMax,
       const std::vector<Address>& path,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -290,7 +290,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountOutMin,
       const std::vector<Address>& path,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     /**
@@ -309,7 +309,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& amountInMax,
       const std::vector<Address>& path,
       const Address& to,
-      const uint64_t& deadline
+      const uint256_t& deadline
     );
 
     static void registerContract() {

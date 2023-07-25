@@ -309,7 +309,13 @@ namespace JsonRPC {
         if (txObj.contains("data") && !txObj["data"].is_null()) {
           std::string dataHex = txObj["data"].get<std::string>();
           if (!Hex::isValid(dataHex, true)) throw std::runtime_error("Invalid data hex");
-          data = Hex::toBytes(dataHex);
+          auto dataBytes = Hex::toBytes(dataHex);
+          if (dataBytes.size() >= 4) {
+            functor = Functor(Utils::create_view_span(dataBytes, 0, 4));
+          }
+          if (dataBytes.size() > 4) {
+            data = Bytes(dataBytes.begin() + 4, dataBytes.end());
+          }
         }
         return result;
       } catch (std::exception& e) {
@@ -384,7 +390,13 @@ namespace JsonRPC {
         if (txObj.contains("data") && !txObj["data"].is_null()) {
           std::string dataHex = txObj["data"].get<std::string>();
           if (!Hex::isValid(dataHex, true)) throw std::runtime_error("Invalid data hex");
-          data = Hex::toBytes(dataHex);
+          auto dataBytes = Hex::toBytes(dataHex);
+          if (dataBytes.size() >= 4) {
+            functor = Functor(Utils::create_view_span(dataBytes, 0, 4));
+          }
+          if (dataBytes.size() > 4) {
+            data = Bytes(dataBytes.begin() + 4, dataBytes.end());
+          }
         }
         return result;
       } catch (std::exception& e) {

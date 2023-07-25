@@ -116,7 +116,7 @@ class DEXV2Factory : public DynamicContract {
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &
       >(
-        std::vector<std::string>{},
+        std::vector<std::string>{"_feeToSetter"},
         std::make_tuple("feeTo", &DEXV2Factory::feeTo, "view", std::vector<std::string>{}),
         std::make_tuple("feeToSetter", &DEXV2Factory::feeToSetter, "view", std::vector<std::string>{}),
         std::make_tuple("allPairs", &DEXV2Factory::allPairs, "view", std::vector<std::string>{}),

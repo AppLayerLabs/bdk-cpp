@@ -247,7 +247,7 @@ Types inline getABIEnumFromString(const std::string& type) {
   if (it != typeMappings.end()) {
     return it->second;
   } else {
-    throw std::runtime_error("Invalid type");
+    throw std::runtime_error("Invalid type: " + type);
   }
 }
 

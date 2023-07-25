@@ -168,6 +168,8 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
+        std::cout << "Calling State...: " << std::endl;
+        std::cout << "callInfo functor: " << std::get<5>(callInfo).hex() << std::endl;
         auto result = Hex::fromBytes(state->ethCall(callInfo), true);
         ret["result"] = result;
       } catch (std::exception& e) {
@@ -187,6 +189,7 @@ namespace JsonRPC {
         ret["error"]["code"] = -32000;
         ret["error"]["message"] = "Internal error: " + std::string(e.what());
       }
+      Utils::safePrint("Estimate gas encoding returning!");
       return ret;
     }
 
