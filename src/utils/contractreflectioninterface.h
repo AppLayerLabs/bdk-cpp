@@ -81,33 +81,6 @@ static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
     {meta::resolve_type<std::vector<std::string> &>(), ABI::TypeToEnum<std::vector<Bytes> &>::value},
     {meta::resolve_type<const std::vector<Bytes> &>(), ABI::TypeToEnum<const std::vector<Bytes> &>::value}};
 
-/**
- * This function returns the ABI type for a given ABI type string.
- * @param type The ABI type string.
- * @return The ABI type.
- */
-ABI::Types inline getABIEnumFromString(const std::string& type) {
-  static const std::unordered_map<std::string, ABI::Types> typeMappings = {
-    {"uint256", ABI::Types::uint256},
-    {"uint256[]", ABI::Types::uint256Arr},
-    {"address", ABI::Types::address},
-    {"address[]", ABI::Types::addressArr},
-    {"bool", ABI::Types::boolean},
-    {"bool[]", ABI::Types::booleanArr},
-    {"bytes", ABI::Types::bytes},
-    {"bytes[]", ABI::Types::bytesArr},
-    {"string", ABI::Types::string},
-    {"string[]", ABI::Types::stringArr}
-  };
-
-  auto it = typeMappings.find(type);
-  if (it != typeMappings.end()) {
-    return it->second;
-  } else {
-    throw std::runtime_error("Invalid type");
-  }
-}
-
 extern std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
 
 /**
@@ -181,7 +154,7 @@ std::vector<ABI::Types> inline getMethodArgumentsTypesABI(
   if (it != methodArgumentsTypesMap.end()) {
     std::vector<ABI::Types> types;
     for (auto const &x : it->second) {
-      types.push_back(getABIEnumFromString(x));
+      types.push_back(ABI::getABIEnumFromString(x));
     }
     return types;
   }

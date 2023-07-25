@@ -546,7 +546,7 @@ Types inline getABIEnumFromString(const std::string& type) {
         case Types::bytesArr: return this->getData<std::vector<Bytes>>(index);
         case Types::string: return this->getData<std::string>(index);
         case Types::stringArr: return this->getData<std::vector<std::string>>(index);
-        default: throw std::runtime_error("Invalid ABI::Types type");
+        default: throw std::runtime_error("Invalid ABI::Types type: " + getStringFromABIEnum(type));
       }
     }
 
