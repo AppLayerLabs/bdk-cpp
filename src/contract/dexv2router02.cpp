@@ -7,6 +7,8 @@ DEXV2Router02::DEXV2Router02(ContractManagerInterface &interface, const Address 
     DynamicContract(interface, address, db), factory_(this), wrappedNative_(this) {
   this->factory_ = Address(this->db->get(Utils::stringToBytes("factory_"), this->getDBPrefix()));
   this->wrappedNative_ = Address(this->db->get(Utils::stringToBytes("wrappedNative_"), this->getDBPrefix()));
+  this->factory_.commit();
+  this->wrappedNative_.commit();
   this->registerContractFunctions();
 }
 
@@ -19,6 +21,8 @@ DEXV2Router02::DEXV2Router02(
 {
   this->factory_ = factory;
   this->wrappedNative_ = nativeWrapper;
+  this->factory_.commit();
+  this->wrappedNative_.commit();
   this->registerContractFunctions();
 }
 
@@ -57,7 +61,10 @@ std::pair<uint256_t, uint256_t> DEXV2Router02::_addLiquidity(
   uint256_t amountB = 0;
   auto pairAddress = this->callContractViewFunction(this->factory_.get(), &DEXV2Factory::getPair, tokenA, tokenB);
   if (!pairAddress) {
+    Utils::safePrint("_addLiquidity: contractscre doesn't exist!");
     pairAddress = this->callContractFunction(this->factory_.get(), &DEXV2Factory::createPair, tokenA, tokenB);
+  } else {
+    Utils::safePrint("_addLiquidity: contract exist!");
   }
   auto reserves = this->callContractViewFunction(pairAddress.get(), &DEXV2Pair::getReservess);
   const auto& [reserveA, reserveB] = reserves;

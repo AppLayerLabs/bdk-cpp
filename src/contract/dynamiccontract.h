@@ -637,6 +637,7 @@ class DynamicContract : public BaseContract {
     */
     template<typename TContract, typename... Args>
     Address callCreateContract(const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
+        Utils::safePrint("CallCreateContract being called...");
         ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
         ABI::Encoder encoder(vars);
         return this->interface.callCreateContract<TContract>(this->getContractAddress(), gas, gasPrice, value, std::move(encoder));

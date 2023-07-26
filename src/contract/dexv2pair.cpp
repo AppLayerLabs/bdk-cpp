@@ -15,6 +15,17 @@ DEXV2Pair::DEXV2Pair(ContractManagerInterface &interface, const Address& address
   this->price0CumulativeLast_ = Utils::bytesToUint256(this->db->get(std::string("price0CumulativeLast_"), this->getDBPrefix()));
   this->price1CumulativeLast_ = Utils::bytesToUint256(this->db->get(std::string("price1CumulativeLast_"), this->getDBPrefix()));
   this->kLast_ = Utils::bytesToUint256(this->db->get(std::string("kLast_"), this->getDBPrefix()));
+
+
+  this->factory_.commit();
+  this->token0_.commit();
+  this->token1_.commit();
+  this->reserve0_.commit();
+  this->reserve1_.commit();
+  this->blockTimestampLast_ .commit();
+  this->price0CumulativeLast_.commit();
+  this->price1CumulativeLast_.commit();
+  this->kLast_.commit();
   this->registerContractFunctions();
 }
 
@@ -22,11 +33,12 @@ DEXV2Pair::DEXV2Pair(
   ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
   const std::unique_ptr<DB>& db
-) : ERC20("DEX V2", "DEX-V2", 18, 0, interface, address, creator, chainId, db),
+) : ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, interface, address, creator, chainId, db),
   factory_(this), token0_(this), token1_(this), reserve0_(this), reserve1_(this),
   blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
   this->factory_ = creator;
+  this->factory_.commit();
   this->registerContractFunctions();
 }
 

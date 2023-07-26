@@ -89,6 +89,16 @@ class ERC20 : public DynamicContract {
       const std::unique_ptr<DB> &db
     );
 
+    /// Constructor for derived types!
+    ERC20(
+      const std::string &derivedTypeName,
+      const std::string &erc20_name, const std::string &erc20_symbol,
+      const uint8_t &erc20_decimals, const uint256_t &mintValue,
+      ContractManagerInterface &interface,
+      const Address &address, const Address &creator, const uint64_t &chainId,
+      const std::unique_ptr<DB> &db
+    );
+
     /// Destructor.
     ~ERC20() override;
 

@@ -102,7 +102,7 @@ class ContractManager : BaseContract {
     template <typename TContract>
     std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
-      if (this->caller != this->getContractCreator()) {
+      if (this->origin != this->getContractCreator()) {
         throw std::runtime_error("Only contract creator can create new contracts");
       }
 
@@ -112,7 +112,7 @@ class ContractManager : BaseContract {
         throw std::runtime_error("Contract already exists");
       }
 
-      std::unique_lock lock(this->contractsMutex);
+      /// std::unique_lock lock(this->contractsMutex);
       for (const auto &[protocolContractName, protocolContractAddress] : ProtocolContractAddresses) {
         if (protocolContractAddress == derivedContractAddress) {
           throw std::runtime_error("Contract already exists");
@@ -134,12 +134,14 @@ class ContractManager : BaseContract {
      * @throw runtime_error if any argument type mismatches.
      */
     template <typename TContract, typename TTuple, std::size_t... Is>
-    std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress,
+    std::unique_ptr<TContract> createContractWithTuple(
+        const Address& creator,
+        const Address& derivedContractAddress,
         const std::vector<std::any>& dataVec,
         std::index_sequence<Is...>) {
       try {
         return std::make_unique<TContract>(std::any_cast<typename std::tuple_element<Is, TTuple>::type>(dataVec[Is])...,
-          *this->interface, derivedContractAddress, this->getCaller(), this->options->getChainID(), this->db
+          *this->interface, derivedContractAddress, creator, this->options->getChainID(), this->db
         );
       } catch (const std::bad_any_cast& ex) {
         throw std::runtime_error("Mismatched argument types for contract constructor. Expected: " +
@@ -156,7 +158,8 @@ class ContractManager : BaseContract {
      * arguments of the contract constructor.
      */
     template <typename TContract, typename TTuple>
-    std::unique_ptr<TContract> createContractWithTuple(const Address& derivedContractAddress, const std::vector<std::any>& dataVec) {
+    std::unique_ptr<TContract> createContractWithTuple(const Address& creator,
+      const Address& derivedContractAddress, const std::vector<std::any>& dataVec) {
       constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
       if (TupleSize != dataVec.size()) {
         throw std::runtime_error("Not enough arguments provided for contract constructor. Expected: " +
@@ -164,7 +167,7 @@ class ContractManager : BaseContract {
         );
       }
       return createContractWithTuple<TContract, TTuple>(
-        derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{}
+        creator, derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{}
       );
     }
 
@@ -203,11 +206,11 @@ class ContractManager : BaseContract {
         }
       }
 
-      auto contract = createContractWithTuple<TContract, ConstructorArguments>(derivedContractAddress, dataVector);
+      auto contract = createContractWithTuple<TContract, ConstructorArguments>(std::get<0>(callInfo), derivedContractAddress, dataVector);
       /// Update the inner variables of the contract.
       /// The constructor can set SafeVariables values from the constructor.
       /// We need to take account of that and set the variables accordingly.
-      this->updateState(true);
+      // this->updateState(true);
       this->recentlyCreatedContracts.insert(derivedContractAddress);
       this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
     }

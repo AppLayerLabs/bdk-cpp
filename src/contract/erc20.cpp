@@ -19,6 +19,13 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const 
     this->_allowed[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
   this->registerContractFunctions();
+
+  this->_name.commit();
+  this->_symbol.commit();
+  this->_decimals.commit();
+  this->_totalSupply.commit();
+  this->_balances.commit();
+  this->_allowed.commit();
 }
 
 ERC20::ERC20(
@@ -35,7 +42,27 @@ ERC20::ERC20(
   _decimals = erc20_decimals;
   _mintValue(creator, mintValue);
   this->registerContractFunctions();
+  _name.commit();
+  _symbol.commit();
+  _decimals.commit();
 }
+
+ERC20::ERC20(
+  const std::string &derivedTypeName, const std::string& erc20_name, const std::string& erc20_symbol,
+  const uint8_t& erc20_decimals, const uint256_t& mintValue,
+  ContractManagerInterface& interface,
+  const Address& address, const Address& creator, const uint64_t& chainId,
+  const std::unique_ptr<DB>& db
+) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
+    _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this)
+{
+  _name = erc20_name;
+  _symbol = erc20_symbol;
+  _decimals = erc20_decimals;
+  _mintValue(creator, mintValue);
+  this->registerContractFunctions();
+}
+
 
 ERC20::~ERC20() {
 

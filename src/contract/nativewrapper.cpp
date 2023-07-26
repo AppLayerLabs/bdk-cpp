@@ -18,6 +18,12 @@ NativeWrapper::NativeWrapper(ContractManagerInterface &interface, const Address&
     BytesArrView keyView(dbEntry.value);
     this->_allowed[Address(dbEntry.key)][Address(keyView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(keyView.subspan(20));
   }
+  this->_name.commit();
+  this->_symbol.commit();
+  this->_decimals.commit();
+  this->_totalSupply.commit();
+  this->_balances.commit();
+  this->_allowed.commit();
   this->registerContractFunctions();
 }
 
@@ -34,6 +40,9 @@ NativeWrapper::NativeWrapper(
   _symbol = erc20_symbol;
   _decimals = erc20_decimals;
   this->registerContractFunctions();
+  this->_name.commit();
+  this->_symbol.commit();
+  this->_decimals.commit();
 }
 
 NativeWrapper::~NativeWrapper() {

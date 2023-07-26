@@ -3,7 +3,7 @@
 
 
 DEXV2Factory::DEXV2Factory(ContractManagerInterface &interface, const Address &address, const std::unique_ptr<DB> &db) :
-  DynamicContract(interface, address, db)
+  DynamicContract(interface, address, db), feeTo_(this), feeToSetter_(this), allPairs_(this), getPair_(this)
 {
   // Load from DB constructor...
   this->feeTo_ = Address(db->get(std::string("feeTo_"), this->getDBPrefix()));
@@ -18,6 +18,11 @@ DEXV2Factory::DEXV2Factory(ContractManagerInterface &interface, const Address &a
     this->getPair_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Address(valueView.subspan(20));
   }
   this->registerContractFunctions();
+
+  this->feeTo_.commit();
+  this->feeToSetter_.commit();
+  this->allPairs_.commit();
+  this->getPair_.commit();
 }
 
 DEXV2Factory::DEXV2Factory(
@@ -25,10 +30,11 @@ DEXV2Factory::DEXV2Factory(
   ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   const std::unique_ptr<DB> &db
-) : DynamicContract(interface, "DEXV2Factory", address, creator, chainId, db)
+) : DynamicContract(interface, "DEXV2Factory", address, creator, chainId, db), feeTo_(this), feeToSetter_(this), allPairs_(this), getPair_(this)
 {
   // Create new constructor...
   this->feeToSetter_ = feeToSetter;
+  this->feeToSetter_.commit();
   this->registerContractFunctions();
 }
 
@@ -106,7 +112,9 @@ Address DEXV2Factory::createPair(const Address& tokenA, const Address& tokenB) {
   auto& token1 = tokenA < tokenB ? tokenB : tokenA;
   if (token0 == Address()) throw std::runtime_error("DEXV2Factory::createPair: ZERO_ADDRESS");
   if (this->getPair(token0, token1) != Address()) throw std::runtime_error("DEXV2Factory::createPair: PAIR_EXISTS");
+  Utils::safePrint("DEXV2Factory: creating pair...");
   auto pair = this->callCreateContract<DEXV2Pair>(0, 0, 0);
+  Utils::safePrint("DEXV2Factory: pair created...");
   this->callContractFunction(pair, &DEXV2Pair::initialize, token0, token1);
   getPair_[token0][token1] = pair;
   getPair_[token1][token0] = pair;
