@@ -131,7 +131,7 @@ Address DEXV2Router02::factory() const {
 }
 
 Address DEXV2Router02::wrappedNative() const {
-  return this->factory_.get();
+  return this->wrappedNative_.get();
 }
 
 BytesEncoded DEXV2Router02::addLiquidity(
