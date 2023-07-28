@@ -130,7 +130,7 @@ if [ "$DEPLOY" = true ]; then
   # Create the JSON files for the Discovery Node, Validators and Normal Nodes
   echo '{
     "rootPath": "discoveryNode",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8080,
@@ -141,7 +141,7 @@ if [ "$DEPLOY" = true ]; then
   # Create the JSON file for the Validators
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8081,
@@ -157,7 +157,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8082,
@@ -173,7 +173,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8083,
@@ -189,7 +189,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8084,
@@ -205,7 +205,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8085,
@@ -222,7 +222,7 @@ if [ "$DEPLOY" = true ]; then
   # Create the json file for the Normal Nodes
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8086,
@@ -237,7 +237,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8087,
@@ -252,7 +252,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8088,
@@ -267,7 +267,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8089,
@@ -282,7 +282,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8110,
@@ -297,7 +297,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8111,
@@ -312,7 +312,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8110,
@@ -327,7 +327,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.1",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     "version": 1,
     "chainID": 808080,
     "wsPort": 8111,
