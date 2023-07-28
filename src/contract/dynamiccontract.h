@@ -12,9 +12,6 @@
  */
 class DynamicContract : public BaseContract {
   private:
-    /// Reference to the contract manager interface.
-    ContractManagerInterface& interface;
-
     /**
     * Variant type for the possible return types of a non-payable/payable function.
     * The return type can be a single value or a vector of values.
@@ -67,6 +64,9 @@ class DynamicContract : public BaseContract {
     inline void registerVariableUse(SafeBase& variable) { interface.registerVariableUse(variable); }
 
   protected:
+    /// Reference to the contract manager interface.
+    ContractManagerInterface& interface;
+
     /**
      * Helper function for registering a payable/non-payable function.
      * @tparam R Return type of the function.
@@ -666,6 +666,7 @@ class DynamicContract : public BaseContract {
     */
     template<typename TContract, typename... Args>
     Address callCreateContract(const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
+        Utils::safePrint("CallCreateContract being called...");
         ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
         ABI::Encoder encoder(vars);
         return this->interface.callCreateContract<TContract>(this->getContractAddress(), gas, gasPrice, value, std::move(encoder));

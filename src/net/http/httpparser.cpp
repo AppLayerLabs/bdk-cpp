@@ -10,7 +10,9 @@ std::string parseJsonRpcRequest(
   json ret;
   uint64_t id = 0;
   try {
+    Utils::safePrint("HTTP Request: " + body);
     json request = json::parse(body);
+    Utils::safePrint("HTTP Request Parsed!");
     if (!JsonRPC::Decoding::checkJsonRPCSpec(request)) {
       ret["error"]["code"] = -32600;
       ret["error"]["message"] = "Invalid request - does not conform to JSON-RPC 2.0 spec";
@@ -144,6 +146,7 @@ std::string parseJsonRpcRequest(
         ret["error"]["message"] = "Method not found";
         break;
     }
+    Utils::safePrint("HTTP Response: " + ret.dump());
     if (request["id"].is_string()) {
       ret["id"] = request["id"].get<std::string>();
     } else if (request["id"].is_number()) {
@@ -161,6 +164,7 @@ std::string parseJsonRpcRequest(
     error["error"]["message"] = "Internal error: " + std::string(e.what());
     return error.dump();
   }
+  Utils::safePrint("Properly returning...");
   // Set back to the original id
   return ret.dump();
 }

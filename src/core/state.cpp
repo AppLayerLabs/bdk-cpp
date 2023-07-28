@@ -134,6 +134,7 @@ void State::processTransaction(const TxBlock& tx) {
     balance -= txValueWithFees;
     this->accounts[tx.getTo()].balance += tx.getValue();
     if (this->contractManager->isContractCall(tx)) {
+      Utils::safePrint(std::string("Processing transaction call txid: ") + tx.hash().hex().get());
       if (this->contractManager->isPayable(tx.txToCallInfo())) this->processingPayable = true;
       this->contractManager->callContract(tx);
       this->processingPayable = false;
@@ -350,6 +351,7 @@ bool State::estimateGas(const ethCallInfo& callInfo) {
   }
 
   if (this->contractManager->isContractAddress(to)) {
+    Utils::safePrint("Estimating gas from state...");
     contractManager->validateCallContractWithTx(callInfo);
   }
 

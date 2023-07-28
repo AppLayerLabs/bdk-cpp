@@ -75,6 +75,7 @@ private:
   Address contractCreator;  ///< Address of the creator of the contract.
   uint64_t contractChainId; ///< Chain where the contract is deployed.
 protected:
+  bool reentrancyLock = false;    ///< Lock (for reentrancy).
   const std::unique_ptr<DB> &db; ///< Pointer to the DB instance.
 public:
   /**

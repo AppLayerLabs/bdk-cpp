@@ -45,6 +45,9 @@ using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 /// Typedef for uint160_t.
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
+/// Typedef for uint112_t
+using uint112_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<112, 112, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
 using Byte = uint8_t; ///< Typedef for Byte.
 using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 
@@ -169,6 +172,14 @@ namespace Utils {
   BytesArr<20> uint160ToBytes(const uint160_t& i);
 
   /**
+   * Convert a 112-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 112-bit integer as a bytes string.
+   */
+  BytesArr<14> uint112ToBytes(const uint112_t& i);
+
+  /**
    * Convert a 64-bit unsigned integer to a bytes string.
    * Use `Hex()` to properly print it.
    * @param i The integer to convert.
@@ -230,6 +241,14 @@ namespace Utils {
    * @throw std::runtime_error if string size is invalid.
    */
   uint160_t bytesToUint160(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 112-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 112-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint112_t bytesToUint112(const BytesArrView b);
 
   /**
    * Convert a bytes string to a 64-bit unsigned integer.
