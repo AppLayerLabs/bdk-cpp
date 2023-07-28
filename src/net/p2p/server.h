@@ -38,13 +38,13 @@ namespace P2P {
         threadPool_(threadPool) {
          boost::system::error_code ec;
          acceptor_.open(endpoint.protocol(), ec); // Open the acceptor
-         if (ec) { Utils::logToDebug(Log::P2PServerListener, __func__, "Open Acceptor: " + ec.message()); return; }
+         if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Open Acceptor: " + ec.message()); return; }
          acceptor_.set_option(net::socket_base::reuse_address(true), ec); // Allow address reuse
-         if (ec) { Utils::logToDebug(Log::P2PServerListener, __func__, "Set Option: " + ec.message()); return; }
+         if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Set Option: " + ec.message()); return; }
          acceptor_.bind(endpoint, ec); // Bind to the server address
-         if (ec) { Utils::logToDebug(Log::P2PServerListener, __func__, "Bind Acceptor: " + ec.message()); return; }
+         if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Bind Acceptor: " + ec.message()); return; }
          acceptor_.listen(net::socket_base::max_listen_connections, ec); // Start listening
-         if (ec) { Utils::logToDebug(Log::P2PServerListener, __func__, "Listen Acceptor: " + ec.message()); return; }
+         if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Listen Acceptor: " + ec.message()); return; }
       }
 
       void run();   ///< Start accepting incoming connections.

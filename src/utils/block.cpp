@@ -126,7 +126,7 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
     this->validatorPubKey = Secp256k1::recover(this->validatorSig, msgHash);
     this->finalized = true;
   } catch (std::exception &e) {
-    Utils::logToDebug(Log::block, __func__,
+    Logger::logToDebug(LogType::ERROR, Log::block, __func__,
       "Error when deserializing a block: " + std::string(e.what())
     );
     // Throw again because invalid blocks should not be created at all.
@@ -187,7 +187,9 @@ const Hash Block::hash() const { return Utils::sha3(this->serializeHeader()); }
 
 bool Block::appendTx(const TxBlock &tx) {
   if (this->finalized) {
-    Utils::logToDebug(Log::block, __func__, "Cannot append tx to finalized block");
+    Logger::logToDebug(LogType::ERROR, Log::block, __func__,
+      "Cannot append tx to finalized block"
+    );
     return false;
   }
   this->txs.push_back(tx);
@@ -196,7 +198,9 @@ bool Block::appendTx(const TxBlock &tx) {
 
 bool Block::appendTxValidator(const TxValidator &tx) {
   if (this->finalized) {
-    Utils::logToDebug(Log::block, __func__, "Cannot append tx to finalized block");
+    Logger::logToDebug(LogType::ERROR, Log::block, __func__,
+      "Cannot append tx to finalized block"
+    );
     return false;
   }
   this->txValidators.push_back(tx);
@@ -205,12 +209,12 @@ bool Block::appendTxValidator(const TxValidator &tx) {
 
 bool Block::finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp) {
   if (this->finalized) {
-    Utils::logToDebug(Log::block, __func__, "Block is already finalized");
+    Logger::logToDebug(LogType::ERROR, Log::block, __func__, "Block is already finalized");
     return false;
   }
   // Allow rdPoS to improve block time only if new timestamp is better than old timestamp
   if (this->timestamp > newTimestamp) {
-    Utils::logToDebug(Log::block, __func__,
+    Logger::logToDebug(LogType::ERROR, Log::block, __func__,
       "Block timestamp not satisfiable, expected higher than " +
       std::to_string(this->timestamp) + " got " + std::to_string(newTimestamp)
     );

@@ -20,7 +20,7 @@ namespace JsonRPC {
 
         return true;
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while checking json RPC spec: ") + e.what()
         );
         throw std::runtime_error("Error while checking json RPC spec: " + std::string(e.what()));
@@ -34,7 +34,7 @@ namespace JsonRPC {
         if (it == methodsLookupTable.end()) return Methods::invalid;
         return it->second;
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while getting method: ") + e.what()
         );
         throw std::runtime_error("Error while checking json RPC spec: " + std::string(e.what()));
@@ -48,7 +48,7 @@ namespace JsonRPC {
           "web3_clientVersion does not need params"
         );
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding web3_clientVersion: ") + e.what()
         );
         throw std::runtime_error(
@@ -67,7 +67,7 @@ namespace JsonRPC {
         if (!Hex::isValid(data, true)) throw std::runtime_error("Invalid hex string");
         return Hex::toBytes(data);
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding web3_sha3: ") + e.what()
         );
         throw std::runtime_error("Error while decoding web3_sha3: " + std::string(e.what()));
@@ -81,7 +81,7 @@ namespace JsonRPC {
           "net_version does not need params"
         );
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding net_version: ") + e.what()
         );
         throw std::runtime_error("Error while decoding net_version: " + std::string(e.what()));
@@ -95,7 +95,7 @@ namespace JsonRPC {
           "net_listening does not need params"
         );
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding net_listening: ") + e.what()
         );
         throw std::runtime_error("Error while decoding net_listening: " + std::string(e.what()));
@@ -109,7 +109,7 @@ namespace JsonRPC {
           "net_peerCount does not need params"
         );
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding net_peerCount: ") + e.what()
         );
         throw std::runtime_error("Error while decoding net_peerCount: " + std::string(e.what()));
@@ -123,7 +123,7 @@ namespace JsonRPC {
           "eth_protocolVersion does not need params"
         );
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_protocolVersion: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_protocolVersion: " + std::string(e.what()));
@@ -138,7 +138,7 @@ namespace JsonRPC {
         if (!std::regex_match(blockHash, hashFilter)) throw std::runtime_error("Invalid block hash hex");
         return std::make_pair(Hash(Hex::toBytes(blockHash)), includeTxs);
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getBlockByHash: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_getBlockByHash: " + std::string(e.what()));
@@ -159,7 +159,7 @@ namespace JsonRPC {
         if (!std::regex_match(blockNum, numFilter)) throw std::runtime_error("Invalid block hash hex");
         return std::make_pair(uint64_t(Hex(blockNum).getUint()), includeTxs);
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getBlockByNumber: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_getBlockByNumber: " + std::string(e.what()));
@@ -174,7 +174,7 @@ namespace JsonRPC {
         if (!std::regex_match(blockHash, hashFilter)) throw std::runtime_error("Invalid block hash hex");
         return Hash(Hex::toBytes(blockHash));
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getBlockTransactionCountByHash: ") + e.what()
         );
         throw std::runtime_error(
@@ -194,7 +194,7 @@ namespace JsonRPC {
         if (!std::regex_match(blockNum, numFilter)) throw std::runtime_error("Invalid block hash hex");
         return uint64_t(Hex(blockNum).getUint());
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getBlockTransactionCountByNumber: ") + e.what()
         );
         throw std::runtime_error(
@@ -208,7 +208,7 @@ namespace JsonRPC {
         // No params are needed.
         if (!request["params"].empty()) throw std::runtime_error("eth_chainId does not need params");
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_chainId: ") + e.what());
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_chainId: ") + e.what());
         throw std::runtime_error("Error while decoding eth_chainId: " + std::string(e.what()));
       }
     }
@@ -218,7 +218,7 @@ namespace JsonRPC {
         // No params are needed.
         if (!request["params"].empty()) throw std::runtime_error("eth_syncing does not need params");
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_syncing: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_syncing: " + std::string(e.what()));
@@ -230,7 +230,7 @@ namespace JsonRPC {
         // No params are needed.
         if (!request["params"].empty()) throw std::runtime_error("eth_coinbase does not need params");
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_coinbase: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_coinbase: " + std::string(e.what()));
@@ -243,7 +243,7 @@ namespace JsonRPC {
         if (!request["params"].empty()) throw std::runtime_error("eth_blockNumber does not need params");
         return;
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_blockNumber: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_blockNumber: " + std::string(e.what()));
@@ -319,7 +319,7 @@ namespace JsonRPC {
         }
         return result;
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_call: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_call: " + std::string(e.what()));
@@ -400,7 +400,7 @@ namespace JsonRPC {
         }
         return result;
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_estimateGas: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_estimateGas: " + std::string(e.what()));
@@ -411,7 +411,7 @@ namespace JsonRPC {
       try {
         if (!request["params"].empty()) throw std::runtime_error("eth_gasPrice does not need params");
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_gasPrice: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_gasPrice: " + std::string(e.what()));
@@ -436,7 +436,7 @@ namespace JsonRPC {
         if (!std::regex_match(address, addFilter)) throw std::runtime_error("Invalid address hex");
         return Address(Hex::toBytes(address));
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getBalance: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_getBalance: " + std::string(e.what()));
@@ -461,7 +461,7 @@ namespace JsonRPC {
         if (!std::regex_match(address, addFilter)) throw std::runtime_error("Invalid address hex");
         return Address(Hex::toBytes(address));
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getTransactionCount: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_getTransactionCount: " + std::string(e.what()));
@@ -486,7 +486,7 @@ namespace JsonRPC {
         if (!std::regex_match(address, addFilter)) throw std::runtime_error("Invalid address hex");
         return Address(Hex::toBytes(address));
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getCode: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_getCode: " + std::string(e.what()));
@@ -499,7 +499,7 @@ namespace JsonRPC {
         if (!Hex::isValid(txHex, true)) throw std::runtime_error("Invalid transaction hex");
         return TxBlock(Hex::toBytes(txHex), requiredChainId);
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_sendRawTransaction: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_sendRawTransaction: " + std::string(e.what()));
@@ -513,7 +513,7 @@ namespace JsonRPC {
         if (!std::regex_match(hash, hashFilter)) throw std::runtime_error("Invalid hash hex");
         return Hash(Hex::toBytes(hash));
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getTransactionByHash: ") + e.what()
         );
         throw std::runtime_error("Error while decoding eth_getTransactionByHash: " + std::string(e.what()));
@@ -530,7 +530,7 @@ namespace JsonRPC {
         if (!std::regex_match(index, numFilter)) throw std::runtime_error("Invalid index hex");
         return std::make_pair(Hash(Hex::toBytes(blockHash)), uint64_t(Hex(index).getUint()));
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getTransactionByBlockHashAndIndex: ") + e.what()
         );
         throw std::runtime_error(
@@ -555,7 +555,7 @@ namespace JsonRPC {
           uint64_t(Hex(blockNum).getUint()), uint64_t(Hex(index).getUint())
         );
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getTransactionByBlockNumberAndIndex: ") + e.what()
         );
         throw std::runtime_error(
@@ -571,7 +571,7 @@ namespace JsonRPC {
         if (!std::regex_match(txHash, hashFilter)) throw std::runtime_error("Invalid Hex");
         return Hash(Hex::toBytes(txHash));
       } catch (std::exception& e) {
-        Utils::logToDebug(Log::JsonRPCDecoding, __func__,
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
           std::string("Error while decoding eth_getTransactionReceipt: ") + e.what()
         );
         throw std::runtime_error(

@@ -26,12 +26,12 @@ contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
   for (auto const dbEntry : accountsFromDB) {
     BytesArrView data(dbEntry.value);
     if (dbEntry.key.size() != 20) {
-      Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, address from DB size mismatch");
+      Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, address from DB size mismatch");
       throw std::runtime_error("Error when loading State from DB, address from DB size mismatch");
     }
     uint8_t balanceSize = Utils::fromBigEndian<uint8_t>(data.subspan(0,1));
     if (data.size() + 1 < data.size()) {
-      Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on balanceSize");
+      Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on balanceSize");
       throw std::runtime_error("Error when loading State from DB, value from DB size mismatch on balanceSize");
     }
 
@@ -39,7 +39,7 @@ contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
     uint8_t nonceSize = Utils::fromBigEndian<uint8_t>(data.subspan(1 + balanceSize, 1));
 
     if (2 + balanceSize + nonceSize != data.size()) {
-      Utils::logToDebug(Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on nonceSize");
+      Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on nonceSize");
       throw std::runtime_error("Error when loading State from DB, value from DB size mismatch on nonceSize");
     }
     uint64_t nonce = Utils::fromBigEndian<uint64_t>(data.subspan(2 + balanceSize, nonceSize));
@@ -89,19 +89,19 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
 
   /// Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
   if (this->mempool.contains(tx.hash())) {
-    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
+    Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
     return TxInvalid::NotInvalid;
   }
   auto accountIt = this->accounts.find(tx.getFrom());
   if (accountIt == this->accounts.end()) {
-    Utils::logToDebug(Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
     return TxInvalid::InvalidBalance;
   }
   const auto& accBalance = accountIt->second.balance;
   const auto& accNonce = accountIt->second.nonce;
   uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
   if (txWithFees > accBalance) {
-    Utils::logToDebug(Log::state, __func__,
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
                       "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
                       + " expected: " + txWithFees.str() + " has: " + accBalance.str());
     return TxInvalid::InvalidBalance;
@@ -109,7 +109,7 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   // TODO: The blockchain is able to store higher nonce transactions until they are valid
   // Handle this case.
   if (accNonce != tx.getNonce()) {
-    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
                                             + " got: " + tx.getNonce().str());
     return TxInvalid::InvalidNonce;
   }
@@ -139,7 +139,7 @@ void State::processTransaction(const TxBlock& tx) {
       this->processingPayable = false;
     }
   } catch (const std::exception& e) {
-    Utils::logToDebug(Log::state, __func__,
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
     );
     if(this->processingPayable) {
@@ -147,7 +147,6 @@ void State::processTransaction(const TxBlock& tx) {
       this->accounts[tx.getTo()].balance -= tx.getValue();
       this->processingPayable = false;
     }
-    Utils::logToDebug(Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
     balance += tx.getValue();
   }
   nonce++;
@@ -215,44 +214,44 @@ bool State::validateNextBlock(const Block& block) const {
 
   auto latestBlock = this->storage->latest();
   if (block.getNHeight() != latestBlock->getNHeight() + 1) {
-    Utils::logToDebug(Log::state, __func__, "Block nHeight doesn't match, expected "
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Block nHeight doesn't match, expected "
                       + std::to_string(latestBlock->getNHeight() + 1) + " got " + std::to_string(block.getNHeight()));
     return false;
   }
 
   if (block.getPrevBlockHash() != latestBlock->hash()) {
-    Utils::logToDebug(Log::state, __func__, "Block prevBlockHash doesn't match, expected " +
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Block prevBlockHash doesn't match, expected " +
                       latestBlock->hash().hex().get() + " got: " + block.getPrevBlockHash().hex().get());
     return false;
   }
 
   if (latestBlock->getTimestamp() > block.getTimestamp()) {
-    Utils::logToDebug(Log::state, __func__, "Block timestamp is lower than latest block, expected higher than " + std::to_string(latestBlock->getTimestamp())
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Block timestamp is lower than latest block, expected higher than " + std::to_string(latestBlock->getTimestamp())
                       + " got " + std::to_string(block.getTimestamp()));
     return false;
   }
 
   if (!this->rdpos->validateBlock(block)) {
-    Utils::logToDebug(Log::state, __func__, "Invalid rdPoS in block");
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Invalid rdPoS in block");
     return false;
   }
 
   std::shared_lock verifyingBlockTxs(this->stateMutex);
   for (const auto& tx : block.getTxs()) {
     if (this->validateTransactionInternal(tx)) {
-      Utils::logToDebug(Log::state, __func__, "Transaction " + tx.hash().hex().get() + " within block is invalid");
+      Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction " + tx.hash().hex().get() + " within block is invalid");
       return false;
     }
   }
 
-  Utils::logToDebug(Log::state, __func__, "Block " + block.hash().hex().get() + " is valid. (Sanity Check Passed)");
+  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.hash().hex().get() + " is valid. (Sanity Check Passed)");
   return true;
 }
 
 void State::processNextBlock(Block&& block) {
   /// Sanity Check.
   if (!this->validateNextBlock(block)) {
-    Utils::logToDebug(Log::state, __func__, "Sanity check failed, blockchain is trying to append a invalid block, throwing.");
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Sanity check failed, blockchain is trying to append a invalid block, throwing.");
     throw std::runtime_error("Invalid block detected during processNextBlock sanity check.");
   }
 
@@ -268,7 +267,7 @@ void State::processNextBlock(Block&& block) {
   /// Refresh the mempool based on the block transactions;
   this->refreshMempool(block);
 
-  Utils::logToDebug(Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.) block bytes: " + Hex::fromBytes(block.serializeBlock()).get());
+  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.) block bytes: " + Hex::fromBytes(block.serializeBlock()).get());
   Utils::safePrint("Block: " + block.hash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
   for (const auto& tx : block.getTxs()) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");

@@ -21,7 +21,7 @@ void Syncer::updateCurrentlyConnectedNodes() {
   // Get the list of currently connected nodes
   std::vector<P2P::NodeID> connectedNodes = blockchain.p2p->getSessionsIDs();
   while (connectedNodes.size() < blockchain.p2p->minConnections() && !this->stopSyncer) {
-    Utils::logToDebug(Log::syncer, __func__,
+    Logger::logToDebug(LogType::INFO, Log::syncer, __func__,
       "Waiting for discoveryWorker to connect to more nodes, currently connected to: "
       + std::to_string(connectedNodes.size())
     );
@@ -148,14 +148,14 @@ void Syncer::doValidatorBlock() {
   this->blockchain.state->fillBlockWithTransactions(block);
   this->blockchain.rdpos->signBlock(block);
   if (!this->blockchain.state->validateNextBlock(block)) {
-    Utils::logToDebug(Log::syncer, __func__, "Block is not valid!");
+    Logger::logToDebug(LogType::ERROR, Log::syncer, __func__, "Block is not valid!");
     throw std::runtime_error("Block is not valid!");
   }
   if (this->stopSyncer) return;
   Hash latestBlockHash = block.hash();
   this->blockchain.state->processNextBlock(std::move(block));
   if (this->blockchain.storage->latest()->hash() != latestBlockHash) {
-    Utils::logToDebug(Log::syncer, __func__, "Block is not valid!");
+    Logger::logToDebug(LogType::ERROR, Log::syncer, __func__, "Block is not valid!");
     throw std::runtime_error("Block is not valid!");
   }
 
@@ -170,7 +170,7 @@ void Syncer::doValidatorTx() {
 }
 
 void Syncer::validatorLoop() {
-  Utils::logToDebug(Log::syncer, __func__, "Starting validator loop.");
+  Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Starting validator loop.");
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->blockchain.options->getValidatorPrivKey())));
   this->blockchain.rdpos->startrdPoSWorker();
   while (!this->stopSyncer) {
@@ -202,7 +202,7 @@ void Syncer::nonValidatorLoop() {
 
 bool Syncer::syncerLoop() {
   Utils::safePrint("Starting OrbiterSDK Node...");
-  Utils::logToDebug(Log::syncer, __func__, "Starting syncer loop.");
+  Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Starting syncer loop.");
   // Connect to all seed nodes from the config and start the discoveryThread.
   auto discoveryNodeList = this->blockchain.options->getDiscoveryNodes();
   for (const auto &[ipAddress, port]: discoveryNodeList) {

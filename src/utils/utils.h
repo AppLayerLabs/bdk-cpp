@@ -21,6 +21,7 @@
 #include <openssl/rand.h>
 
 #include "strings.h"
+#include "logger.h"
 
 #include "json.hpp"
 
@@ -81,39 +82,7 @@ using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, ui
  * @param ec Boost Beast error code.
  * @param what String explaining what exactly failed.
  */
-void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what);
-
-/// Namespace with string prefixes for each blockchain module, for printing log/debug messages.
-namespace Log {
-  const std::string blockchain = "Blockchain";                     ///< String for `Blockchain`.
-  const std::string storage = "Storage";                           ///< String for `Storage`.
-  const std::string snowmanVM = "SnowmanVM";                       ///< String for `SnowmanVM`.
-  const std::string block = "Block";                               ///< String for `Block`.
-  const std::string db = "DB";                                     ///< String for `DB`.
-  const std::string state = "State";                               ///< String for `State`.
-  const std::string grpcServer = "gRPCServer";                     ///< String for `gRPCServer`.
-  const std::string grpcClient = "gRPCClient";                     ///< String for `gRPCClient`.
-  const std::string utils = "Utils";                               ///< String for `Utils`.
-  const std::string httpServer = "HTTPServer";                     ///< String for `HTTPServer`.
-  const std::string JsonRPCEncoding = "JsonRPC::Encoding";         ///< String for `JsonRPC::Encoding`.
-  const std::string JsonRPCDecoding = "JsonRPC::Decoding";         ///< String for `JsonRPC::Decoding`.
-  const std::string rdPoS = "rdPoS";                               ///< String for `rdPoS`.
-  const std::string ABI = "ABI";                                   ///< String for `ABI`.
-  const std::string P2PSession = "P2P::Session";                   ///< String for `P2P::Session`.
-  const std::string P2PClientFactory = "P2P::ClientFactory";       ///< String for `P2P::ClientFactory`.
-  const std::string P2PServer = "P2P::Server";                     ///< String for `P2P::Server`.
-  const std::string P2PServerListener = "P2P::ServerListener";     ///< String for `P2P::ServerListener`.
-  const std::string P2PManager = "P2P::Manager";                   ///< String for `P2P::Manager`.
-  const std::string P2PParser = "P2P::Parser";                     ///< String for `P2P::Parser`.
-  const std::string P2PRequestEncoder = "P2P::RequestEncoder";     ///< String for `P2P::RequestEncoder`.
-  const std::string P2PRequestDecoder = "P2P::RequestDecoder";     ///< String for `P2P::RequestDecoder`.
-  const std::string P2PResponseEncoder = "P2P::AnswerDecoder";     ///< String for `P2P::ResponseEncoder`.
-  const std::string P2PResponseDecoder = "P2P::AnswerEncoder";     ///< String for `P2P::ResponseDecoder`.
-  const std::string P2PBroadcastEncoder = "P2P::BroadcastEncoder"; ///< String for `P2P::BroadcastEncoder`.
-  const std::string P2PDiscoveryWorker = "P2P::DiscoveryWorker";   ///< String for `P2P::DiscoveryWorker`.
-  const std::string contractManager = "ContractManager";           ///< String for `ContractManager`.
-  const std::string syncer = "Syncer";                             ///< String for `Syncer`.
-}
+void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what);
 
 /// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };
@@ -161,14 +130,6 @@ namespace Utils {
    * @param str The string to log.
    */
   void logToFile(std::string_view str);
-
-  /**
-   * %Log a string to a file called `debug.txt`.
-   * @param pfx The module prefix where this is being called (see Log).
-   * @param func The function where this is being called.
-   * @param data The contents to be stored.
-   */
-  void logToDebug(std::string_view pfx, std::string_view func, std::string_view data);
 
   /**
    * Print a string to stdout.
