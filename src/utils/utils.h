@@ -82,7 +82,7 @@ using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, ui
  * @param ec Boost Beast error code.
  * @param what String explaining what exactly failed.
  */
-void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what);
+void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what);
 
 /// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };
@@ -130,14 +130,6 @@ namespace Utils {
    * @param str The string to log.
    */
   void logToFile(std::string_view str);
-
-  /**
-   * %Log a string to a file called `debug.txt`.
-   * @param pfx The module prefix where this is being called (see Log).
-   * @param func The function where this is being called.
-   * @param data The contents to be stored.
-   */
-  void logToDebug(std::string_view pfx, std::string_view func, std::string_view data);
 
   /**
    * Print a string to stdout.

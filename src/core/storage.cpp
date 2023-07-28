@@ -1,17 +1,17 @@
 #include "storage.h"
 
 Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options) : db(db), options(options) {
-  Utils::logToDebug(Log::storage, __func__, "Loading blockchain from DB");
+  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading blockchain from DB");
 
   // Initialize the blockchain if latest block doesn't exist.
   initializeBlockchain();
 
   // Get the latest block from the database
-  Utils::logToDebug(Log::storage, __func__, "Loading latest block");
+  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading latest block");
   auto blockBytes = this->db->get(Utils::stringToBytes("latest"), DBPrefix::blocks);
   Block latest(blockBytes, this->options->getChainID());
   uint64_t depth = latest.getNHeight();
-  Utils::logToDebug(Log::storage, __func__,
+  Logger::logToDebug(LogType::INFO, Log::storage, __func__,
     std::string("Got latest block: ") + latest.hash().hex().get()
     + std::string(" - height ") + std::to_string(depth)
   );
@@ -19,12 +19,12 @@ Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& 
   std::unique_lock<std::shared_mutex> lock(this->chainLock);
 
   // Parse block mappings (hash -> height / height -> hash) from DB
-  Utils::logToDebug(Log::storage, __func__, "Parsing block mappings");
+  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Parsing block mappings");
   std::vector<DBEntry> maps = this->db->getBatch(DBPrefix::blockHeightMaps);
   for (DBEntry& map : maps) {
     // TODO: Check if a block is missing.
     // Might be interesting to change DB::getBatch to return a map instead of a vector
-    Utils::logToDebug(Log::storage, __func__, std::string(": ")
+    Logger::logToDebug(LogType::DEBUG, Log::storage, __func__, std::string(": ")
       + std::to_string(Utils::bytesToUint64(map.key))
       + std::string(", hash ") + Hash(map.value).hex().get()
     );
@@ -33,9 +33,9 @@ Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& 
   }
 
   // Append up to 500 most recent blocks from DB to chain
-  Utils::logToDebug(Log::storage, __func__, "Appending recent blocks");
+  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Appending recent blocks");
   for (uint64_t i = 0; i <= 500 && i <= depth; i++) {
-    Utils::logToDebug(Log::storage, __func__,
+    Logger::logToDebug(LogType::DEBUG, Log::storage, __func__,
       std::string("Height: ") + std::to_string(depth - i) + ", Hash: "
       + this->blockHashByHeight[depth - i].hex().get()
     );
@@ -43,7 +43,7 @@ Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& 
     this->pushFrontInternal(std::move(block));
   }
 
-  Utils::logToDebug(Log::storage, __func__, "Blockchain successfully loaded");
+  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Blockchain successfully loaded");
 }
 
 Storage::~Storage() {
@@ -85,7 +85,7 @@ Storage::~Storage() {
 void Storage::initializeBlockchain() {
   if (!this->db->has(std::string("latest"), DBPrefix::blocks)) {
     // Create a new genesis block if one doesn't exist (fresh new blockchain)
-    Utils::logToDebug(Log::storage, __func__, "No history found, creating genesis block.");
+    Logger::logToDebug(LogType::INFO, Log::storage, __func__, "No history found, creating genesis block.");
     Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
 
     // Genesis Keys:
@@ -95,7 +95,7 @@ void Storage::initializeBlockchain() {
     this->db->put(std::string("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     this->db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     this->db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
-    Utils::logToDebug(Log::storage, __func__,
+    Logger::logToDebug(LogType::INFO, Log::storage, __func__,
       std::string("Created genesis block: ") + Hex::fromBytes(genesis.hash().get()).get()
     );
   }
@@ -257,7 +257,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
   // Check chain first, then cache, then database
   StorageStatus blockStatus = this->blockExists(height);
   if (blockStatus == StorageStatus::NotFound) return nullptr;
-  Utils::logToDebug(Log::storage, __func__, "height: " + std::to_string(height));
+  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "height: " + std::to_string(height));
   switch (blockStatus) {
     case StorageStatus::NotFound: {
       return nullptr;

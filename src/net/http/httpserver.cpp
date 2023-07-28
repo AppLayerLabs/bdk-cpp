@@ -14,20 +14,20 @@ bool HTTPServer::run() {
   std::vector<std::thread> v;
   v.reserve(4 - 1);
   for (int i = 4 - 1; i > 0; i--) v.emplace_back([&]{ this->ioc.run(); });
-  Utils::logToDebug(Log::httpServer, __func__,
+  Logger::logToDebug(LogType::INFO, Log::httpServer, __func__,
     std::string("HTTP Server Started at port: ") + std::to_string(port)
   );
   this->ioc.run();
 
   // If we get here, it means we got a SIGINT or SIGTERM. Block until all the threads exit
   for (std::thread& t : v) t.join();
-  Utils::logToDebug(Log::httpServer, __func__, "HTTP Server Stopped");
+  Logger::logToDebug(LogType::INFO, Log::httpServer, __func__, "HTTP Server Stopped");
   return true;
 }
 
 void HTTPServer::start() {
   if (this->runFuture.valid()) {
-    Utils::logToDebug(Log::httpServer, __func__, "HTTP Server is already running");
+    Logger::logToDebug(LogType::ERROR, Log::httpServer, __func__, "HTTP Server is already running");
     return;
   }
   this->runFuture = std::async(std::launch::async, &HTTPServer::run, this);
@@ -35,7 +35,7 @@ void HTTPServer::start() {
 
 void HTTPServer::stop() {
   if (!this->runFuture.valid()) {
-    Utils::logToDebug(Log::httpServer, __func__, "HTTP Server is not running");
+    Logger::logToDebug(LogType::ERROR, Log::httpServer, __func__, "HTTP Server is not running");
     return;
   }
   this->ioc.stop();

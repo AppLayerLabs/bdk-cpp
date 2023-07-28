@@ -62,8 +62,8 @@ public:
   LogInfo() : type_(LogType::DEBUG), func_(""), logSrc_(""), message_("") {};
 
   /// Constructor.
-  LogInfo(LogType type, std::string&& logSrc, std::string&& func, std::string&& message) :
-    type_(type), func_(std::move(func)), logSrc_(std::move(logSrc)), message_(std::move(message)) {};
+  LogInfo(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) :
+    type_(type), logSrc_(logSrc), func_(std::move(func)), message_(std::move(message)) {};
 
   /// Default destructor.
   ~LogInfo() {};
@@ -130,8 +130,8 @@ class Logger {
         std::unique_lock<std::mutex> lock(logQueueMutex_);
         // Wait until there's a task in the queue or stopWorker_ is true.
         cv_.wait(lock, [this] { return !logQueue_.empty() || stopWorker_; });
-        // If stopWorker_ is true and the queue is empty, return.
-        if (stopWorker_ && logQueue_.empty()) {
+        // If stopWorker_ is true, return.
+        if (stopWorker_) {
           return;
         }
         currentTask_ = std::move(logQueue_.front());
@@ -175,8 +175,8 @@ class Logger {
       getInstance().postLogTask(std::move(infoToLog));
     }
 
-    static inline void logToDebug(LogType type, std::string&& logSrc, std::string&& func, std::string&& message) noexcept {
-      LogInfo log = LogInfo(type, std::move(logSrc), std::move(func), std::move(message));
+    static inline void logToDebug(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) noexcept {
+      LogInfo log = LogInfo(type, logSrc, std::move(func), std::move(message));
       getInstance().postLogTask(std::move(log));
     }
 

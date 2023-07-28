@@ -178,7 +178,6 @@ namespace P2P {
     std::unordered_map<NodeID, NodeType, SafeHash> nodes;
 
     BytesArrView data = message.message();
-    Utils::logToDebug(Log::P2PRequestDecoder, __func__, std::string("Data size: ") + std::to_string(data.size()) + " data: " + Hex::fromBytes(data).get());
     size_t index = 0;
     while (index < data.size()) {
       boost::asio::ip::address address;

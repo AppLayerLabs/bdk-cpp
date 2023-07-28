@@ -45,7 +45,7 @@ namespace P2P {
   bool DiscoveryWorker::discoverLoop() {
     bool discoveryPass = false;
 
-    Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Discovery thread started");
+    Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Discovery thread started");
     while (!this->stopWorker) {
       // Check if we reached connection limit
       {
@@ -56,12 +56,12 @@ namespace P2P {
           // This is to make sure that local_testnet can quickly start up a new
           // network, but still sleep discovery if the minimum is reached.
           lock.unlock();
-          Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Min connections reached, sleeping");
+          Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Min connections reached, sleeping");
           std::this_thread::sleep_for(std::chrono::seconds(5)); // Only 1 second because we still want to reach maxConnections
           lock.lock();
         } else if (this->manager.sessions_.size() >= this->manager.maxConnections()) {
           lock.unlock();
-          Utils::logToDebug(Log::P2PDiscoveryWorker, __func__, "Max connections reached, sleeping");
+          Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Max connections reached, sleeping");
           std::this_thread::sleep_for(std::chrono::seconds(60));
           continue;
         }

@@ -6,8 +6,8 @@ std::mutex cout_mutex;
 
 std::atomic<bool> Utils::logToCout = false;
 
-void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what) {
-  Utils::logToDebug(cl, func, std::string("HTTP Fail ") + what + " : " + ec.message());
+void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what) {
+  Logger::logToDebug(LogType::ERROR, cl, std::move(func), std::string("HTTP Fail ") + what + " : " + ec.message());
 }
 
 void Utils::logToFile(std::string_view str) {
@@ -15,13 +15,6 @@ void Utils::logToFile(std::string_view str) {
   std::lock_guard lock(log_lock);
   std::ofstream log("log.txt", std::ios::app);
   log << str << std::endl;
-  log.close();
-}
-
-void Utils::logToDebug(std::string_view pfx, std::string_view func, std::string_view data) {
-  std::lock_guard lock(debug_mutex);
-  std::ofstream log("debug.txt", std::ios::app);
-  log << pfx << "::" << func << " - " << data << std::endl;
   log.close();
 }
 
@@ -216,7 +209,7 @@ Bytes Utils::padRightBytes(const BytesArrView bytes, unsigned int charAmount, ui
 
 json Utils::readConfigFile() {
   if (!std::filesystem::exists("config.json")) {
-    Utils::logToDebug(Log::utils, __func__, "No config file found, generating default");
+    Logger::logToDebug(LogType::INFO, Log::utils, __func__, "No config file found, generating default");
     json config;
     config["rpcport"] = 8080;
     config["p2pport"] = 8081;
