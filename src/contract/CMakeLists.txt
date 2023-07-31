@@ -16,6 +16,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint160_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint224_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint256_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h

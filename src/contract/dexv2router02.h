@@ -9,6 +9,14 @@
 #include "variables/safeaddress.h"
 #include "dexv2library.h"
 
+/**
+* The DEXV2Router02 class is the implementation of the Uniswap V2 Router02 contract.
+* https://uniswap.org/docs/v2/smart-contracts/router02/
+*
+* The DEXV2Router02 contract is used to interact with the DEXV2Factory contract.
+* It is used to create pairs, add liquidity, remove liquidity and swap tokens.
+* The DEXV2Router02 contract is also used to swap native tokens.
+*/
 
 class DEXV2Router02 : public DynamicContract {
   private:
@@ -45,9 +53,9 @@ class DEXV2Router02 : public DynamicContract {
     /**
      * Swap tokens for another token.
      * Requires the initial amount to have already been sent to the first pair
-     * @param amounts
-     * @param path
-     * @param to
+     * @param amounts The amount of tokens to swap.
+     * @param path The path of the tokens to swap.
+     * @param _to The address that receives the tokens.
      * Solidity counterpart:
      * function _swap(uint[] memory amounts, address[] memory path, address _to) internal virtual
      */
@@ -312,6 +320,9 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& deadline
     );
 
+    /**
+    * Register the contract functions to the ContractReflectionInterface.
+    */
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         DEXV2Router02, const Address &, const Address &, ContractManagerInterface &,

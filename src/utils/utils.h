@@ -78,13 +78,12 @@ using ethCallInfo = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, 
 using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, Bytes>;
 
 /**
- * @fn void fail(std::string_view cl, std::string_view func, boost::beast::error_code ec, const char* what)
- * @brief Helper function for debugging failed operations over HTTP.
- * @param cl The class where the operation failed.
- * @param func The function where the operation failed.
- * @param ec Boost Beast error code.
- * @param what String explaining what exactly failed.
- */
+* Fail a function with a given message.
+* @param cl The class name.
+* @param func The function name.
+* @param ec The error code.
+* @param what The message to print.
+*/
 void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what);
 
 /// Enum for network type.

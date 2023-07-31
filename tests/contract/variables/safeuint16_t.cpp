@@ -1,12 +1,12 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/variables/safeuint16_t.h"
+#include "../../src/contract/variables/safeuint.h"
 #include <iostream>
 
-
+using SafeUint16_t = SafeUint_t<16>;
 namespace TSafeUint16_t {
   TEST_CASE("SafeUint16_t Class", "[contract][variables][safeuint16_t]") {
     SECTION("SafeUint16_t constructor (Commit and Revert") {
-      SafeUint16_t commitedValue(uint16_t(2847));
+      SafeUint_t<16> commitedValue(uint16_t(2847));
       SafeUint16_t revertedValue(uint16_t(2847));
 
       commitedValue.commit();
@@ -106,7 +106,7 @@ namespace TSafeUint16_t {
       commitedValue = commitedValue / 1000;
       revertedValue = revertedValue / 1000;
       try {
-        throwValue = throwValue / 2;
+        throwValue = throwValue / 0;
       } catch (std::exception& e) {
         overflow = true;
       }

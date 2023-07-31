@@ -9,6 +9,9 @@
 #include "variables/safeunorderedmap.h"
 #include "variables/safevector.h"
 
+/**
+ * The DEXV2Factory contract.
+ */
 class DEXV2Factory : public DynamicContract {
   private:
     /// Solidity: address public feeTo;
@@ -110,6 +113,9 @@ class DEXV2Factory : public DynamicContract {
      */
     void setFeeToSetter(const Address& feeToSetter);
 
+    /**
+    * Register the contract functions to the ContractReflectionInterface.
+    */
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         DEXV2Factory, const Address&,  ContractManagerInterface &,

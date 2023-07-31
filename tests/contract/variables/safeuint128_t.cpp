@@ -1,7 +1,9 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/variables/safeuint128_t.h"
+#include "../../src/contract/variables/safeuint.h"
+#include "../../src/utils/utils.h"
 #include <iostream>
 
+using SafeUint128_t = SafeUint_t<128>;
 
 namespace TSafeUint128_t {
   TEST_CASE("SafeUint128_t Class", "[contract][variables][safeuint128_t]") {
@@ -106,7 +108,7 @@ namespace TSafeUint128_t {
       commitedValue = commitedValue / 10000;
       revertedValue = revertedValue / 10000;
       try {
-        throwValue = throwValue / 2;
+        throwValue = throwValue / 0;
       } catch (std::exception& e) {
         overflow = true;
       }

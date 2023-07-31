@@ -55,18 +55,19 @@ class DEXV2Pair : public ERC20 {
     void registerContractFunctions() override;
 
     /** Function to be called when transfering ERC20 tokens
-     * @params from The address of the sender
-     * @params to The address of the receiver
-     */
+    * @param token The address of the token to transfer.
+    * @param to The address to transfer the tokens to.
+    * @param value The amount of tokens to transfer.
+    */
     void _safeTransfer(const Address& token, const Address& to, const uint256_t& value);
 
     /**
      * Update reserves and, on the first call per block, price accumulators
      * Solidity counterpart: function _update(uint balance0, uint balance1, uint112 reserve0, uint112 reserve1) private
-     * @params balance0 The balance of token0
-     * @params balance1 The balance of token1
-     * @params reserve0 The reserve of token0
-     * @params reserve1 The reserve of token1
+     * @param balance0 The balance of token0
+     * @param balance1 The balance of token1
+     * @param reserve0 The reserve of token0
+     * @param reserve1 The reserve of token1
      */
     void _update(const uint256_t& balance0, const uint256_t& balance1, const uint256_t& reserve0, const uint256_t& reserve1);
 
@@ -116,8 +117,8 @@ class DEXV2Pair : public ERC20 {
     /**
      * Initialize the contract
      * To be called by DEXFactory after contract creation.
-     * @param token0_ The address of token0.
-     * @param token1_ The address of token1.
+     * @param token0 The address of token0.
+     * @param token1 The address of token1.
      */
     void initialize(const Address& token0, const Address& token1);
 
