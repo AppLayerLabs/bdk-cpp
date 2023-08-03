@@ -321,11 +321,155 @@ uint256_t Utils::bytesToUint256(const BytesArrView b) {
   return ret;
 }
 
+uint248_t Utils::bytesToUint248(const BytesArrView b) {
+  if (b.size() != 31) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 31, got " + std::to_string(b.size())
+  );
+  uint248_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint240_t Utils::bytesToUint240(const BytesArrView b) {
+  if (b.size() != 30) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 30, got " + std::to_string(b.size())
+  );
+  uint240_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint232_t Utils::bytesToUint232(const BytesArrView b) {
+  if (b.size() != 29) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 29, got " + std::to_string(b.size())
+  );
+  uint232_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint224_t Utils::bytesToUint224(const BytesArrView b) {
+  if (b.size() != 28) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 28, got " + std::to_string(b.size())
+  );
+  uint224_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint216_t Utils::bytesToUint216(const BytesArrView b) {
+  if (b.size() != 27) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 27, got " + std::to_string(b.size())
+  );
+  uint216_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint208_t Utils::bytesToUint208(const BytesArrView b) {
+  if (b.size() != 26) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 26, got " + std::to_string(b.size())
+  );
+  uint208_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint200_t Utils::bytesToUint200(const BytesArrView b) {
+  if (b.size() != 25) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 25, got " + std::to_string(b.size())
+  );
+  uint200_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint192_t Utils::bytesToUint192(const BytesArrView b) {
+  if (b.size() != 24) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 24, got " + std::to_string(b.size())
+  );
+  uint192_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint184_t Utils::bytesToUint184(const BytesArrView b) {
+  if (b.size() != 23) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 23, got " + std::to_string(b.size())
+  );
+  uint184_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint176_t Utils::bytesToUint176(const BytesArrView b) {
+  if (b.size() != 22) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 22, got " + std::to_string(b.size())
+  );
+  uint176_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint168_t Utils::bytesToUint168(const BytesArrView b) {
+  if (b.size() != 21) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 21, got " + std::to_string(b.size())
+  );
+  uint168_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint160_t Utils::bytesToUint160(const BytesArrView b) {
+  if (b.size() != 20) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 20, got " + std::to_string(b.size())
+  );
+  uint160_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint152_t Utils::bytesToUint152(const BytesArrView b) {
+  if (b.size() != 19) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 19, got " + std::to_string(b.size())
+  );
+  uint152_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint144_t Utils::bytesToUint144(const BytesArrView b) {
+  if (b.size() != 18) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 18, got " + std::to_string(b.size())
+  );
+  uint144_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint136_t Utils::bytesToUint136(const BytesArrView b) {
+  if (b.size() != 17) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 17, got " + std::to_string(b.size())
+  );
+  uint136_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
 uint128_t Utils::bytesToUint128(const BytesArrView b) {
   if (b.size() != 16) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
   );
   uint128_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint120_t Utils::bytesToUint120(const BytesArrView b) {
+  if (b.size() != 15) throw std::runtime_error(std::string(__func__)
+    + ": Invalid bytes size - expected 15, got " + std::to_string(b.size())
+  );
+  uint120_t ret;
   boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
   return ret;
 }
@@ -339,11 +483,83 @@ uint112_t Utils::bytesToUint112(const BytesArrView b) {
   return ret;
 }
 
-uint160_t Utils::bytesToUint160(const BytesArrView b) {
-  if (b.size() != 20) throw std::runtime_error(std::string(__func__)
-    + ": Invalid bytes size - expected 20, got " + std::to_string(b.size())
-  );
-  uint160_t ret;
+uint104_t Utils::bytesToUint104(const BytesArrView b) {
+  if (b.size() != 13) throw std::runtime_error(std::string(__func__)
+                                               + ": Invalid bytes size - expected 13, got " + std::to_string(b.size())
+    );
+  uint104_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint96_t Utils::bytesToUint96(const BytesArrView b) {
+  if (b.size() != 12) throw std::runtime_error(std::string(__func__)
+                                               + ": Invalid bytes size - expected 12, got " + std::to_string(b.size())
+    );
+  uint96_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint88_t Utils::bytesToUint88(const BytesArrView b) {
+  if (b.size() != 11) throw std::runtime_error(std::string(__func__)
+                                               + ": Invalid bytes size - expected 11, got " + std::to_string(b.size())
+    );
+  uint88_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint80_t Utils::bytesToUint80(const BytesArrView b) {
+  if (b.size() != 10) throw std::runtime_error(std::string(__func__)
+                                               + ": Invalid bytes size - expected 10, got " + std::to_string(b.size())
+    );
+  uint80_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint72_t Utils::bytesToUint72(const BytesArrView b) {
+  if (b.size() != 9) throw std::runtime_error(std::string(__func__)
+                                              + ": Invalid bytes size - expected 9, got " + std::to_string(b.size())
+    );
+  uint72_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint56_t Utils::bytesToUint56(const BytesArrView b) {
+  if (b.size() != 7) throw std::runtime_error(std::string(__func__)
+                                              + ": Invalid bytes size - expected 7, got " + std::to_string(b.size())
+    );
+  uint56_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint48_t Utils::bytesToUint48(const BytesArrView b) {
+  if (b.size() != 6) throw std::runtime_error(std::string(__func__)
+                                              + ": Invalid bytes size - expected 6, got " + std::to_string(b.size())
+    );
+  uint48_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint40_t Utils::bytesToUint40(const BytesArrView b) {
+  if (b.size() != 5) throw std::runtime_error(std::string(__func__)
+                                              + ": Invalid bytes size - expected 5, got " + std::to_string(b.size())
+    );
+  uint40_t ret;
+  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  return ret;
+}
+
+uint24_t Utils::bytesToUint24(const BytesArrView b) {
+  if (b.size() != 3) throw std::runtime_error(std::string(__func__)
+                                              + ": Invalid bytes size - expected 3, got " + std::to_string(b.size())
+    );
+  uint24_t ret;
   boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
   return ret;
 }
