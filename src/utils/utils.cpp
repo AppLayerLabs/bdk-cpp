@@ -31,6 +31,277 @@ Hash Utils::sha3(const BytesArrView input) {
   return std::move(ret);
 }
 
+BytesArr<31> Utils::uint248ToBytes(const uint248_t &i) {
+  BytesArr<31> ret;
+  Bytes tmp;
+  tmp.reserve(31);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[30 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<30> Utils::uint240ToBytes(const uint240_t &i) {
+  BytesArr<30> ret;
+  Bytes tmp;
+  tmp.reserve(30);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[29 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<29> Utils::uint232ToBytes(const uint232_t &i) {
+  BytesArr<29> ret;
+  Bytes tmp;
+  tmp.reserve(29);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[28 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<28> Utils::uint224ToBytes(const uint224_t &i) {
+  BytesArr<28> ret;
+  Bytes tmp;
+  tmp.reserve(28);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[27 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<27> Utils::uint216ToBytes(const uint216_t &i) {
+  BytesArr<27> ret;
+  Bytes tmp;
+  tmp.reserve(27);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 32 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[26 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<26> Utils::uint208ToBytes(const uint208_t &i) {
+  BytesArr<26> ret;
+  Bytes tmp;
+  tmp.reserve(26);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 26 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[25 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<25> Utils::uint200ToBytes(const uint200_t &i) {
+  BytesArr<25> ret;
+  Bytes tmp;
+  tmp.reserve(25);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 25 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[24 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<24> Utils::uint192ToBytes(const uint192_t &i) {
+  BytesArr<24> ret;
+  Bytes tmp;
+  tmp.reserve(24);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 24 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[23 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<23> Utils::uint184ToBytes(const uint184_t &i) {
+  BytesArr<23> ret;
+  Bytes tmp;
+  tmp.reserve(23);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 23 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[22 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<22> Utils::uint176ToBytes(const uint176_t &i) {
+  BytesArr<22> ret;
+  Bytes tmp;
+  tmp.reserve(22);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 22 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[21 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<21> Utils::uint168ToBytes(const uint168_t &i) {
+  BytesArr<21> ret;
+  Bytes tmp;
+  tmp.reserve(21);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 21 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[20 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<20> Utils::uint160ToBytes(const uint160_t &i) {
+  BytesArr<20> ret;
+  Bytes tmp;
+  tmp.reserve(20);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 20 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[19 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<19> Utils::uint152ToBytes(const uint152_t &i) {
+  BytesArr<19> ret;
+  Bytes tmp;
+  tmp.reserve(19);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 19 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[18 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<18> Utils::uint144ToBytes(const uint144_t &i) {
+  BytesArr<18> ret;
+  Bytes tmp;
+  tmp.reserve(18);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 18 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[17 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<17> Utils::uint136ToBytes(const uint136_t &i) {
+  BytesArr<17> ret;
+  Bytes tmp;
+  tmp.reserve(17);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 17 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[16 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<16> Utils::uint128ToBytes(const uint128_t &i) {
+  BytesArr<16> ret;
+  Bytes tmp;
+  tmp.reserve(16);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 16 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[15 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<15> Utils::uint120ToBytes(const uint120_t &i) {
+  BytesArr<15> ret;
+  Bytes tmp;
+  tmp.reserve(15);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 15 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[14 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<14> Utils::uint112ToBytes(const uint112_t &i) {
+  BytesArr<14> ret;
+  Bytes tmp;
+  tmp.reserve(14);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 14 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[13 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<13> Utils::uint104ToBytes(const uint104_t &i) {
+  BytesArr<13> ret;
+  Bytes tmp;
+  tmp.reserve(13);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 13 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[12 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<12> Utils::uint96ToBytes(const uint96_t &i) {
+  BytesArr<12> ret;
+  Bytes tmp;
+  tmp.reserve(12);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 12 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[11 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<11> Utils::uint88ToBytes(const uint88_t &i) {
+  BytesArr<11> ret;
+  Bytes tmp;
+  tmp.reserve(11);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 11 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[10 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<10> Utils::uint80ToBytes(const uint80_t &i) {
+  BytesArr<10> ret;
+  Bytes tmp;
+  tmp.reserve(10);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 10 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[9 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<9> Utils::uint72ToBytes(const uint72_t &i) {
+  BytesArr<9> ret;
+  Bytes tmp;
+  tmp.reserve(9);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 9 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[8 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<7> Utils::uint56ToBytes(const uint56_t &i) {
+  BytesArr<7> ret;
+  Bytes tmp;
+  tmp.reserve(7);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 7 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[6 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<6> Utils::uint48ToBytes(const uint48_t &i) {
+  BytesArr<6> ret;
+  Bytes tmp;
+  tmp.reserve(6);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 6 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[5 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<5> Utils::uint40ToBytes(const uint40_t &i) {
+  BytesArr<5> ret;
+  Bytes tmp;
+  tmp.reserve(5);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 5 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[4 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+BytesArr<3> Utils::uint24ToBytes(const uint24_t &i) {
+  BytesArr<3> ret;
+  Bytes tmp;
+  tmp.reserve(3);
+  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
+  // Replace bytes from tmp to ret to make it 3 bytes in size.
+  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[2 - ii] = tmp[tmp.size() - ii - 1];
+  return ret;
+}
+
+
 BytesArr<32> Utils::uint256ToBytes(const uint256_t& i) {
   BytesArr<32> ret;
   Bytes tmp;
@@ -50,16 +321,6 @@ uint256_t Utils::bytesToUint256(const BytesArrView b) {
   return ret;
 }
 
-BytesArr<16> Utils::uint128ToBytes(const uint128_t &i) {
-  BytesArr<16> ret;
-  Bytes tmp;
-  tmp.reserve(16);
-  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
-  // Replace bytes from tmp to ret to make it 32 bytes in size.
-  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[15 - ii] = tmp[tmp.size() - ii - 1];
-  return ret;
-}
-
 uint128_t Utils::bytesToUint128(const BytesArrView b) {
   if (b.size() != 16) throw std::runtime_error(std::string(__func__)
     + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
@@ -69,34 +330,12 @@ uint128_t Utils::bytesToUint128(const BytesArrView b) {
   return ret;
 }
 
-
-BytesArr<14> Utils::uint112ToBytes(const uint112_t &i) {
-  BytesArr<14> ret;
-  Bytes tmp;
-  tmp.reserve(14);
-  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
-  // Replace bytes from tmp to ret to make it 32 bytes in size.
-  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[13 - ii] = tmp[tmp.size() - ii - 1];
-  return ret;
-}
-
 uint112_t Utils::bytesToUint112(const BytesArrView b) {
   if (b.size() != 14) throw std::runtime_error(std::string(__func__)
                                                + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
     );
   uint112_t ret;
   boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
-  return ret;
-}
-
-
-BytesArr<20> Utils::uint160ToBytes(const uint160_t& i) {
-  BytesArr<20> ret;
-  Bytes tmp;
-  tmp.reserve(20);
-  ret.fill(0x00);
-  boost::multiprecision::export_bits(i, std::back_inserter(tmp), 8);
-  for (unsigned ii = 0; ii < tmp.size(); ii++) ret[19 - ii] = tmp[tmp.size() - ii - 1];
   return ret;
 }
 

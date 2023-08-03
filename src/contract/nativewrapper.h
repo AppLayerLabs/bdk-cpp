@@ -4,12 +4,12 @@
 #include <memory>
 
 #include "../utils/db.h"
+#include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
 #include "abi.h"
 #include "dynamiccontract.h"
 #include "variables/safestring.h"
-#include "variables/safeuint256_t.h"
-#include "variables/safeuint8_t.h"
+#include "variables/safeuint.h"
 #include "variables/safeunorderedmap.h"
 
 /// Template for a NativeWrapper contract.

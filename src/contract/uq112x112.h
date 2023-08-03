@@ -1,7 +1,7 @@
 #ifndef UQ112X112_H
 #define UQ112X112_H
 
-#include "variables/safeuint224_t.h"
+#include "src/utils/utils.h"
 
 
 namespace UQ112x112 {
