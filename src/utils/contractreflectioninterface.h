@@ -19,67 +19,35 @@ extern std::unordered_map<std::string, std::string>
     methodMutabilityMap; //// Map to store method mutability
 extern std::unordered_map<std::string, std::vector<std::string>>
     argumentNamesMap; /// Map to store method argument names
+extern std::unordered_map<meta::any_type, ABI::Types>
+    typeMap; /// Map to store type to ABI type mapping
 
 /**
- * This map is used to map a type to an ABI type.
- *
- */
-static const std::unordered_map<meta::any_type, ABI::Types> typeMap = {
-    {meta::resolve_type<uint256_t>(), ABI::TypeToEnum<uint256_t>::value},
-    {meta::resolve_type<uint256_t &>(), ABI::TypeToEnum<uint256_t &>::value},
-    {meta::resolve_type<const uint256_t &>(), ABI::TypeToEnum<const uint256_t &>::value},
-    {meta::resolve_type<std::vector<uint256_t>>(), ABI::TypeToEnum<std::vector<uint256_t>>::value},
-    {meta::resolve_type<std::vector<uint256_t> &>(), ABI::TypeToEnum<std::vector<uint256_t> &>::value},
-    {meta::resolve_type<const std::vector<uint256_t> &>(), ABI::TypeToEnum<const std::vector<uint256_t> &>::value},
-    {meta::resolve_type<uint8_t>(), ABI::TypeToEnum<uint8_t>::value},
-    {meta::resolve_type<uint8_t &>(), ABI::TypeToEnum<uint8_t &>::value},
-    {meta::resolve_type<const uint8_t &>(), ABI::TypeToEnum<const uint8_t &>::value},
-    {meta::resolve_type<std::vector<uint8_t>>(), ABI::TypeToEnum<std::vector<uint8_t>>::value},
-    {meta::resolve_type<std::vector<uint8_t> &>(), ABI::TypeToEnum<std::vector<uint8_t> &>::value},
-    {meta::resolve_type<const std::vector<uint8_t> &>(), ABI::TypeToEnum<const std::vector<uint8_t> &>::value},
-    {meta::resolve_type<uint16_t>(), ABI::TypeToEnum<uint16_t>::value},
-    {meta::resolve_type<uint16_t &>(), ABI::TypeToEnum<uint16_t &>::value},
-    {meta::resolve_type<const uint16_t &>(), ABI::TypeToEnum<const uint16_t &>::value},
-    {meta::resolve_type<std::vector<uint16_t>>(), ABI::TypeToEnum<std::vector<uint16_t>>::value},
-    {meta::resolve_type<std::vector<uint16_t> &>(), ABI::TypeToEnum<std::vector<uint16_t> &>::value},
-    {meta::resolve_type<const std::vector<uint16_t> &>(), ABI::TypeToEnum<const std::vector<uint16_t> &>::value},
-    {meta::resolve_type<uint32_t>(), ABI::TypeToEnum<uint32_t>::value},
-    {meta::resolve_type<uint32_t &>(), ABI::TypeToEnum<uint32_t &>::value},
-    {meta::resolve_type<const uint32_t &>(), ABI::TypeToEnum<const uint32_t &>::value},
-    {meta::resolve_type<std::vector<uint32_t>>(), ABI::TypeToEnum<std::vector<uint32_t>>::value},
-    {meta::resolve_type<std::vector<uint32_t> &>(), ABI::TypeToEnum<std::vector<uint32_t> &>::value},
-    {meta::resolve_type<const std::vector<uint32_t> &>(), ABI::TypeToEnum<const std::vector<uint32_t> &>::value},
-    {meta::resolve_type<uint64_t>(), ABI::TypeToEnum<uint64_t>::value},
-    {meta::resolve_type<uint64_t &>(), ABI::TypeToEnum<uint64_t &>::value},
-    {meta::resolve_type<const uint64_t &>(), ABI::TypeToEnum<const uint64_t &>::value},
-    {meta::resolve_type<std::vector<uint64_t>>(), ABI::TypeToEnum<std::vector<uint64_t>>::value},
-    {meta::resolve_type<std::vector<uint64_t> &>(), ABI::TypeToEnum<std::vector<uint64_t> &>::value},
-    {meta::resolve_type<const std::vector<uint64_t> &>(), ABI::TypeToEnum<const std::vector<uint64_t> &>::value},
-    // TODO: Add support for uint128_t
-    {meta::resolve_type<Address>(), ABI::TypeToEnum<Address>::value},
-    {meta::resolve_type<Address &>(), ABI::TypeToEnum<Address &>::value},
-    {meta::resolve_type<const Address &>(), ABI::TypeToEnum<const Address &>::value},
-    {meta::resolve_type<std::vector<Address>>(), ABI::TypeToEnum<std::vector<Address>>::value},
-    {meta::resolve_type<std::vector<Address> &>(), ABI::TypeToEnum<std::vector<Address> &>::value},
-    {meta::resolve_type<const std::vector<Address> &>(), ABI::TypeToEnum<const std::vector<Address> &>::value},
-    {meta::resolve_type<bool>(), ABI::TypeToEnum<bool>::value},
-    {meta::resolve_type<bool &>(), ABI::TypeToEnum<bool &>::value},
-    {meta::resolve_type<const bool &>(), ABI::TypeToEnum<const bool &>::value},
-    {meta::resolve_type<std::vector<bool>>(), ABI::TypeToEnum<std::vector<bool>>::value},
-    {meta::resolve_type<std::vector<bool> &>(), ABI::TypeToEnum<std::vector<bool> &>::value},
-    {meta::resolve_type<const std::vector<bool> &>(), ABI::TypeToEnum<const std::vector<bool> &>::value},
-    {meta::resolve_type<std::string>(), ABI::TypeToEnum<std::string>::value},
-    {meta::resolve_type<const std::string &>(), ABI::TypeToEnum<const std::string &>::value},
-    {meta::resolve_type<std::string &>(), ABI::TypeToEnum<std::string &>::value},
-    {meta::resolve_type<std::vector<std::string>>(), ABI::TypeToEnum<std::vector<std::string>>::value},
-    {meta::resolve_type<std::vector<std::string> &>(), ABI::TypeToEnum<std::vector<std::string> &>::value},
-    {meta::resolve_type<const std::vector<std::string> &>(), ABI::TypeToEnum<const std::vector<std::string> &>::value},
-    {meta::resolve_type<Bytes>(), ABI::TypeToEnum<Bytes>::value},
-    {meta::resolve_type<const std::string &>(), ABI::TypeToEnum<const Bytes &>::value},
-    {meta::resolve_type<Bytes &>(), ABI::TypeToEnum<Bytes &>::value},
-    {meta::resolve_type<std::vector<Bytes>>(), ABI::TypeToEnum<std::vector<Bytes>>::value},
-    {meta::resolve_type<std::vector<std::string> &>(), ABI::TypeToEnum<std::vector<Bytes> &>::value},
-    {meta::resolve_type<const std::vector<Bytes> &>(), ABI::TypeToEnum<const std::vector<Bytes> &>::value}};
+* Template function to map a type to an ABI type.
+* @tparam T The type to map.
+* @param map The map to insert the type to ABI type mapping into.
+*/
+template<typename T>
+void insertTypes(std::unordered_map<meta::any_type, ABI::Types>& map)
+{
+    map[meta::resolve_type<T>()] = ABI::TypeToEnum<T>::value;
+    map[meta::resolve_type<T&>()] = ABI::TypeToEnum<T&>::value;
+    map[meta::resolve_type<const T&>()] = ABI::TypeToEnum<const T&>::value;
+    map[meta::resolve_type<std::vector<T>>()]= ABI::TypeToEnum<std::vector<T>>::value;
+    map[meta::resolve_type<std::vector<T>&>()] = ABI::TypeToEnum<std::vector<T>&>::value;
+    map[meta::resolve_type<const std::vector<T>&>()] = ABI::TypeToEnum<const std::vector<T>&>::value;
+}
+
+/**
+* Template function to populate the type map.
+* @tparam Ts The types to populate the type map with.
+* @param map The map to insert the type to ABI type mapping into.
+*/
+template<typename... Ts>
+void populateTypeMap(std::unordered_map<meta::any_type, ABI::Types>& map)
+{
+    (insertTypes<Ts>(map), ...);
+}
 
 extern std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
 
@@ -187,7 +155,19 @@ void inline registerContract(const std::vector<std::string> &ctorArgs,
         std::get<3>(std::forward<Methods>(methods))),
    ...);
 
-   populateMethodArgumentsTypesMap<TContract>();
+    if (typeMap.empty())
+    {
+      populateTypeMap<uint8_t, uint16_t, uint24_t, uint32_t, uint40_t, uint48_t,
+                    uint56_t, uint64_t, uint72_t, uint80_t, uint88_t, uint96_t,
+                    uint104_t, uint112_t, uint120_t, uint128_t, uint136_t,
+                    uint144_t, uint152_t, uint160_t, uint168_t, uint176_t,
+                    uint184_t, uint192_t, uint200_t, uint208_t, uint216_t,
+                    uint224_t, uint232_t, uint240_t, uint248_t, uint256_t,
+                    Address, bool, std::string, Bytes>(typeMap);
+    }
+    populateMethodArgumentsTypesMap<TContract>();
+
+
 }
 
 /**
@@ -198,6 +178,9 @@ void inline registerContract(const std::vector<std::string> &ctorArgs,
  */
 template <typename Contract>
 std::vector<ABI::Types> inline getConstructorArgumentTypes() {
+  if (!isContractRegistered<Contract>()) {
+    throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
+  }
   const meta::class_type contractType = meta::resolve_type<Contract>();
   std::vector<ABI::Types> constructorArgumentTypes;
   std::vector<ABI::Types> argumentTypes;
