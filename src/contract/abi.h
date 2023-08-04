@@ -514,6 +514,9 @@ struct TypeToEnum<std::vector<T>&> : TypeToEnum<std::vector<T>> {};
 template <typename T>
 struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
 
+/**
+* Map for calling the correct ABI function for a given ABI type.
+*/
 inline std::unordered_map<Types, std::function<std::any(uint256_t)>> castFunctions = {
     {Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
     {Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
