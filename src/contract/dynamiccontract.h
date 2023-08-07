@@ -12,9 +12,6 @@
  */
 class DynamicContract : public BaseContract {
   private:
-    /// Reference to the contract manager interface.
-    ContractManagerInterface& interface;
-
     /**
     * Variant type for the possible return types of a non-payable/payable function.
     * The return type can be a single value or a vector of values.
@@ -67,6 +64,9 @@ class DynamicContract : public BaseContract {
     inline void registerVariableUse(SafeBase& variable) { interface.registerVariableUse(variable); }
 
   protected:
+    /// Reference to the contract manager interface.
+    ContractManagerInterface& interface;
+
     /**
      * Helper function for registering a payable/non-payable function.
      * @tparam R Return type of the function.
@@ -285,7 +285,22 @@ class DynamicContract : public BaseContract {
         );
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
-        for (size_t i = 0; i < types.size(); i++) dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+
+        std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
+        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
+        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
+        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
+        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
+      };
+
+      for (size_t i = 0; i < types.size(); i++) {
+        if (castFunctions.count(types[i]) > 0) {
+          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+          dataVector.push_back(castFunctions[types[i]](value));
+        } else {
+          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+        }
+      }
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
         return ReturnType(result);
       };
@@ -326,7 +341,21 @@ class DynamicContract : public BaseContract {
         std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
-        for (size_t i = 0; i < types.size(); i++) dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+       std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
+        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
+        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
+        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
+        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
+      };
+
+      for (size_t i = 0; i < types.size(); i++) {
+        if (castFunctions.count(types[i]) > 0) {
+          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+          dataVector.push_back(castFunctions[types[i]](value));
+        } else {
+          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+        }
+      }
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
         return ReturnType(result);
       };
@@ -415,11 +444,11 @@ class DynamicContract : public BaseContract {
         Functor funcName = std::get<5>(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->payableFunctions.find(funcName);
-          if (func == this->payableFunctions.end()) throw std::runtime_error("Functor not found");
+          if (func == this->payableFunctions.end()) throw std::runtime_error("Functor not found for payable function");
           func->second(callInfo);
         } else {
           auto func = this->publicFunctions.find(funcName);
-          if (func == this->publicFunctions.end()) throw std::runtime_error("Functor not found");
+          if (func == this->publicFunctions.end()) throw std::runtime_error("Functor not found for non-payable function");
           func->second(callInfo);
         }
       } catch (const std::exception& e) {
@@ -637,6 +666,7 @@ class DynamicContract : public BaseContract {
     */
     template<typename TContract, typename... Args>
     Address callCreateContract(const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
+        Utils::safePrint("CallCreateContract being called...");
         ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
         ABI::Encoder encoder(vars);
         return this->interface.callCreateContract<TContract>(this->getContractAddress(), gas, gasPrice, value, std::move(encoder));

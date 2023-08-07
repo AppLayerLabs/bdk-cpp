@@ -88,6 +88,11 @@ struct ABIType<Address> {
   static constexpr Types value = Types::address; ///< ABI type is address.
 };
 
+template <>
+struct ABIType<std::vector<Address>> {
+  static constexpr Types value = Types::addressArr; ///< ABI type is address.
+};
+
 /**
 * Specialization for bool.
 */
@@ -247,7 +252,7 @@ Types inline getABIEnumFromString(const std::string& type) {
   if (it != typeMappings.end()) {
     return it->second;
   } else {
-    throw std::runtime_error("Invalid type");
+    throw std::runtime_error("Invalid type: " + type);
   }
 }
 
@@ -546,7 +551,7 @@ Types inline getABIEnumFromString(const std::string& type) {
         case Types::bytesArr: return this->getData<std::vector<Bytes>>(index);
         case Types::string: return this->getData<std::string>(index);
         case Types::stringArr: return this->getData<std::vector<std::string>>(index);
-        default: throw std::runtime_error("Invalid ABI::Types type");
+        default: throw std::runtime_error("Invalid ABI::Types type: " + getStringFromABIEnum(type));
       }
     }
 

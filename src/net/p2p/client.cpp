@@ -9,7 +9,7 @@ namespace P2P {
 
 
   bool ClientFactory::run() {
-    Utils::logToDebug(Log::P2PClientFactory, __func__,
+    Logger::logToDebug(LogType::INFO, Log::P2PClientFactory, __func__,
                       "Starting P2P Client Factory "
     );
 
@@ -27,7 +27,7 @@ namespace P2P {
 
   bool ClientFactory::start() {
     if (this->executor.valid()) {
-      Utils::logToDebug(Log::P2PClientFactory, __func__, "P2P Client Factory already started.");
+      Logger::logToDebug(LogType::ERROR, Log::P2PClientFactory, __func__, "P2P Client Factory already started.");
       return false;
     }
     this->executor = std::async(std::launch::async, &ClientFactory::run, this);
@@ -36,7 +36,7 @@ namespace P2P {
 
   bool ClientFactory::stop() {
     if (!this->executor.valid()) {
-      Utils::logToDebug(Log::P2PClientFactory, __func__, "P2P Client Factory not started.");
+      Logger::logToDebug(LogType::ERROR, Log::P2PClientFactory, __func__, "P2P Client Factory not started.");
       return false;
     }
     this->io_context_.stop();

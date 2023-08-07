@@ -13,6 +13,7 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/meta_all.hpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.h
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.h
+  ${CMAKE_SOURCE_DIR}/src/utils/logger.h
   PARENT_SCOPE
 )
 

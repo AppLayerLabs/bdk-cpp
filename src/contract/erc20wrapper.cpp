@@ -10,6 +10,7 @@ ERC20Wrapper::ERC20Wrapper(
     BytesArrView valueView(dbEntry.value);
     this->_tokensAndBalances[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
+  _tokensAndBalances.commit();
 }
 
 ERC20Wrapper::ERC20Wrapper(
@@ -19,6 +20,7 @@ ERC20Wrapper::ERC20Wrapper(
   _tokensAndBalances(this)
 {
   registerContractFunctions();
+  _tokensAndBalances.commit();
 }
 
 ERC20Wrapper::~ERC20Wrapper() {

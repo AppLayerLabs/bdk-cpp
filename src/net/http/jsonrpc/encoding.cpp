@@ -23,9 +23,9 @@ namespace JsonRPC {
         ret["result"]["gasLimit"] = Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC();
         ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC(); // Arbitrary number
         ret["result"]["timestamp"] = Hex::fromBytes(Utils::uintToBytes(block->getTimestamp()),true).forRPC();
-        ret["result"]["extraData"] = "0x0";
+        ret["result"]["extraData"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
         ret["result"]["mixHash"] = Hash().hex(true); // No mixHash.
-        ret["result"]["nonce"] = "0x0";
+        ret["result"]["nonce"] = "0x0000000000000000";
         ret["result"]["totalDifficulty"] = "0x1";
         ret["result"]["baseFeePerGas"] = "0x9502f900";
         ret["result"]["withdrawRoot"] = Hash().hex(true); // No withdrawRoot.
@@ -168,6 +168,8 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
+        std::cout << "Calling State...: " << std::endl;
+        std::cout << "callInfo functor: " << std::get<5>(callInfo).hex() << std::endl;
         auto result = Hex::fromBytes(state->ethCall(callInfo), true);
         ret["result"] = result;
       } catch (std::exception& e) {
@@ -187,6 +189,7 @@ namespace JsonRPC {
         ret["error"]["code"] = -32000;
         ret["error"]["message"] = "Internal error: " + std::string(e.what());
       }
+      Utils::safePrint("Estimate gas encoding returning!");
       return ret;
     }
 

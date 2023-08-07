@@ -43,14 +43,10 @@ class Merkle {
     template <typename TxType> Merkle(const std::vector<TxType>& txs) {
       // Mount the base leaves
       std::vector<Hash> tmp;
-      for (auto tx : txs) {
-        tmp.emplace_back(std::move(Utils::sha3(tx.hash().get())));
-      }
+      for (auto tx : txs) tmp.emplace_back(std::move(Utils::sha3(tx.hash().get())));
       this->tree.emplace_back(tmp);
       // Make the layers up to root
-      while (this->tree.back().size() > 1) {
-        this->tree.emplace_back(newLayer(this->tree.back()));
-      }
+      while (this->tree.back().size() > 1) this->tree.emplace_back(newLayer(this->tree.back()));
     }
 
     /// Getter for `tree`.
@@ -82,87 +78,6 @@ class Merkle {
      * @return `true` if the leaf node is valid, `false` otherwise.
      */
     static bool verify(const std::vector<Hash>& proof, const Hash& leaf, const Hash& root);
-};
-
-/**
- * Abstraction of a Patricia tree node.
- * Used internally by the %Patricia class.
- */
-class PNode {
-  private:
-    char _id;  ///< ID of the node. `/` implies it's the root node.
-    std::string data; ///< Data of the node. Non-empty implies it's the end node.
-    std::vector<PNode> children;  ///< List of children nodes.
-  public:
-    /**
-     * Constructor.
-     * @param id The ID of the node.
-     */
-    PNode(char id) : _id(id) {};
-
-    /// Getter for `id`.
-    inline const char& getId() const { return this->_id; }
-
-    /// Getter for `data`.
-    inline const std::string& getData() const { return this->data; }
-
-    /// Setter for `data`.
-    inline void setData(std::string content) { this->data = content; }
-
-    /**
-     * Check if the node has any children.
-     * @returns `true` if the node has children, `false` otherwise.
-     */
-    inline bool hasChildren() const { return this->children.size() > 0; }
-
-    /**
-     * Add a child to the node.
-     * @param id The ID of the child node.
-     */
-    inline void addChild(char id) { this->children.emplace_back(PNode(id)); }
-
-    /**
-     * Get a child from the node.
-     * @param id The ID of the child node.
-     * @return A pointer to the child node, or a NULL pointer if not found.
-     */
-    PNode* getChild(char id);
-};
-
-/**
- * Custom implementation of a Patricia tree.
- * Adapted from:
- * https://medium.com/coinmonks/implementing-merkle-tree-and-patricia-tree-b8badd6d9591
- * https://lab.miguelmota.com/merkletreejs/example/
- */
-class Patricia {
-  private:
-    PNode root; ///< Root node.
-
-  public:
-    Patricia() : root('/') {}; ///< Constructor. Sets the ID of the root node to `/`.
-
-    /**
-     * Create a new branch in the tree and add a leaf node with data.
-     * @param branch The hash string to use as a base for creating the branch.
-     * @param data The data string to add to the leaf node.
-     */
-    void addLeaf(Hash branch, std::string data);
-
-    /**
-     * Get data from a leaf node in a given branch.
-     * @param branch The hash string to use as a base for searching the branch.
-     * @return The data string contained in the leaf node.
-     */
-    std::string getLeaf(Hash branch);
-
-    /**
-     * Remove data from a leaf node in a given branch.
-     * Does not remove the branch itself.
-     * @param branch The hash string to use as a base for removing data from the branch.
-     * @return `true` if the removal was successful, `false` otherwise.
-     */
-    bool delLeaf(Hash branch);
 };
 
 #endif  // MERKLE_H

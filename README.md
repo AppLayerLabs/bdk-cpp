@@ -20,7 +20,7 @@
             alt="chat on Telegram"></a>
 </p>
 
-Sparq subnet source code. See [Chapter 3.3 on the docs](https://github.com/SparqNet/sparq-docs/blob/main/Sparq_en-US/ch3/3-3.md) for an expanded version of this file.
+Sparq subnet source code. [See the docs](https://github.com/SparqNet/sparq-docs) for a more thorough look at the project.
 
 If you are a developer, fill this form out for free support and additional incentives: https://forms.gle/m83ceG3XoJY3fpwU9
 
@@ -65,12 +65,8 @@ If building with AvalancheGo support, you'll also need:
 
 ### One-liners
 
-For **Debian 11 Bullseye or newer**:
+For **Debian 12 Bookworm or newer**:
 * `sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libscrypt-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
-
-#### Caveats
-
-* **Debian 11 Bullseye and older**: CMake version from repos is too old (3.18.4), has to be installed manually from [their website](https://cmake.org/download)
 
 ## Documentation
 
