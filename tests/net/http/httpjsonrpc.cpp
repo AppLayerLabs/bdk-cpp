@@ -257,7 +257,7 @@ namespace THTTPJsonRPC{
       REQUIRE(eth_getBlockByHashResponse["result"]["number"] == "0x1");
       REQUIRE(eth_getBlockByHashResponse["result"]["hash"] == newBestBlock.hash().hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["parentHash"] == newBestBlock.getPrevBlockHash().hex(true));
-      REQUIRE(eth_getBlockByHashResponse["result"]["nonce"] == "0x0");
+      REQUIRE(eth_getBlockByHashResponse["result"]["nonce"] == "0x0000000000000000");
       REQUIRE(eth_getBlockByHashResponse["result"]["sha3Uncles"] == Hash().hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["logsBloom"] == Hash().hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["transactionsRoot"] == newBestBlock.getTxMerkleRoot().hex(true));
@@ -266,7 +266,7 @@ namespace THTTPJsonRPC{
       REQUIRE(eth_getBlockByHashResponse["result"]["miner"] == Secp256k1::toAddress(newBestBlock.getValidatorPubKey()).hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["difficulty"] == "0x1");
       REQUIRE(eth_getBlockByHashResponse["result"]["totalDifficulty"] == "0x1");
-      REQUIRE(eth_getBlockByHashResponse["result"]["extraData"] == "0x0");
+      REQUIRE(eth_getBlockByHashResponse["result"]["extraData"] == "0x0000000000000000000000000000000000000000000000000000000000000000");
       REQUIRE(eth_getBlockByHashResponse["result"]["size"] == Hex::fromBytes(Utils::uintToBytes(newBestBlock.serializeBlock().size()),true).forRPC());
       REQUIRE(eth_getBlockByHashResponse["result"]["gasLimit"] == Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC());
       REQUIRE(eth_getBlockByHashResponse["result"]["gasUsed"] == Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC());
@@ -292,7 +292,7 @@ namespace THTTPJsonRPC{
       REQUIRE(eth_getBlockByNumberResponse["result"]["number"] == "0x1");
       REQUIRE(eth_getBlockByNumberResponse["result"]["hash"] == newBestBlock.hash().hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["parentHash"] == newBestBlock.getPrevBlockHash().hex(true));
-      REQUIRE(eth_getBlockByNumberResponse["result"]["nonce"] == "0x0");
+      REQUIRE(eth_getBlockByNumberResponse["result"]["nonce"] == "0x0000000000000000");
       REQUIRE(eth_getBlockByNumberResponse["result"]["sha3Uncles"] == Hash().hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["logsBloom"] == Hash().hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["transactionsRoot"] == newBestBlock.getTxMerkleRoot().hex(true));
@@ -301,7 +301,7 @@ namespace THTTPJsonRPC{
       REQUIRE(eth_getBlockByNumberResponse["result"]["miner"] == Secp256k1::toAddress(newBestBlock.getValidatorPubKey()).hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["difficulty"] == "0x1");
       REQUIRE(eth_getBlockByNumberResponse["result"]["totalDifficulty"] == "0x1");
-      REQUIRE(eth_getBlockByNumberResponse["result"]["extraData"] == "0x0");
+      REQUIRE(eth_getBlockByNumberResponse["result"]["extraData"] == "0x0000000000000000000000000000000000000000000000000000000000000000");
       REQUIRE(eth_getBlockByNumberResponse["result"]["size"] == Hex::fromBytes(Utils::uintToBytes(newBestBlock.serializeBlock().size()),true).forRPC());
       REQUIRE(eth_getBlockByNumberResponse["result"]["gasLimit"] == Hex::fromBytes(Utils::uintToBytes(std::numeric_limits<uint64_t>::max()),true).forRPC());
       REQUIRE(eth_getBlockByNumberResponse["result"]["gasUsed"] == Hex::fromBytes(Utils::uintToBytes(uint64_t(1000000000)),true).forRPC());
