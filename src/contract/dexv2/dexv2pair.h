@@ -3,21 +3,21 @@
 
 #include <memory>
 
-#include "../utils/contractreflectioninterface.h"
-#include "../utils/db.h"
-#include "abi.h"
-#include "dynamiccontract.h"
-#include "variables/reentrancyguard.h"
-#include "variables/safeaddress.h"
-#include "variables/safestring.h"
-#include "variables/safeuint32_t.h"
-#include "variables/safeuint112_t.h"
-#include "variables/safeuint224_t.h"
-#include "variables/safeuint256_t.h"
-#include "variables/safeuint8_t.h"
-#include "variables/safeunorderedmap.h"
+#include "../../utils/contractreflectioninterface.h"
+#include "../../utils/db.h"
+#include "../abi.h"
+#include "../dynamiccontract.h"
+#include "../variables/reentrancyguard.h"
+#include "../variables/safeaddress.h"
+#include "../variables/safestring.h"
+#include "../variables/safeuint32_t.h"
+#include "../variables/safeuint112_t.h"
+#include "../variables/safeuint224_t.h"
+#include "../variables/safeuint256_t.h"
+#include "../variables/safeuint8_t.h"
+#include "../variables/safeunorderedmap.h"
 #include "uq112x112.h"
-#include "erc20.h"
+#include "../erc20.h"
 
 /// Template for an DEXV2Pair contract.
 class DEXV2Pair : public ERC20 {

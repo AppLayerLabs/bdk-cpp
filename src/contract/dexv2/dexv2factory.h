@@ -1,13 +1,13 @@
 #ifndef DEXFACTORY_H
 #define DEXFACTORY_H
 
-#include "../utils/contractreflectioninterface.h"
-#include "../utils/db.h"
-#include "abi.h"
-#include "dynamiccontract.h"
-#include "variables/safeaddress.h"
-#include "variables/safeunorderedmap.h"
-#include "variables/safevector.h"
+#include "../../utils/contractreflectioninterface.h"
+#include "../../utils/db.h"
+#include "../abi.h"
+#include "../dynamiccontract.h"
+#include "../variables/safeaddress.h"
+#include "../variables/safeunorderedmap.h"
+#include "../variables/safevector.h"
 
 class DEXV2Factory : public DynamicContract {
   private:

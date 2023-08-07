@@ -1,7 +1,7 @@
 #ifndef DEXV2LIBRARY_H
 #define DEXV2LIBRARY_H
 
-#include "../utils/utils.h"
+#include "../../utils/utils.h"
 
 /// Forward Declaration.
 class ContractManagerInterface;

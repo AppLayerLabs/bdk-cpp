@@ -1,7 +1,7 @@
 #include "dexv2library.h"
 #include "dexv2factory.h"
 #include "dexv2pair.h"
-#include "contractmanager.h"
+#include "../contractmanager.h"
 
 
 namespace DEXV2Library {

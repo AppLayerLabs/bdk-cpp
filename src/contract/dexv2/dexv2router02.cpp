@@ -1,7 +1,7 @@
 #include "dexv2router02.h"
 #include "dexv2factory.h"
 #include "dexv2pair.h"
-#include "nativewrapper.h"
+#include "../nativewrapper.h"
 
 DEXV2Router02::DEXV2Router02(ContractManagerInterface &interface, const Address &address, const std::unique_ptr<DB> &db) :
     DynamicContract(interface, address, db), factory_(this), wrappedNative_(this) {

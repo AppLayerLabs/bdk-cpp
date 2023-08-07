@@ -5,8 +5,8 @@
 
 #include "../utils/contractreflectioninterface.h"
 #include "../utils/db.h"
-#include "dynamiccontract.h"
-#include "variables/safeaddress.h"
+#include "../dynamiccontract.h"
+#include "../variables/safeaddress.h"
 #include "dexv2library.h"
 
 
