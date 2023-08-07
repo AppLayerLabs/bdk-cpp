@@ -51,7 +51,7 @@ class DEXV2Router02 : public DynamicContract {
      * Solidity counterpart:
      * function _swap(uint[] memory amounts, address[] memory path, address _to) internal virtual
      */
-    void _swap(const std::vector<uint256_t>& amounts, const std::vector<Address>& path, const Address& _to);
+    void _swap(const std::vector<uint256_t>& amounts, const std::vector<Address>& path, const Address& to);
 
     /**
      * As there is no equivalent to the Solidity Modifier in C++ we have to implement the modifier logic somehow
@@ -312,6 +312,7 @@ class DEXV2Router02 : public DynamicContract {
       const uint256_t& deadline
     );
 
+    /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         DEXV2Router02, const Address &, const Address &, ContractManagerInterface &,

@@ -110,6 +110,7 @@ class DEXV2Factory : public DynamicContract {
      */
     void setFeeToSetter(const Address& feeToSetter);
 
+    /// Function for registering the contract.
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         DEXV2Factory, const Address&,  ContractManagerInterface &,

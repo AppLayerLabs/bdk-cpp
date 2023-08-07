@@ -17,6 +17,7 @@ class ReentrancyGuard {
     bool &lock_; ///< Reference to the mutex.
 
   public:
+    /// Constructor.
     ReentrancyGuard(bool &lock) : lock_(lock) {
       if(lock_) {
         throw std::runtime_error("ReentrancyGuard: reentrancy attack detected");
@@ -24,6 +25,7 @@ class ReentrancyGuard {
       lock_ = true;
     }
 
+    /// Destructor.
     ~ReentrancyGuard() {
       lock_ = false;
     }
