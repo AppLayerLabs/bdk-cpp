@@ -445,6 +445,14 @@ namespace Utils {
   BytesArr<9> uint72ToBytes(const uint72_t& i);
 
   /**
+   * Convert a 112-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 112-bit integer as a bytes string.
+   */
+  BytesArr<14> uint112ToBytes(const uint112_t& i);
+
+  /**
    * Convert a 64-bit unsigned integer to a bytes string.
    * Use `Hex()` to properly print it.
    * @param i The integer to convert.
@@ -706,6 +714,14 @@ namespace Utils {
    * @throw std::runtime_error if string size is invalid.
    */
   uint72_t bytesToUint72(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 112-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 112-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint112_t bytesToUint112(const BytesArrView b);
 
   /**
    * Convert a bytes string to a 64-bit unsigned integer.

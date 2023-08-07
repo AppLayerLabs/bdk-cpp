@@ -1,0 +1,94 @@
+#ifndef DEXV2LIBRARY_H
+#define DEXV2LIBRARY_H
+
+#include "../../utils/utils.h"
+
+/// Forward Declaration.
+class ContractManagerInterface;
+
+namespace DEXV2Library {
+  /**
+   * returns sorted token addresses, used to handle return values from pairs sorted in this order
+   * @param tokenA The address of tokenA.
+   * @param tokenB The address of tokenB.
+   * @return token0, token1 (lower/higher)
+   * Solidity counterpart: function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1)
+   */
+  std::pair<Address, Address> sortTokens(const Address& tokenA, const Address& tokenB);
+
+  /**
+   * Returns the pair address for the given tokens.
+   * Differently from solidity, we don't calculate the address, we ask the factory.
+   * The way addresses are derived within OrbiterSDK are completely different.
+   * @param interface The contract manager interface.
+   * @param factory The factory address.
+   * @param tokenA The address of tokenA.
+   * @param tokenB The address of tokenB.
+   * @return The pair address.
+   */
+  Address pairFor(const ContractManagerInterface& interface, const Address& factory, const Address& tokenA, const Address& tokenB);
+
+  /**
+   * Fetches and sorts the reserves for a pair.
+   * @param interface The contract manager interface.
+   * @param factory The factory address.
+   * @param tokenA The address of tokenA.
+   * @param tokenB The address of tokenB.
+   * @return
+   */
+  std::pair<uint256_t, uint256_t> getReserves(const ContractManagerInterface& interface, const Address& factory, const Address& tokenA, const Address& tokenB);
+
+  /**
+   * Given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
+   * @param amountA The amount of assetA.
+   * @param reserveA The reserve of assetA.
+   * @param reserveB The reserve of assetB.
+   * @return The amount of assetB.
+   * Solidity counterpart: function quote(uint amountA, uint reserveA, uint reserveB) internal pure returns (uint amountB)
+   */
+  uint256_t quote(const uint256_t& amountA, const uint256_t& reserveA, const uint256_t& reserveB);
+
+  /**
+   * Given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+   * @param amountIn The amount of assetIn.
+   * @param reserveIn The reserve of assetIn.
+   * @param reserveOut The reserve of assetOut.
+   * @return The amount of assetOut.
+   * Solidity counterpart: function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut)
+   */
+  uint256_t getAmountOut(const uint256_t& amountIn, const uint256_t& reserveIn, const uint256_t& reserveOut);
+
+  /**
+   * Given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+   * @param amountOut The amount of assetOut.
+   * @param reserveIn The reserve of assetIn.
+   * @param reserveOut The reserve of assetOut.
+   * @return The amount of assetIn.
+   * Solidity counterpart: function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal pure returns (uint amountIn)
+   */
+  uint256_t getAmountIn(const uint256_t& amountOut, const uint256_t& reserveIn, const uint256_t& reserveOut);
+
+  /**
+   * Performs a chained getAmountOut calculation on any number of pairs
+   * @param interface The contract manager interface.
+   * @param factory The factory address.
+   * @param amountIn The amount of assetIn.
+   * @param path The path of the pairs.
+   * @return The amount each iteration will return.
+   * Solidity counterpart: function getAmountsOut(uint amountIn, address[] memory path) internal view returns (uint[] memory amounts)
+   */
+  std::vector<uint256_t> getAmountsOut(const ContractManagerInterface& interface, const Address& factory, const uint256_t& amountIn, const std::vector<Address>& path);
+
+  /**
+   * Performs a chained getAmountIn calculation on any number of pairs
+   * @param interface The contract manager interface.
+   * @param factory The factory address.
+   * @param amountOut The amount of assetOut.
+   * @param path The path of the pairs.
+   * @return The amount each iteration will return.
+   * Solidity counterpart: function getAmountsIn(uint amountOut, address[] memory path) internal view returns (uint[] memory amounts)
+   */
+   std::vector<uint256_t> getAmountsIn(const ContractManagerInterface& interface, const Address& factory, const uint256_t& amountIn, const std::vector<Address>& path);
+}
+
+#endif  /// DEXV2LIBRARY_H
