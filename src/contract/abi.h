@@ -202,14 +202,6 @@ struct ABIType<std::vector<Address>> {
 };
 
 /**
-* Specialization for std::vector<Address>.
-*/
-template <>
-struct ABIType<std::vector<Address>> {
-  static constexpr Types value = Types::addressArr; ///< ABI type is address.
-};
-
-/**
 * Specialization for bool.
 */
 template <>
