@@ -275,7 +275,9 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     json j;
     std::ifstream i("ABI/ContractManager.json");
     i >> j;
-    REQUIRE(j.size() == 6); // 6 contracts functions + getDeployedContracts
+
+    REQUIRE(j.size() == 7); // 6 contracts functions + getDeployedContracts
+
     REQUIRE(j[0]["name"] == "createNewERC20Contract");
     REQUIRE(j[0]["stateMutability"] == "nonpayable");
     REQUIRE(j[0]["type"] == "function");
@@ -291,9 +293,11 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(j[0]["inputs"][3]["internalType"] == "uint256");
     REQUIRE(j[0]["inputs"][3]["name"] == "mintValue");
     REQUIRE(j[0]["inputs"][3]["type"] == "uint256");
+
     REQUIRE(j[1]["name"] == "createNewERC20WrapperContract");
     REQUIRE(j[1]["stateMutability"] == "nonpayable");
     REQUIRE(j[1]["type"] == "function");
+
     REQUIRE(j[2]["name"] == "createNewNativeWrapperContract");
     REQUIRE(j[2]["stateMutability"] == "nonpayable");
     REQUIRE(j[2]["type"] == "function");
@@ -306,15 +310,32 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(j[2]["inputs"][2]["internalType"] == "uint8");
     REQUIRE(j[2]["inputs"][2]["name"] == "erc20_decimals");
     REQUIRE(j[2]["inputs"][2]["type"] == "uint8");
-    /// TODO: Add DEXV2 contracts.
-    REQUIRE(j[5]["name"] == "getDeployedContracts");
-    REQUIRE(j[5]["stateMutability"] == "view");
+
+    REQUIRE(j[3]["name"] == "createNewDEXV2PairContract");
+    REQUIRE(j[3]["stateMutability"] == "nonpayable");
+    REQUIRE(j[3]["type"] == "function");
+
+    REQUIRE(j[4]["name"] == "createNewDEXV2FactoryContract");
+    REQUIRE(j[4]["stateMutability"] == "nonpayable");
+    REQUIRE(j[4]["type"] == "function");
+    REQUIRE(j[4]["inputs"][0]["internalType"] == "address");
+    REQUIRE(j[4]["inputs"][0]["name"] == "_feeToSetter");
+    REQUIRE(j[4]["inputs"][0]["type"] == "address");
+
+    REQUIRE(j[5]["name"] == "createNewDEXV2Router02Contract");
+    REQUIRE(j[5]["stateMutability"] == "nonpayable");
     REQUIRE(j[5]["type"] == "function");
-    REQUIRE(j[5]["outputs"][0]["internalType"] == "string[]");
-    REQUIRE(j[5]["outputs"][0]["name"] == "");
-    REQUIRE(j[5]["outputs"][0]["type"] == "string[]");
-    REQUIRE(j[5]["outputs"][1]["internalType"] == "address[]");
-    REQUIRE(j[5]["outputs"][1]["name"] == "");
-    REQUIRE(j[5]["outputs"][1]["type"] == "address[]");
+    REQUIRE(j[5]["inputs"][0]["internalType"] == "address");
+    REQUIRE(j[5]["inputs"][0]["name"] == "factory");
+    REQUIRE(j[5]["inputs"][0]["type"] == "address");
+    REQUIRE(j[5]["inputs"][1]["internalType"] == "address");
+    REQUIRE(j[5]["inputs"][1]["name"] == "wrappedNative");
+    REQUIRE(j[5]["inputs"][1]["type"] == "address");
+
+    REQUIRE(j[6]["name"] == "getDeployedContracts");
+    REQUIRE(j[6]["outputs"][0]["internalType"] == "string[]");
+    REQUIRE(j[6]["outputs"][1]["internalType"] == "address[]");
+    REQUIRE(j[6]["stateMutability"] == "view");
+    REQUIRE(j[6]["type"] == "function");
   }
 }
