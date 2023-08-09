@@ -5,4 +5,5 @@ namespace ContractReflectionInterface {
   std::unordered_map<std::string, std::vector<std::string>> constructorArgumentNamesMap; ///< Map of constructor argument names.
   std::unordered_map<std::string, std::vector<std::string>> argumentNamesMap; ///< Map of method argument names.
   std::unordered_map<std::string, std::vector<std::string>> methodArgumentsTypesMap; ///< Map of method argument types.
+  std::unordered_map<meta::any_type, ABI::Types> typeMap; ///< Map of types to ABI types.
 }

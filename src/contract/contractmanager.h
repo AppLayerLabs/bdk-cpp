@@ -156,8 +156,8 @@ class ContractManager : BaseContract {
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
      * @param dataVec The vector of arguments to pass to the contract constructor.
-     * @throw runtime_error if the size of the vector does not match the number of
-     * arguments of the contract constructor.
+     * @return A unique pointer to the newly created contract.
+     * @throw runtime_error if any argument type mismatches.
      */
     template <typename TContract, typename TTuple>
     std::unique_ptr<TContract> createContractWithTuple(const Address& creator,
@@ -192,17 +192,10 @@ class ContractManager : BaseContract {
       std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
       std::vector<std::any> dataVector;
 
-      std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
-        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
-        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
-        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
-        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
-      };
-
       for (size_t i = 0; i < types.size(); i++) {
-        if (castFunctions.count(types[i]) > 0) {
+        if (ABI::castFunctions.count(types[i]) > 0) {
           uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(castFunctions[types[i]](value));
+          dataVector.push_back(ABI::castFunctions[types[i]](value));
         } else {
           dataVector.push_back(decoder.getDataDispatch(i, types[i]));
         }

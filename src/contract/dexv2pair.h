@@ -3,17 +3,18 @@
 
 #include <memory>
 
-#include "../../utils/contractreflectioninterface.h"
-#include "../../utils/db.h"
-#include "../../utils/utils.h"
-#include "../abi.h"
-#include "../dynamiccontract.h"
-#include "../variables/reentrancyguard.h"
-#include "../variables/safeaddress.h"
-#include "../variables/safestring.h"
-#include "../variables/safeunorderedmap.h"
+#include "../utils/contractreflectioninterface.h"
+#include "../utils/db.h"
+#include "../utils/utils.h"
+#include "abi.h"
+#include "dynamiccontract.h"
+#include "variables/reentrancyguard.h"
+#include "variables/safeaddress.h"
+#include "variables/safestring.h"
+#include "variables/safeuint.h"
+#include "variables/safeunorderedmap.h"
 #include "uq112x112.h"
-#include "../erc20.h"
+#include "erc20.h"
 
 /// Template for an DEXV2Pair contract.
 class DEXV2Pair : public ERC20 {
@@ -51,10 +52,10 @@ class DEXV2Pair : public ERC20 {
     void registerContractFunctions() override;
 
     /** Function to be called when transfering ERC20 tokens
-     * @param token The address of the token to send
-     * @param to The address of the receiver
-     * @param value The amount of tokens to send
-     */
+    * @param token The address of the token to transfer.
+    * @param to The address to transfer the tokens to.
+    * @param value The amount of tokens to transfer.
+    */
     void _safeTransfer(const Address& token, const Address& to, const uint256_t& value);
 
     /**

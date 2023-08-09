@@ -6,16 +6,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/reentrancyguard.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint8_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint16_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint32_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint64_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint112_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint128_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint160_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint224_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint256_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h

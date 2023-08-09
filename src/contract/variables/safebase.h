@@ -13,10 +13,6 @@ void registerVariableUse(DynamicContract &contract, SafeBase &variable);
  * @see SafeAddress
  * @see SafeBool
  * @see SafeString
- * @see SafeUint8_t
- * @see SafeUint16_t
- * @see SafeUint32_t
- * @see SafeUint64_t
  * @see SafeUnorderedMap
  */
 class SafeBase {

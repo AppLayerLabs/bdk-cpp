@@ -286,17 +286,10 @@ class DynamicContract : public BaseContract {
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
 
-        std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
-        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
-        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
-        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
-        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
-      };
-
       for (size_t i = 0; i < types.size(); i++) {
-        if (castFunctions.count(types[i]) > 0) {
+        if (ABI::castFunctions.count(types[i]) > 0) {
           uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(castFunctions[types[i]](value));
+          dataVector.push_back(ABI::castFunctions[types[i]](value));
         } else {
           dataVector.push_back(decoder.getDataDispatch(i, types[i]));
         }
@@ -341,17 +334,10 @@ class DynamicContract : public BaseContract {
         std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
-       std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
-        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
-        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
-        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
-        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
-      };
-
       for (size_t i = 0; i < types.size(); i++) {
-        if (castFunctions.count(types[i]) > 0) {
+        if (ABI::castFunctions.count(types[i]) > 0) {
           uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(castFunctions[types[i]](value));
+          dataVector.push_back(ABI::castFunctions[types[i]](value));
         } else {
           dataVector.push_back(decoder.getDataDispatch(i, types[i]));
         }
