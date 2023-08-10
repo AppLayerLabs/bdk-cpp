@@ -20,6 +20,7 @@
 // Forward declarations.
 class rdPoS;
 class State;
+class ContractFactory;
 class ContractManagerInterface;
 
 /**
@@ -29,23 +30,39 @@ class ContractManagerInterface;
  * Instead, they are deployed in the constructor of State.
  */
 const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
-  {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"))}, // Sha3("randomDeterministicProofOfStake").substr(0,20)
-  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))} // Sha3("ContractManager").substr(0,20)
+  {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"))},           // Sha3("randomDeterministicProofOfStake").substr(0,20)
+  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))}  // Sha3("ContractManager").substr(0,20)
 };
 
 /**
  * Class that holds all current contract instances in the blockchain state.
- * Responsible for being the factory and deploying contracts in the chain.
+ * Responsible for creating and deploying contracts in the chain.
  * Also acts as an access point for contracts to access each other.
  */
 class ContractManager : BaseContract {
   private:
     /**
-     * Raw pointer to the blockchain state.
+     * Raw pointer to the contract factory object.
+     * Responsible for actually creating the contracts and
+     * deploying them in the contract manager.
+     */
+    ContractFactory* factory;
+
+    /**
+     * Raw pointer to the blockchain state object.
      * Used if the contract is a payable function.
      * Can be `nullptr` due to tests not requiring state (contract balance).
      */
     State* state;
+
+    /// Reference pointer to the rdPoS contract.
+    const std::unique_ptr<rdPoS>& rdpos;
+
+    /// Reference pointer to the options singleton.
+    const std::unique_ptr<Options>& options;
+
+    /// Pointer to the contract manager's interface to be passed to DynamicContract.
+    std::unique_ptr<ContractManagerInterface> interface;
 
     /**
      * Temporary map of balances within the chain.
@@ -55,32 +72,15 @@ class ContractManager : BaseContract {
      */
     std::unordered_map<Address, uint256_t, SafeHash> balances;
 
-    /// Address of the contract that is currently being called.
-    Address currentActiveContract = Address();
-
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
 
-    /// Set of recently created contracts.
-    std::unordered_set<Address, SafeHash> recentlyCreatedContracts;
-
-    /// Map of contract functors and create functions, used to create contracts.
-    std::unordered_map<Bytes, std::function<void(const ethCallInfo &)>, SafeHash> createContractFuncs;
-
     /// Vector of variables that were used by contracts called by CM.
-    std::vector<std::reference_wrapper<SafeBase>> usedVariables;
+    std::vector<std::reference_wrapper<SafeBase>> usedVars;
+
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;
-
-    /// Reference pointer to the rdPoS contract.
-    const std::unique_ptr<rdPoS>& rdpos;
-
-    /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
-
-    /// Derive a new contract address based on transaction sender and nonce.
-    Address deriveContractAddress() const;
 
     /**
      * Update the variables that were used by the contract.
@@ -92,205 +92,14 @@ class ContractManager : BaseContract {
      */
     void updateState(const bool commitToState);
 
-    /**
-     * Setup data for a new contract before creating/validating it.
-     * @param callInfo The call info to process.
-     * @return A pair containing the contract address and the ABI decoder.
-     * @throw runtime_error if non contract creator tries to create a contract.
-     * @throw runtime_error if contract already exists.
-     */
-    template <typename TContract>
-    std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
-      // Check if caller is creator
-      if (this->origin != this->getContractCreator()) {
-        throw std::runtime_error("Only contract creator can create new contracts");
-      }
-
-      // Check if contract address already exists
-      const Address derivedContractAddress = this->deriveContractAddress();
-      if (this->contracts.contains(derivedContractAddress)) {
-        throw std::runtime_error("Contract already exists");
-      }
-
-      /// std::unique_lock lock(this->contractsMutex);
-      for (const auto &[protocolContractName, protocolContractAddress] : ProtocolContractAddresses) {
-        if (protocolContractAddress == derivedContractAddress) {
-          throw std::runtime_error("Contract already exists");
-        }
-      }
-      std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
-      ABI::Decoder decoder(types, std::get<6>(callInfo));
-      return std::make_pair(derivedContractAddress, decoder);
-    }
+    /// Derive a new contract address based on transaction sender and nonce.
+    Address deriveContractAddress() const;
 
     /**
-     * Helper function to create a new contract from a given call info.
-     * @tparam TContract The contract type to create.
-     * @tparam TTuple The tuple type of the contract constructor arguments.
-     * @tparam Is The indices of the tuple.
-     * @param creator The address of the contract creator.
-     * @param derivedContractAddress The address of the contract to create.
-     * @param dataVec The vector of arguments to pass to the contract constructor.
-     * @return A unique pointer to the newly created contract.
-     * @throw runtime_error if any argument type mismatches.
+     * Get a serialized string with the deployed contracts. Solidity counterpart:
+     * function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
      */
-    template <typename TContract, typename TTuple, std::size_t... Is>
-    std::unique_ptr<TContract> createContractWithTuple(
-        const Address& creator,
-        const Address& derivedContractAddress,
-        const std::vector<std::any>& dataVec,
-        std::index_sequence<Is...>) {
-      try {
-        return std::make_unique<TContract>(std::any_cast<typename std::tuple_element<Is, TTuple>::type>(dataVec[Is])...,
-          *this->interface, derivedContractAddress, creator, this->options->getChainID(), this->db
-        );
-      } catch (const std::bad_any_cast& ex) {
-        throw std::runtime_error("Mismatched argument types for contract constructor. Expected: " +
-          Utils::getRealTypeName<TTuple>()
-        );
-      }
-    }
-
-    /**
-     * Helper function to create a new contract from a given call info.
-     * @param creator The address of the contract creator.
-     * @param derivedContractAddress The address of the contract to create.
-     * @param dataVec The vector of arguments to pass to the contract constructor.
-     * @throw runtime_error if the size of the vector does not match the number of
-     * arguments of the contract constructor.
-     */
-    template <typename TContract, typename TTuple>
-    std::unique_ptr<TContract> createContractWithTuple(const Address& creator,
-      const Address& derivedContractAddress, const std::vector<std::any>& dataVec) {
-      constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
-      if (TupleSize != dataVec.size()) {
-        throw std::runtime_error("Not enough arguments provided for contract constructor. Expected: " +
-          std::to_string(TupleSize) + ", got: " + std::to_string(dataVec.size())
-        );
-      }
-      return createContractWithTuple<TContract, TTuple>(
-        creator, derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{}
-      );
-    }
-
-    /**
-     * Create a new contract from a given call info.
-     * @param callInfo The call info to process.
-     * @throw runtime_error if the call to the ethCall function fails or if the
-     * contract is does not exist.
-     */
-    template <typename TContract>
-    void createNewContract(const ethCallInfo& callInfo) {
-      using ConstructorArguments = typename TContract::ConstructorArguments;
-      auto setupResult = this->setupNewContract<TContract>(callInfo);
-      if (!ContractReflectionInterface::isContractRegistered<TContract>()) {
-        throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " is not registered");
-      }
-
-      Address derivedContractAddress = setupResult.first;
-      ABI::Decoder decoder = setupResult.second;
-      std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
-      std::vector<std::any> dataVector;
-
-      std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
-        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
-        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
-        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
-        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
-      };
-
-      for (size_t i = 0; i < types.size(); i++) {
-        if (castFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(castFunctions[types[i]](value));
-        } else {
-          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
-        }
-      }
-
-      auto contract = createContractWithTuple<TContract, ConstructorArguments>(std::get<0>(callInfo), derivedContractAddress, dataVector);
-      /// Update the inner variables of the contract.
-      /// The constructor can set SafeVariables values from the constructor.
-      /// We need to take account of that and set the variables accordingly.
-      // this->updateState(true);
-      this->recentlyCreatedContracts.insert(derivedContractAddress);
-      this->contracts.insert(std::make_pair(derivedContractAddress, std::move(contract)));
-    }
-
-    /**
-     * Adds contract create and validate functions to the respective maps
-     * @tparam Contract Contract type
-     * @param createFunc Function to create a new contract
-     */
-    template <typename Contract>
-    void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc) {
-      std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
-      std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
-      std::ostringstream createFullSignatureStream;
-      createFullSignatureStream << createSignature << "(";
-      if (!args.empty()) {
-        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(createFullSignatureStream, ","));
-        createFullSignatureStream << args.back();
-      }
-      createFullSignatureStream << ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
-      createContractFuncs[functor.asBytes()] = createFunc;
-    }
-
-    /**
-     * Struct for calling the registerContract function of a contract.
-     * @tparam TContract The contract to register.
-     */
-    template <class T> struct RegisterContract {
-      RegisterContract() { T::registerContract(); }
-    };
-
-    /**
-     * Helper function to register all contracts.
-     * @tparam Tuple The tuple of contracts to register.
-     * @tparam Is The indices of the tuple.
-     */
-    template <typename Tuple, std::size_t... Is>
-    void registerContractsHelper(std::index_sequence<Is...>) {
-      (RegisterContract<std::tuple_element_t<Is, Tuple>>(), ...);
-    }
-
-    /**
-     * Register all contracts in the tuple.
-     * @tparam Tuple The tuple of contracts to register.
-     */
-    template <typename Tuple>
-    std::enable_if_t<Utils::is_tuple<Tuple>::value, void> registerContracts() {
-      registerContractsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
-    }
-
-    /**
-     * Register all contracts in the variadic template.
-     * @tparam Contracts The contracts to register.
-     */
-    template <typename Tuple, std::size_t... Is>
-    void addAllContractFuncsHelper(std::index_sequence<Is...>) {
-      ((this->addContractFuncs<std::tuple_element_t<Is, Tuple>>(
-        [&](const ethCallInfo &callInfo) { this->createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo); })), ...);
-    }
-
-    /**
-     * Add all contract functions to the respective maps.
-     * @tparam Contracts The contracts to add.
-     */
-    template <typename... Contracts>
-    std::enable_if_t<!Utils::is_tuple<std::tuple<Contracts...>>::value, void> addAllContractFuncs() {
-      (void)std::initializer_list<int>{((void)addAllContractFuncs<Contracts>(), 0)...};
-    }
-
-    /**
-     * Add all contract functions to the respective maps using the helper function.
-     * @tparam Tuple The tuple of contracts to add.
-     */
-    template <typename Tuple>
-    std::enable_if_t<Utils::is_tuple<Tuple>::value, void> addAllContractFuncs() {
-      addAllContractFuncsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
-    }
+    Bytes getDeployedContracts() const;
 
     /**
      * Helper function to load all contracts from the database.
@@ -333,17 +142,13 @@ class ContractManager : BaseContract {
      * @return True if the contract exists in the database, false otherwise.
      */
     template <typename Tuple>
-    std::enable_if_t<Utils::is_tuple<Tuple>::value, bool> loadFromDB(const auto& contract, const Address& contractAddress) {
-      return loadFromDBHelper<Tuple>(contract, contractAddress, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
+    std::enable_if_t<Utils::is_tuple<Tuple>::value, bool> loadFromDB(
+      const auto& contract, const Address& contractAddress
+    ) {
+      return loadFromDBHelper<Tuple>(
+        contract, contractAddress, std::make_index_sequence<std::tuple_size<Tuple>::value>{}
+      );
     }
-
-    /**
-     * Get a serialized string with the deployed contracts. Solidity counterpart:
-     * function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
-     */
-    Bytes getDeployedContracts() const;
-
-    std::unique_ptr<ContractManagerInterface> interface; ///< Interface to be passed to DynamicContract.
 
   public:
     /**
@@ -388,6 +193,15 @@ class ContractManager : BaseContract {
     void callContract(const TxBlock& tx);
 
     /**
+     * Make an eth_call to a view function from the contract. Used by RPC.
+     * @param callInfo The call info to process.
+     * @return A string with the requested info.
+     * @throw std::runtime_error if the call to the ethCall function fails
+     * or if the contract does not exist.
+     */
+    const Bytes callContract(const ethCallInfo& callInfo) const;
+
+    /**
      * Check if an ethCallInfo is trying to access a payable function.
      * @param callInfo The call info to check.
      * @return `true` if the function is payable, `false` otherwise.
@@ -401,15 +215,6 @@ class ContractManager : BaseContract {
      * @throw std::runtime_error if the validation fails.
      */
     bool validateCallContractWithTx(const ethCallInfo& callInfo);
-
-    /**
-     * Make an eth_call to a view function from the contract. Used by RPC.
-     * @param callInfo The call info to process.
-     * @return A string with the requested info.
-     * @throw std::runtime_error if the call to the ethCall function fails
-     * or if the contract does not exist.
-     */
-    const Bytes callContract(const ethCallInfo& callInfo) const;
 
     /**
      * Check if a transaction calls a contract
@@ -428,136 +233,127 @@ class ContractManager : BaseContract {
     /// Get a list of contract names and addresses.
     std::vector<std::pair<std::string, Address>> getContracts() const;
 
-    ///< ContractManagerInterface is a friend so it can access private members.
+    /// ContractManagerInterface is a friend so it can access private members.
     friend class ContractManagerInterface;
+
+    /// ContractFactory is a friend so it can access private members.
+    friend class ContractFactory;
 };
 
 /// Interface class for DynamicContract to access ContractManager and interact with other dynamic contracts.
 class ContractManagerInterface {
   private:
-    /// Reference to the contract manager.
-    ContractManager& contractManager;
+    ContractManager& manager; ///< Reference to the contract manager.
+
   public:
     /**
      * Constructor.
-     * @param contractManager Reference to the contract manager.
+     * @param manager Reference to the contract manager.
      */
-    explicit ContractManagerInterface(ContractManager& contractManager)
-      : contractManager(contractManager)
-    {}
+    explicit ContractManagerInterface(ContractManager& manager): manager(manager) {}
 
     /**
      * Register a variable that was used a given contract.
      * @param variable Reference to the variable.
      */
-    inline void registerVariableUse(SafeBase& variable) { this->contractManager.usedVariables.emplace_back(variable); }
+    inline void registerVariableUse(SafeBase& variable) { this->manager.usedVars.emplace_back(variable); }
 
     /// Populate a given address with its balance from the State.
     void populateBalance(const Address& address) const;
 
     /**
-    * Call a contract function. Used by DynamicContract to call other contracts.
-    * A given DynamicContract will only call another contract if
-    * it was first triggered by a transaction.
-    * That means we can use contractManager::commit() to know if
-    * the call should commit or not.
-    * This function will only be called if ContractManager::callContract()
-    * or ContractManager::validateCallContractWithTx() was called before.
-    * @tparam R The return type of the function.
-    * @tparam C The contract type.
-    * @tparam Args The arguments types.
-    * @param fromAddr The address of the caller.
-    * @param targetAddr The address of the contract to call.
-    * @param value Flag to indicate if the function is payable.,
-    * @param commit Flag to set contract->commit same as caller.
-    * @param func The function to call.
-    * @param args The arguments to pass to the function.
-    * @return The return value of the function.
-    */
-    template <typename R, typename C, typename... Args>
-    R callContractFunction(const Address& fromAddr, 
-                           const Address& targetAddr, 
-                           const uint256_t& value,
-                           const bool& commit,
-                           R(C::*func)(const Args&...), 
-                           const Args&... args) {
-        if (value) {
-          this->sendTokens(fromAddr, targetAddr, value);
+     * Call a contract function. Used by DynamicContract to call other contracts.
+     * A given DynamicContract will only call another contract if triggered by a transaction.
+     * That means we can use commit() to know if the call should commit or not.
+     * This will only be called if callContract() or validateCallContractWithTx() was called before.
+     * @tparam R The return type of the function.
+     * @tparam C The contract type.
+     * @tparam Args The arguments types.
+     * @param fromAddr The address of the caller.
+     * @param targetAddr The address of the contract to call.
+     * @param value Flag to indicate if the function is payable.,
+     * @param commit Flag to set contract->commit same as caller.
+     * @param func The function to call.
+     * @param args The arguments to pass to the function.
+     * @return The return value of the function.
+     */
+    template <typename R, typename C, typename... Args> R callContractFunction(
+      const Address& fromAddr, const Address& targetAddr,
+      const uint256_t& value, const bool& commit,
+      R(C::*func)(const Args&...), const Args&... args
+    ) {
+      if (value) {
+        this->sendTokens(fromAddr, targetAddr, value);
+      } else {
+        if (!this->manager.contracts.contains(targetAddr)) {
+          throw std::runtime_error("Contract does not exist");
         }
-        else {
-          if (!this->contractManager.contracts.contains(targetAddr)) {
-            throw std::runtime_error("Contract does not exist");
-          }
-        }
-        C* contract = this->getContract<C>(targetAddr);
-        contract->caller = fromAddr;
-        contract->value = value;
-        contract->commit = commit;
-        try {
-          return contract->callContractFunction(func, std::forward<const Args&>(args)...);
-        } catch (const std::exception& e) {
-          contract->commit = false;
-          throw std::runtime_error(e.what());
-        }
+      }
+      C* contract = this->getContract<C>(targetAddr);
+      contract->caller = fromAddr;
+      contract->value = value;
+      contract->commit = commit;
+      try {
+        return contract->callContractFunction(func, std::forward<const Args&>(args)...);
+      } catch (const std::exception& e) {
+        contract->commit = false;
+        throw std::runtime_error(e.what());
+      }
     }
 
     /**
-    * Call a contract function with no arguments. Used by DynamicContract to call other contracts.
-    * A given DynamicContract will only call another contract if
-    * it was first triggered by a transaction.
-    * That means we can use contractManager::commit() to know if
-    * the call should commit or not.
-    * This function will only be called if ContractManager::callContract()
-    * or ContractManager::validateCallContractWithTx() was called before.
-    * @tparam R The return type of the function.
-    * @tparam C The contract type.
-    * @param fromAddr The address of the caller.
-    * @param targetAddr The address of the contract to call.
-    * @param value Flag to indicate if the function is payable.
-    * @param commit Flag to set contract->commit same as caller.
-    * @param func The function to call.
-    * @return The return value of the function.
-    */
-    template <typename R, typename C>
-    R callContractFunction(const Address& fromAddr, 
-                           const Address& targetAddr, 
-                           const uint256_t& value,
-                           const bool& commit,
-                           R(C::*func)()) {
-        if (value) {
-          this->sendTokens(fromAddr, targetAddr, value);
+     * Call a contract function with no arguments. Used by DynamicContract to call other contracts.
+     * A given DynamicContract will only call another contract if triggered by a transaction.
+     * That means we can use commit() to know if the call should commit or not.
+     * This will only be called if callContract() or validateCallContractWithTx() was called before.
+     * @tparam R The return type of the function.
+     * @tparam C The contract type.
+     * @param fromAddr The address of the caller.
+     * @param targetAddr The address of the contract to call.
+     * @param value Flag to indicate if the function is payable.
+     * @param commit Flag to set contract->commit same as caller.
+     * @param func The function to call.
+     * @return The return value of the function.
+     */
+    template <typename R, typename C> R callContractFunction(
+      const Address& fromAddr, const Address& targetAddr,
+      const uint256_t& value, const bool& commit, R(C::*func)()
+    ) {
+      if (value) {
+        this->sendTokens(fromAddr, targetAddr, value);
+      } else {
+        if (!this->manager.contracts.contains(targetAddr)) {
+          throw std::runtime_error("Contract does not exist");
         }
-        else {
-          if (!this->contractManager.contracts.contains(targetAddr)) {
-            throw std::runtime_error("Contract does not exist");
-          }
-        }
-        C* contract = this->getContract<C>(targetAddr);
-        contract->caller = fromAddr;
-        contract->value = value;
-        contract->commit = commit;
-        try {
-          return contract->callContractFunction(func);
-        } catch (const std::exception& e) {
-          contract->commit = false;
-          throw std::runtime_error(e.what());
-        }
+      }
+      C* contract = this->getContract<C>(targetAddr);
+      contract->caller = fromAddr;
+      contract->value = value;
+      contract->commit = commit;
+      try {
+        return contract->callContractFunction(func);
+      } catch (const std::exception& e) {
+        contract->commit = false;
+        throw std::runtime_error(e.what());
+      }
     }
 
     /**
-    * Call the createNewContract function of a contract. Used by DynamicContract to create new contracts.
-    * @tparam TContract The contract type.
-    * @param fromAddr The address of the caller.
-    * @param gasValue Caller gas limit.
-    * @param gasPriceValue Caller gas price.
-    * @param callValue The caller value.
-    * @param encoder The ABI encoder.
-    * @return The address of the new contract.
-    */
-    template <typename TContract>
-    Address callCreateContract(const Address &fromAddr, const uint256_t &gasValue,
-                               const uint256_t &gasPriceValue, const uint256_t &callValue,
-                               const ABI::Encoder &encoder) {
+     * Call the createNewContract function of a contract.
+     * Used by DynamicContract to create new contracts.
+     * @tparam TContract The contract type.
+     * @param fromAddr The address of the caller.
+     * @param gasValue Caller gas limit.
+     * @param gasPriceValue Caller gas price.
+     * @param callValue The caller value.
+     * @param encoder The ABI encoder.
+     * @return The address of the new contract.
+     */
+    template <typename TContract> Address callCreateContract(
+      const Address &fromAddr, const uint256_t &gasValue,
+      const uint256_t &gasPriceValue, const uint256_t &callValue,
+      const ABI::Encoder &encoder
+    ) {
       ethCallInfo callInfo;
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract";
       std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
@@ -568,16 +364,15 @@ class ContractManagerInterface {
         createFullSignatureStream << args.back();
       }
       createFullSignatureStream << ")";
-
       auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
       from = fromAddr;
-      to = this->contractManager.deriveContractAddress();
+      to = this->manager.deriveContractAddress();
       gas = gasValue;
       gasPrice = gasPriceValue;
       value = callValue;
       functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
       data = encoder.getData();
-      this->contractManager.ethCall(callInfo);
+      this->manager.ethCall(callInfo);
       return to;
     }
 
@@ -590,8 +385,8 @@ class ContractManagerInterface {
      * @throw runtime_error if contract is not found or not of the requested type.
      */
     template <typename T> const T* getContract(const Address &address) const {
-      auto it = this->contractManager.contracts.find(address);
-      if (it == this->contractManager.contracts.end()) throw std::runtime_error(
+      auto it = this->manager.contracts.find(address);
+      if (it == this->manager.contracts.end()) throw std::runtime_error(
         "ContractManager::getContract: contract at address " +
         address.hex().get() + " not found."
       );
@@ -612,8 +407,8 @@ class ContractManagerInterface {
      * @throw runtime_error if contract is not found or not of the requested type.
      */
     template <typename T> T* getContract(const Address& address) {
-      auto it = this->contractManager.contracts.find(address);
-      if (it == this->contractManager.contracts.end()) throw std::runtime_error(
+      auto it = this->manager.contracts.find(address);
+      if (it == this->manager.contracts.end()) throw std::runtime_error(
         "ContractManager::getContract: contract at address " +
         address.hex().get() + " not found."
       );

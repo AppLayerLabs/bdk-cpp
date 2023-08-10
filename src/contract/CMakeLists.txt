@@ -1,49 +1,51 @@
 set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/abi.h
   ${CMAKE_SOURCE_DIR}/src/contract/contract.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contractfactory.h
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.h
+  ${CMAKE_SOURCE_DIR}/src/contract/customcontracts.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2factory.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2library.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2pair.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2router02.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/uq112x112.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/erc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/reentrancyguard.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint8_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint16_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint32_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint64_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebool.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint112_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint128_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint160_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint16_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint224_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint256_t.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint32_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint64_t.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint8_t.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebool.h
-  ${CMAKE_SOURCE_DIR}/src/contract/erc20.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2pair.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2factory.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2library.h
-  ${CMAKE_SOURCE_DIR}/src/contract/customcontracts.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2router02.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/uq112x112.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
   PARENT_SCOPE
 )
 
 set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/contractfactory.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/erc20.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2pair.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2factory.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2library.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2pair.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2router02.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.cpp
   PARENT_SCOPE
 )
 
