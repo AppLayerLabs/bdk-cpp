@@ -7,6 +7,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/reentrancyguard.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeint.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
