@@ -1,0 +1,15 @@
+{
+    "rootPath": "blockchain",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "version": 1,
+    "chainID": 808080,
+    "wsPort": 8081,
+    "httpPort": 8090,
+    "privKey": "0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759",
+    "discoveryNodes": [
+      {
+        "address" : "127.0.0.1",
+        "port" : 8080
+      }
+    ]
+  }
