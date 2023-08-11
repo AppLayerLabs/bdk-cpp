@@ -46,7 +46,7 @@ class ContractManager : BaseContract {
      * Responsible for actually creating the contracts and
      * deploying them in the contract manager.
      */
-    ContractFactory* factory;
+    std::unique_ptr<ContractFactory> factory;
 
     /**
      * Raw pointer to the blockchain state object.

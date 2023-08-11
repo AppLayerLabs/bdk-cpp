@@ -11,9 +11,9 @@ ContractManager::ContractManager(
   Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), 0, db),
   rdpos(rdpos),
   options(options),
+  factory(std::make_unique<ContractFactory>(*this)),
   interface(std::make_unique<ContractManagerInterface>(*this))
 {
-  this->factory = new ContractFactory(*this);
   this->factory->registerContracts<ContractTypes>();
   this->factory->addAllContractFuncs<ContractTypes>();
   // Load Contracts from DB
@@ -37,7 +37,6 @@ ContractManager::~ContractManager() {
     );
   }
   this->db->putBatch(contractsBatch);
-  delete this->factory;
 }
 
 void ContractManager::updateState(const bool commitToState) {
