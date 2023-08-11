@@ -243,6 +243,7 @@ TxBlock createApproveTx(std::unique_ptr<State>& state, std::unique_ptr<Options>&
 }
 
 namespace TDEXV2 {
+  std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("DEXV2 Test", "[contract][dexv2]") {
 
     SECTION("Deploy DEXV2Router/Factory") {
@@ -258,7 +259,7 @@ namespace TDEXV2 {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "DEXV2NewContractsTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/DEXV2NewContractsTest");
         wrapped = createNewNative(
           state, rdpos, storage, options,
           "WSPARQ", "WSPARQ", 18
@@ -281,7 +282,7 @@ namespace TDEXV2 {
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "DEXV2NewContractsTest");
+      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, testDumpPath + "/DEXV2NewContractsTest");
 
       auto contracts = state->getContracts();
 
@@ -313,7 +314,7 @@ namespace TDEXV2 {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "DEXV2NewContractsTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/DEXV2NewContractsTest");
 
         std::cout << "Creating native contract" << std::endl;
 

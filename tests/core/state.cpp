@@ -107,6 +107,7 @@ void initialize(std::unique_ptr<DB>& db,
 }
 
 namespace TState {
+  std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("State Class", "[core][state]") {
     SECTION("State Class Constructor/Destructor", "[state]") {
       {
@@ -116,7 +117,7 @@ namespace TState {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateConstructorTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/stateConstructorTest");
         REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) ==
                 uint256_t("1000000000000000000000"));
       }
@@ -129,7 +130,7 @@ namespace TState {
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
       //// Check if opening the state loads successfully from DB.
-      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "stateConstructorTest");
+      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, testDumpPath + "/stateConstructorTest");
       REQUIRE(state->getNativeBalance(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) ==
               uint256_t("1000000000000000000000"));
       REQUIRE(state->getNativeNonce(Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"))) == 0);
@@ -144,7 +145,7 @@ namespace TState {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateAddBalanceTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/stateAddBalanceTest");
 
         for (uint64_t i = 0; i < 1024; ++i) {
           std::pair<Address, uint256_t> randomAddress = std::make_pair(Address(Utils::randBytes(20)),
@@ -167,7 +168,7 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "stateAddBalanceTest");
+      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, testDumpPath + "/stateAddBalanceTest");
       for (const auto &[address, expectedBalance]: addresses) {
         REQUIRE(state->getNativeBalance(address) == expectedBalance);
         REQUIRE(state->getNativeNonce(address) == 0);
@@ -183,7 +184,7 @@ namespace TState {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateSimpleBlockTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
         auto newBlock = createValidBlock(rdpos, storage);
         REQUIRE(state->validateNextBlock(newBlock));
@@ -196,7 +197,7 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "stateSimpleBlockTest");
+      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, testDumpPath + "/stateSimpleBlockTest");
 
       REQUIRE(latestBlock->hash() == storage->latest()->hash());
     }
@@ -216,7 +217,7 @@ namespace TState {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateSimpleBlockTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
         /// Add balance to the random Accounts and create random transactions
         std::vector<TxBlock> transactions;
@@ -274,7 +275,7 @@ namespace TState {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateSimpleBlockTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
         /// Add balance to the random Accounts and add tx's to directly to mempool.
         for (auto &[privkey, val]: randomAccounts) {
@@ -339,7 +340,7 @@ namespace TState {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "stateSimpleBlockTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
         /// Add balance to the random Accounts and add tx's to directly to mempool.
         std::vector<TxBlock> txs;
@@ -412,7 +413,7 @@ namespace TState {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "state10BlocksTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/state10BlocksTest");
         /// Add balance to the given addresses
         for (const auto &[privkey, account]: randomAccounts) {
           Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
@@ -464,7 +465,7 @@ namespace TState {
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "state10BlocksTest");
+      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, testDumpPath + "/state10BlocksTest");
 
       REQUIRE(latestBlock->hash() == storage->latest()->hash());
       REQUIRE(storage->latest()->getNHeight() == 10);
@@ -491,7 +492,7 @@ namespace TState {
       std::unique_ptr<State> state1;
       std::unique_ptr<Options> options1;
       initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true,
-                 "stateNode1NetworkCapabilities");
+                 testDumpPath + "/stateNode1NetworkCapabilities");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -501,7 +502,7 @@ namespace TState {
       std::unique_ptr<State> state2;
       std::unique_ptr<Options> options2;
       initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true,
-                 "stateNode2NetworkCapabilities");
+                  testDumpPath + "/stateNode2NetworkCapabilities");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -511,7 +512,7 @@ namespace TState {
       std::unique_ptr<State> state3;
       std::unique_ptr<Options> options3;
       initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true,
-                 "stateNode3NetworkCapabilities");
+                  testDumpPath + "/stateNode3NetworkCapabilities");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -521,7 +522,7 @@ namespace TState {
       std::unique_ptr<State> state4;
       std::unique_ptr<Options> options4;
       initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true,
-                 "stateNode4NetworkCapabilities");
+                  testDumpPath + "/stateNode4NetworkCapabilities");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -531,7 +532,7 @@ namespace TState {
       std::unique_ptr<State> state5;
       std::unique_ptr<Options> options5;
       initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true,
-                 "stateNode5NetworkCapabilities");
+                  testDumpPath + "/stateNode5NetworkCapabilities");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -541,7 +542,7 @@ namespace TState {
       std::unique_ptr<State> state6;
       std::unique_ptr<Options> options6;
       initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true,
-                 "stateNode6NetworkCapabilities");
+                  testDumpPath + "/stateNode6NetworkCapabilities");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -551,7 +552,7 @@ namespace TState {
       std::unique_ptr<State> state7;
       std::unique_ptr<Options> options7;
       initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true,
-                 "stateNode7NetworkCapabilities");
+                  testDumpPath + "/stateNode7NetworkCapabilities");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -561,7 +562,7 @@ namespace TState {
       std::unique_ptr<State> state8;
       std::unique_ptr<Options> options8;
       initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true,
-                 "stateNode8NetworkCapabilities");
+                  testDumpPath + "/stateNode8NetworkCapabilities");
 
       // Initialize state with all balances
       for (const auto &privkey: randomAccounts) {
@@ -579,7 +580,7 @@ namespace TState {
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-          "stateDiscoveryNodeNetworkCapabilities",
+          testDumpPath + "/stateDiscoveryNodeNetworkCapabilities",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
@@ -760,7 +761,7 @@ namespace TState {
       std::unique_ptr<State> state1;
       std::unique_ptr<Options> options1;
       initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true,
-                 "stateNode1NetworkCapabilities");
+                  testDumpPath + "/stateNode1NetworkCapabilities");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -770,7 +771,7 @@ namespace TState {
       std::unique_ptr<State> state2;
       std::unique_ptr<Options> options2;
       initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true,
-                 "stateNode2NetworkCapabilities");
+                  testDumpPath + "/stateNode2NetworkCapabilities");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -780,7 +781,7 @@ namespace TState {
       std::unique_ptr<State> state3;
       std::unique_ptr<Options> options3;
       initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true,
-                 "stateNode3NetworkCapabilities");
+                  testDumpPath + "/stateNode3NetworkCapabilities");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -790,7 +791,7 @@ namespace TState {
       std::unique_ptr<State> state4;
       std::unique_ptr<Options> options4;
       initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true,
-                 "stateNode4NetworkCapabilities");
+                  testDumpPath + "/stateNode4NetworkCapabilities");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -800,7 +801,7 @@ namespace TState {
       std::unique_ptr<State> state5;
       std::unique_ptr<Options> options5;
       initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true,
-                 "stateNode5NetworkCapabilities");
+                  testDumpPath + "/stateNode5NetworkCapabilities");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -810,7 +811,7 @@ namespace TState {
       std::unique_ptr<State> state6;
       std::unique_ptr<Options> options6;
       initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true,
-                 "stateNode6NetworkCapabilities");
+                  testDumpPath + "/stateNode6NetworkCapabilities");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -820,7 +821,7 @@ namespace TState {
       std::unique_ptr<State> state7;
       std::unique_ptr<Options> options7;
       initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true,
-                 "stateNode7NetworkCapabilities");
+                  testDumpPath + "/stateNode7NetworkCapabilities");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -830,12 +831,12 @@ namespace TState {
       std::unique_ptr<State> state8;
       std::unique_ptr<Options> options8;
       initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true,
-                 "stateNode8NetworkCapabilities");
+                  testDumpPath + "/stateNode8NetworkCapabilities");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-          "stateDiscoveryNodeNetworkCapabilities",
+          testDumpPath + "/stateDiscoveryNodeNetworkCapabilities",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
@@ -1076,7 +1077,7 @@ namespace TState {
       std::unique_ptr<State> state1;
       std::unique_ptr<Options> options1;
       initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true,
-                 "stateNode1NetworkCapabilitiesWithTx");
+                 testDumpPath + "/stateNode1NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -1086,7 +1087,7 @@ namespace TState {
       std::unique_ptr<State> state2;
       std::unique_ptr<Options> options2;
       initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true,
-                 "stateNode2NetworkCapabilitiesWithTx");
+                  testDumpPath + "/stateNode2NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -1096,7 +1097,7 @@ namespace TState {
       std::unique_ptr<State> state3;
       std::unique_ptr<Options> options3;
       initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true,
-                 "stateNode3NetworkCapabilitiesWithTx");
+                  testDumpPath + "/stateNode3NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -1106,7 +1107,7 @@ namespace TState {
       std::unique_ptr<State> state4;
       std::unique_ptr<Options> options4;
       initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true,
-                 "stateNode4NetworkCapabilitiesWithTx");
+                  testDumpPath + "/stateNode4NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -1116,7 +1117,7 @@ namespace TState {
       std::unique_ptr<State> state5;
       std::unique_ptr<Options> options5;
       initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true,
-                 "stateNode5NetworkCapabilitiesWithTx");
+                  testDumpPath + "/stateNode5NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -1126,7 +1127,7 @@ namespace TState {
       std::unique_ptr<State> state6;
       std::unique_ptr<Options> options6;
       initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true,
-                 "stateNode6NetworkCapabilitiesWithTx");
+                  testDumpPath + "/stateNode6NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -1136,7 +1137,7 @@ namespace TState {
       std::unique_ptr<State> state7;
       std::unique_ptr<Options> options7;
       initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true,
-                 "stateNode7NetworkCapabilitiesWithTx");
+                  testDumpPath + "/stateNode7NetworkCapabilitiesWithTx");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -1146,12 +1147,12 @@ namespace TState {
       std::unique_ptr<State> state8;
       std::unique_ptr<Options> options8;
       initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true,
-                 "stateNode8NetworkCapabilitiesWithTx");
+                  testDumpPath + "/stateNode8NetworkCapabilitiesWithTx");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-          "statedDiscoveryNodeNetworkCapabilitiesWithTx",
+          testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTx",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
@@ -1451,7 +1452,7 @@ namespace TState {
       std::unique_ptr<State> state1;
       std::unique_ptr<Options> options1;
       initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true,
-                 "stateNode1NetworkCapabilitiesWithTxBlockBroadcast");
+                  testDumpPath + "/stateNode1NetworkCapabilitiesWithTxBlockBroadcast");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -1461,7 +1462,7 @@ namespace TState {
       std::unique_ptr<State> state2;
       std::unique_ptr<Options> options2;
       initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true,
-                 "stateNode2NetworkCapabilitiesWithTxBlockBroadcast");
+                  testDumpPath + "/stateNode2NetworkCapabilitiesWithTxBlockBroadcast");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -1471,7 +1472,7 @@ namespace TState {
       std::unique_ptr<State> state3;
       std::unique_ptr<Options> options3;
       initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true,
-                 "stateNode3NetworkCapabilitiesWithTxBlockBroadcast");
+                  testDumpPath + "/stateNode3NetworkCapabilitiesWithTxBlockBroadcast");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -1481,7 +1482,7 @@ namespace TState {
       std::unique_ptr<State> state4;
       std::unique_ptr<Options> options4;
       initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true,
-                 "stateNode4NetworkCapabilitiesWithTxBlockBroadcast");
+                  testDumpPath + "/stateNode4NetworkCapabilitiesWithTxBlockBroadcast");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -1491,7 +1492,7 @@ namespace TState {
       std::unique_ptr<State> state5;
       std::unique_ptr<Options> options5;
       initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true,
-                 "stateNode5NetworkCapabilitiesWithTxBlockBroadcast");
+                  testDumpPath + "/stateNode5NetworkCapabilitiesWithTxBlockBroadcast");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -1501,7 +1502,7 @@ namespace TState {
       std::unique_ptr<State> state6;
       std::unique_ptr<Options> options6;
       initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true,
-                 "stateNode6NetworkCapabilitiesWithTxBlockBroadcast");
+                  testDumpPath + "/stateNode6NetworkCapabilitiesWithTxBlockBroadcast");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -1511,7 +1512,7 @@ namespace TState {
       std::unique_ptr<State> state7;
       std::unique_ptr<Options> options7;
       initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true,
-                 "stateNode7NetworkCapabilitiesWithTxBlockBroadcast");
+                  testDumpPath + "/stateNode7NetworkCapabilitiesWithTxBlockBroadcast");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -1521,12 +1522,12 @@ namespace TState {
       std::unique_ptr<State> state8;
       std::unique_ptr<Options> options8;
       initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true,
-                 "stateNode8NetworkCapabilitiesWithTxBlockBroadcast");
+                  testDumpPath + "/stateNode8NetworkCapabilitiesWithTxBlockBroadcast");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-          "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
+          testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
@@ -1844,7 +1845,7 @@ namespace TState {
       std::unique_ptr<State> state1;
       std::unique_ptr<Options> options1;
       initialize(db1, storage1, p2p1, rdpos1, state1, options1, validatorPrivKeys[0], 8080, true,
-                 "stateNode1NetworkCapabilitiesWithERC20TxBlockBroadcast");
+                 testDumpPath + "/stateNode1NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -1854,7 +1855,7 @@ namespace TState {
       std::unique_ptr<State> state2;
       std::unique_ptr<Options> options2;
       initialize(db2, storage2, p2p2, rdpos2, state2, options2, validatorPrivKeys[1], 8081, true,
-                 "stateNode2NetworkCapabilitiesWithERC20TxBlockBroadcast");
+                  testDumpPath + "/stateNode2NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -1864,7 +1865,7 @@ namespace TState {
       std::unique_ptr<State> state3;
       std::unique_ptr<Options> options3;
       initialize(db3, storage3, p2p3, rdpos3, state3, options3, validatorPrivKeys[2], 8082, true,
-                 "stateNode3NetworkCapabilitiesWithERC20TxBlockBroadcast");
+                  testDumpPath + "/stateNode3NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -1874,7 +1875,7 @@ namespace TState {
       std::unique_ptr<State> state4;
       std::unique_ptr<Options> options4;
       initialize(db4, storage4, p2p4, rdpos4, state4, options4, validatorPrivKeys[3], 8083, true,
-                 "stateNode4NetworkCapabilitiesWithERC20TxBlockBroadcast");
+                  testDumpPath + "/stateNode4NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -1884,7 +1885,7 @@ namespace TState {
       std::unique_ptr<State> state5;
       std::unique_ptr<Options> options5;
       initialize(db5, storage5, p2p5, rdpos5, state5, options5, validatorPrivKeys[4], 8084, true,
-                 "stateNode5NetworkCapabilitiesWithERC20TxBlockBroadcast");
+                  testDumpPath + "/stateNode5NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -1894,7 +1895,7 @@ namespace TState {
       std::unique_ptr<State> state6;
       std::unique_ptr<Options> options6;
       initialize(db6, storage6, p2p6, rdpos6, state6, options6, validatorPrivKeys[5], 8085, true,
-                 "stateNode6NetworkCapabilitiesWithERC20TxBlockBroadcast");
+                  testDumpPath + "/stateNode6NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -1904,7 +1905,7 @@ namespace TState {
       std::unique_ptr<State> state7;
       std::unique_ptr<Options> options7;
       initialize(db7, storage7, p2p7, rdpos7, state7, options7, validatorPrivKeys[6], 8086, true,
-                 "stateNode7NetworkCapabilitiesWithTxERC20BlockBroadcast");
+                  testDumpPath + "/stateNode7NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -1914,12 +1915,12 @@ namespace TState {
       std::unique_ptr<State> state8;
       std::unique_ptr<Options> options8;
       initialize(db8, storage8, p2p8, rdpos8, state8, options8, validatorPrivKeys[7], 8087, true,
-                 "stateNode8NetworkCapabilitiesWithTxERC20BlockBroadcast");
+                  testDumpPath + "/stateNode8NetworkCapabilitiesWithERC20TxBlockBroadcast");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-          "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
+          testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,

@@ -1,6 +1,8 @@
 ABI/
 build/
+testdump/
 debug.txt
+debug.log
 log.txt
 *.o
 *.gch

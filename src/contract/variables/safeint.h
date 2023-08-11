@@ -11,36 +11,58 @@
 */
 template <int Size>
 struct IntType {
+    /**
+    * The type of the int.
+    */
     using type = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<Size, Size, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 };
 
+/**
+* Template specialization for int8_t.
+*/
 template <>
 struct IntType<8> {
-    using type = int8_t;
+    using type = int8_t; ///< int8_t type.
 };
 
+/**
+* Template specialization for int16_t.
+*/
 template <>
 struct IntType<16> {
-    using type = int16_t;
+    using type = int16_t;  ///< int16_t type.
 };
 
+/**
+* Template specialization for int32_t.
+*/
 template <>
 struct IntType<32> {
-    using type = int32_t;
+    using type = int32_t; ///< int32_t type.
 };
 
+/**
+* Template specialization for int64_t.
+*/
 template <>
 struct IntType<64> {
-    using type = int64_t;
+    using type = int64_t; ///< int64_t type.
 };
 
+/**
+* SafeInt_t class template.
+* @tparam Size The size of the int.
+*/
 template <int Size>
 class SafeInt_t : public SafeBase {
 private:
-    using int_t = typename IntType<Size>::type;
-    int_t value;
-    mutable std::unique_ptr<int_t> valuePtr;
+    using int_t = typename IntType<Size>::type; ///< The type of the int.
+    int_t value; ///< The value of the int.
+    mutable std::unique_ptr<int_t> valuePtr; ///< The pointer to the value of the int.
 
+    /**
+    * Check if the value is registered and if not, register it.
+    */
     inline void check() const override {
         if (valuePtr == nullptr) valuePtr = std::make_unique<int_t>(value);
     };
@@ -48,22 +70,45 @@ private:
 public:
     static_assert(Size >= 8 && Size <= 256 && Size % 8 == 0, "Size must be between 8 and 256 and a multiple of 8.");
 
+    /**
+    * Constructor.
+    * @param owner The DynamicContract that owns this variable.
+    * @param value The initial value of the variable.
+    */
     SafeInt_t(DynamicContract* owner, const int_t& value = 0)
       : SafeBase(owner), value(0), valuePtr(std::make_unique<int_t>(value))
     {};
 
+    /**
+    * Constructor.
+    * @param value The initial value of the variable.
+    */
     SafeInt_t(const int_t& value = 0)
       : SafeBase(nullptr), value(0), valuePtr(std::make_unique<int_t>(value))
     {};
 
+    /**
+    * Copy constructor.
+    * @param other The SafeInt_t to copy.
+    */
     SafeInt_t(const SafeInt_t<Size>& other) : SafeBase(nullptr) {
       other.check(); value = 0; valuePtr = std::make_unique<int_t>(*other.valuePtr);
     };
 
+    /**
+    * Getter for the value.
+    * @return The value.
+    */
     inline int_t get() const { check(); return *valuePtr; };
 
+    /**
+    * Commit the value.
+    */
     inline void commit() override { check(); value = *valuePtr; valuePtr = nullptr; registered = false; };
 
+    /**
+    * Revert the value.
+    */
     inline void revert() const override { valuePtr = nullptr; registered = false; };
 
     /**

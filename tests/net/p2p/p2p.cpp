@@ -11,6 +11,7 @@ using Catch::Matchers::Equals;
 
 namespace TP2P {
 
+  std::string testDumpPath = Utils::getTestDumpPath();
   void initializeOptions(std::unique_ptr<Options>& options, std::string folderPath, uint64_t serverPort) {
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
     options = std::make_unique<Options>(
@@ -116,9 +117,9 @@ namespace TP2P {
       std::unique_ptr<Options> options1;
       std::unique_ptr<Options> options2;
       std::unique_ptr<Options> options3;
-      initializeOptions(options1, "testP2PManagerSimpleNetworkNode1", 8080);
-      initializeOptions(options2, "testP2PManagerSimpleNetworkNode2", 8081);
-      initializeOptions(options3, "testP2PManagerSimpleNetworkNode3", 8082);
+      initializeOptions(options1, testDumpPath + "/testP2PManagerSimpleNetworkNode1", 8080);
+      initializeOptions(options2, testDumpPath + "/testP2PManagerSimpleNetworkNode2", 8081);
+      initializeOptions(options3, testDumpPath + "/testP2PManagerSimpleNetworkNode3", 8082);
       P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options1, nullptr, nullptr);
       P2P::ManagerNormal p2pNode2(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options2, nullptr, nullptr);
       P2P::ManagerNormal p2pNode3(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options3, nullptr, nullptr);
@@ -264,7 +265,7 @@ namespace TP2P {
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<State> state1;
       std::unique_ptr<Options> options1;
-      initializeFullChain(db1, storage1, p2p1, rdpos1, state1, options1, PrivKey(), 8080, true, "p2pRequestInfoNode1");
+      initializeFullChain(db1, storage1, p2p1, rdpos1, state1, options1, PrivKey(), 8080, true, testDumpPath + "/p2pRequestInfoNode1");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -272,7 +273,7 @@ namespace TP2P {
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<State> state2;
       std::unique_ptr<Options> options2;
-      initializeFullChain(db2, storage2, p2p2, rdpos2, state2, options2, PrivKey(), 8081, true, "p2pRequestInfoNode2");
+      initializeFullChain(db2, storage2, p2p2, rdpos2, state2, options2, PrivKey(), 8081, true, testDumpPath + "/p2pRequestInfoNode2");
 
       /// Start the servers
       p2p1->start();
@@ -307,17 +308,17 @@ namespace TP2P {
       std::unique_ptr<Options> options9;
       std::unique_ptr<Options> options10;
       std::unique_ptr<Options> optionsDiscovery;
-      initializeOptions(optionsDiscovery, "testP2PManagerDiscoveryNetworkNodeDiscovery", 8090);
-      initializeOptions(options1, "testP2PManagerDiscoveryNetworkNode1", 8080);
-      initializeOptions(options2, "testP2PManagerDiscoveryNetworkNode2", 8081);
-      initializeOptions(options3, "testP2PManagerDiscoveryNetworkNode3", 8082);
-      initializeOptions(options4, "testP2PManagerDiscoveryNetworkNode4", 8083);
-      initializeOptions(options5, "testP2PManagerDiscoveryNetworkNode5", 8084);
-      initializeOptions(options6, "testP2PManagerDiscoveryNetworkNode6", 8085);
-      initializeOptions(options7, "testP2PManagerDiscoveryNetworkNode7", 8086);
-      initializeOptions(options8, "testP2PManagerDiscoveryNetworkNode8", 8087);
-      initializeOptions(options9, "testP2PManagerDiscoveryNetworkNode9", 8088);
-      initializeOptions(options10, "testP2PManagerDiscoveryNetworkNode10", 8089);
+      initializeOptions(optionsDiscovery, testDumpPath + "/testP2PManagerDiscoveryNetworkNodeDiscovery", 8090);
+      initializeOptions(options1, testDumpPath + "/testP2PManagerDiscoveryNetworkNode1", 8080);
+      initializeOptions(options2, testDumpPath + "/testP2PManagerDiscoveryNetworkNode2", 8081);
+      initializeOptions(options3, testDumpPath + "/testP2PManagerDiscoveryNetworkNode3", 8082);
+      initializeOptions(options4, testDumpPath + "/testP2PManagerDiscoveryNetworkNode4", 8083);
+      initializeOptions(options5, testDumpPath + "/testP2PManagerDiscoveryNetworkNode5", 8084);
+      initializeOptions(options6, testDumpPath + "/testP2PManagerDiscoveryNetworkNode6", 8085);
+      initializeOptions(options7, testDumpPath + "/testP2PManagerDiscoveryNetworkNode7", 8086);
+      initializeOptions(options8, testDumpPath + "/testP2PManagerDiscoveryNetworkNode8", 8087);
+      initializeOptions(options9, testDumpPath + "/testP2PManagerDiscoveryNetworkNode9", 8088);
+      initializeOptions(options10, testDumpPath + "/testP2PManagerDiscoveryNetworkNode10", 8089);
 
       P2P::ManagerDiscovery p2pDiscoveryNode(boost::asio::ip::address::from_string("127.0.0.1"), optionsDiscovery);
       P2P::ManagerNormal p2pNode1(boost::asio::ip::address::from_string("127.0.0.1"), nullptr, options1, nullptr, nullptr);

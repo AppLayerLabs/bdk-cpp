@@ -281,6 +281,8 @@ struct Account {
 /// Namespace for utility functions.
 namespace Utils {
 
+  std::string getTestDumpPath(); ///< Get the path to the test dump folder.
+
   /**
   * Template for identifying if a type is a tuple.
   * @tparam T The type to check.

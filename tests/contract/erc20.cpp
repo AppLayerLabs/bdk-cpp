@@ -68,6 +68,7 @@ void initialize(std::unique_ptr<Options>& options,
 }
 
 namespace TERC20 {
+  std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("ERC2O Class", "[contract][erc20]") {
     PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
@@ -77,7 +78,7 @@ namespace TERC20 {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20ClassConstructor";
+        std::string dbName = testDumpPath + "/erc20ClassConstructor";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
         uint8_t tokenDecimals = 18;
@@ -117,7 +118,7 @@ namespace TERC20 {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20ClassConstructor";
+      std::string dbName = testDumpPath + "/erc20ClassConstructor";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
       uint8_t tokenDecimals = 18;
@@ -162,7 +163,7 @@ namespace TERC20 {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20ClassTransfer";
+        std::string dbName = testDumpPath + "/erc20ClassTransfer";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
         uint8_t tokenDecimals = 18;
@@ -239,7 +240,7 @@ namespace TERC20 {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20ClassTransfer";
+      std::string dbName = testDumpPath + "/erc20ClassTransfer";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
       uint8_t tokenDecimals = 18;
@@ -274,7 +275,7 @@ namespace TERC20 {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20ClassApprove";
+        std::string dbName = testDumpPath + "/erc20ClassApprove";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
         uint8_t tokenDecimals = 18;
@@ -324,7 +325,7 @@ namespace TERC20 {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20ClassApprove";
+      std::string dbName = testDumpPath + "/erc20ClassApprove";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
       uint8_t tokenDecimals = 18;
@@ -352,7 +353,7 @@ namespace TERC20 {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20ClassTransferFrom";
+        std::string dbName = testDumpPath + "/erc20ClassTransferFrom";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
         uint8_t tokenDecimals = 18;
@@ -460,7 +461,7 @@ namespace TERC20 {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20ClassTransferFrom";
+      std::string dbName = testDumpPath + "/erc20ClassTransferFrom";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
       uint8_t tokenDecimals = 18;

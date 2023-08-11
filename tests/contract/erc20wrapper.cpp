@@ -72,6 +72,7 @@ void initialize(std::unique_ptr<Options>& options,
 }
 
 namespace TERC20Wrapper {
+  std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("ERC20Wrapper Class", "[contract][erc20wrapper]") {
     PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
@@ -82,7 +83,7 @@ namespace TERC20Wrapper {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20wrapperDb";
+        std::string dbName = testDumpPath + "/erc20wrapperDb";
         initialize(options, db, contractManager, dbName, ownerPrivKey);
         for (const auto& [name, address] : contractManager->getContracts()) {
           if (name == "ERC20") {
@@ -96,7 +97,7 @@ namespace TERC20Wrapper {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20wrapperDb";
+      std::string dbName = testDumpPath + "/erc20wrapperDb";
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       for (const auto& [name, address] : contractManager->getContracts()) {
@@ -116,7 +117,7 @@ namespace TERC20Wrapper {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20wrapperDb";
+        std::string dbName = testDumpPath + "/erc20wrapperDb";
         initialize(options, db, contractManager, dbName, ownerPrivKey);
         for (const auto &[name, address]: contractManager->getContracts()) {
           if (name == "ERC20") {
@@ -215,7 +216,7 @@ namespace TERC20Wrapper {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20wrapperDb";
+      std::string dbName = testDumpPath + "/erc20wrapperDb";
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       ABI::Encoder::EncVar getAllowanceVars;
@@ -255,7 +256,7 @@ namespace TERC20Wrapper {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20wrapperDb";
+        std::string dbName = testDumpPath + "/erc20wrapperDb";
         initialize(options, db, contractManager, dbName, ownerPrivKey);
         for (const auto &[name, address]: contractManager->getContracts()) {
           if (name == "ERC20") {
@@ -393,7 +394,7 @@ namespace TERC20Wrapper {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20wrapperDb";
+      std::string dbName = testDumpPath + "/erc20wrapperDb";
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       ABI::Encoder::EncVar getAllowanceVars;
@@ -434,7 +435,7 @@ namespace TERC20Wrapper {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20wrapperDb";
+        std::string dbName = testDumpPath + "/erc20wrapperDb";
         initialize(options, db, contractManager, dbName, ownerPrivKey);
         for (const auto &[name, address]: contractManager->getContracts()) {
           if (name == "ERC20") {
@@ -579,7 +580,7 @@ namespace TERC20Wrapper {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20wrapperDb";
+      std::string dbName = testDumpPath + "/erc20wrapperDb";
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       ABI::Encoder::EncVar getAllowanceVars;
