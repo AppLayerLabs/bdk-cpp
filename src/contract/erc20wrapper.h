@@ -9,7 +9,6 @@
 #include "contractmanager.h"
 #include "dynamiccontract.h"
 #include "erc20.h"
-#include "variables/safeuint256_t.h"
 #include "variables/safeunorderedmap.h"
 
 /// Template for an ERC20Wrapper contract.

@@ -46,6 +46,7 @@ namespace Log {
   const std::string syncer = "Syncer";                             ///< String for `Syncer`.
 }
 
+/// Class for storing log information.
 class LogInfo {
   private:
     /// Log type.
@@ -94,7 +95,7 @@ public:
   inline const std::string& getMessage() const noexcept { return message_; };
 };
 
-
+/// Singleton class for logging.
 class Logger {
   private:
     /// Private constructor as it is a singleton.
@@ -170,17 +171,30 @@ class Logger {
     };
 
   public:
-    /// Post the log task to the queue.
+
+    /**
+    * Log debug data to the debug file.
+    * @param infoToLog The data to log.
+    */
     static inline void logToDebug(LogInfo&& infoToLog) noexcept {
       getInstance().postLogTask(std::move(infoToLog));
     }
 
-    /// Create and post the log task to the queue.
+    /**
+    * Log debug data to the debug file.
+    * @param type The type of the log.
+    * @param logSrc The source of the log.
+    * @param func The function name.
+    * @param message The message to log.
+    */
     static inline void logToDebug(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) noexcept {
       LogInfo log = LogInfo(type, logSrc, std::move(func), std::move(message));
       getInstance().postLogTask(std::move(log));
     }
 
+    /**
+    Destructor.
+    */
     ~Logger() {
       stopWorker_ = true;
       cv_.notify_one();
@@ -197,6 +211,7 @@ class Logger {
      * Get the current timestamp as string in the following format:
      * "%Y-%m-%d %H:%M:%S.ms"
      * "%Y-%m-%d %H:%M:%S.ms"
+      * @return The current timestamp as string.
      */
     static inline std::string getCurrentTimestamp() {
       auto now = std::chrono::system_clock::now();

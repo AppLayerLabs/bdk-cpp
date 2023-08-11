@@ -24,6 +24,7 @@
 #include "logger.h"
 
 #include "json.hpp"
+#include "src/contract/variables/safeuint.h"
 
 /// @file utils.h
 
@@ -36,20 +37,125 @@ using json = nlohmann::ordered_json;
 /// Typedef for bigint.
 using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
 
-/// Typedef for uint256_t.
-using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+using Byte = uint8_t; ///< Typedef for Byte.
+using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
+
+/// Typedef for uint24_t.
+using uint24_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<24, 24, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint40_t.
+using uint40_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<40, 40, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint48_t.
+using uint48_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<48, 48, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint56_t.
+using uint56_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<56, 56, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint72_t.
+using uint72_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<72, 72, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint80_t.
+using uint80_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<80, 80, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint88_t.
+using uint88_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<88, 88, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint96_t.
+using uint96_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<96, 96, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint104_t.
+using uint104_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<104, 104, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint112_t.
+using uint112_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<112, 112, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint120_t.  
+using uint120_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<120, 120, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
 /// Typedef for uint128_t.
 using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
+/// Typedef for uint136_t.
+using uint136_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<136, 136, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint144_t.
+using uint144_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<144, 144, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint152_t.
+using uint152_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<152, 152, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
 /// Typedef for uint160_t.
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
-/// Typedef for uint112_t
-using uint112_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<112, 112, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for uint168_t.
+using uint168_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<168, 168, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
-using Byte = uint8_t; ///< Typedef for Byte.
-using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
+/// Typedef for uint176_t.
+using uint176_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<176, 176, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint184_t.
+using uint184_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<184, 184, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint192_t.
+using uint192_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<192, 192, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint200_t.
+using uint200_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<200, 200, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint208_t.
+using uint208_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<208, 208, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint216_t.
+using uint216_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<216, 216, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint224_t.
+using uint224_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<224, 224, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint232_t.
+using uint232_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<232, 232, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint240_t.
+using uint240_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<240, 240, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint248_t.
+using uint248_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<248, 248, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for uint256_t.
+using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+using SafeUint8_t = SafeUint_t<8>; ///< Typedef for SafeUint8_t.
+using SafeUint16_t = SafeUint_t<16>; ///< Typedef for SafeUint16_t.
+using SafeUint24_t = SafeUint_t<24>; ///< Typedef for SafeUint24_t.
+using SafeUint32_t = SafeUint_t<32>; ///< Typedef for SafeUint32_t.
+using SafeUint40_t = SafeUint_t<40>; ///< Typedef for SafeUint40_t.
+using SafeUint48_t = SafeUint_t<48>; ///< Typedef for SafeUint48_t.
+using SafeUint56_t = SafeUint_t<56>; ///< Typedef for SafeUint56_t.
+using SafeUint64_t = SafeUint_t<64>; ///< Typedef for SafeUint64_t.
+using SafeUint72_t = SafeUint_t<72>; ///< Typedef for SafeUint72_t.
+using SafeUint80_t = SafeUint_t<80>; ///< Typedef for SafeUint80_t.
+using SafeUint88_t = SafeUint_t<88>; ///< Typedef for SafeUint88_t.
+using SafeUint96_t = SafeUint_t<96>; ///< Typedef for SafeUint96_t.
+using SafeUint104_t = SafeUint_t<104>; ///< Typedef for SafeUint104_t.
+using SafeUint112_t = SafeUint_t<112>; ///< Typedef for SafeUint112_t.
+using SafeUint120_t = SafeUint_t<120>; ///< Typedef for SafeUint120_t.
+using SafeUint128_t = SafeUint_t<128>; ///< Typedef for SafeUint128_t.
+using SafeUint136_t = SafeUint_t<136>; ///< Typedef for SafeUint136_t.
+using SafeUint144_t = SafeUint_t<144>; ///< Typedef for SafeUint144_t.
+using SafeUint152_t = SafeUint_t<152>; ///< Typedef for SafeUint152_t.
+using SafeUint160_t = SafeUint_t<160>; ///< Typedef for SafeUint160_t.
+using SafeUint168_t = SafeUint_t<168>; ///< Typedef for SafeUint168_t.
+using SafeUint176_t = SafeUint_t<176>; ///< Typedef for SafeUint176_t.
+using SafeUint184_t = SafeUint_t<184>; ///< Typedef for SafeUint184_t.
+using SafeUint192_t = SafeUint_t<192>; ///< Typedef for SafeUint192_t.
+using SafeUint200_t = SafeUint_t<200>; ///< Typedef for SafeUint200_t.
+using SafeUint208_t = SafeUint_t<208>; ///< Typedef for SafeUint208_t.
+using SafeUint216_t = SafeUint_t<216>; ///< Typedef for SafeUint216_t.
+using SafeUint224_t = SafeUint_t<224>; ///< Typedef for SafeUint224_t.
+using SafeUint232_t = SafeUint_t<232>; ///< Typedef for SafeUint232_t.
+using SafeUint240_t = SafeUint_t<240>; ///< Typedef for SafeUint240_t.
+using SafeUint248_t = SafeUint_t<248>; ///< Typedef for SafeUint248_t.
+using SafeUint256_t = SafeUint_t<256>; ///< Typedef for SafeUint256_t.
 
 /**
 * Struct for Bytes type that will be encoded in an function return.
@@ -78,12 +184,12 @@ using ethCallInfo = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, 
 using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, Bytes>;
 
 /**
- * Helper function for debugging failed operations over HTTP.
- * @param cl The class where the operation failed.
- * @param func The function where the operation failed.
- * @param ec Boost Beast error code.
- * @param what String explaining what exactly failed.
- */
+* Fail a function with a given message.
+* @param cl The class name.
+* @param func The function name.
+* @param ec The error code.
+* @param what The message to print.
+*/
 void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what);
 
 /// Enum for network type.
@@ -155,6 +261,126 @@ namespace Utils {
   BytesArr<32> uint256ToBytes(const uint256_t& i);
 
   /**
+  * Convert a 248-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 248-bit integer as a bytes string.
+  */
+  BytesArr<31> uint248ToBytes(const uint248_t& i);
+
+  /**
+  * Convert a 240-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 240-bit integer as a bytes string.
+  */
+  BytesArr<30> uint240ToBytes(const uint240_t& i);
+
+  /**
+  * Convert a 232-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 232-bit integer as a bytes string.
+  */
+  BytesArr<29> uint232ToBytes(const uint232_t& i);
+
+  /**
+  * Convert a 224-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 224-bit integer as a bytes string.
+  */
+  BytesArr<28> uint224ToBytes(const uint224_t& i);
+
+  /**
+  * Convert a 216-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 216-bit integer as a bytes string.
+  */
+  BytesArr<27> uint216ToBytes(const uint216_t& i);
+
+  /**
+  * Convert a 208-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 208-bit integer as a bytes string.
+  */
+  BytesArr<26> uint208ToBytes(const uint208_t& i);
+
+  /**
+  * Convert a 200-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 200-bit integer as a bytes string.
+  */
+  BytesArr<25> uint200ToBytes(const uint200_t& i);
+
+  /**
+  * Convert a 192-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 192-bit integer as a bytes string.
+  */
+  BytesArr<24> uint192ToBytes(const uint192_t& i);
+
+  /**
+  * Convert a 184-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 184-bit integer as a bytes string.
+  */
+  BytesArr<23> uint184ToBytes(const uint184_t& i);
+
+  /**
+  * Convert a 176-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 176-bit integer as a bytes string.
+  */
+  BytesArr<22> uint176ToBytes(const uint176_t& i);
+
+  /**
+  * Convert a 168-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 168-bit integer as a bytes string.
+  */
+  BytesArr<21> uint168ToBytes(const uint168_t& i);
+
+   /**
+   * Convert a 160-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 160-bit integer as a bytes string.
+   */
+  BytesArr<20> uint160ToBytes(const uint160_t& i);
+
+  /**
+  * Convert a 152-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 152-bit integer as a bytes string.
+  */
+  BytesArr<19> uint152ToBytes(const uint152_t& i);
+
+  /**
+  * Convert a 144-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 144-bit integer as a bytes string.
+  */
+  BytesArr<18> uint144ToBytes(const uint144_t& i);
+
+  /**
+  * Convert a 136-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 136-bit integer as a bytes string.
+  */
+  BytesArr<17> uint136ToBytes(const uint136_t& i);
+
+  /**
    * Convert a 128-bit unsigned integer to a bytes string.
    * Use `Hex()` to properly print it.
    * @param i The integer to convert.
@@ -163,12 +389,60 @@ namespace Utils {
   BytesArr<16> uint128ToBytes(const uint128_t& i);
 
   /**
-   * Convert a 160-bit unsigned integer to a bytes string.
+  * Convert a 120-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 120-bit integer as a bytes string.
+  */
+  BytesArr<15> uint120ToBytes(const uint120_t& i);
+
+  /**
+   * Convert a 112-bit unsigned integer to a bytes string.
    * Use `Hex()` to properly print it.
    * @param i The integer to convert.
-   * @return The converted 160-bit integer as a bytes string.
+   * @return The converted 112-bit integer as a bytes string.
    */
-  BytesArr<20> uint160ToBytes(const uint160_t& i);
+  BytesArr<14> uint112ToBytes(const uint112_t& i);
+
+  /**
+   * Convert a 104-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 104-bit integer as a bytes string.
+   */
+  BytesArr<13> uint104ToBytes(const uint104_t& i);
+
+  /**
+   * Convert a 96-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 96-bit integer as a bytes string.
+   */
+  BytesArr<12> uint96ToBytes(const uint96_t& i);
+
+  /**
+   * Convert a 88-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 88-bit integer as a bytes string.
+   */
+  BytesArr<11> uint88ToBytes(const uint88_t& i);
+
+  /**
+   * Convert a 80-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 80-bit integer as a bytes string.
+   */
+  BytesArr<10> uint80ToBytes(const uint80_t& i);
+
+  /**
+   * Convert a 72-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 72-bit integer as a bytes string.
+   */
+  BytesArr<9> uint72ToBytes(const uint72_t& i);
 
   /**
    * Convert a 112-bit unsigned integer to a bytes string.
@@ -187,12 +461,44 @@ namespace Utils {
   BytesArr<8> uint64ToBytes(const uint64_t& i);
 
   /**
+   * Convert a 56-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 56-bit integer as a bytes string.
+   */
+  BytesArr<7> uint56ToBytes(const uint56_t& i);
+
+  /**
+   * Convert a 48-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 48-bit integer as a bytes string.
+   */
+  BytesArr<6> uint48ToBytes(const uint48_t& i);
+
+  /**
+   * Convert a 40-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 40-bit integer as a bytes string.
+   */
+  BytesArr<5> uint40ToBytes(const uint40_t& i);
+
+  /**
    * Convert a 32-bit unsigned integer to a bytes string.
    * Use `Hex()` to properly print it.
    * @param i The integer to convert.
    * @return The converted 32-bit integer as a bytes string.
    */
   BytesArr<4> uint32ToBytes(const uint32_t& i);
+
+  /**
+   * Convert a 24-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 24-bit integer as a bytes string.
+   */
+  BytesArr<3> uint24ToBytes(const uint24_t& i);
 
   /**
    * Convert a 16-bit unsigned integer to a bytes string.
@@ -226,6 +532,126 @@ namespace Utils {
   uint256_t bytesToUint256(const BytesArrView b);
 
   /**
+  * Convert a bytes string to a 248-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 248-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint248_t bytesToUint248(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 240-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 240-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint240_t bytesToUint240(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 232-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 232-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint232_t bytesToUint232(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 224-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 224-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+
+  uint224_t bytesToUint224(const BytesArrView b);
+  /**
+  * Convert a bytes string to a 216-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 216-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+
+  uint216_t bytesToUint216(const BytesArrView b);
+  /**
+  * Convert a bytes string to a 208-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 208-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint208_t bytesToUint208(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 200-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 200-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint200_t bytesToUint200(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 192-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 192-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint192_t bytesToUint192(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 184-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 184-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint184_t bytesToUint184(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 176-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 176-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint176_t bytesToUint176(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 168-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 168-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint168_t bytesToUint168(const BytesArrView b);
+
+  /**
+    * Convert a bytes string to a 160-bit unsigned integer.
+    * @param b The bytes string to convert.
+    * @return The converted 160-bit integer.
+    * @throw std::runtime_error if string size is invalid.
+    */
+  uint160_t bytesToUint160(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 152-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 152-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint152_t bytesToUint152(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 144-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 144-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint144_t bytesToUint144(const BytesArrView b);
+
+  /**
+  * Convert a bytes string to a 136-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 136-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint136_t bytesToUint136(const BytesArrView b);
+
+  /**
    * Convert a bytes string to a 128-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 128-bit integer.
@@ -234,12 +660,60 @@ namespace Utils {
   uint128_t bytesToUint128(const BytesArrView b);
 
   /**
-   * Convert a bytes string to a 128-bit unsigned integer.
+  * Convert a bytes string to a 120-bit unsigned integer.
+  * @param b The bytes string to convert.
+  * @return The converted 120-bit integer.
+  * @throw std::runtime_error if string size is invalid.
+  */
+  uint120_t bytesToUint120(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 112-bit unsigned integer.
    * @param b The bytes string to convert.
-   * @return The converted 128-bit integer.
+   * @return The converted 112-bit integer.
    * @throw std::runtime_error if string size is invalid.
    */
-  uint160_t bytesToUint160(const BytesArrView b);
+  uint112_t bytesToUint112(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 104-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 104-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint104_t bytesToUint104(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 96-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 96-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint96_t bytesToUint96(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 88-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 88-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint88_t bytesToUint88(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 80-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 80-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint80_t bytesToUint80(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 72-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 72-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint72_t bytesToUint72(const BytesArrView b);
 
   /**
    * Convert a bytes string to a 112-bit unsigned integer.
@@ -258,12 +732,45 @@ namespace Utils {
   uint64_t bytesToUint64(const BytesArrView b);
 
   /**
+   * Convert a bytes string to a 56-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 56-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint56_t bytesToUint56(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 48-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 48-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint48_t bytesToUint48(const BytesArrView b);
+
+
+  /**
+   * Convert a bytes string to a 40-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 40-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint40_t bytesToUint40(const BytesArrView b);
+
+  /**
    * Convert a bytes string to a 32-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 32-bit integer.
    * @throw std::runtime_error if string size is invalid.
    */
   uint32_t bytesToUint32(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 24-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 24-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint24_t bytesToUint24(const BytesArrView b);
 
   /**
    * Convert a bytes string to a 16-bit unsigned integer.
