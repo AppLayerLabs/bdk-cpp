@@ -19,6 +19,7 @@ int main() {
   blockchain = std::make_unique<Blockchain>(blockchainPath);
   /// Start the blockchain syncing engine.
   std::signal(SIGINT, signalHandler);
+  std::signal(SIGHUP, signalHandler);
   blockchain->start();
   std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::hours(std::numeric_limits<int>::max()));
   return 0;
