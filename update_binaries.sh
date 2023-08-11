@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Build the binaries
+cd build_local_testnet
+make -j24
+
+# Copy the new binaries
+cd ..
+cp build_local_testnet/orbitersdkd-discovery local_testnet/orbitersdkd-discovery
+strip local_testnet/orbitersdkd-discovery
+cp build_local_testnet/orbitersdkd local_testnet/orbitersdkd
+strip local_testnet/orbitersdkd
+
+# Copy to respective folders
+cp local_testnet/orbitersdkd-discovery local_testnet/local_testnet_discovery/orbitersdkd-discovery
+
+cp local_testnet/orbitersdkd local_testnet/local_testnet_normal1/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_normal2/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_normal3/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_normal4/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_normal5/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_normal6/orbitersdkd
+
+cp local_testnet/orbitersdkd local_testnet/local_testnet_validator1/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_validator2/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_validator3/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_validator4/orbitersdkd
+cp local_testnet/orbitersdkd local_testnet/local_testnet_validator5/orbitersdkd

@@ -24,7 +24,7 @@ tmux kill-session -t local_testnet_discovery
 CLEAN=false # Clean the build folder
 DEPLOY=true # Deploy the executables to the local_testnet folder
 ONLY_DEPLOY=false # Only deploy, do not build
-DEBUG=ON # Build the project in debug mode
+DEBUG=OFF # Build the project in debug mode
 CORES=$(grep -c ^processor /proc/cpuinfo) # Number of cores for parallel build
 
 for arg in "$@"
@@ -110,6 +110,10 @@ if [ "$DEPLOY" = true ]; then
   ## Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory
   cp orbitersdkd ../local_testnet
   cp orbitersdkd-discovery ../local_testnet
+
+  ## Remove debug symbols (otherwise we end up with gigabytes of binaries)
+  strip ../local_testnet/orbitersdkd
+  strip ../local_testnet/orbitersdkd-discovery
 
   # Create the directories for the Validators and Discovery Node and copy the executables
   cd ../local_testnet
