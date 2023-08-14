@@ -189,13 +189,16 @@ struct ABIType<std::vector<T>> {
 };
 
 /**
-* Specialization for address.
+* Specialization for Address.
 */
 template <>
 struct ABIType<Address> {
   static constexpr Types value = Types::address; ///< ABI type is address.
 };
 
+/**
+* Specialization for std::vector<Address>.
+*/
 template <>
 struct ABIType<std::vector<Address>> {
   static constexpr Types value = Types::addressArr; ///< ABI type is address.
@@ -359,7 +362,7 @@ struct ABIType<uint128_t> {
 template <>
 struct ABIType<uint136_t> {
   static constexpr Types value = Types::uint136; ///< ABI type is uint136.
-};  
+};
 
 /**
 * Specialization for uint144_t.

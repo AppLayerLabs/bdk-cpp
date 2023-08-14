@@ -42,14 +42,14 @@ ContractManager::~ContractManager() {
 void ContractManager::updateState(const bool commitToState) {
   if (commitToState) {
     for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
-      rbegin->get().commit();
+      rbegin->get().commit(); // Commit all usedVars for good
     }
   } else {
     for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
-      rbegin->get().revert();
+      rbegin->get().revert(); // Revert all usedVars if one of them throws for whatever reason
     }
     for (const Address& badContract : this->factory->getRecentContracts()) {
-      this->contracts.erase(badContract);
+      this->contracts.erase(badContract); // Erase failed contract creations
     }
   }
   this->factory->clearRecentContracts();

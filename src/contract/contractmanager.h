@@ -75,20 +75,25 @@ class ContractManager : BaseContract {
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
 
-    /// Vector of variables that were used by contracts called by CM.
+    /**
+     * List of variables used by the current contract nested call chain.
+     * Acts as a buffer for atomic commit/revert operations on SafeVariables.
+     * Only holds variables for *one* nested call at a time. This means that
+     * once a given nested call chain ends, all variables currently in this
+     * list are either commited or reverted entirely, then the list itself
+     * is cleaned up so it can hold the variables of the next nested call.
+     */
     std::vector<std::reference_wrapper<SafeBase>> usedVars;
-
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;
 
     /**
      * Update the variables that were used by the contract.
-     * Called by ethCall functions and contract constructors.
-     * Flag is set by ContractManager, except for when throwing.
      * @param commitToState If `true`, commits the changes made to SafeVariables to the state.
-     *                      If `false`, just simulates the transaction.
-     *                      ContractManager is responsible for setting this.
+     *                      If `false`, reverts all changes instead.
+     *                      This is set by callContract() and/or validateCallContractWithTx(),
+     *                      depending on whether the call itself throws or not.
      */
     void updateState(const bool commitToState);
 
