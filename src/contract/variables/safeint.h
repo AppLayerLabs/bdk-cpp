@@ -148,26 +148,6 @@ public:
     }
 
     /**
-    * Addition operator.
-    * @param other The int_t to add.
-    * @throw std::overflow_error if an overflow happens.
-    * @throw std::underflow_error if an underflow happens.
-    * @return A new SafeInt_t with the result of the addition.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type 
-    operator+(const int_t& other) const {
-        check();
-        if ((other > 0) && (*valuePtr > std::numeric_limits<int_t>::max() - other)) {
-            throw std::overflow_error("Overflow in addition operation.");
-        }
-        if ((other < 0) && (*valuePtr < std::numeric_limits<int_t>::min() - other)) {
-            throw std::underflow_error("Underflow in addition operation.");
-        }
-        return SafeInt_t<Size>(*valuePtr + other);
-    }
-
-    /**
     * Subtraction operator.
     * @param other The SafeInt_t to subtract.
     * @throw std::overflow_error if an overflow happens.
@@ -193,26 +173,6 @@ public:
     * @return A new SafeInt_t with the result of the subtraction.
     */
     inline SafeInt_t<Size> operator-(const int_t& other) const {
-        check();
-        if ((other < 0) && (*valuePtr > std::numeric_limits<int_t>::max() + other)) {
-            throw std::overflow_error("Overflow in subtraction operation.");
-        }
-        if ((other > 0) && (*valuePtr < std::numeric_limits<int_t>::min() + other)) {
-            throw std::underflow_error("Underflow in subtraction operation.");
-        }
-        return SafeInt_t<Size>(*valuePtr - other);
-    }
-
-    /**
-    * Subtraction operator.
-    * @param other The int_t to subtract.
-    * @throw std::overflow_error if an overflow happens.
-    * @throw std::underflow_error if an underflow happens.
-    * @return A new SafeInt_t with the result of the subtraction.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator-(const int_t& other) const {
         check();
         if ((other < 0) && (*valuePtr > std::numeric_limits<int_t>::max() + other)) {
             throw std::overflow_error("Overflow in subtraction operation.");
@@ -268,30 +228,6 @@ public:
     }
 
     /**
-    * Multiplication operator.
-    * @param other The int_t to multiply.
-    * @throw std::overflow_error if an overflow happens.
-    * @throw std::underflow_error if an underflow happens.
-    * @throw std::domain_error if multiplying by 0.
-    * @return A new SafeInt_t with the result of the multiplication.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator*(const int_t& other) const {
-        check();
-        if (*valuePtr == 0 || other == 0) {
-            throw std::domain_error("Multiplication by zero.");
-        }
-        if (*valuePtr > std::numeric_limits<int_t>::max() / other) {
-            throw std::overflow_error("Overflow in multiplication operation.");
-        }
-        if (*valuePtr < std::numeric_limits<int_t>::min() / other) {
-            throw std::underflow_error("Underflow in multiplication operation.");
-        }
-        return SafeInt_t<Size>(*valuePtr * other);
-    }
-
-    /**
     * Division operator.
     * @param other The SafeInt_t to divide.
     * @throw std::domain_error if the other value is zero.
@@ -330,27 +266,6 @@ public:
     }
 
     /**
-    * Division operator.
-    * @param other The int_t to divide.
-    * @throw std::domain_error if the other value is zero.
-    * @throw std::overflow_error if division results in overflow.
-    * @return A new SafeInt_t with the result of the division.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator/(const int_t& other) const {
-        check();
-        if (other == 0) throw std::domain_error("Division by zero");
-
-        // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-        if (*valuePtr == std::numeric_limits<int_t>::min() && other == -1) {
-            throw std::overflow_error("Overflow in division operation.");
-        }
-
-        return SafeInt_t<Size>(*valuePtr / other);
-    }
-
-    /**
     * Modulus operator.
     * @param other The SafeInt_t to take the modulus by.
     * @throw std::domain_error if the other value is zero.
@@ -370,21 +285,6 @@ public:
     * @return A new SafeInt_t with the result of the modulus.
     */
     inline SafeInt_t<Size> operator%(const int_t& other) const {
-        check();
-        if (other == 0) throw std::domain_error("Modulus by zero");
-
-        return SafeInt_t<Size>(*valuePtr % other);
-    }
-
-    /**
-    * Modulus operator.
-    * @param other The int_t to take the modulus by.
-    * @throw std::domain_error if the other value is zero.
-    * @return A new SafeInt_t with the result of the modulus.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator%(const int_t& other) const {
         check();
         if (other == 0) throw std::domain_error("Modulus by zero");
 
@@ -412,18 +312,6 @@ public:
     }
 
     /**
-    * Bitwise AND operator.
-    * @param other The int_t to AND.
-    * @return A new SafeInt_t with the result of the AND.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator&(const int_t& other) const {
-        check();
-        return SafeInt_t<Size>(*valuePtr & other);
-    }
-
-    /**
     * Bitwise OR operator.
     * @param other The SafeInt_t to OR.
     * @return A new SafeInt_t with the result of the OR.
@@ -439,18 +327,6 @@ public:
     * @return A new SafeInt_t with the result of the OR.
     */
     inline SafeInt_t<Size> operator|(const int_t& other) const {
-        check();
-        return SafeInt_t<Size>(*valuePtr | other);
-    }
-
-    /**
-    * Bitwise OR operator.
-    * @param other The int_t to OR.
-    * @return A new SafeInt_t with the result of the OR.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator|(const int_t& other) const {
         check();
         return SafeInt_t<Size>(*valuePtr | other);
     }
@@ -476,18 +352,6 @@ public:
     }
 
     /**
-    * Bitwise XOR operator.
-    * @param other The int_t to XOR.
-    * @return A new SafeInt_t with the result of the XOR.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator^(const int_t& other) const {
-        check();
-        return SafeInt_t<Size>(*valuePtr ^ other);
-    }
-
-    /**
     * Left shift operator.
     * @param other The SafeInt_t indicating the number of positions to shift.
     * @return A new SafeInt_t with the result of the shift.
@@ -508,18 +372,6 @@ public:
     }
 
     /**
-    * Left shift operator.
-    * @param other The int_t indicating the number of positions to shift.
-    * @return A new SafeInt_t with the result of the shift.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator<<(const int_t& other) const {
-        check();
-        return SafeInt_t<Size>(*valuePtr << other);
-    }
-
-    /**
     * Right shift operator.
     * @param other The SafeInt_t indicating the number of positions to shift.
     * @return A new SafeInt_t with the result of the shift.
@@ -535,18 +387,6 @@ public:
     * @return A new SafeInt_t with the result of the shift.
     */
     inline SafeInt_t<Size> operator>>(const int_t& other) const {
-        check();
-        return SafeInt_t<Size>(*valuePtr >> other);
-    }
-
-    /**
-    * Right shift operator.
-    * @param other The int_t indicating the number of positions to shift.
-    * @return A new SafeInt_t with the result of the shift.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>>::type
-    operator>>(const int_t& other) const {
         check();
         return SafeInt_t<Size>(*valuePtr >> other);
     }
@@ -581,18 +421,6 @@ public:
     }
 
     /**
-    * Logical AND operator.
-    * @param other The int_t to AND.
-    * @return True if both values are non-zero, false otherwise.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, bool>::type
-    operator&&(const int_t& other) const {
-        check();
-        return (*valuePtr && other);
-    }
-
-    /**
     * Logical OR operator.
     * @param other The SafeInt_t to OR.
     * @return True if either value is non-zero, false otherwise.
@@ -608,18 +436,6 @@ public:
     * @return True if either value is non-zero, false otherwise.
     */
     inline bool operator||(const int_t& other) const {
-        check();
-        return (*valuePtr || other);
-    }
-
-    /**
-    * Logical OR operator.
-    * @param other The int_t to OR.
-    * @return True if either value is non-zero, false otherwise.
-    */
-    template<typename T = int_t>    
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, bool>::type
-    operator||(const int_t& other) const {
         check();
         return (*valuePtr || other);
     }
@@ -645,18 +461,6 @@ public:
     }
 
     /**
-    * Equality operator.
-    * @param other The int_t to compare to.
-    * @return True if the values are equal, false otherwise.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, bool>::type
-    operator==(const int_t& other) const {
-        check();
-        return (*valuePtr == other);
-    }
-
-    /**
     * Inequality operator.
     * @param other The SafeInt_t to compare to.
     * @return True if the values are not equal, false otherwise.
@@ -672,18 +476,6 @@ public:
     * @return True if the values are not equal, false otherwise.
     */
     inline bool operator!=(const int_t& other) const {
-        check();
-        return (*valuePtr != other);
-    }
-
-    /**
-    * Inequality operator.
-    * @param other The int_t to compare to.
-    * @return True if the values are not equal, false otherwise.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, bool>::type
-    operator!=(const int_t& other) const {
         check();
         return (*valuePtr != other);
     }
@@ -709,18 +501,6 @@ public:
     }
 
     /**
-    * Less than operator.
-    * @param other The int_t to compare to.
-    * @return True if the value is less than the other value, false otherwise.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, bool>::type
-    operator<(const int_t& other) const {
-        check();
-        return (*valuePtr < other);
-    }
-
-    /**
     * Less than or equal to operator.
     * @param other The SafeInt_t to compare to.
     * @return True if the value is less than or equal to the other value, false otherwise.
@@ -736,18 +516,6 @@ public:
     * @return True if the value is less than or equal to the other value, false otherwise.
     */
     inline bool operator<=(const int_t& other) const {
-        check();
-        return (*valuePtr <= other);
-    }
-
-    /**
-    * Less than or equal to operator.
-    * @param other The int_t to compare to.
-    * @return True if the value is less than or equal to the other value, false otherwise.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, bool>::type
-    operator<=(const int_t& other) const {
         check();
         return (*valuePtr <= other);
     }
@@ -773,18 +541,6 @@ public:
     }
 
     /**
-    * Greater than operator.
-    * @param other The int_t to compare to.
-    * @return True if the value is greater than the other value, false otherwise.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, bool>::type
-    operator>(const int_t& other) const {
-        check();
-        return (*valuePtr > other);
-    }
-
-    /**
     * Greater than or equal to operator.
     * @param other The SafeInt_t to compare to.
     * @return True if the value is greater than or equal to the other value, false otherwise.
@@ -800,18 +556,6 @@ public:
     * @return True if the value is greater than or equal to the other value, false otherwise.
     */
     inline bool operator>=(const int_t& other) const {
-        check();
-        return (*valuePtr >= other);
-    }
-
-    /**
-    * Greater than or equal to operator.
-    * @param other The int_t to compare to.
-    * @return True if the value is greater than or equal to the other value, false otherwise.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, bool>::type
-    operator>=(const int_t& other) const {
         check();
         return (*valuePtr >= other);
     }
@@ -834,20 +578,6 @@ public:
     * @return A reference to this SafeInt_t.
     */
     inline SafeInt_t<Size>& operator=(const int_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr = other;
-        return *this;
-    }
-
-    /**
-    * Assignment operator.
-    * @param other The int_t to assign.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator=(const int_t& other) {
         check();
         markAsUsed();
         *valuePtr = other;
@@ -878,26 +608,6 @@ public:
     * @return A reference to this SafeInt_t.
     */
     inline SafeInt_t<Size>& operator+=(const int_t& other) {
-        check();
-        if ((other > 0) && (*valuePtr > std::numeric_limits<int_t>::max() - other)) {
-            throw std::overflow_error("Overflow in addition assignment operation.");
-        }
-        if ((other < 0) && (*valuePtr < std::numeric_limits<int_t>::min() - other)) {
-            throw std::underflow_error("Underflow in addition assignment operation.");
-        }
-        markAsUsed();
-        *valuePtr += other;
-        return *this;
-    }
-
-    /**
-    * Addition assignment operator.
-    * @param other The int_t to add.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator+=(const int_t& other) {
         check();
         if ((other > 0) && (*valuePtr > std::numeric_limits<int_t>::max() - other)) {
             throw std::overflow_error("Overflow in addition assignment operation.");
@@ -947,26 +657,6 @@ public:
     }
 
     /**
-    * Subtraction assignment operator.
-    * @param other The int_t to subtract.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator-=(const int_t& other) {
-        check();
-        if ((other < 0) && (*valuePtr > std::numeric_limits<int_t>::max() + other)) {
-            throw std::overflow_error("Overflow in subtraction assignment operation.");
-        }
-        if ((other > 0) && (*valuePtr < std::numeric_limits<int_t>::min() + other)) {
-            throw std::underflow_error("Underflow in subtraction assignment operation.");
-        }
-        markAsUsed();
-        *valuePtr -= other;
-        return *this;
-    }
-
-    /**
     * Multiplication assignment operator.
     * @param other The SafeInt_t to multiply.
     * @return A reference to this SafeInt_t.
@@ -990,26 +680,6 @@ public:
     * @return A reference to this SafeInt_t.
     */
     inline SafeInt_t<Size>& operator*=(const int_t& other) {
-        check();
-        if (*valuePtr > std::numeric_limits<int_t>::max() / other) {
-            throw std::overflow_error("Overflow in multiplication assignment operation.");
-        }
-        if (*valuePtr < std::numeric_limits<int_t>::min() / other) {
-            throw std::underflow_error("Underflow in multiplication assignment operation.");
-        }
-        markAsUsed();
-        *valuePtr *= other;
-        return *this;
-    }
-
-    /**
-    * Multiplication assignment operator.
-    * @param other The int_t to multiply.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator*=(const int_t& other) {
         check();
         if (*valuePtr > std::numeric_limits<int_t>::max() / other) {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
@@ -1061,27 +731,6 @@ public:
     }
 
     /**
-    * Division assignment operator.
-    * @param other The int_t to divide.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator/=(const int_t& other) {
-        check();
-        if (other == 0) throw std::domain_error("Division assignment by zero.");
-
-        // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-        if (*valuePtr == std::numeric_limits<int_t>::min() && other == -1) {
-            throw std::overflow_error("Overflow in division assignment operation.");
-        }
-
-        markAsUsed();
-        *valuePtr /= other;
-        return *this;
-    }
-
-    /**
     * Modulus assignment operator.
     * @param other The SafeInt_t to take the modulus by.
     * @return A reference to this SafeInt_t.
@@ -1100,21 +749,6 @@ public:
     * @return A reference to this SafeInt_t.
     */
     inline SafeInt_t<Size>& operator%=(const int_t& other) {
-        check();
-        if (other == 0) throw std::domain_error("Modulus assignment by zero.");
-        markAsUsed();
-        *valuePtr %= other;
-        return *this;
-    }
-
-    /**
-    * Modulus assignment operator.
-    * @param other The int_t to take the modulus by.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator%=(const int_t& other) {
         check();
         if (other == 0) throw std::domain_error("Modulus assignment by zero.");
         markAsUsed();
@@ -1147,20 +781,6 @@ public:
     }
 
     /**
-    * Bitwise AND assignment operator.
-    * @param other The int_t to AND.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator&=(const int_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr &= other;
-        return *this;
-    }
-
-    /**
     * Bitwise OR assignment operator.
     * @param other The SafeInt_t to OR.
     * @return A reference to this SafeInt_t.
@@ -1178,20 +798,6 @@ public:
     * @return A reference to this SafeInt_t.
     */
     inline SafeInt_t<Size>& operator|=(const int_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr |= other;
-        return *this;
-    }
-
-    /**
-    * Bitwise OR assignment operator.
-    * @param other The int_t to OR.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator|=(const int_t& other) {
         check();
         markAsUsed();
         *valuePtr |= other;
@@ -1223,20 +829,6 @@ public:
     }
 
     /**
-    * Bitwise XOR assignment operator.
-    * @param other The int_t to XOR.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator^=(const int_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr ^= other;
-        return *this;
-    }
-
-    /**
     * Left shift assignment operator.
     * @param other The SafeInt_t indicating the number of positions to shift.
     * @return A reference to this SafeInt_t.
@@ -1261,20 +853,6 @@ public:
     }
 
     /**
-    * Left shift assignment operator.
-    * @param other The int_t indicating the number of positions to shift.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator<<=(const int_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr <<= other;
-        return *this;
-    }
-
-    /**
     * Right shift assignment operator.
     * @param other The SafeInt_t indicating the number of positions to shift.
     * @return A reference to this SafeInt_t.
@@ -1292,20 +870,6 @@ public:
     * @return A reference to this SafeInt_t.
     */
     inline SafeInt_t<Size>& operator>>=(const int_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr >>= other;
-        return *this;
-    }
-
-    /**
-    * Right shift assignment operator.
-    * @param other The int_t indicating the number of positions to shift.
-    * @return A reference to this SafeInt_t.
-    */
-    template<typename T = int_t>
-    inline typename std::enable_if<std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
-    operator>>=(const int_t& other) {
         check();
         markAsUsed();
         *valuePtr >>= other;
