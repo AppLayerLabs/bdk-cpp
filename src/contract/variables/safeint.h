@@ -973,9 +973,6 @@ public:
     */
     inline SafeInt_t<Size>& operator*=(const SafeInt_t<Size>& other) {
         check();
-        if (*valuePtr == 0 || other.get() == 0) {
-            throw std::domain_error("Multiplication assignment by zero.");
-        }
         if (*valuePtr > std::numeric_limits<int_t>::max() / other.get()) {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
@@ -994,9 +991,6 @@ public:
     */
     inline SafeInt_t<Size>& operator*=(const int_t& other) {
         check();
-        if (*valuePtr == 0 || other == 0) {
-            throw std::domain_error("Multiplication assignment by zero.");
-        }
         if (*valuePtr > std::numeric_limits<int_t>::max() / other) {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
@@ -1017,9 +1011,6 @@ public:
     inline typename std::enable_if<!std::is_same<T, int64_t>::value, SafeInt_t<Size>&>::type
     operator*=(const int_t& other) {
         check();
-        if (*valuePtr == 0 || other == 0) {
-            throw std::domain_error("Multiplication assignment by zero.");
-        }
         if (*valuePtr > std::numeric_limits<int_t>::max() / other) {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
