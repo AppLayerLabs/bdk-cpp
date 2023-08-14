@@ -101,7 +101,7 @@ namespace DEXV2Library {
    */
    std::vector<uint256_t> getAmountsIn(
      const ContractManagerInterface& interface, const Address& factory,
-     const uint256_t& amountIn, const std::vector<Address>& path
+     const uint256_t& amountOut, const std::vector<Address>& path
    );
 }
 

@@ -12,6 +12,7 @@ ContractManager::ContractManager(
   rdpos(rdpos),
   options(options),
   factory(std::make_unique<ContractFactory>(*this)),
+  callState(std::make_unique<ContractCallState>()),
   interface(std::make_unique<ContractManagerInterface>(*this))
 {
   this->factory->registerContracts<ContractTypes>();
@@ -41,19 +42,15 @@ ContractManager::~ContractManager() {
 
 void ContractManager::updateState(const bool commitToState) {
   if (commitToState) {
-    for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
-      rbegin->get().commit(); // Commit all usedVars for good
-    }
+    this->callState->commitUsedVars();
   } else {
-    for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
-      rbegin->get().revert(); // Revert all usedVars if one of them throws for whatever reason
-    }
+    this->callState->revertUsedVars();
     for (const Address& badContract : this->factory->getRecentContracts()) {
       this->contracts.erase(badContract); // Erase failed contract creations
     }
   }
   this->factory->clearRecentContracts();
-  this->usedVars.clear();
+  this->callState->clearUsedVars();
 }
 
 Address ContractManager::deriveContractAddress() const {
@@ -87,7 +84,6 @@ Bytes ContractManager::getDeployedContracts() const {
   return ABI::Encoder(vars).getData();
 }
 
-
 void ContractManager::ethCall(const ethCallInfo& callInfo) {
   Functor functor = std::get<5>(callInfo);
   std::function<void(const ethCallInfo&)> f;
@@ -116,12 +112,12 @@ void ContractManager::callContract(const TxBlock& tx) {
     } catch (std::exception &e) {
       this->commit = false;
       this->updateState(false);
-      balances.clear();
+      this->callState->clearBalances();
       throw std::runtime_error(e.what());
     }
     this->updateState(true);
     this->commit = false;
-    balances.clear();
+    this->callState->clearBalances();
     return;
   }
 
@@ -135,18 +131,18 @@ void ContractManager::callContract(const TxBlock& tx) {
     } catch (std::exception &e) {
       rdpos->commit = false;
       this->updateState(false);
-      balances.clear();
+      this->callState->clearBalances();
       throw std::runtime_error(e.what());
     }
     rdpos->commit = false;
     this->updateState(true);
-    balances.clear();
+    this->callState->clearBalances();
     return;
   }
 
   std::unique_lock lock(this->contractsMutex);
   if (!this->contracts.contains(to)) {
-    balances.clear();
+    this->callState->clearBalances();
     throw std::runtime_error("Contract does not exist");
   }
 
@@ -160,13 +156,14 @@ void ContractManager::callContract(const TxBlock& tx) {
   } catch (std::exception &e) {
     contract->commit = false;
     this->updateState(false);
-    balances.clear();
+    this->callState->clearBalances();
     throw std::runtime_error(e.what());
   }
 
-  if (contract->isPayableFunction(functor)) this->state->processContractPayable(this->balances);
-
-  balances.clear();
+  if (contract->isPayableFunction(functor)) {
+    this->state->processContractPayable(this->callState->getBalances());
+  }
+  this->callState->clearBalances();
   this->updateState(true);
   contract->commit = false;
 }
@@ -195,14 +192,14 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     if (this->getValue()) {
       // Payable, we need to "add" the balance to the contract
       this->interface->populateBalance(to);
-      this->balances[to] += value;
+      this->callState->addBalance(to, value);
     }
     if (to == this->getContractAddress()) {
       this->caller = from;
       this->origin = from;
       this->value = value;
       this->ethCall(callInfo);
-      balances.clear();
+      this->callState->clearBalances();
       this->updateState(false);
       return true;
     }
@@ -213,13 +210,16 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       rdpos->value = value;
       rdpos->commit = false;
       rdpos->ethCall(callInfo);
-      balances.clear();
+      this->callState->clearBalances();
       this->updateState(false);
       return true;
     }
 
     std::shared_lock lock(this->contractsMutex);
-    if (!this->contracts.contains(to)) { balances.clear(); return false; }
+    if (!this->contracts.contains(to)) {
+      this->callState->clearBalances();
+      return false;
+    }
     const auto &contract = contracts.at(to);
     contract->caller = from;
     contract->origin = from;
@@ -227,12 +227,12 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     contract->commit = false;
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
-    balances.clear();
+    this->callState->clearBalances();
     this->updateState(false);
     throw std::runtime_error(e.what());
   }
   this->updateState(false);
-  balances.clear();
+  this->callState->clearBalances();
   return true;
 }
 
@@ -263,23 +263,26 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
 }
 
 void ContractManagerInterface::populateBalance(const Address &address) const {
-  if (!this->manager.balances.contains(address)) {
+  if (!this->manager.callState->hasBalance(address)) {
     auto it = this->manager.state->accounts.find(address);
-    this->manager.balances[address] = (it != this->manager.state->accounts.end())
-      ? it->second.balance : 0;
+    this->manager.callState->setBalanceAt(address,
+      (it != this->manager.state->accounts.end()) ? it->second.balance : 0
+    );
   }
 }
 
 uint256_t ContractManagerInterface::getBalanceFromAddress(const Address& address) const {
   this->populateBalance(address);
-  return this->manager.balances[address];
+  return this->manager.callState->getBalanceAt(address);
 }
 
-void ContractManagerInterface::sendTokens(const Address& from, const Address& to, const uint256_t& amount) {
+void ContractManagerInterface::sendTokens(
+  const Address& from, const Address& to, const uint256_t& amount
+) {
   this->populateBalance(from);
   this->populateBalance(to);
-  if (this->manager.balances[to] < amount) throw std::runtime_error("Not enough balance");
-  this->manager.balances[from] -= amount;
-  this->manager.balances[to] += amount;
+  if (this->manager.callState->getBalanceAt(to) < amount) throw std::runtime_error("Not enough balance");
+  this->manager.callState->subBalance(from, amount);
+  this->manager.callState->addBalance(to, amount);
 }
 

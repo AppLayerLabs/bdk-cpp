@@ -7,6 +7,7 @@
 
 #include "abi.h"
 #include "contract.h"
+#include "contractcallstate.h"
 
 #include "../utils/db.h"
 #include "../utils/options.h"
@@ -42,18 +43,24 @@ const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
 class ContractManager : BaseContract {
   private:
     /**
-     * Raw pointer to the contract factory object.
+     * Raw pointer to the blockchain state object.
+     * Used if the contract is a payable function.
+     * Can be `nullptr` due to tests not requiring state (contract balance).
+     */
+    State* state;
+
+    /**
+     * Pointer to the contract factory object.
      * Responsible for actually creating the contracts and
      * deploying them in the contract manager.
      */
     std::unique_ptr<ContractFactory> factory;
 
     /**
-     * Raw pointer to the blockchain state object.
-     * Used if the contract is a payable function.
-     * Can be `nullptr` due to tests not requiring state (contract balance).
+     * Pointer to the call state object.
+     * Responsible for maintaining temporary dataused in contract call chains.
      */
-    State* state;
+    std::unique_ptr<ContractCallState> callState;
 
     /// Reference pointer to the rdPoS contract.
     const std::unique_ptr<rdPoS>& rdpos;
@@ -64,26 +71,8 @@ class ContractManager : BaseContract {
     /// Pointer to the contract manager's interface to be passed to DynamicContract.
     std::unique_ptr<ContractManagerInterface> interface;
 
-    /**
-     * Temporary map of balances within the chain.
-     * Used during callContract with a payable function.
-     * Cleared after the callContract function commited to the state on the end
-     * of callContract(TxBlock&) if everything was succesfull.
-     */
-    std::unordered_map<Address, uint256_t, SafeHash> balances;
-
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
-
-    /**
-     * List of variables used by the current contract nested call chain.
-     * Acts as a buffer for atomic commit/revert operations on SafeVariables.
-     * Only holds variables for *one* nested call at a time. This means that
-     * once a given nested call chain ends, all variables currently in this
-     * list are either commited or reverted entirely, then the list itself
-     * is cleaned up so it can hold the variables of the next nested call.
-     */
-    std::vector<std::reference_wrapper<SafeBase>> usedVars;
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;
@@ -261,7 +250,9 @@ class ContractManagerInterface {
      * Register a variable that was used a given contract.
      * @param variable Reference to the variable.
      */
-    inline void registerVariableUse(SafeBase& variable) { this->manager.usedVars.emplace_back(variable); }
+    inline void registerVariableUse(SafeBase& variable) {
+      this->manager.callState->addUsedVar(variable);
+    }
 
     /// Populate a given address with its balance from the State.
     void populateBalance(const Address& address) const;

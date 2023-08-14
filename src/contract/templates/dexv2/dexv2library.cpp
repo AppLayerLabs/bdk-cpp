@@ -65,11 +65,11 @@ namespace DEXV2Library {
 
   std::vector<uint256_t> getAmountsIn(
     const ContractManagerInterface& interface, const Address& factory,
-    const uint256_t& amountIn, const std::vector<Address>& path
+    const uint256_t& amountOut, const std::vector<Address>& path
   ) {
     if (path.size() < 2) throw std::runtime_error("DEXV2Library: INVALID_PATH");
     std::vector<uint256_t> amounts(path.size());
-    amounts[amounts.size() - 1] = amountIn;
+    amounts[amounts.size() - 1] = amountOut;
     for (size_t i = path.size() - 1; i > 0; i--) {
       auto reserves = getReserves(interface, factory, path[i - 1], path[i]);
       amounts[i - 1] = getAmountIn(amounts[i], reserves.first, reserves.second);
