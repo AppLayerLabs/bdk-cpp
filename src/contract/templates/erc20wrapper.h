@@ -4,12 +4,12 @@
 #include <memory>
 #include <tuple>
 
-#include "../utils/db.h"
-#include "abi.h"
-#include "contractmanager.h"
-#include "dynamiccontract.h"
+#include "../../utils/db.h"
+#include "../abi.h"
+#include "../contractmanager.h"
+#include "../dynamiccontract.h"
+#include "../variables/safeunorderedmap.h"
 #include "erc20.h"
-#include "variables/safeunorderedmap.h"
 
 /// Template for an ERC20Wrapper contract.
 class ERC20Wrapper : public DynamicContract {
@@ -29,7 +29,7 @@ class ERC20Wrapper : public DynamicContract {
     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
     */
     using ConstructorArguments = std::tuple<>;
-    
+
     /**
      * Constructor for loading contract from DB.
      * @param interface Reference to the contract manager interface.

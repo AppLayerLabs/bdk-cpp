@@ -3,24 +3,24 @@
 
 #include <memory>
 
-#include "../utils/contractreflectioninterface.h"
-#include "../utils/db.h"
-#include "../utils/utils.h"
-#include "abi.h"
-#include "dynamiccontract.h"
-#include "variables/reentrancyguard.h"
-#include "variables/safeaddress.h"
-#include "variables/safestring.h"
-#include "variables/safeuint.h"
-#include "variables/safeunorderedmap.h"
+#include "../../../utils/contractreflectioninterface.h"
+#include "../../../utils/db.h"
+#include "../../../utils/utils.h"
+#include "../../abi.h"
+#include "../../dynamiccontract.h"
+#include "../../variables/reentrancyguard.h"
+#include "../../variables/safeaddress.h"
+#include "../../variables/safestring.h"
+#include "../../variables/safeunorderedmap.h"
+#include "../erc20.h"
 #include "uq112x112.h"
-#include "erc20.h"
 
 /// Template for an DEXV2Pair contract.
 class DEXV2Pair : public ERC20 {
   protected:
     /// Solidity: uint public constant MINIMUM_LIQUIDITY;
     const uint256_t MINIMUM_LIQUIDITY = 1000;
+
     /// Solidity: address private _factory
     SafeAddress factory_;
 
@@ -51,37 +51,37 @@ class DEXV2Pair : public ERC20 {
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
 
-    /** Function to be called when transfering ERC20 tokens
-    * @param token The address of the token to transfer.
-    * @param to The address to transfer the tokens to.
-    * @param value The amount of tokens to transfer.
-    */
+    /**
+     * Function to be called when transfering ERC20 tokens.
+     * @param token The address of the token to transfer.
+     * @param to The address to transfer the tokens to.
+     * @param value The amount of tokens to transfer.
+     */
     void _safeTransfer(const Address& token, const Address& to, const uint256_t& value);
 
     /**
-     * Update reserves and, on the first call per block, price accumulators
+     * Update reserves and, on the first call per block, price accumulators.
      * Solidity counterpart: function _update(uint balance0, uint balance1, uint112 reserve0, uint112 reserve1) private
-     * @param balance0 The balance of token0
-     * @param balance1 The balance of token1
-     * @param reserve0 The reserve of token0
-     * @param reserve1 The reserve of token1
+     * @param balance0 The balance of token0.
+     * @param balance1 The balance of token1.
+     * @param reserve0 The reserve of token0.
+     * @param reserve1 The reserve of token1.
      */
     void _update(const uint256_t& balance0, const uint256_t& balance1, const uint256_t& reserve0, const uint256_t& reserve1);
 
     /**
-     * Mint the fee for DEX corresponding to the increase in sqrt(k)
-     * if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
-     * @return true if fee is on.
+     * Mint the fee for DEX corresponding to the increase in sqrt(k).
+     * If fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k).
+     * @return `true` if fee is on, `false` otherwise.
      */
-
     bool _mintFee(uint112_t reserve0, uint112_t reserve1);
 
   public:
-
     /**
-    * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
-    */
+     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+     */
     using ConstructorArguments = std::tuple<>;
+
     /**
      * Constructor for loading contract from DB.
      * @param interface Reference to the contract manager interface.
@@ -170,23 +170,25 @@ class DEXV2Pair : public ERC20 {
 
     /**
      * Mint an amount of ERC20 tokens to the specified address based on the current reserves.
-     * this low-level function should be called from a contract which performs important safety checks (router)
-     * Returns the amount of tokens minted.
+     * This low-level function should be called from a contract which performs important safety checks (router).
      * Solidity counterpart: function mint(address to) external lock returns (uint liquidity)
+     * @param to The address to mint tokens to.
+     * @return The amount of tokens minted.
      */
     uint256_t mint(const Address& to);
 
     /**
      * Burn an amount of ERC20 tokens and send the corresponding amounts of tokens to the specified addresses.
-     * this low-level function should be called from a contract which performs important safety checks (router)
-     * Returns std::tuple<uint256_t, uint256_t> (amount0, amount1) encoded in Bytes
+     * This low-level function should be called from a contract which performs important safety checks (router).
      * Solidity counterpart: function burn(address to) external lock returns (uint amount0, uint amount1)
+     * @param to The address to burn tokens from.
+     * @return std::tuple<uint256_t, uint256_t> (amount0, amount1) encoded in Bytes
      */
     BytesEncoded burn(const Address& to);
 
     /**
      * Swap an amount of ERC20 tokens for the other ERC20 token.
-     * this low-level function should be called from a contract which performs important safety checks (router)
+     * This low-level function should be called from a contract which performs important safety checks (router).
      * Solidity counterpart: function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock
      * Currently data is not supported.
      */
@@ -194,14 +196,12 @@ class DEXV2Pair : public ERC20 {
 
     /**
      * Skim an amount of ERC20 tokens from the reserves.
-     * this low-level function should be called from a contract which performs important safety checks (router)
+     * This low-level function should be called from a contract which performs important safety checks (router).
      * Solidity counterpart: function skim(address to) external
      */
     void skim(const Address& to);
 
-    /**
-     * Sync the reserves to the current balances.
-     */
+    /// Sync the reserves to the current balances.
     void sync();
 
     /// Register contract class via ContractReflectionInterface.
@@ -229,4 +229,4 @@ class DEXV2Pair : public ERC20 {
     }
 };
 
-#endif /// ERC20_H
+#endif // DEXV2PAIR_H

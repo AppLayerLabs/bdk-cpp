@@ -1,5 +1,5 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
-#include "../../src/contract/erc20.h"
+#include "../../src/contract/templates/erc20.h"
 #include "../../src/contract/abi.h"
 #include "../../src/utils/db.h"
 #include "../../src/utils/options.h"

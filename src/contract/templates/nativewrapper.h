@@ -3,14 +3,14 @@
 
 #include <memory>
 
-#include "../utils/db.h"
-#include "../utils/utils.h"
-#include "../utils/contractreflectioninterface.h"
-#include "abi.h"
-#include "dynamiccontract.h"
-#include "variables/safestring.h"
-#include "variables/safeuint.h"
-#include "variables/safeunorderedmap.h"
+#include "../../utils/db.h"
+#include "../../utils/utils.h"
+#include "../../utils/contractreflectioninterface.h"
+#include "../abi.h"
+#include "../dynamiccontract.h"
+#include "../variables/safestring.h"
+#include "../variables/safeuint.h"
+#include "../variables/safeunorderedmap.h"
 
 /// Template for a NativeWrapper contract.
 class NativeWrapper : public DynamicContract {
