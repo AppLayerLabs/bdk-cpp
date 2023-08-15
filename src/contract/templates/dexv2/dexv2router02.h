@@ -68,9 +68,7 @@ class DEXV2Router02 : public DynamicContract {
     bool ensure(const uint256_t& deadline);
 
   public:
-    /**
-     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
-     */
+    /// ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
     using ConstructorArguments = std::tuple<Address, Address>;
 
     /**
@@ -138,6 +136,7 @@ class DEXV2Router02 : public DynamicContract {
 
     /**
      * Add liquidity to a native token pair.
+     * Solidity counterpart: function addLiquidityNative(address token, uint256 amountTokenDesired, uint256 amountTokenMin, uint256 amountNativeMin, address to, uint256 deadline) external virtual override payable ensure(deadline) returns (uint amountToken, uint amountNative, uint liquidity)
      * @param token The address of the token to add liquidity to.
      * @param amountTokenDesired The amount of token to add to the pool.
      * @param amountTokenMin The minimum amount of token to add to the pool.

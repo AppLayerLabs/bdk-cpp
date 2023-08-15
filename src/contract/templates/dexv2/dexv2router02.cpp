@@ -182,7 +182,7 @@ BytesEncoded DEXV2Router02::addLiquidityNative(
   auto pair = DEXV2Library::pairFor(this->interface, this->factory_.get(), token, this->wrappedNative_.get());
   this->callContractFunction(token, &ERC20::transferFrom, this->getCaller(), pair, amountToken);
   this->callContractFunction(amountNative, this->wrappedNative_.get(), &NativeWrapper::deposit);
-  this->callContractFunction(this->wrappedNative_.get(), &ERC20::transferFrom, this->getCaller(), pair, amountNative);
+  this->callContractFunction(this->wrappedNative_.get(), &ERC20::transfer, pair, amountNative);
   auto liquidity = this->callContractFunction(pair, &DEXV2Pair::mint, to);
   // Refund dust Native, if any.
   if (this->getValue() > amountNative) this->sendTokens(

@@ -244,13 +244,13 @@ TxBlock createApproveTx(std::unique_ptr<State>& state, std::unique_ptr<Options>&
 
 namespace TDEXV2 {
   TEST_CASE("DEXV2 Test", "[contract][dexv2]") {
-
-    SECTION("Deploy DEXV2Router/Factory") {
+    SECTION("Deploy DEXV2Router/Factory with a single pair") {
       PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
       Address factory;
       Address router;
       Address wrapped;
+
       {
         std::unique_ptr<DB> db;
         std::unique_ptr<Storage> storage;
@@ -259,20 +259,9 @@ namespace TDEXV2 {
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "DEXV2NewContractsTest");
-        wrapped = createNewNative(
-          state, rdpos, storage, options,
-          "WSPARQ", "WSPARQ", 18
-          );
-
-        factory = createNewFactory(
-          state, rdpos, storage, options,
-          Address()
-          );
-
-        router = createNewRouter(
-          state, rdpos, storage, options,
-          factory, wrapped
-          );
+        wrapped = createNewNative(state, rdpos, storage, options, "WSPARQ", "WSPARQ", 18);
+        factory = createNewFactory(state, rdpos, storage, options, Address());
+        router = createNewRouter(state, rdpos, storage, options, factory, wrapped);
       }
 
       std::unique_ptr<DB> db;
@@ -284,17 +273,10 @@ namespace TDEXV2 {
       initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "DEXV2NewContractsTest");
 
       auto contracts = state->getContracts();
-
       for (const auto& contract : contracts) {
-        if (contract.first == "DEXV2Factory") {
-          REQUIRE(contract.second == factory);
-        }
-        if (contract.first == "DEXV2Router02") {
-          REQUIRE(contract.second == router);
-        }
-        if (contract.first == "NativeWrapper") {
-          REQUIRE(contract.second == wrapped);
-        }
+        if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
+        if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
+        if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
       }
     }
 
@@ -306,6 +288,7 @@ namespace TDEXV2 {
       Address wrapped;
       Address tokenA;
       Address tokenB;
+
       {
         std::unique_ptr<DB> db;
         std::unique_ptr<Storage> storage;
@@ -316,43 +299,28 @@ namespace TDEXV2 {
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "DEXV2NewContractsTest");
 
         std::cout << "Creating native contract" << std::endl;
-
-        wrapped = createNewNative(
-          state, rdpos, storage, options,
-          "WSPARQ", "WSPARQ", 18
-        );
+        wrapped = createNewNative(state, rdpos, storage, options, "WSPARQ", "WSPARQ", 18);
 
         std::cout << "Creating factory contract" << std::endl;
-
-        factory = createNewFactory(
-          state, rdpos, storage, options,
-          Address()
-        );
+        factory = createNewFactory(state, rdpos, storage, options, Address());
 
         std::cout << "Creating router contract" << std::endl;
-
-        router = createNewRouter(
-          state, rdpos, storage, options,
-          factory, wrapped
-        );
+        router = createNewRouter(state, rdpos, storage, options, factory, wrapped);
 
         std::cout << "Creating both ERC20 Tokens" << std::endl;
-
         tokenA = createNewERC20(
           state, rdpos, storage, options,
           "TokenA", "TKNA", 18, uint256_t("10000000000000000000000")
-          );
-
+        );
         tokenB = createNewERC20(
           state, rdpos, storage, options,
           "tokenB", "TKNB", 18, uint256_t("10000000000000000000000")
-          );
+        );
 
         std::cout << "Approving liquidity" << std::endl;
         auto approveATx = createApproveTx(
           state, options, ownerPrivKey, tokenA, router, uint256_t("10000000000000000000000")
         );
-
         auto approveBTx = createApproveTx(
           state, options, ownerPrivKey, tokenB, router, uint256_t("10000000000000000000000")
         );
@@ -366,7 +334,6 @@ namespace TDEXV2 {
         ).count() + 600;
 
         std::cout << "Add liquidity..." << std::endl;
-
         auto addLiquidityTx = createNewTransaction(
           ownerPrivKey,
           router,
@@ -385,25 +352,89 @@ namespace TDEXV2 {
         );
 
         auto newBlock2 = createValidBlock(rdpos, storage, {addLiquidityTx});
-
         REQUIRE(state->validateNextBlock(newBlock2));
-
         state->processNextBlock(std::move(newBlock2));
-
         std::cout << "Liquidity added... listing contracts..." << std::endl;
-
         for (const auto& contracts : state->getContracts()) {
           std::cout << "Contract type " << contracts.first << " is deployed at Address: " << contracts.second.hex() << std::endl;
         }
-
-
-
-
       }
     }
 
-   //SECTION("Deploy DEXV2 With a single pair and swap") {
+    SECTION("Deploy DEXV2 and add liquidity to token/native pair") {
+      PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
+      std::cout << "Owner address...: " << owner.hex() << std::endl;
+      Address factory;
+      Address router;
+      Address wrapped;
+      Address tokenA;
 
-   //}
+      {
+        std::unique_ptr<DB> db;
+        std::unique_ptr<Storage> storage;
+        std::unique_ptr<P2P::ManagerNormal> p2p;
+        std::unique_ptr<rdPoS> rdpos;
+        std::unique_ptr<State> state;
+        std::unique_ptr<Options> options;
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "DEXV2NewContractsTest");
+
+        std::cout << "Creating native contract" << std::endl;
+        wrapped = createNewNative(state, rdpos, storage, options, "WSPARQ", "WSPARQ", 18);
+
+        std::cout << "Creating factory contract" << std::endl;
+        factory = createNewFactory(state, rdpos, storage, options, Address());
+
+        std::cout << "Creating router contract" << std::endl;
+        router = createNewRouter(state, rdpos, storage, options, factory, wrapped);
+
+        std::cout << "Creating ERC20 Token" << std::endl;
+        tokenA = createNewERC20(
+          state, rdpos, storage, options,
+          "TokenA", "TKNA", 18, uint256_t("10000000000000000000000")
+        );
+
+        std::cout << "Approving liquidity" << std::endl;
+        auto approveATx = createApproveTx(
+          state, options, ownerPrivKey, tokenA, router, uint256_t("10000000000000000000000")
+        );
+
+        auto newBlock = createValidBlock(rdpos, storage, {approveATx});
+        REQUIRE(state->validateNextBlock(newBlock));
+        state->processNextBlock(std::move(newBlock));
+
+        uint256_t unixtimestamp = std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::system_clock::now().time_since_epoch()
+        ).count() + 600;
+
+        std::cout << std::endl << std::endl;
+        std::cout << "Add liquidity..." << std::endl;
+        // addLiquidityNative(address token, uint256 amountTokenDesired, uint256 amountTokenMin, uint256 amountNativeMin, address to, uint256 deadline)
+        auto addLiquidityTx = createNewTransaction(
+          ownerPrivKey,
+          router,
+          uint256_t("100000000000000000000"),
+          state,
+          options,
+          Hex::toBytes("0xc9e164e3"),
+          tokenA,                                                       // Token
+          uint256_t("100000000000000000000"),                           // amountTokenDesired
+          uint256_t("100000000000000000000"),                           // amountTokenMin
+          uint256_t("100000000000000000000"),                           // amountNativeMin
+          Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey)),        // to
+          unixtimestamp                                                 // deadline
+        );
+
+        REQUIRE_NOTHROW(state->estimateGas(addLiquidityTx.txToCallInfo()));
+        auto newBlock2 = createValidBlock(rdpos, storage, {addLiquidityTx});
+        REQUIRE(state->validateNextBlock(newBlock2));
+        state->processNextBlock(std::move(newBlock2));
+        std::cout << "Liquidity added... listing contracts..." << std::endl;
+        for (const auto& contracts : state->getContracts()) {
+          std::cout << "Contract type " << contracts.first << " is deployed at Address: " << contracts.second.hex() << std::endl;
+        }
+      }
+    }
   }
 }
+
