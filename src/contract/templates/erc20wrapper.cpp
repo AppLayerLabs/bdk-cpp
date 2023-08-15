@@ -37,15 +37,6 @@ ERC20Wrapper::~ERC20Wrapper() {
   this->db->putBatch(tokensAndBalancesBatch);
 }
 
-void ERC20Wrapper::registerContractFunctions() {
-  registerContract();
-  this->registerMemberFunction("getContractBalance", &ERC20Wrapper::getContractBalance, this);
-  this->registerMemberFunction("getUserBalance", &ERC20Wrapper::getUserBalance, this);
-  this->registerMemberFunction("withdraw", &ERC20Wrapper::withdraw, this);
-  this->registerMemberFunction("transferTo", &ERC20Wrapper::transferTo, this);
-  this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, this);
-}
-
 uint256_t ERC20Wrapper::getContractBalance(const Address& token) const {
   return this->callContractViewFunction(token, &ERC20::balanceOf, this->getContractAddress());
 }
@@ -85,5 +76,14 @@ void ERC20Wrapper::transferTo(const Address& token, const Address& to, const uin
 void ERC20Wrapper::deposit(const Address& token, const uint256_t& value) {
   this->callContractFunction(token, &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), value);
   this->_tokensAndBalances[token][this->getCaller()] += value;
+}
+
+void ERC20Wrapper::registerContractFunctions() {
+  registerContract();
+  this->registerMemberFunction("getContractBalance", &ERC20Wrapper::getContractBalance, this);
+  this->registerMemberFunction("getUserBalance", &ERC20Wrapper::getUserBalance, this);
+  this->registerMemberFunction("withdraw", &ERC20Wrapper::withdraw, this);
+  this->registerMemberFunction("transferTo", &ERC20Wrapper::transferTo, this);
+  this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, this);
 }
 
