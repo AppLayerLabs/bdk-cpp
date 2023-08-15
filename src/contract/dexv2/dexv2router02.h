@@ -144,6 +144,8 @@ class DEXV2Router02 : public DynamicContract {
      * @returns amountToken The amount of tokenA that was added to the pool.
      * @returns amountNative The amount of native tokens that was added to the pool.
      * @returns liquidity The amount of liquidity tokens minted.
+     * Solidity counterpart:
+     * function addLiquidityNative(address token, uint256 amountTokenDesired, uint256 amountTokenMin, uint256 amountNativeMin, address to, uint256 deadline) external virtual override payable ensure(deadline) returns (uint amountToken, uint amountNative, uint liquidity)
      */
     BytesEncoded addLiquidityNative(
       const Address& token,
