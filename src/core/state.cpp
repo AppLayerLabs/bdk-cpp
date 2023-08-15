@@ -13,6 +13,17 @@ contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
     // Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
+    {
+      // Initialize 0xfb207018effd6bed21fd8ef30c82295ff14ee187 with nonce 0
+      Address dev2(Hex::toBytes("0xFB207018EFFD6bed21FD8EF30C82295Ff14Ee187"));
+      // And balance 10000000000000000000000000000000000000000
+      uint256_t desiredBalance("10000000000000000000000000000000000000000");
+      Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
+      Utils::appendBytes(value,Utils::uintToBytes(desiredBalance));
+      value.insert(value.end(), 0x00);
+      db->put(dev2.get(), value, DBPrefix::nativeAccounts);
+      accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
+    }
     Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
     // See ~State for encoding
     uint256_t desiredBalance("1000000000000000000000");
@@ -20,18 +31,6 @@ contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
     Utils::appendBytes(value,Utils::uintToBytes(desiredBalance));
     value.insert(value.end(), 0x00);
     db->put(dev1.get(), value, DBPrefix::nativeAccounts);
-    accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
-  }
-  Utils::safePrint("accountsFromDB.size(): " + std::to_string(accountsFromDB.size()) + "\n");
-  if (accountsFromDB.size() == 2) { /// The local_testnet.zip has 2 accounts
-    // Initialize 0xfb207018effd6bed21fd8ef30c82295ff14ee187 with nonce 0
-    Address dev2(Hex::toBytes("0xFB207018EFFD6bed21FD8EF30C82295Ff14Ee187"));
-    // And balance 10000000000000000000000000000000000000000
-    uint256_t desiredBalance("10000000000000000000000000000000000000000");
-    Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-    Utils::appendBytes(value,Utils::uintToBytes(desiredBalance));
-    value.insert(value.end(), 0x00);
-    db->put(dev2.get(), value, DBPrefix::nativeAccounts);
     accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   }
 
