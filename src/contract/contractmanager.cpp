@@ -189,9 +189,11 @@ bool ContractManager::isPayable(const ethCallInfo& callInfo) const {
 bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
   try {
-    if (this->getValue()) {
+    if (value) {
       // Payable, we need to "add" the balance to the contract
+      this->interface->populateBalance(from);
       this->interface->populateBalance(to);
+      this->balances[from] -= value;
       this->balances[to] += value;
     }
     if (to == this->getContractAddress()) {
@@ -306,8 +308,8 @@ void ContractManagerInterface::sendTokens(const Address& from, const Address& to
   this->populateBalance(from);
   this->populateBalance(to);
 
-  if (this->contractManager.balances[to] < amount) {
-    throw std::runtime_error("Not enough balance");
+  if (this->contractManager.balances[from] < amount) {
+    throw std::runtime_error("ContractManager::sendTokens: Not enough balance");
   }
 
   this->contractManager.balances[from] -= amount;
