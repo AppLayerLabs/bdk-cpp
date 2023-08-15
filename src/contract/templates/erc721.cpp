@@ -119,7 +119,7 @@ Address ERC721::_getApproved(const uint256_t& tokenId) const {
 }
 
 Address ERC721::_update(const Address& to, const uint256_t& tokenId, const Address& auth) {
-  Address from = this->ownerOf(tokenId);
+  Address from = this->_ownerOf(tokenId);
   if (auth) {
     this->_checkAuthorized(from, auth, tokenId);
   }
