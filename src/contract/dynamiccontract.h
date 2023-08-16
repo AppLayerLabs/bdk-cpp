@@ -5,6 +5,7 @@
 #include "contract.h"
 #include "contractmanager.h"
 #include "../utils/safehash.h"
+#include "../utils/utils.h"
 
 /**
  * Template for a smart contract.
@@ -13,19 +14,12 @@
 class DynamicContract : public BaseContract {
   private:
     /**
-    * Variant type for the possible return types of a non-payable/payable function.
-    * The return type can be a single value or a vector of values.
-    */
-    typedef std::variant<uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>> ReturnType;
-
-    /**
     * Map of non-payable functions that can be called by the contract.
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-    Functor, std::function<ReturnType(const ethCallInfo& callInfo)>, SafeHash
+    Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
   > publicFunctions;
 
   /**
@@ -34,7 +28,7 @@ class DynamicContract : public BaseContract {
   * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
   */
   std::unordered_map<
-    Functor, std::function<ReturnType(const ethCallInfo& callInfo)>, SafeHash
+    Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
   > payableFunctions;
 
     /**
@@ -43,7 +37,7 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-      Functor, std::function<ReturnType(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
     > viewFunctions;
 
     /**
@@ -53,7 +47,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerFunction(const Functor& functor,
-                         std::function<ReturnType(const ethCallInfo& tx)> f) {
+                         std::function<BaseTypes(const ethCallInfo& tx)> f) {
       publicFunctions[functor] = f;
     }
 
@@ -82,8 +76,8 @@ class DynamicContract : public BaseContract {
         * @param memFunc Pointer to the member function.
         * @return A ReturnType object.
         */
-        static ReturnType createReturnType(T* instance, MemFunc memFunc) {
-            return ReturnType((instance->*memFunc)());
+        static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
+            return BaseTypes((instance->*memFunc)());
         }
     };
 
@@ -102,9 +96,9 @@ class DynamicContract : public BaseContract {
         * @return A ReturnType object (default constructed).
         * TODO: Decide if this is the best way to handle void functions.
         */
-        static ReturnType createReturnType(T* instance, MemFunc memFunc) {
+        static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
             (instance->*memFunc)();
-            return ReturnType{};
+            return BaseTypes{};
         }
     };
 
@@ -125,18 +119,18 @@ class DynamicContract : public BaseContract {
 
       const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
         {"view", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
-            return ReturnType{(instance->*memFunc)()};
+          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
+            return BaseTypes{(instance->*memFunc)()};
           });
         }},
         {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
-            return ReturnType{(instance->*memFunc)()};
+          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
+            return BaseTypes{(instance->*memFunc)()};
           });
         }},
         {"payable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
-            return ReturnType{(instance->*memFunc)()};
+          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
+            return BaseTypes{(instance->*memFunc)()};
           });
         }}
       };
@@ -167,12 +161,12 @@ class DynamicContract : public BaseContract {
       const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
         {"view", []() { throw std::runtime_error("View must be const because it does not modify the state."); }},
         {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
+          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
              return RegisterHelper<R, T>::createReturnType(instance, memFunc);
           });
         }},
         {"payable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> ReturnType {
+          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
              return RegisterHelper<R, T>::createReturnType(instance, memFunc);
           });
         }}
@@ -199,7 +193,7 @@ class DynamicContract : public BaseContract {
      */
     template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(
       T* instance, R(T::*memFunc)(Args...), const std::vector<std::any>& dataVec, std::index_sequence<Is...>
-    ) -> std::conditional_t<std::is_void<R>::value, ReturnType, R> {
+    ) -> std::conditional_t<std::is_void<R>::value, BaseTypes, R> {
       if (sizeof...(Args) > dataVec.size()) {
         throw std::runtime_error(
           "Not enough arguments provided for function. Expected: " +
@@ -214,7 +208,7 @@ class DynamicContract : public BaseContract {
         } else {
           // If R is void, perform the function call but then return an empty variant
           (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
-          return ReturnType{};
+          return BaseTypes{};
         }
       } catch (const std::bad_any_cast& ex) {
         std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
@@ -295,7 +289,7 @@ class DynamicContract : public BaseContract {
         }
       }
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
-        return ReturnType(result);
+        return BaseTypes(result);
       };
 
       if (methodMutability == "view") {
@@ -330,7 +324,7 @@ class DynamicContract : public BaseContract {
 
       std::string fullSignature = fullSignatureStream.str();
 
-      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> ReturnType {
+      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> BaseTypes {
         std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
@@ -343,7 +337,7 @@ class DynamicContract : public BaseContract {
         }
       }
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
-        return ReturnType(result);
+        return BaseTypes(result);
       };
 
       if (methodMutability == "view") {
@@ -364,7 +358,7 @@ class DynamicContract : public BaseContract {
      */
     void registerPayableFunction(
     const Functor& functor,
-          std::function<ReturnType(const ethCallInfo& tx)> f) {
+          std::function<BaseTypes(const ethCallInfo& tx)> f) {
     payableFunctions[functor] = f;
   }
 
@@ -374,7 +368,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerViewFunction(
-      const Functor& functor, std::function<ReturnType(const ethCallInfo& str)> f
+      const Functor& functor, std::function<BaseTypes(const ethCallInfo& str)> f
     ) {
       viewFunctions[functor] = f;
     }
@@ -454,7 +448,7 @@ class DynamicContract : public BaseContract {
         auto func = this->viewFunctions.find(funcName);
         if (func == this->viewFunctions.end()) throw std::runtime_error("Functor not found");
 
-        ReturnType result = func->second(data);
+        BaseTypes result = func->second(data);
 
         if (std::holds_alternative<BytesEncoded>(result)) {
           return std::get<BytesEncoded>(result).data;

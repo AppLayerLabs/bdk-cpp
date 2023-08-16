@@ -818,10 +818,7 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     public:
       /// Alias for variant type, for easier handling.
-      typedef std::vector<std::variant<
-        uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>
-      >> EncVar;
+      typedef std::vector<BaseTypes> EncVar;
 
       /**
        * Constructor.
