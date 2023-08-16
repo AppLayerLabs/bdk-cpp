@@ -850,10 +850,7 @@ Types inline getABIEnumFromString(const std::string& type) {
   class Decoder {
     private:
       /// List with the decoded native data types.
-      std::vector<std::variant<
-        uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, Bytes, std::vector<Bytes>, std::string, std::vector<std::string>
-      >> data_;
+      std::vector<BaseTypes> data_;
 
       /**
        * Decode a 256-bit unsigned integer from the given Solidity data string.
