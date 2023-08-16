@@ -232,42 +232,13 @@ template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for 
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
 
-using BaseTypes = std::variant<
-      int8_t, uint8_t, std::vector<int8_t>,
-      int16_t, uint16_t, std::vector<int16_t>, std::vector<uint16_t>,
-      int24_t, uint24_t, std::vector<int24_t>, std::vector<uint24_t>,
-      int32_t, uint32_t, std::vector<int32_t>, std::vector<uint32_t>,
-      int40_t, uint40_t, std::vector<int40_t>, std::vector<uint40_t>,
-      int48_t, uint48_t, std::vector<int48_t>, std::vector<uint48_t>,
-      int56_t, uint56_t, std::vector<int56_t>, std::vector<uint56_t>,
-      int64_t, uint64_t, std::vector<int64_t>, std::vector<uint64_t>,
-      int72_t, uint72_t, std::vector<int72_t>, std::vector<uint72_t>,
-      int80_t, uint80_t, std::vector<int80_t>, std::vector<uint80_t>,
-      int88_t, uint88_t, std::vector<int88_t>, std::vector<uint88_t>,
-      int96_t, uint96_t, std::vector<int96_t>, std::vector<uint96_t>,
-      int104_t, uint104_t, std::vector<int104_t>, std::vector<uint104_t>,
-      int112_t, uint112_t, std::vector<int112_t>, std::vector<uint112_t>,
-      int120_t, uint120_t, std::vector<int120_t>, std::vector<uint120_t>,
-      int128_t, uint128_t, std::vector<int128_t>, std::vector<uint128_t>,
-      int136_t, uint136_t, std::vector<int136_t>, std::vector<uint136_t>,
-      int144_t, uint144_t, std::vector<int144_t>, std::vector<uint144_t>,
-      int152_t, uint152_t, std::vector<int152_t>, std::vector<uint152_t>,
-      int160_t, uint160_t, std::vector<int160_t>, std::vector<uint160_t>,
-      int168_t, uint168_t, std::vector<int168_t>, std::vector<uint168_t>,
-      int176_t, uint176_t, std::vector<int176_t>, std::vector<uint176_t>,
-      int184_t, uint184_t, std::vector<int184_t>, std::vector<uint184_t>,
-      int192_t, uint192_t, std::vector<int192_t>, std::vector<uint192_t>,
-      int200_t, uint200_t, std::vector<int200_t>, std::vector<uint200_t>,
-      int208_t, uint208_t, std::vector<int208_t>, std::vector<uint208_t>,
-      int216_t, uint216_t, std::vector<int216_t>, std::vector<uint216_t>,
-      int224_t, uint224_t, std::vector<int224_t>, std::vector<uint224_t>,
-      int232_t, uint232_t, std::vector<int232_t>, std::vector<uint232_t>,
-      int240_t, uint240_t, std::vector<int240_t>, std::vector<uint240_t>,
-      int248_t, uint248_t, std::vector<int248_t>, std::vector<uint248_t>,
-      int256_t, uint256_t, std::vector<int256_t>, std::vector<uint256_t>,
-      Address, std::vector<Address>,
-      bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>
-  >; ///< Typedef for SolidityArg.
+/**
+* Typedef for all the possible types that can be used in a function.
+* Based on Solidity types.
+* @note: Fixed point types are not supported yet, because they are not supported fully in Solidity.
+*/
+using BaseTypes = std::variant<uint256_t, std::vector<uint256_t>, Address, std::vector<Address>,
+        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>>;
 
 /**
  * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
