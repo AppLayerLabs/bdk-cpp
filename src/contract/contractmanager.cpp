@@ -141,12 +141,14 @@ void ContractManager::callContract(const TxBlock& tx) {
   }
 
   std::unique_lock lock(this->contractsMutex);
-  if (!this->contracts.contains(to)) {
+  auto it = this->contracts.find(to);
+
+  if (it == this->contracts.end()) {
     this->callState->clearBalances();
     throw std::runtime_error("Contract does not exist");
   }
 
-  const auto& contract = contracts.at(to);
+  const auto& contract = it->second;
   contract->caller = from;
   contract->origin = from;
   contract->value = value;
