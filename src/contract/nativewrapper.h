@@ -15,7 +15,7 @@
 
 /// Template for a NativeWrapper contract.
 class NativeWrapper : public ERC20 {
-  private:
+  protected:
     /// Function for calling the register functions for contracts
     void registerContractFunctions() override;
 
