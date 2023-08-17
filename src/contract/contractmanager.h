@@ -7,7 +7,6 @@
 
 #include "abi.h"
 #include "contract.h"
-#include "contractcallstate.h"
 
 #include "../utils/db.h"
 #include "../utils/options.h"
@@ -22,6 +21,7 @@
 class rdPoS;
 class State;
 class ContractFactory;
+class ContractCallState;
 class ContractManagerInterface;
 
 /**
@@ -58,9 +58,12 @@ class ContractManager : BaseContract {
 
     /**
      * Pointer to the call state object.
-     * Responsible for maintaining temporary dataused in contract call chains.
+     * Responsible for maintaining temporary data used in contract call chains.
      */
     std::unique_ptr<ContractCallState> callState;
+
+    /// Pointer to the contract manager's interface to be passed to DynamicContract.
+    std::unique_ptr<ContractManagerInterface> interface;
 
     /// Reference pointer to the rdPoS contract.
     const std::unique_ptr<rdPoS>& rdpos;
@@ -68,23 +71,11 @@ class ContractManager : BaseContract {
     /// Reference pointer to the options singleton.
     const std::unique_ptr<Options>& options;
 
-    /// Pointer to the contract manager's interface to be passed to DynamicContract.
-    std::unique_ptr<ContractManagerInterface> interface;
-
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;
-
-    /**
-     * Update the variables that were used by the contract.
-     * @param commitToState If `true`, commits the changes made to SafeVariables to the state.
-     *                      If `false`, reverts all changes instead.
-     *                      This is set by callContract() and/or validateCallContractWithTx(),
-     *                      depending on whether the call itself throws or not.
-     */
-    void updateState(const bool commitToState);
 
     /// Derive a new contract address based on transaction sender and nonce.
     Address deriveContractAddress() const;
@@ -232,6 +223,9 @@ class ContractManager : BaseContract {
 
     /// ContractFactory is a friend so it can access private members.
     friend class ContractFactory;
+
+    /// ContractCallState is a friend so it can access private members.
+    friend class ContractCallState;
 };
 
 /// Interface class for DynamicContract to access ContractManager and interact with other dynamic contracts.
@@ -250,9 +244,7 @@ class ContractManagerInterface {
      * Register a variable that was used a given contract.
      * @param variable Reference to the variable.
      */
-    inline void registerVariableUse(SafeBase& variable) {
-      this->manager.callState->addUsedVar(variable);
-    }
+    void registerVariableUse(SafeBase& variable);
 
     /// Populate a given address with its balance from the State.
     void populateBalance(const Address& address) const;

@@ -7,11 +7,18 @@
 #include "../utils/safehash.h"
 #include "../utils/strings.h"
 #include "../utils/utils.h"
-#include "variables/safebase.h"
+
+#include "contractmanager.h"
+
+// Forward declarations.
+class ContractManager;
 
 /// Class for managing contract nested call chains and their temporary data.
 class ContractCallState {
   private:
+    /// Pointer back to the contract manager.
+    ContractManager& manager;
+
     /**
      * Temporary map of balances within the chain.
      * Used during callContract with a payable function.
@@ -30,7 +37,42 @@ class ContractCallState {
      */
     std::vector<std::reference_wrapper<SafeBase>> usedVars;
 
+    /// Indicates if state changes should commit or revert upon destruction. Defaults to `false` (revert).
+    bool commit = false;
+
   public:
+    /**
+     * Constructor.
+     * @param manager Pointer back to the contract manager.
+     */
+    ContractCallState(ContractManager& manager) : manager(manager) {}
+
+    /**
+     * Destructor. Automatically updates the state when called.
+     * If `commit` is `true`, commits the changes made to SafeVariables to the state.
+     * If `commit` is `false`, reverts all changes instead.
+     * This is set by callContract() and/or validateCallContractWithTx(),
+     * depending on whether the call itself throws or not.
+     */
+    ~ContractCallState() {
+      if (this->commit) {
+        commitUsedVars();
+      } else {
+        revertUsedVars();
+        for (const Address& badContract : this->manager.factory->getRecentContracts()) {
+          this->manager.contracts.erase(badContract); // Erase failed contract creations
+        }
+      }
+      this->manager.factory->clearRecentContracts();
+      clearUsedVars();
+    }
+
+    /// Getter for `commit`.
+    const bool getCommit() const { return this->commit; }
+
+    /// Setter for `commit`.
+    void setCommit(bool b) { this->commit = b; }
+
     /// Getter for `balances`.
     std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances; }
 

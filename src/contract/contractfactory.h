@@ -1,14 +1,14 @@
 #ifndef CONTRACTFACTORY_H
 #define CONTRACTFACTORY_H
 
-#include "abi.h"
-#include "contract.h"
-#include "contractmanager.h"
-
 #include "../utils/safehash.h"
 #include "../utils/strings.h"
 #include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
+
+#include "abi.h"
+#include "contract.h"
+#include "contractmanager.h"
 
 /// Factory class that does the setup, creation and registration of contracts to the blockchain.
 class ContractFactory {
