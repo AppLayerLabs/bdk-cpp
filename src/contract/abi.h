@@ -13,70 +13,8 @@ namespace ABI {
   /**
  * Enum for the types of Solidity variables.
  * Equivalency is as follows:
- * - uint8 = uint8 (Solidity) = uint8_t (C++)
- * - uint8Arr = uint8[] (Solidity) = std::vector<uint8_t> (C++)
- * - uint16 = uint16 (Solidity) = uint16_t (C++)
- * - uint16Arr = uint16[] (Solidity) = std::vector<uint16_t> (C++)
- * - uint24 = uint24 (Solidity) = uint24_t (C++)
-  * - uint24Arr = uint24[] (Solidity) = std::vector<uint24_t> (C++)
- * - uint32 = uint32 (Solidity) = uint32_t (C++)
- * - uint32Arr = uint32[] (Solidity) = std::vector<uint32_t> (C++)
- * - uint40 = uint40 (Solidity) = uint40_t (C++)
- * - uint40Arr = uint40[] (Solidity) = std::vector<uint40_t> (C++)
- * - uint48 = uint48 (Solidity) = uint48_t (C++)
- * - uint48Arr = uint48[] (Solidity) = std::vector<uint48_t> (C++)
- * - uint56 = uint56 (Solidity) = uint56_t (C++)
- * - uint56Arr = uint56[] (Solidity) = std::vector<uint56_t> (C++)
- * - uint64 = uint64 (Solidity) = uint64_t (C++)
- * - uint64Arr = uint64[] (Solidity) = std::vector<uint64_t> (C++)
- * - uint72 = uint72 (Solidity) = uint72_t (C++)
- * - uint72Arr = uint72[] (Solidity) = std::vector<uint72_t> (C++)
- * - uint80 = uint80 (Solidity) = uint80_t (C++)
- * - uint80Arr = uint80[] (Solidity) = std::vector<uint80_t> (C++)
- * - uint88 = uint88 (Solidity) = uint88_t (C++)
- * - uint88Arr = uint88[] (Solidity) = std::vector<uint88_t> (C++)
- * - uint96 = uint96 (Solidity) = uint96_t (C++)
- * - uint96Arr = uint96[] (Solidity) = std::vector<uint96_t> (C++)
- * - uint104 = uint104 (Solidity) = uint104_t (C++)
- * - uint104Arr = uint104[] (Solidity) = std::vector<uint104_t> (C++)
- * - uint112 = uint112 (Solidity) = uint112_t (C++)
- * - uint112Arr = uint112[] (Solidity) = std::vector<uint112_t> (C++)
- * - uint120 = uint120 (Solidity) = uint120_t (C++)
- * - uint120Arr = uint120[] (Solidity) = std::vector<uint120_t> (C++)
- * - uint128 = uint128 (Solidity) = uint128_t (C++)
- * - uint128Arr = uint128[] (Solidity) = std::vector<uint128_t> (C++)
- * - uint136 = uint136 (Solidity) = uint136_t (C++)
- * - uint136Arr = uint136[] (Solidity) = std::vector<uint136_t> (C++)
- * - uint144 = uint144 (Solidity) = uint144_t (C++)
- * - uint144Arr = uint144[] (Solidity) = std::vector<uint144_t> (C++)
- * - uint152 = uint152 (Solidity) = uint152_t (C++)
- * - uint152Arr = uint152[] (Solidity) = std::vector<uint152_t> (C++)
- * - uint160 = uint160 (Solidity) = uint160_t (C++)
- * - uint160Arr = uint160[] (Solidity) = std::vector<uint160_t> (C++)
- * - uint168 = uint168 (Solidity) = uint168_t (C++)
- * - uint168Arr = uint168[] (Solidity) = std::vector<uint168_t> (C++)
- * - uint176 = uint176 (Solidity) = uint176_t (C++)
- * - uint176Arr = uint176[] (Solidity) = std::vector<uint176_t> (C++)
- * - uint184 = uint184 (Solidity) = uint184_t (C++)
- * - uint184Arr = uint184[] (Solidity) = std::vector<uint184_t> (C++)
- * - uint192 = uint192 (Solidity) = uint192_t (C++)
- * - uint192Arr = uint192[] (Solidity) = std::vector<uint192_t> (C++)
- * - uint200 = uint200 (Solidity) = uint200_t (C++)
- * - uint200Arr = uint200[] (Solidity) = std::vector<uint200_t> (C++)
- * - uint208 = uint208 (Solidity) = uint208_t (C++)
- * - uint208Arr = uint208[] (Solidity) = std::vector<uint208_t> (C++)
- * - uint216 = uint216 (Solidity) = uint216_t (C++)
- * - uint216Arr = uint216[] (Solidity) = std::vector<uint216_t> (C++)
- * - uint224 = uint224 (Solidity) = uint224_t (C++)
- * - uint224Arr = uint224[] (Solidity) = std::vector<uint224_t> (C++)
- * - uint232 = uint232 (Solidity) = uint232_t (C++)
- * - uint232Arr = uint232[] (Solidity) = std::vector<uint232_t> (C++)
- * - uint240 = uint240 (Solidity) = uint240_t (C++)
- * - uint240Arr = uint240[] (Solidity) = std::vector<uint240_t> (C++)
- * - uint248 = uint248 (Solidity) = uint248_t (C++)
- * - uint248Arr = uint248[] (Solidity) = std::vector<uint248_t> (C++)
- * - uint256 = uint256 (Solidity) = uint256_t (C++)
- * - uint256Arr = uint256[] (Solidity) = std::vector<uint256_t> (C++)
+ * - uintn = uintn (Solidity) = uintn_t (C++), where n <= 256 and n % 8 == 0
+ * - uintnArr = uintn[] (Solidity) = std::vector<uintn_t> (C++), where n <= 256 and n % 8 == 0
  * - address = address (Solidity) = Address (C++)
  * - addressArr = address[] (Solidity) = std::vector<Address> (C++)
  * - bool = bool (Solidity) = bool (C++)
@@ -87,79 +25,78 @@ namespace ABI {
  * - stringArr = string[] (Solidity) = std::vector<std::string> (C++)
  */
 enum Types {
-  uint8,
-  uint8Arr,
-  uint16,
-  uint16Arr,
-  uint24,
-  uint24Arr,
-  uint32,
-  uint32Arr,
-  uint40,
-  uint40Arr,
-  uint48,
-  uint48Arr,
-  uint56,
-  uint56Arr,
-  uint64,
-  uint64Arr,
-  uint72,
-  uint72Arr,
-  uint80,
-  uint80Arr,
-  uint88,
-  uint88Arr,
-  uint96,
-  uint96Arr,
-  uint104,
-  uint104Arr,
-  uint112,
-  uint112Arr,
-  uint120,
-  uint120Arr,
-  uint128,
-  uint128Arr,
-  uint136,
-  uint136Arr,
-  uint144,
-  uint144Arr,
-  uint152,
-  uint152Arr,
-  uint160,
-  uint160Arr,
-  uint168,
-  uint168Arr,
-  uint176,
-  uint176Arr,
-  uint184,
-  uint184Arr,
-  uint192,
-  uint192Arr,
-  uint200,
-  uint200Arr,
-  uint208,
-  uint208Arr,
-  uint216,
-  uint216Arr,
-  uint224,
-  uint224Arr,
-  uint232,
-  uint232Arr,
-  uint240,
-  uint240Arr,
-  uint248,
-  uint248Arr,
-  uint256,
-  uint256Arr,
-  address,
-  addressArr,
-  boolean,
-  booleanArr,
-  bytes,
-  bytesArr,
-  string,
-  stringArr
+    uint8, uint8Arr,
+    uint16, uint16Arr,
+    uint24, uint24Arr,
+    uint32, uint32Arr,
+    uint40, uint40Arr,
+    uint48, uint48Arr,
+    uint56, uint56Arr,
+    uint64, uint64Arr,
+    uint72, uint72Arr,
+    uint80, uint80Arr,
+    uint88, uint88Arr,
+    uint96, uint96Arr,
+    uint104, uint104Arr,
+    uint112, uint112Arr,
+    uint120, uint120Arr,
+    uint128, uint128Arr,
+    uint136, uint136Arr,
+    uint144, uint144Arr,
+    uint152, uint152Arr,
+    uint160, uint160Arr,
+    uint168, uint168Arr,
+    uint176, uint176Arr,
+    uint184, uint184Arr,
+    uint192, uint192Arr,
+    uint200, uint200Arr,
+    uint208, uint208Arr,
+    uint216, uint216Arr,
+    uint224, uint224Arr,
+    uint232, uint232Arr,
+    uint240, uint240Arr,
+    uint248, uint248Arr,
+    uint256, uint256Arr,
+
+    int8, int8Arr,
+    int16, int16Arr,
+    int24, int24Arr,
+    int32, int32Arr,
+    int40, int40Arr,
+    int48, int48Arr,
+    int56, int56Arr,
+    int64, int64Arr,
+    int72, int72Arr,
+    int80, int80Arr,
+    int88, int88Arr,
+    int96, int96Arr,
+    int104, int104Arr,
+    int112, int112Arr,
+    int120, int120Arr,
+    int128, int128Arr,
+    int136, int136Arr,
+    int144, int144Arr,
+    int152, int152Arr,
+    int160, int160Arr,
+    int168, int168Arr,
+    int176, int176Arr,
+    int184, int184Arr,
+    int192, int192Arr,
+    int200, int200Arr,
+    int208, int208Arr,
+    int216, int216Arr,
+    int224, int224Arr,
+    int232, int232Arr,
+    int240, int240Arr,
+    int248, int248Arr,
+    int256, int256Arr,
+
+    address, addressArr,
+    boolean, booleanArr,
+    bytes, bytesArr,
+    string, stringArr
 };
+
 
 /**
 * Enum for the types of Solidity functions.
@@ -476,6 +413,262 @@ struct ABIType<uint248_t> {
   static constexpr Types value = Types::uint248; ///< ABI type is uint248.
 };
 
+/**
+* Specialization for int8_t.
+*/
+template <>
+struct ABIType<int8_t> {
+  static constexpr Types value = Types::int8; ///< ABI type is int8.
+};
+
+/**
+* Specialization for int16_t.
+*/
+template <>
+struct ABIType<int16_t> {
+  static constexpr Types value = Types::int16; ///< ABI type is int16.
+};
+
+/**
+* Specialization for int24_t.
+*/
+template <>
+struct ABIType<int24_t> {
+  static constexpr Types value = Types::int24; ///< ABI type is int24.
+};
+
+/**
+* Specialization for int32_t.
+*/
+template <>
+struct ABIType<int32_t> {
+  static constexpr Types value = Types::int32; ///< ABI type is int32.
+};
+
+/**
+* Specialization for int40_t.
+*/
+template <>
+struct ABIType<int40_t> {
+  static constexpr Types value = Types::int40; ///< ABI type is int40.
+};
+
+/**
+* Specialization for int48_t.
+*/
+template <>
+struct ABIType<int48_t> {
+  static constexpr Types value = Types::int48; ///< ABI type is int48.
+};
+
+/**
+* Specialization for int56_t.
+*/
+template <>
+struct ABIType<int56_t> {
+  static constexpr Types value = Types::int56; ///< ABI type is int56.
+};
+
+/**
+* Specialization for int64_t.
+*/
+template <>
+struct ABIType<int64_t> {
+  static constexpr Types value = Types::int64; ///< ABI type is int64.
+};
+
+/**
+* Specialization for int72_t.
+*/
+template <>
+struct ABIType<int72_t> {
+  static constexpr Types value = Types::int72; ///< ABI type is int72.
+};
+
+/**
+* Specialization for int80_t.
+*/
+template <>
+struct ABIType<int80_t> {
+  static constexpr Types value = Types::int80; ///< ABI type is int80.
+};
+
+/**
+* Specialization for int88_t.
+*/
+template <>
+struct ABIType<int88_t> {
+  static constexpr Types value = Types::int88; ///< ABI type is int88.
+};
+
+/**
+* Specialization for int96_t.
+*/
+template <>
+struct ABIType<int96_t> {
+  static constexpr Types value = Types::int96; ///< ABI type is int96.
+};
+
+/**
+* Specialization for int104_t.
+*/
+template <>
+struct ABIType<int104_t> {
+  static constexpr Types value = Types::int104; ///< ABI type is int104.
+};
+
+/**
+* Specialization for int112_t.
+*/
+template <>
+struct ABIType<int112_t> {
+  static constexpr Types value = Types::int112; ///< ABI type is int112.
+};
+
+/**
+* Specialization for int120_t.
+*/
+template <>
+struct ABIType<int120_t> {
+  static constexpr Types value = Types::int120; ///< ABI type is int120.
+};
+
+/**
+* Specialization for int128_t.
+*/
+template <>
+struct ABIType<int128_t> {
+  static constexpr Types value = Types::int128; ///< ABI type is int128.
+};
+
+/**
+* Specialization for int136_t.
+*/
+template <>
+struct ABIType<int136_t> {
+  static constexpr Types value = Types::int136; ///< ABI type is int136.
+};
+
+/**
+* Specialization for int144_t.
+*/
+template <>
+struct ABIType<int144_t> {
+  static constexpr Types value = Types::int144; ///< ABI type is int144.
+};
+
+/**
+* Specialization for int152_t.
+*/
+template <>
+struct ABIType<int152_t> {
+  static constexpr Types value = Types::int152; ///< ABI type is int152.
+};
+
+/**
+* Specialization for int160_t.
+*/
+template <>
+struct ABIType<int160_t> {
+  static constexpr Types value = Types::int160; ///< ABI type is int160.
+};
+
+/**
+* Specialization for int168_t.
+*/
+template <>
+struct ABIType<int168_t> {
+  static constexpr Types value = Types::int168; ///< ABI type is int168.
+};
+
+/**
+* Specialization for int176_t.
+*/
+template <>
+struct ABIType<int176_t> {
+  static constexpr Types value = Types::int176; ///< ABI type is int176.
+};
+
+/**
+* Specialization for int184_t.
+*/
+template <>
+struct ABIType<int184_t> {
+  static constexpr Types value = Types::int184; ///< ABI type is int184.
+};
+
+/**
+* Specialization for int192_t.
+*/
+template <>
+struct ABIType<int192_t> {
+  static constexpr Types value = Types::int192; ///< ABI type is int192.
+};
+
+/**
+* Specialization for int200_t.
+*/
+template <>
+struct ABIType<int200_t> {
+  static constexpr Types value = Types::int200; ///< ABI type is int200.
+};
+
+/**
+* Specialization for int208_t.
+*/
+template <>
+struct ABIType<int208_t> {
+  static constexpr Types value = Types::int208; ///< ABI type is int208.
+};
+
+/**
+* Specialization for int216_t.
+*/
+template <>
+struct ABIType<int216_t> {
+  static constexpr Types value = Types::int216; ///< ABI type is int216.
+};
+
+/**
+* Specialization for int224_t.
+*/
+template <>
+struct ABIType<int224_t> {
+  static constexpr Types value = Types::int224; ///< ABI type is int224.
+};
+
+/**
+* Specialization for int232_t.
+*/
+template <>
+struct ABIType<int232_t> {
+  static constexpr Types value = Types::int232; ///< ABI type is int232.
+};
+
+/**
+* Specialization for int240_t.
+*/
+template <>
+struct ABIType<int240_t> {
+  static constexpr Types value = Types::int240; ///< ABI type is int240.
+};
+
+/**
+* Specialization for int248_t.
+*/
+template <>
+struct ABIType<int248_t> {
+  static constexpr Types value = Types::int248; ///< ABI type is int248.
+};
+
+/**
+* Specialization for int256_t.
+*/
+template <>
+struct ABIType<int256_t> {
+  static constexpr Types value = Types::int256; ///< ABI type is int256.
+};
+
 
 /**
 * Struct to map a type to an ABI type.
@@ -622,6 +815,70 @@ std::string inline getStringFromABIEnum(Types type) {
     {Types::uint248Arr, "uint248[]"},
     {Types::uint256, "uint256"},
     {Types::uint256Arr, "uint256[]"},
+    {Types::int8, "int8"},
+    {Types::int8Arr, "int8[]"},
+    {Types::int16, "int16"},
+    {Types::int16Arr, "int16[]"},
+    {Types::int24, "int24"},
+    {Types::int24Arr, "int24[]"},
+    {Types::int32, "int32"},
+    {Types::int32Arr, "int32[]"},
+    {Types::int40, "int40"},
+    {Types::int40Arr, "int40[]"},
+    {Types::int48, "int48"},
+    {Types::int48Arr, "int48[]"},
+    {Types::int56, "int56"},
+    {Types::int56Arr, "int56[]"},
+    {Types::int64, "int64"},
+    {Types::int64Arr, "int64[]"},
+    {Types::int72, "int72"},
+    {Types::int72Arr, "int72[]"},
+    {Types::int80, "int80"},
+    {Types::int80Arr, "int80[]"},
+    {Types::int88, "int88"},
+    {Types::int88Arr, "int88[]"},
+    {Types::int96, "int96"},
+    {Types::int96Arr, "int96[]"},
+    {Types::int104, "int104"},
+    {Types::int104Arr, "int104[]"},
+    {Types::int112, "int112"},
+    {Types::int112Arr, "int112[]"},
+    {Types::int120, "int120"},
+    {Types::int120Arr, "int120[]"},
+    {Types::int128, "int128"},
+    {Types::int128Arr, "int128[]"},
+    {Types::int136, "int136"},
+    {Types::int136Arr, "int136[]"},
+    {Types::int144, "int144"},
+    {Types::int144Arr, "int144[]"},
+    {Types::int152, "int152"},
+    {Types::int152Arr, "int152[]"},
+    {Types::int160, "int160"},
+    {Types::int160Arr, "int160[]"},
+    {Types::int168, "int168"},
+    {Types::int168Arr, "int168[]"},
+    {Types::int176, "int176"},
+    {Types::int176Arr, "int176[]"},
+    {Types::int184, "int184"},
+    {Types::int184Arr, "int184[]"},
+    {Types::int192, "int192"},
+    {Types::int192Arr, "int192[]"},
+    {Types::int200, "int200"},
+    {Types::int200Arr, "int200[]"},
+    {Types::int208, "int208"},
+    {Types::int208Arr, "int208[]"},
+    {Types::int216, "int216"},
+    {Types::int216Arr, "int216[]"},
+    {Types::int224, "int224"},
+    {Types::int224Arr, "int224[]"},
+    {Types::int232, "int232"},
+    {Types::int232Arr, "int232[]"},
+    {Types::int240, "int240"},
+    {Types::int240Arr, "int240[]"},
+    {Types::int248, "int248"},
+    {Types::int248Arr, "int248[]"},
+    {Types::int256, "int256"},
+    {Types::int256Arr, "int256[]"},
     {Types::address, "address"},
     {Types::addressArr, "address[]"},
     {Types::boolean, "bool"},
@@ -711,6 +968,70 @@ Types inline getABIEnumFromString(const std::string& type) {
     {"uint248[]", Types::uint248Arr},
     {"uint256", Types::uint256},
     {"uint256[]", Types::uint256Arr},
+    {"int8", Types::int8},
+    {"int8[]", Types::int8Arr},
+    {"int16", Types::int16},
+    {"int16[]", Types::int16Arr},
+    {"int24", Types::int24},
+    {"int24[]", Types::int24Arr},
+    {"int32", Types::int32},
+    {"int32[]", Types::int32Arr},
+    {"int40", Types::int40},
+    {"int40[]", Types::int40Arr},
+    {"int48", Types::int48},
+    {"int48[]", Types::int48Arr},
+    {"int56", Types::int56},
+    {"int56[]", Types::int56Arr},
+    {"int64", Types::int64},
+    {"int64[]", Types::int64Arr},
+    {"int72", Types::int72},
+    {"int72[]", Types::int72Arr},
+    {"int80", Types::int80},
+    {"int80[]", Types::int80Arr},
+    {"int88", Types::int88},
+    {"int88[]", Types::int88Arr},
+    {"int96", Types::int96},
+    {"int96[]", Types::int96Arr},
+    {"int104", Types::int104},
+    {"int104[]", Types::int104Arr},
+    {"int112", Types::int112},
+    {"int112[]", Types::int112Arr},
+    {"int120", Types::int120},
+    {"int120[]", Types::int120Arr},
+    {"int128", Types::int128},
+    {"int128[]", Types::int128Arr},
+    {"int136", Types::int136},
+    {"int136[]", Types::int136Arr},
+    {"int144", Types::int144},
+    {"int144[]", Types::int144Arr},
+    {"int152", Types::int152},
+    {"int152[]", Types::int152Arr},
+    {"int160", Types::int160},
+    {"int160[]", Types::int160Arr},
+    {"int168", Types::int168},
+    {"int168[]", Types::int168Arr},
+    {"int176", Types::int176},
+    {"int176[]", Types::int176Arr},
+    {"int184", Types::int184},
+    {"int184[]", Types::int184Arr},
+    {"int192", Types::int192},
+    {"int192[]", Types::int192Arr},
+    {"int200", Types::int200},
+    {"int200[]", Types::int200Arr},
+    {"int208", Types::int208},
+    {"int208[]", Types::int208Arr},
+    {"int216", Types::int216},
+    {"int216[]", Types::int216Arr},
+    {"int224", Types::int224},
+    {"int224[]", Types::int224Arr},
+    {"int232", Types::int232},
+    {"int232[]", Types::int232Arr},
+    {"int240", Types::int240},
+    {"int240[]", Types::int240Arr},
+    {"int248", Types::int248},
+    {"int248[]", Types::int248Arr},
+    {"int256", Types::int256},
+    {"int256[]", Types::int256Arr},
     {"address", Types::address},
     {"address[]", Types::addressArr},
     {"bool", Types::boolean},
@@ -764,6 +1085,13 @@ Types inline getABIEnumFromString(const std::string& type) {
       Bytes encodeUint256(const uint256_t& num) const;
 
       /**
+      * Encode a 256-bit signed integer into Solidity ABI format.
+      * @param num The 256-bit signed integer to encode.
+      * @return The encoded int256 hex string, padded 32 hex bytes to the LEFT.
+      */
+      Bytes encodeInt256(const int256_t& num) const;
+
+      /**
        * Encode a 20-byte address into Solidity ABI format.
        * @param add The 20-byte address to encode.
        * @return The encoded address hex string, padded 32 bytes to the LEFT.
@@ -793,6 +1121,13 @@ Types inline getABIEnumFromString(const std::string& type) {
        * @return The encoded uint256[] hex string, with the proper offsets and lengths.
        */
       Bytes encodeUint256Arr(const std::vector<uint256_t>& numV) const;
+
+      /**
+       * Encode a 256-bit signed integer array into Solidity ABI format.
+       * @param numV The 256-bit signed integer array to encode.
+       * @return The encoded int256[] hex string, with the proper offsets and lengths.
+       */
+      Bytes encodeInt256Arr(const std::vector<int256_t>& numV) const;
 
       /**
        * Encode a 20-byte address array into Solidity ABI format.
