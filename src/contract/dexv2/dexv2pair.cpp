@@ -122,9 +122,9 @@ std::pair<uint256_t, uint256_t> DEXV2Pair::getReservess() const {
 
 BytesEncoded DEXV2Pair::getReserves() const {
   ABI::Encoder::EncVar vars;
-  vars.push_back(this->reserve0_.get());
-  vars.push_back(this->reserve1_.get());
-  vars.push_back(this->blockTimestampLast_.get());
+  vars.push_back(static_cast<uint256_t>(this->reserve0_.get()));
+  vars.push_back(static_cast<uint256_t>(this->reserve1_.get()));
+  vars.push_back(static_cast<uint256_t>(this->blockTimestampLast_.get()));
   return BytesEncoded(ABI::Encoder(vars).getData());
 }
 

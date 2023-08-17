@@ -2124,8 +2124,8 @@ namespace TState {
               /// We need to firstly create the contract!
               std::string tokenName = "TestToken";
               std::string tokenSymbol = "TT";
-              uint256_t tokenDecimals = 18;
-              uint256_t tokenSupply = 1000000000000000000;
+              uint256_t tokenDecimals = uint256_t(18);
+              uint256_t tokenSupply = uint256_t(1000000000000000000);
 
               ABI::Encoder::EncVar createNewERC20ContractVars;
               createNewERC20ContractVars.push_back(tokenName);
@@ -2156,7 +2156,7 @@ namespace TState {
 
               ABI::Encoder::EncVar transferVars;
               transferVars.push_back(targetOfTransactions);
-              transferVars.push_back(10000000000000000);
+              transferVars.push_back(uint256_t(10000000000000000));
               ABI::Encoder transferEncoder(transferVars);
               Bytes transferData = Hex::toBytes("0xa9059cbb");
               Utils::appendBytes(transferData, transferEncoder.getData());

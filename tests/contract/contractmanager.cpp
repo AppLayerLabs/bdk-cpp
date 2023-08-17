@@ -152,7 +152,7 @@ namespace TContractManager {
 
         ABI::Encoder::EncVar transferVars;
         transferVars.push_back(destinationOfTransfer);
-        transferVars.push_back(500000000000000000);
+        transferVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder transferEncoder(transferVars);
         Bytes transferData = Hex::toBytes("0xa9059cbb");
         Utils::appendBytes(transferData, transferEncoder.getData());
