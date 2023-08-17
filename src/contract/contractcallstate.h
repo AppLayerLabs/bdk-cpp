@@ -37,9 +37,6 @@ class ContractCallState {
      */
     std::vector<std::reference_wrapper<SafeBase>> usedVars;
 
-    /// Indicates if state changes should commit or revert upon destruction. Defaults to `false` (revert).
-    bool commit = false;
-
   public:
     /**
      * Constructor.
@@ -47,97 +44,73 @@ class ContractCallState {
      */
     ContractCallState(ContractManager& manager) : manager(manager) {}
 
-    /**
-     * Destructor. Automatically updates the state when called.
-     * If `commit` is `true`, commits the changes made to SafeVariables to the state.
-     * If `commit` is `false`, reverts all changes instead.
-     * This is set by callContract() and/or validateCallContractWithTx(),
-     * depending on whether the call itself throws or not.
-     */
+    /// Destructor. Clears recently created contracts, altered balances and used SafeVariables.
     ~ContractCallState() {
-      if (this->commit) {
-        commitUsedVars();
-      } else {
-        revertUsedVars();
-        for (const Address& badContract : this->manager.factory->getRecentContracts()) {
-          this->manager.contracts.erase(badContract); // Erase failed contract creations
-        }
-      }
       this->manager.factory->clearRecentContracts();
-      clearUsedVars();
+      this->balances.clear();
+      this->usedVars.clear();
     }
-
-    /// Getter for `commit`.
-    const bool getCommit() const { return this->commit; }
-
-    /// Setter for `commit`.
-    void setCommit(bool b) { this->commit = b; }
-
-    /// Getter for `balances`.
-    std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances; }
-
-    /**
-     * Set a given balance for a given address.
-     * @param add The address to set a balance to.
-     * @param value The balance value to set.
-     */
-    void setBalanceAt(const Address& add, uint256_t value) { this->balances[add] = value; }
-
-    /**
-     * Get a given balance value of a given address.
-     * @param add The address to get the balance of.
-     * @return The current balance for the address.
-     */
-    uint256_t getBalanceAt(const Address& add) {
-      return (this->hasBalance(add)) ? this->balances[add] : 0;
-    }
-
-    /**
-     * Add a given balance value to a given address.
-     * @param to The address to add balance to.
-     * @param value The balance value to add.
-     */
-    void addBalance(const Address& to, const uint256_t value) { this->balances[to] += value; }
-
-    /**
-     * Subtract a given balance value to a given address.
-     * @param to The address to subtract balance to.
-     * @param value The balance value to subtract.
-     */
-    void subBalance(const Address& to, const uint256_t value) { this->balances[to] -= value; }
-
-    /**
-     * Check if a given address is registered in the balances map.
-     * @param add The address to check.
-     * @return `true` if an entry exists for the address, `false` otherwise.
-     */
-    bool hasBalance(const Address& add) const { return this->balances.contains(add); }
-
-    /// Clear the balances map.
-    void clearBalances() { this->balances.clear(); }
-
-    /**
-     * Add a SafeVariable to the list of used variables.
-     * @param var The variable to add to the list.
-     */
-    void addUsedVar(SafeBase& var) { this->usedVars.emplace_back(var); }
 
     /// Commit all used SafeVariables registered in the list.
-    void commitUsedVars() {
+    void commit() {
       for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
         rbegin->get().commit();
       }
     }
 
     /// Revert all used SafeVariables registered in the list.
-    void revertUsedVars() {
+    void revert() {
       for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
         rbegin->get().revert();
       }
+      for (const Address& badContract : this->manager.factory->getRecentContracts()) {
+        this->manager.contracts.erase(badContract); // Erase failed contract creations
+      }
     }
 
-    /// Clear the used SafeVariables list.
-    void clearUsedVars() { this->usedVars.clear(); }
+    /// Getter for `balances`.
+    std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances; }
+
+    /**
+     * Get a given balance value of a given address.
+     * @param add The address to get the balance of.
+     * @return The current balance for the address.
+     */
+    uint256_t getBalanceAt(const Address& add) { return (this->hasBalance(add)) ? this->balances[add] : 0; }
+
+    /**
+     * Set a given balance for a given address.
+     * @param add The address to set a balance to.
+     * @param value The balance value to set.
+     */
+    inline void setBalanceAt(const Address& add, uint256_t value) { this->balances[add] = value; }
+
+    /**
+     * Add a given balance value to a given address.
+     * @param to The address to add balance to.
+     * @param value The balance value to add.
+     */
+    inline void addBalance(const Address& to, const uint256_t value) { this->balances[to] += value; }
+
+    /**
+     * Subtract a given balance value to a given address.
+     * @param to The address to subtract balance to.
+     * @param value The balance value to subtract.
+     */
+    inline void subBalance(const Address& to, const uint256_t value) { this->balances[to] -= value; }
+
+    /**
+     * Check if a given address is registered in the balances map.
+     * @param add The address to check.
+     * @return `true` if an entry exists for the address, `false` otherwise.
+     */
+    inline bool hasBalance(const Address& add) const { return this->balances.contains(add); }
+
+    /**
+     * Add a SafeVariable to the list of used variables.
+     * @param var The variable to add to the list.
+     */
+    inline void addUsedVar(SafeBase& var) { this->usedVars.emplace_back(var); }
 };
 
 #endif  // CONTRACTCALLSTATE_H

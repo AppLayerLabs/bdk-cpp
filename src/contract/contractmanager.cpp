@@ -26,8 +26,8 @@ ContractManager::ContractManager(
       throw std::runtime_error("Unknown contract: " + Utils::bytesToString(contract.value));
     }
   }
-  this->callState->setCommit(true);
-  this->callState.reset(nullptr);
+  this->callState->commit();
+  // this->callState->reset()...?
 }
 
 ContractManager::~ContractManager() {
@@ -101,15 +101,13 @@ void ContractManager::callContract(const TxBlock& tx) {
       this->ethCall(callInfo);
     } catch (std::exception &e) {
       this->commit = false;
-      this->callState->setCommit(false);
-      this->callState->clearBalances();
-      this->callState.reset(nullptr);
+      this->callState->revert();
+      this->callState.reset();
       throw std::runtime_error(e.what());
     }
-    this->callState->setCommit(true);
     this->commit = false;
-    this->callState->clearBalances();
-    this->callState.reset(nullptr);
+    this->callState->commit();
+    this->callState.reset();
     return;
   }
 
@@ -122,24 +120,20 @@ void ContractManager::callContract(const TxBlock& tx) {
       rdpos->ethCall(callInfo);
     } catch (std::exception &e) {
       rdpos->commit = false;
-      this->callState->setCommit(false);
-      this->callState->clearBalances();
-      this->callState.reset(nullptr);
+      this->callState->revert();
+      this->callState.reset();
       throw std::runtime_error(e.what());
     }
     rdpos->commit = false;
-    this->callState->setCommit(true);
-    this->callState->clearBalances();
-    this->callState.reset(nullptr);
+    this->callState->commit();
+    this->callState.reset();
     return;
   }
 
   std::unique_lock lock(this->contractsMutex);
   auto it = this->contracts.find(to);
-
   if (it == this->contracts.end()) {
-    this->callState->clearBalances();
-    this->callState.reset(nullptr);
+    this->callState.reset();
     throw std::runtime_error("Contract does not exist");
   }
 
@@ -152,19 +146,17 @@ void ContractManager::callContract(const TxBlock& tx) {
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     contract->commit = false;
-    this->callState->setCommit(false);
-    this->callState->clearBalances();
-    this->callState.reset(nullptr);
+    this->callState->revert();
+    this->callState.reset();
     throw std::runtime_error(e.what());
   }
 
   if (contract->isPayableFunction(functor)) {
     this->state->processContractPayable(this->callState->getBalances());
   }
-  this->callState->clearBalances();
-  this->callState->setCommit(true);
   contract->commit = false;
-  this->callState.reset(nullptr);
+  this->callState->commit();
+  this->callState.reset();
 }
 
 const Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
@@ -201,9 +193,8 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       this->origin = from;
       this->value = value;
       this->ethCall(callInfo);
-      this->callState->clearBalances();
-      this->callState->setCommit(false);
-      this->callState.reset(nullptr);
+      this->callState->revert();
+      this->callState.reset();
       return true;
     }
 
@@ -213,16 +204,14 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       rdpos->value = value;
       rdpos->commit = false;
       rdpos->ethCall(callInfo);
-      this->callState->clearBalances();
-      this->callState->setCommit(false);
-      this->callState.reset(nullptr);
+      this->callState->revert();
+      this->callState.reset();
       return true;
     }
 
     std::shared_lock lock(this->contractsMutex);
     if (!this->contracts.contains(to)) {
-      this->callState->clearBalances();
-      this->callState.reset(nullptr);
+      this->callState.reset();
       return false;
     }
     const auto &contract = contracts.at(to);
@@ -232,14 +221,12 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     contract->commit = false;
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
-    this->callState->clearBalances();
-    this->callState->setCommit(false);
-    this->callState.reset(nullptr);
+    this->callState->revert();
+    this->callState.reset();
     throw std::runtime_error(e.what());
   }
-  this->callState->setCommit(false);
-  this->callState->clearBalances();
-  this->callState.reset(nullptr);
+  this->callState->revert();
+  this->callState.reset();
   return true;
 }
 
