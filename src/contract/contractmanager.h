@@ -15,7 +15,7 @@
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
-#include "contractcallstate.h"
+#include "contractcalllogger.h"
 #include "variables/safeunorderedmap.h"
 
 // Forward declarations.
@@ -60,7 +60,7 @@ class ContractManager : BaseContract {
      * Pointer to the call state object.
      * Responsible for maintaining temporary data used in contract call chains.
      */
-    std::unique_ptr<ContractCallState> callState;
+    std::unique_ptr<ContractCallLogger> callLogger;
 
     /// Pointer to the contract manager's interface to be passed to DynamicContract.
     std::unique_ptr<ContractManagerInterface> interface;
@@ -225,7 +225,7 @@ class ContractManager : BaseContract {
     friend class ContractFactory;
 
     /// ContractCallState is a friend so it can access private members.
-    friend class ContractCallState;
+    friend class ContractCallLogger;
 };
 
 /// Interface class for DynamicContract to access ContractManager and interact with other dynamic contracts.
@@ -269,7 +269,7 @@ class ContractManagerInterface {
       const uint256_t& value,
       R(C::*func)(const Args&...), const Args&... args
     ) {
-      if (!this->manager.callState) throw std::runtime_error(
+      if (!this->manager.callLogger) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       if (value) {
@@ -280,7 +280,7 @@ class ContractManagerInterface {
         }
       }
       C* contract = this->getContract<C>(targetAddr);
-      this->manager.callState->setContractVars(contract, txOrigin, fromAddr, value);
+      this->manager.callLogger->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func, std::forward<const Args&>(args)...);
       } catch (const std::exception& e) {
@@ -305,7 +305,7 @@ class ContractManagerInterface {
       const Address& txOrigin, const Address& fromAddr, const Address& targetAddr,
       const uint256_t& value, R(C::*func)()
     ) {
-      if (!this->manager.callState) throw std::runtime_error(
+      if (!this->manager.callLogger) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       if (value) {
@@ -316,7 +316,7 @@ class ContractManagerInterface {
         }
       }
       C* contract = this->getContract<C>(targetAddr);
-      this->manager.callState->setContractVars(contract, txOrigin, fromAddr, value);
+      this->manager.callLogger->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func);
       } catch (const std::exception& e) {
@@ -341,7 +341,7 @@ class ContractManagerInterface {
       const uint256_t &gasPriceValue, const uint256_t &callValue,
       const ABI::Encoder &encoder
     ) {
-      if (!this->manager.callState) throw std::runtime_error(
+      if (!this->manager.callLogger) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       ethCallInfo callInfo;
@@ -362,7 +362,7 @@ class ContractManagerInterface {
       value = callValue;
       functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
       data = encoder.getData();
-      this->manager.callState->setContractVars(&manager, txOrigin, fromAddr, value);
+      this->manager.callLogger->setContractVars(&manager, txOrigin, fromAddr, value);
       this->manager.ethCall(callInfo);
       return to;
     }

@@ -5,6 +5,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.h
   ${CMAKE_SOURCE_DIR}/src/contract/customcontracts.h
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/reentrancyguard.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
@@ -32,7 +33,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/contract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractfactory.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/contractcallstate.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp

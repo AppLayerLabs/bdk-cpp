@@ -15,7 +15,7 @@ class ContractManager;
 class ContractLocals;
 
 /// Class for managing contract nested call chains and their temporary data.
-class ContractCallState {
+class ContractCallLogger {
   private:
     /// Pointer back to the contract manager.
     ContractManager& manager;
@@ -54,10 +54,10 @@ class ContractCallState {
      * Constructor.
      * @param manager Pointer back to the contract manager.
      */
-    ContractCallState(ContractManager& manager);
+    ContractCallLogger(ContractManager& manager);
 
     /// Destructor. Clears recently created contracts, altered balances and used SafeVariables.
-    ~ContractCallState();
+    ~ContractCallLogger();
 
     /// Getter for `balances`.
     std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances; }

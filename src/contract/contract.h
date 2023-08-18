@@ -13,7 +13,7 @@
 #include "variables/safebase.h"
 
 // Forward declarations.
-class ContractCallState;
+class ContractCallLogger;
 class State;
 
 /// Class that maintains global variables for contracts.
@@ -55,7 +55,7 @@ class ContractLocals : public ContractGlobals {
     const uint256_t& getValue() const { return this->value; }
 
     /// ContractCallState is a friend as it can update private local vars (e.g. before ethCall() within a contract).
-    friend class ContractCallState;
+    friend class ContractCallLogger;
 };
 
 /// Base class for all contracts.
