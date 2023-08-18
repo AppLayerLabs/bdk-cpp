@@ -26,7 +26,6 @@ ContractManager::ContractManager(
       throw std::runtime_error("Unknown contract: " + Utils::bytesToString(contract.value));
     }
   }
-  this->callState->commit();
   // this->callState->reset()...?
 }
 
@@ -93,39 +92,27 @@ void ContractManager::callContract(const TxBlock& tx) {
   auto callInfo = tx.txToCallInfo();
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
   if (to == this->getContractAddress()) {
-    this->commit = true;
-    this->caller = from;
-    this->origin = from;
-    this->value = value;
+    this->callState->setContractVars(this, from, from, value);
     try {
       this->ethCall(callInfo);
     } catch (std::exception &e) {
-      this->commit = false;
-      this->callState->revert();
       this->callState.reset();
       throw std::runtime_error(e.what());
     }
-    this->commit = false;
-    this->callState->commit();
+    this->callState->shouldCommit();
     this->callState.reset();
     return;
   }
 
   if (to == ProtocolContractAddresses.at("rdPoS")) {
-    rdpos->caller = from;
-    rdpos->origin = from;
-    rdpos->value = value;
-    rdpos->commit = true;
+    this->callState->setContractVars(rdpos.get(), from, from, value);
     try {
       rdpos->ethCall(callInfo);
     } catch (std::exception &e) {
-      rdpos->commit = false;
-      this->callState->revert();
       this->callState.reset();
       throw std::runtime_error(e.what());
     }
-    rdpos->commit = false;
-    this->callState->commit();
+    this->callState->shouldCommit();
     this->callState.reset();
     return;
   }
@@ -138,15 +125,10 @@ void ContractManager::callContract(const TxBlock& tx) {
   }
 
   const auto& contract = it->second;
-  contract->caller = from;
-  contract->origin = from;
-  contract->value = value;
-  contract->commit = true;
+  this->callState->setContractVars(contract.get(), from, from, value);
   try {
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
-    contract->commit = false;
-    this->callState->revert();
     this->callState.reset();
     throw std::runtime_error(e.what());
   }
@@ -154,8 +136,7 @@ void ContractManager::callContract(const TxBlock& tx) {
   if (contract->isPayableFunction(functor)) {
     this->state->processContractPayable(this->callState->getBalances());
   }
-  contract->commit = false;
-  this->callState->commit();
+  this->callState->shouldCommit();
   this->callState.reset();
 }
 
@@ -189,22 +170,15 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       this->callState->addBalance(to, value);
     }
     if (to == this->getContractAddress()) {
-      this->caller = from;
-      this->origin = from;
-      this->value = value;
+      this->callState->setContractVars(this, from, from, value);
       this->ethCall(callInfo);
-      this->callState->revert();
       this->callState.reset();
       return true;
     }
 
     if (to == ProtocolContractAddresses.at("rdPoS")) {
-      rdpos->caller = from;
-      rdpos->origin = from;
-      rdpos->value = value;
-      rdpos->commit = false;
+      this->callState->setContractVars(rdpos.get(), from, from, value);
       rdpos->ethCall(callInfo);
-      this->callState->revert();
       this->callState.reset();
       return true;
     }
@@ -215,17 +189,12 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       return false;
     }
     const auto &contract = contracts.at(to);
-    contract->caller = from;
-    contract->origin = from;
-    contract->value = value;
-    contract->commit = false;
+    this->callState->setContractVars(contract.get(), from, from, value);
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
-    this->callState->revert();
     this->callState.reset();
     throw std::runtime_error(e.what());
   }
-  this->callState->revert();
   this->callState.reset();
   return true;
 }

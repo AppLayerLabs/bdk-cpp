@@ -15,13 +15,13 @@
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
+#include "contractcallstate.h"
 #include "variables/safeunorderedmap.h"
 
 // Forward declarations.
 class rdPoS;
 class State;
 class ContractFactory;
-class ContractCallState;
 class ContractManagerInterface;
 
 /**
@@ -252,24 +252,26 @@ class ContractManagerInterface {
     /**
      * Call a contract function. Used by DynamicContract to call other contracts.
      * A given DynamicContract will only call another contract if triggered by a transaction.
-     * That means we can use commit() to know if the call should commit or not.
      * This will only be called if callContract() or validateCallContractWithTx() was called before.
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @tparam Args The arguments types.
+     * @param txOrigin The address of the originator of the transaction.
      * @param fromAddr The address of the caller.
      * @param targetAddr The address of the contract to call.
      * @param value Flag to indicate if the function is payable.,
-     * @param commit Flag to set contract->commit same as caller.
      * @param func The function to call.
      * @param args The arguments to pass to the function.
      * @return The return value of the function.
      */
     template <typename R, typename C, typename... Args> R callContractFunction(
-      const Address& fromAddr, const Address& targetAddr,
-      const uint256_t& value, const bool& commit,
+      const Address& txOrigin, const Address& fromAddr, const Address& targetAddr,
+      const uint256_t& value,
       R(C::*func)(const Args&...), const Args&... args
     ) {
+      if (!this->manager.callState) throw std::runtime_error(
+        "Contracts going haywire! Trying to call ContractState without an active callContract"
+      );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
       } else {
@@ -278,13 +280,10 @@ class ContractManagerInterface {
         }
       }
       C* contract = this->getContract<C>(targetAddr);
-      contract->caller = fromAddr;
-      contract->value = value;
-      contract->commit = commit;
+      this->manager.callState->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func, std::forward<const Args&>(args)...);
       } catch (const std::exception& e) {
-        contract->commit = false;
         throw std::runtime_error(e.what());
       }
     }
@@ -292,21 +291,23 @@ class ContractManagerInterface {
     /**
      * Call a contract function with no arguments. Used by DynamicContract to call other contracts.
      * A given DynamicContract will only call another contract if triggered by a transaction.
-     * That means we can use commit() to know if the call should commit or not.
      * This will only be called if callContract() or validateCallContractWithTx() was called before.
      * @tparam R The return type of the function.
      * @tparam C The contract type.
+     * @param txOrigin The address of the originator of the transaction.
      * @param fromAddr The address of the caller.
      * @param targetAddr The address of the contract to call.
      * @param value Flag to indicate if the function is payable.
-     * @param commit Flag to set contract->commit same as caller.
      * @param func The function to call.
      * @return The return value of the function.
      */
     template <typename R, typename C> R callContractFunction(
-      const Address& fromAddr, const Address& targetAddr,
-      const uint256_t& value, const bool& commit, R(C::*func)()
+      const Address& txOrigin, const Address& fromAddr, const Address& targetAddr,
+      const uint256_t& value, R(C::*func)()
     ) {
+      if (!this->manager.callState) throw std::runtime_error(
+        "Contracts going haywire! Trying to call ContractState without an active callContract"
+      );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
       } else {
@@ -315,13 +316,10 @@ class ContractManagerInterface {
         }
       }
       C* contract = this->getContract<C>(targetAddr);
-      contract->caller = fromAddr;
-      contract->value = value;
-      contract->commit = commit;
+      this->manager.callState->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func);
       } catch (const std::exception& e) {
-        contract->commit = false;
         throw std::runtime_error(e.what());
       }
     }
@@ -330,6 +328,7 @@ class ContractManagerInterface {
      * Call the createNewContract function of a contract.
      * Used by DynamicContract to create new contracts.
      * @tparam TContract The contract type.
+     * @param txOrigin The address of the originator of the transaction.
      * @param fromAddr The address of the caller.
      * @param gasValue Caller gas limit.
      * @param gasPriceValue Caller gas price.
@@ -338,10 +337,13 @@ class ContractManagerInterface {
      * @return The address of the new contract.
      */
     template <typename TContract> Address callCreateContract(
-      const Address &fromAddr, const uint256_t &gasValue,
+      const Address& txOrigin, const Address &fromAddr, const uint256_t &gasValue,
       const uint256_t &gasPriceValue, const uint256_t &callValue,
       const ABI::Encoder &encoder
     ) {
+      if (!this->manager.callState) throw std::runtime_error(
+        "Contracts going haywire! Trying to call ContractState without an active callContract"
+      );
       ethCallInfo callInfo;
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract";
       std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
@@ -360,6 +362,7 @@ class ContractManagerInterface {
       value = callValue;
       functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
       data = encoder.getData();
+      this->manager.callState->setContractVars(&manager, txOrigin, fromAddr, value);
       this->manager.ethCall(callInfo);
       return to;
     }

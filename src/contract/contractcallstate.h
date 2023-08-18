@@ -8,10 +8,11 @@
 #include "../utils/strings.h"
 #include "../utils/utils.h"
 
-#include "contractmanager.h"
+#include "contract.h"
 
 // Forward declarations.
 class ContractManager;
+class ContractLocals;
 
 /// Class for managing contract nested call chains and their temporary data.
 class ContractCallState {
@@ -37,36 +38,26 @@ class ContractCallState {
      */
     std::vector<std::reference_wrapper<SafeBase>> usedVars;
 
+    /**
+     * Boolean that tells if the current call should be committed or not during the destructor.
+     */
+    bool commitCall = false;
+
+    /// Commit all used SafeVariables registered in the list.
+    void commit();
+
+    /// Revert all used SafeVariables registered in the list.
+    void revert();
+
   public:
     /**
      * Constructor.
      * @param manager Pointer back to the contract manager.
      */
-    ContractCallState(ContractManager& manager) : manager(manager) {}
+    ContractCallState(ContractManager& manager);
 
     /// Destructor. Clears recently created contracts, altered balances and used SafeVariables.
-    ~ContractCallState() {
-      this->manager.factory->clearRecentContracts();
-      this->balances.clear();
-      this->usedVars.clear();
-    }
-
-    /// Commit all used SafeVariables registered in the list.
-    void commit() {
-      for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
-        rbegin->get().commit();
-      }
-    }
-
-    /// Revert all used SafeVariables registered in the list.
-    void revert() {
-      for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
-        rbegin->get().revert();
-      }
-      for (const Address& badContract : this->manager.factory->getRecentContracts()) {
-        this->manager.contracts.erase(badContract); // Erase failed contract creations
-      }
-    }
+    ~ContractCallState();
 
     /// Getter for `balances`.
     std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances; }
@@ -84,6 +75,19 @@ class ContractCallState {
      * @param value The balance value to set.
      */
     inline void setBalanceAt(const Address& add, uint256_t value) { this->balances[add] = value; }
+
+    /**
+     * Set the local variables for a given contract (origin, caller, value)
+     * @param contract The contract to set the local variables for.
+     * @param origin The origin address to set.
+     * @param caller The caller address to set.
+     * @param value The value to set.
+     */
+    inline void setContractVars(ContractLocals* contract, const Address& origin, const Address& caller, const uint256_t value) {
+      contract->origin = origin;
+      contract->caller = caller;
+      contract->value = value;
+    }
 
     /**
      * Add a given balance value to a given address.
@@ -111,6 +115,11 @@ class ContractCallState {
      * @param var The variable to add to the list.
      */
     inline void addUsedVar(SafeBase& var) { this->usedVars.emplace_back(var); }
+
+    /**
+     * Tell the state that the current call should be committed on the destructor.
+     */
+    inline void shouldCommit() { this->commitCall = true; }
 };
 
 #endif  // CONTRACTCALLSTATE_H

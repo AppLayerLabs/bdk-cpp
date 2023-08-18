@@ -541,10 +541,10 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C, typename... Args>
     R callContractFunction(const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args) {
-        return this->interface.callContractFunction(this->getContractAddress(),
+        return this->interface.callContractFunction(this->getOrigin(),
+                                                    this->getContractAddress(),
                                                     targetAddr,
                                                     0,
-                                                    this->getCommit(),
                                                     func,
                                                     std::forward<const Args&>(args)...);
     }
@@ -562,10 +562,10 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C, typename... Args>
     R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args) {
-        return this->interface.callContractFunction(this->getContractAddress(),
+        return this->interface.callContractFunction(this->getOrigin(),
+                                                    this->getContractAddress(),
                                                     address, 
                                                     value,
-                                                    this->getCommit(),
                                                     func, 
                                                     std::forward<const Args&>(args)...);
     }
@@ -580,10 +580,10 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C>
     R callContractFunction(const Address& targetAddr, R(C::*func)()) {
-        return this->interface.callContractFunction(this->getContractAddress(),
+        return this->interface.callContractFunction(this->getOrigin(),
+                                                    this->getContractAddress(),
                                                     targetAddr, 
                                                     0,
-                                                    this->getCommit(),
                                                     func);
     }
 
@@ -598,10 +598,10 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C>
     R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)()) {
-        return this->interface.callContractFunction(this->getContractAddress(),
+        return this->interface.callContractFunction(this->getOrigin(),
+                                                    this->getContractAddress(),
                                                     address, 
                                                     value,
-                                                    this->getCommit(),
                                                     func);
     }
 
@@ -655,7 +655,7 @@ class DynamicContract : public BaseContract {
         Utils::safePrint("CallCreateContract being called...");
         ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
         ABI::Encoder encoder(vars);
-        return this->interface.callCreateContract<TContract>(this->getContractAddress(), gas, gasPrice, value, std::move(encoder));
+        return this->interface.callCreateContract<TContract>(this->getOrigin(), this->getContractAddress(), gas, gasPrice, value, std::move(encoder));
     }
 
     /**

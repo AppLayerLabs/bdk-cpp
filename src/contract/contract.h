@@ -13,7 +13,7 @@
 #include "variables/safebase.h"
 
 // Forward declarations.
-class ContractManager;
+class ContractCallState;
 class State;
 
 /// Class that maintains global variables for contracts.
@@ -43,7 +43,6 @@ class ContractLocals : public ContractGlobals {
     mutable Address origin;       ///< Who called the contract.
     mutable Address caller;       ///< Who sent the transaction.
     mutable uint256_t value;      ///< Value sent within the transaction.
-    mutable bool commit = false;  ///< Indicates whether the contract should commit to variables.
 
   protected:
     /// Getter for `origin`.
@@ -55,14 +54,8 @@ class ContractLocals : public ContractGlobals {
     /// Getter for `value`.
     const uint256_t& getValue() const { return this->value; }
 
-    /// Getter for `commit`.
-    bool getCommit() const { return this->commit; }
-
-    /// ContractManager is a friend as it can update private local vars (e.g. before ethCall() within a contract).
-    friend class ContractManager;
-
-    /// ContractManagerInterface is a friend as it can set the commit flag.
-    friend class ContractManagerInterface;
+    /// ContractCallState is a friend as it can update private local vars (e.g. before ethCall() within a contract).
+    friend class ContractCallState;
 };
 
 /// Base class for all contracts.
