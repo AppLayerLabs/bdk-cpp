@@ -18,7 +18,9 @@ namespace DEXV2Library {
 
   std::pair<uint256_t, uint256_t> getReserves(const ContractManagerInterface& interface, const Address& factory, const Address& tokenA, const Address& tokenB) {
     auto pair = pairFor(interface, factory, tokenA, tokenB);
-    return interface.getContract<DEXV2Pair>(pair)->getReservess();
+    auto reserves = interface.getContract<DEXV2Pair>(pair)->getReservess();
+    // getReserves returns based on the order of the tokens in the pair
+    return tokenA < tokenB ? reserves : std::make_pair(reserves.second, reserves.first);
   }
 
   uint256_t quote(const uint256_t& amountA, const uint256_t& reserveA, const uint256_t& reserveB) {
