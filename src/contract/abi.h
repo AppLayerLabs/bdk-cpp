@@ -708,9 +708,9 @@ template <typename T>
 struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
 
 /**
-* Map for calling the correct ABI function for a given ABI type.
+* Map for calling the correct ABI function for a given uint type.
 */
-inline std::unordered_map<Types, std::function<std::any(uint256_t)>> castFunctions = {
+inline std::unordered_map<Types, std::function<std::any(uint256_t)>> castUintFunctions = {
     {Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
     {Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
     {Types::uint24, [](uint256_t value) { return std::any(static_cast<uint24_t>(value)); }},
@@ -742,6 +742,43 @@ inline std::unordered_map<Types, std::function<std::any(uint256_t)>> castFunctio
     {Types::uint232, [](uint256_t value) { return std::any(static_cast<uint232_t>(value)); }},
     {Types::uint240, [](uint256_t value) { return std::any(static_cast<uint240_t>(value)); }},
     {Types::uint248, [](uint256_t value) { return std::any(static_cast<uint248_t>(value)); }}
+  };
+
+  /**
+   * Map for calling the correct ABI function for a given int type.
+   */
+  inline std::unordered_map<Types, std::function<std::any(int256_t)>> castIntFunctions = {
+    {Types::int8, [](int256_t value) { return std::any(static_cast<int8_t>(value)); }},
+    {Types::int16, [](int256_t value) { return std::any(static_cast<int16_t>(value)); }},
+    {Types::int24, [](int256_t value) { return std::any(static_cast<int24_t>(value)); }},
+    {Types::int32, [](int256_t value) { return std::any(static_cast<int32_t>(value)); }},
+    {Types::int40, [](int256_t value) { return std::any(static_cast<int40_t>(value)); }},
+    {Types::int48, [](int256_t value) { return std::any(static_cast<int48_t>(value)); }},
+    {Types::int56, [](int256_t value) { return std::any(static_cast<int56_t>(value)); }},
+    {Types::int64, [](int256_t value) { return std::any(static_cast<int64_t>(value)); }},
+    {Types::int72, [](int256_t value) { return std::any(static_cast<int72_t>(value)); }},
+    {Types::int80, [](int256_t value) { return std::any(static_cast<int80_t>(value)); }},
+    {Types::int88, [](int256_t value) { return std::any(static_cast<int88_t>(value)); }},
+    {Types::int96, [](int256_t value) { return std::any(static_cast<int96_t>(value)); }},
+    {Types::int104, [](int256_t value) { return std::any(static_cast<int104_t>(value)); }},
+    {Types::int112, [](int256_t value) { return std::any(static_cast<int112_t>(value)); }},
+    {Types::int120, [](int256_t value) { return std::any(static_cast<int120_t>(value)); }},
+    {Types::int128, [](int256_t value) { return std::any(static_cast<int128_t>(value)); }},
+    {Types::int136, [](int256_t value) { return std::any(static_cast<int136_t>(value)); }},
+    {Types::int144, [](int256_t value) { return std::any(static_cast<int144_t>(value)); }},
+    {Types::int152, [](int256_t value) { return std::any(static_cast<int152_t>(value)); }},
+    {Types::int160, [](int256_t value) { return std::any(static_cast<int160_t>(value)); }},
+    {Types::int168, [](int256_t value) { return std::any(static_cast<int168_t>(value)); }},
+    {Types::int176, [](int256_t value) { return std::any(static_cast<int176_t>(value)); }},
+    {Types::int184, [](int256_t value) { return std::any(static_cast<int184_t>(value)); }},
+    {Types::int192, [](int256_t value) { return std::any(static_cast<int192_t>(value)); }},
+    {Types::int200, [](int256_t value) { return std::any(static_cast<int200_t>(value)); }},
+    {Types::int208, [](int256_t value) { return std::any(static_cast<int208_t>(value)); }},
+    {Types::int216, [](int256_t value) { return std::any(static_cast<int216_t>(value)); }},
+    {Types::int224, [](int256_t value) { return std::any(static_cast<int224_t>(value)); }},
+    {Types::int232, [](int256_t value) { return std::any(static_cast<int232_t>(value)); }},
+    {Types::int240, [](int256_t value) { return std::any(static_cast<int240_t>(value)); }},
+    {Types::int248, [](int256_t value) { return std::any(static_cast<int248_t>(value)); }}
   };
 
 /**
@@ -1388,12 +1425,105 @@ Types inline getABIEnumFromString(const std::string& type) {
         case Types::uint240:
         case Types::uint248:
         return this->getData<uint256_t>(index);
+        case Types::int256:
+        case Types::int8:
+        case Types::int16:
+        case Types::int24:
+        case Types::int32:
+        case Types::int40:
+        case Types::int48:
+        case Types::int56:
+        case Types::int64:
+        case Types::int72:
+        case Types::int80:
+        case Types::int88:
+        case Types::int96:
+        case Types::int104:
+        case Types::int112:
+        case Types::int120:
+        case Types::int128:
+        case Types::int136:
+        case Types::int144:
+        case Types::int152:
+        case Types::int160:
+        case Types::int168:
+        case Types::int176:
+        case Types::int184:
+        case Types::int192:
+        case Types::int200:
+        case Types::int208:
+        case Types::int216:
+        case Types::int224:
+        case Types::int232:
+        case Types::int240:
+        case Types::int248:
+        return this->getData<int256_t>(index);
         case Types::uint8Arr:
         case Types::uint16Arr:
+        case Types::uint24Arr:
         case Types::uint32Arr:
+        case Types::uint40Arr:
+        case Types::uint48Arr:
+        case Types::uint56Arr:
         case Types::uint64Arr:
+        case Types::uint72Arr:
+        case Types::uint80Arr:
+        case Types::uint88Arr:
+        case Types::uint96Arr:
+        case Types::uint104Arr:
+        case Types::uint112Arr:
+        case Types::uint120Arr:
+        case Types::uint128Arr:
+        case Types::uint136Arr:
+        case Types::uint144Arr:
+        case Types::uint152Arr:
+        case Types::uint160Arr:
+        case Types::uint168Arr:
+        case Types::uint176Arr:
+        case Types::uint184Arr:
+        case Types::uint192Arr:
+        case Types::uint200Arr:
+        case Types::uint208Arr:
+        case Types::uint216Arr:
+        case Types::uint224Arr:
+        case Types::uint232Arr:
+        case Types::uint240Arr:
+        case Types::uint248Arr:
         case Types::uint256Arr:
         return this->getData<std::vector<uint256_t>>(index);
+        case Types::int8Arr:
+        case Types::int16Arr:
+        case Types::int24Arr:
+        case Types::int32Arr:
+        case Types::int40Arr:
+        case Types::int48Arr:
+        case Types::int56Arr:
+        case Types::int64Arr:
+        case Types::int72Arr:
+        case Types::int80Arr:
+        case Types::int88Arr:
+        case Types::int96Arr:
+        case Types::int104Arr:
+        case Types::int112Arr:
+        case Types::int120Arr:
+        case Types::int128Arr:
+        case Types::int136Arr:
+        case Types::int144Arr:
+        case Types::int152Arr:
+        case Types::int160Arr:
+        case Types::int168Arr:
+        case Types::int176Arr:
+        case Types::int184Arr:
+        case Types::int192Arr:
+        case Types::int200Arr:
+        case Types::int208Arr:
+        case Types::int216Arr:
+        case Types::int224Arr:
+        case Types::int232Arr:
+        case Types::int240Arr:
+        case Types::int248Arr:
+        case Types::int256Arr:
+        return this->getData<std::vector<int256_t>>(index);
         case Types::address: return this->getData<Address>(index);
         case Types::addressArr: return this->getData<std::vector<Address>>(index);
         case Types::boolean: return this->getData<bool>(index);
