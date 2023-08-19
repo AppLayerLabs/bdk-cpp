@@ -115,15 +115,6 @@ struct ABIType {
   static constexpr Types value = Types::uint256; ///< Default ABI type is uint256.
 };
 
-/**
-* Specialization for std::vector<T>.
-* This is used for all vector types, including bytesArr and stringArr.
-* @tparam T The type to map to an ABI type.
-*/
-template <typename T>
-struct ABIType<std::vector<T>> {
-  static constexpr Types value = Types::uint256Arr; ///< ABI type is uint256Arr.
-};
 
 /**
 * Specialization for address.
@@ -667,6 +658,16 @@ struct ABIType<int248_t> {
 template <>
 struct ABIType<int256_t> {
   static constexpr Types value = Types::int256; ///< ABI type is int256.
+};
+
+/**
+* Specialization for std::vector<T>.
+* This is used for all vector types, including bytesArr and stringArr.
+* @tparam T The type to map to an ABI type.
+*/
+template <typename T>
+struct ABIType<std::vector<T>> {
+  static constexpr Types value = static_cast<Types>(static_cast<int>(ABIType<T>::value) + 1); ///< ABI type is vector of T.
 };
 
 
