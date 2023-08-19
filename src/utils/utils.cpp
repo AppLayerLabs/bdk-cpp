@@ -646,6 +646,36 @@ uint8_t Utils::bytesToUint8(const BytesArrView b) {
   return ret;
 }
 
+int256_t Utils::bytesToInt256(const BytesArrView b) {
+    if (b.size() != 32) {
+        throw std::runtime_error(std::string(__func__)
+            + ": Invalid bytes size - expected 32, got " + std::to_string(b.size())
+        );
+    }
+
+    uint256_t ret;
+    boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+
+    if (b[0] & 0x80) { // Check the MSB to determine if the value is negative
+        // Manually compute two's complement in reverse,
+        // since boost::multiprecision::cpp_int doesn't support it
+        
+        // Subtract one from the byte array
+        int borrow = 1;
+        for (int i = 31; i >= 0 && borrow; i--) {
+            borrow = (b[i] == 0);
+            ret -= (uint256_t(1) << (8 * (31 - i)));
+        }
+        
+        ret = ~ret;
+
+        return -ret.convert_to<int256_t>();
+    } else {
+        return ret.convert_to<int256_t>();
+    }
+}
+
+
 Bytes Utils::randBytes(const int& size) {
   Bytes bytes(size, 0x00);
   RAND_bytes((unsigned char*)bytes.data(), size);

@@ -1,13 +1,21 @@
 #include <iostream>
+#include "contract/abi.h"
 #include "src/core/blockchain.h"
 #include <filesystem>
+#include "src/contract/abi.h"
+#include "src/utils/utils.h"
+#include "utils/utils.h"
 
 int main() {
-  Utils::logToCout = true;
-  std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
-  Blockchain blockchain(blockchainPath);
-  /// Start the blockchain syncing engine.
-  blockchain.start();
-  std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::hours(std::numeric_limits<int>::max()));
+
+  ABI::Encoder::EncVar vars;
+  int8_t a = -10;
+  vars.push_back(static_cast<int256_t>(a));
+  auto result = ABI::Encoder(vars).getData();
+  std::cout << Hex::fromBytes(result).get() << std::endl;
+  auto decodeResult = ABI::Decoder({ABI::Types::int8}, result).getData<int256_t>(0);
+  std::cout << decodeResult << std::endl;
   return 0;
+  
+  
 }

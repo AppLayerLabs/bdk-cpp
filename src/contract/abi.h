@@ -1198,6 +1198,16 @@ Types inline getABIEnumFromString(const std::string& type) {
       uint256_t decodeUint256(const BytesArrView data, const uint64_t& start) const;
 
       /**
+      * Decode a 256-bit signed integer from the given Solidity data string.
+      * Throws if data is too short.
+      * @param data The Solidity data bytes to decode.
+      * @param start The index of the vector to start decoding from.
+      * @return The decoded 256-bit signed integer.
+      *@throw std::runtime_error if data is too short.
+      */
+      int256_t decodeInt256(const BytesArrView data, const uint64_t& start) const;
+
+      /**
        * Decode a 20-byte address from the given Solidity data string.
        * Throws if data is too short.
        * @param data The Solidity data bytes to decode.

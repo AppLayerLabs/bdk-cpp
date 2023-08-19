@@ -862,6 +862,14 @@ namespace Utils {
    */
    uint8_t bytesToUint8(const BytesArrView b);
 
+   /**
+    * Convert a bytes string to a 256-bit signed integer.
+    * @param b The bytes string to convert.
+    * @return The converted 256-bit integer.
+    * @throw std::runtime_error if string size is invalid.
+    */
+  int256_t bytesToInt256(const BytesArrView b);
+
   /**
    * Add padding to the left of a byte vector.
    * @param bytes The vector to pad.
