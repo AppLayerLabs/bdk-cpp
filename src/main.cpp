@@ -1,21 +1,26 @@
 #include <iostream>
-#include "contract/abi.h"
 #include "src/core/blockchain.h"
 #include <filesystem>
-#include "src/contract/abi.h"
-#include "src/utils/utils.h"
-#include "utils/utils.h"
+
+std::unique_ptr<Blockchain> blockchain = nullptr;
+
+void signalHandler(int signum) {
+  Logger::logToDebug(LogType::INFO, "MAIN", "MAIN", "Received signal " + std::to_string(signum) + ". Stopping the blockchain.");
+  blockchain->stop();
+  blockchain = nullptr; /// Destroy the blockchain object, calling the destructor of every module and dumping to DB.
+  Utils::safePrint("Exiting...");
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  exit(signum);
+}
 
 int main() {
-
-  ABI::Encoder::EncVar vars;
-  int8_t a = -10;
-  vars.push_back(static_cast<int256_t>(a));
-  auto result = ABI::Encoder(vars).getData();
-  std::cout << Hex::fromBytes(result).get() << std::endl;
-  auto decodeResult = ABI::Decoder({ABI::Types::int8}, result).getData<int256_t>(0);
-  std::cout << decodeResult << std::endl;
+  Utils::logToCout = true;
+  std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
+  blockchain = std::make_unique<Blockchain>(blockchainPath);
+  /// Start the blockchain syncing engine.
+  std::signal(SIGINT, signalHandler);
+  std::signal(SIGHUP, signalHandler);
+  blockchain->start();
+  std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::hours(std::numeric_limits<int>::max()));
   return 0;
-  
-  
 }
