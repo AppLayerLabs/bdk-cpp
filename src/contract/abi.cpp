@@ -19,19 +19,13 @@ Bytes ABI::Encoder::encodeInt256(const int256_t& num) const {
     Bytes ret(32, num < 0 ? 0xff : 0x00);
     int256_t valueToEncode = num;
 
-    // If the number is negative, compute the two's complement
     if (num < 0) {
-        // Convert the absolute value
         valueToEncode = -num;
 
-        // Manually calculate two's complement using raw memory
-        // This is necessary because boost::multiprecision::export_bits
-        // does not support two's complement :(
         for (int i = 0; i < 32; i++) {
             ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
         }
 
-        // Add one to the result
         for (int i = 31; i >= 0; i--) {
             if (ret[i] != 0xff) {
                 ret[i]++;
@@ -41,12 +35,13 @@ Bytes ABI::Encoder::encodeInt256(const int256_t& num) const {
             }
         }
     } else {
-        boost::multiprecision::export_bits(valueToEncode, ret.rbegin(), 8); 
+        Bytes tempBytes;
+        boost::multiprecision::export_bits(valueToEncode, std::back_inserter(tempBytes), 8);
+        std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
     }
 
     return ret;
 }
-
 
 Bytes ABI::Encoder::encodeAddress(const Address& add) const {
   return Utils::padLeftBytes(add.get(), 32);
@@ -148,6 +143,7 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
         funcType != "string" && funcType != "uint256[]" &&
         funcType != "address[]" && funcType != "bool[]" &&
         funcType != "bytes[]" && funcType != "string[]" && funcType != "address"
+        && funcType != "int256[]"
       ) throw std::runtime_error("Invalid function header type: " + std::string(funcType));
       if (
         (funcType == "uint256" && !std::holds_alternative<uint256_t>(data[ct])) ||
@@ -157,6 +153,7 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
         (funcType == "bytes" && !std::holds_alternative<Bytes>(data[ct])) ||
         (funcType == "string" && !std::holds_alternative<std::string>(data[ct])) ||
         (funcType == "uint256[]" && !std::holds_alternative<std::vector<uint256_t>>(data[ct])) ||
+        (funcType == "int256[]" && !std::holds_alternative<std::vector<int256_t>>(data[ct])) ||
         (funcType == "address[]" && !std::holds_alternative<std::vector<Address>>(data[ct])) ||
         (funcType == "bool[]" && !std::holds_alternative<std::vector<bool>>(data[ct])) ||
         (funcType == "bytes[]" && !std::holds_alternative<std::vector<Bytes>>(data[ct])) ||
