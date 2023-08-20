@@ -292,6 +292,26 @@ namespace Utils {
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
   /**
+  * Template for identifying if a type is a uint between 8 and 256 bits.
+  * @tparam T The type to check.
+  * @tparam N The number of bits.
+  */
+  template<typename T, std::size_t N>
+    struct isRangedUint {
+        static const bool value = std::is_integral_v<T> && std::is_unsigned_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is a uint between 8 and 256 bits.
+    };
+
+  /**
+  * Template for identifying if a type is an int between 8 and 256 bits.
+  * @tparam T The type to check.
+  * @tparam N The number of bits.
+  */
+  template<typename T, std::size_t N>
+  struct isRangedInt {
+      static const bool value = std::is_integral_v<T> && std::is_signed_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is an int between 8 and 256 bits.
+  };
+
+  /**
   * Template for identifying if a type is a tuple.
   * @tparam T The type to check.
   */

@@ -102,16 +102,6 @@ class DynamicContract : public BaseContract {
         }
     };
 
-    template<typename T, std::size_t N>
-    struct isRangedUint {
-        static const bool value = std::is_integral_v<T> && std::is_unsigned_v<T> && (sizeof(T) * 8 <= N);
-    };
-
-    template<typename T, std::size_t N>
-    struct isRangedInt {
-        static const bool value = std::is_integral_v<T> && std::is_signed_v<T> && (sizeof(T) * 8 <= N);
-    };
-
     /**
      * Template for registering a const member function with no arguments.
      * @param funcSignature Solidity function signature.
@@ -131,9 +121,9 @@ class DynamicContract : public BaseContract {
         {"view", [this, functStr, instance, memFunc, funcSignature]() {
           this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
             using ReturnType = decltype((instance->*memFunc)());
-            if constexpr (isRangedUint<ReturnType, 256>::value){
+            if constexpr (Utils::isRangedUint<ReturnType, 256>::value){
               return BaseTypes{static_cast<uint256_t>((instance->*memFunc)())};
-            } else if constexpr (isRangedInt<ReturnType, 256>::value){
+            } else if constexpr (Utils::isRangedInt<ReturnType, 256>::value){
               return BaseTypes{static_cast<int256_t>((instance->*memFunc)())};
             } else {
               return BaseTypes{(instance->*memFunc)()};
@@ -143,9 +133,9 @@ class DynamicContract : public BaseContract {
         {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
           this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
             using ReturnType = decltype((instance->*memFunc)());
-            if constexpr (isRangedUint<ReturnType, 256>::value){
+            if constexpr (Utils::isRangedUint<ReturnType, 256>::value){
               return BaseTypes{static_cast<uint256_t>((instance->*memFunc)())};
-            } else if constexpr (isRangedInt<ReturnType, 256>::value){
+            } else if constexpr (Utils::isRangedInt<ReturnType, 256>::value){
               return BaseTypes{static_cast<int256_t>((instance->*memFunc)())};
             } else {
               return BaseTypes{(instance->*memFunc)()};
@@ -155,9 +145,9 @@ class DynamicContract : public BaseContract {
         {"payable", [this, functStr, instance, memFunc, funcSignature]() {
           this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
             using ReturnType = decltype((instance->*memFunc)());
-            if constexpr (isRangedUint<ReturnType, 256>::value){
+            if constexpr (Utils::isRangedUint<ReturnType, 256>::value){
               return BaseTypes{static_cast<uint256_t>((instance->*memFunc)())};
-            } else if constexpr (isRangedInt<ReturnType, 256>::value){
+            } else if constexpr (Utils::isRangedInt<ReturnType, 256>::value){
               return BaseTypes{static_cast<int256_t>((instance->*memFunc)())};
             } else {
               return BaseTypes{(instance->*memFunc)()};
