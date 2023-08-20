@@ -355,6 +355,14 @@ namespace Utils {
   BytesArr<32> uint256ToBytes(const uint256_t& i);
 
   /**
+   * Convert a 256-bit signed integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 256-bit integer as a bytes string.
+   */
+  BytesArr<32> int256ToBytes(const int256_t& i);
+
+  /**
   * Convert a 248-bit unsigned integer to a bytes string.
   * Use `Hex()` to properly print it.
   * @param i The integer to convert.

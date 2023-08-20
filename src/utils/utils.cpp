@@ -675,6 +675,39 @@ int256_t Utils::bytesToInt256(const BytesArrView b) {
     }
 }
 
+BytesArr<32> Utils::int256ToBytes(const int256_t& i) {
+    BytesArr<32> ret;
+
+    if (i < 0) {
+        int256_t absValue = -i;
+
+        Bytes tempBytes;
+        boost::multiprecision::export_bits(absValue, std::back_inserter(tempBytes), 8);
+        for (int j = 0; j < 32; j++) {
+            if (j < tempBytes.size()) {
+                ret[31 - j] = ~tempBytes[tempBytes.size() - j - 1];
+            } else {
+                ret[31 - j] = 0xFF;
+            }
+        }
+        for (int j = 31; j >= 0; j--) {
+            if (ret[j] != 0xFF) {
+                ret[j]++;
+                break;
+            } else {
+                ret[j] = 0x00;
+            }
+        }
+    } else {
+        Bytes tempBytes;
+        boost::multiprecision::export_bits(i, std::back_inserter(tempBytes), 8);
+        std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
+    }
+
+    return ret;
+}
+
+
 
 Bytes Utils::randBytes(const int& size) {
   Bytes bytes(size, 0x00);
