@@ -9,16 +9,17 @@
 // Initialize db to be used in tests.
 // DB here is the same
 void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std::unique_ptr<Options>& options, bool clearDB = true) {
+  std::string testDumpPath = Utils::getTestDumpPath();
   if (clearDB) {
-    if (std::filesystem::exists("blocksTests")) {
-      std::filesystem::remove_all("blocksTests");
+    if (std::filesystem::exists(testDumpPath + "/blocksTests")) {
+      std::filesystem::remove_all(testDumpPath + "/blocksTests");
     }
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  db = std::make_unique<DB>("blocksTests/db");
+  db = std::make_unique<DB>(testDumpPath + "/blocksTests/db");
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   options = std::make_unique<Options>(
-    "blocksTests",
+    testDumpPath + "/blocksTests",
     "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     1,
     8080,

@@ -37,6 +37,7 @@ const std::vector<Hash> validatorPrivKeys {
 
 namespace TNativeWrapper {
   TEST_CASE("NativeWrapper tests", "[contract][nativewrapper]") {
+    std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("NativeWrapper Constructor") {
       PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
@@ -52,7 +53,7 @@ namespace TNativeWrapper {
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true,
-                   "NativeWrapperNewContractTest");
+                    testDumpPath + "/NativeWrapperNewContractTest");
 
         // Create a new Contract
         ABI::Encoder::EncVar createNewNativeWrapperContractVars;
@@ -109,7 +110,7 @@ namespace TNativeWrapper {
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
       initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false,
-                 "NativeWrapperNewContractTest");
+                  testDumpPath + "/NativeWrapperNewContractTest");
 
       REQUIRE(contractAddress == state->getContracts()[0].second);
       ABI::Encoder nameEncoder({}, "name()");
@@ -152,7 +153,7 @@ namespace TNativeWrapper {
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true,
-                   "NativeWrapperDepositTest");
+                   testDumpPath + "/NativeWrapperDepositTest");
 
         // Create a new Contract
         ABI::Encoder::EncVar createNewNativeWrapperContractVars;
@@ -214,7 +215,7 @@ namespace TNativeWrapper {
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
       initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false,
-                 "NativeWrapperDepositTest");
+                  testDumpPath + "/NativeWrapperDepositTest");
 
       REQUIRE(contractAddress == state->getContracts()[0].second);
       REQUIRE(state->getNativeBalance(contractAddress) == amountToTransfer);
@@ -244,7 +245,7 @@ namespace TNativeWrapper {
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true,
-                   "NativeWrapperWithdrawTest");
+                    testDumpPath + "/NativeWrapperWithdrawTest");
 
         // Create a new Contract
         ABI::Encoder::EncVar createNewNativeWrapperContractVars;
@@ -336,7 +337,7 @@ namespace TNativeWrapper {
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
       initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false,
-                 "NativeWrapperWithdrawTest");
+                  testDumpPath + "/NativeWrapperWithdrawTest");
 
       REQUIRE(contractAddress == state->getContracts()[0].second);
       REQUIRE(state->getNativeBalance(contractAddress) == amountToTransfer - amountToWithdraw);

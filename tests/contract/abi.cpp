@@ -83,6 +83,79 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
       ));
     }
 
+  SECTION("Encode Int256 (Single)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(int256_t("-123456789012345678901234567890123456789012345678901234567890"));
+
+      ABI::Encoder e(eV, "testInt(int256)");
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
+
+      REQUIRE(functor.asBytes() == Hex::toBytes("6017d51d"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
+        "ffffffffffffffec550afb1b43e19de8c0785bc873c84b6373300e6931c0f52e"
+      ));
+    }
+
+  SECTION("Encode Int256 (Multiple)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(int256_t("-123456789012345678901234567890123456789012345678901234567890"));
+    eV.push_back(int256_t("123456789012345678901234567890123456789012345678901234567890"));
+    eV.push_back(int256_t("-56789012345678901234567890123456789012345678901234567890"));
+    eV.push_back(int256_t("56789012345678901234567890123456789012345678901234567890"));
+
+      ABI::Encoder e(eV, "testMultipleInt(int256,int256)");
+      auto eS = Utils::create_view_span(e.getData());
+      Functor functor = e.getFunctor();
+
+      REQUIRE(functor.asBytes() == Hex::toBytes("c402855a"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
+        "ffffffffffffffec550afb1b43e19de8c0785bc873c84b6373300e6931c0f52e"
+      ));
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
+        "0000000000000013aaf504e4bc1e62173f87a4378c37b49c8ccff196ce3f0ad2"
+      ));
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
+        "fffffffffffffffffdaf1854f62f44391b682b86c9106cac85300e6931c0f52e"
+      ));
+      REQUIRE(Bytes(eS.begin() + 32 * 3, eS.begin() + 32 * 4) == Hex::toBytes(
+        "00000000000000000250e7ab09d0bbc6e497d47936ef93537acff196ce3f0ad2"
+      ));
+    }
+
+  SECTION("Encode Int256 (Array)") {
+    ABI::Encoder::EncVar eV;
+    eV.push_back(std::vector<int256_t>{
+        int256_t("-123456789012345678901234567890123456789012345678901234567890"),
+        int256_t("123456789012345678901234567890123456789012345678901234567890"),
+        int256_t("-56789012345678901234567890123456789012345678901234567890"),
+        int256_t("56789012345678901234567890123456789012345678901234567890")});
+
+      ABI::Encoder e(eV, "testUintArr(int256[])");
+      BytesArrView eS = e.getData();
+      auto functor = e.getFunctor();
+
+      REQUIRE(functor == Hex::toBytes("aa9644a3"));
+      REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
+        "0000000000000000000000000000000000000000000000000000000000000020"
+      ));
+      REQUIRE(Bytes(eS.begin() + 32, eS.begin() + 32 * 2) == Hex::toBytes(
+        "0000000000000000000000000000000000000000000000000000000000000004"
+      ));
+      REQUIRE(Bytes(eS.begin() + 32 * 2, eS.begin() + 32 * 3) == Hex::toBytes(
+        "ffffffffffffffec550afb1b43e19de8c0785bc873c84b6373300e6931c0f52e"
+      ));
+      REQUIRE(Bytes(eS.begin() + 32 * 3, eS.begin() + 32 * 4) == Hex::toBytes(
+        "0000000000000013aaf504e4bc1e62173f87a4378c37b49c8ccff196ce3f0ad2"
+      ));
+      REQUIRE(Bytes(eS.begin() + 32 * 4, eS.begin() + 32 * 5) == Hex::toBytes(
+        "fffffffffffffffffdaf1854f62f44391b682b86c9106cac85300e6931c0f52e"
+      ));
+      REQUIRE(Bytes(eS.begin() + 32 * 5, eS.begin() + 32 * 6) == Hex::toBytes(
+        "00000000000000000250e7ab09d0bbc6e497d47936ef93537acff196ce3f0ad2"
+      ));
+    }
+
   SECTION("Encode String (Single)") {
     ABI::Encoder::EncVar eV;
     eV.push_back("Hello World!");
@@ -567,6 +640,35 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     REQUIRE(dV[0] == uint256_t(2312415123141231511));
     REQUIRE(dV[1] == uint256_t(2734526262645));
     REQUIRE(dV[2] == uint256_t(389234263123421));
+  }
+
+    SECTION("Decode Int256") {
+      Bytes ABI = Hex::toBytes("0x"
+        "fffffffffffffffffdaf1854f62f44391b682b86c9106cac85300e6931c0f52e"
+      );
+      std::vector<ABI::Types> types = {ABI::Types::int256};
+
+    ABI::Decoder d(types, ABI);
+    int256_t dV = d.getData<int256_t>(0);
+
+    REQUIRE(dV == int256_t("-56789012345678901234567890123456789012345678901234567890"));
+  }
+
+    SECTION("Decode Int256 (Array)") {
+      Bytes ABI = Hex::toBytes("0x"
+      "0000000000000000000000000000000000000000000000000000000000000020"
+       "0000000000000000000000000000000000000000000000000000000000000004"
+       "ffffffffffffffec550afb1b43e19de8c0785bc873c84b6373300e6931c0f52e0000000000000013aaf504e4bc1e62173f87a4378c37b49c8ccff196ce3f0ad2fffffffffffffffffdaf1854f62f44391b682b86c9106cac85300e6931c0f52e00000000000000000250e7ab09d0bbc6e497d47936ef93537acff196ce3f0ad2"
+      );
+      std::vector<ABI::Types> types = {ABI::Types::int256Arr};
+
+    ABI::Decoder d(types, ABI);
+    std::vector<int256_t> dV = d.getData<std::vector<int256_t>>(0);
+
+    REQUIRE(dV[0] == int256_t("-123456789012345678901234567890123456789012345678901234567890"));
+    REQUIRE(dV[1] == int256_t("123456789012345678901234567890123456789012345678901234567890"));
+    REQUIRE(dV[2] == int256_t("-56789012345678901234567890123456789012345678901234567890"));
+    REQUIRE(dV[3] == int256_t("56789012345678901234567890123456789012345678901234567890"));
   }
 
     SECTION("Decode Address (Array)") {

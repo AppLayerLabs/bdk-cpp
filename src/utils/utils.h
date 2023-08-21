@@ -25,6 +25,7 @@
 
 #include "json.hpp"
 #include "src/contract/variables/safeuint.h"
+#include "src/contract/variables/safeint.h"
 
 /// @file utils.h
 
@@ -42,87 +43,117 @@ using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 
 /// Typedef for uint24_t.
 using uint24_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<24, 24, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint40_t.
 using uint40_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<40, 40, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint48_t.
 using uint48_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<48, 48, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint56_t.
 using uint56_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<56, 56, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint72_t.
 using uint72_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<72, 72, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint80_t.
 using uint80_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<80, 80, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint88_t.
 using uint88_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<88, 88, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint96_t.
 using uint96_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<96, 96, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint104_t.
 using uint104_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<104, 104, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint112_t.
 using uint112_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<112, 112, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint120_t.  
 using uint120_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<120, 120, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint128_t.
 using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint136_t.
 using uint136_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<136, 136, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint144_t.
 using uint144_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<144, 144, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint152_t.
 using uint152_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<152, 152, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint160_t.
 using uint160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint168_t.
 using uint168_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<168, 168, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint176_t.
 using uint176_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<176, 176, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint184_t.
 using uint184_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<184, 184, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint192_t.
 using uint192_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<192, 192, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint200_t.
 using uint200_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<200, 200, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint208_t.
 using uint208_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<208, 208, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint216_t.
 using uint216_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<216, 216, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint224_t.
 using uint224_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<224, 224, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint232_t.
 using uint232_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<232, 232, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint240_t.
 using uint240_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<240, 240, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint248_t.
 using uint248_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<248, 248, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
 /// Typedef for uint256_t.
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+
+/// Typedef for int24_t.
+using int24_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<24, 24, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int40_t.
+using int40_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<40, 40, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int48_t.
+using int48_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<48, 48, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int56_t.
+using int56_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<56, 56, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int72_t.
+using int72_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<72, 72, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int80_t.
+using int80_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<80, 80, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int88_t.
+using int88_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<88, 88, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int96_t.
+using int96_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<96, 96, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int104_t.
+using int104_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<104, 104, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int112_t.
+using int112_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<112, 112, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int120_t.
+using int120_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<120, 120, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int128_t.
+using int128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int136_t.
+using int136_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<136, 136, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int144_t.
+using int144_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<144, 144, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int152_t.
+using int152_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<152, 152, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int160_t.
+using int160_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<160, 160, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int168_t.
+using int168_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<168, 168, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int176_t.
+using int176_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<176, 176, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int184_t.
+using int184_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<184, 184, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int192_t.
+using int192_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<192, 192, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int200_t.
+using int200_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<200, 200, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int208_t.
+using int208_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<208, 208, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int216_t.
+using int216_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<216, 216, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int224_t.
+using int224_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<224, 224, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int232_t.
+using int232_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<232, 232, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int240_t.
+using int240_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<240, 240, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int248_t.
+using int248_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<248, 248, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
+/// Typedef for int256_t.
+using int256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::signed_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 
 using SafeUint8_t = SafeUint_t<8>; ///< Typedef for SafeUint8_t.
 using SafeUint16_t = SafeUint_t<16>; ///< Typedef for SafeUint16_t.
@@ -157,6 +188,39 @@ using SafeUint240_t = SafeUint_t<240>; ///< Typedef for SafeUint240_t.
 using SafeUint248_t = SafeUint_t<248>; ///< Typedef for SafeUint248_t.
 using SafeUint256_t = SafeUint_t<256>; ///< Typedef for SafeUint256_t.
 
+using SafeInt8_t = SafeInt_t<8>; ///< Typedef for SafeInt8_t.
+using SafeInt16_t = SafeInt_t<16>; ///< Typedef for SafeInt16_t.
+using SafeInt24_t = SafeInt_t<24>; ///< Typedef for SafeInt24_t.
+using SafeInt32_t = SafeInt_t<32>; ///< Typedef for SafeInt32_t.
+using SafeInt40_t = SafeInt_t<40>; ///< Typedef for SafeInt40_t.
+using SafeInt48_t = SafeInt_t<48>; ///< Typedef for SafeInt48_t.
+using SafeInt56_t = SafeInt_t<56>; ///< Typedef for SafeInt56_t.
+using SafeInt64_t = SafeInt_t<64>; ///< Typedef for SafeInt64_t.
+using SafeInt72_t = SafeInt_t<72>; ///< Typedef for SafeInt72_t.
+using SafeInt80_t = SafeInt_t<80>; ///< Typedef for SafeInt80_t.
+using SafeInt88_t = SafeInt_t<88>; ///< Typedef for SafeInt88_t.
+using SafeInt96_t = SafeInt_t<96>; ///< Typedef for SafeInt96_t.
+using SafeInt104_t = SafeInt_t<104>; ///< Typedef for SafeInt104_t.
+using SafeInt112_t = SafeInt_t<112>; ///< Typedef for SafeInt112_t.
+using SafeInt120_t = SafeInt_t<120>; ///< Typedef for SafeInt120_t.
+using SafeInt128_t = SafeInt_t<128>; ///< Typedef for SafeInt128_t.
+using SafeInt136_t = SafeInt_t<136>; ///< Typedef for SafeInt136_t.
+using SafeInt144_t = SafeInt_t<144>; ///< Typedef for SafeInt144_t.
+using SafeInt152_t = SafeInt_t<152>; ///< Typedef for SafeInt152_t.
+using SafeInt160_t = SafeInt_t<160>; ///< Typedef for SafeInt160_t.
+using SafeInt168_t = SafeInt_t<168>; ///< Typedef for SafeInt168_t.
+using SafeInt176_t = SafeInt_t<176>; ///< Typedef for SafeInt176_t.
+using SafeInt184_t = SafeInt_t<184>; ///< Typedef for SafeInt184_t.
+using SafeInt192_t = SafeInt_t<192>; ///< Typedef for SafeInt192_t.
+using SafeInt200_t = SafeInt_t<200>; ///< Typedef for SafeInt200_t.
+using SafeInt208_t = SafeInt_t<208>; ///< Typedef for SafeInt208_t.
+using SafeInt216_t = SafeInt_t<216>; ///< Typedef for SafeInt216_t.
+using SafeInt224_t = SafeInt_t<224>; ///< Typedef for SafeInt224_t.
+using SafeInt232_t = SafeInt_t<232>; ///< Typedef for SafeInt232_t.
+using SafeInt240_t = SafeInt_t<240>; ///< Typedef for SafeInt240_t.
+using SafeInt248_t = SafeInt_t<248>; ///< Typedef for SafeInt248_t.
+using SafeInt256_t = SafeInt_t<256>; ///< Typedef for SafeInt256_t.
+
 /**
 * Struct for Bytes type that will be encoded in an function return.
 */
@@ -167,6 +231,14 @@ using BytesEncoded = BytesEncodedStruct; ///< Typedef for BytesEncoded.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
+
+/**
+* Typedef for all the possible types that can be used in a function.
+* Based on Solidity types.
+* @note: Fixed point types are not supported yet, because they are not supported fully in Solidity.
+*/
+using BaseTypes = std::variant<uint256_t, std::vector<uint256_t>, int256_t, std::vector<int256_t>, Address, std::vector<Address>,
+        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>>;
 
 /**
  * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
@@ -217,6 +289,28 @@ struct Account {
 /// Namespace for utility functions.
 namespace Utils {
 
+  std::string getTestDumpPath(); ///< Get the path to the test dump folder.
+
+  /**
+  * Template for identifying if a type is a uint between 8 and 256 bits.
+  * @tparam T The type to check.
+  * @tparam N The number of bits.
+  */
+  template<typename T, std::size_t N>
+    struct isRangedUint {
+        static const bool value = std::is_integral_v<T> && std::is_unsigned_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is a uint between 8 and 256 bits.
+    };
+
+  /**
+  * Template for identifying if a type is an int between 8 and 256 bits.
+  * @tparam T The type to check.
+  * @tparam N The number of bits.
+  */
+  template<typename T, std::size_t N>
+  struct isRangedInt {
+      static const bool value = std::is_integral_v<T> && std::is_signed_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is an int between 8 and 256 bits.
+  };
+
   /**
   * Template for identifying if a type is a tuple.
   * @tparam T The type to check.
@@ -259,6 +353,14 @@ namespace Utils {
    * @return The converted 256-bit integer as a bytes string.
    */
   BytesArr<32> uint256ToBytes(const uint256_t& i);
+
+  /**
+   * Convert a 256-bit signed integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 256-bit integer as a bytes string.
+   */
+  BytesArr<32> int256ToBytes(const int256_t& i);
 
   /**
   * Convert a 248-bit unsigned integer to a bytes string.
@@ -787,6 +889,14 @@ namespace Utils {
    * @throw std::runtime_error if string size is invalid.
    */
    uint8_t bytesToUint8(const BytesArrView b);
+
+   /**
+    * Convert a bytes string to a 256-bit signed integer.
+    * @param b The bytes string to convert.
+    * @return The converted 256-bit integer.
+    * @throw std::runtime_error if string size is invalid.
+    */
+  int256_t bytesToInt256(const BytesArrView b);
 
   /**
    * Add padding to the left of a byte vector.

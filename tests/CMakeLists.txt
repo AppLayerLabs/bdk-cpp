@@ -25,7 +25,9 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/contractabigenerator.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/dexv2.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_c++.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_c++.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_boost.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_boost.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safestring.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp

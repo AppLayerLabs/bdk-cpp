@@ -49,13 +49,14 @@ void initialize(const std::string& blockchainPath,
 
 namespace TBlockchain {
   TEST_CASE("Blockchain Class", "[core][blockchain]") {
+    std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("Initialize Blockchain Multiple Nodes") {
       std::shared_ptr<const Block> bestBlock;
       {
         /// Initialize ManagerDiscovery
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-            "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
+            testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
             "OrbiterSDK/cpp/linux_x86-64/0.1.2",
             1,
             8080,
@@ -144,7 +145,7 @@ namespace TBlockchain {
       {
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-            "statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
+            testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
             "OrbiterSDK/cpp/linux_x86-64/0.1.2",
             1,
             8080,

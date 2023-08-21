@@ -10,11 +10,12 @@
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 namespace TContractManager {
+  std::string testDumpPath = Utils::getTestDumpPath();
   // TODO: Add more testcases for ContractManager once it's integrated with State.
   TEST_CASE("ContractManager class", "[contract][contractmanager]") {
     SECTION("ContractManager createNewContractERC20Contract()") {
-      if (std::filesystem::exists("ContractManagerTestCreateNew")) {
-        std::filesystem::remove_all("ContractManagerTestCreateNew");
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
       }
 
       PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
@@ -25,8 +26,8 @@ namespace TContractManager {
       uint256_t tokenSupply = 1000000000000000000;
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
         ContractManager contractManager(nullptr, db, rdpos, options);
 
@@ -83,8 +84,8 @@ namespace TContractManager {
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
       }
 
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
 
@@ -99,8 +100,8 @@ namespace TContractManager {
     }
 
     SECTION("ContractManager createNewContractERC20ContractTransferTo()") {
-      if (std::filesystem::exists("ContractManagerTestCreateNew")) {
-        std::filesystem::remove_all("ContractManagerTestCreateNew");
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
       }
 
       PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
@@ -112,8 +113,8 @@ namespace TContractManager {
       uint256_t tokenSupply = 1000000000000000000;
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
         ContractManager contractManager(nullptr, db, rdpos, options);
 
@@ -151,7 +152,7 @@ namespace TContractManager {
 
         ABI::Encoder::EncVar transferVars;
         transferVars.push_back(destinationOfTransfer);
-        transferVars.push_back(500000000000000000);
+        transferVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder transferEncoder(transferVars);
         Bytes transferData = Hex::toBytes("0xa9059cbb");
         Utils::appendBytes(transferData, transferEncoder.getData());
@@ -182,8 +183,8 @@ namespace TContractManager {
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
       }
 
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
 

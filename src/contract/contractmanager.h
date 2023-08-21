@@ -193,10 +193,15 @@ class ContractManager : BaseContract {
       std::vector<std::any> dataVector;
 
       for (size_t i = 0; i < types.size(); i++) {
-        if (ABI::castFunctions.count(types[i]) > 0) {
+        if (ABI::castUintFunctions.count(types[i]) > 0) {
           uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castFunctions[types[i]](value));
-        } else {
+          dataVector.push_back(ABI::castUintFunctions[types[i]](value));
+        }
+        else if (ABI::castIntFunctions.count(types[i]) > 0) {
+          int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
+          dataVector.push_back(ABI::castIntFunctions[types[i]](value));
+        }
+         else {
           dataVector.push_back(decoder.getDataDispatch(i, types[i]));
         }
       }

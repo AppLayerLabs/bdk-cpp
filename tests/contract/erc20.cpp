@@ -44,7 +44,7 @@ void initialize(std::unique_ptr<Options>& options,
     ABI::Encoder::EncVar createNewERC20ContractVars;
     createNewERC20ContractVars.push_back(tokenName);
     createNewERC20ContractVars.push_back(tokenSymbol);
-    createNewERC20ContractVars.push_back(tokenDecimals);
+    createNewERC20ContractVars.push_back(static_cast<uint256_t>(tokenDecimals));
     createNewERC20ContractVars.push_back(tokenSupply);
     ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
     Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
@@ -68,6 +68,7 @@ void initialize(std::unique_ptr<Options>& options,
 }
 
 namespace TERC20 {
+  std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("ERC2O Class", "[contract][erc20]") {
     PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
@@ -77,7 +78,7 @@ namespace TERC20 {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20ClassConstructor";
+        std::string dbName = testDumpPath + "/erc20ClassConstructor";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
         uint8_t tokenDecimals = 18;
@@ -117,7 +118,7 @@ namespace TERC20 {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20ClassConstructor";
+      std::string dbName = testDumpPath + "/erc20ClassConstructor";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
       uint8_t tokenDecimals = 18;
@@ -162,7 +163,7 @@ namespace TERC20 {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20ClassTransfer";
+        std::string dbName = testDumpPath + "/erc20ClassTransfer";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
         uint8_t tokenDecimals = 18;
@@ -182,7 +183,7 @@ namespace TERC20 {
 
         ABI::Encoder::EncVar transferVars;
         transferVars.push_back(destinationOfTransactions);
-        transferVars.push_back(500000000000000000);
+        transferVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder transferEncoder(transferVars);
         Bytes transferData = Hex::toBytes("0xa9059cbb");
         Utils::appendBytes(transferData, transferEncoder.getData());
@@ -239,7 +240,7 @@ namespace TERC20 {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20ClassTransfer";
+      std::string dbName = testDumpPath + "/erc20ClassTransfer";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
       uint8_t tokenDecimals = 18;
@@ -274,7 +275,7 @@ namespace TERC20 {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20ClassApprove";
+        std::string dbName = testDumpPath + "/erc20ClassApprove";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
         uint8_t tokenDecimals = 18;
@@ -290,7 +291,7 @@ namespace TERC20 {
 
         ABI::Encoder::EncVar approveVars;
         approveVars.push_back(destinationOfApproval);
-        approveVars.push_back(500000000000000000);
+        approveVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder approveEncoder(approveVars);
         Bytes approveData = Hex::toBytes("0x095ea7b3");
         Utils::appendBytes(approveData, approveEncoder.getData());
@@ -324,7 +325,7 @@ namespace TERC20 {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20ClassApprove";
+      std::string dbName = testDumpPath + "/erc20ClassApprove";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
       uint8_t tokenDecimals = 18;
@@ -352,7 +353,7 @@ namespace TERC20 {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20ClassTransferFrom";
+        std::string dbName = testDumpPath + "/erc20ClassTransferFrom";
         std::string tokenName = "TestToken";
         std::string tokenSymbol = "TST";
         uint8_t tokenDecimals = 18;
@@ -363,7 +364,7 @@ namespace TERC20 {
         erc20Address = contractManager->getContracts()[0].second;
         ABI::Encoder::EncVar approveVars;
         approveVars.push_back(destinationOfApproval);
-        approveVars.push_back(500000000000000000);
+        approveVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder approveEncoder(approveVars);
         Bytes approveData = Hex::toBytes("0x095ea7b3");
         Utils::appendBytes(approveData, approveEncoder.getData());
@@ -385,7 +386,7 @@ namespace TERC20 {
         ABI::Encoder::EncVar transferFromVars;
         transferFromVars.push_back(owner);
         transferFromVars.push_back(destinationOfApproval);
-        transferFromVars.push_back(500000000000000000);
+        transferFromVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder transferFromEncoder(transferFromVars);
         Bytes transferFromBytes = Hex::toBytes("0x23b872dd");
         Utils::appendBytes(transferFromBytes, transferFromEncoder.getData());
@@ -460,7 +461,7 @@ namespace TERC20 {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20ClassTransferFrom";
+      std::string dbName = testDumpPath + "/erc20ClassTransferFrom";
       std::string tokenName = "TestToken";
       std::string tokenSymbol = "TST";
       uint8_t tokenDecimals = 18;
