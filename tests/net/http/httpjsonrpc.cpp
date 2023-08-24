@@ -185,7 +185,8 @@ namespace THTTPJsonRPC{
       std::unique_ptr<State> state;
       std::unique_ptr<HTTPServer> httpServer;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, rdpos, state, httpServer, options, validatorPrivKeys[0], 8080, 8081, true, "HTTPjsonRPC");
+      std::string testDumpPath = Utils::getTestDumpPath();
+      initialize(db, storage, p2p, rdpos, state, httpServer, options, validatorPrivKeys[0], 8080, 8081, true, testDumpPath + "/HTTPjsonRPC");
 
 
       /// Make random transactions within a given block, we need to include requests for getting txs and blocks

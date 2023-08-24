@@ -1,11 +1,11 @@
-#include "contractcalllogger.h"
+#include "contractcallstate.h"
 #include "contractmanager.h"
 #include "dynamiccontract.h"
 #include "contractfactory.h"
 
-ContractCallLogger::ContractCallLogger(ContractManager& manager) : manager(manager) {}
+ContractCallState::ContractCallState(ContractManager& manager) : manager(manager) {}
 
-ContractCallLogger::~ContractCallLogger() {
+ContractCallState::~ContractCallState() {
   if (this->commitCall) {
     this->commit();
   } else {
@@ -16,13 +16,13 @@ ContractCallLogger::~ContractCallLogger() {
   this->usedVars.clear();
 }
 
-void ContractCallLogger::commit() {
+void ContractCallState::commit() {
   for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
     rbegin->get().commit();
   }
 }
 
-void ContractCallLogger::revert() {
+void ContractCallState::revert() {
   for (auto rbegin = this->usedVars.rbegin(); rbegin != this->usedVars.rend(); rbegin++) {
     rbegin->get().revert();
   }

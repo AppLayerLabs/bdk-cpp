@@ -33,8 +33,8 @@ void initialize(std::unique_ptr<Options>& options,
     ABI::Encoder::EncVar createNewERC20ContractVars;
     createNewERC20ContractVars.push_back("TestToken");
     createNewERC20ContractVars.push_back("TST");
-    createNewERC20ContractVars.push_back(18);
-    createNewERC20ContractVars.push_back(1000000000000000000);
+    createNewERC20ContractVars.push_back(static_cast<uint256_t>(18));
+    createNewERC20ContractVars.push_back(static_cast<uint256_t>(1000000000000000000));
     ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
     Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
     Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
@@ -72,6 +72,7 @@ void initialize(std::unique_ptr<Options>& options,
 }
 
 namespace TERC20Wrapper {
+  std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("ERC20Wrapper Class", "[contract][erc20wrapper]") {
     PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
@@ -82,7 +83,7 @@ namespace TERC20Wrapper {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20wrapperDb";
+        std::string dbName = testDumpPath + "/erc20wrapperDb";
         initialize(options, db, contractManager, dbName, ownerPrivKey);
         for (const auto& [name, address] : contractManager->getContracts()) {
           if (name == "ERC20") {
@@ -96,7 +97,7 @@ namespace TERC20Wrapper {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20wrapperDb";
+      std::string dbName = testDumpPath + "/erc20wrapperDb";
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       for (const auto& [name, address] : contractManager->getContracts()) {
@@ -116,7 +117,7 @@ namespace TERC20Wrapper {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20wrapperDb";
+        std::string dbName = testDumpPath + "/erc20wrapperDb";
         initialize(options, db, contractManager, dbName, ownerPrivKey);
         for (const auto &[name, address]: contractManager->getContracts()) {
           if (name == "ERC20") {
@@ -134,7 +135,7 @@ namespace TERC20Wrapper {
 
         ABI::Encoder::EncVar depositVars;
         depositVars.push_back(erc20Address);
-        depositVars.push_back(500000000000000000);
+        depositVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder depositEncoder(depositVars);
         Bytes depositData = Hex::toBytes("0x47e7ef24");
         Utils::appendBytes(depositData, depositEncoder.getData());
@@ -156,7 +157,7 @@ namespace TERC20Wrapper {
 
         ABI::Encoder::EncVar approveVars;
         approveVars.push_back(wrapperAddress);
-        approveVars.push_back(500000000000000000);
+        approveVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder approveEncoder(approveVars);
         Bytes approveData = Hex::toBytes("0x095ea7b3");
         Utils::appendBytes(approveData, approveEncoder.getData());
@@ -215,7 +216,7 @@ namespace TERC20Wrapper {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20wrapperDb";
+      std::string dbName = testDumpPath + "/erc20wrapperDb";
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       ABI::Encoder::EncVar getAllowanceVars;
@@ -255,7 +256,7 @@ namespace TERC20Wrapper {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20wrapperDb";
+        std::string dbName = testDumpPath + "/erc20wrapperDb";
         initialize(options, db, contractManager, dbName, ownerPrivKey);
         for (const auto &[name, address]: contractManager->getContracts()) {
           if (name == "ERC20") {
@@ -273,7 +274,7 @@ namespace TERC20Wrapper {
 
         ABI::Encoder::EncVar depositVars;
         depositVars.push_back(erc20Address);
-        depositVars.push_back(500000000000000000);
+        depositVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder depositEncoder(depositVars);
         Bytes depositData = Hex::toBytes("0x47e7ef24");
         Utils::appendBytes(depositData, depositEncoder.getData());
@@ -294,7 +295,7 @@ namespace TERC20Wrapper {
 
         ABI::Encoder::EncVar approveVars;
         approveVars.push_back(wrapperAddress);
-        approveVars.push_back(500000000000000000);
+        approveVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder approveEncoder(approveVars);
         Bytes approveData = Hex::toBytes("0x095ea7b3");
         Utils::appendBytes(approveData, approveEncoder.getData());
@@ -351,7 +352,7 @@ namespace TERC20Wrapper {
 
         ABI::Encoder::EncVar withdrawVars;
         withdrawVars.push_back(erc20Address);
-        withdrawVars.push_back(250000000000000000);
+        withdrawVars.push_back(static_cast<uint256_t>(250000000000000000));
         ABI::Encoder withdrawEncoder(withdrawVars);
         Bytes withdrawData = Hex::toBytes("0xf3fef3a3");
         Utils::appendBytes(withdrawData, withdrawEncoder.getData());
@@ -393,7 +394,7 @@ namespace TERC20Wrapper {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20wrapperDb";
+      std::string dbName = testDumpPath + "/erc20wrapperDb";
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       ABI::Encoder::EncVar getAllowanceVars;
@@ -434,7 +435,7 @@ namespace TERC20Wrapper {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = "erc20wrapperDb";
+        std::string dbName = testDumpPath + "/erc20wrapperDb";
         initialize(options, db, contractManager, dbName, ownerPrivKey);
         for (const auto &[name, address]: contractManager->getContracts()) {
           if (name == "ERC20") {
@@ -452,7 +453,7 @@ namespace TERC20Wrapper {
 
         ABI::Encoder::EncVar depositVars;
         depositVars.push_back(erc20Address);
-        depositVars.push_back(500000000000000000);
+        depositVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder depositEncoder(depositVars);
         Bytes depositData = Hex::toBytes("0x47e7ef24");
         Utils::appendBytes(depositData, depositEncoder.getData());
@@ -473,7 +474,7 @@ namespace TERC20Wrapper {
 
         ABI::Encoder::EncVar approveVars;
         approveVars.push_back(wrapperAddress);
-        approveVars.push_back(500000000000000000);
+        approveVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder approveEncoder(approveVars);
         Bytes approveData = Hex::toBytes("0x095ea7b3");
         Utils::appendBytes(approveData, approveEncoder.getData());
@@ -531,7 +532,7 @@ namespace TERC20Wrapper {
         ABI::Encoder::EncVar transferToVars;
         transferToVars.push_back(erc20Address);
         transferToVars.push_back(destinationOfTransfers);
-        transferToVars.push_back(250000000000000000);
+        transferToVars.push_back(static_cast<uint256_t>(250000000000000000));
         ABI::Encoder transferToEncoder(transferToVars);
         Bytes transferToData = Hex::toBytes("0xa5f2a152");
         Utils::appendBytes(transferToData, transferToEncoder.getData());
@@ -579,7 +580,7 @@ namespace TERC20Wrapper {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = "erc20wrapperDb";
+      std::string dbName = testDumpPath + "/erc20wrapperDb";
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       ABI::Encoder::EncVar getAllowanceVars;

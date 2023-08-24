@@ -33,7 +33,6 @@ ERC20Wrapper::~ERC20Wrapper() {
       tokensAndBalancesBatch.push_back(key, value, this->getNewPrefix("_tokensAndBalances"));
     }
   }
-
   this->db->putBatch(tokensAndBalancesBatch);
 }
 

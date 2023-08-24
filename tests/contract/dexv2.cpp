@@ -72,13 +72,13 @@ Address createNewERC20(std::unique_ptr<State>& state, std::unique_ptr<rdPoS>& rd
   auto createNewERC20Tx = createNewTransaction(
     chainOwnerPrivKey,
     ProtocolContractAddresses.at("ContractManager"),
-    0,
+    uint256_t(0),
     state,
     options,
     Hex::toBytes("0xb74e5ed5"),
     tokenName,
     tokenSymbol,
-    decimals,
+    static_cast<uint256_t>(decimals),
     mintValue
   );
   auto prevContractList = state->getContracts();
@@ -113,7 +113,7 @@ Address createNewFactory(std::unique_ptr<State>& state, std::unique_ptr<rdPoS>& 
   auto createNewFactoryTx = createNewTransaction(
     chainOwnerPrivKey,
     ProtocolContractAddresses.at("ContractManager"),
-    0,
+    uint256_t(0),
     state,
     options,
     Hex::toBytes("0xf02da5d2"),
@@ -153,7 +153,7 @@ Address createNewRouter(std::unique_ptr<State>& state, std::unique_ptr<rdPoS>& r
   auto createNewRouterTx = createNewTransaction(
     chainOwnerPrivKey,
     ProtocolContractAddresses.at("ContractManager"),
-    0,
+    uint256_t(0),
     state,
     options,
     Hex::toBytes("0x5d0ba0d6"),
@@ -193,13 +193,13 @@ Address createNewNative(std::unique_ptr<State>& state, std::unique_ptr<rdPoS>& r
   auto createNewNativeTx = createNewTransaction(
     chainOwnerPrivKey,
     ProtocolContractAddresses.at("ContractManager"),
-    0,
+    uint256_t(0),
     state,
     options,
     Hex::toBytes("0xb296fad4"),
     tokenName,
     tokenSymbol,
-    tokenDecimal
+    static_cast<uint256_t>(tokenDecimal)
   );
 
   auto prevContractList = state->getContracts();
@@ -232,7 +232,7 @@ TxBlock createApproveTx(std::unique_ptr<State>& state, std::unique_ptr<Options>&
   auto approveTx = createNewTransaction(
     privKey,
     erc20,
-    0,
+    uint256_t(0),
     state,
     options,
     Hex::toBytes("0x095ea7b3"),
@@ -243,6 +243,7 @@ TxBlock createApproveTx(std::unique_ptr<State>& state, std::unique_ptr<Options>&
 }
 
 namespace TDEXV2 {
+  std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("DEXV2 Test", "[contract][dexv2]") {
     SECTION("Deploy DEXV2Router/Factory with a single pair") {
       PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
@@ -258,7 +259,7 @@ namespace TDEXV2 {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "DEXV2NewContractsTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/DEXV2NewContractsTest");
         wrapped = createNewNative(state, rdpos, storage, options, "WSPARQ", "WSPARQ", 18);
         factory = createNewFactory(state, rdpos, storage, options, Address());
         router = createNewRouter(state, rdpos, storage, options, factory, wrapped);
@@ -270,7 +271,7 @@ namespace TDEXV2 {
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<State> state;
       std::unique_ptr<Options> options;
-      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, "DEXV2NewContractsTest");
+      initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, false, testDumpPath + "/DEXV2NewContractsTest");
 
       auto contracts = state->getContracts();
       for (const auto& contract : contracts) {
@@ -296,7 +297,7 @@ namespace TDEXV2 {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "DEXV2NewContractsTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/DEXV2NewContractsTest");
 
         std::cout << "Creating native contract" << std::endl;
         wrapped = createNewNative(state, rdpos, storage, options, "WSPARQ", "WSPARQ", 18);
@@ -337,7 +338,7 @@ namespace TDEXV2 {
         auto addLiquidityTx = createNewTransaction(
           ownerPrivKey,
           router,
-          0,
+          uint256_t(0),
           state,
           options,
           Hex::toBytes("0xe8e33700"),
@@ -345,8 +346,8 @@ namespace TDEXV2 {
           tokenB,                                                       // tokenB
           uint256_t("100000000000000000000"),                           // amountADesired
           uint256_t("250000000000000000000"),                           // amountBDesired
-          0,                                                            // amountAMin
-          0,                                                            // amountBMin
+          uint256_t(0),                                                            // amountAMin
+          uint256_t(0),                                                          // amountBMin
           Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey)),        // to
           unixtimestamp                                                 // deadline
         );

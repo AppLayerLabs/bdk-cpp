@@ -10,11 +10,15 @@
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 namespace TContractManager {
+  std::string testDumpPath = Utils::getTestDumpPath();
   // TODO: Add more testcases for ContractManager once it's integrated with State.
   TEST_CASE("ContractManager class", "[contract][contractmanager]") {
     SECTION("ContractManager createNewContractERC20Contract()") {
-      if (std::filesystem::exists("ContractManagerTestCreateNew")) {
-        std::filesystem::remove_all("ContractManagerTestCreateNew");
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
+      }
+      if (!std::filesystem::exists(testDumpPath)) { // Ensure the testdump folder actually exists
+        std::filesystem::create_directories(testDumpPath);
       }
 
       PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
@@ -25,8 +29,8 @@ namespace TContractManager {
       uint256_t tokenSupply = 1000000000000000000;
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
         ContractManager contractManager(nullptr, db, rdpos, options);
 
@@ -36,7 +40,7 @@ namespace TContractManager {
         createNewERC20ContractVars.push_back(tokenDecimals);
         createNewERC20ContractVars.push_back(tokenSupply);
         ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
-        Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
+        Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");  // createNewERC20Contract(string,string,uint8,uint256)
         Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
 
         TxBlock createNewERC2OTx = TxBlock(
@@ -83,8 +87,8 @@ namespace TContractManager {
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
       }
 
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
 
@@ -99,8 +103,11 @@ namespace TContractManager {
     }
 
     SECTION("ContractManager createNewContractERC20ContractTransferTo()") {
-      if (std::filesystem::exists("ContractManagerTestCreateNew")) {
-        std::filesystem::remove_all("ContractManagerTestCreateNew");
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
+      }
+      if (!std::filesystem::exists(testDumpPath)) { // Ensure the testdump folder actually exists
+        std::filesystem::create_directories(testDumpPath);
       }
 
       PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
@@ -112,8 +119,8 @@ namespace TContractManager {
       uint256_t tokenSupply = 1000000000000000000;
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
         ContractManager contractManager(nullptr, db, rdpos, options);
 
@@ -123,7 +130,7 @@ namespace TContractManager {
         createNewERC20ContractVars.push_back(tokenDecimals);
         createNewERC20ContractVars.push_back(tokenSupply);
         ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
-        Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
+        Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");  // createNewERC20Contract(string,string,uint8,uint256)
         Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
 
         TxBlock createNewERC2OTx = TxBlock(
@@ -151,7 +158,7 @@ namespace TContractManager {
 
         ABI::Encoder::EncVar transferVars;
         transferVars.push_back(destinationOfTransfer);
-        transferVars.push_back(500000000000000000);
+        transferVars.push_back(static_cast<uint256_t>(500000000000000000));
         ABI::Encoder transferEncoder(transferVars);
         Bytes transferData = Hex::toBytes("0xa9059cbb");
         Utils::appendBytes(transferData, transferEncoder.getData());
@@ -182,8 +189,8 @@ namespace TContractManager {
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
       }
 
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
 
@@ -202,5 +209,70 @@ namespace TContractManager {
       ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
       REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
     }
+
+    SECTION("ContractManager testNestedCalls") {
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
+      }
+      if (!std::filesystem::exists(testDumpPath)) { // Ensure the testdump folder actually exists
+        std::filesystem::create_directories(testDumpPath);
+      }
+
+      PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      Address owner = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
+      Address contractA, contractB, contractC;
+
+      std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
+      std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+      std::unique_ptr<rdPoS> rdpos;
+      ContractManager contractManager(nullptr, db, rdpos, options);
+
+      // Create the contracts
+      TxBlock createNewTestThrowATx = TxBlock(
+        ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0x6a025712"), // createNewThrowTestAContract()
+        8080, 0, 0, 0, 0, 0, privKey
+      );
+      TxBlock createNewTestThrowBTx = TxBlock(
+        ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0xd0f59623"), // createNewThrowTestBContract()
+        8080, 0, 0, 0, 0, 0, privKey
+      );
+      TxBlock createNewTestThrowCTx = TxBlock(
+        ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0x022367af"), // createNewThrowTestCContract()
+        8080, 0, 0, 0, 0, 0, privKey
+      );
+      contractManager.callContract(createNewTestThrowATx);
+      contractManager.callContract(createNewTestThrowBTx);
+      contractManager.callContract(createNewTestThrowCTx);
+      contractA = contractManager.getContracts()[0].second;
+      contractB = contractManager.getContracts()[1].second;
+      contractC = contractManager.getContracts()[2].second;
+
+      // Create the transaction that will nest call setNum
+      ABI::Encoder::EncVar setNumEncVar;
+      setNumEncVar.push_back(uint256_t(200));
+      setNumEncVar.push_back(contractB);
+      setNumEncVar.push_back(uint256_t(500));
+      setNumEncVar.push_back(contractC);
+      setNumEncVar.push_back(uint256_t(3));
+      ABI::Encoder setNumEnc(setNumEncVar, "setNum(uint8,address,uint8,address,uint8)");
+      Bytes setNumBytes;
+      Utils::appendBytes(setNumBytes, setNumEnc.getFunctor().get());
+      Utils::appendBytes(setNumBytes, setNumEnc.getData());
+      TxBlock setNumTx(contractA, owner, setNumBytes, 8080, 0, 0, 0, 0, 0, privKey);
+      contractManager.callContract(setNumTx);
+
+      // Tx should've thrown by now, check if all values are intact
+      ABI::Encoder getNumEnc({}, "getNum()");
+      Bytes dataA = contractManager.callContract(buildCallInfo(contractA, getNumEnc.getFunctor(), getNumEnc.getData()));
+      Bytes dataB = contractManager.callContract(buildCallInfo(contractB, getNumEnc.getFunctor(), getNumEnc.getData()));
+      Bytes dataC = contractManager.callContract(buildCallInfo(contractC, getNumEnc.getFunctor(), getNumEnc.getData()));
+      ABI::Decoder decA({ABI::Types::uint8}, dataA);
+      ABI::Decoder decB({ABI::Types::uint8}, dataB);
+      ABI::Decoder decC({ABI::Types::uint8}, dataC);
+      REQUIRE(decA.getData<uint256_t>(0) == 0); // uint256 encodes and decodes every other uint
+      REQUIRE(decB.getData<uint256_t>(0) == 0);
+      REQUIRE(decC.getData<uint256_t>(0) == 0);
+    }
   }
 }
+

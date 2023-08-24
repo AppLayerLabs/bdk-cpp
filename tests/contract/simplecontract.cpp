@@ -38,7 +38,7 @@ void initialize(
     createNewSimpleContractVars.push_back(name);
     createNewSimpleContractVars.push_back(value);
     ABI::Encoder createNewSimpleContractEncoder(createNewSimpleContractVars);
-    Bytes createNewSimpleContractData = Hex::toBytes("0x6de23252");
+    Bytes createNewSimpleContractData = Hex::toBytes("0x6de23252"); // createNewSimpleContractContract(string,uint256)
     Utils::appendBytes(createNewSimpleContractData, createNewSimpleContractEncoder.getData());
 
     TxBlock createNewSimpleContractTx = TxBlock(

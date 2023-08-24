@@ -59,7 +59,7 @@ Address ContractManager::deriveContractAddress() const {
 }
 
 Bytes ContractManager::getDeployedContracts() const {
-  std::unique_lock lock(this->contractsMutex);
+  std::shared_lock lock(this->contractsMutex);
   std::vector<std::string> names;
   std::vector<Address> addresses;
   for (const auto& [address, contract] : this->contracts) {

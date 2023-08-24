@@ -15,6 +15,34 @@ Bytes ABI::Encoder::encodeUint256(const uint256_t& num) const {
   return ret;
 }
 
+Bytes ABI::Encoder::encodeInt256(const int256_t& num) const {
+    Bytes ret(32, num < 0 ? 0xff : 0x00);
+    int256_t valueToEncode = num;
+
+    if (num < 0) {
+        valueToEncode = -num;
+
+        for (int i = 0; i < 32; i++) {
+            ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
+        }
+
+        for (int i = 31; i >= 0; i--) {
+            if (ret[i] != 0xff) {
+                ret[i]++;
+                break;
+            } else {
+                ret[i] = 0x00;
+            }
+        }
+    } else {
+        Bytes tempBytes;
+        boost::multiprecision::export_bits(valueToEncode, std::back_inserter(tempBytes), 8);
+        std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
+    }
+
+    return ret;
+}
+
 Bytes ABI::Encoder::encodeAddress(const Address& add) const {
   return Utils::padLeftBytes(add.get(), 32);
 }
@@ -38,6 +66,14 @@ Bytes ABI::Encoder::encodeUint256Arr(const std::vector<uint256_t>& numV) const {
   Utils::appendBytes(ret, Utils::padLeftBytes(Utils::uintToBytes(numV.size()), 32));
   ret.reserve(ret.size() + (numV.size() * 32));
   for (uint256_t num : numV) Utils::appendBytes(ret, encodeUint256(num));
+  return ret;
+}
+
+Bytes ABI::Encoder::encodeInt256Arr(const std::vector<int256_t>& numV) const {
+  Bytes ret;
+  Utils::appendBytes(ret, Utils::padLeftBytes(Utils::uintToBytes(numV.size()), 32));
+  ret.reserve(ret.size() + (numV.size() * 32));
+  for (int256_t num : numV) Utils::appendBytes(ret, encodeInt256(num));
   return ret;
 }
 
@@ -102,19 +138,22 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
     while (ct < data.size()) {
       std::string_view funcType = funcTmp.substr(b, e - b);
       if (
-        funcType != "uint256" && funcType != "address" &&
+        funcType != "uint256" && funcType != "int256" &&
         funcType != "bool" && funcType != "bytes" &&
         funcType != "string" && funcType != "uint256[]" &&
         funcType != "address[]" && funcType != "bool[]" &&
-        funcType != "bytes[]" && funcType != "string[]"
+        funcType != "bytes[]" && funcType != "string[]" && funcType != "address"
+        && funcType != "int256[]"
       ) throw std::runtime_error("Invalid function header type: " + std::string(funcType));
       if (
         (funcType == "uint256" && !std::holds_alternative<uint256_t>(data[ct])) ||
+        (funcType == "int256" && !std::holds_alternative<int256_t>(data[ct])) ||
         (funcType == "address" && !std::holds_alternative<Address>(data[ct])) ||
         (funcType == "bool" && !std::holds_alternative<bool>(data[ct])) ||
         (funcType == "bytes" && !std::holds_alternative<Bytes>(data[ct])) ||
         (funcType == "string" && !std::holds_alternative<std::string>(data[ct])) ||
         (funcType == "uint256[]" && !std::holds_alternative<std::vector<uint256_t>>(data[ct])) ||
+        (funcType == "int256[]" && !std::holds_alternative<std::vector<int256_t>>(data[ct])) ||
         (funcType == "address[]" && !std::holds_alternative<std::vector<Address>>(data[ct])) ||
         (funcType == "bool[]" && !std::holds_alternative<std::vector<bool>>(data[ct])) ||
         (funcType == "bytes[]" && !std::holds_alternative<std::vector<Bytes>>(data[ct])) ||
@@ -141,8 +180,11 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
   uint64_t nextOffset = 32 * data.size();
   Bytes dynamicBytes;
   for (auto arg : data) {
+    //int256 (static)
+    if (std::holds_alternative<int256_t>(arg)) {
+      Utils::appendBytes(this->data_, encodeInt256(std::get<int256_t>(arg)));
     // uint256 (static)
-    if (std::holds_alternative<uint256_t>(arg)) {
+    } else if (std::holds_alternative<uint256_t>(arg)) {
       Utils::appendBytes(this->data_, encodeUint256(std::get<uint256_t>(arg)));
     // address (static)
     } else if (std::holds_alternative<Address>(arg)) {
@@ -174,6 +216,12 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
     Utils::appendBytes(this->data_, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
     nextOffset += 32 + (32 * argData.size());  // Length + items, in bytes
     Utils::appendBytes(dynamicBytes, encodeUint256Arr(argData));
+    // int256[] (dynamic)
+    } else if (std::holds_alternative<std::vector<int256_t>>(arg)) {
+      const std::vector<int256_t>& argData = std::get<std::vector<int256_t>>(arg);
+      Utils::appendBytes(this->data_, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+      nextOffset += 32 + (32 * argData.size());  // Length + items, in bytes
+      Utils::appendBytes(dynamicBytes, encodeInt256Arr(argData));
     // address[] (dynamic)
     } else if (std::holds_alternative<std::vector<Address>>(arg)) {
       const std::vector<Address>& argData = std::get<std::vector<Address>>(arg);
@@ -214,6 +262,11 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
 uint256_t ABI::Decoder::decodeUint256(const BytesArrView data, const uint64_t& start) const {
   if (start + 32 > data.size()) throw std::runtime_error("Data too short for uint256");
   return Utils::bytesToUint256(data.subspan(start, 32));
+}
+
+int256_t ABI::Decoder::decodeInt256(const BytesArrView data, const uint64_t& start) const {
+    if (start + 32 > data.size()) throw std::runtime_error("Data too short for int256");
+    return Utils::bytesToInt256(data.subspan(start, 32));
 }
 
 Address ABI::Decoder::decodeAddress(const BytesArrView data, const uint64_t& start) const {
@@ -291,6 +344,34 @@ std::vector<uint256_t> ABI::Decoder::decodeUint256Arr(const BytesArrView data, c
     tmp.clear();
     tmp.insert(tmp.end(), data.begin() + arrayStart + 32 + (i * 32), data.begin() + arrayStart + 32 + (i * 32) + 32);
     uint256_t value = Utils::bytesToUint256(tmp);
+    tmpArr.emplace_back(value);
+  }
+
+  return tmpArr;
+}
+
+std::vector<int256_t> ABI::Decoder::decodeInt256Arr(const BytesArrView data, const uint64_t& start) const {
+  // Get array offset
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for int256[]");
+  Bytes tmp(data.begin() + start, data.begin() + start + 32);
+  uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
+
+  // Get array length
+  tmp.clear();
+
+  if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for int256[]");
+  tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
+  uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
+
+  // Size sanity check
+  if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short for int256[]");
+
+  // Get array data
+  std::vector<int256_t> tmpArr;
+  for (uint64_t i = 0; i < arrayLength; i++) {
+    tmp.clear();
+    tmp.insert(tmp.end(), data.begin() + arrayStart + 32 + (i * 32), data.begin() + arrayStart + 32 + (i * 32) + 32);
+    int256_t value = Utils::bytesToInt256(tmp); // Change this line to use bytesToInt256
     tmpArr.emplace_back(value);
   }
 
@@ -423,12 +504,74 @@ ABI::Decoder::Decoder(const std::vector<ABI::Types>& types, const BytesArrView b
   uint64_t argIdx = 0;
   uint64_t dataIdx = 0;
   while (argIdx < types.size()) {
-    if (types[argIdx] == ABI::Types::uint256 || types[argIdx] == ABI::Types::uint8 ||
-        types[argIdx] == ABI::Types::uint16 || types[argIdx] == ABI::Types::uint32 ||
-        types[argIdx] == ABI::Types::uint64) {
+    if (types[argIdx] == ABI::Types::uint8 || types[argIdx] == ABI::Types::uint16 ||
+        types[argIdx] == ABI::Types::uint24 || types[argIdx] == ABI::Types::uint32 ||
+        types[argIdx] == ABI::Types::uint40 || types[argIdx] == ABI::Types::uint48 ||
+        types[argIdx] == ABI::Types::uint56 || types[argIdx] == ABI::Types::uint64 ||
+        types[argIdx] == ABI::Types::uint72 || types[argIdx] == ABI::Types::uint80 ||
+        types[argIdx] == ABI::Types::uint88 || types[argIdx] == ABI::Types::uint96 ||
+        types[argIdx] == ABI::Types::uint104 || types[argIdx] == ABI::Types::uint112 ||
+        types[argIdx] == ABI::Types::uint120 || types[argIdx] == ABI::Types::uint128 ||
+        types[argIdx] == ABI::Types::uint136 || types[argIdx] == ABI::Types::uint144 ||
+        types[argIdx] == ABI::Types::uint152 || types[argIdx] == ABI::Types::uint160 ||
+        types[argIdx] == ABI::Types::uint168 || types[argIdx] == ABI::Types::uint176 ||
+        types[argIdx] == ABI::Types::uint184 || types[argIdx] == ABI::Types::uint192 ||
+        types[argIdx] == ABI::Types::uint200 || types[argIdx] == ABI::Types::uint208 ||
+        types[argIdx] == ABI::Types::uint216 || types[argIdx] == ABI::Types::uint224 ||
+        types[argIdx] == ABI::Types::uint232 || types[argIdx] == ABI::Types::uint240 ||
+        types[argIdx] == ABI::Types::uint248 || types[argIdx] == ABI::Types::uint256) {
       this->data_.emplace_back(decodeUint256(bytes, dataIdx));
-    } else if (types[argIdx] == ABI::Types::uint256Arr) {
+    } else if (types[argIdx] == ABI::Types::int8 || types[argIdx] == ABI::Types::int16 ||
+               types[argIdx] == ABI::Types::int24 || types[argIdx] == ABI::Types::int32 ||
+               types[argIdx] == ABI::Types::int40 || types[argIdx] == ABI::Types::int48 ||
+               types[argIdx] == ABI::Types::int56 || types[argIdx] == ABI::Types::int64 ||
+               types[argIdx] == ABI::Types::int72 || types[argIdx] == ABI::Types::int80 ||
+               types[argIdx] == ABI::Types::int88 || types[argIdx] == ABI::Types::int96 ||
+               types[argIdx] == ABI::Types::int104 || types[argIdx] == ABI::Types::int112 ||
+               types[argIdx] == ABI::Types::int120 || types[argIdx] == ABI::Types::int128 ||
+               types[argIdx] == ABI::Types::int136 || types[argIdx] == ABI::Types::int144 ||
+               types[argIdx] == ABI::Types::int152 || types[argIdx] == ABI::Types::int160 ||
+               types[argIdx] == ABI::Types::int168 || types[argIdx] == ABI::Types::int176 ||
+               types[argIdx] == ABI::Types::int184 || types[argIdx] == ABI::Types::int192 ||
+               types[argIdx] == ABI::Types::int200 || types[argIdx] == ABI::Types::int208 ||
+               types[argIdx] == ABI::Types::int216 || types[argIdx] == ABI::Types::int224 ||
+               types[argIdx] == ABI::Types::int232 || types[argIdx] == ABI::Types::int240 ||
+               types[argIdx] == ABI::Types::int248 || types[argIdx] == ABI::Types::int256) {
+      this->data_.emplace_back(decodeInt256(bytes, dataIdx));
+    } else if (types[argIdx] == ABI::Types::uint8Arr || types[argIdx] == ABI::Types::uint16Arr ||
+               types[argIdx] == ABI::Types::uint24Arr || types[argIdx] == ABI::Types::uint32Arr ||
+               types[argIdx] == ABI::Types::uint40Arr || types[argIdx] == ABI::Types::uint48Arr ||
+               types[argIdx] == ABI::Types::uint56Arr || types[argIdx] == ABI::Types::uint64Arr ||
+               types[argIdx] == ABI::Types::uint72Arr || types[argIdx] == ABI::Types::uint80Arr ||
+               types[argIdx] == ABI::Types::uint88Arr || types[argIdx] == ABI::Types::uint96Arr ||
+               types[argIdx] == ABI::Types::uint104Arr || types[argIdx] == ABI::Types::uint112Arr ||
+               types[argIdx] == ABI::Types::uint120Arr || types[argIdx] == ABI::Types::uint128Arr ||
+               types[argIdx] == ABI::Types::uint136Arr || types[argIdx] == ABI::Types::uint144Arr ||
+               types[argIdx] == ABI::Types::uint152Arr || types[argIdx] == ABI::Types::uint160Arr ||
+               types[argIdx] == ABI::Types::uint168Arr || types[argIdx] == ABI::Types::uint176Arr ||
+               types[argIdx] == ABI::Types::uint184Arr || types[argIdx] == ABI::Types::uint192Arr ||
+               types[argIdx] == ABI::Types::uint200Arr || types[argIdx] == ABI::Types::uint208Arr ||
+               types[argIdx] == ABI::Types::uint216Arr || types[argIdx] == ABI::Types::uint224Arr ||
+               types[argIdx] == ABI::Types::uint232Arr || types[argIdx] == ABI::Types::uint240Arr ||
+               types[argIdx] == ABI::Types::uint248Arr || types[argIdx] == ABI::Types::uint256Arr) {
       this->data_.emplace_back(decodeUint256Arr(bytes, dataIdx));
+    } else if (types[argIdx] == ABI::Types::int8Arr || types[argIdx] == ABI::Types::int16Arr ||
+               types[argIdx] == ABI::Types::int24Arr || types[argIdx] == ABI::Types::int32Arr ||
+               types[argIdx] == ABI::Types::int40Arr || types[argIdx] == ABI::Types::int48Arr ||
+               types[argIdx] == ABI::Types::int56Arr || types[argIdx] == ABI::Types::int64Arr ||
+               types[argIdx] == ABI::Types::int72Arr || types[argIdx] == ABI::Types::int80Arr ||
+               types[argIdx] == ABI::Types::int88Arr || types[argIdx] == ABI::Types::int96Arr ||
+               types[argIdx] == ABI::Types::int104Arr || types[argIdx] == ABI::Types::int112Arr ||
+               types[argIdx] == ABI::Types::int120Arr || types[argIdx] == ABI::Types::int128Arr ||
+               types[argIdx] == ABI::Types::int136Arr || types[argIdx] == ABI::Types::int144Arr ||
+               types[argIdx] == ABI::Types::int152Arr || types[argIdx] == ABI::Types::int160Arr ||
+               types[argIdx] == ABI::Types::int168Arr || types[argIdx] == ABI::Types::int176Arr ||
+               types[argIdx] == ABI::Types::int184Arr || types[argIdx] == ABI::Types::int192Arr ||
+               types[argIdx] == ABI::Types::int200Arr || types[argIdx] == ABI::Types::int208Arr ||
+               types[argIdx] == ABI::Types::int216Arr || types[argIdx] == ABI::Types::int224Arr ||
+               types[argIdx] == ABI::Types::int232Arr || types[argIdx] == ABI::Types::int240Arr ||
+               types[argIdx] == ABI::Types::int248Arr || types[argIdx] == ABI::Types::int256Arr) {
+      this->data_.emplace_back(decodeInt256Arr(bytes, dataIdx));
     } else if (types[argIdx] == ABI::Types::address) {
       this->data_.emplace_back(decodeAddress(bytes, dataIdx));
     } else if (types[argIdx] == ABI::Types::addressArr) {
