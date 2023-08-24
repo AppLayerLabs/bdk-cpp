@@ -28,3 +28,9 @@ void ThrowTestB::setNum(const uint8_t& valB, const Address& addC, const uint8_t&
   this->callContractFunction(addC, &ThrowTestC::setNum, valC);
 }
 
+void ThrowTestB::registerContractFunctions() {
+  registerContract();
+  this->registerMemberFunction("getNum", &ThrowTestB::getNum, this);
+  this->registerMemberFunction("setNum", &ThrowTestB::setNum, this);
+}
+

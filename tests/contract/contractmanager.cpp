@@ -248,15 +248,19 @@ namespace TContractManager {
       contractC = contractManager.getContracts()[2].second;
 
       // Create the transaction that will nest call setNum
+      // Remember that uint256_t encodes and decodes all other uints
       ABI::Encoder::EncVar setNumEncVar;
       setNumEncVar.push_back(uint256_t(200));
       setNumEncVar.push_back(contractB);
       setNumEncVar.push_back(uint256_t(500));
       setNumEncVar.push_back(contractC);
       setNumEncVar.push_back(uint256_t(3));
-      ABI::Encoder setNumEnc(setNumEncVar, "setNum(uint8,address,uint8,address,uint8)");
+      // TODO: uncomment both lines to see a really nasty bug pop up on abi.cpp
+      //ABI::Encoder setNumEnc(setNumEncVar, "setNum(uint8,address,uint8,address,uint8)");
+      ABI::Encoder setNumEnc(setNumEncVar);
       Bytes setNumBytes;
-      Utils::appendBytes(setNumBytes, setNumEnc.getFunctor().get());
+      //Utils::appendBytes(setNumBytes, setNumEnc.getFunctor());
+      Utils::appendBytes(setNumBytes, Hex::toBytes("0x2c4f4c09"));
       Utils::appendBytes(setNumBytes, setNumEnc.getData());
       TxBlock setNumTx(contractA, owner, setNumBytes, 8080, 0, 0, 0, 0, 0, privKey);
       contractManager.callContract(setNumTx);
@@ -269,7 +273,7 @@ namespace TContractManager {
       ABI::Decoder decA({ABI::Types::uint8}, dataA);
       ABI::Decoder decB({ABI::Types::uint8}, dataB);
       ABI::Decoder decC({ABI::Types::uint8}, dataC);
-      REQUIRE(decA.getData<uint256_t>(0) == 0); // uint256 encodes and decodes every other uint
+      REQUIRE(decA.getData<uint256_t>(0) == 0);
       REQUIRE(decB.getData<uint256_t>(0) == 0);
       REQUIRE(decC.getData<uint256_t>(0) == 0);
     }

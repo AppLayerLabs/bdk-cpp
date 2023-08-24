@@ -8,6 +8,7 @@
 class ThrowTestB : public DynamicContract {
   private:
     SafeUint8_t num;
+    void registerContractFunctions() override;
 
   public:
     using ConstructorArguments = std::tuple<>;

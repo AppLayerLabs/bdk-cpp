@@ -49,6 +49,9 @@ class ContractManager : BaseContract {
      */
     State* state;
 
+    /// List of currently deployed contracts.
+    std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
+
     /**
      * Pointer to the contract factory object.
      * Responsible for actually creating the contracts and
@@ -56,23 +59,20 @@ class ContractManager : BaseContract {
      */
     std::unique_ptr<ContractFactory> factory;
 
+    /// Pointer to the contract manager's interface to be passed to DynamicContract.
+    std::unique_ptr<ContractManagerInterface> interface;
+
     /**
      * Pointer to the call state object.
      * Responsible for maintaining temporary data used in contract call chains.
      */
     std::unique_ptr<ContractCallLogger> callLogger;
 
-    /// Pointer to the contract manager's interface to be passed to DynamicContract.
-    std::unique_ptr<ContractManagerInterface> interface;
-
     /// Reference pointer to the rdPoS contract.
     const std::unique_ptr<rdPoS>& rdpos;
 
     /// Reference pointer to the options singleton.
     const std::unique_ptr<Options>& options;
-
-    /// List of currently deployed contracts.
-    std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex;

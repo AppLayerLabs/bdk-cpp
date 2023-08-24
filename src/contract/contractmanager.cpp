@@ -26,7 +26,6 @@ ContractManager::ContractManager(
       throw std::runtime_error("Unknown contract: " + Utils::bytesToString(contract.value));
     }
   }
-  // this->callState->reset()...?
 }
 
 ContractManager::~ContractManager() {

@@ -27,3 +27,9 @@ void ThrowTestC::setNum(const uint8_t& valC) {
   this->num = valC;
 }
 
+void ThrowTestC::registerContractFunctions() {
+  registerContract();
+  this->registerMemberFunction("getNum", &ThrowTestC::getNum, this);
+  this->registerMemberFunction("setNum", &ThrowTestC::setNum, this);
+}
+

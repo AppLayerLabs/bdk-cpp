@@ -13,25 +13,25 @@
  */
 class DynamicContract : public BaseContract {
   private:
-    /**
+   /**
     * Map of non-payable functions that can be called by the contract.
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-    Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
-  > publicFunctions;
+      Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
+    > publicFunctions;
 
-  /**
-  * Map of payable functions that can be called by the contract.
-  * The key is the function signature (first 4 hex bytes of keccak).
-  * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
-  */
-  std::unordered_map<
-    Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
-  > payableFunctions;
+   /**
+    * Map of payable functions that can be called by the contract.
+    * The key is the function signature (first 4 hex bytes of keccak).
+    * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
+    */
+    std::unordered_map<
+      Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
+    > payableFunctions;
 
-    /**
+   /**
     * Map of view functions that can be called by the contract.
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
@@ -46,8 +46,9 @@ class DynamicContract : public BaseContract {
      * @param functor Solidity function signature (first 4 hex bytes of keccak).
      * @param f Function to be called.
      */
-    void registerFunction(const Functor& functor,
-                         std::function<BaseTypes(const ethCallInfo& tx)> f) {
+    void registerFunction(
+      const Functor& functor, std::function<BaseTypes(const ethCallInfo& tx)> f
+    ) {
       publicFunctions[functor] = f;
     }
 
@@ -69,15 +70,15 @@ class DynamicContract : public BaseContract {
      */
     template <typename R, typename T>
     struct RegisterHelper {
-        template <typename MemFunc>
+      template <typename MemFunc>
         /**
-        * Create a ReturnType object by calling the member function.
-        * @param instance Pointer to the instance of the class.
-        * @param memFunc Pointer to the member function.
-        * @return A ReturnType object.
-        */
+         * Create a ReturnType object by calling the member function.
+         * @param instance Pointer to the instance of the class.
+         * @param memFunc Pointer to the member function.
+         * @return A ReturnType object.
+         */
         static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
-            return BaseTypes((instance->*memFunc)());
+          return BaseTypes((instance->*memFunc)());
         }
     };
 
@@ -88,18 +89,18 @@ class DynamicContract : public BaseContract {
     */
     template <typename T>
     struct RegisterHelper<void, T> {
-        template <typename MemFunc>
-        /**
-        * Create a ReturnType object by calling the member function.
-        * @param instance Pointer to the instance of the class.
-        * @param memFunc Pointer to the member function.
-        * @return A ReturnType object (default constructed).
-        * TODO: Decide if this is the best way to handle void functions.
-        */
-        static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
-            (instance->*memFunc)();
-            return BaseTypes{};
-        }
+      template <typename MemFunc>
+      /**
+      * Create a ReturnType object by calling the member function.
+      * @param instance Pointer to the instance of the class.
+      * @param memFunc Pointer to the member function.
+      * @return A ReturnType object (default constructed).
+      * TODO: Decide if this is the best way to handle void functions.
+      */
+      static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
+          (instance->*memFunc)();
+          return BaseTypes{};
+      }
     };
 
     /**
@@ -458,6 +459,11 @@ class DynamicContract : public BaseContract {
           if (func == this->payableFunctions.end()) throw std::runtime_error("Functor not found for payable function");
           func->second(callInfo);
         } else {
+          // TODO: uncomment to see the horrors of a functor morphing shape every time tests are run
+          //std::cout << "funcName: " << funcName.hex().get() << std::endl;
+          //for (auto func : this->publicFunctions) {
+          //  std::cout << "public: " << func.first.hex().get() << std::endl;
+          //}
           auto func = this->publicFunctions.find(funcName);
           if (func == this->publicFunctions.end()) throw std::runtime_error("Functor not found for non-payable function");
           func->second(callInfo);
