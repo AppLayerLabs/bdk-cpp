@@ -426,7 +426,7 @@ namespace TDEXV2 {
           unixtimestamp                                                 // deadline
         );
 
-        REQUIRE_NOTHROW(state->estimateGas(addLiquidityTx.txToCallInfo()));
+        REQUIRE_THROWS(state->estimateGas(addLiquidityTx.txToCallInfo()));
         auto newBlock2 = createValidBlock(rdpos, storage, {addLiquidityTx});
         REQUIRE(state->validateNextBlock(newBlock2));
         state->processNextBlock(std::move(newBlock2));
