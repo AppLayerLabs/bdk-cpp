@@ -223,8 +223,8 @@ namespace TContractManager {
       Address contractA, contractB, contractC;
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "ContractManagerTestCreateNew");
+        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
         ContractManager contractManager(nullptr, db, rdpos, options);
 

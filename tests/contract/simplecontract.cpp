@@ -60,6 +60,7 @@ void initialize(
 
 namespace TSimpleContract {
   TEST_CASE("SimpleContract class", "[contract][simplecontract]") {
+    std::string testDumpPath = Utils::getTestDumpPath();
     PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
     SECTION("SimpleContract creation") {
@@ -68,7 +69,7 @@ namespace TSimpleContract {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        initialize(options, db, contractManager, "SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581);
+        initialize(options, db, contractManager, testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581);
 
         // Get the contract address.
         contractAddress = contractManager->getContracts()[0].second;
@@ -89,7 +90,7 @@ namespace TSimpleContract {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      initialize(options, db, contractManager, "SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581, false);
+      initialize(options, db, contractManager,  testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581, false);
 
       REQUIRE(contractAddress == contractManager->getContracts()[0].second);
 
@@ -112,7 +113,7 @@ namespace TSimpleContract {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        initialize(options, db, contractManager, "SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581);
+        initialize(options, db, contractManager, testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581);
 
         // Get the contract address.
         contractAddress = contractManager->getContracts()[0].second;
@@ -179,7 +180,7 @@ namespace TSimpleContract {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      initialize(options, db, contractManager, "SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581, false);
+      initialize(options, db, contractManager, testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581, false);
 
       REQUIRE(contractAddress == contractManager->getContracts()[0].second);
 

@@ -378,7 +378,7 @@ namespace TDEXV2 {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<State> state;
         std::unique_ptr<Options> options;
-        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, "DEXV2NewContractsTest");
+        initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/DEXV2NewContractsTest");
 
         std::cout << "Creating native contract" << std::endl;
         wrapped = createNewNative(state, rdpos, storage, options, "WSPARQ", "WSPARQ", 18);
