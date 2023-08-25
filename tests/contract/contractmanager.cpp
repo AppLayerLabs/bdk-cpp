@@ -255,12 +255,9 @@ namespace TContractManager {
       setNumEncVar.push_back(uint256_t(500));
       setNumEncVar.push_back(contractC);
       setNumEncVar.push_back(uint256_t(3));
-      // TODO: uncomment both lines to see a really nasty bug pop up on abi.cpp
-      //ABI::Encoder setNumEnc(setNumEncVar, "setNum(uint8,address,uint8,address,uint8)");
-      ABI::Encoder setNumEnc(setNumEncVar);
+      ABI::Encoder setNumEnc(setNumEncVar, "setNum(uint8,address,uint8,address,uint8)");
       Bytes setNumBytes;
-      //Utils::appendBytes(setNumBytes, setNumEnc.getFunctor());
-      Utils::appendBytes(setNumBytes, Hex::toBytes("0x2c4f4c09"));
+      Utils::appendBytes(setNumBytes, setNumEnc.getFunctor());
       Utils::appendBytes(setNumBytes, setNumEnc.getData());
       TxBlock setNumTx(contractA, owner, setNumBytes, 8080, 0, 0, 0, 0, 0, privKey);
       contractManager.callContract(setNumTx);

@@ -1106,6 +1106,20 @@ Types inline getABIEnumFromString(const std::string& type) {
       Functor functor; ///< Functor of the function to call. (if any)
 
       /**
+      * Checks if a given type is a valid ABI type.
+      * @param funcType The type to check.
+      * @return True if the type is valid, false otherwise.
+      */
+      bool isValidType(const std::string_view& funcType);
+
+      /**
+      * Checks if a given type is a valid and supported ABI type.
+      * @param funcType The type to check.
+      * @return True if the type is valid and supported, false otherwise.
+      */
+      bool matchesDataType(const std::string_view& funcType, const BaseTypes& dataValue);
+
+      /**
        * Encode a function header into Solidity ABI format.
        * Requires the full function header, no spaces between args
        * (e.g. `func(arg1,arg2)`). The function will SHA3-hash the header
