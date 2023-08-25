@@ -255,27 +255,32 @@ namespace TContractManager {
         ABI::Encoder::EncVar setNumEncVar;
         setNumEncVar.push_back(uint256_t(200));
         setNumEncVar.push_back(contractB);
-        setNumEncVar.push_back(uint256_t(500));
+        setNumEncVar.push_back(uint256_t(100));
         setNumEncVar.push_back(contractC);
         setNumEncVar.push_back(uint256_t(3));
-        ABI::Encoder setNumEnc(setNumEncVar, "setNum(uint8,address,uint8,address,uint8)");
+        ABI::Encoder setNumEnc(setNumEncVar, "setNumA(uint8,address,uint8,address,uint8)");
         Bytes setNumBytes;
         Utils::appendBytes(setNumBytes, setNumEnc.getFunctor());
         Utils::appendBytes(setNumBytes, setNumEnc.getData());
         TxBlock setNumTx(contractA, owner, setNumBytes, 8080, 0, 0, 0, 0, 0, privKey);
-        contractManager.callContract(setNumTx);
+        try {
+          contractManager.callContract(setNumTx);
+        } catch (std::exception& e) {
+          ; // Test should continue after throw
+        }
       }
 
       // Tx should've thrown by now, check if all values are intact
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "ContractManagerTestCreateNew"));
+      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
-
-      ABI::Encoder getNumEnc({}, "getNum()");
-      Bytes dataA = contractManager.callContract(buildCallInfo(contractA, getNumEnc.getFunctor(), getNumEnc.getData()));
-      Bytes dataB = contractManager.callContract(buildCallInfo(contractB, getNumEnc.getFunctor(), getNumEnc.getData()));
-      Bytes dataC = contractManager.callContract(buildCallInfo(contractC, getNumEnc.getFunctor(), getNumEnc.getData()));
+      ABI::Encoder getNumEncA({}, "getNumA()");
+      ABI::Encoder getNumEncB({}, "getNumB()");
+      ABI::Encoder getNumEncC({}, "getNumC()");
+      Bytes dataA = contractManager.callContract(buildCallInfo(contractA, getNumEncA.getFunctor(), getNumEncA.getData()));
+      Bytes dataB = contractManager.callContract(buildCallInfo(contractB, getNumEncB.getFunctor(), getNumEncB.getData()));
+      Bytes dataC = contractManager.callContract(buildCallInfo(contractC, getNumEncC.getFunctor(), getNumEncC.getData()));
       ABI::Decoder decA({ABI::Types::uint8}, dataA);
       ABI::Decoder decB({ABI::Types::uint8}, dataB);
       ABI::Decoder decC({ABI::Types::uint8}, dataC);

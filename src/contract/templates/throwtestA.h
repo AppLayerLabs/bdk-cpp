@@ -22,8 +22,8 @@ class ThrowTestA : public DynamicContract {
     // Destructor.
     ~ThrowTestA() override;
 
-    uint8_t getNum() const;
-    void setNum(const uint8_t& valA,
+    uint8_t getNumA() const;
+    void setNumA(const uint8_t& valA,
       const Address& addB, const uint8_t& valB,
       const Address& addC, const uint8_t& valC
     );
@@ -33,8 +33,8 @@ class ThrowTestA : public DynamicContract {
         ThrowTestA, ContractManagerInterface&, const Address&, const Address&, const uint64_t&, const std::unique_ptr<DB>&
       >(
         std::vector<std::string>{"num"},
-        std::make_tuple("getNum", &ThrowTestA::getNum, "view", std::vector<std::string>{}),
-        std::make_tuple("setNum", &ThrowTestA::setNum, "nonpayable", std::vector<std::string>{"valA", "addB", "valB", "addC", "valC"})
+        std::make_tuple("getNumA", &ThrowTestA::getNumA, "view", std::vector<std::string>{}),
+        std::make_tuple("setNumA", &ThrowTestA::setNumA, "nonpayable", std::vector<std::string>{"valA", "addB", "valB", "addC", "valC"})
       );
     }
 };

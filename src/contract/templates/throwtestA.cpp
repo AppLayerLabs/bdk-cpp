@@ -18,22 +18,19 @@ ThrowTestA::ThrowTestA(
 
 ThrowTestA::~ThrowTestA() { return; }
 
-uint8_t ThrowTestA::getNum() const { return this->num.get(); }
+uint8_t ThrowTestA::getNumA() const { return this->num.get(); }
 
-void ThrowTestA::setNum(const uint8_t& valA,
+void ThrowTestA::setNumA(const uint8_t& valA,
   const Address& addB, const uint8_t& valB,
   const Address& addC, const uint8_t& valC
 ) {
-  if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
-  }
   this->num = valA;
-  this->callContractFunction(addB, &ThrowTestB::setNum, valB, addC, valC);
+  this->callContractFunction(addB, &ThrowTestB::setNumB, valB, addC, valC);
 }
 
 void ThrowTestA::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("getNum", &ThrowTestA::getNum, this);
-  this->registerMemberFunction("setNum", &ThrowTestA::setNum, this);
+  this->registerMemberFunction("getNumA", &ThrowTestA::getNumA, this);
+  this->registerMemberFunction("setNumA", &ThrowTestA::setNumA, this);
 }
 

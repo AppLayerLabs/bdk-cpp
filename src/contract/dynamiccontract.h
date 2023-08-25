@@ -302,19 +302,19 @@ class DynamicContract : public BaseContract {
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
 
-      for (size_t i = 0; i < types.size(); i++) {
-        if (ABI::castUintFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castUintFunctions[types[i]](value));
+        for (size_t i = 0; i < types.size(); i++) {
+          if (ABI::castUintFunctions.count(types[i]) > 0) {
+            uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+            dataVector.push_back(ABI::castUintFunctions[types[i]](value));
+          }
+          else if (ABI::castIntFunctions.count(types[i]) > 0) {
+            int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
+            dataVector.push_back(ABI::castIntFunctions[types[i]](value));
+          }
+           else {
+            dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+          }
         }
-        else if (ABI::castIntFunctions.count(types[i]) > 0) {
-          int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castIntFunctions[types[i]](value));
-        }
-         else {
-          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
-        }
-      }
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
         return BaseTypes(result);
       };
@@ -479,17 +479,13 @@ class DynamicContract : public BaseContract {
         Functor funcName = std::get<5>(data);
         auto func = this->viewFunctions.find(funcName);
         if (func == this->viewFunctions.end()) throw std::runtime_error("Functor not found");
-
         BaseTypes result = func->second(data);
-
         if (std::holds_alternative<BytesEncoded>(result)) {
           return std::get<BytesEncoded>(result).data;
-        }
-        else {
+        } else {
           ABI::Encoder::EncVar resultVec {result};
           return ABI::Encoder(resultVec).getData();
         }
-          
       } catch (std::exception& e) {
         throw std::runtime_error(e.what());
       }
@@ -590,9 +586,9 @@ class DynamicContract : public BaseContract {
     R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args) {
         return this->interface.callContractFunction(this->getOrigin(),
                                                     this->getContractAddress(),
-                                                    address, 
+                                                    address,
                                                     value,
-                                                    func, 
+                                                    func,
                                                     std::forward<const Args&>(args)...);
     }
 
@@ -608,7 +604,7 @@ class DynamicContract : public BaseContract {
     R callContractFunction(const Address& targetAddr, R(C::*func)()) {
         return this->interface.callContractFunction(this->getOrigin(),
                                                     this->getContractAddress(),
-                                                    targetAddr, 
+                                                    targetAddr,
                                                     0,
                                                     func);
     }
@@ -626,7 +622,7 @@ class DynamicContract : public BaseContract {
     R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)()) {
         return this->interface.callContractFunction(this->getOrigin(),
                                                     this->getContractAddress(),
-                                                    address, 
+                                                    address,
                                                     value,
                                                     func);
     }

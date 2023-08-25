@@ -120,7 +120,7 @@ void ContractManager::callContract(const TxBlock& tx) {
   auto it = this->contracts.find(to);
   if (it == this->contracts.end()) {
     this->callLogger.reset();
-    throw std::runtime_error("Contract does not exist");
+    throw std::runtime_error(std::string(__func__) + "(void): Contract does not exist");
   }
 
   const auto& contract = it->second;
@@ -144,7 +144,9 @@ const Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
   if (to == this->getContractAddress()) return this->ethCallView(callInfo);
   if (to == ProtocolContractAddresses.at("rdPoS")) return rdpos->ethCallView(callInfo);
   std::shared_lock lock(this->contractsMutex);
-  if (!this->contracts.contains(to)) throw std::runtime_error("Contract does not exist");
+  if (!this->contracts.contains(to)) {
+    throw std::runtime_error(std::string(__func__) + "(Bytes): Contract does not exist");
+  }
   return this->contracts.at(to)->ethCallView(callInfo);
 }
 

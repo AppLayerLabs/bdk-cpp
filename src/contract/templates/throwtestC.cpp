@@ -18,18 +18,15 @@ ThrowTestC::ThrowTestC(
 
 ThrowTestC::~ThrowTestC() { return; }
 
-uint8_t ThrowTestC::getNum() const { return this->num.get(); }
+uint8_t ThrowTestC::getNumC() const { return this->num.get(); }
 
-void ThrowTestC::setNum(const uint8_t& valC) {
-  if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
-  }
+void ThrowTestC::setNumC(const uint8_t& valC) {
   this->num = valC;
 }
 
 void ThrowTestC::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("getNum", &ThrowTestC::getNum, this);
-  this->registerMemberFunction("setNum", &ThrowTestC::setNum, this);
+  this->registerMemberFunction("getNumC", &ThrowTestC::getNumC, this);
+  this->registerMemberFunction("setNumC", &ThrowTestC::setNumC, this);
 }
 

@@ -21,16 +21,16 @@ class ThrowTestC : public DynamicContract {
     // Destructor.
     ~ThrowTestC() override;
 
-    uint8_t getNum() const;
-    void setNum(const uint8_t& valC);
+    uint8_t getNumC() const;
+    void setNumC(const uint8_t& valC);
 
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         ThrowTestC, ContractManagerInterface&, const Address&, const Address&, const uint64_t&, const std::unique_ptr<DB>&
       >(
         std::vector<std::string>{"num"},
-        std::make_tuple("getNum", &ThrowTestC::getNum, "view", std::vector<std::string>{}),
-        std::make_tuple("setNum", &ThrowTestC::setNum, "nonpayable", std::vector<std::string>{"valC"})
+        std::make_tuple("getNumC", &ThrowTestC::getNumC, "view", std::vector<std::string>{}),
+        std::make_tuple("setNumC", &ThrowTestC::setNumC, "nonpayable", std::vector<std::string>{"valC"})
       );
     }
 };
