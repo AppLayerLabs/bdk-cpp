@@ -221,9 +221,9 @@ namespace TContractManager {
       PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
       Address contractA, contractB, contractC;
-
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
+      
+      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
 

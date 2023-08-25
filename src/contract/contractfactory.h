@@ -92,18 +92,16 @@ class ContractFactory {
       std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
       std::vector<std::any> dataVector;
 
-      std::unordered_map<ABI::Types, std::function<std::any(uint256_t)>> castFunctions = {
-        {ABI::Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
-        {ABI::Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
-        {ABI::Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
-        {ABI::Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }}
-      };
-
       for (size_t i = 0; i < types.size(); i++) {
-        if (castFunctions.count(types[i]) > 0) {
+        if (ABI::castUintFunctions.count(types[i]) > 0) {
           uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(castFunctions[types[i]](value));
-        } else {
+          dataVector.push_back(ABI::castUintFunctions[types[i]](value));
+        }
+        else if (ABI::castIntFunctions.count(types[i]) > 0) {
+          int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
+          dataVector.push_back(ABI::castIntFunctions[types[i]](value));
+        }
+        else {
           dataVector.push_back(decoder.getDataDispatch(i, types[i]));
         }
       }
