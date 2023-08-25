@@ -58,13 +58,13 @@ class ContractFactory {
       // Check if contract address already exists on the Dynamic Contract list
       const Address derivedAddress = this->manager.deriveContractAddress();
       if (this->manager.contracts.contains(derivedAddress)) {
-        throw std::runtime_error("Contract already exists");
+        throw std::runtime_error("Contract already exists as a Dynamic Contract");
       }
 
       // Check if contract address already exists on the Protocol Contract list
       for (const auto &[name, address] : ProtocolContractAddresses) {
         if (address == derivedAddress) {
-          throw std::runtime_error("Contract already exists");
+          throw std::runtime_error("Contract already exists as a Protocol Contract");
         }
       }
 

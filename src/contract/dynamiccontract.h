@@ -459,11 +459,6 @@ class DynamicContract : public BaseContract {
           if (func == this->payableFunctions.end()) throw std::runtime_error("Functor not found for payable function");
           func->second(callInfo);
         } else {
-          // TODO: uncomment to see the horrors of a functor morphing shape every time tests are run
-          //std::cout << "funcName: " << funcName.hex().get() << std::endl;
-          //for (auto func : this->publicFunctions) {
-          //  std::cout << "public: " << func.first.hex().get() << std::endl;
-          //}
           auto func = this->publicFunctions.find(funcName);
           if (func == this->publicFunctions.end()) throw std::runtime_error("Functor not found for non-payable function");
           func->second(callInfo);

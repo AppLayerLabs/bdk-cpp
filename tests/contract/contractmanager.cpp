@@ -221,48 +221,57 @@ namespace TContractManager {
       PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
       Address contractA, contractB, contractC;
-      
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
+
+      {
+        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "ContractManagerTestCreateNew"));
+        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "ContractManagerTestCreateNew");
+        std::unique_ptr<rdPoS> rdpos;
+        ContractManager contractManager(nullptr, db, rdpos, options);
+
+        // Create the contracts
+        TxBlock createNewTestThrowATx = TxBlock(
+          ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0x6a025712"), // createNewThrowTestAContract()
+          8080, 0, 0, 0, 0, 0, privKey
+        );
+        TxBlock createNewTestThrowBTx = TxBlock(
+          ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0xd0f59623"), // createNewThrowTestBContract()
+          8080, 0, 0, 0, 0, 0, privKey
+        );
+        TxBlock createNewTestThrowCTx = TxBlock(
+          ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0x022367af"), // createNewThrowTestCContract()
+          8080, 0, 0, 0, 0, 0, privKey
+        );
+        contractManager.callContract(createNewTestThrowATx);
+        contractManager.callContract(createNewTestThrowBTx);
+        contractManager.callContract(createNewTestThrowCTx);
+        for (auto contract : contractManager.getContracts()) {
+          if (contract.first == "ThrowTestA") contractA = contract.second;
+          if (contract.first == "ThrowTestB") contractB = contract.second;
+          if (contract.first == "ThrowTestC") contractC = contract.second;
+        }
+
+        // Create the transaction that will nest call setNum
+        // Remember that uint256_t encodes and decodes all other uints
+        ABI::Encoder::EncVar setNumEncVar;
+        setNumEncVar.push_back(uint256_t(200));
+        setNumEncVar.push_back(contractB);
+        setNumEncVar.push_back(uint256_t(500));
+        setNumEncVar.push_back(contractC);
+        setNumEncVar.push_back(uint256_t(3));
+        ABI::Encoder setNumEnc(setNumEncVar, "setNum(uint8,address,uint8,address,uint8)");
+        Bytes setNumBytes;
+        Utils::appendBytes(setNumBytes, setNumEnc.getFunctor());
+        Utils::appendBytes(setNumBytes, setNumEnc.getData());
+        TxBlock setNumTx(contractA, owner, setNumBytes, 8080, 0, 0, 0, 0, 0, privKey);
+        contractManager.callContract(setNumTx);
+      }
+
+      // Tx should've thrown by now, check if all values are intact
+      std::unique_ptr options = std::make_unique<Options>(Options::fromFile("ContractManagerTestCreateNew"));
+      std::unique_ptr db = std::make_unique<DB>("ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
 
-      // Create the contracts
-      TxBlock createNewTestThrowATx = TxBlock(
-        ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0x6a025712"), // createNewThrowTestAContract()
-        8080, 0, 0, 0, 0, 0, privKey
-      );
-      TxBlock createNewTestThrowBTx = TxBlock(
-        ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0xd0f59623"), // createNewThrowTestBContract()
-        8080, 0, 0, 0, 0, 0, privKey
-      );
-      TxBlock createNewTestThrowCTx = TxBlock(
-        ProtocolContractAddresses.at("ContractManager"), owner, Hex::toBytes("0x022367af"), // createNewThrowTestCContract()
-        8080, 0, 0, 0, 0, 0, privKey
-      );
-      contractManager.callContract(createNewTestThrowATx);
-      contractManager.callContract(createNewTestThrowBTx);
-      contractManager.callContract(createNewTestThrowCTx);
-      contractA = contractManager.getContracts()[0].second;
-      contractB = contractManager.getContracts()[1].second;
-      contractC = contractManager.getContracts()[2].second;
-
-      // Create the transaction that will nest call setNum
-      // Remember that uint256_t encodes and decodes all other uints
-      ABI::Encoder::EncVar setNumEncVar;
-      setNumEncVar.push_back(uint256_t(200));
-      setNumEncVar.push_back(contractB);
-      setNumEncVar.push_back(uint256_t(500));
-      setNumEncVar.push_back(contractC);
-      setNumEncVar.push_back(uint256_t(3));
-      ABI::Encoder setNumEnc(setNumEncVar, "setNum(uint8,address,uint8,address,uint8)");
-      Bytes setNumBytes;
-      Utils::appendBytes(setNumBytes, setNumEnc.getFunctor());
-      Utils::appendBytes(setNumBytes, setNumEnc.getData());
-      TxBlock setNumTx(contractA, owner, setNumBytes, 8080, 0, 0, 0, 0, 0, privKey);
-      contractManager.callContract(setNumTx);
-
-      // Tx should've thrown by now, check if all values are intact
       ABI::Encoder getNumEnc({}, "getNum()");
       Bytes dataA = contractManager.callContract(buildCallInfo(contractA, getNumEnc.getFunctor(), getNumEnc.getData()));
       Bytes dataB = contractManager.callContract(buildCallInfo(contractB, getNumEnc.getFunctor(), getNumEnc.getData()));

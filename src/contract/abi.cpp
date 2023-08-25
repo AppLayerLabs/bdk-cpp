@@ -16,31 +16,27 @@ Bytes ABI::Encoder::encodeUint256(const uint256_t& num) const {
 }
 
 Bytes ABI::Encoder::encodeInt256(const int256_t& num) const {
-    Bytes ret(32, num < 0 ? 0xff : 0x00);
-    int256_t valueToEncode = num;
-
-    if (num < 0) {
-        valueToEncode = -num;
-
-        for (int i = 0; i < 32; i++) {
-            ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
-        }
-
-        for (int i = 31; i >= 0; i--) {
-            if (ret[i] != 0xff) {
-                ret[i]++;
-                break;
-            } else {
-                ret[i] = 0x00;
-            }
-        }
-    } else {
-        Bytes tempBytes;
-        boost::multiprecision::export_bits(valueToEncode, std::back_inserter(tempBytes), 8);
-        std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
+  Bytes ret(32, num < 0 ? 0xff : 0x00);
+  int256_t valueToEncode = num;
+  if (num < 0) {
+    valueToEncode = -num;
+    for (int i = 0; i < 32; i++) {
+      ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
     }
-
-    return ret;
+    for (int i = 31; i >= 0; i--) {
+      if (ret[i] != 0xff) {
+        ret[i]++;
+        break;
+      } else {
+        ret[i] = 0x00;
+      }
+    }
+  } else {
+    Bytes tempBytes;
+    boost::multiprecision::export_bits(valueToEncode, std::back_inserter(tempBytes), 8);
+    std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
+  }
+  return ret;
 }
 
 Bytes ABI::Encoder::encodeAddress(const Address& add) const {
