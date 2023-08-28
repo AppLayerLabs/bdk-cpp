@@ -10,7 +10,7 @@
 
 /// Namespace for Solidity ABI-related operations.
 namespace ABI {
-  /**
+/**
  * Enum for the types of Solidity variables.
  * Equivalency is as follows:
  * - uintn = uintn (Solidity) = uintn_t (C++), where n <= 256 and n % 8 == 0
@@ -117,7 +117,7 @@ struct ABIType {
 
 
 /**
-* Specialization for address.
+* Specialization for Address.
 */
 template <>
 struct ABIType<Address> {
@@ -290,7 +290,7 @@ struct ABIType<uint128_t> {
 template <>
 struct ABIType<uint136_t> {
   static constexpr Types value = Types::uint136; ///< ABI type is uint136.
-};  
+};
 
 /**
 * Specialization for uint144_t.
@@ -1106,6 +1106,20 @@ Types inline getABIEnumFromString(const std::string& type) {
       Functor functor; ///< Functor of the function to call. (if any)
 
       /**
+      * Checks if a given type is a valid ABI type.
+      * @param funcType The type to check.
+      * @return True if the type is valid, false otherwise.
+      */
+      bool isValidType(const std::string_view& funcType);
+
+      /**
+      * Checks if a given type is a valid and supported ABI type.
+      * @param funcType The type to check.
+      * @return True if the type is valid and supported, false otherwise.
+      */
+      bool matchesDataType(const std::string_view& funcType, const BaseTypes& dataValue);
+
+      /**
        * Encode a function header into Solidity ABI format.
        * Requires the full function header, no spaces between args
        * (e.g. `func(arg1,arg2)`). The function will SHA3-hash the header
@@ -1537,11 +1551,11 @@ Types inline getABIEnumFromString(const std::string& type) {
       }
     }
 
-      /**
-       * Get the size of the `data` list.
-       * @return The total number of decoded types.
-       */
-      size_t getDataSize() const { return this->data_.size(); }
+    /**
+     * Get the size of the `data` list.
+     * @return The total number of decoded types.
+     */
+    size_t getDataSize() const { return this->data_.size(); }
   };
 }; // namespace ABI
 

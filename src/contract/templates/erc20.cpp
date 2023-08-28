@@ -65,10 +65,7 @@ ERC20::ERC20(
 
 
 ERC20::~ERC20() {
-
   DBBatch batchOperations;
-
-  
   this->db->put(std::string("_name"), _name.get(), this->getDBPrefix());
   this->db->put(std::string("_symbol"), _symbol.get(), this->getDBPrefix());
   this->db->put(std::string("_decimals"), Utils::uint8ToBytes(_decimals.get()), this->getDBPrefix());
@@ -116,7 +113,7 @@ void ERC20::_burnValue(const Address& address, const uint256_t& value) {
 
 std::string ERC20::name() const { return this->_name.get(); }
 
-std::string  ERC20::symbol() const { return this->_symbol.get(); }
+std::string ERC20::symbol() const { return this->_symbol.get(); }
 
 uint8_t ERC20::decimals() const { return this->_decimals.get(); }
 
@@ -158,7 +155,4 @@ void ERC20::transferFrom(
   this->_balances[_from] -= _value;
   this->_balances[_to] += _value;
 }
-
-
-
 

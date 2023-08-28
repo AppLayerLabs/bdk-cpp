@@ -16,31 +16,27 @@ Bytes ABI::Encoder::encodeUint256(const uint256_t& num) const {
 }
 
 Bytes ABI::Encoder::encodeInt256(const int256_t& num) const {
-    Bytes ret(32, num < 0 ? 0xff : 0x00);
-    int256_t valueToEncode = num;
-
-    if (num < 0) {
-        valueToEncode = -num;
-
-        for (int i = 0; i < 32; i++) {
-            ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
-        }
-
-        for (int i = 31; i >= 0; i--) {
-            if (ret[i] != 0xff) {
-                ret[i]++;
-                break;
-            } else {
-                ret[i] = 0x00;
-            }
-        }
-    } else {
-        Bytes tempBytes;
-        boost::multiprecision::export_bits(valueToEncode, std::back_inserter(tempBytes), 8);
-        std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
+  Bytes ret(32, num < 0 ? 0xff : 0x00);
+  int256_t valueToEncode = num;
+  if (num < 0) {
+    valueToEncode = -num;
+    for (int i = 0; i < 32; i++) {
+      ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
     }
-
-    return ret;
+    for (int i = 31; i >= 0; i--) {
+      if (ret[i] != 0xff) {
+        ret[i]++;
+        break;
+      } else {
+        ret[i] = 0x00;
+      }
+    }
+  } else {
+    Bytes tempBytes;
+    boost::multiprecision::export_bits(valueToEncode, std::back_inserter(tempBytes), 8);
+    std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
+  }
+  return ret;
 }
 
 Bytes ABI::Encoder::encodeAddress(const Address& add) const {
@@ -118,6 +114,67 @@ Bytes ABI::Encoder::encodeBytesArr(const std::vector<BytesArrView>& bytesV) cons
   return ret;
 }
 
+bool ABI::Encoder::isValidType(const std::string_view& funcType) {
+  if (funcType == "bool" || funcType == "bytes" || funcType == "string" || funcType == "address") {
+    return true;
+  }
+
+  if (funcType.ends_with("[]")) {
+    return isValidType(funcType.substr(0, funcType.size() - 2));
+  }
+
+  if (funcType.starts_with("uint") || funcType.starts_with("int")) {
+    std::string_view numPart = funcType.substr(funcType.find_first_of("0123456789"));
+    try {
+      int bitSize = std::stoi(std::string(numPart));
+      if (bitSize >= 8 && bitSize <= 256 && bitSize % 8 == 0) {
+        return true;
+      }
+    } catch (const std::invalid_argument&) {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+bool ABI::Encoder::matchesDataType(const std::string_view& funcType, const BaseTypes& dataValue) {
+    if (funcType == "bool") {
+        return std::holds_alternative<bool>(dataValue);
+    } else if (funcType == "address") {
+        return std::holds_alternative<Address>(dataValue);
+    } else if (funcType == "bytes") {
+        return std::holds_alternative<Bytes>(dataValue);
+    } else if (funcType == "string") {
+        return std::holds_alternative<std::string>(dataValue);
+    } else if (funcType.ends_with("[]")) {
+        std::string_view baseType = funcType.substr(0, funcType.size() - 2);
+        if (baseType.starts_with("uint") || baseType.starts_with("int")) {
+            return std::holds_alternative<std::vector<uint256_t>>(dataValue) || std::holds_alternative<std::vector<int256_t>>(dataValue);
+        } else if (baseType == "address") {
+            return std::holds_alternative<std::vector<Address>>(dataValue);
+        } else if (baseType == "bool") {
+            return std::holds_alternative<std::vector<bool>>(dataValue);
+        } else if (baseType == "bytes") {
+            return std::holds_alternative<std::vector<Bytes>>(dataValue);
+        } else if (baseType == "string") {
+            return std::holds_alternative<std::vector<std::string>>(dataValue);
+        }
+    } else if (funcType.starts_with("uint") || funcType.starts_with("int")) {
+        std::string_view numPart = funcType.substr(funcType.find_first_of("0123456789"));
+        try {
+            int bitSize = std::stoi(std::string(numPart));
+            if (bitSize >= 8 && bitSize <= 256 && bitSize % 8 == 0) {
+                return std::holds_alternative<uint256_t>(dataValue) || std::holds_alternative<int256_t>(dataValue);
+            }
+        } catch (const std::invalid_argument&) {
+            return false;
+        }
+    }
+
+    return false;
+}
+
 ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view func) {
   // Handle function ID first if it exists.
   // We have to check the existence of "()", every type inside it,
@@ -137,28 +194,12 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
     e = funcTmp.find_first_of(",)", b);
     while (ct < data.size()) {
       std::string_view funcType = funcTmp.substr(b, e - b);
-      if (
-        funcType != "uint256" && funcType != "int256" &&
-        funcType != "bool" && funcType != "bytes" &&
-        funcType != "string" && funcType != "uint256[]" &&
-        funcType != "address[]" && funcType != "bool[]" &&
-        funcType != "bytes[]" && funcType != "string[]" && funcType != "address"
-        && funcType != "int256[]"
-      ) throw std::runtime_error("Invalid function header type: " + std::string(funcType));
-      if (
-        (funcType == "uint256" && !std::holds_alternative<uint256_t>(data[ct])) ||
-        (funcType == "int256" && !std::holds_alternative<int256_t>(data[ct])) ||
-        (funcType == "address" && !std::holds_alternative<Address>(data[ct])) ||
-        (funcType == "bool" && !std::holds_alternative<bool>(data[ct])) ||
-        (funcType == "bytes" && !std::holds_alternative<Bytes>(data[ct])) ||
-        (funcType == "string" && !std::holds_alternative<std::string>(data[ct])) ||
-        (funcType == "uint256[]" && !std::holds_alternative<std::vector<uint256_t>>(data[ct])) ||
-        (funcType == "int256[]" && !std::holds_alternative<std::vector<int256_t>>(data[ct])) ||
-        (funcType == "address[]" && !std::holds_alternative<std::vector<Address>>(data[ct])) ||
-        (funcType == "bool[]" && !std::holds_alternative<std::vector<bool>>(data[ct])) ||
-        (funcType == "bytes[]" && !std::holds_alternative<std::vector<Bytes>>(data[ct])) ||
-        (funcType == "string[]" && !std::holds_alternative<std::vector<std::string>>(data[ct]))
-      ) throw std::runtime_error("Header and data types at position " + std::to_string(ct) + " don't match");
+      if (!this->isValidType(funcType)) {
+        throw std::runtime_error("Invalid function header type: " + std::string(funcType));
+      }
+      if (!this->matchesDataType(funcType, data[ct])) {
+        throw std::runtime_error("Invalid function header type: " + std::string(funcType));
+      }
       b = e + 1; ct++; // Skip "," and go to next types
       e = funcTmp.find_first_of(",", b);
     }

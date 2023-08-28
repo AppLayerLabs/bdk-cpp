@@ -1,41 +1,55 @@
 set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/abi.h
   ${CMAKE_SOURCE_DIR}/src/contract/contract.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contractfactory.h
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.h
-  ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.h
-  ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/reentrancyguard.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeint.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
-  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebool.h
-  ${CMAKE_SOURCE_DIR}/src/contract/erc20.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2pair.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2factory.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2library.h
   ${CMAKE_SOURCE_DIR}/src/contract/customcontracts.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2router02.h
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/uq112x112.h
+  ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/reentrancyguard.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safebool.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2factory.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/uq112x112.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
   PARENT_SCOPE
 )
 
 set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/contractfactory.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/nativewrapper.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/erc20.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2pair.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2factory.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2library.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/dexv2/dexv2router02.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/erc20wrapper.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2factory.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp
   PARENT_SCOPE
 )
 

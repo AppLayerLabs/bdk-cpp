@@ -33,17 +33,7 @@ ERC20Wrapper::~ERC20Wrapper() {
       tokensAndBalancesBatch.push_back(key, value, this->getNewPrefix("_tokensAndBalances"));
     }
   }
-
   this->db->putBatch(tokensAndBalancesBatch);
-}
-
-void ERC20Wrapper::registerContractFunctions() {
-  registerContract();
-  this->registerMemberFunction("getContractBalance", &ERC20Wrapper::getContractBalance, this);
-  this->registerMemberFunction("getUserBalance", &ERC20Wrapper::getUserBalance, this);
-  this->registerMemberFunction("withdraw", &ERC20Wrapper::withdraw, this);
-  this->registerMemberFunction("transferTo", &ERC20Wrapper::transferTo, this);
-  this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, this);
 }
 
 uint256_t ERC20Wrapper::getContractBalance(const Address& token) const {
@@ -67,7 +57,7 @@ void ERC20Wrapper::withdraw(const Address& token, const uint256_t& value) {
   if (it == this->_tokensAndBalances.end()) throw std::runtime_error("Token not found");
   auto itUser = it->second.find(this->getCaller());
   if (itUser == it->second.end()) throw std::runtime_error("User not found");
-  if (itUser->second <= value) throw std::runtime_error("Not enough balance");
+  if (itUser->second <= value) throw std::runtime_error("ERC20Wrapper: Not enough balance");
   itUser->second -= value;
   this->callContractFunction(token, &ERC20::transfer, this->getCaller(), value);
 }
@@ -77,7 +67,7 @@ void ERC20Wrapper::transferTo(const Address& token, const Address& to, const uin
   if (it == this->_tokensAndBalances.end()) throw std::runtime_error("Token not found");
   auto itUser = it->second.find(this->getCaller());
   if (itUser == it->second.end()) throw std::runtime_error("User not found");
-  if (itUser->second <= value) throw std::runtime_error("Not enough balance");
+  if (itUser->second <= value) throw std::runtime_error("ERC20Wrapper: Not enough balance");
   itUser->second -= value;
   this->callContractFunction(token, &ERC20::transfer, to, value);
 }
@@ -85,5 +75,14 @@ void ERC20Wrapper::transferTo(const Address& token, const Address& to, const uin
 void ERC20Wrapper::deposit(const Address& token, const uint256_t& value) {
   this->callContractFunction(token, &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), value);
   this->_tokensAndBalances[token][this->getCaller()] += value;
+}
+
+void ERC20Wrapper::registerContractFunctions() {
+  registerContract();
+  this->registerMemberFunction("getContractBalance", &ERC20Wrapper::getContractBalance, this);
+  this->registerMemberFunction("getUserBalance", &ERC20Wrapper::getUserBalance, this);
+  this->registerMemberFunction("withdraw", &ERC20Wrapper::withdraw, this);
+  this->registerMemberFunction("transferTo", &ERC20Wrapper::transferTo, this);
+  this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, this);
 }
 

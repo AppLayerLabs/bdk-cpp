@@ -1,13 +1,13 @@
 #ifndef DEXFACTORY_H
 #define DEXFACTORY_H
 
-#include "../utils/contractreflectioninterface.h"
-#include "../utils/db.h"
-#include "abi.h"
-#include "dynamiccontract.h"
-#include "variables/safeaddress.h"
-#include "variables/safeunorderedmap.h"
-#include "variables/safevector.h"
+#include "../../../utils/contractreflectioninterface.h"
+#include "../../../utils/db.h"
+#include "../../abi.h"
+#include "../../dynamiccontract.h"
+#include "../../variables/safeaddress.h"
+#include "../../variables/safeunorderedmap.h"
+#include "../../variables/safevector.h"
 
 /**
  * The DEXV2Factory contract.
@@ -26,13 +26,13 @@ class DEXV2Factory : public DynamicContract {
     /// Solidity: mapping(address => mapping(address => address)) public getPair;
     SafeUnorderedMap<Address, std::unordered_map<Address, Address, SafeHash>> getPair_;
 
-    /// Function for calling the register functions for contracts
+    /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
 
   public:
-
     /**
-     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+     * ConstructorArguments is a tuple of the contract constructor arguments
+     * in the order they appear in the constructor.
      */
     using ConstructorArguments = std::tuple<Address>;
 
@@ -66,34 +66,22 @@ class DEXV2Factory : public DynamicContract {
     // Destructor.
     ~DEXV2Factory() override;
 
-    /**
-     * Get the feeTo address of the DEXV2Factory.
-     */
+    /// Get the feeTo address of the DEXV2Factory.
     Address feeTo() const;
 
-    /**
-     * Get the feeToSetter address of the DEXV2Factory.
-     */
+    /// Get the feeToSetter address of the DEXV2Factory.
     Address feeToSetter() const;
 
-    /**
-     * Get all the pairs created by the DEXV2Factory.
-     */
+    /// Get all the pairs created by the DEXV2Factory.
     std::vector<Address> allPairs() const;
 
-    /**
-     * Get the pairs vector size.
-     */
+    /// Get the pairs vector size.
     uint64_t allPairsLength() const;
 
-    /**
-     * Get a specific pair created by the DEXV2Factory.
-     */
+    /// Get a specific pair created by the DEXV2Factory.
     Address getPair(const Address& tokenA, const Address& tokenB) const;
 
-    /**
-     * Get a specific pair from the vector given an index.
-     */
+    /// Get a specific pair from the vector given an index.
     Address getPairByIndex(const uint64_t& index) const;
 
     /**
@@ -108,14 +96,10 @@ class DEXV2Factory : public DynamicContract {
      */
     void setFeeTo(const Address& feeTo);
 
-    /**
-     * Set the feeToSetter address.
-     */
+    /// Set the feeToSetter address.
     void setFeeToSetter(const Address& feeToSetter);
 
-    /**
-    * Register the contract functions to the ContractReflectionInterface.
-    */
+    /// Register the contract functions to the ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         DEXV2Factory, const Address&,  ContractManagerInterface &,
@@ -136,6 +120,4 @@ class DEXV2Factory : public DynamicContract {
     }
 };
 
-
-
-#endif
+#endif  // DEXFACTORY_H

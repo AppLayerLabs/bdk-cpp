@@ -60,7 +60,7 @@ void inline populateMethodArgumentsTypesMap() {
   const meta::class_type contractType = meta::resolve_type<TContract>();
   std::string methodName;
   for (const meta::method &methods : contractType.get_methods()) {
-    methodName = methods.get_name();
+    methodName = Utils::getRealTypeName<TContract>() + "::" + methods.get_name();
     auto arity = methods.get_type().get_arity();
     if (arity > 0) {
       std::vector<meta::argument> args = methods.get_arguments();
@@ -100,7 +100,8 @@ std::vector<std::string> inline getMethodArgumentsTypesString(
   if (!isContractRegistered<TContract>()) {
     throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " not registered");
   }
-  auto it = methodArgumentsTypesMap.find(methodName);
+  const std::string qualifiedMethodName = Utils::getRealTypeName<TContract>() + "::" + methodName;
+  auto it = methodArgumentsTypesMap.find(qualifiedMethodName);
   if (it != methodArgumentsTypesMap.end()) {
     return it->second;
   }
@@ -118,7 +119,8 @@ std::vector<ABI::Types> inline getMethodArgumentsTypesABI(
   if (!isContractRegistered<TContract>()) {
     throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " not registered");
   }
-  auto it = methodArgumentsTypesMap.find(methodName);
+  const std::string qualifiedMethodName = Utils::getRealTypeName<TContract>() + "::" + methodName;
+  auto it = methodArgumentsTypesMap.find(qualifiedMethodName);
   if (it != methodArgumentsTypesMap.end()) {
     std::vector<ABI::Types> types;
     for (auto const &x : it->second) {

@@ -13,25 +13,25 @@
  */
 class DynamicContract : public BaseContract {
   private:
-    /**
+   /**
     * Map of non-payable functions that can be called by the contract.
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-    Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
-  > publicFunctions;
+      Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
+    > publicFunctions;
 
-  /**
-  * Map of payable functions that can be called by the contract.
-  * The key is the function signature (first 4 hex bytes of keccak).
-  * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
-  */
-  std::unordered_map<
-    Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
-  > payableFunctions;
+   /**
+    * Map of payable functions that can be called by the contract.
+    * The key is the function signature (first 4 hex bytes of keccak).
+    * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
+    */
+    std::unordered_map<
+      Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
+    > payableFunctions;
 
-    /**
+   /**
     * Map of view functions that can be called by the contract.
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
@@ -46,8 +46,9 @@ class DynamicContract : public BaseContract {
      * @param functor Solidity function signature (first 4 hex bytes of keccak).
      * @param f Function to be called.
      */
-    void registerFunction(const Functor& functor,
-                         std::function<BaseTypes(const ethCallInfo& tx)> f) {
+    void registerFunction(
+      const Functor& functor, std::function<BaseTypes(const ethCallInfo& tx)> f
+    ) {
       publicFunctions[functor] = f;
     }
 
@@ -69,15 +70,15 @@ class DynamicContract : public BaseContract {
      */
     template <typename R, typename T>
     struct RegisterHelper {
-        template <typename MemFunc>
+      template <typename MemFunc>
         /**
-        * Create a ReturnType object by calling the member function.
-        * @param instance Pointer to the instance of the class.
-        * @param memFunc Pointer to the member function.
-        * @return A ReturnType object.
-        */
+         * Create a ReturnType object by calling the member function.
+         * @param instance Pointer to the instance of the class.
+         * @param memFunc Pointer to the member function.
+         * @return A ReturnType object.
+         */
         static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
-            return BaseTypes((instance->*memFunc)());
+          return BaseTypes((instance->*memFunc)());
         }
     };
 
@@ -88,18 +89,18 @@ class DynamicContract : public BaseContract {
     */
     template <typename T>
     struct RegisterHelper<void, T> {
-        template <typename MemFunc>
-        /**
-        * Create a ReturnType object by calling the member function.
-        * @param instance Pointer to the instance of the class.
-        * @param memFunc Pointer to the member function.
-        * @return A ReturnType object (default constructed).
-        * TODO: Decide if this is the best way to handle void functions.
-        */
-        static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
-            (instance->*memFunc)();
-            return BaseTypes{};
-        }
+      template <typename MemFunc>
+      /**
+      * Create a ReturnType object by calling the member function.
+      * @param instance Pointer to the instance of the class.
+      * @param memFunc Pointer to the member function.
+      * @return A ReturnType object (default constructed).
+      * TODO: Decide if this is the best way to handle void functions.
+      */
+      static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
+          (instance->*memFunc)();
+          return BaseTypes{};
+      }
     };
 
     /**
@@ -301,19 +302,19 @@ class DynamicContract : public BaseContract {
         ABI::Decoder decoder(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
 
-      for (size_t i = 0; i < types.size(); i++) {
-        if (ABI::castUintFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castUintFunctions[types[i]](value));
+        for (size_t i = 0; i < types.size(); i++) {
+          if (ABI::castUintFunctions.count(types[i]) > 0) {
+            uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+            dataVector.push_back(ABI::castUintFunctions[types[i]](value));
+          }
+          else if (ABI::castIntFunctions.count(types[i]) > 0) {
+            int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
+            dataVector.push_back(ABI::castIntFunctions[types[i]](value));
+          }
+           else {
+            dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+          }
         }
-        else if (ABI::castIntFunctions.count(types[i]) > 0) {
-          int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castIntFunctions[types[i]](value));
-        }
-         else {
-          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
-        }
-      }
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
         return BaseTypes(result);
       };
@@ -478,17 +479,13 @@ class DynamicContract : public BaseContract {
         Functor funcName = std::get<5>(data);
         auto func = this->viewFunctions.find(funcName);
         if (func == this->viewFunctions.end()) throw std::runtime_error("Functor not found");
-
         BaseTypes result = func->second(data);
-
         if (std::holds_alternative<BytesEncoded>(result)) {
           return std::get<BytesEncoded>(result).data;
-        }
-        else {
+        } else {
           ABI::Encoder::EncVar resultVec {result};
           return ABI::Encoder(resultVec).getData();
         }
-          
       } catch (std::exception& e) {
         throw std::runtime_error(e.what());
       }
@@ -566,10 +563,10 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C, typename... Args>
     R callContractFunction(const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args) {
-        return this->interface.callContractFunction(this->getContractAddress(),
+        return this->interface.callContractFunction(this->getOrigin(),
+                                                    this->getContractAddress(),
                                                     targetAddr,
                                                     0,
-                                                    this->getCommit(),
                                                     func,
                                                     std::forward<const Args&>(args)...);
     }
@@ -587,11 +584,11 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C, typename... Args>
     R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args) {
-        return this->interface.callContractFunction(this->getContractAddress(),
-                                                    address, 
+        return this->interface.callContractFunction(this->getOrigin(),
+                                                    this->getContractAddress(),
+                                                    address,
                                                     value,
-                                                    this->getCommit(),
-                                                    func, 
+                                                    func,
                                                     std::forward<const Args&>(args)...);
     }
 
@@ -605,10 +602,10 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C>
     R callContractFunction(const Address& targetAddr, R(C::*func)()) {
-        return this->interface.callContractFunction(this->getContractAddress(),
-                                                    targetAddr, 
+        return this->interface.callContractFunction(this->getOrigin(),
+                                                    this->getContractAddress(),
+                                                    targetAddr,
                                                     0,
-                                                    this->getCommit(),
                                                     func);
     }
 
@@ -623,10 +620,10 @@ class DynamicContract : public BaseContract {
     */
     template <typename R, typename C>
     R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)()) {
-        return this->interface.callContractFunction(this->getContractAddress(),
-                                                    address, 
+        return this->interface.callContractFunction(this->getOrigin(),
+                                                    this->getContractAddress(),
+                                                    address,
                                                     value,
-                                                    this->getCommit(),
                                                     func);
     }
 
@@ -680,7 +677,7 @@ class DynamicContract : public BaseContract {
         Utils::safePrint("CallCreateContract being called...");
         ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
         ABI::Encoder encoder(vars);
-        return this->interface.callCreateContract<TContract>(this->getContractAddress(), gas, gasPrice, value, std::move(encoder));
+        return this->interface.callCreateContract<TContract>(this->getOrigin(), this->getContractAddress(), gas, gasPrice, value, std::move(encoder));
     }
 
     /**
