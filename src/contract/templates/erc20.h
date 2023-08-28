@@ -15,23 +15,23 @@
 /// Template for an ERC20 contract.
 class ERC20 : public DynamicContract {
   protected:
-    /// Solidity: string internal _name;
-    SafeString _name;
+    /// Solidity: string internal name_;
+    SafeString name_;
 
-    /// Solidity: string internal _symbol;
-    SafeString _symbol;
+    /// Solidity: string internal symbol_;
+    SafeString symbol_;
 
-    /// Solidity: uint8 internal _decimals;
-    SafeUint8_t _decimals;
+    /// Solidity: uint8 internal decimals_;
+    SafeUint8_t decimals_;
 
-    /// Solidity: uint256 internal _totalSupply;
-    SafeUint256_t _totalSupply;
+    /// Solidity: uint256 internal totalSupply_;
+    SafeUint256_t totalSupply_;
 
-    /// Solidity: mapping(address => uint256) internal _balances;
-    SafeUnorderedMap<Address, uint256_t> _balances;
+    /// Solidity: mapping(address => uint256) internal balances_;
+    SafeUnorderedMap<Address, uint256_t> balances_;
 
-    /// Solidity: mapping(address => mapping(address => uint256)) internal _allowed;
-    SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>> _allowed;
+    /// Solidity: mapping(address => mapping(address => uint256)) internal allowed_;
+    SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>> allowed_;
 
     /**
      * Mint new tokens and assign them to the specified address.
@@ -39,7 +39,7 @@ class ERC20 : public DynamicContract {
      * @param address The account that will receive the created tokens.
      * @param value The amount of tokens that will be created.
      */
-    void _mintValue(const Address& address, const uint256_t& value);
+    void mintValue_(const Address& address, const uint256_t& value);
 
     /**
      * Burn tokens from the specified address.
@@ -47,7 +47,7 @@ class ERC20 : public DynamicContract {
      * @param address The account that will lose the tokens.
      * @param value The amount of tokens that will be burned.
      */
-    void _burnValue(const Address& address, const uint256_t& value);
+    void burnValue_(const Address& address, const uint256_t& value);
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
@@ -71,9 +71,9 @@ class ERC20 : public DynamicContract {
 
     /**
      * Constructor to be used when creating a new contract.
-     * @param erc20_name The name of the ERC20 token.
-     * @param erc20_symbol The symbol of the ERC20 token.
-     * @param erc20_decimals The decimals of the ERC20 token.
+     * @param erc20name_ The name of the ERC20 token.
+     * @param erc20symbol_ The symbol of the ERC20 token.
+     * @param erc20decimals_ The decimals of the ERC20 token.
      * @param mintValue The amount of tokens that will be minted.
      * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
@@ -82,8 +82,8 @@ class ERC20 : public DynamicContract {
      * @param db Reference to the database object.
      */
     ERC20(
-      const std::string &erc20_name, const std::string &erc20_symbol,
-      const uint8_t &erc20_decimals, const uint256_t &mintValue,
+      const std::string &erc20name_, const std::string &erc20symbol_,
+      const uint8_t &erc20decimals_, const uint256_t &mintValue,
       ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
       const std::unique_ptr<DB> &db
@@ -92,8 +92,8 @@ class ERC20 : public DynamicContract {
     /// Constructor for derived types!
     ERC20(
       const std::string &derivedTypeName,
-      const std::string &erc20_name, const std::string &erc20_symbol,
-      const uint8_t &erc20_decimals, const uint256_t &mintValue,
+      const std::string &erc20name_, const std::string &erc20symbol_,
+      const uint8_t &erc20decimals_, const uint256_t &mintValue,
       ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
       const std::unique_ptr<DB> &db
@@ -104,7 +104,7 @@ class ERC20 : public DynamicContract {
 
     /**
      * Get the name of the ERC20 token. Solidity counterpart:
-     * function name() public view returns (string memory) { return _name; }
+     * function name() public view returns (string memory) { return name_; }
      * @return The name of the ERC20 token.
      */
     std::string name() const;
@@ -112,7 +112,7 @@ class ERC20 : public DynamicContract {
 
     /**
      * Get the symbol/ticker of the ERC20 token. Solidity counterpart:
-     * function symbol() public view returns (string memory) { return _symbol; }
+     * function symbol() public view returns (string memory) { return symbol_; }
      * @return The symbol/ticker of the ERC20 token.
      */
     std::string symbol() const;
@@ -120,7 +120,7 @@ class ERC20 : public DynamicContract {
 
     /**
      * Get the number of decimals of the ERC20 token. Solidity counterpart:
-     * function decimals() public view returns (uint8) { return _decimals; }
+     * function decimals() public view returns (uint8) { return decimals_; }
      * @return The decimals of the ERC20 token.
      */
     uint8_t decimals() const;
@@ -128,14 +128,14 @@ class ERC20 : public DynamicContract {
 
     /**
      * Get the total supply of the ERC20 token. Solidity counterpart:
-     * function totalSupply() public view returns (uint256) { return _totalSupply; }
+     * function totalSupply() public view returns (uint256) { return totalSupply_; }
      * @return The total supply of the ERC20 token.
      */
     uint256_t totalSupply() const;
 
     /**
      * Get the balance of the ERC20 token from the specified address. Solidity counterpart:
-     * function balanceOf(address _owner) public view returns (uint256) { return _balances[_owner]; }
+     * function balanceOf(address _owner) public view returns (uint256) { return balances_[_owner]; }
      * @param _owner The address to get the balance from.
      * @return The total balance of the specified address.
      */
@@ -186,7 +186,7 @@ class ERC20 : public DynamicContract {
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &
       >(
-        std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals", "mintValue"},
+        std::vector<std::string>{"erc20name_", "erc20symbol_", "erc20decimals_", "mintValue"},
         std::make_tuple("name", &ERC20::name, "view", std::vector<std::string>{}),
         std::make_tuple("symbol", &ERC20::symbol, "view", std::vector<std::string>{}),
         std::make_tuple("decimals", &ERC20::decimals, "view", std::vector<std::string>{}),

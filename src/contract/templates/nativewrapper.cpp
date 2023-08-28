@@ -29,11 +29,11 @@ void NativeWrapper::registerContractFunctions() {
 }
 
 void NativeWrapper::deposit() {
-  this->_mintValue(this->getCaller(), this->getValue());
+  this->mintValue_(this->getCaller(), this->getValue());
 }
 
 void NativeWrapper::withdraw(const uint256_t &_value) {
-  this->_burnValue(this->getCaller(), _value);
+  this->burnValue_(this->getCaller(), _value);
   this->sendTokens(this->getCaller(), _value);
 }
 
