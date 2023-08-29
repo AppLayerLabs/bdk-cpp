@@ -1,9 +1,0 @@
-{
-    "rootPath": "discoveryNode",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
-    "version": 1,
-    "chainID": 808080,
-    "wsPort": 8080,
-    "httpPort": 9999,
-    "privKey": "0000000000000000000000000000000000000000000000000000000000000000"
-  }
