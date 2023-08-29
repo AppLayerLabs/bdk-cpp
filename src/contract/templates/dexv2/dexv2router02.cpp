@@ -175,10 +175,7 @@ BytesEncoded DEXV2Router02::addLiquidityNative(
   const uint256_t& deadline
 ) {
   this->ensure(deadline);
-  auto [amountToken, amountNative] = this->_addLiquidity(
-    token, this->wrappedNative_.get(), amountTokenDesired,
-    amountNativeMin, amountTokenMin, amountNativeMin
-  );
+  auto [amountToken, amountNative] = this->_addLiquidity(token, this->wrappedNative_.get(), amountTokenDesired, this->getValue(), amountTokenMin, amountNativeMin);
   auto pair = DEXV2Library::pairFor(this->interface, this->factory_.get(), token, this->wrappedNative_.get());
   this->callContractFunction(token, &ERC20::transferFrom, this->getCaller(), pair, amountToken);
   this->callContractFunction(amountNative, this->wrappedNative_.get(), &NativeWrapper::deposit);

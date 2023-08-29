@@ -381,15 +381,15 @@ bool rdPoSWorker::workerLoop() {
 
     // After processing everything. wait until the new block is appended to the chain.
     while (!this->checkLatestBlock() && !this->stopWorker) {
-      Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
-        "Waiting for new block to be appended to the chain. (Height: "
-        + std::to_string(latestBlock->getNHeight()) + ")" + " latest height: "
-        + std::to_string(this->rdpos.storage->latest()->getNHeight())
-      );
-      Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
-        "Currently has " + std::to_string(this->rdpos.validatorMempool.size())
-        + " transactions in mempool."
-      );
+      // Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
+      //   "Waiting for new block to be appended to the chain. (Height: "
+      //   + std::to_string(latestBlock->getNHeight()) + ")" + " latest height: "
+      //   + std::to_string(this->rdpos.storage->latest()->getNHeight())
+      // );
+      // Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
+      //   "Currently has " + std::to_string(this->rdpos.validatorMempool.size())
+      //   + " transactions in mempool."
+      // );
       std::unique_lock mempoolSizeLock(this->rdpos.mutex);
       uint64_t mempoolSize = this->rdpos.validatorMempool.size();
       if (mempoolSize < this->rdpos.minValidators) { // Always try to fill the mempool to 8 transactions
