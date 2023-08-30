@@ -14,6 +14,7 @@
 
 
 /// Template for an ERC721 contract.
+/// Roughly based on the OpenZeppelin implementation.
 class ERC721 : public DynamicContract {
   protected:
 
@@ -46,7 +47,7 @@ class ERC721 : public DynamicContract {
      * @return The address of the owner of the token.
      * Solidity counterpart: function _ownerOf(uint256 tokenId) internal view virtual returns (address)
      */
-    Address _ownerOf(const uint256_t& tokenId) const;
+    virtual Address _ownerOf(const uint256_t& tokenId) const;
 
     /**
      * Returns the approved address for tokenId
@@ -54,7 +55,7 @@ class ERC721 : public DynamicContract {
      * @return The address of the approved address for tokenId.
      * Solidity counterpart: function _getApproved(uint256 tokenId) internal view virtual returns (address) {
      */
-    Address _getApproved(const uint256_t& tokenId) const;
+    virtual Address _getApproved(const uint256_t& tokenId) const;
 
     /**
      * Transfers the tokenId from the current owner to the specified address.
@@ -65,7 +66,7 @@ class ERC721 : public DynamicContract {
      * If auth is non-zero, the function will check if the auth address is authorized to transfer the token.
      * Solidity counterpart: function _update(address to, uint256 tokenId, address auth) internal returns (address)
      */
-    Address _update(const Address& to, const uint256_t& tokenId, const Address& auth);
+    virtual Address _update(const Address& to, const uint256_t& tokenId, const Address& auth);
 
     /**
      * Check if the specified address is authorized to transfer the specified token.
@@ -75,7 +76,7 @@ class ERC721 : public DynamicContract {
      * @param tokenId The id of the token.
      * Solidity counterpart: function _checkAuthorized(address owner, address spender, uint256 tokenId) internal view
      */
-    void _checkAuthorized(const Address& owner, const Address& spender, const uint256_t& tokenId) const;
+    virtual void _checkAuthorized(const Address& owner, const Address& spender, const uint256_t& tokenId) const;
 
     /**
      * Returns whether the specified address is authorized to transfer the specified token.
@@ -86,7 +87,7 @@ class ERC721 : public DynamicContract {
      * @return Whether the specified address is authorized to transfer the specified token.
      * Solidity counterpart: function _isAuthorized(address owner, address spender, uint256 tokenId) internal view returns (bool)
      */
-    bool _isAuthorized(const Address& owner, const Address& spender, const uint256_t& tokenId) const;
+    virtual bool _isAuthorized(const Address& owner, const Address& spender, const uint256_t& tokenId) const;
 
     /**
      * Mint a new token.
@@ -119,7 +120,7 @@ class ERC721 : public DynamicContract {
      * The auth argument is optional, if the value is non 0 the function will check if auth is either the owner of the token or an approved operator.
      * Solidity counterpart: function _approve(address to, uint256 tokenId, address auth) internal returns (address)
      */
-    Address _approve(const Address& to, const uint256_t& tokenId, const Address& auth);
+    virtual Address _approve(const Address& to, const uint256_t& tokenId, const Address& auth);
 
     /**
      * Set or unset the approval of a third party to transfer of all tokens of a specified address.
@@ -128,15 +129,15 @@ class ERC721 : public DynamicContract {
      * @param approved Whether the operator is approved or not.
      * Solidity counterpart: function _setApprovalForAll(address owner, address operator, bool approved) internal
      */
-    void _setApprovalForAll(const Address& owner, const Address& _operator, bool approved);
+    virtual void _setApprovalForAll(const Address& owner, const Address& _operator, bool approved);
 
     /**
      * Check if the token has been minted.
      * @param tokenId The id of the token.
      */
-    void _requireMinted(const uint256_t& tokenId) const;
+    virtual void _requireMinted(const uint256_t& tokenId) const;
 
-    void registerContractFunctions() override;
+    virtual void registerContractFunctions() override;
 
   public:
 
@@ -199,7 +200,7 @@ class ERC721 : public DynamicContract {
      * Solidity counterpart: function name() external view returns (string memory);
      * @return The name of the ERC721 token.
      */
-    std::string name() const;
+    virtual std::string name() const;
 
 
     /**
@@ -207,7 +208,7 @@ class ERC721 : public DynamicContract {
      * Solidity counterpart: function symbol() external view returns (string memory);
      * @return The symbol of the ERC721 token.
      */
-    std::string symbol() const;
+    virtual std::string symbol() const;
 
     /**
      * Get the balance of a specific address.
@@ -215,7 +216,7 @@ class ERC721 : public DynamicContract {
      * @param owner The address to query the balance of.
      * @return The balance of the specified address.
      */
-    uint256_t balanceOf(const Address& owner) const;
+    virtual uint256_t balanceOf(const Address& owner) const;
 
     /**
      * Get the owner address of a specific tokenId.
@@ -223,7 +224,7 @@ class ERC721 : public DynamicContract {
      * @param tokenId The tokenId to query the owner of.
      * @return The owner address of the specified tokenId.
      */
-    Address ownerOf(const uint256_t& tokenId) const;
+    virtual Address ownerOf(const uint256_t& tokenId) const;
 
     /**
      * Get the URI of a specific tokenId.
@@ -231,7 +232,7 @@ class ERC721 : public DynamicContract {
      * @param tokenId The tokenId to query the URI of.
      * @return The URI of the specified tokenId.
      */
-    std::string tokenURI(const uint256_t& tokenId) const;
+    virtual std::string tokenURI(const uint256_t& tokenId) const;
 
     /**
      * Approve a token to be transferred by a third party.
@@ -239,7 +240,7 @@ class ERC721 : public DynamicContract {
      * @param to The address to approve the transfer to.
      * @param tokenId The tokenId to approve the transfer of.
      */
-    void approve(const Address& to, const uint256_t& tokenId);
+    virtual void approve(const Address& to, const uint256_t& tokenId);
 
     /**
      * Get the approved address for a specific tokenId.
@@ -247,7 +248,7 @@ class ERC721 : public DynamicContract {
      * @param tokenId The tokenId to query the approved address of.
      * @return The approved address for the specified tokenId.
      */
-    Address getApproved(const uint256_t& tokenId) const;
+    virtual Address getApproved(const uint256_t& tokenId) const;
 
     /**
      * Set or unset the approval of all tokens to be transferred by a third party.
@@ -255,7 +256,7 @@ class ERC721 : public DynamicContract {
      * @param _operator The address to set the approval for.
      * @param approved Whether the address is approved or not.
      */
-    void setApprovalForAll(const Address& _operator, const bool& approved);
+    virtual void setApprovalForAll(const Address& _operator, const bool& approved);
 
     /**
      * Get the approval status of all tokens to be transferred by a third party.
@@ -264,7 +265,7 @@ class ERC721 : public DynamicContract {
      * @param _operator The address to query the approval status of.
      * @return The approval status of all tokens to be transferred by a third party.
      */
-    bool isApprovedForAll(const Address& owner, const Address& _operator) const;
+    virtual bool isApprovedForAll(const Address& owner, const Address& _operator) const;
 
     /**
      * Transfer a token from one address to another.
@@ -273,7 +274,7 @@ class ERC721 : public DynamicContract {
      * @param to The address to transfer the token to.
      * @param tokenId The tokenId to transfer.
      */
-    void transferFrom(const Address& from, const Address& to, const uint256_t& tokenId);
+    virtual void transferFrom(const Address& from, const Address& to, const uint256_t& tokenId);
 
   /// Register contract class via ContractReflectionInterface.
   static void registerContract() {
