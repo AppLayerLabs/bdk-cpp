@@ -18,7 +18,7 @@ class ContractLocals;
 class ContractCallLogger {
   private:
     /// Pointer back to the contract manager.
-    ContractManager& manager;
+    ContractManager& manager_;
 
     /**
      * Temporary map of balances within the chain.
@@ -26,7 +26,7 @@ class ContractCallLogger {
      * Cleared after the callContract function commited to the state on the end
      * of callContract(TxBlock&) if everything was succesful.
      */
-    std::unordered_map<Address, uint256_t, SafeHash> balances;
+    std::unordered_map<Address, uint256_t, SafeHash> balances_;
 
     /**
      * Temporary list of variables used by the current contract nested call chain.
@@ -36,12 +36,12 @@ class ContractCallLogger {
      * list are either commited or reverted entirely, then the list itself
      * is cleaned up so it can hold the variables of the next nested call.
      */
-    std::vector<std::reference_wrapper<SafeBase>> usedVars;
+    std::vector<std::reference_wrapper<SafeBase>> usedVars_;
 
     /**
      * Boolean that tells if the current call should be committed or not during the destructor.
      */
-    bool commitCall = false;
+    bool commitCall_ = false;
 
     /// Commit all used SafeVariables registered in the list.
     void commit();
@@ -60,21 +60,21 @@ class ContractCallLogger {
     ~ContractCallLogger();
 
     /// Getter for `balances`.
-    std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances; }
+    std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances_; }
 
     /**
      * Get a given balance value of a given address.
      * @param add The address to get the balance of.
      * @return The current balance for the address.
      */
-    uint256_t getBalanceAt(const Address& add) { return (this->hasBalance(add)) ? this->balances[add] : 0; }
+    uint256_t getBalanceAt(const Address& add) { return (this->hasBalance(add)) ? this->balances_[add] : 0; }
 
     /**
      * Set a given balance for a given address.
      * @param add The address to set a balance to.
      * @param value The balance value to set.
      */
-    inline void setBalanceAt(const Address& add, uint256_t value) { this->balances[add] = value; }
+    inline void setBalanceAt(const Address& add, uint256_t value) { this->balances_[add] = value; }
 
     /**
      * Set the local variables for a given contract (origin, caller, value)
@@ -84,9 +84,9 @@ class ContractCallLogger {
      * @param value The value to set.
      */
     inline void setContractVars(ContractLocals* contract, const Address& origin, const Address& caller, const uint256_t value) {
-      contract->origin = origin;
-      contract->caller = caller;
-      contract->value = value;
+      contract->origin_ = origin;
+      contract->caller_ = caller;
+      contract->value_ = value;
     }
 
     /**
@@ -94,32 +94,32 @@ class ContractCallLogger {
      * @param to The address to add balance to.
      * @param value The balance value to add.
      */
-    inline void addBalance(const Address& to, const uint256_t value) { this->balances[to] += value; }
+    inline void addBalance(const Address& to, const uint256_t value) { this->balances_[to] += value; }
 
     /**
      * Subtract a given balance value to a given address.
      * @param to The address to subtract balance to.
      * @param value The balance value to subtract.
      */
-    inline void subBalance(const Address& to, const uint256_t value) { this->balances[to] -= value; }
+    inline void subBalance(const Address& to, const uint256_t value) { this->balances_[to] -= value; }
 
     /**
      * Check if a given address is registered in the balances map.
      * @param add The address to check.
      * @return `true` if an entry exists for the address, `false` otherwise.
      */
-    inline bool hasBalance(const Address& add) const { return this->balances.contains(add); }
+    inline bool hasBalance(const Address& add) const { return this->balances_.contains(add); }
 
     /**
      * Add a SafeVariable to the list of used variables.
      * @param var The variable to add to the list.
      */
-    inline void addUsedVar(SafeBase& var) { this->usedVars.emplace_back(var); }
+    inline void addUsedVar(SafeBase& var) { this->usedVars_.emplace_back(var); }
 
     /**
      * Tell the state that the current call should be committed on the destructor.
      */
-    inline void shouldCommit() { this->commitCall = true; }
+    inline void shouldCommit() { this->commitCall_ = true; }
 };
 
 #endif  // CONTRACTCALLSTATE_H

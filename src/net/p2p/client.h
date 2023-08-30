@@ -28,7 +28,7 @@ namespace P2P {
       const uint8_t threadCount_;
 
       /// future for the server thread.
-      std::future<bool> executor;
+      std::future<bool> executor_;
 
       /// Function for running the server thread.
       bool run();

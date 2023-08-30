@@ -58,43 +58,43 @@ class Validator : public Address {
 class rdPoS : public BaseContract {
   private:
     /// Pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage;
+    const std::unique_ptr<Storage>& storage_;
 
     /// Pointer to the P2P Manager (for sending/requesting TxValidators from other nodes).
-    const std::unique_ptr<P2P::ManagerNormal>& p2p;
+    const std::unique_ptr<P2P::ManagerNormal>& p2p_;
 
     /// Pointer to the blockchain state.
-    const std::unique_ptr<State>& state;
+    const std::unique_ptr<State>& state_;
 
     /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options_;
 
     /// Pointer to the worker object.
-    const std::unique_ptr<rdPoSWorker> worker;
+    const std::unique_ptr<rdPoSWorker> worker_;
 
     /// Ordered list of rdPoS validators.
-    std::set<Validator> validators;
+    std::set<Validator> validators_;
 
     /// Shuffled version of the validator list, used at block creation/signing.
-    std::vector<Validator> randomList;
+    std::vector<Validator> randomList_;
 
     /// Mempool for validator transactions.
-    std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool;
+    std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool_;
 
     /// Private key for operating a validator.
-    const PrivKey validatorKey;
+    const PrivKey validatorKey_;
 
     /// Indicated whether this node is a Validator or not.
-    const bool isValidator = false;
+    const bool isValidator_ = false;
 
     /// Randomness generator (for use in seeding).
-    RandomGen randomGen;
+    RandomGen randomGen_;
 
     /// Best randomness seed (taken from the last block).
-    Hash bestRandomSeed;
+    Hash bestRandomSeed_;
 
     /// Mutex for managing read/write access to the class members.
-    mutable std::shared_mutex mutex;
+    mutable std::shared_mutex mutex_;
 
     /**
      * Initializes the blockchain with the default information for rdPoS.
@@ -131,32 +131,32 @@ class rdPoS : public BaseContract {
     static const uint32_t minValidators = 4;
 
     /// Getter for `validators`. Not a reference because the inner set can be changed.
-    const std::set<Validator> getValidators() const { std::shared_lock lock(this->mutex); return validators; }
+    const std::set<Validator> getValidators() const { std::shared_lock lock(this->mutex_); return validators_; }
 
     /// Getter for `randomList`. Not a reference because the inner vector can be changed.
-    const std::vector<Validator> getRandomList() const { std::shared_lock lock(this->mutex); return randomList; }
+    const std::vector<Validator> getRandomList() const { std::shared_lock lock(this->mutex_); return randomList_; }
 
     /// Getter for `mempool`. Not a reference because the inner map can be changed.
-    const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const { std::shared_lock lock(this->mutex); return validatorMempool; }
+    const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const { std::shared_lock lock(this->mutex_); return validatorMempool_; }
 
     /// Getter for `bestRandomSeed`.
-    const Hash getBestRandomSeed() const { std::shared_lock lock(this->mutex); return bestRandomSeed; }
+    const Hash getBestRandomSeed() const { std::shared_lock lock(this->mutex_); return this->bestRandomSeed_; }
 
     /// Getter for `isValidator`.
-    const bool getIsValidator() const { return isValidator; }
+    const bool getIsValidator() const { return this->isValidator_; }
 
     /// Getter for `validatorKey`, converted to an uncompressed public key.
-    const UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey); }
+    const UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey_); }
 
     /**
      * Check if a given Address is a Validator.
      * @param add The address to check.
      * @return `true` if address is in the validator list, `false` otherwise.
      */
-    const bool isValidatorAddress(const Address& add) const { std::shared_lock lock(this->mutex); return validators.contains(Validator(add)); }
+    const bool isValidatorAddress(const Address& add) const { std::shared_lock lock(this->mutex_); return validators_.contains(Validator(add)); }
 
     /// Clear the mempool.
-    void clearMempool() { std::unique_lock lock(this->mutex); validatorMempool.clear(); }
+    void clearMempool() { std::unique_lock lock(this->mutex_); this->validatorMempool_.clear(); }
 
     /**
      * Validate a block.
@@ -228,22 +228,22 @@ class rdPoS : public BaseContract {
 class rdPoSWorker {
   private:
     /// Reference to the parent rdPoS object.
-    rdPoS& rdpos;
+    rdPoS& rdpos_;
 
     /// Flag for stopping the worker thread.
-    std::atomic<bool> stopWorker = false;
+    std::atomic<bool> stopWorker_ = false;
 
     /**
      * Future object for the worker thread.
-     * Used to wait for the thread to finish after stopWorker is set to true.
+     * Used to wait for the thread to finish after stopWorker_ is set to true.
      */
-    std::future<bool> workerFuture;
+    std::future<bool> workerFuture_;
 
     /// Flag for knowing if the worker is ready to create a block.
-    std::atomic<bool> canCreateBlock = false;
+    std::atomic<bool> canCreateBlock_ = false;
 
     /// Pointer to the latest block.
-    std::shared_ptr<const Block> latestBlock;
+    std::shared_ptr<const Block> latestBlock_;
 
     /**
      * Check if the latest block has updated.
@@ -277,7 +277,7 @@ class rdPoSWorker {
      * Constructor.
      * @param rdpos Reference to the parent rdPoS object.
      */
-    rdPoSWorker(rdPoS& rdpos) : rdpos(rdpos) {}
+    rdPoSWorker(rdPoS& rdpos) : rdpos_(rdpos) {}
 
     /**
      * Destructor.
@@ -285,19 +285,19 @@ class rdPoSWorker {
      */
     ~rdPoSWorker() { this->stop(); }
 
-    /// Getter for `canCreateBlock`.
-    const std::atomic<bool>& getCanCreateBlock() const { return canCreateBlock; }
+    /// Getter for `canCreateBlock_`.
+    const std::atomic<bool>& getCanCreateBlock() const { return this->canCreateBlock_; }
 
-    /// Setter for `canCreateBlock`.
-    void blockCreated() { canCreateBlock = false; }
+    /// Setter for `canCreateBlock_`.
+    void blockCreated() { this->canCreateBlock_ = false; }
 
     /**
-     * Start workerFuture and workerLoop.
+     * Start workerFuture_ and workerLoop.
      * Should only be called after node is synced.
      */
     void start();
 
-    /// Stop workerFuture and workerLoop.
+    /// Stop workerFuture_ and workerLoop.
     void stop();
 };
 

@@ -7,8 +7,8 @@
 
 class SimpleContract : public DynamicContract {
   private:
-    SafeString name;      // string name
-    SafeUint256_t value;  // uint256 value
+    SafeString name_;      // string name
+    SafeUint256_t value_;  // uint256 value
     void registerContractFunctions() override;
 
   public:

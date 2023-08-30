@@ -19,7 +19,7 @@
  */
 class Merkle {
   private:
-    std::vector<std::vector<Hash>> tree;  ///< The %Merkle tree itself.
+    std::vector<std::vector<Hash>> tree_;  ///< The %Merkle tree itself.
 
     /**
      * Insert a new layer in the %Merkle tree.
@@ -44,22 +44,22 @@ class Merkle {
       // Mount the base leaves
       std::vector<Hash> tmp;
       for (auto tx : txs) tmp.emplace_back(std::move(Utils::sha3(tx.hash().get())));
-      this->tree.emplace_back(tmp);
+      this->tree_.emplace_back(tmp);
       // Make the layers up to root
-      while (this->tree.back().size() > 1) this->tree.emplace_back(newLayer(this->tree.back()));
+      while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));
     }
 
     /// Getter for `tree`.
-    inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree; }
+    inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree_; }
 
     /// Getter for `tree`, but returns only the root.
     inline const Hash getRoot() const {
-      if (this->tree.back().size() == 0) return Hash();
-      return this->tree.back().front();
+      if (this->tree_.back().size() == 0) return Hash();
+      return this->tree_.back().front();
     }
 
     /// Getter for `tree`, but returns only the leaves.
-    inline const std::vector<Hash>& getLeaves() const { return this->tree.front(); }
+    inline const std::vector<Hash>& getLeaves() const { return this->tree_.front(); }
 
     /**
      * Get the proof for a given leaf in the %Merkle tree.

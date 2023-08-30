@@ -73,25 +73,25 @@ namespace P2P {
   }
 
   bool Server::start() {
-    if (this->executor.valid()) {
+    if (this->executor_.valid()) {
       Logger::logToDebug(LogType::ERROR, Log::P2PServer, __func__, "Server already started.");
       return false;
     }
-    this->executor = std::async(std::launch::async, &Server::run, this);
+    this->executor_ = std::async(std::launch::async, &Server::run, this);
     return true;
   }
 
   bool Server::stop() {
-    if (!this->executor.valid()) {
+    if (!this->executor_.valid()) {
       Logger::logToDebug(LogType::ERROR, Log::P2PServer, __func__, "Server not started.");
       return false;
     }
     this->io_context_.stop();
-    this->executor.get();
+    this->executor_.get();
     return true;
   }
 
   bool Server::isRunning() {
-    return this->executor.valid();
+    return this->executor_.valid();
   }
 }

@@ -22,10 +22,10 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
 class Storage {
   private:
     /// Pointer to the database that contains the blockchain's entire history.
-    const std::unique_ptr<DB>& db;
+    const std::unique_ptr<DB>& db_;
 
     /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options_;
 
     /**
      * The recent blockchain history, up to the 1000 most recent blocks,
@@ -36,46 +36,46 @@ class Storage {
      * This keeps the blockchain lightweight in memory and extremely responsive.
      * Older blocks always at FRONT, newer blocks always at BACK.
      */
-    std::deque<std::shared_ptr<const Block>> chain;
+    std::deque<std::shared_ptr<const Block>> chain_;
 
     /// Map that indexes blocks in memory by their respective hashes.
-    std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> blockByHash;
+    std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> blockByHash_;
 
     /// Map that indexes Tx, blockHash, blockIndex and blockHeight by their respective hashes
-    std::unordered_map<Hash, const std::tuple<const Hash,const uint64_t,const uint64_t>, SafeHash> txByHash;
+    std::unordered_map<Hash, const std::tuple<const Hash,const uint64_t,const uint64_t>, SafeHash> txByHash_;
 
     /// Map that indexes all block heights in the chain by their respective hashes.
-    std::unordered_map<Hash, const uint64_t, SafeHash> blockHeightByHash;
+    std::unordered_map<Hash, const uint64_t, SafeHash> blockHeightByHash_;
 
     /// Map that indexes all block hashes in the chain by their respective heights.
-    std::unordered_map<uint64_t, const Hash, SafeHash> blockHashByHeight;
+    std::unordered_map<uint64_t, const Hash, SafeHash> blockHashByHeight_;
 
     /// Cache space for blocks that will be included in the blockchain.
-    mutable std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> cachedBlocks;
+    mutable std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> cachedBlocks_;
 
     /// Cache space for transactions that will be included in the blockchain (tx, txBlockHash, txBlockIndex, txBlockHeight).
     mutable std::unordered_map<Hash,
       const std::tuple<const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t>,
-    SafeHash> cachedTxs;
+    SafeHash> cachedTxs_;
 
     /// Mutex for managing read/write access to the blockchain.
-    mutable std::shared_mutex chainLock;
+    mutable std::shared_mutex chainLock_;
 
     /// Mutex to manage read/write access to the cache.
-    mutable std::shared_mutex cacheLock;
+    mutable std::shared_mutex cacheLock_;
 
     /// Thread that periodically saves the blockchain history to the database.
-    std::thread periodicSaveThread;
+    std::thread periodicSaveThread_;
 
     /// Cooldown for the periodic save thread, in seconds.
-    uint64_t periodicSaveCooldown = 15;
+    uint64_t periodicSaveCooldown_ = 15;
 
     /// Flag for stopping the periodic save thread, if required.
-    bool stopPeriodicSave = false;
+    bool stopPeriodicSave_ = false;
 
     /**
      * Add a block to the end of the chain.
-     * Only call this function directly if absolutely sure that `chainLock` is locked.
+     * Only call this function directly if absolutely sure that `chainLock_` is locked.
      * @param block The block to add.
      * @throw std::runtime_error on incorrect previous hash or height.
      */
@@ -83,7 +83,7 @@ class Storage {
 
     /**
      * Add a block to the start of the chain.
-     * Only call this function directly if absolutely sure that `chainLock` is locked.
+     * Only call this function directly if absolutely sure that `chainLock_` is locked.
      * @param block The block to add.
      * @throw std::runtime_error on incorrect previous hash or height.
      */
@@ -120,10 +120,10 @@ class Storage {
      */
     ~Storage();
 
-    /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock`.
+    /// Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
     void pushBack(Block&& block);
 
-    /// Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock`.
+    /// Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
     void pushFront(Block&& block);
 
     /// Remove a block from the end of the chain.
@@ -211,7 +211,7 @@ class Storage {
     void periodicSaveToDB();
 
     /// Stop the periodic save thread. TODO: this should be called by the destructor.
-    void stopPeriodicSaveToDB() { this->stopPeriodicSave = true; }
+    void stopPeriodicSave_ToDB() { this->stopPeriodicSave_ = true; }
 };
 
 #endif  // STORAGE_H

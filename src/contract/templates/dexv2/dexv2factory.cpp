@@ -53,7 +53,7 @@ DEXV2Factory::~DEXV2Factory() {
       batchOperations.push_back(key, value, this->getNewPrefix("getPair_"));
     }
   }
-  this->db->putBatch(batchOperations);
+  this->db_->putBatch(batchOperations);
 }
 
 void DEXV2Factory::registerContractFunctions() {

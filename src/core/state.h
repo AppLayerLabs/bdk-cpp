@@ -20,33 +20,33 @@ enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
 class State {
   private:
     /// Pointer to the database.
-    const std::unique_ptr<DB>& db;
+    const std::unique_ptr<DB>& db_;
 
     /// Pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage;
+    const std::unique_ptr<Storage>& storage_;
 
     /// Pointer to the rdPoS object.
-    const std::unique_ptr<rdPoS>& rdpos;
+    const std::unique_ptr<rdPoS>& rdpos_;
 
     /// Pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal> &p2pManager;
+    const std::unique_ptr<P2P::ManagerNormal> &p2pManager_;
 
     /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options_;
 
     /// Pointer to the contract manager.
-    const std::unique_ptr<ContractManager> contractManager;
+    const std::unique_ptr<ContractManager> contractManager_;
 
     // TODO: Add contract functionality to State after ContractManager is ready.
 
     /// Map with information about blockchain accounts (Address -> Account).
-    std::unordered_map<Address, Account, SafeHash> accounts;
+    std::unordered_map<Address, Account, SafeHash> accounts_;
 
     /// TxBlock mempool.
-    std::unordered_map<Hash, TxBlock, SafeHash> mempool;
+    std::unordered_map<Hash, TxBlock, SafeHash> mempool_;
 
     /// Mutex for managing read/write access to the state object.
-    mutable std::shared_mutex stateMutex;
+    mutable std::shared_mutex stateMutex_;
 
     /**
      * Verify if a transaction can be accepted within the current state.
@@ -74,7 +74,7 @@ class State {
     void refreshMempool(const Block& block);
 
     /// Flag indicating whether the state is currently processing a payable contract function
-    bool processingPayable = false;
+    bool processingPayable_ = false;
 
   public:
     /**
@@ -118,7 +118,7 @@ class State {
     const std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
 
     /// Get the mempool's current size.
-    inline const size_t getMempoolSize() const { std::shared_lock (this->stateMutex); return mempool.size(); }
+    inline const size_t getMempoolSize() const { std::shared_lock (this->stateMutex_); return this->mempool_.size(); }
 
     /**
      * Validate the next block given the current state and its transactions.

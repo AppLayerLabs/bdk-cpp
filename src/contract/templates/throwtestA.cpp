@@ -18,13 +18,13 @@ ThrowTestA::ThrowTestA(
 
 ThrowTestA::~ThrowTestA() { return; }
 
-uint8_t ThrowTestA::getNumA() const { return this->num.get(); }
+uint8_t ThrowTestA::getNumA() const { return this->num_.get(); }
 
 void ThrowTestA::setNumA(const uint8_t& valA,
   const Address& addB, const uint8_t& valB,
   const Address& addC, const uint8_t& valC
 ) {
-  this->num = valA;
+  this->num_ = valA;
   this->callContractFunction(addB, &ThrowTestB::setNumB, valB, addC, valC);
 }
 

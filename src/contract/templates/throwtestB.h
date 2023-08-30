@@ -7,7 +7,7 @@
 
 class ThrowTestB : public DynamicContract {
   private:
-    SafeUint8_t num;
+    SafeUint8_t num_;
     void registerContractFunctions() override;
 
   public:
@@ -29,7 +29,7 @@ class ThrowTestB : public DynamicContract {
       ContractReflectionInterface::registerContract<
         ThrowTestB, ContractManagerInterface&, const Address&, const Address&, const uint64_t&, const std::unique_ptr<DB>&
       >(
-        std::vector<std::string>{"num"},
+        std::vector<std::string>{},
         std::make_tuple("getNumB", &ThrowTestB::getNumB, "view", std::vector<std::string>{}),
         std::make_tuple("setNumB", &ThrowTestB::setNumB, "nonpayable", std::vector<std::string>{"valB", "addC", "valC"})
       );

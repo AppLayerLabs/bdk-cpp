@@ -52,25 +52,25 @@ class gRPCClient : public std::enable_shared_from_this<gRPCClient> {
     // We should create a new class (Relayer) that actively relay transactions and messages to the network.
     // USE P2P INSTEAD OF GRPCCLIENT
     /// List of node IDs connected through AvalancheGo.
-    const std::vector<std::string> nodes;
+    const std::vector<std::string> nodes_;
 
     /// Stub for .proto gRPC Client.
-    std::unique_ptr<aliasreader::AliasReader::Stub> aliasreaderStub;
+    std::unique_ptr<aliasreader::AliasReader::Stub> aliasreaderStub_;
 
     /// Stub for .proto gRPC Client.
-    std::unique_ptr<appsender::AppSender::Stub> appsenderStub;
+    std::unique_ptr<appsender::AppSender::Stub> appsenderStub_;
 
     /// Stub for .proto gRPC Client.
-    std::unique_ptr<keystore::Keystore::Stub> keystoreStub;
+    std::unique_ptr<keystore::Keystore::Stub> keystoreStub_;
 
     /// Stub for .proto gRPC Client.
-    std::unique_ptr<messenger::Messenger::Stub> messengerStub;
+    std::unique_ptr<messenger::Messenger::Stub> messengerStub_;
 
     /// Stub for .proto gRPC Client.
-    std::unique_ptr<sharedmemory::SharedMemory::Stub> sharedmemoryStub;
+    std::unique_ptr<sharedmemory::SharedMemory::Stub> sharedmemoryStub_;
 
     /// Mutex for managing read/write access to the stubs.
-    std::mutex lock;
+    std::mutex lock_;
 
   public:
     /**
@@ -81,12 +81,12 @@ class gRPCClient : public std::enable_shared_from_this<gRPCClient> {
     gRPCClient(
       const std::shared_ptr<Channel> channel,
       const std::vector<std::string>& nodes
-    ) : nodes(nodes),
-      aliasreaderStub(aliasreader::AliasReader::NewStub(channel)),
-      appsenderStub(appsender::AppSender::NewStub(channel)),
-      keystoreStub(keystore::Keystore::NewStub(channel)),
-      messengerStub(messenger::Messenger::NewStub(channel)),
-      sharedmemoryStub(sharedmemory::SharedMemory::NewStub(channel))
+    ) : nodes_(nodes),
+      aliasreaderStub_(aliasreader::AliasReader::NewStub(channel)),
+      appsenderStub_(appsender::AppSender::NewStub(channel)),
+      keystoreStub_(keystore::Keystore::NewStub(channel)),
+      messengerStub_(messenger::Messenger::NewStub(channel)),
+      sharedmemoryStub_(sharedmemory::SharedMemory::NewStub(channel))
     {}
 
     /**

@@ -1,11 +1,11 @@
 #include "db.h"
 
 DB::DB(const std::string path) {
-  this->opts.create_if_missing = true;
+  this->opts_.create_if_missing = true;
   if (!std::filesystem::exists(path)) { // Ensure the database path can actually be found
     std::filesystem::create_directories(path);
   }
-  auto status = rocksdb::DB::Open(this->opts, path, &this->db);
+  auto status = rocksdb::DB::Open(this->opts_, path, &this->db_);
   if (!status.ok()) {
     Logger::logToDebug(LogType::ERROR, Log::db, __func__, "Failed to open DB: " + status.ToString());
     throw std::runtime_error("Failed to open DB: " + status.ToString());
@@ -13,20 +13,20 @@ DB::DB(const std::string path) {
 }
 
 bool DB::putBatch(const DBBatch& batch) const {
-  std::lock_guard lock(batchLock);
+  std::lock_guard lock(this->batchLock_);
   rocksdb::WriteBatch wb;
   for (const rocksdb::Slice &deletes : batch.getDelsSlices()) { wb.Delete(deletes); };
   for (const auto& entry : batch.getPutsSlices()) wb.Put(entry.first, entry.second);
-  rocksdb::Status s = this->db->Write(rocksdb::WriteOptions(), &wb);
+  rocksdb::Status s = this->db_->Write(rocksdb::WriteOptions(), &wb);
   return s.ok();
 }
 
 std::vector<DBEntry> DB::getBatch(
   const Bytes& bytesPfx, const std::vector<Bytes>& keys
 ) const {
-  std::lock_guard lock(batchLock);
+  std::lock_guard lock(this->batchLock_);
   std::vector<DBEntry> ret;
-  rocksdb::Iterator *it = this->db->NewIterator(rocksdb::ReadOptions());
+  rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
   rocksdb::Slice pfx(reinterpret_cast<const char*>(bytesPfx.data()), bytesPfx.size());
 
   // Search for all entries

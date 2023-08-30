@@ -18,12 +18,11 @@ ThrowTestB::ThrowTestB(
 
 ThrowTestB::~ThrowTestB() { return; }
 
-uint8_t ThrowTestB::getNumB() const { return this->num.get(); }
+uint8_t ThrowTestB::getNumB() const { return this->num_.get(); }
 
 void ThrowTestB::setNumB(const uint8_t& valB, const Address& addC, const uint8_t& valC) {
-  this->num = valB;
+  this->num_ = valB;
   throw std::runtime_error("Intended throw in ThrowTestB");
-  //this->callContractFunction(addC, &ThrowTestC::setNumC, valC);
 }
 
 void ThrowTestB::registerContractFunctions() {

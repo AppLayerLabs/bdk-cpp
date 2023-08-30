@@ -19,19 +19,19 @@ class State;
 /// Class that maintains global variables for contracts.
 class ContractGlobals {
   protected:
-    static Address coinbase;          ///< Coinbase address (creator of current block).
-    static uint256_t blockHeight;     ///< Current block height.
-    static uint256_t blockTimestamp;  ///< Current block timestamp.
+    static Address coinbase_;          ///< Coinbase address (creator of current block).
+    static uint256_t blockHeight_;     ///< Current block height.
+    static uint256_t blockTimestamp_;  ///< Current block timestamp.
 
   public:
     /// Getter for `coinbase`.
-    static const Address& getCoinbase() { return coinbase; }
+    static const Address& getCoinbase() { return coinbase_; }
 
     /// Getter for `blockHeight`.
-    static const uint256_t& getBlockHeight() { return blockHeight; }
+    static const uint256_t& getBlockHeight() { return blockHeight_; }
 
     /// Getter for `getBlockTimestamp`.
-    static const uint256_t& getBlockTimestamp() { return blockTimestamp; }
+    static const uint256_t& getBlockTimestamp() { return blockTimestamp_; }
 
     /// State is a friend as it can update private global vars (e.g. before ethCall() with a TxBlock).
     friend State;
@@ -40,19 +40,19 @@ class ContractGlobals {
 /// Class that maintains local variables for contracts.
 class ContractLocals : public ContractGlobals {
   private:
-    mutable Address origin;       ///< Who called the contract.
-    mutable Address caller;       ///< Who sent the transaction.
-    mutable uint256_t value;      ///< Value sent within the transaction.
+    mutable Address origin_;       ///< Who called the contract.
+    mutable Address caller_;       ///< Who sent the transaction.
+    mutable uint256_t value_;      ///< Value sent within the transaction.
 
   protected:
     /// Getter for `origin`.
-    const Address& getOrigin() const { return this->origin; }
+    const Address& getOrigin() const { return this->origin_; }
 
     /// Getter for `caller`.
-    const Address& getCaller() const { return this->caller; }
+    const Address& getCaller() const { return this->caller_; }
 
     /// Getter for `value`.
-    const uint256_t& getValue() const { return this->value; }
+    const uint256_t& getValue() const { return this->value_; }
 
     /// ContractCallState is a friend as it can update private local vars (e.g. before ethCall() within a contract).
     friend class ContractCallLogger;
@@ -62,38 +62,38 @@ class ContractLocals : public ContractGlobals {
 class BaseContract : public ContractLocals {
 private:
   /* Contract-specific variables */
-  std::string contractName; ///< Name of the contract, used to identify the Contract Class.
-  Bytes dbPrefix;           ///< Prefix for the contract DB.
-  Address contractAddress;  ///< Address where the contract is deployed.
-  Address contractCreator;  ///< Address of the creator of the contract.
-  uint64_t contractChainId; ///< Chain where the contract is deployed.
+  std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
+  Bytes dbPrefix_;           ///< Prefix for the contract DB.
+  Address contractAddress_;  ///< Address where the contract is deployed.
+  Address contractCreator_;  ///< Address of the creator of the contract.
+  uint64_t contractChainId_; ///< Chain where the contract is deployed.
 protected:
-  bool reentrancyLock = false;    ///< Lock (for reentrancy).
-  const std::unique_ptr<DB> &db; ///< Pointer to the DB instance.
+  bool reentrancyLock_ = false;    ///< Lock (for reentrancy).
+  const std::unique_ptr<DB> &db_; ///< Pointer to the DB instance.
 public:
   /**
    * Constructor.
-   * @param contractName The name of the contract.
-   * @param address The address where the contract will be deployed.
-   * @param creator The address of the creator of the contract.
-   * @param chainId The chain where the contract will be deployed.
-   * @param db Pointer to the DB instance.
+   * @param contractName_ The name of the contract.
+   * @param address_ The address where the contract will be deployed.
+   * @param creator_ The address of the creator of the contract.
+   * @param chainId_ The chain where the contract will be deployed.
+   * @param db_ Pointer to the DB instance.
    */
   BaseContract(const std::string &contractName, const Address &address,
                const Address &creator, const uint64_t &chainId,
                const std::unique_ptr<DB> &db)
-      : contractName(contractName), contractAddress(address),
-        contractCreator(creator), contractChainId(chainId), db(db) {
-    dbPrefix = [&]() -> Bytes {
+      : contractName_(contractName), contractAddress_(address),
+        contractCreator_(creator), contractChainId_(chainId), db_(db) {
+    dbPrefix_ = [&]() -> Bytes {
       Bytes prefix = DBPrefix::contracts;
-      prefix.reserve(prefix.size() + contractAddress.size());
-      prefix.insert(prefix.end(), contractAddress.cbegin(), contractAddress.cend());
+      prefix.reserve(prefix.size() + contractAddress_.size());
+      prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
       return prefix;
     }();
-    db->put(std::string("contractName"), contractName, this->getDBPrefix());
-    db->put(std::string("contractAddress"), contractAddress.get(), this->getDBPrefix());
-    db->put(std::string("contractCreator"), contractCreator.get(), this->getDBPrefix());
-    db->put(std::string("contractChainId"), Utils::uint64ToBytes(contractChainId), this->getDBPrefix());
+    db->put(std::string("contractName_"), contractName_, this->getDBPrefix());
+    db->put(std::string("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
+    db->put(std::string("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
+    db->put(std::string("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
   }
 
   /**
@@ -102,16 +102,16 @@ public:
    * @param db Pointer to the DB instance.
    */
   BaseContract(const Address &address, const std::unique_ptr<DB> &db)
-      : contractAddress(address), db(db) {
-    this->dbPrefix = [&]() -> Bytes {
+      : contractAddress_(address), db_(db) {
+    this->dbPrefix_ = [&]() -> Bytes {
       Bytes prefix = DBPrefix::contracts;
-      prefix.reserve(prefix.size() + contractAddress.size());
-      prefix.insert(prefix.end(), contractAddress.cbegin(), contractAddress.cend());
+      prefix.reserve(prefix.size() + contractAddress_.size());
+      prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
       return prefix;
     }();
-    this->contractName = Utils::bytesToString(db->get(std::string("contractName"), this->getDBPrefix()));
-    this->contractCreator = Address(db->get(std::string("contractCreator"), this->getDBPrefix()));
-    this->contractChainId = Utils::bytesToUint64(db->get(std::string("contractChainId"), this->getDBPrefix()));
+    this->contractName_ = Utils::bytesToString(db->get(std::string("contractName_"), this->getDBPrefix()));
+    this->contractCreator_ = Address(db->get(std::string("contractCreator_"), this->getDBPrefix()));
+    this->contractChainId_ = Utils::bytesToUint64(db->get(std::string("contractChainId_"), this->getDBPrefix()));
   }
 
     /**
@@ -143,19 +143,19 @@ public:
   }
 
     /// Getter for `contractAddress`.
-    const Address& getContractAddress() const { return this->contractAddress; }
+    const Address& getContractAddress() const { return this->contractAddress_; }
 
     /// Getter for `contractCreator`.
-    const Address& getContractCreator() const { return this->contractCreator; }
+    const Address& getContractCreator() const { return this->contractCreator_; }
 
     /// Getter for `contractChainId`.
-    const uint64_t& getContractChainId() const { return this->contractChainId; }
+    const uint64_t& getContractChainId() const { return this->contractChainId_; }
 
-    /// Getter for `contractName`.
-    const std::string& getContractName() const { return this->contractName; }
+    /// Getter for `contractName_`.
+    const std::string& getContractName() const { return this->contractName_; }
 
     /// Getter for `dbPrefix`.
-    const Bytes &getDBPrefix() const { return this->dbPrefix; }
+    const Bytes &getDBPrefix() const { return this->dbPrefix_; }
 
     /**
      * Creates a new DB prefix appending a new string to the current prefix.
@@ -163,7 +163,7 @@ public:
      * @return The new prefix.
      */
     const Bytes getNewPrefix(const std::string &newPrefix) const {
-      Bytes prefix = this->dbPrefix;
+      Bytes prefix = this->dbPrefix_;
       prefix.reserve(prefix.size() + newPrefix.size());
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
       return prefix;

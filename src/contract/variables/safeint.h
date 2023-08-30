@@ -57,14 +57,14 @@ template <int Size>
 class SafeInt_t : public SafeBase {
 private:
     using int_t = typename IntType<Size>::type; ///< The type of the int.
-    int_t value; ///< The value of the int.
-    mutable std::unique_ptr<int_t> valuePtr; ///< The pointer to the value of the int.
+    int_t value_; ///< The value of the int.
+    mutable std::unique_ptr<int_t> valuePtr_; ///< The pointer to the value of the int.
 
     /**
-    * Check if the value is registered and if not, register it.
+    * Check if the value is registered_ and if not, register it.
     */
     inline void check() const override {
-        if (valuePtr == nullptr) valuePtr = std::make_unique<int_t>(value);
+        if (valuePtr_ == nullptr) valuePtr_ = std::make_unique<int_t>(value_);
     };
 
 public:
@@ -76,7 +76,7 @@ public:
     * @param value The initial value of the variable.
     */
     SafeInt_t(DynamicContract* owner, const int_t& value = 0)
-      : SafeBase(owner), value(0), valuePtr(std::make_unique<int_t>(value))
+      : SafeBase(owner), value_(0), valuePtr_(std::make_unique<int_t>(value))
     {};
 
     /**
@@ -84,7 +84,7 @@ public:
     * @param value The initial value of the variable.
     */
     SafeInt_t(const int_t& value = 0)
-      : SafeBase(nullptr), value(0), valuePtr(std::make_unique<int_t>(value))
+      : SafeBase(nullptr), value_(0), valuePtr_(std::make_unique<int_t>(value))
     {};
 
     /**
@@ -92,24 +92,24 @@ public:
     * @param other The SafeInt_t to copy.
     */
     SafeInt_t(const SafeInt_t<Size>& other) : SafeBase(nullptr) {
-      other.check(); value = 0; valuePtr = std::make_unique<int_t>(*other.valuePtr);
+      other.check(); value_ = 0; valuePtr_ = std::make_unique<int_t>(*other.valuePtr_);
     };
 
     /**
     * Getter for the value.
     * @return The value.
     */
-    inline int_t get() const { check(); return *valuePtr; };
+    inline int_t get() const { check(); return *valuePtr_; };
 
     /**
     * Commit the value.
     */
-    inline void commit() override { check(); value = *valuePtr; valuePtr = nullptr; registered = false; };
+    inline void commit() override { check(); value_ = *valuePtr_; valuePtr_ = nullptr; registered_ = false; };
 
     /**
     * Revert the value.
     */
-    inline void revert() const override { valuePtr = nullptr; registered = false; };
+    inline void revert() const override { valuePtr_ = nullptr; registered_ = false; };
 
     /**
     * Addition operator.
@@ -120,13 +120,13 @@ public:
     */
     inline SafeInt_t<Size> operator+(const SafeInt_t<Size>& other) const {
         check();
-        if ((other.get() > 0) && (*valuePtr > std::numeric_limits<int_t>::max() - other.get())) {
+        if ((other.get() > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other.get())) {
             throw std::overflow_error("Overflow in addition operation.");
         }
-        if ((other.get() < 0) && (*valuePtr < std::numeric_limits<int_t>::min() - other.get())) {
+        if ((other.get() < 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() - other.get())) {
             throw std::underflow_error("Underflow in addition operation.");
         }
-        return SafeInt_t<Size>(*valuePtr + other.get());
+        return SafeInt_t<Size>(*valuePtr_ + other.get());
     }
 
     /**
@@ -138,13 +138,13 @@ public:
     */
     inline SafeInt_t<Size> operator+(const int_t& other) const {
         check();
-        if ((other > 0) && (*valuePtr > std::numeric_limits<int_t>::max() - other)) {
+        if ((other > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other)) {
             throw std::overflow_error("Overflow in addition operation.");
         }
-        if ((other < 0) && (*valuePtr < std::numeric_limits<int_t>::min() - other)) {
+        if ((other < 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() - other)) {
             throw std::underflow_error("Underflow in addition operation.");
         }
-        return SafeInt_t<Size>(*valuePtr + other);
+        return SafeInt_t<Size>(*valuePtr_ + other);
     }
 
     /**
@@ -156,13 +156,13 @@ public:
     */
     inline SafeInt_t<Size> operator-(const SafeInt_t<Size>& other) const {
         check();
-        if ((other.get() < 0) && (*valuePtr > std::numeric_limits<int_t>::max() + other.get())) {
+        if ((other.get() < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other.get())) {
             throw std::overflow_error("Overflow in subtraction operation.");
         }
-        if ((other.get() > 0) && (*valuePtr < std::numeric_limits<int_t>::min() + other.get())) {
+        if ((other.get() > 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() + other.get())) {
             throw std::underflow_error("Underflow in subtraction operation.");
         }
-        return SafeInt_t<Size>(*valuePtr - other.get());
+        return SafeInt_t<Size>(*valuePtr_ - other.get());
     }
 
     /**
@@ -174,13 +174,13 @@ public:
     */
     inline SafeInt_t<Size> operator-(const int_t& other) const {
         check();
-        if ((other < 0) && (*valuePtr > std::numeric_limits<int_t>::max() + other)) {
+        if ((other < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other)) {
             throw std::overflow_error("Overflow in subtraction operation.");
         }
-        if ((other > 0) && (*valuePtr < std::numeric_limits<int_t>::min() + other)) {
+        if ((other > 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() + other)) {
             throw std::underflow_error("Underflow in subtraction operation.");
         }
-        return SafeInt_t<Size>(*valuePtr - other);
+        return SafeInt_t<Size>(*valuePtr_ - other);
     }
 
     /**
@@ -193,16 +193,16 @@ public:
     */
     inline SafeInt_t<Size> operator*(const SafeInt_t<Size>& other) const {
         check();
-        if (*valuePtr == 0 || other.get() == 0) {
+        if (*valuePtr_ == 0 || other.get() == 0) {
             throw std::domain_error("Multiplication by zero.");
         }
-        if (*valuePtr > std::numeric_limits<int_t>::max() / other.get()) {
+        if (*valuePtr_ > std::numeric_limits<int_t>::max() / other.get()) {
             throw std::overflow_error("Overflow in multiplication operation.");
         }
-        if (*valuePtr < std::numeric_limits<int_t>::min() / other.get()) {
+        if (*valuePtr_ < std::numeric_limits<int_t>::min() / other.get()) {
             throw std::underflow_error("Underflow in multiplication operation.");
         }
-        return SafeInt_t<Size>(*valuePtr * other.get());
+        return SafeInt_t<Size>(*valuePtr_ * other.get());
     }
 
     /**
@@ -215,16 +215,16 @@ public:
     */
     inline SafeInt_t<Size> operator*(const int_t& other) const {
         check();
-        if (*valuePtr == 0 || other == 0) {
+        if (*valuePtr_ == 0 || other == 0) {
             throw std::domain_error("Multiplication by zero.");
         }
-        if (*valuePtr > std::numeric_limits<int_t>::max() / other) {
+        if (*valuePtr_ > std::numeric_limits<int_t>::max() / other) {
             throw std::overflow_error("Overflow in multiplication operation.");
         }
-        if (*valuePtr < std::numeric_limits<int_t>::min() / other) {
+        if (*valuePtr_ < std::numeric_limits<int_t>::min() / other) {
             throw std::underflow_error("Underflow in multiplication operation.");
         }
-        return SafeInt_t<Size>(*valuePtr * other);
+        return SafeInt_t<Size>(*valuePtr_ * other);
     }
 
     /**
@@ -239,11 +239,11 @@ public:
         if (other.get() == 0) throw std::domain_error("Division by zero");
 
         // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-        if (*valuePtr == std::numeric_limits<int_t>::min() && other.get() == -1) {
+        if (*valuePtr_ == std::numeric_limits<int_t>::min() && other.get() == -1) {
             throw std::overflow_error("Overflow in division operation.");
         }
 
-        return SafeInt_t<Size>(*valuePtr / other.get());
+        return SafeInt_t<Size>(*valuePtr_ / other.get());
     }
 
     /**
@@ -258,11 +258,11 @@ public:
         if (other == 0) throw std::domain_error("Division by zero");
 
         // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-        if (*valuePtr == std::numeric_limits<int_t>::min() && other == -1) {
+        if (*valuePtr_ == std::numeric_limits<int_t>::min() && other == -1) {
             throw std::overflow_error("Overflow in division operation.");
         }
 
-        return SafeInt_t<Size>(*valuePtr / other);
+        return SafeInt_t<Size>(*valuePtr_ / other);
     }
 
     /**
@@ -275,7 +275,7 @@ public:
         check();
         if (other.get() == 0) throw std::domain_error("Modulus by zero");
 
-        return SafeInt_t<Size>(*valuePtr % other.get());
+        return SafeInt_t<Size>(*valuePtr_ % other.get());
     }
 
     /**
@@ -288,7 +288,7 @@ public:
         check();
         if (other == 0) throw std::domain_error("Modulus by zero");
 
-        return SafeInt_t<Size>(*valuePtr % other);
+        return SafeInt_t<Size>(*valuePtr_ % other);
     }
 
     /**
@@ -298,7 +298,7 @@ public:
     */
     inline SafeInt_t<Size> operator&(const SafeInt_t<Size>& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr & other.get());
+        return SafeInt_t<Size>(*valuePtr_ & other.get());
     }
 
     /**
@@ -308,7 +308,7 @@ public:
     */
     inline SafeInt_t<Size> operator&(const int_t& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr & other);
+        return SafeInt_t<Size>(*valuePtr_ & other);
     }
 
     /**
@@ -318,7 +318,7 @@ public:
     */
     inline SafeInt_t<Size> operator|(const SafeInt_t<Size>& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr | other.get());
+        return SafeInt_t<Size>(*valuePtr_ | other.get());
     }
 
     /**
@@ -328,7 +328,7 @@ public:
     */
     inline SafeInt_t<Size> operator|(const int_t& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr | other);
+        return SafeInt_t<Size>(*valuePtr_ | other);
     }
 
     /**
@@ -338,7 +338,7 @@ public:
     */
     inline SafeInt_t<Size> operator^(const SafeInt_t<Size>& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr ^ other.get());
+        return SafeInt_t<Size>(*valuePtr_ ^ other.get());
     }
 
     /**
@@ -348,7 +348,7 @@ public:
     */
     inline SafeInt_t<Size> operator^(const int_t& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr ^ other);
+        return SafeInt_t<Size>(*valuePtr_ ^ other);
     }
 
     /**
@@ -358,7 +358,7 @@ public:
     */
     inline SafeInt_t<Size> operator<<(const SafeInt_t<Size>& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr << other.get());
+        return SafeInt_t<Size>(*valuePtr_ << other.get());
     }
 
     /**
@@ -368,7 +368,7 @@ public:
     */
     inline SafeInt_t<Size> operator<<(const int_t& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr << other);
+        return SafeInt_t<Size>(*valuePtr_ << other);
     }
 
     /**
@@ -378,7 +378,7 @@ public:
     */
     inline SafeInt_t<Size> operator>>(const SafeInt_t<Size>& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr >> other.get());
+        return SafeInt_t<Size>(*valuePtr_ >> other.get());
     }
 
     /**
@@ -388,7 +388,7 @@ public:
     */
     inline SafeInt_t<Size> operator>>(const int_t& other) const {
         check();
-        return SafeInt_t<Size>(*valuePtr >> other);
+        return SafeInt_t<Size>(*valuePtr_ >> other);
     }
 
     /**
@@ -397,7 +397,7 @@ public:
     */
     inline bool operator!() const {
         check();
-        return (!*valuePtr);
+        return (!*valuePtr_);
     }
 
     /**
@@ -407,7 +407,7 @@ public:
     */
     inline bool operator&&(const SafeInt_t<Size>& other) const {
         check();
-        return (*valuePtr && other.get());
+        return (*valuePtr_ && other.get());
     }
 
     /**
@@ -417,7 +417,7 @@ public:
     */
     inline bool operator&&(const int_t& other) const {
         check();
-        return (*valuePtr && other);
+        return (*valuePtr_ && other);
     }
 
     /**
@@ -427,7 +427,7 @@ public:
     */
     inline bool operator||(const SafeInt_t<Size>& other) const {
         check();
-        return (*valuePtr || other.get());
+        return (*valuePtr_ || other.get());
     }
 
     /**
@@ -437,7 +437,7 @@ public:
     */
     inline bool operator||(const int_t& other) const {
         check();
-        return (*valuePtr || other);
+        return (*valuePtr_ || other);
     }
 
     /**
@@ -447,7 +447,7 @@ public:
     */
     inline bool operator==(const SafeInt_t<Size>& other) const {
         check();
-        return (*valuePtr == other.get());
+        return (*valuePtr_ == other.get());
     }
 
     /**
@@ -457,7 +457,7 @@ public:
     */
     inline bool operator==(const int_t& other) const {
         check();
-        return (*valuePtr == other);
+        return (*valuePtr_ == other);
     }
 
     /**
@@ -467,7 +467,7 @@ public:
     */
     inline bool operator!=(const SafeInt_t<Size>& other) const {
         check();
-        return (*valuePtr != other.get());
+        return (*valuePtr_ != other.get());
     }
 
     /**
@@ -477,7 +477,7 @@ public:
     */
     inline bool operator!=(const int_t& other) const {
         check();
-        return (*valuePtr != other);
+        return (*valuePtr_ != other);
     }
 
     /**
@@ -487,7 +487,7 @@ public:
     */
     inline bool operator<(const SafeInt_t<Size>& other) const {
         check();
-        return (*valuePtr < other.get());
+        return (*valuePtr_ < other.get());
     }
 
     /**
@@ -497,7 +497,7 @@ public:
     */
     inline bool operator<(const int_t& other) const {
         check();
-        return (*valuePtr < other);
+        return (*valuePtr_ < other);
     }
 
     /**
@@ -507,7 +507,7 @@ public:
     */
     inline bool operator<=(const SafeInt_t<Size>& other) const {
         check();
-        return (*valuePtr <= other.get());
+        return (*valuePtr_ <= other.get());
     }
 
     /**
@@ -517,7 +517,7 @@ public:
     */
     inline bool operator<=(const int_t& other) const {
         check();
-        return (*valuePtr <= other);
+        return (*valuePtr_ <= other);
     }
 
     /**
@@ -527,7 +527,7 @@ public:
     */
     inline bool operator>(const SafeInt_t<Size>& other) const {
         check();
-        return (*valuePtr > other.get());
+        return (*valuePtr_ > other.get());
     }
 
     /**
@@ -537,7 +537,7 @@ public:
     */
     inline bool operator>(const int_t& other) const {
         check();
-        return (*valuePtr > other);
+        return (*valuePtr_ > other);
     }
 
     /**
@@ -547,7 +547,7 @@ public:
     */
     inline bool operator>=(const SafeInt_t<Size>& other) const {
         check();
-        return (*valuePtr >= other.get());
+        return (*valuePtr_ >= other.get());
     }
 
     /**
@@ -557,7 +557,7 @@ public:
     */
     inline bool operator>=(const int_t& other) const {
         check();
-        return (*valuePtr >= other);
+        return (*valuePtr_ >= other);
     }
 
     /**
@@ -568,7 +568,7 @@ public:
     inline SafeInt_t<Size>& operator=(const SafeInt_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr = other.get();
+        *valuePtr_ = other.get();
         return *this;
     }
 
@@ -580,7 +580,7 @@ public:
     inline SafeInt_t<Size>& operator=(const int_t& other) {
         check();
         markAsUsed();
-        *valuePtr = other;
+        *valuePtr_ = other;
         return *this;
     }
 
@@ -591,14 +591,14 @@ public:
     */
     inline SafeInt_t<Size>& operator+=(const SafeInt_t<Size>& other) {
         check();
-        if ((other.get() > 0) && (*valuePtr > std::numeric_limits<int_t>::max() - other.get())) {
+        if ((other.get() > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other.get())) {
             throw std::overflow_error("Overflow in addition assignment operation.");
         }
-        if ((other.get() < 0) && (*valuePtr < std::numeric_limits<int_t>::min() - other.get())) {
+        if ((other.get() < 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() - other.get())) {
             throw std::underflow_error("Underflow in addition assignment operation.");
         }
         markAsUsed();
-        *valuePtr += other.get();
+        *valuePtr_ += other.get();
         return *this;
     }
 
@@ -609,14 +609,14 @@ public:
     */
     inline SafeInt_t<Size>& operator+=(const int_t& other) {
         check();
-        if ((other > 0) && (*valuePtr > std::numeric_limits<int_t>::max() - other)) {
+        if ((other > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other)) {
             throw std::overflow_error("Overflow in addition assignment operation.");
         }
-        if ((other < 0) && (*valuePtr < std::numeric_limits<int_t>::min() - other)) {
+        if ((other < 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() - other)) {
             throw std::underflow_error("Underflow in addition assignment operation.");
         }
         markAsUsed();
-        *valuePtr += other;
+        *valuePtr_ += other;
         return *this;
     }
 
@@ -627,14 +627,14 @@ public:
     */
     inline SafeInt_t<Size>& operator-=(const SafeInt_t<Size>& other) {
         check();
-        if ((other.get() < 0) && (*valuePtr > std::numeric_limits<int_t>::max() + other.get())) {
+        if ((other.get() < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other.get())) {
             throw std::overflow_error("Overflow in subtraction assignment operation.");
         }
-        if ((other.get() > 0) && (*valuePtr < std::numeric_limits<int_t>::min() + other.get())) {
+        if ((other.get() > 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() + other.get())) {
             throw std::underflow_error("Underflow in subtraction assignment operation.");
         }
         markAsUsed();
-        *valuePtr -= other.get();
+        *valuePtr_ -= other.get();
         return *this;
     }
 
@@ -645,14 +645,14 @@ public:
     */
     inline SafeInt_t<Size>& operator-=(const int_t& other) {
         check();
-        if ((other < 0) && (*valuePtr > std::numeric_limits<int_t>::max() + other)) {
+        if ((other < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other)) {
             throw std::overflow_error("Overflow in subtraction assignment operation.");
         }
-        if ((other > 0) && (*valuePtr < std::numeric_limits<int_t>::min() + other)) {
+        if ((other > 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() + other)) {
             throw std::underflow_error("Underflow in subtraction assignment operation.");
         }
         markAsUsed();
-        *valuePtr -= other;
+        *valuePtr_ -= other;
         return *this;
     }
 
@@ -663,14 +663,14 @@ public:
     */
     inline SafeInt_t<Size>& operator*=(const SafeInt_t<Size>& other) {
         check();
-        if (*valuePtr > std::numeric_limits<int_t>::max() / other.get()) {
+        if (*valuePtr_ > std::numeric_limits<int_t>::max() / other.get()) {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
-        if (*valuePtr < std::numeric_limits<int_t>::min() / other.get()) {
+        if (*valuePtr_ < std::numeric_limits<int_t>::min() / other.get()) {
             throw std::underflow_error("Underflow in multiplication assignment operation.");
         }
         markAsUsed();
-        *valuePtr *= other.get();
+        *valuePtr_ *= other.get();
         return *this;
     }
 
@@ -681,14 +681,14 @@ public:
     */
     inline SafeInt_t<Size>& operator*=(const int_t& other) {
         check();
-        if (*valuePtr > std::numeric_limits<int_t>::max() / other) {
+        if (*valuePtr_ > std::numeric_limits<int_t>::max() / other) {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
-        if (*valuePtr < std::numeric_limits<int_t>::min() / other) {
+        if (*valuePtr_ < std::numeric_limits<int_t>::min() / other) {
             throw std::underflow_error("Underflow in multiplication assignment operation.");
         }
         markAsUsed();
-        *valuePtr *= other;
+        *valuePtr_ *= other;
         return *this;
     }
 
@@ -702,12 +702,12 @@ public:
         if (other.get() == 0) throw std::domain_error("Division assignment by zero.");
 
         // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-        if (*valuePtr == std::numeric_limits<int_t>::min() && other.get() == -1) {
+        if (*valuePtr_ == std::numeric_limits<int_t>::min() && other.get() == -1) {
             throw std::overflow_error("Overflow in division assignment operation.");
         }
 
         markAsUsed();
-        *valuePtr /= other.get();
+        *valuePtr_ /= other.get();
         return *this;
     }
 
@@ -721,12 +721,12 @@ public:
         if (other == 0) throw std::domain_error("Division assignment by zero.");
 
         // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-        if (*valuePtr == std::numeric_limits<int_t>::min() && other == -1) {
+        if (*valuePtr_ == std::numeric_limits<int_t>::min() && other == -1) {
             throw std::overflow_error("Overflow in division assignment operation.");
         }
 
         markAsUsed();
-        *valuePtr /= other;
+        *valuePtr_ /= other;
         return *this;
     }
 
@@ -739,7 +739,7 @@ public:
         check();
         if (other.get() == 0) throw std::domain_error("Modulus assignment by zero.");
         markAsUsed();
-        *valuePtr %= other.get();
+        *valuePtr_ %= other.get();
         return *this;
     }
 
@@ -752,7 +752,7 @@ public:
         check();
         if (other == 0) throw std::domain_error("Modulus assignment by zero.");
         markAsUsed();
-        *valuePtr %= other;
+        *valuePtr_ %= other;
         return *this;
     }
 
@@ -764,7 +764,7 @@ public:
     inline SafeInt_t<Size>& operator&=(const SafeInt_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr &= other.get();
+        *valuePtr_ &= other.get();
         return *this;
     }
 
@@ -776,7 +776,7 @@ public:
     inline SafeInt_t<Size>& operator&=(const int_t& other) {
         check();
         markAsUsed();
-        *valuePtr &= other;
+        *valuePtr_ &= other;
         return *this;
     }
 
@@ -788,7 +788,7 @@ public:
     inline SafeInt_t<Size>& operator|=(const SafeInt_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr |= other.get();
+        *valuePtr_ |= other.get();
         return *this;
     }
 
@@ -800,7 +800,7 @@ public:
     inline SafeInt_t<Size>& operator|=(const int_t& other) {
         check();
         markAsUsed();
-        *valuePtr |= other;
+        *valuePtr_ |= other;
         return *this;
     }
 
@@ -812,7 +812,7 @@ public:
     inline SafeInt_t<Size>& operator^=(const SafeInt_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr ^= other.get();
+        *valuePtr_ ^= other.get();
         return *this;
     }
 
@@ -824,7 +824,7 @@ public:
     inline SafeInt_t<Size>& operator^=(const int_t& other) {
         check();
         markAsUsed();
-        *valuePtr ^= other;
+        *valuePtr_ ^= other;
         return *this;
     }
 
@@ -836,7 +836,7 @@ public:
     inline SafeInt_t<Size>& operator<<=(const SafeInt_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr <<= other.get();
+        *valuePtr_ <<= other.get();
         return *this;
     }
 
@@ -848,7 +848,7 @@ public:
     inline SafeInt_t<Size>& operator<<=(const int_t& other) {
         check();
         markAsUsed();
-        *valuePtr <<= other;
+        *valuePtr_ <<= other;
         return *this;
     }
 
@@ -860,7 +860,7 @@ public:
     inline SafeInt_t<Size>& operator>>=(const SafeInt_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr >>= other.get();
+        *valuePtr_ >>= other.get();
         return *this;
     }
 
@@ -872,7 +872,7 @@ public:
     inline SafeInt_t<Size>& operator>>=(const int_t& other) {
         check();
         markAsUsed();
-        *valuePtr >>= other;
+        *valuePtr_ >>= other;
         return *this;
     }
 
@@ -882,11 +882,11 @@ public:
     */
     inline SafeInt_t<Size>& operator++() {
         check();
-        if (*valuePtr == std::numeric_limits<int_t>::max()) {
+        if (*valuePtr_ == std::numeric_limits<int_t>::max()) {
             throw std::overflow_error("Overflow in prefix increment operation.");
         }
         markAsUsed();
-        ++(*valuePtr);
+        ++(*valuePtr_);
         return *this;
     }
 
@@ -896,12 +896,12 @@ public:
     */
     inline SafeInt_t<Size> operator++(int) {
         check();
-        if (*valuePtr == std::numeric_limits<int_t>::max()) {
+        if (*valuePtr_ == std::numeric_limits<int_t>::max()) {
             throw std::overflow_error("Overflow in postfix increment operation.");
         }
         markAsUsed();
-        SafeInt_t<Size> temp(*valuePtr);
-        ++(*valuePtr);
+        SafeInt_t<Size> temp(*valuePtr_);
+        ++(*valuePtr_);
         return temp;
     }
 
@@ -911,11 +911,11 @@ public:
     */
     inline SafeInt_t<Size>& operator--() {
         check();
-        if (*valuePtr == std::numeric_limits<int_t>::min()) {
+        if (*valuePtr_ == std::numeric_limits<int_t>::min()) {
             throw std::underflow_error("Underflow in prefix decrement operation.");
         }
         markAsUsed();
-        --(*valuePtr);
+        --(*valuePtr_);
         return *this;
     }
 
@@ -925,12 +925,12 @@ public:
     */
     inline SafeInt_t<Size> operator--(int) {
         check();
-        if (*valuePtr == std::numeric_limits<int_t>::min()) {
+        if (*valuePtr_ == std::numeric_limits<int_t>::min()) {
             throw std::underflow_error("Underflow in postfix decrement operation.");
         }
         markAsUsed();
-        SafeInt_t<Size> temp(*valuePtr);
-        --(*valuePtr);
+        SafeInt_t<Size> temp(*valuePtr_);
+        --(*valuePtr_);
         return temp;
     }
 

@@ -2,89 +2,89 @@
 
 
 ERC721::ERC721(ContractManagerInterface& interface, const Address& address, const std::unique_ptr<DB>& db)
-  : DynamicContract(interface, address, db), _name(this), _symbol(this), _owners(this), _balances(this), _tokenApprovals(this), _operatorApprovals(this) {
+  : DynamicContract(interface, address, db), name_(this), symbol_(this), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this) {
 
-  this->_name = Utils::bytesToString(db->get(std::string("_name"), this->getDBPrefix()));
-  this->_symbol = Utils::bytesToString(db->get(std::string("_symbol"), this->getDBPrefix()));
+  this->name_ = Utils::bytesToString(db->get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = Utils::bytesToString(db->get(std::string("symbol_"), this->getDBPrefix()));
 
-  auto owners = db->getBatch(this->getNewPrefix("_owners"));
+  auto owners = db->getBatch(this->getNewPrefix("owners_"));
   for (const auto& dbEntry : owners) {
     BytesArrView valueView(dbEntry.value);
-    this->_owners[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
+    this->owners_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
 
-  auto balances = db->getBatch(this->getNewPrefix("_balances"));
+  auto balances = db->getBatch(this->getNewPrefix("balances_"));
   for (const auto& dbEntry : balances) {
-    this->_balances[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
+    this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
 
-  auto approvals = db->getBatch(this->getNewPrefix("_tokenApprovals"));
+  auto approvals = db->getBatch(this->getNewPrefix("tokenApprovals_"));
   for (const auto& dbEntry : approvals) {
-    this->_tokenApprovals[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(dbEntry.value);
+    this->tokenApprovals_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(dbEntry.value);
   }
 
-  auto operatorApprovals = db->getBatch(this->getNewPrefix("_operatorApprovals"));
-  for (const auto& dbEntry : operatorApprovals) {
+  auto operatorAddressApprovals = db->getBatch(this->getNewPrefix("operatorAddressApprovals_"));
+  for (const auto& dbEntry : operatorAddressApprovals) {
     BytesArrView valueView(dbEntry.value);
-    this->_operatorApprovals[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = valueView[20];
+    this->operatorAddressApprovals_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = valueView[20];
   }
 
   this->registerContractFunctions();
 }
 
 ERC721::ERC721(
-  const std::string &erc721_name, const std::string &erc721_symbol,
+  const std::string &erc721name, const std::string &erc721symbol_,
   ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   const std::unique_ptr<DB> &db
-) : DynamicContract(interface, "ERC721", address, creator, chainId, db), _name(this, erc721_name),
-  _symbol(this, erc721_symbol), _owners(this), _balances(this), _tokenApprovals(this), _operatorApprovals(this) {
-  this->_name.commit();
-  this->_symbol.commit();
+) : DynamicContract(interface, "ERC721", address, creator, chainId, db), name_(this, erc721name),
+  symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this) {
+  this->name_.commit();
+  this->symbol_.commit();
   this->registerContractFunctions();
 }
 
 ERC721::ERC721(
   const std::string &derivedTypeName,
-  const std::string &erc721_name, const std::string &erc721_symbol,
+  const std::string &erc721name, const std::string &erc721symbol_,
   ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   const std::unique_ptr<DB> &db
-) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db), _name(this, erc721_name),
-    _symbol(this, erc721_symbol), _owners(this), _balances(this), _tokenApprovals(this), _operatorApprovals(this) {
-  this->_name.commit();
-  this->_symbol.commit();
+) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db), name_(this, erc721name),
+    symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this) {
+  this->name_.commit();
+  this->symbol_.commit();
   this->registerContractFunctions();
 }
 
 ERC721::~ERC721() {
   DBBatch batchedOperations;
 
-  this->db->put(std::string("_name"), _name.get(), this->getDBPrefix());
-  this->db->put(std::string("_symbol"), _symbol.get(), this->getDBPrefix());
+  this->db_->put(std::string("name_"), name_.get(), this->getDBPrefix());
+  this->db_->put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
 
-  for (auto it = _owners.cbegin(), end = _owners.cend(); it != end; ++it) {
+  for (auto it = owners_.cbegin(), end = owners_.cend(); it != end; ++it) {
     // key: uint -> value: Address
-    batchedOperations.push_back(Utils::uintToBytes(it->first), it->second.get(), this->getNewPrefix("_owners"));
+    batchedOperations.push_back(Utils::uintToBytes(it->first), it->second.get(), this->getNewPrefix("owners_"));
   }
 
-  for (auto it = _balances.cbegin(), end = _balances.cend(); it != end; ++it) {
+  for (auto it = balances_.cbegin(), end = balances_.cend(); it != end; ++it) {
     // key: Address -> value: uint
-    batchedOperations.push_back(it->first.get(), Utils::uintToBytes(it->second), this->getNewPrefix("_balances"));
+    batchedOperations.push_back(it->first.get(), Utils::uintToBytes(it->second), this->getNewPrefix("balances_"));
   }
 
-  for (auto it = _tokenApprovals.cbegin(), end = _tokenApprovals.cend(); it != end; ++it) {
+  for (auto it = tokenApprovals_.cbegin(), end = tokenApprovals_.cend(); it != end; ++it) {
     // key: uint -> value: Address
-    batchedOperations.push_back(Utils::uintToBytes(it->first), it->second.get(), this->getNewPrefix("_tokenApprovals"));
+    batchedOperations.push_back(Utils::uintToBytes(it->first), it->second.get(), this->getNewPrefix("tokenApprovals_"));
   }
 
-  for (auto it = _operatorApprovals.cbegin(); it != _operatorApprovals.cend(); ++it) {
+  for (auto it = operatorAddressApprovals_.cbegin(); it != operatorAddressApprovals_.cend(); ++it) {
     for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
       // key: address -> value: address + bool (1 byte)
       const auto& key = it->first.get();
       Bytes value = it2->first.asBytes();
       value.insert(value.end(), char(it2->second));
-      batchedOperations.push_back(key, value, this->getNewPrefix("_operatorApprovals"));
+      batchedOperations.push_back(key, value, this->getNewPrefix("operatorAddressApprovals_"));
     }
   }
 }
@@ -102,115 +102,115 @@ void ERC721::registerContractFunctions() {
   this->registerMemberFunction("transferFrom", &ERC721::transferFrom, this);
 }
 
-Address ERC721::_ownerOf(const uint256_t& tokenId) const {
-  auto it = this->_owners.find(tokenId);
-  if (it == this->_owners.end()) {
+Address ERC721::ownerOf_(const uint256_t& tokenId) const {
+  auto it = this->owners_.find(tokenId);
+  if (it == this->owners_.end()) {
     return Address();
   }
   return it->second;
 }
 
-Address ERC721::_getApproved(const uint256_t& tokenId) const {
-  auto it = this->_tokenApprovals.find(tokenId);
-  if (it == this->_tokenApprovals.end()) {
+Address ERC721::getApproved_(const uint256_t& tokenId) const {
+  auto it = this->tokenApprovals_.find(tokenId);
+  if (it == this->tokenApprovals_.end()) {
     return Address();
   }
   return it->second;
 }
 
-Address ERC721::_update(const Address& to, const uint256_t& tokenId, const Address& auth) {
-  Address from = this->_ownerOf(tokenId);
+Address ERC721::update_(const Address& to, const uint256_t& tokenId, const Address& auth) {
+  Address from = this->ownerOf_(tokenId);
   if (auth) {
-    this->_checkAuthorized(from, auth, tokenId);
+    this->checkAuthorized_(from, auth, tokenId);
   }
   if (from) {
-    this->_tokenApprovals[tokenId] = Address();
-    this->_balances[from]--;
+    this->tokenApprovals_[tokenId] = Address();
+    this->balances_[from]--;
   }
   if (to) {
-    this->_balances[to]++;
+    this->balances_[to]++;
   }
-  this->_owners[tokenId] = to;
+  this->owners_[tokenId] = to;
   return from;
 }
 
-void ERC721::_checkAuthorized(const Address& owner, const Address& spender, const uint256_t& tokenId) const {
-  if (!this->_isAuthorized(owner, spender, tokenId)) {
+void ERC721::checkAuthorized_(const Address& owner, const Address& spender, const uint256_t& tokenId) const {
+  if (!this->isAuthorized_(owner, spender, tokenId)) {
     if (owner) {
-      throw std::runtime_error("ERC721::_checkAuthorized: Not authorized");
+      throw std::runtime_error("ERC721::checkAuthorized_: Not authorized");
     }
-    throw std::runtime_error("ERC721::_checkAuthorized: inexistent token");
+    throw std::runtime_error("ERC721::checkAuthorized_: inexistent token");
   }
 }
 
-bool ERC721::_isAuthorized(const Address& owner, const Address& spender, const uint256_t& tokenId) const {
+bool ERC721::isAuthorized_(const Address& owner, const Address& spender, const uint256_t& tokenId) const {
   if (spender == owner) { return true; }
   if (spender == Address()) { return false; }
   if (this->isApprovedForAll(owner, spender)) { return true; }
-  if (this->_getApproved(tokenId) == spender) { return true; }
+  if (this->getApproved_(tokenId) == spender) { return true; }
   return false;
 }
 
-void ERC721::_mint(const Address& to, const uint256_t& tokenId) {
+void ERC721::mint_(const Address& to, const uint256_t& tokenId) {
   if (to == Address()) {
-    throw std::runtime_error("ERC721::_mint: mint to the zero address");
+    throw std::runtime_error("ERC721::mint_: mint to the zero address");
   }
-  Address prevOwner = this->_update(to, tokenId, Address());
+  Address prevOwner = this->update_(to, tokenId, Address());
 }
 
-void ERC721::_burn(const uint256_t& tokenId) {
-  Address prevOwner = this->_update(Address(), tokenId, Address());
+void ERC721::burn_(const uint256_t& tokenId) {
+  Address prevOwner = this->update_(Address(), tokenId, Address());
   if (prevOwner == Address()) {
-    throw std::runtime_error("ERC721::_burn: inexistent token");
+    throw std::runtime_error("ERC721::burn_: inexistent token");
   }
 }
 
-void ERC721::_transfer(const Address& from, const Address& to, const uint256_t& tokenId) {
+void ERC721::transfer_(const Address& from, const Address& to, const uint256_t& tokenId) {
   if (to == Address()) {
-    throw std::runtime_error("ERC721::_transfer: transfer to the zero address");
+    throw std::runtime_error("ERC721::transfer_: transfer to the zero address");
   }
 
-  Address prevOwner = this->_update(to, tokenId, Address());
+  Address prevOwner = this->update_(to, tokenId, Address());
   if (prevOwner == Address()) {
-    throw std::runtime_error("ERC721::_transfer: inexistent token");
+    throw std::runtime_error("ERC721::transfer_: inexistent token");
   } else if (prevOwner != from) {
-    throw std::runtime_error("ERC721::_transfer: incorrect owner");
+    throw std::runtime_error("ERC721::transfer_: incorrect owner");
   }
 }
 
-Address ERC721::_approve(const Address& to, const uint256_t& tokenId, const Address& auth) {
+Address ERC721::approve_(const Address& to, const uint256_t& tokenId, const Address& auth) {
   Address owner = this->ownerOf(tokenId);
 
   if (auth != Address() && owner != auth && !this->isApprovedForAll(owner, auth)) {
-    throw std::runtime_error("ERC721::_approve: Not authorized");
+    throw std::runtime_error("ERC721::approve_: Not authorized");
   }
 
-  this->_tokenApprovals[tokenId] = to;
+  this->tokenApprovals_[tokenId] = to;
 
   return owner;
 }
 
 std::string ERC721::name() const {
-  return this->_name.get();
+  return this->name_.get();
 }
 
 std::string ERC721::symbol() const {
-  return this->_symbol.get();
+  return this->symbol_.get();
 }
 
 uint256_t ERC721::balanceOf(const Address& owner) const {
   if (owner == Address()) {
     throw std::runtime_error("ERC721::balanceOf: zero address");
   }
-  auto it = this->_balances.find(owner);
-  if (it == this->_balances.end()) {
+  auto it = this->balances_.find(owner);
+  if (it == this->balances_.end()) {
     return 0;
   }
   return it->second;
 }
 
 Address ERC721::ownerOf(const uint256_t& tokenId) const {
-  Address owner = this->_ownerOf(tokenId);
+  Address owner = this->ownerOf_(tokenId);
   if (owner == Address()) {
     throw std::runtime_error("ERC721::ownerOf: inexistent token");
   }
@@ -218,42 +218,42 @@ Address ERC721::ownerOf(const uint256_t& tokenId) const {
 }
 
 std::string ERC721::tokenURI(const uint256_t& tokenId) const {
-  this->_requireMinted(tokenId);
-  return this->_baseURI() + tokenId.str();
+  this->requireMinted_(tokenId);
+  return this->baseURI_() + tokenId.str();
 }
 
 void ERC721::approve(const Address& to, const uint256_t& tokenId) {
-  _approve(to, tokenId, this->getCaller());
+  approve_(to, tokenId, this->getCaller());
 }
 
 Address ERC721::getApproved(const uint256_t &tokenId) const {
-  this->_requireMinted(tokenId);
-  return this->_getApproved(tokenId);
+  this->requireMinted_(tokenId);
+  return this->getApproved_(tokenId);
 }
 
-void ERC721::setApprovalForAll(const Address& _operator, const bool& approved) {
-  this->_setApprovalForAll(this->getCaller(), _operator, approved);
+void ERC721::setApprovalForAll(const Address& operatorAddress, const bool& approved) {
+  this->setApprovalForAll_(this->getCaller(), operatorAddress, approved);
 }
 
-void ERC721::_setApprovalForAll(const Address& owner, const Address& _operator, bool approved) {
-  if (_operator == Address()) {
-    throw std::runtime_error("ERC721::_setApprovalForAll: zero address");
+void ERC721::setApprovalForAll_(const Address& owner, const Address& operatorAddress, bool approved) {
+  if (operatorAddress == Address()) {
+    throw std::runtime_error("ERC721::setApprovalForAll_: zero address");
   }
-  this->_operatorApprovals[owner][_operator] = approved;
+  this->operatorAddressApprovals_[owner][operatorAddress] = approved;
 }
 
-void ERC721::_requireMinted(const uint256_t& tokenId) const {
-  if (this->_ownerOf(tokenId) == Address()) {
-    throw std::runtime_error("ERC721::_requireMinted: inexistent token");
+void ERC721::requireMinted_(const uint256_t& tokenId) const {
+  if (this->ownerOf_(tokenId) == Address()) {
+    throw std::runtime_error("ERC721::requireMinted_: inexistent token");
   }
 }
 
-bool ERC721::isApprovedForAll(const Address& owner, const Address& _operator) const {
-  auto it = this->_operatorApprovals.find(owner);
-  if (it == this->_operatorApprovals.end()) {
+bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddress) const {
+  auto it = this->operatorAddressApprovals_.find(owner);
+  if (it == this->operatorAddressApprovals_.end()) {
     return false;
   }
-  auto it2 = it->second.find(_operator);
+  auto it2 = it->second.find(operatorAddress);
   if (it2 == it->second.end()) {
     return false;
   }
@@ -264,7 +264,7 @@ void ERC721::transferFrom(const Address& from, const Address& to, const uint256_
   if (to == Address()) {
     throw std::runtime_error("ERC721::transferFrom: transfer to the zero address");
   }
-  Address prevOwner = this->_update(to, tokenId, this->getCaller());
+  Address prevOwner = this->update_(to, tokenId, this->getCaller());
   if (prevOwner == Address()) {
     throw std::runtime_error("ERC721::transferFrom: inexistent token");
   } else if (prevOwner != from) {

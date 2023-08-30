@@ -18,10 +18,10 @@ ThrowTestC::ThrowTestC(
 
 ThrowTestC::~ThrowTestC() { return; }
 
-uint8_t ThrowTestC::getNumC() const { return this->num.get(); }
+uint8_t ThrowTestC::getNumC() const { return this->num_.get(); }
 
 void ThrowTestC::setNumC(const uint8_t& valC) {
-  this->num = valC;
+  this->num_ = valC;
 }
 
 void ThrowTestC::registerContractFunctions() {

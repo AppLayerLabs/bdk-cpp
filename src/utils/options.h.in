@@ -11,40 +11,40 @@
 class Options {
   private:
     /// Path to data root folder.
-    const std::string rootPath;
+    const std::string rootPath_;
 
     /// Major version of the OrbiterSDK.
-    const uint64_t majorSDKVersion = @CMAKE_PROJECT_VERSION_MAJOR@;
+    const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;
 
     /// Minor version of the OrbiterSDK.
-    const uint64_t minorSDKVersion = @CMAKE_PROJECT_VERSION_MINOR@;
+    const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;
 
     /// Patch version of the OrbiterSDK.
-    const uint64_t patchSDKVersion = @CMAKE_PROJECT_VERSION_PATCH@;
+    const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;
 
     /// Version of the client (string for display/Web3).
-    const std::string web3clientVersion;
+    const std::string web3clientVersion_;
 
     /// Version of the blockchain.
-    const uint64_t version;
+    const uint64_t version_;
 
     /// Chain ID of the blockchain.
-    const uint64_t chainID;
+    const uint64_t chainID_;
 
     /// Websocket server port.
-    const uint16_t wsPort;
+    const uint16_t wsPort_;
 
     /// HTTP server port.
-    const uint16_t httpPort;
+    const uint16_t httpPort_;
 
     /// Coinbase address (if found), used by rdPoS.
-    const Address coinbase;
+    const Address coinbase_;
 
     /// Indicates whether the node is a Validator, set by constructor or if found on file.
-    const bool isValidator;
+    const bool isValidator_;
 
     /// List of known Discovery nodes.
-    const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+    const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes_;
 
   public:
     /**
@@ -89,62 +89,62 @@ class Options {
     
     /// Copy constructor.
     Options(const Options& other) :
-      rootPath(other.rootPath),
-      majorSDKVersion(other.majorSDKVersion),
-      minorSDKVersion(other.minorSDKVersion),
-      patchSDKVersion(other.patchSDKVersion),
-      web3clientVersion(other.web3clientVersion),
-      version(other.version),
-      chainID(other.chainID),
-      wsPort(other.wsPort),
-      httpPort(other.httpPort),
-      coinbase(other.coinbase),
-      isValidator(other.isValidator),
-      discoveryNodes(other.discoveryNodes)
+      rootPath_(other.rootPath_),
+      majorSDKVersion_(other.majorSDKVersion_),
+      minorSDKVersion_(other.minorSDKVersion_),
+      patchSDKVersion_(other.patchSDKVersion_),
+      web3clientVersion_(other.web3clientVersion_),
+      version_(other.version_),
+      chainID_(other.chainID_),
+      wsPort_(other.wsPort_),
+      httpPort_(other.httpPort_),
+      coinbase_(other.coinbase_),
+      isValidator_(other.isValidator_),
+      discoveryNodes_(other.discoveryNodes_)
     {}
 
     /// Getter for `rootPath`.
-    const std::string& getRootPath() const { return this->rootPath; }
+    const std::string& getRootPath() const { return this->rootPath_; }
 
     /// Getter for `majorSDKVersion`.
-    const uint64_t& getMajorSDKVersion() const { return this->majorSDKVersion; }
+    const uint64_t& getMajorSDKVersion() const { return this->majorSDKVersion_; }
 
     /// Getter for `minorSDKVersion`.
-    const uint64_t& getMinorSDKVersion() const { return this->minorSDKVersion; }
+    const uint64_t& getMinorSDKVersion() const { return this->minorSDKVersion_; }
 
     /// Getter for `patchSDKVersion`.
-    const uint64_t& getPatchSDKVersion() const { return this->patchSDKVersion; }
+    const uint64_t& getPatchSDKVersion() const { return this->patchSDKVersion_; }
 
     /// Getter for the full SDK version as a string.
     const std::string getSDKVersion() const {
-      return std::to_string(this->majorSDKVersion)
-        + "." + std::to_string(this->minorSDKVersion)
-        + "." + std::to_string(this->patchSDKVersion);
+      return std::to_string(this->majorSDKVersion_)
+        + "." + std::to_string(this->minorSDKVersion_)
+        + "." + std::to_string(this->patchSDKVersion_);
     }
 
     /// Getter for `web3clientVersion`.
-    const std::string& getWeb3ClientVersion() const { return this->web3clientVersion; }
+    const std::string& getWeb3ClientVersion() const { return this->web3clientVersion_; }
 
     /// Getter for `version`.
-    const uint64_t& getVersion() const { return this->version; }
+    const uint64_t& getVersion() const { return this->version_; }
 
     /// Getter for `chainID`.
-    const uint64_t& getChainID() const { return this->chainID; }
+    const uint64_t& getChainID() const { return this->chainID_; }
 
     /// Getter for `wsPort`.
-    const uint16_t& getP2PPort() const { return this->wsPort; }
+    const uint16_t& getP2PPort() const { return this->wsPort_; }
 
     /// Getter for `httpPort`.
-    const uint16_t& getHttpPort() const { return this->httpPort; }
+    const uint16_t& getHttpPort() const { return this->httpPort_; }
 
     /// Getter for `coinbase`.
-    const Address& getCoinbase() const { return this->coinbase; }
+    const Address& getCoinbase() const { return this->coinbase_; }
 
     /// Getter for `isValidator`.
-    const bool& getIsValidator() const { return this->isValidator; }
+    const bool& getIsValidator() const { return this->isValidator_; }
 
     /// Getter for `discoveryNodes`.
-    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes; }
+    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }
 
     /**
      * Get the Validator node's private key from the JSON file.

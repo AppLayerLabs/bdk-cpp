@@ -12,12 +12,12 @@
  */
 class SafeBool : public SafeBase {
   private:
-    bool value; ///< Value.
-    mutable std::unique_ptr<bool> valuePtr; ///< Pointer to the value. check() requires this to be mutable.
+    bool value_; ///< Value.
+    mutable std::unique_ptr<bool> valuePtr_; ///< Pointer to the value. check() requires this to be mutable.
 
     /// Check if the pointer is initialized (and initialize it if not).
     inline void check() const override {
-      if (valuePtr == nullptr) { valuePtr = std::make_unique<bool>(value); }
+      if (valuePtr_ == nullptr) { valuePtr_ = std::make_unique<bool>(value_); }
     };
 
   public:
@@ -27,7 +27,7 @@ class SafeBool : public SafeBase {
      * @param value The initial value. Defaults to `false`.
      */
     SafeBool(DynamicContract* owner, bool value = false)
-      : SafeBase(owner), value(false), valuePtr(std::make_unique<bool>(value))
+      : SafeBase(owner), value_(false), valuePtr_(std::make_unique<bool>(value))
     {};
 
     /**
@@ -35,21 +35,21 @@ class SafeBool : public SafeBase {
      * @param value The initial value. Defaults to `false`.
      */
     SafeBool(bool value = false)
-      : SafeBase(nullptr), value(false), valuePtr(std::make_unique<bool>(value))
+      : SafeBase(nullptr), value_(false), valuePtr_(std::make_unique<bool>(value))
     {};
 
     /// Copy constructor.
     SafeBool(const SafeBool& other) : SafeBase(nullptr) {
       other.check();
-      value = other.value;
-      valuePtr = std::make_unique<bool>(*other.valuePtr);
+      value_ = other.value_;
+      valuePtr_ = std::make_unique<bool>(*other.valuePtr_);
     }
 
     /// Getter for the value. Returns the value from the pointer.
-    inline const bool& get() const { check(); return *valuePtr; };
+    inline const bool& get() const { check(); return *valuePtr_; };
 
     /// Explicit conversion operator used to get the value.
-    explicit operator bool() const { check(); return *valuePtr; }
+    explicit operator bool() const { check(); return *valuePtr_; }
 
     /**
      * Commit the value. Updates the value from the pointer, nullifies it and
@@ -57,22 +57,22 @@ class SafeBool : public SafeBase {
      */
     inline void commit() override {
       check();
-      value = *valuePtr;
-      valuePtr = nullptr;
-      registered = false;
+      value_ = *valuePtr_;
+      valuePtr_ = nullptr;
+      registered_ = false;
     };
 
     /// Revert the value. Nullifies the pointer and unregisters the variable.
     inline void revert() const override {
-      valuePtr = nullptr;
-      registered = false;
+      valuePtr_ = nullptr;
+      registered_ = false;
     };
 
     /// Assignment operator.
     inline SafeBool& operator=(bool value) {
       check();
       markAsUsed();
-      *valuePtr = value;
+      *valuePtr_ = value;
       return *this;
     }
 
@@ -80,7 +80,7 @@ class SafeBool : public SafeBase {
     inline SafeBool& operator=(const SafeBool& other) {
       check();
       markAsUsed();
-      *valuePtr = other.get();
+      *valuePtr_ = other.get();
       return *this;
     }
 };

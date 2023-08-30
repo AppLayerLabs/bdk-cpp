@@ -375,44 +375,44 @@ i       * Constructor.
       /// The internal message data to be read/written, stored as bytes.
       /// Sessions has directly access to it
       /// As it can use the vector for its buffer.
-      Bytes _rawMessage;
+      Bytes rawMessage_;
 
       /// Raw string move constructor. Throws on invalid size.
-      explicit Message(Bytes&& raw) : _rawMessage(std::move(raw)) {
-        if (_rawMessage.size() < 11) throw std::runtime_error("Invalid message size.");
+      explicit Message(Bytes&& raw) : rawMessage_(std::move(raw)) {
+        if (rawMessage_.size() < 11) throw std::runtime_error("Invalid message size.");
       }
 
       /// Assignment operator.
       Message& operator=(const Message& message) {
-        this->_rawMessage = message._rawMessage; return *this;
+        this->rawMessage_ = message.rawMessage_; return *this;
       }
 
     public:
       /// Default constructor.
       Message() = default;
       /// Copy constructor.
-      Message(const Message& message) { this->_rawMessage = message._rawMessage; }
+      Message(const Message& message) { this->rawMessage_ = message.rawMessage_; }
 
       /// Move constructor.
-      Message(Message&& message) { this->_rawMessage = std::move(message._rawMessage); }
+      Message(Message&& message) { this->rawMessage_ = std::move(message.rawMessage_); }
 
       /// Get the request type of the message.
-      const RequestType type() const { return getRequestType(BytesArrView(_rawMessage).subspan(0,1)); }
+      const RequestType type() const { return getRequestType(BytesArrView(rawMessage_).subspan(0,1)); }
 
       /// Get the request ID of the message.
-      const RequestID id() const { return RequestID(BytesArrView(_rawMessage).subspan(1, 8)); }
+      const RequestID id() const { return RequestID(BytesArrView(rawMessage_).subspan(1, 8)); }
 
       /// Get the command type of the message.
-      const CommandType command() const { return getCommandType(BytesArrView(_rawMessage).subspan(9,2)); }
+      const CommandType command() const { return getCommandType(BytesArrView(rawMessage_).subspan(9,2)); }
 
       /// Get the message data (without the flags and IDs).
-      const BytesArrView message() const { return BytesArrView(_rawMessage).subspan(11); }
+      const BytesArrView message() const { return BytesArrView(rawMessage_).subspan(11); }
 
       /// Get the whole message.
-      const BytesArrView raw() const { return _rawMessage; }
+      const BytesArrView raw() const { return rawMessage_; }
 
       /// Get the message's size.
-      const size_t size() const { return _rawMessage.size(); }
+      const size_t size() const { return rawMessage_.size(); }
 
       friend class RequestEncoder;
       friend class AnswerEncoder;
@@ -424,12 +424,12 @@ i       * Constructor.
   /// Abstraction of a %P2P request, passed through the network.
   class Request {
     private:
-      CommandType _command;                                                                 ///< Command type.
-      RequestID _id;                                                                        ///< Request ID.
-      NodeID _nodeId;                                                                       ///< Host node ID.
-      std::promise<const std::shared_ptr<const Message>> _answer;                           ///< Answer to the request.
-      const std::shared_ptr<const Message> _message;                                        ///< The request message. Used if we need to ask another node.
-      bool _isAnswered = false;                                                             ///< Indicates whether the request was answered.
+      CommandType command_; ///< Command type.
+      RequestID id_;                                                                        ///< Request ID.
+      NodeID nodeId_;                                                                       ///< Host node ID.
+      std::promise<const std::shared_ptr<const Message>> answer_;                           ///< Answer to the request.
+      const std::shared_ptr<const Message> message_;                                        ///< The request message. Used if we need to ask another node.
+      bool isAnswered_ = false;                                                             ///< Indicates whether the request was answered.
 
     public:
       /**
@@ -440,25 +440,25 @@ i       * Constructor.
         * @param message The request's message.
        */
       Request(const CommandType& command, const RequestID& id, const NodeID& nodeId, const std::shared_ptr<const Message>& message) :
-              _command(command), _id(id), _nodeId(nodeId), _message(message) {};
+              command_(command), id_(id), nodeId_(nodeId), message_(message) {};
 
-      /// Getter for `_command`.
-      const CommandType& command() const { return _command; };
+      /// Getter for `command_`.
+      const CommandType& command() const { return command_; };
 
-      /// Getter for `_id`.
-      const RequestID& id() const { return _id; };
+      /// Getter for `id_`.
+      const RequestID& id() const { return id_; };
 
-      /// Getter for `_nodeId`.
-      const NodeID& nodeId() const { return _nodeId; };
+      /// Getter for `nodeId_`.
+      const NodeID& nodeId() const { return nodeId_; };
 
-      /// Getter for `_answer`.
-      std::future<const std::shared_ptr<const Message>> answerFuture() { return _answer.get_future(); };
+      /// Getter for `answer_`.
+      std::future<const std::shared_ptr<const Message>> answerFuture() { return answer_.get_future(); };
 
-      /// Getter for `_isAnswered`.
-      const bool isAnswered() const { return _isAnswered; };
+      /// Getter for `isAnswered_`.
+      const bool isAnswered() const { return isAnswered_; };
 
-      /// Setter for `_answer`. Also sets `_isAnswered` to `true`.
-      void setAnswer(const std::shared_ptr<const Message> answer) { _answer.set_value(answer); _isAnswered = true; };
+      /// Setter for `answer_`. Also sets `isAnswered_` to `true`.
+      void setAnswer(const std::shared_ptr<const Message> answer) { answer_.set_value(answer); isAnswered_ = true; };
   };
 };
 

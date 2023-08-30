@@ -108,7 +108,7 @@ namespace P2P {
 
   void Session::do_read_message(const uint64_t& messageSize) {
     this->inboundMessage_ = std::make_shared<Message>();
-    net::dynamic_vector_buffer readBuffer(this->inboundMessage_->_rawMessage);
+    net::dynamic_vector_buffer readBuffer(this->inboundMessage_->rawMessage_);
     auto mutableBuffer = readBuffer.prepare(messageSize);
     net::async_read(this->socket_, mutableBuffer, net::bind_executor(this->readStrand_,
                             std::bind(&Session::on_read_message, shared_from_this(), std::placeholders::_1, std::placeholders::_2))
@@ -133,7 +133,7 @@ namespace P2P {
       /// Nothing to do, someone called us by mistake.
       return;
     }
-    this->outboundHeader_ = Utils::uint64ToBytes(this->outboundMessage_->_rawMessage.size());
+    this->outboundHeader_ = Utils::uint64ToBytes(this->outboundMessage_->rawMessage_.size());
 
     net::async_write(this->socket_, net::buffer(this->outboundHeader_),
       net::bind_executor(this->writeStrand_,
@@ -152,7 +152,7 @@ namespace P2P {
   }
 
   void Session::do_write_message() {
-    net::async_write(this->socket_, net::buffer(this->outboundMessage_->_rawMessage, this->outboundMessage_->_rawMessage.size()),
+    net::async_write(this->socket_, net::buffer(this->outboundMessage_->rawMessage_, this->outboundMessage_->rawMessage_.size()),
                              net::bind_executor(this->writeStrand_,
                              std::bind(&Session::on_write_message, shared_from_this(), std::placeholders::_1, std::placeholders::_2))
     );

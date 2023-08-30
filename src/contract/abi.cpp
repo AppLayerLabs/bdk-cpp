@@ -203,7 +203,7 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
       b = e + 1; ct++; // Skip "," and go to next types
       e = funcTmp.find_first_of(",", b);
     }
-    this->functor = encodeFunction(func);
+    this->functor_ = encodeFunction(func);
   }
 
   /**

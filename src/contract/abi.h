@@ -1103,7 +1103,7 @@ Types inline getABIEnumFromString(const std::string& type) {
   class Encoder {
     private:
       Bytes data_; ///< Encoded Solidity ABI string, as RAW BYTES. Use Hex::fromBytes().get() to print it properly.
-      Functor functor; ///< Functor of the function to call. (if any)
+      Functor functor_; ///< Functor of the function to call. (if any)
 
       /**
       * Checks if a given type is a valid ABI type.
@@ -1224,7 +1224,7 @@ Types inline getABIEnumFromString(const std::string& type) {
       const Bytes& getData() const { return this->data_; }
 
       /// Getter for 'functor'
-      const Functor& getFunctor() const { return this->functor; }
+      const Functor& getFunctor() const { return this->functor_; }
 
       /**
        * Get the length of `data`.

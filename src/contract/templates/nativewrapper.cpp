@@ -32,8 +32,8 @@ void NativeWrapper::deposit() {
   this->mintValue_(this->getCaller(), this->getValue());
 }
 
-void NativeWrapper::withdraw(const uint256_t &_value) {
-  this->burnValue_(this->getCaller(), _value);
-  this->sendTokens(this->getCaller(), _value);
+void NativeWrapper::withdraw(const uint256_t &value) {
+  this->burnValue_(this->getCaller(), value);
+  this->sendTokens(this->getCaller(), value);
 }
 

@@ -70,7 +70,7 @@ namespace P2P {
       std::shared_ptr<ServerListener> listener_;
 
       /// future for the server thread.
-      std::future<bool> executor;
+      std::future<bool> executor_;
 
       /// Function for running the server thread.
       bool run();

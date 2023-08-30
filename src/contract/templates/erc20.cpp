@@ -66,10 +66,10 @@ ERC20::ERC20(
 
 ERC20::~ERC20() {
   DBBatch batchOperations;
-  this->db->put(std::string("name_"), name_.get(), this->getDBPrefix());
-  this->db->put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
-  this->db->put(std::string("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
-  this->db->put(std::string("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
+  this->db_->put(std::string("name_"), name_.get(), this->getDBPrefix());
+  this->db_->put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
+  this->db_->put(std::string("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
+  this->db_->put(std::string("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
 
   for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
     const auto& key = it->first.get();
@@ -85,7 +85,7 @@ ERC20::~ERC20() {
       batchOperations.push_back(key, value, this->getNewPrefix("allowed_"));
     }
   }
-  this->db->putBatch(batchOperations);
+  this->db_->putBatch(batchOperations);
 }
 
 void ERC20::registerContractFunctions() {
@@ -119,27 +119,27 @@ uint8_t ERC20::decimals() const { return this->decimals_.get(); }
 
 uint256_t ERC20::totalSupply() const { return this->totalSupply_.get(); }
 
-uint256_t ERC20::balanceOf(const Address& _owner) const {
-  const auto& it = std::as_const(this->balances_).find(_owner);
+uint256_t ERC20::balanceOf(const Address& owner) const {
+  const auto& it = std::as_const(this->balances_).find(owner);
   return (it == this->balances_.end())
     ? 0 : it->second;
 }
 
-void ERC20::transfer(const Address &_to, const uint256_t &_value) {
-  this->balances_[this->getCaller()] -= _value;
-  this->balances_[_to] += _value;
+void ERC20::transfer(const Address &to, const uint256_t &value) {
+  this->balances_[this->getCaller()] -= value;
+  this->balances_[to] += value;
 }
 
-void ERC20::approve(const Address &_spender, const uint256_t &_value) {
-  this->allowed_[this->getCaller()][_spender] = _value;
+void ERC20::approve(const Address &spender, const uint256_t &value) {
+  this->allowed_[this->getCaller()][spender] = value;
 }
 
-uint256_t ERC20::allowance(const Address& _owner, const Address& _spender) const {
-  const auto& it = std::as_const(this->allowed_).find(_owner);
+uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
+  const auto& it = std::as_const(this->allowed_).find(owner);
   if (it == this->allowed_.end()) {
     return 0;
   } else {
-    const auto& it2 = it->second.find(_spender);
+    const auto& it2 = it->second.find(spender);
     if (it2 == it->second.end()) {
       return 0;
     } else {
@@ -149,10 +149,10 @@ uint256_t ERC20::allowance(const Address& _owner, const Address& _spender) const
 }
 
 void ERC20::transferFrom(
-  const Address &_from, const Address &_to, const uint256_t &_value
+  const Address &from, const Address &to, const uint256_t &value
 ) {
-  this->allowed_[_from][this->getCaller()] -= _value;
-  this->balances_[_from] -= _value;
-  this->balances_[_to] += _value;
+  this->allowed_[from][this->getCaller()] -= value;
+  this->balances_[from] -= value;
+  this->balances_[to] += value;
 }
 
