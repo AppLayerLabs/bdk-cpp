@@ -81,12 +81,13 @@ ERC721::~ERC721() {
   for (auto it = _operatorApprovals.cbegin(); it != _operatorApprovals.cend(); ++it) {
     for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
       // key: address -> value: address + bool (1 byte)
-      const auto& key = it->first.get();
+      const auto &key = it->first.get();
       Bytes value = it2->first.asBytes();
       value.insert(value.end(), char(it2->second));
       batchedOperations.push_back(key, value, this->getNewPrefix("_operatorApprovals"));
     }
   }
+  this->db->putBatch(batchedOperations);
 }
 
 void ERC721::registerContractFunctions() {
@@ -188,6 +189,10 @@ Address ERC721::_approve(const Address& to, const uint256_t& tokenId, const Addr
   this->_tokenApprovals[tokenId] = to;
 
   return owner;
+}
+
+void ERC721::_increaseBalance(const Address& account, const uint128_t& amount) {
+  this->_balances[account] += amount;
 }
 
 std::string ERC721::name() const {

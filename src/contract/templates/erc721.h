@@ -134,8 +134,17 @@ class ERC721 : public DynamicContract {
     /**
      * Check if the token has been minted.
      * @param tokenId The id of the token.
+     * Solidity counterpart: function _requireMinted(uint256 tokenId) internal view virtual
      */
     virtual void _requireMinted(const uint256_t& tokenId) const;
+
+    /**
+     * Unsafe write access to the balances, used by extensions that "mint" tokens using an {ownerOf} override.
+     * @param account
+     * @param amount
+     * function _increaseBalance(address account, uint128 value) internal virtual
+     */
+    virtual void _increaseBalance(const Address& account, const uint128_t& amount);
 
     virtual void registerContractFunctions() override;
 
@@ -193,7 +202,7 @@ class ERC721 : public DynamicContract {
     );
 
     /// Destructor.
-    ~ERC721() override;
+    virtual ~ERC721() override;
 
     /**
      * Get the name of the ERC721 token.
