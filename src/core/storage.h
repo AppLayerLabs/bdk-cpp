@@ -218,7 +218,7 @@ class Storage {
     void periodicSaveToDB();
 
     /// Stop the periodic save thread. TODO: this should be called by the destructor.
-    void stopPeriodicSave_ToDB() { this->stopPeriodicSave_ = true; }
+    void stopPeriodicSaveToDB() { this->stopPeriodicSave_ = true; }
 };
 
 #endif  // STORAGE_H
