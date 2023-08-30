@@ -1122,6 +1122,7 @@ Types inline getABIEnumFromString(const std::string& type) {
       /**
       * Checks if a given type is a valid and supported ABI type.
       * @param funcType The type to check.
+      * @param dataValue The value to check.
       * @return True if the type is valid and supported, false otherwise.
       */
       bool matchesDataType(const std::string_view& funcType, const BaseTypes& dataValue);

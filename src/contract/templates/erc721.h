@@ -196,6 +196,7 @@ public:
 
   /**
    * Constructor to be used when creating a new contract.
+   * @param derivedTypeName The name of the derived type.
    * @param erc721name The name of the ERC20 token.
    * @param erc721symbol The symbol of the ERC20 token.
    * @param interface Reference to the contract manager interface.

@@ -5,8 +5,8 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#ifndef CONTRACTCALLSTATE_H
-#define CONTRACTCALLSTATE_H
+#ifndef CONTRACTCALLLOGGER_H
+#define CONTRACTCALLLOGGER_H
 
 #include <vector>
 #include <unordered_map>
@@ -129,4 +129,4 @@ class ContractCallLogger {
     inline void shouldCommit() { this->commitCall_ = true; }
 };
 
-#endif  // CONTRACTCALLSTATE_H
+#endif  // CONTRACTCALLLOGGER_H

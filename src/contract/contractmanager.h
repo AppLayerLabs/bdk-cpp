@@ -231,7 +231,7 @@ class ContractManager : BaseContract {
     /// ContractFactory is a friend so it can access private members.
     friend class ContractFactory;
 
-    /// ContractCallState is a friend so it can access private members.
+    /// ContractCallLogger is a friend so it can access private members.
     friend class ContractCallLogger;
 };
 

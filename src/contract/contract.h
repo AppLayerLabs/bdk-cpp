@@ -61,7 +61,7 @@ class ContractLocals : public ContractGlobals {
     /// Getter for `value`.
     const uint256_t& getValue() const { return this->value_; }
 
-    /// ContractCallState is a friend as it can update private local vars (e.g. before ethCall() within a contract).
+    /// ContractCallLogger is a friend as it can update private local vars (e.g. before ethCall() within a contract).
     friend class ContractCallLogger;
 };
 
@@ -80,11 +80,11 @@ protected:
 public:
   /**
    * Constructor.
-   * @param contractName_ The name of the contract.
-   * @param address_ The address where the contract will be deployed.
-   * @param creator_ The address of the creator of the contract.
-   * @param chainId_ The chain where the contract will be deployed.
-   * @param db_ Pointer to the DB instance.
+   * @param contractName The name of the contract.
+   * @param address The address where the contract will be deployed.
+   * @param creator The address of the creator of the contract.
+   * @param chainId The chain where the contract will be deployed.
+   * @param db Pointer to the DB instance.
    */
   BaseContract(const std::string &contractName, const Address &address,
                const Address &creator, const uint64_t &chainId,
