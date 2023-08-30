@@ -17,6 +17,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721enumerable.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.h
@@ -40,6 +41,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721enumerable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.cpp
