@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef ABI_H
 #define ABI_H
 
@@ -5,7 +12,7 @@
 #include <any>
 
 #include "../utils/hex.h"
-#include "../utils/json.hpp"
+#include "../libs/json.hpp"
 #include "../utils/utils.h"
 
 /// Namespace for Solidity ABI-related operations.

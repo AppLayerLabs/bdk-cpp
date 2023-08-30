@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "storage.h"
 
 Storage::Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options) : db_(db), options_(options) {

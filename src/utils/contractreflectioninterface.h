@@ -1,8 +1,15 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef CONTRACTREFLECTIONINTERFACE_H
 #define CONTRACTREFLECTIONINTERFACE_H
 
 #include "contract/abi.h"
-#include "meta_all.hpp"
+#include "src/libs/meta_all.hpp"
 
 /**
  * This namespace contains the reflection interface for the contract
