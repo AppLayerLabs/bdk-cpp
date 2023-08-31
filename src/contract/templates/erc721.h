@@ -15,7 +15,7 @@
 
 /// Template for an ERC721 contract.
 /// Roughly based on the OpenZeppelin implementation.
-class ERC721 : public DynamicContract {
+class ERC721 : virtual public DynamicContract {
   protected:
 
     /// Solidity: string internal _name;
