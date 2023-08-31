@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef SAFEUINT_T_H
 #define SAFEUINT_T_H
 
@@ -54,11 +61,11 @@ template <int Size>
 class SafeUint_t : public SafeBase {
 private:
     using uint_t = typename UintType<Size>::type; ///< Type of the uint.
-    uint_t value; ///< The value.
-    mutable std::unique_ptr<uint_t> valuePtr; ///< Pointer to the value.
+    uint_t value_; ///< The value.
+    mutable std::unique_ptr<uint_t> valuePtr_; ///< Pointer to the value.
 
     inline void check() const override {
-        if (valuePtr == nullptr) valuePtr = std::make_unique<uint_t>(value);
+        if (valuePtr_ == nullptr) valuePtr_ = std::make_unique<uint_t>(value_);
     };
 
 public:
@@ -70,7 +77,7 @@ public:
      * @param value The initial value.
      */
     SafeUint_t(DynamicContract* owner, const uint_t& value = 0)
-      : SafeBase(owner), value(0), valuePtr(std::make_unique<uint_t>(value))
+      : SafeBase(owner), value_(0), valuePtr_(std::make_unique<uint_t>(value))
     {};
 
     /**
@@ -78,7 +85,7 @@ public:
      * @param value The initial value.
      */
     SafeUint_t(const uint_t& value = 0)
-      : SafeBase(nullptr), value(0), valuePtr(std::make_unique<uint_t>(value))
+      : SafeBase(nullptr), value_(0), valuePtr_(std::make_unique<uint_t>(value))
     {};
 
     /**
@@ -86,24 +93,24 @@ public:
      * @param other The SafeUint_t to copy.
      */
     SafeUint_t(const SafeUint_t<Size>& other) : SafeBase(nullptr) {
-      other.check(); value = 0; valuePtr = std::make_unique<uint_t>(*other.valuePtr);
+      other.check(); value_ = 0; valuePtr_ = std::make_unique<uint_t>(*other.valuePtr_);
     };
 
     /**
     * Getter for the value.
     * @return The value.
     */
-    inline uint_t get() const { check(); return *valuePtr; };
+    inline uint_t get() const { check(); return *valuePtr_; };
     
     /**
     * Commit the value.
     */
-    inline void commit() override { check(); value = *valuePtr; valuePtr = nullptr; registered = false; };
+    inline void commit() override { check(); value_ = *valuePtr_; valuePtr_ = nullptr; registered_ = false; };
     
     /**
     * Revert the value.
     */
-    inline void revert() const override { valuePtr = nullptr; registered = false; };
+    inline void revert() const override { valuePtr_ = nullptr; registered_ = false; };
 
     // ====================
     // Arithmetic operators
@@ -117,11 +124,11 @@ public:
     */
     inline SafeUint_t<Size> operator+(const SafeUint_t<Size>& other) const {
         check();
-        if (*valuePtr > std::numeric_limits<uint_t>::max() - other.get())
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other.get())
         {
             throw std::overflow_error("Overflow in addition operation.");
         }
-        return SafeUint_t<Size>(*valuePtr + other.get());
+        return SafeUint_t<Size>(*valuePtr_ + other.get());
     }
 
     /**
@@ -132,11 +139,11 @@ public:
     */
     inline SafeUint_t<Size> operator+(const uint_t& other) const {
         check();
-        if (*valuePtr > std::numeric_limits<uint_t>::max() - other)
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
         {
             throw std::overflow_error("Overflow in addition operation.");
         }
-        return SafeUint_t<Size>(*valuePtr + other);
+        return SafeUint_t<Size>(*valuePtr_ + other);
     }
 
     /**
@@ -149,15 +156,15 @@ public:
     inline SafeUint_t<Size> operator+(const int& other) const {
         check();
         if (other < 0) {
-            if (*valuePtr < static_cast<uint_t>(-other)) {
+            if (*valuePtr_ < static_cast<uint_t>(-other)) {
                 throw std::underflow_error("Underflow in addition operation.");
             }
         } else {
-            if (*valuePtr > std::numeric_limits<uint_t>::max() - other) {
+            if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other) {
                 throw std::overflow_error("Overflow in addition operation.");
             }
         }
-        return SafeUint_t<Size>(*valuePtr + other);
+        return SafeUint_t<Size>(*valuePtr_ + other);
     }
 
     /**
@@ -170,11 +177,11 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type 
     operator+(const uint_t& other) const {
         check();
-        if (*valuePtr > std::numeric_limits<uint_t>::max() - other)
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
         {
             throw std::overflow_error("Overflow in addition operation.");
         }
-        return SafeUint_t<Size>(*valuePtr + other);
+        return SafeUint_t<Size>(*valuePtr_ + other);
     }
 
 
@@ -186,11 +193,11 @@ public:
      */
     inline SafeUint_t<Size> operator-(const SafeUint_t<Size>& other) const {
         check();
-        if (*valuePtr < other.get())
+        if (*valuePtr_ < other.get())
         {
             throw std::underflow_error("Underflow in subtraction operation.");
         }
-        return SafeUint_t<Size>(*valuePtr - other.get());
+        return SafeUint_t<Size>(*valuePtr_ - other.get());
     }
 
     /**
@@ -201,11 +208,11 @@ public:
      */
     inline SafeUint_t<Size> operator-(const uint_t& other) const {
         check();
-        if (*valuePtr < other)
+        if (*valuePtr_ < other)
         {
             throw std::underflow_error("Underflow in subtraction operation.");
         }
-        return SafeUint_t<Size>(*valuePtr - other);
+        return SafeUint_t<Size>(*valuePtr_ - other);
     }
 
     /**
@@ -218,11 +225,11 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type 
     operator-(const uint_t& other) const {
         check();
-        if (*valuePtr < other)
+        if (*valuePtr_ < other)
         {
             throw std::underflow_error("Underflow in subtraction operation.");
         }
-        return SafeUint_t<Size>(*valuePtr - other);
+        return SafeUint_t<Size>(*valuePtr_ - other);
     }
 
     /**
@@ -235,15 +242,15 @@ public:
     inline SafeUint_t<Size> operator-(const int& other) const {
         check();
         if (other > 0) {
-            if (*valuePtr < static_cast<uint_t>(other)) {
+            if (*valuePtr_ < static_cast<uint_t>(other)) {
                 throw std::underflow_error("Underflow in subtraction operation.");
             }
         } else {
-            if (*valuePtr > std::numeric_limits<uint_t>::max() + other) {
+            if (*valuePtr_ > std::numeric_limits<uint_t>::max() + other) {
                 throw std::overflow_error("Overflow in subtraction operation.");
             }
         }
-        return SafeUint_t<Size>(*valuePtr - other);
+        return SafeUint_t<Size>(*valuePtr_ - other);
     }
 
 
@@ -256,12 +263,12 @@ public:
      */
     inline SafeUint_t<Size> operator*(const SafeUint_t<Size>& other) const {
         check();
-        if (other.get() == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-        if (*valuePtr > std::numeric_limits<uint_t>::max() / other.get())
+        if (other.get() == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other.get())
         {
             throw std::overflow_error("Overflow in multiplication operation.");
         }
-        return SafeUint_t<Size>(*valuePtr * other.get());
+        return SafeUint_t<Size>(*valuePtr_ * other.get());
     }
 
     /**
@@ -274,12 +281,12 @@ public:
 
     inline SafeUint_t<Size> operator*(const uint_t& other) const {
         check();
-        if (other == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-        if (*valuePtr > std::numeric_limits<uint_t>::max() / other)
+        if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other)
         {
             throw std::overflow_error("Overflow in multiplication operation.");
         }
-        return SafeUint_t<Size>(*valuePtr * other);
+        return SafeUint_t<Size>(*valuePtr_ * other);
     }
 
    /**
@@ -293,12 +300,12 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
     operator*(const uint_t& other) const {
         check();
-        if (other == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
-        if (*valuePtr > std::numeric_limits<uint_t>::max() / other)
+        if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other)
         {
             throw std::overflow_error("Overflow in multiplication operation.");
         }
-        return SafeUint_t<Size>(*valuePtr * other);
+        return SafeUint_t<Size>(*valuePtr_ * other);
     }
 
     /**
@@ -310,16 +317,16 @@ public:
     */
     inline SafeUint_t<Size> operator*(const int& other) const {
         check();
-        if (other == 0 || *valuePtr == 0) throw std::domain_error("Multiplication by zero");
+        if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
         
         if (other < 0) {
             throw std::underflow_error("Underflow in multiplication operation.");
         } else {
-            if (*valuePtr > std::numeric_limits<uint_t>::max() / other) {
+            if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other) {
                 throw std::overflow_error("Overflow in multiplication operation.");
             }
         }
-        return SafeUint_t<Size>(*valuePtr * other);
+        return SafeUint_t<Size>(*valuePtr_ * other);
     }
 
 
@@ -331,8 +338,8 @@ public:
      */
     inline SafeUint_t<Size> operator/(const SafeUint_t<Size>& other) const {
         check();
-        if (*valuePtr == 0 || other.get() == 0) throw std::domain_error("Division by zero");
-        return SafeUint_t<Size>(*valuePtr / other.get());
+        if (*valuePtr_ == 0 || other.get() == 0) throw std::domain_error("Division by zero");
+        return SafeUint_t<Size>(*valuePtr_ / other.get());
     }
 
     /**
@@ -343,8 +350,8 @@ public:
      */
     inline SafeUint_t<Size> operator/(const uint_t& other) const {
         check();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Division by zero");
-        return SafeUint_t<Size>(*valuePtr / other);
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division by zero");
+        return SafeUint_t<Size>(*valuePtr_ / other);
     }
 
     /**
@@ -357,8 +364,8 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
     operator/(const uint_t& other) const {
         check();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Division by zero");
-        return SafeUint_t<Size>(*valuePtr / other);
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division by zero");
+        return SafeUint_t<Size>(*valuePtr_ / other);
     }
 
 
@@ -376,7 +383,7 @@ public:
         // which cannot be represented in an unsigned integer.
         if (other < 0) throw std::domain_error("Division by a negative number");
 
-        return SafeUint_t<Size>(*valuePtr / other);
+        return SafeUint_t<Size>(*valuePtr_ / other);
     }
 
 
@@ -388,8 +395,8 @@ public:
      */
     inline SafeUint_t<Size> operator%(const SafeUint_t<Size>& other) const {
         check();
-        if (*valuePtr == 0 || other.get() == 0) throw std::domain_error("Modulus by zero");
-        return SafeUint_t<Size>(*valuePtr % other.get());
+        if (*valuePtr_ == 0 || other.get() == 0) throw std::domain_error("Modulus by zero");
+        return SafeUint_t<Size>(*valuePtr_ % other.get());
     }
 
     /**
@@ -400,8 +407,8 @@ public:
      */
     inline SafeUint_t<Size> operator%(const uint_t& other) const {
         check();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulus by zero");
-        return SafeUint_t<Size>(*valuePtr % other);
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
+        return SafeUint_t<Size>(*valuePtr_ % other);
     }
 
     /**
@@ -414,8 +421,8 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
     operator%(const uint64_t& other) const {
         check();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulus by zero");
-        return SafeUint_t<Size>(*valuePtr % other);
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
+        return SafeUint_t<Size>(*valuePtr_ % other);
     }
 
     /**
@@ -426,8 +433,8 @@ public:
      */
     inline SafeUint_t<Size> operator%(const int& other) const {
         check();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulo by zero");
-        return SafeUint_t<Size>(*valuePtr % static_cast<uint_t>(other));
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulo by zero");
+        return SafeUint_t<Size>(*valuePtr_ % static_cast<uint_t>(other));
     }
 
     // =================
@@ -441,7 +448,7 @@ public:
      */
     inline SafeUint_t<Size> operator&(const SafeUint_t<Size>& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr & other.get());
+        return SafeUint_t<Size>(*valuePtr_ & other.get());
     }
 
     /**
@@ -451,7 +458,7 @@ public:
      */
     inline SafeUint_t<Size> operator&(const uint_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr & other);
+        return SafeUint_t<Size>(*valuePtr_ & other);
     }
 
     /**
@@ -463,7 +470,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
     operator&(const uint64_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr & other);
+        return SafeUint_t<Size>(*valuePtr_ & other);
     }
 
      /**
@@ -474,7 +481,7 @@ public:
     inline SafeUint_t<Size> operator&(const int& other) const {
         check();
         if (other < 0) throw std::domain_error("Bitwise AND with a negative number");
-        return SafeUint_t<Size>(*valuePtr & static_cast<uint_t>(other));
+        return SafeUint_t<Size>(*valuePtr_ & static_cast<uint_t>(other));
     }
 
     /**
@@ -484,7 +491,7 @@ public:
      */
     inline SafeUint_t<Size> operator|(const SafeUint_t<Size>& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr | other.get());
+        return SafeUint_t<Size>(*valuePtr_ | other.get());
     }
 
     /**
@@ -494,7 +501,7 @@ public:
      */
     inline SafeUint_t<Size> operator|(const uint_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr | other);
+        return SafeUint_t<Size>(*valuePtr_ | other);
     }
 
     /**
@@ -506,7 +513,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
     operator|(const uint64_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr | other);
+        return SafeUint_t<Size>(*valuePtr_ | other);
     }
 
     /**
@@ -517,7 +524,7 @@ public:
     inline SafeUint_t<Size> operator|(const int& other) const {
         check();
         if (other < 0) throw std::domain_error("Bitwise OR with a negative number");
-        return SafeUint_t<Size>(*valuePtr | static_cast<uint_t>(other));
+        return SafeUint_t<Size>(*valuePtr_ | static_cast<uint_t>(other));
     }
 
     /**
@@ -527,7 +534,7 @@ public:
      */
     inline SafeUint_t<Size> operator^(const SafeUint_t<Size>& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr ^ other.get());
+        return SafeUint_t<Size>(*valuePtr_ ^ other.get());
     }
 
     /**
@@ -537,7 +544,7 @@ public:
      */
     inline SafeUint_t<Size> operator^(const uint_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr ^ other);
+        return SafeUint_t<Size>(*valuePtr_ ^ other);
     }
 
     /**
@@ -549,7 +556,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
     operator^(const uint64_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr ^ other);
+        return SafeUint_t<Size>(*valuePtr_ ^ other);
     }
 
     /**
@@ -560,7 +567,7 @@ public:
     inline SafeUint_t<Size> operator^(const int& other) const {
         check();
         if (other < 0) throw std::domain_error("Bitwise XOR with a negative number");
-        return SafeUint_t<Size>(*valuePtr ^ static_cast<uint_t>(other));
+        return SafeUint_t<Size>(*valuePtr_ ^ static_cast<uint_t>(other));
     }
 
     /**
@@ -570,7 +577,7 @@ public:
      */
     inline SafeUint_t<Size> operator<<(const SafeUint_t<Size>& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr << other.get());
+        return SafeUint_t<Size>(*valuePtr_ << other.get());
     }
 
     /**
@@ -580,7 +587,7 @@ public:
      */
     inline SafeUint_t<Size> operator<<(const uint_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr << other);
+        return SafeUint_t<Size>(*valuePtr_ << other);
     }
 
     /**
@@ -592,7 +599,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
     operator<<(const uint64_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr << other);
+        return SafeUint_t<Size>(*valuePtr_ << other);
     }
 
     /**
@@ -603,7 +610,7 @@ public:
     inline SafeUint_t<Size> operator<<(const int& other) const {
         check();
         if (other < 0) throw std::domain_error("Bitwise left shift with a negative number");
-        return SafeUint_t<Size>(*valuePtr << other);
+        return SafeUint_t<Size>(*valuePtr_ << other);
     }
 
     /**
@@ -613,7 +620,7 @@ public:
      */
     inline SafeUint_t<Size> operator>>(const SafeUint_t<Size>& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr >> other.get());
+        return SafeUint_t<Size>(*valuePtr_ >> other.get());
     }
 
     /**
@@ -625,7 +632,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
     operator>>(const uint_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr >> other);
+        return SafeUint_t<Size>(*valuePtr_ >> other);
     }
 
     /**
@@ -635,7 +642,7 @@ public:
      */
     inline SafeUint_t<Size> operator>>(const uint64_t& other) const {
         check();
-        return SafeUint_t<Size>(*valuePtr >> other);
+        return SafeUint_t<Size>(*valuePtr_ >> other);
     }
 
     /**
@@ -646,7 +653,7 @@ public:
     inline SafeUint_t<Size> operator>>(const int& other) const {
         check();
         if (other < 0) throw std::domain_error("Bitwise right shift with a negative number");
-        return SafeUint_t<Size>(*valuePtr >> other);
+        return SafeUint_t<Size>(*valuePtr_ >> other);
     }
 
     // =================
@@ -659,7 +666,7 @@ public:
      */
     inline bool operator!() const {
         check();
-        return !(*valuePtr);
+        return !(*valuePtr_);
     }
 
     /**
@@ -669,7 +676,7 @@ public:
      */
     inline bool operator&&(const SafeUint_t<Size>& other) const {
         check();
-        return *valuePtr && other.get();
+        return *valuePtr_ && other.get();
     }
 
     /**
@@ -679,7 +686,7 @@ public:
      */
     inline bool operator&&(const uint_t& other) const {
         check();
-        return *valuePtr && other;
+        return *valuePtr_ && other;
     }
 
     /**
@@ -691,7 +698,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
     operator&&(const uint_t& other) const {
         check();
-        return *valuePtr && other;
+        return *valuePtr_ && other;
     }
 
 
@@ -702,7 +709,7 @@ public:
      */
     inline bool operator||(const SafeUint_t<Size>& other) const {
         check();
-        return *valuePtr || other.get();
+        return *valuePtr_ || other.get();
     }
 
     /**
@@ -712,7 +719,7 @@ public:
      */
     inline bool operator||(const uint_t& other) const {
         check();
-        return *valuePtr || other;
+        return *valuePtr_ || other;
     }
 
     /**
@@ -724,7 +731,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
     operator||(const uint64_t& other) const {
         check();
-        return *valuePtr || other;
+        return *valuePtr_ || other;
     }
 
     // ====================
@@ -738,7 +745,7 @@ public:
      */
     inline bool operator==(const SafeUint_t<Size>& other) const {
         check();
-        return *valuePtr == other.get();
+        return *valuePtr_ == other.get();
     }
 
     /**
@@ -748,7 +755,7 @@ public:
      */
     inline bool operator==(const uint_t& other) const {
         check();
-        return *valuePtr == other;
+        return *valuePtr_ == other;
     }
 
     /**
@@ -760,7 +767,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
     operator==(const uint64_t& other) const {
         check();
-        return *valuePtr == other;
+        return *valuePtr_ == other;
     }
 
     /**
@@ -773,7 +780,7 @@ public:
         if (other < 0) {
             return false;  // unsigned value cannot be equal to negative int
         }
-        return *valuePtr == static_cast<uint_t>(other);
+        return *valuePtr_ == static_cast<uint_t>(other);
     }
 
 
@@ -784,7 +791,7 @@ public:
      */
     inline bool operator!=(const SafeUint_t<Size>& other) const {
         check();
-        return *valuePtr != other.get();
+        return *valuePtr_ != other.get();
     }
 
     /**
@@ -794,7 +801,7 @@ public:
      */
     inline bool operator!=(const uint_t& other) const {
         check();
-        return *valuePtr != other;
+        return *valuePtr_ != other;
     }
 
     /**
@@ -806,7 +813,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
     operator!=(const uint64_t& other) const {
         check();
-        return *valuePtr != other;
+        return *valuePtr_ != other;
     }
 
     /**
@@ -816,7 +823,7 @@ public:
      */
     inline bool operator<(const SafeUint_t<Size>& other) const {
         check();
-        return *valuePtr < other.get();
+        return *valuePtr_ < other.get();
     }
 
     /**
@@ -826,7 +833,7 @@ public:
      */
     inline bool operator<(const uint_t& other) const {
         check();
-        return *valuePtr < other;
+        return *valuePtr_ < other;
     }
 
     /**
@@ -838,7 +845,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
     operator<(const uint64_t& other) const {
         check();
-        return *valuePtr < other;
+        return *valuePtr_ < other;
     }
 
     /**
@@ -848,7 +855,7 @@ public:
      */
     inline bool operator<=(const SafeUint_t<Size>& other) const {
         check();
-        return *valuePtr <= other.get();
+        return *valuePtr_ <= other.get();
     }
 
     /**
@@ -860,7 +867,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
     operator<=(const uint_t& other) const {
         check();
-        return *valuePtr <= other;
+        return *valuePtr_ <= other;
     }
 
     /**
@@ -870,7 +877,7 @@ public:
      */
     inline bool operator<=(const uint64_t& other) const {
         check();
-        return *valuePtr <= other;
+        return *valuePtr_ <= other;
     }
 
     /**
@@ -880,7 +887,7 @@ public:
      */
     inline bool operator>(const SafeUint_t<Size>& other) const {
         check();
-        return *valuePtr > other.get();
+        return *valuePtr_ > other.get();
     }
 
     /**
@@ -892,7 +899,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
     operator>(const uint_t& other) const {
         check();
-        return *valuePtr > other;
+        return *valuePtr_ > other;
     }
 
     /**
@@ -902,7 +909,7 @@ public:
      */
     inline bool operator>(const uint64_t& other) const {
         check();
-        return *valuePtr > other;
+        return *valuePtr_ > other;
     }
 
     /**
@@ -912,7 +919,7 @@ public:
      */
     inline bool operator>=(const SafeUint_t<Size>& other) const {
         check();
-        return *valuePtr >= other.get();
+        return *valuePtr_ >= other.get();
     }
 
     /**
@@ -922,7 +929,7 @@ public:
      */
     inline bool operator>=(const uint_t& other) const {
         check();
-        return *valuePtr >= other;
+        return *valuePtr_ >= other;
     }
 
     /**
@@ -934,7 +941,7 @@ public:
     inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
     operator>=(const uint64_t& other) const {
         check();
-        return *valuePtr >= other;
+        return *valuePtr_ >= other;
     }
 
     // ====================
@@ -949,7 +956,7 @@ public:
     inline SafeUint_t<Size>& operator=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr = other.get();
+        *valuePtr_ = other.get();
         return *this;
     }
 
@@ -961,7 +968,7 @@ public:
     inline SafeUint_t<Size>& operator=(const uint_t& other) {
         check();
         markAsUsed();
-        *valuePtr = other;
+        *valuePtr_ = other;
         return *this;
     }
 
@@ -975,7 +982,7 @@ public:
     operator=(const uint_t& other) {
         check();
         markAsUsed();
-        *valuePtr = other;
+        *valuePtr_ = other;
         return *this;
     }
 
@@ -990,7 +997,7 @@ public:
             throw std::domain_error("Cannot assign negative value to SafeUint_t");
         }
         markAsUsed();
-        *valuePtr = static_cast<uint_t>(other);
+        *valuePtr_ = static_cast<uint_t>(other);
         return *this;
     }
 
@@ -1004,11 +1011,11 @@ public:
     inline SafeUint_t<Size>& operator+=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        if (*valuePtr > std::numeric_limits<uint_t>::max() - other.get())
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other.get())
         {
             throw std::overflow_error("Overflow in addition assignment operation.");
         }
-        *valuePtr += other.get();
+        *valuePtr_ += other.get();
         return *this;
     }
 
@@ -1021,11 +1028,11 @@ public:
     inline SafeUint_t<Size>& operator+=(const uint_t& other) {
         check();
         markAsUsed();
-        if (*valuePtr > std::numeric_limits<uint_t>::max() - other)
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
         {
             throw std::overflow_error("Overflow in addition assignment operation.");
         }
-        *valuePtr += other;
+        *valuePtr_ += other;
         return *this;
     }
 
@@ -1040,11 +1047,11 @@ public:
     operator+=(const uint64_t& other) {
         check();
         markAsUsed();
-        if (*valuePtr > std::numeric_limits<uint_t>::max() - other)
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
         {
             throw std::overflow_error("Overflow in addition assignment operation.");
         }
-        *valuePtr += other;
+        *valuePtr_ += other;
         return *this;
     }
 
@@ -1057,11 +1064,11 @@ public:
     inline SafeUint_t<Size>& operator+=(const int& other) {
         check();
         markAsUsed();
-        if (other < 0 || static_cast<uint64_t>(other) > std::numeric_limits<uint_t>::max() - *valuePtr)
+        if (other < 0 || static_cast<uint64_t>(other) > std::numeric_limits<uint_t>::max() - *valuePtr_)
         {
             throw std::overflow_error("Overflow in addition assignment operation.");
         }
-        *valuePtr += static_cast<uint_t>(other);
+        *valuePtr_ += static_cast<uint_t>(other);
         return *this;
     }
 
@@ -1075,11 +1082,11 @@ public:
     inline SafeUint_t<Size>& operator-=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        if (*valuePtr < other.get())
+        if (*valuePtr_ < other.get())
         {
             throw std::underflow_error("Underflow in subtraction assignment operation.");
         }
-        *valuePtr -= other.get();
+        *valuePtr_ -= other.get();
         return *this;
     }
 
@@ -1092,11 +1099,11 @@ public:
     inline SafeUint_t<Size>& operator-=(const uint_t& other) {
         check();
         markAsUsed();
-        if (*valuePtr < other)
+        if (*valuePtr_ < other)
         {
             throw std::underflow_error("Underflow in subtraction assignment operation.");
         }
-        *valuePtr -= other;
+        *valuePtr_ -= other;
         return *this;
     }
 
@@ -1111,11 +1118,11 @@ public:
     operator-=(const uint64_t& other) {
         check();
         markAsUsed();
-        if (*valuePtr < other)
+        if (*valuePtr_ < other)
         {
             throw std::underflow_error("Underflow in subtraction assignment operation.");
         }
-        *valuePtr -= other;
+        *valuePtr_ -= other;
         return *this;
     }
 
@@ -1133,11 +1140,11 @@ public:
             throw std::invalid_argument("Cannot subtract a negative value.");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        if (*valuePtr < other_uint)
+        if (*valuePtr_ < other_uint)
         {
             throw std::underflow_error("Underflow in subtraction assignment operation.");
         }
-        *valuePtr -= other_uint;
+        *valuePtr_ -= other_uint;
         return *this;
     }
 
@@ -1151,12 +1158,12 @@ public:
     inline SafeUint_t<Size>& operator*=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        if (other.get() == 0 || *valuePtr == 0) throw std::domain_error("Multiplication assignment by zero");
-        if (*valuePtr > std::numeric_limits<uint_t>::max() / other.get())
+        if (other.get() == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication assignment by zero");
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other.get())
         {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
-        *valuePtr *= other.get();
+        *valuePtr_ *= other.get();
         return *this;
     }
 
@@ -1170,12 +1177,12 @@ public:
     inline SafeUint_t<Size>& operator*=(const uint_t& other) {
         check();
         markAsUsed();
-        if (other == 0 || *valuePtr == 0) throw std::domain_error("Multiplication assignment by zero");
-        if (*valuePtr > std::numeric_limits<uint_t>::max() / other)
+        if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication assignment by zero");
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other)
         {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
-        *valuePtr *= other;
+        *valuePtr_ *= other;
         return *this;
     }
 
@@ -1192,15 +1199,15 @@ public:
         if (other < 0) {
             throw std::invalid_argument("Cannot multiply by a negative value.");
         }
-        if (other == 0 || *valuePtr == 0) {
+        if (other == 0 || *valuePtr_ == 0) {
             throw std::domain_error("Multiplication assignment by zero");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        if (*valuePtr > std::numeric_limits<uint_t>::max() / other_uint)
+        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other_uint)
         {
             throw std::overflow_error("Overflow in multiplication assignment operation.");
         }
-        *valuePtr *= other_uint;
+        *valuePtr_ *= other_uint;
         return *this;
     }
 
@@ -1214,8 +1221,8 @@ public:
     inline SafeUint_t<Size>& operator/=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        if (*valuePtr == 0 || other.get() == 0) throw std::domain_error("Division assignment by zero");
-        *valuePtr /= other.get();
+        if (*valuePtr_ == 0 || other.get() == 0) throw std::domain_error("Division assignment by zero");
+        *valuePtr_ /= other.get();
         return *this;
     }
 
@@ -1228,8 +1235,8 @@ public:
     inline SafeUint_t<Size>& operator/=(const uint_t& other) {
         check();
         markAsUsed();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Division assignment by zero");
-        *valuePtr /= other;
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division assignment by zero");
+        *valuePtr_ /= other;
         return *this;
     }
 
@@ -1244,8 +1251,8 @@ public:
     operator/=(const uint64_t& other) {
         check();
         markAsUsed();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Division assignment by zero");
-        *valuePtr /= other;
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division assignment by zero");
+        *valuePtr_ /= other;
         return *this;
     }
 
@@ -1261,11 +1268,11 @@ public:
         if (other <= 0) {
             throw std::invalid_argument("Cannot divide by a non-positive value.");
         }
-        if (*valuePtr == 0) {
+        if (*valuePtr_ == 0) {
             throw std::domain_error("Division assignment by zero");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        *valuePtr /= other_uint;
+        *valuePtr_ /= other_uint;
         return *this;
     }
 
@@ -1279,8 +1286,8 @@ public:
     inline SafeUint_t<Size>& operator%=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        if (*valuePtr == 0 || other.get() == 0) throw std::domain_error("Modulus assignment by zero");
-        *valuePtr %= other.get();
+        if (*valuePtr_ == 0 || other.get() == 0) throw std::domain_error("Modulus assignment by zero");
+        *valuePtr_ %= other.get();
         return *this;
     }
 
@@ -1293,8 +1300,8 @@ public:
     inline SafeUint_t<Size>& operator%=(const uint_t& other) {
         check();
         markAsUsed();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
-        *valuePtr %= other;
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
+        *valuePtr_ %= other;
         return *this;
     }
 
@@ -1309,8 +1316,8 @@ public:
     operator%=(const uint64_t& other) {
         check();
         markAsUsed();
-        if (*valuePtr == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
-        *valuePtr %= other;
+        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
+        *valuePtr_ %= other;
         return *this;
     }
 
@@ -1326,11 +1333,11 @@ public:
         if (other <= 0) {
             throw std::invalid_argument("Cannot modulus by a non-positive value.");
         }
-        if (*valuePtr == 0) {
+        if (*valuePtr_ == 0) {
             throw std::domain_error("Modulus assignment by zero");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        *valuePtr %= other_uint;
+        *valuePtr_ %= other_uint;
         return *this;
     }
 
@@ -1343,7 +1350,7 @@ public:
     inline SafeUint_t<Size>& operator&=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr &= other.get();
+        *valuePtr_ &= other.get();
         return *this;
     }
 
@@ -1357,7 +1364,7 @@ public:
     operator&=(const uint_t& other) {
         check();
         markAsUsed();
-        *valuePtr &= other;
+        *valuePtr_ &= other;
         return *this;
     }
 
@@ -1369,7 +1376,7 @@ public:
     inline SafeUint_t<Size>& operator&=(const uint64_t& other) {
         check();
         markAsUsed();
-        *valuePtr &= other;
+        *valuePtr_ &= other;
         return *this;
     }
 
@@ -1386,7 +1393,7 @@ public:
             throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        *valuePtr &= other_uint;
+        *valuePtr_ &= other_uint;
         return *this;
     }
 
@@ -1399,7 +1406,7 @@ public:
     inline SafeUint_t<Size>& operator|=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr |= other.get();
+        *valuePtr_ |= other.get();
         return *this;
     }
 
@@ -1413,7 +1420,7 @@ public:
     operator|=(const uint_t& other) {
         check();
         markAsUsed();
-        *valuePtr |= other;
+        *valuePtr_ |= other;
         return *this;
     }
 
@@ -1425,7 +1432,7 @@ public:
     inline SafeUint_t<Size>& operator|=(const uint64_t& other) {
         check();
         markAsUsed();
-        *valuePtr |= other;
+        *valuePtr_ |= other;
         return *this;
     }
 
@@ -1442,7 +1449,7 @@ public:
             throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        *valuePtr |= other_uint;
+        *valuePtr_ |= other_uint;
         return *this;
     }
 
@@ -1454,7 +1461,7 @@ public:
     inline SafeUint_t<Size>& operator^=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr ^= other.get();
+        *valuePtr_ ^= other.get();
         return *this;
     }
 
@@ -1468,7 +1475,7 @@ public:
     operator^=(const uint_t& other) {
         check();
         markAsUsed();
-        *valuePtr ^= other;
+        *valuePtr_ ^= other;
         return *this;
     }
 
@@ -1480,7 +1487,7 @@ public:
     inline SafeUint_t<Size>& operator^=(const uint64_t& other) {
         check();
         markAsUsed();
-        *valuePtr ^= other;
+        *valuePtr_ ^= other;
         return *this;
     }
 
@@ -1497,7 +1504,7 @@ public:
             throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        *valuePtr ^= other_uint;
+        *valuePtr_ ^= other_uint;
         return *this;
     }
 
@@ -1509,7 +1516,7 @@ public:
     inline SafeUint_t<Size>& operator<<=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr <<= other.get();
+        *valuePtr_ <<= other.get();
         return *this;
     }
 
@@ -1523,7 +1530,7 @@ public:
     operator<<=(const uint_t& other) {
         check();
         markAsUsed();
-        *valuePtr <<= other;
+        *valuePtr_ <<= other;
         return *this;
     }
 
@@ -1535,7 +1542,7 @@ public:
     inline SafeUint_t<Size>& operator<<=(const uint64_t& other) {
         check();
         markAsUsed();
-        *valuePtr <<= other;
+        *valuePtr_ <<= other;
         return *this;
     }
 
@@ -1552,7 +1559,7 @@ public:
             throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        *valuePtr <<= other_uint;
+        *valuePtr_ <<= other_uint;
         return *this;
     }
 
@@ -1564,7 +1571,7 @@ public:
     inline SafeUint_t<Size>& operator>>=(const SafeUint_t<Size>& other) {
         check();
         markAsUsed();
-        *valuePtr >>= other.get();
+        *valuePtr_ >>= other.get();
         return *this;
     }
 
@@ -1576,7 +1583,7 @@ public:
     inline SafeUint_t<Size>& operator>>=(const uint_t& other) {
         check();
         markAsUsed();
-        *valuePtr >>= other;
+        *valuePtr_ >>= other;
         return *this;
     }
 
@@ -1590,7 +1597,7 @@ public:
     operator>>=(const uint64_t& other) {
         check();
         markAsUsed();
-        *valuePtr >>= other;
+        *valuePtr_ >>= other;
         return *this;
     }
 
@@ -1607,7 +1614,7 @@ public:
             throw std::invalid_argument("Cannot perform bitwise operation with a negative value.");
         }
         uint_t other_uint = static_cast<uint_t>(other);
-        *valuePtr >>= other_uint;
+        *valuePtr_ >>= other_uint;
         return *this;
     }
 
@@ -1623,11 +1630,11 @@ public:
     inline SafeUint_t<Size>& operator++() {
         check();
         markAsUsed();
-        if (*valuePtr == std::numeric_limits<uint_t>::max())
+        if (*valuePtr_ == std::numeric_limits<uint_t>::max())
         {
             throw std::overflow_error("Overflow in prefix increment operation.");
         }
-        ++(*valuePtr);
+        ++(*valuePtr_);
         return *this;
     }
 
@@ -1639,12 +1646,12 @@ public:
     inline SafeUint_t<Size> operator++(int) {
         check();
         markAsUsed();
-        if (*valuePtr == std::numeric_limits<uint_t>::max())
+        if (*valuePtr_ == std::numeric_limits<uint_t>::max())
         {
             throw std::overflow_error("Overflow in postfix increment operation.");
         }
-        SafeUint_t<Size> tmp(*valuePtr);
-        ++(*valuePtr);
+        SafeUint_t<Size> tmp(*valuePtr_);
+        ++(*valuePtr_);
         return tmp;
     }
 
@@ -1656,11 +1663,11 @@ public:
     inline SafeUint_t<Size>& operator--() {
         check();
         markAsUsed();
-        if (*valuePtr == 0)
+        if (*valuePtr_ == 0)
         {
             throw std::underflow_error("Underflow in prefix decrement operation.");
         }
-        --(*valuePtr);
+        --(*valuePtr_);
         return *this;
     }
 
@@ -1672,12 +1679,12 @@ public:
     inline SafeUint_t<Size> operator--(int) {
         check();
         markAsUsed();
-        if (*valuePtr == 0)
+        if (*valuePtr_ == 0)
         {
             throw std::underflow_error("Underflow in postfix decrement operation.");
         }
-        SafeUint_t<Size> tmp(*valuePtr);
-        --(*valuePtr);
+        SafeUint_t<Size> tmp(*valuePtr_);
+        --(*valuePtr_);
         return tmp;
     }
 };

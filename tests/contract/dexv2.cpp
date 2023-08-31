@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/contractmanager.h"
 #include "../../src/contract/templates/dexv2/dexv2pair.h"
@@ -299,16 +306,9 @@ namespace TDEXV2 {
         std::unique_ptr<Options> options;
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/DEXV2NewContractsTest");
 
-        std::cout << "Creating native contract" << std::endl;
         wrapped = createNewNative(state, rdpos, storage, options, "WSPARQ", "WSPARQ", 18);
-
-        std::cout << "Creating factory contract" << std::endl;
         factory = createNewFactory(state, rdpos, storage, options, Address());
-
-        std::cout << "Creating router contract" << std::endl;
         router = createNewRouter(state, rdpos, storage, options, factory, wrapped);
-
-        std::cout << "Creating both ERC20 Tokens" << std::endl;
         tokenA = createNewERC20(
           state, rdpos, storage, options,
           "TokenA", "TKNA", 18, uint256_t("10000000000000000000000")
@@ -318,7 +318,6 @@ namespace TDEXV2 {
           "tokenB", "TKNB", 18, uint256_t("10000000000000000000000")
         );
 
-        std::cout << "Approving liquidity" << std::endl;
         auto approveATx = createApproveTx(
           state, options, ownerPrivKey, tokenA, router, uint256_t("10000000000000000000000")
         );
@@ -334,7 +333,6 @@ namespace TDEXV2 {
           std::chrono::system_clock::now().time_since_epoch()
         ).count() + 600;
 
-        std::cout << "Add liquidity..." << std::endl;
         auto addLiquidityTx = createNewTransaction(
           ownerPrivKey,
           router,
@@ -355,17 +353,12 @@ namespace TDEXV2 {
         auto newBlock2 = createValidBlock(rdpos, storage, {addLiquidityTx});
         REQUIRE(state->validateNextBlock(newBlock2));
         state->processNextBlock(std::move(newBlock2));
-        std::cout << "Liquidity added... listing contracts..." << std::endl;
-        for (const auto& contracts : state->getContracts()) {
-          std::cout << "Contract type " << contracts.first << " is deployed at Address: " << contracts.second.hex() << std::endl;
-        }
       }
     }
 
     SECTION("Deploy DEXV2 and add liquidity to token/native pair") {
       PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
-      std::cout << "Owner address...: " << owner.hex() << std::endl;
       Address factory;
       Address router;
       Address wrapped;
@@ -380,22 +373,15 @@ namespace TDEXV2 {
         std::unique_ptr<Options> options;
         initialize(db, storage, p2p, rdpos, state, options, validatorPrivKeys[0], 8080, true, testDumpPath + "/DEXV2NewContractsTest");
 
-        std::cout << "Creating native contract" << std::endl;
         wrapped = createNewNative(state, rdpos, storage, options, "WSPARQ", "WSPARQ", 18);
-
-        std::cout << "Creating factory contract" << std::endl;
         factory = createNewFactory(state, rdpos, storage, options, Address());
-
-        std::cout << "Creating router contract" << std::endl;
         router = createNewRouter(state, rdpos, storage, options, factory, wrapped);
 
-        std::cout << "Creating ERC20 Token" << std::endl;
         tokenA = createNewERC20(
           state, rdpos, storage, options,
           "TokenA", "TKNA", 18, uint256_t("10000000000000000000000")
         );
 
-        std::cout << "Approving liquidity" << std::endl;
         auto approveATx = createApproveTx(
           state, options, ownerPrivKey, tokenA, router, uint256_t("10000000000000000000000")
         );
@@ -408,8 +394,6 @@ namespace TDEXV2 {
           std::chrono::system_clock::now().time_since_epoch()
         ).count() + 600;
 
-        std::cout << std::endl << std::endl;
-        std::cout << "Add liquidity..." << std::endl;
         // addLiquidityNative(address token, uint256 amountTokenDesired, uint256 amountTokenMin, uint256 amountNativeMin, address to, uint256 deadline)
         auto addLiquidityTx = createNewTransaction(
           ownerPrivKey,
@@ -430,10 +414,6 @@ namespace TDEXV2 {
         auto newBlock2 = createValidBlock(rdpos, storage, {addLiquidityTx});
         REQUIRE(state->validateNextBlock(newBlock2));
         state->processNextBlock(std::move(newBlock2));
-        std::cout << "Liquidity added... listing contracts..." << std::endl;
-        for (const auto& contracts : state->getContracts()) {
-          std::cout << "Contract type " << contracts.first << " is deployed at Address: " << contracts.second.hex() << std::endl;
-        }
       }
     }
   }

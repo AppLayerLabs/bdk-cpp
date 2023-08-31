@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "throwtestB.h"
 
 ThrowTestB::ThrowTestB(
@@ -18,12 +25,11 @@ ThrowTestB::ThrowTestB(
 
 ThrowTestB::~ThrowTestB() { return; }
 
-uint8_t ThrowTestB::getNumB() const { return this->num.get(); }
+uint8_t ThrowTestB::getNumB() const { return this->num_.get(); }
 
 void ThrowTestB::setNumB(const uint8_t& valB, const Address& addC, const uint8_t& valC) {
-  this->num = valB;
+  this->num_ = valB;
   throw std::runtime_error("Intended throw in ThrowTestB");
-  //this->callContractFunction(addC, &ThrowTestC::setNumC, valC);
 }
 
 void ThrowTestB::registerContractFunctions() {

@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef DB_H
 #define DB_H
 
@@ -78,10 +85,10 @@ struct DBEntry {
  */
 class DBBatch {
   private:
-    std::vector<DBEntry> puts;      ///< List of entries to insert.
-    std::vector<Bytes> dels;        ///< List of entries to delete.
-    std::vector<std::pair<rocksdb::Slice, rocksdb::Slice>> putsSlices; ///< List of slices to insert. (key/value)
-    std::vector<rocksdb::Slice> delsSlices; ///< List of slices to delete. (key)
+    std::vector<DBEntry> puts_;      ///< List of entries to insert.
+    std::vector<Bytes> dels_;        ///< List of entries to delete.
+    std::vector<std::pair<rocksdb::Slice, rocksdb::Slice>> putsSlices_; ///< List of slices to insert. (key/value)
+    std::vector<rocksdb::Slice> delsSlices_; ///< List of slices to delete. (key)
   public:
     DBBatch() = default; ///< Default constructor.
 
@@ -95,9 +102,9 @@ class DBBatch {
       Bytes tmp = prefix;
       tmp.reserve(prefix.size() + key.size());
       tmp.insert(tmp.end(), key.begin(), key.end());
-      puts.emplace_back(std::move(tmp), Bytes(value.begin(), value.end()));
-      putsSlices.emplace_back(rocksdb::Slice(reinterpret_cast<const char*>(puts.back().key.data()), puts.back().key.size()),
-                              rocksdb::Slice(reinterpret_cast<const char*>(puts.back().value.data()), puts.back().value.size()));
+      puts_.emplace_back(std::move(tmp), Bytes(value.begin(), value.end()));
+      putsSlices_.emplace_back(rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().key.data()), puts_.back().key.size()),
+                              rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().value.data()), puts_.back().value.size()));
     }
 
     /**
@@ -109,33 +116,33 @@ class DBBatch {
       Bytes tmp = prefix;
       tmp.reserve(prefix.size() + key.size());
       tmp.insert(tmp.end(), key.begin(), key.end());
-      dels.emplace_back(std::move(tmp));
-      delsSlices.emplace_back(rocksdb::Slice(reinterpret_cast<const char*>(dels.back().data()), dels.back().size()));
+      dels_.emplace_back(std::move(tmp));
+      delsSlices_.emplace_back(rocksdb::Slice(reinterpret_cast<const char*>(dels_.back().data()), dels_.back().size()));
     }
 
     /**
      * Get the list of puts entries.
      * @return The list of puts entries.
      */
-    inline const std::vector<DBEntry>& getPuts() const { return puts; }
+    inline const std::vector<DBEntry>& getPuts() const { return puts_; }
 
     /**
      * Get the list of delete entries.
      * @return The list of delete entries.
      */
-    inline const std::vector<Bytes>& getDels() const { return dels; }
+    inline const std::vector<Bytes>& getDels() const { return dels_; }
 
     /**
      * Get the list of puts slices.
      * @return The list of puts slices.
      */
-    inline const std::vector<std::pair<rocksdb::Slice, rocksdb::Slice>>& getPutsSlices() const { return putsSlices; }
+    inline const std::vector<std::pair<rocksdb::Slice, rocksdb::Slice>>& getPutsSlices() const { return putsSlices_; }
 
     /**
      * Get the list of delete slices.
      * @return The list of delete slices.
      */
-    inline const std::vector<rocksdb::Slice>& getDelsSlices() const { return delsSlices; }
+    inline const std::vector<rocksdb::Slice>& getDelsSlices() const { return delsSlices_; }
 };
 
 /**
@@ -144,9 +151,9 @@ class DBBatch {
  */
 class DB {
   private:
-    rocksdb::DB* db;              ///< Pointer to the database object itself.
-    rocksdb::Options opts;        ///< Struct with options for managing the database.
-    mutable std::mutex batchLock; ///< Mutex for managing read/write access to batch operations.
+    rocksdb::DB* db_;              ///< Pointer to the database object itself.
+    rocksdb::Options opts_;        ///< Struct with options for managing the database.
+    mutable std::mutex batchLock_; ///< Mutex for managing read/write access to batch operations.
 
   public:
     /**
@@ -163,7 +170,7 @@ class DB {
      * Close the database (which is really just deleting its object from memory).
      * @return `true` if the database is closed successfully, `false` otherwise.
      */
-    inline bool close() { delete this->db; this->db = nullptr; return (this->db == nullptr); }
+    inline bool close() { delete this->db_; this->db_ = nullptr; return (this->db_ == nullptr); }
 
     /**
      * Check if a key exists in the database.
@@ -173,7 +180,7 @@ class DB {
      */
     template <typename BytesContainer>
     bool has(const BytesContainer& key, const Bytes& pfx = {}) {
-      rocksdb::Iterator *it = this->db->NewIterator(rocksdb::ReadOptions());
+      rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
@@ -193,7 +200,7 @@ class DB {
      */
     template <typename BytesContainer>
     Bytes get(const BytesContainer& key, const Bytes& pfx = {}) const {
-      rocksdb::Iterator *it = this->db->NewIterator(rocksdb::ReadOptions());
+      rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
@@ -224,7 +231,7 @@ class DB {
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
       rocksdb::Slice valueSlice(reinterpret_cast<const char*>(value.data()), value.size());
-      auto status = this->db->Put(rocksdb::WriteOptions(), keySlice, valueSlice);
+      auto status = this->db_->Put(rocksdb::WriteOptions(), keySlice, valueSlice);
       if (!status.ok()) {
         Logger::logToDebug(LogType::ERROR, Log::db, __func__, "Failed to put key: " + Hex::fromBytes(keyTmp).get());
         return false;
@@ -244,7 +251,7 @@ class DB {
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
-      auto status = this->db->Delete(rocksdb::WriteOptions(), keySlice);
+      auto status = this->db_->Delete(rocksdb::WriteOptions(), keySlice);
       if (!status.ok()) {
         Logger::logToDebug(LogType::ERROR, Log::db, __func__, "Failed to delete key: " + Hex::fromBytes(keyTmp).get());
         return false;

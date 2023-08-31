@@ -1,3 +1,7 @@
+# Copyright (c) [2023] [Sparq Network]
+# This software is distributed under the MIT License.
+# See the LICENSE.txt file in the project root for more information.
+
 ## A given network has a minimum requirement of 5 Validators, 6 Normal Nodes and 1 Discovery Node.
 ## Discovery Nodes are described within the options.json file.
 ## This script is meant to be executed within the   main directory of this project

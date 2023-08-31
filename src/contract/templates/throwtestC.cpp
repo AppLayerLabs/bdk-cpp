@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "throwtestC.h"
 
 ThrowTestC::ThrowTestC(
@@ -18,10 +25,10 @@ ThrowTestC::ThrowTestC(
 
 ThrowTestC::~ThrowTestC() { return; }
 
-uint8_t ThrowTestC::getNumC() const { return this->num.get(); }
+uint8_t ThrowTestC::getNumC() const { return this->num_.get(); }
 
 void ThrowTestC::setNumC(const uint8_t& valC) {
-  this->num = valC;
+  this->num_ = valC;
 }
 
 void ThrowTestC::registerContractFunctions() {

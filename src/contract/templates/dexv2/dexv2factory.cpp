@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "dexv2factory.h"
 #include "dexv2pair.h"
 
@@ -53,7 +60,7 @@ DEXV2Factory::~DEXV2Factory() {
       batchOperations.push_back(key, value, this->getNewPrefix("getPair_"));
     }
   }
-  this->db->putBatch(batchOperations);
+  this->db_->putBatch(batchOperations);
 }
 
 void DEXV2Factory::registerContractFunctions() {

@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "dexv2pair.h"
 #include "dexv2factory.h"
 
@@ -7,15 +14,15 @@ DEXV2Pair::DEXV2Pair(
   reserve0_(this), reserve1_(this), blockTimestampLast_(this),
   price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
-  this->factory_ = Address(this->db->get(std::string("factory_"), this->getDBPrefix()));
-  this->token0_ = Address(this->db->get(std::string("token0_"), this->getDBPrefix()));
-  this->token1_ = Address(this->db->get(std::string("token1_"), this->getDBPrefix()));
-  this->reserve0_ = Utils::bytesToUint112(this->db->get(std::string("reserve0_"), this->getDBPrefix()));
-  this->reserve1_ = Utils::bytesToUint112(this->db->get(std::string("reserve1_"), this->getDBPrefix()));
-  this->blockTimestampLast_ = Utils::bytesToUint32(this->db->get(std::string("blockTimestampLast_"), this->getDBPrefix()));
-  this->price0CumulativeLast_ = Utils::bytesToUint256(this->db->get(std::string("price0CumulativeLast_"), this->getDBPrefix()));
-  this->price1CumulativeLast_ = Utils::bytesToUint256(this->db->get(std::string("price1CumulativeLast_"), this->getDBPrefix()));
-  this->kLast_ = Utils::bytesToUint256(this->db->get(std::string("kLast_"), this->getDBPrefix()));
+  this->factory_ = Address(this->db_->get(std::string("factory_"), this->getDBPrefix()));
+  this->token0_ = Address(this->db_->get(std::string("token0_"), this->getDBPrefix()));
+  this->token1_ = Address(this->db_->get(std::string("token1_"), this->getDBPrefix()));
+  this->reserve0_ = Utils::bytesToUint112(this->db_->get(std::string("reserve0_"), this->getDBPrefix()));
+  this->reserve1_ = Utils::bytesToUint112(this->db_->get(std::string("reserve1_"), this->getDBPrefix()));
+  this->blockTimestampLast_ = Utils::bytesToUint32(this->db_->get(std::string("blockTimestampLast_"), this->getDBPrefix()));
+  this->price0CumulativeLast_ = Utils::bytesToUint256(this->db_->get(std::string("price0CumulativeLast_"), this->getDBPrefix()));
+  this->price1CumulativeLast_ = Utils::bytesToUint256(this->db_->get(std::string("price1CumulativeLast_"), this->getDBPrefix()));
+  this->kLast_ = Utils::bytesToUint256(this->db_->get(std::string("kLast_"), this->getDBPrefix()));
   this->factory_.commit();
   this->token0_.commit();
   this->token1_.commit();
@@ -52,7 +59,7 @@ DEXV2Pair::~DEXV2Pair() {
   batchOperations.push_back(Utils::stringToBytes("price0CumulativeLast_"), Utils::uint256ToBytes(this->price0CumulativeLast_.get()), this->getDBPrefix());
   batchOperations.push_back(Utils::stringToBytes("price1CumulativeLast_"), Utils::uint256ToBytes(this->price1CumulativeLast_.get()), this->getDBPrefix());
   batchOperations.push_back(Utils::stringToBytes("kLast_"), Utils::uint256ToBytes(this->kLast_.get()), this->getDBPrefix());
-  this->db->putBatch(batchOperations);
+  this->db_->putBatch(batchOperations);
 }
 
 void DEXV2Pair::registerContractFunctions() {
@@ -97,10 +104,10 @@ bool DEXV2Pair::_mintFee(uint112_t reserve0, uint112_t reserve1) {
       uint256_t rootK = boost::multiprecision::sqrt(uint256_t(reserve0) * uint256_t(reserve1));
       uint256_t rootKLast = boost::multiprecision::sqrt(_kLast);
       if (rootK > rootKLast) {
-        uint256_t numerator = this->_totalSupply.get() * (rootK - rootKLast);
+        uint256_t numerator = this->totalSupply_.get() * (rootK - rootKLast);
         uint256_t denominator = rootK * 5 + rootKLast;
         uint256_t liquidity = numerator / denominator;
-        if (liquidity > 0) this->_mintValue(feeTo, liquidity);
+        if (liquidity > 0) this->mintValue_(feeTo, liquidity);
       }
     }
   } else if (_kLast != 0) {
@@ -140,7 +147,7 @@ uint256_t DEXV2Pair::price1CumulativeLast() const { return this->price1Cumulativ
 uint256_t DEXV2Pair::kLast() const { return this->kLast_.get(); }
 
 uint256_t DEXV2Pair::mint(const Address& to) {
-  ReentrancyGuard reentrancyGuard(this->reentrancyLock);
+  ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
   uint256_t liquidity = 0;
   uint256_t balance0 = this->callContractViewFunction(this->token0_.get(), &ERC20::balanceOf, this->getContractAddress());
   uint256_t balance1 = this->callContractViewFunction(this->token1_.get(), &ERC20::balanceOf, this->getContractAddress());
@@ -148,24 +155,24 @@ uint256_t DEXV2Pair::mint(const Address& to) {
   uint256_t amount1 = balance1 - this->reserve1_.get();
 
   bool feeOn = this->_mintFee(this->reserve0_.get(), this->reserve1_.get());
-  uint256_t totalSupply = this->_totalSupply.get();
+  uint256_t totalSupply = this->totalSupply_.get();
   if (totalSupply == 0) {
     // Permanently lock the first MINIMUM_LIQUIDITY tokens
     liquidity = boost::multiprecision::sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
-    this->_mintValue(Address(Hex::toBytes("0x0000000000000000000000000000000000000000")), MINIMUM_LIQUIDITY);
+    this->mintValue_(Address(Hex::toBytes("0x0000000000000000000000000000000000000000")), MINIMUM_LIQUIDITY);
   } else {
     liquidity = std::min(amount0 * totalSupply / this->reserve0_.get(), amount1 * totalSupply / this->reserve1_.get());
   }
 
   if (liquidity == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_LIQUIDITY_MINTED");
-  this->_mintValue(to, liquidity);
+  this->mintValue_(to, liquidity);
   this->_update(balance0, balance1, this->reserve0_.get(), this->reserve1_.get());
   if (feeOn) this->kLast_ = uint256_t(this->reserve0_.get()) * uint256_t(this->reserve1_.get());
   return liquidity;
 }
 
 BytesEncoded DEXV2Pair::burn(const Address& to) {
-  ReentrancyGuard reentrancyGuard(this->reentrancyLock);
+  ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
   uint256_t balance0 = this->callContractViewFunction(
     this->token0_.get(), &ERC20::balanceOf, this->getContractAddress()
   );
@@ -175,11 +182,11 @@ BytesEncoded DEXV2Pair::burn(const Address& to) {
   uint256_t liquidity = this->balanceOf(this->getContractAddress());
 
   bool feeOn = this->_mintFee(this->reserve0_.get(), this->reserve1_.get());
-  uint256_t totalSupply = this->_totalSupply.get();
+  uint256_t totalSupply = this->totalSupply_.get();
   uint256_t amount0 = liquidity * balance0 / totalSupply;
   uint256_t amount1 = liquidity * balance1 / totalSupply;
   if (amount0 == 0 || amount1 == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_LIQUIDITY_BURNED");
-  this->_burnValue(this->getContractAddress(), liquidity);
+  this->burnValue_(this->getContractAddress(), liquidity);
   this->_safeTransfer(this->token0_.get(), to, amount0);
   this->_safeTransfer(this->token1_.get(), to, amount1);
   balance0 = this->callContractViewFunction(this->token0_.get(), &ERC20::balanceOf, this->getContractAddress());
@@ -190,7 +197,7 @@ BytesEncoded DEXV2Pair::burn(const Address& to) {
 }
 
 void DEXV2Pair::swap(const uint256_t& amount0Out, const uint256_t& amount1Out, const Address& to) {
-  ReentrancyGuard reentrancyGuard(this->reentrancyLock);
+  ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
   if (amount0Out == 0 && amount1Out == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_OUTPUT_AMOUNT");
   if (reserve0_ <= uint112_t(amount0Out) && reserve1_ <= uint112_t(amount1Out)) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_LIQUIDITY");
   if (token0_ == to || token1_ == to) throw std::runtime_error("DEXV2Pair: INVALID_TO");
@@ -208,7 +215,7 @@ void DEXV2Pair::swap(const uint256_t& amount0Out, const uint256_t& amount1Out, c
 }
 
 void DEXV2Pair::skim(const Address &to) {
-  ReentrancyGuard reentrancyGuard(this->reentrancyLock);
+  ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
   this->_safeTransfer(this->token0_.get(), to, this->callContractViewFunction(
     this->token0_.get(), &ERC20::balanceOf, this->getContractAddress()
   ) - this->reserve0_.get());
@@ -218,7 +225,7 @@ void DEXV2Pair::skim(const Address &to) {
 }
 
 void DEXV2Pair::sync() {
-  ReentrancyGuard reentrancyGuard(this->reentrancyLock);
+  ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
   this->_update(
     this->callContractViewFunction(this->token0_.get(), &ERC20::balanceOf, this->getContractAddress()),
     this->callContractViewFunction(this->token1_.get(), &ERC20::balanceOf, this->getContractAddress()),

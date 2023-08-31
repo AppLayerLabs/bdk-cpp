@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "rdpos.h"
 #include "storage.h"
 #include "state.h"
@@ -10,17 +17,17 @@ rdPoS::rdPoS(const std::unique_ptr<DB>& db,
   const std::unique_ptr<Options>& options,
   const std::unique_ptr<State>& state) :
   BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options->getChainID(), db),
-  storage(storage),
-  p2p(p2p),
-  options(options),
-  state(state),
-  worker(std::make_unique<rdPoSWorker>(*this)),
-  validatorKey(options->getValidatorPrivKey()),
-  isValidator((validatorKey) ? true : false),
-  randomGen(Hash())
+  storage_(storage),
+  p2p_(p2p),
+  options_(options),
+  state_(state),
+  worker_(std::make_unique<rdPoSWorker>(*this)),
+  validatorKey_(options->getValidatorPrivKey()),
+  isValidator_((this->validatorKey_) ? true : false),
+  randomGen_(Hash())
 {
   // Initialize blockchain.
-  std::unique_lock lock(this->mutex);
+  std::unique_lock lock(this->mutex_);
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Initializing rdPoS.");
   initializeBlockchain();
 
@@ -39,33 +46,33 @@ rdPoS::rdPoS(const std::unique_ptr<DB>& db,
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
   // TODO: check if no index is missing from DB.
   for (const auto& validator : validatorsDb) {
-    this->validators.insert(Validator(Address(validator.value)));
+    this->validators_.insert(Validator(Address(validator.value)));
   }
 
   // Load latest randomness from DB, populate and shuffle the random list.
-  this->bestRandomSeed = storage->latest()->getBlockRandomness();
-  randomGen.setSeed(bestRandomSeed);
-  this->randomList = std::vector<Validator>(this->validators.begin(), this->validators.end());
-  randomGen.shuffle(randomList);
+  this->bestRandomSeed_ = storage->latest()->getBlockRandomness();
+  randomGen_.setSeed(this->bestRandomSeed_);
+  this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());
+  randomGen_.shuffle(randomList_);
 }
 
 rdPoS::~rdPoS() {
   this->stoprdPoSWorker();
-  std::unique_lock lock(this->mutex);
+  std::unique_lock lock(this->mutex_);
   DBBatch validatorsBatch;
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Descontructing rdPoS, saving to DB.");
   // Save rdPoS to DB.
   uint64_t index = 0;
-  for (const auto &validator : validators) {
+  for (const auto &validator : this->validators_) {
     validatorsBatch.push_back(Utils::uint64ToBytes(index), validator.get(), DBPrefix::rdPoS);
     index++;
   }
-  this->db->putBatch(validatorsBatch);
+  this->db_->putBatch(validatorsBatch);
 }
 
 bool rdPoS::validateBlock(const Block& block) const {
-  std::lock_guard lock(this->mutex);
-  auto latestBlock = this->storage->latest();
+  std::lock_guard lock(this->mutex_);
+  auto latestBlock = this->storage_->latest();
   // Check if block signature matches randomList[0]
   if (!block.isFinalized()) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
@@ -76,7 +83,7 @@ bool rdPoS::validateBlock(const Block& block) const {
     return false;
   }
 
-  if (Secp256k1::toAddress(block.getValidatorPubKey()) != randomList[0]) {
+  if (Secp256k1::toAddress(block.getValidatorPubKey()) != randomList_[0]) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
       "Block signature does not match randomList[0]. latest nHeight: "
       + std::to_string(latestBlock->getNHeight())
@@ -116,18 +123,18 @@ bool rdPoS::validateBlock(const Block& block) const {
    */
   std::unordered_map<TxValidator,TxValidator, SafeHash> txHashToSeedMap; // Tx randomHash -> Tx random
   for (uint64_t i = 0; i < this->minValidators; ++i) {
-    if (Validator(block.getTxValidators()[i].getFrom()) != randomList[i+1]) {
+    if (Validator(block.getTxValidators()[i].getFrom()) != randomList_[i+1]) {
       Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
         "TxValidator randomHash " + std::to_string(i) + " is not ordered correctly."
-        + "Expected: " + randomList[i+1].hex().get()
+        + "Expected: " + randomList_[i+1].hex().get()
         + " Got: " + block.getTxValidators()[i].getFrom().hex().get()
       );
       return false;
     }
-    if (Validator(block.getTxValidators()[i + this->minValidators].getFrom()) != randomList[i+1]) {
+    if (Validator(block.getTxValidators()[i + this->minValidators].getFrom()) != randomList_[i+1]) {
       Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
         "TxValidator random " + std::to_string(i) + " is not ordered correctly."
-        + "Expected: " + randomList[i+1].hex().get()
+        + "Expected: " + randomList_[i+1].hex().get()
         + " Got: " + block.getTxValidators()[i].getFrom().hex().get()
       );
       return false;
@@ -212,38 +219,38 @@ bool rdPoS::validateBlock(const Block& block) const {
 }
 
 Hash rdPoS::processBlock(const Block& block) {
-  std::unique_lock lock(this->mutex);
+  std::unique_lock lock(this->mutex_);
   if (!block.isFinalized()) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "Block is not finalized.");
     throw std::runtime_error("Block is not finalized.");
   }
-  validatorMempool.clear();
-  this->randomList = std::vector<Validator>(this->validators.begin(), this->validators.end());
-  this->bestRandomSeed = block.getBlockRandomness();
-  randomGen.setSeed(bestRandomSeed);
-  randomGen.shuffle(randomList);
-  return this->bestRandomSeed;
+  validatorMempool_.clear();
+  this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());
+  this->bestRandomSeed_ = block.getBlockRandomness();
+  this->randomGen_.setSeed(this->bestRandomSeed_);
+  this->randomGen_.shuffle(this->randomList_);
+  return this->bestRandomSeed_;
 }
 
 void rdPoS::signBlock(Block &block) {
   uint64_t newTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::high_resolution_clock::now().time_since_epoch()
   ).count();
-  block.finalize(this->validatorKey, newTimestamp);
-  this->worker->blockCreated();
+  block.finalize(this->validatorKey_, newTimestamp);
+  this->worker_->blockCreated();
 }
 
 bool rdPoS::addValidatorTx(const TxValidator& tx) {
-  std::unique_lock lock(this->mutex);
-  if (this->validatorMempool.contains(tx.hash())) {
+  std::unique_lock lock(this->mutex_);
+  if (this->validatorMempool_.contains(tx.hash())) {
     Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "TxValidator already exists in mempool.");
     return true;
   }
 
-  if (tx.getNHeight() != this->storage->latest()->getNHeight() + 1) {
+  if (tx.getNHeight() != this->storage_->latest()->getNHeight() + 1) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
       "TxValidator is not for the next block. Expected: "
-      + std::to_string(this->storage->latest()->getNHeight() + 1)
+      + std::to_string(this->storage_->latest()->getNHeight() + 1)
       + " Got: " + std::to_string(tx.getNHeight())
     );
     return false;
@@ -252,7 +259,7 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
   // Check if sender is a validator and can participate in this rdPoS round (check from existance in randomList)
   bool participates = false;
   for (uint64_t i = 1; i < this->minValidators + 1; ++i) {
-    if (Validator(tx.getFrom()) == randomList[i]) {
+    if (Validator(tx.getFrom()) == this->randomList_[i]) {
       participates = true;
       break;
     }
@@ -266,19 +273,19 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
 
   // Do not allow duplicate transactions for the same function, we only have two functions (2 TxValidator per validator per block)
   std::vector<TxValidator> txs;
-  for (auto const& [key, value] : validatorMempool) {
+  for (auto const& [key, value] : this->validatorMempool_) {
     if (value.getFrom() == tx.getFrom()) txs.push_back(value);
   }
 
   if (txs.size() == 0) { // No transactions from this sender yet, add it.
-    validatorMempool.emplace(tx.hash(), tx);
+    this->validatorMempool_.emplace(tx.hash(), tx);
     return true;
   } else if (txs.size() == 1) { // We already have one transaction from this sender, check if it is the same function.
     if (txs[0].getFunctor() == tx.getFunctor()) {
       Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator sender already has a transaction for this function.");
       return false;
     }
-    validatorMempool.emplace(tx.hash(), tx);
+    this->validatorMempool_.emplace(tx.hash(), tx);
   } else { // We already have two transactions from this sender, it is the max we can have per validator.
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator sender already has two transactions.");
     return false;
@@ -288,20 +295,20 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
 }
 
 void rdPoS::initializeBlockchain() {
-  auto validatorsDb = db->getBatch(DBPrefix::rdPoS);
+  auto validatorsDb = db_->getBatch(DBPrefix::rdPoS);
   if (validatorsDb.size() == 0) {
     Logger::logToDebug(LogType::INFO, Log::rdPoS,__func__, "No rdPoS in DB, initializing.");
     // TODO: CHANGE THIS ON PUBLIC!!! THOSE PRIVATE KEYS SHOULD ONLY BE USED FOR LOCAL TESTING
     // 0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759
-    this->db->put(Utils::uint64ToBytes(0), Address(Hex::toBytes("0x7588b0f553d1910266089c58822e1120db47e572")).get(), DBPrefix::rdPoS);
+    this->db_->put(Utils::uint64ToBytes(0), Address(Hex::toBytes("0x7588b0f553d1910266089c58822e1120db47e572")).get(), DBPrefix::rdPoS);
     // 0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4
-    this->db->put(Utils::uint64ToBytes(1), Address(Hex::toBytes("0xcabf34a268847a610287709d841e5cd590cc5c00")).get(), DBPrefix::rdPoS);
+    this->db_->put(Utils::uint64ToBytes(1), Address(Hex::toBytes("0xcabf34a268847a610287709d841e5cd590cc5c00")).get(), DBPrefix::rdPoS);
     // 0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751
-    this->db->put(Utils::uint64ToBytes(2), Address(Hex::toBytes("0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3")).get(), DBPrefix::rdPoS);
+    this->db_->put(Utils::uint64ToBytes(2), Address(Hex::toBytes("0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3")).get(), DBPrefix::rdPoS);
     // 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7
-    this->db->put(Utils::uint64ToBytes(3), Address(Hex::toBytes("0x795083c42583842774febc21abb6df09e784fce5")).get(), DBPrefix::rdPoS);
+    this->db_->put(Utils::uint64ToBytes(3), Address(Hex::toBytes("0x795083c42583842774febc21abb6df09e784fce5")).get(), DBPrefix::rdPoS);
     // 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6
-    this->db->put(Utils::uint64ToBytes(4), Address(Hex::toBytes("0xbec7b74f70c151707a0bfb20fe3767c6e65499e0")).get(), DBPrefix::rdPoS);
+    this->db_->put(Utils::uint64ToBytes(4), Address(Hex::toBytes("0xbec7b74f70c151707a0bfb20fe3767c6e65499e0")).get(), DBPrefix::rdPoS);
   }
 }
 
@@ -318,7 +325,7 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 }
 
 const std::atomic<bool>& rdPoS::canCreateBlock() const {
-  return this->worker->getCanCreateBlock();
+  return this->worker_->getCanCreateBlock();
 }
 
 rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) {
@@ -340,29 +347,29 @@ rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) 
   }
 }
 
-void rdPoS::startrdPoSWorker() { this->worker->start(); }
+void rdPoS::startrdPoSWorker() { this->worker_->start(); }
 
-void rdPoS::stoprdPoSWorker() { this->worker->stop(); }
+void rdPoS::stoprdPoSWorker() { this->worker_->stop(); }
 
 bool rdPoSWorker::checkLatestBlock() {
-  if (this->latestBlock == nullptr) {
-    this->latestBlock = this->rdpos.storage->latest();
+  if (this->latestBlock_ == nullptr) {
+    this->latestBlock_ = this->rdpos_.storage_->latest();
     return false;
   }
-  if (this->latestBlock != this->rdpos.storage->latest()) return true;
+  if (this->latestBlock_ != this->rdpos_.storage_->latest()) return true;
   return false;
 }
 
 bool rdPoSWorker::workerLoop() {
-  Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->rdpos.validatorKey)));
-  this->latestBlock = this->rdpos.storage->latest();
-  while (!this->stopWorker) {
+  Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->rdpos_.validatorKey_)));
+  this->latestBlock_ = this->rdpos_.storage_->latest();
+  while (!this->stopWorker_) {
     // Check if we are the validator required for signing the block.
     bool isBlockCreator = false;
     // Scope for unique_lock.
     {
-      std::unique_lock checkValidatorsList(this->rdpos.mutex);
-      if (me == this->rdpos.randomList[0]) {
+      std::unique_lock checkValidatorsList(this->rdpos_.mutex_);
+      if (me == this->rdpos_.randomList_[0]) {
         isBlockCreator = true;
         checkValidatorsList.unlock();
         doBlockCreation();
@@ -370,37 +377,37 @@ bool rdPoSWorker::workerLoop() {
 
       // Check if we are one of the rdPoS that need to create random transactions.
       if (!isBlockCreator) {
-        for (uint64_t i = 1; i <= this->rdpos.minValidators; ++i) {
-          if (me == this->rdpos.randomList[i]) {
+        for (uint64_t i = 1; i <= this->rdpos_.minValidators; ++i) {
+          if (me == this->rdpos_.randomList_[i]) {
             checkValidatorsList.unlock();
-            doTxCreation(latestBlock->getNHeight() + 1, me);
+            doTxCreation(this->latestBlock_->getNHeight() + 1, me);
           }
         }
       }
     }
 
     // After processing everything. wait until the new block is appended to the chain.
-    while (!this->checkLatestBlock() && !this->stopWorker) {
+    while (!this->checkLatestBlock() && !this->stopWorker_) {
       Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
         "Waiting for new block to be appended to the chain. (Height: "
-        + std::to_string(latestBlock->getNHeight()) + ")" + " latest height: "
-        + std::to_string(this->rdpos.storage->latest()->getNHeight())
+        + std::to_string(this->latestBlock_->getNHeight()) + ")" + " latest height: "
+        + std::to_string(this->rdpos_.storage_->latest()->getNHeight())
       );
       Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
-        "Currently has " + std::to_string(this->rdpos.validatorMempool.size())
+        "Currently has " + std::to_string(this->rdpos_.validatorMempool_.size())
         + " transactions in mempool."
       );
-      std::unique_lock mempoolSizeLock(this->rdpos.mutex);
-      uint64_t mempoolSize = this->rdpos.validatorMempool.size();
-      if (mempoolSize < this->rdpos.minValidators) { // Always try to fill the mempool to 8 transactions
+      std::unique_lock mempoolSizeLock(this->rdpos_.mutex_);
+      uint64_t mempoolSize = this->rdpos_.validatorMempool_.size();
+      if (mempoolSize < this->rdpos_.minValidators) { // Always try to fill the mempool to 8 transactions
         mempoolSizeLock.unlock();
         // Try to get more transactions from other nodes within the network
-        auto connectedNodesList = this->rdpos.p2p->getSessionsIDs();
+        auto connectedNodesList = this->rdpos_.p2p_->getSessionsIDs();
         for (auto const& nodeId : connectedNodesList) {
-          if (this->checkLatestBlock() || this->stopWorker) break;
-          auto txList = this->rdpos.p2p->requestValidatorTxs(nodeId);
-          if (this->checkLatestBlock() || this->stopWorker) break;
-          for (auto const& tx : txList) this->rdpos.state->addValidatorTx(tx);
+          if (this->checkLatestBlock() || this->stopWorker_) break;
+          auto txList = this->rdpos_.p2p_->requestValidatorTxs(nodeId);
+          if (this->checkLatestBlock() || this->stopWorker_) break;
+          for (auto const& tx : txList) this->rdpos_.state_->addValidatorTx(tx);
         }
       } else {
         mempoolSizeLock.unlock();
@@ -408,8 +415,8 @@ bool rdPoSWorker::workerLoop() {
       std::this_thread::sleep_for(std::chrono::milliseconds(25));
     }
     // Update latest block if necessary.
-    if (isBlockCreator) this->canCreateBlock = false;
-    this->latestBlock = this->rdpos.storage->latest();
+    if (isBlockCreator) this->canCreateBlock_ = false;
+    this->latestBlock_ = this->rdpos_.storage_->latest();
   }
   return true;
 }
@@ -418,28 +425,28 @@ void rdPoSWorker::doBlockCreation() {
   // TODO: add requesting transactions to other nodes when mempool is not filled up
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Block creator: waiting for txs");
   uint64_t validatorMempoolSize = 0;
-  while (validatorMempoolSize != this->rdpos.minValidators * 2 && !this->stopWorker)
+  while (validatorMempoolSize != this->rdpos_.minValidators * 2 && !this->stopWorker_)
   {
     Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
       "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
     );
     // Scope for lock.
     {
-      std::unique_lock mempoolSizeLock(this->rdpos.mutex);
-      validatorMempoolSize = this->rdpos.validatorMempool.size();
+      std::unique_lock mempoolSizeLock(this->rdpos_.mutex_);
+      validatorMempoolSize = this->rdpos_.validatorMempool_.size();
     }
     // Try to get more transactions from other nodes within the network
-    auto connectedNodesList = this->rdpos.p2p->getSessionsIDs();
+    auto connectedNodesList = this->rdpos_.p2p_->getSessionsIDs();
     for (auto const& nodeId : connectedNodesList) {
-      auto txList = this->rdpos.p2p->requestValidatorTxs(nodeId);
-      if (this->stopWorker) return;
-      for (auto const& tx : txList) this->rdpos.state->addValidatorTx(tx);
+      auto txList = this->rdpos_.p2p_->requestValidatorTxs(nodeId);
+      if (this->stopWorker_) return;
+      for (auto const& tx : txList) this->rdpos_.state_->addValidatorTx(tx);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
   }
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Validator ready to create a block");
   // After processing everything, we can let everybody know that we are ready to create a block
-  this->canCreateBlock = true;
+  this->canCreateBlock_ = true;
 }
 
 void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
@@ -451,9 +458,9 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
   TxValidator randomHashTx(
     me.address(),
     randomHashBytes,
-    this->rdpos.options->getChainID(),
+    this->rdpos_.options_->getChainID(),
     nHeight,
-    this->rdpos.validatorKey
+    this->rdpos_.validatorKey_
   );
 
   Bytes seedBytes = Hex::toBytes("0x6fc5a2d6");
@@ -461,9 +468,9 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
   TxValidator seedTx(
     me.address(),
     seedBytes,
-    this->rdpos.options->getChainID(),
+    this->rdpos_.options_->getChainID(),
     nHeight,
-    this->rdpos.validatorKey
+    this->rdpos_.validatorKey_
   );
 
   // Sanity check if tx is valid
@@ -476,47 +483,47 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
 
   // Append to mempool and broadcast the transaction across all nodes.
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Broadcasting randomHash transaction");
-  this->rdpos.state->addValidatorTx(randomHashTx);
-  this->rdpos.p2p->broadcastTxValidator(randomHashTx);
+  this->rdpos_.state_->addValidatorTx(randomHashTx);
+  this->rdpos_.p2p_->broadcastTxValidator(randomHashTx);
 
   // Wait until we received all randomHash transactions to broadcast the randomness transaction
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Waiting for randomHash transactions to be broadcasted");
   uint64_t validatorMempoolSize = 0;
-  while (validatorMempoolSize < this->rdpos.minValidators && !this->stopWorker) {
+  while (validatorMempoolSize < this->rdpos_.minValidators && !this->stopWorker_) {
     Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
       "Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
     );
     // Scope for lock
     {
-      std::unique_lock mempoolSizeLock(this->rdpos.mutex);
-      validatorMempoolSize = this->rdpos.validatorMempool.size();
+      std::unique_lock mempoolSizeLock(this->rdpos_.mutex_);
+      validatorMempoolSize = this->rdpos_.validatorMempool_.size();
     }
     // Try to get more transactions from other nodes within the network
-    auto connectedNodesList = this->rdpos.p2p->getSessionsIDs();
+    auto connectedNodesList = this->rdpos_.p2p_->getSessionsIDs();
     for (auto const& nodeId : connectedNodesList) {
-      if (this->stopWorker) return;
-      auto txList = this->rdpos.p2p->requestValidatorTxs(nodeId);
-      for (auto const& tx : txList) this->rdpos.state->addValidatorTx(tx);
+      if (this->stopWorker_) return;
+      auto txList = this->rdpos_.p2p_->requestValidatorTxs(nodeId);
+      for (auto const& tx : txList) this->rdpos_.state_->addValidatorTx(tx);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
   }
 
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Broadcasting random transaction");
   // Append and broadcast the randomness transaction.
-  this->rdpos.state->addValidatorTx(seedTx);
-  this->rdpos.p2p->broadcastTxValidator(seedTx);
+  this->rdpos_.state_->addValidatorTx(seedTx);
+  this->rdpos_.p2p_->broadcastTxValidator(seedTx);
 }
 void rdPoSWorker::start() {
-  if (this->rdpos.isValidator && !this->workerFuture.valid()) {
-    this->workerFuture = std::async(std::launch::async, &rdPoSWorker::workerLoop, this);
+  if (this->rdpos_.isValidator_ && !this->workerFuture_.valid()) {
+    this->workerFuture_ = std::async(std::launch::async, &rdPoSWorker::workerLoop, this);
   }
 }
 
 void rdPoSWorker::stop() {
-  if (this->workerFuture.valid()) {
-    this->stopWorker = true;
-    this->workerFuture.wait();
-    this->workerFuture.get();
+  if (this->workerFuture_.valid()) {
+    this->stopWorker_ = true;
+    this->workerFuture_.wait();
+    this->workerFuture_.get();
   }
 }
 

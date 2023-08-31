@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef HTTPSERVER_H
 #define HTTPSERVER_H
 
@@ -8,31 +15,31 @@
 class HTTPServer {
   private:
     /// Reference pointer to the blockchain's state.
-    const std::unique_ptr<State>& state;
+    const std::unique_ptr<State>& state_;
 
     /// Reference pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage;
+    const std::unique_ptr<Storage>& storage_;
 
     /// Reference pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal>& p2p;
+    const std::unique_ptr<P2P::ManagerNormal>& p2p_;
 
     /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options_;
 
     /// Provides core I/O functionality ({x} = max threads the object can use).
-    net::io_context ioc{4};
+    net::io_context ioc_{4};
 
     /// Pointer to the HTTP listener.
-    std::shared_ptr<HTTPListener> listener;
+    std::shared_ptr<HTTPListener> listener_;
 
     /// The port where the server is running.
-    const unsigned short port;
+    const unsigned short port_;
 
     /// The run function (effectively starts the server).
     bool run();
 
     /// Future for the run function so we know when it should stop.
-    std::future<bool> runFuture;
+    std::future<bool> runFuture_;
 
   public:
     /**
@@ -45,7 +52,7 @@ class HTTPServer {
     HTTPServer(
         const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
         const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
-    ) : state(state), storage(storage), p2p(p2p), options(options), port(options->getHttpPort())
+    ) : state_(state), storage_(storage), p2p_(p2p), options_(options), port_(options->getHttpPort())
     {}
 
     /**
@@ -61,7 +68,7 @@ class HTTPServer {
      * Check if the server is currently active and running.
      * @return `true` if the server is running, `false` otherwise.
      */
-    bool running() { return this->runFuture.valid(); }
+    bool running() { return this->runFuture_.valid(); }
 };
 
 #endif  // HTTPSERVER_H

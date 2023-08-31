@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef HTTPLISTENER_H
 #define HTTPLISTENER_H
 
@@ -8,25 +15,25 @@
 class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
   private:
     /// Provides core I/O functionality.
-    net::io_context& ioc;
+    net::io_context& ioc_;
 
     /// Accepts incoming connections.
-    tcp::acceptor acc;
+    tcp::acceptor acc_;
 
     /// Pointer to the root directory of the endpoint.
-    std::shared_ptr<const std::string> docroot;
+    std::shared_ptr<const std::string> docroot_;
 
     /// Reference pointer to the blockchain's state.
-    const std::unique_ptr<State>& state;
+    const std::unique_ptr<State>& state_;
 
     /// Reference pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage;
+    const std::unique_ptr<Storage>& storage_;
 
     /// Reference pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal>& p2p;
+    const std::unique_ptr<P2P::ManagerNormal>& p2p_;
 
     /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options_;
 
     /// Accept an incoming connection from the endpoint. The new connection gets its own strand.
     void do_accept();

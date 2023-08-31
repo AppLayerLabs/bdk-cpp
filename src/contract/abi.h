@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef ABI_H
 #define ABI_H
 
@@ -5,7 +12,7 @@
 #include <any>
 
 #include "../utils/hex.h"
-#include "../utils/json.hpp"
+#include "../libs/json.hpp"
 #include "../utils/utils.h"
 
 /// Namespace for Solidity ABI-related operations.
@@ -1103,7 +1110,7 @@ Types inline getABIEnumFromString(const std::string& type) {
   class Encoder {
     private:
       Bytes data_; ///< Encoded Solidity ABI string, as RAW BYTES. Use Hex::fromBytes().get() to print it properly.
-      Functor functor; ///< Functor of the function to call. (if any)
+      Functor functor_; ///< Functor of the function to call. (if any)
 
       /**
       * Checks if a given type is a valid ABI type.
@@ -1115,6 +1122,7 @@ Types inline getABIEnumFromString(const std::string& type) {
       /**
       * Checks if a given type is a valid and supported ABI type.
       * @param funcType The type to check.
+      * @param dataValue The value to check.
       * @return True if the type is valid and supported, false otherwise.
       */
       bool matchesDataType(const std::string_view& funcType, const BaseTypes& dataValue);
@@ -1224,7 +1232,7 @@ Types inline getABIEnumFromString(const std::string& type) {
       const Bytes& getData() const { return this->data_; }
 
       /// Getter for 'functor'
-      const Functor& getFunctor() const { return this->functor; }
+      const Functor& getFunctor() const { return this->functor_; }
 
       /**
        * Get the length of `data`.

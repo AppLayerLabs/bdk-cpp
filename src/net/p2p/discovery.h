@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef DISCOVERYWORKER_H
 #define DISCOVERYWORKER_H
 
@@ -17,23 +24,23 @@ namespace P2P {
   class DiscoveryWorker {
   private:
     /// Reference to the parent connection manager.
-    ManagerBase& manager;
+    ManagerBase& manager_;
 
     /// Flag for stopping the thread.
-    std::atomic<bool> stopWorker = false;
+    std::atomic<bool> stopWorker_ = false;
 
     /**
      * Future object for the worker thread.
      * This is checked for validity (running) to determine if the thread is running,
      * and by wait(), to wait until thread is finished.
      */
-    std::future<bool> workerFuture;
+    std::future<bool> workerFuture_;
 
     /// Map for previously requested nodes (Node ID -> time of last request).
-    std::unordered_map<NodeID, uint64_t, SafeHash> requestedNodes;
+    std::unordered_map<NodeID, uint64_t, SafeHash> requestedNodes_;
 
     /// Mutex for managing read/write access to requestedNodes.
-    std::shared_mutex requestedNodesMutex;
+    std::shared_mutex requestedNodesMutex_;
 
     /**
      * Refresh the list of previously requested nodes.
@@ -85,7 +92,7 @@ namespace P2P {
      * Constructor.
      * @param manager Reference to the parent connection manager.
      */
-    DiscoveryWorker(ManagerBase& manager) : manager(manager) {}
+    DiscoveryWorker(ManagerBase& manager) : manager_(manager) {}
 
     /// Destructor. Automatically stops the worker thread.
     ~DiscoveryWorker() { this->stop(); }

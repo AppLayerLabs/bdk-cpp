@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef RANDOMGEN_H
 #define RANDOMGEN_H
 
@@ -13,8 +20,8 @@
 /// Custom Pseudo-Random Number Generator (PRNG) for use in rdPoS.
 class RandomGen {
   private:
-    Hash seed;  ///< The seed used by the generator.
-    mutable std::mutex seedLock;  ///< Mutex for managing read/write access to the seed.
+    Hash seed_;  ///< The seed used by the generator.
+    mutable std::mutex seedLock_;  ///< Mutex for managing read/write access to the seed.
 
   public:
     /**
@@ -28,13 +35,13 @@ class RandomGen {
      * Constructor.
      * @param seed A random seed for initialization.
      */
-    RandomGen(const Hash& seed) : seed(seed) {};
+    RandomGen(const Hash& seed) : seed_(seed) {};
 
     /// Getter for `seed`.
-    inline const Hash getSeed() const { std::lock_guard lock(seedLock); return this->seed; }
+    inline const Hash getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }
 
     /// Setter for `seed`.
-    inline void setSeed(const Hash& seed) { std::lock_guard lock(seedLock); this->seed = seed; }
+    inline void setSeed(const Hash& seed) { std::lock_guard lock(seedLock_); this->seed_ = seed; }
 
     /// Return the maximum numeric limit of a 256-bit unsigned integer.
     static inline uint256_t max() { return std::numeric_limits<result_type>::max(); }
@@ -48,11 +55,11 @@ class RandomGen {
      * @param v The vector to shuffle.
      */
     template <typename Vector> void shuffle(Vector& v) {
-      std::lock_guard lock(seedLock);
+      std::lock_guard lock(seedLock_);
       for (uint64_t i = 0; i < v.size(); ++i) {
-        this->seed = Utils::sha3(this->seed.get());
-        //std::cout << this->seed.hex() << std::endl; // Uncomment to print seed
-        uint64_t n = uint64_t(i + this->seed.toUint256() % (v.size() - i));
+        this->seed_ = Utils::sha3(this->seed_.get());
+        //std::cout << this->seed_.hex() << std::endl; // Uncomment to print seed
+        uint64_t n = uint64_t(i + this->seed_.toUint256() % (v.size() - i));
         std::swap(v[n], v[i]);
       }
     }

@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef CONTRACTMANAGER_H
 #define CONTRACTMANAGER_H
 
@@ -47,35 +54,35 @@ class ContractManager : BaseContract {
      * Used if the contract is a payable function.
      * Can be `nullptr` due to tests not requiring state (contract balance).
      */
-    State* state;
+    State* state_;
 
     /// List of currently deployed contracts.
-    std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts;
+    std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
 
     /**
      * Pointer to the contract factory object.
      * Responsible for actually creating the contracts and
      * deploying them in the contract manager.
      */
-    std::unique_ptr<ContractFactory> factory;
+    std::unique_ptr<ContractFactory> factory_;
 
     /// Pointer to the contract manager's interface to be passed to DynamicContract.
-    std::unique_ptr<ContractManagerInterface> interface;
+    std::unique_ptr<ContractManagerInterface> interface_;
 
     /**
      * Pointer to the call state object.
      * Responsible for maintaining temporary data used in contract call chains.
      */
-    std::unique_ptr<ContractCallLogger> callLogger;
+    std::unique_ptr<ContractCallLogger> callLogger_;
 
     /// Reference pointer to the rdPoS contract.
-    const std::unique_ptr<rdPoS>& rdpos;
+    const std::unique_ptr<rdPoS>& rdpos_;
 
     /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options_;
 
     /// Mutex that manages read/write access to the contracts.
-    mutable std::shared_mutex contractsMutex;
+    mutable std::shared_mutex contractsMutex_;
 
     /// Derive a new contract address based on transaction sender and nonce.
     Address deriveContractAddress() const;
@@ -111,8 +118,8 @@ class ContractManager : BaseContract {
       // Here we disable this template when T is a tuple
       static_assert(!Utils::is_tuple<T>::value, "Must not be a tuple");
       if (Utils::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
-        this->contracts.insert(std::make_pair(
-          contractAddress, std::make_unique<T>(*this->interface, contractAddress, this->db)
+        this->contracts_.insert(std::make_pair(
+          contractAddress, std::make_unique<T>(*this->interface_, contractAddress, this->db_)
         ));
         return true;
       }
@@ -224,21 +231,21 @@ class ContractManager : BaseContract {
     /// ContractFactory is a friend so it can access private members.
     friend class ContractFactory;
 
-    /// ContractCallState is a friend so it can access private members.
+    /// ContractCallLogger is a friend so it can access private members.
     friend class ContractCallLogger;
 };
 
 /// Interface class for DynamicContract to access ContractManager and interact with other dynamic contracts.
 class ContractManagerInterface {
   private:
-    ContractManager& manager; ///< Reference to the contract manager.
+    ContractManager& manager_; ///< Reference to the contract manager.
 
   public:
     /**
      * Constructor.
      * @param manager Reference to the contract manager.
      */
-    explicit ContractManagerInterface(ContractManager& manager): manager(manager) {}
+    explicit ContractManagerInterface(ContractManager& manager): manager_(manager) {}
 
     /**
      * Register a variable that was used a given contract.
@@ -269,18 +276,18 @@ class ContractManagerInterface {
       const uint256_t& value,
       R(C::*func)(const Args&...), const Args&... args
     ) {
-      if (!this->manager.callLogger) throw std::runtime_error(
+      if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
       } else {
-        if (!this->manager.contracts.contains(targetAddr)) {
+        if (!this->manager_.contracts_.contains(targetAddr)) {
           throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
         }
       }
       C* contract = this->getContract<C>(targetAddr);
-      this->manager.callLogger->setContractVars(contract, txOrigin, fromAddr, value);
+      this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func, std::forward<const Args&>(args)...);
       } catch (const std::exception& e) {
@@ -305,18 +312,18 @@ class ContractManagerInterface {
       const Address& txOrigin, const Address& fromAddr, const Address& targetAddr,
       const uint256_t& value, R(C::*func)()
     ) {
-      if (!this->manager.callLogger) throw std::runtime_error(
+      if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
       } else {
-        if (!this->manager.contracts.contains(targetAddr)) {
+        if (!this->manager_.contracts_.contains(targetAddr)) {
           throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
         }
       }
       C* contract = this->getContract<C>(targetAddr);
-      this->manager.callLogger->setContractVars(contract, txOrigin, fromAddr, value);
+      this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func);
       } catch (const std::exception& e) {
@@ -341,7 +348,7 @@ class ContractManagerInterface {
       const uint256_t &gasPriceValue, const uint256_t &callValue,
       const ABI::Encoder &encoder
     ) {
-      if (!this->manager.callLogger) throw std::runtime_error(
+      if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       ethCallInfo callInfo;
@@ -356,14 +363,14 @@ class ContractManagerInterface {
       createFullSignatureStream << ")";
       auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
       from = fromAddr;
-      to = this->manager.deriveContractAddress();
+      to = this->manager_.deriveContractAddress();
       gas = gasValue;
       gasPrice = gasPriceValue;
       value = callValue;
       functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
       data = encoder.getData();
-      this->manager.callLogger->setContractVars(&manager, txOrigin, fromAddr, value);
-      this->manager.ethCall(callInfo);
+      this->manager_.callLogger_->setContractVars(&manager_, txOrigin, fromAddr, value);
+      this->manager_.ethCall(callInfo);
       return to;
     }
 
@@ -376,8 +383,8 @@ class ContractManagerInterface {
      * @throw runtime_error if contract is not found or not of the requested type.
      */
     template <typename T> const T* getContract(const Address &address) const {
-      auto it = this->manager.contracts.find(address);
-      if (it == this->manager.contracts.end()) throw std::runtime_error(
+      auto it = this->manager_.contracts_.find(address);
+      if (it == this->manager_.contracts_.end()) throw std::runtime_error(
         "ContractManager::getContract: contract at address " +
         address.hex().get() + " not found."
       );
@@ -398,8 +405,8 @@ class ContractManagerInterface {
      * @throw runtime_error if contract is not found or not of the requested type.
      */
     template <typename T> T* getContract(const Address& address) {
-      auto it = this->manager.contracts.find(address);
-      if (it == this->manager.contracts.end()) throw std::runtime_error(
+      auto it = this->manager_.contracts_.find(address);
+      if (it == this->manager_.contracts_.end()) throw std::runtime_error(
         "ContractManager::getContract: contract at address " +
         address.hex().get() + " not found."
       );

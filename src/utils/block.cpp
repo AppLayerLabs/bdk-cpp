@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "block.h"
 #include "../core/rdpos.h"
 
@@ -5,13 +12,13 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
   try {
     // Split the bytes string
     if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
-    this->validatorSig = Signature(bytes.subspan(0, 65));
-    this->prevBlockHash = Hash(bytes.subspan(65, 32));
-    this->blockRandomness = Hash(bytes.subspan(97, 32));
-    this->validatorMerkleRoot = Hash(bytes.subspan(129, 32));
-    this->txMerkleRoot = Hash(bytes.subspan(161, 32));
-    this->timestamp = Utils::bytesToUint64(bytes.subspan(193, 8));
-    this->nHeight = Utils::bytesToUint64(bytes.subspan(201, 8));
+    this->validatorSig_ = Signature(bytes.subspan(0, 65));
+    this->prevBlockHash_ = Hash(bytes.subspan(65, 32));
+    this->blockRandomness_= Hash(bytes.subspan(97, 32));
+    this->validatorMerkleRoot_ = Hash(bytes.subspan(129, 32));
+    this->txMerkleRoot_ = Hash(bytes.subspan(161, 32));
+    this->timestamp_ = Utils::bytesToUint64(bytes.subspan(193, 8));
+    this->nHeight_ = Utils::bytesToUint64(bytes.subspan(201, 8));
     uint64_t txValidatorStart = Utils::bytesToUint64(bytes.subspan(209, 8));
 
     // Count how many block txs are in the block
@@ -41,7 +48,7 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
       for (uint64_t i = 0; i < txCount; ++i) {
         uint64_t txSize = Utils::bytesToUint32(bytes.subspan(index, 4));
         index += 4;
-        this->txs.emplace_back(bytes.subspan(index, txSize), requiredChainId);
+        this->txs_.emplace_back(bytes.subspan(index, txSize), requiredChainId);
         index += txSize;
       }
     } else {
@@ -88,7 +95,7 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
       // Wait for asyncs and fill the block tx vector
       for (int i = 0; i < f.size(); i++) {
         f[i].wait();
-        for (TxBlock tx : f[i].get()) this->txs.emplace_back(tx);
+        for (TxBlock tx : f[i].get()) this->txs_.emplace_back(tx);
       }
     }
 
@@ -97,34 +104,34 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
     for (uint64_t i = 0; i < valTxCount; ++i) {
       uint64_t txSize = Utils::bytesToUint32(bytes.subspan(index, 4));
       index += 4;
-      this->txValidators.emplace_back(bytes.subspan(index, txSize), requiredChainId);
-      if (txValidators.back().getNHeight() != this->nHeight) {
+      this->txValidators_.emplace_back(bytes.subspan(index, txSize), requiredChainId);
+      if (this->txValidators_.back().getNHeight() != this->nHeight_) {
         throw std::runtime_error("Invalid validator tx height");
       }
       index += txSize;
     }
     // Sanity check the Merkle roots, block randomness and signature
-    auto expectedTxMerkleRoot = Merkle(txs).getRoot();
-    auto expectedValidatorMerkleRoot = Merkle(txValidators).getRoot();
-    auto expectedRandomness = rdPoS::parseTxSeedList(txValidators);
-    if (expectedTxMerkleRoot != txMerkleRoot) {
+    auto expectedTxMerkleRoot = Merkle(this->txs_).getRoot();
+    auto expectedValidatorMerkleRoot = Merkle(this->txValidators_).getRoot();
+    auto expectedRandomness = rdPoS::parseTxSeedList(this->txValidators_);
+    if (expectedTxMerkleRoot != this->txMerkleRoot_) {
       throw std::runtime_error("Invalid tx merkle root");
     }
-    if (expectedValidatorMerkleRoot != validatorMerkleRoot) {
+    if (expectedValidatorMerkleRoot != this->validatorMerkleRoot_) {
       throw std::runtime_error("Invalid validator merkle root");
     }
-    if (expectedRandomness != blockRandomness) {
+    if (expectedRandomness != this->blockRandomness_) {
       throw std::runtime_error("Invalid block randomness");
     }
     Hash msgHash = this->hash();
     if (!Secp256k1::verifySig(
-      this->validatorSig.r(), this->validatorSig.s(), this->validatorSig.v()
+      this->validatorSig_.r(), this->validatorSig_.s(), this->validatorSig_.v()
     )) {
       throw std::runtime_error("Invalid validator signature");
     }
     // Get the signature and finalize the block
-    this->validatorPubKey = Secp256k1::recover(this->validatorSig, msgHash);
-    this->finalized = true;
+    this->validatorPubKey_ = Secp256k1::recover(this->validatorSig_, msgHash);
+    this->finalized_ = true;
   } catch (std::exception &e) {
     Logger::logToDebug(LogType::ERROR, Log::block, __func__,
       "Error when deserializing a block: " + std::string(e.what())
@@ -142,12 +149,12 @@ const Bytes Block::serializeHeader() const {
   // }
   Bytes ret;
   ret.reserve(144);
-  ret.insert(ret.end(), this->prevBlockHash.cbegin(), this->prevBlockHash.cend());
-  ret.insert(ret.end(), this->blockRandomness.cbegin(), this->blockRandomness.cend());
-  ret.insert(ret.end(), this->validatorMerkleRoot.cbegin(), this->validatorMerkleRoot.cend());
-  ret.insert(ret.end(), this->txMerkleRoot.cbegin(), this->txMerkleRoot.cend());
-  Utils::appendBytes(ret, Utils::uint64ToBytes(this->timestamp));
-  Utils::appendBytes(ret, Utils::uint64ToBytes(this->nHeight));
+  ret.insert(ret.end(), this->prevBlockHash_.cbegin(), this->prevBlockHash_.cend());
+  ret.insert(ret.end(), this->blockRandomness_.cbegin(), this->blockRandomness_.cend());
+  ret.insert(ret.end(), this->validatorMerkleRoot_.cbegin(), this->validatorMerkleRoot_.cend());
+  ret.insert(ret.end(), this->txMerkleRoot_.cbegin(), this->txMerkleRoot_.cend());
+  Utils::appendBytes(ret, Utils::uint64ToBytes(this->timestamp_));
+  Utils::appendBytes(ret, Utils::uint64ToBytes(this->nHeight_));
   return ret;
 }
 
@@ -155,7 +162,7 @@ const Bytes Block::serializeBlock() const {
   Bytes ret;
   // Block = bytes(validatorSig) + bytes(BlockHeader) +
   // TxValidatorStart + [TXs] + [TxValidators]
-  ret.insert(ret.end(), this->validatorSig.cbegin(), this->validatorSig.cend());
+  ret.insert(ret.end(), this->validatorSig_.cbegin(), this->validatorSig_.cend());
   Utils::appendBytes(ret, this->serializeHeader());
 
   // Fill in the txValidatorStart with 0s for now, keep track of the index
@@ -163,7 +170,7 @@ const Bytes Block::serializeBlock() const {
   ret.insert(ret.end(), 8, 0x00);
 
   // Serialize the transactions [4 Bytes + Tx Bytes]
-  for (const auto &tx : this->txs) {
+  for (const auto &tx : this->txs_) {
     Bytes txBytes = tx.rlpSerialize();
     Utils::appendBytes(ret, Utils::uint32ToBytes(txBytes.size()));
     ret.insert(ret.end(), txBytes.begin(), txBytes.end());
@@ -174,7 +181,7 @@ const Bytes Block::serializeBlock() const {
   std::memcpy(&ret[txValidatorStartLoc], txValidatorStart.data(), 8);
 
   // Serialize the Validator Transactions [4 Bytes + Tx Bytes]
-  for (const auto &tx : this->txValidators) {
+  for (const auto &tx : this->txValidators_) {
     Bytes txBytes = tx.rlpSerialize();
     Utils::appendBytes(ret, Utils::uint32ToBytes(txBytes.size()));
     ret.insert(ret.end(), txBytes.begin(), txBytes.end());
@@ -186,47 +193,47 @@ const Bytes Block::serializeBlock() const {
 const Hash Block::hash() const { return Utils::sha3(this->serializeHeader()); }
 
 bool Block::appendTx(const TxBlock &tx) {
-  if (this->finalized) {
+  if (this->finalized_) {
     Logger::logToDebug(LogType::ERROR, Log::block, __func__,
       "Cannot append tx to finalized block"
     );
     return false;
   }
-  this->txs.push_back(tx);
+  this->txs_.push_back(tx);
   return true;
 }
 
 bool Block::appendTxValidator(const TxValidator &tx) {
-  if (this->finalized) {
+  if (this->finalized_) {
     Logger::logToDebug(LogType::ERROR, Log::block, __func__,
       "Cannot append tx to finalized block"
     );
     return false;
   }
-  this->txValidators.push_back(tx);
+  this->txValidators_.push_back(tx);
   return true;
 }
 
 bool Block::finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp) {
-  if (this->finalized) {
+  if (this->finalized_) {
     Logger::logToDebug(LogType::ERROR, Log::block, __func__, "Block is already finalized");
     return false;
   }
   // Allow rdPoS to improve block time only if new timestamp is better than old timestamp
-  if (this->timestamp > newTimestamp) {
+  if (this->timestamp_ > newTimestamp) {
     Logger::logToDebug(LogType::ERROR, Log::block, __func__,
       "Block timestamp not satisfiable, expected higher than " +
-      std::to_string(this->timestamp) + " got " + std::to_string(newTimestamp)
+      std::to_string(this->timestamp_) + " got " + std::to_string(newTimestamp)
     );
     return false;
   }
-  this->timestamp = newTimestamp;
-  this->txMerkleRoot = Merkle(this->txs).getRoot();
-  this->validatorMerkleRoot = Merkle(this->txValidators).getRoot();
-  this->blockRandomness = rdPoS::parseTxSeedList(this->txValidators);
-  this->validatorSig = Secp256k1::sign(this->hash(), validatorPrivKey);
-  this->validatorPubKey = Secp256k1::recover(this->validatorSig, this->hash());
-  this->finalized = true;
+  this->timestamp_ = newTimestamp;
+  this->txMerkleRoot_ = Merkle(this->txs_).getRoot();
+  this->validatorMerkleRoot_ = Merkle(this->txValidators_).getRoot();
+  this->blockRandomness_= rdPoS::parseTxSeedList(this->txValidators_);
+  this->validatorSig_ = Secp256k1::sign(this->hash(), validatorPrivKey);
+  this->validatorPubKey_ = Secp256k1::recover(this->validatorSig_, this->hash());
+  this->finalized_ = true;
   return true;
 }
 

@@ -1,91 +1,98 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "erc20.h"
 
 // Default Constructor when loading contract from DB.
 ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
-  DynamicContract(interface, address, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
+  DynamicContract(interface, address, db), name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this) {
 
-  this->_name = Utils::bytesToString(db->get(std::string("_name"), this->getDBPrefix()));
-  this->_symbol = Utils::bytesToString(db->get(std::string("_symbol"), this->getDBPrefix()));
-  this->_decimals = Utils::bytesToUint8(db->get(std::string("_decimals"), this->getDBPrefix()));
-  this->_totalSupply = Utils::bytesToUint256(db->get(std::string("_totalSupply"), this->getDBPrefix()));
-  auto balances = db->getBatch(this->getNewPrefix("_balances"));
+  this->name_ = Utils::bytesToString(db->get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = Utils::bytesToString(db->get(std::string("symbol_"), this->getDBPrefix()));
+  this->decimals_ = Utils::bytesToUint8(db->get(std::string("decimals_"), this->getDBPrefix()));
+  this->totalSupply_ = Utils::bytesToUint256(db->get(std::string("totalSupply_"), this->getDBPrefix()));
+  auto balances = db->getBatch(this->getNewPrefix("balances_"));
   for (const auto& dbEntry : balances) {
-    this->_balances[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
+    this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
 
-  auto allowances = db->getBatch(this->getNewPrefix("_allowed"));
+  auto allowances = db->getBatch(this->getNewPrefix("allowed_"));
   for (const auto& dbEntry : allowances) {
     BytesArrView valueView(dbEntry.value);
-    this->_allowed[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
+    this->allowed_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
   this->registerContractFunctions();
 
-  this->_name.commit();
-  this->_symbol.commit();
-  this->_decimals.commit();
-  this->_totalSupply.commit();
-  this->_balances.commit();
-  this->_allowed.commit();
+  this->name_.commit();
+  this->symbol_.commit();
+  this->decimals_.commit();
+  this->totalSupply_.commit();
+  this->balances_.commit();
+  this->allowed_.commit();
 }
 
 ERC20::ERC20(
-  const std::string& erc20_name, const std::string& erc20_symbol,
-  const uint8_t& erc20_decimals, const uint256_t& mintValue,
+  const std::string& erc20name_, const std::string& erc20symbol_,
+  const uint8_t& erc20decimals_, const uint256_t& mintValue,
   ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
   const std::unique_ptr<DB>& db
 ) : DynamicContract(interface, "ERC20", address, creator, chainId, db),
-  _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this)
+  name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
-  _name = erc20_name;
-  _symbol = erc20_symbol;
-  _decimals = erc20_decimals;
-  _mintValue(creator, mintValue);
+  name_ = erc20name_;
+  symbol_ = erc20symbol_;
+  decimals_ = erc20decimals_;
+  mintValue_(creator, mintValue);
   this->registerContractFunctions();
-  _name.commit();
-  _symbol.commit();
-  _decimals.commit();
+  name_.commit();
+  symbol_.commit();
+  decimals_.commit();
 }
 
 ERC20::ERC20(
-  const std::string &derivedTypeName, const std::string& erc20_name, const std::string& erc20_symbol,
-  const uint8_t& erc20_decimals, const uint256_t& mintValue,
+  const std::string &derivedTypeName, const std::string& erc20name_, const std::string& erc20symbol_,
+  const uint8_t& erc20decimals_, const uint256_t& mintValue,
   ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
   const std::unique_ptr<DB>& db
 ) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
-    _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this)
+    name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
-  _name = erc20_name;
-  _symbol = erc20_symbol;
-  _decimals = erc20_decimals;
-  _mintValue(creator, mintValue);
+  name_ = erc20name_;
+  symbol_ = erc20symbol_;
+  decimals_ = erc20decimals_;
+  mintValue_(creator, mintValue);
   this->registerContractFunctions();
 }
 
 
 ERC20::~ERC20() {
   DBBatch batchOperations;
-  this->db->put(std::string("_name"), _name.get(), this->getDBPrefix());
-  this->db->put(std::string("_symbol"), _symbol.get(), this->getDBPrefix());
-  this->db->put(std::string("_decimals"), Utils::uint8ToBytes(_decimals.get()), this->getDBPrefix());
-  this->db->put(std::string("_totalSupply"), Utils::uint256ToBytes(_totalSupply.get()), this->getDBPrefix());
+  this->db_->put(std::string("name_"), name_.get(), this->getDBPrefix());
+  this->db_->put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
+  this->db_->put(std::string("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
+  this->db_->put(std::string("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
 
-  for (auto it = _balances.cbegin(); it != _balances.cend(); ++it) {
+  for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
     const auto& key = it->first.get();
     Bytes value = Utils::uintToBytes(it->second);
-    batchOperations.push_back(key, value, this->getNewPrefix("_balances"));
+    batchOperations.push_back(key, value, this->getNewPrefix("balances_"));
   }
 
-  for (auto it = _allowed.cbegin(); it != _allowed.cend(); ++it) {
+  for (auto it = allowed_.cbegin(); it != allowed_.cend(); ++it) {
     for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
       const auto& key = it->first.get();
       Bytes value = it2->first.asBytes();
       Utils::appendBytes(value, Utils::uintToBytes(it2->second));
-      batchOperations.push_back(key, value, this->getNewPrefix("_allowed"));
+      batchOperations.push_back(key, value, this->getNewPrefix("allowed_"));
     }
   }
-  this->db->putBatch(batchOperations);
+  this->db_->putBatch(batchOperations);
 }
 
 void ERC20::registerContractFunctions() {
@@ -101,45 +108,45 @@ void ERC20::registerContractFunctions() {
   this->registerMemberFunction("transferFrom", &ERC20::transferFrom, this);
 }
 
-void ERC20::_mintValue(const Address& address, const uint256_t& value) {
-  _balances[address] += value;
-  _totalSupply += value;
+void ERC20::mintValue_(const Address& address, const uint256_t& value) {
+  balances_[address] += value;
+  totalSupply_ += value;
 }
 
-void ERC20::_burnValue(const Address& address, const uint256_t& value) {
-  _balances[address] -= value;
-  _totalSupply -= value;
+void ERC20::burnValue_(const Address& address, const uint256_t& value) {
+  balances_[address] -= value;
+  totalSupply_ -= value;
 }
 
-std::string ERC20::name() const { return this->_name.get(); }
+std::string ERC20::name() const { return this->name_.get(); }
 
-std::string ERC20::symbol() const { return this->_symbol.get(); }
+std::string ERC20::symbol() const { return this->symbol_.get(); }
 
-uint8_t ERC20::decimals() const { return this->_decimals.get(); }
+uint8_t ERC20::decimals() const { return this->decimals_.get(); }
 
-uint256_t ERC20::totalSupply() const { return this->_totalSupply.get(); }
+uint256_t ERC20::totalSupply() const { return this->totalSupply_.get(); }
 
-uint256_t ERC20::balanceOf(const Address& _owner) const {
-  const auto& it = std::as_const(this->_balances).find(_owner);
-  return (it == this->_balances.end())
+uint256_t ERC20::balanceOf(const Address& owner) const {
+  const auto& it = std::as_const(this->balances_).find(owner);
+  return (it == this->balances_.end())
     ? 0 : it->second;
 }
 
-void ERC20::transfer(const Address &_to, const uint256_t &_value) {
-  this->_balances[this->getCaller()] -= _value;
-  this->_balances[_to] += _value;
+void ERC20::transfer(const Address &to, const uint256_t &value) {
+  this->balances_[this->getCaller()] -= value;
+  this->balances_[to] += value;
 }
 
-void ERC20::approve(const Address &_spender, const uint256_t &_value) {
-  this->_allowed[this->getCaller()][_spender] = _value;
+void ERC20::approve(const Address &spender, const uint256_t &value) {
+  this->allowed_[this->getCaller()][spender] = value;
 }
 
-uint256_t ERC20::allowance(const Address& _owner, const Address& _spender) const {
-  const auto& it = std::as_const(this->_allowed).find(_owner);
-  if (it == this->_allowed.end()) {
+uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
+  const auto& it = std::as_const(this->allowed_).find(owner);
+  if (it == this->allowed_.end()) {
     return 0;
   } else {
-    const auto& it2 = it->second.find(_spender);
+    const auto& it2 = it->second.find(spender);
     if (it2 == it->second.end()) {
       return 0;
     } else {
@@ -149,10 +156,10 @@ uint256_t ERC20::allowance(const Address& _owner, const Address& _spender) const
 }
 
 void ERC20::transferFrom(
-  const Address &_from, const Address &_to, const uint256_t &_value
+  const Address &from, const Address &to, const uint256_t &value
 ) {
-  this->_allowed[_from][this->getCaller()] -= _value;
-  this->_balances[_from] -= _value;
-  this->_balances[_to] += _value;
+  this->allowed_[from][this->getCaller()] -= value;
+  this->balances_[from] -= value;
+  this->balances_[to] += value;
 }
 

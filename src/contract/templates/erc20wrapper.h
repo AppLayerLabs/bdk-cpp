@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef ERC20WRAPPER_H
 #define ERC20WRAPPER_H
 
@@ -16,9 +23,9 @@ class ERC20Wrapper : public DynamicContract {
   private:
     /**
      * Map for tokens and balances. Solidity counterpart:
-     * mapping(address => mapping(address => uint256)) internal _tokensAndBalances;
+     * mapping(address => mapping(address => uint256)) internal tokensAndBalances_;
      */
-    SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>> _tokensAndBalances;
+    SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>> tokensAndBalances_;
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
@@ -75,16 +82,14 @@ class ERC20Wrapper : public DynamicContract {
     ~ERC20Wrapper() override;
 
     /**
-     * Get the balance of the contract for a specific token. Solidity counterpart:
-     * function getContractBalance(address _token) public view returns (uint256) { return _tokensAndBalances[_token][address(this)]; }
+     * Get the balance of the contract for a specific token.
      * @param token The address of the token.
      * @return The contract's given token balance.
      */
     uint256_t getContractBalance(const Address& token) const;
 
     /**
-     * Get the balance of a specific user for a specific token. Solidity counterpart:
-     * function getUserBalance(address _token, address _user) public view returns (uint256) { return _tokensAndBalances[_token][_user]; }
+     * Get the balance of a specific user for a specific token.
      * @param token The address of the token.
      * @param user The address of the user.
      * @return The user's given token balance.

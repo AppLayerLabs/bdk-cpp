@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef SAFEBASE_H
 #define SAFEBASE_H
 
@@ -28,20 +35,20 @@ class SafeBase {
      * such contract. Passing the contract as a pointer allows us to register it
      * to the contract, and call commit() and/or revert() properly.
      */
-    DynamicContract* owner = nullptr;
+    DynamicContract* owner_ = nullptr;
 
   protected:
     /// Indicates whether the variable is already registered within the contract.
-    mutable bool registered = false;
+    mutable bool registered_ = false;
 
     /// Getter for `owner`.
-    inline DynamicContract* getOwner() const { return owner; }
+    inline DynamicContract* getOwner() const { return owner_; }
 
     /// Register the use of the variable within the contract.
     void markAsUsed() {
-      if (owner != nullptr && !registered) {
-        registerVariableUse(*owner, *this);
-        registered = true;
+      if (owner_ != nullptr && !registered_) {
+        registerVariableUse(*owner_, *this);
+        registered_ = true;
       }
     }
 
@@ -57,25 +64,25 @@ class SafeBase {
      * Check if the variable is registered within the contract.
      * @return `true` if the variable is registered, `false` otherwise.
      */
-    inline bool isRegistered() const { return registered; }
+    inline bool isRegistered() const { return registered_; }
 
   public:
     /// Empty constructor. Should be used only within local variables within functions.
-    SafeBase() : owner(nullptr) {};
+    SafeBase() : owner_(nullptr) {};
 
     /**
      * Constructor.
      * Only variables built with this constructor will be registered within the contract.
      * @param owner A pointer to the owner contract.
      */
-    SafeBase(DynamicContract* owner) : owner(owner) {};
+    SafeBase(DynamicContract* owner) : owner_(owner) {};
 
     /**
      * Constructor for variables that are not registered within the contract.
      * Should be used only within local variables within functions.
      * @param other The variable to copy from.
      */
-    SafeBase(SafeBase& other) : owner(nullptr) {};
+    SafeBase(SafeBase& other) : owner_(nullptr) {};
 
     /**
      * Commit a structure value to the contract.

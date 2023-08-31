@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef P2P_MANAGER_NORMAL_H
 #define P2P_MANAGER_NORMAL_H
 
@@ -50,10 +57,10 @@ namespace P2P {
       std::unordered_map <uint64_t, unsigned int, SafeHash> broadcastedMessages_;
 
       /// Mutex for managing read/write access to broadcasted messages.
-      std::shared_mutex broadcastMutex;
+      std::shared_mutex broadcastMutex_;
 
       /// Mutex for managing read/write access to block broadcasts.
-      std::mutex blockBroadcastMutex;
+      std::mutex blockBroadcastMutex_;
 
       /**
        * Broadcast a message to all connected nodes.

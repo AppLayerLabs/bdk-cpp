@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef NATIVEWRAPPER_H
 #define NATIVEWRAPPER_H
 
@@ -66,10 +73,10 @@ class NativeWrapper : public ERC20 {
 
     /**
      * Withdraw tokens from the contract.
-     * Solidity counterpart: function withdraw(uint256 _value) public payable
-     * @param _value The amount of tokens to be withdrawn.
+     * Solidity counterpart: function withdraw(uint256 value) public payable
+     * @param value The amount of tokens to be withdrawn.
      */
-    void withdraw(const uint256_t& _value);
+    void withdraw(const uint256_t& value);
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
@@ -80,7 +87,7 @@ class NativeWrapper : public ERC20 {
       >(
         std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
         std::make_tuple("deposit", &NativeWrapper::deposit, "payable", std::vector<std::string>{}),
-        std::make_tuple("withdraw", &NativeWrapper::withdraw, "payable", std::vector<std::string>{"_value"})
+        std::make_tuple("withdraw", &NativeWrapper::withdraw, "payable", std::vector<std::string>{"value"})
       );
     }
 };

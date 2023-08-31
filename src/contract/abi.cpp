@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "abi.h"
 
 Functor ABI::Encoder::encodeFunction(const std::string_view func) const {
@@ -203,7 +210,7 @@ ABI::Encoder::Encoder(const ABI::Encoder::EncVar& data, const std::string_view f
       b = e + 1; ct++; // Skip "," and go to next types
       e = funcTmp.find_first_of(",", b);
     }
-    this->functor = encodeFunction(func);
+    this->functor_ = encodeFunction(func);
   }
 
   /**

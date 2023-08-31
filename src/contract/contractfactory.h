@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef CONTRACTFACTORY_H
 #define CONTRACTFACTORY_H
 
@@ -13,20 +20,20 @@
 /// Factory class that does the setup, creation and registration of contracts to the blockchain.
 class ContractFactory {
   private:
-    ContractManager& manager; ///< Reference to the contract manager.
+    ContractManager& manager_; ///< Reference to the contract manager.
 
     /// Map of contract functors and create functions, used to create contracts.
-    std::unordered_map<Bytes, std::function<void(const ethCallInfo&)>, SafeHash> createContractFuncs;
+    std::unordered_map<Bytes, std::function<void(const ethCallInfo&)>, SafeHash> createContractFuncs_;
 
     /// Set of recently created contracts.
-    std::unordered_set<Address, SafeHash> recentContracts;
+    std::unordered_set<Address, SafeHash> recentContracts_;
 
   public:
     /**
      * Constructor.
      * @param manager Reference to the contract manager.
      */
-    ContractFactory(ContractManager& manager) : manager(manager) {}
+    ContractFactory(ContractManager& manager) : manager_(manager) {}
 
     /// Getter for `recentContracts`.
     std::unordered_set<Address, SafeHash> getRecentContracts() const;
@@ -51,13 +58,13 @@ class ContractFactory {
     template <typename TContract>
     std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
-      if (this->manager.getOrigin() != this->manager.getContractCreator()) {
+      if (this->manager_.getOrigin() != this->manager_.getContractCreator()) {
         throw std::runtime_error("Only contract creator can create new contracts");
       }
 
       // Check if contract address already exists on the Dynamic Contract list
-      const Address derivedAddress = this->manager.deriveContractAddress();
-      if (this->manager.contracts.contains(derivedAddress)) {
+      const Address derivedAddress = this->manager_.deriveContractAddress();
+      if (this->manager_.contracts_.contains(derivedAddress)) {
         throw std::runtime_error("Contract already exists as a Dynamic Contract");
       }
 
@@ -112,8 +119,8 @@ class ContractFactory {
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
         std::get<0>(callInfo), derivedAddress, dataVector
       );
-      this->recentContracts.insert(derivedAddress);
-      this->manager.contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
+      this->recentContracts_.insert(derivedAddress);
+      this->manager_.contracts_.insert(std::make_pair(derivedAddress, std::move(contract)));
     }
 
     /**
@@ -137,8 +144,8 @@ class ContractFactory {
       try {
         return std::make_unique<TContract>(
           std::any_cast<typename std::tuple_element<Is, TTuple>::type>(dataVec[Is])...,
-          *this->manager.interface, derivedContractAddress, creator,
-          this->manager.options->getChainID(), this->manager.db
+          *this->manager_.interface_, derivedContractAddress, creator,
+          this->manager_.options_->getChainID(), this->manager_.db_
         );
       } catch (const std::bad_any_cast& ex) {
         throw std::runtime_error(
@@ -188,7 +195,7 @@ class ContractFactory {
       }
       createFullSignatureStream << ")";
       Functor functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
-      this->createContractFuncs[functor.asBytes()] = createFunc;
+      this->createContractFuncs_[functor.asBytes()] = createFunc;
     }
 
     /**

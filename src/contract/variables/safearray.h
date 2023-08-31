@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef SAFEARRAY_H
 #define SAFEARRAY_H
 
@@ -28,7 +35,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      * @param index The index to check.
      * @throw std::out_of_range if index is bigger than the maximum index of the array.
      */
-    inline void checkIndexAndCopy(const uint64_t& index) {
+    inline void checkIndexAndCopy_(const uint64_t& index) {
       this->check();
       if (index >= N) throw std::out_of_range("Index out of range");
       if (this->tmp_->contains(index)) return;
@@ -71,7 +78,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      * @return The element at the given index.
      */
     inline T& at(std::size_t pos) {
-      checkIndexAndCopy(pos);
+      checkIndexAndCopy_(pos);
       markAsUsed();
       return this->tmp_->at(pos);
     }
@@ -82,7 +89,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      * @return The element at the given index.
      */
     const T& at(std::size_t pos) const {
-      checkIndexAndCopy(pos);
+      checkIndexAndCopy_(pos);
       return this->tmp_->at(pos);
     }
 
@@ -92,7 +99,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      * @return The element at the given index.
      */
     inline T& operator[](std::size_t pos) {
-      checkIndexAndCopy(pos);
+      checkIndexAndCopy_(pos);
       markAsUsed();
       return (*this->tmp_)[pos];
     }
@@ -103,7 +110,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      * @return The element at the given index.
      */
     inline const T& operator[](std::size_t pos) const {
-      checkIndexAndCopy(pos);
+      checkIndexAndCopy_(pos);
       return (*this->tmp_)[pos];
     }
 

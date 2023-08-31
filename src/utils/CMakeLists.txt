@@ -3,14 +3,12 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/utils.h
   ${CMAKE_SOURCE_DIR}/src/utils/strings.h
   ${CMAKE_SOURCE_DIR}/src/utils/hex.h
-  ${CMAKE_SOURCE_DIR}/src/utils/json.hpp
   ${CMAKE_SOURCE_DIR}/src/utils/merkle.h
   ${CMAKE_SOURCE_DIR}/src/utils/ecdsa.h
   ${CMAKE_SOURCE_DIR}/src/utils/randomgen.h
   ${CMAKE_SOURCE_DIR}/src/utils/tx.h
   ${CMAKE_SOURCE_DIR}/src/utils/block.h
   ${CMAKE_SOURCE_DIR}/src/utils/options.h
-  ${CMAKE_SOURCE_DIR}/src/utils/meta_all.hpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.h
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.h
   ${CMAKE_SOURCE_DIR}/src/utils/logger.h

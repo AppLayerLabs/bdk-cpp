@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "options.h"
 
 Options::Options(
@@ -5,9 +12,9 @@ Options::Options(
   const uint64_t& version, const uint64_t& chainID,
   const uint16_t& wsPort, const uint16_t& httpPort,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes
-) : rootPath(rootPath), web3clientVersion(web3clientVersion),
-  version(version), chainID(chainID), wsPort(wsPort),
-  httpPort(httpPort), coinbase(Address()), isValidator(false), discoveryNodes(discoveryNodes)
+) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
+  version_(version), chainID_(chainID), wsPort_(wsPort),
+  httpPort_(httpPort), coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes)
 {
   json options;
   if (std::filesystem::exists(rootPath + "/options.json")) return;
@@ -24,7 +31,7 @@ Options::Options(
       {"port", port}
     }));
   }
-  options["isValidator"] = isValidator;
+  options["isValidator"] = this->isValidator_;
   std::filesystem::create_directories(rootPath);
   std::ofstream o(rootPath + "/options.json");
   o << options.dump(2) << std::endl;
@@ -37,10 +44,10 @@ Options::Options(
   const uint16_t& wsPort, const uint16_t& httpPort,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const PrivKey& privKey
-) : rootPath(rootPath), web3clientVersion(web3clientVersion),
-  version(version), chainID(chainID), wsPort(wsPort),
-  httpPort(httpPort), discoveryNodes(discoveryNodes), coinbase(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
-  isValidator(true)
+) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
+  version_(version), chainID_(chainID), wsPort_(wsPort),
+  httpPort_(httpPort), discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
+  isValidator_(true)
 {
   if (std::filesystem::exists(rootPath + "/options.json")) return;
   json options;
@@ -66,7 +73,7 @@ Options::Options(
 
 const PrivKey Options::getValidatorPrivKey() const {
   json options;
-  std::ifstream i(rootPath + "/options.json");
+  std::ifstream i(rootPath_ + "/options.json");
   i >> options;
   i.close();
   if (options.contains("privKey")) {

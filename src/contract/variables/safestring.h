@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef SAFESTRING_H
 #define SAFESTRING_H
 
@@ -13,12 +20,12 @@
  */
 class SafeString : SafeBase {
   private:
-    std::string str;  ///< Value.
-    mutable std::unique_ptr<std::string> strPtr; ///< Pointer to the value. check() requires this to be mutable.
+    std::string str_;  ///< Value.
+    mutable std::unique_ptr<std::string> strPtr_; ///< Pointer to the value. check() requires this to be mutable.
 
     /// Check if the pointer is initialized (and initialize it if not).
     void check() const override {
-      if (strPtr == nullptr) strPtr = std::make_unique<std::string>(str);
+      if (strPtr_ == nullptr) strPtr_ = std::make_unique<std::string>(str_);
     }
 
   public:
@@ -28,36 +35,36 @@ class SafeString : SafeBase {
      * @param str The initial value. Defaults to an empty string.
      */
     SafeString(DynamicContract *owner, const std::string& str = std::string())
-      : SafeBase(owner), strPtr(std::make_unique<std::string>(str))
+      : SafeBase(owner), strPtr_(std::make_unique<std::string>(str))
     {};
 
     /// Empty constructor. Initializes an empty string.
-    SafeString() : SafeBase(nullptr), strPtr(std::make_unique<std::string>()) {};
+    SafeString() : SafeBase(nullptr), strPtr_(std::make_unique<std::string>()) {};
 
     /**
      * Non-owning constructor.
      * @param str The string initial value.
      */
     explicit SafeString(const std::string& str)
-      : SafeBase(nullptr), strPtr(std::make_unique<std::string>(str))
+      : SafeBase(nullptr), strPtr_(std::make_unique<std::string>(str))
     {};
 
     /// Copy constructor.
     SafeString(const SafeString& other) : SafeBase(nullptr) {
-      other.check(); strPtr = std::make_unique<std::string>(*other.strPtr);
+      other.check(); strPtr_ = std::make_unique<std::string>(*other.strPtr_);
     }
 
     /// Getter for the value. Returns the value from the pointer.
-    inline const std::string& get() const { check(); return *strPtr; }
+    inline const std::string& get() const { check(); return *strPtr_; }
 
     /**
      * Commit the value. Updates the value from the pointer, nullifies it and
      * unregisters the variable.
      */
-    inline void commit() override { check(); str = *strPtr; registered = false; }
+    inline void commit() override { check(); str_ = *strPtr_; registered_ = false; }
 
     /// Revert the value. Nullifies the pointer and unregisters the variable.
-    inline void revert() const override { strPtr = nullptr; registered = false; }
+    inline void revert() const override { strPtr_ = nullptr; registered_ = false; }
 
     /**
      * Assign a new value from a number of chars.
@@ -68,7 +75,7 @@ class SafeString : SafeBase {
     inline SafeString& assign(size_t count, char ch) {
       check();
       markAsUsed();
-      strPtr->assign(count, ch);
+      strPtr_->assign(count, ch);
       return *this;
     }
 
@@ -80,7 +87,7 @@ class SafeString : SafeBase {
     inline SafeString& assign(const SafeString& str) {
       check();
       markAsUsed();
-      strPtr->assign(str.get());
+      strPtr_->assign(str.get());
       return *this;
     }
 
@@ -96,7 +103,7 @@ class SafeString : SafeBase {
     inline SafeString& assign(const SafeString& str, size_t pos, size_t count = std::string::npos) {
       check();
       markAsUsed();
-      strPtr->assign(str.get(), pos, count);
+      strPtr_->assign(str.get(), pos, count);
       return *this;
     }
 
@@ -109,7 +116,7 @@ class SafeString : SafeBase {
     inline SafeString& assign(const char* s, size_t count) {
       check();
       markAsUsed();
-      strPtr->assign(s, count);
+      strPtr_->assign(s, count);
       return *this;
     }
 
@@ -121,7 +128,7 @@ class SafeString : SafeBase {
     inline SafeString& assign(const char* s) {
       check();
       markAsUsed();
-      strPtr->assign(s);
+      strPtr_->assign(s);
       return *this;
     }
 
@@ -134,7 +141,7 @@ class SafeString : SafeBase {
     template <class InputIt> inline SafeString& assign(InputIt first, InputIt last) {
       check();
       markAsUsed();
-      strPtr->assign(first, last);
+      strPtr_->assign(first, last);
       return *this;
     }
 
@@ -146,7 +153,7 @@ class SafeString : SafeBase {
     inline SafeString& assign(std::initializer_list<char> ilist) {
       check();
       markAsUsed();
-      strPtr->assign(ilist);
+      strPtr_->assign(ilist);
       return *this;
     }
 
@@ -155,82 +162,82 @@ class SafeString : SafeBase {
      * @param pos The position of the character.
      * @return The requsted character.
      */
-    inline char& at(size_t pos) { check(); markAsUsed(); return strPtr->at(pos); }
+    inline char& at(size_t pos) { check(); markAsUsed(); return strPtr_->at(pos); }
 
     /// Const overload for at().
-    inline const char& at(size_t pos) const { check(); return strPtr->at(pos); }
+    inline const char& at(size_t pos) const { check(); return strPtr_->at(pos); }
 
     /// Get the first character from the string.
-    inline char& front() { check(); markAsUsed(); return strPtr->front(); }
+    inline char& front() { check(); markAsUsed(); return strPtr_->front(); }
 
     /// Const overload for front().
-    inline const char& front() const { check(); return strPtr->front(); }
+    inline const char& front() const { check(); return strPtr_->front(); }
 
     /// Get the last character from the string.
-    inline char& back() { check(); markAsUsed(); return strPtr->back(); }
+    inline char& back() { check(); markAsUsed(); return strPtr_->back(); }
 
     /// Const overload for back().
-    inline const char& back() const { check(); return strPtr->back(); }
+    inline const char& back() const { check(); return strPtr_->back(); }
 
     /// Get the value from the pointer as a NULL-terminated C-style string.
-    inline const char* c_str() const { check(); return strPtr->c_str(); }
+    inline const char* c_str() const { check(); return strPtr_->c_str(); }
 
     /// Get the value from the pointer.
-    inline const char* data() const { check(); return strPtr->data(); }
+    inline const char* data() const { check(); return strPtr_->data(); }
 
     /// Get an iterator to the start of the string.
-    inline std::string::iterator begin() { check(); markAsUsed(); return strPtr->begin(); }
+    inline std::string::iterator begin() { check(); markAsUsed(); return strPtr_->begin(); }
 
     /// Get a const iterator to the start of the string.
-    inline std::string::const_iterator cbegin() const { check(); return strPtr->cbegin(); }
+    inline std::string::const_iterator cbegin() const { check(); return strPtr_->cbegin(); }
 
     /// Get an iterator to the end of the string.
-    inline std::string::iterator end() { check(); markAsUsed(); return strPtr->end(); }
+    inline std::string::iterator end() { check(); markAsUsed(); return strPtr_->end(); }
 
     /// Get a const iterator to the end of the string.
-    inline std::string::const_iterator cend() const { check(); return strPtr->cend(); }
+    inline std::string::const_iterator cend() const { check(); return strPtr_->cend(); }
 
     /// Get a reverse iterator to the start of a string.
-    inline std::string::reverse_iterator rbegin() { check(); markAsUsed(); return strPtr->rbegin(); }
+    inline std::string::reverse_iterator rbegin() { check(); markAsUsed(); return strPtr_->rbegin(); }
 
     /// Get a const reverse iterator to the start of a string.
-    inline std::string::const_reverse_iterator crbegin() { check(); return strPtr->crbegin(); }
+    inline std::string::const_reverse_iterator crbegin() { check(); return strPtr_->crbegin(); }
 
     /// Get a reverse iterator to the end of a string.
-    inline std::string::reverse_iterator rend() { check(); markAsUsed(); return strPtr->rend(); }
+    inline std::string::reverse_iterator rend() { check(); markAsUsed(); return strPtr_->rend(); }
 
     /// Get a const reverse iterator to the end of a string.
-    inline std::string::const_reverse_iterator crend() { check(); return strPtr->crend(); }
+    inline std::string::const_reverse_iterator crend() { check(); return strPtr_->crend(); }
 
     /**
      * Check if the string is empty (has no characters, aka "").
      * @return `true` if string is empty, `false` otherwise.
      */
-    inline bool empty() const { check(); return strPtr->empty(); }
+    inline bool empty() const { check(); return strPtr_->empty(); }
 
     /// Get the number of characters in the string.
-    inline size_t size() const { check(); return strPtr->size(); }
+    inline size_t size() const { check(); return strPtr_->size(); }
 
     /// Same as size().
-    inline size_t length() const { check(); return strPtr->length(); }
+    inline size_t length() const { check(); return strPtr_->length(); }
 
     /// Get the maximum number of characters the string can hold
-    inline size_t max_size() const { check(); return strPtr->max_size(); }
+    inline size_t max_size() const { check(); return strPtr_->max_size(); }
 
     /**
      * Increase the capacity of the string (how many characters it can hold).
      * @param newcap The new string capacity.
      */
-    inline void reserve(size_t newcap) { check(); markAsUsed(); strPtr->reserve(newcap); }
+    inline void reserve(size_t newcap) { check(); markAsUsed(); strPtr_->reserve(newcap); }
 
     /// Get the number of characters that can be held in the currently allocated string.
-    inline size_t capacity() const { check(); return strPtr->capacity(); }
+    inline size_t capacity() const { check(); return strPtr_->capacity(); }
 
     /// Shrink the string to remove unused capacity.
-    inline void shrink_to_fit() { check(); markAsUsed(); strPtr->shrink_to_fit(); }
+    inline void shrink_to_fit() { check(); markAsUsed(); strPtr_->shrink_to_fit(); }
 
     /// Clear the contents of the string.
-    inline void clear() { check(); markAsUsed(); strPtr->clear(); }
+    inline void clear() { check(); markAsUsed(); strPtr_->clear(); }
 
     /**
      * Insert characters into the string.
@@ -240,7 +247,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& insert(size_t index, size_t count, char ch) {
-      check(); markAsUsed(); strPtr->insert(index, count, ch); return *this;
+      check(); markAsUsed(); strPtr_->insert(index, count, ch); return *this;
     }
 
     /**
@@ -250,7 +257,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& insert(size_t index, const char* s) {
-      check(); markAsUsed(); strPtr->insert(index, s); return *this;
+      check(); markAsUsed(); strPtr_->insert(index, s); return *this;
     }
 
     /**
@@ -261,7 +268,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& insert(size_t index, const char* s, size_t count) {
-      check(); markAsUsed(); strPtr->insert(index, s, count); return *this;
+      check(); markAsUsed(); strPtr_->insert(index, s, count); return *this;
     }
 
     /**
@@ -271,7 +278,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& insert(size_t index, const SafeString& str) {
-      check(); markAsUsed(); strPtr->insert(index, str.get()); return *this;
+      check(); markAsUsed(); strPtr_->insert(index, str.get()); return *this;
     }
 
     /**
@@ -281,7 +288,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& insert(size_t index, const std::string& str) {
-      check(); markAsUsed(); strPtr->insert(index, str); return *this;
+      check(); markAsUsed(); strPtr_->insert(index, str); return *this;
     }
 
     /**
@@ -295,7 +302,7 @@ class SafeString : SafeBase {
     inline SafeString& insert(
       size_t index, const SafeString& str, size_t index_str, size_t count = std::string::npos
     ) {
-      check(); markAsUsed(); strPtr->insert(index, str.get(), index_str, count); return *this;
+      check(); markAsUsed(); strPtr_->insert(index, str.get(), index_str, count); return *this;
     }
 
     /**
@@ -309,7 +316,7 @@ class SafeString : SafeBase {
     inline SafeString& insert(
       size_t index, const std::string& str, size_t index_str, size_t count = std::string::npos
     ) {
-      check(); markAsUsed(); strPtr->insert(index, str, index_str, count); return *this;
+      check(); markAsUsed(); strPtr_->insert(index, str, index_str, count); return *this;
     }
 
     /**
@@ -319,7 +326,7 @@ class SafeString : SafeBase {
      * @return An iterator that points to the inserted character.
      */
     inline std::string::iterator insert(std::string::const_iterator pos, char ch) {
-      check(); markAsUsed(); return strPtr->insert(pos, ch);
+      check(); markAsUsed(); return strPtr_->insert(pos, ch);
     }
 
     /**
@@ -330,7 +337,7 @@ class SafeString : SafeBase {
      * @return An iterator that points to the first inserted character.
      */
     inline std::string::iterator insert(std::string::const_iterator pos, size_t count, char ch) {
-      check(); markAsUsed(); return strPtr->insert(pos, count, ch);
+      check(); markAsUsed(); return strPtr_->insert(pos, count, ch);
     }
 
     /**
@@ -343,7 +350,7 @@ class SafeString : SafeBase {
     template <class InputIt> inline std::string::iterator insert(
       std::string::const_iterator pos, InputIt first, InputIt last
     ) {
-      check(); markAsUsed(); return strPtr->insert(pos, first, last);
+      check(); markAsUsed(); return strPtr_->insert(pos, first, last);
     }
 
     /**
@@ -355,7 +362,7 @@ class SafeString : SafeBase {
     inline std::string::iterator insert(
       std::string::const_iterator pos, std::initializer_list<char> ilist
     ) {
-      check(); markAsUsed(); return strPtr->insert(pos, ilist);
+      check(); markAsUsed(); return strPtr_->insert(pos, ilist);
     }
 
     /**
@@ -365,7 +372,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& erase(size_t index = 0, size_t count = std::string::npos) {
-      check(); markAsUsed(); strPtr->erase(index, count); return *this;
+      check(); markAsUsed(); strPtr_->erase(index, count); return *this;
     }
 
     /**
@@ -374,7 +381,7 @@ class SafeString : SafeBase {
      * @return An iterator that points to the character immediately following the erased character.
      */
     inline std::string::iterator erase(std::string::const_iterator position) {
-      check(); markAsUsed(); return strPtr->erase(position);
+      check(); markAsUsed(); return strPtr_->erase(position);
     }
 
     /**
@@ -387,17 +394,17 @@ class SafeString : SafeBase {
     inline std::string::iterator erase(
       std::string::const_iterator first, std::string::const_iterator last
     ) {
-      check(); markAsUsed(); return strPtr->erase(first, last);
+      check(); markAsUsed(); return strPtr_->erase(first, last);
     }
 
     /**
      * Append a character to the end of the string.
      * @param ch The character to append.
      */
-    inline void push_back(char ch) { check(); markAsUsed(); strPtr->push_back(ch); }
+    inline void push_back(char ch) { check(); markAsUsed(); strPtr_->push_back(ch); }
 
     /// Remove the last character from the string.
-    inline void pop_back() { check(); markAsUsed(); strPtr->pop_back(); }
+    inline void pop_back() { check(); markAsUsed(); strPtr_->pop_back(); }
 
     /**
      * Append a number of characters to the end of the string.
@@ -406,7 +413,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& append(size_t count, char ch) {
-      check(); markAsUsed(); strPtr->append(count, ch); return *this;
+      check(); markAsUsed(); strPtr_->append(count, ch); return *this;
     }
 
     /**
@@ -415,7 +422,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& append(const SafeString& str) {
-      check(); markAsUsed(); strPtr->append(str.get()); return *this;
+      check(); markAsUsed(); strPtr_->append(str.get()); return *this;
     }
 
     /**
@@ -424,7 +431,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& append(const std::string& str) {
-      check(); markAsUsed(); strPtr->append(str); return *this;
+      check(); markAsUsed(); strPtr_->append(str); return *this;
     }
 
     /**
@@ -437,7 +444,7 @@ class SafeString : SafeBase {
     inline SafeString& append(
       const SafeString& str, size_t pos, size_t count = std::string::npos
     ) {
-      check(); markAsUsed(); strPtr->append(str.get(), pos, count); return *this;
+      check(); markAsUsed(); strPtr_->append(str.get(), pos, count); return *this;
     }
 
     /**
@@ -450,7 +457,7 @@ class SafeString : SafeBase {
     inline SafeString& append(
       const std::string& str, size_t pos, size_t count = std::string::npos
     ) {
-      check(); markAsUsed(); strPtr->append(str, pos, count); return *this;
+      check(); markAsUsed(); strPtr_->append(str, pos, count); return *this;
     }
 
     /**
@@ -460,7 +467,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& append(const char* s, size_t count) {
-      check(); markAsUsed(); strPtr->append(s, count); return *this;
+      check(); markAsUsed(); strPtr_->append(s, count); return *this;
     }
 
     /**
@@ -469,7 +476,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& append(const char* s) {
-      check(); markAsUsed(); strPtr->append(s); return *this;
+      check(); markAsUsed(); strPtr_->append(s); return *this;
     }
 
     /**
@@ -480,7 +487,7 @@ class SafeString : SafeBase {
      */
     template <class InputIt>
     inline SafeString& append(InputIt first, InputIt last) {
-      check(); markAsUsed(); strPtr->append(first, last); return *this;
+      check(); markAsUsed(); strPtr_->append(first, last); return *this;
     }
 
     /**
@@ -489,7 +496,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& append(std::initializer_list<char> ilist) {
-      check(); markAsUsed(); strPtr->append(ilist); return *this;
+      check(); markAsUsed(); strPtr_->append(ilist); return *this;
     }
 
     /**
@@ -498,7 +505,7 @@ class SafeString : SafeBase {
      * @return An integer less than, equal to, or greater than zero if the string
      * is less than, equal to, or greater than the compared string, respectively.
      */
-    inline int compare(const SafeString& str) const { check(); return strPtr->compare(str.get()); }
+    inline int compare(const SafeString& str) const { check(); return strPtr_->compare(str.get()); }
 
     /**
      * Compare the string to another string.
@@ -506,7 +513,7 @@ class SafeString : SafeBase {
      * @return An integer less than, equal to, or greater than zero if the string
      * is less than, equal to, or greater than the compared string, respectively.
      */
-    inline int compare(const std::string& str) const { check(); return strPtr->compare(str); }
+    inline int compare(const std::string& str) const { check(); return strPtr_->compare(str); }
 
     /**
      * Compare the string to another SafeString substring.
@@ -517,7 +524,7 @@ class SafeString : SafeBase {
      * is less than, equal to, or greater than the compared string, respectively.
      */
     inline int compare(size_t pos, size_t count, const SafeString& str) const {
-      check(); return strPtr->compare(pos, count, str.get());
+      check(); return strPtr_->compare(pos, count, str.get());
     }
 
     /**
@@ -529,7 +536,7 @@ class SafeString : SafeBase {
      * is less than, equal to, or greater than the compared string, respectively.
      */
     inline int compare(size_t pos, size_t count, const std::string& str) const {
-      check(); return strPtr->compare(pos, count, str);
+      check(); return strPtr_->compare(pos, count, str);
     }
 
     /**
@@ -547,7 +554,7 @@ class SafeString : SafeBase {
       size_t pos1, size_t count1, const SafeString& str,
       size_t pos2, size_t count2 = std::string::npos
     ) const {
-      check(); return strPtr->compare(pos1, count1, str.get(), pos2, count2);
+      check(); return strPtr_->compare(pos1, count1, str.get(), pos2, count2);
     }
 
     /**
@@ -564,7 +571,7 @@ class SafeString : SafeBase {
       size_t pos1, size_t count1, const std::string& str,
       size_t pos2, size_t count2 = std::string::npos
     ) const {
-      check(); return strPtr->compare(pos1, count1, str, pos2, count2);
+      check(); return strPtr_->compare(pos1, count1, str, pos2, count2);
     }
 
     /**
@@ -573,7 +580,7 @@ class SafeString : SafeBase {
      * @return An integer less than, equal to, or greater than zero if the string
      * is less than, equal to, or greater than the compared string, respectively.
      */
-    inline int compare(const char* s) const { check(); return strPtr->compare(s); }
+    inline int compare(const char* s) const { check(); return strPtr_->compare(s); }
 
     /**
      * Compare the string to another C-style substring.
@@ -584,7 +591,7 @@ class SafeString : SafeBase {
      * is less than, equal to, or greater than the compared string, respectively.
      */
     inline int compare(size_t pos, size_t count, const char* s) const {
-      check(); return strPtr->compare(pos, count, s);
+      check(); return strPtr_->compare(pos, count, s);
     }
 
     /**constexpr int compare( size_type pos1, size_type count1,const CharT* s,
@@ -604,7 +611,7 @@ class SafeString : SafeBase {
      * is less than, equal to, or greater than the compared string, respectively.
      */
     inline int compare(size_t pos1, size_t count1, const char* s, size_t count2) const {
-      check(); return strPtr->compare(pos1, count1, s, count2);
+      check(); return strPtr_->compare(pos1, count1, s, count2);
     }
 
     /**
@@ -612,42 +619,42 @@ class SafeString : SafeBase {
      * @param sv The substring to check for.
      * @return `true` if there's a match, `false` otherwise.
      */
-    inline bool starts_with(const std::string& sv) const { check(); return strPtr->starts_with(sv); }
+    inline bool starts_with(const std::string& sv) const { check(); return strPtr_->starts_with(sv); }
 
     /**
      * Check if the string starts with a given character.
      * @param ch The character to check for.
      * @return `true` if there's a match, `false` otherwise.
      */
-    inline bool starts_with(char ch) const { check(); return strPtr->starts_with(ch); }
+    inline bool starts_with(char ch) const { check(); return strPtr_->starts_with(ch); }
 
     /**
      * Check if the string starts with a given C-style substring.
      * @param s The substring to check for.
      * @return `true` if there's a match, `false` otherwise.
      */
-    inline bool starts_with(const char* s) const { check(); return strPtr->starts_with(s); }
+    inline bool starts_with(const char* s) const { check(); return strPtr_->starts_with(s); }
 
     /**
      * Check if the string ends with a given substring.
      * @param sv The substring to check for.
      * @return `true` if there's a match, `false` otherwise.
      */
-    inline bool ends_with(const std::string& sv) const { check(); return strPtr->ends_with(sv); }
+    inline bool ends_with(const std::string& sv) const { check(); return strPtr_->ends_with(sv); }
 
     /**
      * Check if the string ends with a given character.
      * @param ch The character to check for.
      * @return `true` if there's a match, `false` otherwise.
      */
-    inline bool ends_with(char ch) const { check(); return strPtr->ends_with(ch); }
+    inline bool ends_with(char ch) const { check(); return strPtr_->ends_with(ch); }
 
     /**
      * Check if the string ends with a given C-style substring.
      * @param s The substring to check for.
      * @return `true` if there's a match, `false` otherwise.
      */
-    inline bool ends_with(const char* s) const { check(); return strPtr->ends_with(s); }
+    inline bool ends_with(const char* s) const { check(); return strPtr_->ends_with(s); }
 
     // TODO: contains (C++23)
     // constexpr bool contains( std::basic_string_view<CharT,Traits> sv ) const noexcept;
@@ -660,7 +667,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& replace(size_t pos, size_t count, const SafeString& str) {
-      check(); markAsUsed(); strPtr->replace(pos, count, str.get()); return *this;
+      check(); markAsUsed(); strPtr_->replace(pos, count, str.get()); return *this;
     }
 
     /**
@@ -671,7 +678,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& replace(size_t pos, size_t count, const std::string& str) {
-      check(); markAsUsed(); strPtr->replace(pos, count, str); return *this;
+      check(); markAsUsed(); strPtr_->replace(pos, count, str); return *this;
     }
 
     /**
@@ -684,7 +691,7 @@ class SafeString : SafeBase {
     inline SafeString& replace(
       std::string::const_iterator first, std::string::const_iterator last, const SafeString& str
     ) {
-      check(); markAsUsed(); strPtr->replace(first, last, str.get()); return *this;
+      check(); markAsUsed(); strPtr_->replace(first, last, str.get()); return *this;
     }
 
     /**
@@ -697,7 +704,7 @@ class SafeString : SafeBase {
     inline SafeString& replace(
       std::string::const_iterator first, std::string::const_iterator last, const std::string& str
     ) {
-      check(); markAsUsed(); strPtr->replace(first, last, str); return *this;
+      check(); markAsUsed(); strPtr_->replace(first, last, str); return *this;
     }
 
     /**
@@ -712,7 +719,7 @@ class SafeString : SafeBase {
     inline SafeString& replace(
       size_t pos, size_t count, const SafeString& str, size_t pos2, size_t count2 = std::string::npos
     ) {
-      check(); markAsUsed(); strPtr->replace(pos, count, str.get(), pos2, count2); return *this;
+      check(); markAsUsed(); strPtr_->replace(pos, count, str.get(), pos2, count2); return *this;
     }
 
     /**
@@ -727,7 +734,7 @@ class SafeString : SafeBase {
     inline SafeString& replace(
       size_t pos, size_t count, const std::string& str, size_t pos2, size_t count2 = std::string::npos
     ) {
-      check(); markAsUsed(); strPtr->replace(pos, count, str, pos2, count2); return *this;
+      check(); markAsUsed(); strPtr_->replace(pos, count, str, pos2, count2); return *this;
     }
 
     /**
@@ -742,7 +749,7 @@ class SafeString : SafeBase {
       std::string::const_iterator first, std::string::const_iterator last,
       InputIt first2, InputIt last2
     ) {
-      check(); markAsUsed(); strPtr->replace(first, last, first2, last2); return *this;
+      check(); markAsUsed(); strPtr_->replace(first, last, first2, last2); return *this;
     }
 
     /**
@@ -754,7 +761,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& replace(size_t pos, size_t count, const char* cstr, size_t count2) {
-      check(); strPtr->replace(pos, count, cstr, count2); markAsUsed(); return *this;
+      check(); strPtr_->replace(pos, count, cstr, count2); markAsUsed(); return *this;
     }
 
     /**
@@ -769,7 +776,7 @@ class SafeString : SafeBase {
       std::string::const_iterator first, std::string::const_iterator last,
       const char* cstr, size_t count
     ) {
-      check(); markAsUsed(); strPtr->replace(first, last, cstr, count); return *this;
+      check(); markAsUsed(); strPtr_->replace(first, last, cstr, count); return *this;
     }
 
     /**
@@ -780,7 +787,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& replace(size_t pos, size_t count, const char* cstr) {
-      check(); markAsUsed(); strPtr->replace(pos, count, cstr); return *this;
+      check(); markAsUsed(); strPtr_->replace(pos, count, cstr); return *this;
     }
 
     /**
@@ -793,7 +800,7 @@ class SafeString : SafeBase {
     inline SafeString& replace(
       std::string::const_iterator first, std::string::const_iterator last, const char* cstr
     ) {
-      check(); markAsUsed(); strPtr->replace(first, last, cstr); return *this;
+      check(); markAsUsed(); strPtr_->replace(first, last, cstr); return *this;
     }
 
     /**
@@ -805,7 +812,7 @@ class SafeString : SafeBase {
      * @return The new value.
      */
     inline SafeString& replace(size_t pos, size_t count, size_t count2, char ch) {
-      check(); markAsUsed(); strPtr->replace(pos, count, count2, ch); return *this;
+      check(); markAsUsed(); strPtr_->replace(pos, count, count2, ch); return *this;
     }
 
     /**
@@ -820,7 +827,7 @@ class SafeString : SafeBase {
       std::string::const_iterator first, std::string::const_iterator last,
       size_t count, char ch
     ) {
-      check(); markAsUsed(); strPtr->replace(first, last, count, ch); return *this;
+      check(); markAsUsed(); strPtr_->replace(first, last, count, ch); return *this;
     }
 
     /**
@@ -834,7 +841,7 @@ class SafeString : SafeBase {
       std::string::const_iterator first, std::string::const_iterator last,
       std::initializer_list<char> ilist
     ) {
-      check(); markAsUsed(); strPtr->replace(first, last, ilist); return *this;
+      check(); markAsUsed(); strPtr_->replace(first, last, ilist); return *this;
     }
 
     /**
@@ -844,7 +851,7 @@ class SafeString : SafeBase {
      * @return The substring itself.
      */
     inline SafeString substr(size_t pos = 0, size_t count = std::string::npos) const {
-      check(); return SafeString(strPtr->substr(pos, count));
+      check(); return SafeString(strPtr_->substr(pos, count));
     }
 
     /**
@@ -855,28 +862,28 @@ class SafeString : SafeBase {
      * @return The number of characters that were copied.
      */
     inline size_t copy(char* dest, size_t count, size_t pos = 0) const {
-      check(); return strPtr->copy(dest, count, pos);
+      check(); return strPtr_->copy(dest, count, pos);
     }
 
     /**
      * Resize the string.
      * @param count The new size of the string.
      */
-    inline void resize(size_t count) { check(); markAsUsed(); strPtr->resize(count); }
+    inline void resize(size_t count) { check(); markAsUsed(); strPtr_->resize(count); }
 
     /**
      * Resize the safe string and fill the extra space with a given character.
      * @param count The new size of the string.
      * @param ch The character to use as filling.
      */
-    inline void resize(size_t count, char ch) { check(); markAsUsed(); strPtr->resize(count, ch); }
+    inline void resize(size_t count, char ch) { check(); markAsUsed(); strPtr_->resize(count, ch); }
 
     /**
      * Swap the contents of this string with another SafeString.
      * @param other The string to swap with.
      */
     inline void swap(SafeString& other) {
-      check(); other.check(); markAsUsed(); other.markAsUsed(); strPtr.swap(other.strPtr);
+      check(); other.check(); markAsUsed(); other.markAsUsed(); strPtr_.swap(other.strPtr_);
     }
 
     /**
@@ -886,7 +893,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find(const SafeString& str, size_t pos = 0) const {
-      check(); return strPtr->find(str.get(), pos);
+      check(); return strPtr_->find(str.get(), pos);
     }
 
     /**
@@ -896,7 +903,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find(const std::string& str, size_t pos = 0) const {
-      check(); return strPtr->find(str, pos);
+      check(); return strPtr_->find(str, pos);
     }
 
     /**
@@ -907,7 +914,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find(const char* s, size_t pos, size_t count) const {
-      check(); return strPtr->find(s, pos, count);
+      check(); return strPtr_->find(s, pos, count);
     }
 
     /**
@@ -917,7 +924,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find(const char* s, size_t pos = 0) const {
-      check(); return strPtr->find(s, pos);
+      check(); return strPtr_->find(s, pos);
     }
 
     /**
@@ -927,7 +934,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find(char ch, size_t pos = 0) const {
-      check(); return strPtr->find(ch, pos);
+      check(); return strPtr_->find(ch, pos);
     }
 
     /**
@@ -937,7 +944,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t rfind(const SafeString& str, size_t pos = std::string::npos) const {
-      check(); return strPtr->rfind(str.get(), pos);
+      check(); return strPtr_->rfind(str.get(), pos);
     }
 
     /**
@@ -947,7 +954,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t rfind(const std::string& str, size_t pos = std::string::npos) const {
-      check(); return strPtr->rfind(str, pos);
+      check(); return strPtr_->rfind(str, pos);
     }
 
     /**
@@ -958,7 +965,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t rfind(const char* s, size_t pos, size_t count) const {
-      check(); return strPtr->rfind(s, pos, count);
+      check(); return strPtr_->rfind(s, pos, count);
     }
 
     /**
@@ -968,7 +975,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t rfind(const char* s, size_t pos = std::string::npos) const {
-      check(); return strPtr->rfind(s, pos);
+      check(); return strPtr_->rfind(s, pos);
     }
 
     /**
@@ -978,7 +985,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t rfind(char ch, size_t pos = std::string::npos) const {
-      check(); return strPtr->rfind(ch, pos);
+      check(); return strPtr_->rfind(ch, pos);
     }
 
     /**
@@ -988,7 +995,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_of(const SafeString& str, size_t pos = 0) const {
-      check(); return strPtr->find_first_of(str.get(), pos);
+      check(); return strPtr_->find_first_of(str.get(), pos);
     }
 
     /**
@@ -998,7 +1005,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_of(const std::string& str, size_t pos = 0) const {
-      check(); return strPtr->find_first_of(str, pos);
+      check(); return strPtr_->find_first_of(str, pos);
     }
 
     /**
@@ -1009,7 +1016,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_of(const char* s, size_t pos, size_t count) const {
-      check(); return strPtr->find_first_of(s, pos, count);
+      check(); return strPtr_->find_first_of(s, pos, count);
     }
 
     /**
@@ -1019,7 +1026,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_of(const char* s, size_t pos = 0) const {
-      check(); return strPtr->find_first_of(s, pos);
+      check(); return strPtr_->find_first_of(s, pos);
     }
 
     /**
@@ -1029,7 +1036,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_of(char ch, size_t pos = 0) const {
-      check(); return strPtr->find_first_of(ch, pos);
+      check(); return strPtr_->find_first_of(ch, pos);
     }
 
     /**
@@ -1039,7 +1046,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_not_of(const SafeString& str, size_t pos = 0) const {
-      check(); return strPtr->find_first_not_of(str.get(), pos);
+      check(); return strPtr_->find_first_not_of(str.get(), pos);
     }
 
     /**
@@ -1049,7 +1056,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_not_of(const std::string& str, size_t pos = 0) const {
-      check(); return strPtr->find_first_not_of(str, pos);
+      check(); return strPtr_->find_first_not_of(str, pos);
     }
 
     /**
@@ -1060,7 +1067,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_not_of(const char* s, size_t pos, size_t count) const {
-      check(); return strPtr->find_first_not_of(s, pos, count);
+      check(); return strPtr_->find_first_not_of(s, pos, count);
     }
 
     /**
@@ -1070,7 +1077,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_not_of(const char* s, size_t pos = 0) const {
-      check(); return strPtr->find_first_not_of(s, pos);
+      check(); return strPtr_->find_first_not_of(s, pos);
     }
 
     /**
@@ -1080,7 +1087,7 @@ class SafeString : SafeBase {
      * @return The index of the first occurrence, or std::string::npos if not found.
      */
     inline size_t find_first_not_of(char ch, size_t pos = 0) const {
-      check(); return strPtr->find_first_not_of(ch, pos);
+      check(); return strPtr_->find_first_not_of(ch, pos);
     }
 
     /**
@@ -1090,7 +1097,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_of(const SafeString& str, size_t pos = std::string::npos) const {
-      check(); return strPtr->find_last_of(str.get(), pos);
+      check(); return strPtr_->find_last_of(str.get(), pos);
     }
 
     /**
@@ -1100,7 +1107,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_of(const std::string& str, size_t pos = std::string::npos) const {
-      check(); return strPtr->find_last_of(str, pos);
+      check(); return strPtr_->find_last_of(str, pos);
     }
 
     /**
@@ -1111,7 +1118,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_of(const char* s, size_t pos, size_t count) const {
-      check(); return strPtr->find_last_of(s, pos, count);
+      check(); return strPtr_->find_last_of(s, pos, count);
     }
 
     /**
@@ -1121,7 +1128,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_of(const char* s, size_t pos = std::string::npos) const {
-      check(); return strPtr->find_last_of(s, pos);
+      check(); return strPtr_->find_last_of(s, pos);
     }
 
     /**
@@ -1131,7 +1138,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_of(char ch, size_t pos = std::string::npos) const {
-      check(); return strPtr->find_last_of(ch, pos);
+      check(); return strPtr_->find_last_of(ch, pos);
     }
 
     /**
@@ -1141,7 +1148,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_not_of(const SafeString& str, size_t pos = std::string::npos) const {
-      check(); return strPtr->find_last_not_of(str.get(), pos);
+      check(); return strPtr_->find_last_not_of(str.get(), pos);
     }
 
     /**
@@ -1151,7 +1158,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_not_of(const std::string& str, size_t pos = std::string::npos) const {
-      check(); return strPtr->find_last_not_of(str, pos);
+      check(); return strPtr_->find_last_not_of(str, pos);
     }
 
     /**
@@ -1162,7 +1169,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_not_of(const char* s, size_t pos, size_t count) const {
-      check(); return strPtr->find_last_not_of(s, pos, count);
+      check(); return strPtr_->find_last_not_of(s, pos, count);
     }
 
     /**
@@ -1172,7 +1179,7 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_not_of(const char* s, size_t pos = std::string::npos) const {
-      check(); return strPtr->find_last_not_of(s, pos);
+      check(); return strPtr_->find_last_not_of(s, pos);
     }
 
     /**
@@ -1182,177 +1189,177 @@ class SafeString : SafeBase {
      * @return The index of the last occurrence, or std::string::npos if not found.
      */
     inline size_t find_last_not_of(char ch, size_t pos = std::string::npos) const {
-      check(); return strPtr->find_last_not_of(ch, pos);
+      check(); return strPtr_->find_last_not_of(ch, pos);
     }
 
     /// Assignment operator.
     inline SafeString& operator=(const SafeString& other) {
-      check(); markAsUsed(); *strPtr = other.get(); return *this;
+      check(); markAsUsed(); *strPtr_ = other.get(); return *this;
     }
 
     /// Assignment operator.
     inline SafeString& operator=(const std::string& other) {
-      check(); markAsUsed(); *strPtr = other; return *this;
+      check(); markAsUsed(); *strPtr_ = other; return *this;
     }
 
     /// Assignment operator.
     inline SafeString& operator=(const char* s) {
-      check(); markAsUsed(); *strPtr = s; return *this;
+      check(); markAsUsed(); *strPtr_ = s; return *this;
     }
 
     /// Assignment operator.
     inline SafeString& operator=(char ch) {
-      check(); markAsUsed(); *strPtr = ch; return *this;
+      check(); markAsUsed(); *strPtr_ = ch; return *this;
     }
 
     /// Assignment operator.
     inline SafeString& operator=(std::initializer_list<char> ilist) {
-      check(); markAsUsed(); *strPtr = ilist; return *this;
+      check(); markAsUsed(); *strPtr_ = ilist; return *this;
     }
 
     /// Compound assignment operator.
     inline SafeString& operator+=(const SafeString& str) {
-      check(); markAsUsed(); strPtr->operator+=(str.get()); return *this;
+      check(); markAsUsed(); strPtr_->operator+=(str.get()); return *this;
     }
 
     /// Compound assignment operator.
     inline SafeString& operator+=(const std::string& str) {
-      check(); markAsUsed(); strPtr->operator+=(str); return *this;
+      check(); markAsUsed(); strPtr_->operator+=(str); return *this;
     }
 
     /// Compound assignment operator.
     inline SafeString& operator+=(char ch) {
-      check(); markAsUsed(); strPtr->operator+=(ch); return *this;
+      check(); markAsUsed(); strPtr_->operator+=(ch); return *this;
     }
 
     /// Compound assignment operator.
     inline SafeString& operator+=(const char* s) {
-      check(); markAsUsed(); strPtr->operator+=(s); return *this;
+      check(); markAsUsed(); strPtr_->operator+=(s); return *this;
     }
 
     /// Compound assignment operator.
     inline SafeString& operator+=(std::initializer_list<char> ilist) {
-      check(); markAsUsed(); strPtr->operator+=(ilist); return *this;
+      check(); markAsUsed(); strPtr_->operator+=(ilist); return *this;
     }
 
     /// Subscript/Indexing operator.
     inline char& operator[](size_t pos) {
-      check(); markAsUsed(); return strPtr->operator[](pos);
+      check(); markAsUsed(); return strPtr_->operator[](pos);
     }
 
     /// Subscript/Indexing operator.
     inline const char& operator[](size_t pos) const {
-      check(); return strPtr->operator[](pos);
+      check(); return strPtr_->operator[](pos);
     }
 
     /// Concat operator.
     inline SafeString operator+(const SafeString& rhs) const {
-      check(); return SafeString(*strPtr + rhs.get());
+      check(); return SafeString(*strPtr_ + rhs.get());
     };
 
     /// Concat operator.
     inline SafeString operator+(const std::string rhs) const {
-      check(); return SafeString(*strPtr + rhs);
+      check(); return SafeString(*strPtr_ + rhs);
     };
 
     /// Concat operator.
     inline SafeString operator+(const char* rhs) const {
-      check(); return SafeString(*strPtr + rhs);
+      check(); return SafeString(*strPtr_ + rhs);
     };
 
     /// Concat operator.
     inline SafeString operator+(char rhs) const {
-      check(); return SafeString(*strPtr + rhs);
+      check(); return SafeString(*strPtr_ + rhs);
     };
 
     /// Equality operator.
     inline bool operator==(const SafeString& rhs) const {
-      check(); return *strPtr == rhs.get();
+      check(); return *strPtr_ == rhs.get();
     };
 
     /// Equality operator.
     inline bool operator==(const std::string& rhs) const {
-      check(); return *strPtr == rhs;
+      check(); return *strPtr_ == rhs;
     };
 
     /// Equality operator.
     inline bool operator==(const char* rhs) const {
-      check(); return *strPtr == rhs;
+      check(); return *strPtr_ == rhs;
     };
 
     /// Inequality operator.
     inline bool operator!=(const SafeString& rhs) const {
-      check(); return *strPtr != rhs.get();
+      check(); return *strPtr_ != rhs.get();
     };
 
     /// Inequality operator.
     inline bool operator!=(const std::string& rhs) const {
-      check(); return *strPtr != rhs;
+      check(); return *strPtr_ != rhs;
     };
 
     /// Inequality operator.
     inline bool operator!=(const char* rhs) const {
-      check(); return *strPtr != rhs;
+      check(); return *strPtr_ != rhs;
     };
 
     /// Lesser comparison operator.
     inline bool operator<(const SafeString& rhs) const {
-      check(); return *strPtr < rhs.get();
+      check(); return *strPtr_ < rhs.get();
     };
 
     /// Lesser comparison operator.
     inline bool operator<(const std::string& rhs) const {
-      check(); return *strPtr < rhs;
+      check(); return *strPtr_ < rhs;
     };
 
     /// Lesser comparison operator.
     inline bool operator<(const char* rhs) const {
-      check(); return *strPtr < rhs;
+      check(); return *strPtr_ < rhs;
     };
 
     /// Greater comparison operator.
     inline bool operator>(const SafeString& rhs) const {
-      check(); return *strPtr > rhs.get();
+      check(); return *strPtr_ > rhs.get();
     };
 
     /// Greater comparison operator.
     inline bool operator>(const std::string& rhs) const {
-      check(); return *strPtr > rhs;
+      check(); return *strPtr_ > rhs;
     };
 
     /// Greater comparison operator.
     inline bool operator>(const char* rhs) const {
-      check(); return *strPtr > rhs;
+      check(); return *strPtr_ > rhs;
     };
 
     /// Lesser-or-equal comparison operator.
     inline bool operator<=(const SafeString& rhs) const {
-      check(); return *strPtr <= rhs.get();
+      check(); return *strPtr_ <= rhs.get();
     };
 
     /// Lesser-or-equal comparison operator.
     inline bool operator<=(const std::string& rhs) const {
-      check(); return *strPtr <= rhs;
+      check(); return *strPtr_ <= rhs;
     };
 
     /// Lesser-or-equal comparison operator.
     inline bool operator<=(const char* rhs) const {
-      check(); return *strPtr <= rhs;
+      check(); return *strPtr_ <= rhs;
     };
 
     /// Greater-or-equal comparison operator.
     inline bool operator>=(const SafeString& rhs) const {
-      check(); return *strPtr >= rhs.get();
+      check(); return *strPtr_ >= rhs.get();
     };
 
     /// Greater-or-equal comparison operator.
     inline bool operator>=(const std::string& rhs) const {
-      check(); return *strPtr >= rhs;
+      check(); return *strPtr_ >= rhs;
     };
 
     /// Greater-or-equal comparison operator.
     inline bool operator>=(const char* rhs) const {
-      check(); return *strPtr >= rhs;
+      check(); return *strPtr_ >= rhs;
     };
 };
 

@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "session.h"
 
 namespace P2P {
@@ -70,7 +77,7 @@ namespace P2P {
       std::shared_ptr<ServerListener> listener_;
 
       /// future for the server thread.
-      std::future<bool> executor;
+      std::future<bool> executor_;
 
       /// Function for running the server thread.
       bool run();
