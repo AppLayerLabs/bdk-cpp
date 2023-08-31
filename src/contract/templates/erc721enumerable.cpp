@@ -2,8 +2,8 @@
 
 
 ERC721Enumerable::ERC721Enumerable(ContractManagerInterface& interface, const Address& address, const std::unique_ptr<DB>& db)
-  : ERC721(interface, address, db),
-    DynamicContract(interface, address, db),
+  : DynamicContract(interface, address, db),
+    ERC721(interface, address, db),
     _ownedTokens(this), _ownedTokensIndex(this), _allTokens(this), _allTokensIndex(this) {
 
   auto ownedTokensIndex = db->getBatch(this->getNewPrefix("_ownedTokensIndex"));
@@ -44,8 +44,8 @@ ERC721Enumerable::ERC721Enumerable(
   ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   const std::unique_ptr<DB> &db
-) : ERC721("ERC721Enumerable", erc721_name, erc721_symbol, interface, address, creator, chainId, db),
-    DynamicContract(interface, "ERC721Enumerable", address, creator, chainId, db),
+) : DynamicContract(interface, "ERC721Enumerable", address, creator, chainId, db),
+    ERC721("ERC721Enumerable", erc721_name, erc721_symbol, interface, address, creator, chainId, db),
     _ownedTokens(this), _ownedTokensIndex(this), _allTokens(this), _allTokensIndex(this) {
   this->registerContractFunctions();
 }
@@ -56,8 +56,8 @@ ERC721Enumerable::ERC721Enumerable(
   ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   const std::unique_ptr<DB> &db
-) : ERC721(derivedTypeName, erc721_name, erc721_symbol, interface, address, creator, chainId, db),
-    DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
+) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
+    ERC721(derivedTypeName, erc721_name, erc721_symbol, interface, address, creator, chainId, db),
     _ownedTokens(this), _ownedTokensIndex(this), _allTokens(this), _allTokensIndex(this) {
 
   this->registerContractFunctions();
