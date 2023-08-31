@@ -96,7 +96,7 @@ class AccessControl : virtual public DynamicContract {
       const uint64_t& chainId, const std::unique_ptr<DB>& db
     );
 
-    virtual ~AccessControl();
+    virtual ~AccessControl() override;
 
     Hash DEFAULT_ADMIN_ROLE() const;
 
@@ -132,8 +132,5 @@ class AccessControl : virtual public DynamicContract {
       );
     }
 };
-
-
-
 
 #endif  // ACCESSCONTROL_H

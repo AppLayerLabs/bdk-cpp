@@ -64,6 +64,7 @@ AccessControl::~AccessControl() {
     }
     batchedOperations.push_back(role.get(), value, this->getNewPrefix("_roles"));
   }
+  this->db->putBatch(batchedOperations);
 }
 
 
