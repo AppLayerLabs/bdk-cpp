@@ -23,6 +23,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/accesscontrol.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/accesscontrolwithoperators.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2factory.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.h
@@ -49,6 +50,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/accesscontrol.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/accesscontrolwithoperators.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2factory.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.cpp
