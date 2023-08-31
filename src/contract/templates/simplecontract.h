@@ -75,7 +75,7 @@ class SimpleContract : public DynamicContract {
         const Address&, const Address&, const uint64_t&,
         const std::unique_ptr<DB>&
       >(
-        std::vector<std::string>{"name", "value"},
+        std::vector<std::string>{"name_", "value_"},
         std::make_tuple("getName", &SimpleContract::getName, "view", std::vector<std::string>{}),
         std::make_tuple("getValue", &SimpleContract::getValue, "view", std::vector<std::string>{}),
         std::make_tuple("setName", &SimpleContract::setName, "nonpayable", std::vector<std::string>{"argName"}),

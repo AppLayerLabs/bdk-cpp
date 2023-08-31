@@ -33,8 +33,8 @@ See the LICENSE.txt file in the project root for more information.
  *   32 BYTES - BLOCK RANDOMNESS
  *   32 BYTES - VALIDATOR MERKLE ROOT
  *   32 BYTES - TRANSACTION MERKLE ROOT
- *   8 BYTES  - timestamp_ (MICROSECONDS)
- *   8 BYTES  - NHEIGHT_
+ *   8 BYTES  - TIMESTAMP (MICROSECONDS)
+ *   8 BYTES  - NHEIGHT
  *
  * BLOCK CONTENT:
  *   8 BYTES  - TX VALIDATOR ARRAY START

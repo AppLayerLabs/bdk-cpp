@@ -247,10 +247,10 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(j[3]["stateMutability"] == "nonpayable");
     REQUIRE(j[3]["type"] == "function");
     REQUIRE(j[3]["inputs"][0]["internalType"] == "string");
-    REQUIRE(j[3]["inputs"][0]["name"] == "name");
+    REQUIRE(j[3]["inputs"][0]["name"] == "name_");
     REQUIRE(j[3]["inputs"][0]["type"] == "string");
     REQUIRE(j[3]["inputs"][1]["internalType"] == "uint256");
-    REQUIRE(j[3]["inputs"][1]["name"] == "value");
+    REQUIRE(j[3]["inputs"][1]["name"] == "value_");
     REQUIRE(j[3]["inputs"][1]["type"] == "uint256");
 
     REQUIRE(j[4]["name"] == "createNewDEXV2PairContract");
