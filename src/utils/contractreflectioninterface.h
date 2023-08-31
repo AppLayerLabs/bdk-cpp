@@ -171,7 +171,7 @@ void inline registerContract(const std::vector<std::string> &ctorArgs,
                     int160_t, int168_t, int176_t, int184_t, int192_t, int200_t,
                     int208_t, int216_t, int224_t, int232_t, int240_t, int248_t,
                     int256_t,
-                    Address, bool, std::string, Bytes>(typeMap);
+                    Address, bool, std::string, Bytes, Hash>(typeMap);
     }
     populateMethodArgumentsTypesMap<TContract>();
 

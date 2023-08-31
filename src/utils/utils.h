@@ -238,7 +238,7 @@ using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef f
 * @note: Fixed point types are not supported yet, because they are not supported fully in Solidity.
 */
 using BaseTypes = std::variant<uint256_t, std::vector<uint256_t>, int256_t, std::vector<int256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>>;
+        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>, Hash>;
 
 /**
  * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).

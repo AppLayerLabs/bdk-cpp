@@ -114,6 +114,10 @@ Bytes ABI::Encoder::encodeBytesArr(const std::vector<BytesArrView>& bytesV) cons
   return ret;
 }
 
+Bytes ABI::Encoder::encodeHash(const Hash& hash) const {
+  return hash.asBytes();
+}
+
 bool ABI::Encoder::isValidType(const std::string_view& funcType) {
   if (funcType == "bool" || funcType == "bytes" || funcType == "string" || funcType == "address") {
     return true;
@@ -539,6 +543,11 @@ std::vector<std::string> ABI::Decoder::decodeStringArr(const BytesArrView data, 
   }
 
   return tmpVec;
+}
+
+Hash ABI::Decoder::decodeHash(const BytesArrView data, const uint64_t& start) const {
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for address");
+  return Hash(data.subspan(start, 20));
 }
 
 ABI::Decoder::Decoder(const std::vector<ABI::Types>& types, const BytesArrView bytes) {

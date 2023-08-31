@@ -94,7 +94,8 @@ enum Types {
     address, addressArr,
     boolean, booleanArr,
     bytes, bytesArr,
-    string, stringArr
+    string, stringArr,
+    hash
 };
 
 
@@ -147,6 +148,14 @@ template <>
 struct ABIType<std::string> {
   static constexpr Types value = Types::string; ///< ABI type is string.
 };
+
+/**
+* Specialization for Hash.
+*/
+  template <>
+  struct ABIType<Hash> {
+    static constexpr Types value = Types::hash; ///< ABI type is string.
+  };
 
 /**
 * Specialization for Bytes.
@@ -924,7 +933,8 @@ std::string inline getStringFromABIEnum(Types type) {
     {Types::bytes, "bytes"},
     {Types::bytesArr, "bytes[]"},
     {Types::string, "string"},
-    {Types::stringArr, "string[]"}
+    {Types::stringArr, "string[]"},
+    {Types::hash, "bytes32"}
   };
 
   auto it = typeMappings.find(type);
@@ -1077,7 +1087,8 @@ Types inline getABIEnumFromString(const std::string& type) {
     {"bytes", Types::bytes},
     {"bytes[]", Types::bytesArr},
     {"string", Types::string},
-    {"string[]", Types::stringArr}
+    {"string[]", Types::stringArr},
+    {"bytes32", Types::hash}
   };
 
   auto it = typeMappings.find(type);
@@ -1202,6 +1213,13 @@ Types inline getABIEnumFromString(const std::string& type) {
        * @return The encoded bytes[] or string[] hex string, with the proper offsets and lengths.
        */
       Bytes encodeBytesArr(const std::vector<BytesArrView>& bytesV) const;
+
+      /**
+       * Encode a Hash (bytes32) into Solidity ABI format.
+       * @param hash The Hash to encode.
+       * @return The encoded bytes32 hex string.
+       */
+      Bytes encodeHash(const Hash& hash) const;
 
     public:
       /// Alias for variant type, for easier handling.
@@ -1377,6 +1395,15 @@ Types inline getABIEnumFromString(const std::string& type) {
         const BytesArrView data, const uint64_t& start
       ) const;
 
+      /**
+       * Decode a Hash (bytes32) from the given Solidity data string.
+       * Throws if data is too short.
+       * @param data The Solidity data bytes to decode.
+       * @param start The index of the vector to start decoding from.
+       * @return The decoded Hash (bytes32).
+       */
+      Hash decodeHash(const BytesArrView data, const uint64_t& start) const;
+
   public:
       /**
        * Constructor. Automatically decodes the data during construction.
@@ -1547,6 +1574,7 @@ Types inline getABIEnumFromString(const std::string& type) {
         case Types::bytesArr: return this->getData<std::vector<Bytes>>(index);
         case Types::string: return this->getData<std::string>(index);
         case Types::stringArr: return this->getData<std::vector<std::string>>(index);
+        case Types::hash: return this->getData<Hash>(index);
         default: throw std::runtime_error("Invalid ABI::Types type: " + getStringFromABIEnum(type));
       }
     }
