@@ -63,11 +63,4 @@ class SafeEnumerableMap {
     }
 };
 
-
-
-
-
-
-
-
 #endif // SAFEENUMERABLEMAP_H

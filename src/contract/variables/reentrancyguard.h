@@ -1,8 +1,6 @@
 #ifndef REENTRANCY_GUARD_H
 #define REENTRANCY_GUARD_H
 
-#include <atomic>
-
 /**
  * The ReentrancyGuard class is used to prevent reentrancy attacks.
  * Similarly to std::unique_lock or std::shared_lock, ReentrancyGuard is a RAII object.
