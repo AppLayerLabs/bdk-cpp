@@ -32,6 +32,9 @@ ERC721Royalty::ERC721Royalty(
   this->registerContractFunctions();
 }
 
+void ERC721Royalty::registerContractFunctions() {
+}
+
 ERC721Royalty::~ERC721Royalty() { }
 
 Address ERC721Royalty::_update(const Address &to, const uint256_t &tokenId, const Address &auth) {
