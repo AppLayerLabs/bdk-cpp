@@ -64,7 +64,12 @@ void ERC721URIStorage::_setTokenURI(const uint256_t &tokenId, const SafeString &
 }
 
 Address ERC721URIStorage::_update(const Address& to, const uint256_t& tokenId, const Address& auth) {
-  Address prevOwner = ERC721::_update(to, tokenId, auth);
+  Address prevOwner;
+  if (typeid(*this) == typeid(ERC721URIStorage)) {
+    prevOwner = ERC721::_update(to, tokenId, auth);
+  } else {
+    prevOwner = this->_ownerOf(tokenId);
+  }
   if (prevOwner == Address() && this->_tokenURIs.find(tokenId) != this->_tokenURIs.end()) {
     this->_tokenURIs.erase(tokenId);
   }

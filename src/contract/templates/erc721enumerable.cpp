@@ -106,7 +106,12 @@ void ERC721Enumerable::registerContractFunctions() {
 }
 
 Address ERC721Enumerable::_update(const Address& to, const uint256_t& tokenId, const Address& auth) {
-  Address prevOwner = ERC721::_update(to, tokenId, auth);
+  Address prevOwner;
+  if (typeid(*this) == typeid(ERC721Enumerable)) {
+    prevOwner = ERC721::_update(to, tokenId, auth);
+  } else {
+    prevOwner = this->_ownerOf(tokenId);
+  }
   if (prevOwner == Address()) {
     _addTokenToAllTokensEnumeration(tokenId);
   } else if (prevOwner != to) {
