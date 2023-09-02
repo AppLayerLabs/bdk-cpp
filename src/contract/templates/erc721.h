@@ -65,6 +65,20 @@ class ERC721 : virtual public DynamicContract {
      * @return The address of the old
      * If auth is non-zero, the function will check if the auth address is authorized to transfer the token.
      * Solidity counterpart: function _update(address to, uint256 tokenId, address auth) internal returns (address)
+     * If overriding the _update method in derived contracts
+     * You MUST call all the derived contracts' _update function when implementing the _update method in a derived contract, in reverse order of derivation
+     * For example, if deriving both ERC721Enumerable and ERC721URIStorage, calling the super implementation MUST be implemented as following:
+     * Address prevOwner;
+     * if (typeid(*this) == typeid(ERC721Enumerable)) {
+     *   ERC721Enumerable::_update(to, tokenId, auth);
+     *   ERC721URIStorage::_update(to, tokenId, auth);
+     *   prevOwner = ERC721::_update(to, tokenId, auth);
+     * } else {
+     *   /// THE DERIVED CLASS IS RESPONSIBLE FOR CALLIING OTHER CLASSES _update METHODS
+     *   prevOwner = this->_ownerOf(tokenId);
+     * }
+     * This is done in order to prevent the derived class from calling the same function twice.
+     * Calling the same function twice will result in undefined behavior.
      */
     virtual Address _update(const Address& to, const uint256_t& tokenId, const Address& auth);
 
