@@ -17,6 +17,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeenumerableset.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeenumerablemap.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/counters.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721enumerable.h
