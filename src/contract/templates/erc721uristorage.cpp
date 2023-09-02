@@ -56,11 +56,11 @@ void ERC721URIStorage::registerContractFunctions() {
   this->registerMemberFunction("tokenURI", &ERC721URIStorage::tokenURI, this);
 }
 
-void ERC721URIStorage::_setTokenURI(const uint256_t &tokenId, const SafeString &_tokenURI) {
+void ERC721URIStorage::_setTokenURI(const uint256_t &tokenId, const std::string &_tokenURI) {
   if (this->_ownerOf(tokenId) == Address()) {
     throw std::runtime_error("ERC721URIStorage::_setTokenURI: Token does not exist.");
   }
-  this->_tokenURIs[tokenId] = _tokenURI.get();
+  this->_tokenURIs[tokenId] = _tokenURI;
 }
 
 Address ERC721URIStorage::_update(const Address& to, const uint256_t& tokenId, const Address& auth) {

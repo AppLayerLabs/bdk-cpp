@@ -13,7 +13,7 @@ class Counter {
         value_ = 0;
     }
 
-    uint64_t current() {
+    uint64_t current() const {
         return value_.get();
     }
 

@@ -45,6 +45,4 @@ namespace Pausable {
 }
 
 
-
-
-#endif PAUSABLE_H
+#endif /// PAUSABLE_H

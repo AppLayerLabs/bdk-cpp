@@ -17,7 +17,7 @@ class ERC721URIStorage : virtual public ERC721 {
      * @param _tokenURI
      * Solidity: function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual
      */
-    void _setTokenURI(const uint256_t &tokenId, const SafeString &_tokenURI);
+    void _setTokenURI(const uint256_t &tokenId, const std::string &_tokenURI);
 
     /**
      * Transfers the tokenId from the current owner to the specified address.

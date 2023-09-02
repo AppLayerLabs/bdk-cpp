@@ -32,16 +32,20 @@ class SafeEnumerableMap {
     }
 
     std::tuple<Key, T> at(const uint64_t& index) const {
+      if (index >= this->keys_.lenght()) {
+        return {Key(), T()};
+      }
       Key key = this->keys_.at(index);
-      return std::make_tuple<Key, T>(key, this->values_.at(key));
+      T type = this->values_.at(key);
+      return {key, this->values_.at(key)};
     }
 
-    std::tuple<bool, T> tryGet(const Key& key, T& value) const {
+    std::tuple<bool, T> tryGet(const Key& key) const {
       auto it = this->values_.find(key);
       if (it == this->values_.end()) {
-        return std::make_tuple<bool, T>(this->contains(key), T());
+        return {this->contains(key), T()};
       } else {
-        return std::make_tuple<bool, T>(true, it->second);
+        return {true, it->second};
       }
     }
 

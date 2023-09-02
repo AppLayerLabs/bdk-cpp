@@ -26,7 +26,7 @@ class ERC721Royalty : virtual public ERC721, virtual public ERC2981 {
      */
     ERC721Royalty(
       ContractManagerInterface& interface,
-    const Address& address, const std::unique_ptr<DB>& db
+      const Address& address, const std::unique_ptr<DB>& db
     );
 
     /**
