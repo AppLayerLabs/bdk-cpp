@@ -37,7 +37,7 @@ AccessControl::AccessControl(
   ContractManagerInterface& interface,
   const Address& address, const Address& creator,
   const uint64_t& chainId, const std::unique_ptr<DB>& db
-) : DynamicContract(interface, "AccessControl", address, creator, chainId, db), _roles(this) {
+) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db), _roles(this) {
   _roles.commit();
   this->registerContractFunctions();
 }

@@ -24,7 +24,7 @@ AccessControlWithOperators::AccessControlWithOperators(
   ContractManagerInterface& interface,
   const Address& address, const Address& creator,
   const uint64_t& chainId, const std::unique_ptr<DB>& db
-) : DynamicContract(interface, "AccessControlWithOperators", address, creator, chainId, db),
+) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
     AccessControl(derivedTypeName, interface, address, creator, chainId, db),
     _adminAccount(this), _operatorAccounts(this), _operatorAccountsLength(this) {
   this->registerContractFunctions();
