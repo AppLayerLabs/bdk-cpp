@@ -20,6 +20,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/counters.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/pausable.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20snapshot.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721enumerable.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.h
@@ -51,6 +52,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/variables/pausable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20snapshot.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721enumerable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721uristorage.cpp

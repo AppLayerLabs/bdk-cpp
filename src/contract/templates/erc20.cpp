@@ -2,7 +2,7 @@
 
 // Default Constructor when loading contract from DB.
 ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
-  DynamicContract(interface, address, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this) {
+  DynamicContract(interface, address, db), _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowances(this) {
 
   this->_name = Utils::bytesToString(db->get(std::string("_name"), this->getDBPrefix()));
   this->_symbol = Utils::bytesToString(db->get(std::string("_symbol"), this->getDBPrefix()));
@@ -16,7 +16,7 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const 
   auto allowances = db->getBatch(this->getNewPrefix("_allowed"));
   for (const auto& dbEntry : allowances) {
     BytesArrView valueView(dbEntry.value);
-    this->_allowed[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
+    this->_allowances[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
   this->registerContractFunctions();
 
@@ -25,7 +25,7 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const 
   this->_decimals.commit();
   this->_totalSupply.commit();
   this->_balances.commit();
-  this->_allowed.commit();
+  this->_allowances.commit();
 }
 
 ERC20::ERC20(
@@ -35,12 +35,12 @@ ERC20::ERC20(
   const Address& address, const Address& creator, const uint64_t& chainId,
   const std::unique_ptr<DB>& db
 ) : DynamicContract(interface, "ERC20", address, creator, chainId, db),
-  _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this)
+    _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowances(this)
 {
   _name = erc20_name;
   _symbol = erc20_symbol;
   _decimals = erc20_decimals;
-  _mintValue(creator, mintValue);
+  _mint(creator, mintValue);
   this->registerContractFunctions();
   _name.commit();
   _symbol.commit();
@@ -54,12 +54,12 @@ ERC20::ERC20(
   const Address& address, const Address& creator, const uint64_t& chainId,
   const std::unique_ptr<DB>& db
 ) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
-    _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowed(this)
+    _name(this), _symbol(this), _decimals(this), _totalSupply(this), _balances(this), _allowances(this)
 {
   _name = erc20_name;
   _symbol = erc20_symbol;
   _decimals = erc20_decimals;
-  _mintValue(creator, mintValue);
+  _mint(creator, mintValue);
   this->registerContractFunctions();
 }
 
@@ -77,7 +77,7 @@ ERC20::~ERC20() {
     batchOperations.push_back(key, value, this->getNewPrefix("_balances"));
   }
 
-  for (auto it = _allowed.cbegin(); it != _allowed.cend(); ++it) {
+  for (auto it = _allowances.cbegin(); it != _allowances.cend(); ++it) {
     for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
       const auto& key = it->first.get();
       Bytes value = it2->first.asBytes();
@@ -99,16 +99,66 @@ void ERC20::registerContractFunctions() {
   this->registerMemberFunction("transfer", &ERC20::transfer, this);
   this->registerMemberFunction("approve", &ERC20::approve, this);
   this->registerMemberFunction("transferFrom", &ERC20::transferFrom, this);
+  this->registerMemberFunction("increaseAllowance", &ERC20::increaseAllowance, this);
+  this->registerMemberFunction("decreaseAllowance", &ERC20::decreaseAllowance, this);
+}
+void ERC20::_transfer(const Address& from, const Address& to, const uint256_t& value) {
+  if (from == Address()) {
+    throw std::runtime_error("ERC20::_transfer: from address is empty");
+  }
+  if (to == Address()) {
+    throw std::runtime_error("ERC20::_transfer: to address is empty");
+  }
+  this->_update(from, to, value);
 }
 
-void ERC20::_mintValue(const Address& address, const uint256_t& value) {
-  _balances[address] += value;
-  _totalSupply += value;
+void ERC20::_mint(const Address& address, const uint256_t& value) {
+  if (address == Address()) {
+    throw std::runtime_error("ERC20::_mint: address is empty");
+  }
+  this->_update(Address(), address, value);
 }
 
-void ERC20::_burnValue(const Address& address, const uint256_t& value) {
-  _balances[address] -= value;
-  _totalSupply -= value;
+void ERC20::_burn(const Address& address, const uint256_t& value) {
+  if (address == Address()) {
+    throw std::runtime_error("ERC20::_burn: address is empty");
+  }
+  this->_update(address, Address(), value);
+}
+
+void ERC20::_approve(const Address& owner, const Address& spender, const uint256_t& value) {
+  if (owner == Address()) {
+    throw std::runtime_error("ERC20::_approve: owner address is empty");
+  }
+  if (spender == Address()) {
+    throw std::runtime_error("ERC20::_approve: spender address is empty");
+  }
+  this->_allowances[owner][spender] = value;
+}
+
+void ERC20::_spendAllowance(const Address& owner, const Address& spender, const uint256_t& value) {
+  auto allowance = this->allowance(owner, spender);
+  if (allowance < value) {
+    throw std::runtime_error("ERC20::_spendAllowance: allowance is less than value");
+  }
+  this->_approve(owner, spender, allowance - value);
+}
+
+void ERC20::_update(const Address& from, const Address& to, const uint256_t& value) {
+  if (from == Address()) {
+    this->_totalSupply += value;
+  } else {
+    auto fromBalance = this->_balances[from];
+    if (fromBalance < value) {
+      throw std::runtime_error("ERC20::_update: fromBalance is less than value");
+    }
+    this->_balances[from] = fromBalance - value;
+  }
+  if (to == Address()) {
+    this->_totalSupply -= value;
+  } else {
+    this->_balances[to] += value;
+  }
 }
 
 std::string ERC20::name() const { return this->_name.get(); }
@@ -122,21 +172,20 @@ uint256_t ERC20::totalSupply() const { return this->_totalSupply.get(); }
 uint256_t ERC20::balanceOf(const Address& _owner) const {
   const auto& it = std::as_const(this->_balances).find(_owner);
   return (it == this->_balances.end())
-    ? 0 : it->second;
+         ? 0 : it->second;
 }
 
-void ERC20::transfer(const Address &_to, const uint256_t &_value) {
-  this->_balances[this->getCaller()] -= _value;
-  this->_balances[_to] += _value;
+void ERC20::transfer(const Address &to, const uint256_t &value) {
+  this->_transfer(this->getCaller(), to, value);
 }
 
-void ERC20::approve(const Address &_spender, const uint256_t &_value) {
-  this->_allowed[this->getCaller()][_spender] = _value;
+void ERC20::approve(const Address &_spender, const uint256_t &value) {
+  this->_approve(this->getCaller(), _spender, value);
 }
 
 uint256_t ERC20::allowance(const Address& _owner, const Address& _spender) const {
-  const auto& it = std::as_const(this->_allowed).find(_owner);
-  if (it == this->_allowed.end()) {
+  const auto& it = std::as_const(this->_allowances).find(_owner);
+  if (it == this->_allowances.end()) {
     return 0;
   } else {
     const auto& it2 = it->second.find(_spender);
@@ -149,10 +198,21 @@ uint256_t ERC20::allowance(const Address& _owner, const Address& _spender) const
 }
 
 void ERC20::transferFrom(
-  const Address &_from, const Address &_to, const uint256_t &_value
+  const Address &_from, const Address &to, const uint256_t &_value
 ) {
-  this->_allowed[_from][this->getCaller()] -= _value;
-  this->_balances[_from] -= _value;
-  this->_balances[_to] += _value;
+  this->_spendAllowance(_from, this->getCaller(), _value);
+  this->_transfer(_from, to, _value);
 }
 
+void ERC20::increaseAllowance(const Address& spender, const uint256_t& _addedValue) {
+  this->_approve(this->getCaller(), spender, this->allowance(this->getCaller(), spender) + _addedValue);
+}
+
+void ERC20::decreaseAllowance(const Address &spender, const uint256_t &_requestedDecrease) {
+  uint256_t currentAllowance = this->allowance(this->getCaller(), spender);
+  if (currentAllowance < _requestedDecrease) {
+    throw std::runtime_error("ERC20::decreaseAllowance: currentAllowance is less than _requestedDecrease");
+  } else {
+    this->_approve(this->getCaller(), spender, currentAllowance - _requestedDecrease);
+  }
+}

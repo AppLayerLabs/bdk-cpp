@@ -100,7 +100,7 @@ bool DEXV2Pair::_mintFee(uint112_t reserve0, uint112_t reserve1) {
         uint256_t numerator = this->_totalSupply.get() * (rootK - rootKLast);
         uint256_t denominator = rootK * 5 + rootKLast;
         uint256_t liquidity = numerator / denominator;
-        if (liquidity > 0) this->_mintValue(feeTo, liquidity);
+        if (liquidity > 0) this->_mint(feeTo, liquidity);
       }
     }
   } else if (_kLast != 0) {
@@ -152,13 +152,15 @@ uint256_t DEXV2Pair::mint(const Address& to) {
   if (totalSupply == 0) {
     // Permanently lock the first MINIMUM_LIQUIDITY tokens
     liquidity = boost::multiprecision::sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
-    this->_mintValue(Address(Hex::toBytes("0x0000000000000000000000000000000000000000")), MINIMUM_LIQUIDITY);
+    /// We use 0x0000000000000000000000000000000000000001 instead of 0x0000000000000000000000000000000000000000
+    /// Because our ERC20 Standard (based on OpenZeppelin) does not allow to mint tokens to address(0)
+    this->_mint(Address(Hex::toBytes("0x0000000000000000000000000000000000000001")), MINIMUM_LIQUIDITY);
   } else {
     liquidity = std::min(amount0 * totalSupply / this->reserve0_.get(), amount1 * totalSupply / this->reserve1_.get());
   }
 
   if (liquidity == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_LIQUIDITY_MINTED");
-  this->_mintValue(to, liquidity);
+  this->_mint(to, liquidity);
   this->_update(balance0, balance1, this->reserve0_.get(), this->reserve1_.get());
   if (feeOn) this->kLast_ = uint256_t(this->reserve0_.get()) * uint256_t(this->reserve1_.get());
   return liquidity;
@@ -179,7 +181,7 @@ BytesEncoded DEXV2Pair::burn(const Address& to) {
   uint256_t amount0 = liquidity * balance0 / totalSupply;
   uint256_t amount1 = liquidity * balance1 / totalSupply;
   if (amount0 == 0 || amount1 == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_LIQUIDITY_BURNED");
-  this->_burnValue(this->getContractAddress(), liquidity);
+  this->_burn(this->getContractAddress(), liquidity);
   this->_safeTransfer(this->token0_.get(), to, amount0);
   this->_safeTransfer(this->token1_.get(), to, amount1);
   balance0 = this->callContractViewFunction(this->token0_.get(), &ERC20::balanceOf, this->getContractAddress());
