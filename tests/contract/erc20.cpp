@@ -28,7 +28,7 @@ void initialize(std::unique_ptr<Options>& options,
                 const uint8_t& tokenDecimals,
                 const uint256_t& tokenSupply,
                 bool deleteDB = true) {
-  if (w) {
+  if (deleteDB) {
     if (std::filesystem::exists(dbName)) {
       std::filesystem::remove_all(dbName);
     }

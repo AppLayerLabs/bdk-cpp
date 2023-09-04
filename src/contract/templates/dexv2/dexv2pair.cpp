@@ -3,7 +3,9 @@
 
 DEXV2Pair::DEXV2Pair(
   ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db
-) : ERC20(interface, address, db), factory_(this), token0_(this), token1_(this),
+) : DynamicContract(interface, address, db),
+  ERC20(interface, address, db),
+  factory_(this), token0_(this), token1_(this),
   reserve0_(this), reserve1_(this), blockTimestampLast_(this),
   price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
@@ -32,7 +34,8 @@ DEXV2Pair::DEXV2Pair(
   ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
   const std::unique_ptr<DB>& db
-) : ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, interface, address, creator, chainId, db),
+) : DynamicContract(interface, "DEXV2Pair", address, creator, chainId, db),
+  ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, interface, address, creator, chainId, db),
   factory_(this), token0_(this), token1_(this), reserve0_(this), reserve1_(this),
   blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {

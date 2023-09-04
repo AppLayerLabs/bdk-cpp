@@ -1,5 +1,6 @@
 #include "templates/erc20.h"
 #include "templates/erc20wrapper.h"
+#include "templates/erc20snapshot.h"
 #include "templates/nativewrapper.h"
 #include "templates/simplecontract.h"
 #include "templates/erc721.h"
@@ -19,6 +20,6 @@
 
 using ContractTypes = std::tuple<
   ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721,
-  ThrowTestA, ThrowTestB, ThrowTestC, AccessControl, ERC721URIStorage, ERC721Enumerable, AccessControlWithOperators, ERC2981, ERC721Royalty, PulsarNft
+  ThrowTestA, ThrowTestB, ThrowTestC, AccessControl, ERC721URIStorage, ERC721Enumerable, AccessControlWithOperators, ERC2981, ERC721Royalty, PulsarNft, ERC20Snapshot
 >;
 

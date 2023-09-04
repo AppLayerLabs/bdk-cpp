@@ -639,7 +639,7 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C, typename... Args>
     R callContractFunction(R (C::*func)(const Args&...), const Args&... args) {
       try {
-        return (static_cast<C*>(this)->*func)(std::forward<const Args&>(args)...);
+        return (dynamic_cast<C*>(this)->*func)(std::forward<const Args&>(args)...);
       } catch (const std::exception& e) {
         throw std::runtime_error(e.what());
       }
@@ -656,7 +656,7 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C>
     R callContractFunction(R (C::*func)()) {
       try {
-        return (static_cast<C*>(this)->*func)();
+        return (dynamic_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
         throw std::runtime_error(e.what());
       }

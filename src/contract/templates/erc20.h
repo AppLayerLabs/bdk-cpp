@@ -14,7 +14,7 @@
 
 /// Template for an ERC20 Token
 /// Based on the OpenZeppelin implementation of the ERC20 token
-class ERC20 : public DynamicContract {
+class ERC20 : virtual public DynamicContract {
   protected:
     /// Solidity: string internal _name;
     SafeString _name;
@@ -84,7 +84,7 @@ class ERC20 : public DynamicContract {
      * @params value The amount of tokens that will be transferred.
      */
 
-    void _update(const Address& from, const Address& to, const uint256_t& value);
+    virtual void _update(const Address& from, const Address& to, const uint256_t& value);
 
     /// Function for calling the register functions for contracts.
     void registerContractFunctions() override;
@@ -92,8 +92,8 @@ class ERC20 : public DynamicContract {
   public:
 
     /**
-    * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
-    */
+     * ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.
+     */
     using ConstructorArguments = std::tuple<const std::string&, const std::string&, const uint8_t&, const uint256_t&>;
     /**
      * Constructor for loading contract from DB.

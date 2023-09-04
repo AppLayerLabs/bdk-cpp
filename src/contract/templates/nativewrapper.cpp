@@ -3,7 +3,8 @@
 // Default Constructor when loading contract from DB.
 NativeWrapper::NativeWrapper(
   ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db
-) : ERC20(interface, address, db)
+) : DynamicContract(interface, address, db),
+    ERC20(interface, address, db)
 {
   this->registerContractFunctions();
 }
@@ -16,7 +17,7 @@ NativeWrapper::NativeWrapper(
   const uint64_t &chainId,const std::unique_ptr<DB> &db
 ) : ERC20("NativeWrapper", erc20_name, erc20_symbol, erc20_decimals,
   0, interface, address, creator, chainId, db
-) {
+), DynamicContract(interface, "NativeWrapper", address, creator, chainId, db) {
   this->registerContractFunctions();
 }
 

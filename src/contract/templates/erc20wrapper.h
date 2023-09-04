@@ -12,7 +12,7 @@
 #include "erc20.h"
 
 /// Template for an ERC20Wrapper contract.
-class ERC20Wrapper : public DynamicContract {
+class ERC20Wrapper : virtual public DynamicContract {
   private:
     /**
      * Map for tokens and balances. Solidity counterpart:
