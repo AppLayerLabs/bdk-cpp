@@ -257,40 +257,42 @@ bool State::validateNextBlock(const Block& block) const {
 }
 
 void State::processNextBlock(Block&& block) {
-  /// Sanity Check.
+  // Sanity check - if it passes, the block is valid and will be processed
   if (!this->validateNextBlock(block)) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Sanity check failed, blockchain is trying to append a invalid block, throwing.");
-    throw std::runtime_error("Invalid block detected during processNextBlock sanity check.");
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
+      "Sanity check failed - blockchain is trying to append a invalid block, throwing"
+    );
+    throw std::runtime_error("Invalid block detected during processNextBlock sanity check");
   }
 
   std::unique_lock lock(this->stateMutex_);
-  /// Process transactions of the block within the current state.
-  for (auto const& tx : block.getTxs()) {
-    this->processTransaction(tx);
-  }
+  
+  // Update contract globals based on (now) latest block
+  ContractGlobals::blockHash_ = block.hash();
+  ContractGlobals::blockHeight_++;
+  ContractGlobals::blockTimestamp_ = block.getTimestamp();
 
-  /// Process rdPoS State
+  // Process transactions of the block within the current state
+  for (auto const& tx : block.getTxs()) this->processTransaction(tx);
+
+  // Process rdPoS State
   this->rdpos_->processBlock(block);
 
-  /// Refresh the mempool based on the block transactions;
+  // Refresh the mempool based on the block transactions
   this->refreshMempool(block);
-
   Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.) block bytes: " + Hex::fromBytes(block.serializeBlock()).get());
   Utils::safePrint("Block: " + block.hash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
   for (const auto& tx : block.getTxs()) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
   }
-  /// Move block to storage.
+
+  // Move block to storage
   this->storage_->pushBack(std::move(block));
-  return;
 }
 
 void State::fillBlockWithTransactions(Block& block) const {
   std::shared_lock lock(this->stateMutex_);
-  for (const auto& [hash, tx] : this->mempool_) {
-    block.appendTx(tx);
-  }
-  return;
+  for (const auto& [hash, tx] : this->mempool_) block.appendTx(tx);
 }
 
 TxInvalid State::validateTransaction(const TxBlock& tx) const {
