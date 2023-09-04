@@ -26,19 +26,23 @@ class State;
 /// Class that maintains global variables for contracts.
 class ContractGlobals {
   protected:
-    static Address coinbase_;          ///< Coinbase address (creator of current block).
-    static uint256_t blockHeight_;     ///< Current block height.
-    static uint256_t blockTimestamp_;  ///< Current block timestamp.
+    static Address coinbase_;         ///< Coinbase address (creator of current block).
+    static Hash blockHash_;           ///< Current block hash.
+    static uint256_t blockHeight_;    ///< Current block height.
+    static uint256_t blockTimestamp_; ///< Current block timestamp.
 
   public:
-    /// Getter for `coinbase`.
-    static const Address& getCoinbase() { return coinbase_; }
+    /// Getter for `coinbase_`.
+    static const Address& getCoinbase() { return this->coinbase_; }
 
-    /// Getter for `blockHeight`.
-    static const uint256_t& getBlockHeight() { return blockHeight_; }
+    /// Getter for `blockHash_`.
+    static const Hash& getBlockHash() { return this->blockHash_; }
 
-    /// Getter for `getBlockTimestamp`.
-    static const uint256_t& getBlockTimestamp() { return blockTimestamp_; }
+    /// Getter for `blockHeight_`.
+    static const uint256_t& getBlockHeight() { return this->blockHeight_; }
+
+    /// Getter for `getBlockTimestamp_`.
+    static const uint256_t& getBlockTimestamp() { return this->blockTimestamp_; }
 
     /// State is a friend as it can update private global vars (e.g. before ethCall() with a TxBlock).
     friend State;
@@ -67,59 +71,60 @@ class ContractLocals : public ContractGlobals {
 
 /// Base class for all contracts.
 class BaseContract : public ContractLocals {
-private:
-  /* Contract-specific variables */
-  std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
-  Bytes dbPrefix_;           ///< Prefix for the contract DB.
-  Address contractAddress_;  ///< Address where the contract is deployed.
-  Address contractCreator_;  ///< Address of the creator of the contract.
-  uint64_t contractChainId_; ///< Chain where the contract is deployed.
-protected:
-  bool reentrancyLock_ = false;    ///< Lock (for reentrancy).
-  const std::unique_ptr<DB> &db_; ///< Pointer to the DB instance.
-public:
-  /**
-   * Constructor.
-   * @param contractName The name of the contract.
-   * @param address The address where the contract will be deployed.
-   * @param creator The address of the creator of the contract.
-   * @param chainId The chain where the contract will be deployed.
-   * @param db Pointer to the DB instance.
-   */
-  BaseContract(const std::string &contractName, const Address &address,
-               const Address &creator, const uint64_t &chainId,
-               const std::unique_ptr<DB> &db)
-      : contractName_(contractName), contractAddress_(address),
-        contractCreator_(creator), contractChainId_(chainId), db_(db) {
-    dbPrefix_ = [&]() -> Bytes {
-      Bytes prefix = DBPrefix::contracts;
-      prefix.reserve(prefix.size() + contractAddress_.size());
-      prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
-      return prefix;
-    }();
-    db->put(std::string("contractName_"), contractName_, this->getDBPrefix());
-    db->put(std::string("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
-    db->put(std::string("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
-    db->put(std::string("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
-  }
+  private:
+    /* Contract-specific variables */
+    std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
+    Bytes dbPrefix_;           ///< Prefix for the contract DB.
+    Address contractAddress_;  ///< Address where the contract is deployed.
+    Address contractCreator_;  ///< Address of the creator of the contract.
+    uint64_t contractChainId_; ///< Chain where the contract is deployed.
 
-  /**
-   * Constructor.
-   * @param address The address where the contract will be deployed.
-   * @param db Pointer to the DB instance.
-   */
-  BaseContract(const Address &address, const std::unique_ptr<DB> &db)
-      : contractAddress_(address), db_(db) {
-    this->dbPrefix_ = [&]() -> Bytes {
-      Bytes prefix = DBPrefix::contracts;
-      prefix.reserve(prefix.size() + contractAddress_.size());
-      prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
-      return prefix;
-    }();
-    this->contractName_ = Utils::bytesToString(db->get(std::string("contractName_"), this->getDBPrefix()));
-    this->contractCreator_ = Address(db->get(std::string("contractCreator_"), this->getDBPrefix()));
-    this->contractChainId_ = Utils::bytesToUint64(db->get(std::string("contractChainId_"), this->getDBPrefix()));
-  }
+  protected:
+    bool reentrancyLock_ = false;    ///< Lock (for reentrancy).
+    const std::unique_ptr<DB> &db_; ///< Pointer to the DB instance.
+
+  public:
+    /**
+     * Constructor from scratch.
+     * @param contractName The name of the contract.
+     * @param address The address where the contract will be deployed.
+     * @param creator The address of the creator of the contract.
+     * @param chainId The chain where the contract will be deployed.
+     * @param db Pointer to the DB instance.
+     */
+    BaseContract(const std::string &contractName, const Address &address,
+      const Address &creator, const uint64_t &chainId, const std::unique_ptr<DB> &db
+    ) : contractName_(contractName), contractAddress_(address),
+      contractCreator_(creator), contractChainId_(chainId), db_(db)
+    {
+      dbPrefix_ = [&]() -> Bytes {
+        Bytes prefix = DBPrefix::contracts;
+        prefix.reserve(prefix.size() + contractAddress_.size());
+        prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
+        return prefix;
+      }();
+      db->put(std::string("contractName_"), contractName_, this->getDBPrefix());
+      db->put(std::string("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
+      db->put(std::string("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
+      db->put(std::string("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
+    }
+
+    /**
+     * Constructor from load.
+     * @param address The address where the contract will be deployed.
+     * @param db Pointer to the DB instance.
+     */
+    BaseContract(const Address &address, const std::unique_ptr<DB> &db) : contractAddress_(address), db_(db) {
+      this->dbPrefix_ = [&]() -> Bytes {
+        Bytes prefix = DBPrefix::contracts;
+        prefix.reserve(prefix.size() + contractAddress_.size());
+        prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
+        return prefix;
+      }();
+      this->contractName_ = Utils::bytesToString(db->get(std::string("contractName_"), this->getDBPrefix()));
+      this->contractCreator_ = Address(db->get(std::string("contractCreator_"), this->getDBPrefix()));
+      this->contractChainId_ = Utils::bytesToUint64(db->get(std::string("contractChainId_"), this->getDBPrefix()));
+    }
 
     /**
      * Destructor.
@@ -144,10 +149,10 @@ public:
      * @return A string with the answer to the call.
      * @throw std::runtime_error if the derived class does not override this.
      */
-  virtual const Bytes ethCallView(const ethCallInfo &data) const {
-    throw std::runtime_error(
-        "Derived Class from Contract does not override ethCall()");
-  }
+    virtual const Bytes ethCallView(const ethCallInfo &data) const {
+      throw std::runtime_error(
+          "Derived Class from Contract does not override ethCall()");
+    }
 
     /// Getter for `contractAddress`.
     const Address& getContractAddress() const { return this->contractAddress_; }
