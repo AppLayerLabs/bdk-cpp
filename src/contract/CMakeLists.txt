@@ -18,6 +18,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeenumerableset.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeenumerablemap.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/counters.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/pausable.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721enumerable.h
@@ -34,6 +35,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/uq112x112.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/pulsar_nft.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
@@ -47,6 +49,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/pausable.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721enumerable.cpp
@@ -62,6 +65,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2pair.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/pulsar_nft.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp

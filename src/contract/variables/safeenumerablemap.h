@@ -32,7 +32,7 @@ class SafeEnumerableMap {
     }
 
     std::tuple<Key, T> at(const uint64_t& index) const {
-      if (index >= this->keys_.lenght()) {
+      if (index >= this->keys_.length()) {
         return {Key(), T()};
       }
       Key key = this->keys_.at(index);

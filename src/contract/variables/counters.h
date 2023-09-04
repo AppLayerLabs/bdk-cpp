@@ -28,6 +28,10 @@ class Counter {
     void reset() {
         value_ = 0;
     }
+
+    void setCounter(uint64_t value) {
+        value_ = value;
+    }
 };
 
 #endif // COUNTERS_H

@@ -48,7 +48,7 @@ class SafeEnumerableSet {
       return this->indexes_.contains(value);
     }
 
-    bool _lenght() const {
+    bool _length() const {
       return this->values_.size();
     }
 
@@ -75,8 +75,8 @@ class SafeEnumerableSet {
       return this->_contains(value);
     }
 
-    uint64_t lenght() const {
-      return this->_lenght();
+    uint64_t length() const {
+      return this->_length();
     }
 
     const T& at(const uint64_t& index) const {

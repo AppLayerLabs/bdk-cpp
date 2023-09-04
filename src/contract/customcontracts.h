@@ -9,6 +9,7 @@
 #include "templates/accesscontrol.h"
 #include "templates/accesscontrolwithoperators.h"
 #include "templates/erc2981.h"
+#include "templates/pulsar_nft.h"
 #include "templates/dexv2/dexv2pair.h"
 #include "templates/dexv2/dexv2factory.h"
 #include "templates/dexv2/dexv2router02.h"
@@ -18,6 +19,6 @@
 
 using ContractTypes = std::tuple<
   ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721,
-  ThrowTestA, ThrowTestB, ThrowTestC, AccessControl, ERC721URIStorage, ERC721Enumerable, AccessControlWithOperators, ERC2981, ERC721Royalty
+  ThrowTestA, ThrowTestB, ThrowTestC, AccessControl, ERC721URIStorage, ERC721Enumerable, AccessControlWithOperators, ERC2981, ERC721Royalty, PulsarNft
 >;
 
