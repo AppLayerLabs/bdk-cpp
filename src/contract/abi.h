@@ -1241,6 +1241,80 @@ Types inline getABIEnumFromString(const std::string& type) {
       size_t size() const { return this->data_.size(); }
   };
 
+  namespace NewEncoder {
+
+    void appendVector(Bytes& dest, const Bytes& src);
+
+    Bytes encodeUint(const uint256_t& num);
+
+    Bytes encodeInt(const int256_t& num);
+
+    Bytes encode(const Address& add);
+
+    Bytes encode(const bool& b);
+
+    Bytes encode(const BytesArrView& bytes);
+
+    Bytes encode(const std::string& str);
+
+    Bytes encode(const std::vector<uint256_t>& numV);
+
+    Bytes encode(const std::vector<int256_t>& numV);
+
+    Bytes encode(const std::vector<Address>& addV);
+
+    Bytes encode(const std::vector<bool>& bV);
+
+    Bytes encode(const std::vector<BytesArrView>& bytesV);
+
+    Bytes encode(const std::vector<std::string>& strV);
+
+    template <typename T>
+    Bytes encode(const T& num) {
+        if constexpr (std::is_signed_v<T>) {
+            return encodeInt(num);
+        } else {
+            return encodeUint(num);
+        }
+    }
+
+
+    template<typename T>
+    constexpr bool isValidType() {
+        return std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, std::string>;
+    }
+
+    // Forward declaration
+    template<typename T, typename... Ts>
+    Bytes encode(const T& first, const Ts&... rest);
+
+    // Specialization for encoding a tuple... Expand and call back encode<T,Ts...>
+    template<typename... Ts>
+    Bytes encode(const std::tuple<Ts...>& t) {
+        Bytes result;
+        std::apply([&result](const auto&... args) {
+            (appendVector(result, encode(args...)));
+        }, t);
+        return result;
+    }
+
+    // The main encode function
+    template<typename T, typename... Ts>
+    Bytes encode(const T& first, const Ts&... rest) {
+        auto encode_internal = [](auto index, auto& result, auto&&... args) {
+            ((appendVector(result, encode(args)), std::cout << "Encoding index " << index++ << '\n'), ...);
+        };
+        if constexpr (!std::is_same_v<T, std::tuple<Ts...>>) {
+          static_assert(isValidType<T>(), "Invalid type for encoding");
+        }
+        Bytes result;
+        uint64_t index = 0;
+        encode_internal(index, result, first, rest...);
+        return result;
+    }
+
+  }
+
   /// Class that unpacks and decodes a Solidity ABI string into their original data types.
   class Decoder {
     private:
