@@ -311,6 +311,12 @@ void ABI::NewEncoder::appendVector(Bytes &dest, const Bytes &src) {
   dest.insert(dest.end(), src.begin(), src.end());
 }
 
+Functor ABI::NewEncoder::encodeFunction(const std::string_view func) {
+  auto view = Utils::create_view_span(func);
+  auto hash = Utils::sha3(view);
+  return Functor(Bytes(hash.cbegin(), hash.cbegin() +4));
+}
+
 Bytes ABI::NewEncoder::encodeUint(const uint256_t& num) {
   Bytes ret(32, 0x00);
   Bytes tmp;
@@ -405,29 +411,32 @@ Bytes ABI::NewEncoder::encode(const std::vector<bool>& bV) {
   return ret;
 }
 
-Bytes ABI::NewEncoder::encode(const std::vector<BytesArrView>& bytesV) {
-  Bytes ret;
-  Utils::appendBytes(ret, Utils::padLeftBytes(Utils::uintToBytes(bytesV.size()), 32));
-  std::vector<Bytes> bytesStrip, bytesOff, bytesLen, bytesData = {};
-  int pads = 0;
-  for (int i = 0; i < bytesV.size(); i++) {
-    int p = 0;
-    Bytes bS(bytesV[i].begin(), bytesV[i].end());
-    Bytes bL = Utils::uintToBytes(bS.size()); // Get length first so we can get the right offset
-    Bytes bO = Utils::uintToBytes((32 * bytesV.size()) + (32 * i) + (32 * pads)); // (offsets) + (lengths) + (datas)
-    do { p += 32; } while (p < bS.size());
-    pads += (p / 32);
-    Bytes bD = Utils::padRightBytes(bS, p);
-    bytesOff.push_back(Utils::padLeftBytes(bO, 32));
-    bytesLen.push_back(Utils::padLeftBytes(bL, 32));
-    bytesData.push_back(Utils::padRightBytes(bD, 32));
-  }
-  for (Bytes off : bytesOff) ret.insert(ret.end(), off.begin(), off.end());
-  for (int i = 0; i < bytesV.size(); i++) {
-    ret.insert(ret.end(), bytesLen[i].begin(), bytesLen[i].end());
-    ret.insert(ret.end(), bytesData[i].begin(), bytesData[i].end());
-  }
-  return ret;
+Bytes ABI::NewEncoder::encode(const std::vector<Bytes>& bytesV) {
+    std::vector<BytesArrView> argDataView;
+    argDataView.reserve(bytesV.size());
+    std::transform(bytesV.begin(), bytesV.end(), std::back_inserter(argDataView), [](const Bytes& b) { return Utils::create_view_span(b); });
+    Bytes ret;
+    Utils::appendBytes(ret, Utils::padLeftBytes(Utils::uintToBytes(argDataView.size()), 32));
+    std::vector<Bytes> bytesStrip, bytesOff, bytesLen, bytesData = {};
+    int pads = 0;
+    for (int i = 0; i < argDataView.size(); i++) {
+        int p = 0;
+        Bytes bS(argDataView[i].begin(), argDataView[i].end());
+        Bytes bL = Utils::uintToBytes(bS.size()); // Get length first so we can get the right offset
+        Bytes bO = Utils::uintToBytes((32 * argDataView.size()) + (32 * i) + (32 * pads)); // (offsets) + (lengths) + (datas)
+        do { p += 32; } while (p < bS.size());
+        pads += (p / 32);
+        Bytes bD = Utils::padRightBytes(bS, p);
+        bytesOff.push_back(Utils::padLeftBytes(bO, 32));
+        bytesLen.push_back(Utils::padLeftBytes(bL, 32));
+        bytesData.push_back(Utils::padRightBytes(bD, 32));
+    }
+    for (Bytes off : bytesOff) ret.insert(ret.end(), off.begin(), off.end());
+    for (int i = 0; i < argDataView.size(); i++) {
+        ret.insert(ret.end(), bytesLen[i].begin(), bytesLen[i].end());
+        ret.insert(ret.end(), bytesData[i].begin(), bytesData[i].end());
+    }
+    return ret;
 }
 
 Bytes ABI::NewEncoder::encode(const std::vector<std::string>& strV) {

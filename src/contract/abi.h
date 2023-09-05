@@ -1245,6 +1245,8 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     void appendVector(Bytes& dest, const Bytes& src);
 
+    Functor encodeFunction(const std::string_view func);
+
     Bytes encodeUint(const uint256_t& num);
 
     Bytes encodeInt(const int256_t& num);
@@ -1265,23 +1267,45 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     Bytes encode(const std::vector<bool>& bV);
 
-    Bytes encode(const std::vector<BytesArrView>& bytesV);
+    Bytes encode(const std::vector<Bytes>& bytesV);
 
     Bytes encode(const std::vector<std::string>& strV);
 
     template <typename T>
     Bytes encode(const T& num) {
-        if constexpr (std::is_signed_v<T>) {
+        if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
+                        std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
+                        std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
+                        std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
+                        std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
+                        std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
+                        std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
+                        std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
+                        std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
+                        std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
+                        std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>) {
             return encodeInt(num);
-        } else {
+        } else if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
+                        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
+                        std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
+                        std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
+                        std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
+                        std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
+                        std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
+                        std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
+                        std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
+                        std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
+                        std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>) {
             return encodeUint(num);
+        } else {
+            throw std::runtime_error("The number type is not supported");
         }
     }
 
 
     template<typename T>
     constexpr bool isValidType() {
-        return std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, std::string>;
+        return std::is_same_v<T, uint256_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, std::string>;
     }
 
     // Forward declaration
@@ -1300,19 +1324,46 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     // The main encode function
     template<typename T, typename... Ts>
-    Bytes encode(const T& first, const Ts&... rest) {
-        auto encode_internal = [](auto index, auto& result, auto&&... args) {
-            ((appendVector(result, encode(args)), std::cout << "Encoding index " << index++ << '\n'), ...);
-        };
-        if constexpr (!std::is_same_v<T, std::tuple<Ts...>>) {
-          static_assert(isValidType<T>(), "Invalid type for encoding");
-        }
-        Bytes result;
-        uint64_t index = 0;
-        encode_internal(index, result, first, rest...);
-        return result;
-    }
+    Bytes encodeData(const T& first, const Ts&... rest) {
+      Bytes result;
+      uint64_t nextOffset = 32 * (sizeof...(Ts) + 1);
+      Bytes dynamicBytes;
 
+      auto encodeItem = [&](auto&& item) {
+        using ItemType = std::decay_t<decltype(item)>;
+
+        // Convert Bytes to BytesArrView if applicable
+        if constexpr (std::is_same_v<ItemType, Bytes>) {
+          BytesArrView arrView(item.data(), item.size());
+          Bytes packed = encode(arrView);  // Call the encode function expecting a BytesArrView
+          appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+          nextOffset += 32 * ((packed.size() + 31) / 32);
+          dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
+        }
+        else if constexpr (std::is_same_v<ItemType, std::vector<uint256_t>> || 
+                          std::is_same_v<ItemType, std::vector<int256_t>>  ||
+                          std::is_same_v<ItemType, std::vector<Address>>   ||
+                          std::is_same_v<ItemType, std::vector<bool>>      ||
+                          std::is_same_v<ItemType, std::vector<Bytes>> ||
+                          std::is_same_v<ItemType, std::vector<std::string>> ||
+                          std::is_same_v<ItemType, std::string> || 
+                          false) {
+          Bytes packed = encode(item);
+          appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+          nextOffset += 32 * ((packed.size() + 31) / 32);
+          dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
+        }
+        else {
+          appendVector(result, encode(item));
+        }
+      };
+
+      encodeItem(first);
+      (encodeItem(rest), ...);
+
+      result.insert(result.end(), dynamicBytes.begin(), dynamicBytes.end());
+      return result;
+    }
   }
 
   /// Class that unpacks and decodes a Solidity ABI string into their original data types.

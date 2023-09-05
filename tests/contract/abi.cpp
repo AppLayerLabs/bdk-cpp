@@ -19,12 +19,8 @@ using Catch::Matchers::Equals;
 namespace TABI {
 TEST_CASE("ABI Namespace", "[contract][abi]") {
   SECTION("Encode Uint256 (Single)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(uint256_t("12038189571283151234217456623442137"));
-
-      ABI::Encoder e(eV, "testUint(uint256)");
-      auto functor = e.getFunctor();
-      Bytes eS = e.getData();
+      auto functor = ABI::NewEncoder::encodeFunction("testUint(uint256)");
+      Bytes eS = ABI::NewEncoder::encodeData(uint256_t("12038189571283151234217456623442137"));
 
       REQUIRE(functor == Hex::toBytes("c7a16965"));
       REQUIRE(eS == Hex::toBytes(
@@ -33,16 +29,10 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
   SECTION("Encode Uint256 (Multiple)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(uint256_t("985521342366467353964568564348544758443523147426"));
-    eV.push_back(
-        uint256_t("3453441424448154428346543455122894428593523456453894523"));
-    eV.push_back(uint256_t(
-        "238745423894452554435879784534423784946532544278453254451345"));
-
-      ABI::Encoder e(eV, "testMultipleUint(uint256,uint256,uint256)");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+      auto eS = ABI::NewEncoder::encodeData(uint256_t("985521342366467353964568564348544758443523147426"),
+        uint256_t("3453441424448154428346543455122894428593523456453894523"),
+        uint256_t("238745423894452554435879784534423784946532544278453254451345"));
+      Functor functor = ABI::NewEncoder::encodeFunction("testMultipleUint(uint256,uint256,uint256)");
 
       REQUIRE(functor == Hex::toBytes("aab4c13b"));
 
@@ -58,16 +48,14 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
   SECTION("Encode Uint256 (Array)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(std::vector<uint256_t>{
+
+      auto eS = ABI::NewEncoder::encodeData(std::vector<uint256_t>{
         uint256_t("19283178512315252514312458124312935128381523"),
         uint256_t("31482535189448189541125434144"),
         uint256_t("1123444185124184138124378143891242186794252455823414458"),
         uint256_t("215345189442554346421356134551234851234484")});
 
-      ABI::Encoder e(eV, "testUintArr(uint256[])");
-      BytesArrView eS = e.getData();
-      auto functor = e.getFunctor();
+      auto functor = ABI::NewEncoder::encodeFunction("testUintArr(uint256[])");
 
       REQUIRE(functor == Hex::toBytes("d1a4e446"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -91,12 +79,9 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
   SECTION("Encode Int256 (Single)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(int256_t("-123456789012345678901234567890123456789012345678901234567890"));
 
-      ABI::Encoder e(eV, "testInt(int256)");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+    auto eS = ABI::NewEncoder::encodeData(int256_t("-123456789012345678901234567890123456789012345678901234567890"));
+    auto functor = ABI::NewEncoder::encodeFunction("testInt(int256)");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("6017d51d"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -105,15 +90,13 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
   SECTION("Encode Int256 (Multiple)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(int256_t("-123456789012345678901234567890123456789012345678901234567890"));
-    eV.push_back(int256_t("123456789012345678901234567890123456789012345678901234567890"));
-    eV.push_back(int256_t("-56789012345678901234567890123456789012345678901234567890"));
-    eV.push_back(int256_t("56789012345678901234567890123456789012345678901234567890"));
 
-      ABI::Encoder e(eV, "testMultipleInt(int256,int256)");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+    auto eS = ABI::NewEncoder::encodeData(int256_t("-123456789012345678901234567890123456789012345678901234567890"),
+      int256_t("123456789012345678901234567890123456789012345678901234567890"),
+      int256_t("-56789012345678901234567890123456789012345678901234567890"),
+      int256_t("56789012345678901234567890123456789012345678901234567890"));
+
+      Functor functor = ABI::NewEncoder::encodeFunction("testMultipleInt(int256,int256)");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("c402855a"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -131,18 +114,16 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
   SECTION("Encode Int256 (Array)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(std::vector<int256_t>{
-        int256_t("-123456789012345678901234567890123456789012345678901234567890"),
-        int256_t("123456789012345678901234567890123456789012345678901234567890"),
-        int256_t("-56789012345678901234567890123456789012345678901234567890"),
-        int256_t("56789012345678901234567890123456789012345678901234567890")});
 
-      ABI::Encoder e(eV, "testUintArr(int256[])");
-      BytesArrView eS = e.getData();
-      auto functor = e.getFunctor();
+    auto eS = ABI::NewEncoder::encodeData(std::vector<int256_t>{
+      int256_t("-123456789012345678901234567890123456789012345678901234567890"),
+      int256_t("123456789012345678901234567890123456789012345678901234567890"),
+      int256_t("-56789012345678901234567890123456789012345678901234567890"),
+      int256_t("56789012345678901234567890123456789012345678901234567890")});
 
-      REQUIRE(functor == Hex::toBytes("aa9644a3"));
+      Functor functor = ABI::NewEncoder::encodeFunction("testIntArr(int256[])");
+
+      REQUIRE(functor == Hex::toBytes("47406546"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
         "0000000000000000000000000000000000000000000000000000000000000020"
       ));
@@ -164,12 +145,10 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
   SECTION("Encode String (Single)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back("Hello World!");
 
-      ABI::Encoder e(eV, "testString(string)");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+      auto eS = ABI::NewEncoder::encodeData(std::string("Hello World!"));
+   
+      Functor functor = ABI::NewEncoder::encodeFunction("testString(string)");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("61cb5a01"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -184,14 +163,10 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
   SECTION("Encode Bool (Multiple)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(true);
-    eV.push_back(false);
-    eV.push_back(true);
 
-      ABI::Encoder e(eV, "testMultipleBool(bool,bool,bool)");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+      auto eS = ABI::NewEncoder::encodeData(true, false, true);
+
+      Functor functor = ABI::NewEncoder::encodeFunction("testMultipleBool(bool,bool,bool)");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("49fdef10"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -206,19 +181,16 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
     SECTION("Encode String (Array) + Uint256 (Array)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(std::vector<std::string>{
+
+      auto eS = ABI::NewEncoder::encodeData(std::vector<std::string>{
         "First String", "Second String", "Third String"
-      });
-        eV.push_back(std::vector<uint256_t>{
+      }, std::vector<uint256_t>{
         uint256_t("129838151824165123321245841287434198"),
         uint256_t("2134584124125984418451243118545129854235"),
         uint256_t("1234812315823541285534458693557693548423844235"),
         uint256_t("32452893445892345238552138945234454324523194514")});
 
-      ABI::Encoder e(eV, "testStringArrWithUintArr(string[],uint256[])");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+      Functor functor = ABI::NewEncoder::encodeFunction("testStringArrWithUintArr(string[],uint256[])");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("023c4a5e"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -275,12 +247,10 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
     SECTION("Encode Address (Single)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")));
 
-      ABI::Encoder e(eV, "testAddress(address)");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+      auto eS = ABI::NewEncoder::encodeData(Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")));
+
+      Functor functor = ABI::NewEncoder::encodeFunction("testAddress(address)");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("42f45790"));
       REQUIRE(Bytes(eS.begin(), eS.end()) == Hex::toBytes(
@@ -289,12 +259,10 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
   SECTION("Encode Bytes (Single)") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(Hex::toBytes("0xc8191d2e98e7cd9201cef777f85bf857"));
 
-      ABI::Encoder e(eV, "testBytes(bytes)");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+      auto eS = ABI::NewEncoder::encodeData(Hex::toBytes("0xc8191d2e98e7cd9201cef777f85bf857"));
+
+      Functor functor = ABI::NewEncoder::encodeFunction("testBytes(bytes)");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("3ca8b1a7"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -309,20 +277,18 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
     }
 
     SECTION("Encode Bytes (Array) + String (Array)") {
-      ABI::Encoder::EncVar eV;
-      eV.push_back(std::vector<Bytes>{
+
+      auto eS = ABI::NewEncoder::encodeData(std::vector<Bytes>{
         Hex::toBytes("0x81a1217428d6d8ff7a419e87cfc948d2"),
         Hex::toBytes("0x2d96cf448d1d455d9013572ac07edefc"),
         Hex::toBytes("0xc584d0de5dbddca6e74686a3c154bb28"),
-        Hex::toBytes("0xdb6f06ea16ab61dca14053001c6b5815")});
-    eV.push_back(std::vector<std::string>{
+        Hex::toBytes("0xdb6f06ea16ab61dca14053001c6b5815")},
+        std::vector<std::string>{
         "First String", "Second String", "Third String",
-        "Forth String" // Someone fix this typo for the love of the cosmos
-    });
+        "Fourth String"
+      });
 
-      ABI::Encoder e(eV, "testBytesArrWithStrArr(bytes[],string[])");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+      Functor functor = ABI::NewEncoder::encodeFunction("testBytesArrWithStrArr(bytes[],string[])");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("f1881d9f"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -404,43 +370,41 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "546869726420537472696e670000000000000000000000000000000000000000"
       ));
       REQUIRE(Bytes(eS.begin() + 32 * 26, eS.begin() + 32 * 27) == Hex::toBytes(
-        "000000000000000000000000000000000000000000000000000000000000000c"
+        "000000000000000000000000000000000000000000000000000000000000000d"
       ));
       REQUIRE(Bytes(eS.begin() + 32 * 27, eS.begin() + 32 * 28) == Hex::toBytes(
-        "466f72746820537472696e670000000000000000000000000000000000000000"
+        "466f7572746820537472696e6700000000000000000000000000000000000000"
       ));
     }
 
   SECTION("Encode All") {
-    ABI::Encoder::EncVar eV;
-    eV.push_back(uint256_t("19283816759128317851231551416451212"));
-    eV.push_back(std::vector<uint256_t>{
+
+    auto eS = ABI::NewEncoder::encodeData(uint256_t("19283816759128317851231551416451212"),
+      std::vector<uint256_t>{
         uint256_t("1239381517249318561241694412"),
         uint256_t("2395843472138412758912309213482574123672567"),
         uint256_t("9138482765346472349817634647689124123"),
         uint256_t("9234782382341248283491")
-      });
-      eV.push_back(true);
-      eV.push_back(std::vector<bool>{false, true, false});
-      eV.push_back(Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")));
-      eV.push_back(std::vector<Address>{
+      },
+      true,
+      std::vector<bool>{false, true, false},
+      Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")),
+      std::vector<Address>{
         Address(Hex::toBytes("0x2D061c095b06efed6A54b6e9B3f50f1b55cce2FF")),
         Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")),
         Address(Hex::toBytes("0xA462f6A66CC4465fA2d5E90EFA6757f615125760"))
-      });
-      eV.push_back(Hex::toBytes("0xec05537ed99fc9053e29368726573b25"));
-      eV.push_back(std::vector<Bytes>{
+      },
+      Hex::toBytes("0xec05537ed99fc9053e29368726573b25"),
+      std::vector<Bytes>{
         Hex::toBytes("0xadfae295d92644d19f69e4f20f28d0ae"),
         Hex::toBytes("0x6777b56cd127407ae1b1cc309905521e"),
         Hex::toBytes("0x52719fe16375c2446b109dfcf9336c38"),
-        Hex::toBytes("0x6763b32cbd1c695a694d66fe2e729c97")});
-    eV.push_back("This is a string");
-    eV.push_back(std::vector<std::string>{"Yes", "This", "Is", "A", "String",
-                                          "Array", "How stupid lol"});
+        Hex::toBytes("0x6763b32cbd1c695a694d66fe2e729c97")},
+      std::string("This is a string"),
+      std::vector<std::string>{"Yes", "This", "Is", "A", "String",
+                                "Array", "How stupid lol"});
 
-      ABI::Encoder e(eV, "testAll(uint256,uint256[],bool,bool[],address,address[],bytes,bytes[],string,string[])");
-      auto eS = Utils::create_view_span(e.getData());
-      Functor functor = e.getFunctor();
+      Functor functor = ABI::NewEncoder::encodeFunction("testAll(uint256,uint256[],bool,bool[],address,address[],bytes,bytes[],string,string[])");
 
       REQUIRE(functor == Hex::toBytes("d8d2684c"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
