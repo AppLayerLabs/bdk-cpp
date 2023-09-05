@@ -8,29 +8,6 @@
 #include "../variables/counters.h"
 #include "../variables/pausable.h"
 #include "../variables/safeenumerablemap.h"
-/*
- *   /// Register contract class via ContractReflectionInterface.
-  static void registerContract() {
-    ContractReflectionInterface::registerContract<
-      ERC721, const std::string &, const std::string &,
-      ContractManagerInterface &,
-      const Address &, const Address &, const uint64_t &,
-      const std::unique_ptr<DB> &
-    >(
-      std::vector<std::string>{"erc721_name", "erc721_symbol"},
-      std::make_tuple("name", &ERC721::name, "view", std::vector<std::string>{}),
-      std::make_tuple("symbol", &ERC721::symbol, "view", std::vector<std::string>{}),
-      std::make_tuple("balanceOf", &ERC721::balanceOf, "view", std::vector<std::string>{"owner"}),
-      std::make_tuple("ownerOf", &ERC721::ownerOf, "view", std::vector<std::string>{"tokenId"}),
-      std::make_tuple("tokenURI", &ERC721::tokenURI, "view", std::vector<std::string>{"tokenId"}),
-      std::make_tuple("approve", &ERC721::approve, "nonpayable", std::vector<std::string>{"to", "tokenId"}),
-      std::make_tuple("getApproved", &ERC721::getApproved, "view", std::vector<std::string>{"tokenId"}),
-      std::make_tuple("setApprovalForAll", &ERC721::setApprovalForAll, "nonpayable", std::vector<std::string>{"operator", "approved"}),
-      std::make_tuple("isApprovedForAll", &ERC721::isApprovedForAll, "view", std::vector<std::string>{"owner", "operator"}),
-      std::make_tuple("transferFrom", &ERC721::transferFrom, "nonpayable", std::vector<std::string>{"from", "to", "tokenId"})
-    );
-  }
- */
 
 class PulsarNft : virtual public DynamicContract,
   virtual public ERC721, virtual public ERC721Enumerable,

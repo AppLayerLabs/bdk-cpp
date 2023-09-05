@@ -50,10 +50,11 @@ class SafeEnumerableMap {
     }
 
     const T& get(const Key& key) const {
+      static T zeroValue = T();
       auto it = this->values_.find(key);
       if (it == this->values_.end()) {
         if (this->contains(key)) {
-          return T();
+          return zeroValue;
         } else {
           throw std::runtime_error("SafeEnumerableMap: Key not found");
         }
