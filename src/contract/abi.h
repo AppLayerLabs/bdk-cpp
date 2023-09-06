@@ -1298,15 +1298,54 @@ Types inline getABIEnumFromString(const std::string& type) {
                         std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>) {
             return encodeUint(num);
         } else {
-            throw std::runtime_error("The number type is not supported");
+            throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported");
         }
     }
 
+    template<typename T>
+    struct isTupleOfDynamicTypes;
+
+    template<typename... Ts>
+    struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
 
     template<typename T>
-    constexpr bool isValidType() {
-        return std::is_same_v<T, uint256_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, std::string>;
+    struct isTupleOfDynamicTypes<std::vector<T>>;
+
+    // Function to check if a type is dynamic
+    template<typename T>
+    constexpr bool isDynamic() {
+        if constexpr (std::is_same_v<T, std::vector<uint256_t>> || 
+                              std::is_same_v<T, std::vector<int256_t>>  ||
+                              std::is_same_v<T, std::vector<Address>>   ||
+                              std::is_same_v<T, std::vector<bool>>      ||
+                              std::is_same_v<T, std::vector<Bytes>> ||
+                              std::is_same_v<T, std::vector<std::string>> ||
+                              std::is_same_v<T, std::string> ||
+                              false) {
+            return true;
+        }
+        else if constexpr (isTupleOfDynamicTypes<T>::value) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
+
+    template<typename T>
+    struct isTupleOfDynamicTypes {
+        static constexpr bool value = false; // default to false for unknown types
+    };
+
+    template<typename... Ts>
+    struct isTupleOfDynamicTypes<std::tuple<Ts...>> {
+        static constexpr bool value = (... || isDynamic<Ts>());
+    };
+
+    template<typename T>
+    struct isTupleOfDynamicTypes<std::vector<T>> {
+        static constexpr bool value = isTupleOfDynamicTypes<T>::value;
+    };
 
     // Forward declaration
     template<typename T, typename... Ts>
@@ -1316,15 +1355,63 @@ Types inline getABIEnumFromString(const std::string& type) {
     template<typename... Ts>
     Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
-        std::apply([&result](const auto&... args) {
-            (appendVector(result, encode(args...)));
+        Bytes dynamicBytes;
+        uint64_t nextOffset = 32 * sizeof...(Ts);
+
+        std::apply([&](const auto&... args) {
+            auto encodeItem = [&](auto&& item) {
+                using ItemType = std::decay_t<decltype(item)>;
+                if (isDynamic<ItemType>()) {
+                    Bytes packed = encode(item);
+                    appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+                    nextOffset += 32 * ((packed.size() + 31) / 32);
+                    dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
+                } else {
+                    appendVector(result, encode(item));
+                }
+            };
+            
+            (encodeItem(args), ...);
         }, t);
+        
+        result.insert(result.end(), dynamicBytes.begin(), dynamicBytes.end());
+        return result;
+    }
+
+    // Specialization for encoding a vector of tuples
+    template<typename... Ts>
+    Bytes encode(const std::vector<std::tuple<Ts...>>& vec) {
+        Bytes result;
+
+        // Offset to the array size, 32 bytes away
+        uint64_t startByte = 32;  
+        appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(startByte), 32));
+
+        // Store dynamic parts separately
+        Bytes dynamicPart;
+
+        // Encode each tuple in the list and append it to dynamicPart
+        uint64_t nextOffset = 32 * vec.size(); // Start offsets after all the array offsets
+        for (const auto& t : vec) {
+            // Add the offset for each tuple to result
+            appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+            Bytes tupleBytes = encode(t);
+            nextOffset += tupleBytes.size(); // Update next offset based on this tuple's size
+            appendVector(dynamicPart, tupleBytes);
+        }
+
+        // Append the array size to result
+        appendVector(result, encode(static_cast<uint256_t>(vec.size())));
+
+        // Append the dynamic part to the result
+        appendVector(result, dynamicPart);
+
         return result;
     }
 
     // The main encode function
     template<typename T, typename... Ts>
-    Bytes encodeData(const T& first, const Ts&... rest) {
+     Bytes encodeData(const T& first, const Ts&... rest) {
       Bytes result;
       uint64_t nextOffset = 32 * (sizeof...(Ts) + 1);
       Bytes dynamicBytes;
@@ -1340,14 +1427,7 @@ Types inline getABIEnumFromString(const std::string& type) {
           nextOffset += 32 * ((packed.size() + 31) / 32);
           dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
         }
-        else if constexpr (std::is_same_v<ItemType, std::vector<uint256_t>> || 
-                          std::is_same_v<ItemType, std::vector<int256_t>>  ||
-                          std::is_same_v<ItemType, std::vector<Address>>   ||
-                          std::is_same_v<ItemType, std::vector<bool>>      ||
-                          std::is_same_v<ItemType, std::vector<Bytes>> ||
-                          std::is_same_v<ItemType, std::vector<std::string>> ||
-                          std::is_same_v<ItemType, std::string> || 
-                          false) {
+        else if constexpr (isDynamic<ItemType>()) {
           Bytes packed = encode(item);
           appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
           nextOffset += 32 * ((packed.size() + 31) / 32);

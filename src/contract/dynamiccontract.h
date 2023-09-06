@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define DYNAMICCONTRACT_H
 
 #include <any>
+#include "abi.h"
 #include "contract.h"
 #include "contractmanager.h"
 #include "../utils/safehash.h"
@@ -490,9 +491,12 @@ class DynamicContract : public BaseContract {
         if (std::holds_alternative<BytesEncoded>(result)) {
           return std::get<BytesEncoded>(result).data;
         } else {
-          ABI::Encoder::EncVar resultVec {result};
-          return ABI::Encoder(resultVec).getData();
-        }
+        Bytes encoded_result;
+        std::visit([&](auto&& arg) {
+            encoded_result = ABI::NewEncoder::encodeData(arg);
+        }, result);
+        return encoded_result;
+    }
       } catch (std::exception& e) {
         throw std::runtime_error(e.what());
       }
