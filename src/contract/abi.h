@@ -1380,32 +1380,25 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     // Specialization for encoding a vector of tuples
     template<typename... Ts>
-    Bytes encode(const std::vector<std::tuple<Ts...>>& vec) {
+    Bytes encode(const std::vector<std::tuple<Ts...>>& v) {
         Bytes result;
+        uint64_t nextOffset = 32;  // The first 32 bytes are for the length of the dynamic array
+        Bytes dynamicBytes;
+        Bytes tupleData;
 
-        // Offset to the array size, 32 bytes away
-        uint64_t startByte = 32;  
-        appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(startByte), 32));
-
-        // Store dynamic parts separately
-        Bytes dynamicPart;
-
-        // Encode each tuple in the list and append it to dynamicPart
-        uint64_t nextOffset = 32 * vec.size(); // Start offsets after all the array offsets
-        for (const auto& t : vec) {
-            // Add the offset for each tuple to result
-            appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
-            Bytes tupleBytes = encode(t);
-            nextOffset += tupleBytes.size(); // Update next offset based on this tuple's size
-            appendVector(dynamicPart, tupleBytes);
+        // Encode each tuple
+        for (const auto& t : v) {
+            Bytes tupleBytes = encode(t);  // We're calling the encode function specialized for tuples
+            nextOffset += tupleBytes.size();
+            tupleData.insert(tupleData.end(), tupleBytes.begin(), tupleBytes.end());
         }
 
-        // Append the array size to result
-        appendVector(result, encode(static_cast<uint256_t>(vec.size())));
+        // Add the array length to the result
+        appendVector(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));
 
-        // Append the dynamic part to the result
-        appendVector(result, dynamicPart);
-
+        // Add the tuple data
+        result.insert(result.end(), tupleData.begin(), tupleData.end());
+        
         return result;
     }
 

@@ -41,14 +41,9 @@ namespace TContractManager {
         std::unique_ptr<rdPoS> rdpos;
         ContractManager contractManager(nullptr, db, rdpos, options);
 
-        ABI::Encoder::EncVar createNewERC20ContractVars;
-        createNewERC20ContractVars.push_back(tokenName);
-        createNewERC20ContractVars.push_back(tokenSymbol);
-        createNewERC20ContractVars.push_back(tokenDecimals);
-        createNewERC20ContractVars.push_back(tokenSupply);
-        ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
+        Bytes createNewERC20ContractEncoder = ABI::NewEncoder::encodeData(tokenName, tokenSymbol, tokenDecimals, tokenSupply);
         Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");  // createNewERC20Contract(string,string,uint8,uint256)
-        Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
+        Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder);
 
         TxBlock createNewERC2OTx = TxBlock(
           ProtocolContractAddresses.at("ContractManager"),
@@ -86,10 +81,10 @@ namespace TContractManager {
         REQUIRE(contractManager.getContracts().size() == 1);
 
         const auto contractAddress = contractManager.getContracts()[0].second;
-        ABI::Encoder::EncVar getBalanceMeVars;
-        getBalanceMeVars.push_back(owner);
-        ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-        Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+
+        Bytes encodedData = ABI::NewEncoder::encodeData(owner);
+        Functor functor = ABI::NewEncoder::encodeFunction("balanceOf(address)");
+        Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
         ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
       }
@@ -100,10 +95,11 @@ namespace TContractManager {
       ContractManager contractManager(nullptr, db, rdpos, options);
 
       const auto contractAddress = contractManager.getContracts()[0].second;
-      ABI::Encoder::EncVar getBalanceMeVars;
-      getBalanceMeVars.push_back(owner);
-      ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
-      Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+
+      Bytes encodedData = ABI::NewEncoder::encodeData(owner);
+      Functor functor = ABI::NewEncoder::encodeFunction("balanceOf(address)");
+
+      Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
       ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
       REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
 

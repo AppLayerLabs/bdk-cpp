@@ -170,7 +170,7 @@ BytesEncoded DEXV2Router02::addLiquidity(
   this->callContractFunction(tokenA, &ERC20::transferFrom, this->getCaller(), pair, amountA);
   this->callContractFunction(tokenB, &ERC20::transferFrom, this->getCaller(), pair, amountB);
   auto liquidity = this->callContractFunction(pair, &DEXV2Pair::mint, to);
-  return BytesEncoded(ABI::Encoder({amountA, amountB, liquidity}).getData());
+  return BytesEncoded(ABI::NewEncoder::encodeData(amountA, amountB, liquidity));
 }
 
 BytesEncoded DEXV2Router02::addLiquidityNative(
@@ -195,7 +195,7 @@ BytesEncoded DEXV2Router02::addLiquidityNative(
   if (this->getValue() > amountNative) this->sendTokens(
     this->getCaller(), this->getValue() - amountNative
   );
-  return BytesEncoded(ABI::Encoder({amountToken, amountNative, liquidity}).getData());
+  return BytesEncoded(ABI::NewEncoder::encodeData(amountToken, amountNative, liquidity));
 }
 
 BytesEncoded DEXV2Router02::removeLiquidity(
@@ -220,7 +220,7 @@ BytesEncoded DEXV2Router02::removeLiquidity(
   auto amountB = tokenA == DEXV2Library::sortTokens(tokenA, tokenB).first ? amount1 : amount0;
   if (amountA < amountAMin) throw std::runtime_error("DEXV2Router02::removeLiquidity: INSUFFICIENT_A_AMOUNT");
   if (amountB < amountBMin) throw std::runtime_error("DEXV2Router02::removeLiquidity: INSUFFICIENT_B_AMOUNT");
-  return BytesEncoded(ABI::Encoder({amountA, amountB}).getData());
+  return BytesEncoded(ABI::NewEncoder::encodeData(amountA, amountB));
 }
 
 BytesEncoded DEXV2Router02::removeLiquidityNative(
@@ -241,7 +241,7 @@ BytesEncoded DEXV2Router02::removeLiquidityNative(
   this->callContractFunction(token, &ERC20::transfer, to, amountToken);
   this->callContractFunction(this->wrappedNative_.get(), &NativeWrapper::withdraw, amountNative);
   this->sendTokens(this->getCaller(), amountNative);
-  return BytesEncoded(ABI::Encoder({amountToken, amountNative}).getData());
+  return BytesEncoded(ABI::NewEncoder::encodeData(amountToken, amountNative));
 }
 
 std::vector<uint256_t> DEXV2Router02::swapExactTokensForTokens(
