@@ -127,7 +127,7 @@ std::pair<uint256_t, uint256_t> DEXV2Pair::getReservess() const {
 }
 
 BytesEncoded DEXV2Pair::getReserves() const {
-  Bytes encodedData = ABI::NewEncoder::encodeData(this->reserve0_.get(), this->reserve1_.get(), this->blockTimestampLast_.get());
+  Bytes encodedData = ABI::Encoder::encodeData(this->reserve0_.get(), this->reserve1_.get(), this->blockTimestampLast_.get());
   return BytesEncoded(encodedData);
 }
 
@@ -190,7 +190,7 @@ BytesEncoded DEXV2Pair::burn(const Address& to) {
   balance1 = this->callContractViewFunction(this->token1_.get(), &ERC20::balanceOf, this->getContractAddress());
   this->_update(balance0, balance1, this->reserve0_.get(), this->reserve1_.get());
   if (feeOn) kLast_ = uint256_t(this->reserve0_.get()) * uint256_t(this->reserve1_.get());
-  return BytesEncoded(ABI::NewEncoder::encodeData(amount0, amount1));
+  return BytesEncoded(ABI::Encoder::encodeData(amount0, amount1));
 }
 
 void DEXV2Pair::swap(const uint256_t& amount0Out, const uint256_t& amount1Out, const Address& to) {

@@ -63,13 +63,9 @@ namespace TNativeWrapper {
                     testDumpPath + "/NativeWrapperNewContractTest");
 
         // Create a new Contract
-        ABI::Encoder::EncVar createNewNativeWrapperContractVars;
-        createNewNativeWrapperContractVars.push_back(tokenName);
-        createNewNativeWrapperContractVars.push_back(tokenSymbol);
-        createNewNativeWrapperContractVars.push_back(tokenDecimals);
-        ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
+        Bytes createNewNativeWrapperContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals);
         Bytes createNativeWrapperContractData = Hex::toBytes("0xb296fad4");
-        Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder.getData());
+        Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder);
 
         TxBlock createNewNativeWrapperTx = TxBlock(
           ProtocolContractAddresses.at("ContractManager"),
@@ -89,24 +85,29 @@ namespace TNativeWrapper {
 
         // Get the address of the new contract
         contractAddress = state->getContracts()[0].second;
-        ABI::Encoder nameEncoder({}, "name()");
-        ABI::Encoder symbolEncoder({}, "symbol()");
-        ABI::Encoder decimalsEncoder({}, "decimals()");
-        ABI::Encoder totalSupplyEncoder({}, "totalSupply()");
+        Bytes nameEncoder = Bytes(32, 0);
+        Bytes symbolEncoder = Bytes(32, 0);
+        Bytes decimalsEncoder = Bytes(32, 0);
+        Bytes totalSupplyEncoder = Bytes(32, 0);
 
-        Bytes nameData = state->ethCall(buildCallInfo(contractAddress, nameEncoder.getFunctor(), nameEncoder.getData()));
+        Functor nameFunctor = ABI::Encoder::encodeFunction("name()");
+        Functor symbolFunctor = ABI::Encoder::encodeFunction("symbol()");
+        Functor decimalsFunctor = ABI::Encoder::encodeFunction("decimals()");
+        Functor totalSupplyFunctor = ABI::Encoder::encodeFunction("totalSupply()");
+
+        Bytes nameData = state->ethCall(buildCallInfo(contractAddress, nameFunctor, nameEncoder));
         ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
         REQUIRE(nameDecoder.getData<std::string>(0) == tokenName);
 
-        Bytes symbolData = state->ethCall(buildCallInfo(contractAddress, symbolEncoder.getFunctor(), symbolEncoder.getData()));
+        Bytes symbolData = state->ethCall(buildCallInfo(contractAddress, symbolFunctor, symbolEncoder));
         ABI::Decoder symbolDecoder({ABI::Types::string}, symbolData);
         REQUIRE(symbolDecoder.getData<std::string>(0) == tokenSymbol);
 
-        Bytes decimalsData = state->ethCall(buildCallInfo(contractAddress, decimalsEncoder.getFunctor(), decimalsEncoder.getData()));
+        Bytes decimalsData = state->ethCall(buildCallInfo(contractAddress, decimalsFunctor, decimalsEncoder));
         ABI::Decoder decimalsDecoder({ABI::Types::uint256}, decimalsData);
         REQUIRE(decimalsDecoder.getData<uint256_t>(0) == 18);
 
-        Bytes totalSupplyData = state->ethCall(buildCallInfo(contractAddress, totalSupplyEncoder.getFunctor(), totalSupplyEncoder.getData()));
+        Bytes totalSupplyData = state->ethCall(buildCallInfo(contractAddress, totalSupplyFunctor, totalSupplyEncoder));
         ABI::Decoder totalSupplyDecoder({ABI::Types::uint256}, totalSupplyData);
         REQUIRE(totalSupplyDecoder.getData<uint256_t>(0) == 0);
       }
@@ -120,24 +121,29 @@ namespace TNativeWrapper {
                   testDumpPath + "/NativeWrapperNewContractTest");
 
       REQUIRE(contractAddress == state->getContracts()[0].second);
-      ABI::Encoder nameEncoder({}, "name()");
-      ABI::Encoder symbolEncoder({}, "symbol()");
-      ABI::Encoder decimalsEncoder({}, "decimals()");
-      ABI::Encoder totalSupplyEncoder({}, "totalSupply()");
+      Bytes nameEncoder = Bytes(32, 0);
+      Bytes symbolEncoder = Bytes(32, 0);
+      Bytes decimalsEncoder = Bytes(32, 0);
+      Bytes totalSupplyEncoder = Bytes(32, 0);
 
-      Bytes nameData = state->ethCall(buildCallInfo(contractAddress, nameEncoder.getFunctor(), nameEncoder.getData()));
+      Functor nameFunctor = ABI::Encoder::encodeFunction("name()");
+      Functor symbolFunctor = ABI::Encoder::encodeFunction("symbol()");
+      Functor decimalsFunctor = ABI::Encoder::encodeFunction("decimals()");
+      Functor totalSupplyFunctor = ABI::Encoder::encodeFunction("totalSupply()");
+
+      Bytes nameData = state->ethCall(buildCallInfo(contractAddress, nameFunctor, nameEncoder));
       ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
       REQUIRE(nameDecoder.getData<std::string>(0) == tokenName);
 
-      Bytes symbolData = state->ethCall(buildCallInfo(contractAddress, symbolEncoder.getFunctor(), symbolEncoder.getData()));
+      Bytes symbolData = state->ethCall(buildCallInfo(contractAddress, symbolFunctor, symbolEncoder));
       ABI::Decoder symbolDecoder({ABI::Types::string}, symbolData);
       REQUIRE(symbolDecoder.getData<std::string>(0) == tokenSymbol);
 
-      Bytes decimalsData = state->ethCall(buildCallInfo(contractAddress, decimalsEncoder.getFunctor(), decimalsEncoder.getData()));
+      Bytes decimalsData = state->ethCall(buildCallInfo(contractAddress, decimalsFunctor, decimalsEncoder));
       ABI::Decoder decimalsDecoder({ABI::Types::uint256}, decimalsData);
       REQUIRE(decimalsDecoder.getData<uint256_t>(0) == 18);
 
-      Bytes totalSupplyData = state->ethCall(buildCallInfo(contractAddress, totalSupplyEncoder.getFunctor(), totalSupplyEncoder.getData()));
+      Bytes totalSupplyData = state->ethCall(buildCallInfo(contractAddress, totalSupplyFunctor, totalSupplyEncoder));
       ABI::Decoder totalSupplyDecoder({ABI::Types::uint256}, totalSupplyData);
       REQUIRE(totalSupplyDecoder.getData<uint256_t>(0) == 0);
 
@@ -163,13 +169,9 @@ namespace TNativeWrapper {
                    testDumpPath + "/NativeWrapperDepositTest");
 
         // Create a new Contract
-        ABI::Encoder::EncVar createNewNativeWrapperContractVars;
-        createNewNativeWrapperContractVars.push_back(tokenName);
-        createNewNativeWrapperContractVars.push_back(tokenSymbol);
-        createNewNativeWrapperContractVars.push_back(tokenDecimals);
-        ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
+        Bytes createNewNativeWrapperContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals);
         Bytes createNativeWrapperContractData = Hex::toBytes("0xb296fad4");
-        Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder.getData());
+        Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder);
 
         TxBlock createNewNativeWrapperTx = TxBlock(
           ProtocolContractAddresses.at("ContractManager"),
@@ -209,8 +211,9 @@ namespace TNativeWrapper {
         REQUIRE(state->getNativeBalance(contractAddress) == amountToTransfer);
         REQUIRE(state->getNativeBalance(owner) == uint256_t("1000000000000000000000") - amountToTransfer - (uint256_t(1000000000) * 21000));
 
-        ABI::Encoder balanceOfEncoder({owner}, "balanceOf(address)");
-        Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfEncoder.getFunctor(), balanceOfEncoder.getData()));
+        Bytes balanceOfEncoder = ABI::Encoder::encodeData(owner);
+        Functor balanceOfFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor, balanceOfEncoder));
         ABI::Decoder balanceOfDecoder({ABI::Types::uint256}, balanceOfData);
         REQUIRE(balanceOfDecoder.getData<uint256_t>(0) == amountToTransfer);
 
@@ -228,8 +231,9 @@ namespace TNativeWrapper {
       REQUIRE(state->getNativeBalance(contractAddress) == amountToTransfer);
       REQUIRE(state->getNativeBalance(owner) == uint256_t("1000000000000000000000") - amountToTransfer - (uint256_t(1000000000) * 21000));
 
-      ABI::Encoder balanceOfEncoder({owner}, "balanceOf(address)");
-      Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfEncoder.getFunctor(), balanceOfEncoder.getData()));
+      Bytes balanceOfEncoder = ABI::Encoder::encodeData(owner);
+      Functor balanceOfFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor, balanceOfEncoder));
       ABI::Decoder balanceOfDecoder({ABI::Types::uint256}, balanceOfData);
       REQUIRE(balanceOfDecoder.getData<uint256_t>(0) == amountToTransfer);
     }
@@ -255,13 +259,9 @@ namespace TNativeWrapper {
                     testDumpPath + "/NativeWrapperWithdrawTest");
 
         // Create a new Contract
-        ABI::Encoder::EncVar createNewNativeWrapperContractVars;
-        createNewNativeWrapperContractVars.push_back(tokenName);
-        createNewNativeWrapperContractVars.push_back(tokenSymbol);
-        createNewNativeWrapperContractVars.push_back(tokenDecimals);
-        ABI::Encoder createNewNativeWrapperContractEncoder(createNewNativeWrapperContractVars);
+        Bytes createNewNativeWrapperContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals);
         Bytes createNativeWrapperContractData = Hex::toBytes("0xb296fad4");
-        Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder.getData());
+        Utils::appendBytes(createNativeWrapperContractData, createNewNativeWrapperContractEncoder);
 
         TxBlock createNewNativeWrapperTx = TxBlock(
           ProtocolContractAddresses.at("ContractManager"),
@@ -302,14 +302,15 @@ namespace TNativeWrapper {
         REQUIRE(state->getNativeBalance(owner) ==
                 uint256_t("1000000000000000000000") - amountToTransfer - (uint256_t(1000000000) * 21000));
 
-        ABI::Encoder balanceOfEncoder({owner}, "balanceOf(address)");
-        Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfEncoder.getFunctor(), balanceOfEncoder.getData()));
+        Bytes balanceOfEncoder = ABI::Encoder::encodeData(owner);
+        Functor balanceOfFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor, balanceOfEncoder));
         ABI::Decoder balanceOfDecoder({ABI::Types::uint256}, balanceOfData);
         REQUIRE(balanceOfDecoder.getData<uint256_t>(0) == amountToTransfer);
 
-        ABI::Encoder withdrawEncoder({amountToWithdraw}, "withdraw(uint256)");
+        Bytes withdrawEncoder = ABI::Encoder::encodeData(amountToWithdraw);
         Bytes withdrawData = Hex::toBytes("0x2e1a7d4d");
-        Utils::appendBytes(withdrawData, withdrawEncoder.getData());
+        Utils::appendBytes(withdrawData, withdrawEncoder);
 
         TxBlock withdrawTx = TxBlock(
           contractAddress,
@@ -331,8 +332,10 @@ namespace TNativeWrapper {
         REQUIRE(state->getNativeBalance(owner) ==
                 uint256_t("1000000000000000000000") - amountToTransfer + amountToWithdraw - (uint256_t(1000000000) * 21000 * 2));
 
-        ABI::Encoder balanceOfEncoder2({owner}, "balanceOf(address)");
-        Bytes balanceOfData2 = state->ethCall(buildCallInfo(contractAddress, balanceOfEncoder2.getFunctor(), balanceOfEncoder2.getData()));
+        Bytes balanceOfEncoder2 = ABI::Encoder::encodeData(owner);
+        Functor balanceOfFunctor2 = ABI::Encoder::encodeFunction("balanceOf(address)");
+
+        Bytes balanceOfData2 = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor2, balanceOfEncoder2));
         ABI::Decoder balanceOfDecoder2({ABI::Types::uint256}, balanceOfData2);
         REQUIRE(balanceOfDecoder2.getData<uint256_t>(0) == amountToTransfer - amountToWithdraw);
       }
@@ -351,8 +354,10 @@ namespace TNativeWrapper {
       REQUIRE(state->getNativeBalance(owner) ==
               uint256_t("1000000000000000000000") - amountToTransfer + amountToWithdraw - (uint256_t(1000000000) * 21000 * 2));
 
-      ABI::Encoder balanceOfEncoder({owner}, "balanceOf(address)");
-      Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfEncoder.getFunctor(), balanceOfEncoder.getData()));
+      Bytes balanceOfEncoder = ABI::Encoder::encodeData(owner);
+      Functor balanceOfFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+
+      Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor, balanceOfEncoder));
       ABI::Decoder balanceOfDecoder({ABI::Types::uint256}, balanceOfData);
       REQUIRE(balanceOfDecoder.getData<uint256_t>(0) == amountToTransfer - amountToWithdraw);
 

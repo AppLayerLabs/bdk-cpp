@@ -493,7 +493,7 @@ class DynamicContract : public BaseContract {
         } else {
         Bytes encoded_result;
         std::visit([&](auto&& arg) {
-            encoded_result = ABI::NewEncoder::encodeData(arg);
+            encoded_result = ABI::Encoder::encodeData(arg);
         }, result);
         return encoded_result;
     }
@@ -686,8 +686,13 @@ class DynamicContract : public BaseContract {
     template<typename TContract, typename... Args>
     Address callCreateContract(const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
         Utils::safePrint("CallCreateContract being called...");
-        ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
-        ABI::Encoder encoder(vars);
+        Bytes encoder;
+        if constexpr (sizeof...(Args) > 0) {
+          encoder = ABI::Encoder::encodeData(std::forward<Args>(args)...);
+        }
+        else {
+          encoder = Bytes(32, 0);
+        }
         return this->interface_.callCreateContract<TContract>(this->getOrigin(), this->getContractAddress(), gas, gasPrice, value, std::move(encoder));
     }
 

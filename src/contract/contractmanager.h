@@ -346,7 +346,7 @@ class ContractManagerInterface {
     template <typename TContract> Address callCreateContract(
       const Address& txOrigin, const Address &fromAddr, const uint256_t &gasValue,
       const uint256_t &gasPriceValue, const uint256_t &callValue,
-      const ABI::Encoder &encoder
+      const Bytes &encoder
     ) {
       if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
@@ -368,7 +368,7 @@ class ContractManagerInterface {
       gasPrice = gasPriceValue;
       value = callValue;
       functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
-      data = encoder.getData();
+      data = encoder;
       this->manager_.callLogger_->setContractVars(&manager_, txOrigin, fromAddr, value);
       this->manager_.ethCall(callInfo);
       return to;

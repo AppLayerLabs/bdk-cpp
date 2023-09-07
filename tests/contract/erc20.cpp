@@ -48,14 +48,10 @@ void initialize(std::unique_ptr<Options>& options,
 
   if (deleteDB) {
     /// Create the contract.
-    ABI::Encoder::EncVar createNewERC20ContractVars;
-    createNewERC20ContractVars.push_back(tokenName);
-    createNewERC20ContractVars.push_back(tokenSymbol);
-    createNewERC20ContractVars.push_back(static_cast<uint256_t>(tokenDecimals));
-    createNewERC20ContractVars.push_back(tokenSupply);
-    ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
+
+    Bytes createNewERC20ContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals, tokenSupply);
     Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
-    Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
+    Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder);
 
     TxBlock createNewERC2OTx = TxBlock(
       ProtocolContractAddresses.at("ContractManager"),
@@ -93,31 +89,34 @@ namespace TERC20 {
         initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals, tokenSupply);
 
         erc20Address = contractManager->getContracts()[0].second;
-        ABI::Encoder nameEncoder({}, "name()");
-        ABI::Encoder symbolEncoder({}, "symbol()");
-        ABI::Encoder decimalsEncoder({}, "decimals()");
-        ABI::Encoder totalSupplyEncoder({}, "totalSupply()");
 
-        Bytes nameData = contractManager->callContract(buildCallInfo(erc20Address, nameEncoder.getFunctor(), nameEncoder.getData()));
+        Bytes nameEncoder = Bytes(32, 0);
+        Bytes symbolEncoder = Bytes(32, 0);
+        Bytes decimalsEncoder = Bytes(32, 0);
+        Bytes totalSupplyEncoder = Bytes(32, 0);
+
+        Functor nameFunctor = ABI::Encoder::encodeFunction("name()");
+        Functor symbolFunctor = ABI::Encoder::encodeFunction("symbol()");
+        Functor decimalsFunctor = ABI::Encoder::encodeFunction("decimals()");
+        Functor totalSupplyFunctor = ABI::Encoder::encodeFunction("totalSupply()");
+
+        Bytes nameData = contractManager->callContract(buildCallInfo(erc20Address, nameFunctor, nameEncoder));
         ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
         REQUIRE(nameDecoder.getData<std::string>(0) == tokenName);
 
-        Bytes symbolData = contractManager->callContract(buildCallInfo(erc20Address, symbolEncoder.getFunctor(), symbolEncoder.getData()));
+        Bytes symbolData = contractManager->callContract(buildCallInfo(erc20Address, symbolFunctor, symbolEncoder));
         ABI::Decoder symbolDecoder({ABI::Types::string}, symbolData);
         REQUIRE(symbolDecoder.getData<std::string>(0) == tokenSymbol);
 
-        Bytes decimalsData = contractManager->callContract(buildCallInfo(erc20Address, decimalsEncoder.getFunctor(), decimalsEncoder.getData()));
+        Bytes decimalsData = contractManager->callContract(buildCallInfo(erc20Address, decimalsFunctor, decimalsEncoder));
         ABI::Decoder decimalsDecoder({ABI::Types::uint256}, decimalsData);
         REQUIRE(decimalsDecoder.getData<uint256_t>(0) == 18);
 
-        Bytes totalSupplyData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyEncoder.getFunctor(), totalSupplyEncoder.getData()));
+        Bytes totalSupplyData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyFunctor, totalSupplyEncoder));
         ABI::Decoder totalSupplyDecoder({ABI::Types::uint256}, totalSupplyData);
         REQUIRE(totalSupplyDecoder.getData<uint256_t>(0) == tokenSupply);
 
-        ABI::Encoder::EncVar balanceOfVars;
-        balanceOfVars.push_back(owner);
-        ABI::Encoder balanceOfEncoder(balanceOfVars, "balanceOf(address)");
-        Bytes balanceOfData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyEncoder.getFunctor(), totalSupplyEncoder.getData()));
+        Bytes balanceOfData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyFunctor, totalSupplyEncoder));
         ABI::Decoder balanceOfDecoder({ABI::Types::uint256}, balanceOfData);
         REQUIRE(balanceOfDecoder.getData<uint256_t>(0) == tokenSupply);
       }
@@ -133,31 +132,34 @@ namespace TERC20 {
       initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals, tokenSupply, false);
 
       REQUIRE(erc20Address == contractManager->getContracts()[0].second);
-      ABI::Encoder nameEncoder({}, "name()");
-      ABI::Encoder symbolEncoder({}, "symbol()");
-      ABI::Encoder decimalsEncoder({}, "decimals()");
-      ABI::Encoder totalSupplyEncoder({}, "totalSupply()");
+    
+      Bytes nameEncoder = Bytes(32, 0);
+      Bytes symbolEncoder = Bytes(32, 0);
+      Bytes decimalsEncoder = Bytes(32, 0);
+      Bytes totalSupplyEncoder = Bytes(32, 0);
 
-      Bytes nameData = contractManager->callContract(buildCallInfo(erc20Address, nameEncoder.getFunctor(), nameEncoder.getData()));
+      Functor nameFunctor = ABI::Encoder::encodeFunction("name()");
+      Functor symbolFunctor = ABI::Encoder::encodeFunction("symbol()");
+      Functor decimalsFunctor = ABI::Encoder::encodeFunction("decimals()");
+      Functor totalSupplyFunctor = ABI::Encoder::encodeFunction("totalSupply()");
+
+      Bytes nameData = contractManager->callContract(buildCallInfo(erc20Address, nameFunctor, nameEncoder));
       ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
       REQUIRE(nameDecoder.getData<std::string>(0) == tokenName);
 
-      Bytes symbolData = contractManager->callContract(buildCallInfo(erc20Address, symbolEncoder.getFunctor(), symbolEncoder.getData()));
+      Bytes symbolData = contractManager->callContract(buildCallInfo(erc20Address, symbolFunctor, symbolEncoder));
       ABI::Decoder symbolDecoder({ABI::Types::string}, symbolData);
       REQUIRE(symbolDecoder.getData<std::string>(0) == tokenSymbol);
 
-      Bytes decimalsData = contractManager->callContract(buildCallInfo(erc20Address, decimalsEncoder.getFunctor(), decimalsEncoder.getData()));
+      Bytes decimalsData = contractManager->callContract(buildCallInfo(erc20Address, decimalsFunctor, decimalsEncoder));
       ABI::Decoder decimalsDecoder({ABI::Types::uint256}, decimalsData);
       REQUIRE(decimalsDecoder.getData<uint256_t>(0) == 18);
 
-      Bytes totalSupplyData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyEncoder.getFunctor(), totalSupplyEncoder.getData()));
+      Bytes totalSupplyData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyFunctor, totalSupplyEncoder));
       ABI::Decoder totalSupplyDecoder({ABI::Types::uint256}, totalSupplyData);
       REQUIRE(totalSupplyDecoder.getData<uint256_t>(0) == tokenSupply);
 
-      ABI::Encoder::EncVar balanceOfVars;
-      balanceOfVars.push_back(owner);
-      ABI::Encoder balanceOfEncoder(balanceOfVars, "balanceOf(address)");
-      Bytes balanceOfData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyEncoder.getFunctor(), totalSupplyEncoder.getData()));
+      Bytes balanceOfData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyFunctor, totalSupplyEncoder));
       ABI::Decoder balanceOfDecoder({ABI::Types::uint256}, balanceOfData);
       REQUIRE(balanceOfDecoder.getData<uint256_t>(0) == tokenSupply);
     }
@@ -180,20 +182,16 @@ namespace TERC20 {
 
         erc20Address = contractManager->getContracts()[0].second;
 
-        ABI::Encoder::EncVar getBalanceMeVars;
-        getBalanceMeVars.push_back(owner);
-        ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
+        Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
+        Functor getBalanceMeFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
 
-        ABI::Encoder::EncVar getBalanceDestinationVars;
-        getBalanceDestinationVars.push_back(destinationOfTransactions);
-        ABI::Encoder getBalanceDestinationEncoder(getBalanceDestinationVars, "balanceOf(address)");
+        Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransactions);
+        Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
 
-        ABI::Encoder::EncVar transferVars;
-        transferVars.push_back(destinationOfTransactions);
-        transferVars.push_back(static_cast<uint256_t>(500000000000000000));
-        ABI::Encoder transferEncoder(transferVars);
         Bytes transferData = Hex::toBytes("0xa9059cbb");
-        Utils::appendBytes(transferData, transferEncoder.getData());
+
+        Bytes transferEncoder = ABI::Encoder::encodeData(destinationOfTransactions, static_cast<uint256_t>(500000000000000000));
+        Utils::appendBytes(transferData, transferEncoder);
         TxBlock transferTx(
           erc20Address,
           owner,
@@ -224,22 +222,22 @@ namespace TERC20 {
         REQUIRE_THROWS(contractManager->validateCallContractWithTx(transferTxThrows.txToCallInfo()));
         contractManager->validateCallContractWithTx(transferTx.txToCallInfo());
 
-        Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+        Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeFunctor, getBalanceMeEncoder));
         ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 1000000000000000000);
 
-        Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationEncoder.getFunctor(), getBalanceDestinationEncoder.getData()));
+        Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
         ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 0);
 
         REQUIRE_THROWS(contractManager->callContract(transferTxThrows));
         contractManager->callContract(transferTx);
 
-        getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+        getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeFunctor, getBalanceMeEncoder));
         getBalanceMeDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 500000000000000000);
 
-        getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationEncoder.getFunctor(), getBalanceDestinationEncoder.getData()));
+        getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
         getBalanceDestinationDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
 
@@ -257,19 +255,17 @@ namespace TERC20 {
 
       REQUIRE(erc20Address == contractManager->getContracts()[0].second);
 
-      ABI::Encoder::EncVar getBalanceMeVars;
-      getBalanceMeVars.push_back(owner);
-      ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
+      Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
+      Functor getBalanceMeFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
 
-      ABI::Encoder::EncVar getBalanceDestinationVars;
-      getBalanceDestinationVars.push_back(destinationOfTransactions);
-      ABI::Encoder getBalanceDestinationEncoder(getBalanceDestinationVars, "balanceOf(address)");
+      Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransactions);
+      Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
 
-      Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
+      Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeFunctor, getBalanceMeEncoder));
       ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
       REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 500000000000000000);
 
-      Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationEncoder.getFunctor(), getBalanceDestinationEncoder.getData()));
+      Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
       ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
       REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
     }
@@ -291,17 +287,13 @@ namespace TERC20 {
                    tokenSupply);
 
         erc20Address = contractManager->getContracts()[0].second;
-        ABI::Encoder::EncVar getAllowanceVars;
-        getAllowanceVars.push_back(owner);
-        getAllowanceVars.push_back(destinationOfApproval);
-        ABI::Encoder getAllowanceEncoder(getAllowanceVars, "allowance(address,address)");
 
-        ABI::Encoder::EncVar approveVars;
-        approveVars.push_back(destinationOfApproval);
-        approveVars.push_back(static_cast<uint256_t>(500000000000000000));
-        ABI::Encoder approveEncoder(approveVars);
+        Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, destinationOfApproval);
+        Functor getAllowanceFunctor = ABI::Encoder::encodeFunction("allowance(address,address)");
+
+        Bytes approveEncoder = ABI::Encoder::encodeData(destinationOfApproval, static_cast<uint256_t>(500000000000000000));
         Bytes approveData = Hex::toBytes("0x095ea7b3");
-        Utils::appendBytes(approveData, approveEncoder.getData());
+        Utils::appendBytes(approveData, approveEncoder);
         TxBlock approveTx(
           erc20Address,
           owner,
@@ -317,13 +309,13 @@ namespace TERC20 {
 
         contractManager->validateCallContractWithTx(approveTx.txToCallInfo());
 
-        Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceEncoder.getFunctor(), getAllowanceEncoder.getData()));
+        Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
         ABI::Decoder getAllowanceDecoder({ABI::Types::uint256}, getAllowanceResult);
         REQUIRE(getAllowanceDecoder.getData<uint256_t>(0) == 0);
 
         contractManager->callContract(approveTx);
 
-        getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceEncoder.getFunctor(), getAllowanceEncoder.getData()));
+        getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
         getAllowanceDecoder = ABI::Decoder({ABI::Types::uint256}, getAllowanceResult);
         REQUIRE(getAllowanceDecoder.getData<uint256_t>(0) == 500000000000000000);
 
@@ -342,12 +334,10 @@ namespace TERC20 {
 
       REQUIRE(erc20Address == contractManager->getContracts()[0].second);
 
-      ABI::Encoder::EncVar getAllowanceVars;
-      getAllowanceVars.push_back(owner);
-      getAllowanceVars.push_back(destinationOfApproval);
-      ABI::Encoder getAllowanceEncoder(getAllowanceVars, "allowance(address,address)");
+      Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, destinationOfApproval);
+      Functor getAllowanceFunctor = ABI::Encoder::encodeFunction("allowance(address,address)");
 
-      Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceEncoder.getFunctor(), getAllowanceEncoder.getData()));
+      Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
       ABI::Decoder getAllowanceDecoder({ABI::Types::uint256}, getAllowanceResult);
       REQUIRE(getAllowanceDecoder.getData<uint256_t>(0) == 500000000000000000);
     }
@@ -369,12 +359,10 @@ namespace TERC20 {
                    tokenSupply);
 
         erc20Address = contractManager->getContracts()[0].second;
-        ABI::Encoder::EncVar approveVars;
-        approveVars.push_back(destinationOfApproval);
-        approveVars.push_back(static_cast<uint256_t>(500000000000000000));
-        ABI::Encoder approveEncoder(approveVars);
+
+        Bytes approveEncoder = ABI::Encoder::encodeData(destinationOfApproval, static_cast<uint256_t>(500000000000000000));
         Bytes approveData = Hex::toBytes("0x095ea7b3");
-        Utils::appendBytes(approveData, approveEncoder.getData());
+        Utils::appendBytes(approveData, approveEncoder);
         TxBlock approveTx(
           erc20Address,
           owner,
@@ -390,13 +378,9 @@ namespace TERC20 {
 
         contractManager->callContract(approveTx);
 
-        ABI::Encoder::EncVar transferFromVars;
-        transferFromVars.push_back(owner);
-        transferFromVars.push_back(destinationOfApproval);
-        transferFromVars.push_back(static_cast<uint256_t>(500000000000000000));
-        ABI::Encoder transferFromEncoder(transferFromVars);
+        Bytes transferFromEncoder = ABI::Encoder::encodeData(owner, destinationOfApproval, static_cast<uint256_t>(500000000000000000));
         Bytes transferFromBytes = Hex::toBytes("0x23b872dd");
-        Utils::appendBytes(transferFromBytes, transferFromEncoder.getData());
+        Utils::appendBytes(transferFromBytes, transferFromEncoder);
         TxBlock transferFromTx(
           erc20Address,
           destinationOfApproval,
@@ -427,22 +411,22 @@ namespace TERC20 {
         REQUIRE_THROWS(contractManager->validateCallContractWithTx(transferFromTxThrows.txToCallInfo()));
         contractManager->validateCallContractWithTx(transferFromTx.txToCallInfo());
 
-        ABI::Encoder::EncVar getBalanceMeVars;
-        getBalanceMeVars.push_back(owner);
-        ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
+        Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
+        Functor getBalanceMeFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+
         Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(
-          erc20Address, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()
+          erc20Address, getBalanceMeFunctor, getBalanceMeEncoder
         ));
         ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 1000000000000000000);
 
-        ABI::Encoder::EncVar getBalanceDestinationVars;
-        getBalanceDestinationVars.push_back(destinationOfApproval);
-        ABI::Encoder getBalanceDestinationEncoder(getBalanceDestinationVars, "balanceOf(address)");
+        Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfApproval);
+        Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+
         Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(
           erc20Address,
-          getBalanceDestinationEncoder.getFunctor(),
-          getBalanceDestinationEncoder.getData()
+          getBalanceDestinationFunctor,
+          getBalanceDestinationEncoder
         ));
         ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 0);
@@ -451,15 +435,15 @@ namespace TERC20 {
         contractManager->callContract(transferFromTx);
 
         getBalanceMeResult = contractManager->callContract(buildCallInfo(
-          erc20Address, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()
+          erc20Address, getBalanceMeFunctor, getBalanceMeEncoder
         ));
         getBalanceMeDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceMeResult);
         REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 500000000000000000);
 
         getBalanceDestinationResult = contractManager->callContract(buildCallInfo(
           erc20Address,
-          getBalanceDestinationEncoder.getFunctor(),
-          getBalanceDestinationEncoder.getData()
+          getBalanceDestinationFunctor,
+          getBalanceDestinationEncoder
         ));
         getBalanceDestinationDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceDestinationResult);
         REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
@@ -476,22 +460,22 @@ namespace TERC20 {
       initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
                  tokenSupply, false);
 
-      ABI::Encoder::EncVar getBalanceMeVars;
-      getBalanceMeVars.push_back(owner);
-      ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
+      Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
+      Functor getBalanceMeFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+
       Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(
-        erc20Address, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()
+        erc20Address, getBalanceMeFunctor, getBalanceMeEncoder
       ));
       ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
       REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 500000000000000000);
 
-      ABI::Encoder::EncVar getBalanceDestinationVars;
-      getBalanceDestinationVars.push_back(destinationOfApproval);
-      ABI::Encoder getBalanceDestinationEncoder(getBalanceDestinationVars, "balanceOf(address)");
+      Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfApproval);
+      Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+
       Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(
         erc20Address,
-        getBalanceDestinationEncoder.getFunctor(),
-        getBalanceDestinationEncoder.getData()
+        getBalanceDestinationFunctor,
+        getBalanceDestinationEncoder
       ));
       ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
       REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);

@@ -73,7 +73,7 @@ Bytes ContractManager::getDeployedContracts() const {
     names.push_back(contract->getContractName());
     addresses.push_back(address);
   }
-  Bytes result = ABI::NewEncoder::encodeData(names, addresses);
+  Bytes result = ABI::Encoder::encodeData(names, addresses);
   return result;
 }
 
