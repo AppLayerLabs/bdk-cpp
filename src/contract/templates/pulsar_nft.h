@@ -141,7 +141,7 @@ public:
       const Address &, const Address &, const uint64_t &,
       const std::unique_ptr<DB> &
     >(
-      std::vector<std::string>{""},
+      std::vector<std::string>{},
       std::make_tuple("OPERATOR", &PulsarNft::OPERATOR, "view", std::vector<std::string>{}),
       std::make_tuple("creationBlock", &PulsarNft::creationBlock, "view", std::vector<std::string>{}),
       std::make_tuple("nftAttributes", &PulsarNft::nftAttributes, "view", std::vector<std::string>{"tokenId"}),

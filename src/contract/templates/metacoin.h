@@ -62,7 +62,7 @@ class MetaCoin : virtual public ERC20, virtual public ERC20Snapshot, virtual pub
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &
       >(
-        std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals", "mintValue"},
+        std::vector<std::string>{},
         std::make_tuple("OPERATOR", &MetaCoin::OPERATOR, "view", std::vector<std::string>{}),
         std::make_tuple("NORMAL", &MetaCoin::NORMAL, "view", std::vector<std::string>{}),
         std::make_tuple("FREEZE", &MetaCoin::FREEZE, "view", std::vector<std::string>{}),
@@ -82,7 +82,6 @@ class MetaCoin : virtual public ERC20, virtual public ERC20Snapshot, virtual pub
         std::make_tuple("mint", &MetaCoin::mint, "nonpayable", std::vector<std::string>{"to", "amount"}),
         std::make_tuple("burn", &MetaCoin::burn, "nonpayable", std::vector<std::string>{"from", "amount"}),
         std::make_tuple("setIsAbleToTransfer", &MetaCoin::setIsAbleToTransfer, "nonpayable", std::vector<std::string>{"value"})
-
       );
     };
 };
