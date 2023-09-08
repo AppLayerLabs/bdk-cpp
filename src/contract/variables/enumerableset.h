@@ -5,17 +5,17 @@
 #include "safeunorderedmap.h"
 
 /// Based on the OpenZeppelin EnumerableSet implementation.
-/// Does not require to derive from SafeBase as it already uses SafeVariables internally.
+/// Unsafe version - use SafeEnumerableSet if you need SafeVariable functionality.
 template<typename T>
-class SafeEnumerableSet {
+class EnumerableSet {
   private:
     /// Storage for the set values
-    SafeVector<T> values_;
+    std::vector<T> values_;
 
     // Position of the value in the `values` array, plus 1 because index 0
     // means a value is not in the set.
     // We use uint64_t instead of uint256_t because the vector max size is uint64_t max
-    SafeUnorderedMap<T, uint64_t> indexes_;
+    std::unordered_map<T, uint64_t> indexes_;
 
     bool _add(const T& value) {
       if (!this->indexes_.contains(value)) {
@@ -52,7 +52,7 @@ class SafeEnumerableSet {
     const std::vector<T>& _values() const { return this->values_.get(); }
 
   public:
-    SafeEnumerableSet(DynamicContract* contract) : values_(contract), indexes_(contract) {}
+    EnumerableSet() = default;
 
     bool add(const T& value) { return this->_add(value); }
 
@@ -67,4 +67,4 @@ class SafeEnumerableSet {
     const std::vector<T>& values() const { return this->values_(); }
 };
 
-#endif  // SAFEENUMERABLESET_H
+#endif  // ENUMERABLESET_H
