@@ -124,7 +124,7 @@ class AccessControl : virtual public DynamicContract {
       >(
         std::vector<std::string>{},
         std::make_tuple("DEFAULT_ADMIN_ROLE", &AccessControl::DEFAULT_ADMIN_ROLE, "view", std::vector<std::string>{}),
-        std::make_tuple("hasRole", &AccessControl::hasRole, "view", std::vector<std::string>{"role, account"}),
+        std::make_tuple("hasRole", &AccessControl::hasRole, "view", std::vector<std::string>{"role", "account"}),
         std::make_tuple("getRoleAdmin", &AccessControl::getRoleAdmin, "view", std::vector<std::string>{"role"}),
         std::make_tuple("withdraw", &AccessControl::grantRole, "nonpayable", std::vector<std::string>{"token", "value"}),
         std::make_tuple("transferTo", &AccessControl::revokeRole, "nonpayable", std::vector<std::string>{"token", "to", "value"}),
