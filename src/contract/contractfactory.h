@@ -109,11 +109,10 @@ class ContractFactory {
       // Update the inner variables of the contract.
       // The constructor can set SafeVariable values from the constructor.
       // We need to take account of that and set the variables accordingly.
-      auto contract = createContractWithTuple<TContract, ConstructorArguments>(
-        std::get<0>(callInfo), derivedAddress, dataVector
-      );
       this->recentContracts.insert(derivedAddress);
-      this->manager.contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
+      this->manager.contracts.emplace(derivedAddress, createContractWithTuple<TContract, ConstructorArguments>(
+        std::get<0>(callInfo), derivedAddress, dataVector
+      ));
     }
 
     /**

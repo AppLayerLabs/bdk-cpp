@@ -355,7 +355,7 @@ void PulsarNft::setUser(const uint256_t &tokenId, const Address &user, const uin
   this->_users[tokenId] = {user, expires};
 }
 
-Address PulsarNft::userOf(const uint256_t &tokenId) {
+Address PulsarNft::userOf(const uint256_t &tokenId) const {
   auto it = _users.find(tokenId);
   if (it == _users.end()) {
     return Address();
@@ -367,7 +367,7 @@ Address PulsarNft::userOf(const uint256_t &tokenId) {
   }
 }
 
-uint256_t PulsarNft::userExpires(const uint256_t &tokenId) {
+uint256_t PulsarNft::userExpires(const uint256_t &tokenId) const {
   auto it = _users.find(tokenId);
   if (it == _users.end()) {
     return 0;

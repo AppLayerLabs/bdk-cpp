@@ -130,9 +130,9 @@ public:
 
   void setUser(const uint256_t &tokenId, const Address &user, const uint64_t &expires);
 
-  Address userOf(const uint256_t &tokenId);
+  Address userOf(const uint256_t &tokenId) const;
 
-  uint256_t userExpires(const uint256_t &tokenId);
+  uint256_t userExpires(const uint256_t &tokenId) const;
 
   static void registerContract() {
     ContractReflectionInterface::registerContract<

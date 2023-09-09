@@ -44,11 +44,11 @@ class MetaCoin : virtual public ERC20, virtual public ERC20Snapshot, virtual pub
     void initialize(const std::string& name, const std::string& symbol, const std::vector<Address>& operators, bool isAbleToTransfer);
     uint256_t getAccountsStatusLength() const;
     /// std::tuple<Address,uint256_t>
-    BytesEncoded getAccountStatusByIndex(const uint256_t& index);
+    BytesEncoded getAccountStatusByIndex(const uint256_t& index) const;
     /// std::tuple<bool, uint256_t>
-    BytesEncoded getAccountStatus(const Address& account);
+    BytesEncoded getAccountStatus(const Address& account) const;
     void setStatus(const Address& account, const uint256_t& status);
-    uint256_t getStatus(const Address& account);
+    uint256_t getStatus(const Address& account) const;
     void snapshot();
     void pause();
     void unpause();

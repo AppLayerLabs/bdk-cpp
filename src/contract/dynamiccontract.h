@@ -181,7 +181,7 @@ class DynamicContract : public BaseContract {
       std::string functStr = funcSignature + "()";
 
       const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
-        {"view", []() { throw std::runtime_error("View must be const because it does not modify the state."); }},
+        {"view", [funcSignature]() { throw std::runtime_error(std::string("View must be const because it does not modify the state: func signature: ") + funcSignature); }},
         {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
           this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
              return RegisterHelper<R, T>::createReturnType(instance, memFunc);
@@ -320,7 +320,7 @@ class DynamicContract : public BaseContract {
       };
 
       if (methodMutability == "view") {
-        throw std::runtime_error("View must be const because it does not modify the state.");
+        throw std::runtime_error(std::string("View must be const because it does not modify the state.") + " func signature: " + funcSignature);
       } else if (methodMutability == "nonpayable") {
         this->registerFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
       } else if (methodMutability == "payable") {

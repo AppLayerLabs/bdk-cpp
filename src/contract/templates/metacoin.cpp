@@ -93,7 +93,7 @@ uint256_t MetaCoin::getAccountsStatusLength() const {
 }
 
 /// std::tuple<Address,uint256_t>
-BytesEncoded MetaCoin::getAccountStatusByIndex(const uint256_t& index) {
+BytesEncoded MetaCoin::getAccountStatusByIndex(const uint256_t& index) const {
   auto [key, value] = this->accountsStatus.at(uint64_t(index));
   BytesEncoded ret;
   ret.data = ABI::Encoder({key, value}).getData();
@@ -101,7 +101,7 @@ BytesEncoded MetaCoin::getAccountStatusByIndex(const uint256_t& index) {
 }
 
 /// std::tuple<bool, uint256_t>
-BytesEncoded MetaCoin::getAccountStatus(const Address& account) {
+BytesEncoded MetaCoin::getAccountStatus(const Address& account) const {
   auto [exists, value] = this->accountsStatus.tryGet(account);
   BytesEncoded ret;
   ret.data = ABI::Encoder({exists, value}).getData();
@@ -113,7 +113,7 @@ void MetaCoin::setStatus(const Address& account, const uint256_t& status) {
   this->accountsStatus.set(account, status);
 }
 
-uint256_t MetaCoin::getStatus(const Address& account) {
+uint256_t MetaCoin::getStatus(const Address& account) const {
   uint256_t value = this->accountsStatus.get(account);
   return value;
 }
