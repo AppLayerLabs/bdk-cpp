@@ -119,6 +119,7 @@ std::string PulsarNft::_createUriBasedOnId(const uint256_t& baseNftId, uint256_t
 
 void PulsarNft::registerContractFunctions() {
   // Register all public functions in the order of the header file
+  this->registerContract("initialize", &PulsarNft::initialize, this);
   this->registerMemberFunction("OPERATOR", &PulsarNft::OPERATOR, this);
   this->registerMemberFunction("creationBlock", &PulsarNft::creationBlock, this);
   this->registerMemberFunction("nftAttributes", &PulsarNft::nftAttributes, this);
