@@ -30,7 +30,6 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/nativewrapper.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/simplecontract.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/accesscontrol.h
-  ${CMAKE_SOURCE_DIR}/src/contract/templates/metacoin.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/accesscontrolwithoperators.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2factory.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2library.h
@@ -38,6 +37,9 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/uq112x112.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/pulsar_nft.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/metacoin.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/attributes.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/treasurysystem.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
@@ -70,6 +72,8 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/dexv2/dexv2router02.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/pulsar_nft.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/metacoin.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/attributes.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/treasurysystem.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp
