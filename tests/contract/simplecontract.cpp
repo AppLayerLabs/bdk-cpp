@@ -87,11 +87,11 @@ namespace TSimpleContract {
         Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
         Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-        ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
-        ABI::Decoder valueDecoder({ABI::Types::uint256}, valueData);
+        auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+        auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
 
-        REQUIRE(nameDecoder.getData<std::string>(0) == "TestName");
-        REQUIRE(valueDecoder.getData<uint256_t>(0) == 19283187581);
+        REQUIRE(std::get<0>(nameDecoder) == "TestName");
+        REQUIRE(std::get<0>(valueDecoder) == 19283187581);
       }
 
       std::unique_ptr<Options> options;
@@ -110,11 +110,11 @@ namespace TSimpleContract {
       Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
       Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-      ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
-      ABI::Decoder valueDecoder({ABI::Types::uint256}, valueData);
+      auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+      auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
 
-      REQUIRE(nameDecoder.getData<std::string>(0) == "TestName");
-      REQUIRE(valueDecoder.getData<uint256_t>(0) == 19283187581);
+      REQUIRE(std::get<0>(nameDecoder) == "TestName");
+      REQUIRE(std::get<0>(valueDecoder) == 19283187581);
     }
 
     SECTION("SimpleContract setName and setValue") {
@@ -137,8 +137,8 @@ namespace TSimpleContract {
         Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
         Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-        ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
-        ABI::Decoder valueDecoder({ABI::Types::uint256}, valueData);
+        auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+        auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
 
         Bytes setNameEncoder = ABI::Encoder::encodeData(std::string("TryThisName"));
         Functor setNameFunctor = ABI::Encoder::encodeFunction("setName(string)");
@@ -185,11 +185,11 @@ namespace TSimpleContract {
         nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
         valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-        nameDecoder = ABI::Decoder({ABI::Types::string}, nameData);
-        valueDecoder = ABI::Decoder({ABI::Types::uint256}, valueData);
+        nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+        valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
 
-        REQUIRE(nameDecoder.getData<std::string>(0) == "TryThisName");
-        REQUIRE(valueDecoder.getData<uint256_t>(0) == uint256_t("918258172319061203818967178162134821351"));
+        REQUIRE(std::get<0>(nameDecoder) == "TryThisName");
+        REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
       }
 
       std::unique_ptr<Options> options;
@@ -208,11 +208,11 @@ namespace TSimpleContract {
       Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
       Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-      ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
-      ABI::Decoder valueDecoder({ABI::Types::uint256}, valueData);
+      auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+      auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
 
-      REQUIRE(nameDecoder.getData<std::string>(0) == "TryThisName");
-      REQUIRE(valueDecoder.getData<uint256_t>(0) == uint256_t("918258172319061203818967178162134821351"));
+      REQUIRE(std::get<0>(nameDecoder) == "TryThisName");
+      REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
     }
   }
 }

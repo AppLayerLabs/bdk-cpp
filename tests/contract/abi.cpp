@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <boost/filesystem.hpp>
 #include <fstream>
+#include <vector>
 
 using Catch::Matchers::Equals;
 
@@ -603,26 +604,25 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "0000000000000000000000000000000000000000000000000000027cae776d75"
         "00000000000000000000000000000000000000000000000000016201a9fce5dd"
       );
-      std::vector<ABI::Types> types = {ABI::Types::uint256Arr};
 
-    ABI::Decoder d(types, ABI);
-    std::vector<uint256_t> dV = d.getData<std::vector<uint256_t>>(0);
+    auto decodedData = ABI::Decoder::decodeData<std::vector<uint256_t>>(ABI);
+    std::vector<uint256_t> decodedVector = std::get<0>(decodedData);
 
-    REQUIRE(dV[0] == uint256_t(2312415123141231511));
-    REQUIRE(dV[1] == uint256_t(2734526262645));
-    REQUIRE(dV[2] == uint256_t(389234263123421));
+    REQUIRE(decodedVector[0] == uint256_t(2312415123141231511));
+    REQUIRE(decodedVector[1] == uint256_t(2734526262645));
+    REQUIRE(decodedVector[2] == uint256_t(389234263123421));
   }
 
     SECTION("Decode Int256") {
       Bytes ABI = Hex::toBytes("0x"
         "fffffffffffffffffdaf1854f62f44391b682b86c9106cac85300e6931c0f52e"
       );
-      std::vector<ABI::Types> types = {ABI::Types::int256};
 
-    ABI::Decoder d(types, ABI);
-    int256_t dV = d.getData<int256_t>(0);
+    auto decodedData = ABI::Decoder::decodeData<int256_t>(ABI);
+    int256_t decodedInt = std::get<0>(decodedData);
 
-    REQUIRE(dV == int256_t("-56789012345678901234567890123456789012345678901234567890"));
+    REQUIRE(decodedInt == int256_t("-56789012345678901234567890123456789012345678901234567890"));
+
   }
 
     SECTION("Decode Int256 (Array)") {
@@ -631,15 +631,14 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
        "0000000000000000000000000000000000000000000000000000000000000004"
        "ffffffffffffffec550afb1b43e19de8c0785bc873c84b6373300e6931c0f52e0000000000000013aaf504e4bc1e62173f87a4378c37b49c8ccff196ce3f0ad2fffffffffffffffffdaf1854f62f44391b682b86c9106cac85300e6931c0f52e00000000000000000250e7ab09d0bbc6e497d47936ef93537acff196ce3f0ad2"
       );
-      std::vector<ABI::Types> types = {ABI::Types::int256Arr};
 
-    ABI::Decoder d(types, ABI);
-    std::vector<int256_t> dV = d.getData<std::vector<int256_t>>(0);
+    auto decodedData = ABI::Decoder::decodeData<std::vector<int256_t>>(ABI);
+    std::vector<int256_t> decodedVector = std::get<0>(decodedData);
 
-    REQUIRE(dV[0] == int256_t("-123456789012345678901234567890123456789012345678901234567890"));
-    REQUIRE(dV[1] == int256_t("123456789012345678901234567890123456789012345678901234567890"));
-    REQUIRE(dV[2] == int256_t("-56789012345678901234567890123456789012345678901234567890"));
-    REQUIRE(dV[3] == int256_t("56789012345678901234567890123456789012345678901234567890"));
+    REQUIRE(decodedVector[0] == int256_t("-123456789012345678901234567890123456789012345678901234567890"));
+    REQUIRE(decodedVector[1] == int256_t("123456789012345678901234567890123456789012345678901234567890"));
+    REQUIRE(decodedVector[2] == int256_t("-56789012345678901234567890123456789012345678901234567890"));
+    REQUIRE(decodedVector[3] == int256_t("56789012345678901234567890123456789012345678901234567890"));
   }
 
     SECTION("Decode Address (Array)") {
@@ -650,14 +649,13 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "000000000000000000000000ab8483f64d9c6d1ecf9b849ae677dd3315835cb2"
         "0000000000000000000000004b20993bc481177ec7e8f571cecae8a9e22c02db"
       );
-      std::vector<ABI::Types> types = {ABI::Types::addressArr};
 
-    ABI::Decoder d(types, ABI);
-    std::vector<Address> dV = d.getData<std::vector<Address>>(0);
+    auto decodedData = ABI::Decoder::decodeData<std::vector<Address>>(ABI);
+    std::vector<Address> decodedVector = std::get<0>(decodedData);
 
-      REQUIRE(dV[0] == Address(Hex::toBytes("0x5B38Da6a701c568545dCfcB03FcB875f56beddC4")));
-      REQUIRE(dV[1] == Address(Hex::toBytes("0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2")));
-      REQUIRE(dV[2] == Address(Hex::toBytes("0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db")));
+      REQUIRE(decodedVector[0] == Address(Hex::toBytes("0x5B38Da6a701c568545dCfcB03FcB875f56beddC4")));
+      REQUIRE(decodedVector[1] == Address(Hex::toBytes("0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2")));
+      REQUIRE(decodedVector[2] == Address(Hex::toBytes("0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db")));
     }
 
     SECTION("Decode Bool (Array)") {
@@ -668,14 +666,13 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "0000000000000000000000000000000000000000000000000000000000000000"
         "0000000000000000000000000000000000000000000000000000000000000001"
       );
-      std::vector<ABI::Types> types = {ABI::Types::booleanArr};
 
-    ABI::Decoder d(types, ABI);
-    std::vector<bool> dV = d.getData<std::vector<bool>>(0);
+    auto decodedData = ABI::Decoder::decodeData<std::vector<bool>>(ABI);
+    std::vector<bool> decodedVector = std::get<0>(decodedData);
 
-    REQUIRE(dV[0] == true);
-    REQUIRE(dV[1] == false);
-    REQUIRE(dV[2] == true);
+    REQUIRE(decodedVector[0] == true);
+    REQUIRE(decodedVector[1] == false);
+    REQUIRE(decodedVector[2] == true);
   }
 
     SECTION("Decode Bytes (Single)") {
@@ -684,12 +681,11 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "0000000000000000000000000000000000000000000000000000000000000004"
         "0adf1f1a00000000000000000000000000000000000000000000000000000000"
       );
-      std::vector<ABI::Types> types = {ABI::Types::bytes};
 
-      ABI::Decoder d(types, ABI);
-      Bytes bytes = d.getData<Bytes>(0);
+      auto decodedData = ABI::Decoder::decodeData<Bytes>(ABI);
+      Bytes decodedBytes = std::get<0>(decodedData);
 
-    REQUIRE(bytes == Hex::toBytes("0x0adf1f1a"));
+    REQUIRE(decodedBytes == Hex::toBytes("0x0adf1f1a"));
   }
 
     SECTION("Decode Bytes (Array)") {
@@ -709,15 +705,14 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "0000000000000000000000000000000000000000000000000000000000000002"
         "aaaa000000000000000000000000000000000000000000000000000000000000"
       );
-      std::vector<ABI::Types> types = {ABI::Types::bytesArr};
 
-      ABI::Decoder d(types, ABI);
-      std::vector<Bytes> dV = d.getData<std::vector<Bytes>>(0);
+      auto decodedData = ABI::Decoder::decodeData<std::vector<Bytes>>(ABI);
+      std::vector<Bytes> decodedBytes = std::get<0>(decodedData);
 
-    REQUIRE(dV[0] == Hex::toBytes("0x0adf1f1a"));
-    REQUIRE(dV[1] == Hex::toBytes("0xfffadcba"));
-    REQUIRE(dV[2] == Hex::toBytes("0x0113ffedc231"));
-    REQUIRE(dV[3] == Hex::toBytes("0xaaaa"));
+    REQUIRE(decodedBytes[0] == Hex::toBytes("0x0adf1f1a"));
+    REQUIRE(decodedBytes[1] == Hex::toBytes("0xfffadcba"));
+    REQUIRE(decodedBytes[2] == Hex::toBytes("0x0113ffedc231"));
+    REQUIRE(decodedBytes[3] == Hex::toBytes("0xaaaa"));
   }
 
     SECTION("Decode String (Single)") {
@@ -726,12 +721,11 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "000000000000000000000000000000000000000000000000000000000000000e"
         "5468697320697320612074657374000000000000000000000000000000000000"
       );
-      std::vector<ABI::Types> types = {ABI::Types::string};
 
-    ABI::Decoder d(types, ABI);
-    std::string str = d.getData<std::string>(0);
+    auto decodedData = ABI::Decoder::decodeData<std::string>(ABI);
+    std::string decodedString = std::get<0>(decodedData);
 
-    REQUIRE(str == "This is a test");
+    REQUIRE(decodedString == "This is a test");
   }
 
     SECTION("Decode String (Array)") {
@@ -751,15 +745,14 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "0000000000000000000000000000000000000000000000000000000000000016"
         "546869732069732074686520666f727468207465737400000000000000000000"
       );
-      std::vector<ABI::Types> types = {ABI::Types::stringArr};
 
-    ABI::Decoder d(types, ABI);
-    std::vector<std::string> dV = d.getData<std::vector<std::string>>(0);
+    auto decodedData = ABI::Decoder::decodeData<std::vector<std::string>>(ABI);
+    std::vector<std::string> decodedString = std::get<0>(decodedData);
 
-    REQUIRE(dV[0] == "This is the first test");
-    REQUIRE(dV[1] == "This is the second test");
-    REQUIRE(dV[2] == "This is the third test");
-    REQUIRE(dV[3] == "This is the forth test"); // Someone fix this typo for the
+    REQUIRE(decodedString[0] == "This is the first test");
+    REQUIRE(decodedString[1] == "This is the second test");
+    REQUIRE(decodedString[2] == "This is the third test");
+    REQUIRE(decodedString[3] == "This is the forth test"); // Someone fix this typo for the
                                                 // love of the cosmos
   }
 
@@ -795,21 +788,19 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
                                "aaaa000000000000000000000000000000000000000000000000000000000000"
       );
 
-      std::vector<ABI::Types> types = {ABI::Types::stringArr, ABI::Types::bytesArr};
-      ABI::Decoder d(types, ABI);
-      std::vector<std::string> stringArr = d.getData<std::vector<std::string>>(0);
-      std::vector<Bytes> bytesArr = d.getData<std::vector<Bytes>>(1);
+      auto decodedData = ABI::Decoder::decodeData<std::vector<std::string>, std::vector<Bytes>>(ABI);
+      std::vector<std::string> decodedString = std::get<0>(decodedData);
+      std::vector<Bytes> decodedBytes = std::get<1>(decodedData);
 
-      REQUIRE(stringArr[0] == "This is the first test");
-      REQUIRE(stringArr[1] == "This is the second test");
-      REQUIRE(stringArr[2] == "This is the third test");
-      REQUIRE(stringArr[3] ==
-              "This is the forth test"); // Someone fix this typo for the love of
-      // the cosmos
-      REQUIRE(bytesArr[0] == Hex::toBytes("0x0adf1f1a"));
-      REQUIRE(bytesArr[1] == Hex::toBytes("0xfffadcba"));
-      REQUIRE(bytesArr[2] == Hex::toBytes("0x0113ffedc231"));
-      REQUIRE(bytesArr[3] == Hex::toBytes("0xaaaa"));
+      REQUIRE(decodedString[0] == "This is the first test");
+      REQUIRE(decodedString[1] == "This is the second test");
+      REQUIRE(decodedString[2] == "This is the third test");
+      REQUIRE(decodedString[3] ==
+              "This is the forth test");
+      REQUIRE(decodedBytes[0] == Hex::toBytes("0x0adf1f1a"));
+      REQUIRE(decodedBytes[1] == Hex::toBytes("0xfffadcba"));
+      REQUIRE(decodedBytes[2] == Hex::toBytes("0x0113ffedc231"));
+      REQUIRE(decodedBytes[3] == Hex::toBytes("0xaaaa"));
     }
   };
 } // namespace TABI

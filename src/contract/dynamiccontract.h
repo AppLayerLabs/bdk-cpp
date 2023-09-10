@@ -307,20 +307,20 @@ class DynamicContract : public BaseContract {
           "Mismatched argument types in function " + funcSignature + ". Expected: " +
           std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(types.size())
         );
-        ABI::Decoder decoder(types, std::get<6>(callInfo));
+        std::vector<BaseTypes> decoder = ABI::Decoder::decodeDataTypes(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
 
         for (size_t i = 0; i < types.size(); i++) {
           if (ABI::castUintFunctions.count(types[i]) > 0) {
-            uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+            uint256_t value = std::any_cast<uint256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
             dataVector.push_back(ABI::castUintFunctions[types[i]](value));
           }
           else if (ABI::castIntFunctions.count(types[i]) > 0) {
-            int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
+            int256_t value = std::any_cast<int256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
             dataVector.push_back(ABI::castIntFunctions[types[i]](value));
           }
            else {
-            dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+            dataVector.push_back(ABI::Decoder::getDataDispatch(i, types[i], decoder));
           }
         }
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
@@ -361,19 +361,19 @@ class DynamicContract : public BaseContract {
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> BaseTypes {
         std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
-        ABI::Decoder decoder(types, std::get<6>(callInfo));
+        std::vector<BaseTypes> decoder  = ABI::Decoder::decodeDataTypes(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
       for (size_t i = 0; i < types.size(); i++) {
         if (ABI::castUintFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+          uint256_t value = std::any_cast<uint256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
           dataVector.push_back(ABI::castUintFunctions[types[i]](value));
         }
         else if (ABI::castIntFunctions.count(types[i]) > 0) {
-          int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
+          int256_t value = std::any_cast<int256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
           dataVector.push_back(ABI::castIntFunctions[types[i]](value));
         }
         else {
-          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+          dataVector.push_back(ABI::Decoder::getDataDispatch(i, types[i], decoder));
         }
       }
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());

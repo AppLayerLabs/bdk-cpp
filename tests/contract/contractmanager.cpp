@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/db.h"
 #include "../../src/utils/options.h"
 #include <filesystem>
+#include <sys/types.h>
 
 // Forward declaration.
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
@@ -85,8 +86,9 @@ namespace TContractManager {
         Bytes encodedData = ABI::Encoder::encodeData(owner);
         Functor functor = ABI::Encoder::encodeFunction("balanceOf(address)");
         Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
-        ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
-        REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
+
+        auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
+        REQUIRE(std::get<0>(getBalanceMeDecoder) == tokenSupply);
       }
 
       std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
@@ -100,8 +102,9 @@ namespace TContractManager {
       Functor functor = ABI::Encoder::encodeFunction("balanceOf(address)");
 
       Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
-      ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
-      REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
+
+      auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
+      REQUIRE(std::get<0>(getBalanceMeDecoder) == tokenSupply);
 
     }
 
@@ -153,8 +156,9 @@ namespace TContractManager {
         Functor functor = ABI::Encoder::encodeFunction("balanceOf(address)");
 
         Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
-        ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
-        REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == tokenSupply);
+
+        auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
+        REQUIRE(std::get<0>(getBalanceMeDecoder) == tokenSupply);
 
         Bytes transferEncoder = ABI::Encoder::encodeData(destinationOfTransfer, static_cast<uint256_t>(500000000000000000));
         Bytes transferData = Hex::toBytes("0xa9059cbb");
@@ -175,15 +179,17 @@ namespace TContractManager {
         contractManager.callContract(transferTx);
 
         getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
-        getBalanceMeDecoder = ABI::Decoder({ABI::Types::uint256}, getBalanceMeResult);
-        REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 500000000000000000);
+
+        auto getBalanceMeDecoder2 = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
+        REQUIRE(std::get<0>(getBalanceMeDecoder2) == 500000000000000000);
 
         Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransfer);
         Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
         
         Bytes getBalanceDestinationResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
-        ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
-        REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
+
+        auto getBalanceDestinationDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
+        REQUIRE(std::get<0>(getBalanceDestinationDecoder) == 500000000000000000);
       }
 
       std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
@@ -197,15 +203,17 @@ namespace TContractManager {
       Functor getBalanceMeFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
 
       Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
-      ABI::Decoder getBalanceMeDecoder({ABI::Types::uint256}, getBalanceMeResult);
-      REQUIRE(getBalanceMeDecoder.getData<uint256_t>(0) == 500000000000000000);
+
+      auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
+      REQUIRE(std::get<0>(getBalanceMeDecoder) == 500000000000000000);
 
       Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransfer);
       Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
 
       Bytes getBalanceDestinationResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
-      ABI::Decoder getBalanceDestinationDecoder({ABI::Types::uint256}, getBalanceDestinationResult);
-      REQUIRE(getBalanceDestinationDecoder.getData<uint256_t>(0) == 500000000000000000);
+
+      auto getBalanceDestinationDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
+      REQUIRE(std::get<0>(getBalanceDestinationDecoder) == 500000000000000000);
     }
 
     SECTION("ContractManager testNestedCalls") {
@@ -281,12 +289,14 @@ namespace TContractManager {
       Bytes dataA = contractManager.callContract(buildCallInfo(contractA, getNumFunctorA, getNumEncA));
       Bytes dataB = contractManager.callContract(buildCallInfo(contractB, getNumFunctorB, getNumEncB));
       Bytes dataC = contractManager.callContract(buildCallInfo(contractC, getNumFunctorC, getNumEncC));
-      ABI::Decoder decA({ABI::Types::uint8}, dataA);
-      ABI::Decoder decB({ABI::Types::uint8}, dataB);
-      ABI::Decoder decC({ABI::Types::uint8}, dataC);
-      REQUIRE(decA.getData<uint256_t>(0) == 0);
-      REQUIRE(decB.getData<uint256_t>(0) == 0);
-      REQUIRE(decC.getData<uint256_t>(0) == 0);
+
+      auto decA = ABI::Decoder::decodeData<uint256_t>(dataA);
+      auto decB = ABI::Decoder::decodeData<uint256_t>(dataB);
+      auto decC = ABI::Decoder::decodeData<uint256_t>(dataC);
+
+      REQUIRE(std::get<0>(decA) == 0);
+      REQUIRE(std::get<0>(decB) == 0);
+      REQUIRE(std::get<0>(decC) == 0);
     }
   }
 }

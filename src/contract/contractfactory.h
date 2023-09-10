@@ -56,7 +56,7 @@ class ContractFactory {
      * @throw runtime_error if contract already exists.
      */
     template <typename TContract>
-    std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
+    std::pair<Address, std::vector<BaseTypes>> setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
       if (this->manager_.getOrigin() != this->manager_.getContractCreator()) {
         throw std::runtime_error("Only contract creator can create new contracts");
@@ -77,7 +77,7 @@ class ContractFactory {
 
       // Setup the contract
       std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
-      ABI::Decoder decoder(types, std::get<6>(callInfo));
+      std::vector<BaseTypes> decoder = ABI::Decoder::decodeDataTypes(types, std::get<6>(callInfo));
       return std::make_pair(derivedAddress, decoder);
     }
 
@@ -95,21 +95,21 @@ class ContractFactory {
       }
 
       Address derivedAddress = setupResult.first;
-      ABI::Decoder decoder = setupResult.second;
+      std::vector<BaseTypes> decoder = setupResult.second;
       std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
       std::vector<std::any> dataVector;
 
       for (size_t i = 0; i < types.size(); i++) {
         if (ABI::castUintFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
+          uint256_t value = std::any_cast<uint256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
           dataVector.push_back(ABI::castUintFunctions[types[i]](value));
         }
         else if (ABI::castIntFunctions.count(types[i]) > 0) {
-          int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
+          int256_t value = std::any_cast<int256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
           dataVector.push_back(ABI::castIntFunctions[types[i]](value));
         }
         else {
-          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
+          dataVector.push_back(ABI::Decoder::getDataDispatch(i, types[i], decoder));
         }
       }
 
