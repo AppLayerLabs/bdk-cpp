@@ -250,6 +250,21 @@ class DynamicContract : public BaseContract {
       }
     }
 
+    template<typename T>
+    T anyCastWrapper(const std::any& a, std::false_type) {
+        return std::any_cast<T>(a);
+    }
+
+    template<typename... T>
+    std::tuple<T...> anyCastWrapper(const std::any& a, std::true_type) {
+        return std::any_cast<std::tuple<T...>>(a);
+    }
+
+    template<typename T>
+    T anyCastWrapper(const std::any& a) {
+        return anyCastWrapper<T>(a, Utils::is_tuple<T>{});
+    }
+
     /**
      * Template helper function for calling a const member function with no arguments.
      * @tparam T Type of the class.
@@ -269,7 +284,7 @@ class DynamicContract : public BaseContract {
           std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size())
         );
         try {
-          return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
+          return (instance->*memFunc)(anyCastWrapper<Args>(dataVec[Is])...);
         } catch (const std::bad_any_cast& ex) {
           std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
           ((errorMessage += (

@@ -55,8 +55,18 @@ class ContractFactory {
      * @throw runtime_error if non contract creator tries to create a contract.
      * @throw runtime_error if contract already exists.
      */
+     
+    template <typename TTuple, std::size_t... I>
+    auto removeQualifiersImpl(std::index_sequence<I...>) {
+      return std::tuple<std::decay_t<std::tuple_element_t<I, TTuple>>...>{};
+    }
+
+    template <typename TTuple>
+    auto removeQualifiers() {
+      return removeQualifiersImpl<TTuple>(std::make_index_sequence<std::tuple_size_v<TTuple>>{});
+    }
     template <typename TContract>
-    std::pair<Address, std::vector<BaseTypes>> setupNewContract(const ethCallInfo &callInfo) {
+    auto setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
       if (this->manager_.getOrigin() != this->manager_.getContractCreator()) {
         throw std::runtime_error("Only contract creator can create new contracts");
@@ -76,9 +86,13 @@ class ContractFactory {
       }
 
       // Setup the contract
-      std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
-      std::vector<BaseTypes> decoder = ABI::Decoder::decodeDataTypes(types, std::get<6>(callInfo));
-      return std::make_pair(derivedAddress, decoder);
+      using ConstructorArguments = typename TContract::ConstructorArguments;
+      using DecayedArguments = decltype(removeQualifiers<ConstructorArguments>());
+
+      auto arguments = std::apply([&callInfo](auto&&... args) {
+        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(std::get<6>(callInfo));
+    }, DecayedArguments{});
+      return std::make_pair(derivedAddress, arguments);
     }
 
     /**
@@ -95,23 +109,12 @@ class ContractFactory {
       }
 
       Address derivedAddress = setupResult.first;
-      std::vector<BaseTypes> decoder = setupResult.second;
-      std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
+      auto decoder = setupResult.second;
       std::vector<std::any> dataVector;
 
-      for (size_t i = 0; i < types.size(); i++) {
-        if (ABI::castUintFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-          dataVector.push_back(ABI::castUintFunctions[types[i]](value));
-        }
-        else if (ABI::castIntFunctions.count(types[i]) > 0) {
-          int256_t value = std::any_cast<int256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-          dataVector.push_back(ABI::castIntFunctions[types[i]](value));
-        }
-        else {
-          dataVector.push_back(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-        }
-      }
+      std::apply([&dataVector](auto&&... args) {
+        ((dataVector.push_back(std::any(args))), ...);
+    }, decoder);
 
       // Update the inner variables of the contract.
       // The constructor can set SafeVariable values from the constructor.

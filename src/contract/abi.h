@@ -101,7 +101,8 @@ enum Types {
     address, addressArr,
     boolean, booleanArr,
     bytes, bytesArr,
-    string, stringArr
+    string, stringArr,
+    tuple
 };
 
 
@@ -161,6 +162,14 @@ struct ABIType<std::string> {
 template <>
 struct ABIType<Bytes> {
   static constexpr Types value = Types::bytes; ///< ABI type is bytes.
+};
+
+/**
+* Specialization for std::tuple with N elements.
+*/
+template <typename... Args>
+struct ABIType<std::tuple<Args...>> {
+  static constexpr Types value = Types::tuple; ///< ABI type is tuple.
 };
 
 /**
@@ -931,7 +940,8 @@ std::string inline getStringFromABIEnum(Types type) {
     {Types::bytes, "bytes"},
     {Types::bytesArr, "bytes[]"},
     {Types::string, "string"},
-    {Types::stringArr, "string[]"}
+    {Types::stringArr, "string[]"},
+    {Types::tuple, "tuple"}
   };
 
   auto it = typeMappings.find(type);
@@ -1084,7 +1094,8 @@ Types inline getABIEnumFromString(const std::string& type) {
     {"bytes", Types::bytes},
     {"bytes[]", Types::bytesArr},
     {"string", Types::string},
-    {"string[]", Types::stringArr}
+    {"string[]", Types::stringArr},
+    {"tuple", Types::tuple}
   };
 
   auto it = typeMappings.find(type);
@@ -1482,7 +1493,7 @@ Types inline getABIEnumFromString(const std::string& type) {
                         std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
                         std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
                         std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>) {
-            return decodeInt(bytes, index);
+            return static_cast<T>(decodeInt(bytes, index));
         } else if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
                         std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
                         std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
@@ -1494,7 +1505,7 @@ Types inline getABIEnumFromString(const std::string& type) {
                         std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
                         std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
                         std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>) {
-            return decodeUint(bytes, index);
+            return static_cast<T>(decodeUint(bytes, index));
         } else {
             throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported");
         }
@@ -1794,9 +1805,14 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     template<typename... Args>
     inline std::tuple<Args...> decodeData(const BytesArrView& encodedData, uint64_t index = 0) {
-        auto typeListResult = TypeList<Args...>(encodedData, index);
-        return toTuple(typeListResult);
+        if constexpr (sizeof...(Args) == 0) {
+            return std::tuple<>();}
+        else {
+          auto typeListResult = TypeList<Args...>(encodedData, index);
+          return toTuple(typeListResult);
+        }
     }
+
   }
 }; // namespace ABI
 
