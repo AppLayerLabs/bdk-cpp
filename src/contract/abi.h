@@ -725,80 +725,6 @@ template <typename T>
 struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
 
 /**
-* Map for calling the correct ABI function for a given uint type.
-*/
-inline std::unordered_map<Types, std::function<std::any(uint256_t)>> castUintFunctions = {
-    {Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
-    {Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
-    {Types::uint24, [](uint256_t value) { return std::any(static_cast<uint24_t>(value)); }},
-    {Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
-    {Types::uint40, [](uint256_t value) { return std::any(static_cast<uint40_t>(value)); }},
-    {Types::uint48, [](uint256_t value) { return std::any(static_cast<uint48_t>(value)); }},
-    {Types::uint56, [](uint256_t value) { return std::any(static_cast<uint56_t>(value)); }},
-    {Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }},
-    {Types::uint72, [](uint256_t value) { return std::any(static_cast<uint72_t>(value)); }},
-    {Types::uint80, [](uint256_t value) { return std::any(static_cast<uint80_t>(value)); }},
-    {Types::uint88, [](uint256_t value) { return std::any(static_cast<uint88_t>(value)); }},
-    {Types::uint96, [](uint256_t value) { return std::any(static_cast<uint96_t>(value)); }},
-    {Types::uint104, [](uint256_t value) { return std::any(static_cast<uint104_t>(value)); }},
-    {Types::uint112, [](uint256_t value) { return std::any(static_cast<uint112_t>(value)); }},
-    {Types::uint120, [](uint256_t value) { return std::any(static_cast<uint120_t>(value)); }},
-    {Types::uint128, [](uint256_t value) { return std::any(static_cast<uint128_t>(value)); }},
-    {Types::uint136, [](uint256_t value) { return std::any(static_cast<uint136_t>(value)); }},
-    {Types::uint144, [](uint256_t value) { return std::any(static_cast<uint144_t>(value)); }},
-    {Types::uint152, [](uint256_t value) { return std::any(static_cast<uint152_t>(value)); }},
-    {Types::uint160, [](uint256_t value) { return std::any(static_cast<uint160_t>(value)); }},
-    {Types::uint168, [](uint256_t value) { return std::any(static_cast<uint168_t>(value)); }},
-    {Types::uint176, [](uint256_t value) { return std::any(static_cast<uint176_t>(value)); }},
-    {Types::uint184, [](uint256_t value) { return std::any(static_cast<uint184_t>(value)); }},
-    {Types::uint192, [](uint256_t value) { return std::any(static_cast<uint192_t>(value)); }},
-    {Types::uint200, [](uint256_t value) { return std::any(static_cast<uint200_t>(value)); }},
-    {Types::uint208, [](uint256_t value) { return std::any(static_cast<uint208_t>(value)); }},
-    {Types::uint216, [](uint256_t value) { return std::any(static_cast<uint216_t>(value)); }},
-    {Types::uint224, [](uint256_t value) { return std::any(static_cast<uint224_t>(value)); }},
-    {Types::uint232, [](uint256_t value) { return std::any(static_cast<uint232_t>(value)); }},
-    {Types::uint240, [](uint256_t value) { return std::any(static_cast<uint240_t>(value)); }},
-    {Types::uint248, [](uint256_t value) { return std::any(static_cast<uint248_t>(value)); }}
-  };
-
-  /**
-   * Map for calling the correct ABI function for a given int type.
-   */
-  inline std::unordered_map<Types, std::function<std::any(int256_t)>> castIntFunctions = {
-    {Types::int8, [](int256_t value) { return std::any(static_cast<int8_t>(value)); }},
-    {Types::int16, [](int256_t value) { return std::any(static_cast<int16_t>(value)); }},
-    {Types::int24, [](int256_t value) { return std::any(static_cast<int24_t>(value)); }},
-    {Types::int32, [](int256_t value) { return std::any(static_cast<int32_t>(value)); }},
-    {Types::int40, [](int256_t value) { return std::any(static_cast<int40_t>(value)); }},
-    {Types::int48, [](int256_t value) { return std::any(static_cast<int48_t>(value)); }},
-    {Types::int56, [](int256_t value) { return std::any(static_cast<int56_t>(value)); }},
-    {Types::int64, [](int256_t value) { return std::any(static_cast<int64_t>(value)); }},
-    {Types::int72, [](int256_t value) { return std::any(static_cast<int72_t>(value)); }},
-    {Types::int80, [](int256_t value) { return std::any(static_cast<int80_t>(value)); }},
-    {Types::int88, [](int256_t value) { return std::any(static_cast<int88_t>(value)); }},
-    {Types::int96, [](int256_t value) { return std::any(static_cast<int96_t>(value)); }},
-    {Types::int104, [](int256_t value) { return std::any(static_cast<int104_t>(value)); }},
-    {Types::int112, [](int256_t value) { return std::any(static_cast<int112_t>(value)); }},
-    {Types::int120, [](int256_t value) { return std::any(static_cast<int120_t>(value)); }},
-    {Types::int128, [](int256_t value) { return std::any(static_cast<int128_t>(value)); }},
-    {Types::int136, [](int256_t value) { return std::any(static_cast<int136_t>(value)); }},
-    {Types::int144, [](int256_t value) { return std::any(static_cast<int144_t>(value)); }},
-    {Types::int152, [](int256_t value) { return std::any(static_cast<int152_t>(value)); }},
-    {Types::int160, [](int256_t value) { return std::any(static_cast<int160_t>(value)); }},
-    {Types::int168, [](int256_t value) { return std::any(static_cast<int168_t>(value)); }},
-    {Types::int176, [](int256_t value) { return std::any(static_cast<int176_t>(value)); }},
-    {Types::int184, [](int256_t value) { return std::any(static_cast<int184_t>(value)); }},
-    {Types::int192, [](int256_t value) { return std::any(static_cast<int192_t>(value)); }},
-    {Types::int200, [](int256_t value) { return std::any(static_cast<int200_t>(value)); }},
-    {Types::int208, [](int256_t value) { return std::any(static_cast<int208_t>(value)); }},
-    {Types::int216, [](int256_t value) { return std::any(static_cast<int216_t>(value)); }},
-    {Types::int224, [](int256_t value) { return std::any(static_cast<int224_t>(value)); }},
-    {Types::int232, [](int256_t value) { return std::any(static_cast<int232_t>(value)); }},
-    {Types::int240, [](int256_t value) { return std::any(static_cast<int240_t>(value)); }},
-    {Types::int248, [](int256_t value) { return std::any(static_cast<int248_t>(value)); }}
-  };
-
-/**
  * This function returns the ABI type string for a given ABI type.
  * @param type The ABI type.
  * @return The ABI type string.
@@ -1326,160 +1252,6 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     int256_t decodeInt(const BytesArrView& bytes, uint64_t& index);
 
-    std::vector<BaseTypes> decodeDataTypes(const std::vector<ABI::Types>& types, const BytesArrView& encodedData);
-
-    template <typename T> T getData(std::vector<BaseTypes> data, const uint64_t index) {
-        if (index >= data.size()) throw std::out_of_range("Index out of range");
-        if (std::holds_alternative<T>(data[index])) return std::get<T>(data[index]);
-        throw std::runtime_error("Type mismatch");
-    }
-
-    std::any inline getDataDispatch(int index, Types type, std::vector<BaseTypes> data){
-      switch (type) {
-        case Types::uint256:
-        case Types::uint8:
-        case Types::uint16:
-        case Types::uint24:
-        case Types::uint32:
-        case Types::uint40:
-        case Types::uint48:
-        case Types::uint56:
-        case Types::uint64:
-        case Types::uint72:
-        case Types::uint80:
-        case Types::uint88:
-        case Types::uint96:
-        case Types::uint104:
-        case Types::uint112:
-        case Types::uint120:
-        case Types::uint128:
-        case Types::uint136:
-        case Types::uint144:
-        case Types::uint152:
-        case Types::uint160:
-        case Types::uint168:
-        case Types::uint176:
-        case Types::uint184:
-        case Types::uint192:
-        case Types::uint200:
-        case Types::uint208:
-        case Types::uint216:
-        case Types::uint224:
-        case Types::uint232:
-        case Types::uint240:
-        case Types::uint248:
-        return getData<uint256_t>(data, index);
-        case Types::int256:
-        case Types::int8:
-        case Types::int16:
-        case Types::int24:
-        case Types::int32:
-        case Types::int40:
-        case Types::int48:
-        case Types::int56:
-        case Types::int64:
-        case Types::int72:
-        case Types::int80:
-        case Types::int88:
-        case Types::int96:
-        case Types::int104:
-        case Types::int112:
-        case Types::int120:
-        case Types::int128:
-        case Types::int136:
-        case Types::int144:
-        case Types::int152:
-        case Types::int160:
-        case Types::int168:
-        case Types::int176:
-        case Types::int184:
-        case Types::int192:
-        case Types::int200:
-        case Types::int208:
-        case Types::int216:
-        case Types::int224:
-        case Types::int232:
-        case Types::int240:
-        case Types::int248:
-        return getData<int256_t>(data, index);
-        case Types::uint8Arr:
-        case Types::uint16Arr:
-        case Types::uint24Arr:
-        case Types::uint32Arr:
-        case Types::uint40Arr:
-        case Types::uint48Arr:
-        case Types::uint56Arr:
-        case Types::uint64Arr:
-        case Types::uint72Arr:
-        case Types::uint80Arr:
-        case Types::uint88Arr:
-        case Types::uint96Arr:
-        case Types::uint104Arr:
-        case Types::uint112Arr:
-        case Types::uint120Arr:
-        case Types::uint128Arr:
-        case Types::uint136Arr:
-        case Types::uint144Arr:
-        case Types::uint152Arr:
-        case Types::uint160Arr:
-        case Types::uint168Arr:
-        case Types::uint176Arr:
-        case Types::uint184Arr:
-        case Types::uint192Arr:
-        case Types::uint200Arr:
-        case Types::uint208Arr:
-        case Types::uint216Arr:
-        case Types::uint224Arr:
-        case Types::uint232Arr:
-        case Types::uint240Arr:
-        case Types::uint248Arr:
-        case Types::uint256Arr:
-        return getData<std::vector<uint256_t>>(data, index);
-        case Types::int8Arr:
-        case Types::int16Arr:
-        case Types::int24Arr:
-        case Types::int32Arr:
-        case Types::int40Arr:
-        case Types::int48Arr:
-        case Types::int56Arr:
-        case Types::int64Arr:
-        case Types::int72Arr:
-        case Types::int80Arr:
-        case Types::int88Arr:
-        case Types::int96Arr:
-        case Types::int104Arr:
-        case Types::int112Arr:
-        case Types::int120Arr:
-        case Types::int128Arr:
-        case Types::int136Arr:
-        case Types::int144Arr:
-        case Types::int152Arr:
-        case Types::int160Arr:
-        case Types::int168Arr:
-        case Types::int176Arr:
-        case Types::int184Arr:
-        case Types::int192Arr:
-        case Types::int200Arr:
-        case Types::int208Arr:
-        case Types::int216Arr:
-        case Types::int224Arr:
-        case Types::int232Arr:
-        case Types::int240Arr:
-        case Types::int248Arr:
-        case Types::int256Arr:
-        return getData<std::vector<int256_t>>(data, index);
-        case Types::address: return getData<Address>(data, index);
-        case Types::addressArr: return getData<std::vector<Address>>(data, index);
-        case Types::boolean: return getData<bool>(data, index);
-        case Types::booleanArr: return getData<std::vector<bool>>(data, index);
-        case Types::bytes: return getData<Bytes>(data, index);
-        case Types::bytesArr: return getData<std::vector<Bytes>>(data, index);
-        case Types::string: return getData<std::string>(data, index);
-        case Types::stringArr: return getData<std::vector<std::string>>(data, index);
-        default: throw std::runtime_error("Invalid ABI::Types type: " + getStringFromABIEnum(type));
-      }
-    }
-
     template <typename T>
     inline T decode(const BytesArrView& bytes, uint64_t& index) {
         if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
@@ -1513,69 +1285,65 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     template <>
     inline Address decode<Address>(const BytesArrView& bytes, uint64_t& index) {
-        BytesArrView data(bytes);
         if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for address");
-        Address result = Address(data.subspan(index + 12, 20));
+        Address result = Address(bytes.subspan(index + 12, 20));
         index += 32;
         return result;
     }
 
     template <>
     inline bool decode<bool>(const BytesArrView& bytes, uint64_t& index) {
-        BytesArrView data(bytes);
         if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for bool");
-        bool result = (data[index + 31] == 0x01);
+        bool result = (bytes[index + 31] == 0x01);
         index += 32;
         return result;
     }
 
     template <>
     inline Bytes decode<Bytes>(const BytesArrView& bytes, uint64_t& index) {
-        BytesArrView data(bytes);
-        if (index + 32 > data.size()) throw std::runtime_error("Data too short for bytes");
-        Bytes tmp(data.begin() + index, data.begin() + index + 32);
+        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for bytes");
+        Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
 
         index += 32;
 
         // Get bytes length
         tmp.clear();
-        if (bytesStart + 32 > data.size()) throw std::runtime_error("Data too short for bytes");
-        tmp.insert(tmp.end(), data.begin() + bytesStart, data.begin() + bytesStart + 32);
+        if (bytesStart + 32 > bytes.size()) throw std::runtime_error("Data too short for bytes");
+        tmp.insert(tmp.end(), bytes.begin() + bytesStart, bytes.begin() + bytesStart + 32);
         uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         // Size sanity check
-        if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short for bytes");
+        if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for bytes");
 
         // Get bytes data
         tmp.clear();
-        tmp.insert(tmp.end(), data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength);
+        tmp.insert(tmp.end(), bytes.begin() + bytesStart + 32, bytes.begin() + bytesStart + 32 + bytesLength);
         return tmp;
     }
 
     template <>
     inline std::vector<uint256_t> decode<std::vector<uint256_t>>(const BytesArrView& bytes, uint64_t& index) {
-        BytesArrView data(bytes);
-        if (index + 32 > data.size()) throw std::runtime_error("Data too short for uint[]");
-        Bytes tmp(data.begin() + index, data.begin() + index + 32);
+        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for uint[]");
+        Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t vectorStart = Utils::fromBigEndian<uint64_t>(tmp);
 
         index += 32;
 
         // Get vector length
         tmp.clear();
-        if (vectorStart + 32 > data.size()) throw std::runtime_error("Data too short for uint[]");
-        tmp.insert(tmp.end(), data.begin() + vectorStart, data.begin() + vectorStart + 32);
+        if (vectorStart + 32 > bytes.size()) throw std::runtime_error("Data too short for uint[]");
+        tmp.insert(tmp.end(), bytes.begin() + vectorStart, bytes.begin() + vectorStart + 32);
         uint64_t vectorLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         // Size sanity check
-        if (vectorStart + 32 + vectorLength * 32 > data.size()) throw std::runtime_error("Data too short for uint[]");
+        if (vectorStart + 32 + vectorLength * 32 > bytes.size()) throw std::runtime_error("Data too short for uint[]");
 
         // Get vector data
         std::vector<uint256_t> tmpArr;
         for (uint64_t i = 0; i < vectorLength; i++) {
             tmp.clear();
-            tmp.insert(tmp.end(), data.begin() + vectorStart + 32 + (i * 32), data.begin() + vectorStart + 32 + (i * 32) + 32);
+            tmp.insert(tmp.end(), bytes.begin() + vectorStart + 32 + (i * 32), bytes.begin() + vectorStart + 32 + (i * 32) + 32);
             uint256_t value = Utils::bytesToUint256(tmp);
             tmpArr.emplace_back(value);
         }
@@ -1585,26 +1353,25 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     template <>
     inline std::vector<int256_t> decode<std::vector<int256_t>>(const BytesArrView& bytes, uint64_t& index) {
-        BytesArrView data(bytes);
-        if (index + 32 > data.size()) throw std::runtime_error("Data too short for int256[]");
-        Bytes tmp(data.begin() + index, data.begin() + index + 32);
+        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for int256[]");
+        Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
         index += 32;
         tmp.clear();
 
-        if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for int256[]");
-        tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
+        if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for int256[]");
+        tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
         uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         // Size sanity check
-        if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short for int256[]");
+        if (arrayStart + 32 + (arrayLength * 32) > bytes.size()) throw std::runtime_error("Data too short for int256[]");
 
         // Get array data
         std::vector<int256_t> tmpArr;
         for (uint64_t i = 0; i < arrayLength; i++) {
             tmp.clear();
-            tmp.insert(tmp.end(), data.begin() + arrayStart + 32 + (i * 32), data.begin() + arrayStart + 32 + (i * 32) + 32);
+            tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
             int256_t value = Utils::bytesToInt256(tmp); // Change this line to use bytesToInt256
             tmpArr.emplace_back(value);
         }
@@ -1614,28 +1381,27 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     template <>
     inline std::vector<Address> decode<std::vector<Address>>(const BytesArrView& bytes, uint64_t& index) {
-        BytesArrView data(bytes);
-        if (index + 32 > data.size()) throw std::runtime_error("Data too short for address[]");
-        Bytes tmp(data.begin() + index, data.begin() + index + 32);
+        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for address[]");
+        Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
         index += 32;
 
         // Get array length
         tmp.clear();
-        if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for address[]");
-        tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
+        if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for address[]");
+        tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
         uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         // Size sanity check
-        if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short for address[]");
+        if (arrayStart + 32 + (arrayLength * 32) > bytes.size()) throw std::runtime_error("Data too short for address[]");
 
         // Get array data
         std::vector<Address> tmpArr;
         for (uint64_t i = 0; i < arrayLength; i++) {
             tmp.clear();
             // Don't forget to skip the first 12 bytes of an address!
-            tmp.insert(tmp.end(), data.begin() + arrayStart + 32 + (i * 32) + 12, data.begin() + arrayStart + 32 + (i * 32) + 32);
+            tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32) + 12, bytes.begin() + arrayStart + 32 + (i * 32) + 32);
             tmpArr.emplace_back(tmp);
         }
 
@@ -1644,26 +1410,25 @@ Types inline getABIEnumFromString(const std::string& type) {
 
     template <>
     inline std::vector<bool> decode<std::vector<bool>>(const BytesArrView& bytes, uint64_t& index) {
-        BytesArrView data(bytes);
-        if (index + 32 > data.size()) throw std::runtime_error("Data too short for bool[]");
-        Bytes tmp(data.begin() + index, data.begin() + index + 32);
+        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for bool[]");
+        Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
         index += 32;
 
         // Get array length
         tmp.clear();
-        if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for bool[]");
-        tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
+        if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for bool[]");
+        tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
         uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         // Size sanity check
-        if (arrayStart + 32 + (arrayLength * 32) > data.size()) throw std::runtime_error("Data too short for bool[]");
+        if (arrayStart + 32 + (arrayLength * 32) > bytes.size()) throw std::runtime_error("Data too short for bool[]");
 
         // Get array data
         std::vector<bool> tmpArr;
         for (uint64_t i = 0; i < arrayLength; i++) tmpArr.emplace_back(
-            (data[arrayStart + 32 + (i * 32) + 31] == 0x01)
+            (bytes[arrayStart + 32 + (i * 32) + 31] == 0x01)
         );
         return tmpArr;
     }
@@ -1671,37 +1436,36 @@ Types inline getABIEnumFromString(const std::string& type) {
     template <>
     inline std::vector<Bytes> decode<std::vector<Bytes>>(const BytesArrView& bytes, uint64_t& index) {
         // Get array offset
-        BytesArrView data(bytes);
-        if (index + 32 > data.size()) throw std::runtime_error("Data too short for bytes[]");
-        Bytes tmp(data.begin() + index, data.begin() + index + 32);
+        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for bytes[]");
+        Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
         index += 32;
 
         // Get array length
         tmp.clear();
-        if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for bytes[]");
-        tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
+        if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for bytes[]");
+        tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
         uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         std::vector<Bytes> tmpVec;
         for (uint64_t i = 0; i < arrayLength; ++i) {
             // Get bytes offset
             tmp.clear();
-            tmp.insert(tmp.end(), data.begin() + arrayStart + 32 + (i * 32), data.begin() + arrayStart + 32 + (i * 32) + 32);
+            tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
             uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
 
             // Get bytes length
             tmp.clear();
-            tmp.insert(tmp.end(), data.begin() + bytesStart, data.begin() + bytesStart + 32);
+            tmp.insert(tmp.end(), bytes.begin() + bytesStart, bytes.begin() + bytesStart + 32);
             uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
             // Individual size sanity check
-            if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short for bytes[]");
+            if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for bytes[]");
 
             // Get bytes data
             tmp.clear();
-            tmp.insert(tmp.end(), data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength);
+            tmp.insert(tmp.end(), bytes.begin() + bytesStart + 32, bytes.begin() + bytesStart + 32 + bytesLength);
             tmpVec.emplace_back(tmp);
         }
 
@@ -1711,37 +1475,36 @@ Types inline getABIEnumFromString(const std::string& type) {
     template <>
     inline std::vector<std::string> decode<std::vector<std::string>>(const BytesArrView& bytes, uint64_t& index) {
         /// Get array offset
-        BytesArrView data(bytes);
-        if (index + 32 > data.size()) throw std::runtime_error("Data too short for string[]");
-        std::string tmp(data.begin() + index, data.begin() + index + 32);
+        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for string[]");
+        std::string tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
 
         index += 32;
 
         // Get array length
         tmp.clear();
-        if (arrayStart + 32 > data.size()) throw std::runtime_error("Data too short for string[]");
-        tmp.insert(tmp.end(), data.begin() + arrayStart, data.begin() + arrayStart + 32);
+        if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for string[]");
+        tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
         uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         std::vector<std::string> tmpVec;
         for (uint64_t i = 0; i < arrayLength; ++i) {
             // Get bytes offset
             tmp.clear();
-            tmp.insert(tmp.end(), data.begin() + arrayStart + 32 + (i * 32), data.begin() + arrayStart + 32 + (i * 32) + 32);
+            tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
             uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
 
             // Get bytes length
             tmp.clear();
-            tmp.insert(tmp.end(), data.begin() + bytesStart, data.begin() + bytesStart + 32);
+            tmp.insert(tmp.end(), bytes.begin() + bytesStart, bytes.begin() + bytesStart + 32);
             uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
             // Individual size sanity check
-            if (bytesStart + 32 + bytesLength > data.size()) throw std::runtime_error("Data too short for string[]");
+            if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for string[]");
 
             // Get bytes data
             tmp.clear();
-            tmp.insert(tmp.end(), data.begin() + bytesStart + 32, data.begin() + bytesStart + 32 + bytesLength);
+            tmp.insert(tmp.end(), bytes.begin() + bytesStart + 32, bytes.begin() + bytesStart + 32 + bytesLength);
             tmpVec.emplace_back(tmp);
         }
 

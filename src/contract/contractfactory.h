@@ -55,16 +55,6 @@ class ContractFactory {
      * @throw runtime_error if non contract creator tries to create a contract.
      * @throw runtime_error if contract already exists.
      */
-     
-    template <typename TTuple, std::size_t... I>
-    auto removeQualifiersImpl(std::index_sequence<I...>) {
-      return std::tuple<std::decay_t<std::tuple_element_t<I, TTuple>>...>{};
-    }
-
-    template <typename TTuple>
-    auto removeQualifiers() {
-      return removeQualifiersImpl<TTuple>(std::make_index_sequence<std::tuple_size_v<TTuple>>{});
-    }
     template <typename TContract>
     auto setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
@@ -87,7 +77,7 @@ class ContractFactory {
 
       // Setup the contract
       using ConstructorArguments = typename TContract::ConstructorArguments;
-      using DecayedArguments = decltype(removeQualifiers<ConstructorArguments>());
+      using DecayedArguments = decltype(Utils::removeQualifiers<ConstructorArguments>());
 
       auto arguments = std::apply([&callInfo](auto&&... args) {
         return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(std::get<6>(callInfo));

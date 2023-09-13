@@ -116,29 +116,6 @@ std::vector<std::string> inline getMethodArgumentsTypesString(
 }
 
 /**
- * This function returns the type (or list of types) of a method's arguments in ABI enum format.
-  * @param methodName The name of the method.
-  * @return The type (or list of types) of the method's arguments.
-  */
-template <typename TContract>
-std::vector<ABI::Types> inline getMethodArgumentsTypesABI(
-    const std::string &methodName) {
-  if (!isContractRegistered<TContract>()) {
-    throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " not registered");
-  }
-  const std::string qualifiedMethodName = Utils::getRealTypeName<TContract>() + "::" + methodName;
-  auto it = methodArgumentsTypesMap.find(qualifiedMethodName);
-  if (it != methodArgumentsTypesMap.end()) {
-    std::vector<ABI::Types> types;
-    for (auto const &x : it->second) {
-      types.push_back(ABI::getABIEnumFromString(x));
-    }
-    return types;
-  }
-  return std::vector<ABI::Types>();
-}
-
-/**
  * Template function to register a contract class.
  * @tparam TContract The contract class to register.
  * @tparam Args The constructor argument types.

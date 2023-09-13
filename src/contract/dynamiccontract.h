@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define DYNAMICCONTRACT_H
 
 #include <any>
+#include <type_traits>
 #include "abi.h"
 #include "contract.h"
 #include "contractmanager.h"
@@ -317,27 +318,17 @@ class DynamicContract : public BaseContract {
       std::string fullSignature = fullSignatureStream.str();
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
-        std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
-        if (types.size() != sizeof...(Args)) throw std::runtime_error(
-          "Mismatched argument types in function " + funcSignature + ". Expected: " +
-          std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(types.size())
-        );
-        std::vector<BaseTypes> decoder = ABI::Decoder::decodeDataTypes(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
+        using ArgTuple = std::tuple<Args...>;
+        using DecayedArguments = decltype(Utils::removeQualifiers<ArgTuple>());
 
-        for (size_t i = 0; i < types.size(); i++) {
-          if (ABI::castUintFunctions.count(types[i]) > 0) {
-            uint256_t value = std::any_cast<uint256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-            dataVector.push_back(ABI::castUintFunctions[types[i]](value));
-          }
-          else if (ABI::castIntFunctions.count(types[i]) > 0) {
-            int256_t value = std::any_cast<int256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-            dataVector.push_back(ABI::castIntFunctions[types[i]](value));
-          }
-           else {
-            dataVector.push_back(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-          }
-        }
+        auto decoder = std::apply([&callInfo](auto&&... args) {
+          return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(std::get<6>(callInfo));
+        }, DecayedArguments{});
+
+        std::apply([&dataVector](auto&&... args) {
+          ((dataVector.push_back(std::any(args))), ...);
+        }, decoder);
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
         return BaseTypes(result);
       };
@@ -375,22 +366,18 @@ class DynamicContract : public BaseContract {
       std::string fullSignature = fullSignatureStream.str();
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> BaseTypes {
-        std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
-        std::vector<BaseTypes> decoder  = ABI::Decoder::decodeDataTypes(types, std::get<6>(callInfo));
         std::vector<std::any> dataVector;
-      for (size_t i = 0; i < types.size(); i++) {
-        if (ABI::castUintFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-          dataVector.push_back(ABI::castUintFunctions[types[i]](value));
-        }
-        else if (ABI::castIntFunctions.count(types[i]) > 0) {
-          int256_t value = std::any_cast<int256_t>(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-          dataVector.push_back(ABI::castIntFunctions[types[i]](value));
-        }
-        else {
-          dataVector.push_back(ABI::Decoder::getDataDispatch(i, types[i], decoder));
-        }
-      }
+        using ArgTuple = std::tuple<Args...>;
+        using DecayedArguments = decltype(Utils::removeQualifiers<ArgTuple>());
+
+        auto decoder = std::apply([&callInfo](auto&&... args) {
+          return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(std::get<6>(callInfo));
+        }, DecayedArguments{});
+
+        std::apply([&dataVector](auto&&... args) {
+          ((dataVector.push_back(std::any(args))), ...);
+        }, decoder);
+
         auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
         return BaseTypes(result);
       };
