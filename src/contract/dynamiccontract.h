@@ -251,19 +251,21 @@ class DynamicContract : public BaseContract {
       }
     }
 
-    template<typename T>
-    T anyCastWrapper(const std::any& a, std::false_type) {
-        return std::any_cast<T>(a);
-    }
 
-    template<typename... T>
-    std::tuple<T...> anyCastWrapper(const std::any& a, std::true_type) {
-        return std::any_cast<std::tuple<T...>>(a);
+    bool is_tuple_of_tuple(const std::type_info& ti) {
+
+        return std::string(ti.name()).find("std::tuple<std::tuple<") != std::string::npos;
     }
 
     template<typename T>
     T anyCastWrapper(const std::any& a) {
-        return anyCastWrapper<T>(a, Utils::is_tuple<T>{});
+        if constexpr (Utils::is_tuple<T>::value) {
+            if (is_tuple_of_tuple(typeid(a))) {
+                auto nestedTuple = std::any_cast<std::tuple<T>>(a);
+                return std::get<0>(nestedTuple);
+            } 
+        } 
+        return std::any_cast<T>(a);
     }
 
     /**
