@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "abi.h"
 
-void ABI::Encoder::appendVector(Bytes &dest, const Bytes &src) {
+void ABI::Encoder::append(Bytes &dest, const Bytes &src) {
   dest.insert(dest.end(), src.begin(), src.end());
 }
 
@@ -31,13 +31,10 @@ Bytes ABI::Encoder::encodeInt(const int256_t& num) {
   int256_t valueToEncode = num;
   if (num < 0) {
     valueToEncode = -num;
-    for (int i = 0; i < 32; i++) {
-      ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
-    }
+    for (int i = 0; i < 32; i++) ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
     for (int i = 31; i >= 0; i--) {
       if (ret[i] != 0xff) {
-        ret[i]++;
-        break;
+        ret[i]++; break;
       } else {
         ret[i] = 0x00;
       }
@@ -69,14 +66,14 @@ Bytes ABI::Encoder::encode(const BytesArrView &bytes) {
 }
 
 Bytes ABI::Encoder::encode(const std::string& str) {
-    BytesArrView bytes = Utils::create_view_span(str);
-    int pad = 0;
-    do { pad += 32; } while (pad < bytes.size());
-    Bytes len = Utils::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
-    Bytes data = Utils::padRightBytes(bytes, pad);
-    len.reserve(len.size() + data.size());
-    len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
-    return len;
+  BytesArrView bytes = Utils::create_view_span(str);
+  int pad = 0;
+  do { pad += 32; } while (pad < bytes.size());
+  Bytes len = Utils::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
+  Bytes data = Utils::padRightBytes(bytes, pad);
+  len.reserve(len.size() + data.size());
+  len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
+  return len;
 }
 
 Bytes ABI::Encoder::encode(const std::vector<uint256_t>& numV) {
@@ -112,72 +109,72 @@ Bytes ABI::Encoder::encode(const std::vector<bool>& bV) {
 }
 
 Bytes ABI::Encoder::encode(const std::vector<Bytes>& bytesV) {
-    std::vector<BytesArrView> argDataView;
-    argDataView.reserve(bytesV.size());
-    std::transform(bytesV.begin(), bytesV.end(), std::back_inserter(argDataView), [](const Bytes& b) { return Utils::create_view_span(b); });
-    Bytes ret;
-    Utils::appendBytes(ret, Utils::padLeftBytes(Utils::uintToBytes(argDataView.size()), 32));
-    std::vector<Bytes> bytesStrip, bytesOff, bytesLen, bytesData = {};
-    int pads = 0;
-    for (int i = 0; i < argDataView.size(); i++) {
-        int p = 0;
-        Bytes bS(argDataView[i].begin(), argDataView[i].end());
-        Bytes bL = Utils::uintToBytes(bS.size()); // Get length first so we can get the right offset
-        Bytes bO = Utils::uintToBytes((32 * argDataView.size()) + (32 * i) + (32 * pads)); // (offsets) + (lengths) + (datas)
-        do { p += 32; } while (p < bS.size());
-        pads += (p / 32);
-        Bytes bD = Utils::padRightBytes(bS, p);
-        bytesOff.push_back(Utils::padLeftBytes(bO, 32));
-        bytesLen.push_back(Utils::padLeftBytes(bL, 32));
-        bytesData.push_back(Utils::padRightBytes(bD, 32));
-    }
-    for (Bytes off : bytesOff) ret.insert(ret.end(), off.begin(), off.end());
-    for (int i = 0; i < argDataView.size(); i++) {
-        ret.insert(ret.end(), bytesLen[i].begin(), bytesLen[i].end());
-        ret.insert(ret.end(), bytesData[i].begin(), bytesData[i].end());
-    }
-    return ret;
+  std::vector<BytesArrView> argDataView;
+  argDataView.reserve(bytesV.size());
+  std::transform(bytesV.begin(), bytesV.end(), std::back_inserter(argDataView), [](const Bytes& b) { return Utils::create_view_span(b); });
+  Bytes ret;
+  Utils::appendBytes(ret, Utils::padLeftBytes(Utils::uintToBytes(argDataView.size()), 32));
+  std::vector<Bytes> bytesStrip, bytesOff, bytesLen, bytesData = {};
+  int pads = 0;
+  for (int i = 0; i < argDataView.size(); i++) {
+    int p = 0;
+    Bytes bS(argDataView[i].begin(), argDataView[i].end());
+    Bytes bL = Utils::uintToBytes(bS.size()); // Get length first so we can get the right offset
+    Bytes bO = Utils::uintToBytes((32 * argDataView.size()) + (32 * i) + (32 * pads)); // (offsets) + (lengths) + (datas)
+    do { p += 32; } while (p < bS.size());
+    pads += (p / 32);
+    Bytes bD = Utils::padRightBytes(bS, p);
+    bytesOff.push_back(Utils::padLeftBytes(bO, 32));
+    bytesLen.push_back(Utils::padLeftBytes(bL, 32));
+    bytesData.push_back(Utils::padRightBytes(bD, 32));
+  }
+  for (Bytes off : bytesOff) ret.insert(ret.end(), off.begin(), off.end());
+  for (int i = 0; i < argDataView.size(); i++) {
+    ret.insert(ret.end(), bytesLen[i].begin(), bytesLen[i].end());
+    ret.insert(ret.end(), bytesData[i].begin(), bytesData[i].end());
+  }
+  return ret;
 }
 
 Bytes ABI::Encoder::encode(const std::vector<std::string>& strV) {
-    std::vector<BytesArrView> argDataView;
-    argDataView.reserve(strV.size());
-    std::transform(strV.begin(), strV.end(), std::back_inserter(argDataView), [](const std::string& b) { return Utils::create_view_span(b); });
-    Bytes ret;
-    Utils::appendBytes(ret, Utils::padLeftBytes(Utils::uintToBytes(argDataView.size()), 32));
-    std::vector<Bytes> bytesStrip, bytesOff, bytesLen, bytesData = {};
-    int pads = 0;
-    for (int i = 0; i < argDataView.size(); i++) {
-        int p = 0;
-        Bytes bS(argDataView[i].begin(), argDataView[i].end());
-        Bytes bL = Utils::uintToBytes(bS.size()); // Get length first so we can get the right offset
-        Bytes bO = Utils::uintToBytes((32 * argDataView.size()) + (32 * i) + (32 * pads)); // (offsets) + (lengths) + (datas)
-        do { p += 32; } while (p < bS.size());
-        pads += (p / 32);
-        Bytes bD = Utils::padRightBytes(bS, p);
-        bytesOff.push_back(Utils::padLeftBytes(bO, 32));
-        bytesLen.push_back(Utils::padLeftBytes(bL, 32));
-        bytesData.push_back(Utils::padRightBytes(bD, 32));
-    }
-    for (Bytes off : bytesOff) ret.insert(ret.end(), off.begin(), off.end());
-    for (int i = 0; i < argDataView.size(); i++) {
-        ret.insert(ret.end(), bytesLen[i].begin(), bytesLen[i].end());
-        ret.insert(ret.end(), bytesData[i].begin(), bytesData[i].end());
-    }
-    return ret;
+  std::vector<BytesArrView> argDataView;
+  argDataView.reserve(strV.size());
+  std::transform(strV.begin(), strV.end(), std::back_inserter(argDataView), [](const std::string& b) { return Utils::create_view_span(b); });
+  Bytes ret;
+  Utils::appendBytes(ret, Utils::padLeftBytes(Utils::uintToBytes(argDataView.size()), 32));
+  std::vector<Bytes> bytesStrip, bytesOff, bytesLen, bytesData = {};
+  int pads = 0;
+  for (int i = 0; i < argDataView.size(); i++) {
+    int p = 0;
+    Bytes bS(argDataView[i].begin(), argDataView[i].end());
+    Bytes bL = Utils::uintToBytes(bS.size()); // Get length first so we can get the right offset
+    Bytes bO = Utils::uintToBytes((32 * argDataView.size()) + (32 * i) + (32 * pads)); // (offsets) + (lengths) + (datas)
+    do { p += 32; } while (p < bS.size());
+    pads += (p / 32);
+    Bytes bD = Utils::padRightBytes(bS, p);
+    bytesOff.push_back(Utils::padLeftBytes(bO, 32));
+    bytesLen.push_back(Utils::padLeftBytes(bL, 32));
+    bytesData.push_back(Utils::padRightBytes(bD, 32));
+  }
+  for (Bytes off : bytesOff) ret.insert(ret.end(), off.begin(), off.end());
+  for (int i = 0; i < argDataView.size(); i++) {
+    ret.insert(ret.end(), bytesLen[i].begin(), bytesLen[i].end());
+    ret.insert(ret.end(), bytesData[i].begin(), bytesData[i].end());
+  }
+  return ret;
 }
 
 uint256_t ABI::Decoder::decodeUint(const BytesArrView &bytes, uint64_t &index) {
-    if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for uint256");
-    uint256_t result = Utils::bytesToUint256(bytes.subspan(index, 32));
-    index += 32;
-    return result;
+  if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for uint256");
+  uint256_t result = Utils::bytesToUint256(bytes.subspan(index, 32));
+  index += 32;
+  return result;
 }
 
 int256_t ABI::Decoder::decodeInt(const BytesArrView& bytes, uint64_t& index) {
-    if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for int256");
-    int256_t result = Utils::bytesToInt256(bytes.subspan(index, 32));
-    index += 32;
-    return result;
+  if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for int256");
+  int256_t result = Utils::bytesToInt256(bytes.subspan(index, 32));
+  index += 32;
+  return result;
 }
 
