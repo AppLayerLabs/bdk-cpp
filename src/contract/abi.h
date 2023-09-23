@@ -32,93 +32,90 @@ namespace ABI {
  * - stringArr = string[] (Solidity) = std::vector<std::string> (C++)
  */
 enum Types {
-    uint8, uint8Arr,
-    uint16, uint16Arr,
-    uint24, uint24Arr,
-    uint32, uint32Arr,
-    uint40, uint40Arr,
-    uint48, uint48Arr,
-    uint56, uint56Arr,
-    uint64, uint64Arr,
-    uint72, uint72Arr,
-    uint80, uint80Arr,
-    uint88, uint88Arr,
-    uint96, uint96Arr,
-    uint104, uint104Arr,
-    uint112, uint112Arr,
-    uint120, uint120Arr,
-    uint128, uint128Arr,
-    uint136, uint136Arr,
-    uint144, uint144Arr,
-    uint152, uint152Arr,
-    uint160, uint160Arr,
-    uint168, uint168Arr,
-    uint176, uint176Arr,
-    uint184, uint184Arr,
-    uint192, uint192Arr,
-    uint200, uint200Arr,
-    uint208, uint208Arr,
-    uint216, uint216Arr,
-    uint224, uint224Arr,
-    uint232, uint232Arr,
-    uint240, uint240Arr,
-    uint248, uint248Arr,
-    uint256, uint256Arr,
+  uint8, uint8Arr,
+  uint16, uint16Arr,
+  uint24, uint24Arr,
+  uint32, uint32Arr,
+  uint40, uint40Arr,
+  uint48, uint48Arr,
+  uint56, uint56Arr,
+  uint64, uint64Arr,
+  uint72, uint72Arr,
+  uint80, uint80Arr,
+  uint88, uint88Arr,
+  uint96, uint96Arr,
+  uint104, uint104Arr,
+  uint112, uint112Arr,
+  uint120, uint120Arr,
+  uint128, uint128Arr,
+  uint136, uint136Arr,
+  uint144, uint144Arr,
+  uint152, uint152Arr,
+  uint160, uint160Arr,
+  uint168, uint168Arr,
+  uint176, uint176Arr,
+  uint184, uint184Arr,
+  uint192, uint192Arr,
+  uint200, uint200Arr,
+  uint208, uint208Arr,
+  uint216, uint216Arr,
+  uint224, uint224Arr,
+  uint232, uint232Arr,
+  uint240, uint240Arr,
+  uint248, uint248Arr,
+  uint256, uint256Arr,
 
-    int8, int8Arr,
-    int16, int16Arr,
-    int24, int24Arr,
-    int32, int32Arr,
-    int40, int40Arr,
-    int48, int48Arr,
-    int56, int56Arr,
-    int64, int64Arr,
-    int72, int72Arr,
-    int80, int80Arr,
-    int88, int88Arr,
-    int96, int96Arr,
-    int104, int104Arr,
-    int112, int112Arr,
-    int120, int120Arr,
-    int128, int128Arr,
-    int136, int136Arr,
-    int144, int144Arr,
-    int152, int152Arr,
-    int160, int160Arr,
-    int168, int168Arr,
-    int176, int176Arr,
-    int184, int184Arr,
-    int192, int192Arr,
-    int200, int200Arr,
-    int208, int208Arr,
-    int216, int216Arr,
-    int224, int224Arr,
-    int232, int232Arr,
-    int240, int240Arr,
-    int248, int248Arr,
-    int256, int256Arr,
+  int8, int8Arr,
+  int16, int16Arr,
+  int24, int24Arr,
+  int32, int32Arr,
+  int40, int40Arr,
+  int48, int48Arr,
+  int56, int56Arr,
+  int64, int64Arr,
+  int72, int72Arr,
+  int80, int80Arr,
+  int88, int88Arr,
+  int96, int96Arr,
+  int104, int104Arr,
+  int112, int112Arr,
+  int120, int120Arr,
+  int128, int128Arr,
+  int136, int136Arr,
+  int144, int144Arr,
+  int152, int152Arr,
+  int160, int160Arr,
+  int168, int168Arr,
+  int176, int176Arr,
+  int184, int184Arr,
+  int192, int192Arr,
+  int200, int200Arr,
+  int208, int208Arr,
+  int216, int216Arr,
+  int224, int224Arr,
+  int232, int232Arr,
+  int240, int240Arr,
+  int248, int248Arr,
+  int256, int256Arr,
 
-    address, addressArr,
-    boolean, booleanArr,
-    bytes, bytesArr,
-    string, stringArr
+  address, addressArr,
+  boolean, booleanArr,
+  bytes, bytesArr,
+  string, stringArr
 };
-
 
 /**
 * Enum for the types of Solidity functions.
-*@tparam T The type to map to an ABI type.
+* @tparam T The type to map to an ABI type.
 */
-template <typename T>
-struct TypeToEnum;
+template <typename T> struct TypeToEnum;
 
 /**
 * Helper struct to map a type to an ABI type.
 * Specializations for each type are defined below.
 * @tparam T The type to map to an ABI type.
 */
-template <typename T>
-struct ABIType {
+template <typename T> struct ABIType {
   static constexpr Types value = Types::uint256; ///< Default ABI type is uint256.
 };
 
@@ -126,544 +123,476 @@ struct ABIType {
 /**
 * Specialization for Address.
 */
-template <>
-struct ABIType<Address> {
+template <> struct ABIType<Address> {
   static constexpr Types value = Types::address; ///< ABI type is address.
 };
 
 /**
 * Specialization for std::vector<Address>.
 */
-template <>
-struct ABIType<std::vector<Address>> {
+template <> struct ABIType<std::vector<Address>> {
   static constexpr Types value = Types::addressArr; ///< ABI type is address.
 };
 
 /**
 * Specialization for bool.
 */
-template <>
-struct ABIType<bool> {
+template <> struct ABIType<bool> {
   static constexpr Types value = Types::boolean; ///< ABI type is boolean.
 };
 
 /**
 * Specialization for std::string.
 */
-template <>
-struct ABIType<std::string> {
+template <> struct ABIType<std::string> {
   static constexpr Types value = Types::string; ///< ABI type is string.
 };
 
 /**
 * Specialization for Bytes.
 */
-template <>
-struct ABIType<Bytes> {
+template <> struct ABIType<Bytes> {
   static constexpr Types value = Types::bytes; ///< ABI type is bytes.
 };
 
 /**
 * Specialization for uint8_t.
 */
-template <>
-struct ABIType<uint8_t> {
+template <> struct ABIType<uint8_t> {
   static constexpr Types value = Types::uint8; ///< ABI type is uint8.
 };
 
 /**
 * Specialization for uint16_t.
 */
-template <>
-struct ABIType<uint16_t> {
+template <> struct ABIType<uint16_t> {
   static constexpr Types value = Types::uint16; ///< ABI type is uint16.
 };
 
 /**
 * Specialization for uint24_t.
 */
-template <>
-struct ABIType<uint24_t> {
+template <> struct ABIType<uint24_t> {
   static constexpr Types value = Types::uint24; ///< ABI type is uint24.
 };
 
 /**
 * Specialization for uint32_t.
 */
-template <>
-struct ABIType<uint32_t> {
+template <> struct ABIType<uint32_t> {
   static constexpr Types value = Types::uint32; ///< ABI type is uint32.
 };
 
 /**
 * Specialization for uint40_t.
 */
-template <>
-struct ABIType<uint40_t> {
+template <> struct ABIType<uint40_t> {
   static constexpr Types value = Types::uint40; ///< ABI type is uint40.
 };
 
 /**
 * Specialization for uint48_t.
 */
-template <>
-struct ABIType<uint48_t> {
+template <> struct ABIType<uint48_t> {
   static constexpr Types value = Types::uint48; ///< ABI type is uint48.
 };
 
 /**
 * Specialization for uint56_t.
 */
-template <>
-struct ABIType<uint56_t> {
+template <> struct ABIType<uint56_t> {
   static constexpr Types value = Types::uint56; ///< ABI type is uint56.
 };
 
 /**
 * Specialization for uint64_t.
 */
-template <>
-struct ABIType<uint64_t> {
+template <> struct ABIType<uint64_t> {
   static constexpr Types value = Types::uint64; ///< ABI type is uint64.
 };
 
 /**
 * Specialization for uint72_t.
 */
-template <>
-struct ABIType<uint72_t> {
+template <> struct ABIType<uint72_t> {
   static constexpr Types value = Types::uint72; ///< ABI type is uint72.
 };
 
 /**
 * Specialization for uint80_t.
 */
-template <>
-struct ABIType<uint80_t> {
+template <> struct ABIType<uint80_t> {
   static constexpr Types value = Types::uint80; ///< ABI type is uint80.
 };
 
 /**
 * Specialization for uint88_t.
 */
-template <>
-struct ABIType<uint88_t> {
+template <> struct ABIType<uint88_t> {
   static constexpr Types value = Types::uint88; ///< ABI type is uint88.
 };
 
 /**
 * Specialization for uint96_t.
 */
-template <>
-struct ABIType<uint96_t> {
+template <> struct ABIType<uint96_t> {
   static constexpr Types value = Types::uint96; ///< ABI type is uint96.
 };
 
 /**
 * Specialization for uint104_t.
 */
-template <>
-struct ABIType<uint104_t> {
+template <> struct ABIType<uint104_t> {
   static constexpr Types value = Types::uint104; ///< ABI type is uint104.
 };
 
 /**
 * Specialization for uint112_t.
 */
-template <>
-struct ABIType<uint112_t> {
+template <> struct ABIType<uint112_t> {
   static constexpr Types value = Types::uint112; ///< ABI type is uint112.
 };
 
 /**
 * Specialization for uint120_t.
 */
-template <>
-struct ABIType<uint120_t> {
+template <> struct ABIType<uint120_t> {
   static constexpr Types value = Types::uint120; ///< ABI type is uint120.
 };
 
 /**
 * Specialization for uint128_t.
 */
-template <>
-struct ABIType<uint128_t> {
+template <> struct ABIType<uint128_t> {
   static constexpr Types value = Types::uint128; ///< ABI type is uint128.
 };
 
 /**
 * Specialization for uint136_t.
 */
-template <>
-struct ABIType<uint136_t> {
+template <> struct ABIType<uint136_t> {
   static constexpr Types value = Types::uint136; ///< ABI type is uint136.
 };
 
 /**
 * Specialization for uint144_t.
 */
-template <>
-struct ABIType<uint144_t> {
+template <> struct ABIType<uint144_t> {
   static constexpr Types value = Types::uint144; ///< ABI type is uint144.
 };
 
 /**
 * Specialization for uint152_t.
 */
-template <>
-struct ABIType<uint152_t> {
+template <> struct ABIType<uint152_t> {
   static constexpr Types value = Types::uint152; ///< ABI type is uint152.
 };
 
 /**
 * Specialization for uint160_t.
 */
-template <>
-struct ABIType<uint160_t> {
+template <> struct ABIType<uint160_t> {
   static constexpr Types value = Types::uint160; ///< ABI type is uint160.
 };
 
 /**
 * Specialization for uint168_t.
 */
-template <>
-struct ABIType<uint168_t> {
+template <> struct ABIType<uint168_t> {
   static constexpr Types value = Types::uint168; ///< ABI type is uint168.
 };
 
 /**
 * Specialization for uint176_t.
 */
-template <>
-struct ABIType<uint176_t> {
+template <> struct ABIType<uint176_t> {
   static constexpr Types value = Types::uint176; ///< ABI type is uint176.
 };
 
 /**
 * Specialization for uint184_t.
 */
-template <>
-struct ABIType<uint184_t> {
+template <> struct ABIType<uint184_t> {
   static constexpr Types value = Types::uint184; ///< ABI type is uint184.
 };
 
 /**
 * Specialization for uint192_t.
 */
-template <>
-struct ABIType<uint192_t> {
+template <> struct ABIType<uint192_t> {
   static constexpr Types value = Types::uint192; ///< ABI type is uint192.
 };
 
 /**
 * Specialization for uint200_t.
 */
-template <>
-struct ABIType<uint200_t> {
+template <> struct ABIType<uint200_t> {
   static constexpr Types value = Types::uint200; ///< ABI type is uint200.
 };
 
 /**
 * Specialization for uint208_t.
 */
-template <>
-struct ABIType<uint208_t> {
+template <> struct ABIType<uint208_t> {
   static constexpr Types value = Types::uint208; ///< ABI type is uint208.
 };
 
 /**
 * Specialization for uint216_t.
 */
-template <>
-struct ABIType<uint216_t> {
+template <> struct ABIType<uint216_t> {
   static constexpr Types value = Types::uint216; ///< ABI type is uint216.
 };
 
 /**
 * Specialization for uint224_t.
 */
-template <>
-struct ABIType<uint224_t> {
+template <> struct ABIType<uint224_t> {
   static constexpr Types value = Types::uint224; ///< ABI type is uint224.
 };
 
 /**
 * Specialization for uint232_t.
 */
-template <>
-struct ABIType<uint232_t> {
+template <> struct ABIType<uint232_t> {
   static constexpr Types value = Types::uint232; ///< ABI type is uint232.
 };
 
 /**
 * Specialization for uint240_t.
 */
-template <>
-struct ABIType<uint240_t> {
+template <> struct ABIType<uint240_t> {
   static constexpr Types value = Types::uint240; ///< ABI type is uint240.
 };
 
 /**
 * Specialization for uint248_t.
 */
-template <>
-struct ABIType<uint248_t> {
+template <> struct ABIType<uint248_t> {
   static constexpr Types value = Types::uint248; ///< ABI type is uint248.
 };
 
 /**
 * Specialization for int8_t.
 */
-template <>
-struct ABIType<int8_t> {
+template <> struct ABIType<int8_t> {
   static constexpr Types value = Types::int8; ///< ABI type is int8.
 };
 
 /**
 * Specialization for int16_t.
 */
-template <>
-struct ABIType<int16_t> {
+template <> struct ABIType<int16_t> {
   static constexpr Types value = Types::int16; ///< ABI type is int16.
 };
 
 /**
 * Specialization for int24_t.
 */
-template <>
-struct ABIType<int24_t> {
+template <> struct ABIType<int24_t> {
   static constexpr Types value = Types::int24; ///< ABI type is int24.
 };
 
 /**
 * Specialization for int32_t.
 */
-template <>
-struct ABIType<int32_t> {
+template <> struct ABIType<int32_t> {
   static constexpr Types value = Types::int32; ///< ABI type is int32.
 };
 
 /**
 * Specialization for int40_t.
 */
-template <>
-struct ABIType<int40_t> {
+template <> struct ABIType<int40_t> {
   static constexpr Types value = Types::int40; ///< ABI type is int40.
 };
 
 /**
 * Specialization for int48_t.
 */
-template <>
-struct ABIType<int48_t> {
+template <> struct ABIType<int48_t> {
   static constexpr Types value = Types::int48; ///< ABI type is int48.
 };
 
 /**
 * Specialization for int56_t.
 */
-template <>
-struct ABIType<int56_t> {
+template <> struct ABIType<int56_t> {
   static constexpr Types value = Types::int56; ///< ABI type is int56.
 };
 
 /**
 * Specialization for int64_t.
 */
-template <>
-struct ABIType<int64_t> {
+template <> struct ABIType<int64_t> {
   static constexpr Types value = Types::int64; ///< ABI type is int64.
 };
 
 /**
 * Specialization for int72_t.
 */
-template <>
-struct ABIType<int72_t> {
+template <> struct ABIType<int72_t> {
   static constexpr Types value = Types::int72; ///< ABI type is int72.
 };
 
 /**
 * Specialization for int80_t.
 */
-template <>
-struct ABIType<int80_t> {
+template <> struct ABIType<int80_t> {
   static constexpr Types value = Types::int80; ///< ABI type is int80.
 };
 
 /**
 * Specialization for int88_t.
 */
-template <>
-struct ABIType<int88_t> {
+template <> struct ABIType<int88_t> {
   static constexpr Types value = Types::int88; ///< ABI type is int88.
 };
 
 /**
 * Specialization for int96_t.
 */
-template <>
-struct ABIType<int96_t> {
+template <> struct ABIType<int96_t> {
   static constexpr Types value = Types::int96; ///< ABI type is int96.
 };
 
 /**
 * Specialization for int104_t.
 */
-template <>
-struct ABIType<int104_t> {
+template <> struct ABIType<int104_t> {
   static constexpr Types value = Types::int104; ///< ABI type is int104.
 };
 
 /**
 * Specialization for int112_t.
 */
-template <>
-struct ABIType<int112_t> {
+template <> struct ABIType<int112_t> {
   static constexpr Types value = Types::int112; ///< ABI type is int112.
 };
 
 /**
 * Specialization for int120_t.
 */
-template <>
-struct ABIType<int120_t> {
+template <> struct ABIType<int120_t> {
   static constexpr Types value = Types::int120; ///< ABI type is int120.
 };
 
 /**
 * Specialization for int128_t.
 */
-template <>
-struct ABIType<int128_t> {
+template <> struct ABIType<int128_t> {
   static constexpr Types value = Types::int128; ///< ABI type is int128.
 };
 
 /**
 * Specialization for int136_t.
 */
-template <>
-struct ABIType<int136_t> {
+template <> struct ABIType<int136_t> {
   static constexpr Types value = Types::int136; ///< ABI type is int136.
 };
 
 /**
 * Specialization for int144_t.
 */
-template <>
-struct ABIType<int144_t> {
+template <> struct ABIType<int144_t> {
   static constexpr Types value = Types::int144; ///< ABI type is int144.
 };
 
 /**
 * Specialization for int152_t.
 */
-template <>
-struct ABIType<int152_t> {
+template <> struct ABIType<int152_t> {
   static constexpr Types value = Types::int152; ///< ABI type is int152.
 };
 
 /**
 * Specialization for int160_t.
 */
-template <>
-struct ABIType<int160_t> {
+template <> struct ABIType<int160_t> {
   static constexpr Types value = Types::int160; ///< ABI type is int160.
 };
 
 /**
 * Specialization for int168_t.
 */
-template <>
-struct ABIType<int168_t> {
+template <> struct ABIType<int168_t> {
   static constexpr Types value = Types::int168; ///< ABI type is int168.
 };
 
 /**
 * Specialization for int176_t.
 */
-template <>
-struct ABIType<int176_t> {
+template <> struct ABIType<int176_t> {
   static constexpr Types value = Types::int176; ///< ABI type is int176.
 };
 
 /**
 * Specialization for int184_t.
 */
-template <>
-struct ABIType<int184_t> {
+template <> struct ABIType<int184_t> {
   static constexpr Types value = Types::int184; ///< ABI type is int184.
 };
 
 /**
 * Specialization for int192_t.
 */
-template <>
-struct ABIType<int192_t> {
+template <> struct ABIType<int192_t> {
   static constexpr Types value = Types::int192; ///< ABI type is int192.
 };
 
 /**
 * Specialization for int200_t.
 */
-template <>
-struct ABIType<int200_t> {
+template <> struct ABIType<int200_t> {
   static constexpr Types value = Types::int200; ///< ABI type is int200.
 };
 
 /**
 * Specialization for int208_t.
 */
-template <>
-struct ABIType<int208_t> {
+template <> struct ABIType<int208_t> {
   static constexpr Types value = Types::int208; ///< ABI type is int208.
 };
 
 /**
 * Specialization for int216_t.
 */
-template <>
-struct ABIType<int216_t> {
+template <> struct ABIType<int216_t> {
   static constexpr Types value = Types::int216; ///< ABI type is int216.
 };
 
 /**
 * Specialization for int224_t.
 */
-template <>
-struct ABIType<int224_t> {
+template <> struct ABIType<int224_t> {
   static constexpr Types value = Types::int224; ///< ABI type is int224.
 };
 
 /**
 * Specialization for int232_t.
 */
-template <>
-struct ABIType<int232_t> {
+template <> struct ABIType<int232_t> {
   static constexpr Types value = Types::int232; ///< ABI type is int232.
 };
 
 /**
 * Specialization for int240_t.
 */
-template <>
-struct ABIType<int240_t> {
+template <> struct ABIType<int240_t> {
   static constexpr Types value = Types::int240; ///< ABI type is int240.
 };
 
 /**
 * Specialization for int248_t.
 */
-template <>
-struct ABIType<int248_t> {
+template <> struct ABIType<int248_t> {
   static constexpr Types value = Types::int248; ///< ABI type is int248.
 };
 
 /**
 * Specialization for int256_t.
 */
-template <>
-struct ABIType<int256_t> {
+template <> struct ABIType<int256_t> {
   static constexpr Types value = Types::int256; ///< ABI type is int256.
 };
 
@@ -672,8 +601,7 @@ struct ABIType<int256_t> {
 * This is used for all vector types, including bytesArr and stringArr.
 * @tparam T The type to map to an ABI type.
 */
-template <typename T>
-struct ABIType<std::vector<T>> {
+template <typename T> struct ABIType<std::vector<T>> {
   static constexpr Types value = static_cast<Types>(static_cast<int>(ABIType<T>::value) + 1); ///< ABI type is vector of T.
 };
 
@@ -682,8 +610,7 @@ struct ABIType<std::vector<T>> {
 * Struct to map a type to an ABI type.
 * @tparam T The type to map to an ABI type.
 */
-template <typename T>
-struct TypeToEnum {
+template <typename T> struct TypeToEnum {
   static constexpr Types value = ABIType<T>::value; ///< ABI type.
 };
 
@@ -691,103 +618,127 @@ struct TypeToEnum {
 * Specializations for reference types
 * @tparam T The type to map to an ABI type.
 */
-template <typename T>
-struct TypeToEnum<T&> : TypeToEnum<T> {};
+template <typename T> struct TypeToEnum<T&> : TypeToEnum<T> {};
 
 /**
 * Specializations for const reference types
 * @tparam T The type to map to an ABI type.
 */
-template <typename T>
-struct TypeToEnum<const T&> : TypeToEnum<T> {};
+template <typename T> struct TypeToEnum<const T&> : TypeToEnum<T> {};
 
 /**
 * Specializations for vector reference types
 * @tparam T The type to map to an ABI type.
 */
-template <typename T>
-struct TypeToEnum<std::vector<T>&> : TypeToEnum<std::vector<T>> {};
+template <typename T> struct TypeToEnum<std::vector<T>&> : TypeToEnum<std::vector<T>> {};
 
 /**
 * Specializations for const vector reference types
 * @tparam T The type to map to an ABI type.
 */
-template <typename T>
-struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
+template <typename T> struct TypeToEnum<const std::vector<T>&> : TypeToEnum<std::vector<T>> {};
 
 /**
 * Map for calling the correct ABI function for a given uint type.
 */
 inline std::unordered_map<Types, std::function<std::any(uint256_t)>> castUintFunctions = {
-    {Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
-    {Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
-    {Types::uint24, [](uint256_t value) { return std::any(static_cast<uint24_t>(value)); }},
-    {Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
-    {Types::uint40, [](uint256_t value) { return std::any(static_cast<uint40_t>(value)); }},
-    {Types::uint48, [](uint256_t value) { return std::any(static_cast<uint48_t>(value)); }},
-    {Types::uint56, [](uint256_t value) { return std::any(static_cast<uint56_t>(value)); }},
-    {Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }},
-    {Types::uint72, [](uint256_t value) { return std::any(static_cast<uint72_t>(value)); }},
-    {Types::uint80, [](uint256_t value) { return std::any(static_cast<uint80_t>(value)); }},
-    {Types::uint88, [](uint256_t value) { return std::any(static_cast<uint88_t>(value)); }},
-    {Types::uint96, [](uint256_t value) { return std::any(static_cast<uint96_t>(value)); }},
-    {Types::uint104, [](uint256_t value) { return std::any(static_cast<uint104_t>(value)); }},
-    {Types::uint112, [](uint256_t value) { return std::any(static_cast<uint112_t>(value)); }},
-    {Types::uint120, [](uint256_t value) { return std::any(static_cast<uint120_t>(value)); }},
-    {Types::uint128, [](uint256_t value) { return std::any(static_cast<uint128_t>(value)); }},
-    {Types::uint136, [](uint256_t value) { return std::any(static_cast<uint136_t>(value)); }},
-    {Types::uint144, [](uint256_t value) { return std::any(static_cast<uint144_t>(value)); }},
-    {Types::uint152, [](uint256_t value) { return std::any(static_cast<uint152_t>(value)); }},
-    {Types::uint160, [](uint256_t value) { return std::any(static_cast<uint160_t>(value)); }},
-    {Types::uint168, [](uint256_t value) { return std::any(static_cast<uint168_t>(value)); }},
-    {Types::uint176, [](uint256_t value) { return std::any(static_cast<uint176_t>(value)); }},
-    {Types::uint184, [](uint256_t value) { return std::any(static_cast<uint184_t>(value)); }},
-    {Types::uint192, [](uint256_t value) { return std::any(static_cast<uint192_t>(value)); }},
-    {Types::uint200, [](uint256_t value) { return std::any(static_cast<uint200_t>(value)); }},
-    {Types::uint208, [](uint256_t value) { return std::any(static_cast<uint208_t>(value)); }},
-    {Types::uint216, [](uint256_t value) { return std::any(static_cast<uint216_t>(value)); }},
-    {Types::uint224, [](uint256_t value) { return std::any(static_cast<uint224_t>(value)); }},
-    {Types::uint232, [](uint256_t value) { return std::any(static_cast<uint232_t>(value)); }},
-    {Types::uint240, [](uint256_t value) { return std::any(static_cast<uint240_t>(value)); }},
-    {Types::uint248, [](uint256_t value) { return std::any(static_cast<uint248_t>(value)); }}
-  };
+  {Types::uint8, [](uint256_t value) { return std::any(static_cast<uint8_t>(value)); }},
+  {Types::uint16, [](uint256_t value) { return std::any(static_cast<uint16_t>(value)); }},
+  {Types::uint24, [](uint256_t value) { return std::any(static_cast<uint24_t>(value)); }},
+  {Types::uint32, [](uint256_t value) { return std::any(static_cast<uint32_t>(value)); }},
+  {Types::uint40, [](uint256_t value) { return std::any(static_cast<uint40_t>(value)); }},
+  {Types::uint48, [](uint256_t value) { return std::any(static_cast<uint48_t>(value)); }},
+  {Types::uint56, [](uint256_t value) { return std::any(static_cast<uint56_t>(value)); }},
+  {Types::uint64, [](uint256_t value) { return std::any(static_cast<uint64_t>(value)); }},
+  {Types::uint72, [](uint256_t value) { return std::any(static_cast<uint72_t>(value)); }},
+  {Types::uint80, [](uint256_t value) { return std::any(static_cast<uint80_t>(value)); }},
+  {Types::uint88, [](uint256_t value) { return std::any(static_cast<uint88_t>(value)); }},
+  {Types::uint96, [](uint256_t value) { return std::any(static_cast<uint96_t>(value)); }},
+  {Types::uint104, [](uint256_t value) { return std::any(static_cast<uint104_t>(value)); }},
+  {Types::uint112, [](uint256_t value) { return std::any(static_cast<uint112_t>(value)); }},
+  {Types::uint120, [](uint256_t value) { return std::any(static_cast<uint120_t>(value)); }},
+  {Types::uint128, [](uint256_t value) { return std::any(static_cast<uint128_t>(value)); }},
+  {Types::uint136, [](uint256_t value) { return std::any(static_cast<uint136_t>(value)); }},
+  {Types::uint144, [](uint256_t value) { return std::any(static_cast<uint144_t>(value)); }},
+  {Types::uint152, [](uint256_t value) { return std::any(static_cast<uint152_t>(value)); }},
+  {Types::uint160, [](uint256_t value) { return std::any(static_cast<uint160_t>(value)); }},
+  {Types::uint168, [](uint256_t value) { return std::any(static_cast<uint168_t>(value)); }},
+  {Types::uint176, [](uint256_t value) { return std::any(static_cast<uint176_t>(value)); }},
+  {Types::uint184, [](uint256_t value) { return std::any(static_cast<uint184_t>(value)); }},
+  {Types::uint192, [](uint256_t value) { return std::any(static_cast<uint192_t>(value)); }},
+  {Types::uint200, [](uint256_t value) { return std::any(static_cast<uint200_t>(value)); }},
+  {Types::uint208, [](uint256_t value) { return std::any(static_cast<uint208_t>(value)); }},
+  {Types::uint216, [](uint256_t value) { return std::any(static_cast<uint216_t>(value)); }},
+  {Types::uint224, [](uint256_t value) { return std::any(static_cast<uint224_t>(value)); }},
+  {Types::uint232, [](uint256_t value) { return std::any(static_cast<uint232_t>(value)); }},
+  {Types::uint240, [](uint256_t value) { return std::any(static_cast<uint240_t>(value)); }},
+  {Types::uint248, [](uint256_t value) { return std::any(static_cast<uint248_t>(value)); }}
+};
 
-  /**
-   * Map for calling the correct ABI function for a given int type.
-   */
-  inline std::unordered_map<Types, std::function<std::any(int256_t)>> castIntFunctions = {
-    {Types::int8, [](int256_t value) { return std::any(static_cast<int8_t>(value)); }},
-    {Types::int16, [](int256_t value) { return std::any(static_cast<int16_t>(value)); }},
-    {Types::int24, [](int256_t value) { return std::any(static_cast<int24_t>(value)); }},
-    {Types::int32, [](int256_t value) { return std::any(static_cast<int32_t>(value)); }},
-    {Types::int40, [](int256_t value) { return std::any(static_cast<int40_t>(value)); }},
-    {Types::int48, [](int256_t value) { return std::any(static_cast<int48_t>(value)); }},
-    {Types::int56, [](int256_t value) { return std::any(static_cast<int56_t>(value)); }},
-    {Types::int64, [](int256_t value) { return std::any(static_cast<int64_t>(value)); }},
-    {Types::int72, [](int256_t value) { return std::any(static_cast<int72_t>(value)); }},
-    {Types::int80, [](int256_t value) { return std::any(static_cast<int80_t>(value)); }},
-    {Types::int88, [](int256_t value) { return std::any(static_cast<int88_t>(value)); }},
-    {Types::int96, [](int256_t value) { return std::any(static_cast<int96_t>(value)); }},
-    {Types::int104, [](int256_t value) { return std::any(static_cast<int104_t>(value)); }},
-    {Types::int112, [](int256_t value) { return std::any(static_cast<int112_t>(value)); }},
-    {Types::int120, [](int256_t value) { return std::any(static_cast<int120_t>(value)); }},
-    {Types::int128, [](int256_t value) { return std::any(static_cast<int128_t>(value)); }},
-    {Types::int136, [](int256_t value) { return std::any(static_cast<int136_t>(value)); }},
-    {Types::int144, [](int256_t value) { return std::any(static_cast<int144_t>(value)); }},
-    {Types::int152, [](int256_t value) { return std::any(static_cast<int152_t>(value)); }},
-    {Types::int160, [](int256_t value) { return std::any(static_cast<int160_t>(value)); }},
-    {Types::int168, [](int256_t value) { return std::any(static_cast<int168_t>(value)); }},
-    {Types::int176, [](int256_t value) { return std::any(static_cast<int176_t>(value)); }},
-    {Types::int184, [](int256_t value) { return std::any(static_cast<int184_t>(value)); }},
-    {Types::int192, [](int256_t value) { return std::any(static_cast<int192_t>(value)); }},
-    {Types::int200, [](int256_t value) { return std::any(static_cast<int200_t>(value)); }},
-    {Types::int208, [](int256_t value) { return std::any(static_cast<int208_t>(value)); }},
-    {Types::int216, [](int256_t value) { return std::any(static_cast<int216_t>(value)); }},
-    {Types::int224, [](int256_t value) { return std::any(static_cast<int224_t>(value)); }},
-    {Types::int232, [](int256_t value) { return std::any(static_cast<int232_t>(value)); }},
-    {Types::int240, [](int256_t value) { return std::any(static_cast<int240_t>(value)); }},
-    {Types::int248, [](int256_t value) { return std::any(static_cast<int248_t>(value)); }}
-  };
+/**
+ * Map for calling the correct ABI function for a given int type.
+ */
+inline std::unordered_map<Types, std::function<std::any(int256_t)>> castIntFunctions = {
+  {Types::int8, [](int256_t value) { return std::any(static_cast<int8_t>(value)); }},
+  {Types::int16, [](int256_t value) { return std::any(static_cast<int16_t>(value)); }},
+  {Types::int24, [](int256_t value) { return std::any(static_cast<int24_t>(value)); }},
+  {Types::int32, [](int256_t value) { return std::any(static_cast<int32_t>(value)); }},
+  {Types::int40, [](int256_t value) { return std::any(static_cast<int40_t>(value)); }},
+  {Types::int48, [](int256_t value) { return std::any(static_cast<int48_t>(value)); }},
+  {Types::int56, [](int256_t value) { return std::any(static_cast<int56_t>(value)); }},
+  {Types::int64, [](int256_t value) { return std::any(static_cast<int64_t>(value)); }},
+  {Types::int72, [](int256_t value) { return std::any(static_cast<int72_t>(value)); }},
+  {Types::int80, [](int256_t value) { return std::any(static_cast<int80_t>(value)); }},
+  {Types::int88, [](int256_t value) { return std::any(static_cast<int88_t>(value)); }},
+  {Types::int96, [](int256_t value) { return std::any(static_cast<int96_t>(value)); }},
+  {Types::int104, [](int256_t value) { return std::any(static_cast<int104_t>(value)); }},
+  {Types::int112, [](int256_t value) { return std::any(static_cast<int112_t>(value)); }},
+  {Types::int120, [](int256_t value) { return std::any(static_cast<int120_t>(value)); }},
+  {Types::int128, [](int256_t value) { return std::any(static_cast<int128_t>(value)); }},
+  {Types::int136, [](int256_t value) { return std::any(static_cast<int136_t>(value)); }},
+  {Types::int144, [](int256_t value) { return std::any(static_cast<int144_t>(value)); }},
+  {Types::int152, [](int256_t value) { return std::any(static_cast<int152_t>(value)); }},
+  {Types::int160, [](int256_t value) { return std::any(static_cast<int160_t>(value)); }},
+  {Types::int168, [](int256_t value) { return std::any(static_cast<int168_t>(value)); }},
+  {Types::int176, [](int256_t value) { return std::any(static_cast<int176_t>(value)); }},
+  {Types::int184, [](int256_t value) { return std::any(static_cast<int184_t>(value)); }},
+  {Types::int192, [](int256_t value) { return std::any(static_cast<int192_t>(value)); }},
+  {Types::int200, [](int256_t value) { return std::any(static_cast<int200_t>(value)); }},
+  {Types::int208, [](int256_t value) { return std::any(static_cast<int208_t>(value)); }},
+  {Types::int216, [](int256_t value) { return std::any(static_cast<int216_t>(value)); }},
+  {Types::int224, [](int256_t value) { return std::any(static_cast<int224_t>(value)); }},
+  {Types::int232, [](int256_t value) { return std::any(static_cast<int232_t>(value)); }},
+  {Types::int240, [](int256_t value) { return std::any(static_cast<int240_t>(value)); }},
+  {Types::int248, [](int256_t value) { return std::any(static_cast<int248_t>(value)); }}
+};
+
+/**
+ * Get the respective ABI enum type from a BaseTypes variant.
+ * Index is expected to be the in exact same order as the elements
+ * declared inside the BaseTypes variant in the Utils namespace.
+ * If the variant order is updated, so this function has to.
+ * @param type The BaseTypes variant to check.
+ * @return The equivalent Types enum.
+ */
+Types inline getABIEnumFromBaseTypes(const BaseTypes& type) {
+  Types ret;
+  switch (type.index()) {
+    case 0: ret = Types::uint256; break;    // uint256_t
+    case 1: ret = Types::uint256Arr; break; // std::vector<uint256_t>
+    case 2: ret = Types::int256; break;     // int256_t
+    case 3: ret = Types::int256Arr; break;  // std::vector<int256_t>
+    case 4: ret = Types::address; break;    // Address
+    case 5: ret = Types::addressArr; break; // std::vector<Address>
+    case 6: ret = Types::boolean; break;    // bool
+    case 7: ret = Types::booleanArr; break; // std::vector<bool>
+    case 8: ret = Types::bytes; break;      // Bytes
+    case 9: ret = Types::bytes; break;      // BytesEncoded
+    case 10: ret = Types::bytesArr; break;  // std::vector<Bytes>
+    case 11: ret = Types::string; break;    // std::string
+    case 12: ret = Types::stringArr; break; // std::vector<std::string>
+  }
+  return ret;
+}
 
 /**
  * This function returns the ABI type string for a given ABI type.
@@ -1096,8 +1047,8 @@ Types inline getABIEnumFromString(const std::string& type) {
 }
 
   /**
-  * This struct contains the structure for the contract ABI object.
-  */
+   * This struct contains the structure for the contract ABI object.
+   */
   struct MethodDescription {
     std::string name; ///< Name of the method.
     std::vector<std::pair<std::string, std::string>> inputs; ///< Vector of pairs of input names and types.
