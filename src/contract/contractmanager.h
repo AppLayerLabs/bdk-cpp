@@ -14,6 +14,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "abi.h"
 #include "contract.h"
+#include "contractcalllogger.h"
+#include "event.h"
+#include "variables/safeunorderedmap.h"
 
 #include "../utils/db.h"
 #include "../utils/options.h"
@@ -22,8 +25,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
-#include "contractcalllogger.h"
-#include "variables/safeunorderedmap.h"
 
 // Forward declarations.
 class rdPoS;
@@ -74,6 +75,12 @@ class ContractManager : BaseContract {
      * Responsible for maintaining temporary data used in contract call chains.
      */
     std::unique_ptr<ContractCallLogger> callLogger_;
+
+    /**
+     * Event manager object.
+     * Responsible for maintaining events emitted in contract calls.
+     */
+    EventManager eventManager_;
 
     /// Reference pointer to the rdPoS contract.
     const std::unique_ptr<rdPoS>& rdpos_;
@@ -416,6 +423,25 @@ class ContractManagerInterface {
         address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
       );
       return ptr;
+    }
+
+    /**
+     * Emit an event from a contract. Called by DynamicContract's emitEvent().
+     * @param event The event to emit.
+     * @throw std::runtime_error if there's an attempt to emit the event outside a contract call.
+     */
+    void emitContractEvent(Event& event) {
+      // Sanity check - events should only be emitted during successful contract
+      // calls AND on non-pure/non-view functions. Since callLogger on view
+      // function calls is set to nullptr, this ensures that events only happen
+      // inside contracts and are not emitted if a transaction reverts.
+      // C++ itself already takes care of events not being emitted on pure/view
+      // functions due to its built-in const-correctness logic.
+      // TODO: check later if events are really not emitted on transaction revert
+      if (!this->manager_.callLogger_) throw std::runtime_error(
+        "Contracts going haywire! Trying to emit an event without an active contract call"
+      );
+      this->manager_.eventManager_.registerEvent(event);
     }
 
     /**

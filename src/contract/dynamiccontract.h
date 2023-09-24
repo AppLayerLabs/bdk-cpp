@@ -11,6 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <any>
 #include "contract.h"
 #include "contractmanager.h"
+#include "event.h"
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
 
@@ -263,20 +264,20 @@ class DynamicContract : public BaseContract {
     template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(
       T* instance, R(T::*memFunc)(Args...) const, const std::vector<std::any>& dataVec, std::index_sequence<Is...>
     ) {
-        if (sizeof...(Args) != dataVec.size()) throw std::runtime_error(
-          "Not enough arguments provided for function. Expected: " +
-          std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size())
-        );
-        try {
-          return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
-        } catch (const std::bad_any_cast& ex) {
-          std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
-          ((errorMessage += (
-            "\nAttempted to cast to type: " + std::string(typeid(Args).name()) + ", Actual type: " +
-            (dataVec[Is].has_value() ? std::string(dataVec[Is].type().name()) : "Empty any")
-          )), ...);
-          throw std::runtime_error(errorMessage);
-        }
+      if (sizeof...(Args) != dataVec.size()) throw std::runtime_error(
+        "Not enough arguments provided for function. Expected: " +
+        std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size())
+      );
+      try {
+        return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
+      } catch (const std::bad_any_cast& ex) {
+        std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
+        ((errorMessage += (
+          "\nAttempted to cast to type: " + std::string(typeid(Args).name()) + ", Actual type: " +
+          (dataVec[Is].has_value() ? std::string(dataVec[Is].type().name()) : "Empty any")
+        )), ...);
+        throw std::runtime_error(errorMessage);
+      }
     }
 
     /**
@@ -396,10 +397,10 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerPayableFunction(
-    const Functor& functor,
-          std::function<BaseTypes(const ethCallInfo& tx)> f) {
-    payableFunctions_[functor] = f;
-  }
+      const Functor& functor, std::function<BaseTypes(const ethCallInfo& tx)> f
+    ) {
+      payableFunctions_[functor] = f;
+    }
 
     /**
      * Register a view/const function, adding it to the view functions map.
@@ -496,6 +497,24 @@ class DynamicContract : public BaseContract {
       } catch (std::exception& e) {
         throw std::runtime_error(e.what());
       }
+    }
+
+    /**
+     * Emit an event.
+     * @param name The event's name.
+     * @param args The event's arguments. Defaults to an empty list.
+     * @param anonymous Whether the event is anonymous or not. Defaults to false.
+     */
+    void emitEvent(
+      std::string name, std::vector<std::pair<BaseTypes, bool>> args = {}, bool anonymous = false
+    ) {
+      // TODO: calculate middle params instead of using placeholder values (0, Hash::random(), 0)
+      // TODO: members do not have "0x" at the start - should they? Maybe this should be handled by eth_getFilterChanges/eth_getLogs instead?
+      Event e(name, 0, Hash::random(), 0,
+        this->getBlockHash(), this->getBlockHeight(),
+        this->getContractAddress(), args, anonymous
+      );
+      this->interface_.emitContractEvent(e);
     }
 
     /**

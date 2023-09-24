@@ -23,22 +23,6 @@ void signalHandler(int signum) {
 }
 
 int main() {
-  Event testEvent(
-    "TestEvent", 1, Hash::random(), 2, Hash::random(), 3,
-    Address("0x1234567890abcdefecbd1234567890abcdefecbd", false),
-    {
-      std::make_pair(uint256_t(12345), true),
-      std::make_pair(Address("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", false), true),
-      std::make_pair(true, false),
-      std::make_pair(Hash::random().asBytes(), false),
-      std::make_pair(std::string("Hello World"), false),
-    }
-  );
-  EventManager eventManager;
-  eventManager.registerEvent(testEvent);
-  return 0;
-
-  /* TODO: uncomment this when done with events
   Utils::logToCout = true;
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
   blockchain = std::make_unique<Blockchain>(blockchainPath);
@@ -48,6 +32,5 @@ int main() {
   blockchain->start();
   std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::hours(std::numeric_limits<int>::max()));
   return 0;
-  */
 }
 

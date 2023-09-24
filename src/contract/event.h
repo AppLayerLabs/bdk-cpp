@@ -9,13 +9,6 @@
 #include "../utils/utils.h"
 #include "abi.h"
 
-// TODO: implement the logic for events to be emitted from contracts, as follows:
-// - Add EventManager to ContractManager (it should be the one who owns it, the others take a ref to it)
-// - Add this to emitEvent(): if (!this->manager_.callLogger_) throw std::runtime_error("Contracts going haywire! Trying to call emitEvent without an active callContract");
-// - Since callLogger on view function calls is set to nullptr, this ensures that events only happen inside contracts (as it should be) and are not emitted if a transaction reverts
-// - C++ already takes care of events not being emitted on pure/view functions due to built-in const-correctness logic
-
-// TODO on docs: events on contracts should be PROTECTED because they can be inherited by other contracts and interfaces
 // TODO: pay attention to variable ABI encoding:
 // - (u)int, address, bool: regular padded value
 // - dynamic types: keccak of an encoding (as topic can only hold a 32-byte word), as follows:
@@ -23,6 +16,8 @@
 //   - struct: concat of values padded to a multiple of 32 bytes
 //   - array: concat of values padded to a multiple of 32 bytes and without any length prefix
 // TODO: remember to generate the ABI for events later on
+// TODO: probably implement eth_getFilterChanges/eth_getLogs/etc. when done?
+// TODO: update docs when done
 
 /// Abstraction of a Solidity event.
 class Event {
@@ -138,16 +133,18 @@ class EventManager {
   private:
     // TODO: keep up to 1000 events in memory, dump older ones to DB (maybe this should be a deque?)
     std::vector<Event> events_;         ///< List of all events in memory.
-    //const std::unique_ptr<DB>& db_;
+    const std::unique_ptr<DB>& db_;     ///< Reference pointer to the database.
 
   public:
-    //EventManager(const std::unique_ptr<DB>& db) : db_(db) {
-    //  ; // TODO: load events from DB
-    //}
+    EventManager(const std::unique_ptr<DB>& db) : db_(db) {
+      ; // TODO: load events from DB
+    }
 
-    //~EventManager() {
-    //  ; // TODO: save events to DB
-    //}
+    ~EventManager() {
+      ; // TODO: save events to DB
+    }
+
+    // TODO: maybe a periodicSaveToDB() just like on Storage?
 
     /**
      * Register the event in memory.
@@ -155,22 +152,6 @@ class EventManager {
      * @param event The event to register.
      */
     void registerEvent(Event& event) {
-      std::string topicsStr = "[";
-      for (Bytes b : event.getTopics()) topicsStr += Hex::fromBytes(b).get() + ",";
-      topicsStr.pop_back(); // Remove last ","
-      topicsStr += "]";
-      // TODO: "0x" is not printed at the start of each print - should it?
-      std::cout << "Registering event: " << event.getName() << std::endl
-        << "Anonymous: " << (event.isAnonymous() ? "yes" : "no") << std::endl
-        << "Log Index: " << event.getLogIndex() << std::endl
-        << "Tx Hash: " << event.getTxHash().hex().get() << std::endl
-        << "Tx Index: " << event.getTxIndex() << std::endl
-        << "Block Hash: " << event.getBlockHash().hex().get() << std::endl
-        << "Block Index: " << event.getBlockIndex() << std::endl
-        << "Address: " << event.getAddress().hex().get() << std::endl
-        << "Data: " << Hex::fromBytes(event.getData()).get() << std::endl
-        << "Topics: " << topicsStr << std::endl
-      << std::endl;
       this->events_.push_back(std::move(event));
     }
 };
