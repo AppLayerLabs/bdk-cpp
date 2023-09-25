@@ -720,24 +720,10 @@ inline std::unordered_map<Types, std::function<std::any(int256_t)>> castIntFunct
  * @param type The BaseTypes variant to check.
  * @return The equivalent Types enum.
  */
-Types inline getABIEnumFromBaseTypes(const BaseTypes& type) {
-  Types ret;
-  switch (type.index()) {
-    case 0: ret = Types::uint256; break;    // uint256_t
-    case 1: ret = Types::uint256Arr; break; // std::vector<uint256_t>
-    case 2: ret = Types::int256; break;     // int256_t
-    case 3: ret = Types::int256Arr; break;  // std::vector<int256_t>
-    case 4: ret = Types::address; break;    // Address
-    case 5: ret = Types::addressArr; break; // std::vector<Address>
-    case 6: ret = Types::boolean; break;    // bool
-    case 7: ret = Types::booleanArr; break; // std::vector<bool>
-    case 8: ret = Types::bytes; break;      // Bytes
-    case 9: ret = Types::bytes; break;      // BytesEncoded
-    case 10: ret = Types::bytesArr; break;  // std::vector<Bytes>
-    case 11: ret = Types::string; break;    // std::string
-    case 12: ret = Types::stringArr; break; // std::vector<std::string>
-  }
-  return ret;
+Types inline BaseTypesToEnum(const BaseTypes& type) {
+  return std::visit([](const auto& item) -> Types {
+    return TypeToEnum<decltype(item)>::value;
+  }, type);
 }
 
 /**

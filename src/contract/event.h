@@ -58,7 +58,7 @@ class Event {
       ABI::Encoder::EncVar dataParams;
       if (!params.empty()) {
         for (std::pair<BaseTypes, bool> p : params) { // type, indexed
-          ABI::Types funcType = ABI::getABIEnumFromBaseTypes(p.first);
+          ABI::Types funcType = ABI::BaseTypesToEnum(p.first);
           funcStr += ABI::getStringFromABIEnum(funcType) + ",";
           if (p.second && ((anonymous && this->topics_.size() < 4) || (this->topics_.size() < 3))) {
             // Indexed param goes to topics
