@@ -9,14 +9,9 @@
 #include "../utils/utils.h"
 #include "abi.h"
 
-// TODO: pay attention to variable ABI encoding:
-// - (u)int, address, bool: regular padded value
-// - dynamic types: keccak of an encoding (as topic can only hold a 32-byte word), as follows:
-//   - bytes or string: value without padding or length prefixes
-//   - struct: concat of values padded to a multiple of 32 bytes
-//   - array: concat of values padded to a multiple of 32 bytes and without any length prefix
 // TODO: remember to generate the ABI for events later on
 // TODO: probably implement eth_getFilterChanges/eth_getLogs/etc. when done?
+// TODO: add tests when done
 // TODO: update docs when done
 
 /// Abstraction of a Solidity event.
@@ -32,6 +27,16 @@ class Event {
     Bytes data_;                  ///< Non-indexed arguments of the event.
     std::vector<Bytes> topics_;   ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events).
     bool anonymous_;              ///< Whether the event is anonymous or not (its signature is indexed and searchable).
+
+    /**
+     * Encode an indexed parameter for topic storage, as specified here:
+     * https://docs.soliditylang.org/en/develop/abi-spec.html#events
+     * https://docs.soliditylang.org/en/develop/abi-spec.html#indexed-event-encoding
+     * @param param The parameter to encode.
+     * @param type The type of the parameter.
+     * @return The topic-encoded parameter.
+     */
+    Bytes encodeTopicParam(BaseTypes& param, ABI::Types type);
 
   public:
     /**
@@ -50,41 +55,7 @@ class Event {
       const std::string& name, uint64_t logIndex, Hash txHash, uint64_t txIndex,
       Hash blockHash, uint256_t blockIndex, Address address,
       std::vector<std::pair<BaseTypes, bool>> params = {}, bool anonymous = false
-    ) : name_(name), logIndex_(logIndex), txHash_(txHash), txIndex_(txIndex),
-      blockHash_(blockHash), blockIndex_(blockIndex), address_(address), anonymous_(anonymous)
-    {
-      // Iterate through parameters, if any
-      std::string funcStr = this->name_ + "(";
-      ABI::Encoder::EncVar dataParams;
-      if (!params.empty()) {
-        for (std::pair<BaseTypes, bool> p : params) { // type, indexed
-          ABI::Types funcType = ABI::BaseTypesToEnum(p.first);
-          funcStr += ABI::getStringFromABIEnum(funcType) + ",";
-          if (p.second && ((anonymous && this->topics_.size() < 4) || (this->topics_.size() < 3))) {
-            // Indexed param goes to topics
-            ABI::Encoder topicEnc({p.first});
-            this->topics_.push_back(topicEnc.getData());
-          } else {
-            // Non-indexed param (or indexed param that doesn't fit in topics) goes to data
-            dataParams.push_back(p.first);
-          }
-        }
-        funcStr.pop_back(); // Remove last ","
-        funcStr += ")";
-      }
-
-      // Fill up data
-      if (!dataParams.empty()) {
-        ABI::Encoder dataEnc(dataParams);
-        this->data_ = dataEnc.getData();
-      }
-
-      // Insert event signature as topics[0] if non-anonymous
-      if (!anonymous) {
-        Bytes funcBytes = Utils::sha3(Utils::create_view_span(funcStr)).asBytes();
-        this->topics_.insert(this->topics_.begin(), funcBytes);
-      }
-    }
+    );
 
     /// Getter for `name_`.
     std::string getName() const { return this->name_; }

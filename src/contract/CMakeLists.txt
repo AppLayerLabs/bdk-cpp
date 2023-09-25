@@ -39,6 +39,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/event.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.cpp

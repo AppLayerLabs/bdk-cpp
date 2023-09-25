@@ -313,8 +313,8 @@ uint256_t ABI::Decoder::decodeUint256(const BytesArrView data, const uint64_t& s
 }
 
 int256_t ABI::Decoder::decodeInt256(const BytesArrView data, const uint64_t& start) const {
-    if (start + 32 > data.size()) throw std::runtime_error("Data too short for int256");
-    return Utils::bytesToInt256(data.subspan(start, 32));
+  if (start + 32 > data.size()) throw std::runtime_error("Data too short for int256");
+  return Utils::bytesToInt256(data.subspan(start, 32));
 }
 
 Address ABI::Decoder::decodeAddress(const BytesArrView data, const uint64_t& start) const {
