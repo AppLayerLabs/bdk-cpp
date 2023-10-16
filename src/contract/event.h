@@ -103,7 +103,8 @@ class Event {
 class EventManager {
   private:
     // TODO: keep up to 1000 events in memory, dump older ones to DB (maybe this should be a deque?)
-    std::vector<Event> events_;         ///< List of all events in memory.
+    std::vector<Event> events_;         ///< List of all emitted events in memory.
+    std::vector<Event> tempEvents_;     ///< List of temporary events waiting to be commited or reverted.
     const std::unique_ptr<DB>& db_;     ///< Reference pointer to the database.
 
   public:
@@ -118,12 +119,23 @@ class EventManager {
     // TODO: maybe a periodicSaveToDB() just like on Storage?
 
     /**
-     * Register the event in memory.
+     * Register the event in the temporary list.
      * Keep in mind the original Event object is MOVED to the list.
      * @param event The event to register.
      */
     void registerEvent(Event& event) {
-      this->events_.push_back(std::move(event));
+      this->tempEvents_.push_back(std::move(event));
+    }
+
+    /// Actually register events in the permanent list.
+    void commitEvents() {
+      for (Event& e : this->tempEvents_) this->events_.push_back(std::move(e));
+      this->tempEvents_.clear();
+    }
+
+    /// Discard events in the temporary list.
+    void revertEvents() {
+      this->tempEvents_.clear();
     }
 };
 
