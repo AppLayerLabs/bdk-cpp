@@ -8,6 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef STATE_H
 #define STATE_H
 
+#include "../contract/contract.h"
 #include "../contract/contractmanager.h"
 #include "../utils/utils.h"
 #include "../utils/db.h"
