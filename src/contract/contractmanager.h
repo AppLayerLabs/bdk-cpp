@@ -187,9 +187,12 @@ class ContractManager : BaseContract {
     /**
      * Process a transaction that calls a function from a given contract.
      * @param tx The transaction to process.
+     * @param blockHash The hash of the block that called the contract. Defaults to an empty hash.
+     * @param txIndex The index of the transaction inside the block that called the contract. Defaults to the first position.
      * @throw std::runtime_error if the call to the ethCall function fails.
+     * TODO: it would be a good idea to revise tests that call this function, default values here only exist as a placeholder
      */
-    void callContract(const TxBlock& tx);
+    void callContract(const TxBlock& tx, const Hash& blockHash = Hash(), const uint64_t& txIndex = 0);
 
     /**
      * Make an eth_call to a view function from the contract. Used by RPC.

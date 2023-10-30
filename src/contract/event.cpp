@@ -1,11 +1,9 @@
 #include "event.h"
 
 Event::Event(
-  const std::string& name, uint64_t logIndex, Hash txHash, uint64_t txIndex,
-  Hash blockHash, uint256_t blockIndex, Address address,
+  const std::string& name, Address address,
   std::vector<std::pair<BaseTypes, bool>> params, bool anonymous
-) : name_(name), logIndex_(logIndex), txHash_(txHash), txIndex_(txIndex),
-  blockHash_(blockHash), blockIndex_(blockIndex), address_(address), anonymous_(anonymous)
+) : name_(name), address_(address), anonymous_(anonymous)
 {
   // Iterate through parameters, if any
   std::string funcStr = this->name_ + "(";

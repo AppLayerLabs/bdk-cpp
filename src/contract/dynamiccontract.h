@@ -508,12 +508,10 @@ class DynamicContract : public BaseContract {
     void emitEvent(
       std::string name, std::vector<std::pair<BaseTypes, bool>> args = {}, bool anonymous = false
     ) {
-      // TODO: calculate middle params instead of using placeholder values (0, Hash::random(), 0)
+      // Remember this is an "empty" event, it lacks state info.
+      // This will only be gathered when commitEvents() is called
       // TODO: members do not have "0x" at the start - should they? Maybe this should be handled by eth_getFilterChanges/eth_getLogs instead?
-      Event e(name, 0, Hash::random(), 0,
-        this->getBlockHash(), this->getBlockHeight(),
-        this->getContractAddress(), args, anonymous
-      );
+      Event e(name, this->getContractAddress(), args, anonymous);
       this->interface_.emitContractEvent(e);
     }
 

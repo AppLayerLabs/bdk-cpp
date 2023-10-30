@@ -8,6 +8,7 @@
 #include "../utils/strings.h"
 #include "../utils/utils.h"
 #include "abi.h"
+#include "contract.h"
 
 // TODO: remember to generate the ABI for events later on
 // TODO: probably implement eth_getFilterChanges/eth_getLogs/etc. when done?
@@ -22,7 +23,7 @@ class Event {
     Hash txHash_;                 ///< Hash of the transaction that emitted the event.
     uint64_t txIndex_;            ///< Position of the transaction inside the block the event was emitted from.
     Hash blockHash_;              ///< Hash of the block that emitted the event.
-    uint64_t blockIndex_;         ///< Height of the block that the event was emitted from.
+    uint256_t blockIndex_;        ///< Height of the block that the event was emitted from.
     Address address_;             ///< Address that emitted the event.
     Bytes data_;                  ///< Non-indexed arguments of the event.
     std::vector<Bytes> topics_;   ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events).
@@ -40,22 +41,44 @@ class Event {
 
   public:
     /**
-     * Constructor.
+     * Constructor. Only sets data partially, setStateData() should be called
+     * after creating a new Event so the rest of the data can be set.
      * @param name The event's name.
-     * @param logIndex The event's position on the block.
-     * @param txHash The hash of the transaction that emitted the event.
-     * @param txIndex The position of the transaction in the block.
-     * @param blockHash The hash of the block that emitted the event.
-     * @param blockIndex The height of the block.
      * @param address The address that emitted the event.
      * @param params The event's arguments. Defaults to none (empty list).
      * @param anonymous Whether the event is anonymous or not. Defaults to false.
      */
     Event(
-      const std::string& name, uint64_t logIndex, Hash txHash, uint64_t txIndex,
-      Hash blockHash, uint256_t blockIndex, Address address,
+      const std::string& name, Address address,
       std::vector<std::pair<BaseTypes, bool>> params = {}, bool anonymous = false
     );
+
+    /**
+     * Set data from the block and transaction that is supposed to emit the event.
+     * @param logIndex The event's position on the block.
+     * @param txHash The hash of the transaction that emitted the event.
+     * @param txIndex The position of the transaction in the block.
+     * @param blockHash The hash of the block that emitted the event.
+     * @param blockIndex The height of the block.
+     */
+    void setStateData(
+      uint64_t logIndex, Hash txHash, uint64_t txIndex,
+      Hash blockHash, uint256_t blockIndex
+    ) {
+      this->logIndex_ = logIndex;
+      this->txHash_ = txHash;
+      this->txIndex_ = txIndex;
+      this->blockHash_ = blockHash;
+      this->blockIndex_ = blockIndex;
+    }
+
+    /*
+    void setLogIndex(uint64_t logIndex) { this->logIndex_ = logIndex; }
+    void setTxHash(Hash txHash) { this->txHash_ = txHash; }
+    void setTxIndex(uint64_t txIndex) { this->txIndex_ = txIndex; }
+    void setBlockHash(Hash blockHash) { this->blockHash_ = blockHash; }
+    void setBlockIndex(uint256_t blockIndex) { this->blockIndex_ = blockIndex; }
+    */
 
     /// Getter for `name_`.
     std::string getName() const { return this->name_; }
@@ -123,20 +146,26 @@ class EventManager {
      * Keep in mind the original Event object is MOVED to the list.
      * @param event The event to register.
      */
-    void registerEvent(Event& event) {
-      this->tempEvents_.push_back(std::move(event));
-    }
+    void registerEvent(Event& event) { this->tempEvents_.push_back(std::move(event)); }
 
-    /// Actually register events in the permanent list.
-    void commitEvents() {
-      for (Event& e : this->tempEvents_) this->events_.push_back(std::move(e));
+    /**
+     * Actually register events in the permanent list.
+     * @param tx The transaction that emitted the events.
+     */
+    void commitEvents(const Hash txHash, const uint64_t txIndex) {
+      uint64_t logIndex = 0;
+      for (Event& e : this->tempEvents_) {
+        e.setStateData(logIndex, txHash, txIndex,
+          ContractGlobals::getBlockHash(), ContractGlobals::getBlockHeight()
+        );
+        this->events_.push_back(std::move(e));
+        logIndex++;
+      }
       this->tempEvents_.clear();
     }
 
     /// Discard events in the temporary list.
-    void revertEvents() {
-      this->tempEvents_.clear();
-    }
+    void revertEvents() { this->tempEvents_.clear(); }
 };
 
 #endif  // EVENT_H

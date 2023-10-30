@@ -45,8 +45,6 @@ class State {
     /// Pointer to the contract manager.
     const std::unique_ptr<ContractManager> contractManager_;
 
-    // TODO: Add contract functionality to State after ContractManager is ready.
-
     /// Map with information about blockchain accounts (Address -> Account).
     std::unordered_map<Address, Account, SafeHash> accounts_;
 
@@ -67,8 +65,10 @@ class State {
      * Process a transaction within a block. Called by processNextBlock().
      * If the process fails, any state change that this transaction would cause has to be reverted.
      * @param tx The transaction to process.
+     * @param blockHash The hash of the block being processed.
+     * @param txIndex The index of the transaction inside the block that is being processed.
      */
-    void processTransaction(const TxBlock& tx);
+    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex);
 
     /**
      * Update the mempool, removing transactions that are in the given block,
