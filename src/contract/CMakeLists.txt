@@ -12,6 +12,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebool.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safemultiset.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
@@ -29,6 +30,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/orderbook.h
   PARENT_SCOPE
 )
 
@@ -52,6 +54,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/orderbook.cpp
   PARENT_SCOPE
 )
 

@@ -25,16 +25,17 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/contractabigenerator.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/dexv2.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/simplecontract.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_c++.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_c++.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_boost.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_boost.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safestring.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safevector.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safearray.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_boost.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_c++.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safemultiset.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safestring.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_boost.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_c++.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safevector.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp
