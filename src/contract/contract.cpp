@@ -10,5 +10,5 @@ See the LICENSE.txt file in the project root for more information.
 Address ContractGlobals::coinbase_ = Address(Hex::toBytes("0x0000000000000000000000000000000000000000"));
 Hash ContractGlobals::blockHash_ = Hash();
 uint256_t ContractGlobals::blockHeight_ = 0;
-uint256_t ContractGlobals::blockTimestamp_ = 0;
+uint64_t ContractGlobals::blockTimestamp_ = 0;
 
