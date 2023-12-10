@@ -1183,6 +1183,18 @@ namespace Utils {
   inline Bytes stringToBytes(const std::string& str) {
     return Bytes(str.cbegin(), str.cend());
   }
+
+  /**
+   * Templated function for calculating 10^exponent
+   */
+  template <typename T>
+  T exp10(const T& exponent) {
+    T base = 10;  // Base 10 for decimal exponentiation
+    if (exponent == 0) {
+      return T(1);
+    }
+    return std::pow(base, exponent);
+  }
 };
 
 #endif  // UTILS_H

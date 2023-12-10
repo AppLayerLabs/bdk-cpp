@@ -30,7 +30,7 @@ class SafeMultiSet : public SafeBase {
 
     /// Check the tmp_ variable and initialize it if necessary.
     inline void check() const {
-      if (tmp_ == nullptr) tmp_ = std::make_unique<std::multiset<Key, Compare>>();
+      if (tmp_ == nullptr) tmp_ = std::make_unique<std::multiset<Key, Compare>>(set_);
     }
 
   public:
@@ -64,16 +64,16 @@ class SafeMultiSet : public SafeBase {
     SafeMultiSet(const SafeMultiSet& other) { check(); other.check(); *tmp_ = *(other.tmp_); }
 
     /// Return the TEMPORARY set const begin().
-    inline std::multiset<Key>::iterator begin() const { return tmp_->begin(); }
+    inline std::multiset<Key>::iterator begin() const { check(); return tmp_->begin(); }
 
     /// Return the TEMPORARY set const end().
-    inline std::multiset<Key>::iterator end() const { return tmp_->end(); }
+    inline std::multiset<Key>::iterator end() const { check(); return tmp_->end(); }
 
     /// Return the TEMPORARY set const crbegin().
-    inline std::multiset<Key>::reverse_iterator rbegin() const { return tmp_->rbegin(); }
+    inline std::multiset<Key>::reverse_iterator rbegin() const { check(); return tmp_->rbegin(); }
 
     /// Return the TEMPORARY set const crend().
-    inline std::multiset<Key>::reverse_iterator rend() const { return tmp_->rend(); }
+    inline std::multiset<Key>::reverse_iterator rend() const { check(); return tmp_->rend(); }
 
     /// Return the ORIGINAL set const begin().
     inline std::multiset<Key>::const_iterator cbegin() const { return set_.cbegin(); }

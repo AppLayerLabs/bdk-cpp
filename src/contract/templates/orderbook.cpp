@@ -15,15 +15,20 @@ OrderBook::OrderBook(
   const std::unique_ptr<DB> &db
 ) : DynamicContract(interface, "OrderBook", address, creator, chainId, db), nextOrderID_(this),
   addressAssetA_(this), tickerAssetA_(this), addressAssetB_(this), tickerAssetB_(this),
-  marketPrice_(this), midPrice_(this), spread_(this)
+  spread_(this)
 {
+  uint8_t tokenADecimals = this->callContractViewFunction(addA, &ERC20::decimals);
+  uint8_t tokenBDecimals = this->callContractViewFunction(addB, &ERC20::decimals);
+  if (tokenADecimals <= 8 || tokenBDecimals <= 8) {
+    throw std::runtime_error("Token decimals must be greater than 8");
+  }
   this->nextOrderID_ = 0;
   this->addressAssetA_ = addA;
   this->addressAssetB_ = addB;
   this->tickerAssetA_ = tickerA;
   this->tickerAssetB_ = tickerB;
-  this->marketPrice_ = 0;
-  this->midPrice_ = 0;
+  this->tickSize_ = Utils::exp10(tokenBDecimals - 4);
+  this->lotSize_ = Utils::exp10(tokenADecimals - 4);
   this->spread_ = 0;
   registerContractFunctions();
 }
@@ -34,15 +39,13 @@ OrderBook::OrderBook(
   const std::unique_ptr<DB> &db
 ) : DynamicContract(interface, address, db), nextOrderID_(this),
   addressAssetA_(this), tickerAssetA_(this), addressAssetB_(this), tickerAssetB_(this),
-  marketPrice_(this), midPrice_(this), spread_(this)
+  spread_(this)
 {
   this->nextOrderID_ = Utils::bytesToUint256(this->db_->get(std::string("nextOrderID_"), this->getDBPrefix()));
   this->addressAssetA_ = Address(this->db_->get(std::string("addressAssetA_"), this->getDBPrefix()));
   this->addressAssetB_ = Address(this->db_->get(std::string("addressAssetB_"), this->getDBPrefix()));
   this->tickerAssetA_ = Utils::bytesToString(this->db_->get(std::string("tickerAssetA_"), this->getDBPrefix()));
   this->tickerAssetB_ = Utils::bytesToString(this->db_->get(std::string("tickerAssetB_"), this->getDBPrefix()));
-  this->marketPrice_ = Utils::bytesToUint256(this->db_->get(std::string("marketPrice_"), this->getDBPrefix()));
-  this->midPrice_ = Utils::bytesToUint256(this->db_->get(std::string("midPrice_"), this->getDBPrefix()));
   this->spread_ = Utils::bytesToUint256(this->db_->get(std::string("spread_"), this->getDBPrefix()));
   registerContractFunctions();
 }
@@ -54,175 +57,607 @@ OrderBook::~OrderBook() {
   b.push_back(Utils::stringToBytes("addressAssetB_"), this->addressAssetB_.get().get(), this->getDBPrefix());
   b.push_back(Utils::stringToBytes("tickerAssetA_"), Utils::stringToBytes(this->tickerAssetA_.get()), this->getDBPrefix());
   b.push_back(Utils::stringToBytes("tickerAssetB_"), Utils::stringToBytes(this->tickerAssetB_.get()), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("marketPrice_"), Utils::uint256ToBytes(this->marketPrice_.get()), this->getDBPrefix());
-  b.push_back(Utils::stringToBytes("midPrice_"), Utils::uint256ToBytes(this->midPrice_.get()), this->getDBPrefix());
   b.push_back(Utils::stringToBytes("spread_"), Utils::uint256ToBytes(this->spread_.get()), this->getDBPrefix());
   this->db_->putBatch(b);
 }
 
-void OrderBook::newBidOrder(
-  const Address owner, const uint256_t amountAssetA, const uint256_t amountAssetB, bool stop
-) {
-  // Determine order type automatically by the difference between order price and market price
-  OrderType type;
-  if (amountAssetB >= this->marketPrice_.get()) {
-    type = (stop) ? OrderType::STOP : OrderType::MARKET;
-  } else if (amountAssetB < this->marketPrice_.get()) {
-    type = (stop) ? OrderType::STOPLIMIT : OrderType::LIMIT;
-  }
-
-  // Build the order and decide what to do with it
-  Order bid(this->nextOrderID_.get(), type, this->getCurrentTimestamp(), owner, amountAssetA, amountAssetB);
-  switch (bid.type_) {
-    case OrderType::MARKET: this->processMarketBidOrder(bid); break;
-    case OrderType::LIMIT: this->bids_.insert(std::move(bid)); break;
-    case OrderType::STOP:
-    case OrderType::STOPLIMIT: this->stopBids_.insert(std::move(bid)); break;
-  }
-
-  // Update the order book accordingly
-  this->nextOrderID_++;
-  this->clearFilledOrders();
-  this->triggerStopOrders();
-  this->updateSpreadAndMidPrice();
+/// Converter from lot size to token amount.
+uint256_t OrderBook::convertLot(const uint256_t& value) const {
+  return value * lotSize_.get();
 }
 
-void OrderBook::newAskOrder(
-  const Address owner, const uint256_t amountAssetA, const uint256_t amountAssetB, bool stop
-) {
-  // Determine order type automatically by the difference between order price and market price
-  OrderType type;
-  if (amountAssetB <= this->marketPrice_.get()) {
-    type = (stop) ? OrderType::STOP : OrderType::MARKET;
-  } else if (amountAssetB > this->marketPrice_.get()) {
-    type = (stop) ? OrderType::STOPLIMIT : OrderType::LIMIT;
+/// Converter from ticket size to token amount.
+uint256_t OrderBook::convertTick(const uint256_t& value) const {
+  return value * tickSize_.get();
+}
+
+/// TokenA Decimals 18
+/// TokenB Decimals 18
+/// TokenA == Lot Size: 100000000000000 (pow(10, 18-4))
+/// TokenB == Tick Size: 100000000000000 pow(10, 18-4))
+/// Current market best ask order:
+/// 5.6512 TokenA - 9238.2385 TokenB
+/// Current market best bid order:
+/// 3.6512 TokenA - 9245.2356
+/// Total TokenB in the order: 33730.6564112
+/// lotsAmount = 36512 TokenA
+/// assetPrice = 92382385 TokenB
+/// 36512 * 92382385 == 3373065641120
+/// convertTick(3373065641120) = 3373065641120 * 100000000000000 = 337306564112000000000000000
+/// 337306564112000000000000000 / 10000
+/// 33730.656411200000000000
+
+void OrderBook::processLimitBidOrder(Order& b, const OrderType& type) {
+  if (type != OrderType::LIMIT && type != OrderType::STOPLIMIT) {
+    throw std::runtime_error("OrderBook::processLimitAskOrder: INVALID_ORDER_TYPE");
   }
-
-  // Build the order and decide what to do with it
-  Order ask(this->nextOrderID_.get(), type, this->getCurrentTimestamp(), owner, amountAssetA, amountAssetB);
-  switch (ask.type_) {
-    case OrderType::MARKET: this->processMarketAskOrder(ask); break;
-    case OrderType::LIMIT: this->asks_.insert(std::move(ask)); break;
-    case OrderType::STOP:
-    case OrderType::STOPLIMIT: this->stopAsks_.insert(std::move(ask)); break;
-  }
-
-  // Update the order book accordingly
-  this->nextOrderID_++;
-  this->clearFilledOrders();
-  this->triggerStopOrders();
-  this->updateSpreadAndMidPrice();
-}
-
-void OrderBook::cancelBidOrder(const uint256_t id) {
-  this->bids_.erase_if([&id, this](const Order& o) {
-    return o.id_ == id && o.owner_ == this->getCaller();
-  });
-  this->stopBids_.erase_if([&id, this](const Order& o) {
-    return o.id_ == id && o.owner_ == this->getCaller();
-  });
-  this->updateSpreadAndMidPrice();
-}
-
-void OrderBook::cancelAskOrder(const uint256_t id) {
-  this->asks_.erase_if([&id, this](const Order& o) {
-    return o.id_ == id && o.owner_ == this->getCaller();
-  });
-  this->stopAsks_.erase_if([&id, this](const Order& o) {
-    return o.id_ == id && o.owner_ == this->getCaller();
-  });
-  this->updateSpreadAndMidPrice();
-}
-
-void OrderBook::processMarketBidOrder(Order& b) {
-  // Keep executing orders until bid quant is zeroed or bid price is hit
-  for (auto it = this->asks_.begin(); it != this->asks_.end(); it++) {
+  uint256_t previousMarketPrice = this->lastPrice_.get();
+  uint256_t currentMarketPrice = previousMarketPrice;
+  for (auto it = this->asks_.begin(); it != this->asks_.end();) {
+    /// If all lots of the bid order are filled, stop processing
+    if (b.amountAsset_ == 0) break;
     Order a = *it;
-    if (b.amountAssetA_ == 0 || a.amountAssetB_ > b.amountAssetB_) break;
-    if (a.amountAssetA_ == 0) continue;
-    if (this->executeTrade(b, a)) {
-      // Replace pre-exec order with post-exec order and trigger any stop orders if they exist
-      it = this->asks_.erase(it);
+    /// If the ask price is greater than the bid price, stop processing
+    if (a.assetPrice_ > b.assetPrice_) break;
+    /// Sell the token from the ask order to the bid order.
+    uint256_t lotsAmount = std::min(a.amountAsset_, b.amountAsset_); /// How many lots the bid order can buy from this ask order.
+    uint256_t tokenBAmount = lotsAmount * a.assetPrice_;
+    currentMarketPrice = a.assetPrice_;
+    tokenBAmount = this->convertTick(tokenBAmount) / this->precision_;
+    /// Send the ticks to the ask order owner.
+    this->callContractFunction(this->addressAssetB_.get(), &ERC20::transfer, a.owner_, tokenBAmount);
+    /// Send the lots to the bid order owner.
+    this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, b.owner_, this->convertLot(lotsAmount));
+    /// Update the ask order accordingly.
+    b.amountAsset_ -= lotsAmount;
+    a.amountAsset_ -= lotsAmount;
+    /// Replace pre-exec order with post-exec
+    it = this->asks_.erase(it);
+    if (a.amountAsset_ > 0) {
+      /// Iterator is on the next element.
       this->asks_.emplace_hint(it, a);
     }
   }
-  // If bid still has quant, convert to limit
-  if (b.amountAssetA_ > 0) { b.type_ = OrderType::LIMIT; this->bids_.insert(std::move(b)); }
+  /// Add the bid order to the order book if it still has lots to buy.
+  if (type != OrderType::MARKET) {
+    if (b.amountAsset_ > 0) {
+      this->bids_.insert(b);
+    }
+  }
+  /// When a stop limit order reaches it stop price, it becomes a limit order.
+  /// The problem with that is that trigger*StopOrder functions are inside a loop checking every order
+  /// And calling back process*Order functions, which in turn call trigger*StopOrder functions again.
+  /// This causes the stop limit order to be processed up to undefined times.
+  if (currentMarketPrice != previousMarketPrice) {
+    this->updateLastPrice(currentMarketPrice);
+    if (type != OrderType::STOPLIMIT) {
+      /// If the best ask price changed we can trigger stop orders.
+      this->triggerStopOrders(currentMarketPrice, previousMarketPrice);
+    }
+  }
 }
 
-void OrderBook::processMarketAskOrder(Order& a) {
-  // Keep executing orders until ask quant is zeroed or ask price is hit
-  for (auto it = this->bids_.begin(); it != this->bids_.end(); it++) {
+void OrderBook::processLimitAskOrder(Order& a, const OrderType& type) {
+  if (type != OrderType::LIMIT && type != OrderType::STOPLIMIT) {
+    throw std::runtime_error("OrderBook::processLimitAskOrder: INVALID_ORDER_TYPE");
+  }
+  uint256_t previousMarketPrice = this->bids_.begin()->assetPrice_;
+  uint256_t currentMarketPrice = previousMarketPrice;
+  for (auto it = this->bids_.begin(); it != this->bids_.end();) {
+    /// If all lots of the ask order are filled, stop processing
+    if (a.amountAsset_ == 0) break;
     Order b = *it;
-    if (a.amountAssetA_ == 0 || b.amountAssetB_ < a.amountAssetB_) break;
-    if (b.amountAssetA_ == 0) continue;
-    if (this->executeTrade(b, a)) {
-      // Replace pre-exec order with post-exec order and trigger any stop orders if they exist
-      it = this->bids_.erase(it);
-      this->bids_.emplace_hint(it, a);
+    /// If the bid price is less than the ask price, stop processing
+    if (b.assetPrice_ < a.assetPrice_) break;
+    /// Sell the token from the ask order to the bid order.
+    uint256_t lotsAmount = std::min(a.amountAsset_, b.amountAsset_); /// How many lots the bid order can buy from this ask order.
+    uint256_t tokenBAmount = lotsAmount * b.assetPrice_;
+    currentMarketPrice = b.assetPrice_;
+    tokenBAmount = this->convertTick(tokenBAmount) / this->precision_;
+    /// Send the ticks to the ask order owner.
+    this->callContractFunction(this->addressAssetB_.get(), &ERC20::transfer, a.owner_, tokenBAmount);
+    /// Send the lots to the bid order owner.
+    this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, b.owner_, this->convertLot(lotsAmount));
+    /// Update the ask order accordingly.
+    a.amountAsset_ -= lotsAmount;
+    b.amountAsset_ -= lotsAmount;
+    /// Replace pre-exec order with post-exec
+    it = this->bids_.erase(it);
+    if (b.amountAsset_ > 0) {
+      /// Iterator is on the next element.
+      this->bids_.emplace_hint(it, b);
     }
   }
-  // If ask still has quant, convert to limit
-  if (a.amountAssetA_ > 0) { a.type_ = OrderType::LIMIT; this->asks_.insert(std::move(a)); }
+  /// Add the ask order to the order book if it still has lots to buy.
+  if (type != OrderType::MARKET) {
+    if (a.amountAsset_ > 0) {
+      this->asks_.insert(a);
+    }
+  }
+  /// When a stop limit order reaches it stop price, it becomes a limit order.
+  /// The problem with that is that trigger*StopOrder functions are inside a loop checking every order
+  /// And calling back process*Order functions, which in turn call trigger*StopOrder functions again.
+  /// This causes the stop limit order to be processed up to undefined times.
+  if (currentMarketPrice != previousMarketPrice) {
+    this->updateLastPrice(currentMarketPrice);
+    if (type != OrderType::STOPLIMIT) {
+      /// If the best ask price changed we can trigger stop orders.
+      this->triggerStopOrders(currentMarketPrice, previousMarketPrice);
+    }
+  }
 }
 
-bool OrderBook::executeTrade(Order& bid, Order& ask) {
-  // Check both orders' quantities and prices to see how much they can be fulfilled.
-  // Lowest quant/price on whichever side has the priority.
-  // TODO: check if this calculation is actually right - should it be whole (just price) or per unit (quant * price)?
-  uint256_t quant = (bid.amountAssetA_ <= ask.amountAssetA_) ? bid.amountAssetA_ : ask.amountAssetA_;
-  uint256_t price = (bid.amountAssetB_ <= ask.amountAssetB_) ? bid.amountAssetB_ : ask.amountAssetB_;
 
-  // Attempt the trade (bid before ask)
-  try {
-    this->callContractFunction(this->addressAssetB_.get(), &ERC20::transferFrom, bid.owner_, ask.owner_, quant);
-    this->callContractFunction(this->addressAssetA_.get(), &ERC20::transferFrom, ask.owner_, bid.owner_, price);
-    bid.amountAssetA_ -= quant;
-    ask.amountAssetA_ -= quant;
-    this->setMarketPrice(price);
-    return true;
-  } catch (std::exception &e) {
+/// TokenA Decimals 18
+/// TokenB Decimals 18
+/// TokenA == Lot Size: 100000000000000 (pow(10, 18-4))
+/// TokenB == Tick Size: 100000000000000 pow(10, 18-4))
+/// Current market best ask order:
+/// 5.6512 TokenA - 9238.2385 TokenB
+/// Buy order 20000 TokenB at market price: (should receive 2.1649 tokenA).
+/// amountAsset_ = 20000 0000 /// Remember, we are dealing with "Lots of ticks"
+/// assetPrice_ = 92382385
+/// 200000000 * 10000 / 92382385 = /// Max precision of 4 decimals due to lot size.
+/// 21649 lots (amount of tokenA to transfer)
+/// 21649 * 92382385 == 1999986252865
+/// 1999986252865 * 100000000000000 == 199998625286500000000000000
+/// 199998625286500000000000000 / 10000
+/// 19999862528650000000000
+/// 19999.86 2528 6500 0000 0000
+
+void OrderBook::processMarketBuyOrder(Order& b, const OrderType& type) {
+  if (type != OrderType::MARKET && type != OrderType::STOPMARKET) {
+    throw std::runtime_error("OrderBook::processMarketBuyOrder: INVALID_ORDER_TYPE");
+  }
+  uint256_t previousMarketPrice = this->lastPrice_.get();
+  uint256_t currentMarketPrice = previousMarketPrice;
+  uint256_t remainingAssetB = this->convertTick(b.amountAsset_); // Amount of tokenB to spend
+
+  for (auto it = this->asks_.begin(); it != this->asks_.end() && (remainingAssetB > 0 || remainingAssetB < this->tickSize_.get());) {
+    Order a = *it;
+
+    // Calculate the amount of tokenA that can be bought with the remaining tokenB
+    uint256_t tokenAAmount = remainingAssetB * 10000 / a.assetPrice_; // This value is in lots.
+    tokenAAmount = std::min(tokenAAmount, a.amountAsset_); // Make sure that the ask order has enough lots.
+    uint256_t spendableAssetB = this->convertTick(tokenAAmount * a.assetPrice_) / this->precision_; // Value now in token min units.
+
+    // Update remaining amount of tokenB
+    remainingAssetB -= spendableAssetB;
+
+    // Execute the trade
+    if (type != OrderType::STOPMARKET) {
+      this->callContractFunction(this->addressAssetA_.get(), &ERC20::transferFrom, a.owner_, b.owner_, this->convertLot(tokenAAmount));
+    } else {
+      this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, b.owner_, this->convertLot(tokenAAmount));
+    }
+    this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, b.owner_, this->convertLot(tokenAAmount));
+
+
+    // Update the ask order accordingly
+    a.amountAsset_ -= tokenAAmount;
+    currentMarketPrice = a.assetPrice_;
+
+    // Erase or update the ask order in the order book
+    it = this->asks_.erase(it);
+    if (a.amountAsset_ > 0) {
+      this->asks_.emplace_hint(it, a);
+      /// We don't need to loop again, partially executed.
+      break;
+    }
+  }
+  if (currentMarketPrice != previousMarketPrice) {
+    this->updateLastPrice(currentMarketPrice);
+    if (type != OrderType::STOPMARKET) {
+      /// If the best ask price changed we can trigger stop orders.
+      this->triggerStopOrders(currentMarketPrice, previousMarketPrice);
+    }
+  }
+  /// TODO: Return not executed from stop orders (or add to total fee)
+}
+
+/// TokenA Decimals 18
+/// TokenB Decimals 18
+/// TokenA == Lot Size: 100000000000000 (pow(10, 18-4))
+/// TokenB == Tick Size: 100000000000000 pow(10, 18-4))
+/// Current market best bid order:
+/// 5125.6512 TokenA - 9238.2385 TokenB
+/// 51256512 lots for 92382385 tokenB each
+/// Sell 4500 TokenA at market price: (should receive 41572073.25 tokenB).
+/// 45000000 lots
+/// 45000000 * 92382385 = 4157207325000000
+/// convertTick(4157207325000000) = 415720732500000000000000000000
+/// 415720732500000000000000000000 / 10000
+/// 41572073250000000000000000
+/// 415720732500.00 0000 0000 0000 0000
+
+void OrderBook::processMarketSellOrder(Order& a, const OrderType& type) {
+  if (type != OrderType::MARKET && type != OrderType::STOPMARKET) {
+    throw std::runtime_error("OrderBook::processMarketBuyOrder: INVALID_ORDER_TYPE");
+  }
+  uint256_t previousMarketPrice = this->lastPrice_.get();
+  uint256_t currentMarketPrice = previousMarketPrice;
+  uint256_t remainingLotsToSell = a.amountAsset_;
+  for (auto it = this->bids_.begin(); it != this->bids_.end() && (remainingLotsToSell > 0);) {
+    Order b = *it;
+
+    // Check how many lots the order can execute
+    uint256_t lotsToSell = std::min(remainingLotsToSell, b.amountAsset_);
+    // Calculate the amount of tokenB that can be bought with the amount of lots sold
+    uint256_t tokenBAmount = lotsToSell * b.assetPrice_;
+    tokenBAmount = this->convertTick(tokenBAmount) / this->precision_;
+
+    // Execute the trade
+    this->callContractFunction(this->addressAssetB_.get(), &ERC20::transfer, a.owner_, tokenBAmount);
+    this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, b.owner_, this->convertLot(lotsToSell));
+
+    // Update the bid order accordingly
+    b.amountAsset_ -= lotsToSell;
+    remainingLotsToSell -= lotsToSell;
+    currentMarketPrice = b.assetPrice_;
+
+    // Erase or update the bid order in the order book
+    it = this->bids_.erase(it);
+    if (b.amountAsset_ > 0) {
+      this->bids_.emplace_hint(it, b);
+      /// We don't need to loop again, partially executed.
+      break;
+    }
+  }
+  if (currentMarketPrice != previousMarketPrice) {
+    this->updateLastPrice(currentMarketPrice);
+    if (type != OrderType::STOPMARKET) {
+      /// If the best ask price changed we can trigger stop orders.
+      this->triggerStopOrders(currentMarketPrice, previousMarketPrice);
+    }
+  }
+}
+
+/// TokenA Decimals 18
+/// TokenB Decimals 18
+/// TokenA == Lot Size: 100000000000000 (pow(10, 18-4))
+/// TokenB == Tick Size: 100000000000000 pow(10, 18-4))
+/// 1.6493 TokenA  --- 121389 TokenB each 1 BTC
+/// Meaning I need to send 200206.8777 TokenB to buy 1.6493 TokenA
+/// 16493 amountAsset --- 1213890000 assetPrice
+/// 16493 * 1213890000 == 20020687770000
+/// 20020687770000
+/// convertTick (20020687770000) == 20020687770000 * 100000000000000 = 2002068777000000000000000000
+/// 2002068777000000000000000000 / 10000
+/// 200206.8777 0000 0000 0000 00
+
+/// TokenA Decimals 18
+/// TokenB Decimals 18
+/// TokenA == Lot Size: 100000000000000 (pow(10, 18-4))
+/// TokenB == Tick Size: 100000000000000 pow(10, 18-4))
+/// 1.6493 TokenA  --- 65345.5987 TokenB each 1 BTC
+/// Meaning I need to send 107774.49593591 TokenB to buy 200206.8777 TokenA
+/// 16493 amountAsset --- 653455987 assetPrice
+/// 16493 * 653455987 == 10777449593591
+/// 10777449593591
+/// ConvertTick(10777449593591) === 1077744959359100000000000000
+/// 1077744959359100000000000000 / 10000
+/// 107774.4959 3591 0000 0000 00
+
+/// TokenA Decimals 18
+/// TokenB Decimals 8
+/// TokenA == Lot Size: 100000000000000 (pow(10, 18-4))
+/// TokenB == Tick Size: 10000 pow(10, 8-4))
+/// 1.6493 TokenA  --- 65345.5987 TokenB each 1 BTC
+/// Meaning I need to send 107774.49593591 TokenB to buy 200206.8777 TokenA
+/// 16493 amountAsset --- 653455987 assetPrice
+/// 16493 * 653455987 == 10777449593591
+/// 10777449593591
+/// ConvertTick(10777449593591) === 107774495935910000
+/// 107774495935910000 / 10000
+/// 107774.49593591 (amount of tokenB to transfer...)
+
+void OrderBook::newLimitBidOrder(
+  const uint256_t& amountAsset, const uint256_t& assetPrice
+) {
+  uint256_t amountAssetB = amountAsset * assetPrice;
+  amountAssetB = this->convertTick(amountAssetB) / this->precision_;
+  // Make sure user has enough tokens to buy amountAsset lots
+  uint256_t userBalance = this->callContractViewFunction(this->addressAssetB_.get(), &ERC20::balanceOf, this->getCaller());
+  if (amountAssetB > userBalance) {
+    throw std::runtime_error("OrderBook::newLimitBidOrder: INSUFFICIENT_BALANCE");
+  }
+  this->callContractFunction(this->addressAssetB_.get(), &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), amountAssetB);
+
+  // Build the order and decide what to do with it
+  Order bid(this->nextOrderID_.get(), this->getCurrentTimestamp(), this->getCaller(), amountAsset, assetPrice);
+  // Update the order book accordingly
+  this->processLimitBidOrder(bid, OrderType::LIMIT);
+  this->nextOrderID_++;
+}
+
+/// TokenA Decimals 8
+/// TokenB Decimals 18
+/// TokenA == Lot Size: 10000 (pow(10, 18-4))
+/// TokenB == Tick Size: 100000000000000 pow(10, 18-4))
+/// 1.6493 TokenA  --- 65345.5987 TokenB each 1 BTC
+/// Meaning I need to send 107774.49593591 TokenB to buy 200206.8777 TokenA
+/// 16493 amountAsset --- 653455987 assetPrice
+/// convertLot(16493) == 16493 * 10000 = 164930000
+
+void OrderBook::newLimitAskOrder(
+  const uint256_t& amountAsset, const uint256_t& assetPrice
+) {
+  // Make sure user has enough lots to sell
+  uint256_t userBalance = this->callContractViewFunction(this->addressAssetA_.get(), &ERC20::balanceOf, this->getCaller());
+  if (this->convertLot(amountAsset) > userBalance) {
+    throw std::runtime_error("OrderBook::newLimitAskOrder: INSUFFICIENT_BALANCE");
+  }
+  this->callContractFunction(this->addressAssetA_.get(), &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), this->convertLot(amountAsset));
+  // Build the order and decide what to do with it
+  Order ask(this->nextOrderID_.get(), this->getCurrentTimestamp(), this->getCaller(), amountAsset, assetPrice);
+
+  // Update the order book accordingly
+  this->processLimitAskOrder(ask, OrderType::LIMIT);
+  this->nextOrderID_++;
+}
+
+void OrderBook::newMarketBuyOrder(const uint256_t& amountAsset) {
+  // Make sure user has enough tokens to sell
+  uint256_t userBalance = this->callContractViewFunction(this->addressAssetB_.get(), &ERC20::balanceOf, this->getCaller());
+  if (this->convertTick(amountAsset) > userBalance) {
+    throw std::runtime_error("OrderBook::newMarketBuyOrder: INSUFFICIENT_BALANCE");
+  }
+  // Build the order and decide what to do with it
+  Order bid(this->nextOrderID_.get(), this->getCurrentTimestamp(), this->getCaller(), amountAsset, 0);
+  // Update the order book accordingly
+  this->processMarketBuyOrder(bid, OrderType::MARKET);
+  this->nextOrderID_++;
+}
+
+void OrderBook::newMarketSellOrder(const uint256_t& amountAsset) {
+  // Make sure that the caller has enough tokens to sell.
+  uint256_t userBalance = this->callContractViewFunction(this->addressAssetA_.get(), &ERC20::balanceOf, this->getCaller());
+  if (this->convertLot(amountAsset) > userBalance) {
+    throw std::runtime_error("OrderBook::newMarketSellOrder: INSUFFICIENT_BALANCE");
+  }
+  // Transfer the tokens to the contract.
+  this->callContractFunction(this->addressAssetA_.get(), &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), this->convertLot(amountAsset));
+  // Build the order and decide what to do with it
+  Order ask(this->nextOrderID_.get(), this->getCurrentTimestamp(), this->getCaller(), amountAsset, 0);
+  // Update the order book accordingly
+  this->processLimitAskOrder(ask, OrderType::MARKET);
+  this->nextOrderID_++;
+}
+
+void OrderBook::newStopLimitBidOrder(const uint256_t& amountAsset, const uint256_t& assetPrice,
+                                     const uint256_t& stopLimit) {
+  uint256_t amountAssetB = amountAsset * assetPrice;
+  amountAssetB = this->convertTick(amountAssetB) / this->precision_;
+  // Make sure user has enough tokens to buy amountAsset lots
+  uint256_t userBalance = this->callContractViewFunction(this->addressAssetB_.get(), &ERC20::balanceOf, this->getCaller());
+  if (amountAssetB > userBalance) {
+    throw std::runtime_error("OrderBook::newLimitBidOrder: INSUFFICIENT_BALANCE");
+  }
+  this->callContractFunction(this->addressAssetB_.get(), &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), amountAssetB);
+
+  // Build the order and decide what to do with it
+  StopOrder bid(this->nextOrderID_.get(), this->getCurrentTimestamp(), this->getCaller(), amountAsset, assetPrice, stopLimit, OrderSide::BID, OrderType::STOPLIMIT);
+  // Add the stop order to the list
+  this->stops_.insert(bid);
+
+  this->nextOrderID_++;
+}
+
+void OrderBook::newStopLimitAskOrder(const uint256_t& amountAsset, const uint256_t& assetPrice,
+                                     const uint256_t& stopLimit) {
+  // Make sure user has enough lots to sell
+  uint256_t userBalance = this->callContractViewFunction(this->addressAssetA_.get(), &ERC20::balanceOf, this->getCaller());
+  if (this->convertLot(amountAsset) > userBalance) {
+    throw std::runtime_error("OrderBook::newLimitAskOrder: INSUFFICIENT_BALANCE");
+  }
+  this->callContractFunction(this->addressAssetA_.get(), &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), this->convertLot(amountAsset));
+  // Build the order and decide what to do with it
+  StopOrder ask(this->nextOrderID_.get(), this->getCurrentTimestamp(), this->getCaller(), amountAsset, assetPrice, stopLimit, OrderSide::ASK, OrderType::STOPLIMIT);
+
+  // Update the order book accordingly
+  this->stops_.insert(ask);
+
+  this->nextOrderID_++;
+}
+
+void OrderBook::newStopMarketBuyOrder(const uint256_t& amountTokenB, const uint256_t& stopLimit) {
+  // Make sure user has enough tokens to sell
+  uint256_t userBalance = this->callContractViewFunction(this->addressAssetB_.get(), &ERC20::balanceOf, this->getCaller());
+  if (this->convertTick(amountTokenB) > userBalance) {
+    throw std::runtime_error("OrderBook::newMarketBuyOrder: INSUFFICIENT_BALANCE");
+  }
+  // Transfer the tokens to the contract.
+  this->callContractFunction(this->addressAssetB_.get(), &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), this->convertTick(amountTokenB));
+  // Build the order and decide what to do with it
+  StopOrder bid(this->nextOrderID_.get(), this->getCurrentTimestamp(), this->getCaller(), amountTokenB, 0, stopLimit, OrderSide::BID, OrderType::STOPMARKET);
+  // Update the order book accordingly
+  this->stops_.insert(bid);
+  this->nextOrderID_++;
+}
+
+void OrderBook::newStopMarketSellOrder(const uint256_t& amountAsset, const uint256_t& stopLimit) {
+ // Make sure that the caller has enough tokens to sell.
+  uint256_t userBalance = this->callContractViewFunction(this->addressAssetA_.get(), &ERC20::balanceOf, this->getCaller());
+  if (this->convertLot(amountAsset) > userBalance) {
+    throw std::runtime_error("OrderBook::newMarketSellOrder: INSUFFICIENT_BALANCE");
+  }
+  // Transfer the tokens to the contract.
+  this->callContractFunction(this->addressAssetA_.get(), &ERC20::transferFrom, this->getCaller(), this->getContractAddress(), this->convertLot(amountAsset));
+  // Build the order and decide what to do with it
+  StopOrder ask(this->nextOrderID_.get(), this->getCurrentTimestamp(), this->getCaller(), amountAsset, 0, stopLimit, OrderSide::ASK, OrderType::STOPMARKET);
+  // Update the order book accordingly
+  this->stops_.insert(ask);
+  this->nextOrderID_++;
+}
+
+void OrderBook::cancelLimitBidOrder(const uint256_t& id) {
+  // Additional action for regular bid orders
+  auto limitBidAction = [&id, this](const Order& o) {
+    if (o.id_ == id) {
+      if (o.owner_ != this->getCaller()) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_OWNER");
+      }
+      // Return the tokens to the owner.
+      // Bid order has sent lots * pricePerLot to contract
+      // Example bid order of 56.1235 TokenA for 20.5235 TokenB each.
+      // Should return 56.1235 * 20.5235 = 1151.85065225 TokenB
+      // 561235 * 205235 == 115185065225
+      // convertTick(115185065225) == 115185065225 * 100000000000000 =
+      // 11518506522500000000000000 / precision
+      // 11518506522500000000000000 / 10000
+      // 1151850652250000000000
+      // 1151.85 0652 2500 000 00000
+      uint256_t amountAssetB = o.amountAsset_ * o.assetPrice_;
+      amountAssetB = this->convertTick(amountAssetB) / this->precision_;
+      this->callContractFunction(this->addressAssetB_.get(), &ERC20::transfer, o.owner_, amountAssetB);
+      return true; // Erase the order
+    }
     return false;
+  };
+
+  // Additional action for stop bid orders
+  auto limitStopAction = [&id, this](const StopOrder& o) {
+    if (o.id_ == id) {
+      if (o.owner_ != this->getCaller()) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_OWNER");
+      }
+      if(o.type_ != OrderType::STOPLIMIT) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_ORDER_TYPE");
+      }
+      // Return the tokens to the owner.
+      uint256_t amountAssetB = o.amountAsset_ * o.assetPrice_;
+      amountAssetB = this->convertTick(amountAssetB) / this->precision_;
+      this->callContractFunction(this->addressAssetB_.get(), &ERC20::transfer, o.owner_, amountAssetB);
+      return true; // Erase the order
+    }
+    return false;
+  };
+
+  this->bids_.erase_if(limitBidAction);
+  this->stops_.erase_if(limitStopAction);
+  this->updateSpreadAndMidPrice();
+}
+
+void OrderBook::cancelLimitAskOrder(const uint256_t& id) {
+  auto limitAskAction = [&id, this](const Order& o) {
+    if (o.id_ == id && o.owner_ == this->getCaller()) {
+      // Return the tokens to the owner.
+      this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, o.owner_, this->convertLot(o.amountAsset_));
+      return true; // Erase the order
+    }
+    return false;
+  };
+
+  // Additional action for stop bid orders
+  auto limitStopAction = [&id, this](const StopOrder& o) {
+    if (o.id_ == id && o.owner_ == this->getCaller()) {
+      // Return the tokens to the owner.
+      this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, o.owner_, this->convertLot(o.amountAsset_));
+      if(o.type_ != OrderType::STOPLIMIT) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_ORDER_TYPE");
+      }
+
+      return true; // Erase the order
+    }
+    return false;
+  };
+
+  this->bids_.erase_if(limitAskAction);
+  this->stops_.erase_if(limitStopAction);
+  this->updateSpreadAndMidPrice();
+}
+
+void OrderBook::triggerStopOrders(const uint256_t& currentMarketPrice, const uint256_t& previousMarketPrice) {
+  // Trigger stop bid orders
+  std::vector<StopOrder> stopsToTrigger;
+  auto bidIt = stops_.begin();
+  while (bidIt != stops_.end()) {
+    StopOrder stopBid = *bidIt;
+    // Check if the stop condition is met for bid orders
+    if ((previousMarketPrice > stopBid.stopLimit_ && currentMarketPrice <= stopBid.stopLimit_) ||
+        (previousMarketPrice < stopBid.stopLimit_ && currentMarketPrice >= stopBid.stopLimit_)) {
+
+      // Remove the stop order from the list
+      bidIt = stops_.erase(bidIt);
+      stopsToTrigger.push_back(stopBid);
+    } else {
+      ++bidIt;
+    }
+  }
+  // Keep track of price changes to trigger stop orders
+  uint256_t newPreviousMarketPrice = this->lastPrice_.get();
+  for (const auto& stop : stopsToTrigger) {
+    // Process the stop order as a limit order
+    Order order(stop, this->getBlockTimestamp());
+    if (stop.side_ == OrderSide::BID) {
+      if (stop.type_ == OrderType::STOPMARKET)
+        this->processMarketBuyOrder(order, OrderType::STOPMARKET);
+      else
+        this->processLimitBidOrder(order, OrderType::STOPLIMIT);
+    } else {
+      if (stop.type_ == OrderType::STOPMARKET)
+        this->processMarketSellOrder(order, OrderType::STOPMARKET);
+      else
+        this->processLimitAskOrder(order, OrderType::STOPLIMIT);
+    }
+  }
+  uint256_t newCurrentMarketPrice = this->lastPrice_.get();
+  // If the price changed, trigger stop orders again
+  if (newCurrentMarketPrice != newPreviousMarketPrice) {
+    this->triggerStopOrders(newCurrentMarketPrice, newPreviousMarketPrice);
   }
 }
 
-void OrderBook::clearFilledOrders() {
-  this->bids_.erase_if([](const Order& o) { return o.amountAssetA_ == 0; });
-  this->asks_.erase_if([](const Order& o) { return o.amountAssetA_ == 0; });
+void OrderBook::cancelMarketBuyOrder(const uint256_t& id) {
+  // Additional action for stop bid orders
+  auto stopMarketBuyAction = [&id, this](const StopOrder& o) {
+    if (o.id_ == id) {
+      if (o.owner_ != this->getCaller()) {
+        throw std::runtime_error("OrderBook::cancelMarketBuyOrder: INVALID_OWNER");
+      }
+      if (o.type_ != OrderType::STOPMARKET) {
+        throw std::runtime_error("OrderBook::cancelMarketBuyOrder: INVALID_ORDER_TYPE");
+      }
+      // Return the tokens to the owner.
+      // Remember that on buy market orders amountAsset_ is in tokenB units.
+      this->callContractFunction(this->addressAssetB_.get(), &ERC20::transfer, o.owner_,
+                                 this->convertTick(o.amountAsset_));
+      return true;
+    }
+    return false;
+  };
+  this->stops_.erase_if(stopMarketBuyAction);
 }
 
-void OrderBook::triggerStopOrders() {
-  for (auto it = this->stopBids_.begin(); it != this->stopBids_.end(); it++) {
-    if (it->amountAssetB_ >= this->marketPrice_.get()) {
-      Order bid = this->stopBids_.extract(it).value();
-      if (bid.type_ == OrderType::STOP) {
-        bid.type_ = OrderType::MARKET;
-        this->processMarketBidOrder(bid);
-      } else if (bid.type_ == OrderType::STOPLIMIT) {
-        bid.type_ = OrderType::LIMIT;
-        this->bids_.insert(std::move(bid));
+void OrderBook::cancelMarketSellOrder(const uint256_t &id) {
+  // Additional action for stop bid orders
+  auto stopMarketSellAction = [&id, this](const StopOrder &o) {
+    if (o.id_ == id) {
+      if (o.owner_ != this->getCaller()) {
+        throw std::runtime_error("OrderBook::cancelMarketSellOrder: INVALID_OWNER");
       }
-    }
-  }
-  for (auto it = this->stopAsks_.begin(); it != this->stopAsks_.end(); it++) {
-    if (it->amountAssetB_ <= this->marketPrice_.get()) {
-      Order ask = this->stopAsks_.extract(it).value();
-      if (ask.type_ == OrderType::STOP) {
-        ask.type_ = OrderType::MARKET;
-        this->processMarketAskOrder(ask);
-      } else if (ask.type_ == OrderType::STOPLIMIT) {
-        ask.type_ = OrderType::LIMIT;
-        this->asks_.insert(std::move(ask));
+      if (o.type_ != OrderType::STOPMARKET) {
+        throw std::runtime_error("OrderBook::cancelMarketSellOrder: INVALID_ORDER_TYPE");
       }
+      // Return the tokens to the owner.
+      // Remember that on sell market orders amountAsset_ is in tokenA lots.
+      this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, o.owner_,
+                                 this->convertLot(o.amountAsset_));
+      return true;
     }
-  }
+    return false;
+  };
+  this->stops_.erase_if(stopMarketSellAction);
+}
+
+void OrderBook::updateLastPrice(const uint256_t &price) {
+  this->lastPrice_ = price;
 }
 
 void OrderBook::updateSpreadAndMidPrice() {
-  uint256_t bidPrice = this->bids_.cbegin()->amountAssetB_;
-  uint256_t askPrice = this->asks_.cbegin()->amountAssetB_;
+  uint256_t bidPrice = this->bids_.cbegin()->assetPrice_;
+  uint256_t askPrice = this->asks_.cbegin()->assetPrice_;
   this->spread_ = (bidPrice >= askPrice) ? bidPrice - askPrice : askPrice - bidPrice;
-  this->midPrice_ = (bidPrice + askPrice) / 2;
 }
 
 uint64_t OrderBook::getCurrentTimestamp() const {
@@ -233,12 +668,10 @@ uint64_t OrderBook::getCurrentTimestamp() const {
 
 void OrderBook::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("getMarketPrice", &OrderBook::getMarketPrice, this);
-  this->registerMemberFunction("getMidPrice", &OrderBook::getMidPrice, this);
   this->registerMemberFunction("getSpread", &OrderBook::getSpread, this);
-  this->registerMemberFunction("newBidOrder", &OrderBook::newBidOrder, this);
-  this->registerMemberFunction("newAskOrder", &OrderBook::newAskOrder, this);
-  this->registerMemberFunction("cancelBidOrder", &OrderBook::cancelBidOrder, this);
-  this->registerMemberFunction("cancelAskOrder", &OrderBook::cancelAskOrder, this);
+  this->registerMemberFunction("newLimitBidOrder", &OrderBook::newLimitBidOrder, this);
+  this->registerMemberFunction("newLimitAskOrder", &OrderBook::newLimitAskOrder, this);
+  this->registerMemberFunction("cancelBidOrder", &OrderBook::cancelLimitBidOrder, this);
+  this->registerMemberFunction("cancelAskOrder", &OrderBook::cancelLimitAskOrder, this);
 }
 
