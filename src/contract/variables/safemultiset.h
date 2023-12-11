@@ -29,7 +29,7 @@ class SafeMultiSet : public SafeBase {
     mutable std::unique_ptr<std::multiset<Key, Compare>> tmp_;  ///< The temporary set.
 
     /// Check the tmp_ variable and initialize it if necessary.
-    inline void check() const {
+    inline void check() const override {
       if (tmp_ == nullptr) tmp_ = std::make_unique<std::multiset<Key, Compare>>(set_);
     }
 

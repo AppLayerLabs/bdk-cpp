@@ -534,12 +534,15 @@ void OrderBook::cancelLimitBidOrder(const uint256_t& id) {
   // Additional action for stop bid orders
   auto limitStopAction = [&id, this](const StopOrder& o) {
     if (o.id_ == id) {
-      if (o.owner_ != this->getCaller()) throw std::runtime_error(
-        "OrderBook::cancelLimitBidOrder: INVALID_OWNER"
-      );
-      if (o.type_ != OrderType::STOPLIMIT) throw std::runtime_error(
-        "OrderBook::cancelLimitBidOrder: INVALID_ORDER_TYPE"
-      );
+      if (o.owner_ != this->getCaller()) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_OWNER");
+      }
+      if(o.type_ != OrderType::STOPLIMIT) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_ORDER_TYPE");
+      }
+      if (o.side_ != OrderSide::BID) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_ORDER_SIDE");
+      }
       // Return the tokens to the owner.
       uint256_t amountAssetB = o.amountAsset_ * o.assetPrice_;
       amountAssetB = this->convertTick(amountAssetB) / this->precision_;
@@ -556,7 +559,10 @@ void OrderBook::cancelLimitBidOrder(const uint256_t& id) {
 
 void OrderBook::cancelLimitAskOrder(const uint256_t& id) {
   auto limitAskAction = [&id, this](const Order& o) {
-    if (o.id_ == id && o.owner_ == this->getCaller()) {
+    if (o.id_ == id) {
+      if (o.owner_ != this->getCaller()) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_OWNER");
+      }
       // Return the tokens to the owner.
       this->callContractFunction(
         this->addressAssetA_.get(), &ERC20::transfer, o.owner_, this->convertLot(o.amountAsset_)
@@ -568,20 +574,24 @@ void OrderBook::cancelLimitAskOrder(const uint256_t& id) {
 
   // Additional action for stop bid orders
   auto limitStopAction = [&id, this](const StopOrder& o) {
-    if (o.id_ == id && o.owner_ == this->getCaller()) {
+    if (o.id_ == id) {
+      if (o.owner_ != this->getCaller()) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_OWNER");
+      }
+      if(o.type_ != OrderType::STOPLIMIT) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_ORDER_TYPE");
+      }
+      if (o.side_ != OrderSide::ASK) {
+        throw std::runtime_error("OrderBook::cancelLimitBidOrder: INVALID_ORDER_SIDE");
+      }
       // Return the tokens to the owner.
-      this->callContractFunction(
-        this->addressAssetA_.get(), &ERC20::transfer, o.owner_, this->convertLot(o.amountAsset_)
-      );
-      if (o.type_ != OrderType::STOPLIMIT) throw std::runtime_error(
-        "OrderBook::cancelLimitBidOrder: INVALID_ORDER_TYPE"
-      );
+      this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, o.owner_, this->convertLot(o.amountAsset_));
       return true; // Erase the order
     }
     return false;
   };
 
-  this->bids_.erase_if(limitAskAction);
+  this->asks_.erase_if(limitAskAction);
   this->stops_.erase_if(limitStopAction);
   this->updateSpreadAndMidPrice();
 }
