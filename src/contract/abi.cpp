@@ -7,10 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "abi.h"
 
-void ABI::Encoder::append(Bytes &dest, const Bytes &src) {
-  dest.insert(dest.end(), src.begin(), src.end());
-}
-
 Functor ABI::Encoder::encodeFunction(const std::string_view func) {
   auto view = Utils::create_view_span(func);
   auto hash = Utils::sha3(view);

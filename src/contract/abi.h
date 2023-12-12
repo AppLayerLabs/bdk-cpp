@@ -497,7 +497,10 @@ namespace ABI {
      * @param dest The Bytes piece to append to.
      * @param src The Bytes piece to be appended.
      */
-    void append(Bytes& dest, const Bytes& src);
+    template <typename T>
+    void append(Bytes &dest, const T &src) {
+      dest.insert(dest.end(), src.cbegin(), src.cend());
+    }
 
     /**
      * Encode a function header (functor).
@@ -661,6 +664,7 @@ namespace ABI {
 
     /// Forward declaration.
     template<typename T, typename... Ts> Bytes encode(const T& first, const Ts&... rest);
+    template<typename... Ts> Bytes encode(const std::vector<std::tuple<Ts...>>& v);
 
     /// Specialization for encoding a tuple. Expand and call back encode<T,Ts...>
     template<typename... Ts> Bytes encode(const std::tuple<Ts...>& t) {
@@ -690,18 +694,21 @@ namespace ABI {
     /// Specialization for encoding a vector of tuples.
     template<typename... Ts> Bytes encode(const std::vector<std::tuple<Ts...>>& v) {
       Bytes result;
-      uint64_t nextOffset = 32;  // The first 32 bytes are for the length of the dynamic array
+      uint64_t nextOffset = 32 * v.size();  // The first 32 bytes are for the length of the dynamic array
       Bytes dynamicBytes;
       Bytes tupleData;
+      Bytes tupleOffSets;
 
       // Encode each tuple
       for (const auto& t : v) {
+        append(tupleOffSets, Utils::uint256ToBytes(nextOffset));
         Bytes tupleBytes = encode(t);  // We're calling the encode function specialized for tuples
         nextOffset += tupleBytes.size();
         tupleData.insert(tupleData.end(), tupleBytes.begin(), tupleBytes.end());
       }
 
       append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));  // Add the array length to the result
+      append(result, tupleOffSets);  // Add the tuple offsets
       result.insert(result.end(), tupleData.begin(), tupleData.end());  // Add the tuple data
       return result;
     }
