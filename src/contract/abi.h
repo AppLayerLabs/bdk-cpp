@@ -750,6 +750,12 @@ namespace ABI {
     // TODO: docs
     template<typename T> inline T decode(const BytesArrView& bytes, uint64_t& index);
 
+    // Helper to check if a type is a std::tuple
+    template<typename T>
+    struct is_tuple : std::false_type {};
+
+    template<typename... Ts>
+    struct is_tuple<std::tuple<Ts...>> : std::true_type {};
     /**
      * Decode a uint256.
      * @param bytes The data string to decode.
@@ -768,15 +774,52 @@ namespace ABI {
      */
     int256_t decodeInt(const BytesArrView& bytes, uint64_t& index);
 
+    template<typename T>
+    struct tuple_type_sequence {};
+
+    template<typename... Args>
+    struct tuple_type_sequence<std::tuple<Args...>> {
+      using type = std::tuple<Args...>;
+    };
+
     /**
-     * Specialization for decoding any type of uint or int.
-     * @tparam T Any supported uint or int.
+     * Decode a packed std::tuple<Args...> individually
+     * This function takes advante of std::tuple_element and template recurssion
+     * in order to parse all the items within that given tuple.
+     * @param TupleLike The std::tuple<Args...> structure
+     * @param I - the current tuple index
      * @param bytes The data string to decode.
      * @param index The point on the encoded string to start decoding.
-     * @return The decoded data.
-     * @throw std::runtime_error if type is not found.
+     * @param ret The tuple object to return, needs to be a reference and create outside the function due to recursion
+     * Doesn't return, use the referenced TupleLike object..
      */
+    template<typename TupleLike, size_t I = 0>
+    void decodeTuple(const BytesArrView& bytes, uint64_t& index, TupleLike& ret) {
+      if constexpr (I < std::tuple_size_v<TupleLike>)
+      {
+        using SelectedType = typename std::tuple_element<I, TupleLike>::type;
+        std::get<I>(ret) = decode<SelectedType>(bytes, index);
+        decodeTuple<TupleLike, I + 1>(bytes, index, ret);
+      }
+    }
+
+     /**
+      * Specialization for decoding any type of uint or int.
+      * This function is also used by std::tuple<OtherArgs...> and std::vector<std::tuple<OtherArgs...>>
+      * Due to incapability of partially specializing the decode function for std::tuple<Args...>
+      * @tparam T Any supported uint or int.
+      * @param bytes The data string to decode.
+      * @param index The point on the encoded string to start decoding.
+      * @return The decoded data.
+      * @throw std::runtime_error if type is not found.
+      */
     template <typename T> inline T decode(const BytesArrView& bytes, uint64_t& index) {
+      if constexpr (is_tuple<T>::value) {
+        T ret;
+        decodeTuple<T>(bytes, index, ret);
+        return ret;
+      }
+
       if constexpr (
         std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
         std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
