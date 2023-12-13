@@ -2,7 +2,10 @@
 #define EVENT_H
 
 #include <algorithm>
+#include <shared_mutex>
 #include <string>
+
+#include "../libs/json.hpp"
 
 #include "../utils/db.h"
 #include "../utils/strings.h"
@@ -10,8 +13,10 @@
 #include "abi.h"
 #include "contract.h"
 
-// TODO: remember to generate the ABI for events later on
-// TODO: probably implement eth_getFilterChanges/eth_getLogs/etc. when done?
+using json = nlohmann::ordered_json;
+
+// TODO: generate the ABI for events
+// TODO: implement eth_getFilterChanges/eth_getLogs
 // TODO: add tests when done
 // TODO: update docs when done
 
@@ -23,7 +28,7 @@ class Event {
     Hash txHash_;                 ///< Hash of the transaction that emitted the event.
     uint64_t txIndex_;            ///< Position of the transaction inside the block the event was emitted from.
     Hash blockHash_;              ///< Hash of the block that emitted the event.
-    uint256_t blockIndex_;        ///< Height of the block that the event was emitted from.
+    uint64_t blockIndex_;         ///< Height of the block that the event was emitted from.
     Address address_;             ///< Address that emitted the event.
     Bytes data_;                  ///< Non-indexed arguments of the event.
     std::vector<Bytes> topics_;   ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events).
@@ -54,6 +59,12 @@ class Event {
     );
 
     /**
+     * Constructor from deserialization.
+     * @param jsonstr The JSON string to deserialize.
+     */
+    Event(const std::string& jsonstr);
+
+    /**
      * Set data from the block and transaction that is supposed to emit the event.
      * @param logIndex The event's position on the block.
      * @param txHash The hash of the transaction that emitted the event.
@@ -63,7 +74,7 @@ class Event {
      */
     void setStateData(
       uint64_t logIndex, Hash txHash, uint64_t txIndex,
-      Hash blockHash, uint256_t blockIndex
+      Hash blockHash, uint64_t blockIndex
     ) {
       this->logIndex_ = logIndex;
       this->txHash_ = txHash;
@@ -71,14 +82,6 @@ class Event {
       this->blockHash_ = blockHash;
       this->blockIndex_ = blockIndex;
     }
-
-    /*
-    void setLogIndex(uint64_t logIndex) { this->logIndex_ = logIndex; }
-    void setTxHash(Hash txHash) { this->txHash_ = txHash; }
-    void setTxIndex(uint64_t txIndex) { this->txIndex_ = txIndex; }
-    void setBlockHash(Hash blockHash) { this->blockHash_ = blockHash; }
-    void setBlockIndex(uint256_t blockIndex) { this->blockIndex_ = blockIndex; }
-    */
 
     /// Getter for `name_`.
     std::string getName() const { return this->name_; }
@@ -96,7 +99,7 @@ class Event {
     Hash getBlockHash() const { return this->blockHash_; }
 
     /// Getter for `blockIndex_`.
-    uint256_t getBlockIndex() const { return this->blockIndex_; }
+    uint64_t getBlockIndex() const { return this->blockIndex_; }
 
     /// Getter for `address_`.
     Address getAddress() const { return this->address_; }
@@ -117,6 +120,9 @@ class Event {
     Bytes getSelector() const {
       if (!this->anonymous_) return this->topics_[0]; else return Bytes();
     }
+
+    /// Serialize event data to a JSON string.
+    std::string serialize();
 };
 
 /**
@@ -126,20 +132,26 @@ class Event {
 class EventManager {
   private:
     // TODO: keep up to 1000 events in memory, dump older ones to DB (maybe this should be a deque?)
-    std::vector<Event> events_;         ///< List of all emitted events in memory.
-    std::vector<Event> tempEvents_;     ///< List of temporary events waiting to be commited or reverted.
-    const std::unique_ptr<DB>& db_;     ///< Reference pointer to the database.
+    std::vector<Event> events_;             ///< List of all emitted events in memory.
+    std::vector<Event> tempEvents_;         ///< List of temporary events waiting to be commited or reverted.
+    const std::unique_ptr<DB>& db_;         ///< Reference pointer to the database.
+    mutable std::shared_mutex lock_;        ///< Mutex for managing read/write access to the permanent events vector.
+    const unsigned short blockCap_ = 2000;  ///< Maximum block range allowed for querying events (safety net).
+    const unsigned short logCap_ = 10000;   ///< Maximum number of consecutive matches allowed for querying events (safety net).
 
   public:
-    EventManager(const std::unique_ptr<DB>& db) : db_(db) {
-      ; // TODO: load events from DB
-    }
+    /**
+     * Constructor; Automatically loads events from the database.
+     * @param db The database to use.
+     */
+    EventManager(const std::unique_ptr<DB>& db);
 
-    ~EventManager() {
-      ; // TODO: save events to DB
-    }
+    /// Destructor. Automatically saves events to the database.
+    ~EventManager();
 
     // TODO: maybe a periodicSaveToDB() just like on Storage?
+
+    // TODO: query function(s) to get event data and send it to eth_getLogs
 
     /**
      * Register the event in the temporary list.

@@ -28,8 +28,8 @@ class ContractGlobals {
   public:
     static Address coinbase_;         ///< Coinbase address (creator of current block).
     static Hash blockHash_;           ///< Current block hash.
-    static uint256_t blockHeight_;    ///< Current block height.
-    static uint256_t blockTimestamp_; ///< Current block timestamp.
+    static uint64_t blockHeight_;    ///< Current block height.
+    static uint64_t blockTimestamp_; ///< Current block timestamp.
 
   public:
     /// Getter for `coinbase_`.
@@ -39,10 +39,10 @@ class ContractGlobals {
     static const Hash& getBlockHash() { return ContractGlobals::blockHash_; }
 
     /// Getter for `blockHeight_`.
-    static const uint256_t& getBlockHeight() { return ContractGlobals::blockHeight_; }
+    static const uint64_t& getBlockHeight() { return ContractGlobals::blockHeight_; }
 
     /// Getter for `getBlockTimestamp_`.
-    static const uint256_t& getBlockTimestamp() { return ContractGlobals::blockTimestamp_; }
+    static const uint64_t& getBlockTimestamp() { return ContractGlobals::blockTimestamp_; }
 
     /// State is a friend as it can update private global vars (e.g. before ethCall() with a TxBlock).
     friend class State;

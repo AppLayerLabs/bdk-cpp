@@ -37,6 +37,20 @@ Event::Event(
   }
 }
 
+Event::Event(const std::string& jsonstr) {
+  json obj = json::parse(jsonstr);
+  this->name_ = obj["name"].get<std::string>();
+  this->logIndex_ = obj["logIndex"].get<uint64_t>();
+  this->txHash_ = Hash(obj["txHash"].get<std::string>());
+  this->txIndex_ = obj["txIndex"].get<uint64_t>();
+  this->blockHash_ = Hash(obj["blockHash"].get<std::string>());
+  this->blockIndex_ = obj["blockIndex"].get<uint64_t>();
+  this->address_ = Address(obj["address"].get<std::string>(), false);
+  this->data_ = obj["data"].get<Bytes>();
+  this->topics_ = obj["topics"].get<std::vector<Bytes>>();
+  this->anonymous_ = obj["anonymous"].get<bool>();
+}
+
 // TODO: check later if ABI encoding is correct for topics
 Bytes Event::encodeTopicParam(BaseTypes& param, ABI::Types type) {
   Bytes ret;
@@ -44,8 +58,7 @@ Bytes Event::encodeTopicParam(BaseTypes& param, ABI::Types type) {
   Bytes encRes = enc.getData();
   std::string typeStr = ABI::getStringFromABIEnum(type);
   if (false) {
-    // TODO: structs: keccak of concated values padded to a multiple of 32 bytes
-    ;
+    ; // TODO: structs: keccak of concated values padded to a multiple of 32 bytes
   } else if (typeStr.ends_with("[]")) {
     // arrays: keccak of concated values padded to a multiple of 32 bytes and without any length prefix
     // we just discard both offset and length (substr(64,end)) and that's pretty much it
@@ -61,9 +74,54 @@ Bytes Event::encodeTopicParam(BaseTypes& param, ABI::Types type) {
     BytesArrView dataView = Utils::create_view_span(encRes, 64, dataLen);
     ret = Utils::sha3(dataView).asBytes();
   } else {
-    // (u)int, address, bool: regular padded type, business as usual
-    ret = encRes;
+    ret = encRes; // (u)int, address, bool: regular padded type, business as usual
   }
   return ret;
+}
+
+std::string Event::serialize() {
+  json obj = {
+    {"name", this->name_},
+    {"logIndex", this->logIndex_},
+    {"txHash", this->txHash_.get()},
+    {"txIndex", this->txIndex_},
+    {"blockHash", this->blockHash_.get()},
+    {"blockIndex", this->blockIndex_},
+    {"address", this->address_.get()},
+    {"data_", this->data_},
+    {"topics_", this->topics_},
+    {"anonymous", this->anonymous_}
+  };
+  return obj.dump();
+}
+
+EventManager::EventManager(const std::unique_ptr<DB>& db) : db_(db) {
+  std::vector<DBEntry> allEvents = this->db_->getBatch(DBPrefix::events);
+  for (DBEntry& event : allEvents) {
+    std::string data = Utils::bytesToString(event.value); // Convert the database bytes back to a JSON string
+    Event e(Utils::bytesToString(event.value)); // Create a new Event object by deserializing the JSON string
+    this->events_.push_back(std::move(e)); // Move the object into the list
+  }
+}
+
+EventManager::~EventManager() {
+  DBBatch batchedOperations;
+  {
+    std::unique_lock<std::shared_mutex> lock(this->lock_);
+    while (!this->events_.empty()) {
+      // Build the key (address + block height + tx index + log index)
+      auto it = this->events_.begin();
+      Bytes key = it->getAddress().asBytes();
+      key.reserve(key.size() + 8 + 8 + 8);
+      Utils::appendBytes(key, Utils::uint64ToBytes(it->getBlockIndex()));
+      Utils::appendBytes(key, Utils::uint64ToBytes(it->getTxIndex()));
+      Utils::appendBytes(key, Utils::uint64ToBytes(it->getLogIndex()));
+
+      // Serialize the value to a JSON string, insert into the batch and delete from the list
+      batchedOperations.push_back(key, Utils::stringToBytes(it->serialize()), DBPrefix::events);
+      this->events_.erase(this->events_.begin());
+    }
+  }
+  this->db_->putBatch(batchedOperations); // Batch save to database
 }
 
