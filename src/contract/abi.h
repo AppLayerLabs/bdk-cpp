@@ -861,6 +861,55 @@ namespace ABI {
       using type = std::tuple<Args...>;
     };
 
+    /// Forward declarations.
+    template<typename T> struct isTupleOfDynamicTypes;
+    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
+    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
+
+    /**
+     * Check if a type is dynamic.
+     * @tparam T Any supported ABI type.
+     * @return `true` if type is dymanic, `false` otherwise.
+     */
+    template<typename T> constexpr bool isDynamic() {
+      if constexpr (
+        std::is_same_v<T, std::vector<uint256_t>> || std::is_same_v<T, std::vector<int256_t>> ||
+        std::is_same_v<T, std::vector<Address>> || std::is_same_v<T, std::vector<bool>> ||
+        std::is_same_v<T, std::vector<Bytes>> || std::is_same_v<T, std::vector<std::string>> ||
+        std::is_same_v<T, BytesArrView> ||
+        std::is_same_v<T, std::string> || false
+      ) return true;
+      if constexpr (is_vector_v<T>) return true;
+      if constexpr (isTupleOfDynamicTypes<T>::value) return true;
+      return false;
+    }
+
+    /// Specialization for a tuple of dynamic types. Defaults to false for unknown types.
+    template<typename T> struct isTupleOfDynamicTypes { static constexpr bool value = false; };
+
+    /// Specialization for a tuple of dynamic types, using std::tuple.
+    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>> { static constexpr bool value = (... || isDynamic<Ts>()); };
+
+    /// Specialization for a tuple of dynamic types, using std::vector.
+    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> { static constexpr bool value = isTupleOfDynamicTypes<T>::value; };
+
+    /// Calculates the total nextOffset of a given tuple type.
+    template<typename T>
+    constexpr uint64_t calculateOffsetForType() {
+      if constexpr (isDynamic<T>()) {
+        return 32;
+      } else if constexpr (is_tuple<T>::value) {
+        return 32 * std::tuple_size<T>::value;
+      } else {
+        return 32;
+      }
+    }
+
+    template <typename... Ts>
+    constexpr uint64_t calculateTotalOffset() {
+      return (calculateOffsetForType<Ts>() + ...);
+    }
+
     /**
      * Decode a packed std::tuple<Args...> individually
      * This function takes advante of std::tuple_element and template recurssion
@@ -882,36 +931,6 @@ namespace ABI {
       }
     }
 
-    /// Forward declarations.
-    template<typename T> struct isTupleOfDynamicTypes;
-    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
-    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
-
-    /**
-     * Check if a type is dynamic.
-     * @tparam T Any supported ABI type.
-     * @return `true` if type is dymanic, `false` otherwise.
-     */
-    template<typename T> constexpr bool isDynamic() {
-      if constexpr (
-        std::is_same_v<T, std::vector<uint256_t>> || std::is_same_v<T, std::vector<int256_t>> ||
-        std::is_same_v<T, std::vector<Address>> || std::is_same_v<T, std::vector<bool>> ||
-        std::is_same_v<T, std::vector<Bytes>> || std::is_same_v<T, std::vector<std::string>> ||
-        std::is_same_v<T, std::string> || false
-      ) return true;
-      if constexpr (isTupleOfDynamicTypes<T>::value) return true;
-      return false;
-    }
-
-    /// Specialization for a tuple of dynamic types. Defaults to false for unknown types.
-    template<typename T> struct isTupleOfDynamicTypes { static constexpr bool value = false; };
-
-    /// Specialization for a tuple of dynamic types, using std::tuple.
-    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>> { static constexpr bool value = (... || isDynamic<Ts>()); };
-
-    /// Specialization for a tuple of dynamic types, using std::vector.
-    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> { static constexpr bool value = isTupleOfDynamicTypes<T>::value; };
-
     /**
      * Specialization for decoding any type of uint or int.
      * This function is also used by std::tuple<OtherArgs...> and std::vector<std::tuple<OtherArgs...>>
@@ -927,50 +946,97 @@ namespace ABI {
         T ret;
         if constexpr (isTupleOfDynamicTypes<T>::value)
         {
-          if (index +32 > bytes.size()) throw std::runtime_error("Data too short for tuple of dynamic types");
+          if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple of dynamic types");
           Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
           uint64_t offset = Utils::fromBigEndian<uint64_t>(tmp);
           index += 32;
           uint64_t newIndex = 0;
-          decodeTuple<T>(bytes.subspan(offset), newIndex, ret);
+          auto view = bytes.subspan(offset);
+          decodeTuple<T>(view, newIndex, ret);
           return ret;
         }
         decodeTuple<T>(bytes, index, ret);
         return ret;
       }
 
-      if constexpr (is_vector_v<T>) {
+      if constexpr (is_vector_v<T>)
+      {
         using ElementType = vector_element_type_t<T>;
-        if constexpr (is_tuple<ElementType>::value) {
-          // Handle vector of tuples here
-          std::vector<ElementType> retVector;
-          // Get array offset
-          if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple[]");
-          Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
-          uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
-          index += 32;
+        std::vector<ElementType> retVector;
+        // Get array offset
+        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
+        Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
+        uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
+        index += 32;
 
-          // Get array length
-          tmp.clear();
-          if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple[]");
-          tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
-          uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
+        // Get array length
+        tmp.clear();
+        if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
+        tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
+        uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
+        if constexpr (isTupleOfDynamicTypes<T>::value)
+        {
           for (uint64_t i = 0; i < arrayLength; ++i)
           {
-            // Get tuple offset
+            // Get vector content offset
             tmp.clear();
+            // Size sanity check
+            if (arrayStart + 32 + (i * 32) + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
             tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
             uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
             ElementType tuple;
             auto view = bytes.subspan(bytesStart);
             uint64_t newIndex = 0;
+            // Recursion here
             decodeTuple<ElementType>(view, newIndex, tuple);
             retVector.emplace_back(tuple);
           }
-          return retVector;
+        } else
+        {
+          uint64_t bytesStart = arrayStart + 32;
+          for (uint64_t i = 0; i < arrayLength; ++i)
+          {
+            auto view = bytes.subspan(bytesStart);
+            uint64_t newIndex = 0;
+            // Recursion here
+            retVector.emplace_back(decode<ElementType>(view, newIndex));
+            bytesStart += calculateOffsetForType<ElementType>();
+          }
         }
+        return retVector;
       }
+
+        //if constexpr (is_tuple<ElementType>::value) {
+        //  // Handle vector of tuples here
+        //  std::vector<ElementType> retVector;
+        //  // Get array offset
+        //  if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple[]");
+        //  Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
+        //  uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
+        //  index += 32;
+//
+        //  // Get array length
+        //  tmp.clear();
+        //  if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple[]");
+        //  tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
+        //  uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
+//
+        //  for (uint64_t i = 0; i < arrayLength; ++i)
+        //  {
+        //    // Get tuple offset
+        //    tmp.clear();
+        //    tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
+        //    uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
+        //    ElementType tuple;
+        //    auto view = bytes.subspan(bytesStart);
+        //    uint64_t newIndex = 0;
+        //    decodeTuple<ElementType>(view, newIndex, tuple);
+        //    retVector.emplace_back(tuple);
+        //  }
+        //  return retVector;
+        //}
+        // }
 
 
       if constexpr (
