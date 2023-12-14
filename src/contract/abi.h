@@ -636,6 +636,23 @@ namespace ABI {
     template<typename T> struct isTupleOfDynamicTypes;
     template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
     template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
+        // Type trait to check if T is a std::vector
+    template <typename T>
+    struct is_vector : std::false_type {};
+
+    template <typename... Args>
+    struct is_vector<std::vector<Args...>> : std::true_type {};
+
+    // Helper variable template for is_vector
+    template <typename T>
+    inline constexpr bool is_vector_v = is_vector<T>::value;
+
+    // Helper to check if a type is a std::tuple
+    template<typename T>
+    struct is_tuple : std::false_type {};
+
+    template<typename... Ts>
+    struct is_tuple<std::tuple<Ts...>> : std::true_type {};
 
     /**
      * Check if a type is dynamic.
@@ -647,8 +664,10 @@ namespace ABI {
         std::is_same_v<T, std::vector<uint256_t>> || std::is_same_v<T, std::vector<int256_t>> ||
         std::is_same_v<T, std::vector<Address>> || std::is_same_v<T, std::vector<bool>> ||
         std::is_same_v<T, std::vector<Bytes>> || std::is_same_v<T, std::vector<std::string>> ||
+        std::is_same_v<T, BytesArrView> ||
         std::is_same_v<T, std::string> || false
       ) return true;
+      if constexpr (is_vector_v<T>) return true;
       if constexpr (isTupleOfDynamicTypes<T>::value) return true;
       return false;
     }
@@ -666,11 +685,29 @@ namespace ABI {
     template<typename T, typename... Ts> Bytes encode(const T& first, const Ts&... rest);
     template<typename... Ts> Bytes encode(const std::vector<std::tuple<Ts...>>& v);
 
+    /// Calculates the total nextOffset of a given tuple type.
+    template<typename T>
+    constexpr uint64_t calculateOffsetForType() {
+      if constexpr (isDynamic<T>()) {
+        return 32;
+      } else if constexpr (is_tuple<T>::value) {
+        return 32 * std::tuple_size<T>::value;
+      } else {
+        return 32;
+      }
+    }
+
+    template <typename... Ts>
+    constexpr uint64_t calculateTotalOffset() {
+      return (calculateOffsetForType<Ts>() + ...);
+    }
+
     /// Specialization for encoding a tuple. Expand and call back encode<T,Ts...>
     template<typename... Ts> Bytes encode(const std::tuple<Ts...>& t) {
       Bytes result;
       Bytes dynamicBytes;
-      uint64_t nextOffset = 32 * sizeof...(Ts);
+      uint64_t nextOffset = calculateTotalOffset<Ts...>();
+
 
       std::apply([&](const auto&... args) {
         auto encodeItem = [&](auto&& item) {
@@ -695,22 +732,31 @@ namespace ABI {
     template<typename... Ts> Bytes encode(const std::vector<std::tuple<Ts...>>& v) {
       Bytes result;
       uint64_t nextOffset = 32 * v.size();  // The first 32 bytes are for the length of the dynamic array
-      Bytes dynamicBytes;
-      Bytes tupleData;
-      Bytes tupleOffSets;
+      if constexpr (isTupleOfDynamicTypes<std::tuple<Ts...>>::value)
+      {
+        /// If the tuple is dynamic, we need to account the offsets of each tuple
+        Bytes tupleData;
+        Bytes tupleOffSets;
 
-      // Encode each tuple
-      for (const auto& t : v) {
-        append(tupleOffSets, Utils::uint256ToBytes(nextOffset));
-        Bytes tupleBytes = encode(t);  // We're calling the encode function specialized for tuples
-        nextOffset += tupleBytes.size();
-        tupleData.insert(tupleData.end(), tupleBytes.begin(), tupleBytes.end());
+        // Encode each tuple.
+        for (const auto& t : v) {
+          append(tupleOffSets, Utils::uint256ToBytes(nextOffset));
+          Bytes tupleBytes = encode(t);  // We're calling the encode function specialized for tuples
+          nextOffset += tupleBytes.size();
+          tupleData.insert(tupleData.end(), tupleBytes.begin(), tupleBytes.end());
+        }
+
+        append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));  // Add the array length to the result
+        append(result, tupleOffSets);  // Add the tuple offsets
+        result.insert(result.end(), tupleData.begin(), tupleData.end());  // Add the tuple data
+        return result;
+      } else {
+        append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));  // Add the array length to the result
+        for (const auto& t : v) {
+          append (result, encode(t));
+        }
+        return result;
       }
-
-      append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));  // Add the array length to the result
-      append(result, tupleOffSets);  // Add the tuple offsets
-      result.insert(result.end(), tupleData.begin(), tupleData.end());  // Add the tuple data
-      return result;
     }
 
     /**
@@ -723,7 +769,8 @@ namespace ABI {
      */
     template<typename T, typename... Ts> Bytes encodeData(const T& first, const Ts&... rest) {
       Bytes result;
-      uint64_t nextOffset = 32 * (sizeof...(Ts) + 1);
+      // Based on the ABI spec, use calculateTotalOffset to calculate the nextOffset
+      uint64_t nextOffset = calculateTotalOffset<T, Ts...>();
       Bytes dynamicBytes;
 
       auto encodeItem = [&](auto&& item) {
@@ -763,6 +810,31 @@ namespace ABI {
 
     template<typename... Ts>
     struct is_tuple<std::tuple<Ts...>> : std::true_type {};
+
+    // Type trait to check if T is a std::vector
+    template <typename T>
+    struct is_vector : std::false_type {};
+
+    template <typename... Args>
+    struct is_vector<std::vector<Args...>> : std::true_type {};
+
+    // Helper variable template for is_vector
+    template <typename T>
+    inline constexpr bool is_vector_v = is_vector<T>::value;
+
+    // Type trait to extract the element type of a std::vector
+    template <typename T>
+    struct vector_element_type {};
+
+    template <typename... Args>
+    struct vector_element_type<std::vector<Args...>> {
+      using type = typename std::vector<Args...>::value_type;
+    };
+
+    // Helper alias template for vector_element_type
+    template <typename T>
+    using vector_element_type_t = typename vector_element_type<T>::type;
+
     /**
      * Decode a uint256.
      * @param bytes The data string to decode.
@@ -810,22 +882,96 @@ namespace ABI {
       }
     }
 
-     /**
-      * Specialization for decoding any type of uint or int.
-      * This function is also used by std::tuple<OtherArgs...> and std::vector<std::tuple<OtherArgs...>>
-      * Due to incapability of partially specializing the decode function for std::tuple<Args...>
-      * @tparam T Any supported uint or int.
-      * @param bytes The data string to decode.
-      * @param index The point on the encoded string to start decoding.
-      * @return The decoded data.
-      * @throw std::runtime_error if type is not found.
-      */
+    /// Forward declarations.
+    template<typename T> struct isTupleOfDynamicTypes;
+    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
+    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
+
+    /**
+     * Check if a type is dynamic.
+     * @tparam T Any supported ABI type.
+     * @return `true` if type is dymanic, `false` otherwise.
+     */
+    template<typename T> constexpr bool isDynamic() {
+      if constexpr (
+        std::is_same_v<T, std::vector<uint256_t>> || std::is_same_v<T, std::vector<int256_t>> ||
+        std::is_same_v<T, std::vector<Address>> || std::is_same_v<T, std::vector<bool>> ||
+        std::is_same_v<T, std::vector<Bytes>> || std::is_same_v<T, std::vector<std::string>> ||
+        std::is_same_v<T, std::string> || false
+      ) return true;
+      if constexpr (isTupleOfDynamicTypes<T>::value) return true;
+      return false;
+    }
+
+    /// Specialization for a tuple of dynamic types. Defaults to false for unknown types.
+    template<typename T> struct isTupleOfDynamicTypes { static constexpr bool value = false; };
+
+    /// Specialization for a tuple of dynamic types, using std::tuple.
+    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>> { static constexpr bool value = (... || isDynamic<Ts>()); };
+
+    /// Specialization for a tuple of dynamic types, using std::vector.
+    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> { static constexpr bool value = isTupleOfDynamicTypes<T>::value; };
+
+    /**
+     * Specialization for decoding any type of uint or int.
+     * This function is also used by std::tuple<OtherArgs...> and std::vector<std::tuple<OtherArgs...>>
+     * Due to incapability of partially specializing the decode function for std::tuple<Args...>
+     * @tparam T Any supported uint or int.
+     * @param bytes The data string to decode.
+     * @param index The point on the encoded string to start decoding.
+     * @return The decoded data.
+     * @throw std::runtime_error if type is not found.
+     */
     template <typename T> inline T decode(const BytesArrView& bytes, uint64_t& index) {
       if constexpr (is_tuple<T>::value) {
         T ret;
+        if constexpr (isTupleOfDynamicTypes<T>::value)
+        {
+          if (index +32 > bytes.size()) throw std::runtime_error("Data too short for tuple of dynamic types");
+          Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
+          uint64_t offset = Utils::fromBigEndian<uint64_t>(tmp);
+          index += 32;
+          uint64_t newIndex = 0;
+          decodeTuple<T>(bytes.subspan(offset), newIndex, ret);
+          return ret;
+        }
         decodeTuple<T>(bytes, index, ret);
         return ret;
       }
+
+      if constexpr (is_vector_v<T>) {
+        using ElementType = vector_element_type_t<T>;
+        if constexpr (is_tuple<ElementType>::value) {
+          // Handle vector of tuples here
+          std::vector<ElementType> retVector;
+          // Get array offset
+          if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple[]");
+          Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
+          uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
+          index += 32;
+
+          // Get array length
+          tmp.clear();
+          if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple[]");
+          tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
+          uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
+
+          for (uint64_t i = 0; i < arrayLength; ++i)
+          {
+            // Get tuple offset
+            tmp.clear();
+            tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
+            uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
+            ElementType tuple;
+            auto view = bytes.subspan(bytesStart);
+            uint64_t newIndex = 0;
+            decodeTuple<ElementType>(view, newIndex, tuple);
+            retVector.emplace_back(tuple);
+          }
+          return retVector;
+        }
+      }
+
 
       if constexpr (
         std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
@@ -922,19 +1068,19 @@ namespace ABI {
      * @throw std::runtime_error if data is too short for the type.
      */
     template <> inline std::string decode<std::string>(const BytesArrView& bytes, uint64_t& index) {
-      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for string");
+      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for string 1");
       std::string tmp(bytes.begin() + index, bytes.begin() + index + 32);
       uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
       index += 32;  // Move index to next 32 bytes
 
       // Get bytes length
       tmp.clear();
-      if (bytesStart + 32 > bytes.size()) throw std::runtime_error("Data too short for string");
+      if (bytesStart + 32 > bytes.size()) throw std::runtime_error("Data too short for string 2");
       tmp.insert(tmp.end(), bytes.begin() + bytesStart, bytes.begin() + bytesStart + 32);
       uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
       // Size sanity check
-      if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for string");
+      if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for string 3");
 
       // Get bytes data
       tmp.clear();
