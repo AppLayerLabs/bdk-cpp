@@ -125,3 +125,60 @@ EventManager::~EventManager() {
   this->db_->putBatch(batchedOperations); // Batch save to database
 }
 
+std::vector<Event> EventManager::getEvents(
+  uint64_t fromBlock, uint64_t toBlock, Address address, std::vector<Bytes> topics
+) {
+  std::vector<Event> ret;
+  std::vector<Bytes> dbKeys;
+
+  // Apply block cap (using starting block and later ranges as anchors)
+  // e.g. 5000 - 1000 = 4000, range would be from 3000 to 5000, not 1000 to 3000
+  if (fromBlock > toBlock) {
+    uint64_t blockDiff = (fromBlock - toBlock) - this->blockCap_;
+    toBlock += blockDiff;
+  } else if (toBlock > fromBlock) {
+    uint64_t blockDiff = (toBlock - fromBlock) - this->blockCap_;
+    fromBlock += blockDiff;
+  }
+
+  // Get events in memory first
+  for (Event e : this->events_) {
+    if ((fromBlock <= e.getBlockIndex() <= toBlock) && (address != Address() || address == e.getAddress())) {
+      if (!topics.empty()) {
+        bool hasTopic = false;
+        for (Bytes t : topics) {
+          if (std::find(e.getTopics().begin(), e.getTopics().end(), t) != e.getTopics().end()) hasTopic = true;
+        }
+        if (!hasTopic) continue;
+      }
+      ret.push_back(e);
+      if (ret.size() >= this->logCap_) return ret;
+    }
+  }
+
+  // Check relevant keys in the database
+  for (Bytes key : this->db_->getKeys(DBPrefix::events)) {
+    Address add(Utils::create_view_span(key, 0, 20));
+    uint256_t blockHeight = Utils::bytesToUint256(Utils::create_view_span(key, 20, 52)); // 20 + 32
+    if ((fromBlock <= blockHeight <= toBlock) && (address != Address() || address == add)) {
+      dbKeys.push_back(key);
+    }
+  }
+
+  // Get events in the database
+  for (DBEntry item : this->db_->getBatch(DBPrefix::events, dbKeys)) {
+    Event e(json::parse(Utils::bytesToString(item.value)));
+    if (!topics.empty()) {
+      bool hasTopic = false;
+      for (Bytes t : topics) {
+        if (std::find(e.getTopics().begin(), e.getTopics().end(), t) != e.getTopics().end()) hasTopic = true;
+      }
+      if (!hasTopic) continue;
+    }
+    ret.push_back(e);
+    if (ret.size() >= this->logCap_) return ret;
+  }
+
+  return ret;
+}
+

@@ -287,6 +287,13 @@ class DB {
     ) const;
 
     /**
+     * Get all keys from a given prefix.
+     * @param pfx (optional) The prefix to search keys from. Defaults to an empty string.
+     * @return A list of found keys, WITHOUT their prefixes.
+     */
+    std::vector<Bytes> getKeys(const Bytes& pfx = {});
+
+    /**
      * Create a Bytes container from a string.
      * @param str The string to convert.
      * @return The Bytes container.

@@ -12,8 +12,8 @@ bool HTTPServer::run() {
   const boost::asio::ip::address address = net::ip::make_address("0.0.0.0");
   std::shared_ptr<const std::string> docroot = std::make_shared<const std::string>(".");
   this->listener_ = std::make_shared<HTTPListener>(
-    this->ioc_, tcp::endpoint{address, this->port_}, docroot,
-    this->state_, this->storage_, this->p2p_, this->options_
+    this->ioc_, tcp::endpoint{address, this->port_}, docroot, this->state_,
+    this->storage_, this->p2p_, this->options_, this->eventManager_
   );
   this->listener_->start();
 

@@ -65,3 +65,18 @@ std::vector<DBEntry> DB::getBatch(
   return ret;
 }
 
+std::vector<Bytes> DB::getKeys(const Bytes& pfx) {
+  std::vector<Bytes> ret;
+  rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
+  rocksdb::Slice pfxSlice(reinterpret_cast<const char*>(pfx.data()), pfx.size());
+  for (it->Seek(pfxSlice); it->Valid(); it->Next()) {
+    if (it->key().starts_with(pfxSlice)) {
+      auto keySlice = it->key();
+      keySlice.remove_prefix(pfx.size());
+      ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()));
+    }
+  }
+  delete it;
+  return ret;
+}
+

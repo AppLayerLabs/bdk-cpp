@@ -207,6 +207,24 @@ namespace JsonRPC {
       return ret;
     }
 
+    json eth_getLogs(
+      std::tuple<uint64_t, uint64_t, Address, std::vector<Bytes>> info,
+      const std::unique_ptr<EventManager>& eventManager
+    ) {
+      json ret;
+      ret["jsonrpc"] = "2.0";
+      try {
+        std::vector<Event> events = eventManager->getEvents(
+          std::get<0>(info), std::get<1>(info), std::get<2>(info), std::get<3>(info)
+        );
+        for (Event e : events) ret["result"].push_back(e.serialize());
+      } catch (std::exception& e) {
+        ret["error"]["code"] = -32000;
+        ret["error"]["message"] = "Internal error: " + std::string(e.what());
+      }
+      return ret;
+    }
+
     json eth_getBalance(const Address& address, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";

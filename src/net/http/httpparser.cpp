@@ -12,7 +12,8 @@ std::string parseJsonRpcRequest(
   const std::unique_ptr<State>& state,
   const std::unique_ptr<Storage>& storage,
   const std::unique_ptr<P2P::ManagerNormal>& p2p,
-  const std::unique_ptr<Options>& options
+  const std::unique_ptr<Options>& options,
+  const std::unique_ptr<EventManager>& eventManager
 ) {
   json ret;
   uint64_t id = 0;
@@ -104,6 +105,11 @@ std::string parseJsonRpcRequest(
       case JsonRPC::Methods::eth_gasPrice:
         JsonRPC::Decoding::eth_gasPrice(request);
         ret = JsonRPC::Encoding::eth_gasPrice();
+        break;
+      case JsonRPC::Methods::eth_getLogs:
+        ret = JsonRPC::Encoding::eth_getLogs(
+          JsonRPC::Decoding::eth_getLogs(request, storage), eventManager
+        );
         break;
       case JsonRPC::Methods::eth_getBalance:
         ret = JsonRPC::Encoding::eth_getBalance(

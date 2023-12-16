@@ -16,7 +16,6 @@
 using json = nlohmann::ordered_json;
 
 // TODO: generate the ABI for events
-// TODO: implement eth_getFilterChanges/eth_getLogs
 // TODO: add tests when done
 // TODO: update docs when done
 
@@ -151,7 +150,21 @@ class EventManager {
 
     // TODO: maybe a periodicSaveToDB() just like on Storage?
 
-    // TODO: query function(s) to get event data and send it to eth_getLogs
+    /**
+     * Get all the events emitted under the given inputs.
+     * Parameters are defined when calling "eth_getLogs" on an HTTP request
+     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
+     * They're supposed to be all "optional" at that point, but here they're
+     * all required, even if all of them turn out to be empty.
+     * @param fromBlock The initial block height to look for.
+     * @param toBlock The final block height to look for.
+     * @param address The address to look for. If empty, will look for all available addresses.
+     * @param topics The topics to filter by. If empty, will look for all available topics.
+     * @return A list of matching events, limited by the block and/or log caps set above.
+     */
+    std::vector<Event> getEvents(
+      uint64_t fromBlock, uint64_t toBlock, Address address, std::vector<Bytes> topics
+    );
 
     /**
      * Register the event in the temporary list.

@@ -425,6 +425,58 @@ namespace JsonRPC {
       }
     }
 
+    std::tuple<uint64_t, uint64_t, Address, std::vector<Bytes>> eth_getLogs(
+      const json& request, const std::unique_ptr<Storage>& storage
+    ) {
+      try {
+        uint64_t fromBlock = ContractGlobals::getBlockHeight(); // "latest" by default
+        uint64_t toBlock = ContractGlobals::getBlockHeight(); // "latest" by default
+        Address address = Address();  // Empty by default
+        std::vector<Bytes> topics = {}; // Empty by default
+        json paramsObj = request["params"];
+        if (paramsObj.contains("blockHash")) {
+          std::string blockHash = paramsObj.at("blockHash").template get<std::string>();
+          const std::shared_ptr<const Block> block = storage->getBlock(Hash(blockHash));
+          fromBlock = toBlock = block->getNHeight();
+        } else {
+          if (paramsObj.contains("fromBlock")) {
+            json obj = paramsObj.at("fromBlock");
+            if (obj.is_string()) {
+              std::string blockStr = obj.template get<std::string>();
+              if (blockStr == "earliest") fromBlock = 0;
+              else if (blockStr == "pending") throw std::runtime_error("Pending block is not supported");
+            } else if (obj.is_number()) {
+              fromBlock = obj.template get<uint64_t>();
+            }
+          }
+          if (paramsObj.contains("toBlock")) {
+            json obj = paramsObj.at("toBlock");
+            if (obj.is_string()) {
+              std::string blockStr = obj.template get<std::string>();
+              if (blockStr == "earliest") toBlock = 0;
+              else if (blockStr == "pending") throw std::runtime_error("Pending block is not supported");
+            } else if (obj.is_number()) {
+              toBlock = obj.template get<uint64_t>();
+            }
+          }
+        }
+        if (paramsObj.contains("address")) {
+          address = Address(paramsObj.at("address").template get<std::string>(), false);
+        }
+        if (paramsObj.contains("topics")) {
+          for (Bytes topic : paramsObj.at("topics").template get<std::vector<Bytes>>()) {
+            topics.push_back(topic);
+          }
+        }
+        return std::make_tuple(fromBlock, toBlock, address, topics);
+      } catch (std::exception& e) {
+        Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
+          std::string("Error while decoding eth_getLogs: ") + e.what()
+        );
+        throw std::runtime_error("Error while decoding eth_getLogs: " + std::string(e.what()));
+      }
+    }
+
     Address eth_getBalance(const json& request, const std::unique_ptr<Storage>& storage) {
       static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
       static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");

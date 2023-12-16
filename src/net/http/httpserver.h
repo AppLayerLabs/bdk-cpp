@@ -26,6 +26,9 @@ class HTTPServer {
     /// Reference pointer to the options singleton.
     const std::unique_ptr<Options>& options_;
 
+    /// Reference pointer to the event manager.
+    const std::unique_ptr<EventManager>& eventManager_;
+
     /// Provides core I/O functionality ({x} = max threads the object can use).
     net::io_context ioc_{4};
 
@@ -48,11 +51,14 @@ class HTTPServer {
      * @param storage Reference pointer to the blockchain's storage.
      * @param p2p Reference pointer to the P2P connection manager.
      * @param options Reference pointer to the options singleton.
+     * @param eventManager Reference pointer to the event manager.
      */
     HTTPServer(
-        const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-        const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
-    ) : state_(state), storage_(storage), p2p_(p2p), options_(options), port_(options->getHttpPort())
+      const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options,
+      const std::unique_ptr<EventManager>& eventManager
+    ) : state_(state), storage_(storage), p2p_(p2p), options_(options),
+    eventManager_(eventManager), port_(options->getHttpPort())
     {}
 
     /**
