@@ -490,6 +490,86 @@ namespace ABI {
     std::string type; ///< Type of the method.
   };
 
+  /// Common functions used by both encoder and decoder.
+  /// Forward declarations.
+  template<typename T> struct isTupleOfDynamicTypes;
+  template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
+  template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
+      // Type trait to check if T is a std::vector
+  template <typename T>
+  struct isVector : std::false_type {};
+
+  template <typename... Args>
+  struct isVector<std::vector<Args...>> : std::true_type {};
+
+  // Helper variable template for is_vector
+  template <typename T>
+  inline constexpr bool isVectorV = isVector<T>::value;
+
+  // Type trait to extract the element type of a std::vector
+  template <typename T>
+  struct vectorElementType {};
+
+  template <typename... Args>
+  struct vectorElementType<std::vector<Args...>> {
+    using type = typename std::vector<Args...>::value_type;
+  };
+
+  // Helper alias template for vector_element_type
+  template <typename T>
+  using vectorElementTypeT = typename vectorElementType<T>::type;
+
+  // Helper to check if a type is a std::tuple
+  template<typename T>
+  struct isTuple : std::false_type {};
+
+  template<typename... Ts>
+  struct isTuple<std::tuple<Ts...>> : std::true_type {};
+
+  /**
+   * Check if a type is dynamic.
+   * @tparam T Any supported ABI type.
+   * @return `true` if type is dymanic, `false` otherwise.
+   */
+  template<typename T> constexpr bool isDynamic() {
+    if constexpr (
+      std::is_same_v<T, std::vector<uint256_t>> || std::is_same_v<T, std::vector<int256_t>> ||
+      std::is_same_v<T, std::vector<Address>> || std::is_same_v<T, std::vector<bool>> ||
+      std::is_same_v<T, std::vector<Bytes>> || std::is_same_v<T, std::vector<std::string>> ||
+      std::is_same_v<T, BytesArrView> ||
+      std::is_same_v<T, std::string> || false
+    ) return true;
+    if constexpr (isVectorV<T>) return true;
+    if constexpr (isTupleOfDynamicTypes<T>::value) return true;
+    return false;
+  }
+
+  /// Specialization for a tuple of dynamic types. Defaults to false for unknown types.
+  template<typename T> struct isTupleOfDynamicTypes { static constexpr bool value = false; };
+
+  /// Specialization for a tuple of dynamic types, using std::tuple.
+  template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>> { static constexpr bool value = (... || isDynamic<Ts>()); };
+
+  /// Specialization for a tuple of dynamic types, using std::vector.
+  template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> { static constexpr bool value = isTupleOfDynamicTypes<T>::value; };
+
+  /// Calculates the total nextOffset of a given tuple type.
+  template<typename T>
+  constexpr uint64_t calculateOffsetForType() {
+    if constexpr (isDynamic<T>()) {
+      return 32;
+    } else if constexpr (isTuple<T>::value) {
+      return 32 * std::tuple_size<T>::value;
+    } else {
+      return 32;
+    }
+  }
+
+  template <typename... Ts>
+  constexpr uint64_t calculateTotalOffset() {
+    return (calculateOffsetForType<Ts>() + ...);
+  }
+
   /// Namespace for ABI-encoding functions.
   namespace Encoder {
     /**
@@ -629,78 +709,12 @@ namespace ABI {
         std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
       ) {
         return encodeUint(num);
-      } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported");
+      } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported on encoding");
     }
 
-    /// Forward declarations.
-    template<typename T> struct isTupleOfDynamicTypes;
-    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
-    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
-        // Type trait to check if T is a std::vector
-    template <typename T>
-    struct is_vector : std::false_type {};
-
-    template <typename... Args>
-    struct is_vector<std::vector<Args...>> : std::true_type {};
-
-    // Helper variable template for is_vector
-    template <typename T>
-    inline constexpr bool is_vector_v = is_vector<T>::value;
-
-    // Helper to check if a type is a std::tuple
-    template<typename T>
-    struct is_tuple : std::false_type {};
-
-    template<typename... Ts>
-    struct is_tuple<std::tuple<Ts...>> : std::true_type {};
-
-    /**
-     * Check if a type is dynamic.
-     * @tparam T Any supported ABI type.
-     * @return `true` if type is dymanic, `false` otherwise.
-     */
-    template<typename T> constexpr bool isDynamic() {
-      if constexpr (
-        std::is_same_v<T, std::vector<uint256_t>> || std::is_same_v<T, std::vector<int256_t>> ||
-        std::is_same_v<T, std::vector<Address>> || std::is_same_v<T, std::vector<bool>> ||
-        std::is_same_v<T, std::vector<Bytes>> || std::is_same_v<T, std::vector<std::string>> ||
-        std::is_same_v<T, BytesArrView> ||
-        std::is_same_v<T, std::string> || false
-      ) return true;
-      if constexpr (is_vector_v<T>) return true;
-      if constexpr (isTupleOfDynamicTypes<T>::value) return true;
-      return false;
-    }
-
-    /// Specialization for a tuple of dynamic types. Defaults to false for unknown types.
-    template<typename T> struct isTupleOfDynamicTypes { static constexpr bool value = false; };
-
-    /// Specialization for a tuple of dynamic types, using std::tuple.
-    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>> { static constexpr bool value = (... || isDynamic<Ts>()); };
-
-    /// Specialization for a tuple of dynamic types, using std::vector.
-    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> { static constexpr bool value = isTupleOfDynamicTypes<T>::value; };
-
-    /// Forward declaration.
+    /// Forward declaration, we need these for succesfull tuple support.
     template<typename T, typename... Ts> Bytes encode(const T& first, const Ts&... rest);
     template<typename... Ts> Bytes encode(const std::vector<std::tuple<Ts...>>& v);
-
-    /// Calculates the total nextOffset of a given tuple type.
-    template<typename T>
-    constexpr uint64_t calculateOffsetForType() {
-      if constexpr (isDynamic<T>()) {
-        return 32;
-      } else if constexpr (is_tuple<T>::value) {
-        return 32 * std::tuple_size<T>::value;
-      } else {
-        return 32;
-      }
-    }
-
-    template <typename... Ts>
-    constexpr uint64_t calculateTotalOffset() {
-      return (calculateOffsetForType<Ts>() + ...);
-    }
 
     /// Specialization for encoding a tuple. Expand and call back encode<T,Ts...>
     template<typename... Ts> Bytes encode(const std::tuple<Ts...>& t) {
@@ -804,37 +818,6 @@ namespace ABI {
     // TODO: docs
     template<typename T> inline T decode(const BytesArrView& bytes, uint64_t& index);
 
-    // Helper to check if a type is a std::tuple
-    template<typename T>
-    struct is_tuple : std::false_type {};
-
-    template<typename... Ts>
-    struct is_tuple<std::tuple<Ts...>> : std::true_type {};
-
-    // Type trait to check if T is a std::vector
-    template <typename T>
-    struct is_vector : std::false_type {};
-
-    template <typename... Args>
-    struct is_vector<std::vector<Args...>> : std::true_type {};
-
-    // Helper variable template for is_vector
-    template <typename T>
-    inline constexpr bool is_vector_v = is_vector<T>::value;
-
-    // Type trait to extract the element type of a std::vector
-    template <typename T>
-    struct vector_element_type {};
-
-    template <typename... Args>
-    struct vector_element_type<std::vector<Args...>> {
-      using type = typename std::vector<Args...>::value_type;
-    };
-
-    // Helper alias template for vector_element_type
-    template <typename T>
-    using vector_element_type_t = typename vector_element_type<T>::type;
-
     /**
      * Decode a uint256.
      * @param bytes The data string to decode.
@@ -852,63 +835,6 @@ namespace ABI {
      * @throw std::runtime_error if data is too short for the type.
      */
     int256_t decodeInt(const BytesArrView& bytes, uint64_t& index);
-
-    template<typename T>
-    struct tuple_type_sequence {};
-
-    template<typename... Args>
-    struct tuple_type_sequence<std::tuple<Args...>> {
-      using type = std::tuple<Args...>;
-    };
-
-    /// Forward declarations.
-    template<typename T> struct isTupleOfDynamicTypes;
-    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
-    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
-
-    /**
-     * Check if a type is dynamic.
-     * @tparam T Any supported ABI type.
-     * @return `true` if type is dymanic, `false` otherwise.
-     */
-    template<typename T> constexpr bool isDynamic() {
-      if constexpr (
-        std::is_same_v<T, std::vector<uint256_t>> || std::is_same_v<T, std::vector<int256_t>> ||
-        std::is_same_v<T, std::vector<Address>> || std::is_same_v<T, std::vector<bool>> ||
-        std::is_same_v<T, std::vector<Bytes>> || std::is_same_v<T, std::vector<std::string>> ||
-        std::is_same_v<T, BytesArrView> ||
-        std::is_same_v<T, std::string> || false
-      ) return true;
-      if constexpr (is_vector_v<T>) return true;
-      if constexpr (isTupleOfDynamicTypes<T>::value) return true;
-      return false;
-    }
-
-    /// Specialization for a tuple of dynamic types. Defaults to false for unknown types.
-    template<typename T> struct isTupleOfDynamicTypes { static constexpr bool value = false; };
-
-    /// Specialization for a tuple of dynamic types, using std::tuple.
-    template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>> { static constexpr bool value = (... || isDynamic<Ts>()); };
-
-    /// Specialization for a tuple of dynamic types, using std::vector.
-    template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> { static constexpr bool value = isTupleOfDynamicTypes<T>::value; };
-
-    /// Calculates the total nextOffset of a given tuple type.
-    template<typename T>
-    constexpr uint64_t calculateOffsetForType() {
-      if constexpr (isDynamic<T>()) {
-        return 32;
-      } else if constexpr (is_tuple<T>::value) {
-        return 32 * std::tuple_size<T>::value;
-      } else {
-        return 32;
-      }
-    }
-
-    template <typename... Ts>
-    constexpr uint64_t calculateTotalOffset() {
-      return (calculateOffsetForType<Ts>() + ...);
-    }
 
     /**
      * Decode a packed std::tuple<Args...> individually
@@ -942,7 +868,7 @@ namespace ABI {
      * @throw std::runtime_error if type is not found.
      */
     template <typename T> inline T decode(const BytesArrView& bytes, uint64_t& index) {
-      if constexpr (is_tuple<T>::value) {
+      if constexpr (isTuple<T>::value) {
         T ret;
         if constexpr (isTupleOfDynamicTypes<T>::value)
         {
@@ -959,9 +885,9 @@ namespace ABI {
         return ret;
       }
 
-      if constexpr (is_vector_v<T>)
+      if constexpr (isVectorV<T>)
       {
-        using ElementType = vector_element_type_t<T>;
+        using ElementType = vectorElementTypeT<T>;
         std::vector<ElementType> retVector;
         // Get array offset
         if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
@@ -1007,38 +933,6 @@ namespace ABI {
         return retVector;
       }
 
-        //if constexpr (is_tuple<ElementType>::value) {
-        //  // Handle vector of tuples here
-        //  std::vector<ElementType> retVector;
-        //  // Get array offset
-        //  if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple[]");
-        //  Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
-        //  uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
-        //  index += 32;
-//
-        //  // Get array length
-        //  tmp.clear();
-        //  if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple[]");
-        //  tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
-        //  uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
-//
-        //  for (uint64_t i = 0; i < arrayLength; ++i)
-        //  {
-        //    // Get tuple offset
-        //    tmp.clear();
-        //    tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
-        //    uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
-        //    ElementType tuple;
-        //    auto view = bytes.subspan(bytesStart);
-        //    uint64_t newIndex = 0;
-        //    decodeTuple<ElementType>(view, newIndex, tuple);
-        //    retVector.emplace_back(tuple);
-        //  }
-        //  return retVector;
-        //}
-        // }
-
-
       if constexpr (
         std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
         std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
@@ -1067,7 +961,7 @@ namespace ABI {
         std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
       ) {
         return static_cast<T>(decodeUint(bytes, index));
-      } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported");
+      } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported on decoding.");
     }
 
     /**
