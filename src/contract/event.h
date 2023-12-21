@@ -15,7 +15,6 @@
 
 using json = nlohmann::ordered_json;
 
-// TODO: generate the ABI for events
 // TODO: add tests when done
 // TODO: update docs when done
 
@@ -122,6 +121,12 @@ class Event {
 
     /// Serialize event data to a JSON string.
     std::string serialize();
+
+    /**
+     * Serialize event data to a JSON string, formatted to RPC response standards:
+     * https://medium.com/alchemy-api/deep-dive-into-eth-getlogs-5faf6a66fd81
+     */
+    std::string serializeForRPC();
 };
 
 /**

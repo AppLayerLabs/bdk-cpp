@@ -1032,15 +1032,20 @@ Types inline getABIEnumFromString(const std::string& type) {
   }
 }
 
-  /**
-   * This struct contains the structure for the contract ABI object.
-   */
+  /// Struct that contains the data for a contract method.
   struct MethodDescription {
     std::string name; ///< Name of the method.
     std::vector<std::pair<std::string, std::string>> inputs; ///< Vector of pairs of input names and types.
     std::vector<std::pair<std::string, std::string>> outputs; ///< Vector of pairs of output names and types.
     std::string stateMutability; ///< State mutability of the method.
     std::string type; ///< Type of the method.
+  };
+
+  /// Struct that contains the data for a contract event.
+  struct EventDescription {
+    std::string name; ///< Name of the event.
+    bool anonymous; ///< Whether the event is anonymous or not.
+    std::vector<std::tuple<std::string, std::string, bool>> args; ///< Vector of arguments for the event (name, type, indexed).
   };
 
   /// Class that encodes and packs native data types into Solidity ABI strings.

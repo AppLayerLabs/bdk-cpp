@@ -217,7 +217,7 @@ namespace JsonRPC {
         std::vector<Event> events = eventManager->getEvents(
           std::get<0>(info), std::get<1>(info), std::get<2>(info), std::get<3>(info)
         );
-        for (Event e : events) ret["result"].push_back(e.serialize());
+        for (Event e : events) ret["result"].push_back(e.serializeForRPC());
       } catch (std::exception& e) {
         ret["error"]["code"] = -32000;
         ret["error"]["message"] = "Internal error: " + std::string(e.what());

@@ -95,6 +95,23 @@ std::string Event::serialize() {
   return obj.dump();
 }
 
+std::string Event::serializeForRPC() {
+  std::vector<std::string> topicStr;
+  for (Bytes b : this->topics_) topicStr.push_back(Hex::fromBytes(b, true).get());
+  json obj = {
+    {"address", this->address_.hex(true).get()},
+    {"blockHash", this->blockHash_.hex(true).get()},
+    {"blockNumber", Hex::fromBytes(Utils::uint64ToBytes(this->blockIndex_), true).get()},
+    {"data", Hex::fromBytes(this->data_, true).get()},
+    {"logIndex", Hex::fromBytes(Utils::uint64ToBytes(this->logIndex_), true).get()},
+    {"removed", false}, // We don't fake/alter events like Ethereum does
+    {"topics", topicStr},
+    {"transactionHash", this->txHash_.hex(true).get()},
+    {"transactionIndex", Hex::fromBytes(Utils::uint64ToBytes(this->txIndex_), true).get()}
+  };
+  return obj.dump();
+}
+
 EventManager::EventManager(const std::unique_ptr<DB>& db) : db_(db) {
   std::vector<DBEntry> allEvents = this->db_->getBatch(DBPrefix::events);
   for (DBEntry& event : allEvents) {

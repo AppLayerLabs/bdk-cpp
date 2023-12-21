@@ -9,6 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 #define DYNAMICCONTRACT_H
 
 #include <any>
+
+#include "abi.h"
 #include "contract.h"
 #include "contractmanager.h"
 #include "event.h"
@@ -76,38 +78,33 @@ class DynamicContract : public BaseContract {
      * @tparam T Class type.
      * @tparam MemFunc Member function type.
      */
-    template <typename R, typename T>
-    struct RegisterHelper {
-      template <typename MemFunc>
-        /**
-         * Create a ReturnType object by calling the member function.
-         * @param instance Pointer to the instance of the class.
-         * @param memFunc Pointer to the member function.
-         * @return A ReturnType object.
-         */
-        static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
-          return BaseTypes((instance->*memFunc)());
-        }
+    template <typename R, typename T> struct RegisterHelper {
+      /**
+       * Create a ReturnType object by calling the member function.
+       * @param instance Pointer to the instance of the class.
+       * @param memFunc Pointer to the member function.
+       * @return A ReturnType object.
+       */
+      template <typename MemFunc> static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
+        return BaseTypes((instance->*memFunc)());
+      }
     };
 
     /**
-    * Helper function for registering a void payable/non-payable function.
-    * @tparam T Class type.
-    * @tparam MemFunc Member function type.
-    */
-    template <typename T>
-    struct RegisterHelper<void, T> {
-      template <typename MemFunc>
+     * Helper function for registering a void payable/non-payable function.
+     * @tparam T Class type.
+     * @tparam MemFunc Member function type.
+     */
+    template <typename T> struct RegisterHelper<void, T> {
       /**
-      * Create a ReturnType object by calling the member function.
-      * @param instance Pointer to the instance of the class.
-      * @param memFunc Pointer to the member function.
-      * @return A ReturnType object (default constructed).
-      * TODO: Decide if this is the best way to handle void functions.
-      */
-      static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
-          (instance->*memFunc)();
-          return BaseTypes{};
+       * Create a ReturnType object by calling the member function.
+       * @param instance Pointer to the instance of the class.
+       * @param memFunc Pointer to the member function.
+       * @return A ReturnType object (default constructed).
+       * TODO: Decide if this is the best way to handle void functions.
+       */
+      template <typename MemFunc> static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
+        (instance->*memFunc)(); return BaseTypes{};
       }
     };
 
@@ -500,17 +497,17 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-     * Emit an event.
+     * Emit an event. Remember this is an "empty" event, it lacks state info
+     * that will be filled by EventManager::commitEvents().
      * @param name The event's name.
      * @param args The event's arguments. Defaults to an empty list.
      * @param anonymous Whether the event is anonymous or not. Defaults to false.
      */
     void emitEvent(
-      std::string name, std::vector<std::pair<BaseTypes, bool>> args = {}, bool anonymous = false
-    ) {
-      // Remember this is an "empty" event, it lacks state info.
-      // This will only be gathered when commitEvents() is called
-      // TODO: members do not have "0x" at the start - should they? Maybe this should be handled by eth_getFilterChanges/eth_getLogs instead?
+      const std::string& name,
+      const std::vector<std::pair<BaseTypes, bool>> args = {},
+      bool anonymous = false
+    ) const {
       Event e(name, this->getContractAddress(), args, anonymous);
       this->interface_.emitContractEvent(e);
     }
@@ -531,7 +528,7 @@ class DynamicContract : public BaseContract {
      * @param address The address of the contract to cast.
      * @return A pointer to the casted contract.
      */
-    template <typename T> const T *getContract(const Address& address) const {
+    template <typename T> const T* getContract(const Address& address) const {
       return interface_.getContract<T>(address);
     }
 
@@ -546,122 +543,121 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-    * Call a contract view function based on the basic requirements of a contract call.
-    * @tparam R The return type of the view function.
-    * @tparam C The contract type.
-    * @tparam Args The argument types of the view function.
-    * @param address The address of the contract to call.
-    * @param func The view function to call.
-    * @param args The arguments to pass to the view function.
-    * @return The result of the view function.
-    */
+     * Call a contract view function based on the basic requirements of a contract call.
+     * @tparam R The return type of the view function.
+     * @tparam C The contract type.
+     * @tparam Args The argument types of the view function.
+     * @param address The address of the contract to call.
+     * @param func The view function to call.
+     * @param args The arguments to pass to the view function.
+     * @return The result of the view function.
+     */
     template <typename R, typename C, typename... Args>
-    R callContractViewFunction(const Address& address, R(C::*func)(const Args&...) const, const Args&... args) const {
-        const C* contract = this->getContract<C>(address);
-        return (contract->*func)(std::forward<const Args&>(args)...);
+    R callContractViewFunction(
+      const Address& address, R(C::*func)(const Args&...) const, const Args&... args
+    ) const {
+      const C* contract = this->getContract<C>(address);
+      return (contract->*func)(std::forward<const Args&>(args)...);
     }
 
     /**
-    * Call a contract view function based on the basic requirements of a contract call.
-    * @tparam R The return type of the view function.
-    * @tparam C The contract type.
-    * @param address The address of the contract to call.
-    * @param func The view function to call.
-    * @return The result of the view function.
-    */
+     * Call a contract view function based on the basic requirements of a contract call.
+     * @tparam R The return type of the view function.
+     * @tparam C The contract type.
+     * @param address The address of the contract to call.
+     * @param func The view function to call.
+     * @return The result of the view function.
+     */
     template <typename R, typename C>
     R callContractViewFunction(const Address& address, R(C::*func)() const) const {
-        const C* contract = this->getContract<C>(address);
-        return (contract->*func)();
+      const C* contract = this->getContract<C>(address);
+      return (contract->*func)();
     }
 
     /**
-    * Call a contract function (non-view) based on the basic requirements of a contract call.
-    * @tparam R The return type of the function.
-    * @tparam C The contract type.
-    * @tparam Args The argument types of the function.
-    * @param targetAddr The address of the contract to call.
-    * @param func The function to call.
-    * @param args The arguments to pass to the function.
-    * @return The result of the function.
-    */
-    template <typename R, typename C, typename... Args>
-    R callContractFunction(const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args) {
-        return this->interface_.callContractFunction(this->getOrigin(),
-                                                    this->getContractAddress(),
-                                                    targetAddr,
-                                                    0,
-                                                    func,
-                                                    std::forward<const Args&>(args)...);
+     * Call a contract function (non-view) based on the basic requirements of a contract call.
+     * @tparam R The return type of the function.
+     * @tparam C The contract type.
+     * @tparam Args The argument types of the function.
+     * @param targetAddr The address of the contract to call.
+     * @param func The function to call.
+     * @param args The arguments to pass to the function.
+     * @return The result of the function.
+     */
+    template <typename R, typename C, typename... Args> R callContractFunction(
+      const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args
+    ) {
+      return this->interface_.callContractFunction(
+        this->getOrigin(), this->getContractAddress(),
+        targetAddr, 0, func, std::forward<const Args&>(args)...
+      );
     }
 
     /**
-    * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag
-    * @tparam R The return type of the function.
-    * @tparam C The contract type.
-    * @tparam Args The argument types of the function.
-    * @param value Flag to send value with the call.
-    * @param address The address of the contract to call.
-    * @param func The function to call.
-    * @param args The arguments to pass to the function.
-    * @return The result of the function.
-    */
-    template <typename R, typename C, typename... Args>
-    R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args) {
-        return this->interface_.callContractFunction(this->getOrigin(),
-                                                    this->getContractAddress(),
-                                                    address,
-                                                    value,
-                                                    func,
-                                                    std::forward<const Args&>(args)...);
+     * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag
+     * @tparam R The return type of the function.
+     * @tparam C The contract type.
+     * @tparam Args The argument types of the function.
+     * @param value Flag to send value with the call.
+     * @param address The address of the contract to call.
+     * @param func The function to call.
+     * @param args The arguments to pass to the function.
+     * @return The result of the function.
+     */
+    template <typename R, typename C, typename... Args> R callContractFunction(
+      const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args
+    ) {
+      return this->interface_.callContractFunction(
+        this->getOrigin(), this->getContractAddress(),
+        address, value, func, std::forward<const Args&>(args)...
+      );
     }
 
     /**
-    * Call a contract function (non-view) based on the basic requirements of a contract call with no arguments
-    * @tparam R The return type of the function.
-    * @tparam C The contract type.
-    * @param targetAddr The address of the contract to call.
-    * @param func The function to call.
-    * @return The result of the function.
-    */
-    template <typename R, typename C>
-    R callContractFunction(const Address& targetAddr, R(C::*func)()) {
-        return this->interface_.callContractFunction(this->getOrigin(),
-                                                    this->getContractAddress(),
-                                                    targetAddr,
-                                                    0,
-                                                    func);
+     * Call a contract function (non-view) based on the basic requirements of a contract call with no arguments
+     * @tparam R The return type of the function.
+     * @tparam C The contract type.
+     * @param targetAddr The address of the contract to call.
+     * @param func The function to call.
+     * @return The result of the function.
+     */
+    template <typename R, typename C> R callContractFunction(
+      const Address& targetAddr, R(C::*func)()
+    ) {
+      return this->interface_.callContractFunction(
+        this->getOrigin(), this->getContractAddress(), targetAddr, 0, func
+      );
     }
 
     /**
-    * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag and no arguments
-    * @tparam R The return type of the function.
-    * @tparam C The contract type.
-    * @param value Flag to send value with the call.
-    * @param address The address of the contract to call.
-    * @param func The function to call.
-    * @return The result of the function.
-    */
-    template <typename R, typename C>
-    R callContractFunction(const uint256_t& value, const Address& address, R(C::*func)()) {
-        return this->interface_.callContractFunction(this->getOrigin(),
-                                                    this->getContractAddress(),
-                                                    address,
-                                                    value,
-                                                    func);
+     * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag and no arguments
+     * @tparam R The return type of the function.
+     * @tparam C The contract type.
+     * @param value Flag to send value with the call.
+     * @param address The address of the contract to call.
+     * @param func The function to call.
+     * @return The result of the function.
+     */
+    template <typename R, typename C> R callContractFunction(
+      const uint256_t& value, const Address& address, R(C::*func)()
+    ) {
+      return this->interface_.callContractFunction(
+        this->getOrigin(), this->getContractAddress(), address, value, func
+      );
     }
 
     /**
-    * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call.
-    * @tparam R The return type of the function.
-    * @tparam C The contract type.
-    * @tparam Args The argument types of the function.
-    * @param func The function to call.
-    * @param args The arguments to pass to the function.
-    * @return The result of the function.
-    */
-    template <typename R, typename C, typename... Args>
-    R callContractFunction(R (C::*func)(const Args&...), const Args&... args) {
+     * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call.
+     * @tparam R The return type of the function.
+     * @tparam C The contract type.
+     * @tparam Args The argument types of the function.
+     * @param func The function to call.
+     * @param args The arguments to pass to the function.
+     * @return The result of the function.
+     */
+    template <typename R, typename C, typename... Args> R callContractFunction(
+      R (C::*func)(const Args&...), const Args&... args
+    ) {
       try {
         return (static_cast<C*>(this)->*func)(std::forward<const Args&>(args)...);
       } catch (const std::exception& e) {
@@ -670,15 +666,14 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-    * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call with no arguments
-    * @tparam R The return type of the function.
-    * @tparam C The contract type.
-    * @tparam Args The argument types of the function.
-    * @param func The function to call.
-    * @return The result of the function.
-    */
-    template <typename R, typename C>
-    R callContractFunction(R (C::*func)()) {
+     * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call with no arguments
+     * @tparam R The return type of the function.
+     * @tparam C The contract type.
+     * @tparam Args The argument types of the function.
+     * @param func The function to call.
+     * @return The result of the function.
+     */
+    template <typename R, typename C> R callContractFunction(R (C::*func)()) {
       try {
         return (static_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
@@ -687,21 +682,24 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-    * Call the create function of a contract.
-    * @tparam TContract The contract type.
-    * @tparam Args The arguments of the contract constructor.
-    * @param gas The gas limit.
-    * @param gasPrice The gas price.
-    * @param value The caller value.
-    * @param args The arguments to pass to the constructor.
-    * @return The address of the created contract.
-    */
-    template<typename TContract, typename... Args>
-    Address callCreateContract(const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
-        Utils::safePrint("CallCreateContract being called...");
-        ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
-        ABI::Encoder encoder(vars);
-        return this->interface_.callCreateContract<TContract>(this->getOrigin(), this->getContractAddress(), gas, gasPrice, value, std::move(encoder));
+     * Call the create function of a contract.
+     * @tparam TContract The contract type.
+     * @tparam Args The arguments of the contract constructor.
+     * @param gas The gas limit.
+     * @param gasPrice The gas price.
+     * @param value The caller value.
+     * @param args The arguments to pass to the constructor.
+     * @return The address of the created contract.
+     */
+    template<typename TContract, typename... Args> Address callCreateContract(
+      const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args
+    ) {
+      Utils::safePrint("CallCreateContract being called...");
+      ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
+      ABI::Encoder encoder(vars);
+      return this->interface_.callCreateContract<TContract>(
+        this->getOrigin(), this->getContractAddress(), gas, gasPrice, value, std::move(encoder)
+      );
     }
 
     /**

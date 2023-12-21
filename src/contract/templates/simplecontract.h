@@ -24,24 +24,24 @@ class SimpleContract : public DynamicContract {
 
   protected:
     /// Event for when the name changes.
-    void nameChanged(const std::string& name) { this->emitEvent(__func__, { {name, true} }); }
+    void nameChanged(const std::string& name) const { this->emitEvent(__func__, { {name, true} }); }
 
     /// Event for when the value changes.
-    void valueChanged(uint256_t value) { this->emitEvent(__func__, { {value, true} }); }
+    void valueChanged(uint256_t value) const { this->emitEvent(__func__, { {value, true} }); }
 
   public:
     using ConstructorArguments = std::tuple<const std::string&, uint256_t>; ///< The constructor arguments type.
 
     /**
-    * Constructor from create. Create contract and save it to database.
-    * @param name The name of the contract.
-    * @param value The value of the contract.
-    * @param interface The interface to the contract manager.
-    * @param address The address of the contract.
-    * @param creator The address of the creator of the contract.
-    * @param chainId The chain ID.
-    * @param db The database to use.
-    */
+     * Constructor from create. Create contract and save it to database.
+     * @param name The name of the contract.
+     * @param value The value of the contract.
+     * @param interface The interface to the contract manager.
+     * @param address The address of the contract.
+     * @param creator The address of the creator of the contract.
+     * @param chainId The chain ID.
+     * @param db The database to use.
+     */
     SimpleContract(
       const std::string& name,
       uint256_t value,
@@ -53,11 +53,11 @@ class SimpleContract : public DynamicContract {
     );
 
     /**
-    * Constructor from load. Load contract from database.
-    * @param interface The interface to the contract manager.
-    * @param address The address of the contract.
-    * @param db The database to use.
-    */
+     * Constructor from load. Load contract from database.
+     * @param interface The interface to the contract manager.
+     * @param address The address of the contract.
+     * @param db The database to use.
+     */
     SimpleContract(
       ContractManagerInterface &interface,
       const Address& address,
@@ -71,9 +71,7 @@ class SimpleContract : public DynamicContract {
     void setName(const std::string& argName); ///< function setName(string memory argName) public
     void setValue(uint256_t argValue);  ///< function setValue(uint256 argValue) public
 
-    /**
-    * Register the contract structure.
-    */
+    /// Register the contract structure.
     static void registerContract() {
       ContractReflectionInterface::registerContract<
         SimpleContract, const std::string&, uint256_t,
@@ -86,6 +84,14 @@ class SimpleContract : public DynamicContract {
         std::make_tuple("getValue", &SimpleContract::getValue, "view", std::vector<std::string>{}),
         std::make_tuple("setName", &SimpleContract::setName, "nonpayable", std::vector<std::string>{"argName"}),
         std::make_tuple("setValue", &SimpleContract::setValue, "nonpayable", std::vector<std::string>{"argValue"})
+      );
+      ContractReflectionInterface::registerContractEvents<SimpleContract>(
+        std::make_tuple("nameChanged", false, std::vector<std::tuple<std::string, std::string, bool>>{
+          std::make_tuple("name", "string", true)
+        }),
+        std::make_tuple("valueChanged", false, std::vector<std::tuple<std::string, std::string, bool>>{
+          std::make_tuple("value", "uint256", true)
+        })
       );
     }
 };
