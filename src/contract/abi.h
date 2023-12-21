@@ -689,8 +689,8 @@ namespace ABI {
     struct FunctionTraits;
 
     /// List the argument types of a function.
-    template <typename R, typename... Args, typename T>
-    struct FunctionTraits<R(T::*)(Args...)> {
+    template <typename... Args>
+    struct FunctionTraits<Args...> {
       static std::string listArgumentTypes() {
         std::string result;
         ((
@@ -708,11 +708,11 @@ namespace ABI {
     struct Encoder;
 
     /// Specialization for functions with arguments
-    template <typename R, typename... Args, typename T>
-    struct Encoder<R(T::*)(Args...)> {
+    template <typename... Args>
+    struct Encoder<Args...> {
       static Functor encode(const std::string& funcSignature) {
         std::string fullSignature = funcSignature;
-        fullSignature += "(" + FunctionTraits<R(T::*)(Args...)>::listArgumentTypes() + ")";
+        fullSignature += "(" + FunctionTraits<Args...>::listArgumentTypes() + ")";
         return Functor(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4));
       }
     };

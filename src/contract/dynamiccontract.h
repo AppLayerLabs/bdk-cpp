@@ -79,10 +79,7 @@ class DynamicContract : public BaseContract {
     template <typename R, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)() const, T* instance
     ) {
-      bool hasArgs = ContractReflectionInterface::methodHasArguments<decltype(*instance)>(funcSignature);
       std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      if (hasArgs) throw std::runtime_error("Invalid function signature.");
-
       std::string functStr = funcSignature + "()";
 
       const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
@@ -127,10 +124,7 @@ class DynamicContract : public BaseContract {
     template <typename R, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(), T* instance
     ) {
-      bool hasArgs = ContractReflectionInterface::methodHasArguments<decltype(*instance)>(funcSignature);
       std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      if (hasArgs) throw std::runtime_error("Invalid function signature.");
-
       std::string functStr = funcSignature + "()";
 
       const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
@@ -166,17 +160,8 @@ class DynamicContract : public BaseContract {
     template <typename R, typename... Args, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(Args...), T* instance
     ) {
-      std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString<decltype(*instance)>(funcSignature);
       std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      std::ostringstream fullSignatureStream;
-      fullSignatureStream << funcSignature << "(";
-      if (!args.empty()) {
-        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(fullSignatureStream, ","));
-        fullSignatureStream << args.back();
-      }
-      fullSignatureStream << ")";
-
-      std::string fullSignature = fullSignatureStream.str();
+      Functor functor = ABI::FunctorEncoder::Encoder<Args...>::encode(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
@@ -189,9 +174,9 @@ class DynamicContract : public BaseContract {
       if (methodMutability == "view") {
         throw std::runtime_error("View must be const because it does not modify the state.");
       } else if (methodMutability == "nonpayable") {
-        this->registerFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
+        this->registerFunction(functor, registrationFunc);
       } else if (methodMutability == "payable") {
-        this->registerPayableFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
+        this->registerPayableFunction(functor, registrationFunc);
       } else {
         throw std::runtime_error("Invalid function signature.");
       }
@@ -206,17 +191,8 @@ class DynamicContract : public BaseContract {
     template <typename R, typename... Args, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(Args...) const, T* instance
     ) {
-      std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString<decltype(*instance)>(funcSignature);
       std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      std::ostringstream fullSignatureStream;
-      fullSignatureStream << funcSignature << "(";
-      if (!args.empty()) {
-        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(fullSignatureStream, ","));
-        fullSignatureStream << args.back();
-      }
-      fullSignatureStream << ")";
-
-      std::string fullSignature = fullSignatureStream.str();
+      Functor functor = ABI::FunctorEncoder::Encoder<Args...>::encode(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> Bytes {
         using ReturnType = decltype((instance->*memFunc)(std::declval<Args>()...));
@@ -234,11 +210,11 @@ class DynamicContract : public BaseContract {
       };
 
       if (methodMutability == "view") {
-        this->registerViewFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
+        this->registerViewFunction(functor, registrationFunc);
       } else if (methodMutability == "nonpayable") {
-        this->registerFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
+        this->registerFunction(functor, registrationFunc);
       } else if (methodMutability == "payable") {
-        this->registerPayableFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
+        this->registerPayableFunction(functor, registrationFunc);
       } else {
         throw std::runtime_error("Invalid function signature.");
       }
