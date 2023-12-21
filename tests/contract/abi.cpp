@@ -35,7 +35,14 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
                                 >& a) {};
     };
 
-    auto result = ABI::FunctorEncoder::Encoder<decltype(&Test::FunnsiesFunc)>::encode("FunnsiesFunc");
+    auto result = ABI::FunctorEncoder::encode<const std::tuple<
+    std::vector<
+      std::tuple<uint256_t, uint256_t, uint256_t, uint256_t>>,
+    std::string,
+    uint256_t,
+    std::vector<
+      std::tuple<std::string, std::tuple<uint256_t, uint256_t>, std::string>
+    >>>("FunnsiesFunc");
     REQUIRE(result == Functor(Hex::toBytes("de612013")));
   }
 

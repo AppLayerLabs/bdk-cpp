@@ -684,38 +684,24 @@ namespace ABI {
       }
     };
 
-    // Function traits template
-    template<typename T>
-    struct FunctionTraits;
-
-    /// List the argument types of a function.
+    // Specialization for function types
     template <typename... Args>
-    struct FunctionTraits<Args...> {
-      static std::string listArgumentTypes() {
-        std::string result;
-        ((
-          result += TypeName<std::decay_t<Args>>::get() + ","
-        ), ...);
-        if (!result.empty()) {
-          result.pop_back(); // Remove the last comma
-        }
-        return result;
+    static std::string listArgumentTypes() {
+      std::string result;
+      ((result += TypeName<std::decay_t<Args>>::get() + ","), ...);
+      if (!result.empty()) {
+        result.pop_back(); // Remove the last comma
       }
-    };
+      return result;
+    }
 
-    /// Encoder template
-    template<typename T>
-    struct Encoder;
-
-    /// Specialization for functions with arguments
+    // Specialization for function types
     template <typename... Args>
-    struct Encoder<Args...> {
-      static Functor encode(const std::string& funcSignature) {
-        std::string fullSignature = funcSignature;
-        fullSignature += "(" + FunctionTraits<Args...>::listArgumentTypes() + ")";
-        return Functor(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4));
-      }
-    };
+    static Functor encode(const std::string& funcSignature) {
+      std::string fullSignature = funcSignature;
+      fullSignature += "(" + listArgumentTypes<Args...>() + ")";
+      return Functor(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4));
+    }
 
     /// Generate the functor for a function.
   }

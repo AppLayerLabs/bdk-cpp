@@ -161,7 +161,7 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(Args...), T* instance
     ) {
       std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      Functor functor = ABI::FunctorEncoder::Encoder<Args...>::encode(funcSignature);
+      Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
@@ -192,7 +192,7 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(Args...) const, T* instance
     ) {
       std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      Functor functor = ABI::FunctorEncoder::Encoder<Args...>::encode(funcSignature);
+      Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> Bytes {
         using ReturnType = decltype((instance->*memFunc)(std::declval<Args>()...));
