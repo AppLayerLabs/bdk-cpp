@@ -33,6 +33,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/libs/json.hpp"
 #include "src/contract/variables/safeuint.h"
 #include "src/contract/variables/safeint.h"
+#include <variant>
 
 /// @file utils.h
 

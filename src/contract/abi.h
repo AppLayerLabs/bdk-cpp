@@ -570,6 +570,157 @@ namespace ABI {
     return (calculateOffsetForType<Ts>() + ...);
   }
 
+
+  /// Namespace for Functor encoding.
+  namespace FunctorEncoder {
+    // General template for type to string conversion
+    template<typename T>
+    struct TypeName {
+      static std::string get()
+      {
+        static_assert(std::is_same_v<T, void>, "TypeName specialization for this type is not defined");
+        return "";
+      }
+    };
+
+    // Specialization for all numeric types
+    template<> struct TypeName<uint8_t> { static std::string get() { return "uint8"; }};
+    template<> struct TypeName<uint16_t> { static std::string get() { return "uint16"; }};
+    template<> struct TypeName<uint24_t> { static std::string get() { return "uint24"; }};
+    template<> struct TypeName<uint32_t> { static std::string get() { return "uint32"; }};
+    template<> struct TypeName<uint40_t> { static std::string get() { return "uint40"; }};
+    template<> struct TypeName<uint48_t> { static std::string get() { return "uint48"; }};
+    template<> struct TypeName<uint56_t> { static std::string get() { return "uint56"; }};
+    template<> struct TypeName<uint64_t> { static std::string get() { return "uint64"; }};
+    template<> struct TypeName<uint72_t> { static std::string get() { return "uint72"; }};
+    template<> struct TypeName<uint80_t> { static std::string get() { return "uint80"; }};
+    template<> struct TypeName<uint88_t> { static std::string get() { return "uint88"; }};
+    template<> struct TypeName<uint96_t> { static std::string get() { return "uint96"; }};
+    template<> struct TypeName<uint104_t> { static std::string get() { return "uint104"; }};
+    template<> struct TypeName<uint112_t> { static std::string get() { return "uint112"; }};
+    template<> struct TypeName<uint120_t> { static std::string get() { return "uint120"; }};
+    template<> struct TypeName<uint128_t> { static std::string get() { return "uint128"; }};
+    template<> struct TypeName<uint136_t> { static std::string get() { return "uint136"; }};
+    template<> struct TypeName<uint144_t> { static std::string get() { return "uint144"; }};
+    template<> struct TypeName<uint152_t> { static std::string get() { return "uint152"; }};
+    template<> struct TypeName<uint160_t> { static std::string get() { return "uint160"; }};
+    template<> struct TypeName<uint168_t> { static std::string get() { return "uint168"; }};
+    template<> struct TypeName<uint176_t> { static std::string get() { return "uint176"; }};
+    template<> struct TypeName<uint184_t> { static std::string get() { return "uint184"; }};
+    template<> struct TypeName<uint192_t> { static std::string get() { return "uint192"; }};
+    template<> struct TypeName<uint200_t> { static std::string get() { return "uint200"; }};
+    template<> struct TypeName<uint208_t> { static std::string get() { return "uint208"; }};
+    template<> struct TypeName<uint216_t> { static std::string get() { return "uint216"; }};
+    template<> struct TypeName<uint224_t> { static std::string get() { return "uint224"; }};
+    template<> struct TypeName<uint232_t> { static std::string get() { return "uint232"; }};
+    template<> struct TypeName<uint240_t> { static std::string get() { return "uint240"; }};
+    template<> struct TypeName<uint248_t> { static std::string get() { return "uint248"; }};
+    template<> struct TypeName<uint256_t> { static std::string get() { return "uint256"; }};
+    template<> struct TypeName<int8_t> { static std::string get() { return "int8"; }};
+    template<> struct TypeName<int16_t> { static std::string get() { return "int16"; }};
+    template<> struct TypeName<int24_t> { static std::string get() { return "int24"; }};
+    template<> struct TypeName<int32_t> { static std::string get() { return "int32"; }};
+    template<> struct TypeName<int40_t> { static std::string get() { return "int40"; }};
+    template<> struct TypeName<int48_t> { static std::string get() { return "int48"; }};
+    template<> struct TypeName<int56_t> { static std::string get() { return "int56"; }};
+    template<> struct TypeName<int64_t> { static std::string get() { return "int64"; }};
+    template<> struct TypeName<int72_t> { static std::string get() { return "int72"; }};
+    template<> struct TypeName<int80_t> { static std::string get() { return "int80"; }};
+    template<> struct TypeName<int88_t> { static std::string get() { return "int88"; }};
+    template<> struct TypeName<int96_t> { static std::string get() { return "int96"; }};
+    template<> struct TypeName<int104_t> { static std::string get() { return "int104"; }};
+    template<> struct TypeName<int112_t> { static std::string get() { return "int112"; }};
+    template<> struct TypeName<int120_t> { static std::string get() { return "int120"; }};
+    template<> struct TypeName<int128_t> { static std::string get() { return "int128"; }};
+    template<> struct TypeName<int136_t> { static std::string get() { return "int136"; }};
+    template<> struct TypeName<int144_t> { static std::string get() { return "int144"; }};
+    template<> struct TypeName<int152_t> { static std::string get() { return "int152"; }};
+    template<> struct TypeName<int160_t> { static std::string get() { return "int160"; }};
+    template<> struct TypeName<int168_t> { static std::string get() { return "int168"; }};
+    template<> struct TypeName<int176_t> { static std::string get() { return "int176"; }};
+    template<> struct TypeName<int184_t> { static std::string get() { return "int184"; }};
+    template<> struct TypeName<int192_t> { static std::string get() { return "int192"; }};
+    template<> struct TypeName<int200_t> { static std::string get() { return "int200"; }};
+    template<> struct TypeName<int208_t> { static std::string get() { return "int208"; }};
+    template<> struct TypeName<int216_t> { static std::string get() { return "int216"; }};
+    template<> struct TypeName<int224_t> { static std::string get() { return "int224"; }};
+    template<> struct TypeName<int232_t> { static std::string get() { return "int232"; }};
+    template<> struct TypeName<int240_t> { static std::string get() { return "int240"; }};
+    template<> struct TypeName<int248_t> { static std::string get() { return "int248"; }};
+    template<> struct TypeName<int256_t> { static std::string get() { return "int256"; }};
+    // Other types...
+    template<> struct TypeName<Address> { static std::string get() { return "address"; }};
+    template<> struct TypeName<bool> { static std::string get() { return "bool"; }};
+    template<> struct TypeName<Bytes> { static std::string get() { return "bytes"; }};
+    template<> struct TypeName<std::string> { static std::string get() { return "string"; }};
+    // Helper for tuple types
+    template <typename Tuple, typename IndexSequence>
+    struct TupleTypeNameHelper;
+
+    template <typename Tuple, std::size_t... Is>
+    struct TupleTypeNameHelper<Tuple, std::index_sequence<Is...>> {
+      static std::string get() {
+        std::string result;
+        ((result += TypeName<std::decay_t<std::tuple_element_t<Is, Tuple>>>::get() + ","), ...);
+        if (!result.empty()) {
+          result.pop_back(); // Remove the last comma
+        }
+        return result;
+      }
+    };
+
+    // Specialization for std::tuple
+    template<typename... Args>
+    struct TypeName<std::tuple<Args...>> {
+      static std::string get() {
+        return "(" + TupleTypeNameHelper<std::tuple<Args...>, std::index_sequence_for<Args...>>::get() + ")";
+      }
+    };
+
+    template<typename T>
+    struct TypeName<std::vector<T>> {
+      static std::string get() {
+        return TypeName<T>::get() + "[]";
+      }
+    };
+
+    // Function traits template
+    template<typename T>
+    struct FunctionTraits;
+
+    /// List the argument types of a function.
+    template <typename R, typename... Args, typename T>
+    struct FunctionTraits<R(T::*)(Args...)> {
+      static std::string listArgumentTypes() {
+        std::string result;
+        ((
+          result += TypeName<std::decay_t<Args>>::get() + ","
+        ), ...);
+        if (!result.empty()) {
+          result.pop_back(); // Remove the last comma
+        }
+        return result;
+      }
+    };
+
+    /// Encoder template
+    template<typename T>
+    struct Encoder;
+
+    /// Specialization for functions with arguments
+    template <typename R, typename... Args, typename T>
+    struct Encoder<R(T::*)(Args...)> {
+      static Functor encode(const std::string& funcSignature) {
+        std::string fullSignature = funcSignature;
+        fullSignature += "(" + FunctionTraits<R(T::*)(Args...)>::listArgumentTypes() + ")";
+        return Functor(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4));
+      }
+    };
+
+    /// Generate the functor for a function.
+  }
+
+
   /// Namespace for ABI-encoding functions.
   namespace Encoder {
     /**

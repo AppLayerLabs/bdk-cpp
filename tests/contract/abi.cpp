@@ -19,6 +19,26 @@ using Catch::Matchers::Equals;
 
 namespace TABI {
 TEST_CASE("ABI Namespace", "[contract][abi]") {
+  // This should cover all types for functor, including nested.
+  SECTION("Encode Functor for FunnsiesFunc(std::tuple<std::vector<std::tuple<uint256_t, uint256_t, uint256_t, uint256_t>>, std::string, uint256_t, std::vector<std::tuple<std::string, std::tuple<uint256_t, uint256_t>, std::string>>> arg)")
+  {
+    struct Test
+    {
+      void FunnsiesFunc(const std::tuple<
+                                std::vector<
+                                  std::tuple<uint256_t, uint256_t, uint256_t, uint256_t>>,
+                                std::string,
+                                uint256_t,
+                                std::vector<
+                                  std::tuple<std::string, std::tuple<uint256_t, uint256_t>, std::string>
+                                  >
+                                >& a) {};
+    };
+
+    auto result = ABI::FunctorEncoder::Encoder<decltype(&Test::FunnsiesFunc)>::encode("FunnsiesFunc");
+    REQUIRE(result == Functor(Hex::toBytes("de612013")));
+  }
+
   SECTION("Encode Uint256 (Single)") {
       auto functor = ABI::Encoder::encodeFunction("testUint(uint256)");
       Bytes eS = ABI::Encoder::encodeData(uint256_t("12038189571283151234217456623442137"));
