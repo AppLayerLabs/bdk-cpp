@@ -24,6 +24,7 @@ extern std::unordered_map<std::string, std::vector<std::string>>
     constructorArgumentNamesMap; /// Map to store constructor argument names
 extern std::unordered_map<std::string, std::string>
     methodMutabilityMap; //// Map to store method mutability
+    /// TODO: Bug here! What happens if we have A::Foo(std::string someString) and B::Foo(uint256_t someArgs)?
 extern std::unordered_map<std::string, std::vector<std::string>>
     argumentNamesMap; /// Map to store method argument names
 extern std::unordered_map<meta::any_type, ABI::Types>
