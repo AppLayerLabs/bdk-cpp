@@ -24,10 +24,10 @@ class SimpleContract : public DynamicContract {
 
   protected:
     /// Event for when the name changes.
-    void nameChanged(const std::string& name) const { this->emitEvent(__func__, { {name, true} }); }
+    void nameChanged(const std::string& name) { this->emitEvent(__func__, { {name, true} }); }
 
     /// Event for when the value changes.
-    void valueChanged(uint256_t value) const { this->emitEvent(__func__, { {value, true} }); }
+    void valueChanged(uint256_t value) { this->emitEvent(__func__, { {value, true} }); }
 
   public:
     using ConstructorArguments = std::tuple<const std::string&, uint256_t>; ///< The constructor arguments type.

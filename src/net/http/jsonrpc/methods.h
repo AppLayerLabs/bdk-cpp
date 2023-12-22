@@ -59,7 +59,7 @@ namespace JsonRPC {
    * eth_uninstallFilter ======================= NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
    * eth_getFilterChanges ====================== NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
    * eth_getFilterLogs ========================= NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
-   * eth_getLogs =============================== NOT IMPLEMENTED: LOGS ARE LOCATED AT DEBUG.LOG
+   * eth_getLogs =============================== DONE
    * eth_mining ================================ NOT IMPLEMENTED: WE ARE RDPOS NOT POW
    * eth_hashrate ============================== NOT IMPLEMENTED: WE ARE RDPOS NOT POW
    * eth_getWork =============================== NOT IMPLEMENTED: WE ARE RDPOS NOT POW
