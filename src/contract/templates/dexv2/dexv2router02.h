@@ -130,7 +130,7 @@ class DEXV2Router02 : public DynamicContract {
      * @returns amountB The amount of tokenB that was added to the pool.
      * @returns liquidity The amount of liquidity tokens minted.
      */
-    BytesEncoded addLiquidity(
+    std::tuple<uint256_t, uint256_t, uint256_t> addLiquidity(
       const Address& tokenA,
       const Address& tokenB,
       const uint256_t& amountADesired,
@@ -154,7 +154,7 @@ class DEXV2Router02 : public DynamicContract {
      * @returns amountNative The amount of native tokens that was added to the pool.
      * @returns liquidity The amount of liquidity tokens minted.
      */
-    BytesEncoded addLiquidityNative(
+    std::tuple<uint256_t, uint256_t, uint256_t> addLiquidityNative(
       const Address& token,
       const uint256_t& amountTokenDesired,
       const uint256_t& amountTokenMin,
@@ -176,7 +176,7 @@ class DEXV2Router02 : public DynamicContract {
      * @returns amountA The amount of tokenA that was removed from the pool.
      * @returns amountB The amount of tokenB that was removed from the pool.
      */
-    BytesEncoded removeLiquidity(
+    std::tuple<uint256_t, uint256_t> removeLiquidity(
       const Address& tokenA,
       const Address& tokenB,
       const uint256_t& liquidity,
@@ -198,7 +198,7 @@ class DEXV2Router02 : public DynamicContract {
      * @returns amountToken The amount of token that was removed from the pool.
      * @returns amountNative The amount of native tokens that was removed from the pool.
      */
-    BytesEncoded removeLiquidityNative(
+    std::tuple<uint256_t, uint256_t> removeLiquidityNative(
       const Address& token,
       const uint256_t& liquidity,
       const uint256_t& amountTokenMin,

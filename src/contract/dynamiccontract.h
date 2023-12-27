@@ -86,10 +86,6 @@ class DynamicContract : public BaseContract {
         {"view", [this, functStr, instance, memFunc, funcSignature]() {
           this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> Bytes {
             using ReturnType = decltype((instance->*memFunc)());
-            // If ReturnType is BytesEncoded, return BytesEncoded.data
-            if constexpr (std::is_same<ReturnType, BytesEncoded>::value) {
-              return (instance->*memFunc)().data;
-            }
             return ABI::Encoder::encodeData<ReturnType>((instance->*memFunc)());
           });
         }},
@@ -200,10 +196,6 @@ class DynamicContract : public BaseContract {
         DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(std::get<6>(callInfo));
         // Use std::apply to call the member function and encode its return value
         return std::apply([instance, memFunc](Args... args) -> Bytes {
-            // If the return type is BytesEncoded, return BytesEncoded.data
-            if constexpr (std::is_same<ReturnType, BytesEncoded>::value) {
-              return(instance->*memFunc)(std::forward<decltype(args)>(args)...).data;
-            }
             // Call the member function and return its encoded result
             return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
         }, decodedData);

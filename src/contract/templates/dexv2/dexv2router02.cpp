@@ -153,7 +153,7 @@ Address DEXV2Router02::factory() const { return this->factory_.get(); }
 
 Address DEXV2Router02::wrappedNative() const { return this->wrappedNative_.get(); }
 
-BytesEncoded DEXV2Router02::addLiquidity(
+std::tuple<uint256_t, uint256_t, uint256_t> DEXV2Router02::addLiquidity(
   const Address& tokenA,
   const Address& tokenB,
   const uint256_t& amountADesired,
@@ -171,10 +171,10 @@ BytesEncoded DEXV2Router02::addLiquidity(
   this->callContractFunction(tokenA, &ERC20::transferFrom, this->getCaller(), pair, amountA);
   this->callContractFunction(tokenB, &ERC20::transferFrom, this->getCaller(), pair, amountB);
   auto liquidity = this->callContractFunction(pair, &DEXV2Pair::mint, to);
-  return BytesEncoded(ABI::Encoder::encodeData(amountA, amountB, liquidity));
+  return std::make_tuple(amountA, amountB, liquidity);
 }
 
-BytesEncoded DEXV2Router02::addLiquidityNative(
+std::tuple<uint256_t, uint256_t, uint256_t> DEXV2Router02::addLiquidityNative(
   const Address& token,
   const uint256_t& amountTokenDesired,
   const uint256_t& amountTokenMin,
@@ -196,10 +196,10 @@ BytesEncoded DEXV2Router02::addLiquidityNative(
   if (this->getValue() > amountNative) this->sendTokens(
     this->getCaller(), this->getValue() - amountNative
   );
-  return BytesEncoded(ABI::Encoder::encodeData(amountToken, amountNative, liquidity));
+  return std::make_tuple(amountToken, amountNative, liquidity);
 }
 
-BytesEncoded DEXV2Router02::removeLiquidity(
+std::tuple<uint256_t, uint256_t> DEXV2Router02::removeLiquidity(
   const Address& tokenA,
   const Address& tokenB,
   const uint256_t& liquidity,
@@ -211,19 +211,17 @@ BytesEncoded DEXV2Router02::removeLiquidity(
   this->ensure(deadline);
   auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), tokenA, tokenB);
   this->callContractFunction(pair, &ERC20::transferFrom, this->getCaller(), pair, liquidity);
-  auto burnBytes = ABI::Decoder::decodeData<uint256_t, uint256_t>(
-    this->callContractFunction(pair, &DEXV2Pair::burn, to).data
-  );
+  auto burnBytes = this->callContractFunction(pair, &DEXV2Pair::burn, to);
   auto amount0 = std::get<0>(burnBytes);
   auto amount1 = std::get<1>(burnBytes);
   auto amountA = tokenA == DEXV2Library::sortTokens(tokenA, tokenB).first ? amount0 : amount1;
   auto amountB = tokenA == DEXV2Library::sortTokens(tokenA, tokenB).first ? amount1 : amount0;
   if (amountA < amountAMin) throw std::runtime_error("DEXV2Router02::removeLiquidity: INSUFFICIENT_A_AMOUNT");
   if (amountB < amountBMin) throw std::runtime_error("DEXV2Router02::removeLiquidity: INSUFFICIENT_B_AMOUNT");
-  return BytesEncoded(ABI::Encoder::encodeData(amountA, amountB));
+  return std::make_tuple(amountA, amountB);
 }
 
-BytesEncoded DEXV2Router02::removeLiquidityNative(
+std::tuple<uint256_t, uint256_t> DEXV2Router02::removeLiquidityNative(
   const Address& token,
   const uint256_t& liquidity,
   const uint256_t& amountTokenMin,
@@ -232,18 +230,16 @@ BytesEncoded DEXV2Router02::removeLiquidityNative(
   const uint256_t& deadline
 ) {
   this->ensure(deadline);
-  auto amounts = ABI::Decoder::decodeData<uint256_t, uint256_t>(
-    this->removeLiquidity(
+  auto amounts = this->removeLiquidity(
       token, this->wrappedNative_.get(), liquidity, amountTokenMin,
       amountNativeMin, this->getContractAddress(), deadline
-    ).data
-  );
+    );
   auto amountToken = std::get<0>(amounts);
   auto amountNative = std::get<1>(amounts);
   this->callContractFunction(token, &ERC20::transfer, to, amountToken);
   this->callContractFunction(this->wrappedNative_.get(), &NativeWrapper::withdraw, amountNative);
   this->sendTokens(this->getCaller(), amountNative);
-  return BytesEncoded(ABI::Encoder::encodeData(amountToken, amountNative));
+  return std::make_tuple(amountToken, amountNative);
 }
 
 std::vector<uint256_t> DEXV2Router02::swapExactTokensForTokens(

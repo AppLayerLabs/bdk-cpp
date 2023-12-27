@@ -135,9 +135,9 @@ class DEXV2Pair : public ERC20 {
     /**
      * Get the reserves of the ERC20Pair.
      * Solidity counterpart: function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)
-     * @returns std::tuple<uint256_t, uint256_t, uint256_t> (reserve0, reserve1, blockTimestampLast) encoded in Bytes
+     * @returns std::tuple<uint256_t, uint256_t, uint256_t> (reserve0, reserve1, blockTimestampLast)
      */
-    BytesEncoded getReserves() const;
+    std::tuple<uint256_t, uint256_t, uint256_t> getReserves() const;
 
     /**
      * Get the factory address of the ERC20Pair.
@@ -191,7 +191,7 @@ class DEXV2Pair : public ERC20 {
      * @param to The address to burn tokens from.
      * @return std::tuple<uint256_t, uint256_t> (amount0, amount1) encoded in Bytes
      */
-    BytesEncoded burn(const Address& to);
+    std::tuple<uint256_t, uint256_t> burn(const Address& to);
 
     /**
      * Swap an amount of ERC20 tokens for the other ERC20 token.

@@ -229,24 +229,9 @@ using SafeInt240_t = SafeInt_t<240>; ///< Typedef for SafeInt240_t.
 using SafeInt248_t = SafeInt_t<248>; ///< Typedef for SafeInt248_t.
 using SafeInt256_t = SafeInt_t<256>; ///< Typedef for SafeInt256_t.
 
-/**
-* Struct for Bytes type that will be encoded in an function return.
-*/
-struct BytesEncodedStruct {
-   Bytes data; ///< Bytes data.
-   };
-using BytesEncoded = BytesEncodedStruct; ///< Typedef for BytesEncoded.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
-
-/**
-* Typedef for all the possible types that can be used in a function.
-* Based on Solidity types.
-* @note: Fixed point types are not supported yet, because they are not supported fully in Solidity.
-*/
-using BaseTypes = std::variant<uint256_t, std::vector<uint256_t>, int256_t, std::vector<int256_t>, Address, std::vector<Address>,
-        bool, std::vector<bool>, Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>>;
 
 /**
  * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
