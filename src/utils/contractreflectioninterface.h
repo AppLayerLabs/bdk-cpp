@@ -13,7 +13,18 @@ See the LICENSE.txt file in the project root for more information.
 /**
  * This namespace contains the reflection interface for the contract
  * classes.
- *
+ * Observations about ContractReflectionsInterface
+ * Only the following functions are used in normal operation
+ * registerContract() -> By the derived DynamicContract class, to register the contract class methods, arguments, etc
+ * getConstructorArgumentTypesString<TContract>() -> By ContractFactory and ContractManager, to get the list of constructor argument types .e.g "uint256,uint256"
+ * getMethodMutability<TContract>(methodName) -> By the DynamicContract* class, after derived class calling registerMemberFunction(), to get the mutability of the method
+ * isContractRegistered<TContract>() -> By ContractFactory and ContractManager, to check if the contract is registered
+ * These functions only access the following mappings
+ * registeredContractsMap -> To check if the contract is registered (by isContractRegistered<TContract>())
+ * methodMutabilityMap -> To get the mutability of a method (by getMethodMutability<TContract>(methodName))
+ * getConstructorArgumentTypesString<TContract>() derives from TContract::ConstructorArguments to get the constructor argument types, no access to mappings
+ * The remaining functions and mapping are accessed for JSON ABI purposes only
+ * TODO: Add support for overloaded methods! This will require a change in the mappings and templates...
  */
 
 namespace ContractReflectionInterface {
@@ -165,13 +176,17 @@ std::string inline getMethodArgumentsTypesString(
 template <typename TContract, typename... Args, typename... Methods>
 void inline registerContract(const std::vector<std::string> &ctorArgs,
                              Methods &&...methods) {
-
+  if (isContractRegistered<TContract>()) {
+    /// Already registered, do nothing
+    return;
+  }
+  std::string contractName = Utils::getRealTypeName<TContract>();
   // Store constructor argument names in the constructorArgumenqtNamesMap
-  constructorArgumentNamesMap[Utils::getRealTypeName<TContract>()] = ctorArgs;
+  constructorArgumentNamesMap[contractName] = ctorArgs;
   // Register methods and store the stateMutability string and argument names
-  ((methodMutabilityMap[std::get<0>(std::forward<Methods>(methods))] =
+  ((methodMutabilityMap[contractName + "::" + std::get<0>(std::forward<Methods>(methods))] =
         std::get<2>(std::forward<Methods>(methods)),
-    argumentNamesMap[std::get<0>(std::forward<Methods>(methods))] =
+    argumentNamesMap[contractName + "::" + std::get<0>(std::forward<Methods>(methods))] =
         std::get<3>(std::forward<Methods>(methods))),
    ...);
 
@@ -234,7 +249,8 @@ bool inline methodHasArguments(const std::string& methodName) {
     if (!isContractRegistered<Contract>()) {
         throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
     }
-    auto it = argumentNamesMap.find(methodName);
+    std::string realMethodName = Utils::getRealTypeName<Contract>() + "::" + methodName;
+    auto it = argumentNamesMap.find(realMethodName);
     if (it != argumentNamesMap.end()) {
         const std::vector<std::string>& argumentNames = it->second;
         return !argumentNames.empty();
@@ -252,13 +268,13 @@ std::string inline getMethodMutability(const std::string& methodName) {
     if (!isContractRegistered<Contract>()) {
         throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
     }
-    auto it = methodMutabilityMap.find(methodName);
+    std::string realMethodName = Utils::getRealTypeName<Contract>() + "::" + methodName;
+    auto it = methodMutabilityMap.find(realMethodName);
     if (it != methodMutabilityMap.end()) {
         return it->second;
     }
-    throw std::runtime_error("Method " + methodName + " not found");
+    throw std::runtime_error("Method " + realMethodName + " not found");
 }
-
 
 } // namespace ContractReflectionInterface
 
