@@ -62,6 +62,7 @@ class SimpleContract : public DynamicContract {
 
     std::string getName() const;  ///< function getName() public view returns(string memory)
     uint256_t getValue() const;   ///< function getValue() public view returns(uint256)
+    std::tuple<std::string, uint256_t> getNameAndValue() const;
     void setName(const std::string& argName); ///< function setName(string memory argName) public
     void setValue(uint256_t argValue);  ///< function setValue(uint256 argValue) public
 
@@ -79,7 +80,8 @@ class SimpleContract : public DynamicContract {
         std::make_tuple("getName", &SimpleContract::getName, "view", std::vector<std::string>{}),
         std::make_tuple("getValue", &SimpleContract::getValue, "view", std::vector<std::string>{}),
         std::make_tuple("setName", &SimpleContract::setName, "nonpayable", std::vector<std::string>{"argName"}),
-        std::make_tuple("setValue", &SimpleContract::setValue, "nonpayable", std::vector<std::string>{"argValue"})
+        std::make_tuple("setValue", &SimpleContract::setValue, "nonpayable", std::vector<std::string>{"argValue"}),
+        std::make_tuple("getNameAndValue", &SimpleContract::getNameAndValue, "view", std::vector<std::string>{})
       );
     }
 };

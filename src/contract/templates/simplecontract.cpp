@@ -55,11 +55,15 @@ void SimpleContract::setValue(uint256_t argValue) {
   this->value_ = argValue;
 }
 
+std::tuple<std::string, uint256_t> SimpleContract::getNameAndValue() const {
+  return std::make_tuple(this->name_.get(), this->value_.get());
+}
+
 void SimpleContract::registerContractFunctions() {
   registerContract();
   this->registerMemberFunction("getName", &SimpleContract::getName, this);
   this->registerMemberFunction("getValue", &SimpleContract::getValue, this);
   this->registerMemberFunction("setName", &SimpleContract::setName, this);
   this->registerMemberFunction("setValue", &SimpleContract::setValue, this);
+  this->registerMemberFunction("getNameAndValue", &SimpleContract::getNameAndValue, this);
 }
-

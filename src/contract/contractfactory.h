@@ -178,16 +178,11 @@ class ContractFactory {
      */
     template <typename Contract>
     void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc) {
-      std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
-      std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
-      std::ostringstream createFullSignatureStream;
-      createFullSignatureStream << createSignature << "(";
-      if (!args.empty()) {
-        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(createFullSignatureStream, ","));
-        createFullSignatureStream << args.back();
-      }
-      createFullSignatureStream << ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
+      std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
+      // Append args
+      createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
+      createSignature += ")";
+      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
       this->createContractFuncs_[functor.asBytes()] = createFunc;
     }
 

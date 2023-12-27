@@ -36,16 +36,16 @@ void registerContractAndGetData(json &contractData) {
   auto functionData =
       ContractReflectionInterface::getFunctionDataStructure<Contract>();
 
-  for (const auto &constructor : constructorData) {
-    json ctorJson;
-    to_json(ctorJson, constructor);
-    contractData.push_back(ctorJson);
-  }
-  for (const auto &function : functionData) {
-    json funcJson;
-    to_json(funcJson, function);
-    contractData.push_back(funcJson);
-  }
+  // for (const auto &constructor : constructorData) {
+  //   json ctorJson;
+  //   to_json(ctorJson, constructor);
+  //   contractData.push_back(ctorJson);
+  // }
+  // for (const auto &function : functionData) {
+  //   json funcJson;
+  //   to_json(funcJson, function);
+  //   contractData.push_back(funcJson);
+  // }
 }
 
 /**
@@ -131,15 +131,15 @@ template <typename Contract> json getConstructorABI() {
   auto constructorData =
       ContractReflectionInterface::getConstructorDataStructure<Contract>();
   json ctorJsonArray = json::array();
-  for (auto &methodDescription : constructorData) {
-    methodDescription.name =
-        "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
-    methodDescription.type = "function";
-    json ctorJson;
-    to_json(ctorJson, methodDescription);
-    ctorJson["outputs"] = json::array();
-    ctorJsonArray.push_back(ctorJson);
-  }
+  /// for (auto &methodDescription : constructorData) {
+  ///   methodDescription.name =
+  ///       "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
+  ///   methodDescription.type = "function";
+  ///   json ctorJson;
+  ///   to_json(ctorJson, methodDescription);
+  ///   ctorJson["outputs"] = json::array();
+  ///   ctorJsonArray.push_back(ctorJson);
+  /// }
   return ctorJsonArray;
 }
 
