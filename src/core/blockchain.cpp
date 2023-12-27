@@ -13,7 +13,7 @@ Blockchain::Blockchain(std::string blockchainPath) :
   eventManager_(std::make_unique<EventManager>(db_)),
   storage_(std::make_unique<Storage>(db_, options_)),
   rdpos_(std::make_unique<rdPoS>(db_, storage_, p2p_, options_, state_)),
-  state_(std::make_unique<State>(db_, storage_, rdpos_, p2p_, options_)),
+  state_(std::make_unique<State>(db_, storage_, rdpos_, p2p_, options_, eventManager_)),
   p2p_(std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos_, options_, storage_, state_)),
   http_(std::make_unique<HTTPServer>(state_, storage_, p2p_, options_, eventManager_)),
   syncer_(std::make_unique<Syncer>(*this))

@@ -14,10 +14,11 @@ See the LICENSE.txt file in the project root for more information.
 
 ContractManager::ContractManager(
   State* state, const std::unique_ptr<DB>& db,
-  const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
+  const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options,
+  const std::unique_ptr<EventManager>& eventManager
 ) : state_(state), BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
   Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), 0, db),
-  eventManager_(db),
+  eventManager_(eventManager),
   rdpos_(rdpos),
   options_(options),
   factory_(std::make_unique<ContractFactory>(*this)),
@@ -104,12 +105,12 @@ void ContractManager::callContract(const TxBlock& tx, const Hash& blockHash, con
       this->ethCall(callInfo);
     } catch (std::exception &e) {
       this->callLogger_.reset();
-      this->eventManager_.revertEvents();
+      this->eventManager_->revertEvents();
       throw std::runtime_error(e.what());
     }
     this->callLogger_->shouldCommit();
     this->callLogger_.reset();
-    this->eventManager_.commitEvents(tx.hash(), txIndex);
+    this->eventManager_->commitEvents(tx.hash(), txIndex);
     return;
   }
 
@@ -119,12 +120,12 @@ void ContractManager::callContract(const TxBlock& tx, const Hash& blockHash, con
       rdpos_->ethCall(callInfo);
     } catch (std::exception &e) {
       this->callLogger_.reset();
-      this->eventManager_.revertEvents();
+      this->eventManager_->revertEvents();
       throw std::runtime_error(e.what());
     }
     this->callLogger_->shouldCommit();
     this->callLogger_.reset();
-    this->eventManager_.commitEvents(tx.hash(), txIndex);
+    this->eventManager_->commitEvents(tx.hash(), txIndex);
     return;
   }
 
@@ -132,7 +133,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash& blockHash, con
   auto it = this->contracts_.find(to);
   if (it == this->contracts_.end()) {
     this->callLogger_.reset();
-    this->eventManager_.revertEvents();
+    this->eventManager_->revertEvents();
     throw std::runtime_error(std::string(__func__) + "(void): Contract does not exist");
   }
 
@@ -142,7 +143,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash& blockHash, con
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     this->callLogger_.reset();
-    this->eventManager_.revertEvents();
+    this->eventManager_->revertEvents();
     throw std::runtime_error(e.what());
   }
 
@@ -151,7 +152,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash& blockHash, con
   }
   this->callLogger_->shouldCommit();
   this->callLogger_.reset();
-  this->eventManager_.commitEvents(tx.hash(), txIndex);
+  this->eventManager_->commitEvents(tx.hash(), txIndex);
 }
 
 const Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {

@@ -12,9 +12,10 @@ State::State(
   const std::unique_ptr<Storage>& storage,
   const std::unique_ptr<rdPoS>& rdpos,
   const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
-  const std::unique_ptr<Options>& options
+  const std::unique_ptr<Options>& options,
+  const std::unique_ptr<EventManager>& eventManager
 ) : db_(db), storage_(storage), rdpos_(rdpos), p2pManager_(p2pManager), options_(options),
-contractManager_(std::make_unique<ContractManager>(this, db, rdpos, options))
+contractManager_(std::make_unique<ContractManager>(this, db, rdpos, options, eventManager))
 {
   std::unique_lock lock(this->stateMutex_);
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);

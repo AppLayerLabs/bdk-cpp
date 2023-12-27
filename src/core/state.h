@@ -92,6 +92,7 @@ class State {
      * @param rdpos Pointer to the rdPoS object.
      * @param p2pManager Pointer to the P2P connection manager.
      * @param options Pointer to the options singleton.
+     * @param eventManager Pointer to the event manager.
      * @throw std::runtime_error on any database size mismatch.
      */
     State(
@@ -99,7 +100,8 @@ class State {
       const std::unique_ptr<Storage>& storage,
       const std::unique_ptr<rdPoS>& rdpos,
       const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
-      const std::unique_ptr<Options>& options
+      const std::unique_ptr<Options>& options,
+      const std::unique_ptr<EventManager>& eventManager
     );
 
     /// Destructor.

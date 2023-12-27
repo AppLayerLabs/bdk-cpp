@@ -77,10 +77,10 @@ class ContractManager : BaseContract {
     std::unique_ptr<ContractCallLogger> callLogger_;
 
     /**
-     * Event manager object.
+     * Reference pointer to the event manager object.
      * Responsible for maintaining events emitted in contract calls.
      */
-    EventManager eventManager_;
+    const std::unique_ptr<EventManager>& eventManager_;
 
     /// Reference pointer to the rdPoS contract.
     const std::unique_ptr<rdPoS>& rdpos_;
@@ -156,10 +156,12 @@ class ContractManager : BaseContract {
      * @param db Pointer to the database.
      * @param rdpos Pointer to the rdPoS contract.
      * @param options Pointer to the options singleton.
+     * @param eventManager Pointer to the event manager.
      */
     ContractManager(
       State* state, const std::unique_ptr<DB>& db,
-      const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
+      const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options,
+      const std::unique_ptr<EventManager>& eventManager
     );
 
     /// Destructor. Automatically saves contracts to the database before wiping them.
@@ -444,7 +446,7 @@ class ContractManagerInterface {
       if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to emit an event without an active contract call"
       );
-      this->manager_.eventManager_.registerEvent(event);
+      this->manager_.eventManager_->registerEvent(event);
     }
 
     /**

@@ -39,7 +39,7 @@ namespace TContractManager {
         std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
         std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
-        ContractManager contractManager(nullptr, db, rdpos, options);
+        ContractManager contractManager(nullptr, db, rdpos, options, nullptr);
 
         ABI::Encoder::EncVar createNewERC20ContractVars;
         createNewERC20ContractVars.push_back(tokenName);
@@ -97,7 +97,7 @@ namespace TContractManager {
       std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
       std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
-      ContractManager contractManager(nullptr, db, rdpos, options);
+      ContractManager contractManager(nullptr, db, rdpos, options, nullptr);
 
       const auto contractAddress = contractManager.getContracts()[0].second;
       ABI::Encoder::EncVar getBalanceMeVars;
@@ -129,7 +129,7 @@ namespace TContractManager {
         std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
         std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
-        ContractManager contractManager(nullptr, db, rdpos, options);
+        ContractManager contractManager(nullptr, db, rdpos, options, nullptr);
 
         ABI::Encoder::EncVar createNewERC20ContractVars;
         createNewERC20ContractVars.push_back(tokenName);
@@ -199,7 +199,7 @@ namespace TContractManager {
       std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
       std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
-      ContractManager contractManager(nullptr, db, rdpos, options);
+      ContractManager contractManager(nullptr, db, rdpos, options, nullptr);
 
       const auto contractAddress = contractManager.getContracts()[0].second;
       ABI::Encoder::EncVar getBalanceMeVars;
@@ -233,7 +233,7 @@ namespace TContractManager {
         std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
         std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
         std::unique_ptr<rdPoS> rdpos;
-        ContractManager contractManager(nullptr, db, rdpos, options);
+        ContractManager contractManager(nullptr, db, rdpos, options, nullptr);
 
         // Create the contracts
         TxBlock createNewTestThrowATx = TxBlock(
@@ -281,7 +281,7 @@ namespace TContractManager {
       std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
       std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
-      ContractManager contractManager(nullptr, db, rdpos, options);
+      ContractManager contractManager(nullptr, db, rdpos, options, nullptr);
       ABI::Encoder getNumEncA({}, "getNumA()");
       ABI::Encoder getNumEncB({}, "getNumB()");
       ABI::Encoder getNumEncC({}, "getNumC()");

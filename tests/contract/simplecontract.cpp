@@ -37,7 +37,7 @@ void initialize(
   options = std::make_unique<Options>(Options::fromFile(dbName));
   db = std::make_unique<DB>(dbName);
   std::unique_ptr<rdPoS> rdpos;
-  contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options);
+  contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options, nullptr); // TODO: EventManager (replace last nullptr)
 
   if (deleteDB) {
     // Create the contract.
