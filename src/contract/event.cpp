@@ -41,13 +41,13 @@ Event::Event(const std::string& jsonstr) {
   json obj = json::parse(jsonstr);
   this->name_ = obj["name"].get<std::string>();
   this->logIndex_ = obj["logIndex"].get<uint64_t>();
-  this->txHash_ = Hash(obj["txHash"].get<std::string>());
+  this->txHash_ = Hash(Hex::toBytes(obj["txHash"].get<std::string>().substr(2)));
   this->txIndex_ = obj["txIndex"].get<uint64_t>();
-  this->blockHash_ = Hash(obj["blockHash"].get<std::string>());
+  this->blockHash_ = Hash(Hex::toBytes(obj["blockHash"].get<std::string>().substr(2)));
   this->blockIndex_ = obj["blockIndex"].get<uint64_t>();
   this->address_ = Address(obj["address"].get<std::string>(), false);
   this->data_ = obj["data"].get<Bytes>();
-  this->topics_ = obj["topics"].get<std::vector<Bytes>>();
+  for (std::string topic : obj["topics"]) this->topics_.push_back(Hex::toBytes(topic));
   this->anonymous_ = obj["anonymous"].get<bool>();
 }
 
@@ -70,7 +70,8 @@ Bytes Event::encodeTopicParam(BaseTypes& param, ABI::Types type) {
     // and then get the data string without the padding
     // substr(0,32) = offset, substr(32,32) = length, substr(64,end) = data with padding
     BytesArrView lenView = Utils::create_view_span(encRes, 32, 32);
-    uint32_t dataLen = Utils::bytesToUint32(lenView);
+    uint256_t dataLenOri = Utils::bytesToUint256(lenView);
+    uint64_t dataLen = uint64_t(dataLenOri);  // Max real string size IRL is uint64_t anyway
     BytesArrView dataView = Utils::create_view_span(encRes, 64, dataLen);
     ret = Utils::sha3(dataView).asBytes();
   } else {
@@ -80,16 +81,18 @@ Bytes Event::encodeTopicParam(BaseTypes& param, ABI::Types type) {
 }
 
 std::string Event::serialize() {
+  json topicArr = json::array();
+  for (Bytes b : this->topics_) topicArr.push_back(Hex::fromBytes(b, true).get());
   json obj = {
     {"name", this->name_},
     {"logIndex", this->logIndex_},
-    {"txHash", this->txHash_.get()},
+    {"txHash", this->txHash_.hex(true).get()},
     {"txIndex", this->txIndex_},
-    {"blockHash", this->blockHash_.get()},
+    {"blockHash", this->blockHash_.hex(true).get()},
     {"blockIndex", this->blockIndex_},
-    {"address", this->address_.get()},
-    {"data_", this->data_},
-    {"topics_", this->topics_},
+    {"address", this->address_.hex(true).get()},
+    {"data", this->data_},
+    {"topics", topicArr},
     {"anonymous", this->anonymous_}
   };
   return obj.dump();
@@ -115,7 +118,6 @@ std::string Event::serializeForRPC() {
 EventManager::EventManager(const std::unique_ptr<DB>& db) : db_(db) {
   std::vector<DBEntry> allEvents = this->db_->getBatch(DBPrefix::events);
   for (DBEntry& event : allEvents) {
-    std::string data = Utils::bytesToString(event.value); // Convert the database bytes back to a JSON string
     Event e(Utils::bytesToString(event.value)); // Create a new Event object by deserializing the JSON string
     this->events_.push_back(std::move(e)); // Move the object into the list
   }
@@ -125,21 +127,20 @@ EventManager::~EventManager() {
   DBBatch batchedOperations;
   {
     std::unique_lock<std::shared_mutex> lock(this->lock_);
-    while (!this->events_.empty()) {
+    for (auto it = this->events_.begin(); it != this->events_.end(); it++) {
       // Build the key (address + block height + tx index + log index)
-      auto it = this->events_.begin();
       Bytes key = it->getAddress().asBytes();
       key.reserve(key.size() + 8 + 8 + 8);
       Utils::appendBytes(key, Utils::uint64ToBytes(it->getBlockIndex()));
       Utils::appendBytes(key, Utils::uint64ToBytes(it->getTxIndex()));
       Utils::appendBytes(key, Utils::uint64ToBytes(it->getLogIndex()));
-
-      // Serialize the value to a JSON string, insert into the batch and delete from the list
+      // Serialize the value to a JSON string and insert into the batch
       batchedOperations.push_back(key, Utils::stringToBytes(it->serialize()), DBPrefix::events);
-      this->events_.erase(this->events_.begin());
     }
   }
-  this->db_->putBatch(batchedOperations); // Batch save to database
+  // Batch save to database and clear the list
+  this->db_->putBatch(batchedOperations);
+  this->events_.clear();
 }
 
 std::vector<Event> EventManager::getEvents(
@@ -163,8 +164,10 @@ std::vector<Event> EventManager::getEvents(
     if ((fromBlock <= e.getBlockIndex() <= toBlock) && (address != Address() || address == e.getAddress())) {
       if (!topics.empty()) {
         bool hasTopic = false;
-        for (Bytes t : topics) {
-          if (std::find(e.getTopics().begin(), e.getTopics().end(), t) != e.getTopics().end()) hasTopic = true;
+        std::vector<Bytes> eventTopics = e.getTopics();
+        for (size_t i = 0, j = 0;;) {
+          if (j >= eventTopics.size()) { i++; j = 0; if (i >= topics.size()) break; }
+          if (topics.at(i) == eventTopics.at(j)) { hasTopic = true; break; } else j++;
         }
         if (!hasTopic) continue;
       }
@@ -175,8 +178,8 @@ std::vector<Event> EventManager::getEvents(
 
   // Check relevant keys in the database
   for (Bytes key : this->db_->getKeys(DBPrefix::events)) {
-    Address add(Utils::create_view_span(key, 0, 20));
-    uint256_t blockHeight = Utils::bytesToUint256(Utils::create_view_span(key, 20, 52)); // 20 + 32
+    Address add(Utils::create_view_span(key, 0, 20)); // (0, 20) = address, (20, 8) = block height
+    uint64_t blockHeight = Utils::bytesToUint64(Utils::create_view_span(key, 20, 8));
     if ((fromBlock <= blockHeight <= toBlock) && (address != Address() || address == add)) {
       dbKeys.push_back(key);
     }
@@ -184,11 +187,13 @@ std::vector<Event> EventManager::getEvents(
 
   // Get events in the database
   for (DBEntry item : this->db_->getBatch(DBPrefix::events, dbKeys)) {
-    Event e(json::parse(Utils::bytesToString(item.value)));
+    Event e(Utils::bytesToString(item.value));
     if (!topics.empty()) {
       bool hasTopic = false;
-      for (Bytes t : topics) {
-        if (std::find(e.getTopics().begin(), e.getTopics().end(), t) != e.getTopics().end()) hasTopic = true;
+      std::vector<Bytes> eventTopics = e.getTopics();
+      for (size_t i = 0, j = 0;;) {
+        if (j >= eventTopics.size()) { i++; j = 0; if (i >= topics.size()) break; }
+        if (topics.at(i) == eventTopics.at(j)) { hasTopic = true; break; } else j++;
       }
       if (!hasTopic) continue;
     }

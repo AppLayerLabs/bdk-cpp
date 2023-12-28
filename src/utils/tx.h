@@ -49,8 +49,7 @@ class TxBlock {
      * @param chainId The chain ID of the transaction.
      * @param nonce The nonce of the transaction.
      * @param value The value of the transaction.
-     * @param maxPriorityFeePerGas The maximum priority fee per gas of the
-     * transaction.
+     * @param maxPriorityFeePerGas The maximum priority fee per gas of the transaction.
      * @param maxFeePerGas The maximum fee per gas of the transaction.
      * @param gasLimit The gas limit of the transaction.
      * @param privKey The private key used to sign the transaction.

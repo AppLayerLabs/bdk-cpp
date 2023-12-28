@@ -1066,10 +1066,7 @@ namespace Utils {
    * @return The converted span.
    */
    inline BytesArrView create_view_span(const Bytes& vec, size_t start, size_t size) {
-     if (start + size > vec.size()) {
-       throw std::runtime_error("Invalid range for span");
-     }
-
+     if (start + size > vec.size()) throw std::runtime_error("Invalid range for span");
      return BytesArrView(vec.data() + start, size);
    }
 
@@ -1078,8 +1075,7 @@ namespace Utils {
   * @param arr The array to convert.
   * @return The converted span.
   */
-  template<std::size_t N>
-  inline BytesArrMutableView create_span(BytesArr<N>& arr) {
+  template<std::size_t N> inline BytesArrMutableView create_span(BytesArr<N>& arr) {
     return BytesArrMutableView(arr.data(), arr.size());
   }
 

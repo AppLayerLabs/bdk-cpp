@@ -137,7 +137,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash& blockHash, con
     throw std::runtime_error(std::string(__func__) + "(void): Contract does not exist");
   }
 
-  const auto& contract = it->second;
+  const std::unique_ptr<DynamicContract>& contract = it->second;
   this->callLogger_->setContractVars(contract.get(), from, from, value);
   try {
     contract->ethCall(callInfo);

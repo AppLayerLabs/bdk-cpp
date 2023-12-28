@@ -15,9 +15,6 @@
 
 using json = nlohmann::ordered_json;
 
-// TODO: add tests when done
-// TODO: update docs when done
-
 /// Abstraction of a Solidity event.
 class Event {
   private:
@@ -119,7 +116,7 @@ class Event {
       if (!this->anonymous_) return this->topics_[0]; else return Bytes();
     }
 
-    /// Serialize event data to a JSON string.
+    /// Serialize event data from the object to a JSON string.
     std::string serialize();
 
     /**

@@ -19,48 +19,34 @@ See the LICENSE.txt file in the project root for more information.
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 void initialize(
-  std::unique_ptr<Options>& options,
-  std::unique_ptr<DB>& db,
-  std::unique_ptr<ContractManager> &contractManager,
+  std::unique_ptr<Options>& options, std::unique_ptr<DB>& db,
+  std::unique_ptr<ContractManager>& contractManager, std::unique_ptr<EventManager>& eventManager,
   const std::string& dbName,
   const PrivKey& ownerPrivKey,
   const std::string& name,
   const uint256_t& value,
   bool deleteDB = true
 ) {
-  if (deleteDB) {
-    if (std::filesystem::exists(dbName)) {
-      std::filesystem::remove_all(dbName);
-    }
-  }
-
+  // Initialize parameters
+  if (deleteDB && std::filesystem::exists(dbName)) std::filesystem::remove_all(dbName);
   options = std::make_unique<Options>(Options::fromFile(dbName));
   db = std::make_unique<DB>(dbName);
   std::unique_ptr<rdPoS> rdpos;
-  contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options, nullptr); // TODO: EventManager (replace last nullptr)
-
+  eventManager = std::make_unique<EventManager>(db);
+  contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options, eventManager);
+  // Create the contract
   if (deleteDB) {
-    // Create the contract.
     ABI::Encoder::EncVar createNewSimpleContractVars;
     createNewSimpleContractVars.push_back(name);
     createNewSimpleContractVars.push_back(value);
     ABI::Encoder createNewSimpleContractEncoder(createNewSimpleContractVars);
     Bytes createNewSimpleContractData = Hex::toBytes("0x6de23252"); // createNewSimpleContractContract(string,uint256)
     Utils::appendBytes(createNewSimpleContractData, createNewSimpleContractEncoder.getData());
-
     TxBlock createNewSimpleContractTx = TxBlock(
       ProtocolContractAddresses.at("ContractManager"),
       Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey)),
-      createNewSimpleContractData,
-      8080,
-      0,
-      0,
-      0,
-      0,
-      0,
-      ownerPrivKey
+      createNewSimpleContractData, 8080, 0, 0, 0, 0, 0, ownerPrivKey
     );
-
     contractManager->callContract(createNewSimpleContractTx);
   }
 }
@@ -76,7 +62,10 @@ namespace TSimpleContract {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        initialize(options, db, contractManager, testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581);
+        std::unique_ptr<EventManager> eventManager;
+        initialize(options, db, contractManager, eventManager,
+          testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581
+        );
 
         // Get the contract address.
         contractAddress = contractManager->getContracts()[0].second;
@@ -97,7 +86,10 @@ namespace TSimpleContract {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      initialize(options, db, contractManager,  testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581, false);
+      std::unique_ptr<EventManager> eventManager;
+      initialize(options, db, contractManager, eventManager,
+        testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581, false
+      );
 
       REQUIRE(contractAddress == contractManager->getContracts()[0].second);
 
@@ -120,7 +112,10 @@ namespace TSimpleContract {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        initialize(options, db, contractManager, testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581);
+        std::unique_ptr<EventManager> eventManager;
+        initialize(options, db, contractManager, eventManager,
+          testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581
+        );
 
         // Get the contract address.
         contractAddress = contractManager->getContracts()[0].second;
@@ -145,34 +140,13 @@ namespace TSimpleContract {
         Utils::appendBytes(setValueBytes, setValueEncoder.getFunctor().get());
         Utils::appendBytes(setValueBytes, setValueEncoder.getData());
 
-        TxBlock setNameTx(
-          contractAddress,
-          owner,
-          setNameBytes,
-          8080,
-          0,
-          0,
-          0,
-          0,
-          0,
-          ownerPrivKey
-        );
+        TxBlock setNameTx(contractAddress, owner, setNameBytes, 8080, 0, 0, 0, 0, 0, ownerPrivKey);
+        TxBlock setValueTx(contractAddress, owner, setValueBytes, 8080, 0, 0, 0, 0, 0, ownerPrivKey);
 
-        TxBlock setValueTx(
-          contractAddress,
-          owner,
-          setValueBytes,
-          8080,
-          0,
-          0,
-          0,
-          0,
-          0,
-          ownerPrivKey
-        );
-
-        contractManager->callContract(setNameTx);
-        contractManager->callContract(setValueTx);
+        // Simulating a block so events can have separated keys (block height + tx index + log index).
+        Hash randomBlockHash = Hash::random();
+        contractManager->callContract(setNameTx, randomBlockHash, 0);
+        contractManager->callContract(setValueTx, randomBlockHash, 1);
 
         nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameEncoder.getFunctor(), getNameEncoder.getData()));
         valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueEncoder.getFunctor(), getValueEncoder.getData()));
@@ -182,12 +156,43 @@ namespace TSimpleContract {
 
         REQUIRE(nameDecoder.getData<std::string>(0) == "TryThisName");
         REQUIRE(valueDecoder.getData<uint256_t>(0) == uint256_t("918258172319061203818967178162134821351"));
+
+        Event nameEvent = eventManager->getEvents(
+          0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
+        ).at(0);
+
+        REQUIRE(nameEvent.getName() == "nameChanged");
+        REQUIRE(nameEvent.getLogIndex() == 0);
+        REQUIRE(nameEvent.getTxHash() == setNameTx.hash());
+        REQUIRE(nameEvent.getTxIndex() == 0);
+        REQUIRE(nameEvent.getBlockIndex() == 0);
+        REQUIRE(nameEvent.getAddress() == contractAddress);
+        REQUIRE(nameEvent.getData() == Bytes());
+        REQUIRE(nameEvent.getTopics().at(1) == Utils::sha3(Utils::stringToBytes("TryThisName"))); // at(0) = functor (non-anonymous)
+        REQUIRE(!nameEvent.isAnonymous());
+
+        Event valueEvent = eventManager->getEvents(
+          0, 1, contractAddress, { Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
+        ).at(0);
+
+        REQUIRE(valueEvent.getName() == "valueChanged");
+        REQUIRE(valueEvent.getLogIndex() == 0);
+        REQUIRE(valueEvent.getTxHash() == setValueTx.hash());
+        REQUIRE(valueEvent.getTxIndex() == 1);
+        REQUIRE(valueEvent.getBlockIndex() == 0);
+        REQUIRE(valueEvent.getAddress() == contractAddress);
+        REQUIRE(valueEvent.getData() == Bytes());
+        REQUIRE(valueEvent.getTopics().at(1) == Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)); // at(0) = functor (non-anonymous)
+        REQUIRE(!valueEvent.isAnonymous());
       }
 
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      initialize(options, db, contractManager, testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581, false);
+      std::unique_ptr<EventManager> eventManager;
+      initialize(options, db, contractManager, eventManager,
+        testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581, false
+      );
 
       REQUIRE(contractAddress == contractManager->getContracts()[0].second);
 
@@ -202,6 +207,33 @@ namespace TSimpleContract {
 
       REQUIRE(nameDecoder.getData<std::string>(0) == "TryThisName");
       REQUIRE(valueDecoder.getData<uint256_t>(0) == uint256_t("918258172319061203818967178162134821351"));
+
+      // No tx hash here but it was already tested before
+      Event nameEvent = eventManager->getEvents(
+        0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
+      ).at(0);
+
+      REQUIRE(nameEvent.getName() == "nameChanged");
+      REQUIRE(nameEvent.getLogIndex() == 0);
+      REQUIRE(nameEvent.getTxIndex() == 0);
+      REQUIRE(nameEvent.getBlockIndex() == 0);
+      REQUIRE(nameEvent.getAddress() == contractAddress);
+      REQUIRE(nameEvent.getData() == Bytes());
+      REQUIRE(nameEvent.getTopics().at(1) == Utils::sha3(Utils::stringToBytes("TryThisName"))); // at(0) = functor (non-anonymous)
+      REQUIRE(!nameEvent.isAnonymous());
+
+      Event valueEvent = eventManager->getEvents(
+        0, 1, contractAddress, { Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
+      ).at(0);
+
+      REQUIRE(valueEvent.getName() == "valueChanged");
+      REQUIRE(valueEvent.getLogIndex() == 0);
+      REQUIRE(valueEvent.getTxIndex() == 1);
+      REQUIRE(valueEvent.getBlockIndex() == 0);
+      REQUIRE(valueEvent.getAddress() == contractAddress);
+      REQUIRE(valueEvent.getData() == Bytes());
+      REQUIRE(valueEvent.getTopics().at(1) == Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)); // at(0) = functor (non-anonymous)
+      REQUIRE(!valueEvent.isAnonymous());
     }
   }
 }
