@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define CONTRACTREFLECTIONINTERFACE_H
 
 #include "contract/abi.h"
+#include <unordered_set>
 
 /**
  * This namespace contains the reflection interface for the contract
@@ -19,10 +20,6 @@ See the LICENSE.txt file in the project root for more information.
  * getConstructorArgumentTypesString<TContract>() -> By ContractFactory and ContractManager, to get the list of constructor argument types .e.g "uint256,uint256"
  * getMethodMutability<TContract>(methodName) -> By the DynamicContract* class, after derived class calling registerMemberFunction(), to get the mutability of the method
  * isContractRegistered<TContract>() -> By ContractFactory and ContractManager, to check if the contract is registered
- * These functions only access the following mappings
- * registeredContractsMap -> To check if the contract is registered (by isContractRegistered<TContract>())
- * methodMutabilityMap -> To get the mutability of a method (by getMethodMutability<TContract>(methodName))
- * getConstructorArgumentTypesString<TContract>() derives from TContract::ConstructorArguments to get the constructor argument types, no access to mappings
  * The remaining functions and mapping are accessed for JSON ABI purposes only
  * TODO: Add support for overloaded methods! This will require a change in the mappings and templates...
  */
@@ -33,14 +30,8 @@ namespace ContractReflectionInterface {
 extern std::unordered_map<std::string, bool> registeredContractsMap; ///< Map of registered contracts.
 /// Key (ClassName) -> Value (std::vector<std::string>) (ConstructorArgumentNames)
 extern std::unordered_map<std::string, std::vector<std::string>> constructorArgumentNamesMap; /// Map to store constructor argument names
-/// Key (ClassName) -> Key (MethodName) -> Value (Mutability) ("view", "nonpayable", "payable")
-extern std::unordered_map<std::string, std::unordered_map<std::string, std::string>> methodMutabilityMap; //// Map to store method mutability
-/// Key (ClassName) -> Key (MethodName) -> Value (std::vector<std::string>) (ArgumentNames)
-extern std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> argumentNamesMap; /// Map to store method argument names
-/// Key (ClassName) -> Key (MethodName) -> Value (std::string) (ArgumentTypes, Single string, separated by comma ",", no spaces, () for tuples, [] for arrays).
-extern std::unordered_map<std::string, std::unordered_map<std::string, std::string>> methodArgumentsTypesMap; ///< Map to store method argument types
-/// Key (ClassName) -> Key (MethodName) -> Value (std::string) (ReturnTypes, same as ArgumentTypes)
-extern std::unordered_map<std::string, std::unordered_map<std::string, std::string>> methodReturnTypesMap; ///< Map of method return types.
+/// Key (ClassName) -> Value (std::unordered_set<ABI::MethodDescription>) (MethodDescriptions) methodDescriptionsMap has all the information needed to generate the JSON ABI
+extern std::unordered_map<std::string, std::unordered_map<std::string, ABI::MethodDescription>> methodDescriptionsMap; ///< Map to store method descriptions.
 
 /** Helper struct to extract the Args... from a function pointer */
 
@@ -52,12 +43,11 @@ template <typename TContract, typename R>
 struct populateMethodTypesMapHelper<R(TContract::*)()> {
   using ReturnType = R;
   using ClassType = TContract;
-  static std::string getFunctionArgs(const std::initializer_list<std::string>& args) {
-    static_assert(args.size() == 0, "CRI: Wrong number of arguments");
-    return "";
+  static std::vector<std::string> getFunctionArgs() {
+    return {};
   }
-  static std::string getFunctionRets() {
-    return ABI::FunctorEncoder::listArgumentTypes<R>();
+  static std::vector<std::string> getFunctionRets() {
+    return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
@@ -66,12 +56,11 @@ template <typename TContract, typename R>
 struct populateMethodTypesMapHelper<R(TContract::*)() const> {
   using ReturnType = R;
   using ClassType = TContract;
-  static std::string getFunctionArgs(const std::initializer_list<std::string>& args) {
-    static_assert(args.size() == 0, "CRI: Wrong number of arguments");
-    return "";
+  static std::vector<std::string> getFunctionArgs() {
+    return {};
   }
-  static std::string getFunctionRets() {
-    return ABI::FunctorEncoder::listArgumentTypes<R>();
+  static std::vector<std::string> getFunctionRets() {
+    return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
@@ -80,12 +69,11 @@ template <typename TContract, typename R, typename... Args>
 struct populateMethodTypesMapHelper<R(TContract::*)(Args...)> {
   using ReturnType = R;
   using ClassType = TContract;
-  static std::string getFunctionArgs(const std::initializer_list<std::string>& args) {
-    static_assert(sizeof...(Args) == args.size(), "CRI: Wrong number of arguments");
-    return ABI::FunctorEncoder::listArgumentTypes<Args...>();
+  static std::vector<std::string> getFunctionArgs() {
+    return ABI::FunctorEncoder::listArgumentTypesV<Args...>();
   }
-  static std::string getFunctionRets() {
-    return ABI::FunctorEncoder::listArgumentTypes<R>();
+  static std::vector<std::string> getFunctionRets() {
+    return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
@@ -94,12 +82,11 @@ template <typename TContract, typename R, typename... Args>
 struct populateMethodTypesMapHelper<R(TContract::*)(Args...) const> {
   using ReturnType = R;
   using ClassType = TContract;
-  static std::string getFunctionArgs(const std::initializer_list<std::string>& args) {
-    static_assert(sizeof...(Args) == args.size(), "CRI: Wrong number of arguments");
-    return ABI::FunctorEncoder::listArgumentTypes<Args...>();
+  static std::vector<std::string> getFunctionArgs() {
+    return ABI::FunctorEncoder::listArgumentTypesV<Args...>();
   }
-  static std::string getFunctionRets() {
-    return ABI::FunctorEncoder::listArgumentTypes<R>();
+  static std::vector<std::string> getFunctionRets() {
+    return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
@@ -108,12 +95,11 @@ template <typename TContract, typename R, typename... Args>
 struct populateMethodTypesMapHelper<R(TContract::*)(const Args&...)> {
   using ReturnType = R;
   using ClassType = TContract;
-  static std::string getFunctionArgs(const std::initializer_list<std::string>& args) {
-    static_assert(sizeof...(Args) == args.size(), "CRI: Wrong number of arguments");
-    return ABI::FunctorEncoder::listArgumentTypes<Args...>();
+  static std::vector<std::string> getFunctionArgs() {
+    return ABI::FunctorEncoder::listArgumentTypesV<Args...>();
   }
-  static std::string getFunctionRets() {
-    return ABI::FunctorEncoder::listArgumentTypes<R>();
+  static std::vector<std::string> getFunctionRets() {
+    return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
@@ -122,12 +108,11 @@ template <typename TContract, typename R, typename... Args>
 struct populateMethodTypesMapHelper<R(TContract::*)(const Args&...) const> {
   using ReturnType = R;
   using ClassType = TContract;
-  static std::string getFunctionArgs(const std::initializer_list<std::string>& args) {
-    static_assert(sizeof...(Args) == args.size(), "CRI: Wrong number of arguments");
-    return ABI::FunctorEncoder::listArgumentTypes<Args...>();
+  static std::vector<std::string> getFunctionArgs() {
+    return ABI::FunctorEncoder::listArgumentTypesV<Args...>();
   }
-  static std::string getFunctionRets() {
-    return ABI::FunctorEncoder::listArgumentTypes<R>();
+  static std::vector<std::string> getFunctionRets() {
+    return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
@@ -136,10 +121,24 @@ struct populateMethodTypesMapHelper<R(TContract::*)(const Args&...) const> {
  * @tparam TContract The contract type.
  */
 template <typename TContract>
-void inline populateMethodTypesMap(const std::string& functionName, const std::string& functionArgs, const std::string& funcRets) {
+void inline populateMethodTypesMap(const std::string& functionName,
+                                   const std::string& methodMutability,
+                                   const std::vector<std::string>& functionArgs,
+                                   const std::vector<std::string>& functionArgsNames,
+                                   const std::vector<std::string>& funcRets) {
   std::string contractName = Utils::getRealTypeName<TContract>();
-  methodArgumentsTypesMap[contractName][functionName] = functionArgs;
-  methodReturnTypesMap[contractName][functionName] = funcRets;
+  ABI::MethodDescription methodDescription;
+  methodDescription.name = functionName;
+  for (uint64_t i = 0; i < functionArgs.size(); i++) {
+    std::pair<std::string, std::string> argumentDescription;
+    argumentDescription.first = functionArgs[i];
+    argumentDescription.second = (functionArgsNames.size() > i) ? functionArgsNames[i] : "";
+    methodDescription.inputs.push_back(argumentDescription);
+  }
+  methodDescription.outputs = funcRets;
+  methodDescription.stateMutability = methodMutability;
+  methodDescription.type = "function";
+  methodDescriptionsMap[contractName][functionName] = methodDescription;
 }
 
 /**
@@ -174,15 +173,13 @@ void inline registerContract(const std::vector<std::string> &ctorArgs,
   std::string contractName = Utils::getRealTypeName<TContract>();
   // Store constructor argument names in the constructorArgumenqtNamesMap
   constructorArgumentNamesMap[contractName] = ctorArgs;
-  // Register methods and store the stateMutability string and argument names
-  ((methodMutabilityMap[contractName][std::get<0>(std::forward<Methods>(methods))] =
-        std::get<2>(std::forward<Methods>(methods)),
-    argumentNamesMap[contractName][std::get<0>(std::forward<Methods>(methods))] =
-        std::get<3>(std::forward<Methods>(methods))),
-   ...);
 
+
+  // Register the methods
   ((populateMethodTypesMap<TContract>(std::get<0>(methods),
-    populateMethodTypesMapHelper<std::decay_t<decltype(std::get<1>(methods))>>::getFunctionArgs(std::get<3>(std::forward<Methods>(methods))),
+    std::get<2>(methods),
+    populateMethodTypesMapHelper<std::decay_t<decltype(std::get<1>(methods))>>::getFunctionArgs(),
+    std::get<3>(methods),
     populateMethodTypesMapHelper<std::decay_t<decltype(std::get<1>(methods))>>::getFunctionRets())), ...);
 
   registeredContractsMap[Utils::getRealTypeName<TContract>()] = true;
@@ -216,6 +213,22 @@ ABI::MethodDescription inline getConstructorDataStructure() {
   }
   /// Derive from Contract::ConstructorArguments to get the constructor
   ABI::MethodDescription constructorDescription;
+  auto constructorArgs = ABI::FunctorEncoder::listArgumentTypesVFromTuple<typename Contract::ConstructorArguments>();
+  auto constructorArgsNames = constructorArgumentNamesMap[Utils::getRealTypeName<Contract>()];
+  if (constructorArgs.size() != constructorArgsNames.size()) {
+    throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " constructor argument names not registered, wanted: " +
+    std::to_string(constructorArgs.size()) + " got: " + std::to_string(constructorArgsNames.size()));
+  }
+  std::vector<std::pair<std::string,std::string>> constructorArgsDescription;
+  for (uint64_t i = 0; i < constructorArgs.size(); i++) {
+    constructorArgsDescription.push_back({constructorArgs[i], constructorArgsNames[i]});
+  }
+
+  constructorDescription.name = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
+  constructorDescription.inputs = constructorArgsDescription;
+  constructorDescription.outputs = {};
+  constructorDescription.stateMutability = "nonpayable";
+  constructorDescription.type = "function";
   return constructorDescription;
 }
 
@@ -225,8 +238,14 @@ ABI::MethodDescription inline getConstructorDataStructure() {
  * @return The function ABI data structure.
  */
 template <typename Contract>
-std::vector<ABI::MethodDescription> inline getFunctionDataStructure() {
+std::vector<ABI::MethodDescription> inline getFunctionsDataStructure() {
+  if (!isContractRegistered<Contract>()) {
+    throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
+  }
   std::vector<ABI::MethodDescription> descriptions;
+  for (const auto& [methodName, methodDescription] : methodDescriptionsMap[Utils::getRealTypeName<Contract>()]) {
+    descriptions.push_back(methodDescription);
+  }
   return descriptions;
 }
 
@@ -241,12 +260,13 @@ std::string inline getMethodMutability(const std::string& methodName) {
     throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
   }
   std::string contractName = Utils::getRealTypeName<Contract>();
-  auto cIt = methodMutabilityMap.find(contractName);
-  if (cIt != methodMutabilityMap.end()) {
+  auto cIt = methodDescriptionsMap.find(contractName);
+  if (cIt != methodDescriptionsMap.end()) {
     const auto& methodMaps = cIt->second;
+    /// Construct a empty method description with the name of the method
     auto mIt = methodMaps.find(methodName);
     if (mIt != methodMaps.end()) {
-        return mIt->second;
+        return mIt->second.stateMutability;
     }
   }
   throw std::runtime_error("Method " + contractName + "::" + methodName + " not found");

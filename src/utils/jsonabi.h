@@ -11,17 +11,58 @@ See the LICENSE.txt file in the project root for more information.
 #include "../contract/customcontracts.h"
 #include "contractreflectioninterface.h"
 #include "utils.h" //nlohmann/json.hpp
+#include <boost/algorithm/string/split.hpp>
 
 /// Namespace for managing and converting contract ABI data to JSON format.
 namespace JsonAbi {
 
+
+/**
+ * Tell if a type contained within std::string is a tuple
+ */
+bool isTuple(const std::string &type);
+
+/**
+ * Tell if a type contained within std::string is a array
+ */
+bool isArray(const std::string &type);
+
+/**
+ * Extract the types of a tuple contained within std::string
+ * @param type The type to extract the tuple types from.
+ * @return A vector containing the types of the tuple.
+ */
+std::vector<std::string> getTupleTypes(const std::string &type);
+
+/**
+ * Create the JSON "components" object for a tuple type.
+ * @param tupleTypes The types of the tuple.
+ * @return a json array containing the components of the tuple.
+ */
+
+json handleTupleComponents(const std::vector<std::string> &tupleTypes);
+
+/**
+ * Parse a given method input to a JSON object
+ * @param inputDescription The input description of the method. pair<type,name>
+ * Be aware that tuple types are concatenated into the string itself.
+ */
+json parseMethodInput(const std::vector<std::pair<std::string,std::string>> &inputDescription);
+
+/**
+ * Parse a given method output to a JSON Object
+ * @param outputDescription The output description of the method.
+ * Be aware that tuple types are concatenated into the string itself.
+ */
+json parseMethodOutput(const std::vector<std::string> &outputDescription);
+
+
 /**
  * This function converts a MethodDescription object to JSON format.
- * @param jsonObject The JSON object to convert to.
  * @param description The MethodDescription object to convert.
+ * @return The JSON object.
  */
-void to_json(json &jsonObject,
-                    const ABI::MethodDescription &description);
+json methodToJSON(const ABI::MethodDescription &description);
 
 /**
  * This function registers a contract and gets the contract data in JSON format.
@@ -31,21 +72,10 @@ void to_json(json &jsonObject,
 template <typename Contract>
 void registerContractAndGetData(json &contractData) {
   Contract::registerContract();
-  auto constructorData =
-      ContractReflectionInterface::getConstructorDataStructure<Contract>();
-  auto functionData =
-      ContractReflectionInterface::getFunctionDataStructure<Contract>();
-
-  // for (const auto &constructor : constructorData) {
-  //   json ctorJson;
-  //   to_json(ctorJson, constructor);
-  //   contractData.push_back(ctorJson);
-  // }
-  // for (const auto &function : functionData) {
-  //   json funcJson;
-  //   to_json(funcJson, function);
-  //   contractData.push_back(funcJson);
-  // }
+  auto functionData = ContractReflectionInterface::getFunctionsDataStructure<Contract>();
+  for (const auto &function : functionData) {
+    contractData.push_back(methodToJSON(function));
+  }
 }
 
 /**
@@ -128,19 +158,8 @@ template <typename Contract> struct ContractWriter {
  * @return An array of JSON objects containing the ABI functions
  */
 template <typename Contract> json getConstructorABI() {
-  auto constructorData =
-      ContractReflectionInterface::getConstructorDataStructure<Contract>();
-  json ctorJsonArray = json::array();
-  /// for (auto &methodDescription : constructorData) {
-  ///   methodDescription.name =
-  ///       "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
-  ///   methodDescription.type = "function";
-  ///   json ctorJson;
-  ///   to_json(ctorJson, methodDescription);
-  ///   ctorJson["outputs"] = json::array();
-  ///   ctorJsonArray.push_back(ctorJson);
-  /// }
-  return ctorJsonArray;
+  auto constructorData = ContractReflectionInterface::getConstructorDataStructure<Contract>();
+  return JsonAbi::methodToJSON(constructorData);
 }
 
 /**
@@ -152,10 +171,8 @@ template <typename Contract> json getConstructorABI() {
 template <typename ContractTuple, std::size_t N>
 std::enable_if_t<(N < std::tuple_size<ContractTuple>::value)>
 getConstructorsABI(json &abis) {
-  json ctors = getConstructorABI<std::tuple_element_t<N, ContractTuple>>();
-  for (json::iterator it = ctors.begin(); it != ctors.end(); ++it) {
-    abis.push_back(*it);
-  }
+  json ctor = getConstructorABI<std::tuple_element_t<N, ContractTuple>>();
+  abis.push_back(ctor);
   if constexpr (N + 1 < std::tuple_size<ContractTuple>::value) {
     getConstructorsABI<ContractTuple, N + 1>(abis);
   }

@@ -20,8 +20,10 @@ namespace ABI {
   /// Struct for the contract ABI object.
   struct MethodDescription {
     std::string name; ///< Name of the method.
-    std::vector<std::pair<std::string, std::string>> inputs; ///< Vector of pairs of input names and types. Types encoded with ABI::FunctorEncoder::listArgumentTypes.
-    std::vector<std::pair<std::string, std::string>> outputs; ///< Vector of pairs of output names and types. Types encoded with ABI::FunctorEncoder::listArgumentTypes.
+    std::vector<std::pair<std::string,std::string>> inputs; ///< Vector of pairs of input names and types. Types encoded with ABI::FunctorEncoder::listArgumentTypesV,
+                                                            ///< if the arg name is missing it will be replaced with an empty string.
+                                                            ///< Tuples are encoded as (type1,type2,...,typeN), runtime splitting is required.
+    std::vector<std::string> outputs; ///< Vector of output types (there is no naming). Types encoded with ABI::FunctorEncoder::listArgumentTypesV.
     std::string stateMutability; ///< State mutability of the method.
     std::string type; ///< Type of the method.
   };
@@ -228,6 +230,28 @@ namespace ABI {
         result.pop_back(); // Remove the last comma
       }
       return result;
+    }
+
+    // Specialization for function types (return std::vector instead of std::string)
+    template<typename... Args>
+    static std::vector<std::string> listArgumentTypesV() {
+      std::vector<std::string> result;
+      ((result.emplace_back(TypeName<std::decay_t<Args>>::get())), ...);
+      return result;
+    }
+
+    // Specializations for function types (return std::vector instead of std::string)
+    // Ignores the first std::tuple, extracting the rest of the types
+    // Helper to unpack tuple and call listArgumentTypesV
+    template<typename Tuple, std::size_t... I>
+    static std::vector<std::string> unpackTupleAndListTypesV(std::index_sequence<I...>) {
+      return listArgumentTypesV<std::tuple_element_t<I, Tuple>...>();
+    }
+
+    // Function to start unpacking process
+    template<typename Tuple>
+    static std::vector<std::string> listArgumentTypesVFromTuple() {
+      return unpackTupleAndListTypesV<Tuple>(std::make_index_sequence<std::tuple_size_v<Tuple>>{});
     }
 
     // Specialization for function types
