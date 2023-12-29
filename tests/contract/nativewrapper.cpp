@@ -90,10 +90,10 @@ namespace TNativeWrapper {
         Bytes decimalsEncoder = Bytes(32, 0);
         Bytes totalSupplyEncoder = Bytes(32, 0);
 
-        Functor nameFunctor = ABI::Encoder::encodeFunction("name()");
-        Functor symbolFunctor = ABI::Encoder::encodeFunction("symbol()");
-        Functor decimalsFunctor = ABI::Encoder::encodeFunction("decimals()");
-        Functor totalSupplyFunctor = ABI::Encoder::encodeFunction("totalSupply()");
+        Functor nameFunctor = ABI::FunctorEncoder::encode<void>("name");
+        Functor symbolFunctor = ABI::FunctorEncoder::encode<void>("symbol");
+        Functor decimalsFunctor = ABI::FunctorEncoder::encode<void>("decimals");
+        Functor totalSupplyFunctor = ABI::FunctorEncoder::encode<void>("totalSupply");
 
         Bytes nameData = state->ethCall(buildCallInfo(contractAddress, nameFunctor, nameEncoder));
 
@@ -130,10 +130,10 @@ namespace TNativeWrapper {
       Bytes decimalsEncoder = Bytes(32, 0);
       Bytes totalSupplyEncoder = Bytes(32, 0);
 
-      Functor nameFunctor = ABI::Encoder::encodeFunction("name()");
-      Functor symbolFunctor = ABI::Encoder::encodeFunction("symbol()");
-      Functor decimalsFunctor = ABI::Encoder::encodeFunction("decimals()");
-      Functor totalSupplyFunctor = ABI::Encoder::encodeFunction("totalSupply()");
+      Functor nameFunctor = ABI::FunctorEncoder::encode<void>("name");
+      Functor symbolFunctor = ABI::FunctorEncoder::encode<void>("symbol");
+      Functor decimalsFunctor = ABI::FunctorEncoder::encode<void>("decimals");
+      Functor totalSupplyFunctor = ABI::FunctorEncoder::encode<void>("totalSupply");
 
       Bytes nameData = state->ethCall(buildCallInfo(contractAddress, nameFunctor, nameEncoder));
 
@@ -220,7 +220,7 @@ namespace TNativeWrapper {
         REQUIRE(state->getNativeBalance(owner) == uint256_t("1000000000000000000000") - amountToTransfer - (uint256_t(1000000000) * 21000));
 
         Bytes balanceOfEncoder = ABI::Encoder::encodeData(owner);
-        Functor balanceOfFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor balanceOfFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
         Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor, balanceOfEncoder));
 
         auto balanceOfDecoder = ABI::Decoder::decodeData<uint256_t>(balanceOfData);
@@ -241,7 +241,7 @@ namespace TNativeWrapper {
       REQUIRE(state->getNativeBalance(owner) == uint256_t("1000000000000000000000") - amountToTransfer - (uint256_t(1000000000) * 21000));
 
       Bytes balanceOfEncoder = ABI::Encoder::encodeData(owner);
-      Functor balanceOfFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor balanceOfFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
       Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor, balanceOfEncoder));
 
       auto balanceOfDecoder = ABI::Decoder::decodeData<uint256_t>(balanceOfData);
@@ -313,7 +313,7 @@ namespace TNativeWrapper {
                 uint256_t("1000000000000000000000") - amountToTransfer - (uint256_t(1000000000) * 21000));
 
         Bytes balanceOfEncoder = ABI::Encoder::encodeData(owner);
-        Functor balanceOfFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor balanceOfFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
         Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor, balanceOfEncoder));
 
         auto balanceOfDecoder = ABI::Decoder::decodeData<uint256_t>(balanceOfData);
@@ -344,7 +344,7 @@ namespace TNativeWrapper {
                 uint256_t("1000000000000000000000") - amountToTransfer + amountToWithdraw - (uint256_t(1000000000) * 21000 * 2));
 
         Bytes balanceOfEncoder2 = ABI::Encoder::encodeData(owner);
-        Functor balanceOfFunctor2 = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor balanceOfFunctor2 = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
         Bytes balanceOfData2 = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor2, balanceOfEncoder2));
 
@@ -367,7 +367,7 @@ namespace TNativeWrapper {
               uint256_t("1000000000000000000000") - amountToTransfer + amountToWithdraw - (uint256_t(1000000000) * 21000 * 2));
 
       Bytes balanceOfEncoder = ABI::Encoder::encodeData(owner);
-      Functor balanceOfFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor balanceOfFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
       Bytes balanceOfData = state->ethCall(buildCallInfo(contractAddress, balanceOfFunctor, balanceOfEncoder));
 

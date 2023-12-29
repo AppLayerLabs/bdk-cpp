@@ -133,7 +133,7 @@ namespace TERC20Wrapper {
         }
 
         Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, wrapperAddress);
-        Functor getAllowanceFunctor = ABI::Encoder::encodeFunction("allowance(address,address)");
+        Functor getAllowanceFunctor = ABI::FunctorEncoder::encode<Address, Address>("allowance");
 
         Bytes depositEncoder = ABI::Encoder::encodeData(erc20Address, static_cast<uint256_t>(500000000000000000));
         Bytes depositData = Hex::toBytes("0x47e7ef24");
@@ -186,7 +186,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getAllowanceDecoder2) == 0);
 
         Bytes getContractBalanceEncoder = ABI::Encoder::encodeData(erc20Address);
-        Functor getContractBalanceFunctor = ABI::Encoder::encodeFunction("getContractBalance(address)");
+        Functor getContractBalanceFunctor = ABI::FunctorEncoder::encode<Address>("getContractBalance");
 
         Bytes getContractBalanceResult = contractManager->callContract(
           buildCallInfo(wrapperAddress, getContractBalanceFunctor, getContractBalanceEncoder));
@@ -195,7 +195,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getContractBalanceDecoder) == 500000000000000000);
 
         Bytes getUserBalanceEncoder = ABI::Encoder::encodeData(erc20Address, owner);
-        Functor getUserBalanceFunctor = ABI::Encoder::encodeFunction("getUserBalance(address,address)");
+        Functor getUserBalanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("getUserBalance");
 
         Bytes getUserBalanceResult = contractManager->callContract(
           buildCallInfo(wrapperAddress, getUserBalanceFunctor, getUserBalanceEncoder));
@@ -204,7 +204,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getUserBalanceDecoder) == 500000000000000000);
 
         Bytes getBalanceEncoder = ABI::Encoder::encodeData(owner);
-        Functor getBalanceFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor getBalanceFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
         Bytes getBalanceResult = contractManager->callContract(
           buildCallInfo(erc20Address, getBalanceFunctor, getBalanceEncoder));
@@ -213,7 +213,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getBalanceDecoder) == 500000000000000000);
 
         Bytes getBalanceWrapperEncoder = ABI::Encoder::encodeData(wrapperAddress);
-        Functor getBalanceWrapperFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor getBalanceWrapperFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
         Bytes getBalanceWrapperResult = contractManager->callContract(
           buildCallInfo(erc20Address, getBalanceWrapperFunctor, getBalanceWrapperEncoder));
@@ -229,7 +229,7 @@ namespace TERC20Wrapper {
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, wrapperAddress);
-      Functor getAllowanceFunctor = ABI::Encoder::encodeFunction("allowance(address,address)");
+      Functor getAllowanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("allowance");
 
       Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
 
@@ -237,7 +237,7 @@ namespace TERC20Wrapper {
       REQUIRE(std::get<0>(getAllowanceDecoder) == 0);
 
       Bytes getContractBalanceEncoder = ABI::Encoder::encodeData(erc20Address);
-      Functor getContractBalanceFunctor = ABI::Encoder::encodeFunction("getContractBalance(address)");
+      Functor getContractBalanceFunctor = ABI::FunctorEncoder::encode<Address>("getContractBalance");
 
       Bytes getContractBalanceResult = contractManager->callContract(buildCallInfo(wrapperAddress, getContractBalanceFunctor, getContractBalanceEncoder));
 
@@ -245,7 +245,7 @@ namespace TERC20Wrapper {
       REQUIRE(std::get<0>(getContractBalanceDecoder) == 500000000000000000);
 
       Bytes getUserBalanceEncoder = ABI::Encoder::encodeData(erc20Address, owner);
-      Functor getUserBalanceFunctor = ABI::Encoder::encodeFunction("getUserBalance(address,address)");
+      Functor getUserBalanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("getUserBalance");
 
       Bytes getUserBalanceResult = contractManager->callContract(buildCallInfo(wrapperAddress, getUserBalanceFunctor, getUserBalanceEncoder));
 
@@ -253,7 +253,7 @@ namespace TERC20Wrapper {
       REQUIRE(std::get<0>(getUserBalanceDecoder) == 500000000000000000);
 
       Bytes getBalanceEncoder = ABI::Encoder::encodeData(owner);
-      Functor getBalanceFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
       Bytes getBalanceResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceFunctor, getBalanceEncoder));
 
@@ -261,7 +261,7 @@ namespace TERC20Wrapper {
       REQUIRE(std::get<0>(getBalanceDecoder) == 500000000000000000);
 
       Bytes getBalanceWrapperEncoder = ABI::Encoder::encodeData(wrapperAddress);
-      Functor getBalanceWrapperFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceWrapperFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
       Bytes getBalanceWrapperResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceWrapperFunctor, getBalanceWrapperEncoder));
 
@@ -288,7 +288,7 @@ namespace TERC20Wrapper {
         }
 
         Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, wrapperAddress);
-        Functor getAllowanceFunctor = ABI::Encoder::encodeFunction("allowance(address,address)");
+        Functor getAllowanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("allowance");
 
         Bytes depositData = Hex::toBytes("0x47e7ef24");
         Bytes depositEncoder = ABI::Encoder::encodeData(erc20Address, static_cast<uint256_t>(500000000000000000));
@@ -340,7 +340,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getAllowanceDecoder2) == 0);
 
         Bytes getContractBalanceEncoder = ABI::Encoder::encodeData(erc20Address);
-        Functor getContractBalanceFunctor = ABI::Encoder::encodeFunction("getContractBalance(address)");
+        Functor getContractBalanceFunctor = ABI::FunctorEncoder::encode<Address>("getContractBalance");
 
         Bytes getContractBalanceResult = contractManager->callContract(
           buildCallInfo(wrapperAddress, getContractBalanceFunctor, getContractBalanceEncoder));
@@ -349,7 +349,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getContractBalanceDecoder) == 500000000000000000);
 
         Bytes getUserBalanceEncoder = ABI::Encoder::encodeData(erc20Address, owner);
-        Functor getUserBalanceFunctor = ABI::Encoder::encodeFunction("getUserBalance(address,address)");
+        Functor getUserBalanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("getUserBalance");
 
         Bytes getUserBalanceResult = contractManager->callContract(
           buildCallInfo(wrapperAddress, getUserBalanceFunctor, getUserBalanceEncoder));
@@ -358,7 +358,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getUserBalanceDecoder) == 500000000000000000);
 
         Bytes getBalanceEncoder = ABI::Encoder::encodeData(owner);
-        Functor getBalanceFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor getBalanceFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
         Bytes getBalanceResult = contractManager->callContract(
           buildCallInfo(erc20Address, getBalanceFunctor, getBalanceEncoder));
 
@@ -366,7 +366,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getBalanceDecoder) == 500000000000000000);
 
         Bytes getBalanceWrapperEncoder = ABI::Encoder::encodeData(wrapperAddress);
-        Functor getBalanceWrapperFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor getBalanceWrapperFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
         Bytes getBalanceWrapperResult = contractManager->callContract(
           buildCallInfo(erc20Address, getBalanceWrapperFunctor, getBalanceWrapperEncoder));
@@ -420,7 +420,7 @@ namespace TERC20Wrapper {
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, wrapperAddress);
-      Functor getAllowanceFunctor = ABI::Encoder::encodeFunction("allowance(address,address)");
+      Functor getAllowanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("allowance");
 
       Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
 
@@ -428,28 +428,28 @@ namespace TERC20Wrapper {
       REQUIRE(std::get<0>(getAllowanceDecoder) == 0);
 
       Bytes getContractBalanceEncoder = ABI::Encoder::encodeData(erc20Address);
-      Functor getContractBalanceFunctor = ABI::Encoder::encodeFunction("getContractBalance(address)");
+      Functor getContractBalanceFunctor = ABI::FunctorEncoder::encode<Address>("getContractBalance");
       Bytes getContractBalanceResult = contractManager->callContract(buildCallInfo(wrapperAddress, getContractBalanceFunctor, getContractBalanceEncoder));
 
       auto getContractBalanceDecoder = ABI::Decoder::decodeData<uint256_t>(getContractBalanceResult);
       REQUIRE(std::get<0>(getContractBalanceDecoder) == 250000000000000000);
 
       Bytes getUserBalanceEncoder = ABI::Encoder::encodeData(erc20Address, owner);
-      Functor getUserBalanceFunctor = ABI::Encoder::encodeFunction("getUserBalance(address,address)");
+      Functor getUserBalanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("getUserBalance");
       Bytes getUserBalanceResult = contractManager->callContract(buildCallInfo(wrapperAddress, getUserBalanceFunctor, getUserBalanceEncoder));
 
       auto getUserBalanceDecoder = ABI::Decoder::decodeData<uint256_t>(getUserBalanceResult);
       REQUIRE(std::get<0>(getUserBalanceDecoder) == 250000000000000000);
 
       Bytes getBalanceEncoder = ABI::Encoder::encodeData(owner);
-      Functor getBalanceFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
       Bytes getBalanceResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceFunctor, getBalanceEncoder));
 
       auto getBalanceDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceResult);
       REQUIRE(std::get<0>(getBalanceDecoder) == 750000000000000000);
 
       Bytes getBalanceWrapperEncoder = ABI::Encoder::encodeData(wrapperAddress);
-      Functor getBalanceWrapperFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceWrapperFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
       Bytes getBalanceWrapperResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceWrapperFunctor, getBalanceWrapperEncoder));
 
       auto getBalanceWrapperDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceWrapperResult);
@@ -476,7 +476,7 @@ namespace TERC20Wrapper {
         }
 
         Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, wrapperAddress);
-        Functor getAllowanceFunctor = ABI::Encoder::encodeFunction("allowance(address,address)");
+        Functor getAllowanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("allowance");
 
         Bytes depositEncoder = ABI::Encoder::encodeData(erc20Address, static_cast<uint256_t>(500000000000000000));
         Bytes depositData = Hex::toBytes("0x47e7ef24");
@@ -528,7 +528,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getAllowanceDecoder2) == 0);
 
         Bytes getContractBalanceEncoder = ABI::Encoder::encodeData(erc20Address);
-        Functor getContractBalanceFunctor = ABI::Encoder::encodeFunction("getContractBalance(address)");
+        Functor getContractBalanceFunctor = ABI::FunctorEncoder::encode<Address>("getContractBalance");
 
         Bytes getContractBalanceResult = contractManager->callContract(
           buildCallInfo(wrapperAddress, getContractBalanceFunctor, getContractBalanceEncoder));
@@ -537,7 +537,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getContractBalanceDecoder) == 500000000000000000);
 
         Bytes getUserBalanceEncoder = ABI::Encoder::encodeData(erc20Address, owner);
-        Functor getUserBalanceFunctor = ABI::Encoder::encodeFunction("getUserBalance(address,address)");
+        Functor getUserBalanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("getUserBalance");
 
         Bytes getUserBalanceResult = contractManager->callContract(
           buildCallInfo(wrapperAddress, getUserBalanceFunctor, getUserBalanceEncoder));
@@ -546,7 +546,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getUserBalanceDecoder) == 500000000000000000);
 
         Bytes getBalanceEncoder = ABI::Encoder::encodeData(owner);
-        Functor getBalanceFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor getBalanceFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
         Bytes getBalanceResult = contractManager->callContract(
           buildCallInfo(erc20Address, getBalanceFunctor, getBalanceEncoder));
 
@@ -554,7 +554,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getBalanceWrapperDecoder) == 500000000000000000);
 
         Bytes getBalanceWrapperEncoder = ABI::Encoder::encodeData(wrapperAddress);
-        Functor getBalanceWrapperFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor getBalanceWrapperFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
         Bytes getBalanceWrapperResult = contractManager->callContract(
           buildCallInfo(erc20Address, getBalanceWrapperFunctor, getBalanceWrapperEncoder));
 
@@ -600,7 +600,7 @@ namespace TERC20Wrapper {
         REQUIRE(std::get<0>(getBalanceWrapperDecoder) == 250000000000000000);
 
         Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransfers);
-        Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
         Bytes getBalanceDestinationResult = contractManager->callContract(
           buildCallInfo(erc20Address, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
 
@@ -614,7 +614,7 @@ namespace TERC20Wrapper {
       initialize(options, db, contractManager, dbName, ownerPrivKey, false);
 
       Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, wrapperAddress);
-      Functor getAllowanceFunctor = ABI::Encoder::encodeFunction("allowance(address,address)");
+      Functor getAllowanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("allowance");
 
       Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
 
@@ -622,28 +622,28 @@ namespace TERC20Wrapper {
       REQUIRE(std::get<0>(getAllowanceDecoder) == 0);
 
       Bytes getContractBalanceEncoder = ABI::Encoder::encodeData(erc20Address);
-      Functor getContractBalanceFunctor = ABI::Encoder::encodeFunction("getContractBalance(address)");
+      Functor getContractBalanceFunctor = ABI::FunctorEncoder::encode<Address>("getContractBalance");
       Bytes getContractBalanceResult = contractManager->callContract(buildCallInfo(wrapperAddress, getContractBalanceFunctor, getContractBalanceEncoder));
 
       auto getContractBalanceDecoder = ABI::Decoder::decodeData<uint256_t>(getContractBalanceResult);
       REQUIRE(std::get<0>(getContractBalanceDecoder) == 250000000000000000);
 
       Bytes getUserBalanceEncoder = ABI::Encoder::encodeData(erc20Address, owner);
-      Functor getUserBalanceFunctor = ABI::Encoder::encodeFunction("getUserBalance(address,address)");
+      Functor getUserBalanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("getUserBalance");
       Bytes getUserBalanceResult = contractManager->callContract(buildCallInfo(wrapperAddress, getUserBalanceFunctor, getUserBalanceEncoder));
 
       auto getUserBalanceDecoder = ABI::Decoder::decodeData<uint256_t>(getUserBalanceResult);
       REQUIRE(std::get<0>(getUserBalanceDecoder) == 250000000000000000);
 
       Bytes getBalanceEncoder = ABI::Encoder::encodeData(owner);
-      Functor getBalanceFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
       Bytes getBalanceResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceFunctor, getBalanceEncoder));
 
       auto getBalanceDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceResult);
       REQUIRE(std::get<0>(getBalanceDecoder) == 500000000000000000);
 
       Bytes getBalanceWrapperEncoder = ABI::Encoder::encodeData(wrapperAddress);
-      Functor getBalanceWrapperFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceWrapperFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
       Bytes getBalanceWrapperResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceWrapperFunctor, getBalanceWrapperEncoder));
 
@@ -651,7 +651,7 @@ namespace TERC20Wrapper {
       REQUIRE(std::get<0>(getBalanceWrapperDecoder) == 250000000000000000);
 
       Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransfers);
-      Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
       Bytes getBalanceDestinationResult = contractManager->callContract(
         buildCallInfo(erc20Address, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
 

@@ -2222,7 +2222,7 @@ namespace TState {
 
             const auto contractAddress = state1->getContracts()[0].second;
             Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(targetOfTransactions);
-            Functor getBalanceMeFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+            Functor getBalanceMeFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
             Bytes getBalanceMeNode1Result = state1->ethCall(
                 buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
 

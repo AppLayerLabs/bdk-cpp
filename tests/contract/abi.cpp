@@ -47,7 +47,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
   }
 
   SECTION("Encode Uint256 (Single)") {
-      auto functor = ABI::Encoder::encodeFunction("testUint(uint256)");
+      auto functor = ABI::FunctorEncoder::encode<uint256_t>("testUint");
       Bytes eS = ABI::Encoder::encodeData(uint256_t("12038189571283151234217456623442137"));
 
       REQUIRE(functor == Hex::toBytes("c7a16965"));
@@ -60,7 +60,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
       auto eS = ABI::Encoder::encodeData(uint256_t("985521342366467353964568564348544758443523147426"),
         uint256_t("3453441424448154428346543455122894428593523456453894523"),
         uint256_t("238745423894452554435879784534423784946532544278453254451345"));
-      Functor functor = ABI::Encoder::encodeFunction("testMultipleUint(uint256,uint256,uint256)");
+      auto functor = ABI::FunctorEncoder::encode<uint256_t, uint256_t, uint256_t>("testMultipleUint");
 
       REQUIRE(functor == Hex::toBytes("aab4c13b"));
 
@@ -83,7 +83,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         uint256_t("1123444185124184138124378143891242186794252455823414458"),
         uint256_t("215345189442554346421356134551234851234484")});
 
-      auto functor = ABI::Encoder::encodeFunction("testUintArr(uint256[])");
+      auto functor = ABI::FunctorEncoder::encode<std::vector<uint256_t>>("testUintArr");
 
       REQUIRE(functor == Hex::toBytes("d1a4e446"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -109,7 +109,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
   SECTION("Encode Int256 (Single)") {
 
     auto eS = ABI::Encoder::encodeData(int256_t("-123456789012345678901234567890123456789012345678901234567890"));
-    auto functor = ABI::Encoder::encodeFunction("testInt(int256)");
+    auto functor = ABI::FunctorEncoder::encode<int256_t>("testInt");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("6017d51d"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -124,7 +124,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
       int256_t("-56789012345678901234567890123456789012345678901234567890"),
       int256_t("56789012345678901234567890123456789012345678901234567890"));
 
-      Functor functor = ABI::Encoder::encodeFunction("testMultipleInt(int256,int256)");
+      Functor functor = ABI::FunctorEncoder::encode<int256_t, int256_t>("testMultipleInt");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("c402855a"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -149,7 +149,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
       int256_t("-56789012345678901234567890123456789012345678901234567890"),
       int256_t("56789012345678901234567890123456789012345678901234567890")});
 
-      Functor functor = ABI::Encoder::encodeFunction("testIntArr(int256[])");
+      Functor functor = ABI::FunctorEncoder::encode<std::vector<int256_t>>("testIntArr");
 
       REQUIRE(functor == Hex::toBytes("47406546"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -175,8 +175,8 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
   SECTION("Encode String (Single)") {
 
       auto eS = ABI::Encoder::encodeData(std::string("Hello World!"));
-   
-      Functor functor = ABI::Encoder::encodeFunction("testString(string)");
+
+      Functor functor = ABI::FunctorEncoder::encode<std::string>("testString");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("61cb5a01"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -194,7 +194,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
 
       auto eS = ABI::Encoder::encodeData(true, false, true);
 
-      Functor functor = ABI::Encoder::encodeFunction("testMultipleBool(bool,bool,bool)");
+      Functor functor = ABI::FunctorEncoder::encode<bool, bool, bool>("testMultipleBool");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("49fdef10"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -218,7 +218,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         uint256_t("1234812315823541285534458693557693548423844235"),
         uint256_t("32452893445892345238552138945234454324523194514")});
 
-      Functor functor = ABI::Encoder::encodeFunction("testStringArrWithUintArr(string[],uint256[])");
+      Functor functor = ABI::FunctorEncoder::encode<std::vector<std::string>, std::vector<uint256_t>>("testStringArrWithUintArr");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("023c4a5e"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -278,7 +278,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
 
       auto eS = ABI::Encoder::encodeData(Address(Hex::toBytes("0x873630b0fAE5F8c69392Abdabb3B15270D137Ca1")));
 
-      Functor functor = ABI::Encoder::encodeFunction("testAddress(address)");
+      Functor functor = ABI::FunctorEncoder::encode<Address>("testAddress");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("42f45790"));
       REQUIRE(Bytes(eS.begin(), eS.end()) == Hex::toBytes(
@@ -290,7 +290,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
 
       auto eS = ABI::Encoder::encodeData(Hex::toBytes("0xc8191d2e98e7cd9201cef777f85bf857"));
 
-      Functor functor = ABI::Encoder::encodeFunction("testBytes(bytes)");
+      Functor functor = ABI::FunctorEncoder::encode<Bytes>("testBytes");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("3ca8b1a7"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -316,7 +316,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         "Fourth String"
       });
 
-      Functor functor = ABI::Encoder::encodeFunction("testBytesArrWithStrArr(bytes[],string[])");
+      Functor functor = ABI::FunctorEncoder::encode<std::vector<Bytes>, std::vector<std::string>>("testBytesArrWithStrArr");
 
       REQUIRE(functor.asBytes() == Hex::toBytes("f1881d9f"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
@@ -432,7 +432,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
       std::vector<std::string>{"Yes", "This", "Is", "A", "String",
                                 "Array", "How stupid lol"});
 
-      Functor functor = ABI::Encoder::encodeFunction("testAll(uint256,uint256[],bool,bool[],address,address[],bytes,bytes[],string,string[])");
+      Functor functor = ABI::FunctorEncoder::encode<uint256_t, std::vector<uint256_t>, bool, std::vector<bool>, Address, std::vector<Address>, Bytes, std::vector<Bytes>, std::string, std::vector<std::string>>("testAll");
 
       REQUIRE(functor == Hex::toBytes("d8d2684c"));
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(

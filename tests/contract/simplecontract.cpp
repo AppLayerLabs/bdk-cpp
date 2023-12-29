@@ -81,8 +81,8 @@ namespace TSimpleContract {
         Bytes getNameEncoder = Bytes(32, 0);
         Bytes getValueEncoder = Bytes(32, 0);
 
-        Functor getNameFunctor = ABI::Encoder::encodeFunction("getName()");
-        Functor getValueFunctor = ABI::Encoder::encodeFunction("getValue()");
+        Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
+        Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
 
         Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
         Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
@@ -104,8 +104,8 @@ namespace TSimpleContract {
       Bytes getNameEncoder = Bytes(32, 0);
       Bytes getValueEncoder = Bytes(32, 0);
 
-      Functor getNameFunctor = ABI::Encoder::encodeFunction("getName()");
-      Functor getValueFunctor = ABI::Encoder::encodeFunction("getValue()");
+      Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
+      Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
 
       Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
       Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
@@ -131,8 +131,8 @@ namespace TSimpleContract {
         Bytes getNameEncoder = Bytes(32, 0);
         Bytes getValueEncoder = Bytes(32, 0);
 
-        Functor getNameFunctor = ABI::Encoder::encodeFunction("getName()");
-        Functor getValueFunctor = ABI::Encoder::encodeFunction("getValue()");
+        Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
+        Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
 
         Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
         Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
@@ -141,9 +141,9 @@ namespace TSimpleContract {
         auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
 
         Bytes setNameEncoder = ABI::Encoder::encodeData(std::string("TryThisName"));
-        Functor setNameFunctor = ABI::Encoder::encodeFunction("setName(string)");
+        Functor setNameFunctor = ABI::FunctorEncoder::encode<std::string>("setName");
         Bytes setValueEncoder = ABI::Encoder::encodeData(uint256_t("918258172319061203818967178162134821351"));
-        Functor setValueFunctor = ABI::Encoder::encodeFunction("setValue(uint256)");
+        Functor setValueFunctor = ABI::FunctorEncoder::encode<uint256_t>("setValue");
 
         Bytes setNameBytes;
         Utils::appendBytes(setNameBytes, setNameFunctor);
@@ -202,8 +202,8 @@ namespace TSimpleContract {
       Bytes getNameEncoder = Bytes(32, 0);
       Bytes getValueEncoder = Bytes(32, 0);
 
-      Functor getNameFunctor = ABI::Encoder::encodeFunction("getName()");
-      Functor getValueFunctor = ABI::Encoder::encodeFunction("getValue()");
+      Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
+      Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
 
       Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
       Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));

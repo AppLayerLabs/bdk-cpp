@@ -84,7 +84,7 @@ namespace TContractManager {
         const auto contractAddress = contractManager.getContracts()[0].second;
 
         Bytes encodedData = ABI::Encoder::encodeData(owner);
-        Functor functor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor functor = ABI::FunctorEncoder::encode<Address>("balanceOf");
         Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
 
         auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
@@ -99,7 +99,7 @@ namespace TContractManager {
       const auto contractAddress = contractManager.getContracts()[0].second;
 
       Bytes encodedData = ABI::Encoder::encodeData(owner);
-      Functor functor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor functor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
       Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
 
@@ -153,7 +153,7 @@ namespace TContractManager {
         const auto contractAddress = contractManager.getContracts()[0].second;
 
         Bytes encodedData = ABI::Encoder::encodeData(owner);
-        Functor functor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor functor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
         Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, functor, encodedData));
 
@@ -184,7 +184,7 @@ namespace TContractManager {
         REQUIRE(std::get<0>(getBalanceMeDecoder2) == 500000000000000000);
 
         Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransfer);
-        Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+        Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
         
         Bytes getBalanceDestinationResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
 
@@ -200,7 +200,7 @@ namespace TContractManager {
       const auto contractAddress = contractManager.getContracts()[0].second;
 
       Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
-      Functor getBalanceMeFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceMeFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
       Bytes getBalanceMeResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
 
@@ -208,7 +208,7 @@ namespace TContractManager {
       REQUIRE(std::get<0>(getBalanceMeDecoder) == 500000000000000000);
 
       Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransfer);
-      Functor getBalanceDestinationFunctor = ABI::Encoder::encodeFunction("balanceOf(address)");
+      Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
 
       Bytes getBalanceDestinationResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
 
@@ -260,7 +260,7 @@ namespace TContractManager {
         // Remember that uint256_t encodes and decodes all other uints
 
         Bytes setNumEnc = ABI::Encoder::encodeData(200, contractB, 100, contractC, 3);
-        Functor setNumFunctor = ABI::Encoder::encodeFunction("setNumA(uint8,address,uint8,address,uint8)");
+        Functor setNumFunctor = ABI::FunctorEncoder::encode<uint8_t, Address, uint8_t, Address, uint8_t>("setNumA");
         Bytes setNumBytes;
         Utils::appendBytes(setNumBytes, setNumFunctor);
         Utils::appendBytes(setNumBytes, setNumEnc);
@@ -282,9 +282,9 @@ namespace TContractManager {
       Bytes getNumEncB = Bytes(32, 0);
       Bytes getNumEncC = Bytes(32, 0);
 
-      Functor getNumFunctorA = ABI::Encoder::encodeFunction("getNumA()");
-      Functor getNumFunctorB = ABI::Encoder::encodeFunction("getNumB()");
-      Functor getNumFunctorC = ABI::Encoder::encodeFunction("getNumC()");
+      Functor getNumFunctorA = ABI::FunctorEncoder::encode<void>("getNumA");
+      Functor getNumFunctorB = ABI::FunctorEncoder::encode<void>("getNumB");
+      Functor getNumFunctorC = ABI::FunctorEncoder::encode<void>("getNumC");
 
       Bytes dataA = contractManager.callContract(buildCallInfo(contractA, getNumFunctorA, getNumEncA));
       Bytes dataB = contractManager.callContract(buildCallInfo(contractB, getNumFunctorB, getNumEncB));

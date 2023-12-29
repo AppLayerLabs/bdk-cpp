@@ -71,9 +71,7 @@ namespace ABI {
    */
   template<typename T> constexpr bool isDynamic() {
     if constexpr (
-      std::is_same_v<T, std::vector<uint256_t>> || std::is_same_v<T, std::vector<int256_t>> ||
-      std::is_same_v<T, std::vector<Address>> || std::is_same_v<T, std::vector<bool>> ||
-      std::is_same_v<T, std::vector<Bytes>> || std::is_same_v<T, std::vector<std::string>> ||
+      std::is_same_v<T, Bytes> ||
       std::is_same_v<T, BytesArrView> ||
       std::is_same_v<T, std::string> || false
     ) return true;
@@ -96,7 +94,8 @@ namespace ABI {
   constexpr uint64_t calculateOffsetForType() {
     if constexpr (isDynamic<T>()) {
       return 32;
-    } else if constexpr (isTuple<T>::value) {
+    }
+    if constexpr (isTuple<T>::value) {
       return 32 * std::tuple_size<T>::value;
     } else {
       return 32;
@@ -259,7 +258,7 @@ namespace ABI {
     static Functor encode(const std::string& funcSignature) {
       std::string fullSignature = funcSignature;
       fullSignature += "(" + listArgumentTypes<Args...>() + ")";
-      return Functor(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4));
+      return Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4);
     }
 
     /// Generate the functor for a function.
@@ -277,13 +276,6 @@ namespace ABI {
     void append(Bytes &dest, const T &src) {
       dest.insert(dest.end(), src.cbegin(), src.cend());
     }
-
-    /**
-     * Encode a function header (functor).
-     * @param func The full function header.
-     * @return The functor (first 4 bytes of keccak(func)).
-     */
-    Functor encodeFunction(const std::string_view func);
 
     /**
      * Encode a uint256.
@@ -318,7 +310,7 @@ namespace ABI {
      * @param bytes The input to encode.
      * @return The encoded input.
      */
-    Bytes encode(const BytesArrView& bytes);
+    Bytes encode(const Bytes& bytes);
 
     /**
      * Encode an UTF-8 string.
@@ -326,48 +318,6 @@ namespace ABI {
      * @return The encoded input.
      */
     Bytes encode(const std::string& str);
-
-    /**
-     * Encode an array of uint256.
-     * @param numV The input to encode.
-     * @return The encoded input.
-     */
-    Bytes encode(const std::vector<uint256_t>& numV);
-
-    /**
-     * Encode an array of int256.
-     * @param numV The input to encode.
-     * @return The encoded input.
-     */
-    Bytes encode(const std::vector<int256_t>& numV);
-
-    /**
-     * Encode an array of addresses.
-     * @param addV The input to encode.
-     * @return The encoded input.
-     */
-    Bytes encode(const std::vector<Address>& addV);
-
-    /**
-     * Encode an array of booleans.
-     * @param bV The input to encode.
-     * @return The encoded input.
-     */
-    Bytes encode(const std::vector<bool>& bV);
-
-    /**
-     * Encode an array of raw byte strings.
-     * @param bytesV The input to encode.
-     * @return The encoded input.
-     */
-    Bytes encode(const std::vector<Bytes>& bytesV);
-
-    /**
-     * Encode an array of UTF-8 strings.
-     * @param strV The input to encode.
-     * @return The encoded input.
-     */
-    Bytes encode(const std::vector<std::string>& strV);
 
     /**
      * Specialization for encoding any type of uint or int.
@@ -408,16 +358,14 @@ namespace ABI {
       } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported on encoding");
     }
 
-    /// Forward declaration, we need these for succesfull tuple support.
-    template<typename T, typename... Ts> Bytes encode(const T& first, const Ts&... rest);
-    template<typename... Ts> Bytes encode(const std::vector<std::tuple<Ts...>>& v);
+    /// Forward declaration so encode(std::tuple<Ts...>) be able to see it.
+    template<typename T> Bytes encode(const std::vector<T>& v);
 
     /// Specialization for encoding a tuple. Expand and call back encode<T,Ts...>
     template<typename... Ts> Bytes encode(const std::tuple<Ts...>& t) {
       Bytes result;
       Bytes dynamicBytes;
       uint64_t nextOffset = calculateTotalOffset<Ts...>();
-
 
       std::apply([&](const auto&... args) {
         auto encodeItem = [&](auto&& item) {
@@ -438,27 +386,27 @@ namespace ABI {
       return result;
     }
 
-    /// Specialization for encoding a vector of tuples.
-    template<typename... Ts> Bytes encode(const std::vector<std::tuple<Ts...>>& v) {
+    /// Specialization for encoding a vector of type T.
+    template<typename T> Bytes encode(const std::vector<T>& v) {
       Bytes result;
       uint64_t nextOffset = 32 * v.size();  // The first 32 bytes are for the length of the dynamic array
-      if constexpr (isTupleOfDynamicTypes<std::tuple<Ts...>>::value)
+      if constexpr (isDynamic<T>())
       {
-        /// If the tuple is dynamic, we need to account the offsets of each tuple
-        Bytes tupleData;
-        Bytes tupleOffSets;
+        /// If the vector is dynamic, we need to account the offsets of each tuple
+        Bytes dynamicData;
+        Bytes dynamicOffSets;
 
-        // Encode each tuple.
+        // Encode each item within the vector.
         for (const auto& t : v) {
-          append(tupleOffSets, Utils::uint256ToBytes(nextOffset));
-          Bytes tupleBytes = encode(t);  // We're calling the encode function specialized for tuples
-          nextOffset += tupleBytes.size();
-          tupleData.insert(tupleData.end(), tupleBytes.begin(), tupleBytes.end());
+          append(dynamicOffSets, Utils::uint256ToBytes(nextOffset));
+          Bytes dynamicBytes = encode(t);  // We're calling the encode function specialized for the T type.
+          nextOffset += dynamicBytes.size();
+          dynamicData.insert(dynamicData.end(), dynamicBytes.begin(), dynamicBytes.end());
         }
 
         append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));  // Add the array length to the result
-        append(result, tupleOffSets);  // Add the tuple offsets
-        result.insert(result.end(), tupleData.begin(), tupleData.end());  // Add the tuple data
+        append(result, dynamicOffSets);  // Add the dynamic offsets
+        result.insert(result.end(), dynamicData.begin(), dynamicData.end());  // Add the dynamic data
         return result;
       } else {
         append(result, Utils::padLeftBytes(Utils::uintToBytes(v.size()), 32));  // Add the array length to the result
@@ -485,13 +433,7 @@ namespace ABI {
 
       auto encodeItem = [&](auto&& item) {
         using ItemType = std::decay_t<decltype(item)>;
-        if constexpr (std::is_same_v<ItemType, Bytes>) { // Convert Bytes to BytesArrView if applicable
-          BytesArrView arrView(item.data(), item.size());
-          Bytes packed = encode(arrView);  // Call the encode function expecting a BytesArrView
-          append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
-          nextOffset += 32 * ((packed.size() + 31) / 32);
-          dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
-        } else if constexpr (isDynamic<ItemType>()) {
+        if constexpr (isDynamic<ItemType>()) {
           Bytes packed = encode(item);
           append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
           nextOffset += 32 * ((packed.size() + 31) / 32);
