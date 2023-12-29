@@ -373,7 +373,7 @@ namespace ABI {
           if (isDynamic<ItemType>()) {
             Bytes packed = encode(item);
             append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
-            nextOffset += 32 * ((packed.size() + 31) / 32);
+            nextOffset += packed.size();
             dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
           } else {
             append(result, encode(item));
@@ -436,7 +436,7 @@ namespace ABI {
         if constexpr (isDynamic<ItemType>()) {
           Bytes packed = encode(item);
           append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
-          nextOffset += 32 * ((packed.size() + 31) / 32);
+          nextOffset += packed.size();
           dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
         } else append(result, encode(item));
       };
