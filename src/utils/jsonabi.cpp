@@ -20,21 +20,37 @@ bool JsonAbi::isTuple(const std::string &type) {
 }
 
 bool JsonAbi::isArray(const std::string& type) {
-  /// Arrays always have the same format: "type[]"
+  /// Arrays always have the same format: "type...[]"
   /// Check if the last two characters are "[]"
   return (type[type.size() - 2] == '[' && type[type.size() - 1] == ']');
 }
 
+uint64_t JsonAbi::countTupleArrays(const std::string &type) {
+  /// Check how many "[]" there are at the end of string, remember that we need to skip anything inside (...)
+  /// array tuples are always as (type1,type2,...)[]
+  /// or (type1,type2,...)[][] or (type1,type2,...)[][][] etc.
+  /// Count how many [] there after the tuple.
+  uint64_t count = 0;
+  for (int i = type.size() - 1; i >= 0; i--, i--) {
+    if (type[i] == ']' && type[i - 1] == '[') {
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
+}
+
 std::vector<std::string> JsonAbi::getTupleTypes(const std::string &type) {
   /// Tuples always have the same format: "(type1,type2,...)"
-  /// Don't forget to remove the "(...)" and the "[]" if it's an array.
+  /// Don't forget to remove the "(...)" and the "[]..." if it's an array.
   /// the vector will return "type1", "type2", ...
   std::vector<std::string> types;
   /// Create the string skipping the first character (the "(")
   std::string tupleString = type.substr(1);
   /// If array, delete the last two characters (the "[]")
   if (JsonAbi::isArray(type)) {
-    tupleString = tupleString.substr(0, tupleString.size() - 2);
+    tupleString = tupleString.substr(0, tupleString.size() - 2 * JsonAbi::countTupleArrays(type));
   }
   /// Remove the last character (the ")")
   tupleString = tupleString.substr(0, tupleString.size() - 1);
@@ -48,10 +64,17 @@ json JsonAbi::handleTupleComponents(const std::vector<std::string> &tupleTypes) 
   for (const auto &type : tupleTypes) {
     json componentObject = json::object();
     if (JsonAbi::isTuple(type)) {
-      /// Handle the tuple type.
+      /// Handle the tuple type.1
       componentObject["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(type));
       if (JsonAbi::isArray(type)) {
-        componentObject["type"] = "tuple[]";
+        // When inserting an array of tuples into a tuple, we need to check how many nested arrays there are.
+        // This means we can have a tuple[], or a tuple[][], or a tuple[][][], etc.
+        auto count = JsonAbi::countTupleArrays(type);
+        std::string arrayType = "tuple";
+        for (int i = 0; i < count; i++) {
+          arrayType += "[]";
+        }
+        componentObject["type"] = arrayType;
       } else {
         componentObject["type"] = "tuple";
       }
@@ -75,7 +98,12 @@ json JsonAbi::parseMethodInput(const std::vector<std::pair<std::string,std::stri
       inputObject["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(type));
       inputObject["name"] = name;
       if (JsonAbi::isArray(type)) {
-        inputObject["type"] = "tuple[]";
+        auto count = JsonAbi::countTupleArrays(type);
+        std::string arrayType = "tuple";
+        for (int i = 0; i < count; i++) {
+          arrayType += "[]";
+        }
+        inputObject["type"] = arrayType;
       } else {
         inputObject["type"] = "tuple";
       }
@@ -102,7 +130,12 @@ json JsonAbi::parseMethodOutput(const std::vector<std::string> &outputDescriptio
       /// Handle the tuple type.
       outputObject["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(output));
       if (JsonAbi::isArray(output)) {
-        outputObject["type"] = "tuple[]";
+        auto count = JsonAbi::countTupleArrays(output);
+        std::string arrayType = "tuple";
+        for (int i = 0; i < count; i++) {
+          arrayType += "[]";
+        }
+        outputObject["type"] = arrayType;
       } else {
         outputObject["type"] = "tuple";
       }

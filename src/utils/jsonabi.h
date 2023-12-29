@@ -28,6 +28,11 @@ bool isTuple(const std::string &type);
 bool isArray(const std::string &type);
 
 /**
+ * Count how many arrays there are in a tuple type
+ */
+uint64_t countTupleArrays(const std::string &type);
+
+/**
  * Extract the types of a tuple contained within std::string
  * @param type The type to extract the tuple types from.
  * @return A vector containing the types of the tuple.
