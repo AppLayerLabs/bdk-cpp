@@ -455,6 +455,7 @@ namespace ABI {
 
     // TODO: docs
     template<typename T> inline T decode(const BytesArrView& bytes, uint64_t& index);
+    template<typename T> inline std::vector<T> decode();
 
     /**
      * Decode a uint256.
@@ -508,8 +509,7 @@ namespace ABI {
     template <typename T> inline T decode(const BytesArrView& bytes, uint64_t& index) {
       if constexpr (isTuple<T>::value) {
         T ret;
-        if constexpr (isTupleOfDynamicTypes<T>::value)
-        {
+        if constexpr (isTupleOfDynamicTypes<T>::value) {
           if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple of dynamic types");
           Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
           uint64_t offset = Utils::fromBigEndian<uint64_t>(tmp);
@@ -519,12 +519,12 @@ namespace ABI {
           decodeTuple<T>(view, newIndex, ret);
           return ret;
         }
+        if (index + 32 * std::tuple_size_v<T> > bytes.size()) throw std::runtime_error("Data too short for tuple");
         decodeTuple<T>(bytes, index, ret);
         return ret;
       }
 
-      if constexpr (isVectorV<T>)
-      {
+      if constexpr (isVectorV<T>) {
         using ElementType = vectorElementTypeT<T>;
         std::vector<ElementType> retVector;
         // Get array offset
@@ -539,34 +539,12 @@ namespace ABI {
         tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
         uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
-        if constexpr (isTupleOfDynamicTypes<T>::value)
-        {
-          for (uint64_t i = 0; i < arrayLength; ++i)
-          {
-            // Get vector content offset
-            tmp.clear();
-            // Size sanity check
-            if (arrayStart + 32 + (i * 32) + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
-            tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
-            uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
-            ElementType tuple;
-            auto view = bytes.subspan(bytesStart);
-            uint64_t newIndex = 0;
-            // Recursion here
-            decodeTuple<ElementType>(view, newIndex, tuple);
-            retVector.emplace_back(tuple);
-          }
-        } else
-        {
-          uint64_t bytesStart = arrayStart + 32;
-          for (uint64_t i = 0; i < arrayLength; ++i)
-          {
-            auto view = bytes.subspan(bytesStart);
-            uint64_t newIndex = 0;
-            // Recursion here
-            retVector.emplace_back(decode<ElementType>(view, newIndex));
-            bytesStart += calculateOffsetForType<ElementType>();
-          }
+        if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
+        uint64_t newIndex = 0;
+        auto view = bytes.subspan(arrayStart + 32);
+        for (uint64_t i = 0; i < arrayLength; ++i) {
+          // Recursion here
+          retVector.emplace_back(decode<ElementType>(view, newIndex));
         }
         return retVector;
       }
@@ -684,218 +662,6 @@ namespace ABI {
       tmp.clear();
       tmp.insert(tmp.end(), bytes.begin() + bytesStart + 32, bytes.begin() + bytesStart + 32 + bytesLength);
       return tmp;
-    }
-
-    /**
-     * Decode an array of uint256.
-     * @param bytes The data string to decode.
-     * @param index The point on the encoded string to start decoding.
-     * @return The decoded data.
-     * @throw std::runtime_error if data is too short for the type.
-     */
-    template <> inline std::vector<uint256_t> decode<std::vector<uint256_t>>(const BytesArrView& bytes, uint64_t& index) {
-      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for uint[]");
-      Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
-      uint64_t vectorStart = Utils::fromBigEndian<uint64_t>(tmp);
-      index += 32;
-
-      // Get vector length
-      tmp.clear();
-      if (vectorStart + 32 > bytes.size()) throw std::runtime_error("Data too short for uint[]");
-      tmp.insert(tmp.end(), bytes.begin() + vectorStart, bytes.begin() + vectorStart + 32);
-      uint64_t vectorLength = Utils::fromBigEndian<uint64_t>(tmp);
-
-      // Size sanity check
-      if (vectorStart + 32 + vectorLength * 32 > bytes.size()) throw std::runtime_error("Data too short for uint[]");
-
-      // Get vector data
-      std::vector<uint256_t> tmpArr;
-      for (uint64_t i = 0; i < vectorLength; i++) {
-          tmp.clear();
-          tmp.insert(tmp.end(), bytes.begin() + vectorStart + 32 + (i * 32), bytes.begin() + vectorStart + 32 + (i * 32) + 32);
-          uint256_t value = Utils::bytesToUint256(tmp);
-          tmpArr.emplace_back(value);
-      }
-      return tmpArr;
-    }
-
-    /**
-     * Decode an array of int256.
-     * @param bytes The data string to decode.
-     * @param index The point on the encoded string to start decoding.
-     * @return The decoded data.
-     * @throw std::runtime_error if data is too short for the type.
-     */
-    template <> inline std::vector<int256_t> decode<std::vector<int256_t>>(const BytesArrView& bytes, uint64_t& index) {
-      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for int256[]");
-      Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
-      uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
-      index += 32;
-      tmp.clear();
-
-      if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for int256[]");
-      tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
-      uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
-
-      // Size sanity check
-      if (arrayStart + 32 + (arrayLength * 32) > bytes.size()) throw std::runtime_error("Data too short for int256[]");
-
-      // Get array data
-      std::vector<int256_t> tmpArr;
-      for (uint64_t i = 0; i < arrayLength; i++) {
-          tmp.clear();
-          tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
-          int256_t value = Utils::bytesToInt256(tmp);
-          tmpArr.emplace_back(value);
-      }
-      return tmpArr;
-    }
-
-    /**
-     * Decode an array of addresses.
-     * @param bytes The data string to decode.
-     * @param index The point on the encoded string to start decoding.
-     * @return The decoded data.
-     * @throw std::runtime_error if data is too short for the type.
-     */
-    template <> inline std::vector<Address> decode<std::vector<Address>>(const BytesArrView& bytes, uint64_t& index) {
-      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for address[]");
-      Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
-      uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
-      index += 32;
-
-      // Get array length
-      tmp.clear();
-      if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for address[]");
-      tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
-      uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
-
-      // Size sanity check
-      if (arrayStart + 32 + (arrayLength * 32) > bytes.size()) throw std::runtime_error("Data too short for address[]");
-
-      // Get array data
-      std::vector<Address> tmpArr;
-      for (uint64_t i = 0; i < arrayLength; i++) {
-          tmp.clear();
-          // Don't forget to skip the first 12 bytes of an address!
-          tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32) + 12, bytes.begin() + arrayStart + 32 + (i * 32) + 32);
-          tmpArr.emplace_back(tmp);
-      }
-      return tmpArr;
-    }
-
-    /**
-     * Decode an array of booleans.
-     * @param bytes The data string to decode.
-     * @param index The point on the encoded string to start decoding.
-     * @return The decoded data.
-     * @throw std::runtime_error if data is too short for the type.
-     */
-    template <> inline std::vector<bool> decode<std::vector<bool>>(const BytesArrView& bytes, uint64_t& index) {
-      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for bool[]");
-      Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
-      uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
-      index += 32;
-
-      // Get array length
-      tmp.clear();
-      if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for bool[]");
-      tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
-      uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
-
-      // Size sanity check
-      if (arrayStart + 32 + (arrayLength * 32) > bytes.size()) throw std::runtime_error("Data too short for bool[]");
-
-      // Get array data
-      std::vector<bool> tmpArr;
-      for (uint64_t i = 0; i < arrayLength; i++) tmpArr.emplace_back((bytes[arrayStart + 32 + (i * 32) + 31] == 0x01));
-      return tmpArr;
-    }
-
-    /**
-     * Decode an array of raw byte strings.
-     * @param bytes The data string to decode.
-     * @param index The point on the encoded string to start decoding.
-     * @return The decoded data.
-     * @throw std::runtime_error if data is too short for the type.
-     */
-    template <> inline std::vector<Bytes> decode<std::vector<Bytes>>(const BytesArrView& bytes, uint64_t& index) {
-      // Get array offset
-      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for bytes[]");
-      Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
-      uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
-      index += 32;
-
-      // Get array length
-      tmp.clear();
-      if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for bytes[]");
-      tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
-      uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
-
-      std::vector<Bytes> tmpVec;
-      for (uint64_t i = 0; i < arrayLength; ++i) {
-        // Get bytes offset
-        tmp.clear();
-        tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
-        uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
-
-        // Get bytes length
-        tmp.clear();
-        tmp.insert(tmp.end(), bytes.begin() + bytesStart, bytes.begin() + bytesStart + 32);
-        uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
-
-        // Individual size sanity check
-        if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for bytes[]");
-
-        // Get bytes data
-        tmp.clear();
-        tmp.insert(tmp.end(), bytes.begin() + bytesStart + 32, bytes.begin() + bytesStart + 32 + bytesLength);
-        tmpVec.emplace_back(tmp);
-      }
-      return tmpVec;
-    }
-
-    /**
-     * Decode an array of UTF-8 strings.
-     * @param bytes The data string to decode.
-     * @param index The point on the encoded string to start decoding.
-     * @return The decoded data.
-     * @throw std::runtime_error if data is too short for the type.
-     */
-    template <> inline std::vector<std::string> decode<std::vector<std::string>>(const BytesArrView& bytes, uint64_t& index) {
-      /// Get array offset
-      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for string[]");
-      std::string tmp(bytes.begin() + index, bytes.begin() + index + 32);
-      uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
-      index += 32;
-
-      // Get array length
-      tmp.clear();
-      if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for string[]");
-      tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
-      uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
-
-      std::vector<std::string> tmpVec;
-      for (uint64_t i = 0; i < arrayLength; ++i) {
-          // Get bytes offset
-          tmp.clear();
-          tmp.insert(tmp.end(), bytes.begin() + arrayStart + 32 + (i * 32), bytes.begin() + arrayStart + 32 + (i * 32) + 32);
-          uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp) + arrayStart + 32;
-
-          // Get bytes length
-          tmp.clear();
-          tmp.insert(tmp.end(), bytes.begin() + bytesStart, bytes.begin() + bytesStart + 32);
-          uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
-
-          // Individual size sanity check
-          if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for string[]");
-
-          // Get bytes data
-          tmp.clear();
-          tmp.insert(tmp.end(), bytes.begin() + bytesStart + 32, bytes.begin() + bytesStart + 32 + bytesLength);
-          tmpVec.emplace_back(tmp);
-      }
-      return tmpVec;
     }
 
     // TODO: docs
