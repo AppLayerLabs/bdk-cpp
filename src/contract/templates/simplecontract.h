@@ -74,6 +74,9 @@ class SimpleContract : public DynamicContract {
     ///< function setNamesAndValuesInTuple(NameAndValue[] memory argNameAndValue) public,
     ///< the final name is the concatenation of all names, the final value is the sum of all values
     void setNamesAndValuesInTuple(const std::vector<std::tuple<std::string, uint256_t>>& argNameAndValue);
+    ///< function setNamesAndValuesInArrayOfArrays(NameAndValue[][] memory argNameAndValue) public.
+    ///< the final name is the concatenation of all names, the final value is the sum of all values
+    void setNamesAndValuesInArrayOfArrays(const std::vector<std::vector<std::tuple<std::string, uint256_t>>>& argNameAndValue);
     ///< function getName() public view returns(string memory)
     std::string getName() const;
     ///< function getNames(const uint256_t& i) public view returns(string[] memory) return string[] of size i with this->name_ as all elements.
@@ -90,6 +93,9 @@ class SimpleContract : public DynamicContract {
     ///< function getNamesAndValuesInTuple(const uint256_t& i) public view returns(NameAndValue[] memory)
     ///< return (string, uint256)[] of size i with this->name_ and this->value_ as all elements.
     std::vector<std::tuple<std::string, uint256_t>> getNamesAndValuesInTuple(const uint256_t& i) const;
+    ///< function getNamesAndValuesInArrayOfArrays(const uint256_t& i) public view returns(NameAndValue[][] memory)
+    ///< return (string, uint256)[][] of size i with this->name_ and this->value_ as all elements.
+    std::vector<std::vector<std::tuple<std::string, uint256_t>>> getNamesAndValuesInArrayOfArrays(const uint256_t& i) const;
 
     /**
     * Register the contract structure.
@@ -108,13 +114,15 @@ class SimpleContract : public DynamicContract {
         std::make_tuple("setValues", &SimpleContract::setValues, "nonpayable", std::vector<std::string>{"argValue"}),
         std::make_tuple("setNamesAndValues", &SimpleContract::setNamesAndValues, "nonpayable", std::vector<std::string>{"argName", "argValue"}),
         std::make_tuple("setNamesAndValuesInTuple", &SimpleContract::setNamesAndValuesInTuple, "nonpayable", std::vector<std::string>{"argNameAndValue"}),
+        std::make_tuple("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, "nonpayable", std::vector<std::string>{"argNameAndValue"}),
         std::make_tuple("getName", &SimpleContract::getName, "view", std::vector<std::string>{}),
         std::make_tuple("getNames", &SimpleContract::getNames, "view", std::vector<std::string>{"i"}),
         std::make_tuple("getValue", &SimpleContract::getValue, "view", std::vector<std::string>{}),
         std::make_tuple("getValues", &SimpleContract::getValues, "view", std::vector<std::string>{"i"}),
         std::make_tuple("getNameAndValue", &SimpleContract::getNameAndValue, "view", std::vector<std::string>{}),
         std::make_tuple("getNamesAndValues", &SimpleContract::getNamesAndValues, "view", std::vector<std::string>{"i"}),
-        std::make_tuple("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, "view", std::vector<std::string>{"i"})
+        std::make_tuple("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, "view", std::vector<std::string>{"i"}),
+        std::make_tuple("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, "view", std::vector<std::string>{"i"})
       );
     }
 };

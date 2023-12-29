@@ -94,6 +94,20 @@ void SimpleContract::setNamesAndValuesInTuple(const std::vector<std::tuple<std::
   }
 }
 
+void SimpleContract::setNamesAndValuesInArrayOfArrays(const std::vector<std::vector<std::tuple<std::string, uint256_t>>> &argNameAndValue) {
+  if (this->getCaller() != this->getContractCreator()) {
+    throw std::runtime_error("Only contract creator can call this function.");
+  }
+  this->name_ = "";
+  this->value_ = 0;
+  for (const auto& nameAndValue : argNameAndValue) {
+    for (const auto& [name, value] : nameAndValue) {
+      this->name_ += name;
+      this->value_ += value;
+    }
+  }
+}
+
 std::string SimpleContract::getName() const { return this->name_.get(); }
 
 std::vector<std::string> SimpleContract::getNames(const uint256_t& i) const {
@@ -136,6 +150,18 @@ std::vector<std::tuple<std::string, uint256_t>> SimpleContract::getNamesAndValue
   return namesAndValues;
 }
 
+std::vector<std::vector<std::tuple<std::string, uint256_t>>> SimpleContract::getNamesAndValuesInArrayOfArrays(const uint256_t& i) const {
+  std::vector<std::vector<std::tuple<std::string, uint256_t>>> namesAndValues;
+  for (uint256_t j = 0; j < i; j++) {
+    std::vector<std::tuple<std::string, uint256_t>> nameAndValuesInternal;
+    for (uint256_t k = 0; k < i; k++) {
+      nameAndValuesInternal.emplace_back(std::make_tuple(this->name_.get(), this->value_.get()));
+    }
+    namesAndValues.emplace_back(nameAndValuesInternal);
+  }
+  return namesAndValues;
+}
+
 void SimpleContract::registerContractFunctions() {
   registerContract();
   this->registerMemberFunction("setName", &SimpleContract::setName, this);
@@ -144,6 +170,7 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("setValues", &SimpleContract::setValues, this);
   this->registerMemberFunction("setNamesAndValues", &SimpleContract::setNamesAndValues, this);
   this->registerMemberFunction("setNamesAndValuesInTuple", &SimpleContract::setNamesAndValuesInTuple, this);
+  this->registerMemberFunction("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, this);
   this->registerMemberFunction("getName", &SimpleContract::getName, this);
   this->registerMemberFunction("getNames", &SimpleContract::getNames, this);
   this->registerMemberFunction("getValue", &SimpleContract::getValue, this);
@@ -151,4 +178,5 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("getNameAndValue", &SimpleContract::getNameAndValue, this);
   this->registerMemberFunction("getNamesAndValues", &SimpleContract::getNamesAndValues, this);
   this->registerMemberFunction("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, this);
+  this->registerMemberFunction("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, this);
 }

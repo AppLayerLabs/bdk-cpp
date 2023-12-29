@@ -11,8 +11,8 @@ bool JsonAbi::isTuple(const std::string &type) {
   /// Tuples always have the same format: "(type1,type2,...)"
   /// They can also be "(type1,type2,...)[]"
   if (JsonAbi::isArray(type)) {
-    /// Check if the first and last characters, minus the [] at the end.
-    return (type[0] == '(' && type[type.size() - 3] == ')');
+    /// Check if the first and last characters, minus the multiples [] at the end.
+    return (type[0] == '(' && type[type.size() - 2 * JsonAbi::countTupleArrays(type) - 1] == ')');
   } else {
     /// Check if the first and last characters are "()"
     return (type[0] == '(' && type[type.size() - 1] == ')');
@@ -113,7 +113,6 @@ json JsonAbi::parseMethodInput(const std::vector<std::pair<std::string,std::stri
       inputObject["name"] = name;
       inputObject["type"] = type;
     }
-
     jsonObject.push_back(inputObject);
   }
   return jsonObject;
@@ -159,6 +158,5 @@ json JsonAbi::methodToJSON(const ABI::MethodDescription &description) {
   jsonObject["stateMutability"] = description.stateMutability;
   jsonObject["type"] = description.type;
   return jsonObject;
-
 }
 

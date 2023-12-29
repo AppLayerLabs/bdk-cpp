@@ -105,7 +105,7 @@ template <typename Contract> void writeContractToJson() {
   const std::string fullOutputFileName = dirName + "/" + outputFileName;
 
   std::ofstream jsonFile(fullOutputFileName);
-  jsonFile << std::setw(4) << contractData << std::endl;
+  jsonFile << std::setw(2) << contractData << std::endl;
 }
 
 /**
@@ -228,7 +228,7 @@ template <typename ContractTuple> void writeManagerABI() {
        {"stateMutability", "view"},
        {"type", "function"}});
   std::ofstream jsonFile("ABI/ContractManager.json");
-  jsonFile << std::setw(4) << managerABI << std::endl;
+  jsonFile << std::setw(2) << managerABI << std::endl;
 }
 
 /**

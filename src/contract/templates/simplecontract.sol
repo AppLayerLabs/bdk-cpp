@@ -64,6 +64,18 @@ contract SimpleContract {
         }
     }
 
+    /// void setNamesAndValuesInArrayOfArrays(const std::vector<std::vector<std::tuple<std::string, uint256_t>>>& argNameAndValue);
+    function setNamesAndValuesInArrayOfArrays(NameAndValue[][] memory argNameAndValue) public {
+        name_ = "";
+        value_ = 0;
+        for (uint256 i = 0; i < argNameAndValue.length; i++) {
+            for (uint256 j = 0; j < argNameAndValue[i].length; j++) {
+                name_ = string(abi.encodePacked(name_, argNameAndValue[i][j].name));
+                value_ += argNameAndValue[i][j].value;
+            }
+        }
+    }
+
     /// std::string getName() const;
     function getName() public view returns(string memory) {
         return name_;
@@ -118,6 +130,19 @@ contract SimpleContract {
         for (uint256 j = 0; j < i; j++) {
             nameAndValues[j].name = name_;
             nameAndValues[j].value = value_;
+        }
+        return nameAndValues;
+    }
+
+    /// std::vector<std::vector<std::tuple<std::string, uint256_t>>> getNamesAndValuesInArrayOfArrays(const uint256_t& i) const;
+    function getNamesAndValuesInArrayOfArrays(uint256 i) public view returns(NameAndValue[][] memory) {
+        NameAndValue[][] memory nameAndValues = new NameAndValue[][](i);
+        for (uint256 j = 0; j < i; j++) {
+            nameAndValues[j] = new NameAndValue[](i);
+            for (uint256 k = 0; k < i; k++) {
+                nameAndValues[j][k].name = name_;
+                nameAndValues[j][k].value = value_;
+            }
         }
         return nameAndValues;
     }
