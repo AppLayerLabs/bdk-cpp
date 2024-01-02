@@ -79,35 +79,33 @@ class DynamicContract : public BaseContract {
     template <typename R, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)() const, T* instance
     ) {
-      std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
+      FunctionTypes methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
       std::string functStr = funcSignature + "()";
-
-      const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
-        {"view", [this, functStr, instance, memFunc, funcSignature]() {
+      switch (methodMutability) {
+        case FunctionTypes::View: {
           this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> Bytes {
             using ReturnType = decltype((instance->*memFunc)());
             return ABI::Encoder::encodeData<ReturnType>((instance->*memFunc)());
           });
-        }},
-        {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
+          break;
+        }
+        case FunctionTypes::NonPayable: {
           this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
             (instance->*memFunc)();
             return;
           });
-        }},
-        {"payable", [this, functStr, instance, memFunc, funcSignature]() {
+          break;
+        }
+        case FunctionTypes::Payable: {
           this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
             (instance->*memFunc)();
             return;
           });
-        }}
-      };
-
-      auto actionIt = mutabilityActions.find(methodMutability);
-      if (actionIt != mutabilityActions.end()) {
-        actionIt->second();
-      } else {
-        throw std::runtime_error("Invalid function signature.");
+          break;
+        }
+        default: {
+          throw std::runtime_error("Invalid function signature.");
+        }
       }
     }
 
@@ -120,30 +118,30 @@ class DynamicContract : public BaseContract {
     template <typename R, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(), T* instance
     ) {
-      std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
+      FunctionTypes methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
       std::string functStr = funcSignature + "()";
 
-      const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
-        {"view", []() { throw std::runtime_error("View must be const because it does not modify the state."); }},
-        {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
+      switch (methodMutability) {
+        case FunctionTypes::View: {
+          throw std::runtime_error("View must be const because it does not modify the state.");
+        }
+        case FunctionTypes::NonPayable: {
           this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
             (instance->*memFunc)();
             return;
           });
-        }},
-        {"payable", [this, functStr, instance, memFunc, funcSignature]() {
+          break;
+        }
+        case FunctionTypes::Payable: {
           this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
             (instance->*memFunc)();
             return;
           });
-        }}
-      };
-
-      auto actionIt = mutabilityActions.find(methodMutability);
-      if (actionIt != mutabilityActions.end()) {
-        actionIt->second();
-      } else {
-        throw std::runtime_error("Invalid function signature.");
+          break;
+        }
+        default: {
+          throw std::runtime_error("Invalid function signature.");
+        }
       }
     }
 
@@ -156,7 +154,7 @@ class DynamicContract : public BaseContract {
     template <typename R, typename... Args, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(Args...), T* instance
     ) {
-      std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
+      FunctionTypes methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
@@ -167,14 +165,22 @@ class DynamicContract : public BaseContract {
         }, decodedData);
       };
 
-      if (methodMutability == "view") {
-        throw std::runtime_error("View must be const because it does not modify the state.");
-      } else if (methodMutability == "nonpayable") {
-        this->registerFunction(functor, registrationFunc);
-      } else if (methodMutability == "payable") {
-        this->registerPayableFunction(functor, registrationFunc);
-      } else {
-        throw std::runtime_error("Invalid function signature.");
+
+      switch (methodMutability) {
+        case (FunctionTypes::View): {
+          throw std::runtime_error("View must be const because it does not modify the state.");
+        }
+        case (FunctionTypes::NonPayable): {
+          this->registerFunction(functor, registrationFunc);
+          break;
+        }
+        case (FunctionTypes::Payable): {
+          this->registerPayableFunction(functor, registrationFunc);
+          break;
+        }
+        default: {
+          throw std::runtime_error("Invalid function signature.");
+        }
       }
     }
 
@@ -187,7 +193,7 @@ class DynamicContract : public BaseContract {
     template <typename R, typename... Args, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(Args...) const, T* instance
     ) {
-      std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
+      FunctionTypes methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> Bytes {
@@ -201,14 +207,18 @@ class DynamicContract : public BaseContract {
         }, decodedData);
       };
 
-      if (methodMutability == "view") {
-        this->registerViewFunction(functor, registrationFunc);
-      } else if (methodMutability == "nonpayable") {
-        this->registerFunction(functor, registrationFunc);
-      } else if (methodMutability == "payable") {
-        this->registerPayableFunction(functor, registrationFunc);
-      } else {
-        throw std::runtime_error("Invalid function signature.");
+      switch (methodMutability) {
+        case (FunctionTypes::View): {
+          this->registerViewFunction(functor, registrationFunc);
+          break;
+        }
+        case (FunctionTypes::NonPayable): {
+          this->registerFunction(functor, registrationFunc);
+        }
+        case (FunctionTypes::Payable): {
+          this->registerPayableFunction(functor, registrationFunc);
+          break;
+        }
       }
     }
 

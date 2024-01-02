@@ -57,8 +57,8 @@ class ThrowTestC : public DynamicContract {
         ThrowTestC, ContractManagerInterface&, const Address&, const Address&, const uint64_t&, const std::unique_ptr<DB>&
       >(
         std::vector<std::string>{},
-        std::make_tuple("getNumC", &ThrowTestC::getNumC, "view", std::vector<std::string>{}),
-        std::make_tuple("setNumC", &ThrowTestC::setNumC, "nonpayable", std::vector<std::string>{"valC"})
+        std::make_tuple("getNumC", &ThrowTestC::getNumC, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("setNumC", &ThrowTestC::setNumC, FunctionTypes::NonPayable, std::vector<std::string>{"valC"})
       );
     }
 };

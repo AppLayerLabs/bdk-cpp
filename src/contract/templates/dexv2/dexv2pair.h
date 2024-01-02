@@ -219,19 +219,19 @@ class DEXV2Pair : public ERC20 {
         const std::unique_ptr<DB> &
       >(
         std::vector<std::string>{},
-        std::make_tuple("initialize", &DEXV2Pair::initialize, "nonpayable", std::vector<std::string>{"token0_", "token1_"}),
-        std::make_tuple("getReserves", &DEXV2Pair::getReserves, "view", std::vector<std::string>{}),
-        std::make_tuple("factory", &DEXV2Pair::factory, "view", std::vector<std::string>{}),
-        std::make_tuple("token0", &DEXV2Pair::token0, "view", std::vector<std::string>{}),
-        std::make_tuple("token1", &DEXV2Pair::token1, "view", std::vector<std::string>{}),
-        std::make_tuple("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, "view", std::vector<std::string>{}),
-        std::make_tuple("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, "view", std::vector<std::string>{}),
-        std::make_tuple("kLast", &DEXV2Pair::kLast, "view", std::vector<std::string>{}),
-        std::make_tuple("mint", &DEXV2Pair::mint, "nonpayable", std::vector<std::string>{"to"}),
-        std::make_tuple("burn", &DEXV2Pair::burn, "nonpayable", std::vector<std::string>{"to"}),
-        std::make_tuple("swap", &DEXV2Pair::swap, "nonpayable", std::vector<std::string>{"amount0Out", "amount1Out", "to"}),
-        std::make_tuple("skim", &DEXV2Pair::skim, "nonpayable", std::vector<std::string>{"to"}),
-        std::make_tuple("sync", &DEXV2Pair::sync, "nonpayable", std::vector<std::string>{})
+        std::make_tuple("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, std::vector<std::string>{"token0_", "token1_"}),
+        std::make_tuple("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("factory", &DEXV2Pair::factory, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("token0", &DEXV2Pair::token0, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("token1", &DEXV2Pair::token1, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("kLast", &DEXV2Pair::kLast, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+        std::make_tuple("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+        std::make_tuple("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, std::vector<std::string>{"amount0Out", "amount1Out", "to"}),
+        std::make_tuple("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, std::vector<std::string>{"to"}),
+        std::make_tuple("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, std::vector<std::string>{})
       );
     }
 };

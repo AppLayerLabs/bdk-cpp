@@ -185,7 +185,7 @@ struct populateMethodTypesMapHelper<R(TContract::*)(const Args&...) const> {
  */
 template <typename TContract>
 void inline populateMethodTypesMap(const std::string& functionName,
-                                   const std::string& methodMutability,
+                                   const FunctionTypes& methodMutability,
                                    const std::vector<std::string>& functionArgs,
                                    const std::vector<std::string>& functionArgsNames,
                                    const std::vector<std::string>& funcRets) {
@@ -290,7 +290,7 @@ ABI::MethodDescription inline getConstructorDataStructure() {
   constructorDescription.name = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
   constructorDescription.inputs = constructorArgsDescription;
   constructorDescription.outputs = {};
-  constructorDescription.stateMutability = "nonpayable";
+  constructorDescription.stateMutability = FunctionTypes::NonPayable;
   constructorDescription.type = "function";
   return constructorDescription;
 }
@@ -318,7 +318,7 @@ std::vector<ABI::MethodDescription> inline getFunctionsDataStructure() {
   * @return The mutability of the method.
   */
 template <typename Contract>
-std::string inline getMethodMutability(const std::string& methodName) {
+FunctionTypes inline getMethodMutability(const std::string& methodName) {
   if (!isContractRegistered<Contract>()) {
     throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
   }

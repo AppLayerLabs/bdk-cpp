@@ -260,6 +260,9 @@ void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec
 /// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };
 
+/// Enum for FunctionType
+enum FunctionTypes { View, NonPayable, Payable };
+
 /**
  * Abstraction of balance and nonce for a single account.
  * Used with Address on State in an unordered_map to track native accounts.

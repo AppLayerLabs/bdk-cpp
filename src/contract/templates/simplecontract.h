@@ -107,21 +107,21 @@ class SimpleContract : public DynamicContract {
         const std::unique_ptr<DB>&
       >(
         std::vector<std::string>{"name_", "value_"},
-        std::make_tuple("setName", &SimpleContract::setName, "nonpayable", std::vector<std::string>{"argName"}),
-        std::make_tuple("setNames", &SimpleContract::setNames, "nonpayable", std::vector<std::string>{"argName"}),
-        std::make_tuple("setValue", &SimpleContract::setValue, "nonpayable", std::vector<std::string>{"argValue"}),
-        std::make_tuple("setValues", &SimpleContract::setValues, "nonpayable", std::vector<std::string>{"argValue"}),
-        std::make_tuple("setNamesAndValues", &SimpleContract::setNamesAndValues, "nonpayable", std::vector<std::string>{"argName", "argValue"}),
-        std::make_tuple("setNamesAndValuesInTuple", &SimpleContract::setNamesAndValuesInTuple, "nonpayable", std::vector<std::string>{"argNameAndValue"}),
-        std::make_tuple("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, "nonpayable", std::vector<std::string>{"argNameAndValue"}),
-        std::make_tuple("getName", &SimpleContract::getName, "view", std::vector<std::string>{}),
-        std::make_tuple("getNames", &SimpleContract::getNames, "view", std::vector<std::string>{"i"}),
-        std::make_tuple("getValue", &SimpleContract::getValue, "view", std::vector<std::string>{}),
-        std::make_tuple("getValues", &SimpleContract::getValues, "view", std::vector<std::string>{"i"}),
-        std::make_tuple("getNameAndValue", &SimpleContract::getNameAndValue, "view", std::vector<std::string>{}),
-        std::make_tuple("getNamesAndValues", &SimpleContract::getNamesAndValues, "view", std::vector<std::string>{"i"}),
-        std::make_tuple("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, "view", std::vector<std::string>{"i"}),
-        std::make_tuple("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, "view", std::vector<std::string>{"i"})
+        std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
+        std::make_tuple("setNames", &SimpleContract::setNames, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
+        std::make_tuple("setValue", &SimpleContract::setValue, FunctionTypes::NonPayable, std::vector<std::string>{"argValue"}),
+        std::make_tuple("setValues", &SimpleContract::setValues, FunctionTypes::NonPayable, std::vector<std::string>{"argValue"}),
+        std::make_tuple("setNamesAndValues", &SimpleContract::setNamesAndValues, FunctionTypes::NonPayable, std::vector<std::string>{"argName", "argValue"}),
+        std::make_tuple("setNamesAndValuesInTuple", &SimpleContract::setNamesAndValuesInTuple, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndValue"}),
+        std::make_tuple("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndValue"}),
+        std::make_tuple("getName", &SimpleContract::getName, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, std::vector<std::string>{"i"}),
+        std::make_tuple("getValue", &SimpleContract::getValue, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getValues", &SimpleContract::getValues, FunctionTypes::View, std::vector<std::string>{"i"}),
+        std::make_tuple("getNameAndValue", &SimpleContract::getNameAndValue, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getNamesAndValues", &SimpleContract::getNamesAndValues, FunctionTypes::View, std::vector<std::string>{"i"}),
+        std::make_tuple("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, FunctionTypes::View, std::vector<std::string>{"i"}),
+        std::make_tuple("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, FunctionTypes::View, std::vector<std::string>{"i"})
       );
     }
 };

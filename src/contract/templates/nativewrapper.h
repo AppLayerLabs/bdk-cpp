@@ -86,8 +86,8 @@ class NativeWrapper : public ERC20 {
         const Address &, const uint64_t &, const std::unique_ptr<DB> &
       >(
         std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
-        std::make_tuple("deposit", &NativeWrapper::deposit, "payable", std::vector<std::string>{}),
-        std::make_tuple("withdraw", &NativeWrapper::withdraw, "payable", std::vector<std::string>{"value"})
+        std::make_tuple("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, std::vector<std::string>{}),
+        std::make_tuple("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, std::vector<std::string>{"value"})
       );
     }
 };

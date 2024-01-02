@@ -24,7 +24,7 @@ namespace ABI {
                                                             ///< if the arg name is missing it will be replaced with an empty string.
                                                             ///< Tuples are encoded as (type1,type2,...,typeN), runtime splitting is required.
     std::vector<std::string> outputs; ///< Vector of output types (there is no naming). Types encoded with ABI::FunctorEncoder::listArgumentTypesV.
-    std::string stateMutability; ///< State mutability of the method.
+    FunctionTypes stateMutability; ///< State mutability of the method.
     std::string type; ///< Type of the method.
   };
 
