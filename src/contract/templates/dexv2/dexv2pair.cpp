@@ -64,19 +64,19 @@ DEXV2Pair::~DEXV2Pair() {
 
 void DEXV2Pair::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("initialize", &DEXV2Pair::initialize, this);
-  this->registerMemberFunction("getReserves", &DEXV2Pair::getReserves, this);
-  this->registerMemberFunction("factory", &DEXV2Pair::factory, this);
-  this->registerMemberFunction("token0", &DEXV2Pair::token0, this);
-  this->registerMemberFunction("token1", &DEXV2Pair::token1, this);
-  this->registerMemberFunction("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, this);
-  this->registerMemberFunction("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, this);
-  this->registerMemberFunction("kLast", &DEXV2Pair::kLast, this);
-  this->registerMemberFunction("mint", &DEXV2Pair::mint, this);
-  this->registerMemberFunction("burn", &DEXV2Pair::burn, this);
-  this->registerMemberFunction("swap", &DEXV2Pair::swap, this);
-  this->registerMemberFunction("skim", &DEXV2Pair::skim, this);
-  this->registerMemberFunction("sync", &DEXV2Pair::sync, this);
+  this->registerMemberFunction("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, this);
+  this->registerMemberFunction("factory", &DEXV2Pair::factory, FunctionTypes::View, this);
+  this->registerMemberFunction("token0", &DEXV2Pair::token0, FunctionTypes::View, this);
+  this->registerMemberFunction("token1", &DEXV2Pair::token1, FunctionTypes::View, this);
+  this->registerMemberFunction("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, this);
+  this->registerMemberFunction("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, this);
+  this->registerMemberFunction("kLast", &DEXV2Pair::kLast, FunctionTypes::View, this);
+  this->registerMemberFunction("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, this);
 }
 
 void DEXV2Pair::_safeTransfer(const Address& token, const Address& to, const uint256_t& value) {

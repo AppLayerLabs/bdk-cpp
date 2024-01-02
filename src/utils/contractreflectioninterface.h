@@ -18,7 +18,6 @@ See the LICENSE.txt file in the project root for more information.
  * Only the following functions are used in normal operation
  * registerContract() -> By the derived DynamicContract class, to register the contract class methods, arguments, etc
  * getConstructorArgumentTypesString<TContract>() -> By ContractFactory and ContractManager, to get the list of constructor argument types .e.g "uint256,uint256"
- * getMethodMutability<TContract>(methodName) -> By the DynamicContract* class, after derived class calling registerMemberFunction(), to get the mutability of the method
  * isContractRegistered<TContract>() -> By ContractFactory and ContractManager, to check if the contract is registered
  * The remaining functions and mapping are accessed for JSON ABI purposes only
  * TODO: Add support for overloaded methods! This will require a change in the mappings and templates...
@@ -31,7 +30,7 @@ extern std::unordered_map<std::string, bool> registeredContractsMap; ///< Map of
 /// Key (ClassName) -> Value (std::vector<std::string>) (ConstructorArgumentNames)
 extern std::unordered_map<std::string, std::vector<std::string>> constructorArgumentNamesMap; /// Map to store constructor argument names
 /// Key (ClassName) -> Value (std::unordered_set<ABI::MethodDescription>) (MethodDescriptions) methodDescriptionsMap has all the information needed to generate the JSON ABI
-extern std::unordered_map<std::string, std::unordered_map<std::string, ABI::MethodDescription>> methodDescriptionsMap; ///< Map to store method descriptions.
+extern std::unordered_map<std::string, std::unordered_multimap<std::string, ABI::MethodDescription>> methodDescriptionsMap; ///< Map to store method descriptions.
 
 /** Helper struct to extract the Args... from a function pointer
  * We need multiple helper functions because the function can have no arguments at all
@@ -201,7 +200,7 @@ void inline populateMethodTypesMap(const std::string& functionName,
   methodDescription.outputs = funcRets;
   methodDescription.stateMutability = methodMutability;
   methodDescription.type = "function";
-  methodDescriptionsMap[contractName][functionName] = methodDescription;
+  methodDescriptionsMap[contractName].insert(std::make_pair(functionName, methodDescription));
 }
 
 /**
@@ -310,29 +309,6 @@ std::vector<ABI::MethodDescription> inline getFunctionsDataStructure() {
     descriptions.push_back(methodDescription);
   }
   return descriptions;
-}
-
-/**
- * Getter for the mutability of a method.
-  * @param methodName The name of the method to get the mutability of.
-  * @return The mutability of the method.
-  */
-template <typename Contract>
-FunctionTypes inline getMethodMutability(const std::string& methodName) {
-  if (!isContractRegistered<Contract>()) {
-    throw std::runtime_error("Contract " + Utils::getRealTypeName<Contract>() + " not registered");
-  }
-  std::string contractName = Utils::getRealTypeName<Contract>();
-  auto cIt = methodDescriptionsMap.find(contractName);
-  if (cIt != methodDescriptionsMap.end()) {
-    const auto& methodMaps = cIt->second;
-    /// Construct a empty method description with the name of the method
-    auto mIt = methodMaps.find(methodName);
-    if (mIt != methodMaps.end()) {
-        return mIt->second.stateMutability;
-    }
-  }
-  throw std::runtime_error("Method " + contractName + "::" + methodName + " not found");
 }
 
 } // namespace ContractReflectionInterface

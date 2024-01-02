@@ -75,11 +75,11 @@ class DynamicContract : public BaseContract {
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
      * @param instance Pointer to the instance of the class.
+     * @param methodMutability The mutability of the function.
      */
     template <typename R, typename T> void registerMemberFunction(
-      const std::string& funcSignature, R(T::*memFunc)() const, T* instance
+      const std::string& funcSignature, R(T::*memFunc)() const, const FunctionTypes& methodMutability, T* instance
     ) {
-      FunctionTypes methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
       std::string functStr = funcSignature + "()";
       switch (methodMutability) {
         case FunctionTypes::View: {
@@ -114,13 +114,12 @@ class DynamicContract : public BaseContract {
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
      * @param instance Pointer to the instance of the class.
+     * @param methodMutability The mutability of the function.
      */
     template <typename R, typename T> void registerMemberFunction(
-      const std::string& funcSignature, R(T::*memFunc)(), T* instance
+      const std::string& funcSignature, R(T::*memFunc)(), const FunctionTypes& methodMutability, T* instance
     ) {
-      FunctionTypes methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
       std::string functStr = funcSignature + "()";
-
       switch (methodMutability) {
         case FunctionTypes::View: {
           throw std::runtime_error("View must be const because it does not modify the state.");
@@ -150,11 +149,11 @@ class DynamicContract : public BaseContract {
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
      * @param instance Pointer to the instance of the class.
+     * @param methodMutability The mutability of the function.
      */
     template <typename R, typename... Args, typename T> void registerMemberFunction(
-      const std::string& funcSignature, R(T::*memFunc)(Args...), T* instance
+      const std::string& funcSignature, R(T::*memFunc)(Args...), const FunctionTypes& methodMutability, T* instance
     ) {
-      FunctionTypes methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
@@ -191,9 +190,8 @@ class DynamicContract : public BaseContract {
      * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename... Args, typename T> void registerMemberFunction(
-      const std::string& funcSignature, R(T::*memFunc)(Args...) const, T* instance
+      const std::string& funcSignature, R(T::*memFunc)(Args...) const, const FunctionTypes& methodMutability, T* instance
     ) {
-      FunctionTypes methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> Bytes {

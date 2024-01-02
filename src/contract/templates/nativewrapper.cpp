@@ -31,8 +31,8 @@ NativeWrapper::~NativeWrapper() {}
 
 void NativeWrapper::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("deposit", &NativeWrapper::deposit, this);
-  this->registerMemberFunction("withdraw", &NativeWrapper::withdraw, this);
+  this->registerMemberFunction("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, this);
+  this->registerMemberFunction("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, this);
 }
 
 void NativeWrapper::deposit() {

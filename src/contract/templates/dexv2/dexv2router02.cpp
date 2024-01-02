@@ -50,18 +50,18 @@ DEXV2Router02::~DEXV2Router02() {
 
 void DEXV2Router02::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("factory", &DEXV2Router02::factory, this);
-  this->registerMemberFunction("wrappedNative", &DEXV2Router02::wrappedNative, this);
-  this->registerMemberFunction("addLiquidity", &DEXV2Router02::addLiquidity, this);
-  this->registerMemberFunction("addLiquidityNative", &DEXV2Router02::addLiquidityNative, this);
-  this->registerMemberFunction("removeLiquidity", &DEXV2Router02::removeLiquidity, this);
-  this->registerMemberFunction("removeLiquidityNative", &DEXV2Router02::removeLiquidityNative, this);
-  this->registerMemberFunction("swapExactTokensForTokens", &DEXV2Router02::swapExactTokensForTokens, this);
-  this->registerMemberFunction("swapTokensForExactTokens", &DEXV2Router02::swapTokensForExactTokens, this);
-  this->registerMemberFunction("swapExactNativeForTokens", &DEXV2Router02::swapExactNativeForTokens, this);
-  this->registerMemberFunction("swapTokensForExactNative", &DEXV2Router02::swapTokensForExactNative, this);
-  this->registerMemberFunction("swapExactTokensForNative", &DEXV2Router02::swapExactTokensForNative, this);
-  this->registerMemberFunction("swapNativeForExactTokens", &DEXV2Router02::swapNativeForExactTokens, this);
+  this->registerMemberFunction("factory", &DEXV2Router02::factory, FunctionTypes::View, this);
+  this->registerMemberFunction("wrappedNative", &DEXV2Router02::wrappedNative, FunctionTypes::View, this);
+  this->registerMemberFunction("addLiquidity", &DEXV2Router02::addLiquidity, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("addLiquidityNative", &DEXV2Router02::addLiquidityNative, FunctionTypes::Payable, this);
+  this->registerMemberFunction("removeLiquidity", &DEXV2Router02::removeLiquidity, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("removeLiquidityNative", &DEXV2Router02::removeLiquidityNative, FunctionTypes::Payable, this);
+  this->registerMemberFunction("swapExactTokensForTokens", &DEXV2Router02::swapExactTokensForTokens, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("swapTokensForExactTokens", &DEXV2Router02::swapTokensForExactTokens, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("swapExactNativeForTokens", &DEXV2Router02::swapExactNativeForTokens, FunctionTypes::Payable, this);
+  this->registerMemberFunction("swapTokensForExactNative", &DEXV2Router02::swapTokensForExactNative, FunctionTypes::Payable, this);
+  this->registerMemberFunction("swapExactTokensForNative", &DEXV2Router02::swapExactTokensForNative, FunctionTypes::Payable, this);
+  this->registerMemberFunction("swapNativeForExactTokens", &DEXV2Router02::swapNativeForExactTokens, FunctionTypes::Payable, this);
 }
 
 std::pair<uint256_t, uint256_t> DEXV2Router02::_addLiquidity(

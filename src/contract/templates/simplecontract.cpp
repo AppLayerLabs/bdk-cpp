@@ -164,19 +164,19 @@ std::vector<std::vector<std::tuple<std::string, uint256_t>>> SimpleContract::get
 
 void SimpleContract::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("setName", &SimpleContract::setName, this);
-  this->registerMemberFunction("setNames", &SimpleContract::setNames, this);
-  this->registerMemberFunction("setValue", &SimpleContract::setValue, this);
-  this->registerMemberFunction("setValues", &SimpleContract::setValues, this);
-  this->registerMemberFunction("setNamesAndValues", &SimpleContract::setNamesAndValues, this);
-  this->registerMemberFunction("setNamesAndValuesInTuple", &SimpleContract::setNamesAndValuesInTuple, this);
-  this->registerMemberFunction("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, this);
-  this->registerMemberFunction("getName", &SimpleContract::getName, this);
-  this->registerMemberFunction("getNames", &SimpleContract::getNames, this);
-  this->registerMemberFunction("getValue", &SimpleContract::getValue, this);
-  this->registerMemberFunction("getValues", &SimpleContract::getValues, this);
-  this->registerMemberFunction("getNameAndValue", &SimpleContract::getNameAndValue, this);
-  this->registerMemberFunction("getNamesAndValues", &SimpleContract::getNamesAndValues, this);
-  this->registerMemberFunction("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, this);
-  this->registerMemberFunction("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, this);
+  this->registerMemberFunction("setName", &SimpleContract::setName, FunctionTypes::NonPayable, this);;
+  this->registerMemberFunction("setNames", &SimpleContract::setNames, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("setValue", &SimpleContract::setValue, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("setValues", &SimpleContract::setValues, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("setNamesAndValues", &SimpleContract::setNamesAndValues, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("setNamesAndValuesInTuple", &SimpleContract::setNamesAndValuesInTuple, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("getName", &SimpleContract::getName, FunctionTypes::View, this);
+  this->registerMemberFunction("getNames", &SimpleContract::getNames, FunctionTypes::View, this);
+  this->registerMemberFunction("getValue", &SimpleContract::getValue, FunctionTypes::View, this);
+  this->registerMemberFunction("getValues", &SimpleContract::getValues, FunctionTypes::View, this);
+  this->registerMemberFunction("getNameAndValue", &SimpleContract::getNameAndValue, FunctionTypes::View, this);
+  this->registerMemberFunction("getNamesAndValues", &SimpleContract::getNamesAndValues, FunctionTypes::View, this);
+  this->registerMemberFunction("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, FunctionTypes::View, this);
+  this->registerMemberFunction("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, FunctionTypes::View, this);
 }
