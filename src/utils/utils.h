@@ -284,15 +284,25 @@ namespace Utils {
 
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
+  /**
+   * Helper function for removeQualifiers
+   * @tparam TTuple The tuple type to remove qualifiers from.
+   * @tparam I The index sequence.
+   */
   template <typename TTuple, std::size_t... I>
-    auto removeQualifiersImpl(std::index_sequence<I...>) {
-      return std::tuple<std::decay_t<std::tuple_element_t<I, TTuple>>...>{};
-    }
+  auto removeQualifiersImpl(std::index_sequence<I...>) {
+    return std::tuple<std::decay_t<std::tuple_element_t<I, TTuple>>...>{};
+  }
 
-    template <typename TTuple>
-    auto removeQualifiers() {
-      return removeQualifiersImpl<TTuple>(std::make_index_sequence<std::tuple_size_v<TTuple>>{});
-    }
+  /**
+   * Remove the qualifiers from a tuple type.
+   * @tparam TTuple The tuple type to remove qualifiers from.
+   * @return A tuple with the same types but qualifiers removed.
+   */
+  template <typename TTuple>
+  auto removeQualifiers() {
+    return removeQualifiersImpl<TTuple>(std::make_index_sequence<std::tuple_size_v<TTuple>>{});
+  }
 
   /**
   * Template for identifying if a type is a uint between 8 and 256 bits.

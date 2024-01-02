@@ -33,84 +33,147 @@ extern std::unordered_map<std::string, std::vector<std::string>> constructorArgu
 /// Key (ClassName) -> Value (std::unordered_set<ABI::MethodDescription>) (MethodDescriptions) methodDescriptionsMap has all the information needed to generate the JSON ABI
 extern std::unordered_map<std::string, std::unordered_map<std::string, ABI::MethodDescription>> methodDescriptionsMap; ///< Map to store method descriptions.
 
-/** Helper struct to extract the Args... from a function pointer */
+/** Helper struct to extract the Args... from a function pointer
+ * We need multiple helper functions because the function can have no arguments at all
+ * A function can also be <Args... const> or <Args...>
+ * And the function itself can be const.
+ * In total there are 6 combinations.
+ */
 
 template <typename T>
 struct populateMethodTypesMapHelper;
 
-// For member functions with no arguments
+/**
+ * Helper function to extract the Args... and R into a solidity ABI type list from a function pointers
+ * Specialization for non-const functions without args
+ * @tparam TContract The contract type.
+ * @tparam R The return type.
+ */
 template <typename TContract, typename R>
 struct populateMethodTypesMapHelper<R(TContract::*)()> {
+  /// The return type.
   using ReturnType = R;
+  /// The class type.
   using ClassType = TContract;
+  /// Static function because it is a struct, to get the function arguments
   static std::vector<std::string> getFunctionArgs() {
     return {};
   }
+  /// Static function because it is a struct, to get the function return types
   static std::vector<std::string> getFunctionRets() {
     return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
-// For const member functions with no arguments
+/**
+ * Helper function to extract the Args... and R into a solidity ABI type list from a function pointers
+ * Specialization for const functions without args
+ * @tparam TContract The contract type.
+ * @tparam R The return type.
+ */
 template <typename TContract, typename R>
 struct populateMethodTypesMapHelper<R(TContract::*)() const> {
+  /// The return type.
   using ReturnType = R;
+  /// The class type.
   using ClassType = TContract;
+  /// Static function because it is a struct, to get the function arguments
   static std::vector<std::string> getFunctionArgs() {
     return {};
   }
+  /// Static function because it is a struct, to get the function return types
   static std::vector<std::string> getFunctionRets() {
     return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
-// For member functions with non-const, non-reference arguments
+/**
+ * Helper function to extract the Args... and R into a solidity ABI type list from a function pointers
+ * Specialization for non-const functions with args
+ * @tparam TContract The contract type.
+ * @tparam R The return type.
+ * @tparam Args The argument types.
+ */
 template <typename TContract, typename R, typename... Args>
 struct populateMethodTypesMapHelper<R(TContract::*)(Args...)> {
+  /// The return type.
   using ReturnType = R;
+  /// The class type.
   using ClassType = TContract;
+  /// Static function because it is a struct, to get the function arguments
   static std::vector<std::string> getFunctionArgs() {
     return ABI::FunctorEncoder::listArgumentTypesV<Args...>();
   }
+  /// Static function because it is a struct, to get the function return types
   static std::vector<std::string> getFunctionRets() {
     return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
-// For const member functions with non-const, non-reference arguments
+/**
+ * Helper function to extract the Args... and R into a solidity ABI type list from a function pointers
+ * Specialization for const functions with args
+ * @tparam TContract The contract type.
+ * @tparam R The return type.
+ * @tparam Args The argument types.
+ */
 template <typename TContract, typename R, typename... Args>
 struct populateMethodTypesMapHelper<R(TContract::*)(Args...) const> {
+  /// The return type.
   using ReturnType = R;
+  /// The class type.
   using ClassType = TContract;
+  /// Static function because it is a struct, to get the function arguments
   static std::vector<std::string> getFunctionArgs() {
     return ABI::FunctorEncoder::listArgumentTypesV<Args...>();
   }
+  /// Static function because it is a struct, to get the function return types
   static std::vector<std::string> getFunctionRets() {
     return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
-// For member functions with const reference arguments
+/**
+ * Helper function to extract the Args... and R into a solidity ABI type list from a function pointers
+ * Specialization for non-const functions with const args
+ * @tparam TContract The contract type.
+ * @tparam R The return type.
+ * @tparam Args The argument types.
+ */
 template <typename TContract, typename R, typename... Args>
 struct populateMethodTypesMapHelper<R(TContract::*)(const Args&...)> {
+  /// The return type.
   using ReturnType = R;
+  /// The class type.
   using ClassType = TContract;
+  /// Static function because it is a struct, to get the function arguments
   static std::vector<std::string> getFunctionArgs() {
     return ABI::FunctorEncoder::listArgumentTypesV<Args...>();
   }
+  /// Static function because it is a struct, to get the function return types
   static std::vector<std::string> getFunctionRets() {
     return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }
 };
 
-// For const member functions with const reference arguments
+/**
+ * Helper function to extract the Args... and R into a solidity ABI type list from a function pointers
+ * Specialization for const functions with const args
+ * @tparam TContract The contract type.
+ * @tparam R The return type.
+ * @tparam Args The argument types.
+ */
 template <typename TContract, typename R, typename... Args>
 struct populateMethodTypesMapHelper<R(TContract::*)(const Args&...) const> {
+  /// The return type.
   using ReturnType = R;
+  /// The class type.
   using ClassType = TContract;
+  /// Static function because it is a struct, to get the function arguments
   static std::vector<std::string> getFunctionArgs() {
     return ABI::FunctorEncoder::listArgumentTypesV<Args...>();
   }
+  /// Static function because it is a struct, to get the function return types
   static std::vector<std::string> getFunctionRets() {
     return ABI::FunctorEncoder::listArgumentTypesV<R>();
   }

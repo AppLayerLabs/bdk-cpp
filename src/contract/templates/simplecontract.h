@@ -59,7 +59,6 @@ class SimpleContract : public DynamicContract {
 
     
     ~SimpleContract() override; ///< Destructor.
-
     ///< function setName(string memory argName) public
     void setName(const std::string& argName);
     ///< function setNames(string[] memory argName) public, the final name is the concatenation of all names

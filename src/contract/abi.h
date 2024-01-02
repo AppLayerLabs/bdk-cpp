@@ -31,7 +31,9 @@ namespace ABI {
   /// Common functions used by both encoder and decoder.
   /// Forward declarations.
   template<typename T> struct isTupleOfDynamicTypes;
+  /// Forward declaration for std::tuple<Ts...>
   template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>>;
+  /// Forward declaration for std::vector<T>
   template<typename T> struct isTupleOfDynamicTypes<std::vector<T>>;
       // Type trait to check if T is a std::vector
   template <typename T>
@@ -40,20 +42,22 @@ namespace ABI {
   template <typename... Args>
   struct isVector<std::vector<Args...>> : std::true_type {};
 
-  // Helper variable template for is_vector
+  /// Helper variable template for is_vector
   template <typename T>
   inline constexpr bool isVectorV = isVector<T>::value;
 
-  // Type trait to extract the element type of a std::vector
+  /// vectorElementType trait to get the element type of a vector
   template <typename T>
   struct vectorElementType {};
 
+  /// Getter for the element type of a vector
   template <typename... Args>
   struct vectorElementType<std::vector<Args...>> {
+    /// The element type of the vector
     using type = typename std::vector<Args...>::value_type;
   };
 
-  // Helper alias template for vector_element_type
+  /// Helper alias template for vector_element_type
   template <typename T>
   using vectorElementTypeT = typename vectorElementType<T>::type;
 
@@ -80,14 +84,34 @@ namespace ABI {
     return false;
   }
 
-  /// Specialization for a tuple of dynamic types. Defaults to false for unknown types.
-  template<typename T> struct isTupleOfDynamicTypes { static constexpr bool value = false; };
+  /**
+   * Check if a type is a tuple of dynamic types.
+   * Default declaration for non tuple types.
+   * @tparam T Any type.
+   */
+  template<typename T> struct isTupleOfDynamicTypes {
+    /// Default value is false.
+    static constexpr bool value = false;
+  };
 
-  /// Specialization for a tuple of dynamic types, using std::tuple.
-  template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>> { static constexpr bool value = (... || isDynamic<Ts>()); };
+  /**
+   * Check if a type is a tuple of dynamic types.
+   * Default declaration for std::tuple<Ts...>.
+   * @tparam Ts Any list of types.
+   */
+  template<typename... Ts> struct isTupleOfDynamicTypes<std::tuple<Ts...>> {
+    /// For every type in Ts, check if it is dynamic. if it is, return true.
+    static constexpr bool value = (... || isDynamic<Ts>());
+  };
 
-  /// Specialization for a tuple of dynamic types, using std::vector.
-  template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> { static constexpr bool value = isTupleOfDynamicTypes<T>::value; };
+  /**
+   * Check if a std::vector contain a tuple of dynamic types.
+   * @tparam T Any type.
+   */
+  template<typename T> struct isTupleOfDynamicTypes<std::vector<T>> {
+    /// For every type in T, check if it is dynamic. if it is, return true.
+    static constexpr bool value = isTupleOfDynamicTypes<T>::value;
+  };
 
   /// Calculates the total nextOffset of a given tuple type.
   template<typename T>
@@ -102,6 +126,11 @@ namespace ABI {
     }
   }
 
+  /**
+   * Calculate the total ABI offset start for dynamic types for a list of types.
+   * @tparam Ts The types to calculate the offset for.
+   * @return The total offset.
+   */
   template <typename... Ts>
   constexpr uint64_t calculateTotalOffset() {
     return (calculateOffsetForType<Ts>() + ...);
@@ -111,6 +140,10 @@ namespace ABI {
   namespace FunctorEncoder {
     // General template for type to string conversion
     template<typename T>
+    /**
+     * @cond
+     * Default TypeName implementation
+     */
     struct TypeName {
       static std::string get()
       {
@@ -119,7 +152,7 @@ namespace ABI {
       }
     };
 
-    // Specialization for all numeric types
+    /// Specialization for all numeric types
     template<> struct TypeName<uint8_t> { static std::string get() { return "uint8"; }};
     template<> struct TypeName<uint16_t> { static std::string get() { return "uint16"; }};
     template<> struct TypeName<uint24_t> { static std::string get() { return "uint24"; }};
@@ -184,17 +217,27 @@ namespace ABI {
     template<> struct TypeName<int240_t> { static std::string get() { return "int240"; }};
     template<> struct TypeName<int248_t> { static std::string get() { return "int248"; }};
     template<> struct TypeName<int256_t> { static std::string get() { return "int256"; }};
-    // Other types...
+
+    /// Specialization for address type
     template<> struct TypeName<Address> { static std::string get() { return "address"; }};
+    /// Specialization for bool type
     template<> struct TypeName<bool> { static std::string get() { return "bool"; }};
+    /// Specialization for bytes type
     template<> struct TypeName<Bytes> { static std::string get() { return "bytes"; }};
+    /// Specialization for bytes type
     template<> struct TypeName<std::string> { static std::string get() { return "string"; }};
+    /// @endcond
     // Helper for tuple types
     template <typename Tuple, typename IndexSequence>
     struct TupleTypeNameHelper;
-
+    /**
+     * Helper that expand the tuple and call TypeName for each element
+     * @tparam Tuple The tuple type
+     * @tparam Is The index sequence
+     */
     template <typename Tuple, std::size_t... Is>
     struct TupleTypeNameHelper<Tuple, std::index_sequence<Is...>> {
+      /// Static function because this is a struct.
       static std::string get() {
         std::string result;
         ((result += TypeName<std::decay_t<std::tuple_element_t<Is, Tuple>>>::get() + ","), ...);
@@ -205,22 +248,37 @@ namespace ABI {
       }
     };
 
-    // Specialization for std::tuple
+    /**
+     * TypeName specialization for std::tuple
+     * @tparam Args The tuple types
+     */
     template<typename... Args>
     struct TypeName<std::tuple<Args...>> {
+      /// Static function because this is a struct.
       static std::string get() {
         return "(" + TupleTypeNameHelper<std::tuple<Args...>, std::index_sequence_for<Args...>>::get() + ")";
       }
     };
 
+    /**
+     * TypeName specialization for std::vector
+     * @tparam T The vector type
+     */
     template<typename T>
     struct TypeName<std::vector<T>> {
+      /// Static function because this is a struct.
       static std::string get() {
         return TypeName<T>::get() + "[]";
       }
     };
 
-    // Specialization for function types
+    /**
+     * List the argument types in a string, comma separated, uses () for tuples and [] for arrays
+     * Example: listArgumentTypes<int, std::string, std::tuple<int, int>, std::vector<std::string>>()
+     * Will result in "int,string,(int,int),string[]"
+     * @tparam Args The argument types
+     * @return The string with the argument types
+     */
     template <typename... Args>
     static std::string listArgumentTypes() {
       std::string result;
@@ -231,7 +289,13 @@ namespace ABI {
       return result;
     }
 
-    // Specialization for function types (return std::vector instead of std::string)
+    /**
+     * List the argument types in a vector of strings, uses () for tuples and [] for arrays
+     * Example: listArgumentTypesV<int, std::string, std::tuple<int, int>, std::vector<std::string>>()
+     * Will result in {"int","string","(int,int)","string[]"}
+     * @tparam Args
+     * @return The vector with the argument types
+     */
     template<typename... Args>
     static std::vector<std::string> listArgumentTypesV() {
       std::vector<std::string> result;
@@ -239,21 +303,32 @@ namespace ABI {
       return result;
     }
 
-    // Specializations for function types (return std::vector instead of std::string)
-    // Ignores the first std::tuple, extracting the rest of the types
-    // Helper to unpack tuple and call listArgumentTypesV
+    /**
+     * Helper function for listArgumentTypesVFromTuple
+     * @tparam Tuple The tuple type
+     * @tparam I The index sequence
+     * @return The vector with the argument types
+     */
     template<typename Tuple, std::size_t... I>
     static std::vector<std::string> unpackTupleAndListTypesV(std::index_sequence<I...>) {
       return listArgumentTypesV<std::tuple_element_t<I, Tuple>...>();
     }
 
-    // Function to start unpacking process
+    /**
+     * Same as listArgumentTypesV, but takes a tuple as template parameter
+     * @tparam Tuple The tuple type
+     * @return The vector with the argument types
+     */
     template<typename Tuple>
     static std::vector<std::string> listArgumentTypesVFromTuple() {
       return unpackTupleAndListTypesV<Tuple>(std::make_index_sequence<std::tuple_size_v<Tuple>>{});
     }
 
-    // Specialization for function types
+    /**
+    * Encode a function signature following solidity rules.
+    * @tparam Args The argument types.
+    * @param funcSignature The function signature (name).
+    */
     template <typename... Args>
     static Functor encode(const std::string& funcSignature) {
       std::string fullSignature = funcSignature;
@@ -455,7 +530,6 @@ namespace ABI {
 
     // TODO: docs
     template<typename T> inline T decode(const BytesArrView& bytes, uint64_t& index);
-    template<typename T> inline std::vector<T> decode();
 
     /**
      * Decode a uint256.
@@ -479,8 +553,8 @@ namespace ABI {
      * Decode a packed std::tuple<Args...> individually
      * This function takes advante of std::tuple_element and template recurssion
      * in order to parse all the items within that given tuple.
-     * @param TupleLike The std::tuple<Args...> structure
-     * @param I - the current tuple index
+     * @tparam TupleLike The std::tuple<Args...> structure
+     * @tparam I - the current tuple index
      * @param bytes The data string to decode.
      * @param index The point on the encoded string to start decoding.
      * @param ret The tuple object to return, needs to be a reference and create outside the function due to recursion
@@ -664,16 +738,28 @@ namespace ABI {
       return tmp;
     }
 
-    // TODO: docs
+    /**
+     * The TypeList struct is used in order to decay a std::tuple into a list of types.
+     * @tparam T The first type
+     * @tparam Ts The rest of the types
+     */
     template <typename T, typename... Ts> struct TypeList {
+      /// The current type
       T head;
+      /// Remaining types
       TypeList<Ts...> tail;
+      /// Construct TypeList recursively.
       TypeList(const BytesArrView& bytes, uint64_t& index) : head(decode<T>(bytes, index)), tail(bytes, index) {}
     };
 
-    // TODO: docs
+    /**
+     * Specialization for the last type in the std::tuple.
+     * @tparam T The last type
+     */
     template <typename T> struct TypeList<T> {
+      /// The last type
       T head;
+      /// Construct the last type in the TypeList.
       TypeList(const BytesArrView& bytes, uint64_t& index) : head(decode<T>(bytes, index)) {}
     };
 
@@ -688,13 +774,27 @@ namespace ABI {
       return toTupleHelper(tl, std::tuple<>());
     }
 
-    // TODO: docs
+    /**
+     * Helper function for toTuple.
+     * @tparam Accumulated The accumulated types.
+     * @tparam T The current type.
+     * @tparam Ts The rest of the types.
+     * @param tl The list of types to convert.
+     * @param acc The accumulated (already converted) types.
+     * @return A tuple with the converted types.
+     */
     template<typename... Accumulated, typename T, typename... Ts>
     inline auto toTupleHelper(TypeList<T, Ts...>& tl, std::tuple<Accumulated...> acc) {
       return toTupleHelper(tl.tail, std::tuple_cat(acc, std::tuple<T>(tl.head)));
     }
 
-    // TODO: docs
+    /**
+    * Helper function for toTuple.
+    * @tparam Accumulated The accumulated types.
+    * @tparam T The current type.
+    * @param tl The list of types to convert.
+    * @param acc The accumulated (already converted) types.
+    */
     template<typename... Accumulated, typename T>
     inline auto toTupleHelper(TypeList<T>& tl, std::tuple<Accumulated...> acc) {
       return std::tuple_cat(acc, std::tuple<T>(tl.head));
@@ -712,6 +812,7 @@ namespace ABI {
       if constexpr (sizeof...(Args) == 0) {
         return std::tuple<>();
       } else {
+        /// TODO: there is a "unecessary" copy here (TypeList to tuple), we could use a std::tuple directly?
         auto typeListResult = TypeList<Args...>(encodedData, index);
         return toTuple(typeListResult);
       }
