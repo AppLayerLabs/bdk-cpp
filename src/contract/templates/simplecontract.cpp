@@ -119,6 +119,7 @@ std::vector<std::string> SimpleContract::getNames(const uint256_t& i) const {
 }
 
 uint256_t SimpleContract::getValue() const { return this->value_.get(); }
+uint256_t SimpleContract::getValue(const uint256_t& i) const { return this->value_.get() + i; }
 
 std::vector<uint256_t> SimpleContract::getValues(const uint256_t& i) const {
   std::vector<uint256_t> values;
@@ -173,7 +174,8 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("getName", &SimpleContract::getName, FunctionTypes::View, this);
   this->registerMemberFunction("getNames", &SimpleContract::getNames, FunctionTypes::View, this);
-  this->registerMemberFunction("getValue", &SimpleContract::getValue, FunctionTypes::View, this);
+  this->registerMemberFunction("getValue", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getValue), FunctionTypes::View, this);
+  this->registerMemberFunction("getValue", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getValue), FunctionTypes::View, this);
   this->registerMemberFunction("getValues", &SimpleContract::getValues, FunctionTypes::View, this);
   this->registerMemberFunction("getNameAndValue", &SimpleContract::getNameAndValue, FunctionTypes::View, this);
   this->registerMemberFunction("getNamesAndValues", &SimpleContract::getNamesAndValues, FunctionTypes::View, this);

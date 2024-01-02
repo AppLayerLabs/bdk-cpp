@@ -784,5 +784,25 @@ namespace EXPECTED
                                "        \"stateMutability\": \"nonpayable\",\n"
                                "        \"type\": \"function\"\n"
                                "    }");
+
+    json getValueOverload = json::parse("{\n"
+                                        "    \"inputs\": [\n"
+                                        "      {\n"
+                                        "        \"internalType\": \"uint256\",\n"
+                                        "        \"name\": \"\",\n"
+                                        "        \"type\": \"uint256\"\n"
+                                        "      }\n"
+                                        "    ],\n"
+                                        "    \"name\": \"getValue\",\n"
+                                        "    \"outputs\": [\n"
+                                        "      {\n"
+                                        "        \"internalType\": \"uint256\",\n"
+                                        "        \"name\": \"\",\n"
+                                        "        \"type\": \"uint256\"\n"
+                                        "      }\n"
+                                        "    ],\n"
+                                        "    \"stateMutability\": \"view\",\n"
+                                        "    \"type\": \"function\"\n"
+                                        "  }");
   }
 }

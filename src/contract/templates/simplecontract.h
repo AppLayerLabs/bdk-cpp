@@ -82,6 +82,9 @@ class SimpleContract : public DynamicContract {
     std::vector<std::string> getNames(const uint256_t& i) const;
     ///< function getValue() public view returns(uint256)
     uint256_t getValue() const;
+    ///< Function getValue(uint256 i) public view returns(uint256) return this->value_ + i.
+    /// For testing overloading functions...
+    uint256_t getValue(const uint256_t& i) const;
     ///< function getValues(const uint256_t& i) public view returns(uint256[] memory) return uint256[] of size i with this->value_ as all elements.
     std::vector<uint256_t> getValues(const uint256_t& i) const;
     ///< function getNameAndValue() public view returns(string memory, uint256)
@@ -116,7 +119,8 @@ class SimpleContract : public DynamicContract {
         std::make_tuple("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, FunctionTypes::NonPayable, std::vector<std::string>{"argNameAndValue"}),
         std::make_tuple("getName", &SimpleContract::getName, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getNames", &SimpleContract::getNames, FunctionTypes::View, std::vector<std::string>{"i"}),
-        std::make_tuple("getValue", &SimpleContract::getValue, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getValue", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getValue), FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getValue", static_cast<uint256_t(SimpleContract::*)(const uint256_t&) const>(&SimpleContract::getValue), FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getValues", &SimpleContract::getValues, FunctionTypes::View, std::vector<std::string>{"i"}),
         std::make_tuple("getNameAndValue", &SimpleContract::getNameAndValue, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getNamesAndValues", &SimpleContract::getNamesAndValues, FunctionTypes::View, std::vector<std::string>{"i"}),
