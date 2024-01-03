@@ -70,11 +70,11 @@ class ERC20Wrapper : public DynamicContract {
         const std::unique_ptr<DB>&
       >(
         std::vector<std::string>{},
-        std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, "view", std::vector<std::string>{"token"}),
-        std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, "view", std::vector<std::string>{"token", "user"}),
-        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, "nonpayable", std::vector<std::string>{"token", "value"}),
-        std::make_tuple("transferTo", &ERC20Wrapper::transferTo, "nonpayable", std::vector<std::string>{"token", "to", "value"}),
-        std::make_tuple("deposit", &ERC20Wrapper::deposit, "nonpayable", std::vector<std::string>{"token", "value"})
+        std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, std::vector<std::string>{"token"}),
+        std::make_tuple("getUserBalance", &ERC20Wrapper::getUserBalance, FunctionTypes::View, std::vector<std::string>{"token", "user"}),
+        std::make_tuple("withdraw", &ERC20Wrapper::withdraw, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"}),
+        std::make_tuple("transferTo", &ERC20Wrapper::transferTo, FunctionTypes::NonPayable, std::vector<std::string>{"token", "to", "value"}),
+        std::make_tuple("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, std::vector<std::string>{"token", "value"})
       );
     }
 

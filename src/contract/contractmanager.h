@@ -346,29 +346,24 @@ class ContractManagerInterface {
     template <typename TContract> Address callCreateContract(
       const Address& txOrigin, const Address &fromAddr, const uint256_t &gasValue,
       const uint256_t &gasPriceValue, const uint256_t &callValue,
-      const ABI::Encoder &encoder
+      const Bytes &encoder
     ) {
       if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       ethCallInfo callInfo;
-      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract";
-      std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
-      std::ostringstream createFullSignatureStream;
-      createFullSignatureStream << createSignature << "(";
-      if (!args.empty()) {
-        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(createFullSignatureStream, ","));
-        createFullSignatureStream << args.back();
-      }
-      createFullSignatureStream << ")";
+      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract(";
+      // Append args
+      createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
+      createSignature += ")";
       auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
       from = fromAddr;
       to = this->manager_.deriveContractAddress();
       gas = gasValue;
       gasPrice = gasPriceValue;
       value = callValue;
-      functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
-      data = encoder.getData();
+      functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
+      data = encoder;
       this->manager_.callLogger_->setContractVars(&manager_, txOrigin, fromAddr, value);
       this->manager_.ethCall(callInfo);
       return to;

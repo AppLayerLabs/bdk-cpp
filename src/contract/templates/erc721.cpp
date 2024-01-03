@@ -98,15 +98,15 @@ ERC721::~ERC721() {
 
 void ERC721::registerContractFunctions() {
   this->registerContract();
-  this->registerMemberFunction("name", &ERC721::name, this);
-  this->registerMemberFunction("symbol", &ERC721::symbol, this);
-  this->registerMemberFunction("balanceOf", &ERC721::balanceOf, this);
-  this->registerMemberFunction("ownerOf", &ERC721::ownerOf, this);
-  this->registerMemberFunction("approve", &ERC721::approve, this);
-  this->registerMemberFunction("getApproved", &ERC721::getApproved, this);
-  this->registerMemberFunction("setApprovalForAll", &ERC721::setApprovalForAll, this);
-  this->registerMemberFunction("isApprovedForAll", &ERC721::isApprovedForAll, this);
-  this->registerMemberFunction("transferFrom", &ERC721::transferFrom, this);
+  this->registerMemberFunction("name", &ERC721::name, FunctionTypes::View, this);
+  this->registerMemberFunction("symbol", &ERC721::symbol, FunctionTypes::View, this);
+  this->registerMemberFunction("balanceOf", &ERC721::balanceOf, FunctionTypes::View, this);
+  this->registerMemberFunction("ownerOf", &ERC721::ownerOf, FunctionTypes::View, this);
+  this->registerMemberFunction("approve", &ERC721::approve, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("getApproved", &ERC721::getApproved, FunctionTypes::View, this);
+  this->registerMemberFunction("setApprovalForAll", &ERC721::setApprovalForAll, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("isApprovedForAll", &ERC721::isApprovedForAll, FunctionTypes::View, this);
+  this->registerMemberFunction("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable, this);
 }
 
 Address ERC721::ownerOf_(const uint256_t& tokenId) const {

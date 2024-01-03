@@ -2134,14 +2134,10 @@ namespace TState {
               uint256_t tokenDecimals = uint256_t(18);
               uint256_t tokenSupply = uint256_t(1000000000000000000);
 
-              ABI::Encoder::EncVar createNewERC20ContractVars;
-              createNewERC20ContractVars.push_back(tokenName);
-              createNewERC20ContractVars.push_back(tokenSymbol);
-              createNewERC20ContractVars.push_back(tokenDecimals);
-              createNewERC20ContractVars.push_back(tokenSupply);
-              ABI::Encoder createNewERC20ContractEncoder(createNewERC20ContractVars);
+              Bytes createNewERC20ContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals,
+                                                                                tokenSupply);
               Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
-              Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder.getData());
+              Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder);
 
               TxBlock createNewERC2OTx = TxBlock(
                   ProtocolContractAddresses.at("ContractManager"),
@@ -2161,12 +2157,9 @@ namespace TState {
             } else {
               const auto ERC20ContractAddress = state1->getContracts()[0].second;
 
-              ABI::Encoder::EncVar transferVars;
-              transferVars.push_back(targetOfTransactions);
-              transferVars.push_back(uint256_t(10000000000000000));
-              ABI::Encoder transferEncoder(transferVars);
+              Bytes transferEncoder = ABI::Encoder::encodeData(targetOfTransactions, uint256_t(10000000000000000));
               Bytes transferData = Hex::toBytes("0xa9059cbb");
-              Utils::appendBytes(transferData, transferEncoder.getData());
+              Utils::appendBytes(transferData, transferEncoder);
 
               TxBlock transferERC20 = TxBlock(
                   ERC20ContractAddress,
@@ -2228,48 +2221,55 @@ namespace TState {
 
 
             const auto contractAddress = state1->getContracts()[0].second;
-            ABI::Encoder::EncVar getBalanceMeVars;
-            getBalanceMeVars.push_back(targetOfTransactions);
-            ABI::Encoder getBalanceMeEncoder(getBalanceMeVars, "balanceOf(address)");
+            Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(targetOfTransactions);
+            Functor getBalanceMeFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
             Bytes getBalanceMeNode1Result = state1->ethCall(
-                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-            ABI::Decoder getBalanceMeNode1Decoder({ABI::Types::uint256}, getBalanceMeNode1Result);
-            REQUIRE(getBalanceMeNode1Decoder.getData<uint256_t>(0) == targetExpectedValue);
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
+
+            auto getBalanceMeNode1Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode1Result);
+            REQUIRE(std::get<0>(getBalanceMeNode1Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode2Result = state2->ethCall(
-                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-            ABI::Decoder getBalanceMeNode2Decoder({ABI::Types::uint256}, getBalanceMeNode2Result);
-            REQUIRE(getBalanceMeNode2Decoder.getData<uint256_t>(0) == targetExpectedValue);
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
+
+            auto getBalanceMeNode2Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode2Result);
+            REQUIRE(std::get<0>(getBalanceMeNode2Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode3Result = state3->ethCall(
-                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-            ABI::Decoder getBalanceMeNode3Decoder({ABI::Types::uint256}, getBalanceMeNode3Result);
-            REQUIRE(getBalanceMeNode3Decoder.getData<uint256_t>(0) == targetExpectedValue);
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
+
+            auto getBalanceMeNode3Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode3Result);
+            REQUIRE(std::get<0>(getBalanceMeNode3Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode4Result = state4->ethCall(
-                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-            ABI::Decoder getBalanceMeNode4Decoder({ABI::Types::uint256}, getBalanceMeNode4Result);
-            REQUIRE(getBalanceMeNode4Decoder.getData<uint256_t>(0) == targetExpectedValue);
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
+
+            auto getBalanceMeNode4Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode4Result);
+            REQUIRE(std::get<0>(getBalanceMeNode4Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode5Result = state5->ethCall(
-                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-            ABI::Decoder getBalanceMeNode5Decoder({ABI::Types::uint256}, getBalanceMeNode5Result);
-            REQUIRE(getBalanceMeNode5Decoder.getData<uint256_t>(0) == targetExpectedValue);
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
+
+            auto getBalanceMeNode5Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode5Result);
+            REQUIRE(std::get<0>(getBalanceMeNode5Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode6Result = state6->ethCall(
-                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-            ABI::Decoder getBalanceMeNode6Decoder({ABI::Types::uint256}, getBalanceMeNode6Result);
-            REQUIRE(getBalanceMeNode6Decoder.getData<uint256_t>(0) == targetExpectedValue);
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
+
+            auto getBalanceMeNode6Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode6Result);
+            REQUIRE(std::get<0>(getBalanceMeNode6Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode7Result = state7->ethCall(
-                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-            ABI::Decoder getBalanceMeNode7Decoder({ABI::Types::uint256}, getBalanceMeNode7Result);
-            REQUIRE(getBalanceMeNode7Decoder.getData<uint256_t>(0) == targetExpectedValue);
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
+
+            auto getBalanceMeNode7Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode7Result);
+            REQUIRE(std::get<0>(getBalanceMeNode7Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode8Result = state8->ethCall(
-                buildCallInfo(contractAddress, getBalanceMeEncoder.getFunctor(), getBalanceMeEncoder.getData()));
-            ABI::Decoder getBalanceMeNode8Decoder({ABI::Types::uint256}, getBalanceMeNode8Result);
-            REQUIRE(getBalanceMeNode8Decoder.getData<uint256_t>(0) == targetExpectedValue);
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
+
+            auto getBalanceMeNode8Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode8Result);
+            REQUIRE(std::get<0>(getBalanceMeNode8Decoder) == targetExpectedValue);
 
             ++blocks;
             break;

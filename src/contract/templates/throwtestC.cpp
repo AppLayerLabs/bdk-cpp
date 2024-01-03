@@ -33,7 +33,7 @@ void ThrowTestC::setNumC(const uint8_t& valC) {
 
 void ThrowTestC::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("getNumC", &ThrowTestC::getNumC, this);
-  this->registerMemberFunction("setNumC", &ThrowTestC::setNumC, this);
+  this->registerMemberFunction("getNumC", &ThrowTestC::getNumC, FunctionTypes::View, this);
+  this->registerMemberFunction("setNumC", &ThrowTestC::setNumC, FunctionTypes::NonPayable, this);
 }
 
