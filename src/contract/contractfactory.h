@@ -79,9 +79,9 @@ class ContractFactory {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       using DecayedArguments = decltype(Utils::removeQualifiers<ConstructorArguments>());
 
-      auto arguments = std::apply([&callInfo](auto&&... args) {
+      DecayedArguments arguments = std::apply([&callInfo](auto&&... args) {
         return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(std::get<6>(callInfo));
-    }, DecayedArguments{});
+      }, DecayedArguments{});
       return std::make_pair(derivedAddress, arguments);
     }
 
@@ -99,18 +99,13 @@ class ContractFactory {
       }
 
       Address derivedAddress = setupResult.first;
-      auto decoder = setupResult.second;
-      std::vector<std::any> dataVector;
-
-      std::apply([&dataVector](auto&&... args) {
-        ((dataVector.push_back(std::any(args))), ...);
-    }, decoder);
+      const auto& decodedData = setupResult.second;
 
       // Update the inner variables of the contract.
       // The constructor can set SafeVariable values from the constructor.
       // We need to take account of that and set the variables accordingly.
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
-        std::get<0>(callInfo), derivedAddress, dataVector
+        std::get<0>(callInfo), derivedAddress, decodedData
       );
       this->recentContracts_.insert(derivedAddress);
       this->manager_.contracts_.insert(std::make_pair(derivedAddress, std::move(contract)));
@@ -123,7 +118,7 @@ class ContractFactory {
      * @tparam Is The indices of the tuple.
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
-     * @param dataVec The vector of arguments to pass to the contract constructor.
+     * @param dataTlp The tuple of arguments to pass to the contract constructor.
      * @return A unique pointer to the newly created contract.
      * @throw runtime_error if any argument type mismatches.
      */
@@ -131,19 +126,22 @@ class ContractFactory {
     std::unique_ptr<TContract> createContractWithTuple(
       const Address& creator,
       const Address& derivedContractAddress,
-      const std::vector<std::any>& dataVec,
+      const TTuple& dataTlp,
       std::index_sequence<Is...>
     ) {
       try {
         return std::make_unique<TContract>(
-          std::any_cast<typename std::tuple_element<Is, TTuple>::type>(dataVec[Is])...,
+          std::get<Is>(dataTlp)...,
           *this->manager_.interface_, derivedContractAddress, creator,
           this->manager_.options_->getChainID(), this->manager_.db_
         );
-      } catch (const std::bad_any_cast& ex) {
+      } catch (const std::exception& ex) {
+        /// TODO: If the contract constructor throws an exception, the contract is not created.
+        /// But the variables owned by the contract were registered as used in the ContractCallLogger.
+        /// Meaning: we throw here, the variables are freed (as TContract ceases from existing), but a reference to the variable is still
+        /// in the ContractCallLogger. This causes a instant segfault when ContractCallLogger tries to revert the variable
         throw std::runtime_error(
-          "Mismatched argument types for contract constructor. Expected: " +
-          Utils::getRealTypeName<TTuple>()
+          "Could not construct contract " + Utils::getRealTypeName<TContract>() + ": " + ex.what()
         );
       }
     }
@@ -152,22 +150,18 @@ class ContractFactory {
      * Helper function to create a new contract from a given call info.
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
-     * @param dataVec The vector of arguments to pass to the contract constructor.
+     * @param dataTpl The vector of arguments to pass to the contract constructor.
      * @throw runtime_error if the size of the vector does not match the number of
      * arguments of the contract constructor.
      */
     template <typename TContract, typename TTuple>
     std::unique_ptr<TContract> createContractWithTuple(
       const Address& creator, const Address& derivedContractAddress,
-      const std::vector<std::any>& dataVec
+      const TTuple& dataTpl
     ) {
       constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
-      if (TupleSize != dataVec.size()) throw std::runtime_error(
-        "Not enough arguments provided for contract constructor. Expected: " +
-        std::to_string(TupleSize) + ", got: " + std::to_string(dataVec.size())
-      );
       return this->createContractWithTuple<TContract, TTuple>(
-        creator, derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{}
+        creator, derivedContractAddress, dataTpl, std::make_index_sequence<TupleSize>{}
       );
     }
 
