@@ -74,8 +74,8 @@ class DynamicContract : public BaseContract {
      * Template for registering a const member function with no arguments.
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
-     * @param instance Pointer to the instance of the class.
      * @param methodMutability The mutability of the function.
+     * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)() const, const FunctionTypes& methodMutability, T* instance
@@ -113,8 +113,8 @@ class DynamicContract : public BaseContract {
      * Template for registering a non-const member function with no arguments.
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
-     * @param instance Pointer to the instance of the class.
      * @param methodMutability The mutability of the function.
+     * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(), const FunctionTypes& methodMutability, T* instance
@@ -148,8 +148,8 @@ class DynamicContract : public BaseContract {
      * Template for registering a non-const member function with arguments.
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
-     * @param instance Pointer to the instance of the class.
      * @param methodMutability The mutability of the function.
+     * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename... Args, typename T> void registerMemberFunction(
       const std::string& funcSignature, R(T::*memFunc)(Args...), const FunctionTypes& methodMutability, T* instance
@@ -187,6 +187,7 @@ class DynamicContract : public BaseContract {
      * Template for registering a const member function with arguments.
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
+     * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename... Args, typename T> void registerMemberFunction(

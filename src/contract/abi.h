@@ -738,66 +738,28 @@ namespace ABI {
       return tmp;
     }
 
-    /**
-     * The TypeList struct is used in order to decay a std::tuple into a list of types.
-     * @tparam T The first type
-     * @tparam Ts The rest of the types
-     */
-    template <typename T, typename... Ts> struct TypeList {
-      /// The current type
-      T head;
-      /// Remaining types
-      TypeList<Ts...> tail;
-      /// Construct TypeList recursively.
-      TypeList(const BytesArrView& bytes, uint64_t& index) : head(decode<T>(bytes, index)), tail(bytes, index) {}
-    };
 
     /**
-     * Specialization for the last type in the std::tuple.
-     * @tparam T The last type
+     * Recursive helper function to decode each element of the tuple.
+     * @tparam Index The current index in the tuple.
+     * @tparam Args Tuple types.
+     * @param encodedData The encoded data.
+     * @param index The current position in the encoded data.
+     * @param tuple The tuple to hold the decoded values.
      */
-    template <typename T> struct TypeList<T> {
-      /// The last type
-      T head;
-      /// Construct the last type in the TypeList.
-      TypeList(const BytesArrView& bytes, uint64_t& index) : head(decode<T>(bytes, index)) {}
-    };
-
-    /**
-     * Convert a type list to a tuple.
-     * @tparam Args Any supported ABI type.
-     * @param tl The list of types to convert.
-     * @return A tuple with the converted types.
-     */
-    template <typename... Args>
-    inline std::tuple<Args...> toTuple(TypeList<Args...>& tl) {
-      return toTupleHelper(tl, std::tuple<>());
+    template<std::size_t Index = 0, typename... Args>
+    typename std::enable_if<Index == sizeof...(Args), void>::type
+    decodeTupleHelper(const BytesArrView& encodedData, uint64_t& index, std::tuple<Args...>& tuple) {
+      // End of recursion
     }
 
-    /**
-     * Helper function for toTuple.
-     * @tparam Accumulated The accumulated types.
-     * @tparam T The current type.
-     * @tparam Ts The rest of the types.
-     * @param tl The list of types to convert.
-     * @param acc The accumulated (already converted) types.
-     * @return A tuple with the converted types.
-     */
-    template<typename... Accumulated, typename T, typename... Ts>
-    inline auto toTupleHelper(TypeList<T, Ts...>& tl, std::tuple<Accumulated...> acc) {
-      return toTupleHelper(tl.tail, std::tuple_cat(acc, std::tuple<T>(tl.head)));
-    }
-
-    /**
-    * Helper function for toTuple.
-    * @tparam Accumulated The accumulated types.
-    * @tparam T The current type.
-    * @param tl The list of types to convert.
-    * @param acc The accumulated (already converted) types.
-    */
-    template<typename... Accumulated, typename T>
-    inline auto toTupleHelper(TypeList<T>& tl, std::tuple<Accumulated...> acc) {
-      return std::tuple_cat(acc, std::tuple<T>(tl.head));
+    template<std::size_t Index = 0, typename... Args>
+    typename std::enable_if<Index < sizeof...(Args), void>::type
+    decodeTupleHelper(const BytesArrView& encodedData, uint64_t& index, std::tuple<Args...>& tuple) {
+      /// TODO: Technically, we could pass std::get<Index>(tuple) as a reference to decode<>().
+      /// But, it is worth to reduce code readability for a few nanoseconds*? * Need to benchmark.
+      std::get<Index>(tuple) = decode<std::tuple_element_t<Index, std::tuple<Args...>>>(encodedData, index);
+      decodeTupleHelper<Index + 1, Args...>(encodedData, index, tuple);
     }
 
     /**
@@ -812,9 +774,9 @@ namespace ABI {
       if constexpr (sizeof...(Args) == 0) {
         return std::tuple<>();
       } else {
-        /// TODO: there is a "unecessary" copy here (TypeList to tuple), we could use a std::tuple directly?
-        auto typeListResult = TypeList<Args...>(encodedData, index);
-        return toTuple(typeListResult);
+        std::tuple<Args...> ret;
+        decodeTupleHelper<0, Args...>(encodedData, index, ret);
+        return ret;
       }
     }
   };  // namespace Decoder
