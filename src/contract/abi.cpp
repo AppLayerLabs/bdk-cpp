@@ -79,4 +79,3 @@ int256_t ABI::Decoder::decodeInt(const BytesArrView& bytes, uint64_t& index) {
   index += 32;
   return result;
 }
-

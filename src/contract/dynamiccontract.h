@@ -226,11 +226,9 @@ class DynamicContract : public BaseContract {
      * @param functor Solidity function signature (first 4 hex bytes of keccak).
      * @param f Function to be called.
      */
-    void registerPayableFunction(
-    const Functor& functor,
-          std::function<void(const ethCallInfo& tx)> f) {
-    payableFunctions_[functor] = f;
-  }
+    void registerPayableFunction(const Functor& functor, std::function<void(const ethCallInfo& tx)> f) {
+      payableFunctions_[functor] = f;
+    }
 
     /**
      * Register a view/const function, adding it to the view functions map.

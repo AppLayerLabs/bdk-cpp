@@ -42,6 +42,7 @@ void SimpleContract::setName(const std::string& argName) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->name_ = argName;
+  this->nameChanged(argName);
 }
 
 void SimpleContract::setNames(const std::vector<std::string>& argName) {
@@ -59,6 +60,7 @@ void SimpleContract::setValue(const uint256_t& argValue) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->value_ = argValue;
+  this->valueChanged(argValue);
 }
 
 void SimpleContract::setValues(const std::vector<uint256_t>& argValue) {

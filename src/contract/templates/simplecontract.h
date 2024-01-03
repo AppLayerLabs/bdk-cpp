@@ -22,6 +22,13 @@ class SimpleContract : public DynamicContract {
     SafeUint256_t value_; ///< The value of the contract.
     void registerContractFunctions() override; ///< Register the contract functions.
 
+  protected:
+    /// Event for when the name changes.
+    void nameChanged(const std::string& name) { this->emitEvent(__func__, { {name, true} }); }
+
+    /// Event for when the value changes.
+    void valueChanged(uint256_t value) { this->emitEvent(__func__, { {value, true} }); }
+
   public:
     using ConstructorArguments = std::tuple<const std::string&, uint256_t>; ///< The constructor arguments type.
 
@@ -57,7 +64,6 @@ class SimpleContract : public DynamicContract {
       const std::unique_ptr<DB> &db
     );
 
-    
     ~SimpleContract() override; ///< Destructor.
     ///< function setName(string memory argName) public
     void setName(const std::string& argName);

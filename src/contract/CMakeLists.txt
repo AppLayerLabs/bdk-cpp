@@ -1,16 +1,18 @@
 set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/abi.h
   ${CMAKE_SOURCE_DIR}/src/contract/contract.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.h
   ${CMAKE_SOURCE_DIR}/src/contract/contractfactory.h
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.h
   ${CMAKE_SOURCE_DIR}/src/contract/customcontracts.h
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.h
-  ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.h
+  ${CMAKE_SOURCE_DIR}/src/contract/event.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/reentrancyguard.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeaddress.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safearray.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebase.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safebool.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safemultiset.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safestring.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
@@ -28,6 +30,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/orderbook.h
   PARENT_SCOPE
 )
 
@@ -38,6 +41,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/event.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.cpp
@@ -50,6 +54,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestA.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/orderbook.cpp
   PARENT_SCOPE
 )
 
