@@ -33,6 +33,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/libs/json.hpp"
 #include "src/contract/variables/safeuint.h"
 #include "src/contract/variables/safeint.h"
+#include <variant>
 
 /// @file utils.h
 
@@ -228,27 +229,9 @@ using SafeInt240_t = SafeInt_t<240>; ///< Typedef for SafeInt240_t.
 using SafeInt248_t = SafeInt_t<248>; ///< Typedef for SafeInt248_t.
 using SafeInt256_t = SafeInt_t<256>; ///< Typedef for SafeInt256_t.
 
-/**
-* Struct for Bytes type that will be encoded in an function return.
-*/
-struct BytesEncodedStruct {
-  Bytes data; ///< Bytes data.
-};
-using BytesEncoded = BytesEncodedStruct; ///< Typedef for BytesEncoded.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
-
-/**
-* Typedef for all the possible types that can be used in a function.
-* Based on Solidity types.
-* @note: Fixed point types are not supported yet, because they are not supported fully in Solidity.
-*/
-using BaseTypes = std::variant<
-  uint256_t, std::vector<uint256_t>, int256_t, std::vector<int256_t>,
-  Address, std::vector<Address>, bool, std::vector<bool>,
-  Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>
->;
 
 /**
  * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
@@ -277,6 +260,9 @@ void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec
 /// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };
 
+/// Enum for FunctionType
+enum FunctionTypes { View, NonPayable, Payable };
+
 /**
  * Abstraction of balance and nonce for a single account.
  * Used with Address on State in an unordered_map to track native accounts.
@@ -302,14 +288,34 @@ namespace Utils {
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
   /**
+   * Helper function for removeQualifiers
+   * @tparam TTuple The tuple type to remove qualifiers from.
+   * @tparam I The index sequence.
+   */
+  template <typename TTuple, std::size_t... I>
+  auto removeQualifiersImpl(std::index_sequence<I...>) {
+    return std::tuple<std::decay_t<std::tuple_element_t<I, TTuple>>...>{};
+  }
+
+  /**
+   * Remove the qualifiers from a tuple type.
+   * @tparam TTuple The tuple type to remove qualifiers from.
+   * @return A tuple with the same types but qualifiers removed.
+   */
+  template <typename TTuple>
+  auto removeQualifiers() {
+    return removeQualifiersImpl<TTuple>(std::make_index_sequence<std::tuple_size_v<TTuple>>{});
+  }
+
+  /**
   * Template for identifying if a type is a uint between 8 and 256 bits.
   * @tparam T The type to check.
   * @tparam N The number of bits.
   */
   template<typename T, std::size_t N>
-    struct isRangedUint {
-        static const bool value = std::is_integral_v<T> && std::is_unsigned_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is a uint between 8 and 256 bits.
-    };
+  struct isRangedUint {
+    static const bool value = std::is_integral_v<T> && std::is_unsigned_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is a uint between 8 and 256 bits.
+  };
 
   /**
   * Template for identifying if a type is an int between 8 and 256 bits.
@@ -318,7 +324,7 @@ namespace Utils {
   */
   template<typename T, std::size_t N>
   struct isRangedInt {
-      static const bool value = std::is_integral_v<T> && std::is_signed_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is an int between 8 and 256 bits.
+    static const bool value = std::is_integral_v<T> && std::is_signed_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is an int between 8 and 256 bits.
   };
 
   /**
@@ -460,12 +466,12 @@ namespace Utils {
   */
   BytesArr<21> uint168ToBytes(const uint168_t& i);
 
-   /**
-   * Convert a 160-bit unsigned integer to a bytes string.
-   * Use `Hex()` to properly print it.
-   * @param i The integer to convert.
-   * @return The converted 160-bit integer as a bytes string.
-   */
+  /**
+  * Convert a 160-bit unsigned integer to a bytes string.
+  * Use `Hex()` to properly print it.
+  * @param i The integer to convert.
+  * @return The converted 160-bit integer as a bytes string.
+  */
   BytesArr<20> uint160ToBytes(const uint160_t& i);
 
   /**
@@ -898,14 +904,14 @@ namespace Utils {
    * @return The converted 8-bit integer.
    * @throw std::runtime_error if string size is invalid.
    */
-   uint8_t bytesToUint8(const BytesArrView b);
+  uint8_t bytesToUint8(const BytesArrView b);
 
-   /**
-    * Convert a bytes string to a 256-bit signed integer.
-    * @param b The bytes string to convert.
-    * @return The converted 256-bit integer.
-    * @throw std::runtime_error if string size is invalid.
-    */
+  /**
+   * Convert a bytes string to a 256-bit signed integer.
+   * @param b The bytes string to convert.
+   * @return The converted 256-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   int256_t bytesToInt256(const BytesArrView b);
 
   /**
@@ -1017,11 +1023,11 @@ namespace Utils {
     demangledName = abi::__cxa_demangle(mangledName.c_str(), 0, 0, &status);
 
     if(status == 0 && demangledName != nullptr) {
-        std::string realName(demangledName);
-        free(demangledName);
-        return realName;
+      std::string realName(demangledName);
+      free(demangledName);
+      return realName;
     } else {
-        return mangledName;
+      return mangledName;
     }
   }
 
@@ -1065,13 +1071,13 @@ namespace Utils {
    * @param size The size of the subvector.
    * @return The converted span.
    */
-   inline BytesArrView create_view_span(const Bytes& vec, size_t start, size_t size) {
-     if (start + size > vec.size()) {
-       throw std::runtime_error("Invalid range for span");
-     }
+  inline BytesArrView create_view_span(const Bytes& vec, size_t start, size_t size) {
+    if (start + size > vec.size()) {
+      throw std::runtime_error("Invalid range for span");
+    }
 
-     return BytesArrView(vec.data() + start, size);
-   }
+    return BytesArrView(vec.data() + start, size);
+  }
 
   /**
   * Template for converting a fixed-size array to span.
@@ -1182,18 +1188,6 @@ namespace Utils {
    */
   inline Bytes stringToBytes(const std::string& str) {
     return Bytes(str.cbegin(), str.cend());
-  }
-
-  /**
-   * Templated function for calculating 10^exponent
-   */
-  template <typename T>
-  T exp10(const T& exponent) {
-    T base = 10;  // Base 10 for decimal exponentiation
-    if (exponent == 0) {
-      return T(1);
-    }
-    return std::pow(base, exponent);
   }
 };
 

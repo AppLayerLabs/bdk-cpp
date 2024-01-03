@@ -18,6 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <optional>
 #include <shared_mutex>
+#include <set>
 
 // Forward declarations.
 class rdPoSWorker;

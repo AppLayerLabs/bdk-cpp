@@ -194,15 +194,15 @@ class ERC20 : public DynamicContract {
         const std::unique_ptr<DB> &
       >(
         std::vector<std::string>{"erc20name", "erc20symbol", "erc20decimals", "mintValue"},
-        std::make_tuple("name", &ERC20::name, "view", std::vector<std::string>{}),
-        std::make_tuple("symbol", &ERC20::symbol, "view", std::vector<std::string>{}),
-        std::make_tuple("decimals", &ERC20::decimals, "view", std::vector<std::string>{}),
-        std::make_tuple("totalSupply", &ERC20::totalSupply, "view", std::vector<std::string>{}),
-        std::make_tuple("balanceOf", &ERC20::balanceOf, "view", std::vector<std::string>{"owner"}),
-        std::make_tuple("transfer", &ERC20::transfer, "nonpayable", std::vector<std::string>{"to", "value"}),
-        std::make_tuple("approve", &ERC20::approve, "nonpayable", std::vector<std::string>{"spender", "value"}),
-        std::make_tuple("allowance", &ERC20::allowance, "view", std::vector<std::string>{"owner", "spender"}),
-        std::make_tuple("transferFrom", &ERC20::transferFrom, "nonpayable", std::vector<std::string>{"from", "to", "value"})
+        std::make_tuple("name", &ERC20::name, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("symbol", &ERC20::symbol, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("decimals", &ERC20::decimals, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("totalSupply", &ERC20::totalSupply, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("balanceOf", &ERC20::balanceOf, FunctionTypes::View, std::vector<std::string>{"owner"}),
+        std::make_tuple("transfer", &ERC20::transfer, FunctionTypes::NonPayable, std::vector<std::string>{"to", "value"}),
+        std::make_tuple("approve", &ERC20::approve, FunctionTypes::NonPayable, std::vector<std::string>{"spender", "value"}),
+        std::make_tuple("allowance", &ERC20::allowance, FunctionTypes::View, std::vector<std::string>{"owner", "spender"}),
+        std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, std::vector<std::string>{"from", "to", "value"})
       );
     }
 };

@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "contractmanager.h"
+#include "abi.h"
 #include "contractfactory.h"
 #include "contractcalllogger.h"
 #include "customcontracts.h"
@@ -73,10 +74,8 @@ Bytes ContractManager::getDeployedContracts() const {
     names.push_back(contract->getContractName());
     addresses.push_back(address);
   }
-  ABI::Encoder::EncVar vars;
-  vars.push_back(names);
-  vars.push_back(addresses);
-  return ABI::Encoder(vars).getData();
+  Bytes result = ABI::Encoder::encodeData(names, addresses);
+  return result;
 }
 
 void ContractManager::ethCall(const ethCallInfo& callInfo) {

@@ -65,15 +65,15 @@ DEXV2Factory::~DEXV2Factory() {
 
 void DEXV2Factory::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("feeTo", &DEXV2Factory::feeTo, this);
-  this->registerMemberFunction("feeToSetter", &DEXV2Factory::feeToSetter, this);
-  this->registerMemberFunction("allPairs", &DEXV2Factory::allPairs, this);
-  this->registerMemberFunction("allPairsLength", &DEXV2Factory::allPairsLength, this);
-  this->registerMemberFunction("getPair", &DEXV2Factory::getPair, this);
-  this->registerMemberFunction("getPairByIndex", &DEXV2Factory::getPairByIndex, this);
-  this->registerMemberFunction("createPair", &DEXV2Factory::createPair, this);
-  this->registerMemberFunction("setFeeTo", &DEXV2Factory::setFeeTo, this);
-  this->registerMemberFunction("setFeeToSetter", &DEXV2Factory::setFeeToSetter, this);
+  this->registerMemberFunction("feeTo", &DEXV2Factory::feeTo, FunctionTypes::View, this);
+  this->registerMemberFunction("feeToSetter", &DEXV2Factory::feeToSetter, FunctionTypes::View, this);
+  this->registerMemberFunction("allPairs", &DEXV2Factory::allPairs, FunctionTypes::View, this);
+  this->registerMemberFunction("allPairsLength", &DEXV2Factory::allPairsLength, FunctionTypes::View, this);
+  this->registerMemberFunction("getPair", &DEXV2Factory::getPair, FunctionTypes::View, this);
+  this->registerMemberFunction("getPairByIndex", &DEXV2Factory::getPairByIndex, FunctionTypes::View, this);
+  this->registerMemberFunction("createPair", &DEXV2Factory::createPair, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("setFeeTo", &DEXV2Factory::setFeeTo, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("setFeeToSetter", &DEXV2Factory::setFeeToSetter, FunctionTypes::NonPayable, this);
 }
 
 Address DEXV2Factory::feeTo() const { return this->feeTo_.get(); }
