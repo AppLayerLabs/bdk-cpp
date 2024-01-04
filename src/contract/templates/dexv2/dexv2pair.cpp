@@ -64,19 +64,19 @@ DEXV2Pair::~DEXV2Pair() {
 
 void DEXV2Pair::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("initialize", &DEXV2Pair::initialize, this);
-  this->registerMemberFunction("getReserves", &DEXV2Pair::getReserves, this);
-  this->registerMemberFunction("factory", &DEXV2Pair::factory, this);
-  this->registerMemberFunction("token0", &DEXV2Pair::token0, this);
-  this->registerMemberFunction("token1", &DEXV2Pair::token1, this);
-  this->registerMemberFunction("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, this);
-  this->registerMemberFunction("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, this);
-  this->registerMemberFunction("kLast", &DEXV2Pair::kLast, this);
-  this->registerMemberFunction("mint", &DEXV2Pair::mint, this);
-  this->registerMemberFunction("burn", &DEXV2Pair::burn, this);
-  this->registerMemberFunction("swap", &DEXV2Pair::swap, this);
-  this->registerMemberFunction("skim", &DEXV2Pair::skim, this);
-  this->registerMemberFunction("sync", &DEXV2Pair::sync, this);
+  this->registerMemberFunction("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("getReserves", &DEXV2Pair::getReserves, FunctionTypes::View, this);
+  this->registerMemberFunction("factory", &DEXV2Pair::factory, FunctionTypes::View, this);
+  this->registerMemberFunction("token0", &DEXV2Pair::token0, FunctionTypes::View, this);
+  this->registerMemberFunction("token1", &DEXV2Pair::token1, FunctionTypes::View, this);
+  this->registerMemberFunction("price0CumulativeLast", &DEXV2Pair::price0CumulativeLast, FunctionTypes::View, this);
+  this->registerMemberFunction("price1CumulativeLast", &DEXV2Pair::price1CumulativeLast, FunctionTypes::View, this);
+  this->registerMemberFunction("kLast", &DEXV2Pair::kLast, FunctionTypes::View, this);
+  this->registerMemberFunction("mint", &DEXV2Pair::mint, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("burn", &DEXV2Pair::burn, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("swap", &DEXV2Pair::swap, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("skim", &DEXV2Pair::skim, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, this);
 }
 
 void DEXV2Pair::_safeTransfer(const Address& token, const Address& to, const uint256_t& value) {
@@ -126,12 +126,8 @@ std::pair<uint256_t, uint256_t> DEXV2Pair::getReservess() const {
   return std::make_pair(this->reserve0_.get(), this->reserve1_.get());
 }
 
-BytesEncoded DEXV2Pair::getReserves() const {
-  ABI::Encoder::EncVar vars;
-  vars.push_back(static_cast<uint256_t>(this->reserve0_.get()));
-  vars.push_back(static_cast<uint256_t>(this->reserve1_.get()));
-  vars.push_back(static_cast<uint256_t>(this->blockTimestampLast_.get()));
-  return BytesEncoded(ABI::Encoder(vars).getData());
+std::tuple<uint256_t, uint256_t, uint256_t> DEXV2Pair::getReserves() const {
+  return std::make_tuple(this->reserve0_.get(), this->reserve1_.get(), this->blockTimestampLast_.get());
 }
 
 Address DEXV2Pair::factory() const { return this->factory_.get(); }
@@ -171,7 +167,7 @@ uint256_t DEXV2Pair::mint(const Address& to) {
   return liquidity;
 }
 
-BytesEncoded DEXV2Pair::burn(const Address& to) {
+std::tuple<uint256_t, uint256_t> DEXV2Pair::burn(const Address& to) {
   ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
   uint256_t balance0 = this->callContractViewFunction(
     this->token0_.get(), &ERC20::balanceOf, this->getContractAddress()
@@ -193,7 +189,7 @@ BytesEncoded DEXV2Pair::burn(const Address& to) {
   balance1 = this->callContractViewFunction(this->token1_.get(), &ERC20::balanceOf, this->getContractAddress());
   this->_update(balance0, balance1, this->reserve0_.get(), this->reserve1_.get());
   if (feeOn) kLast_ = uint256_t(this->reserve0_.get()) * uint256_t(this->reserve1_.get());
-  return BytesEncoded(ABI::Encoder({amount0, amount1}).getData());
+  return std::make_tuple(amount0, amount1);
 }
 
 void DEXV2Pair::swap(const uint256_t& amount0Out, const uint256_t& amount1Out, const Address& to) {

@@ -25,7 +25,7 @@ class State;
 
 /// Class that maintains global variables for contracts.
 class ContractGlobals {
-  public:
+  protected:
     static Address coinbase_;         ///< Coinbase address (creator of current block).
     static Hash blockHash_;           ///< Current block hash.
     static uint64_t blockHeight_;    ///< Current block height.

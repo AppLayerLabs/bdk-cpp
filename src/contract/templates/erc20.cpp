@@ -97,15 +97,15 @@ ERC20::~ERC20() {
 
 void ERC20::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("name", &ERC20::name, this);
-  this->registerMemberFunction("symbol", &ERC20::symbol, this);
-  this->registerMemberFunction("decimals", &ERC20::decimals, this);
-  this->registerMemberFunction("totalSupply", &ERC20::totalSupply, this);
-  this->registerMemberFunction("balanceOf", &ERC20::balanceOf, this);
-  this->registerMemberFunction("allowance", &ERC20::allowance, this);
-  this->registerMemberFunction("transfer", &ERC20::transfer, this);
-  this->registerMemberFunction("approve", &ERC20::approve, this);
-  this->registerMemberFunction("transferFrom", &ERC20::transferFrom, this);
+  this->registerMemberFunction("name", &ERC20::name, FunctionTypes::View, this);
+  this->registerMemberFunction("symbol", &ERC20::symbol, FunctionTypes::View, this);
+  this->registerMemberFunction("decimals", &ERC20::decimals, FunctionTypes::View, this);
+  this->registerMemberFunction("totalSupply", &ERC20::totalSupply, FunctionTypes::View, this);
+  this->registerMemberFunction("balanceOf", &ERC20::balanceOf, FunctionTypes::View, this);
+  this->registerMemberFunction("allowance", &ERC20::allowance, FunctionTypes::View, this);
+  this->registerMemberFunction("transfer", &ERC20::transfer, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("approve", &ERC20::approve, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, this);
 }
 
 void ERC20::mintValue_(const Address& address, const uint256_t& value) {

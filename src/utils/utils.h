@@ -33,6 +33,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/libs/json.hpp"
 #include "src/contract/variables/safeuint.h"
 #include "src/contract/variables/safeint.h"
+#include <variant>
 
 /// @file utils.h
 
@@ -68,7 +69,7 @@ using uint96_t = boost::multiprecision::number<boost::multiprecision::cpp_int_ba
 using uint104_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<104, 104, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 /// Typedef for uint112_t.
 using uint112_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<112, 112, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-/// Typedef for uint120_t.  
+/// Typedef for uint120_t.
 using uint120_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<120, 120, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 /// Typedef for uint128_t.
 using uint128_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
@@ -228,33 +229,14 @@ using SafeInt240_t = SafeInt_t<240>; ///< Typedef for SafeInt240_t.
 using SafeInt248_t = SafeInt_t<248>; ///< Typedef for SafeInt248_t.
 using SafeInt256_t = SafeInt_t<256>; ///< Typedef for SafeInt256_t.
 
-/**
-* Struct for Bytes type that will be encoded in an function return.
-*/
-struct BytesEncodedStruct {
-  Bytes data; ///< Bytes data.
-};
-using BytesEncoded = BytesEncodedStruct; ///< Typedef for BytesEncoded.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
 
 /**
-* Typedef for all the possible types that can be used in a function.
-* Based on Solidity types.
-* @note: Fixed point types are not supported yet, because they are not supported fully in Solidity.
-*/
-using BaseTypes = std::variant<
-  uint256_t, std::vector<uint256_t>, int256_t, std::vector<int256_t>,
-  Address, std::vector<Address>, bool, std::vector<bool>,
-  Bytes, BytesEncoded, std::vector<Bytes>, std::string, std::vector<std::string>
->;
-
-/**
  * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
- * **ATTENTION**: Be aware that we are using BytesArrView, so you MUST
- * be sure that the data allocated in the BytesArrView is valid during
- * the whole life of the tuple.
+ * **NOTE**: Be aware that we are using BytesArrView, so you MUST be sure that
+ * the data allocated in BytesArrView is valid during the whole life of the tuple.
  * If you need ethCallInfo to own the data, use ethCallInfoAllocated instead.
  */
 using ethCallInfo = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, BytesArrView>;
@@ -276,6 +258,9 @@ void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec
 
 /// Enum for network type.
 enum Networks { Mainnet, Testnet, LocalTestnet };
+
+/// Enum for FunctionType
+enum FunctionTypes { View, NonPayable, Payable };
 
 /**
  * Abstraction of balance and nonce for a single account.
@@ -300,6 +285,26 @@ struct Account {
 namespace Utils {
 
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
+
+  /**
+   * Helper function for removeQualifiers
+   * @tparam TTuple The tuple type to remove qualifiers from.
+   * @tparam I The index sequence.
+   */
+  template <typename TTuple, std::size_t... I>
+  auto removeQualifiersImpl(std::index_sequence<I...>) {
+    return std::tuple<std::decay_t<std::tuple_element_t<I, TTuple>>...>{};
+  }
+
+  /**
+   * Remove the qualifiers from a tuple type.
+   * @tparam TTuple The tuple type to remove qualifiers from.
+   * @return A tuple with the same types but qualifiers removed.
+   */
+  template <typename TTuple>
+  auto removeQualifiers() {
+    return removeQualifiersImpl<TTuple>(std::make_index_sequence<std::tuple_size_v<TTuple>>{});
+  }
 
   /**
   * Template for identifying if a type is a uint between 8 and 256 bits.

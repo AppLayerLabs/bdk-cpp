@@ -114,15 +114,15 @@ class DEXV2Factory : public DynamicContract {
         const std::unique_ptr<DB> &
       >(
         std::vector<std::string>{"_feeToSetter"},
-        std::make_tuple("feeTo", &DEXV2Factory::feeTo, "view", std::vector<std::string>{}),
-        std::make_tuple("feeToSetter", &DEXV2Factory::feeToSetter, "view", std::vector<std::string>{}),
-        std::make_tuple("allPairs", &DEXV2Factory::allPairs, "view", std::vector<std::string>{}),
-        std::make_tuple("allPairsLength", &DEXV2Factory::allPairsLength, "view", std::vector<std::string>{}),
-        std::make_tuple("getPair", &DEXV2Factory::getPair, "view", std::vector<std::string>{"token0", "token1"}),
-        std::make_tuple("getPairByIndex", &DEXV2Factory::getPairByIndex, "view", std::vector<std::string>{"index"}),
-        std::make_tuple("createPair", &DEXV2Factory::createPair, "nonpayable", std::vector<std::string>{"tokenA", "tokenB"}),
-        std::make_tuple("setFeeTo", &DEXV2Factory::setFeeTo, "nonpayable", std::vector<std::string>{"_feeTo"}),
-        std::make_tuple("setFeeToSetter", &DEXV2Factory::setFeeToSetter, "nonpayable", std::vector<std::string>{"_feeToSetter"})
+        std::make_tuple("feeTo", &DEXV2Factory::feeTo, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("feeToSetter", &DEXV2Factory::feeToSetter, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("allPairs", &DEXV2Factory::allPairs, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("allPairsLength", &DEXV2Factory::allPairsLength, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getPair", &DEXV2Factory::getPair, FunctionTypes::View, std::vector<std::string>{"token0", "token1"}),
+        std::make_tuple("getPairByIndex", &DEXV2Factory::getPairByIndex, FunctionTypes::View, std::vector<std::string>{"index"}),
+        std::make_tuple("createPair", &DEXV2Factory::createPair, FunctionTypes::NonPayable, std::vector<std::string>{"tokenA", "tokenB"}),
+        std::make_tuple("setFeeTo", &DEXV2Factory::setFeeTo, FunctionTypes::NonPayable, std::vector<std::string>{"_feeTo"}),
+        std::make_tuple("setFeeToSetter", &DEXV2Factory::setFeeToSetter, FunctionTypes::NonPayable, std::vector<std::string>{"_feeToSetter"})
       );
     }
 };

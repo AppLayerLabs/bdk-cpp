@@ -56,7 +56,7 @@ class ContractFactory {
      * @throw runtime_error if contract already exists.
      */
     template <typename TContract>
-    std::pair<Address, ABI::Decoder> setupNewContract(const ethCallInfo &callInfo) {
+    auto setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
       if (this->manager_.getOrigin() != this->manager_.getContractCreator()) {
         throw std::runtime_error("Only contract creator can create new contracts");
@@ -76,9 +76,13 @@ class ContractFactory {
       }
 
       // Setup the contract
-      std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
-      ABI::Decoder decoder(types, std::get<6>(callInfo));
-      return std::make_pair(derivedAddress, decoder);
+      using ConstructorArguments = typename TContract::ConstructorArguments;
+      using DecayedArguments = decltype(Utils::removeQualifiers<ConstructorArguments>());
+
+      DecayedArguments arguments = std::apply([&callInfo](auto&&... args) {
+        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(std::get<6>(callInfo));
+      }, DecayedArguments{});
+      return std::make_pair(derivedAddress, arguments);
     }
 
     /**
@@ -95,29 +99,13 @@ class ContractFactory {
       }
 
       Address derivedAddress = setupResult.first;
-      ABI::Decoder decoder = setupResult.second;
-      std::vector<ABI::Types> types = ContractReflectionInterface::getConstructorArgumentTypes<TContract>();
-      std::vector<std::any> dataVector;
-
-      for (size_t i = 0; i < types.size(); i++) {
-        if (ABI::castUintFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castUintFunctions[types[i]](value));
-        }
-        else if (ABI::castIntFunctions.count(types[i]) > 0) {
-          int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castIntFunctions[types[i]](value));
-        }
-        else {
-          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
-        }
-      }
+      const auto& decodedData = setupResult.second;
 
       // Update the inner variables of the contract.
       // The constructor can set SafeVariable values from the constructor.
       // We need to take account of that and set the variables accordingly.
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
-        std::get<0>(callInfo), derivedAddress, dataVector
+        std::get<0>(callInfo), derivedAddress, decodedData
       );
       this->recentContracts_.insert(derivedAddress);
       this->manager_.contracts_.insert(std::make_pair(derivedAddress, std::move(contract)));
@@ -130,7 +118,7 @@ class ContractFactory {
      * @tparam Is The indices of the tuple.
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
-     * @param dataVec The vector of arguments to pass to the contract constructor.
+     * @param dataTlp The tuple of arguments to pass to the contract constructor.
      * @return A unique pointer to the newly created contract.
      * @throw runtime_error if any argument type mismatches.
      */
@@ -138,19 +126,22 @@ class ContractFactory {
     std::unique_ptr<TContract> createContractWithTuple(
       const Address& creator,
       const Address& derivedContractAddress,
-      const std::vector<std::any>& dataVec,
+      const TTuple& dataTlp,
       std::index_sequence<Is...>
     ) {
       try {
         return std::make_unique<TContract>(
-          std::any_cast<typename std::tuple_element<Is, TTuple>::type>(dataVec[Is])...,
+          std::get<Is>(dataTlp)...,
           *this->manager_.interface_, derivedContractAddress, creator,
           this->manager_.options_->getChainID(), this->manager_.db_
         );
-      } catch (const std::bad_any_cast& ex) {
+      } catch (const std::exception& ex) {
+        /// TODO: If the contract constructor throws an exception, the contract is not created.
+        /// But the variables owned by the contract were registered as used in the ContractCallLogger.
+        /// Meaning: we throw here, the variables are freed (as TContract ceases from existing), but a reference to the variable is still
+        /// in the ContractCallLogger. This causes a instant segfault when ContractCallLogger tries to revert the variable
         throw std::runtime_error(
-          "Mismatched argument types for contract constructor. Expected: " +
-          Utils::getRealTypeName<TTuple>()
+          "Could not construct contract " + Utils::getRealTypeName<TContract>() + ": " + ex.what()
         );
       }
     }
@@ -159,22 +150,18 @@ class ContractFactory {
      * Helper function to create a new contract from a given call info.
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
-     * @param dataVec The vector of arguments to pass to the contract constructor.
+     * @param dataTpl The vector of arguments to pass to the contract constructor.
      * @throw runtime_error if the size of the vector does not match the number of
      * arguments of the contract constructor.
      */
     template <typename TContract, typename TTuple>
     std::unique_ptr<TContract> createContractWithTuple(
       const Address& creator, const Address& derivedContractAddress,
-      const std::vector<std::any>& dataVec
+      const TTuple& dataTpl
     ) {
       constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
-      if (TupleSize != dataVec.size()) throw std::runtime_error(
-        "Not enough arguments provided for contract constructor. Expected: " +
-        std::to_string(TupleSize) + ", got: " + std::to_string(dataVec.size())
-      );
       return this->createContractWithTuple<TContract, TTuple>(
-        creator, derivedContractAddress, dataVec, std::make_index_sequence<TupleSize>{}
+        creator, derivedContractAddress, dataTpl, std::make_index_sequence<TupleSize>{}
       );
     }
 
@@ -185,16 +172,11 @@ class ContractFactory {
      */
     template <typename Contract>
     void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc) {
-      std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract";
-      std::vector<std::string> args = ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
-      std::ostringstream createFullSignatureStream;
-      createFullSignatureStream << createSignature << "(";
-      if (!args.empty()) {
-        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(createFullSignatureStream, ","));
-        createFullSignatureStream << args.back();
-      }
-      createFullSignatureStream << ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createFullSignatureStream.str())).view_const(0, 4);
+      std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
+      // Append args
+      createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
+      createSignature += ")";
+      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
       this->createContractFuncs_[functor.asBytes()] = createFunc;
     }
 

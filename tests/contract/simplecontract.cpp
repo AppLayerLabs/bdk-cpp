@@ -36,12 +36,9 @@ void initialize(
   contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options, eventManager);
   // Create the contract
   if (deleteDB) {
-    ABI::Encoder::EncVar createNewSimpleContractVars;
-    createNewSimpleContractVars.push_back(name);
-    createNewSimpleContractVars.push_back(value);
-    ABI::Encoder createNewSimpleContractEncoder(createNewSimpleContractVars);
+    Bytes createNewSimpleContractEncoder = ABI::Encoder::encodeData(name, value);
     Bytes createNewSimpleContractData = Hex::toBytes("0x6de23252"); // createNewSimpleContractContract(string,uint256)
-    Utils::appendBytes(createNewSimpleContractData, createNewSimpleContractEncoder.getData());
+    Utils::appendBytes(createNewSimpleContractData, createNewSimpleContractEncoder);
     TxBlock createNewSimpleContractTx = TxBlock(
       ProtocolContractAddresses.at("ContractManager"),
       Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey)),
@@ -70,17 +67,20 @@ namespace TSimpleContract {
         // Get the contract address.
         contractAddress = contractManager->getContracts()[0].second;
 
-        ABI::Encoder getNameEncoder({}, "getName()");
-        ABI::Encoder getValueEncoder({}, "getValue()");
+        Bytes getNameEncoder = Bytes(32, 0);
+        Bytes getValueEncoder = Bytes(32, 0);
 
-        Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameEncoder.getFunctor(), getNameEncoder.getData()));
-        Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueEncoder.getFunctor(), getValueEncoder.getData()));
+        Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
+        Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
 
-        ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
-        ABI::Decoder valueDecoder({ABI::Types::uint256}, valueData);
+        Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
+        Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-        REQUIRE(nameDecoder.getData<std::string>(0) == "TestName");
-        REQUIRE(valueDecoder.getData<uint256_t>(0) == 19283187581);
+        auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+        auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
+
+        REQUIRE(std::get<0>(nameDecoder) == "TestName");
+        REQUIRE(std::get<0>(valueDecoder) == 19283187581);
       }
 
       std::unique_ptr<Options> options;
@@ -93,17 +93,20 @@ namespace TSimpleContract {
 
       REQUIRE(contractAddress == contractManager->getContracts()[0].second);
 
-      ABI::Encoder getNameEncoder({}, "getName()");
-      ABI::Encoder getValueEncoder({}, "getValue()");
+      Bytes getNameEncoder = Bytes(32, 0);
+      Bytes getValueEncoder = Bytes(32, 0);
 
-      Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameEncoder.getFunctor(), getNameEncoder.getData()));
-      Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueEncoder.getFunctor(), getValueEncoder.getData()));
+      Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
+      Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
 
-      ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
-      ABI::Decoder valueDecoder({ABI::Types::uint256}, valueData);
+      Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
+      Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-      REQUIRE(nameDecoder.getData<std::string>(0) == "TestName");
-      REQUIRE(valueDecoder.getData<uint256_t>(0) == 19283187581);
+      auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+      auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
+
+      REQUIRE(std::get<0>(nameDecoder) == "TestName");
+      REQUIRE(std::get<0>(valueDecoder) == 19283187581);
     }
 
     SECTION("SimpleContract setName and setValue") {
@@ -120,25 +123,30 @@ namespace TSimpleContract {
         // Get the contract address.
         contractAddress = contractManager->getContracts()[0].second;
 
-        ABI::Encoder getNameEncoder({}, "getName()");
-        ABI::Encoder getValueEncoder({}, "getValue()");
+        Bytes getNameEncoder = Bytes(32, 0);
+        Bytes getValueEncoder = Bytes(32, 0);
 
-        Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameEncoder.getFunctor(), getNameEncoder.getData()));
-        Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueEncoder.getFunctor(), getValueEncoder.getData()));
+        Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
+        Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
 
-        ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
-        ABI::Decoder valueDecoder({ABI::Types::uint256}, valueData);
+        Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
+        Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-        ABI::Encoder setNameEncoder({"TryThisName"}, "setName(string)");
-        ABI::Encoder setValueEncoder({uint256_t("918258172319061203818967178162134821351")}, "setValue(uint256)");
+        auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+        auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
+
+        Bytes setNameEncoder = ABI::Encoder::encodeData(std::string("TryThisName"));
+        Functor setNameFunctor = ABI::FunctorEncoder::encode<std::string>("setName");
+        Bytes setValueEncoder = ABI::Encoder::encodeData(uint256_t("918258172319061203818967178162134821351"));
+        Functor setValueFunctor = ABI::FunctorEncoder::encode<uint256_t>("setValue");
 
         Bytes setNameBytes;
-        Utils::appendBytes(setNameBytes, setNameEncoder.getFunctor().get());
-        Utils::appendBytes(setNameBytes, setNameEncoder.getData());
+        Utils::appendBytes(setNameBytes, setNameFunctor);
+        Utils::appendBytes(setNameBytes, setNameEncoder);
 
         Bytes setValueBytes;
-        Utils::appendBytes(setValueBytes, setValueEncoder.getFunctor().get());
-        Utils::appendBytes(setValueBytes, setValueEncoder.getData());
+        Utils::appendBytes(setValueBytes, setValueFunctor);
+        Utils::appendBytes(setValueBytes, setValueEncoder);
 
         TxBlock setNameTx(contractAddress, owner, setNameBytes, 8080, 0, 0, 0, 0, 0, ownerPrivKey);
         TxBlock setValueTx(contractAddress, owner, setValueBytes, 8080, 0, 0, 0, 0, 0, ownerPrivKey);
@@ -148,14 +156,14 @@ namespace TSimpleContract {
         contractManager->callContract(setNameTx, randomBlockHash, 0);
         contractManager->callContract(setValueTx, randomBlockHash, 1);
 
-        nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameEncoder.getFunctor(), getNameEncoder.getData()));
-        valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueEncoder.getFunctor(), getValueEncoder.getData()));
+        nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
+        valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-        nameDecoder = ABI::Decoder({ABI::Types::string}, nameData);
-        valueDecoder = ABI::Decoder({ABI::Types::uint256}, valueData);
+        nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+        valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
 
-        REQUIRE(nameDecoder.getData<std::string>(0) == "TryThisName");
-        REQUIRE(valueDecoder.getData<uint256_t>(0) == uint256_t("918258172319061203818967178162134821351"));
+        REQUIRE(std::get<0>(nameDecoder) == "TryThisName");
+        REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
 
         Event nameEvent = eventManager->getEvents(
           0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
@@ -196,17 +204,20 @@ namespace TSimpleContract {
 
       REQUIRE(contractAddress == contractManager->getContracts()[0].second);
 
-      ABI::Encoder getNameEncoder({}, "getName()");
-      ABI::Encoder getValueEncoder({}, "getValue()");
+      Bytes getNameEncoder = Bytes(32, 0);
+      Bytes getValueEncoder = Bytes(32, 0);
 
-      Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameEncoder.getFunctor(), getNameEncoder.getData()));
-      Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueEncoder.getFunctor(), getValueEncoder.getData()));
+      Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
+      Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
 
-      ABI::Decoder nameDecoder({ABI::Types::string}, nameData);
-      ABI::Decoder valueDecoder({ABI::Types::uint256}, valueData);
+      Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
+      Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
 
-      REQUIRE(nameDecoder.getData<std::string>(0) == "TryThisName");
-      REQUIRE(valueDecoder.getData<uint256_t>(0) == uint256_t("918258172319061203818967178162134821351"));
+      auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
+      auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
+
+      REQUIRE(std::get<0>(nameDecoder) == "TryThisName");
+      REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
 
       // No tx hash here but it was already tested before
       Event nameEvent = eventManager->getEvents(
