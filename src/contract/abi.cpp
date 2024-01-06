@@ -56,6 +56,36 @@ Bytes ABI::Encoder::encode(const std::string& str) {
   return len;
 }
 
+Bytes ABI::EventEncoder::encodeUint(const uint256_t& num) {
+  return Encoder::encodeUint(num);
+}
+
+Bytes ABI::EventEncoder::encodeInt(const int256_t& num) {
+  return Encoder::encodeInt(num);
+}
+
+Bytes ABI::EventEncoder::encode(const Address& add) {
+  return Encoder::encode(add);
+}
+
+Bytes ABI::EventEncoder::encode(const bool& b) {
+  return Encoder::encode(b);
+}
+
+Bytes ABI::EventEncoder::encode(const Bytes& bytes) {
+  /// Almost the sabe as ABI::Encoder::encode, but without the padding.
+  int pad = 0;
+  do { pad += 32; } while (pad < bytes.size());
+  return Utils::padRightBytes(bytes, pad);
+}
+
+Bytes ABI::EventEncoder::encode(const std::string& str) {
+  BytesArrView bytes = Utils::create_view_span(str);
+  int pad = 0;
+  do { pad += 32; } while (pad < bytes.size());
+  return Utils::padRightBytes(bytes, pad);
+}
+
 uint256_t ABI::Decoder::decodeUint(const BytesArrView &bytes, uint64_t &index) {
   if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for uint256");
   uint256_t result = Utils::bytesToUint256(bytes.subspan(index, 32));

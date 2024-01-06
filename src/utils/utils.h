@@ -281,6 +281,14 @@ struct Account {
   Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
 };
 
+template<typename T, bool flag>
+struct EventParam {
+  using type = T;
+  const T& value;
+  static constexpr bool isIndexed = flag;
+  EventParam(const T& value) : value(value) {}
+};
+
 /// Namespace for utility functions.
 namespace Utils {
 

@@ -26,32 +26,52 @@ class Event {
     uint64_t blockIndex_;         ///< Height of the block that the event was emitted from.
     Address address_;             ///< Address that emitted the event.
     Bytes data_;                  ///< Non-indexed arguments of the event.
-    std::vector<Bytes> topics_;   ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events).
+    std::vector<Hash> topics_;    ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events). Topics are Hashes since they are all 32 bytes.
     bool anonymous_;              ///< Whether the event is anonymous or not (its signature is indexed and searchable).
-
-    /**
-     * Encode an indexed parameter for topic storage, as specified here:
-     * https://docs.soliditylang.org/en/develop/abi-spec.html#events
-     * https://docs.soliditylang.org/en/develop/abi-spec.html#indexed-event-encoding
-     * @param param The parameter to encode.
-     * @param type The type of the parameter.
-     * @return The topic-encoded parameter.
-     */
-    Bytes encodeTopicParam(BaseTypes& param, ABI::Types type);
 
   public:
     /**
      * Constructor. Only sets data partially, setStateData() should be called
      * after creating a new Event so the rest of the data can be set.
+     * @tparam Args The types of the event's arguments.
      * @param name The event's name.
      * @param address The address that emitted the event.
-     * @param params The event's arguments. Defaults to none (empty list).
+     * @param params The event's arguments. (a tuple of N std::pair<T, bool> where T is the type and bool is whether it's indexed or not)
      * @param anonymous Whether the event is anonymous or not. Defaults to false.
      */
-    Event(
-      const std::string& name, Address address,
-      std::vector<std::pair<BaseTypes, bool>> params = {}, bool anonymous = false
-    );
+    template <typename... Args, bool... Flags>
+    Event(const std::string& name, Address address, const std::tuple<EventParam<Args, Flags>...>& params, bool anonymous = false)
+      : name_(name), address_(address), anonymous_(anonymous) {
+      /// Get the event's signature
+      auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(name);
+      std::cout << "eventSignature: " << eventSignature.hex() << std::endl;
+      std::vector<Hash> topics;
+      /// For each EventParam in the tuple where Flag is true, we must encode it with ABI::EventEncoder::encodeTopicSignature<T>
+      /// Where T is the type of the parameter. and append it to the topics vector
+      /// But for each EventParam in the tuple where Flag is false, we have to encode it with ABI::Encoder::encodeData<T...>
+      /// Where T... is all the types of the params tuple that is false. This should result in a single Bytes object.
+      /// This Bytes object should be appended to the data vector.
+      /// We use std::apply for indexed parameters because we need to iterate over the tuple.
+      Bytes encodedNonIndexed;
+      std::apply([&](const auto&... param) {
+          // Process indexed parameters
+          (..., (param.isIndexed ? topics.push_back(ABI::EventEncoder::encodeTopicSignature(param.value)) : void()));
+      }, params);
+
+      /// For non-indexed parameters, we need to encode them all together
+      /// encodeEventData differs from ABI::Encoder::EncoderData where it skips indexed parameters
+      this->data_ = ABI::EventEncoder::encodeEventData(params);
+      if (!anonymous) {
+        this->topics_.push_back(eventSignature);
+      }
+      for (const auto& topic : topics) {
+        if (this->topics_.size() >= 4) {
+          Logger::logToDebug(LogType::WARNING, Log::event, __func__, "Attention! Event " + name + " has more than 3 indexed parameters. Only the first 3 will be indexed.");
+          break;
+        }
+        this->topics_.push_back(topic);
+      }
+    }
 
     /**
      * Constructor from deserialization.
@@ -79,31 +99,31 @@ class Event {
     }
 
     /// Getter for `name_`.
-    std::string getName() const { return this->name_; }
+    const std::string& getName() const { return this->name_; }
 
     /// Getter for `logIndex_`.
-    uint64_t getLogIndex() const { return this->logIndex_; }
+    const uint64_t& getLogIndex() const { return this->logIndex_; }
 
     /// Getter for `txHash_`.
-    Hash getTxHash() const { return this->txHash_; }
+    const Hash& getTxHash() const { return this->txHash_; }
 
     /// Getter for `txIndex_`.
-    uint64_t getTxIndex() const { return this->txIndex_; }
+    const uint64_t& getTxIndex() const { return this->txIndex_; }
 
     /// Getter for `blockHash_`.
-    Hash getBlockHash() const { return this->blockHash_; }
+    const Hash& getBlockHash() const { return this->blockHash_; }
 
     /// Getter for `blockIndex_`.
-    uint64_t getBlockIndex() const { return this->blockIndex_; }
+    const uint64_t& getBlockIndex() const { return this->blockIndex_; }
 
     /// Getter for `address_`.
-    Address getAddress() const { return this->address_; }
+    const Address& getAddress() const { return this->address_; }
 
     /// Getter for `data_`.
-    Bytes getData() const { return this->data_; }
+    const Bytes& getData() const { return this->data_; }
 
     /// Getter for `topics_`.
-    std::vector<Bytes> getTopics() const { return this->topics_; }
+    const std::vector<Hash>& getTopics() const { return this->topics_; }
 
     /// Getter for `anonymous_`.
     bool isAnonymous() const { return this->anonymous_; }
@@ -112,8 +132,8 @@ class Event {
      * Get the event's selector (keccak hash of its signature).
      * @return topics[0] when non-anonymous, empty bytes when anonymous.
      */
-    Bytes getSelector() const {
-      if (!this->anonymous_) return this->topics_[0]; else return Bytes();
+    Hash getSelector() const {
+      if (!this->anonymous_) return this->topics_[0]; else return Hash();
     }
 
     /// Serialize event data from the object to a JSON string.

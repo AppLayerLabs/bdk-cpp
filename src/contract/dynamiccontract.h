@@ -330,14 +330,17 @@ class DynamicContract : public BaseContract {
     /**
      * Emit an event. Remember this is an "empty" event, it lacks state info
      * that will be filled by EventManager::commitEvents().
+     * @tparam Args The argument types of the event.
+     * @tparam Flags The indexing flags of the event.
      * @param name The event's name.
      * @param args The event's arguments. Defaults to an empty list.
      * @param anonymous Whether the event is anonymous or not. Defaults to false.
      */
+    template <typename... Args, bool... Flags>
     void emitEvent(
-      const std::string& name,
-      const std::vector<std::pair<BaseTypes, bool>> args = {},
-      bool anonymous = false
+        const std::string& name,
+        const std::tuple<EventParam<Args, Flags>...>& args,
+        bool anonymous = false
     ) const {
       Event e(name, this->getContractAddress(), args, anonymous);
       this->interface_.emitContractEvent(e);

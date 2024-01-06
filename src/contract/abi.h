@@ -73,6 +73,12 @@ namespace ABI {
   /// Helper to check if a type is a std::tuple (defaults to true for types with args).
   template<typename... Ts> struct isTuple<std::tuple<Ts...>> : std::true_type {};
 
+  /// Helper to check if a type is a EventParam (defaults to false for types without args).
+  template <typename T> struct isEventParam : std::false_type {};
+
+  /// Helper to check if a type is a EventParam (defaults to true for types with args).
+  template<typename... Ts> struct isEventParam<EventParam<Ts...>> : std::true_type {};
+
   /**
    * Check if a type is dynamic.
    * @tparam T Any supported ABI type.
@@ -121,6 +127,10 @@ namespace ABI {
    * @return The total next offset.
    */
   template<typename T> constexpr uint64_t calculateOffsetForType() {
+    if constexpr (isEventParam<T>::value) {
+      if constexpr (T::isIndexed) return 0; /// Indexed types are skipped from encoding.
+      return calculateOffsetForType<typename T::type>();
+    }
     if constexpr (isDynamic<T>()) return 32;
     if constexpr (isTuple<T>::value) return 32 * std::tuple_size<T>::value;
     return 32;
@@ -133,6 +143,15 @@ namespace ABI {
    */
   template <typename... Ts> constexpr uint64_t calculateTotalOffset() {
     return (calculateOffsetForType<Ts>() + ...);
+  }
+
+  /**
+   * Append a Bytes piece to another Bytes piece.
+   * @param dest The Bytes piece to append to.
+   * @param src The Bytes piece to be appended.
+   */
+  template <typename T> void append(Bytes &dest, const T &src) {
+    dest.insert(dest.end(), src.cbegin(), src.cend());
   }
 
   /// Namespace for Functor encoding functions.
@@ -318,15 +337,6 @@ namespace ABI {
   /// Namespace for ABI-encoding functions.
   namespace Encoder {
     /**
-     * Append a Bytes piece to another Bytes piece.
-     * @param dest The Bytes piece to append to.
-     * @param src The Bytes piece to be appended.
-     */
-    template <typename T> void append(Bytes &dest, const T &src) {
-      dest.insert(dest.end(), src.cbegin(), src.cend());
-    }
-
-    /**
      * Encode a uint256.
      * @param num The input to encode.
      * @return The encoded input.
@@ -490,6 +500,172 @@ namespace ABI {
       return result;
     }
   }; // namespace Encoder
+
+  /// EventEncoder works similarly to FunctionEncoder and the ABI Encoder itself
+  /// But not only has different data structures, but also, different rules
+  namespace EventEncoder {
+
+    /**
+     * Encode a event signature following Solidity rules.
+     * @tparam Args The argument types.
+     * @param funcSig The event signature (name).
+     */
+    template <typename... Args> static Hash encodeSignature(const std::string& funcSig) {
+      std::string fullSig = funcSig + "(" + FunctorEncoder::listArgumentTypes<Args...>() + ")";
+      return Utils::sha3(Utils::create_view_span(fullSig));
+    }
+
+    /**
+     * Encode a uint256.
+     * @param num The input to encode.
+     * @return The encoded input.
+     */
+    Bytes encodeUint(const uint256_t& num);
+
+    /**
+     * Encode an int256.
+     * @param num The input to encode.
+     * @return The encoded input.
+     */
+    Bytes encodeInt(const int256_t& num);
+
+    /**
+     * Encode an address.
+     * @param add The input to encode.
+     * @return The encoded input.
+     */
+    Bytes encode(const Address& add);
+
+    /**
+     * Encode a boolean.
+     * @param b The input to encode.
+     * @return The encoded input.
+     */
+    Bytes encode(const bool& b);
+
+    /**
+     * Encode a raw byte string.
+     * @param bytes The input to encode.
+     * @return The encoded input.
+     */
+    Bytes encode(const Bytes& bytes);
+
+    /**
+     * Encode an UTF-8 string.
+     * @param str The input to encode.
+     * @return The encoded input.
+     */
+    Bytes encode(const std::string& str);
+
+    /**
+     * Specialization for encoding any type of uint or int.
+     * @tparam T Any supported uint or int.
+     * @param num The input to encode.
+     * @return The encoded input.
+     * @throw std::runtime_error if type is not found.
+     */
+    template <typename T> Bytes encode(const T& num) {
+      if constexpr (
+        std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
+        std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
+        std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
+        std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
+        std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
+        std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
+        std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
+        std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
+        std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
+        std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
+        std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
+      ) {
+        return encodeInt(num);
+      } else if constexpr (
+        std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
+        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
+        std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
+        std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
+        std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
+        std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
+        std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
+        std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
+        std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
+        std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
+        std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
+      ) {
+        return encodeUint(num);
+      } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported on encoding");
+    }
+
+    /// Forward declaration so encode(std::tuple<Ts...>) can see it.
+    template<typename T> Bytes encode(const std::vector<T>& v);
+
+    /// Specialization for encoding a tuple. Expand and call back encode<T,Ts...>.
+    template<typename... Ts> Bytes encode(const std::tuple<Ts...>& t) {
+      Bytes result;
+      std::apply([&](const auto&... args) {
+        auto encodeItem = [&](auto&& item) {
+          append(result, encode(item));
+        };
+        (encodeItem(args), ...);
+      }, t);
+      return result;
+    }
+
+    /// Specialization for encoding a vector of type T.
+    template<typename T> Bytes encode(const std::vector<T>& v) {
+      Bytes result;
+      for (const T& item : v) {
+        append(result, encode(item));
+      }
+      return result;
+    }
+
+    /**
+     * Encode an indexed parameter for topic storage, as specified here:
+     * https://docs.soliditylang.org/en/develop/abi-spec.html#events
+     * https://docs.soliditylang.org/en/develop/abi-spec.html#indexed-event-encoding
+     * @tparam T Any supported ABI type (first one, it is either a single type a struct)
+     * @param first First type to encode.
+     * @param rest The rest of the types to encode, if any.
+     * @return The encoded data.
+     */
+    template<typename T> Hash encodeTopicSignature(const T& item) {
+      /// If it is a string or Bytes, hash the string itself without encoding.
+      if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, Bytes>) {
+        return Utils::sha3(Utils::create_view_span(item));
+      }
+      Bytes result = encode(item);
+      return Utils::sha3(result);
+    }
+
+    /**
+     * Similar to ABI::Encoder::Encode, but instead takes std::tuple<EventParam...> as input.
+     */
+    template <typename... Args, bool... Flags>
+    Bytes encodeEventData(const std::tuple<EventParam<Args, Flags>...>& params) {
+      Bytes result;
+      uint64_t nextOffset = calculateTotalOffset<Args...>();
+      Bytes dynamicBytes;
+      auto encodeItem = [&](auto&& item) {
+        using EventParamType = std::decay_t<decltype(item)>;
+        if constexpr (EventParamType::isIndexed) return;
+        using ItemType = std::decay_t<decltype(item.value)>;
+        if constexpr (isDynamic<ItemType>()) {
+          Bytes packed = ABI::Encoder::encode(item.value);
+          append(result, Utils::padLeftBytes(Utils::uintToBytes(nextOffset), 32));
+          nextOffset += packed.size();
+          dynamicBytes.insert(dynamicBytes.end(), packed.begin(), packed.end());
+        } else append(result, ABI::Encoder::encode(item.value));
+      };
+      std::apply([&](const auto&... args) {
+        (encodeItem(args), ...);
+      }, params);
+
+      result.insert(result.end(), dynamicBytes.begin(), dynamicBytes.end());
+      return result;
+    }
+
+  }; // namespace EventEncoder
 
   /// Namespace for ABI-decoding functions.
   namespace Decoder {

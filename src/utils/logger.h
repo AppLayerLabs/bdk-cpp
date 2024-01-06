@@ -51,6 +51,7 @@ namespace Log {
   const std::string P2PDiscoveryWorker = "P2P::DiscoveryWorker";   ///< String for `P2P::DiscoveryWorker`.
   const std::string contractManager = "ContractManager";           ///< String for `ContractManager`.
   const std::string syncer = "Syncer";                             ///< String for `Syncer`.
+  const std::string event = "Event";                               ///< String for `Event`.
 }
 
 /// Class for storing log information.
