@@ -16,18 +16,17 @@ See the LICENSE.txt file in the project root for more information.
  * Only the following functions are used in normal operation:
  * - registerContract() -> By the derived DynamicContract class, to register contract methods, arguments, etc.
  * - getConstructorArgumentTypesString<TContract>() -> By ContractFactory and ContractManager, to get the list of ctor arg types (e.g "uint256,uint256")
- * - isContractRegistered<TContract>() -> By ContractFactory and ContractManager, to check if the contract is registered
+ * - isContractFunctionRegistered<TContract>() -> By ContractFactory and ContractManager, to check if the contract is registered
  * The remaining functions and mappings are accessed for JSON ABI purposes only
  * TODO: Add support for overloaded methods! This will require a change in the mappings and templates...
  */
 namespace ContractReflectionInterface {
   // All declared in the cpp file.
-  extern std::unordered_map<std::string, bool> contractsMap;
+  extern std::unordered_map<std::string, bool> registeredContractsFunctionsMap;
+  extern std::unordered_map<std::string, bool> registeredContractsEventsMap;
   extern std::unordered_map<std::string, std::vector<std::string>> ctorArgNamesMap;
   extern std::unordered_map<std::string, std::unordered_multimap<std::string, ABI::MethodDescription>> methodDescsMap;
-  extern std::unordered_map<std::string,
-    std::pair<bool, std::vector<std::tuple<std::string, std::string, bool>>>
-  > eventsMap;
+  extern std::unordered_map<std::string, std::unordered_multimap<std::string, ABI::EventDescription>> eventDescsMap;
 
   /**
    * Helper struct to extract arguments from a function pointer.
@@ -37,6 +36,12 @@ namespace ContractReflectionInterface {
    * Getter functions are static because it is a struct.
    */
   template <typename T> struct populateMethodTypesMapHelper;
+
+  /**
+   * Helper struct to extract event arguments from a function pointer.
+   * This differs from populateMethodTypesMapHelper because events have EventParam arguments.
+   */
+  template <typename T> struct populateEventTypesMapHelper;
 
   /**
    * Specialization of populateMethodTypesMapHelper for non-const functions without args.
@@ -152,8 +157,22 @@ namespace ContractReflectionInterface {
     }
   };
 
+
   /**
-   * Populate the constructor argument names map.
+   * Specialization for void functions with any number of EventParam arguments.
+   */
+  template <typename TContract, typename... Args, bool... Flags>
+  struct populateEventTypesMapHelper<void(TContract::*)(const EventParam<Args, Flags>&...)> {
+    using ReturnType = void; ///< Return type.
+    using ClassType = TContract; ///< Class type, derived from the contract class.
+    /// Get the event arguments, and whether they are indexed or not.
+    static std::vector<std::pair<std::string, bool>> getArgs() {
+      return ABI::FunctorEncoder::listEventTypesV<EventParam<Args, Flags>...>::get();
+    }
+  };
+
+  /**
+   * Populate the method types map.
    * @tparam TContract The contract type.
    * @param name The method's name.
    * @param mut The method's mutability.
@@ -183,13 +202,45 @@ namespace ContractReflectionInterface {
   }
 
   /**
-   * Check if a contract is already registered in the map.
+   * Populate the event argument names map.
+   */
+  template <typename TContract> void inline populateEventTypesMap(
+    const std::string& name,
+    bool anonymous,
+    std::vector<std::pair<std::string, bool>> args,
+    std::vector<std::string> argsNames
+  ) {
+    ABI::EventDescription desc;
+    desc.name = name;
+    desc.anonymous = anonymous;
+    for (uint64_t i = 0; i < args.size(); i++) {
+      std::tuple<std::string, std::string, bool> argDesc;
+      auto& [type, name, indexed] = argDesc;
+      type = args[i].first;
+      indexed = args[i].second;
+      name = (argsNames.size() > i) ? argsNames[i] : "";
+      desc.args.push_back(argDesc);
+    }
+    eventDescsMap[Utils::getRealTypeName<TContract>()].insert(std::make_pair(name, desc));
+  }
+
+
+  /**
+   * Check if a contract functions is already registered in the map.
    * @tparam TContract The contract to check.
    * @return `true` if the contract exists in the map, `false` otherwise.
    */
-  template <typename TContract> bool isContractRegistered() {
-    // TODO: shouldn't we be checking contractsMap.second here? (the bool that says the contract is actually registered)
-    return contractsMap.contains(Utils::getRealTypeName<TContract>());
+  template <typename TContract> bool isContractFunctionsRegistered() {
+    return registeredContractsFunctionsMap.contains(Utils::getRealTypeName<TContract>());
+  }
+
+  /**
+   * Check if a contract events is already registered in the map.
+   * @tparam TContract The contract to check.
+   * @return `true` if the contract exists in the map, `false` otherwise.
+   */
+  template <typename TContract> bool isContractEventsRegistered() {
+    return registeredContractsEventsMap.contains(Utils::getRealTypeName<TContract>());
   }
 
   /**
@@ -207,7 +258,7 @@ namespace ContractReflectionInterface {
    */
   template <typename TContract, typename... Args, typename... Methods>
   void inline registerContract(const std::vector<std::string>& ctorArgs, Methods&&... methods) {
-    if (isContractRegistered<TContract>()) return; // Skip if contract is already registered
+    if (isContractFunctionsRegistered<TContract>()) return; // Skip if contract is already registered
     ctorArgNamesMap[Utils::getRealTypeName<TContract>()] = ctorArgs; // Store ctor arg names in ctorArgNamesMap
     // Register the methods
     ((populateMethodTypesMap<TContract>(
@@ -217,7 +268,8 @@ namespace ContractReflectionInterface {
       std::get<3>(methods),
       populateMethodTypesMapHelper<std::decay_t<decltype(std::get<1>(methods))>>::getFunctionReturnTypes()
     )), ...);
-    contractsMap[Utils::getRealTypeName<TContract>()] = true;
+
+    registeredContractsFunctionsMap[Utils::getRealTypeName<TContract>()] = true;
   }
 
   /**
@@ -228,13 +280,15 @@ namespace ContractReflectionInterface {
    */
   template <typename TContract, typename... Events>
   void inline registerContractEvents(Events&&... events) {
+    if (isContractEventsRegistered<TContract>()) return; // Skip if contract is already registered
     std::string contractName = typeid(TContract).name();
-    for (const std::tuple<std::string, bool, std::vector<
-      std::tuple<std::string, std::string, bool>
-    >> t : {events...}) {
-      // Get details for each event and register in the map - 0 = name, 1 = anonymous, 2 = args
-      eventsMap[contractName + "." + std::get<0>(t)] = std::make_pair(std::get<1>(t), std::get<2>(t));
-    }
+    ((populateEventTypesMap<TContract>(
+      std::get<0>(events),
+      std::get<1>(events),
+      populateEventTypesMapHelper<std::decay_t<decltype(std::get<2>(events))>>::getArgs(),
+      std::get<3>(events)
+    )), ...);
+    registeredContractsEventsMap[Utils::getRealTypeName<TContract>()] = true;
   }
 
   /**
@@ -257,7 +311,7 @@ namespace ContractReflectionInterface {
    * @return The constructor ABI data structure.
    */
   template <typename Contract> ABI::MethodDescription inline getConstructorDataStructure() {
-    if (!isContractRegistered<Contract>()) throw std::runtime_error(
+    if (!isContractFunctionsRegistered<Contract>()) throw std::runtime_error(
       "Contract " + Utils::getRealTypeName<Contract>() + " not registered"
     );
     // Derive from Contract::ConstructorArguments to get the constructor
@@ -287,7 +341,7 @@ namespace ContractReflectionInterface {
    * @return The function ABI data structure.
    */
   template <typename Contract> std::vector<ABI::MethodDescription> inline getFunctionsDataStructure() {
-    if (!isContractRegistered<Contract>()) throw std::runtime_error(
+    if (!isContractFunctionsRegistered<Contract>()) throw std::runtime_error(
       "Contract " + Utils::getRealTypeName<Contract>() + " not registered"
     );
     std::vector<ABI::MethodDescription> descriptions;
@@ -304,21 +358,14 @@ namespace ContractReflectionInterface {
    */
   template <typename Contract>
   std::vector<ABI::EventDescription> inline getEventsDataStructure() {
-    if (!isContractRegistered<Contract>()) throw std::runtime_error(
+    if (!isContractFunctionsRegistered<Contract>()) throw std::runtime_error(
       "Contract " + Utils::getRealTypeName<Contract>() + " not registered"
     );
-    std::vector<ABI::EventDescription> ret;
-    for (const auto& it : eventsMap) {
-      ABI::EventDescription eventDesc;
-      std::string contractName = it.first.substr(0, it.first.find("."));
-      if (contractName == typeid(Contract).name()) {
-        eventDesc.name = it.first.substr(it.first.find(".") + 1); // Remove "."
-        eventDesc.anonymous = it.second.first;
-        eventDesc.args = it.second.second;
-        ret.push_back(eventDesc);
-      }
+    std::vector<ABI::EventDescription> descriptions;
+    for (const auto& [name, desc] : eventDescsMap[Utils::getRealTypeName<Contract>()]) {
+      descriptions.push_back(desc);
     }
-    return ret;
+    return descriptions;
   }
 } // namespace ContractReflectionInterface
 

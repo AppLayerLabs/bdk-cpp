@@ -68,6 +68,15 @@ namespace JsonAbi {
    */
   json parseMethodOutput(const std::vector<std::string>& outputDesc);
 
+
+  /**
+   * Parse a given event args to a JSON object
+   * @param args The args description of the event (std::tuple<type,name,indexed>).
+   * Be aware that tuple types are concatenated into the string itself.
+   * @return A JSON object containing the args of the event.
+   */
+  json parseEventArgs(const std::vector<std::tuple<std::string, std::string, bool>>& args);
+
   /**
    * Convert a MethodDescription object to JSON format.
    * @param desc The MethodDescription object to convert.
@@ -108,7 +117,7 @@ namespace JsonAbi {
     if (fileName.substr(fileName.find_last_of(".") + 1) != "json") fileName += ".json";
     if (!std::filesystem::exists("ABI")) std::filesystem::create_directory("ABI");
     std::ofstream jsonFile("ABI/" + fileName);
-    jsonFile << std::setw(4) << contractData << std::endl;
+    jsonFile << std::setw(2) << contractData << std::endl;
   }
 
   /**

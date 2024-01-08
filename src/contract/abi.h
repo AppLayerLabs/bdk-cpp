@@ -25,17 +25,19 @@ namespace ABI {
    */
   struct MethodDescription {
     std::string name; ///< Name of the method.
-    std::vector<std::pair<std::string,std::string>> inputs; ///< List of pairs of method input names and types.
+    std::vector<std::pair<std::string,std::string>> inputs; ///< List of pairs of method input types and names.
     std::vector<std::string> outputs; ///< Vector of method output types (no names).
     FunctionTypes stateMutability; ///< State mutability of the method.
     std::string type; ///< Type of the method.
   };
 
   /// Struct that contains the data for a contract event.
+  /// args are encoded with ABI::FunctorEncoder::listArgumentTypesV.
+  /// Follow same rules as MethodDescription, but has a extra bool for indexed args.
   struct EventDescription {
     std::string name; ///< Name of the event.
+    std::vector<std::tuple<std::string, std::string, bool>> args; ///< List of tuples of event arg types, names and indexed flag.
     bool anonymous; ///< Whether the event is anonymous or not.
-    std::vector<std::tuple<std::string, std::string, bool>> args; ///< Vector of arguments for the event (name, type, indexed).
   };
 
   /// Common struct for functions used by both encoder and decoder.
@@ -302,6 +304,21 @@ namespace ABI {
       ((result.emplace_back(TypeName<std::decay_t<Args>>::get())), ...);
       return result;
     }
+
+    /**
+     * same as listArgumentTypesV(), but a specialization for event functions,
+     * since we need to add the indexed flag to the type.
+     * Needs to take EventParam<Args, isIndexed>...
+     */
+    template <typename... Args> struct listEventTypesV;
+    template <typename... Args, bool... Flags>
+    struct listEventTypesV<EventParam<Args, Flags>...> {
+      static std::vector<std::pair<std::string, bool>> get() {
+        std::vector<std::pair<std::string, bool>> result;
+        ((result.emplace_back(TypeName<std::decay_t<Args>>::get(), Flags)), ...);
+        return result;
+      }
+    };
 
     /**
      * Helper function for listArgumentTypesVFromTuple.

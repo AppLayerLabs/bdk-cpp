@@ -121,6 +121,35 @@ json JsonAbi::parseMethodOutput(const std::vector<std::string>& outputDesc) {
   return obj;
 }
 
+json JsonAbi::parseEventArgs(const std::vector<std::tuple<std::string, std::string, bool>>& args) {
+  json obj = json::array();
+  for (const auto& arg : args) {
+    const auto& [type, name, indexed] = arg;
+    json inObj = json::object();
+    if (JsonAbi::isTuple(type)) { // Handle the tuple type.
+      inObj["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(type));
+      inObj["indexed"] = indexed;
+      inObj["name"] = name;
+      if (JsonAbi::isArray(type)) {
+        // Check how many nested arrays we have (tuple[], tuple[][], tuple[][][], etc..)
+        auto count = JsonAbi::countTupleArrays(type);
+        std::string arrayType = "tuple";
+        for (int i = 0; i < count; i++) arrayType += "[]";
+        inObj["type"] = arrayType;
+      } else {
+        inObj["type"] = "tuple";
+      }
+    } else {  // Handle the non-tuple type.
+      inObj["indexed"] = indexed;
+      inObj["internalType"] = type;
+      inObj["name"] = name;
+      inObj["type"] = type;
+    }
+    obj.push_back(inObj);
+  }
+  return obj;
+}
+
 json JsonAbi::methodToJSON(const ABI::MethodDescription& desc) {
   json obj = json::object();
   obj["inputs"] = JsonAbi::parseMethodInput(desc.inputs);
@@ -137,13 +166,10 @@ json JsonAbi::methodToJSON(const ABI::MethodDescription& desc) {
 
 json JsonAbi::eventToJSON(const ABI::EventDescription& desc) {
   json obj = json::object();
-  for (auto& arg : desc.args)
-    obj["inputs"].push_back({
-      {"name", std::get<0>(arg)}, {"type", std::get<1>(arg)}, {"indexed", std::get<2>(arg)}
-    });
+  obj["anonymous"] = desc.anonymous;
+  obj["inputs"] = JsonAbi::parseEventArgs(desc.args);
   obj["name"] = desc.name;
   obj["type"] = "event";
-  obj["anonymous"] = desc.anonymous;
   return obj;
 }
 

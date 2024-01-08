@@ -94,7 +94,7 @@ class ContractFactory {
     template <typename TContract> void createNewContract(const ethCallInfo& callInfo) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       auto setupResult = this->setupNewContract<TContract>(callInfo);
-      if (!ContractReflectionInterface::isContractRegistered<TContract>()) {
+      if (!ContractReflectionInterface::isContractFunctionsRegistered<TContract>()) {
         throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " is not registered");
       }
 

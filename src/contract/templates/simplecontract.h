@@ -24,10 +24,20 @@ class SimpleContract : public DynamicContract {
 
   protected:
     /// Event for when the name changes.
-    void nameChanged(const std::string& name) { this->emitEvent(__func__,  std::make_tuple(EventParam<std::string, true>(name))); }
+    void nameChanged(const EventParam<std::string, true>& name) { this->emitEvent(__func__,  std::make_tuple(name)); }
 
     /// Event for when the value changes.
-    void valueChanged(uint256_t value) { this->emitEvent(__func__, std::make_tuple(EventParam<uint256_t, true>(value))); }
+    void valueChanged(const EventParam<uint256_t, true>& value) { this->emitEvent(__func__, std::make_tuple(value)); }
+
+    /// Event for when the name and value change. used for testing json abi generation
+    void nameAndValueChanged(const EventParam<std::string, true>& name, const EventParam<uint256_t, true>& value) {
+      this->emitEvent(__func__, std::make_tuple(name, value));
+    }
+
+    /// Event for when the name and value change (as tuple), used for testing json abi generation
+    void nameAndValueTupleChanged(const EventParam<std::tuple<std::string, uint256_t>, true>& nameAndValue) {
+      this->emitEvent(__func__, std::make_tuple(nameAndValue));
+    }
 
   public:
     using ConstructorArguments = std::tuple<const std::string&, uint256_t>; ///< The constructor arguments type.
@@ -132,12 +142,10 @@ class SimpleContract : public DynamicContract {
         std::make_tuple("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, FunctionTypes::View, std::vector<std::string>{"i"})
       );
       ContractReflectionInterface::registerContractEvents<SimpleContract>(
-        std::make_tuple("nameChanged", false, std::vector<std::tuple<std::string, std::string, bool>>{
-          std::make_tuple("name", "string", true)
-        }),
-        std::make_tuple("valueChanged", false, std::vector<std::tuple<std::string, std::string, bool>>{
-          std::make_tuple("value", "uint256", true)
-        })
+        std::make_tuple("nameChanged", false, &SimpleContract::nameChanged, std::vector<std::string>{"name"}),
+        std::make_tuple("valueChanged", false, &SimpleContract::valueChanged, std::vector<std::string>{"value"}),
+        std::make_tuple("nameAndValueChanged", false, &SimpleContract::nameAndValueChanged, std::vector<std::string>{"name", "value"}),
+        std::make_tuple("nameAndValueTupleChanged", false, &SimpleContract::nameAndValueTupleChanged, std::vector<std::string>{"nameAndValue"})
       );
     }
 };

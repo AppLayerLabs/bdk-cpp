@@ -115,7 +115,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     std::ifstream i("ABI/SimpleContract.json");
     i >> j;
 
-    REQUIRE(j.size() == 18);
+    REQUIRE(j.size() == 20);
     auto findSetName = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setName);
     REQUIRE(findSetName != j.end());
     auto findSetNames = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setNames);
@@ -148,5 +148,13 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(findGetNamesAndValuesInArrayOfArrays != j.end());
     auto findGetValueOverload = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::getValueOverload);
     REQUIRE(findGetValueOverload != j.end());
+    auto findNameAndValueTupleChanged = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::nameAndValueTupleChanged);
+    REQUIRE(findNameAndValueTupleChanged != j.end());
+    auto findNameAndValueChanged = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::nameAndValueChanged);
+    REQUIRE(findNameAndValueChanged != j.end());
+    auto findValueChanged = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::valueChanged);
+    REQUIRE(findValueChanged != j.end());
+    auto findNameChanged = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::nameChanged);
+    REQUIRE(findNameChanged != j.end());
   }
 }
