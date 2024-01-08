@@ -77,10 +77,10 @@ class ContractManager : BaseContract {
     std::unique_ptr<ContractCallLogger> callLogger_;
 
     /**
-     * Reference pointer to the event manager object.
+     * Pointer to the event manager object.
      * Responsible for maintaining events emitted in contract calls.
      */
-    const std::unique_ptr<EventManager>& eventManager_;
+    const std::unique_ptr<EventManager> eventManager_;
 
     /// Reference pointer to the rdPoS contract.
     const std::unique_ptr<rdPoS>& rdpos_;
@@ -156,12 +156,10 @@ class ContractManager : BaseContract {
      * @param db Pointer to the database.
      * @param rdpos Pointer to the rdPoS contract.
      * @param options Pointer to the options singleton.
-     * @param eventManager Pointer to the event manager.
      */
     ContractManager(
       State* state, const std::unique_ptr<DB>& db,
-      const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options,
-      const std::unique_ptr<EventManager>& eventManager
+      const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
     );
 
     /// Destructor. Automatically saves contracts to the database before wiping them.
@@ -236,6 +234,22 @@ class ContractManager : BaseContract {
 
     /// Get a list of contract names and addresses.
     std::vector<std::pair<std::string, Address>> getContracts() const;
+
+    /**
+     * Get all the events emitted under the given inputs.
+     * Parameters are defined when calling "eth_getLogs" on an HTTP request
+     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
+     * They're supposed to be all "optional" at that point, but here they're
+     * all required, even if all of them turn out to be empty.
+     * @param fromBlock The initial block height to look for.
+     * @param toBlock The final block height to look for.
+     * @param address The address to look for. If empty, will look for all available addresses.
+     * @param topics The topics to filter by. If empty, will look for all available topics.
+     * @return A list of matching events, limited by the block and/or log caps set above.
+     */
+    std::vector<Event> getEvents(
+      const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
+    );
 
     /// ContractManagerInterface is a friend so it can access private members.
     friend class ContractManagerInterface;
@@ -441,7 +455,7 @@ class ContractManagerInterface {
       if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to emit an event without an active contract call"
       );
-      this->manager_.eventManager_->registerEvent(event);
+      this->manager_.eventManager_->registerEvent(std::move(event));
     }
 
     /**

@@ -92,7 +92,6 @@ class State {
      * @param rdpos Pointer to the rdPoS object.
      * @param p2pManager Pointer to the P2P connection manager.
      * @param options Pointer to the options singleton.
-     * @param eventManager Pointer to the event manager.
      * @throw std::runtime_error on any database size mismatch.
      */
     State(
@@ -100,8 +99,7 @@ class State {
       const std::unique_ptr<Storage>& storage,
       const std::unique_ptr<rdPoS>& rdpos,
       const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
-      const std::unique_ptr<Options>& options,
-      const std::unique_ptr<EventManager>& eventManager
+      const std::unique_ptr<Options>& options
     );
 
     /// Destructor.
@@ -231,6 +229,22 @@ class State {
 
     /// Get a list of contract addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;
+
+    /**
+     * Get all the events emitted under the given inputs.
+     * Parameters are defined when calling "eth_getLogs" on an HTTP request
+     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
+     * They're supposed to be all "optional" at that point, but here they're
+     * all required, even if all of them turn out to be empty.
+     * @param fromBlock The initial block height to look for.
+     * @param toBlock The final block height to look for.
+     * @param address The address to look for. If empty, will look for all available addresses.
+     * @param topics The topics to filter by. If empty, will look for all available topics.
+     * @return A list of matching events, limited by the block and/or log caps set above.
+     */
+    std::vector<Event> getEvents(
+      const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
+    );
 
     /// the Manager Interface cannot use getNativeBalance. as it will call a lock with the mutex.
     friend class ContractManagerInterface;

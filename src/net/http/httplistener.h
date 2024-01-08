@@ -35,9 +35,6 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
     /// Reference pointer to the options singleton.
     const std::unique_ptr<Options>& options_;
 
-    /// Reference pointer to the event manager.
-    const std::unique_ptr<EventManager>& eventManager_;
-
     /// Accept an incoming connection from the endpoint. The new connection gets its own strand.
     void do_accept();
 
@@ -59,13 +56,11 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
      * @param storage Reference pointer to the blockchain's storage.
      * @param p2p Reference pointer to the P2P connection manager.
      * @param options Reference pointer to the options singleton.
-     * @param eventManager Reference pointer to the event manager.
      */
     HTTPListener(
       net::io_context& ioc, tcp::endpoint ep, std::shared_ptr<const std::string>& docroot,
       const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options,
-      const std::unique_ptr<EventManager>& eventManager
+      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
     );
 
     void start(); ///< Start accepting incoming connections.

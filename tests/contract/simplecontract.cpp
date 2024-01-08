@@ -20,7 +20,7 @@ ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& 
 
 void initialize(
   std::unique_ptr<Options>& options, std::unique_ptr<DB>& db,
-  std::unique_ptr<ContractManager>& contractManager, std::unique_ptr<EventManager>& eventManager,
+  std::unique_ptr<ContractManager>& contractManager,
   const std::string& dbName,
   const PrivKey& ownerPrivKey,
   const std::string& name,
@@ -32,8 +32,7 @@ void initialize(
   options = std::make_unique<Options>(Options::fromFile(dbName));
   db = std::make_unique<DB>(dbName);
   std::unique_ptr<rdPoS> rdpos;
-  eventManager = std::make_unique<EventManager>(db);
-  contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options, eventManager);
+  contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options);
   // Create the contract
   if (deleteDB) {
     Bytes createNewSimpleContractEncoder = ABI::Encoder::encodeData(name, value);
@@ -59,8 +58,7 @@ namespace TSimpleContract {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::unique_ptr<EventManager> eventManager;
-        initialize(options, db, contractManager, eventManager,
+        initialize(options, db, contractManager,
           testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581
         );
 
@@ -86,8 +84,7 @@ namespace TSimpleContract {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::unique_ptr<EventManager> eventManager;
-      initialize(options, db, contractManager, eventManager,
+      initialize(options, db, contractManager,
         testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581, false
       );
 
@@ -115,8 +112,7 @@ namespace TSimpleContract {
         std::unique_ptr<Options> options;
         std::unique_ptr<DB> db;
         std::unique_ptr<ContractManager> contractManager;
-        std::unique_ptr<EventManager> eventManager;
-        initialize(options, db, contractManager, eventManager,
+        initialize(options, db, contractManager,
           testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581
         );
 
@@ -165,7 +161,7 @@ namespace TSimpleContract {
         REQUIRE(std::get<0>(nameDecoder) == "TryThisName");
         REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
 
-        Event nameEvent = eventManager->getEvents(
+        Event nameEvent = contractManager->getEvents(
           0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
         ).at(0);
 
@@ -179,7 +175,7 @@ namespace TSimpleContract {
         REQUIRE(nameEvent.getTopics().at(1) == Utils::sha3(Utils::stringToBytes("TryThisName"))); // at(0) = functor (non-anonymous)
         REQUIRE(!nameEvent.isAnonymous());
 
-        Event valueEvent = eventManager->getEvents(
+        Event valueEvent = contractManager->getEvents(
           0, 1, contractAddress, { Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
         ).at(0);
 
@@ -197,8 +193,7 @@ namespace TSimpleContract {
       std::unique_ptr<Options> options;
       std::unique_ptr<DB> db;
       std::unique_ptr<ContractManager> contractManager;
-      std::unique_ptr<EventManager> eventManager;
-      initialize(options, db, contractManager, eventManager,
+      initialize(options, db, contractManager,
         testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581, false
       );
 
@@ -220,7 +215,7 @@ namespace TSimpleContract {
       REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
 
       // No tx hash here but it was already tested before
-      Event nameEvent = eventManager->getEvents(
+      Event nameEvent = contractManager->getEvents(
         0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
       ).at(0);
 
@@ -233,7 +228,7 @@ namespace TSimpleContract {
       REQUIRE(nameEvent.getTopics().at(1) == Utils::sha3(Utils::stringToBytes("TryThisName"))); // at(0) = functor (non-anonymous)
       REQUIRE(!nameEvent.isAnonymous());
 
-      Event valueEvent = eventManager->getEvents(
+      Event valueEvent = contractManager->getEvents(
         0, 1, contractAddress, { Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
       ).at(0);
 

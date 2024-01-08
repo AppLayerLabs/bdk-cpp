@@ -89,13 +89,10 @@ namespace JsonAbi {
    */
   template <typename Contract> void registerContractAndGetData(json& contractData) {
     Contract::registerContract();
-    std::vector<ABI::MethodDescription> ctorData;
     std::vector<ABI::MethodDescription> funcData;
     std::vector<ABI::EventDescription> eventData;
-    ctorData = ContractReflectionInterface::getConstructorDataStructure<Contract>();
     funcData = ContractReflectionInterface::getFunctionsDataStructure<Contract>();
     eventData = ContractReflectionInterface::getEventsDataStructure<Contract>();
-    for (const auto& ctor : ctorData) contractData.push_back(methodToJSON(ctor));
     for (const auto& func : funcData) contractData.push_back(methodToJSON(func));
     for (const auto& event : eventData) contractData.push_back(eventToJSON(event));
   }
@@ -125,28 +122,6 @@ namespace JsonAbi {
     if constexpr(Index + 1 < std::tuple_size<ContractTuple>::value) {
       registerContracts<ContractTuple, Index + 1>();
     }
-  }
-
-  /**
-   * Write manager ABI to a JSON file.
-   * @tparam ContractTuple The tuple of contracts to get the constructors of.
-   */
-  template <typename ContractTuple> void writeManagerABI() {
-    registerContracts<ContractTuple>();
-    json managerABI;
-    getConstructorsABI<ContractTuple, 0>(managerABI);
-    managerABI.push_back({
-      {"inputs", json::array()},
-      {"name", "getDeployedContracts"},
-      {"outputs", {
-        {{"internalType", "string[]"}, {"name", ""}, {"type", "string[]"}},
-        {{"internalType", "address[]"}, {"name", ""}, {"type", "address[]"}}
-      }},
-      {"stateMutability", "view"},
-      {"type", "function"}
-    });
-    std::ofstream jsonFile("ABI/ContractManager.json");
-    jsonFile << std::setw(2) << managerABI << std::endl;
   }
 
   /**
@@ -222,6 +197,28 @@ namespace JsonAbi {
   template <typename ContractTuple, std::size_t N>
   std::enable_if_t<(N == std::tuple_size<ContractTuple>::value)>
   getConstructorsABI(json &abis) {}
+
+  /**
+   * Write manager ABI to a JSON file.
+   * @tparam ContractTuple The tuple of contracts to get the constructors of.
+   */
+  template <typename ContractTuple> void writeManagerABI() {
+    registerContracts<ContractTuple>();
+    json managerABI;
+    getConstructorsABI<ContractTuple, 0>(managerABI);
+    managerABI.push_back({
+      {"inputs", json::array()},
+      {"name", "getDeployedContracts"},
+      {"outputs", {
+        {{"internalType", "string[]"}, {"name", ""}, {"type", "string[]"}},
+        {{"internalType", "address[]"}, {"name", ""}, {"type", "address[]"}}
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    });
+    std::ofstream jsonFile("ABI/ContractManager.json");
+    jsonFile << std::setw(2) << managerABI << std::endl;
+  }
 
   /**
    * Write all contract ABIs to JSON files.

@@ -425,49 +425,73 @@ namespace JsonRPC {
       }
     }
 
-    std::tuple<uint64_t, uint64_t, Address, std::vector<Bytes>> eth_getLogs(
+    std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> eth_getLogs(
       const json& request, const std::unique_ptr<Storage>& storage
     ) {
+      static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
+      static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
+      static const std::regex hashFilter("^0x[0-9a-f]{64}$");
       try {
         uint64_t fromBlock = ContractGlobals::getBlockHeight(); // "latest" by default
         uint64_t toBlock = ContractGlobals::getBlockHeight(); // "latest" by default
         Address address = Address();  // Empty by default
-        std::vector<Bytes> topics = {}; // Empty by default
-        json paramsObj = request["params"];
-        if (paramsObj.contains("blockHash")) {
-          std::string blockHash = paramsObj.at("blockHash").template get<std::string>();
-          const std::shared_ptr<const Block> block = storage->getBlock(Hash(blockHash));
+        std::vector<Hash> topics = {}; // Empty by default
+        json logsObject = request["params"].at(0);
+
+        if (logsObject.contains("blockHash")) {
+          std::string blockHashHex = logsObject["blockHash"].get<std::string>();
+          if (!std::regex_match(blockHashHex, hashFilter)) throw std::runtime_error("Invalid block hash hex");
+          const std::shared_ptr<const Block> block = storage->getBlock(Hash(Hex::toBytes(blockHashHex)));
           fromBlock = toBlock = block->getNHeight();
         } else {
-          if (paramsObj.contains("fromBlock")) {
-            json obj = paramsObj.at("fromBlock");
-            if (obj.is_string()) {
-              std::string blockStr = obj.template get<std::string>();
-              if (blockStr == "earliest") fromBlock = 0;
-              else if (blockStr == "pending") throw std::runtime_error("Pending block is not supported");
-            } else if (obj.is_number()) {
-              fromBlock = obj.template get<uint64_t>();
+          if (logsObject.contains("fromBlock")) {
+            std::string fromBlockHex = logsObject["fromBlock"].get<std::string>();
+            if (fromBlockHex == "latest") {
+              fromBlock = storage->latest()->getNHeight();
+            } else if (fromBlockHex == "earliest") {
+              fromBlock = 0;
+            } else if (fromBlockHex == "pending") {
+              throw std::runtime_error("Pending block is not supported");
+            } else if (std::regex_match(fromBlockHex, numFilter)) {
+              fromBlock = uint64_t(Hex(fromBlockHex).getUint());
+            } else {
+              throw std::runtime_error("Invalid fromBlock hex");
             }
           }
-          if (paramsObj.contains("toBlock")) {
-            json obj = paramsObj.at("toBlock");
-            if (obj.is_string()) {
-              std::string blockStr = obj.template get<std::string>();
-              if (blockStr == "earliest") toBlock = 0;
-              else if (blockStr == "pending") throw std::runtime_error("Pending block is not supported");
-            } else if (obj.is_number()) {
-              toBlock = obj.template get<uint64_t>();
+
+          if (logsObject.contains("toBlock")) {
+            std::string toBlockHex = logsObject["toBlock"].get<std::string>();
+            if (toBlockHex == "latest") {
+              fromBlock = storage->latest()->getNHeight();
+            } else if (toBlockHex == "earliest") {
+              fromBlock = 0;
+            } else if (toBlockHex == "pending") {
+              throw std::runtime_error("Pending block is not supported");
+            } else if (std::regex_match(toBlockHex, numFilter)) {
+              toBlock = uint64_t(Hex(toBlockHex).getUint());
+            } else {
+              throw std::runtime_error("Invalid fromBlock hex");
             }
           }
         }
-        if (paramsObj.contains("address")) {
-          address = Address(paramsObj.at("address").template get<std::string>(), false);
+
+        if (logsObject.contains("address")) {
+          std::string addressHex = logsObject["address"].get<std::string>();
+          if (!std::regex_match(addressHex, addFilter)) throw std::runtime_error("Invalid address hex");
+          address = Address(Hex::toBytes(addressHex));
         }
-        if (paramsObj.contains("topics")) {
-          for (Bytes topic : paramsObj.at("topics").template get<std::vector<Bytes>>()) {
-            topics.push_back(topic);
+
+        if (logsObject.contains("topics")) {
+          if (!logsObject.at("topics").is_array()) {
+            throw std::runtime_error("topics is not an array");
+          }
+          auto topicsArray = logsObject.at("topics").get<std::vector<std::string>>();
+          for (auto& topic : topicsArray) {
+            if (!std::regex_match(topic, hashFilter)) throw std::runtime_error("Invalid topic hex");
+            topics.push_back(Hash(Hex::toBytes(topic)));
           }
         }
+
         return std::make_tuple(fromBlock, toBlock, address, topics);
       } catch (std::exception& e) {
         Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,

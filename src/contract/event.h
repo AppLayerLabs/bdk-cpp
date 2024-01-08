@@ -185,7 +185,7 @@ class EventManager {
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
     std::vector<Event> getEvents(
-      uint64_t fromBlock, uint64_t toBlock, Address address, std::vector<Bytes> topics
+      const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
     );
 
     /**
@@ -193,7 +193,7 @@ class EventManager {
      * Keep in mind the original Event object is MOVED to the list.
      * @param event The event to register.
      */
-    void registerEvent(Event& event) { this->tempEvents_.push_back(std::move(event)); }
+    void registerEvent(Event&& event) { this->tempEvents_.emplace_back(std::move(event)); }
 
     /**
      * Actually register events in the permanent list.

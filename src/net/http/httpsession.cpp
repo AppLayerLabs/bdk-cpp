@@ -63,7 +63,7 @@ void HTTPSession::on_read(beast::error_code ec, std::size_t bytes) {
   // Send the response
   handle_request(
     *this->docroot_, this->parser_->release(), this->queue_, this->state_,
-    this->storage_, this->p2p_, this->options_, this->eventManager_
+    this->storage_, this->p2p_, this->options_
   );
   // If queue still has free space, try to pipeline another request
   if (!this->queue_.full()) this->do_read();

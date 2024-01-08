@@ -13,7 +13,7 @@ bool HTTPServer::run() {
   std::shared_ptr<const std::string> docroot = std::make_shared<const std::string>(".");
   this->listener_ = std::make_shared<HTTPListener>(
     this->ioc_, tcp::endpoint{address, this->port_}, docroot, this->state_,
-    this->storage_, this->p2p_, this->options_, this->eventManager_
+    this->storage_, this->p2p_, this->options_
   );
   this->listener_->start();
 

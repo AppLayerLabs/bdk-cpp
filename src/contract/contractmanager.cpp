@@ -15,15 +15,14 @@ See the LICENSE.txt file in the project root for more information.
 
 ContractManager::ContractManager(
   State* state, const std::unique_ptr<DB>& db,
-  const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options,
-  const std::unique_ptr<EventManager>& eventManager
+  const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
 ) : state_(state), BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
   Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), 0, db),
-  eventManager_(eventManager),
   rdpos_(rdpos),
   options_(options),
   factory_(std::make_unique<ContractFactory>(*this)),
-  interface_(std::make_unique<ContractManagerInterface>(*this))
+  interface_(std::make_unique<ContractManagerInterface>(*this)),
+  eventManager_(std::make_unique<EventManager>(db))
 {
   this->callLogger_ = std::make_unique<ContractCallLogger>(*this);
   this->factory_->registerContracts<ContractTypes>();
@@ -239,6 +238,12 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
     contracts.push_back({contract->getContractName(), address});
   }
   return contracts;
+}
+
+std::vector<Event> ContractManager::getEvents(
+  const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
+) {
+  return this->eventManager_->getEvents(fromBlock, toBlock, address, topics);
 }
 
 void ContractManagerInterface::registerVariableUse(SafeBase& variable) {

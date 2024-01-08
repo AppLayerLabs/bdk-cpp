@@ -10,10 +10,9 @@ See the LICENSE.txt file in the project root for more information.
 HTTPListener::HTTPListener(
   net::io_context& ioc, tcp::endpoint ep, std::shared_ptr<const std::string>& docroot,
   const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options,
-  const std::unique_ptr<EventManager>& eventManager
+  const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
 ) : ioc_(ioc), acc_(net::make_strand(ioc)), docroot_(docroot), state_(state),
-  storage_(storage), p2p_(p2p), options_(options), eventManager_(eventManager)
+  storage_(storage), p2p_(p2p), options_(options)
 {
   beast::error_code ec;
   this->acc_.open(ep.protocol(), ec);  // Open the acceptor
@@ -38,7 +37,7 @@ void HTTPListener::on_accept(beast::error_code ec, tcp::socket sock) {
   } else {
     std::make_shared<HTTPSession>(
       std::move(sock), this->docroot_, this->state_, this->storage_, this->p2p_,
-      this->options_, this->eventManager_
+      this->options_
     )->start(); // Create the http session and run it
   }
   this->do_accept(); // Accept another connection

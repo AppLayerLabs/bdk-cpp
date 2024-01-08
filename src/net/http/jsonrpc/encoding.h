@@ -18,7 +18,6 @@ See the LICENSE.txt file in the project root for more information.
 namespace P2P { class ManagerNormal; }
 class Storage;
 class State;
-class EventManager;
 
 namespace JsonRPC {
   /// Namespace for encoding JSON-RPC data.
@@ -171,12 +170,12 @@ namespace JsonRPC {
     /**
      * Encode a `eth_getLogs` response.
      * @param info A tuple of starting and ending block, address and a list of topics.
-     * @param eventManager Reference pointer to the blockchain's event manager.
+     * @param state Reference pointer to blockchain's state.
      * @return The encoded JSON response.
      */
     json eth_getLogs(
-      std::tuple<uint64_t, uint64_t, Address, std::vector<Bytes>> info,
-      const std::unique_ptr<EventManager>& eventManager
+      std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> info,
+      const std::unique_ptr<State>& state
     );
 
     /**

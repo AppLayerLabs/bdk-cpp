@@ -165,7 +165,7 @@ namespace JsonRPC {
      * @param storage Reference pointer to the blockchain's storage.
      * @return A tuple with starting and ending block height, address and a list of topics.
      */
-    std::tuple<uint64_t, uint64_t, Address, std::vector<Bytes>> eth_getLogs(
+    std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> eth_getLogs(
       const json& request, const std::unique_ptr<Storage>& storage
     );
 

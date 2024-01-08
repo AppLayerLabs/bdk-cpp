@@ -28,7 +28,6 @@ class Blockchain {
   private:
     const std::unique_ptr<Options> options_; ///< Pointer to the options singleton.
     const std::unique_ptr<DB> db_; ///< Pointer to the database.
-    const std::unique_ptr<EventManager> eventManager_;  ///< Pointer to the event manager.
     const std::unique_ptr<Storage> storage_; ///< Pointer to the blockchain storage.
     const std::unique_ptr<State> state_; ///< Pointer to the blockchain state.
     const std::unique_ptr<rdPoS> rdpos_; ///< Pointer to the rdPoS object (consensus).
@@ -63,9 +62,6 @@ class Blockchain {
 
     /// Getter for `db_`.
     const std::unique_ptr<DB>& getDB() const { return this->db_; };
-
-    /// Getter for `eventManager_`.
-    const std::unique_ptr<EventManager>& getEventManager() const { return this->eventManager_; }
 
     /// Getter for `storage_`.
     const std::unique_ptr<Storage>& getStorage() const { return this->storage_; };

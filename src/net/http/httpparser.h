@@ -59,7 +59,6 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 class State;
 class Storage;
 namespace P2P { class ManagerNormal; }
-class EventManager;
 
 /**
  * Parse a JSON-RPC request into a JSON-RPC response, handling all requests and errors.
@@ -75,8 +74,7 @@ std::string parseJsonRpcRequest(
   const std::unique_ptr<State>& state,
   const std::unique_ptr<Storage>& storage,
   const std::unique_ptr<P2P::ManagerNormal>& p2p,
-  const std::unique_ptr<Options>& options,
-  const std::unique_ptr<EventManager>& eventManager
+  const std::unique_ptr<Options>& options
 );
 
 /**
@@ -90,14 +88,12 @@ std::string parseJsonRpcRequest(
  * @param storage Reference pointer to the blockchain's storage.
  * @param p2p Reference pointer to the P2P connection manager.
  * @param options Reference pointer to the options singleton.
- * @param eventManager Reference pointer to the event manager.
  */
 template<class Body, class Allocator, class Send> void handle_request(
     beast::string_view docroot,
     http::request<Body, http::basic_fields<Allocator>>&& req,
     Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-    const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options,
-    const std::unique_ptr<EventManager>& eventManager
+    const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
 ) {
   // Returns a bad request response
   const auto bad_request = [&req](beast::string_view why){
@@ -157,7 +153,7 @@ template<class Body, class Allocator, class Send> void handle_request(
 
   std::string request = req.body();
   std::string answer = parseJsonRpcRequest(
-    request, state, storage, p2p, options, eventManager
+    request, state, storage, p2p, options
   );
 
   http::response<http::string_body> res{http::status::ok, req.version()};

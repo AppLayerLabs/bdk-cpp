@@ -208,13 +208,13 @@ namespace JsonRPC {
     }
 
     json eth_getLogs(
-      std::tuple<uint64_t, uint64_t, Address, std::vector<Bytes>> info,
-      const std::unique_ptr<EventManager>& eventManager
+      std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> info,
+      const std::unique_ptr<State>& state
     ) {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
-        std::vector<Event> events = eventManager->getEvents(
+        std::vector<Event> events = state->getEvents(
           std::get<0>(info), std::get<1>(info), std::get<2>(info), std::get<3>(info)
         );
         for (Event e : events) ret["result"].push_back(e.serializeForRPC());
