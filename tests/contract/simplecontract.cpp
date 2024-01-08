@@ -177,7 +177,7 @@ namespace TSimpleContract {
         REQUIRE(!nameEvent.isAnonymous());
 
         Event valueEvent = contractManager->getEvents(
-          0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("valueChanged(uint256)")), Utils::sha3(Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)).asBytes() }
+          0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("valueChanged(uint256)")), Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
         ).at(0);
 
         REQUIRE(valueEvent.getName() == "valueChanged");
@@ -187,7 +187,7 @@ namespace TSimpleContract {
         REQUIRE(valueEvent.getBlockIndex() == 0);
         REQUIRE(valueEvent.getAddress() == contractAddress);
         REQUIRE(valueEvent.getData() == Bytes());
-        REQUIRE(valueEvent.getTopics().at(1) == Utils::sha3(Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)).asBytes()); // at(0) = functor (non-anonymous)
+        REQUIRE(valueEvent.getTopics().at(1) == Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)); // at(0) = functor (non-anonymous)
         REQUIRE(!valueEvent.isAnonymous());
       }
 
@@ -230,7 +230,7 @@ namespace TSimpleContract {
       REQUIRE(!nameEvent.isAnonymous());
 
       Event valueEvent = contractManager->getEvents(
-        0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("valueChanged(uint256)")), Utils::sha3(Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)).asBytes() }
+        0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("valueChanged(uint256)")), Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
       ).at(0);
 
       REQUIRE(valueEvent.getName() == "valueChanged");
@@ -239,7 +239,7 @@ namespace TSimpleContract {
       REQUIRE(valueEvent.getBlockIndex() == 0);
       REQUIRE(valueEvent.getAddress() == contractAddress);
       REQUIRE(valueEvent.getData() == Bytes());
-      REQUIRE(valueEvent.getTopics().at(1) == Utils::sha3(Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)).asBytes()); // at(0) = functor (non-anonymous)
+      REQUIRE(valueEvent.getTopics().at(1) == Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)); // at(0) = functor (non-anonymous)
       REQUIRE(!valueEvent.isAnonymous());
     }
   }

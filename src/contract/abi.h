@@ -635,7 +635,11 @@ namespace ABI {
         return Utils::sha3(Utils::create_view_span(item));
       }
       Bytes result = encode(item);
-      return Utils::sha3(result);
+      if constexpr (isTuple<T>::value || isVector<T>::value) {
+        /// If it is a dynamic type, hash the encoded result.
+        return Utils::sha3(result);
+      }
+      return result;
     }
 
     /**
