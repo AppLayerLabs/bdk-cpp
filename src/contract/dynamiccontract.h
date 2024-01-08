@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DYNAMICCONTRACT_H
 #define DYNAMICCONTRACT_H
 
-#include <any>
+#include "abi.h"
 #include "contract.h"
 #include "contractmanager.h"
 #include "../utils/safehash.h"
@@ -26,7 +26,7 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-      Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
     > publicFunctions_;
 
    /**
@@ -35,16 +35,17 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-      Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
     > payableFunctions_;
 
    /**
     * Map of view functions that can be called by the contract.
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
+    * Function return type is the encoded return value as viewFunctions is only used by eth_call.
     */
     std::unordered_map<
-      Functor, std::function<BaseTypes(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<Bytes(const ethCallInfo& callInfo)>, SafeHash
     > viewFunctions_;
 
     /**
@@ -54,7 +55,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerFunction(
-      const Functor& functor, std::function<BaseTypes(const ethCallInfo& tx)> f
+      const Functor& functor, std::function<void(const ethCallInfo& tx)> f
     ) {
       publicFunctions_[functor] = f;
     }
@@ -70,105 +71,41 @@ class DynamicContract : public BaseContract {
     ContractManagerInterface& interface_;
 
     /**
-     * Helper function for registering a payable/non-payable function.
-     * @tparam R Return type of the function.
-     * @tparam T Class type.
-     * @tparam MemFunc Member function type.
-     */
-    template <typename R, typename T>
-    struct RegisterHelper {
-      template <typename MemFunc>
-        /**
-         * Create a ReturnType object by calling the member function.
-         * @param instance Pointer to the instance of the class.
-         * @param memFunc Pointer to the member function.
-         * @return A ReturnType object.
-         */
-        static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
-          return BaseTypes((instance->*memFunc)());
-        }
-    };
-
-    /**
-    * Helper function for registering a void payable/non-payable function.
-    * @tparam T Class type.
-    * @tparam MemFunc Member function type.
-    */
-    template <typename T>
-    struct RegisterHelper<void, T> {
-      template <typename MemFunc>
-      /**
-      * Create a ReturnType object by calling the member function.
-      * @param instance Pointer to the instance of the class.
-      * @param memFunc Pointer to the member function.
-      * @return A ReturnType object (default constructed).
-      * TODO: Decide if this is the best way to handle void functions.
-      */
-      static BaseTypes createReturnType(T* instance, MemFunc memFunc) {
-          (instance->*memFunc)();
-          return BaseTypes{};
-      }
-    };
-
-    /**
      * Template for registering a const member function with no arguments.
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
+     * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename T> void registerMemberFunction(
-      const std::string& funcSignature, R(T::*memFunc)() const, T* instance
+      const std::string& funcSignature, R(T::*memFunc)() const, const FunctionTypes& methodMutability, T* instance
     ) {
-      bool hasArgs = ContractReflectionInterface::methodHasArguments<decltype(*instance)>(funcSignature);
-      std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      if (hasArgs) throw std::runtime_error("Invalid function signature.");
-
       std::string functStr = funcSignature + "()";
-
-      const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
-        {"view", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
+      switch (methodMutability) {
+        case FunctionTypes::View: {
+          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> Bytes {
             using ReturnType = decltype((instance->*memFunc)());
-            if constexpr (Utils::isRangedUint<ReturnType, 256>::value){
-              return BaseTypes{static_cast<uint256_t>((instance->*memFunc)())};
-            } else if constexpr (Utils::isRangedInt<ReturnType, 256>::value){
-              return BaseTypes{static_cast<int256_t>((instance->*memFunc)())};
-            } else {
-              return BaseTypes{(instance->*memFunc)()};
-            }
+            return ABI::Encoder::encodeData<ReturnType>((instance->*memFunc)());
           });
-        }},
-        {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
-            using ReturnType = decltype((instance->*memFunc)());
-            if constexpr (Utils::isRangedUint<ReturnType, 256>::value){
-              return BaseTypes{static_cast<uint256_t>((instance->*memFunc)())};
-            } else if constexpr (Utils::isRangedInt<ReturnType, 256>::value){
-              return BaseTypes{static_cast<int256_t>((instance->*memFunc)())};
-            } else {
-              return BaseTypes{(instance->*memFunc)()};
-            }
+          break;
+        }
+        case FunctionTypes::NonPayable: {
+          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
+            (instance->*memFunc)();
+            return;
           });
-        }},
-        {"payable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
-            using ReturnType = decltype((instance->*memFunc)());
-            if constexpr (Utils::isRangedUint<ReturnType, 256>::value){
-              return BaseTypes{static_cast<uint256_t>((instance->*memFunc)())};
-            } else if constexpr (Utils::isRangedInt<ReturnType, 256>::value){
-              return BaseTypes{static_cast<int256_t>((instance->*memFunc)())};
-            } else {
-              return BaseTypes{(instance->*memFunc)()};
-            }
+          break;
+        }
+        case FunctionTypes::Payable: {
+          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
+            (instance->*memFunc)();
+            return;
           });
-        }}
-      };
-
-      auto actionIt = mutabilityActions.find(methodMutability);
-      if (actionIt != mutabilityActions.end()) {
-        actionIt->second();
-      } else {
-        throw std::runtime_error("Invalid function signature.");
+          break;
+        }
+        default: {
+          throw std::runtime_error("Invalid function signature.");
+        }
       }
     }
 
@@ -176,164 +113,73 @@ class DynamicContract : public BaseContract {
      * Template for registering a non-const member function with no arguments.
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
+     * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename T> void registerMemberFunction(
-      const std::string& funcSignature, R(T::*memFunc)(), T* instance
+      const std::string& funcSignature, R(T::*memFunc)(), const FunctionTypes& methodMutability, T* instance
     ) {
-      bool hasArgs = ContractReflectionInterface::methodHasArguments<decltype(*instance)>(funcSignature);
-      std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      if (hasArgs) throw std::runtime_error("Invalid function signature.");
-
       std::string functStr = funcSignature + "()";
-
-      const std::unordered_map<std::string, std::function<void()>> mutabilityActions = {
-        {"view", []() { throw std::runtime_error("View must be const because it does not modify the state."); }},
-        {"nonpayable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
-             return RegisterHelper<R, T>::createReturnType(instance, memFunc);
-          });
-        }},
-        {"payable", [this, functStr, instance, memFunc, funcSignature]() {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> BaseTypes {
-             return RegisterHelper<R, T>::createReturnType(instance, memFunc);
-          });
-        }}
-      };
-
-      auto actionIt = mutabilityActions.find(methodMutability);
-      if (actionIt != mutabilityActions.end()) {
-        actionIt->second();
-      } else {
-        throw std::runtime_error("Invalid function signature.");
-      }
-    }
-
-    /**
-     * Template helper function for calling a non-const member function with no arguments.
-     * @tparam T Type of the class.
-     * @tparam R Return type of the function.
-     * @tparam Args Argument types of the function.
-     * @tparam Is Indices of the arguments.
-     * @param instance Pointer to the instance of the class.
-     * @param memFunc Pointer to the member function.
-     * @param dataVec Vector of arguments.
-     * @return Return value of the function.
-     */
-    template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(
-      T* instance, R(T::*memFunc)(Args...), const std::vector<std::any>& dataVec, std::index_sequence<Is...>
-    ) -> std::conditional_t<std::is_void<R>::value, BaseTypes, R> {
-      if (sizeof...(Args) > dataVec.size()) {
-        throw std::runtime_error(
-          "Not enough arguments provided for function. Expected: " +
-          std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size())
-        );
-      }
-
-      try {
-        if constexpr (!std::is_void<R>::value) {
-          // If R is not void, just return the result as before
-          return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
-        } else {
-          // If R is void, perform the function call but then return an empty variant
-          (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
-          return BaseTypes{};
+      switch (methodMutability) {
+        case FunctionTypes::View: {
+          throw std::runtime_error("View must be const because it does not modify the state.");
         }
-      } catch (const std::bad_any_cast& ex) {
-        std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
-        ((errorMessage += (
-          "\nAttempted to cast to type: " + std::string(typeid(Args).name()) + ", Actual type: " +
-          (dataVec[Is].has_value() ? std::string(dataVec[Is].type().name()) : "Empty any")
-        )), ...);
-        throw std::runtime_error(errorMessage);
-      }
-    }
-
-    /**
-     * Template helper function for calling a const member function with no arguments.
-     * @tparam T Type of the class.
-     * @tparam R Return type of the function.
-     * @tparam Args Argument types of the function.
-     * @tparam Is Index sequence for the arguments.
-     * @param instance Pointer to the instance of the class.
-     * @param memFunc Pointer to the member function.
-     * @param dataVec Vector of anys containing the arguments.
-     * @return The return value of the function.
-     */
-    template <typename T, typename R, typename... Args, std::size_t... Is> auto tryCallFuncWithTuple(
-      T* instance, R(T::*memFunc)(Args...) const, const std::vector<std::any>& dataVec, std::index_sequence<Is...>
-    ) {
-        if (sizeof...(Args) != dataVec.size()) throw std::runtime_error(
-          "Not enough arguments provided for function. Expected: " +
-          std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(dataVec.size())
-        );
-        try {
-          return (instance->*memFunc)(std::any_cast<Args>(dataVec[Is])...);
-        } catch (const std::bad_any_cast& ex) {
-          std::string errorMessage = "Mismatched argument types. Attempted casting failed with: ";
-          ((errorMessage += (
-            "\nAttempted to cast to type: " + std::string(typeid(Args).name()) + ", Actual type: " +
-            (dataVec[Is].has_value() ? std::string(dataVec[Is].type().name()) : "Empty any")
-          )), ...);
-          throw std::runtime_error(errorMessage);
+        case FunctionTypes::NonPayable: {
+          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
+            (instance->*memFunc)();
+            return;
+          });
+          break;
         }
+        case FunctionTypes::Payable: {
+          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
+            (instance->*memFunc)();
+            return;
+          });
+          break;
+        }
+        default: {
+          throw std::runtime_error("Invalid function signature.");
+        }
+      }
     }
 
     /**
      * Template for registering a non-const member function with arguments.
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
+     * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename... Args, typename T> void registerMemberFunction(
-      const std::string& funcSignature, R(T::*memFunc)(Args...), T* instance
+      const std::string& funcSignature, R(T::*memFunc)(Args...), const FunctionTypes& methodMutability, T* instance
     ) {
-      std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString<decltype(*instance)>(funcSignature);
-      std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      std::ostringstream fullSignatureStream;
-      fullSignatureStream << funcSignature << "(";
-      if (!args.empty()) {
-        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(fullSignatureStream, ","));
-        fullSignatureStream << args.back();
-      }
-      fullSignatureStream << ")";
-
-      std::string fullSignature = fullSignatureStream.str();
+      Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
 
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
-        std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
-        if (types.size() != sizeof...(Args)) throw std::runtime_error(
-          "Mismatched argument types in function " + funcSignature + ". Expected: " +
-          std::to_string(sizeof...(Args)) + ", Actual: " + std::to_string(types.size())
-        );
-        ABI::Decoder decoder(types, std::get<6>(callInfo));
-        std::vector<std::any> dataVector;
-
-        for (size_t i = 0; i < types.size(); i++) {
-          if (ABI::castUintFunctions.count(types[i]) > 0) {
-            uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-            dataVector.push_back(ABI::castUintFunctions[types[i]](value));
-          }
-          else if (ABI::castIntFunctions.count(types[i]) > 0) {
-            int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
-            dataVector.push_back(ABI::castIntFunctions[types[i]](value));
-          }
-           else {
-            dataVector.push_back(decoder.getDataDispatch(i, types[i]));
-          }
-        }
-        auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
-        return BaseTypes(result);
+        using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(std::get<6>(callInfo));
+        std::apply([instance, memFunc](auto&&... args) {
+            (instance->*memFunc)(std::forward<decltype(args)>(args)...);
+        }, decodedData);
       };
 
-      if (methodMutability == "view") {
-        throw std::runtime_error("View must be const because it does not modify the state.");
-      } else if (methodMutability == "nonpayable") {
-        this->registerFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
-      } else if (methodMutability == "payable") {
-        this->registerPayableFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
-      } else {
-        throw std::runtime_error("Invalid function signature.");
+
+      switch (methodMutability) {
+        case (FunctionTypes::View): {
+          throw std::runtime_error("View must be const because it does not modify the state.");
+        }
+        case (FunctionTypes::NonPayable): {
+          this->registerFunction(functor, registrationFunc);
+          break;
+        }
+        case (FunctionTypes::Payable): {
+          this->registerPayableFunction(functor, registrationFunc);
+          break;
+        }
+        default: {
+          throw std::runtime_error("Invalid function signature.");
+        }
       }
     }
 
@@ -341,52 +187,37 @@ class DynamicContract : public BaseContract {
      * Template for registering a const member function with arguments.
      * @param funcSignature Solidity function signature.
      * @param memFunc Pointer to the member function.
+     * @param methodMutability The mutability of the function.
      * @param instance Pointer to the instance of the class.
      */
     template <typename R, typename... Args, typename T> void registerMemberFunction(
-      const std::string& funcSignature, R(T::*memFunc)(Args...) const, T* instance
+      const std::string& funcSignature, R(T::*memFunc)(Args...) const, const FunctionTypes& methodMutability, T* instance
     ) {
-      std::vector<std::string> args = ContractReflectionInterface::getMethodArgumentsTypesString<decltype(*instance)>(funcSignature);
-      std::string methodMutability = ContractReflectionInterface::getMethodMutability<decltype(*instance)>(funcSignature);
-      std::ostringstream fullSignatureStream;
-      fullSignatureStream << funcSignature << "(";
-      if (!args.empty()) {
-        std::copy(args.begin(), args.end() - 1, std::ostream_iterator<std::string>(fullSignatureStream, ","));
-        fullSignatureStream << args.back();
-      }
-      fullSignatureStream << ")";
+      Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
 
-      std::string fullSignature = fullSignatureStream.str();
-
-      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> BaseTypes {
-        std::vector<ABI::Types> types = ContractReflectionInterface::getMethodArgumentsTypesABI<decltype(*instance)>(funcSignature);
-        ABI::Decoder decoder(types, std::get<6>(callInfo));
-        std::vector<std::any> dataVector;
-      for (size_t i = 0; i < types.size(); i++) {
-        if (ABI::castUintFunctions.count(types[i]) > 0) {
-          uint256_t value = std::any_cast<uint256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castUintFunctions[types[i]](value));
-        }
-        else if (ABI::castIntFunctions.count(types[i]) > 0) {
-          int256_t value = std::any_cast<int256_t>(decoder.getDataDispatch(i, types[i]));
-          dataVector.push_back(ABI::castIntFunctions[types[i]](value));
-        }
-        else {
-          dataVector.push_back(decoder.getDataDispatch(i, types[i]));
-        }
-      }
-        auto result = tryCallFuncWithTuple(instance, memFunc, dataVector, std::index_sequence_for<Args...>());
-        return BaseTypes(result);
+      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> Bytes {
+        using ReturnType = decltype((instance->*memFunc)(std::declval<Args>()...));
+        using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(std::get<6>(callInfo));
+        // Use std::apply to call the member function and encode its return value
+        return std::apply([instance, memFunc](Args... args) -> Bytes {
+            // Call the member function and return its encoded result
+            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+        }, decodedData);
       };
 
-      if (methodMutability == "view") {
-        this->registerViewFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
-      } else if (methodMutability == "nonpayable") {
-        this->registerFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
-      } else if (methodMutability == "payable") {
-        this->registerPayableFunction(Utils::sha3(Utils::create_view_span(fullSignature)).view_const(0, 4), registrationFunc);
-      } else {
-        throw std::runtime_error("Invalid function signature.");
+      switch (methodMutability) {
+        case (FunctionTypes::View): {
+          this->registerViewFunction(functor, registrationFunc);
+          break;
+        }
+        case (FunctionTypes::NonPayable): {
+          this->registerFunction(functor, registrationFunc);
+        }
+        case (FunctionTypes::Payable): {
+          this->registerPayableFunction(functor, registrationFunc);
+          break;
+        }
       }
     }
 
@@ -397,7 +228,7 @@ class DynamicContract : public BaseContract {
      */
     void registerPayableFunction(
     const Functor& functor,
-          std::function<BaseTypes(const ethCallInfo& tx)> f) {
+          std::function<void(const ethCallInfo& tx)> f) {
     payableFunctions_[functor] = f;
   }
 
@@ -407,7 +238,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerViewFunction(
-      const Functor& functor, std::function<BaseTypes(const ethCallInfo& str)> f
+      const Functor& functor, std::function<Bytes(const ethCallInfo& str)> f
     ) {
       viewFunctions_[functor] = f;
     }
@@ -486,13 +317,7 @@ class DynamicContract : public BaseContract {
         Functor funcName = std::get<5>(data);
         auto func = this->viewFunctions_.find(funcName);
         if (func == this->viewFunctions_.end()) throw std::runtime_error("Functor not found");
-        BaseTypes result = func->second(data);
-        if (std::holds_alternative<BytesEncoded>(result)) {
-          return std::get<BytesEncoded>(result).data;
-        } else {
-          ABI::Encoder::EncVar resultVec {result};
-          return ABI::Encoder(resultVec).getData();
-        }
+        return func->second(data);
       } catch (std::exception& e) {
         throw std::runtime_error(e.what());
       }
@@ -682,8 +507,13 @@ class DynamicContract : public BaseContract {
     template<typename TContract, typename... Args>
     Address callCreateContract(const uint256_t &gas, const uint256_t &gasPrice, const uint256_t &value, Args&&... args) {
         Utils::safePrint("CallCreateContract being called...");
-        ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
-        ABI::Encoder encoder(vars);
+        Bytes encoder;
+        if constexpr (sizeof...(Args) > 0) {
+          encoder = ABI::Encoder::encodeData(std::forward<Args>(args)...);
+        }
+        else {
+          encoder = Bytes(32, 0);
+        }
         return this->interface_.callCreateContract<TContract>(this->getOrigin(), this->getContractAddress(), gas, gasPrice, value, std::move(encoder));
     }
 

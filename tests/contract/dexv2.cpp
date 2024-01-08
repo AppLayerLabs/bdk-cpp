@@ -15,6 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/options.h"
 #include "../../src/core/rdpos.h"
 #include "../../src/core/state.h"
+#include <utility>
 
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
@@ -51,11 +52,10 @@ TxBlock createNewTransaction(const PrivKey& privKey,
                              const std::unique_ptr<Options>& options,
                              const Bytes& functor,
                              Args&&... args) {
-  ABI::Encoder::EncVar vars = {std::forward<Args>(args)...};
-  ABI::Encoder encoder(vars);
+  Bytes encoder = ABI::Encoder::encodeData(std::forward<Args>(args)...);
 
   Bytes txData = functor;
-  Utils::appendBytes(txData, encoder.getData());
+  Utils::appendBytes(txData, encoder);
 
   Address from = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
 

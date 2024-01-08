@@ -37,7 +37,7 @@ void ThrowTestA::setNumA(const uint8_t& valA,
 
 void ThrowTestA::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("getNumA", &ThrowTestA::getNumA, this);
-  this->registerMemberFunction("setNumA", &ThrowTestA::setNumA, this);
+  this->registerMemberFunction("getNumA", &ThrowTestA::getNumA, FunctionTypes::View, this);
+  this->registerMemberFunction("setNumA", &ThrowTestA::setNumA, FunctionTypes::NonPayable, this);
 }
 
