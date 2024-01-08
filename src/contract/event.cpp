@@ -109,10 +109,10 @@ std::vector<Event> EventManager::getEvents(
   }
 
   // Check relevant keys in the database
-  /// TODO: Uhhh, this is getting **ALL KEYS** from the database, and then filtering them in memory
-  /// Getting all the keys from the database is a very expensive operation, specially on large blockchains
-  /// as you might have millions of events in the database
-  /// We might want to consider using subkeys for this, or at least a better filtering mechanism
+  // TODO: Uhhh, this is getting **ALL KEYS** from the database, and then filtering them in memory
+  // Getting all the keys from the database is a very expensive operation, specially on large blockchains
+  // as you might have millions of events in the database
+  // We might want to consider using subkeys for this, or at least a better filtering mechanism
   for (Bytes key : this->db_->getKeys(DBPrefix::events)) {
     Address add(Utils::create_view_span(key, 0, 20)); // (0, 20) = address, (20, 8) = block height
     uint64_t blockHeight = Utils::bytesToUint64(Utils::create_view_span(key, 20, 8));
@@ -127,9 +127,9 @@ std::vector<Event> EventManager::getEvents(
     if (!topics.empty()) {
       bool hasTopic = true;
       const std::vector<Hash>& eventTopics = e.getTopics();
-      /// event topics should be at least as many as the topics we are looking for
+      // event topics should be at least as many as the topics we are looking for
       if (eventTopics.size() < topics.size()) continue;
-      /// Check if the items within event topics matches the topics we are looking for
+      // Check if the items within event topics matches the topics we are looking for
       for (size_t i = 0; i < topics.size(); ++i) {
         if (topics.at(i) != eventTopics.at(i)) { hasTopic = false; break; }
       }

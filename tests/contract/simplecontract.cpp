@@ -162,7 +162,7 @@ namespace TSimpleContract {
         REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
 
         Event nameEvent = contractManager->getEvents(
-          0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
+          0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("nameChanged(string)")), Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
         ).at(0);
 
         REQUIRE(nameEvent.getName() == "nameChanged");
@@ -176,7 +176,7 @@ namespace TSimpleContract {
         REQUIRE(!nameEvent.isAnonymous());
 
         Event valueEvent = contractManager->getEvents(
-          0, 1, contractAddress, { Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
+          0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("valueChanged(uint256)")), Utils::sha3(Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)).asBytes() }
         ).at(0);
 
         REQUIRE(valueEvent.getName() == "valueChanged");
@@ -186,7 +186,7 @@ namespace TSimpleContract {
         REQUIRE(valueEvent.getBlockIndex() == 0);
         REQUIRE(valueEvent.getAddress() == contractAddress);
         REQUIRE(valueEvent.getData() == Bytes());
-        REQUIRE(valueEvent.getTopics().at(1) == Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)); // at(0) = functor (non-anonymous)
+        REQUIRE(valueEvent.getTopics().at(1) == Utils::sha3(Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)).asBytes()); // at(0) = functor (non-anonymous)
         REQUIRE(!valueEvent.isAnonymous());
       }
 
@@ -216,7 +216,7 @@ namespace TSimpleContract {
 
       // No tx hash here but it was already tested before
       Event nameEvent = contractManager->getEvents(
-        0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
+        0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("nameChanged(string)")), Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
       ).at(0);
 
       REQUIRE(nameEvent.getName() == "nameChanged");
@@ -229,7 +229,7 @@ namespace TSimpleContract {
       REQUIRE(!nameEvent.isAnonymous());
 
       Event valueEvent = contractManager->getEvents(
-        0, 1, contractAddress, { Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
+        0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("valueChanged(uint256)")), Utils::sha3(Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)).asBytes() }
       ).at(0);
 
       REQUIRE(valueEvent.getName() == "valueChanged");
@@ -238,7 +238,7 @@ namespace TSimpleContract {
       REQUIRE(valueEvent.getBlockIndex() == 0);
       REQUIRE(valueEvent.getAddress() == contractAddress);
       REQUIRE(valueEvent.getData() == Bytes());
-      REQUIRE(valueEvent.getTopics().at(1) == Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)); // at(0) = functor (non-anonymous)
+      REQUIRE(valueEvent.getTopics().at(1) == Utils::sha3(Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)).asBytes()); // at(0) = functor (non-anonymous)
       REQUIRE(!valueEvent.isAnonymous());
     }
   }

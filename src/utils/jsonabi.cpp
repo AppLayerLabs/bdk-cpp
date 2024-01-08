@@ -123,26 +123,27 @@ json JsonAbi::parseMethodOutput(const std::vector<std::string>& outputDesc) {
 
 json JsonAbi::methodToJSON(const ABI::MethodDescription& desc) {
   json obj = json::object();
+  obj["inputs"] = JsonAbi::parseMethodInput(desc.inputs);
   obj["name"] = desc.name;
+  obj["outputs"] = JsonAbi::parseMethodOutput(desc.outputs);
   switch (desc.stateMutability) {
     case (FunctionTypes::View): obj["stateMutability"] = "view"; break;
     case (FunctionTypes::NonPayable): obj["stateMutability"] = "nonpayable"; break;
     case (FunctionTypes::Payable): obj["stateMutability"] = "payable"; break;
   }
   obj["type"] = desc.type;
-  obj["inputs"] = JsonAbi::parseMethodInput(desc.inputs);
-  obj["outputs"] = JsonAbi::parseMethodOutput(desc.outputs);
   return obj;
 }
 
 json JsonAbi::eventToJSON(const ABI::EventDescription& desc) {
   json obj = json::object();
+  for (auto& arg : desc.args)
+    obj["inputs"].push_back({
+      {"name", std::get<0>(arg)}, {"type", std::get<1>(arg)}, {"indexed", std::get<2>(arg)}
+    });
   obj["name"] = desc.name;
   obj["type"] = "event";
   obj["anonymous"] = desc.anonymous;
-  for (auto& arg : desc.args) obj["inputs"].push_back({
-    {"name", std::get<0>(arg)}, {"type", std::get<1>(arg)}, {"indexed", std::get<2>(arg)}
-  });
   return obj;
 }
 

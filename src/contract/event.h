@@ -44,7 +44,6 @@ class Event {
       : name_(name), address_(address), anonymous_(anonymous) {
       /// Get the event's signature
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(name);
-      std::cout << "eventSignature: " << eventSignature.hex() << std::endl;
       std::vector<Hash> topics;
       /// For each EventParam in the tuple where Flag is true, we must encode it with ABI::EventEncoder::encodeTopicSignature<T>
       /// Where T is the type of the parameter. and append it to the topics vector
