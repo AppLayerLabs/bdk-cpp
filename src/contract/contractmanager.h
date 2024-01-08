@@ -251,6 +251,18 @@ class ContractManager : BaseContract {
       const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
     );
 
+    /**
+     * Update the ContractGlobals variables
+     * Used by the State (when processing a block) to update the variables.
+     * Also used by the tests.
+     * CM does NOT update the variables by itself.
+     * @param coinbase The coinbase address.
+     * @param blockHash The hash of the block.
+     * @param blockHeight The height of the block.
+     * @param blockTimestamp The timestamp of the block.
+     */
+    void updateContractGlobals(const Address& coinbase, const Hash& blockHash, const uint64_t& blockHeight, const uint64_t& blockTimestamp);
+
     /// ContractManagerInterface is a friend so it can access private members.
     friend class ContractManagerInterface;
 

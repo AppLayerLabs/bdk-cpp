@@ -149,6 +149,7 @@ namespace TSimpleContract {
 
         // Simulating a block so events can have separated keys (block height + tx index + log index).
         Hash randomBlockHash = Hash::random();
+        contractManager->updateContractGlobals(Address(), randomBlockHash, 0, 0);
         contractManager->callContract(setNameTx, randomBlockHash, 0);
         contractManager->callContract(setValueTx, randomBlockHash, 1);
 

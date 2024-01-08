@@ -44,8 +44,9 @@ class ContractGlobals {
     /// Getter for `getBlockTimestamp_`.
     static const uint64_t& getBlockTimestamp() { return ContractGlobals::blockTimestamp_; }
 
-    /// State is a friend as it can update private global vars (e.g. before ethCall() with a TxBlock).
-    friend class State;
+    /// ContractManager is a friend as it can update private global vars
+    /// (e.g. before ethCall() with a TxBlock, State calls CM->updateContractGlobals(...)).
+    friend class ContractManager;
 };
 
 /// Class that maintains local variables for contracts.

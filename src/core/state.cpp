@@ -53,6 +53,8 @@ contractManager_(std::make_unique<ContractManager>(this, db, rdpos, options))
 
     this->accounts_.insert({Address(dbEntry.key), Account(std::move(balance), std::move(nonce))});
   }
+  auto latestBlock = this->storage_->latest();
+  this->contractManager_->updateContractGlobals(Secp256k1::toAddress(latestBlock->getValidatorPubKey()), latestBlock->hash(), latestBlock->getNHeight(), latestBlock->getTimestamp());
 }
 
 State::~State() {
@@ -267,10 +269,8 @@ void State::processNextBlock(Block&& block) {
   std::unique_lock lock(this->stateMutex_);
   
   // Update contract globals based on (now) latest block
-  Hash blockHash = block.hash();
-  ContractGlobals::blockHash_ = blockHash;
-  ContractGlobals::blockHeight_++;
-  ContractGlobals::blockTimestamp_ = block.getTimestamp();
+  const Hash blockHash = block.hash();
+  this->contractManager_->updateContractGlobals(Secp256k1::toAddress(block.getValidatorPubKey()), blockHash, block.getNHeight(), block.getTimestamp());
 
   // Process transactions of the block within the current state
   uint64_t txIndex = 0;
