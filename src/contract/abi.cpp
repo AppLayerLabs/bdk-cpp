@@ -73,7 +73,7 @@ Bytes ABI::EventEncoder::encode(const bool& b) {
 }
 
 Bytes ABI::EventEncoder::encode(const Bytes& bytes) {
-  /// Almost the sabe as ABI::Encoder::encode, but without the padding.
+  /// Almost the same as ABI::Encoder::encode, but without the padding.
   int pad = 0;
   do { pad += 32; } while (pad < bytes.size());
   return Utils::padRightBytes(bytes, pad);
