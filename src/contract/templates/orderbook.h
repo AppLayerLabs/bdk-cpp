@@ -8,8 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef ORDERBOOK_H
 #define ORDERBOOK_H
 
-#include <algorithm>
-#include <chrono>
 #include <memory>
 #include <string>
 #include <utility>
@@ -58,7 +56,7 @@ using StopOrder = std::tuple<const uint256_t, const uint64_t, const Address, uin
  * @param rhs The right hand side of the comparison.
  * @return True if lhs < rhs, false otherwise.
  */
-bool operator<(const StopOrder& lhs, const StopOrder& rhs) {
+inline bool operator<(const StopOrder& lhs, const StopOrder& rhs) {
   const auto& lhs_stopLimit = std::get<5>(lhs);
   const auto& rhs_stopLimit = std::get<5>(rhs);
   const auto& lhs_timestamp = std::get<1>(lhs);
@@ -73,7 +71,7 @@ bool operator<(const StopOrder& lhs, const StopOrder& rhs) {
  * @param rhs The right hand side of the comparison.
  * @return True if lhs > rhs, false otherwise.
  */
-bool operator>(const StopOrder& lhs, const StopOrder& rhs) {
+inline bool operator>(const StopOrder& lhs, const StopOrder& rhs) {
   const auto& lhs_stopLimit = std::get<5>(lhs);
   const auto& rhs_stopLimit = std::get<5>(rhs);
   const auto& lhs_timestamp = std::get<1>(lhs);
@@ -98,7 +96,7 @@ using Order = std::tuple<const uint256_t, const uint64_t, const Address, uint256
  * @param rhs The right hand side of the comparison.
  * @return True if lhs < rhs, false otherwise.
  */
-bool operator<(const Order& lhs, const Order& rhs) {
+inline bool operator<(const Order& lhs, const Order& rhs) {
   const auto& lhs_assetPrice = std::get<4>(lhs);
   const auto& rhs_assetPrice = std::get<4>(rhs);
   const auto& lhs_timestamp = std::get<1>(lhs);
@@ -113,7 +111,7 @@ bool operator<(const Order& lhs, const Order& rhs) {
  * @param rhs The right hand side of the comparison.
  * @return True if lhs > rhs, false otherwise.
  */
-bool operator>(const Order& lhs, const Order& rhs) {
+inline bool operator>(const Order& lhs, const Order& rhs) {
   const auto& lhs_assetPrice = std::get<4>(lhs);
   const auto& rhs_assetPrice = std::get<4>(rhs);
   const auto& lhs_timestamp = std::get<1>(lhs);
@@ -122,7 +120,7 @@ bool operator>(const Order& lhs, const Order& rhs) {
          (lhs_assetPrice == rhs_assetPrice && lhs_timestamp < rhs_timestamp);
 }
 
-Order orderFromStopOrder(const StopOrder& stopOrder, const uint64_t& timestamp) {
+inline Order orderFromStopOrder(const StopOrder& stopOrder, const uint64_t& timestamp) {
   return std::make_tuple(
     std::get<0>(stopOrder), timestamp, std::get<2>(stopOrder),
     std::get<3>(stopOrder), std::get<4>(stopOrder)
@@ -243,8 +241,8 @@ class OrderBook : public DynamicContract {
      * @param db The database to use.
      */
     OrderBook(
-      const Address addA, const std::string& tickerA,
-      const Address addB, const std::string& tickerB,
+      const Address& addA, const std::string& tickerA,
+      const Address& addB, const std::string& tickerB,
       ContractManagerInterface &interface, const Address& address,
       const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db
     );
@@ -385,6 +383,25 @@ class OrderBook : public DynamicContract {
      */
     void cancelMarketSellOrder(const uint256_t& id);
 
+    /**
+     * Getter for all bids.
+     * @return A vector with all bids.
+     */
+    std::vector<Order> getBids() const;
+
+    /**
+     * Getter for all asks.
+     * @return A vector with all asks.
+     */
+    std::vector<Order> getAsks() const;
+
+    /**
+     * Getter for all users orders
+     * @param user The user to get orders from.
+     * @return A tuple with a vector of bids, a vector of asks and a vector of stops.
+     */
+    std::tuple<std::vector<Order>, std::vector<Order>, std::vector<StopOrder>> getUserOrders(const Address& user) const;
+
     /// Register the contract structure.
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
@@ -417,7 +434,10 @@ class OrderBook : public DynamicContract {
         std::make_tuple("cancelLimitBidOrder", &OrderBook::cancelLimitBidOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
         std::make_tuple("cancelLimitAskOrder", &OrderBook::cancelLimitAskOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
         std::make_tuple("cancelMarketBuyOrder", &OrderBook::cancelMarketBuyOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
-        std::make_tuple("cancelMarketSellOrder", &OrderBook::cancelMarketSellOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"})
+        std::make_tuple("cancelMarketSellOrder", &OrderBook::cancelMarketSellOrder, FunctionTypes::NonPayable, std::vector<std::string>{"id"}),
+        std::make_tuple("getBids", &OrderBook::getBids, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getAsks", &OrderBook::getAsks, FunctionTypes::View, std::vector<std::string>{}),
+        std::make_tuple("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, std::vector<std::string>{"user"})
       );
     }
 };

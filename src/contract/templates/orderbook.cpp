@@ -8,8 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "orderbook.h"
 
 OrderBook::OrderBook(
-  const Address addA, const std::string& tickerA,
-  const Address addB, const std::string& tickerB,
+  const Address& addA, const std::string& tickerA,
+  const Address& addB, const std::string& tickerB,
   ContractManagerInterface &interface, const Address& address,
   const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db
 ) : DynamicContract(interface, "OrderBook", address, creator, chainId, db), nextOrderID_(this),
@@ -772,6 +772,42 @@ uint64_t OrderBook::getCurrentTimestamp() const {
   ).count();
 }
 
+std::vector<Order> OrderBook::getBids() const {
+  std::vector<Order> ret;
+  for (const auto& bid : this->bids_) {
+    ret.push_back(bid);
+  }
+  return ret;
+}
+
+std::vector<Order> OrderBook::getAsks() const {
+  std::vector<Order> ret;
+  for (const auto& ask : this->asks_) {
+    ret.push_back(ask);
+  }
+  return ret;
+}
+
+std::tuple<std::vector<Order>, std::vector<Order>, std::vector<StopOrder>> OrderBook::getUserOrders(const Address& user) const {
+  std::tuple<std::vector<Order>, std::vector<Order>, std::vector<StopOrder>> ret;
+  auto& bids = std::get<0>(ret);
+  auto& asks = std::get<1>(ret);
+  auto& stops = std::get<2>(ret);
+  for (const auto& ask : this->asks_) {
+    const auto& askAddress = std::get<2>(ask);
+    if (askAddress == user) asks.push_back(ask);
+  }
+  for (const auto& bid : this->bids_) {
+    const auto& bidAddress = std::get<2>(bid);
+    if (bidAddress == user) bids.push_back(bid);
+  }
+  for (const auto& stop : this->stops_) {
+    const auto& stopAddress = std::get<2>(stop);
+    if (stopAddress == user) stops.push_back(stop);
+  }
+  return ret;
+}
+
 void OrderBook::registerContractFunctions() {
   registerContract();
   this->registerMemberFunction("getNextOrderID", &OrderBook::getNextOrderID, FunctionTypes::View, this);
@@ -796,5 +832,8 @@ void OrderBook::registerContractFunctions() {
   this->registerMemberFunction("cancelLimitAskOrder", &OrderBook::cancelLimitAskOrder, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("cancelMarketBuyOrder", &OrderBook::cancelMarketBuyOrder, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("cancelMarketSellOrder", &OrderBook::cancelMarketSellOrder, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("getBids", &OrderBook::getBids, FunctionTypes::View, this);
+  this->registerMemberFunction("getAsks", &OrderBook::getAsks, FunctionTypes::View, this);
+  this->registerMemberFunction("getUserOrders", &OrderBook::getUserOrders, FunctionTypes::View, this);
 }
 
