@@ -151,7 +151,7 @@ class Event {
  */
 class EventManager {
   private:
-    // TODO: keep up to 1000 events in memory, dump older ones to DB (maybe this should be a deque?)
+    // TODO: keep up to 1000 events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
     std::vector<Event> events_;             ///< List of all emitted events in memory.
     std::vector<Event> tempEvents_;         ///< List of temporary events waiting to be commited or reverted.
     const std::unique_ptr<DB>& db_;         ///< Reference pointer to the database.

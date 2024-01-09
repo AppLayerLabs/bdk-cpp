@@ -62,10 +62,11 @@ EventManager::~EventManager() {
   {
     std::unique_lock<std::shared_mutex> lock(this->lock_);
     for (auto it = this->events_.begin(); it != this->events_.end(); it++) {
-      // Build the key (address + block height + tx index + log index)
-      Bytes key = it->getAddress().asBytes();
-      key.reserve(key.size() + 8 + 8 + 8);
+      // Build the key (block height + address + tx index + log index)
+      Bytes key;
+      key.reserve(8 + key.size() + 8 + 8);
       Utils::appendBytes(key, Utils::uint64ToBytes(it->getBlockIndex()));
+      Utils::appendBytes(key, it->getAddress().asBytes());
       Utils::appendBytes(key, Utils::uint64ToBytes(it->getTxIndex()));
       Utils::appendBytes(key, Utils::uint64ToBytes(it->getLogIndex()));
       // Serialize the value to a JSON string and insert into the batch
@@ -83,11 +84,11 @@ std::vector<Event> EventManager::getEvents(
   std::vector<Event> ret;
   std::vector<Bytes> dbKeys;
 
-  // Do not allow event grepping if difference is greater than this->blockCap_
+  // Throw if block height diff is greater than the block cap
   uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
-  if (heightDiff > this->blockCap_) {
-    throw std::runtime_error("Block range too large for event grepping!");
-  }
+  if (heightDiff > this->blockCap_) throw std::runtime_error(
+    "Block range too large for event querying! Max allowed is " + this->blockCap_
+  );
 
   // Get events in memory first
   for (const Event& e : this->events_) {
@@ -95,10 +96,8 @@ std::vector<Event> EventManager::getEvents(
       if (!topics.empty()) {
         bool hasTopic = true;
         const std::vector<Hash>& eventTopics = e.getTopics();
-        /// event topics should be at least as many as the topics we are looking for
-        if (eventTopics.size() < topics.size()) continue;
-        /// Check if the items within event topics matches the topics we are looking for
-        for (size_t i = 0; i < topics.size(); ++i) {
+        if (eventTopics.size() < topics.size()) continue; // Skip if topic quantity is not the exact same
+        for (size_t i = 0; i < topics.size(); i++) {  // Check if all topics actually match
           if (topics.at(i) != eventTopics.at(i)) { hasTopic = false; break; }
         }
         if (!hasTopic) continue;
@@ -108,16 +107,22 @@ std::vector<Event> EventManager::getEvents(
     }
   }
 
-  // Check relevant keys in the database
-  // TODO: Uhhh, this is getting **ALL KEYS** from the database, and then filtering them in memory
-  // Getting all the keys from the database is a very expensive operation, specially on large blockchains
-  // as you might have millions of events in the database
-  // We might want to consider using subkeys for this, or at least a better filtering mechanism
-  for (Bytes key : this->db_->getKeys(DBPrefix::events)) {
-    Address add(Utils::create_view_span(key, 0, 20)); // (0, 20) = address, (20, 8) = block height
-    uint64_t blockHeight = Utils::bytesToUint64(Utils::create_view_span(key, 20, 8));
+  // Check relevant keys in the database, limiting the query to the specified block range
+  Bytes fromBytes;
+  Bytes toBytes;
+  Utils::appendBytes(fromBytes, Utils::uint64ToBytes(fromBlock));
+  Utils::appendBytes(toBytes, Utils::uint64ToBytes(toBlock));
+  if (address != Address()) {
+    Utils::appendBytes(fromBytes, address.asBytes());
+    Utils::appendBytes(toBytes, address.asBytes());
+  }
+  for (Bytes key : this->db_->getKeys(DBPrefix::events, fromBytes, toBytes)) {
+    // (0, 8) = block height, (8, 20) = address
+    uint64_t blockHeight = Utils::bytesToUint64(Utils::create_view_span(key, 0, 8));
+    Address add(Utils::create_view_span(key, 8, 20));
     if ((fromBlock <= blockHeight <= toBlock) && (address != Address() || address == add)) {
       dbKeys.push_back(key);
+      if (ret.size() + dbKeys.size() >= this->logCap_) break; // Stop checking when we know we'll reach log cap
     }
   }
 
@@ -127,10 +132,8 @@ std::vector<Event> EventManager::getEvents(
     if (!topics.empty()) {
       bool hasTopic = true;
       const std::vector<Hash>& eventTopics = e.getTopics();
-      // event topics should be at least as many as the topics we are looking for
-      if (eventTopics.size() < topics.size()) continue;
-      // Check if the items within event topics matches the topics we are looking for
-      for (size_t i = 0; i < topics.size(); ++i) {
+      if (eventTopics.size() < topics.size()) continue; // Skip if topic quantity is not the exact same
+      for (size_t i = 0; i < topics.size(); i++) {  // Check if all topics actually match
         if (topics.at(i) != eventTopics.at(i)) { hasTopic = false; break; }
       }
       if (!hasTopic) continue;

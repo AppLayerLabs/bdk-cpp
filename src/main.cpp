@@ -9,7 +9,6 @@ See the LICENSE.txt file in the project root for more information.
 #include <filesystem>
 
 #include "src/core/blockchain.h"
-#include "src/contract/event.h"
 
 std::unique_ptr<Blockchain> blockchain = nullptr;
 
@@ -26,7 +25,7 @@ int main() {
   Utils::logToCout = true;
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
   blockchain = std::make_unique<Blockchain>(blockchainPath);
-  /// Start the blockchain syncing engine.
+  // Start the blockchain syncing engine.
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
   blockchain->start();

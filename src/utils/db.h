@@ -155,6 +155,7 @@ class DB {
     rocksdb::DB* db_;              ///< Pointer to the database object itself.
     rocksdb::Options opts_;        ///< Struct with options for managing the database.
     mutable std::mutex batchLock_; ///< Mutex for managing read/write access to batch operations.
+    // TODO: add a custom comparator for more granular key comparisons (e.g. for events)
 
   public:
     /**
@@ -288,19 +289,21 @@ class DB {
 
     /**
      * Get all keys from a given prefix.
-     * @param pfx (optional) The prefix to search keys from. Defaults to an empty string.
+     * Ranges can be used to mitigate very expensive operations
+     * (e.g. a query can return millions of entries).
+     * @param pfx The prefix to search keys from.
+     * @param start (optional) The first key to start searching from.
+     * @param end (optional) The last key to end searching at.
      * @return A list of found keys, WITHOUT their prefixes.
      */
-    std::vector<Bytes> getKeys(const Bytes& pfx = {});
+    std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {});
 
     /**
      * Create a Bytes container from a string.
      * @param str The string to convert.
      * @return The Bytes container.
      */
-    inline static Bytes keyFromStr(const std::string str) {
-      return Bytes(str.begin(), str.end());
-    }
+    inline static Bytes keyFromStr(const std::string str) { return Bytes(str.begin(), str.end()); }
 };
 
 #endif // DB_H

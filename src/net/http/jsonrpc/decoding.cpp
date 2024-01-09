@@ -458,7 +458,6 @@ namespace JsonRPC {
               throw std::runtime_error("Invalid fromBlock hex");
             }
           }
-
           if (logsObject.contains("toBlock")) {
             std::string toBlockHex = logsObject["toBlock"].get<std::string>();
             if (toBlockHex == "latest") {

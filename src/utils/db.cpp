@@ -65,16 +65,19 @@ std::vector<DBEntry> DB::getBatch(
   return ret;
 }
 
-std::vector<Bytes> DB::getKeys(const Bytes& pfx) {
+std::vector<Bytes> DB::getKeys(const Bytes& pfx, const Bytes& start, const Bytes& end) {
   std::vector<Bytes> ret;
-  rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
-  rocksdb::Slice pfxSlice(reinterpret_cast<const char*>(pfx.data()), pfx.size());
-  for (it->Seek(pfxSlice); it->Valid(); it->Next()) {
-    if (it->key().starts_with(pfxSlice)) {
-      auto keySlice = it->key();
-      keySlice.remove_prefix(pfx.size());
-      ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()));
-    }
+  rocksdb::Iterator* it = this->db_->NewIterator(rocksdb::ReadOptions());
+  Bytes startBytes = pfx;
+  Bytes endBytes = pfx;
+  if (!start.empty()) Utils::appendBytes(startBytes, start);
+  if (!end.empty()) Utils::appendBytes(endBytes, end);
+  rocksdb::Slice startSlice(reinterpret_cast<const char*>(startBytes.data()), startBytes.size());
+  rocksdb::Slice endSlice(reinterpret_cast<const char*>(endBytes.data()), endBytes.size());
+  for (it->Seek(startSlice); it->Valid() && this->opts_.comparator->Compare(it->key(), endSlice) <= 0; it->Next()) {
+    auto keySlice = it->key();
+    keySlice.remove_prefix(pfx.size());
+    ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()));
   }
   delete it;
   return ret;
