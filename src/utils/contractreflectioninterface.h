@@ -257,7 +257,7 @@ namespace ContractReflectionInterface {
    * @param methods The methods to register.
    */
   template <typename TContract, typename... Args, typename... Methods>
-  void inline registerContract(const std::vector<std::string>& ctorArgs, Methods&&... methods) {
+  void inline registerContractMethods(const std::vector<std::string>& ctorArgs, Methods&&... methods) {
     if (isContractFunctionsRegistered<TContract>()) return; // Skip if contract is already registered
     ctorArgNamesMap[Utils::getRealTypeName<TContract>()] = ctorArgs; // Store ctor arg names in ctorArgNamesMap
     // Register the methods

@@ -108,7 +108,7 @@ class DEXV2Factory : public DynamicContract {
 
     /// Register the contract functions to the ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContract<
+      ContractReflectionInterface::registerContractMethods<
         DEXV2Factory, const Address&,  ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
         const std::unique_ptr<DB> &
