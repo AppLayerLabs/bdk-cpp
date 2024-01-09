@@ -15,6 +15,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeuint.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safeunorderedmap.h
   ${CMAKE_SOURCE_DIR}/src/contract/variables/safevector.h
+  ${CMAKE_SOURCE_DIR}/src/contract/variables/safetuple.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc721.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20wrapper.h
