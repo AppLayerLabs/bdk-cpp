@@ -317,6 +317,8 @@ namespace ContractReflectionInterface {
     // Derive from Contract::ConstructorArguments to get the constructor
     auto ctorArgs = ABI::FunctorEncoder::listArgumentTypesVFromTuple<typename Contract::ConstructorArguments>();
     auto ctorArgsNames = ctorArgNamesMap[Utils::getRealTypeName<Contract>()];
+
+
     if (ctorArgs.size() != ctorArgsNames.size()) throw std::runtime_error(
       "Contract " + Utils::getRealTypeName<Contract>() + " constructor argument names not registered, wanted: " +
       std::to_string(ctorArgs.size()) + " got: " + std::to_string(ctorArgsNames.size())

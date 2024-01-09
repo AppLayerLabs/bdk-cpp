@@ -226,7 +226,7 @@ class OrderBook : public DynamicContract {
 
   public:
     using ConstructorArguments = std::tuple<
-      const Address, const std::string&, const Address, const std::string&
+      const Address&, const std::string&, const Address&, const std::string&
     >;
     /**
      * Constructor from scratch.
@@ -410,8 +410,7 @@ class OrderBook : public DynamicContract {
         const std::unique_ptr<DB>&
       >(
         std::vector<std::string>{
-          "nextOrderID_", "addressAssetA_", "addressAssetB_", "tickerAssetA_", "tickerAssetB_",
-          "spread_", "tickSize_", "lotSize_", "lastPrice_", "precision_", "bids_", "asks_", "stops_"
+          "addA", "addB", "tickerA", "tickerB"
         },
         std::make_tuple("getNextOrderID", &OrderBook::getNextOrderID, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getAddressAssetA", &OrderBook::getAddressAssetA, FunctionTypes::View, std::vector<std::string>{}),

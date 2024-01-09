@@ -16,9 +16,10 @@ See the LICENSE.txt file in the project root for more information.
 #include "templates/throwtestA.h"
 #include "templates/throwtestB.h"
 #include "templates/throwtestC.h"
+#include "templates/orderbook.h"
 
 using ContractTypes = std::tuple<
   ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721,
-  ThrowTestA, ThrowTestB, ThrowTestC
+  ThrowTestA, ThrowTestB, ThrowTestC, OrderBook
 >;
 
