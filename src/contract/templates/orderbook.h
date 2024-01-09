@@ -39,101 +39,95 @@ enum OrderType { MARKET, LIMIT, STOPMARKET, STOPLIMIT };
 /// Enum for identifying order side (bid or ask).
 enum OrderSide { BID, ASK };
 
-/// Struct for a given stop order in the book.
-struct StopOrder {
-  const uint256_t id_;          ///< Sequential unique ID of the order.
-  const uint64_t timestamp_;    ///< The epoch timestamp of the order's creation.
-  const Address owner_;         ///< The address that made the order.
-  uint256_t amountAsset_;       ///< The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
-  const uint256_t assetPrice_;  ///< The unit price of the asset the order has to offer in WEI of tokenB.
-  const uint256_t stopLimit_;   ///< The stop limit price of the order (only for stop limit orders), in WEI.
-  const OrderSide side_;        ///< Whether the order originally is a bid or ask.
-  const OrderType type_;        ///< Whether the order originally is a market or limit.
+/**
+ * Tuple for a given stop order in the book.
+ * 0 - const uint256_t  - id          - Sequential unique ID of the order.
+ * 1 - const uint       - timestamp   - The epoch timestamp of the order's creation.
+ * 2 - const Address    - owner       - The address that made the order.
+ * 3 - uint256_t        - amountAsset - The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
+ * 4 - const uint256_t  - assetPrice  - The unit price of the asset the order has to offer in WEI of tokenB.
+ * 5 - const uint256_t  - stopLimit   - The stop limit price of the order (only for stop limit orders), in WEI.
+ * 6 - const OrderSide  - side        - Whether the order originally is a bid or ask.
+ * 7 - const OrderType  - type        - Whether the order originally is a market or limit.
+ */
+using StopOrder = std::tuple<const uint256_t, const uint64_t, const Address, uint256_t, const uint256_t, const uint256_t, const OrderSide, const OrderType>;
 
-  /**
-   * Constructor.
-   * @param id The order's id.
-   * @param timestamp The order's timestamp.
-   * @param owner The order's owner address.
-   * @param amountAsset The order's amount.
-   * @param assetPrice The order's unit price.
-   * @param stopLimit The order's stop limit.
-   * @param side The order's side (bid or ask).
-   * @param type The order's original type (market or limit).
-   */
-  StopOrder(
-    const uint256_t& id, const uint64_t& timestamp, const Address& owner,
-    const uint256_t& amountAsset, const uint256_t& assetPrice,
-    const uint256_t& stopLimit, const OrderSide& side, const OrderType type
-  ) : id_(id), timestamp_(timestamp), owner_(owner), amountAsset_(amountAsset),
-    assetPrice_(assetPrice), stopLimit_(stopLimit), side_(side), type_(type)
-  {
-    if (type != STOPLIMIT && type != STOPMARKET) {
-      throw std::runtime_error("Invalid order type for stop order.");
-    }
-  }
+/**
+ * Lesser comparison operator.
+ * @param lhs The left hand side of the comparison.
+ * @param rhs The right hand side of the comparison.
+ * @return True if lhs < rhs, false otherwise.
+ */
+bool operator<(const StopOrder& lhs, const StopOrder& rhs) {
+  const auto& lhs_stopLimit = std::get<5>(lhs);
+  const auto& rhs_stopLimit = std::get<5>(rhs);
+  const auto& lhs_timestamp = std::get<1>(lhs);
+  const auto& rhs_timestamp = std::get<1>(rhs);
+  return (lhs_stopLimit < rhs_stopLimit) ||
+        (lhs_stopLimit == rhs_stopLimit && lhs_timestamp < rhs_timestamp);
+}
 
-  /// Lesser comparison operator.
-  bool operator<(const StopOrder& o) const {
-    return (
-      this->stopLimit_ < o.stopLimit_ ||
-      (this->stopLimit_ == o.stopLimit_ && this->timestamp_ < o.timestamp_)
-    );
-  }
+/**
+ * Higher comparison operator.
+ * @param lhs The left hand side of the comparison.
+ * @param rhs The right hand side of the comparison.
+ * @return True if lhs > rhs, false otherwise.
+ */
+bool operator>(const StopOrder& lhs, const StopOrder& rhs) {
+  const auto& lhs_stopLimit = std::get<5>(lhs);
+  const auto& rhs_stopLimit = std::get<5>(rhs);
+  const auto& lhs_timestamp = std::get<1>(lhs);
+  const auto& rhs_timestamp = std::get<1>(rhs);
+  return (lhs_stopLimit > rhs_stopLimit) ||
+        (lhs_stopLimit == rhs_stopLimit && lhs_timestamp < rhs_timestamp);
+}
 
-  /// Higher comparison operator.
-  bool operator>(const StopOrder& o) const {
-    return (
-      this->stopLimit_ > o.stopLimit_ ||
-      (this->stopLimit_ == o.stopLimit_ && this->timestamp_ < o.timestamp_)
-    );
-  }
-};
+/**
+ * Tuple for a given order in the book.
+ * 0 - const uint256_t  - id          - Sequential unique ID of the order.
+ * 1 - const uint       - timestamp   - The epoch timestamp of the order's creation.
+ * 2 - const Address    - owner       - The address that made the order.
+ * 3 - uint256_t        - amountAsset - The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
+ * 4 - const uint256_t  - assetPrice  - The unit price of the asset the order has to offer in WEI of tokenB.
+ */
+using Order = std::tuple<const uint256_t, const uint64_t, const Address, uint256_t, const uint256_t>;
 
-/// Struct for a given order in the book.
-struct Order {
-  const uint256_t id_;          ///< Sequential unique ID of the order.
-  const uint64_t timestamp_;    ///< The epoch timestamp of the order's creation.
-  const Address owner_;         ///< The address that made the order.
-  uint256_t amountAsset_;       ///< The amount of the asset the order has to offer (tokenA for bids, tokenB for asks).
-  const uint256_t assetPrice_;  ///< The unit price of the asset the order has to offer in WEI of tokenB.
+/**
+ * Lesser comparison operator.
+ * @param lhs The left hand side of the comparison.
+ * @param rhs The right hand side of the comparison.
+ * @return True if lhs < rhs, false otherwise.
+ */
+bool operator<(const Order& lhs, const Order& rhs) {
+  const auto& lhs_assetPrice = std::get<4>(lhs);
+  const auto& rhs_assetPrice = std::get<4>(rhs);
+  const auto& lhs_timestamp = std::get<1>(lhs);
+  const auto& rhs_timestamp = std::get<1>(rhs);
+  return (lhs_assetPrice < rhs_assetPrice) ||
+         (lhs_assetPrice == rhs_assetPrice && lhs_timestamp < rhs_timestamp);
+}
 
-  /**
-   * Constructor.
-   * @param id The order's id.
-   * @param timestamp The order's timestamp.
-   * @param owner The order's owner address.
-   * @param amountAsset The order's amount.
-   * @param assetPrice The order's unit price.
-   */
-  Order(
-    const uint256_t& id, const uint64_t& timestamp, const Address& owner,
-    const uint256_t& amountAsset, const uint256_t& assetPrice
-  ) : id_(id), timestamp_(timestamp), owner_(owner),
-     amountAsset_(amountAsset), assetPrice_(assetPrice)
-  {}
+/**
+ * Higher comparison operator.
+ * @param lhs The left hand side of the comparison.
+ * @param rhs The right hand side of the comparison.
+ * @return True if lhs > rhs, false otherwise.
+ */
+bool operator>(const Order& lhs, const Order& rhs) {
+  const auto& lhs_assetPrice = std::get<4>(lhs);
+  const auto& rhs_assetPrice = std::get<4>(rhs);
+  const auto& lhs_timestamp = std::get<1>(lhs);
+  const auto& rhs_timestamp = std::get<1>(rhs);
+  return (lhs_assetPrice > rhs_assetPrice) ||
+         (lhs_assetPrice == rhs_assetPrice && lhs_timestamp < rhs_timestamp);
+}
 
-  Order(const StopOrder& stopOrder, const uint64_t& timestamp)
-    : id_(stopOrder.id_), timestamp_(timestamp), owner_(stopOrder.owner_),
-    amountAsset_(stopOrder.amountAsset_), assetPrice_(stopOrder.assetPrice_)
-  {}
-
-  /// Lesser comparison operator.
-  bool operator<(const Order& o) const {
-    return (
-      this->assetPrice_ < o.assetPrice_ ||
-      (this->assetPrice_ == o.assetPrice_ && this->timestamp_ < o.timestamp_)
-    );
-  }
-
-  /// Higher comparison operator.
-  bool operator>(const Order& o) const {
-    return (
-      this->assetPrice_ > o.assetPrice_ ||
-      (this->assetPrice_ == o.assetPrice_ && this->timestamp_ < o.timestamp_)
-    );
-  }
-};
+Order orderFromStopOrder(const StopOrder& stopOrder, const uint64_t& timestamp) {
+  return std::make_tuple(
+    std::get<0>(stopOrder), timestamp, std::get<2>(stopOrder),
+    std::get<3>(stopOrder), std::get<4>(stopOrder)
+  );
+}
 
 /// Contract template for a given exchange pair order book.
 class OrderBook : public DynamicContract {
@@ -236,7 +230,6 @@ class OrderBook : public DynamicContract {
     using ConstructorArguments = std::tuple<
       const Address, const std::string&, const Address, const std::string&
     >;
-
     /**
      * Constructor from scratch.
      * @param addA The address of the pair's first asset.
