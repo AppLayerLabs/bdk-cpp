@@ -41,11 +41,11 @@ std::vector<std::string> JsonAbi::getTupleTypes(const std::string& type) {
   );
   tupleString = tupleString.substr(0, tupleString.size() - 1); // Remove ")"
   std::string tmp;
-  bool inTuple = false; // We need to check if we're inside a tuple, so we don't split on "," inside "(...)".
+  uint16_t tupleCounter = 0; // We need to check if we're inside a tuple, so we don't split on "," inside "(...)".
   for (const char& c : tupleString) {
-    if (c == '(') inTuple = true;
-    if (c == ')') inTuple = false;
-    if (c == ',' && !inTuple) {
+    if (c == '(') ++tupleCounter;
+    if (c == ')') --tupleCounter;
+    if (c == ',' && !tupleCounter) {
       types.push_back(tmp);
       tmp = "";
     } else {
