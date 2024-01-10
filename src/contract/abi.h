@@ -160,7 +160,8 @@ namespace ABI {
   namespace FunctorEncoder {
     /// @cond
     // General template for type to string conversion
-    template<typename T> struct TypeName {
+    template<typename T, typename Enable = void>
+    struct TypeName {
       static std::string get() {
         static_assert(std::is_same_v<T, void>, "TypeName specialization for this type is not defined");
         return "";
@@ -238,6 +239,13 @@ namespace ABI {
     template<> struct TypeName<bool> { static std::string get() { return "bool"; }};
     template<> struct TypeName<Bytes> { static std::string get() { return "bytes"; }};
     template<> struct TypeName<std::string> { static std::string get() { return "string"; }};
+    /// Enum types are encoded as uint8_t
+    template<typename T>
+    struct TypeName<T, std::enable_if_t<std::is_enum_v<T>>> {
+      static std::string get() {
+        return TypeName<uint8_t>::get();
+      }
+    };
     /// @endcond
 
     /// Helper for tuple types
@@ -431,6 +439,8 @@ namespace ABI {
         std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
       ) {
         return encodeUint(num);
+      } else if constexpr (std::is_enum_v<T>) {
+        return encodeUint(static_cast<uint8_t>(num));
       } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported on encoding");
     }
 
@@ -610,6 +620,8 @@ namespace ABI {
         std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
       ) {
         return encodeUint(num);
+      } else if constexpr (std::is_enum_v<T>) {
+        return encodeUint(static_cast<uint8_t>(num));
       } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported on encoding");
     }
 
@@ -811,6 +823,8 @@ namespace ABI {
         std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
         std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
       ) {
+        return static_cast<T>(decodeUint(bytes, index));
+      } else if constexpr (std::is_enum_v<T>) {
         return static_cast<T>(decodeUint(bytes, index));
       } else throw std::runtime_error("The type " + Utils::getRealTypeName<T>() + " is not supported on decoding.");
     }
