@@ -40,7 +40,20 @@ std::vector<std::string> JsonAbi::getTupleTypes(const std::string& type) {
     0, tupleString.size() - 2 * JsonAbi::countTupleArrays(type) // If array, delete "[]"
   );
   tupleString = tupleString.substr(0, tupleString.size() - 1); // Remove ")"
-  boost::split(types, tupleString, [](char c) { return c == ','; }); // Split by commas
+  std::string tmp;
+  bool inTuple = false; // We need to check if we're inside a tuple, so we don't split on "," inside "(...)".
+  for (const char& c : tupleString) {
+    if (c == '(') inTuple = true;
+    if (c == ')') inTuple = false;
+    if (c == ',' && !inTuple) {
+      types.push_back(tmp);
+      tmp = "";
+    } else {
+      tmp += c;
+    }
+  }
+  /// Push the last type.
+  types.push_back(tmp);
   return types;
 }
 
