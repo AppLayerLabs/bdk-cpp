@@ -2,6 +2,7 @@
 #define EVENT_H
 
 #include <algorithm>
+#include <optional>
 #include <shared_mutex>
 #include <string>
 
@@ -12,11 +13,18 @@
 #include "../utils/utils.h"
 #include "abi.h"
 #include "contract.h"
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/member.hpp>
 
+namespace bmi = boost::multi_index;
 using json = nlohmann::ordered_json;
 
 /// Abstraction of a Solidity event.
 class Event {
+
+  friend struct event_indices; // For multi_index_container
   private:
     std::string name_;            ///< Event name.
     uint64_t logIndex_;           ///< Position of the event inside the block it was emitted from.
@@ -136,7 +144,7 @@ class Event {
     }
 
     /// Serialize event data from the object to a JSON string.
-    std::string serialize();
+    std::string serialize() const;
 
     /**
      * Serialize event data to a JSON string, formatted to RPC response standards:
@@ -145,15 +153,32 @@ class Event {
     std::string serializeForRPC();
 };
 
+struct event_indices : bmi::indexed_by<
+    // Ordered index by blockIndex for range queries
+    bmi::ordered_non_unique<
+        bmi::member<Event, uint64_t, &Event::blockIndex_>
+    >,
+    // Ordered index by address (optional)
+    bmi::ordered_non_unique<
+        bmi::member<Event, Address, &Event::address_>
+    >,
+    // Ordered unique index by txHash for direct access
+    bmi::ordered_unique<
+        bmi::member<Event, Hash, &Event::txHash_>
+    >
+> {};
+
+typedef bmi::multi_index_container<Event, event_indices> EventContainer;
+
 /**
  * Class that holds all events emitted by contracts in the blockchain.
  * Responsible for registering, managing and saving/loading events to/from the database.
  */
 class EventManager {
   private:
-    // TODO: keep up to 1000 events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
-    std::vector<Event> events_;             ///< List of all emitted events in memory.
-    std::vector<Event> tempEvents_;         ///< List of temporary events waiting to be commited or reverted.
+    // TODO: keep up to 1000 events in memory, dump older ones to DB (maybe this should be a deque?)
+    EventContainer events_;             ///< List of all emitted events in memory.
+    EventContainer tempEvents_;         ///< List of temporary events waiting to be commited or reverted.
     const std::unique_ptr<DB>& db_;         ///< Reference pointer to the database.
     mutable std::shared_mutex lock_;        ///< Mutex for managing read/write access to the permanent events vector.
     const unsigned short blockCap_ = 2000;  ///< Maximum block range allowed for querying events (safety net).
@@ -184,15 +209,26 @@ class EventManager {
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
     std::vector<Event> getEvents(
-      const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
+      const uint64_t& fromBlock, const uint64_t& toBlock, const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics
     );
+
+    bool matchTopics(const Event& event, const std::optional<std::vector<Hash>>& topics);
+
+    void fetchAndFilterEventsFromDB(
+    const uint64_t& fromBlock, const uint64_t& toBlock, 
+    const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics, 
+    std::vector<Event>& ret
+    );
+
+    std::vector<Event> filterEventsInMemory(const uint64_t& fromBlock, const uint64_t& toBlock, const std::optional<Address>& address);
 
     /**
      * Register the event in the temporary list.
      * Keep in mind the original Event object is MOVED to the list.
      * @param event The event to register.
      */
-    void registerEvent(Event&& event) { this->tempEvents_.emplace_back(std::move(event)); }
+    void registerEvent(Event&& event) {this->events_.insert(std::move(event));}
+
 
     /**
      * Actually register events in the permanent list.
@@ -200,15 +236,19 @@ class EventManager {
      */
     void commitEvents(const Hash txHash, const uint64_t txIndex) {
       uint64_t logIndex = 0;
-      for (Event& e : this->tempEvents_) {
-        e.setStateData(logIndex, txHash, txIndex,
-          ContractGlobals::getBlockHash(), ContractGlobals::getBlockHeight()
-        );
-        this->events_.push_back(std::move(e));
-        logIndex++;
+      auto it = tempEvents_.begin();
+      while (it != tempEvents_.end()) {
+          // Since we can't modify the element directly, we make a copy, modify it, and then move it
+          Event e = *it;
+          e.setStateData(logIndex, txHash, txIndex,
+                        ContractGlobals::getBlockHash(), ContractGlobals::getBlockHeight());
+          events_.insert(std::move(e));
+          it = tempEvents_.erase(it);
+          logIndex++;
       }
-      this->tempEvents_.clear();
-    }
+  }
+
+
 
     /// Discard events in the temporary list.
     void revertEvents() { this->tempEvents_.clear(); }
