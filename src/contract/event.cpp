@@ -14,7 +14,7 @@ Event::Event(const std::string& jsonstr) {
   this->anonymous_ = obj["anonymous"].get<bool>();
 }
 
-std::string Event::serialize() {
+std::string Event::serialize() const {
   json topicArr = json::array();
   for (const Hash& b : this->topics_) topicArr.push_back(b.hex(true).get());
   json obj = {
@@ -52,8 +52,8 @@ std::string Event::serializeForRPC() {
 EventManager::EventManager(const std::unique_ptr<DB>& db) : db_(db) {
   std::vector<DBEntry> allEvents = this->db_->getBatch(DBPrefix::events);
   for (DBEntry& event : allEvents) {
-    Event e(Utils::bytesToString(event.value)); // Create a new Event object by deserializing the JSON string
-    this->events_.push_back(std::move(e)); // Move the object into the list
+    Event e(Utils::bytesToString(event.value)); // Create a new Event object by deserializing
+    this->events_.insert(std::move(e)); // Use insert for MultiIndex container
   }
 }
 
@@ -61,16 +61,15 @@ EventManager::~EventManager() {
   DBBatch batchedOperations;
   {
     std::unique_lock<std::shared_mutex> lock(this->lock_);
-    for (auto it = this->events_.begin(); it != this->events_.end(); it++) {
-      // Build the key (block height + address + tx index + log index)
-      Bytes key;
-      key.reserve(8 + key.size() + 8 + 8);
-      Utils::appendBytes(key, Utils::uint64ToBytes(it->getBlockIndex()));
-      Utils::appendBytes(key, it->getAddress().asBytes());
-      Utils::appendBytes(key, Utils::uint64ToBytes(it->getTxIndex()));
-      Utils::appendBytes(key, Utils::uint64ToBytes(it->getLogIndex()));
+    for (const auto& event : this->events_) {
+      // Build the key (address + block height + tx index + log index)
+      Bytes key = event.getAddress().asBytes();
+      key.reserve(key.size() + 8 + 8 + 8);
+      Utils::appendBytes(key, Utils::uint64ToBytes(event.getBlockIndex()));
+      Utils::appendBytes(key, Utils::uint64ToBytes(event.getTxIndex()));
+      Utils::appendBytes(key, Utils::uint64ToBytes(event.getLogIndex()));
       // Serialize the value to a JSON string and insert into the batch
-      batchedOperations.push_back(key, Utils::stringToBytes(it->serialize()), DBPrefix::events);
+      batchedOperations.push_back(key, Utils::stringToBytes(event.serialize()), DBPrefix::events);
     }
   }
   // Batch save to database and clear the list
@@ -87,24 +86,26 @@ std::vector<Event> EventManager::getEvents(
   // Throw if block height diff is greater than the block cap
   uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
   if (heightDiff > this->blockCap_) throw std::runtime_error(
-    "Block range too large for event querying! Max allowed is " + this->blockCap_
+    "Block range too large for event querying! Max allowed is " + std::to_string(this->blockCap_)
   );
 
-  // Get events in memory first
-  for (const Event& e : this->events_) {
-    if ((fromBlock <= e.getBlockIndex() <= toBlock) && (address != Address() || address == e.getAddress())) {
-      if (!topics.empty()) {
-        bool hasTopic = true;
-        const std::vector<Hash>& eventTopics = e.getTopics();
-        if (eventTopics.size() < topics.size()) continue; // Skip if topic quantity is not the exact same
-        for (size_t i = 0; i < topics.size(); i++) {  // Check if all topics actually match
-          if (topics.at(i) != eventTopics.at(i)) { hasTopic = false; break; }
-        }
-        if (!hasTopic) continue;
+  // Query the MultiIndex container
+  auto& blockIndexIndex = this->events_.get<0>(); // Assuming blockIndex_ is the first index
+  for (auto it = blockIndexIndex.lower_bound(fromBlock); it != blockIndexIndex.upper_bound(toBlock); ++it) {
+    const Event& e = *it;
+    if ((address != Address() && e.getAddress() != address)) continue;
+
+    if (!topics.empty()) {
+      bool hasTopic = true;
+      const std::vector<Hash>& eventTopics = e.getTopics();
+      if (eventTopics.size() < topics.size()) continue;
+      for (size_t i = 0; i < topics.size(); i++) {
+        if (topics.at(i) != eventTopics.at(i)) { hasTopic = false; break; }
       }
-      ret.push_back(e);
-      if (ret.size() >= this->logCap_) return ret;
+      if (!hasTopic) continue;
     }
+    ret.push_back(e);
+    if (ret.size() >= this->logCap_) return ret;
   }
 
   // Check relevant keys in the database, limiting the query to the specified block range
@@ -116,24 +117,24 @@ std::vector<Event> EventManager::getEvents(
     Utils::appendBytes(fromBytes, address.asBytes());
     Utils::appendBytes(toBytes, address.asBytes());
   }
+
   for (Bytes key : this->db_->getKeys(DBPrefix::events, fromBytes, toBytes)) {
-    // (0, 8) = block height, (8, 20) = address
     uint64_t blockHeight = Utils::bytesToUint64(Utils::create_view_span(key, 0, 8));
     Address add(Utils::create_view_span(key, 8, 20));
-    if ((fromBlock <= blockHeight <= toBlock) && (address != Address() || address == add)) {
+    if ((fromBlock <= blockHeight && blockHeight <= toBlock) && (address != Address() || address == add)) {
       dbKeys.push_back(key);
-      if (ret.size() + dbKeys.size() >= this->logCap_) break; // Stop checking when we know we'll reach log cap
+      if (ret.size() + dbKeys.size() >= this->logCap_) break;
     }
   }
 
-  // Get events in the database
+  // Get events from the database
   for (DBEntry item : this->db_->getBatch(DBPrefix::events, dbKeys)) {
     Event e(Utils::bytesToString(item.value));
     if (!topics.empty()) {
       bool hasTopic = true;
       const std::vector<Hash>& eventTopics = e.getTopics();
-      if (eventTopics.size() < topics.size()) continue; // Skip if topic quantity is not the exact same
-      for (size_t i = 0; i < topics.size(); i++) {  // Check if all topics actually match
+      if (eventTopics.size() < topics.size()) continue;
+      for (size_t i = 0; i < topics.size(); i++) {
         if (topics.at(i) != eventTopics.at(i)) { hasTopic = false; break; }
       }
       if (!hasTopic) continue;
