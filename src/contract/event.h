@@ -211,6 +211,9 @@ class EventManager {
       const uint64_t& fromBlock, const uint64_t& toBlock, const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics
     );
 
+    std::vector<Event> getEvents(
+    const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex);
+
     bool matchTopics(const Event& event, const std::optional<std::vector<Hash>>& topics);
 
     void fetchAndFilterEventsFromDB(

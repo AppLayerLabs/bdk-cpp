@@ -78,6 +78,24 @@ EventManager::~EventManager() {
 }
 
 std::vector<Event> EventManager::getEvents(
+    const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
+) {
+    std::vector<Event> ret;
+    auto& txHashIndex = events_.get<2>(); // txHash is the third index
+
+    // Find the event with the given txHash
+    auto it = txHashIndex.find(txHash);
+    if (it != txHashIndex.end()) {
+        const Event& e = *it;
+        // Optionally check blockIndex and txIndex???
+        if (e.getBlockIndex() == blockIndex && e.getTxIndex() == txIndex) {
+            ret.push_back(e);
+        }
+    }
+    return ret;
+}
+
+std::vector<Event> EventManager::getEvents(
     const uint64_t& fromBlock, const uint64_t& toBlock, 
     const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics
 ) {
