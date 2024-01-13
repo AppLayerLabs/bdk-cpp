@@ -78,71 +78,94 @@ EventManager::~EventManager() {
 }
 
 std::vector<Event> EventManager::getEvents(
-  const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
+    const uint64_t& fromBlock, const uint64_t& toBlock, 
+    const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics
 ) {
-  std::vector<Event> ret;
-  std::vector<Bytes> dbKeys;
+    std::vector<Event> ret;
 
-  // Throw if block height diff is greater than the block cap
-  uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
-  if (heightDiff > this->blockCap_) throw std::runtime_error(
-    "Block range too large for event querying! Max allowed is " + std::to_string(this->blockCap_)
-  );
-
-  // Query the MultiIndex container
-  auto& blockIndexIndex = this->events_.get<0>(); // Assuming blockIndex_ is the first index
-  for (auto it = blockIndexIndex.lower_bound(fromBlock); it != blockIndexIndex.upper_bound(toBlock); ++it) {
-    const Event& e = *it;
-    if ((address != Address() && e.getAddress() != address)) continue;
-
-    if (!topics.empty()) {
-      bool hasTopic = true;
-      const std::vector<Hash>& eventTopics = e.getTopics();
-      if (eventTopics.size() < topics.size()) continue;
-      for (size_t i = 0; i < topics.size(); i++) {
-        if (topics.at(i) != eventTopics.at(i)) { hasTopic = false; break; }
-      }
-      if (!hasTopic) continue;
+    // Check if the block range is within limits
+    uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
+    if (heightDiff > this->blockCap_) {
+        throw std::runtime_error("Block range too large for event grepping!");
     }
-    ret.push_back(e);
-    if (ret.size() >= this->logCap_) return ret;
-  }
 
-  // Check relevant keys in the database, limiting the query to the specified block range
-  Bytes fromBytes;
-  Bytes toBytes;
-  Utils::appendBytes(fromBytes, Utils::uint64ToBytes(fromBlock));
-  Utils::appendBytes(toBytes, Utils::uint64ToBytes(toBlock));
-  if (address != Address()) {
-    Utils::appendBytes(fromBytes, address.asBytes());
-    Utils::appendBytes(toBytes, address.asBytes());
-  }
+    // Step 1: Initial Filtering from MultiIndex Container
+    std::vector<Event> filteredEvents = filterEventsInMemory(fromBlock, toBlock, address);
 
-  for (Bytes key : this->db_->getKeys(DBPrefix::events, fromBytes, toBytes)) {
-    uint64_t blockHeight = Utils::bytesToUint64(Utils::create_view_span(key, 0, 8));
-    Address add(Utils::create_view_span(key, 8, 20));
-    if ((fromBlock <= blockHeight && blockHeight <= toBlock) && (address != Address() || address == add)) {
-      dbKeys.push_back(key);
-      if (ret.size() + dbKeys.size() >= this->logCap_) break;
+    // Step 2: Manual Topic Matching for In-Memory Events
+    for (const Event& event : filteredEvents) {
+        if (matchTopics(event, topics) && ret.size() < this->logCap_) {
+            ret.push_back(event);
+        }
     }
-  }
 
-  // Get events from the database
-  for (DBEntry item : this->db_->getBatch(DBPrefix::events, dbKeys)) {
-    Event e(Utils::bytesToString(item.value));
-    if (!topics.empty()) {
-      bool hasTopic = true;
-      const std::vector<Hash>& eventTopics = e.getTopics();
-      if (eventTopics.size() < topics.size()) continue;
-      for (size_t i = 0; i < topics.size(); i++) {
-        if (topics.at(i) != eventTopics.at(i)) { hasTopic = false; break; }
-      }
-      if (!hasTopic) continue;
+    // Step 3: Fetch and Filter Events from the Database
+    if (ret.size() < this->logCap_) {
+        fetchAndFilterEventsFromDB(fromBlock, toBlock, address, topics, ret);
     }
-    ret.push_back(e);
-    if (ret.size() >= this->logCap_) return ret;
-  }
 
-  return ret;
+    return ret;
 }
 
+std::vector<Event> EventManager::filterEventsInMemory(const uint64_t& fromBlock, const uint64_t& toBlock, const std::optional<Address>& address) {
+    std::vector<Event> filteredEvents;
+
+    if (address.has_value()) {
+        auto& addressIndex = events_.get<1>();
+        for (auto it = addressIndex.lower_bound(address.value());
+             it != addressIndex.end() && it->getBlockIndex() <= toBlock;
+             ++it) {
+            if (it->getBlockIndex() >= fromBlock) {
+                filteredEvents.push_back(*it);
+            }
+        }
+    } else {
+        auto& blockIndex = events_.get<0>();
+        // Capture 'fromBlock' and 'toBlock' explicitly in a lambda capture clause
+        for (const Event& e : blockIndex) {
+            if (e.getBlockIndex() >= fromBlock && e.getBlockIndex() <= toBlock) {
+                filteredEvents.push_back(e);
+            }
+        }
+    }
+
+    return filteredEvents;
+}
+
+void EventManager::fetchAndFilterEventsFromDB(
+    const uint64_t& fromBlock, const uint64_t& toBlock, 
+    const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics, 
+    std::vector<Event>& ret
+) {
+    // Database fetching logic
+    std::vector<Bytes> dbKeys;
+    for (Bytes key : this->db_->getKeys(DBPrefix::events)) {
+        Address addr(Utils::create_view_span(key, 0, 20)); // Extract address from key
+        uint64_t blockHeight = Utils::bytesToUint64(Utils::create_view_span(key, 20, 8)); // Extract block height from key
+
+        if ((fromBlock <= blockHeight && blockHeight <= toBlock) && 
+            (!address.has_value() || address.value() == addr)) {
+            dbKeys.push_back(key);
+        }
+    }
+
+    for (DBEntry item : this->db_->getBatch(DBPrefix::events, dbKeys)) {
+        Event e(Utils::bytesToString(item.value));
+        if (matchTopics(e, topics) && ret.size() < this->logCap_) {
+            ret.push_back(e);
+        }
+    }
+}
+
+bool EventManager::matchTopics(const Event& event, const std::optional<std::vector<Hash>>& topics) {
+    if (!topics.has_value()) return true; // No topic filter applied
+    const std::vector<Hash>& eventTopics = event.getTopics();
+    if (eventTopics.size() < topics->size()) return false;
+
+    for (size_t i = 0; i < topics->size(); ++i) {
+        if ((*topics)[i] != eventTopics[i]) {
+            return false;
+        }
+    }
+    return true;
+}

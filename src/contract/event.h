@@ -208,8 +208,18 @@ class EventManager {
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
     std::vector<Event> getEvents(
-      const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
+      const uint64_t& fromBlock, const uint64_t& toBlock, const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics
     );
+
+    bool matchTopics(const Event& event, const std::optional<std::vector<Hash>>& topics);
+
+    void fetchAndFilterEventsFromDB(
+    const uint64_t& fromBlock, const uint64_t& toBlock, 
+    const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics, 
+    std::vector<Event>& ret
+    );
+
+    std::vector<Event> filterEventsInMemory(const uint64_t& fromBlock, const uint64_t& toBlock, const std::optional<Address>& address);
 
     /**
      * Register the event in the temporary list.
