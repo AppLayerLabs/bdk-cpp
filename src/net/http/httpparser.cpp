@@ -150,7 +150,7 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_getTransactionReceipt:
         ret = JsonRPC::Encoding::eth_getTransactionReceipt(
-          JsonRPC::Decoding::eth_getTransactionReceipt(request), storage
+          JsonRPC::Decoding::eth_getTransactionReceipt(request), storage, state
         );
         break;
       default:

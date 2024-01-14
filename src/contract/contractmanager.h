@@ -245,10 +245,21 @@ class ContractManager : BaseContract {
      * @param toBlock The final block height to look for.
      * @param address The address to look for. If empty, will look for all available addresses.
      * @param topics The topics to filter by. If empty, will look for all available topics.
-     * @return A list of matching events, limited by the block and/or log caps set above.
+     * @return A list of matching events.
      */
     std::vector<Event> getEvents(
       const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
+    );
+
+    /**
+     * Overload of getEvents() for transaction receipts.
+     * @param txHash The hash of the transaction to look for events.
+     * @param blockIndex The height of the block to look for events.
+     * @param txIndex The index of the transaction to look for events.
+     * @return A list of matching events.
+     */
+    std::vector<Event> getEvents(
+      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     );
 
     /**

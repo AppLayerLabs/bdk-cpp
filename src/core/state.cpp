@@ -267,7 +267,7 @@ void State::processNextBlock(Block&& block) {
   }
 
   std::unique_lock lock(this->stateMutex_);
-  
+
   // Update contract globals based on (now) latest block
   const Hash blockHash = block.hash();
   this->contractManager_->updateContractGlobals(Secp256k1::toAddress(block.getValidatorPubKey()), blockHash, block.getNHeight(), block.getTimestamp());
@@ -388,5 +388,12 @@ std::vector<Event> State::getEvents(
 ) {
   std::shared_lock lock(this->stateMutex_);
   return this->contractManager_->getEvents(fromBlock, toBlock, address, topics);
+}
+
+std::vector<Event> State::getEvents(
+  const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
+) {
+  std::shared_lock lock(this->stateMutex_);
+  return this->contractManager_->getEvents(txHash, blockIndex, txIndex);
 }
 
