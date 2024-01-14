@@ -160,6 +160,7 @@ void OrderBook::processLimitAskOrder(Order& a, const OrderType& type) {
     // respectively, then update the order amounts accordingly.
     this->callContractFunction(this->addressAssetB_.get(), &ERC20::transfer, askOwner, tokenBAmount);
     this->callContractFunction(this->addressAssetA_.get(), &ERC20::transfer, bidOwner, this->convertLot(lotsAmount));
+
     askAmountAsset -= lotsAmount;
     bidAmountAsset -= lotsAmount;
 
@@ -393,6 +394,7 @@ void OrderBook::newLimitAskOrder(
   if (this->convertLot(amountAsset) > userBalance) throw std::runtime_error(
     "OrderBook::newLimitAskOrder: INSUFFICIENT_BALANCE"
   );
+
   this->callContractFunction(
     this->addressAssetA_.get(), &ERC20::transferFrom, this->getCaller(),
     this->getContractAddress(), this->convertLot(amountAsset)
@@ -449,7 +451,7 @@ void OrderBook::newStopLimitBidOrder(
     this->addressAssetB_.get(), &ERC20::balanceOf, this->getCaller()
   );
   if (amountAssetB > userBalance) throw std::runtime_error(
-    "OrderBook::newLimitBidOrder: INSUFFICIENT_BALANCE"
+    "OrderBook::newStopLimitBidOrder: INSUFFICIENT_BALANCE"
   );
   this->callContractFunction(
     this->addressAssetB_.get(), &ERC20::transferFrom, this->getCaller(),
@@ -473,7 +475,7 @@ void OrderBook::newStopLimitAskOrder(
     this->addressAssetA_.get(), &ERC20::balanceOf, this->getCaller()
   );
   if (this->convertLot(amountAsset) > userBalance) throw std::runtime_error(
-    "OrderBook::newLimitAskOrder: INSUFFICIENT_BALANCE"
+    "OrderBook::newStopLimitAskOrder: INSUFFICIENT_BALANCE"
   );
   this->callContractFunction(
     this->addressAssetA_.get(), &ERC20::transferFrom, this->getCaller(),
