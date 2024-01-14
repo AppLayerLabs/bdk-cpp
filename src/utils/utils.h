@@ -1197,12 +1197,12 @@ namespace Utils {
    * Templated function for calculating 10^exponent
    */
   template <typename T>
-  T exp10(const T& exponent) {
+  inline T exp10(const uint64_t& exponent) {
     T base = 10;  // Base 10 for decimal exponentiation
     if (exponent == 0) {
      return T(1);
     }
-    return std::pow(base, exponent);
+    return boost::multiprecision::pow(base, exponent);
   }
 };
 
