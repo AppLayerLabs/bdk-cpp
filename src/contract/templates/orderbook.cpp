@@ -24,8 +24,8 @@ OrderBook::OrderBook(
   this->tickerAssetA_ = tickerA;
   this->tickerAssetB_ = tickerB;
   this->spread_ = 0;
-  this->tickSize_ = Utils::exp10(decB - 4);
-  this->lotSize_ = Utils::exp10(decA - 4);
+  this->tickSize_ = Utils::exp10<uint256_t>(decB - 4);
+  this->lotSize_ = Utils::exp10<uint256_t>(decA - 4);
   this->lastPrice_ = 0;
   registerContractFunctions();
 }

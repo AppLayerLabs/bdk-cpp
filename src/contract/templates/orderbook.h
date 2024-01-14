@@ -410,7 +410,7 @@ class OrderBook : public DynamicContract {
         const std::unique_ptr<DB>&
       >(
         std::vector<std::string>{
-          "addA", "addB", "tickerA", "tickerB"
+          "addA", "tickerA", "addB", "tickerB"
         },
         std::make_tuple("getNextOrderID", &OrderBook::getNextOrderID, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("getAddressAssetA", &OrderBook::getAddressAssetA, FunctionTypes::View, std::vector<std::string>{}),
