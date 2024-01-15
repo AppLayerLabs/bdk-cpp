@@ -248,9 +248,13 @@ namespace JsonRPC {
      * Encode a `eth_getTransactionReceipt` response.
      * @param txHash The transaction's hash.
      * @param storage Pointer to the blockchain's storage.
+     * @param state Pointer to the blockchain's state.
      * @return The encoded JSON response.
      */
-    json eth_getTransactionReceipt(const Hash& txHash, const std::unique_ptr<Storage>& storage);
+    json eth_getTransactionReceipt(
+      const Hash& txHash, const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<State>& state
+    );
   }
 }
 

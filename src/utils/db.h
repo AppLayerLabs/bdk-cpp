@@ -104,8 +104,10 @@ class DBBatch {
       tmp.reserve(prefix.size() + key.size());
       tmp.insert(tmp.end(), key.begin(), key.end());
       puts_.emplace_back(std::move(tmp), Bytes(value.begin(), value.end()));
-      putsSlices_.emplace_back(rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().key.data()), puts_.back().key.size()),
-                              rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().value.data()), puts_.back().value.size()));
+      putsSlices_.emplace_back(
+        rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().key.data()), puts_.back().key.size()),
+        rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().value.data()), puts_.back().value.size())
+      );
     }
 
     /**
@@ -118,7 +120,9 @@ class DBBatch {
       tmp.reserve(prefix.size() + key.size());
       tmp.insert(tmp.end(), key.begin(), key.end());
       dels_.emplace_back(std::move(tmp));
-      delsSlices_.emplace_back(rocksdb::Slice(reinterpret_cast<const char*>(dels_.back().data()), dels_.back().size()));
+      delsSlices_.emplace_back(
+        rocksdb::Slice(reinterpret_cast<const char*>(dels_.back().data()), dels_.back().size())
+      );
     }
 
     /**
@@ -155,7 +159,6 @@ class DB {
     rocksdb::DB* db_;              ///< Pointer to the database object itself.
     rocksdb::Options opts_;        ///< Struct with options for managing the database.
     mutable std::mutex batchLock_; ///< Mutex for managing read/write access to batch operations.
-    // TODO: add a custom comparator for more granular key comparisons (e.g. for events)
 
   public:
     /**
@@ -291,6 +294,7 @@ class DB {
      * Get all keys from a given prefix.
      * Ranges can be used to mitigate very expensive operations
      * (e.g. a query can return millions of entries).
+     * Prefix is automatically added to the queries themselves internally.
      * @param pfx The prefix to search keys from.
      * @param start (optional) The first key to start searching from.
      * @param end (optional) The last key to end searching at.

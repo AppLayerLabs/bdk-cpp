@@ -168,6 +168,8 @@ namespace TSimpleContract {
 
         REQUIRE(nameEvent.getName() == "nameChanged");
         REQUIRE(nameEvent.getLogIndex() == 0);
+        std::cout << Hex::fromBytes(nameEvent.getTxHash().asBytes(), true).get() << std::endl;
+        std::cout << Hex::fromBytes(setNameTx.hash().asBytes(), true).get() << std::endl;
         REQUIRE(nameEvent.getTxHash() == setNameTx.hash());
         REQUIRE(nameEvent.getTxIndex() == 0);
         REQUIRE(nameEvent.getBlockIndex() == 0);
