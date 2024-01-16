@@ -330,10 +330,9 @@ class ContractManagerInterface {
       );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
-      } else {
-        if (!this->manager_.contracts_.contains(targetAddr)) {
-          throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
-        }
+      }
+      if (!this->manager_.contracts_.contains(targetAddr)) {
+        throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
       }
       C* contract = this->getContract<C>(targetAddr);
       this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
@@ -366,10 +365,9 @@ class ContractManagerInterface {
       );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
-      } else {
-        if (!this->manager_.contracts_.contains(targetAddr)) {
-          throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
-        }
+      }
+      if (!this->manager_.contracts_.contains(targetAddr)) {
+        throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
       }
       C* contract = this->getContract<C>(targetAddr);
       this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
