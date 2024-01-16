@@ -38,5 +38,11 @@ namespace ContractReflectionInterface {
    * Multimap is used for overloaded events.
    */
   std::unordered_map<std::string, std::unordered_multimap<std::string, ABI::EventDescription>> eventDescsMap;
+
+  /**
+   * Map of pointer to member functions of contract methods.
+   * Key is a unique identifier derived from the pointer, value is a std::string of the function name.
+   */
+  std::unordered_map<UniqueFunctionPointerIdentifier, std::string, UniqueFunctionPointerIdentifier::Hash> pointerNamesMap;
 }
 
