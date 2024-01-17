@@ -383,16 +383,17 @@ std::vector<std::pair<std::string, Address>> State::getContracts() const {
   return this->contractManager_->getContracts();
 }
 
-std::vector<Event> State::getEvents(
-  const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address, const std::vector<Hash>& topics
-) {
+const std::vector<Event> State::getEvents(
+  const uint64_t& fromBlock, const uint64_t& toBlock,
+  const Address& address, const std::vector<Hash>& topics
+) const {
   std::shared_lock lock(this->stateMutex_);
   return this->contractManager_->getEvents(fromBlock, toBlock, address, topics);
 }
 
-std::vector<Event> State::getEvents(
+const std::vector<Event> State::getEvents(
   const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-) {
+) const {
   std::shared_lock lock(this->stateMutex_);
   return this->contractManager_->getEvents(txHash, blockIndex, txIndex);
 }

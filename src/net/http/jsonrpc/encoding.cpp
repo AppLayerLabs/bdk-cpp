@@ -214,10 +214,10 @@ namespace JsonRPC {
       json ret;
       ret["jsonrpc"] = "2.0";
       try {
-        std::vector<Event> events = state->getEvents(
+        const std::vector<Event> events = state->getEvents(
           std::get<0>(info), std::get<1>(info), std::get<2>(info), std::get<3>(info)
         );
-        for (Event e : events) ret["result"].push_back(e.serializeForRPC());
+        for (const Event& e : events) ret["result"].push_back(e.serializeForRPC());
       } catch (std::exception& e) {
         ret["error"]["code"] = -32000;
         ret["error"]["message"] = "Internal error: " + std::string(e.what());
@@ -395,7 +395,7 @@ namespace JsonRPC {
         ret["result"]["type"] = "0x00";
         ret["result"]["root"] = Hash().hex(true);
         ret["result"]["status"] = "0x1"; // TODO: change this when contracts are ready
-        for (auto& e : state->getEvents(txHash, blockHeight, txIndex)) {
+        for (const Event& e : state->getEvents(txHash, blockHeight, txIndex)) {
           ret["result"]["logs"].push_back(e.serializeForRPC());
         }
         return ret;

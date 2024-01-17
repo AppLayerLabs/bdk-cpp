@@ -154,7 +154,7 @@ class Event {
      * Serialize event data to a JSON string, formatted to RPC response standards:
      * https://medium.com/alchemy-api/deep-dive-into-eth-getlogs-5faf6a66fd81
      */
-    std::string serializeForRPC();
+    std::string serializeForRPC() const;
 };
 
 /// Multi-index container used for storing events in memory.
@@ -202,14 +202,14 @@ class EventManager {
      * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
      * @param fromBlock The initial block height to look for.
      * @param toBlock The final block height to look for.
-     * @param address The address to look for. If empty, will look for all available addresses.
-     * @param topics The topics to filter by. If empty, will look for all available topics.
+     * @param address The address to look for. Defaults to empty (look for all available addresses).
+     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
-    std::vector<Event> getEvents(
+    const std::vector<Event> getEvents(
       const uint64_t& fromBlock, const uint64_t& toBlock,
-      const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics
-    );
+      const Address& address = Address(), const std::vector<Hash>& topics = {}
+    ) const;
 
     /**
      * Overload of getEvents() used by "eth_getTransactionReceipts", where
@@ -219,42 +219,45 @@ class EventManager {
      * @param txIndex The index of the transaction to look for events.
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
-    std::vector<Event> getEvents(
+    const std::vector<Event> getEvents(
       const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-    );
+    ) const;
 
     /**
      * Filter events in memory. Used by getEvents().
      * @param fromBlock The starting block range to query.
      * @param toBlock Tne ending block range to query.
-     * @param address The address to look for. If empty, will look for all available addresses.
+     * @param address The address to look for. Defaults to empty (look for all available addresses).
      * @return A list of found events.
      */
-    std::vector<Event> filterFromMemory(
-      const uint64_t& fromBlock, const uint64_t& toBlock, const std::optional<Address>& address
-    );
+    const std::vector<Event> filterFromMemory(
+      const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address = Address()
+    ) const;
 
     /**
-     * Query and filter events from the database. Used by getEvents().
+     * Filter events in the database. Used by getEvents().
      * @param fromBlock The starting block range to query.
      * @param toBlock Tne ending block range to query.
-     * @param address The address to look for. If empty, will look for all available addresses.
-     * @param topics The topics to filter by. If empty, will look for all available topics.
-     * @param ret The list to use as return.
+     * @param address The address to look for. Defaults to empty (look for all available addresses).
+     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
+     * @return A list of found events.
      */
-    void fetchAndFilterFromDB(
+    const std::vector<Event> filterFromDB(
       const uint64_t& fromBlock, const uint64_t& toBlock,
-      const std::optional<Address>& address, const std::optional<std::vector<Hash>>& topics,
-      std::vector<Event>& ret
-    );
+      const Address& address = Address(), const std::vector<Hash>& topics = {}
+    ) const;
 
     /**
      * Check if all topics of an event match the desired topics from a query.
+     * TOPIC ORDER AND QUANTITY MATTERS. e.g.:
+     * - event is {"a", "b", "c", "d"}, filter is {"a", "b", "c"} = MATCH
+     * - event is {"a", "b", "c"}, filter is {"a", "c", "b"} = NO MATCH
+     * - event is {"a", "b"}, filter is {"a", "b", "c"} = NO MATCH
      * @param event The event to match.
-     * @param topics The queried topics to match for.
+     * @param topics The queried topics to match for. Defaults to empty (no filter).
      * @return `true` if all topics match, `false` otherwise.
      */
-    bool matchTopics(const Event& event, const std::optional<std::vector<Hash>>& topics);
+    bool matchTopics(const Event& event, const std::vector<Hash>& topics = {}) const;
 
     /**
      * Register the event in the temporary list.
