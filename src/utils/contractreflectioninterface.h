@@ -24,9 +24,7 @@ namespace ContractReflectionInterface {
   /**
    * Unique identifier for a pointer to member function.
    * This is used to derive the name of a function from a pointer to member function.
-   * TODO: Not sure if this is undefined behavior or not, but it works, except for when using a function pointer to a function in a base class.
-   * If the derived class didn't re-register the function, it will not be found in the map.
-   * You will need to use the base class instead of the derived class.
+   * TODO: Not sure if this is undefined behavior or not, but it works
    */
   class UniqueFunctionPointerIdentifier {
   private:
@@ -357,6 +355,7 @@ namespace ContractReflectionInterface {
       desc.args.push_back(argDesc);
     }
     eventDescsMap[Utils::getRealTypeName<TContract>()].insert(std::make_pair(name, desc));
+    pointerNamesMap[func] = name;
   }
 
 

@@ -22,7 +22,7 @@ class SimpleContract : public DynamicContract {
     SafeUint256_t value_; ///< The value of the contract.
     void registerContractFunctions() override; ///< Register the contract functions.
 
-  protected:
+  public:
     /// Event for when the name changes.
     void nameChanged(const EventParam<std::string, true>& name) { this->emitEvent(__func__,  std::make_tuple(name)); }
 
@@ -39,8 +39,7 @@ class SimpleContract : public DynamicContract {
       this->emitEvent(__func__, std::make_tuple(nameAndValue));
     }
 
-  public:
-    using ConstructorArguments = std::tuple<const std::string&, uint256_t>; ///< The constructor arguments type.
+    using ConstructorArguments = std::tuple<const std::string&, const uint256_t&>; ///< The constructor arguments type.
 
     /**
      * Constructor from create. Create contract and save it to database.
