@@ -461,9 +461,9 @@ namespace JsonRPC {
           if (logsObject.contains("toBlock")) {
             std::string toBlockHex = logsObject["toBlock"].get<std::string>();
             if (toBlockHex == "latest") {
-              fromBlock = storage->latest()->getNHeight();
+              toBlock = storage->latest()->getNHeight();
             } else if (toBlockHex == "earliest") {
-              fromBlock = 0;
+              toBlock = 0;
             } else if (toBlockHex == "pending") {
               throw std::runtime_error("Pending block is not supported");
             } else if (std::regex_match(toBlockHex, numFilter)) {
