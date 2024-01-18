@@ -663,7 +663,103 @@ class SDKTestSuite {
     }
 
     /**
-     * Get a specific event emitted by a given confirmed transaction.
+     * Get events emitted by a given address.
+     * Specialization without args (will not filter indexed args).
+     * @tparam TContract Contract type to look for.
+     * @tparam Args... Arguments to pass to the EventParam.
+     * @tparam Flags... Flags to pass to the EventParam.
+     * @param address The address to look for events.
+     * @param func The function to look for.
+     * @param anonymous (optional) Whether the event is anonymous or not. Defaults to false.
+     * @return A list of emitted events from the address.
+     */
+    template <typename TContract, typename... Args, bool... Flags>
+    std::vector<Event> getEventsEmittedByAddress(
+      const Address& address,
+      void(TContract::*func)(const EventParam<Args, Flags>&...),
+      bool anonymous = false
+    ) {
+      // Get all the events emitted by the transaction.
+      auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
+        ContractReflectionInterface::getFunctionName(func)
+      );
+      std::vector<Hash> topicsToFilter;
+      if (!anonymous) topicsToFilter.push_back(eventSignature);
+      std::vector<Event> filteredEvents;
+      // Specifically filter events from the most recent 2000 blocks
+      uint64_t lastBlock = this->storage_->latest()->getNHeight();
+      uint64_t firstBlock = (lastBlock - 2000 >= 0) ? lastBlock - 2000 : 0;
+      auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
+
+      // Filter the events by the topics
+      for (const auto& event : allEvents) {
+        if (topicsToFilter.size() == 0) {
+          filteredEvents.push_back(event);
+        } else {
+          if (event.getTopics().size() < topicsToFilter.size()) continue;
+          bool match = true;
+          for (uint64_t i = 0; i < topicsToFilter.size(); i++) {
+            if (topicsToFilter[i] != event.getTopics()[i]) { match = false; break; }
+          }
+          if (match) filteredEvents.push_back(event);
+        }
+      }
+      return filteredEvents;
+    }
+
+    /**
+     * Get events emitted by a given address.
+     * Specialization with args (topics).
+     * @tparam TContract Contract type to look for.
+     * @tparam Args... Arguments to pass to the EventParam.
+     * @tparam Flags... Flags to pass to the EventParam.
+     * @param address The address to look for events.
+     * @param func The function to look for.
+     * @param args The topics to search for.
+     * @param anonymous (optional) Whether the event is anonymous or not. Defaults to false.
+     * @return A list of emitted events from the address.
+     */
+    template <typename TContract, typename... Args, bool... Flags>
+    std::vector<Event> getEventsEmittedByAddress(
+      const Address& address,
+      void(TContract::*func)(const EventParam<Args, Flags>&...),
+      const std::tuple<EventParam<Args, Flags>...>& args,
+      bool anonymous = false
+    ) {
+      // Get all the events emitted by the transaction.
+      auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
+        ContractReflectionInterface::getFunctionName(func)
+      );
+      std::vector<Hash> topicsToFilter;
+      if (!anonymous) topicsToFilter.push_back(eventSignature);
+      std::apply([&](const auto&... param) {
+        (..., (param.isIndexed ? topicsToFilter.push_back(ABI::EventEncoder::encodeTopicSignature(param.value)) : void()));
+      }, args);
+
+      if (topicsToFilter.size() > 4) topicsToFilter.resize(4); // Force max topic size to 4
+
+      // Filter the events by the topics, from the most recent 2000 blocks
+      std::vector<Event> filteredEvents;
+      uint64_t lastBlock = this->storage_->latest()->getNHeight();
+      uint64_t firstBlock = (lastBlock > 2000) ? lastBlock - 2000 : 0;
+      auto allEvents = this->getEvents(firstBlock, lastBlock, address, {});
+      for (const auto& event : allEvents) {
+        if (topicsToFilter.size() == 0) {
+          filteredEvents.push_back(event);
+        } else {
+          if (event.getTopics().size() < topicsToFilter.size()) continue;
+          bool match = true;
+          for (uint64_t i = 0; i < topicsToFilter.size(); i++) {
+            if (topicsToFilter[i] != event.getTopics()[i]) { match = false; break; }
+          }
+          if (match) filteredEvents.push_back(event);
+        }
+      }
+      return filteredEvents;
+    }
+
+    /**
+     * Get events emitted by a given confirmed transaction.
      * Specialization without args (will not filter indexed args).
      * @tparam TContract Contract type to look for.
      * @tparam Args... Arguments to pass to the EventParam.
@@ -671,6 +767,7 @@ class SDKTestSuite {
      * @param txHash The hash of the transaction to look for events.
      * @param func The function to look for.
      * @param anonymous (optional) Whether the event is anonymous or not. Defaults to false.
+     * @return A list of emitted events from the tx.
      */
     template <typename TContract, typename... Args, bool... Flags>
     std::vector<Event> getEventsEmittedByTx(
@@ -704,14 +801,16 @@ class SDKTestSuite {
     }
 
     /**
-     * Get a specific event emitted by a given confirmed transaction.
+     * Get events emitted by a given confirmed transaction.
      * Specialization with args (topics).
      * @tparam TContract Contract type to look for.
      * @tparam Args... Arguments to pass to the EventParam.
      * @tparam Flags... Flags to pass to the EventParam.
      * @param txHash The hash of the transaction to look for events.
      * @param func The function to look for.
+     * @param args The topics to search for.
      * @param anonymous (optional) Whether the event is anonymous or not. Defaults to false.
+     * @return A list of emitted events from the tx.
      */
     template <typename TContract, typename... Args, bool... Flags>
     std::vector<Event> getEventsEmittedByTx(

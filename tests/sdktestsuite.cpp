@@ -76,6 +76,8 @@ namespace TSDKTestSuite {
       REQUIRE(filteredEvents.size() == 1);
       auto filteredEvents2 = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 3!")));
       REQUIRE(filteredEvents2.size() == 0);
+      auto filteredEvents3 = sdkTestSuite.getEventsEmittedByAddress(simpleContractAddress, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!")));
+      REQUIRE(filteredEvents3.size() == 1);
     }
   }
 }
