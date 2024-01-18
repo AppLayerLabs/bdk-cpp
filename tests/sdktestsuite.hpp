@@ -600,7 +600,7 @@ class SDKTestSuite {
       toInfo = contractAddress;
       functorInfo = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
       dataInfo = Bytes();
-      return ABI::Decoder::decodeData<ReturnType>(this->state_->ethCall(callData));
+      return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_->ethCall(callData)));
     }
 
     /**
