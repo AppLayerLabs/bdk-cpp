@@ -1,6 +1,5 @@
 #include "sdktestsuite.hpp"
 
-
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/templates/erc20.h"
 #include "../../src/contract/templates/simplecontract.h"
@@ -70,18 +69,15 @@ namespace TSDKTestSuite {
     SECTION("SDK Test Suite getEvents") {
       SDKTestSuite sdkTestSuite("testSuiteGetEvents");
       auto simpleContractAddress = sdkTestSuite.deployContract<SimpleContract>(std::string("Hello World!"), uint256_t(10));
-
       auto changeNameAndValueTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setName, std::string("Hello World 2!"));
-
       auto events = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged);
       REQUIRE(events.size() == 1);
-
       auto filteredEvents = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!")));
       REQUIRE(filteredEvents.size() == 1);
-
       auto filteredEvents2 = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 3!")));
       REQUIRE(filteredEvents2.size() == 0);
-
     }
   }
 }
+
+
