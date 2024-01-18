@@ -294,6 +294,44 @@ class SDKTestSuite {
     /**
      * Create a transaction to deploy a new contract and advance the chain with it.
      * Always use the chain owner account to deploy contracts.
+     * Specialization with no args.
+     * @tparam TContract Contract type to deploy.
+     * @tparam Args... Arguments to pass to the contract constructor.
+     * @return Address of the deployed contract.
+     */
+    template <typename TContract> const Address deployContract() {
+      TContract::registerContract();
+      auto prevContractList = this->state_->getContracts();
+      using ContractArgumentTypes = decltype(Utils::removeQualifiers<typename TContract::ConstructorArguments>());
+
+      // Encode the functor
+      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract("
+        + ContractReflectionInterface::getConstructorArgumentTypesString<TContract>() + ")";
+      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
+      Bytes data(functor.cbegin(), functor.cend());
+
+      // Create the transaction, advance the chain with it, and get the new contract address.
+      TxBlock createContractTx = createNewTx(this->chainOwnerAccount_, ProtocolContractAddresses.at("ContractManager"), 0, data);
+      this->advanceChain(0, {createContractTx});
+      auto newContractList = this->state_->getContracts();
+
+      // Filter new contract list to find the new contract.
+      // TODO: We are assuming that only one contract of the same type is deployed at a time.
+      // We need to somehow link a transaction to a newly created contract.
+      // This can also be used on eth_getTransactionReceipt contractAddress field.
+      Address newContractAddress;
+      for (const auto& contract : newContractList) {
+        if (std::find(prevContractList.begin(), prevContractList.end(), contract) == prevContractList.end()) {
+          newContractAddress = contract.second; break;
+        }
+      }
+      return newContractAddress;
+    }
+
+    /**
+     * Create a transaction to deploy a new contract and advance the chain with it.
+     * Always use the chain owner account to deploy contracts.
+     * Specialization with args.
      * @tparam TContract Contract type to deploy.
      * @tparam Args... Arguments to pass to the contract constructor.
      * @return Address of the deployed contract.
