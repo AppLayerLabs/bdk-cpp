@@ -14,8 +14,14 @@ See the LICENSE.txt file in the project root for more information.
 #include <filesystem>
 #include <sys/types.h>
 
-// Forward declaration.
-ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
+ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
+  ethCallInfoAllocated callInfo;
+  auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  to = addressToCall;
+  functor = function;
+  data = dataToCall;
+  return callInfo;
+}
 
 namespace TContractManager {
   std::string testDumpPath = Utils::getTestDumpPath();

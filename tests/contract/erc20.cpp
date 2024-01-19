@@ -19,16 +19,6 @@ See the LICENSE.txt file in the project root for more information.
 
 // TODO: test events if/when implemented
 
-// TODO: remove this function, tests for ContractManager still depend on it
-ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
-  ethCallInfoAllocated callInfo;
-  auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
-  to = addressToCall;
-  functor = function;
-  data = dataToCall;
-  return callInfo;
-}
-
 namespace TERC20 {
   TEST_CASE("ERC2O Class", "[contract][erc20]") {
     SECTION("ERC20 creation") {
