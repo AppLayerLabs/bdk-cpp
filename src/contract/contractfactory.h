@@ -55,8 +55,7 @@ class ContractFactory {
      * @throw runtime_error if non contract creator tries to create a contract.
      * @throw runtime_error if contract already exists.
      */
-    template <typename TContract>
-    auto setupNewContract(const ethCallInfo &callInfo) {
+    template <typename TContract> auto setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
       if (this->manager_.getOrigin() != this->manager_.getContractCreator()) {
         throw std::runtime_error("Only contract creator can create new contracts");
