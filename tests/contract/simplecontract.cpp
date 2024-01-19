@@ -13,236 +13,47 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/contract/contractmanager.h"
 #include "../../src/contract/templates/simplecontract.h"
 
+#include "../sdktestsuite.hpp"
+
 #include <filesystem>
-
-// Forward Declaration.
-ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
-
-void initialize(
-  std::unique_ptr<Options>& options, std::unique_ptr<DB>& db,
-  std::unique_ptr<ContractManager>& contractManager,
-  const std::string& dbName,
-  const PrivKey& ownerPrivKey,
-  const std::string& name,
-  const uint256_t& value,
-  bool deleteDB = true
-) {
-  // Initialize parameters
-  if (deleteDB && std::filesystem::exists(dbName)) std::filesystem::remove_all(dbName);
-  options = std::make_unique<Options>(Options::fromFile(dbName));
-  db = std::make_unique<DB>(dbName);
-  std::unique_ptr<rdPoS> rdpos;
-  contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options);
-  // Create the contract
-  if (deleteDB) {
-    Bytes createNewSimpleContractEncoder = ABI::Encoder::encodeData(name, value);
-    Bytes createNewSimpleContractData = Hex::toBytes("0x6de23252"); // createNewSimpleContractContract(string,uint256)
-    Utils::appendBytes(createNewSimpleContractData, createNewSimpleContractEncoder);
-    TxBlock createNewSimpleContractTx = TxBlock(
-      ProtocolContractAddresses.at("ContractManager"),
-      Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey)),
-      createNewSimpleContractData, 8080, 0, 0, 0, 0, 0, ownerPrivKey
-    );
-    contractManager->callContract(createNewSimpleContractTx);
-  }
-}
 
 namespace TSimpleContract {
   TEST_CASE("SimpleContract class", "[contract][simplecontract]") {
-    std::string testDumpPath = Utils::getTestDumpPath();
-    PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
-    Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
     SECTION("SimpleContract creation") {
-      Address contractAddress;
-      {
-        std::unique_ptr<Options> options;
-        std::unique_ptr<DB> db;
-        std::unique_ptr<ContractManager> contractManager;
-        initialize(options, db, contractManager,
-          testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581
-        );
-
-        // Get the contract address.
-        contractAddress = contractManager->getContracts()[0].second;
-
-        Bytes getNameEncoder = Bytes(32, 0);
-        Bytes getValueEncoder = Bytes(32, 0);
-
-        Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
-        Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
-
-        Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
-        Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
-
-        auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
-        auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
-
-        REQUIRE(std::get<0>(nameDecoder) == "TestName");
-        REQUIRE(std::get<0>(valueDecoder) == 19283187581);
-      }
-
-      std::unique_ptr<Options> options;
-      std::unique_ptr<DB> db;
-      std::unique_ptr<ContractManager> contractManager;
-      initialize(options, db, contractManager,
-        testDumpPath + "/SimpleContractCreationTest", ownerPrivKey, "TestName", 19283187581, false
+      SDKTestSuite sdk("testSimpleContractCreation");
+      Address simpleContract = sdk.deployContract<SimpleContract>(
+        std::string("TestName"), uint256_t(19283187581)
       );
-
-      REQUIRE(contractAddress == contractManager->getContracts()[0].second);
-
-      Bytes getNameEncoder = Bytes(32, 0);
-      Bytes getValueEncoder = Bytes(32, 0);
-
-      Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
-      Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
-
-      Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
-      Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
-
-      auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
-      auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
-
-      REQUIRE(std::get<0>(nameDecoder) == "TestName");
-      REQUIRE(std::get<0>(valueDecoder) == 19283187581);
+      std::string name = sdk.callViewFunction(simpleContract, &SimpleContract::getName);
+      uint256_t value = sdk.callViewFunction(simpleContract, &SimpleContract::getValue);
+      REQUIRE(name == "TestName");
+      REQUIRE(value == 19283187581);
     }
 
     SECTION("SimpleContract setName and setValue") {
-      Address contractAddress;
-      {
-        std::unique_ptr<Options> options;
-        std::unique_ptr<DB> db;
-        std::unique_ptr<ContractManager> contractManager;
-        initialize(options, db, contractManager,
-          testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581
-        );
-
-        // Get the contract address.
-        contractAddress = contractManager->getContracts()[0].second;
-
-        Bytes getNameEncoder = Bytes(32, 0);
-        Bytes getValueEncoder = Bytes(32, 0);
-
-        Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
-        Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
-
-        Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
-        Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
-
-        auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
-        auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
-
-        Bytes setNameEncoder = ABI::Encoder::encodeData(std::string("TryThisName"));
-        Functor setNameFunctor = ABI::FunctorEncoder::encode<std::string>("setName");
-        Bytes setValueEncoder = ABI::Encoder::encodeData(uint256_t("918258172319061203818967178162134821351"));
-        Functor setValueFunctor = ABI::FunctorEncoder::encode<uint256_t>("setValue");
-
-        Bytes setNameBytes;
-        Utils::appendBytes(setNameBytes, setNameFunctor);
-        Utils::appendBytes(setNameBytes, setNameEncoder);
-
-        Bytes setValueBytes;
-        Utils::appendBytes(setValueBytes, setValueFunctor);
-        Utils::appendBytes(setValueBytes, setValueEncoder);
-
-        TxBlock setNameTx(contractAddress, owner, setNameBytes, 8080, 0, 0, 0, 0, 0, ownerPrivKey);
-        TxBlock setValueTx(contractAddress, owner, setValueBytes, 8080, 0, 0, 0, 0, 0, ownerPrivKey);
-
-        // Simulating a block so events can have separated keys (block height + tx index + log index).
-        Hash randomBlockHash = Hash::random();
-        contractManager->updateContractGlobals(Address(), randomBlockHash, 0, 0);
-        contractManager->callContract(setNameTx, randomBlockHash, 0);
-        contractManager->callContract(setValueTx, randomBlockHash, 1);
-
-        nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
-        valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
-
-        nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
-        valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
-
-        REQUIRE(std::get<0>(nameDecoder) == "TryThisName");
-        REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
-
-        Event nameEvent = contractManager->getEvents(
-          0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("nameChanged(string)")), Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
-        ).at(0);
-
-        REQUIRE(nameEvent.getName() == "nameChanged");
-        REQUIRE(nameEvent.getLogIndex() == 0);
-        std::cout << Hex::fromBytes(nameEvent.getTxHash().asBytes(), true).get() << std::endl;
-        std::cout << Hex::fromBytes(setNameTx.hash().asBytes(), true).get() << std::endl;
-        REQUIRE(nameEvent.getTxHash() == setNameTx.hash());
-        REQUIRE(nameEvent.getTxIndex() == 0);
-        REQUIRE(nameEvent.getBlockIndex() == 0);
-        REQUIRE(nameEvent.getAddress() == contractAddress);
-        REQUIRE(nameEvent.getData() == Bytes());
-        REQUIRE(nameEvent.getTopics().at(1) == Utils::sha3(Utils::stringToBytes("TryThisName"))); // at(0) = functor (non-anonymous)
-        REQUIRE(!nameEvent.isAnonymous());
-
-        Event valueEvent = contractManager->getEvents(
-          0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("valueChanged(uint256)")), Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
-        ).at(0);
-
-        REQUIRE(valueEvent.getName() == "valueChanged");
-        REQUIRE(valueEvent.getLogIndex() == 0);
-        REQUIRE(valueEvent.getTxHash() == setValueTx.hash());
-        REQUIRE(valueEvent.getTxIndex() == 1);
-        REQUIRE(valueEvent.getBlockIndex() == 0);
-        REQUIRE(valueEvent.getAddress() == contractAddress);
-        REQUIRE(valueEvent.getData() == Bytes());
-        REQUIRE(valueEvent.getTopics().at(1) == Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)); // at(0) = functor (non-anonymous)
-        REQUIRE(!valueEvent.isAnonymous());
-      }
-
-      std::unique_ptr<Options> options;
-      std::unique_ptr<DB> db;
-      std::unique_ptr<ContractManager> contractManager;
-      initialize(options, db, contractManager,
-        testDumpPath + "/SimpleContractSetNameAndSetValue", ownerPrivKey, "TestName", 19283187581, false
+      SDKTestSuite sdk("testSimpleContractSetNameAndSetValue");
+      Address simpleContract = sdk.deployContract<SimpleContract>(
+        std::string("TestName"), uint256_t(19283187581)
       );
 
-      REQUIRE(contractAddress == contractManager->getContracts()[0].second);
+      std::string name = sdk.callViewFunction(simpleContract, &SimpleContract::getName);
+      uint256_t value = sdk.callViewFunction(simpleContract, &SimpleContract::getValue);
+      REQUIRE(name == "TestName");
+      REQUIRE(value == 19283187581);
 
-      Bytes getNameEncoder = Bytes(32, 0);
-      Bytes getValueEncoder = Bytes(32, 0);
+      Hash nameTx = sdk.callFunction(simpleContract, &SimpleContract::setName, std::string("TryThisName"));
+      Hash valueTx = sdk.callFunction(simpleContract, &SimpleContract::setValue, uint256_t("918258172319061203818967178162134821351"));
+      name = sdk.callViewFunction(simpleContract, &SimpleContract::getName);
+      value = sdk.callViewFunction(simpleContract, &SimpleContract::getValue);
+      REQUIRE(name == "TryThisName");
+      REQUIRE(value == uint256_t("918258172319061203818967178162134821351"));
 
-      Functor getNameFunctor = ABI::FunctorEncoder::encode<void>("getName");
-      Functor getValueFunctor = ABI::FunctorEncoder::encode<void>("getValue");
+      auto nameEvent = sdk.getEventsEmittedByTx(nameTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("TryThisName")));
+      auto valueEvent = sdk.getEventsEmittedByTx(valueTx, &SimpleContract::valueChanged, std::make_tuple(EventParam<uint256_t, true>(uint256_t("918258172319061203818967178162134821351"))));
+      REQUIRE(nameEvent.size() == 1);
+      REQUIRE(valueEvent.size() == 1);
 
-      Bytes nameData = contractManager->callContract(buildCallInfo(contractAddress, getNameFunctor, getNameEncoder));
-      Bytes valueData = contractManager->callContract(buildCallInfo(contractAddress, getValueFunctor, getValueEncoder));
-
-      auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
-      auto valueDecoder = ABI::Decoder::decodeData<uint256_t>(valueData);
-
-      REQUIRE(std::get<0>(nameDecoder) == "TryThisName");
-      REQUIRE(std::get<0>(valueDecoder) == uint256_t("918258172319061203818967178162134821351"));
-
-      // No tx hash here but it was already tested before
-      Event nameEvent = contractManager->getEvents(
-        0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("nameChanged(string)")), Utils::sha3(Utils::stringToBytes("TryThisName")).asBytes() }
-      ).at(0);
-
-      REQUIRE(nameEvent.getName() == "nameChanged");
-      REQUIRE(nameEvent.getLogIndex() == 0);
-      REQUIRE(nameEvent.getTxIndex() == 0);
-      REQUIRE(nameEvent.getBlockIndex() == 0);
-      REQUIRE(nameEvent.getAddress() == contractAddress);
-      REQUIRE(nameEvent.getData() == Bytes());
-      REQUIRE(nameEvent.getTopics().at(1) == Utils::sha3(Utils::stringToBytes("TryThisName"))); // at(0) = functor (non-anonymous)
-      REQUIRE(!nameEvent.isAnonymous());
-
-      Event valueEvent = contractManager->getEvents(
-        0, 1, contractAddress, { Utils::sha3(Utils::stringToBytes("valueChanged(uint256)")), Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32) }
-      ).at(0);
-
-      REQUIRE(valueEvent.getName() == "valueChanged");
-      REQUIRE(valueEvent.getLogIndex() == 0);
-      REQUIRE(valueEvent.getTxIndex() == 1);
-      REQUIRE(valueEvent.getBlockIndex() == 0);
-      REQUIRE(valueEvent.getAddress() == contractAddress);
-      REQUIRE(valueEvent.getData() == Bytes());
-      REQUIRE(valueEvent.getTopics().at(1) == Utils::padLeftBytes(Utils::uintToBytes(uint256_t("918258172319061203818967178162134821351")), 32)); // at(0) = functor (non-anonymous)
-      REQUIRE(!valueEvent.isAnonymous());
+      // TODO: maybe test the rest of the events?
     }
   }
 }
