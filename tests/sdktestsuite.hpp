@@ -796,6 +796,62 @@ class SDKTestSuite {
       return filteredEvents;
     }
 
+    // Forward declaration for the extractor
+      template <typename TFunc>
+      struct FunctionTraits;
+
+      // Specialization for member function pointers
+      template <typename TContract, typename... Args, bool... Flags>
+      struct FunctionTraits<void(TContract::*)(const EventParam<Args, Flags>&...)>
+      {
+          using TupleType = decltype(ABI::Decoder::makeTupleType<Args..., std::integral_constant<bool, Flags>...>());
+      };
+
+    template <typename TContract, typename... Args, bool... Flags>
+    auto getEventsEmittedByTxTup(const Hash& txHash,
+                                void(TContract::*func)(const EventParam<Args, Flags>&...),
+                                bool anonymous = false) {
+        // Get all the events emitted by the transaction.
+        using TupleType = typename FunctionTraits<decltype(func)>::TupleType;
+        
+        //if TupleType is a empty tuple, then we throw an error
+        auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
+            ContractReflectionInterface::getFunctionName(func)
+        );
+        std::vector<Hash> topicsToFilter;
+        static_assert(ABI::always_false<TupleType>, "");
+        if (!anonymous) topicsToFilter.push_back(eventSignature);
+        std::vector<Event> filteredEvents;
+        auto allEvents = this->getEvents(txHash);
+
+        // Filter the events by the topics
+        for (const auto& event : allEvents) {
+            if (topicsToFilter.size() == 0) {
+                filteredEvents.push_back(event);
+            } else {
+                if (event.getTopics().size() < topicsToFilter.size()) continue;
+                bool match = true;
+                for (uint64_t i = 0; i < topicsToFilter.size(); i++) {
+                    if (topicsToFilter[i] != event.getTopics()[i]) { match = false; break; }
+                }
+                if (match) filteredEvents.push_back(event);
+            }
+        }
+
+        // Process each filtered event to get the tuple of non-indexed arguments
+        std::vector<TupleType> tuples;
+        if constexpr (!std::is_same_v<TupleType, std::tuple<>>) {
+            for (const auto& event : filteredEvents) {
+                auto tuple = ABI::Decoder::decodeDataAsTuple<TupleType>(event.getData());
+                tuples.push_back(tuple);
+            }
+        } else {
+            throw std::runtime_error("Attempted to decode an event with only indexed parameters (empty tuple).");
+        }
+        
+        return tuples;
+    }
+
     /**
      * Get events emitted by a given confirmed transaction.
      * Specialization without args (will not filter indexed args).

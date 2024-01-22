@@ -48,7 +48,7 @@ namespace TSimpleContract {
       REQUIRE(name == "TryThisName");
       REQUIRE(value == uint256_t("918258172319061203818967178162134821351"));
 
-      auto nameEvent = sdk.getEventsEmittedByTx(nameTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("TryThisName")));
+      auto nameEvent = sdk.getEventsEmittedByTx(nameTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, false>("TryThisName")));
       auto valueEvent = sdk.getEventsEmittedByTx(valueTx, &SimpleContract::valueChanged, std::make_tuple(EventParam<uint256_t, true>(uint256_t("918258172319061203818967178162134821351"))));
       REQUIRE(nameEvent.size() == 1);
       REQUIRE(valueEvent.size() == 1);

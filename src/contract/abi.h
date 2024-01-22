@@ -948,6 +948,28 @@ namespace ABI {
 
     ///@endcond
 
+    template<typename Accumulated>
+    auto makeTupleTypeHelper(Accumulated acc) {
+        return acc;
+    }
+
+    template<typename Accumulated, typename T, bool flag, typename... Ts>
+    auto makeTupleTypeHelper(Accumulated acc, std::integral_constant<bool, flag>, const Ts&... params) {
+        if constexpr (!flag) {
+            using Extended = decltype(std::tuple_cat(acc, std::tuple<T>{}));
+            return makeTupleTypeHelper(Extended{}, params...);
+        } else {
+            return makeTupleTypeHelper(acc, params...);
+        }
+    }
+
+    template <typename... Args, bool... Flags>
+    auto makeTupleType() {
+        return makeTupleTypeHelper(std::tuple<>(), std::integral_constant<bool, Flags>{}...);
+    }
+
+
+
     /**
      * Recursive helper function to decode each element of the tuple.
      * @tparam Index The current index in the tuple.
@@ -986,6 +1008,27 @@ namespace ABI {
         return ret;
       }
     }
+
+    template<typename T>
+    struct decodeDataAsTuple {
+        static T decode(const BytesArrView& encodedData, uint64_t index = 0) {
+            static_assert(always_false<T>, "Can't use decodeDataAsTuple with a non-tuple type");
+            return T();
+        }
+    };
+
+    template<typename... Args>
+    struct decodeDataAsTuple<std::tuple<Args...>> {
+        static std::tuple<Args...> decode(const BytesArrView& encodedData, uint64_t index = 0) {
+            if constexpr (sizeof...(Args) == 0) {
+                throw std::runtime_error("Can't decode empty tuple");
+            } else {
+                return decodeData<Args...>(encodedData);
+            }
+        }
+    };
+
+
   };  // namespace Decoder
 }; // namespace ABI
 

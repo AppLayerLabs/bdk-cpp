@@ -24,7 +24,7 @@ class SimpleContract : public DynamicContract {
 
   public:
     /// Event for when the name changes.
-    void nameChanged(const EventParam<std::string, true>& name) { this->emitEvent(__func__,  std::make_tuple(name)); }
+    void nameChanged(const EventParam<std::string, false>& name) { this->emitEvent(__func__,  std::make_tuple(name)); }
 
     /// Event for when the value changes.
     void valueChanged(const EventParam<uint256_t, true>& value) { this->emitEvent(__func__, std::make_tuple(value)); }
