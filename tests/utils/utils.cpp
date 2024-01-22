@@ -13,7 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 using Catch::Matchers::Equals;
 
 namespace TUtils {
-  TEST_CASE("Utils Namespace", "[utilsitself][utils]") {
+  TEST_CASE("Utils Namespace", "[utils][utilsitself]") {
     SECTION("Sha3 Test") {
       std::string sha3Input = "My SHA3 Input";
       auto sha3Output = Utils::sha3(Utils::stringToBytes(sha3Input));

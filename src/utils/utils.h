@@ -48,6 +48,9 @@ using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_back
 
 using Byte = uint8_t; ///< Typedef for Byte.
 using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
+template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
+using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
+using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
 
 /// Typedef for uint24_t.
 using uint24_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<24, 24, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
@@ -229,10 +232,6 @@ using SafeInt240_t = SafeInt_t<240>; ///< Typedef for SafeInt240_t.
 using SafeInt248_t = SafeInt_t<248>; ///< Typedef for SafeInt248_t.
 using SafeInt256_t = SafeInt_t<256>; ///< Typedef for SafeInt256_t.
 
-template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
-using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
-using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
-
 /**
  * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
  * **NOTE**: Be aware that we are using BytesArrView, so you MUST be sure that
@@ -281,17 +280,20 @@ struct Account {
   Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
 };
 
-template<typename T, bool flag>
-struct EventParam {
+/**
+ * Struct for abstracting a Solidity event parameter.
+ * @tparam T The parameter's type.
+ * @tparam Index Whether the parameter is indexed or not.
+ */
+template<typename T, bool Index> struct EventParam {
   using type = T;
   const T& value;
-  static constexpr bool isIndexed = flag;
+  static constexpr bool isIndexed = Index;
   EventParam(const T& value) : value(value) {}
 };
 
 /// Namespace for utility functions.
 namespace Utils {
-
   std::string getTestDumpPath(); ///< Get the path to the test dump folder.
 
   /**
@@ -299,8 +301,7 @@ namespace Utils {
    * @tparam TTuple The tuple type to remove qualifiers from.
    * @tparam I The index sequence.
    */
-  template <typename TTuple, std::size_t... I>
-  auto removeQualifiersImpl(std::index_sequence<I...>) {
+  template <typename TTuple, std::size_t... I> auto removeQualifiersImpl(std::index_sequence<I...>) {
     return std::tuple<std::decay_t<std::tuple_element_t<I, TTuple>>...>{};
   }
 
@@ -309,44 +310,41 @@ namespace Utils {
    * @tparam TTuple The tuple type to remove qualifiers from.
    * @return A tuple with the same types but qualifiers removed.
    */
-  template <typename TTuple>
-  auto removeQualifiers() {
+  template <typename TTuple> auto removeQualifiers() {
     return removeQualifiersImpl<TTuple>(std::make_index_sequence<std::tuple_size_v<TTuple>>{});
   }
 
   /**
-  * Template for identifying if a type is a uint between 8 and 256 bits.
-  * @tparam T The type to check.
-  * @tparam N The number of bits.
-  */
-  template<typename T, std::size_t N>
-    struct isRangedUint {
-        static const bool value = std::is_integral_v<T> && std::is_unsigned_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is a uint between 8 and 256 bits.
-    };
-
-  /**
-  * Template for identifying if a type is an int between 8 and 256 bits.
-  * @tparam T The type to check.
-  * @tparam N The number of bits.
-  */
-  template<typename T, std::size_t N>
-  struct isRangedInt {
-      static const bool value = std::is_integral_v<T> && std::is_signed_v<T> && (sizeof(T) * 8 <= N); ///< Indicates whether the type is an int between 8 and 256 bits.
+   * Template for identifying if a type is a uint between 8 and 256 bits.
+   * @tparam T The type to check.
+   * @tparam N The number of bits.
+   */
+  template<typename T, std::size_t N> struct isRangedUint {
+    /// Indicates whether the type is a uint between 8 and 256 bits.
+    static const bool value = std::is_integral_v<T> && std::is_unsigned_v<T> && (sizeof(T) * 8 <= N);
   };
 
   /**
-  * Template for identifying if a type is a tuple.
-  * @tparam T The type to check.
-  */
-  template <typename T>
-  struct is_tuple : std::false_type {};
+   * Template for identifying if a type is an int between 8 and 256 bits.
+   * @tparam T The type to check.
+   * @tparam N The number of bits.
+   */
+  template<typename T, std::size_t N> struct isRangedInt {
+    /// Indicates whether the type is an int between 8 and 256 bits.
+    static const bool value = std::is_integral_v<T> && std::is_signed_v<T> && (sizeof(T) * 8 <= N);
+  };
 
   /**
-  * Template explicit specialization for identifying if a type is a tuple.
-  * @tparam Ts The types to check.
-  */
-  template <typename... Ts>
-  struct is_tuple<std::tuple<Ts...>> : std::true_type {};
+   * Template for identifying if a type is a tuple.
+   * @tparam T The type to check.
+   */
+  template <typename T> struct is_tuple : std::false_type {};
+
+  /**
+   * Template explicit specialization for identifying if a type is a tuple.
+   * @tparam Ts The types to check.
+   */
+  template <typename... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
 
   extern std::atomic<bool> logToCout; ///< Indicates whether logging to stdout is allowed (for safePrint()).
 
@@ -386,94 +384,94 @@ namespace Utils {
   BytesArr<32> int256ToBytes(const int256_t& i);
 
   /**
-  * Convert a 248-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 248-bit integer as a bytes string.
-  */
+   * Convert a 248-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 248-bit integer as a bytes string.
+   */
   BytesArr<31> uint248ToBytes(const uint248_t& i);
 
   /**
-  * Convert a 240-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 240-bit integer as a bytes string.
-  */
+   * Convert a 240-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 240-bit integer as a bytes string.
+   */
   BytesArr<30> uint240ToBytes(const uint240_t& i);
 
   /**
-  * Convert a 232-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 232-bit integer as a bytes string.
-  */
+   * Convert a 232-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 232-bit integer as a bytes string.
+   */
   BytesArr<29> uint232ToBytes(const uint232_t& i);
 
   /**
-  * Convert a 224-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 224-bit integer as a bytes string.
-  */
+   * Convert a 224-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 224-bit integer as a bytes string.
+   */
   BytesArr<28> uint224ToBytes(const uint224_t& i);
 
   /**
-  * Convert a 216-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 216-bit integer as a bytes string.
-  */
+   * Convert a 216-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 216-bit integer as a bytes string.
+   */
   BytesArr<27> uint216ToBytes(const uint216_t& i);
 
   /**
-  * Convert a 208-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 208-bit integer as a bytes string.
-  */
+   * Convert a 208-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 208-bit integer as a bytes string.
+   */
   BytesArr<26> uint208ToBytes(const uint208_t& i);
 
   /**
-  * Convert a 200-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 200-bit integer as a bytes string.
-  */
+   * Convert a 200-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 200-bit integer as a bytes string.
+   */
   BytesArr<25> uint200ToBytes(const uint200_t& i);
 
   /**
-  * Convert a 192-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 192-bit integer as a bytes string.
-  */
+   * Convert a 192-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 192-bit integer as a bytes string.
+   */
   BytesArr<24> uint192ToBytes(const uint192_t& i);
 
   /**
-  * Convert a 184-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 184-bit integer as a bytes string.
-  */
+   * Convert a 184-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 184-bit integer as a bytes string.
+   */
   BytesArr<23> uint184ToBytes(const uint184_t& i);
 
   /**
-  * Convert a 176-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 176-bit integer as a bytes string.
-  */
+   * Convert a 176-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 176-bit integer as a bytes string.
+   */
   BytesArr<22> uint176ToBytes(const uint176_t& i);
 
   /**
-  * Convert a 168-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 168-bit integer as a bytes string.
-  */
+   * Convert a 168-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 168-bit integer as a bytes string.
+   */
   BytesArr<21> uint168ToBytes(const uint168_t& i);
 
-   /**
+  /**
    * Convert a 160-bit unsigned integer to a bytes string.
    * Use `Hex()` to properly print it.
    * @param i The integer to convert.
@@ -482,27 +480,27 @@ namespace Utils {
   BytesArr<20> uint160ToBytes(const uint160_t& i);
 
   /**
-  * Convert a 152-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 152-bit integer as a bytes string.
-  */
+   * Convert a 152-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 152-bit integer as a bytes string.
+   */
   BytesArr<19> uint152ToBytes(const uint152_t& i);
 
   /**
-  * Convert a 144-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 144-bit integer as a bytes string.
-  */
+   * Convert a 144-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 144-bit integer as a bytes string.
+   */
   BytesArr<18> uint144ToBytes(const uint144_t& i);
 
   /**
-  * Convert a 136-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 136-bit integer as a bytes string.
-  */
+   * Convert a 136-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 136-bit integer as a bytes string.
+   */
   BytesArr<17> uint136ToBytes(const uint136_t& i);
 
   /**
@@ -514,11 +512,11 @@ namespace Utils {
   BytesArr<16> uint128ToBytes(const uint128_t& i);
 
   /**
-  * Convert a 120-bit unsigned integer to a bytes string.
-  * Use `Hex()` to properly print it.
-  * @param i The integer to convert.
-  * @return The converted 120-bit integer as a bytes string.
-  */
+   * Convert a 120-bit unsigned integer to a bytes string.
+   * Use `Hex()` to properly print it.
+   * @param i The integer to convert.
+   * @return The converted 120-bit integer as a bytes string.
+   */
   BytesArr<15> uint120ToBytes(const uint120_t& i);
 
   /**
@@ -657,123 +655,123 @@ namespace Utils {
   uint256_t bytesToUint256(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 248-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 248-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 248-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 248-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint248_t bytesToUint248(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 240-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 240-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 240-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 240-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint240_t bytesToUint240(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 232-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 232-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 232-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 232-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint232_t bytesToUint232(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 224-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 224-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
-
+   * Convert a bytes string to a 224-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 224-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint224_t bytesToUint224(const BytesArrView b);
-  /**
-  * Convert a bytes string to a 216-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 216-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
 
-  uint216_t bytesToUint216(const BytesArrView b);
   /**
-  * Convert a bytes string to a 208-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 208-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 216-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 216-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
+  uint216_t bytesToUint216(const BytesArrView b);
+
+  /**
+   * Convert a bytes string to a 208-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 208-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint208_t bytesToUint208(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 200-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 200-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 200-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 200-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint200_t bytesToUint200(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 192-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 192-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 192-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 192-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint192_t bytesToUint192(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 184-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 184-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 184-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 184-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint184_t bytesToUint184(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 176-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 176-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 176-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 176-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint176_t bytesToUint176(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 168-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 168-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 168-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 168-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint168_t bytesToUint168(const BytesArrView b);
 
   /**
-    * Convert a bytes string to a 160-bit unsigned integer.
-    * @param b The bytes string to convert.
-    * @return The converted 160-bit integer.
-    * @throw std::runtime_error if string size is invalid.
-    */
+   * Convert a bytes string to a 160-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 160-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint160_t bytesToUint160(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 152-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 152-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 152-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 152-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint152_t bytesToUint152(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 144-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 144-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 144-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 144-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint144_t bytesToUint144(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 136-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 136-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 136-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 136-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint136_t bytesToUint136(const BytesArrView b);
 
   /**
@@ -785,11 +783,11 @@ namespace Utils {
   uint128_t bytesToUint128(const BytesArrView b);
 
   /**
-  * Convert a bytes string to a 120-bit unsigned integer.
-  * @param b The bytes string to convert.
-  * @return The converted 120-bit integer.
-  * @throw std::runtime_error if string size is invalid.
-  */
+   * Convert a bytes string to a 120-bit unsigned integer.
+   * @param b The bytes string to convert.
+   * @return The converted 120-bit integer.
+   * @throw std::runtime_error if string size is invalid.
+   */
   uint120_t bytesToUint120(const BytesArrView b);
 
   /**
@@ -911,7 +909,7 @@ namespace Utils {
    * @return The converted 8-bit integer.
    * @throw std::runtime_error if string size is invalid.
    */
-   uint8_t bytesToUint8(const BytesArrView b);
+  uint8_t bytesToUint8(const BytesArrView b);
 
    /**
     * Convert a bytes string to a 256-bit signed integer.
@@ -960,8 +958,8 @@ namespace Utils {
    */
   template <class T, class In> T fromBigEndian(const In& bytes) {
     T ret = (T)0;
-    for (auto i: bytes) {
-      ret = (T)((ret << 8) | (uint8_t)(typename std::make_unsigned<decltype(i)>::type)i);
+    for (auto i : bytes) {
+      ret = (T)((ret << 8) | (uint8_t)(typename std::make_unsigned<decltype(i)>::type) i);
     }
     return ret;
   }
@@ -1016,25 +1014,23 @@ namespace Utils {
   }
 
   /**
-  * Get the real type name of a type.
-  * For example, `getRealTypeName<std::string>()` will return "std::basic_string<char, std::char_traits<char>, std::allocator<char> >"
-  * @tparam T The type to get the name of.
-  * @return The real type name.
-  */
-  template <typename T>
-  std::string getRealTypeName() {
+   * Get the real type name of a type.
+   * For example, `getRealTypeName<std::string>()` will return
+   * "std::basic_string<char, std::char_traits<char>, std::allocator<char>>".
+   * @tparam T The type to get the name of.
+   * @return The real type name.
+   */
+  template <typename T> std::string getRealTypeName() {
     int status;
     char* demangledName = nullptr;
-
     std::string mangledName = typeid(T).name();
     demangledName = abi::__cxa_demangle(mangledName.c_str(), 0, 0, &status);
-
-    if(status == 0 && demangledName != nullptr) {
-        std::string realName(demangledName);
-        free(demangledName);
-        return realName;
+    if (status == 0 && demangledName != nullptr) {
+      std::string realName(demangledName);
+      free(demangledName);
+      return realName;
     } else {
-        return mangledName;
+      return mangledName;
     }
   }
 
@@ -1055,10 +1051,7 @@ namespace Utils {
   * @return The converted span.
   */
   inline BytesArrMutableView create_span(Bytes& vec, size_t start, size_t size) {
-    if (start + size > vec.size()) {
-      throw std::runtime_error("Invalid range for span");
-    }
-
+    if (start + size > vec.size()) throw std::runtime_error("Invalid range for span");
     return BytesArrMutableView(vec.data() + start, size);
   }
 
@@ -1099,12 +1092,10 @@ namespace Utils {
   * @param size The size of the subarray.
   * @return The converted span.
   */
-  template<std::size_t N>
-  inline BytesArrMutableView create_span(BytesArr<N>& arr, size_t start, size_t size) {
-    if (start + size > arr.size()) {
-      throw std::runtime_error("Invalid range for span");
-    }
-
+  template<std::size_t N> inline BytesArrMutableView create_span(
+    BytesArr<N>& arr, size_t start, size_t size
+  ) {
+    if (start + size > arr.size()) throw std::runtime_error("Invalid range for span");
     return BytesArrMutableView(arr.data() + start, size);
   }
 
@@ -1113,8 +1104,7 @@ namespace Utils {
   * @param arr The array to convert.
   * @return The converted span.
   */
-  template<std::size_t N>
-  inline BytesArrView create_view_span(const BytesArr<N>& arr) {
+  template<std::size_t N> inline BytesArrView create_view_span(const BytesArr<N>& arr) {
     return BytesArrView(arr.data(), arr.size());
   }
 
@@ -1125,12 +1115,10 @@ namespace Utils {
    * @param size The size of the subarray.
    * @return The converted span.
    */
-  template<std::size_t N>
-  inline BytesArrView create_view_span(const BytesArr<N>& arr, size_t start, size_t size) {
-    if (start + size > arr.size()) {
-      throw std::runtime_error("Invalid range for span");
-    }
-
+  template<std::size_t N> inline BytesArrView create_view_span(
+    const BytesArr<N>& arr, size_t start, size_t size
+  ) {
+    if (start + size > arr.size()) throw std::runtime_error("Invalid range for span");
     return BytesArrView(arr.data() + start, size);
   }
 
@@ -1167,8 +1155,7 @@ namespace Utils {
    * @param vec The vector to append to.
    * @param bytes The vector to be appended.
    */
-  template<typename T>
-  inline void appendBytes(Bytes& vec, const T& bytes) {
+  template<typename T> inline void appendBytes(Bytes& vec, const T& bytes) {
     vec.insert(vec.end(), bytes.cbegin(), bytes.cend());
   }
 
@@ -1178,8 +1165,7 @@ namespace Utils {
    * @tparam T Can be either std::vector, std::span, or std::array.
    * @return The converted bytes as a string.
    */
-  template<typename T>
-  inline std::string bytesToString(const T& bytes) {
+  template<typename T> inline std::string bytesToString(const T& bytes) {
     return std::string(bytes.cbegin(), bytes.cend());
   }
 
@@ -1189,9 +1175,7 @@ namespace Utils {
    * @param str The string to convert.
    * @return The converted string as a bytes vector.
    */
-  inline Bytes stringToBytes(const std::string& str) {
-    return Bytes(str.cbegin(), str.cend());
-  }
+  inline Bytes stringToBytes(const std::string& str) { return Bytes(str.cbegin(), str.cend()); }
 };
 
 #endif  // UTILS_H
