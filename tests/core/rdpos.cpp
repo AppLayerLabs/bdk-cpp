@@ -63,6 +63,7 @@ void initialize(std::unique_ptr<DB>& db,
   uint64_t genesisTimestamp = 1678887538000000;
   Block genesis(Hash(), 0, 0);
   genesis.finalize(genesisPrivKey, genesisTimestamp);
+  std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
   if (!validatorKey) {
     options = std::make_unique<Options>(
         folderName,
@@ -75,7 +76,8 @@ void initialize(std::unique_ptr<DB>& db,
         discoveryNodes,
         genesis,
         genesisTimestamp,
-        genesisPrivKey
+        genesisPrivKey,
+        genesisBalances
       );
   } else {
     options = std::make_unique<Options>(
@@ -90,6 +92,7 @@ void initialize(std::unique_ptr<DB>& db,
       genesis,
       genesisTimestamp,
       genesisPrivKey,
+      genesisBalances,
       validatorKey
     );
   }
@@ -539,6 +542,7 @@ namespace TRdPoS {
       uint64_t genesisTimestamp = 1678887538000000;
       Block genesis(Hash(), 0, 0);
       genesis.finalize(genesisPrivKey, genesisTimestamp);
+      std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           testDumpPath + "/rdPoSdiscoveryNodeTestBroadcast",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -550,7 +554,8 @@ namespace TRdPoS {
           peers,
           genesis,
           genesisTimestamp,
-          genesisPrivKey
+          genesisPrivKey,
+          genesisBalances
         );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
@@ -831,6 +836,7 @@ namespace TRdPoS {
     uint64_t genesisTimestamp = 1678887538000000;
     Block genesis(Hash(), 0, 0);
     genesis.finalize(genesisPrivKey, genesisTimestamp);
+    std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
     std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
       testDumpPath + "/rdPoSdiscoveryNodeTestMove10Blocks",
       "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -842,7 +848,8 @@ namespace TRdPoS {
       discoveryNodes,
       genesis,
       genesisTimestamp,
-      genesisPrivKey
+      genesisPrivKey,
+      genesisBalances
     );
     std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 

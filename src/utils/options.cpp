@@ -12,11 +12,12 @@ Options::Options(
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
   const uint16_t& wsPort, const uint16_t& httpPort,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-  const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner
+  const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+  const std::vector<std::pair<Address, uint256_t>>& genesisBalances
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
   version_(version), chainID_(chainID), chainOwner_(chainOwner), wsPort_(wsPort),
   httpPort_(httpPort), coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes),
-  genesisBlock_(genesisBlock)
+  genesisBlock_(genesisBlock), genesisBalances_(genesisBalances)
 {
   json options;
   if (std::filesystem::exists(rootPath + "/options.json")) return;
@@ -37,6 +38,13 @@ Options::Options(
   options["genesis"] = json::object();
   options["genesis"]["timestamp"] = genesisTimestamp;
   options["genesis"]["signer"] = genesisSigner.hex(true);
+  options["genesis"]["balances"] = json::array();
+  for (const auto& [address, balance] : this->genesisBalances_) {
+    options["genesis"]["balances"].push_back(json::object({
+      {"address", address.hex(true)},
+      {"balance", balance.str()}
+    }));
+  }
   std::filesystem::create_directories(rootPath);
   std::ofstream o(rootPath + "/options.json");
   o << options.dump(2) << std::endl;
@@ -49,12 +57,15 @@ Options::Options(
   const uint16_t& wsPort, const uint16_t& httpPort,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+  const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const PrivKey& privKey
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
   version_(version), chainID_(chainID), chainOwner_(chainOwner), wsPort_(wsPort),
   httpPort_(httpPort), discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
-  isValidator_(true), genesisBlock_(genesisBlock)
+  isValidator_(true), genesisBlock_(genesisBlock), genesisBalances_(genesisBalances)
 {
+
+  std::cout << "On constructor...: " << this->genesisBalances_.size() << std::endl;
   if (std::filesystem::exists(rootPath + "/options.json")) return;
   json options;
   options["rootPath"] = rootPath;
@@ -74,6 +85,13 @@ Options::Options(
   options["genesis"] = json::object();
   options["genesis"]["timestamp"] = genesisTimestamp;
   options["genesis"]["signer"] = genesisSigner.hex(true);
+  options["genesis"]["balances"] = json::array();
+  for (const auto& [address, balance] : this->genesisBalances_) {
+    options["genesis"]["balances"].push_back(json::object({
+      {"address", address.hex(true)},
+      {"balance", balance.str()}
+    }));
+  }
   options["privKey"] = privKey.hex();
   std::filesystem::create_directories(rootPath);
   std::ofstream o(rootPath + "/options.json");
@@ -83,7 +101,7 @@ Options::Options(
 
 const PrivKey Options::getValidatorPrivKey() const {
   json options;
-  std::ifstream i(rootPath_ + "/options.json");
+  std::ifstream i(this->rootPath_ + "/options.json");
   i >> options;
   i.close();
   if (options.contains("privKey")) {
@@ -118,6 +136,16 @@ Options Options::fromFile(const std::string& rootPath) {
     Block genesis(Hash(), 0, 0);
     genesis.finalize(genesisSigner, options["genesis"]["timestamp"].get<uint64_t>());
 
+    std::vector<std::pair<Address, uint256_t>> genesisBalances;
+    for (const auto& balance : options["genesis"]["balances"]) {
+      std::cout << "uhh" << std::endl;
+      genesisBalances.push_back(std::make_pair(
+        Address(Hex::toBytes(balance["address"].get<std::string>())),
+        uint256_t(balance["balance"].get<std::string>())
+      ));
+    }
+
+    std::cout << "genesisBalances.size(): " << genesisBalances.size() << std::endl;
     if (options.contains("privKey")) {
       return Options(
         options["rootPath"].get<std::string>(),
@@ -131,6 +159,7 @@ Options Options::fromFile(const std::string& rootPath) {
         genesis,
         options["genesis"]["timestamp"].get<uint64_t>(),
         genesisSigner,
+        genesisBalances,
         PrivKey(Hex::toBytes(options["privKey"].get<std::string>()))
       );
     }
@@ -146,7 +175,8 @@ Options Options::fromFile(const std::string& rootPath) {
       discoveryNodes,
       genesis,
       options["genesis"]["timestamp"].get<uint64_t>(),
-      genesisSigner
+      genesisSigner,
+      genesisBalances
     );
   } catch (std::exception &e) {
     throw std::runtime_error("Could not create blockchain directory: " + std::string(e.what()));

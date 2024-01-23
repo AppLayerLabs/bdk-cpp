@@ -92,22 +92,6 @@ class SDKTestSuite {
         );
       }
 
-      // Fill initial accounts with some funds, populate State DB with one address,
-      // and initialize with chain owner account. See ~State for encoding.
-      const uint256_t desiredBalance("1000000000000000000000");
-      {
-        Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-        Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
-        value.insert(value.end(), 0x00);
-        this->db_->put(this->chainOwnerAccount_.address.get(), value, DBPrefix::nativeAccounts);
-      }
-      // Populate the remaining accounts.
-      for (const TestAccount& account : accounts) {
-        Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-        Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
-        value.insert(value.end(), 0x00);
-        this->db_->put(account.address.get(), value, DBPrefix::nativeAccounts);
-      }
       // Create a default options if none is provided.
       if (options == nullptr) {
         // Create a genesis block with a timestamp of 1678887538000000 (2023-02-12 00:45:38 UTC)
@@ -116,6 +100,14 @@ class SDKTestSuite {
         Block genesis(Hash(), 0, 0);
         genesis.finalize(genesisSigner, genesisTimestamp);
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+        std::vector<std::pair<Address,uint256_t>> genesisBalances;
+        // Add the chain owner account to the genesis balances.
+        const uint256_t desiredBalance("1000000000000000000000");
+        genesisBalances.emplace_back(this->chainOwnerAccount_.address, desiredBalance);
+        // Add the remaining accounts to the genesis balances.
+        for (const TestAccount& account : accounts) {
+          genesisBalances.emplace_back(account.address, desiredBalance);
+        }
         this->options_ = std::make_unique<Options>(
           sdkPath,
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -127,7 +119,8 @@ class SDKTestSuite {
           discoveryNodes,
           genesis,
           genesisTimestamp,
-          genesisSigner
+          genesisSigner,
+          genesisBalances
         );
       } else {
         this->options_ = std::make_unique<Options>(*options);

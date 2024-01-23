@@ -23,6 +23,9 @@
  *   "genesis" : {
  *     "timestamp" : 1656356646000000,
  *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+ *      "balances": [
+ *        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+ *      ]
  *   },
  *   "discoveryNodes": [
  *     {
@@ -78,6 +81,9 @@ class Options {
     /// Genesis block.
     const Block genesisBlock_;
 
+    /// List of addresses and their respective initial balances.
+    const std::vector<std::pair<Address, uint256_t>>& genesisBalances_;
+
   public:
     /**
      * Constructor for a normal node.
@@ -97,7 +103,8 @@ class Options {
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner
+      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      const std::vector<std::pair<Address, uint256_t>>& genesisBalances
     );
 
     /**
@@ -120,6 +127,7 @@ class Options {
       const uint16_t& wsPort, const uint16_t& httpPort,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
       const PrivKey& privKey
     );
     
@@ -138,7 +146,8 @@ class Options {
       coinbase_(other.coinbase_),
       isValidator_(other.isValidator_),
       discoveryNodes_(other.discoveryNodes_),
-      genesisBlock_(other.genesisBlock_)
+      genesisBlock_(other.genesisBlock_),
+      genesisBalances_(other.genesisBalances_)
     {}
 
     /// Getter for `rootPath`.
@@ -189,6 +198,9 @@ class Options {
 
     /// Getter for `genesisBlock`.
     const Block& getGenesisBlock() const { return this->genesisBlock_; }
+
+    /// Getter for `genesisBalances`.
+    const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
 
     /**
      * Get the Validator node's private key from the JSON file.

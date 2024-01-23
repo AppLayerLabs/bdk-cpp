@@ -32,6 +32,7 @@ void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std:
   uint64_t genesisTimestamp = 1656356646000000;
   Block genesis(Hash(), 0, 0);
   genesis.finalize(genesisPrivKey, genesisTimestamp);
+  std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
   options = std::make_unique<Options>(
     testDumpPath + "/blocksTests",
     "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -43,7 +44,8 @@ void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std:
     discoveryNodes,
     genesis,
     genesisTimestamp,
-    genesisPrivKey
+    genesisPrivKey,
+    genesisBalances
   );
   storage = std::make_unique<Storage>(db, options);
 }

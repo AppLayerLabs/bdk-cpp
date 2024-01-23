@@ -25,6 +25,7 @@ namespace TP2P {
     uint64_t genesisTimestamp = 1678887538000000;
     Block genesis(Hash(), 0, 0);
     genesis.finalize(genesisPrivKey, genesisTimestamp);
+    std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
     options = std::make_unique<Options>(
         folderPath,
         "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -36,7 +37,8 @@ namespace TP2P {
         peers,
         genesis,
         genesisTimestamp,
-        genesisPrivKey
+        genesisPrivKey,
+        genesisBalances
     );
   }
 
@@ -95,7 +97,7 @@ namespace TP2P {
     uint64_t genesisTimestamp = 1678887538000000;
     Block genesis(Hash(), 0, 0);
     genesis.finalize(genesisPrivKey, genesisTimestamp);
-
+    std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
     if (!validatorKey) {
       options = std::make_unique<Options>(
           folderName,
@@ -108,7 +110,8 @@ namespace TP2P {
           discoveryNodes,
           genesis,
           genesisTimestamp,
-          genesisPrivKey
+          genesisPrivKey,
+          genesisBalances
       );
     } else {
       options = std::make_unique<Options>(
@@ -123,6 +126,7 @@ namespace TP2P {
           genesis,
           genesisTimestamp,
           genesisPrivKey,
+          genesisBalances,
           validatorKey
       );
     }
