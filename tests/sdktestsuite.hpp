@@ -108,6 +108,10 @@ class SDKTestSuite {
         for (const TestAccount& account : accounts) {
           genesisBalances.emplace_back(account.address, desiredBalance);
         }
+        std::vector<Address> genesisValidators;
+        for (const auto& privKey : this->validatorPrivKeys_) {
+          genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+        }
         this->options_ = std::make_unique<Options>(
           sdkPath,
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -120,7 +124,8 @@ class SDKTestSuite {
           genesis,
           genesisTimestamp,
           genesisSigner,
-          genesisBalances
+          genesisBalances,
+          genesisValidators
         );
       } else {
         this->options_ = std::make_unique<Options>(*options);

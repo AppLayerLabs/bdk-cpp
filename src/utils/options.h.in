@@ -21,6 +21,13 @@
  *   "wsPort": 8086,
  *   "httpPort": 8095,
  *   "genesis" : {
+ *      "validators": [
+ *        "0x7588b0f553d1910266089c58822e1120db47e572",
+ *        "0xcabf34a268847a610287709d841e5cd590cc5c00",
+ *        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
+ *        "0x795083c42583842774febc21abb6df09e784fce5",
+ *        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
+ *      ],
  *     "timestamp" : 1656356646000000,
  *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
  *      "balances": [
@@ -82,7 +89,10 @@ class Options {
     const Block genesisBlock_;
 
     /// List of addresses and their respective initial balances.
-    const std::vector<std::pair<Address, uint256_t>>& genesisBalances_;
+    const std::vector<std::pair<Address, uint256_t>> genesisBalances_;
+
+    /// List of genesis validators.
+    const std::vector<Address> genesisValidators_;
 
   public:
     /**
@@ -97,6 +107,11 @@ class Options {
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
      * @param discoveryNodes List of known Discovery nodes.
+     * @param genesisBlock Genesis block.
+     * @param genesisTimestamp Genesis timestamp.
+     * @param genesisSigner Genesis signer.
+     * @param genesisBalances List of addresses and their respective initial balances.
+     * @param genesisValidators List of genesis validators.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
@@ -104,7 +119,8 @@ class Options {
       const uint16_t& wsPort, const uint16_t& httpPort,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
-      const std::vector<std::pair<Address, uint256_t>>& genesisBalances
+      const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
+      const std::vector<Address>& genesisValidators
     );
 
     /**
@@ -119,6 +135,11 @@ class Options {
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
      * @param discoveryNodes List of known Discovery nodes.
+     * @param genesisBlock Genesis block.
+     * @param genesisTimestamp Genesis timestamp.
+     * @param genesisSigner Genesis signer.
+     * @param genesisBalances List of addresses and their respective initial balances.
+     * @param genesisValidators List of genesis validators.
      * @param privKey Private key of the Validator.
      */
     Options(
@@ -128,6 +149,7 @@ class Options {
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
+      const std::vector<Address>& genesisValidators,
       const PrivKey& privKey
     );
     
@@ -147,7 +169,8 @@ class Options {
       isValidator_(other.isValidator_),
       discoveryNodes_(other.discoveryNodes_),
       genesisBlock_(other.genesisBlock_),
-      genesisBalances_(other.genesisBalances_)
+      genesisBalances_(other.genesisBalances_),
+      genesisValidators_(other.genesisValidators_)
     {}
 
     /// Getter for `rootPath`.
@@ -201,6 +224,9 @@ class Options {
 
     /// Getter for `genesisBalances`.
     const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
+
+    /// Getter for `genesisValidators`.
+    const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
 
     /**
      * Get the Validator node's private key from the JSON file.

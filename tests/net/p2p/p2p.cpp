@@ -18,6 +18,17 @@ using Catch::Matchers::Equals;
 
 namespace TP2P {
 
+  const std::vector<Hash> validatorPrivKeys {
+    Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
+    Hash(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
+    Hash(Hex::toBytes("0x8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da")),
+    Hash(Hex::toBytes("0x9048f5e80549e244b7899e85a4ef69512d7d68613a3dba828266736a580e7745")),
+    Hash(Hex::toBytes("0x0b6f5ad26f6eb79116da8c98bed5f3ed12c020611777d4de94c3c23b9a03f739")),
+    Hash(Hex::toBytes("0xa69eb3a3a679e7e4f6a49fb183fb2819b7ab62f41c341e2e2cc6288ee22fbdc7")),
+    Hash(Hex::toBytes("0xd9b0613b7e4ccdb0f3a5ab0956edeb210d678db306ab6fae1e2b0c9ebca1c2c5")),
+    Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
+  };
+
   std::string testDumpPath = Utils::getTestDumpPath();
   void initializeOptions(std::unique_ptr<Options>& options, std::string folderPath, uint64_t serverPort) {
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
@@ -26,6 +37,10 @@ namespace TP2P {
     Block genesis(Hash(), 0, 0);
     genesis.finalize(genesisPrivKey, genesisTimestamp);
     std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+    std::vector<Address> genesisValidators;
+    for (const auto& privKey : validatorPrivKeys) {
+      genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+    }
     options = std::make_unique<Options>(
         folderPath,
         "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -38,20 +53,10 @@ namespace TP2P {
         genesis,
         genesisTimestamp,
         genesisPrivKey,
-        genesisBalances
+        genesisBalances,
+        genesisValidators
     );
   }
-
-  const std::vector<Hash> validatorPrivKeys {
-      Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
-      Hash(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
-      Hash(Hex::toBytes("0x8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da")),
-      Hash(Hex::toBytes("0x9048f5e80549e244b7899e85a4ef69512d7d68613a3dba828266736a580e7745")),
-      Hash(Hex::toBytes("0x0b6f5ad26f6eb79116da8c98bed5f3ed12c020611777d4de94c3c23b9a03f739")),
-      Hash(Hex::toBytes("0xa69eb3a3a679e7e4f6a49fb183fb2819b7ab62f41c341e2e2cc6288ee22fbdc7")),
-      Hash(Hex::toBytes("0xd9b0613b7e4ccdb0f3a5ab0956edeb210d678db306ab6fae1e2b0c9ebca1c2c5")),
-      Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
-  };
 
   // We initialize the blockchain database
   // To make sure that if the genesis is changed within the main source code
@@ -76,28 +81,16 @@ namespace TP2P {
       }
     }
     db = std::make_unique<DB>(dbName);
-    if (clearDb) {
-      // Populate rdPoS DB with unique rdPoS, not default.
-      for (uint64_t i = 0; i < validatorPrivKeys.size(); ++i) {
-        db->put(Utils::uint64ToBytes(i), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[i]))).get(),
-                DBPrefix::rdPoS);
-      }
-      // Populate State DB with one address.
-      /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
-      Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
-      /// See ~State for encoding
-      uint256_t desiredBalance("1000000000000000000000");
-      Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-      Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
-      value.insert(value.end(), 0x00);
-      db->put(dev1.get(), value, DBPrefix::nativeAccounts);
-    }
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
     PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     uint64_t genesisTimestamp = 1678887538000000;
     Block genesis(Hash(), 0, 0);
     genesis.finalize(genesisPrivKey, genesisTimestamp);
     std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+    std::vector<Address> genesisValidators;
+    for (const auto& privKey : validatorPrivKeys) {
+      genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+    }
     if (!validatorKey) {
       options = std::make_unique<Options>(
           folderName,
@@ -111,7 +104,8 @@ namespace TP2P {
           genesis,
           genesisTimestamp,
           genesisPrivKey,
-          genesisBalances
+          genesisBalances,
+          genesisValidators
       );
     } else {
       options = std::make_unique<Options>(
@@ -127,6 +121,7 @@ namespace TP2P {
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
+          genesisValidators,
           validatorKey
       );
     }
