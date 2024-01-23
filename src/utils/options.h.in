@@ -3,11 +3,35 @@
 
 #include "utils.h"
 #include "ecdsa.h"
+#include "block.h"
 
 #include <filesystem>
 #include <boost/asio/ip/address.hpp>
 
 // TODO: move blockCap and logCap from EventManager here
+
+/**
+ * Example options.json file:
+ * {
+ *   "rootPath": "blockchain",
+ *   "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+ *   "version": 1,
+ *   "chainID": 808080,
+ *   "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+ *   "wsPort": 8086,
+ *   "httpPort": 8095,
+ *   "genesis" : {
+ *     "timestamp" : 1656356646000000,
+ *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+ *   },
+ *   "discoveryNodes": [
+ *     {
+ *       "address" : "127.0.0.1",
+ *       "port" : 8080
+ *     }
+ *   ]
+ * }
+ */
 
 /// Singleton class for global node data.
 class Options {
@@ -51,6 +75,9 @@ class Options {
     /// List of known Discovery nodes.
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes_;
 
+    /// Genesis block.
+    const Block genesisBlock_;
+
   public:
     /**
      * Constructor for a normal node.
@@ -69,7 +96,8 @@ class Options {
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
-      const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes
+      const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
+      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner
     );
 
     /**
@@ -91,6 +119,7 @@ class Options {
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
+      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const PrivKey& privKey
     );
     
@@ -108,7 +137,8 @@ class Options {
       httpPort_(other.httpPort_),
       coinbase_(other.coinbase_),
       isValidator_(other.isValidator_),
-      discoveryNodes_(other.discoveryNodes_)
+      discoveryNodes_(other.discoveryNodes_),
+      genesisBlock_(other.genesisBlock_)
     {}
 
     /// Getter for `rootPath`.
@@ -156,6 +186,9 @@ class Options {
 
     /// Getter for `discoveryNodes`.
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }
+
+    /// Getter for `genesisBlock`.
+    const Block& getGenesisBlock() const { return this->genesisBlock_; }
 
     /**
      * Get the Validator node's private key from the JSON file.

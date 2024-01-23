@@ -13,6 +13,9 @@
  */
 
 Options Options::binaryDefaultOptions(const std::string& rootPath) {
+  Block genesis(Hash(), 0, 0);
+  PrivKey genesisSigner(Hex::toBytes("0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"));
+  genesis.finalize(genesisSigner, 1656356646000000);
   return {
     rootPath,
     "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -21,6 +24,9 @@ Options Options::binaryDefaultOptions(const std::string& rootPath) {
     Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
     8080,
     8081,
-    {}
+    {},
+    genesis,
+    genesis.getTimestamp(),
+    genesisSigner
   };
 }

@@ -84,16 +84,6 @@ class SDKTestSuite {
       if (std::filesystem::exists(dbPath)) std::filesystem::remove_all(dbPath);
       this->db_ = std::make_unique<DB>(dbPath);
 
-      // Create the initial blockchain information (genesis block) and fill DB with it.
-      // Genesis Keys:
-      // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
-      // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
-      Block genesis(Hash(Utils::uint256ToBytes(0)), 1678887537000000, 0);
-      genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1678887538000000);
-      this->db_->put(Utils::stringToBytes("latest"), genesis.serializeBlock(), DBPrefix::blocks);
-      this->db_->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
-      this->db_->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
-
       // Populate rdPoS DB with unique rdPoS, not default.
       for (uint64_t i = 0; i < this->validatorPrivKeys_.size(); i++) {
         this->db_->put(Utils::uint64ToBytes(i),
@@ -120,6 +110,11 @@ class SDKTestSuite {
       }
       // Create a default options if none is provided.
       if (options == nullptr) {
+        // Create a genesis block with a timestamp of 1678887538000000 (2023-02-12 00:45:38 UTC)
+        uint64_t genesisTimestamp = 1678887538000000;
+        PrivKey genesisSigner(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8"));
+        Block genesis(Hash(), 0, 0);
+        genesis.finalize(genesisSigner, genesisTimestamp);
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         this->options_ = std::make_unique<Options>(
           sdkPath,
@@ -129,7 +124,10 @@ class SDKTestSuite {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8080,
           9999,
-          discoveryNodes
+          discoveryNodes,
+          genesis,
+          genesisTimestamp,
+          genesisSigner
         );
       } else {
         this->options_ = std::make_unique<Options>(*options);

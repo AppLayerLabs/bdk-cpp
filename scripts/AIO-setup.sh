@@ -140,7 +140,11 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8080,
     "httpPort": 9999,
-    "privKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    "privKey": "0000000000000000000000000000000000000000000000000000000000000000",
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    }
   }' >> local_testnet_discovery/discoveryNode/options.json
 
   # Create the JSON file for the Validators
@@ -153,6 +157,10 @@ if [ "$DEPLOY" = true ]; then
     "wsPort": 8081,
     "httpPort": 8090,
     "privKey": "0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759",
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -170,6 +178,10 @@ if [ "$DEPLOY" = true ]; then
     "wsPort": 8082,
     "httpPort": 8091,
     "privKey": "0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4",
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -187,6 +199,10 @@ if [ "$DEPLOY" = true ]; then
     "wsPort": 8083,
     "httpPort": 8092,
     "privKey": "0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751",
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -204,6 +220,10 @@ if [ "$DEPLOY" = true ]; then
     "wsPort": 8084,
     "httpPort": 8093,
     "privKey": "0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7",
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -221,6 +241,10 @@ if [ "$DEPLOY" = true ]; then
     "wsPort": 8085,
     "httpPort": 8094,
     "privKey": "0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6",
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -238,6 +262,10 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8086,
     "httpPort": 8095,
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -254,6 +282,10 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8087,
     "httpPort": 8096,
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -270,6 +302,10 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8088,
     "httpPort": 8097,
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -286,6 +322,10 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8089,
     "httpPort": 8098,
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -302,6 +342,10 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8110,
     "httpPort": 8099,
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -318,6 +362,10 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8111,
     "httpPort": 8100,
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -334,6 +382,10 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8110,
     "httpPort": 8099,
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",
@@ -350,6 +402,10 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8111,
     "httpPort": 8100,
+    "genesis" : {
+      "timestamp" : 1656356646000000,
+      "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+    },
     "discoveryNodes": [
       {
         "address" : "127.0.0.1",

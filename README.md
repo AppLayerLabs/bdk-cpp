@@ -112,9 +112,12 @@ Note that, when re-deploying, if your wallet or RPC client keeps track of accoun
 The deployed chain will have the following information by default:
 
 * ChainID: **808080**
-* Owner: **0x00dead00665771855a34155f5e7405489df2c3c6**
-* Owner Private Key: **0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867**
-* Owner Initial Balance: **1000000000000000000000 wei**
+* Chain Owner: **0x00dead00665771855a34155f5e7405489df2c3c6**
+* Chain Owner Private Key: **0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867**
+* Chain Owner Initial Balance: **1000000000000000000000 wei**
+* Genesis Private Key: **0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c**
+* Genesis Address: **0x00dead001ae76ac3d3f282ffb8481becdee17357**
+* Genesis Timestamp: **1656356646000000**
 * ContractManager Address: **0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61**
 * rdPoS Address: **0xb23aa52dbeda59277ab8a962c69f5971f22904cf**
 * Default RPC URL: **http://127.0.0.1:8090**

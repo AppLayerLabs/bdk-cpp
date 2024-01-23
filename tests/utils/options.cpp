@@ -17,6 +17,10 @@ namespace TOptions {
       if(std::filesystem::exists(testDumpPath + "/optionClassFromFileWithPrivKey")) {
         std::filesystem::remove_all(testDumpPath + "/optionClassFromFileWithPrivKey");
       }
+      PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      uint64_t genesisTimestamp = 1678887538000000;
+      Block genesis(Hash(), 0, 0);
+      genesis.finalize(genesisPrivKey, genesisTimestamp);
       Options optionsWithPrivKey(
         testDumpPath + "/optionClassFromFileWithPrivKey",
         "OrbiterSDK/cpp/linux_x86-64/0.1.2",
@@ -26,6 +30,9 @@ namespace TOptions {
         8080,
         8081,
         {},
+        genesis,
+        genesisTimestamp,
+        genesisPrivKey,
         PrivKey(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66"))
       );
 
@@ -41,6 +48,7 @@ namespace TOptions {
       REQUIRE(optionsFromFileWithPrivKey.getHttpPort() == optionsWithPrivKey.getHttpPort());
       REQUIRE(optionsFromFileWithPrivKey.getCoinbase() == optionsWithPrivKey.getCoinbase());
       REQUIRE(optionsFromFileWithPrivKey.getValidatorPrivKey() == optionsWithPrivKey.getValidatorPrivKey());
+      REQUIRE(optionsFromFileWithPrivKey.getGenesisBlock() == optionsWithPrivKey.getGenesisBlock());
     }
   }
 }
