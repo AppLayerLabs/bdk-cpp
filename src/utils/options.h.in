@@ -8,8 +8,6 @@
 #include <filesystem>
 #include <boost/asio/ip/address.hpp>
 
-// TODO: move blockCap and logCap from EventManager here
-
 /**
  * Example options.json file:
  * {
@@ -20,6 +18,8 @@
  *   "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
  *   "wsPort": 8086,
  *   "httpPort": 8095,
+ *   "eventBlockCap": 2000,
+ *   "eventLogCap": 10000,
  *   "genesis" : {
  *      "validators": [
  *        "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -73,6 +73,12 @@ class Options {
     /// HTTP server port.
     const uint16_t httpPort_;
 
+    /// Maximum block range for querying contract events.
+    const uint64_t eventBlockCap_;
+
+    /// Maximum number of contract events that can be queried at once.
+    const uint64_t eventLogCap_;
+
     /// Chain owner address (used by ContractManager to see who can deploy contracts)
     const Address chainOwner_;
 
@@ -106,6 +112,8 @@ class Options {
      * @param chainOwner Chain owner address.
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
+     * @param eventBlockCap Block range limit for querying events.
+     * @param eventLogCap Maximum number of events that can be queried.
      * @param discoveryNodes List of known Discovery nodes.
      * @param genesisBlock Genesis block.
      * @param genesisTimestamp Genesis timestamp.
@@ -117,6 +125,7 @@ class Options {
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
+      const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
@@ -134,6 +143,8 @@ class Options {
      * @param chainOwner Chain owner address.
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
+     * @param eventBlockCap Block range limit for querying events.
+     * @param eventLogCap Maximum number of events that can be queried.
      * @param discoveryNodes List of known Discovery nodes.
      * @param genesisBlock Genesis block.
      * @param genesisTimestamp Genesis timestamp.
@@ -146,13 +157,14 @@ class Options {
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
+      const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
       const std::vector<Address>& genesisValidators,
       const PrivKey& privKey
     );
-    
+
     /// Copy constructor.
     Options(const Options& other) :
       rootPath_(other.rootPath_),
@@ -165,6 +177,8 @@ class Options {
       chainOwner_(other.chainOwner_),
       wsPort_(other.wsPort_),
       httpPort_(other.httpPort_),
+      eventBlockCap_(other.eventBlockCap_),
+      eventLogCap_(other.eventLogCap_),
       coinbase_(other.coinbase_),
       isValidator_(other.isValidator_),
       discoveryNodes_(other.discoveryNodes_),
@@ -209,6 +223,12 @@ class Options {
 
     /// Getter for `httpPort`.
     const uint16_t& getHttpPort() const { return this->httpPort_; }
+
+    /// Getter for `eventBlockCap_`.
+    const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
+
+    /// Getter for `eventLogCap_`.
+    const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
 
     /// Getter for `coinbase`.
     const Address& getCoinbase() const { return this->coinbase_; }

@@ -42,19 +42,21 @@ namespace TP2P {
       genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
     }
     options = std::make_unique<Options>(
-        folderPath,
-        "OrbiterSDK/cpp/linux_x86-64/0.1.2",
-        1,
-        8080,
-        Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-        serverPort,
-        9999,
-        peers,
-        genesis,
-        genesisTimestamp,
-        genesisPrivKey,
-        genesisBalances,
-        genesisValidators
+      folderPath,
+      "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+      1,
+      8080,
+      Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+      serverPort,
+      9999,
+      2000,
+      10000,
+      peers,
+      genesis,
+      genesisTimestamp,
+      genesisPrivKey,
+      genesisBalances,
+      genesisValidators
     );
   }
 
@@ -93,36 +95,40 @@ namespace TP2P {
     }
     if (!validatorKey) {
       options = std::make_unique<Options>(
-          folderName,
-          "OrbiterSDK/cpp/linux_x86-64/0.1.2",
-          1,
-          8080,
-          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          serverPort,
-          9999,
-          discoveryNodes,
-          genesis,
-          genesisTimestamp,
-          genesisPrivKey,
-          genesisBalances,
-          genesisValidators
+        folderName,
+        "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+        1,
+        8080,
+        Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+        serverPort,
+        9999,
+        2000,
+        10000,
+        discoveryNodes,
+        genesis,
+        genesisTimestamp,
+        genesisPrivKey,
+        genesisBalances,
+        genesisValidators
       );
     } else {
       options = std::make_unique<Options>(
-          folderName,
-          "OrbiterSDK/cpp/linux_x86-64/0.1.2",
-          1,
-          8080,
-          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          serverPort,
-          9999,
-          discoveryNodes,
-          genesis,
-          genesisTimestamp,
-          genesisPrivKey,
-          genesisBalances,
-          genesisValidators,
-          validatorKey
+        folderName,
+        "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+        1,
+        8080,
+        Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+        serverPort,
+        9999,
+        2000,
+        10000,
+        discoveryNodes,
+        genesis,
+        genesisTimestamp,
+        genesisPrivKey,
+        genesisBalances,
+        genesisValidators,
+        validatorKey
       );
     }
 

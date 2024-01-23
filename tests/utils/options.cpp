@@ -44,6 +44,8 @@ namespace TOptions {
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
         8080,
         8081,
+        2000,
+        10000,
         {},
         genesis,
         genesisTimestamp,

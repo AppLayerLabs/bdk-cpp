@@ -11,13 +11,15 @@ Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
   const uint16_t& wsPort, const uint16_t& httpPort,
+  const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const std::vector<Address>& genesisValidators
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
   version_(version), chainID_(chainID), chainOwner_(chainOwner), wsPort_(wsPort),
-  httpPort_(httpPort), coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes),
+  httpPort_(httpPort), eventBlockCap_(eventBlockCap), eventLogCap_(eventLogCap),
+  coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes),
   genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators)
 {
   json options;
@@ -29,6 +31,8 @@ Options::Options(
   options["chainOwner"] = chainOwner.hex(true);
   options["wsPort"] = wsPort;
   options["httpPort"] = httpPort;
+  options["eventBlockCap"] = eventBlockCap;
+  options["eventLogCap"] = eventLogCap;
   options["discoveryNodes"] = json::array();
   for (const auto& [address, port] : discoveryNodes) {
     options["discoveryNodes"].push_back(json::object({
@@ -60,6 +64,7 @@ Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
   const uint16_t& wsPort, const uint16_t& httpPort,
+  const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
@@ -67,7 +72,8 @@ Options::Options(
   const PrivKey& privKey
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
   version_(version), chainID_(chainID), chainOwner_(chainOwner), wsPort_(wsPort),
-  httpPort_(httpPort), discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
+  httpPort_(httpPort), eventBlockCap_(eventBlockCap), eventLogCap_(eventLogCap),
+  discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
   isValidator_(true), genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators)
 {
   if (std::filesystem::exists(rootPath + "/options.json")) return;
@@ -79,6 +85,8 @@ Options::Options(
   options["chainOwner"] = chainOwner.hex(true);
   options["wsPort"] = wsPort;
   options["httpPort"] = httpPort;
+  options["eventBlockCap"] = eventBlockCap;
+  options["eventLogCap"] = eventLogCap;
   options["discoveryNodes"] = json::array();
   for (const auto& [address, port] : discoveryNodes) {
     options["discoveryNodes"].push_back(json::object({
@@ -166,6 +174,8 @@ Options Options::fromFile(const std::string& rootPath) {
         Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
         options["wsPort"].get<uint64_t>(),
         options["httpPort"].get<uint64_t>(),
+        options["eventBlockCap"].get<uint64_t>(),
+        options["eventLogCap"].get<uint64_t>(),
         discoveryNodes,
         genesis,
         options["genesis"]["timestamp"].get<uint64_t>(),
@@ -184,6 +194,8 @@ Options Options::fromFile(const std::string& rootPath) {
       Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
       options["wsPort"].get<uint64_t>(),
       options["httpPort"].get<uint64_t>(),
+      options["eventBlockCap"].get<uint64_t>(),
+      options["eventLogCap"].get<uint64_t>(),
       discoveryNodes,
       genesis,
       options["genesis"]["timestamp"].get<uint64_t>(),

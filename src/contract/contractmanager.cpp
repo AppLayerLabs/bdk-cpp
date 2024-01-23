@@ -22,7 +22,7 @@ ContractManager::ContractManager(
   options_(options),
   factory_(std::make_unique<ContractFactory>(*this)),
   interface_(std::make_unique<ContractManagerInterface>(*this)),
-  eventManager_(std::make_unique<EventManager>(db))
+  eventManager_(std::make_unique<EventManager>(db, options))
 {
   this->callLogger_ = std::make_unique<ContractCallLogger>(*this);
   this->factory_->registerContracts<ContractTypes>();
