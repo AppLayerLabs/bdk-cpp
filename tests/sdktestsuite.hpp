@@ -804,7 +804,7 @@ class SDKTestSuite {
       template <typename TContract, typename... Args, bool... Flags>
       struct FunctionTraits<void(TContract::*)(const EventParam<Args, Flags>&...)>
       {
-          using TupleType = decltype(ABI::Decoder::makeTupleType<Args..., std::integral_constant<bool, Flags>...>());
+          using TupleType = typename ABI::Decoder::makeTupleType<EventParam<Args, Flags>...>::type;
       };
 
     template <typename TContract, typename... Args, bool... Flags>

@@ -4,7 +4,6 @@
 #include "../../src/contract/templates/erc20.h"
 #include "../../src/contract/templates/simplecontract.h"
 #include <tuple>
-
 namespace TSDKTestSuite {
   TEST_CASE("SDK Test Suite", "[sdktestsuite]") {
     SECTION("SDK Test Suite Constructor") {
@@ -81,9 +80,11 @@ namespace TSDKTestSuite {
       // REQUIRE(filteredEvents3.size() == 1);
       // auto tupple = sdkTestSuite.getEventsEmittedByTxTup(changeNameAndValueTx, &SimpleContract::nameChanged);
 
-      using KnownFunctionType = void(SimpleContract::*)(const EventParam<std::string, false>&);
+      using KnownFunctionType = void(SimpleContract::*)(const EventParam<std::string, false>&, const EventParam<std::string, false>&);
       using KnownTupleType = SDKTestSuite::FunctionTraits<KnownFunctionType>::TupleType;
+
       static_assert(!std::is_same_v<KnownTupleType, std::tuple<>>, "KnownTupleType should not be an empty tuple");
+      static_assert(std::is_same_v<KnownTupleType, std::tuple<std::string,std::string>>, "KnownTupleType should be a tuple of two strings");
 
     }
   }
