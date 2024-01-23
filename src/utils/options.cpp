@@ -88,7 +88,7 @@ Options Options::fromFile(const std::string& rootPath) {
     // Check if rootPath is valid
     if (!std::filesystem::exists(rootPath + "/options.json")) {
       std::filesystem::create_directory(rootPath);
-      return Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/0.1.2", 2, 8080, 8080, 8081, {});
+      return Options::binaryDefaultOptions(rootPath);
     }
 
     std::ifstream i(rootPath + "/options.json");

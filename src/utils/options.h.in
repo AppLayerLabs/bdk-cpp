@@ -156,12 +156,20 @@ class Options {
 
     /**
      * Load an options.json file from a given path and construct the singleton object.
-     * Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081) if not found.
+     * Defaults to this->binaryDefaultOptions() if no file is found.
      * @param rootPath Path to data root folder.
      * @return The constructed options object.
      * @throw std::runtime_error on failure.
      */
     static Options fromFile(const std::string& rootPath);
+
+    /**
+     * Load the default options defined within the optionsdefaults.cpp file
+     * Used by fromFile to generate a default options.json file if not found.
+     * Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081)
+     * @return The constructed options object.
+     */
+    static Options binaryDefaultOptions(const std::string& rootPath);
 };
 
 #endif // OPTIONS_H
