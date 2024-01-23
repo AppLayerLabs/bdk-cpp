@@ -39,6 +39,9 @@ class Options {
     /// HTTP server port.
     const uint16_t httpPort_;
 
+    /// Chain owner address (used by ContractManager to see who can deploy contracts)
+    const Address chainOwner_;
+
     /// Coinbase address (if found), used by rdPoS.
     const Address coinbase_;
 
@@ -57,13 +60,14 @@ class Options {
      * @param web3clientVersion Version of the client.
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
+     * @param chainOwner Chain owner address.
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
      * @param discoveryNodes List of known Discovery nodes.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
-      const uint64_t& version, const uint64_t& chainID,
+      const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes
     );
@@ -76,6 +80,7 @@ class Options {
      * @param web3clientVersion Version of the client.
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
+     * @param chainOwner Chain owner address.
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
      * @param discoveryNodes List of known Discovery nodes.
@@ -83,7 +88,7 @@ class Options {
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
-      const uint64_t& version, const uint64_t& chainID,
+      const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const PrivKey& privKey
@@ -98,6 +103,7 @@ class Options {
       web3clientVersion_(other.web3clientVersion_),
       version_(other.version_),
       chainID_(other.chainID_),
+      chainOwner_(other.chainOwner_),
       wsPort_(other.wsPort_),
       httpPort_(other.httpPort_),
       coinbase_(other.coinbase_),
@@ -129,6 +135,9 @@ class Options {
 
     /// Getter for `version`.
     const uint64_t& getVersion() const { return this->version_; }
+
+    /// Getter for `chainOwner`.
+    const Address& getChainOwner() const { return this->chainOwner_; }
 
     /// Getter for `chainID`.
     const uint64_t& getChainID() const { return this->chainID_; }

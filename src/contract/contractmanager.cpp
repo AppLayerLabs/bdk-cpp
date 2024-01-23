@@ -17,7 +17,7 @@ ContractManager::ContractManager(
   State* state, const std::unique_ptr<DB>& db,
   const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
 ) : state_(state), BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
-  Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), 0, db),
+  options->getChainOwner(), 0, db),
   rdpos_(rdpos),
   options_(options),
   factory_(std::make_unique<ContractFactory>(*this)),

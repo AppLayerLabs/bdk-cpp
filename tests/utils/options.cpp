@@ -14,11 +14,15 @@ namespace TOptions {
   TEST_CASE("Option Class", "[core][options]") {
     std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("Options from File (default)") {
+      if(std::filesystem::exists(testDumpPath + "/optionClassFromFileWithPrivKey")) {
+        std::filesystem::remove_all(testDumpPath + "/optionClassFromFileWithPrivKey");
+      }
       Options optionsWithPrivKey(
         testDumpPath + "/optionClassFromFileWithPrivKey",
         "OrbiterSDK/cpp/linux_x86-64/0.1.2",
         1,
         8080,
+        Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
         8080,
         8081,
         {},
@@ -26,11 +30,12 @@ namespace TOptions {
       );
 
       Options optionsFromFileWithPrivKey(Options::fromFile(testDumpPath + "/optionClassFromFileWithPrivKey"));
-
+      
       REQUIRE(optionsFromFileWithPrivKey.getRootPath() == optionsWithPrivKey.getRootPath());
       REQUIRE(optionsFromFileWithPrivKey.getSDKVersion() == optionsWithPrivKey.getSDKVersion());
       REQUIRE(optionsFromFileWithPrivKey.getWeb3ClientVersion() == optionsWithPrivKey.getWeb3ClientVersion());
       REQUIRE(optionsFromFileWithPrivKey.getVersion() == optionsWithPrivKey.getVersion());
+      REQUIRE(optionsFromFileWithPrivKey.getChainOwner() == optionsWithPrivKey.getChainOwner());
       REQUIRE(optionsFromFileWithPrivKey.getChainID() == optionsWithPrivKey.getChainID());
       REQUIRE(optionsFromFileWithPrivKey.getP2PPort() == optionsWithPrivKey.getP2PPort());
       REQUIRE(optionsFromFileWithPrivKey.getHttpPort() == optionsWithPrivKey.getHttpPort());

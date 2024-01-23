@@ -9,11 +9,11 @@ See the LICENSE.txt file in the project root for more information.
 
 Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
-  const uint64_t& version, const uint64_t& chainID,
+  const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
   const uint16_t& wsPort, const uint16_t& httpPort,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
-  version_(version), chainID_(chainID), wsPort_(wsPort),
+  version_(version), chainID_(chainID), chainOwner_(chainOwner), wsPort_(wsPort),
   httpPort_(httpPort), coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes)
 {
   json options;
@@ -22,6 +22,7 @@ Options::Options(
   options["web3clientVersion"] = web3clientVersion;
   options["version"] = version;
   options["chainID"] = chainID;
+  options["chainOwner"] = chainOwner.hex(true);
   options["wsPort"] = wsPort;
   options["httpPort"] = httpPort;
   options["discoveryNodes"] = json::array();
@@ -40,12 +41,12 @@ Options::Options(
 
 Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
-  const uint64_t& version, const uint64_t& chainID,
+  const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
   const uint16_t& wsPort, const uint16_t& httpPort,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const PrivKey& privKey
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
-  version_(version), chainID_(chainID), wsPort_(wsPort),
+  version_(version), chainID_(chainID), chainOwner_(chainOwner), wsPort_(wsPort),
   httpPort_(httpPort), discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
   isValidator_(true)
 {
@@ -55,6 +56,7 @@ Options::Options(
   options["web3clientVersion"] = web3clientVersion;
   options["version"] = version;
   options["chainID"] = chainID;
+  options["chainOwner"] = chainOwner.hex(true);
   options["wsPort"] = wsPort;
   options["httpPort"] = httpPort;
   options["discoveryNodes"] = json::array();
@@ -111,6 +113,7 @@ Options Options::fromFile(const std::string& rootPath) {
         options["web3clientVersion"].get<std::string>(),
         options["version"].get<uint64_t>(),
         options["chainID"].get<uint64_t>(),
+        Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
         options["wsPort"].get<uint64_t>(),
         options["httpPort"].get<uint64_t>(),
         discoveryNodes,
@@ -123,13 +126,13 @@ Options Options::fromFile(const std::string& rootPath) {
       options["web3clientVersion"].get<std::string>(),
       options["version"].get<uint64_t>(),
       options["chainID"].get<uint64_t>(),
+      Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
       options["wsPort"].get<uint64_t>(),
       options["httpPort"].get<uint64_t>(),
       discoveryNodes
     );
   } catch (std::exception &e) {
-    std::cerr << "Could not create blockchain directory: " << e.what() << std::endl;
-    throw "Could not create blockchain directory.";
+    throw std::runtime_error("Could not create blockchain directory: " + std::string(e.what()));
   }
 }
 

@@ -153,6 +153,7 @@ void initialize(std::unique_ptr<DB>& db,
     "OrbiterSDK/cpp/linux_x86-64/0.1.2",
     1,
     8080,
+    Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
     serverPort,
     httpServerPort,
     discoveryNodes
