@@ -101,6 +101,7 @@ namespace TDEXV2 {
       REQUIRE(sdk.callViewFunction(tokenA, &ERC20::allowance, owner, router) == uint256_t("10000000000000000000000"));
       REQUIRE(sdk.callViewFunction(tokenA, &ERC20::balanceOf, owner) == uint256_t("10000000000000000000000"));
 
+      uint256_t ownerNativeBeforeAddLiq = sdk.getNativeBalance(owner);
       // Add liquidity of 100 WSPARQ and 100 TKNA
       uint256_t deadline = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::system_clock::now().time_since_epoch()
@@ -120,7 +121,7 @@ namespace TDEXV2 {
       uint256_t pairTknA = sdk.callViewFunction(tokenA, &ERC20::balanceOf, pair);
       uint256_t pairNative = sdk.getNativeBalance(wrapped);
       REQUIRE(ownerTknA == uint256_t("9900000000000000000000"));
-      REQUIRE(ownerNative == uint256_t("9900000000000000000000") - (uint256_t(1000000000) * 21000 * 2));
+      REQUIRE(ownerNative == ownerNativeBeforeAddLiq - uint256_t("100000000000000000000") - (uint256_t(1000000000) * 21000));
       REQUIRE(pairTknA == uint256_t("100000000000000000000"));
       REQUIRE(pairNative == uint256_t("100000000000000000000"));
     }

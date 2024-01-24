@@ -13,13 +13,11 @@ std::mutex cout_mutex;
 
 std::atomic<bool> Utils::logToCout = false;
 
-std::string Utils::getTestDumpPath() {
-  return std::string("testdump");
-}
-
 void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what) {
   Logger::logToDebug(LogType::ERROR, cl, std::move(func), std::string("HTTP Fail ") + what + " : " + ec.message());
 }
+
+std::string Utils::getTestDumpPath() { return std::string("testdump"); }
 
 void Utils::logToFile(std::string_view str) {
   // Lock to prevent multiple memory writes
