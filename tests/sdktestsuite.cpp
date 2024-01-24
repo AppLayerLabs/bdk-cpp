@@ -4,6 +4,7 @@
 #include "../../src/contract/templates/erc20.h"
 #include "../../src/contract/templates/simplecontract.h"
 #include <tuple>
+
 namespace TSDKTestSuite {
   TEST_CASE("SDK Test Suite", "[sdktestsuite]") {
     SECTION("SDK Test Suite Constructor") {
@@ -70,21 +71,21 @@ namespace TSDKTestSuite {
       SDKTestSuite sdkTestSuite("testSuiteGetEvents");
       auto simpleContractAddress = sdkTestSuite.deployContract<SimpleContract>(std::string("Hello World!"), uint256_t(10));
       auto changeNameAndValueTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setName, std::string("Hello World 2!"));
-      // auto events = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged);
-      // REQUIRE(events.size() == 1);
-      // auto filteredEvents = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!")));
-      // REQUIRE(filteredEvents.size() == 1);
-      // auto filteredEvents2 = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 3!")));
-      // REQUIRE(filteredEvents2.size() == 0);
-      // auto filteredEvents3 = sdkTestSuite.getEventsEmittedByAddress(simpleContractAddress, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!")));
-      // REQUIRE(filteredEvents3.size() == 1);
-      auto tupple = sdkTestSuite.getEventsEmittedByTxTup(changeNameAndValueTx, &SimpleContract::nameChanged);
+      auto events = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged);
+      REQUIRE(events.size() == 1);
+      auto filteredEvents = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!")));
+      REQUIRE(filteredEvents.size() == 1);
+      auto filteredEvents2 = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 3!")));
+      REQUIRE(filteredEvents2.size() == 0);
+      auto filteredEvents3 = sdkTestSuite.getEventsEmittedByAddress(simpleContractAddress, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!")));
+      REQUIRE(filteredEvents3.size() == 1);
 
-      using KnownFunctionType = void(SimpleContract::*)(const EventParam<std::string, false>&, const EventParam<std::string, false>&);
-      using KnownTupleType = SDKTestSuite::FunctionTraits<KnownFunctionType>::TupleType;
-
-      static_assert(!std::is_same_v<KnownTupleType, std::tuple<>>, "KnownTupleType should not be an empty tuple");
-      static_assert(std::is_same_v<KnownTupleType, std::tuple<std::string,std::string>>, "KnownTupleType should be a tuple of two strings");
+      auto changeValueTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setValue, uint256_t(20));
+      auto tupleVec = sdkTestSuite.getEventsEmittedByTxTup(changeValueTx, &SimpleContract::valueChanged);
+      REQUIRE(tupleVec.size() == 1);
+      for (auto& tuple : tupleVec) {
+        REQUIRE(std::get<0>(tuple) == uint256_t(20));
+      }
 
     }
   }

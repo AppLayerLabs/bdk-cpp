@@ -16,6 +16,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/utils/options.h"
 #include "../src/utils/db.h"
 #include "../src/core/blockchain.h"
+#include "../src/utils/utils.h"
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
@@ -803,7 +804,7 @@ class SDKTestSuite {
       // Specialization for member function pointers
       template <typename TContract, typename... Args, bool... Flags>
       struct FunctionTraits<void(TContract::*)(const EventParam<Args, Flags>&...)> {
-          using TupleType = typename ABI::Decoder::makeTupleType<EventParam<Args, Flags>...>::type;
+          using TupleType = typename Utils::makeTupleType<EventParam<Args, Flags>...>::type;
       };
     template <typename TContract, typename... Args, bool... Flags>
     auto getEventsEmittedByTxTup(const Hash& txHash,
@@ -840,7 +841,7 @@ class SDKTestSuite {
         std::vector<TupleType> tuples;
         if constexpr (!std::is_same_v<TupleType, std::tuple<>>) {
             for (const auto& event : filteredEvents) {
-                auto tuple = ABI::Decoder::decodeDataAsTuple<TupleType>(event.getData());
+                auto tuple = ABI::Decoder::decodeDataAsTuple<TupleType>::decode(event.getData());
                 tuples.push_back(tuple);
             }
         } else {

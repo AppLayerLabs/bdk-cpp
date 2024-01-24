@@ -947,35 +947,6 @@ namespace ABI {
     };
 
     ///@endcond
-    // Helper struct to conditionally append a type to a tuple
-    template <bool Flag, typename T, typename Tuple>
-    struct conditional_tuple_append {
-        using type = Tuple;
-    };
-
-    template <typename T, typename... Ts>
-    struct conditional_tuple_append<false, T, std::tuple<Ts...>> {
-        using type = std::tuple<Ts..., T>;
-    };
-
-    template<typename Accumulated, typename... Rest>
-    struct makeTupleTypeHelper {
-        using type = Accumulated;
-    };
-
-    template<typename Accumulated, typename T, bool Flag, typename... Rest>
-    struct makeTupleTypeHelper<Accumulated, EventParam<T, Flag>, Rest...> {
-        using NextAccumulated = typename conditional_tuple_append<Flag, T, Accumulated>::type;
-        using type = typename makeTupleTypeHelper<NextAccumulated, Rest...>::type;
-    };
-
-    template<typename... Args>
-    struct makeTupleType;
-
-    template<typename... Args, bool... Flags>
-    struct makeTupleType<EventParam<Args, Flags>...> {
-        using type = typename makeTupleTypeHelper<std::tuple<>, EventParam<Args, Flags>...>::type;
-    };
 
     /**
      * Recursive helper function to decode each element of the tuple.
