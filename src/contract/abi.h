@@ -949,49 +949,32 @@ namespace ABI {
     ///@endcond
     // Helper struct to conditionally append a type to a tuple
     template <bool Flag, typename T, typename Tuple>
-    struct conditional_tuple_append;
+    struct conditional_tuple_append {
+        using type = Tuple;
+    };
 
     template <typename T, typename... Ts>
     struct conditional_tuple_append<false, T, std::tuple<Ts...>> {
-      using type = std::tuple<Ts..., T>;
+        using type = std::tuple<Ts..., T>;
     };
 
-    template <typename T, typename Tuple>
-    struct conditional_tuple_append<true, T, Tuple> {
-      using type = Tuple;
-    };
-
-    // Base case for makeTupleTypeHelper
-    template<typename... Ts>
+    template<typename Accumulated, typename... Rest>
     struct makeTupleTypeHelper {
-      using type = std::tuple<Ts...>;
+        using type = Accumulated;
     };
 
-    // Recursive case for makeTupleTypeHelper
-    template<typename Accumulated, typename T, bool Flag, typename... Ts>
-    struct makeTupleTypeHelper<Accumulated, EventParam<T, Flag>, Ts...> {
-      using type = typename makeTupleTypeHelper<
-          typename conditional_tuple_append<Flag, T, Accumulated>::type,
-          Ts...
-      >::type;
+    template<typename Accumulated, typename T, bool Flag, typename... Rest>
+    struct makeTupleTypeHelper<Accumulated, EventParam<T, Flag>, Rest...> {
+        using NextAccumulated = typename conditional_tuple_append<Flag, T, Accumulated>::type;
+        using type = typename makeTupleTypeHelper<NextAccumulated, Rest...>::type;
     };
 
-    // Extractor of inner tuple type if type is std::tuple<std::tuple<...>>
-    template<typename... Ts>
-    struct innerTupleTypeExtractor;
-
-    template <typename... Ts>
-    struct innerTupleTypeExtractor<std::tuple<std::tuple<Ts...>>> {
-      using type = std::tuple<Ts...>;
-    };
-
-    // Entry point makeTupleType
     template<typename... Args>
     struct makeTupleType;
 
     template<typename... Args, bool... Flags>
     struct makeTupleType<EventParam<Args, Flags>...> {
-      using type = typename innerTupleTypeExtractor<makeTupleTypeHelper<std::tuple<>, EventParam<Args, Flags>...>::type>::type;
+        using type = typename makeTupleTypeHelper<std::tuple<>, EventParam<Args, Flags>...>::type;
     };
 
     /**

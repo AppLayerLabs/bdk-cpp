@@ -78,7 +78,7 @@ namespace TSDKTestSuite {
       // REQUIRE(filteredEvents2.size() == 0);
       // auto filteredEvents3 = sdkTestSuite.getEventsEmittedByAddress(simpleContractAddress, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!")));
       // REQUIRE(filteredEvents3.size() == 1);
-      // auto tupple = sdkTestSuite.getEventsEmittedByTxTup(changeNameAndValueTx, &SimpleContract::nameChanged);
+      auto tupple = sdkTestSuite.getEventsEmittedByTxTup(changeNameAndValueTx, &SimpleContract::nameChanged);
 
       using KnownFunctionType = void(SimpleContract::*)(const EventParam<std::string, false>&, const EventParam<std::string, false>&);
       using KnownTupleType = SDKTestSuite::FunctionTraits<KnownFunctionType>::TupleType;

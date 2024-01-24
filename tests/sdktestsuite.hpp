@@ -798,15 +798,13 @@ class SDKTestSuite {
 
     // Forward declaration for the extractor
       template <typename TFunc>
-      struct FunctionTraits;
+      struct FunctionTraits;  // Forward declaration
 
       // Specialization for member function pointers
       template <typename TContract, typename... Args, bool... Flags>
-      struct FunctionTraits<void(TContract::*)(const EventParam<Args, Flags>&...)>
-      {
+      struct FunctionTraits<void(TContract::*)(const EventParam<Args, Flags>&...)> {
           using TupleType = typename ABI::Decoder::makeTupleType<EventParam<Args, Flags>...>::type;
       };
-
     template <typename TContract, typename... Args, bool... Flags>
     auto getEventsEmittedByTxTup(const Hash& txHash,
                                 void(TContract::*func)(const EventParam<Args, Flags>&...),
