@@ -85,16 +85,6 @@ class SDKTestSuite {
       if (std::filesystem::exists(dbPath)) std::filesystem::remove_all(dbPath);
       this->db_ = std::make_unique<DB>(dbPath);
 
-      // Create the initial blockchain information (genesis block) and fill DB with it.
-      // Genesis Keys:
-      // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
-      // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
-      Block genesis(Hash(Utils::uint256ToBytes(0)), 1678887537000000, 0);
-      genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1678887538000000);
-      this->db_->put(Utils::stringToBytes("latest"), genesis.serializeBlock(), DBPrefix::blocks);
-      this->db_->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
-      this->db_->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
-
       // Populate rdPoS DB with unique rdPoS, not default.
       for (uint64_t i = 0; i < this->validatorPrivKeys_.size(); i++) {
         this->db_->put(Utils::uint64ToBytes(i),
@@ -103,27 +93,42 @@ class SDKTestSuite {
         );
       }
 
-      // Fill initial accounts with some funds, populate State DB with one address,
-      // and initialize with chain owner account. See ~State for encoding.
-      const uint256_t desiredBalance("1000000000000000000000");
-      {
-        Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-        Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
-        value.insert(value.end(), 0x00);
-        this->db_->put(this->chainOwnerAccount_.address.get(), value, DBPrefix::nativeAccounts);
-      }
-      // Populate the remaining accounts.
-      for (const TestAccount& account : accounts) {
-        Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-        Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
-        value.insert(value.end(), 0x00);
-        this->db_->put(account.address.get(), value, DBPrefix::nativeAccounts);
-      }
       // Create a default options if none is provided.
       if (options == nullptr) {
+        // Create a genesis block with a timestamp of 1678887538000000 (2023-02-12 00:45:38 UTC)
+        uint64_t genesisTimestamp = 1678887538000000;
+        PrivKey genesisSigner(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8"));
+        Block genesis(Hash(), 0, 0);
+        genesis.finalize(genesisSigner, genesisTimestamp);
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+        std::vector<std::pair<Address,uint256_t>> genesisBalances;
+        // Add the chain owner account to the genesis balances.
+        const uint256_t desiredBalance("1000000000000000000000");
+        genesisBalances.emplace_back(this->chainOwnerAccount_.address, desiredBalance);
+        // Add the remaining accounts to the genesis balances.
+        for (const TestAccount& account : accounts) {
+          genesisBalances.emplace_back(account.address, desiredBalance);
+        }
+        std::vector<Address> genesisValidators;
+        for (const auto& privKey : this->validatorPrivKeys_) {
+          genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+        }
         this->options_ = std::make_unique<Options>(
-          sdkPath, "OrbiterSDK/cpp/linux_x86-64/0.1.2", 1, 8080, 8080, 9999, discoveryNodes
+          sdkPath,
+          "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+          1,
+          8080,
+          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+          8080,
+          9999,
+          2000,
+          10000,
+          discoveryNodes,
+          genesis,
+          genesisTimestamp,
+          genesisSigner,
+          genesisBalances,
+          genesisValidators
         );
       } else {
         this->options_ = std::make_unique<Options>(*options);

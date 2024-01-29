@@ -49,6 +49,8 @@ See the LICENSE.txt file in the project root for more information.
  *     ...
  *   ]
  * ```
+ *
+ * TODO: Add chainId into the validator signature.
  */
 class Block {
   private:
@@ -216,11 +218,11 @@ class Block {
      */
     bool finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp);
 
-    /// Equality operator. Checks the block hash of both objects.
-    const bool operator==(const Block& b) const { return this->hash() == b.hash(); }
+    /// Equality operator. Checks the block hash AND signature of both objects.
+    const bool operator==(const Block& b) const { return ((this->hash() == b.hash()) && (this->getValidatorSig() == b.getValidatorSig())); }
 
-    /// Inequality operator. Checks the block hash of both objects.
-    const bool operator!=(const Block& b) const { return this->hash() != b.hash(); }
+    /// Inequality operator. Checks the block hash AND signature of both objects.
+    const bool operator!=(const Block& b) const { return ((this->hash() != b.hash()) || (this->getValidatorSig() != b.getValidatorSig())); }
 
     /// Copy assignment operator.
     Block& operator=(const Block& other) {
