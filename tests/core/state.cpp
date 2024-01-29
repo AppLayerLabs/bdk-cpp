@@ -55,44 +55,38 @@ void initialize(std::unique_ptr<DB>& db,
     if (std::filesystem::exists(dbName)) {
       std::filesystem::remove_all(dbName);
     }
+    if(std::filesystem::exists(dbName + "/options.json")) {
+      std::filesystem::remove(dbName + "/options.json");
+    }
   }
   db = std::make_unique<DB>(dbName);
-  if (clearDb) {
-    Block genesis(Hash(Utils::uint256ToBytes(0)), 1678887537000000, 0);
-
-    // Genesis Keys:
-    // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
-    // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
-    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1678887538000000);
-    db->put(Utils::stringToBytes("latest"), genesis.serializeBlock(), DBPrefix::blocks);
-    db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
-    db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
-
-    // Populate rdPoS DB with unique rdPoS, not default.
-    for (uint64_t i = 0; i < validatorPrivKeys.size(); ++i) {
-      db->put(Utils::uint64ToBytes(i), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[i]))).get(),
-              DBPrefix::rdPoS);
-    }
-    // Populate State DB with one address.
-    /// Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
-    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
-    /// See ~State for encoding
-    uint256_t desiredBalance("1000000000000000000000");
-    Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-    Utils::appendBytes(value, Utils::uintToBytes(desiredBalance));
-    value.insert(value.end(), 0x00);
-    db->put(dev1.get(), value, DBPrefix::nativeAccounts);
-  }
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+  PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+  uint64_t genesisTimestamp = 1678887538000000;
+  Block genesis(Hash(), 0, 0);
+  genesis.finalize(genesisPrivKey, genesisTimestamp);
+  std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+  std::vector<Address> genesisValidators;
+  for (const auto& privKey : validatorPrivKeys) {
+    genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+  }
   if (!validatorKey) {
     options = std::make_unique<Options>(
       folderName,
       "OrbiterSDK/cpp/linux_x86-64/0.1.2",
       1,
       8080,
+      Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
       serverPort,
       9999,
-      discoveryNodes
+      2000,
+      10000,
+      discoveryNodes,
+      genesis,
+      genesisTimestamp,
+      genesisPrivKey,
+      genesisBalances,
+      genesisValidators
     );
   } else {
     options = std::make_unique<Options>(
@@ -100,9 +94,17 @@ void initialize(std::unique_ptr<DB>& db,
       "OrbiterSDK/cpp/linux_x86-64/0.1.2",
       1,
       8080,
+      Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
       serverPort,
       9999,
+      2000,
+      10000,
       discoveryNodes,
+      genesis,
+      genesisTimestamp,
+      genesisPrivKey,
+      genesisBalances,
+      genesisValidators,
       validatorKey
     );
   }
@@ -586,14 +588,31 @@ namespace TState {
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+      PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      uint64_t genesisTimestamp = 1678887538000000;
+      Block genesis(Hash(), 0, 0);
+      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+      std::vector<Address> genesisValidators;
+      for (const auto& privKey : validatorPrivKeys) {
+        genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+      }
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           testDumpPath + "/stateDiscoveryNodeNetworkCapabilities",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
+          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
-          discoveryNodes
+          2000,
+          10000,
+          discoveryNodes,
+          genesis,
+          genesisTimestamp,
+          genesisPrivKey,
+          genesisBalances,
+          genesisValidators
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -842,14 +861,31 @@ namespace TState {
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+      PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      uint64_t genesisTimestamp = 1678887538000000;
+      Block genesis(Hash(), 0, 0);
+      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+      std::vector<Address> genesisValidators;
+      for (const auto& privKey : validatorPrivKeys) {
+        genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+      }
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           testDumpPath + "/stateDiscoveryNodeNetworkCapabilities",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
+          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
-          discoveryNodes
+          2000,
+          10000,
+          discoveryNodes,
+          genesis,
+          genesisTimestamp,
+          genesisPrivKey,
+          genesisBalances,
+          genesisValidators
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -1158,14 +1194,31 @@ namespace TState {
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+      PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      uint64_t genesisTimestamp = 1678887538000000;
+      Block genesis(Hash(), 0, 0);
+      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+      std::vector<Address> genesisValidators;
+      for (const auto& privKey : validatorPrivKeys) {
+        genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+      }
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTx",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
+          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
-          discoveryNodes
+          2000,
+          10000,
+          discoveryNodes,
+          genesis,
+          genesisTimestamp,
+          genesisPrivKey,
+          genesisBalances,
+          genesisValidators
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -1533,14 +1586,31 @@ namespace TState {
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+      PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      uint64_t genesisTimestamp = 1678887538000000;
+      Block genesis(Hash(), 0, 0);
+      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+      std::vector<Address> genesisValidators;
+      for (const auto& privKey : validatorPrivKeys) {
+        genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+      }
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
+          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
-          discoveryNodes
+          2000,
+          10000,
+          discoveryNodes,
+          genesis,
+          genesisTimestamp,
+          genesisPrivKey,
+          genesisBalances,
+          genesisValidators
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -1926,14 +1996,31 @@ namespace TState {
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+      PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      uint64_t genesisTimestamp = 1678887538000000;
+      Block genesis(Hash(), 0, 0);
+      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+      std::vector<Address> genesisValidators;
+      for (const auto& privKey : validatorPrivKeys) {
+        genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+      }
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
           "OrbiterSDK/cpp/linux_x86-64/0.1.2",
           1,
           8080,
+          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
-          discoveryNodes
+          2000,
+          10000,
+          discoveryNodes,
+          genesis,
+          genesisTimestamp,
+          genesisPrivKey,
+          genesisBalances,
+          genesisValidators
       );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);

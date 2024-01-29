@@ -22,25 +22,24 @@ class SimpleContract : public DynamicContract {
     SafeUint256_t value_; ///< The value of the contract.
     void registerContractFunctions() override; ///< Register the contract functions.
 
-  protected:
+  public:
     /// Event for when the name changes.
     void nameChanged(const EventParam<std::string, true>& name) { this->emitEvent(__func__,  std::make_tuple(name)); }
 
     /// Event for when the value changes.
-    void valueChanged(const EventParam<uint256_t, true>& value) { this->emitEvent(__func__, std::make_tuple(value)); }
+    void valueChanged(const EventParam<uint256_t, false>& value) { this->emitEvent(__func__, std::make_tuple(value)); }
 
-    /// Event for when the name and value change. used for testing json abi generation
+    /// Event for when the name and value change. Used for testing JSON ABI generation.
     void nameAndValueChanged(const EventParam<std::string, true>& name, const EventParam<uint256_t, true>& value) {
       this->emitEvent(__func__, std::make_tuple(name, value));
     }
 
-    /// Event for when the name and value change (as tuple), used for testing json abi generation
+    /// Event for when the name and value change (as tuple). Used for testing JSON ABI generation
     void nameAndValueTupleChanged(const EventParam<std::tuple<std::string, uint256_t>, true>& nameAndValue) {
       this->emitEvent(__func__, std::make_tuple(nameAndValue));
     }
 
-  public:
-    using ConstructorArguments = std::tuple<const std::string&, uint256_t>; ///< The constructor arguments type.
+    using ConstructorArguments = std::tuple<const std::string&, const uint256_t&>; ///< The constructor arguments type.
 
     /**
      * Constructor from create. Create contract and save it to database.

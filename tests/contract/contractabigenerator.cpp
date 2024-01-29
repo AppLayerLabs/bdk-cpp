@@ -157,4 +157,11 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     auto findNameChanged = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::nameChanged);
     REQUIRE(findNameChanged != j.end());
   }
+
+  SECTION("ContractABIGenerator getFunctionName") {
+    REQUIRE(ContractReflectionInterface::getFunctionName(&NativeWrapper::deposit) == "deposit");
+    REQUIRE(ContractReflectionInterface::getFunctionName(&NativeWrapper::withdraw) == "withdraw");
+    REQUIRE(ContractReflectionInterface::getFunctionName(&NativeWrapper::transfer) == "transfer");
+    REQUIRE(ContractReflectionInterface::getFunctionName(&ERC20::transfer) == "transfer");
+  }
 }

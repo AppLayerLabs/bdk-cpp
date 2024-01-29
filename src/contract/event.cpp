@@ -49,7 +49,9 @@ std::string Event::serializeForRPC() const {
   return obj.dump();
 }
 
-EventManager::EventManager(const std::unique_ptr<DB>& db) : db_(db) {
+EventManager::EventManager(
+  const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options
+) : db_(db), options_(options) {
   std::vector<DBEntry> allEvents = this->db_->getBatch(DBPrefix::events);
   for (DBEntry& event : allEvents) {
     Event e(Utils::bytesToString(event.value)); // Create a new Event object by deserializing
@@ -85,20 +87,22 @@ const std::vector<Event> EventManager::getEvents(
   std::vector<Event> ret;
   // Check if block range is within limits
   uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
-  if (heightDiff > this->blockCap_) throw std::runtime_error(
-    "Block range too large for event querying! Max allowed is " + std::to_string(this->blockCap_)
+  if (heightDiff > this->options_->getEventBlockCap()) throw std::runtime_error(
+    "Block range too large for event querying! Max allowed is " +
+    std::to_string(this->options_->getEventBlockCap())
   );
   // Fetch from memory, then match topics from memory
-  const std::vector<Event> filMM = this->filterFromMemory(fromBlock, toBlock, address);
-  for (const Event& e : filMM) {
-    if (ret.size() >= this->logCap_) break;
-    if (this->matchTopics(e, topics) && ret.size() < this->logCap_) ret.push_back(std::move(e));
+  std::vector<Event> fil = this->filterFromMemory(fromBlock, toBlock, address);
+  for (const Event& e : fil) {
+    if (this->matchTopics(e, topics) && ret.size() < this->options_->getEventLogCap()) {
+      ret.push_back(e);
+    }
   }
-  if (ret.size() >= this->logCap_) return ret;
+  if (ret.size() >= this->options_->getEventLogCap()) return ret;
   // Fetch from database if we have space left
   const std::vector<Event> filDB = this->filterFromDB(fromBlock, toBlock, address, topics);
   for (const Event& e : filDB) {
-    if (ret.size() >= this->logCap_) break;
+    if (ret.size() >= this->options_->getEventLogCap()) break;
     ret.push_back(std::move(e));
   }
   return ret;
@@ -112,7 +116,7 @@ const std::vector<Event> EventManager::getEvents(
   auto& txHashIndex = this->events_.get<2>(); // txHash is the third index
   auto range = txHashIndex.equal_range(txHash);
   for (auto it = range.first; it != range.second; it++) {
-    if (ret.size() >= this->logCap_) break;
+    if (ret.size() >= this->options_->getEventLogCap()) break;
     const Event& e = *it;
     if (e.getBlockIndex() == blockIndex && e.getTxIndex() == txIndex) ret.push_back(e);
   }
@@ -121,7 +125,7 @@ const std::vector<Event> EventManager::getEvents(
   Utils::appendBytes(fetchBytes, Utils::uint64ToBytes(blockIndex));
   Utils::appendBytes(fetchBytes, Utils::uint64ToBytes(txIndex));
   for (DBEntry entry : this->db_->getBatch(fetchBytes)) {
-    if (ret.size() >= this->logCap_) break;
+    if (ret.size() >= this->options_->getEventLogCap()) break;
     Event e(Utils::bytesToString(entry.value));
     ret.push_back(e);
   }
@@ -172,6 +176,7 @@ const std::vector<Event> EventManager::filterFromDB(
 
   // Get the key values
   for (DBEntry item : this->db_->getBatch(DBPrefix::events, dbKeys)) {
+    if (ret.size() >= this->options_->getEventLogCap()) break;
     Event e(Utils::bytesToString(item.value));
     if (this->matchTopics(e, topics)) ret.push_back(e);
   }

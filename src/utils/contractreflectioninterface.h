@@ -21,12 +21,108 @@ See the LICENSE.txt file in the project root for more information.
  * TODO: Add support for overloaded methods! This will require a change in the mappings and templates...
  */
 namespace ContractReflectionInterface {
+  /**
+   * Unique identifier for a pointer to member function.
+   * This is used to derive the name of a function from a pointer to member function.
+   * TODO: Not sure if this is undefined behavior or not, but it works
+   */
+  class UniqueFunctionPointerIdentifier {
+  private:
+    std::string returnType;
+    std::string className;
+    uint64_t ptr1 = 0;
+    uint64_t ptr2 = 0;
+  public:
+    /// Specialization for non-const functions without args.
+    template <typename TContract, typename R>
+    UniqueFunctionPointerIdentifier(R(TContract::*func)()) {
+      this->returnType = Utils::getRealTypeName<R>();
+      this->className = Utils::getRealTypeName<TContract>();
+      /// Check if sizeof func is sizeof(uint64_t) * 2
+      static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+      /// Copy the function pointer into the two uint64_t
+      memcpy(&ptr1, &func, sizeof(uint64_t));
+      memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+    }
+
+    /// Specialization for const functions without args.
+    template <typename TContract, typename R>
+    UniqueFunctionPointerIdentifier(R(TContract::*func)() const) {
+      this->returnType = Utils::getRealTypeName<R>();
+      this->className = Utils::getRealTypeName<TContract>();
+      /// Check if sizeof func is sizeof(uint64_t) * 2
+      static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+      /// Copy the function pointer into the two uint64_t
+      memcpy(&ptr1, &func, sizeof(uint64_t));
+      memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+    }
+
+    /// Specialization for non-const functions with non-const args.
+    template <typename TContract, typename R, typename... Args>
+    UniqueFunctionPointerIdentifier(R(TContract::*func)(Args...)) {
+      this->returnType = Utils::getRealTypeName<R>();
+      this->className = Utils::getRealTypeName<TContract>();
+      /// Check if sizeof func is sizeof(uint64_t) * 2
+      static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+      /// Copy the function pointer into the two uint64_t
+      memcpy(&ptr1, &func, sizeof(uint64_t));
+      memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+    }
+
+    /// Specialization for const functions with non-const args.
+    template <typename TContract, typename R, typename... Args>
+    UniqueFunctionPointerIdentifier(R(TContract::*func)(Args...) const) {
+      this->returnType = Utils::getRealTypeName<R>();
+      this->className = Utils::getRealTypeName<TContract>();
+      /// Check if sizeof func is sizeof(uint64_t) * 2
+      static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+      /// Copy the function pointer into the two uint64_t
+      memcpy(&ptr1, &func, sizeof(uint64_t));
+      memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+    }
+
+    /// Specialization for non-const functions with const args.
+    template <typename TContract, typename R, typename... Args>
+    UniqueFunctionPointerIdentifier(R(TContract::*func)(const Args&...)) {
+      this->returnType = Utils::getRealTypeName<R>();
+      this->className = Utils::getRealTypeName<TContract>();
+      /// Check if sizeof func is sizeof(uint64_t) * 2
+      static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+      /// Copy the function pointer into the two uint64_t
+      memcpy(&ptr1, &func, sizeof(uint64_t));
+      memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+    }
+
+    /// Specialization for const functions with const args.
+    template <typename TContract, typename R, typename... Args>
+    UniqueFunctionPointerIdentifier(R(TContract::*func)(const Args&...) const) {
+      this->returnType = Utils::getRealTypeName<R>();
+      this->className = Utils::getRealTypeName<TContract>();
+      /// Check if sizeof func is sizeof(uint64_t) * 2
+      static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+      /// Copy the function pointer into the two uint64_t
+      memcpy(&ptr1, &func, sizeof(uint64_t));
+      memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+    }
+
+    bool operator==(const UniqueFunctionPointerIdentifier& other) const {
+      return ptr1 == other.ptr1 && ptr2 == other.ptr2 && className == other.className && returnType == other.returnType;
+    }
+
+    struct Hash {
+      std::size_t operator()(const UniqueFunctionPointerIdentifier& fpw) const {
+        return std::hash<uint64_t>{}(fpw.ptr1) ^ std::hash<uint64_t>{}(fpw.ptr2) ^ std::hash<std::string>{}(fpw.className) ^ std::hash<std::string>{}(fpw.returnType);
+      }
+    };
+  };
+
   // All declared in the cpp file.
   extern std::unordered_map<std::string, bool> registeredContractsFunctionsMap;
   extern std::unordered_map<std::string, bool> registeredContractsEventsMap;
   extern std::unordered_map<std::string, std::vector<std::string>> ctorArgNamesMap;
   extern std::unordered_map<std::string, std::unordered_multimap<std::string, ABI::MethodDescription>> methodDescsMap;
   extern std::unordered_map<std::string, std::unordered_multimap<std::string, ABI::EventDescription>> eventDescsMap;
+  extern std::unordered_map<UniqueFunctionPointerIdentifier, std::string, UniqueFunctionPointerIdentifier::Hash> pointerNamesMap;
 
   /**
    * Helper struct to extract arguments from a function pointer.
@@ -58,6 +154,10 @@ namespace ContractReflectionInterface {
     static std::vector<std::string> getFunctionReturnTypes() {
       return ABI::FunctorEncoder::listArgumentTypesV<R>();
     }
+    /// Get UniqueFunctionPointerIdentifier
+    static UniqueFunctionPointerIdentifier getUniqueFunctionPointerIdentifier(R(TContract::*func)()) {
+      return UniqueFunctionPointerIdentifier(func);
+    }
   };
 
   /**
@@ -74,6 +174,10 @@ namespace ContractReflectionInterface {
     /// Get the function return types.
     static std::vector<std::string> getFunctionReturnTypes() {
       return ABI::FunctorEncoder::listArgumentTypesV<R>();
+    }
+    /// Get UniqueFunctionPointerIdentifier
+    static UniqueFunctionPointerIdentifier getUniqueFunctionPointerIdentifier(R(TContract::*func)() const) {
+      return UniqueFunctionPointerIdentifier(func);
     }
   };
 
@@ -95,6 +199,10 @@ namespace ContractReflectionInterface {
     static std::vector<std::string> getFunctionReturnTypes() {
       return ABI::FunctorEncoder::listArgumentTypesV<R>();
     }
+    /// Get UniqueFunctionPointerIdentifier
+    static UniqueFunctionPointerIdentifier getUniqueFunctionPointerIdentifier(R(TContract::*func)(Args...)) {
+      return UniqueFunctionPointerIdentifier(func);
+    }
   };
 
   /**
@@ -114,6 +222,10 @@ namespace ContractReflectionInterface {
     /// Get the function return types.
     static std::vector<std::string> getFunctionReturnTypes() {
       return ABI::FunctorEncoder::listArgumentTypesV<R>();
+    }
+    /// Get UniqueFunctionPointerIdentifier
+    static UniqueFunctionPointerIdentifier getUniqueFunctionPointerIdentifier(R(TContract::*func)(Args...) const) {
+      return UniqueFunctionPointerIdentifier(func);
     }
   };
 
@@ -135,6 +247,10 @@ namespace ContractReflectionInterface {
     static std::vector<std::string> getFunctionReturnTypes() {
       return ABI::FunctorEncoder::listArgumentTypesV<R>();
     }
+    /// Get UniqueFunctionPointerIdentifier
+    static UniqueFunctionPointerIdentifier getUniqueFunctionPointerIdentifier(R(TContract::*func)(const Args&...)) {
+      return UniqueFunctionPointerIdentifier(func);
+    }
   };
 
   /**
@@ -155,6 +271,10 @@ namespace ContractReflectionInterface {
     static std::vector<std::string> getFunctionReturnTypes() {
       return ABI::FunctorEncoder::listArgumentTypesV<R>();
     }
+    /// Get UniqueFunctionPointerIdentifier
+    static UniqueFunctionPointerIdentifier getUniqueFunctionPointerIdentifier(R(TContract::*func)(const Args&...) const) {
+      return UniqueFunctionPointerIdentifier(func);
+    }
   };
 
 
@@ -169,6 +289,10 @@ namespace ContractReflectionInterface {
     static std::vector<std::pair<std::string, bool>> getArgs() {
       return ABI::FunctorEncoder::listEventTypesV<EventParam<Args, Flags>...>::get();
     }
+    /// Get UniqueFunctionPointerIdentifier
+    static UniqueFunctionPointerIdentifier getUniqueFunctionPointerIdentifier(void(TContract::*func)(const EventParam<Args, Flags>&...)) {
+      return UniqueFunctionPointerIdentifier(func);
+    }
   };
 
   /**
@@ -176,6 +300,7 @@ namespace ContractReflectionInterface {
    * @tparam TContract The contract type.
    * @param name The method's name.
    * @param mut The method's mutability.
+   * @param func The unique function pointer identifier.
    * @param args The method's arguments.
    * @param argsNames The method's argument names.
    * @param rets The method's return types.
@@ -183,6 +308,7 @@ namespace ContractReflectionInterface {
   template <typename TContract> void inline populateMethodTypesMap(
     const std::string& name,
     const FunctionTypes& mut,
+    const UniqueFunctionPointerIdentifier& func,
     const std::vector<std::string>& args,
     const std::vector<std::string>& argsNames,
     const std::vector<std::string>& rets
@@ -199,14 +325,21 @@ namespace ContractReflectionInterface {
     desc.stateMutability = mut;
     desc.type = "function";
     methodDescsMap[Utils::getRealTypeName<TContract>()].insert(std::make_pair(name, desc));
+    pointerNamesMap[func] = name;
   }
 
   /**
    * Populate the event argument names map.
+   * @param name The event's name.
+   * @param anonymous Whether the event is anonymous or not.
+   * @param func The unique function pointer identifier.
+   * @param args The event's arguments.
+   * @param argsNames The event's argument names.
    */
   template <typename TContract> void inline populateEventTypesMap(
     const std::string& name,
     bool anonymous,
+    const UniqueFunctionPointerIdentifier& func,
     std::vector<std::pair<std::string, bool>> args,
     std::vector<std::string> argsNames
   ) {
@@ -222,6 +355,7 @@ namespace ContractReflectionInterface {
       desc.args.push_back(argDesc);
     }
     eventDescsMap[Utils::getRealTypeName<TContract>()].insert(std::make_pair(name, desc));
+    pointerNamesMap[func] = name;
   }
 
 
@@ -264,6 +398,7 @@ namespace ContractReflectionInterface {
     ((populateMethodTypesMap<TContract>(
       std::get<0>(methods),
       std::get<2>(methods),
+      populateMethodTypesMapHelper<std::decay_t<decltype(std::get<1>(methods))>>::getUniqueFunctionPointerIdentifier(std::get<1>(methods)),
       populateMethodTypesMapHelper<std::decay_t<decltype(std::get<1>(methods))>>::getFunctionArgs(),
       std::get<3>(methods),
       populateMethodTypesMapHelper<std::decay_t<decltype(std::get<1>(methods))>>::getFunctionReturnTypes()
@@ -285,6 +420,7 @@ namespace ContractReflectionInterface {
     ((populateEventTypesMap<TContract>(
       std::get<0>(events),
       std::get<1>(events),
+      populateEventTypesMapHelper<std::decay_t<decltype(std::get<2>(events))>>::getUniqueFunctionPointerIdentifier(std::get<2>(events)),
       populateEventTypesMapHelper<std::decay_t<decltype(std::get<2>(events))>>::getArgs(),
       std::get<3>(events)
     )), ...);
@@ -366,6 +502,82 @@ namespace ContractReflectionInterface {
       descriptions.push_back(desc);
     }
     return descriptions;
+  }
+
+  /**
+   * Get a function name from a pointer to member function.
+   * Specialization for non-const functions without args.
+   * @tparam TContract The contract type.
+   * @tparam R The return type.
+   * @param func The pointer to member function.
+   */
+  template <typename TContract, typename R>
+  std::string inline getFunctionName(R(TContract::*func)()) {
+    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+  }
+
+  /**
+   * Get a function name from a pointer to member function
+   * Specialization for const functions without args.
+   * @tparam TContract The contract type.
+   * @tparam R The return type.
+   * @param func The pointer to member function.
+   */
+  template <typename TContract, typename R>
+  std::string inline getFunctionName(R(TContract::*func)() const) {
+    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+  }
+
+  /**
+   * Get a function name from a pointer to member function
+   * Specialization for non-const functions with non-const args.
+   * @tparam TContract The contract type.
+   * @tparam R The return type.
+   * @tparam Args The argument types.
+   * @param func The pointer to member function.
+   */
+  template <typename TContract, typename R, typename... Args>
+  std::string inline getFunctionName(R(TContract::*func)(Args...)) {
+    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+  }
+
+  /**
+   * Get a function name from a pointer to member function
+   * Specialization for const functions with non-const args.
+   * @tparam TContract The contract type.
+   * @tparam R The return type.
+   * @tparam Args The argument types.
+   * @param func The pointer to member function.
+   */
+  template<typename TContract, typename R, typename... Args>
+  std::string inline getFunctionName(R(TContract::*func)(Args...) const) {
+    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+  }
+
+  /**
+   * Get a function name from a pointer to member function
+   * Specialization for non-const functions with const args.
+   * @tparam TContract The contract type.
+   * @tparam R The return type.
+   * @tparam Args The argument types.
+   * @param func The pointer to member function.
+   */
+  template <typename TContract, typename R, typename... Args>
+  std::string inline getFunctionName(R(TContract::*func)(const Args&...)) {
+    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+  }
+
+  /**
+   * Get a function name from a pointer to member function
+   * Specialization for const functions with const args.
+   * @tparam TContract The contract type.
+   * @tparam R The return type.
+   * @tparam Args The argument types.
+   * @param func The pointer to member function.
+   */
+  template <typename TContract, typename R, typename... Args>
+  std::string inline getFunctionName(R(TContract::*func)(const Args&...) const) {
+    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
   }
 } // namespace ContractReflectionInterface
 

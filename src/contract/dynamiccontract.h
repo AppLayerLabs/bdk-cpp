@@ -333,14 +333,14 @@ class DynamicContract : public BaseContract {
      * @tparam Args The argument types of the event.
      * @tparam Flags The indexing flags of the event.
      * @param name The event's name.
-     * @param args The event's arguments. Defaults to an empty list.
+     * @param args The event's arguments. Defaults to none (empty tuple).
      * @param anonymous Whether the event is anonymous or not. Defaults to false.
      */
     template <typename... Args, bool... Flags>
     void emitEvent(
-        const std::string& name,
-        const std::tuple<EventParam<Args, Flags>...>& args,
-        bool anonymous = false
+      const std::string& name,
+      const std::tuple<EventParam<Args, Flags>...>& args = std::make_tuple(),
+      bool anonymous = false
     ) const {
       Event e(name, this->getContractAddress(), args, anonymous);
       this->interface_.emitContractEvent(e);

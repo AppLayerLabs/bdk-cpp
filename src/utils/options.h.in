@@ -3,11 +3,45 @@
 
 #include "utils.h"
 #include "ecdsa.h"
+#include "block.h"
 
 #include <filesystem>
 #include <boost/asio/ip/address.hpp>
 
-// TODO: move blockCap and logCap from EventManager here
+/**
+ * Example options.json file:
+ * {
+ *   "rootPath": "blockchain",
+ *   "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+ *   "version": 1,
+ *   "chainID": 808080,
+ *   "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+ *   "wsPort": 8086,
+ *   "httpPort": 8095,
+ *   "eventBlockCap": 2000,
+ *   "eventLogCap": 10000,
+ *   "genesis" : {
+ *      "validators": [
+ *        "0x7588b0f553d1910266089c58822e1120db47e572",
+ *        "0xcabf34a268847a610287709d841e5cd590cc5c00",
+ *        "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
+ *        "0x795083c42583842774febc21abb6df09e784fce5",
+ *        "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
+ *      ],
+ *     "timestamp" : 1656356646000000,
+ *     "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c"
+ *      "balances": [
+ *        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+ *      ]
+ *   },
+ *   "discoveryNodes": [
+ *     {
+ *       "address" : "127.0.0.1",
+ *       "port" : 8080
+ *     }
+ *   ]
+ * }
+ */
 
 /// Singleton class for global node data.
 class Options {
@@ -39,6 +73,15 @@ class Options {
     /// HTTP server port.
     const uint16_t httpPort_;
 
+    /// Maximum block range for querying contract events.
+    const uint64_t eventBlockCap_;
+
+    /// Maximum number of contract events that can be queried at once.
+    const uint64_t eventLogCap_;
+
+    /// Chain owner address (used by ContractManager to see who can deploy contracts)
+    const Address chainOwner_;
+
     /// Coinbase address (if found), used by rdPoS.
     const Address coinbase_;
 
@@ -47,6 +90,15 @@ class Options {
 
     /// List of known Discovery nodes.
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes_;
+
+    /// Genesis block.
+    const Block genesisBlock_;
+
+    /// List of addresses and their respective initial balances.
+    const std::vector<std::pair<Address, uint256_t>> genesisBalances_;
+
+    /// List of genesis validators.
+    const std::vector<Address> genesisValidators_;
 
   public:
     /**
@@ -57,15 +109,27 @@ class Options {
      * @param web3clientVersion Version of the client.
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
+     * @param chainOwner Chain owner address.
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
+     * @param eventBlockCap Block range limit for querying events.
+     * @param eventLogCap Maximum number of events that can be queried.
      * @param discoveryNodes List of known Discovery nodes.
+     * @param genesisBlock Genesis block.
+     * @param genesisTimestamp Genesis timestamp.
+     * @param genesisSigner Genesis signer.
+     * @param genesisBalances List of addresses and their respective initial balances.
+     * @param genesisValidators List of genesis validators.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
-      const uint64_t& version, const uint64_t& chainID,
+      const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
-      const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes
+      const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
+      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
+      const std::vector<Address>& genesisValidators
     );
 
     /**
@@ -76,19 +140,31 @@ class Options {
      * @param web3clientVersion Version of the client.
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
+     * @param chainOwner Chain owner address.
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
+     * @param eventBlockCap Block range limit for querying events.
+     * @param eventLogCap Maximum number of events that can be queried.
      * @param discoveryNodes List of known Discovery nodes.
+     * @param genesisBlock Genesis block.
+     * @param genesisTimestamp Genesis timestamp.
+     * @param genesisSigner Genesis signer.
+     * @param genesisBalances List of addresses and their respective initial balances.
+     * @param genesisValidators List of genesis validators.
      * @param privKey Private key of the Validator.
      */
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
-      const uint64_t& version, const uint64_t& chainID,
+      const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
+      const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
+      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
+      const std::vector<Address>& genesisValidators,
       const PrivKey& privKey
     );
-    
+
     /// Copy constructor.
     Options(const Options& other) :
       rootPath_(other.rootPath_),
@@ -98,11 +174,17 @@ class Options {
       web3clientVersion_(other.web3clientVersion_),
       version_(other.version_),
       chainID_(other.chainID_),
+      chainOwner_(other.chainOwner_),
       wsPort_(other.wsPort_),
       httpPort_(other.httpPort_),
+      eventBlockCap_(other.eventBlockCap_),
+      eventLogCap_(other.eventLogCap_),
       coinbase_(other.coinbase_),
       isValidator_(other.isValidator_),
-      discoveryNodes_(other.discoveryNodes_)
+      discoveryNodes_(other.discoveryNodes_),
+      genesisBlock_(other.genesisBlock_),
+      genesisBalances_(other.genesisBalances_),
+      genesisValidators_(other.genesisValidators_)
     {}
 
     /// Getter for `rootPath`.
@@ -130,6 +212,9 @@ class Options {
     /// Getter for `version`.
     const uint64_t& getVersion() const { return this->version_; }
 
+    /// Getter for `chainOwner`.
+    const Address& getChainOwner() const { return this->chainOwner_; }
+
     /// Getter for `chainID`.
     const uint64_t& getChainID() const { return this->chainID_; }
 
@@ -138,6 +223,12 @@ class Options {
 
     /// Getter for `httpPort`.
     const uint16_t& getHttpPort() const { return this->httpPort_; }
+
+    /// Getter for `eventBlockCap_`.
+    const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
+
+    /// Getter for `eventLogCap_`.
+    const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
 
     /// Getter for `coinbase`.
     const Address& getCoinbase() const { return this->coinbase_; }
@@ -148,6 +239,15 @@ class Options {
     /// Getter for `discoveryNodes`.
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }
 
+    /// Getter for `genesisBlock`.
+    const Block& getGenesisBlock() const { return this->genesisBlock_; }
+
+    /// Getter for `genesisBalances`.
+    const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
+
+    /// Getter for `genesisValidators`.
+    const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
+
     /**
      * Get the Validator node's private key from the JSON file.
      * @return The Validator node's private key, or an empty private key if missing.
@@ -156,12 +256,20 @@ class Options {
 
     /**
      * Load an options.json file from a given path and construct the singleton object.
-     * Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081) if not found.
+     * Defaults to this->binaryDefaultOptions() if no file is found.
      * @param rootPath Path to data root folder.
      * @return The constructed options object.
      * @throw std::runtime_error on failure.
      */
     static Options fromFile(const std::string& rootPath);
+
+    /**
+     * Load the default options defined within the optionsdefaults.cpp file
+     * Used by fromFile to generate a default options.json file if not found.
+     * Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081)
+     * @return The constructed options object.
+     */
+    static Options binaryDefaultOptions(const std::string& rootPath);
 };
 
 #endif // OPTIONS_H

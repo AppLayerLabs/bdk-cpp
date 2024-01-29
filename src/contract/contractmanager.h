@@ -331,17 +331,20 @@ class ContractManagerInterface {
       );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
-      } else {
-        if (!this->manager_.contracts_.contains(targetAddr)) {
-          throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
-        }
+      }
+      if (!this->manager_.contracts_.contains(targetAddr)) {
+        throw std::runtime_error(std::string(__func__) + ": Contract does not exist - Type: "
+          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
+        );
       }
       C* contract = this->getContract<C>(targetAddr);
       this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func, std::forward<const Args&>(args)...);
       } catch (const std::exception& e) {
-        throw std::runtime_error(e.what());
+        throw std::runtime_error(e.what() + std::string(" - Type: ")
+          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
+        );
       }
     }
 
@@ -365,12 +368,9 @@ class ContractManagerInterface {
       if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
-      if (value) {
-        this->sendTokens(fromAddr, targetAddr, value);
-      } else {
-        if (!this->manager_.contracts_.contains(targetAddr)) {
-          throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
-        }
+      if (value) this->sendTokens(fromAddr, targetAddr, value);
+      if (!this->manager_.contracts_.contains(targetAddr)) {
+        throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
       }
       C* contract = this->getContract<C>(targetAddr);
       this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
@@ -408,15 +408,16 @@ class ContractManagerInterface {
       createSignature += ")";
       auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
       from = fromAddr;
-      to = this->manager_.deriveContractAddress();
+      to = this->manager_.getContractAddress();
       gas = gasValue;
       gasPrice = gasPriceValue;
       value = callValue;
       functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
       data = encoder;
       this->manager_.callLogger_->setContractVars(&manager_, txOrigin, fromAddr, value);
+      Address newContractAddress = this->manager_.deriveContractAddress();
       this->manager_.ethCall(callInfo);
-      return to;
+      return newContractAddress;
     }
 
     /**

@@ -8,10 +8,13 @@
 #include "../libs/json.hpp"
 
 #include "../utils/db.h"
+#include "../utils/options.h"
 #include "../utils/strings.h"
 #include "../utils/utils.h"
+
 #include "abi.h"
 #include "contract.h"
+
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -177,19 +180,19 @@ typedef bmi::multi_index_container<Event, event_indices> EventContainer;
 class EventManager {
   private:
     // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
-    EventContainer events_;                 ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
-    EventContainer tempEvents_;             ///< List of temporary events waiting to be commited or reverted.
-    const std::unique_ptr<DB>& db_;         ///< Reference pointer to the database.
-    mutable std::shared_mutex lock_;        ///< Mutex for managing read/write access to the permanent events vector.
-    const unsigned short blockCap_ = 2000;  ///< Maximum block range allowed for querying events (safety net).
-    const unsigned short logCap_ = 10000;   ///< Maximum number of consecutive matches allowed for querying events (safety net).
+    EventContainer events_;                   ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
+    EventContainer tempEvents_;               ///< List of temporary events waiting to be commited or reverted.
+    const std::unique_ptr<DB>& db_;           ///< Reference pointer to the database.
+    const std::unique_ptr<Options>& options_; ///< Reference pointer to the Options singleton.
+    mutable std::shared_mutex lock_;          ///< Mutex for managing read/write access to the permanent events vector.
 
   public:
     /**
      * Constructor; Automatically loads events from the database.
      * @param db The database to use.
+     * @param options The Options singleton to use (for event caps).
      */
-    EventManager(const std::unique_ptr<DB>& db);
+    EventManager(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options);
 
     /// Destructor. Automatically saves events to the database.
     ~EventManager();
@@ -264,7 +267,7 @@ class EventManager {
      * Keep in mind the original Event object is MOVED to the list.
      * @param event The event to register.
      */
-    void registerEvent(Event&& event) {this->tempEvents_.insert(std::move(event));}
+    void registerEvent(Event&& event) { this->tempEvents_.insert(std::move(event)); }
 
     /**
      * Actually register events in the permanent list.

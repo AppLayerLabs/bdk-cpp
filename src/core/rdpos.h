@@ -35,14 +35,6 @@ class State;
  */
 class Validator : public Address {
   public:
-    // Using parent operators.
-    using Address::operator==;
-    using Address::operator!=;
-    using Address::operator<;
-    using Address::operator<=;
-    using Address::operator>;
-    using Address::operator>=;
-
     /// Constructor.
     Validator(const Address& add) : Address(add) {}
 

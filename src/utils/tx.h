@@ -15,6 +15,9 @@ See the LICENSE.txt file in the project root for more information.
 /**
  * Abstraction of a block transaction.
  * All transactions are final and defined as such during construction.
+ * TODO: For better const correctness within Tx classes
+ * we should transfor all members to const, and have static methods
+ * That returns a Tx object, instead of having a constructor.
  */
 class TxBlock {
   private:
@@ -31,6 +34,7 @@ class TxBlock {
     uint8_t v_;                       ///< ECDSA recovery ID.
     uint256_t r_;                     ///< ECDSA first half.
     uint256_t s_;                     ///< ECDSA second half.
+    Hash hash_;                       ///< Transaction hash. (with signature!)
 
   public:
     /**
@@ -56,10 +60,10 @@ class TxBlock {
      * @throw std::runtime_error on signing failure or sender mismatch.
      */
     TxBlock(
-      const Address to, const Address from, const Bytes &data,
-      const uint64_t chainId, const uint256_t nonce, const uint256_t value,
-      const uint256_t maxPriorityFeePerGas, const uint256_t maxFeePerGas,
-      const uint256_t gasLimit, const PrivKey privKey
+      const Address& to, const Address& from, const Bytes& data,
+      const uint64_t& chainId, const uint256_t& nonce, const uint256_t& value,
+      const uint256_t& maxPriorityFeePerGas, const uint256_t& maxFeePerGas,
+      const uint256_t& gasLimit, const PrivKey& privKey
     );
 
     /// Copy constructor.
@@ -68,7 +72,7 @@ class TxBlock {
     chainId_(other.chainId_), nonce_(other.nonce_), value_(other.value_),
     maxPriorityFeePerGas_(other.maxPriorityFeePerGas_),
     maxFeePerGas_(other.maxFeePerGas_), gasLimit_(other.gasLimit_),
-    v_(other.v_), r_(other.r_), s_(other.s_) {}
+    v_(other.v_), r_(other.r_), s_(other.s_), hash_(other.hash_) {}
 
     /// Move constructor.
     TxBlock(TxBlock&& other) noexcept
@@ -78,7 +82,7 @@ class TxBlock {
     maxPriorityFeePerGas_(std::move(other.maxPriorityFeePerGas_)),
     maxFeePerGas_(std::move(other.maxFeePerGas_)),
     gasLimit_(std::move(other.gasLimit_)), v_(std::move(other.v_)),
-    r_(std::move(other.r_)), s_(std::move(other.s_)) {}
+    r_(std::move(other.r_)), s_(std::move(other.s_)), hash_(std::move(other.hash_)) {}
 
     /// Getter for `to_`.
     inline const Address& getTo() const { return this->to_; }
@@ -122,14 +126,11 @@ class TxBlock {
     }
 
     /**
-     * Create a SHA3 hash of the transaction. Calls `rlpSerialize()` before
-     * hashing.
-     * @param includeSig (optional) If `true`, includes the transaction signature
-     * (v/r/s). Defaults to `true`.
+     * Getter for `hash_`.
      * @return The hash of the transaction, in bytes.
      */
-    inline const Hash hash(bool includeSig = true) const {
-      return Utils::sha3(this->rlpSerialize(includeSig));
+    inline const Hash& hash() const {
+      return this->hash_;
     }
 
     /**
@@ -162,6 +163,7 @@ class TxBlock {
       this->v_ = other.v_;
       this->r_ = other.r_;
       this->s_ = other.s_;
+      this->hash_ = other.hash_;
       return *this;
     }
 
@@ -179,6 +181,7 @@ class TxBlock {
       this->v_ = std::move(other.v_);
       this->r_ = std::move(other.r_);
       this->s_ = std::move(other.s_);
+      this->hash_ = std::move(other.hash_);
       return *this;
     }
 
@@ -202,6 +205,7 @@ class TxValidator {
     uint256_t v_;      ///< ECDSA recovery ID.
     uint256_t r_;      ///< ECDSA first half.
     uint256_t s_;      ///< ECDSA second half.
+    Hash hash_;                       ///< Transaction hash. (with signature!)
 
   public:
     /**
@@ -222,20 +226,20 @@ class TxValidator {
      * @throw std::runtime_error on signing failure or sender mismatch.
      */
     TxValidator(
-      const Address from, const Bytes& data, const uint64_t chainId,
-      const uint64_t nHeight, const PrivKey privKey
+      const Address& from, const Bytes& data, const uint64_t& chainId,
+      const uint64_t& nHeight, const PrivKey& privKey
     );
 
     /// Copy constructor.
     TxValidator(const TxValidator& other) noexcept
     : from_(other.from_), data_(other.data_), chainId_(other.chainId_),
-    nHeight_(other.nHeight_), v_(other.v_), r_(other.r_), s_(other.s_) {}
+    nHeight_(other.nHeight_), v_(other.v_), r_(other.r_), s_(other.s_), hash_(other.hash_) {}
 
     /// Move constructor.
     TxValidator(TxValidator&& other) noexcept
     : from_(std::move(other.from_)), data_(std::move(other.data_)),
     chainId_(std::move(other.chainId_)), nHeight_(std::move(other.nHeight_)),
-    v_(std::move(other.v_)), r_(std::move(other.r_)), s_(std::move(other.s_)) {}
+    v_(std::move(other.v_)), r_(std::move(other.r_)), s_(std::move(other.s_)), hash_(std::move(other.hash_)) {}
 
     /// Getter for `from`.
     inline const Address& getFrom() const { return this->from_; }
@@ -269,14 +273,11 @@ class TxValidator {
     }
 
     /**
-     * Create a SHA3 hash of the transaction. Calls `rlpSerialize()` before
-     * hashing.
-     * @param includeSig (optional) If `true`, includes the transaction signature
-     * (v/r/s). Defaults to `true`.
+     * Getter for `hash_`.
      * @return The hash of the transaction, in bytes.
      */
-    inline const Hash hash(bool includeSig = true) const {
-      return Utils::sha3(this->rlpSerialize(includeSig));
+    inline const Hash& hash() const {
+      return this->hash_;
     }
 
     /**
@@ -297,6 +298,7 @@ class TxValidator {
       this->v_ = other.v_;
       this->r_ = other.r_;
       this->s_ = other.s_;
+      this->hash_ = other.hash_;
       return *this;
     }
 
@@ -309,6 +311,7 @@ class TxValidator {
       this->v_ = std::move(other.v_);
       this->r_ = std::move(other.r_);
       this->s_ = std::move(other.s_);
+      this->hash_ = std::move(other.hash_);
       return *this;
     }
 

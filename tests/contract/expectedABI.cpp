@@ -852,7 +852,7 @@ namespace EXPECTED
                                     "    \"anonymous\": false,\n"
                                     "    \"inputs\": [\n"
                                     "      {\n"
-                                    "        \"indexed\": true,\n"
+                                    "        \"indexed\": false,\n"
                                     "        \"internalType\": \"uint256\",\n"
                                     "        \"name\": \"value\",\n"
                                     "        \"type\": \"uint256\"\n"

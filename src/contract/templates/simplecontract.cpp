@@ -51,6 +51,7 @@ void SimpleContract::setNames(const std::vector<std::string>& argName) {
   }
   this->name_ = "";
   for (const auto& name : argName) this->name_ += name;
+  this->nameChanged(this->name_.get());
 }
 
 void SimpleContract::setValue(const uint256_t& argValue) {
@@ -64,6 +65,7 @@ void SimpleContract::setValue(const uint256_t& argValue) {
 void SimpleContract::setValues(const std::vector<uint256_t>& argValue) {
   this->value_ = 0;
   for (const auto& value : argValue) this->value_ += value;
+  this->valueChanged(this->value_.get());
 }
 
 void SimpleContract::setNamesAndValues(
@@ -76,6 +78,7 @@ void SimpleContract::setNamesAndValues(
   this->value_ = 0;
   for (const auto& name : argName) this->name_ += name;
   for (const auto& value : argValue) this->value_ += value;
+  this->nameAndValueChanged(this->name_.get(), this->value_.get());
 }
 
 void SimpleContract::setNamesAndValuesInTuple(
@@ -87,6 +90,7 @@ void SimpleContract::setNamesAndValuesInTuple(
   this->name_ = "";
   this->value_ = 0;
   for (const auto& [name, value] : argNameAndValue) { this->name_ += name; this->value_ += value; }
+  this->nameAndValueTupleChanged(std::make_tuple(this->name_.get(), this->value_.get()));
 }
 
 void SimpleContract::setNamesAndValuesInArrayOfArrays(
@@ -100,6 +104,7 @@ void SimpleContract::setNamesAndValuesInArrayOfArrays(
   for (const auto& nameAndValue : argNameAndValue) {
     for (const auto& [name, value] : nameAndValue) { this->name_ += name; this->value_ += value; }
   }
+  this->nameAndValueChanged(this->name_.get(), this->value_.get());
 }
 
 std::string SimpleContract::getName() const { return this->name_.get(); }

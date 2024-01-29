@@ -25,6 +25,8 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
  * Abstraction of the blockchain history.
  * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
+ * TODO: Improve const correctness.
+ * Possible replace `std::shared_ptr<const Block>` with a better solution.
  */
 class Storage {
   private:
