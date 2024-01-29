@@ -208,7 +208,7 @@ class DB {
       rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
-      keyTmp.insert(keyTmp.end(), key.begin(), key.end());
+      keyTmp.insert(keyTmp.end(), key.cbegin(), key.cend());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
       for (it->Seek(keySlice); it->Valid(); it->Next()) {
         if (it->key().ToString() == keySlice) {

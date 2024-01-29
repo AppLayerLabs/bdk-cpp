@@ -91,20 +91,25 @@ Storage::~Storage() {
 
 void Storage::initializeBlockchain() {
   if (!this->db_->has(std::string("latest"), DBPrefix::blocks)) {
-    // Create a new genesis block if one doesn't exist (fresh new blockchain)
-    Logger::logToDebug(LogType::INFO, Log::storage, __func__, "No history found, creating genesis block.");
-    Block genesis(Hash(Utils::uint256ToBytes(0)), 1656356645000000, 0);
-
-    // Genesis Keys:
-    // Private: 0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867
-    // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
-    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1656356646000000);
+    /// Genesis block comes from Options, not hardcoded
+    const auto genesis = this->options_->getGenesisBlock();
+    if (genesis.getNHeight() != 0) {
+      throw std::runtime_error("Genesis block height is not 0");
+    }
     this->db_->put(std::string("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     this->db_->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
     this->db_->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
     Logger::logToDebug(LogType::INFO, Log::storage, __func__,
       std::string("Created genesis block: ") + Hex::fromBytes(genesis.hash().get()).get()
     );
+  }
+  /// Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
+  const auto genesis = this->options_->getGenesisBlock();
+  const Hash genesisInDBHash = Hash(this->db_->get(Utils::uint64ToBytes(0), DBPrefix::blockHeightMaps));
+  const auto genesisInDB = Block(this->db_->get(genesisInDBHash, DBPrefix::blocks), this->options_->getChainID());
+  if (genesis != genesisInDB) {
+    Logger::logToDebug(LogType::ERROR, Log::storage, __func__, "Sanity Check! Genesis block in DB does not match genesis block in Options");
+    throw std::runtime_error("Sanity Check! Genesis block in DB does not match genesis block in Options");
   }
 }
 
