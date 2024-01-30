@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023] [Sparq Network]
+Copyright (c) [2023-2024] [Sparq Network]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -18,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "templates/throwtestC.h"
 
 using ContractTypes = std::tuple<
-  ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721,
-  ThrowTestA, ThrowTestB, ThrowTestC
+  ERC20, ERC20Wrapper, NativeWrapper, SimpleContract, DEXV2Pair, DEXV2Factory,
+  DEXV2Router02, ERC721, ThrowTestA, ThrowTestB, ThrowTestC
 >;
 
