@@ -286,10 +286,10 @@ struct Account {
  * @tparam Index Whether the parameter is indexed or not.
  */
 template<typename T, bool Index> struct EventParam {
-  using type = T;
-  const T& value;
-  static constexpr bool isIndexed = Index;
-  EventParam(const T& value) : value(value) {}
+  using type = T; ///< Event param type.
+  const T& value; ///< Event param value.
+  static constexpr bool isIndexed = Index;  ///< Indexed status.
+  EventParam(const T& value) : value(value) {}  ///< Constructor.
 };
 
 /// Namespace for utility functions.
@@ -346,35 +346,35 @@ namespace Utils {
    */
   template <typename... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
 
-  // Helper struct to conditionally append a type to a tuple
-    template <bool Flag, typename T, typename Tuple>
-    struct conditional_tuple_append {
-        using type = Tuple;
-    };
+  /// Helper struct to conditionally append a type to a tuple.
+  template <bool Flag, typename T, typename Tuple> struct conditional_tuple_append {
+    using type = Tuple; ///< Typedef.
+  };
 
-    template <typename T, typename... Ts>
-    struct conditional_tuple_append<false, T, std::tuple<Ts...>> {
-        using type = std::tuple<Ts..., T>;
-    };
+  /// Helper struct to conditionally append a type to a tuple.
+  template <typename T, typename... Ts> struct conditional_tuple_append<false, T, std::tuple<Ts...>> {
+    using type = std::tuple<Ts..., T>;  ///< Typedef.
+  };
 
-    template<typename Accumulated, typename... Rest>
-    struct makeTupleTypeHelper {
-        using type = Accumulated;
-    };
+  /// Helper struct for making a tuple type.
+  template<typename Accumulated, typename... Rest> struct makeTupleTypeHelper {
+    using type = Accumulated; ///< Typedef.
+  };
 
-    template<typename Accumulated, typename T, bool Flag, typename... Rest>
-    struct makeTupleTypeHelper<Accumulated, EventParam<T, Flag>, Rest...> {
-        using NextAccumulated = typename conditional_tuple_append<Flag, T, Accumulated>::type;
-        using type = typename makeTupleTypeHelper<NextAccumulated, Rest...>::type;
-    };
+  /// Helper struct for making a tuple type.
+  template<typename Accumulated, typename T, bool Flag, typename... Rest>
+  struct makeTupleTypeHelper<Accumulated, EventParam<T, Flag>, Rest...> {
+    using NextAccumulated = typename conditional_tuple_append<Flag, T, Accumulated>::type;  ///< Typedef.
+    using type = typename makeTupleTypeHelper<NextAccumulated, Rest...>::type;  ///< Typedef.
+  };
 
-    template<typename... Args>
-    struct makeTupleType;
+  /// Helper struct for making a tuple type.
+  template<typename... Args> struct makeTupleType;
 
-    template<typename... Args, bool... Flags>
-    struct makeTupleType<EventParam<Args, Flags>...> {
-        using type = typename makeTupleTypeHelper<std::tuple<>, EventParam<Args, Flags>...>::type;
-    };
+  /// Helper struct for making a tuple type.
+  template<typename... Args, bool... Flags> struct makeTupleType<EventParam<Args, Flags>...> {
+    using type = typename makeTupleTypeHelper<std::tuple<>, EventParam<Args, Flags>...>::type;  ///< Typedef.
+  };
 
   extern std::atomic<bool> logToCout; ///< Indicates whether logging to stdout is allowed (for safePrint()).
 

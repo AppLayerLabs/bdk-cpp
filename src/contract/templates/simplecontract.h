@@ -74,44 +74,60 @@ class SimpleContract : public DynamicContract {
     );
 
     ~SimpleContract() override; ///< Destructor.
-    ///< function setName(string memory argName) public
+
+    /// function setName(string memory argName) public
     void setName(const std::string& argName);
-    ///< function setNames(string[] memory argName) public, the final name is the concatenation of all names
+
+    /// function setNames(string[] memory argName) public, the final name is the concatenation of all names
     void setNames(const std::vector<std::string>& argName);
-    ///< function setValue(uint256 argValue) public
+
+    /// function setValue(uint256 argValue) public
     void setValue(const uint256_t& argValue);
-    ///< function setValues(uint256[] memory argValue) public, the final value is the sum of all values
+
+    /// function setValues(uint256[] memory argValue) public, the final value is the sum of all values
     void setValues(const std::vector<uint256_t>& argValue);
-    ///< function setNamesAndValues(string[] memory argName, uint256[] memory argValue) public,
-    ///< the final name is the concatenation of all names, the final value is the sum of all values
+
+    /// function setNamesAndValues(string[] memory argName, uint256[] memory argValue) public,
+    /// the final name is the concatenation of all names, the final value is the sum of all values
     void setNamesAndValues(const std::vector<std::string>& argName, const std::vector<uint256_t>& argValue);
-    ///< function setNamesAndValuesInTuple(NameAndValue[] memory argNameAndValue) public,
-    ///< the final name is the concatenation of all names, the final value is the sum of all values
+
+    /// function setNamesAndValuesInTuple(NameAndValue[] memory argNameAndValue) public,
+    /// the final name is the concatenation of all names, the final value is the sum of all values
     void setNamesAndValuesInTuple(const std::vector<std::tuple<std::string, uint256_t>>& argNameAndValue);
-    ///< function setNamesAndValuesInArrayOfArrays(NameAndValue[][] memory argNameAndValue) public.
-    ///< the final name is the concatenation of all names, the final value is the sum of all values
+
+    /// function setNamesAndValuesInArrayOfArrays(NameAndValue[][] memory argNameAndValue) public.
+    /// the final name is the concatenation of all names, the final value is the sum of all values
     void setNamesAndValuesInArrayOfArrays(const std::vector<std::vector<std::tuple<std::string, uint256_t>>>& argNameAndValue);
-    ///< function getName() public view returns(string memory)
+
+    /// function getName() public view returns(string memory)
     std::string getName() const;
-    ///< function getNames(const uint256_t& i) public view returns(string[] memory) return string[] of size i with this->name_ as all elements.
+
+    /// function getNames(const uint256_t& i) public view returns(string[] memory) return string[] of size i with this->name_ as all elements.
     std::vector<std::string> getNames(const uint256_t& i) const;
-    ///< function getValue() public view returns(uint256)
+
+    /// function getValue() public view returns(uint256)
     uint256_t getValue() const;
-    ///< Function getValue(uint256 i) public view returns(uint256) return this->value_ + i.
-    /// For testing overloading functions...
+
+    // For testing overloading functions...
+    /// Function getValue(uint256 i) public view returns(uint256) return this->value_ + i.
     uint256_t getValue(const uint256_t& i) const;
-    ///< function getValues(const uint256_t& i) public view returns(uint256[] memory) return uint256[] of size i with this->value_ as all elements.
+
+    /// function getValues(const uint256_t& i) public view returns(uint256[] memory) return uint256[] of size i with this->value_ as all elements.
     std::vector<uint256_t> getValues(const uint256_t& i) const;
-    ///< function getNameAndValue() public view returns(string memory, uint256)
+
+    /// function getNameAndValue() public view returns(string memory, uint256)
     std::tuple<std::string, uint256_t> getNameAndValue() const;
-    ///< function getNamesAndValues(const uint256_t& i) public view returns(string[] memory, uint256[] memory)
-    ///< return string[] of size i with this->name_ as all elements, return uint256[] of size i with this->value_ as all elements.
+
+    /// function getNamesAndValues(const uint256_t& i) public view returns(string[] memory, uint256[] memory)
+    /// return string[] of size i with this->name_ as all elements, return uint256[] of size i with this->value_ as all elements.
     std::tuple<std::vector<std::string>, std::vector<uint256_t>> getNamesAndValues(const uint256_t& i) const;
-    ///< function getNamesAndValuesInTuple(const uint256_t& i) public view returns(NameAndValue[] memory)
-    ///< return (string, uint256)[] of size i with this->name_ and this->value_ as all elements.
+
+    /// function getNamesAndValuesInTuple(const uint256_t& i) public view returns(NameAndValue[] memory)
+    /// return (string, uint256)[] of size i with this->name_ and this->value_ as all elements.
     std::vector<std::tuple<std::string, uint256_t>> getNamesAndValuesInTuple(const uint256_t& i) const;
-    ///< function getNamesAndValuesInArrayOfArrays(const uint256_t& i) public view returns(NameAndValue[][] memory)
-    ///< return (string, uint256)[][] of size i with this->name_ and this->value_ as all elements.
+
+    /// function getNamesAndValuesInArrayOfArrays(const uint256_t& i) public view returns(NameAndValue[][] memory)
+    /// return (string, uint256)[][] of size i with this->name_ and this->value_ as all elements.
     std::vector<std::vector<std::tuple<std::string, uint256_t>>> getNamesAndValuesInArrayOfArrays(const uint256_t& i) const;
 
     /// Register the contract structure.

@@ -321,14 +321,17 @@ namespace ABI {
       return result;
     }
 
+    /// Forward declaration.
+    template <typename... Args> struct listEventTypesV;
+
     /**
-     * same as listArgumentTypesV(), but a specialization for event functions,
+     * Same as listArgumentTypesV(), but specializes for event functions,
      * since we need to add the indexed flag to the type.
      * Needs to take EventParam<Args, isIndexed>...
      */
-    template <typename... Args> struct listEventTypesV;
     template <typename... Args, bool... Flags>
     struct listEventTypesV<EventParam<Args, Flags>...> {
+      /// Get the underlying event param data.
       static std::vector<std::pair<std::string, bool>> get() {
         std::vector<std::pair<std::string, bool>> result;
         ((result.emplace_back(TypeName<std::decay_t<Args>>::get(), Flags)), ...);
@@ -686,26 +689,22 @@ namespace ABI {
      * https://docs.soliditylang.org/en/develop/abi-spec.html#events
      * https://docs.soliditylang.org/en/develop/abi-spec.html#indexed-event-encoding
      * @tparam T Any supported ABI type (first one, it is either a single type a struct)
-     * @param first First type to encode.
-     * @param rest The rest of the types to encode, if any.
+     * @param item The parameter to encode.
      * @return The encoded data.
      */
     template<typename T> Hash encodeTopicSignature(const T& item) {
-      /// If it is a string or Bytes, hash the string itself without encoding.
+      // If it is a string or Bytes, hash the string itself without encoding.
       if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, Bytes>) {
         return Utils::sha3(Utils::create_view_span(item));
       }
       Bytes result = TypeEncoder<T>::encode(item);
       if constexpr (isTuple<T>::value || isVector<T>::value) {
-        /// If it is a dynamic type, hash the encoded result.
-        return Utils::sha3(result);
+        return Utils::sha3(result); // If it is a dynamic type, hash the encoded result.
       }
       return result;
     }
 
-    /**
-     * Similar to ABI::Encoder::Encode, but instead takes std::tuple<EventParam...> as input.
-     */
+    /// Similar to ABI::Encoder::Encode, but instead takes std::tuple<EventParam...> as input.
     template <typename... Args, bool... Flags>
     Bytes encodeEventData(const std::tuple<EventParam<Args, Flags>...>& params) {
       Bytes result;
