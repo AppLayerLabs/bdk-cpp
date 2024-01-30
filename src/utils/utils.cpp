@@ -322,13 +322,19 @@ BytesArr<32> Utils::uint256ToBytes(const uint256_t& i) {
 }
 
 uint256_t Utils::bytesToUint256(const BytesArrView b) {
-  if (b.size() != 32) throw std::runtime_error(std::string(__func__)
-    + ": Invalid bytes size - expected 32, got " + std::to_string(b.size())
-  );
+  if (b.size() != 32) {
+    throw std::runtime_error(std::string(__func__) + ": Invalid bytes size - expected 32, got " + std::to_string(b.size()));
+  }
   uint256_t ret;
-  boost::multiprecision::import_bits(ret, b.begin(), b.end(), 8);
+  auto& result = ret.backend();
+  result.limbs()[0] = 0u;
+  result.resize(4,4); // 256 bits
+  // Reverse the entire 32-byte array to account for endianness
+  std::reverse_copy(b.begin(), b.end(), reinterpret_cast<unsigned char*>(result.limbs()));
+  result.normalize();
   return ret;
 }
+
 
 uint248_t Utils::bytesToUint248(const BytesArrView b) {
   if (b.size() != 31) throw std::runtime_error(std::string(__func__)
