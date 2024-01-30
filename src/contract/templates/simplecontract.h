@@ -23,18 +23,34 @@ class SimpleContract : public DynamicContract {
     void registerContractFunctions() override; ///< Register the contract functions.
 
   public:
-    using ConstructorArguments = std::tuple<const std::string&, uint256_t>; ///< The constructor arguments type.
+    /// Event for when the name changes.
+    void nameChanged(const EventParam<std::string, true>& name) { this->emitEvent(__func__,  std::make_tuple(name)); }
+
+    /// Event for when the value changes.
+    void valueChanged(const EventParam<uint256_t, false>& value) { this->emitEvent(__func__, std::make_tuple(value)); }
+
+    /// Event for when the name and value change. Used for testing JSON ABI generation.
+    void nameAndValueChanged(const EventParam<std::string, true>& name, const EventParam<uint256_t, true>& value) {
+      this->emitEvent(__func__, std::make_tuple(name, value));
+    }
+
+    /// Event for when the name and value change (as tuple). Used for testing JSON ABI generation
+    void nameAndValueTupleChanged(const EventParam<std::tuple<std::string, uint256_t>, true>& nameAndValue) {
+      this->emitEvent(__func__, std::make_tuple(nameAndValue));
+    }
+
+    using ConstructorArguments = std::tuple<const std::string&, const uint256_t&>; ///< The constructor arguments type.
 
     /**
-    * Constructor from create. Create contract and save it to database.
-    * @param name The name of the contract.
-    * @param value The value of the contract.
-    * @param interface The interface to the contract manager.
-    * @param address The address of the contract.
-    * @param creator The address of the creator of the contract.
-    * @param chainId The chain ID.
-    * @param db The database to use.
-    */
+     * Constructor from create. Create contract and save it to database.
+     * @param name The name of the contract.
+     * @param value The value of the contract.
+     * @param interface The interface to the contract manager.
+     * @param address The address of the contract.
+     * @param creator The address of the creator of the contract.
+     * @param chainId The chain ID.
+     * @param db The database to use.
+     */
     SimpleContract(
       const std::string& name,
       const uint256_t& value,
@@ -46,18 +62,17 @@ class SimpleContract : public DynamicContract {
     );
 
     /**
-    * Constructor from load. Load contract from database.
-    * @param interface The interface to the contract manager.
-    * @param address The address of the contract.
-    * @param db The database to use.
-    */
+     * Constructor from load. Load contract from database.
+     * @param interface The interface to the contract manager.
+     * @param address The address of the contract.
+     * @param db The database to use.
+     */
     SimpleContract(
       ContractManagerInterface &interface,
       const Address& address,
       const std::unique_ptr<DB> &db
     );
 
-    
     ~SimpleContract() override; ///< Destructor.
     ///< function setName(string memory argName) public
     void setName(const std::string& argName);
@@ -99,11 +114,9 @@ class SimpleContract : public DynamicContract {
     ///< return (string, uint256)[][] of size i with this->name_ and this->value_ as all elements.
     std::vector<std::vector<std::tuple<std::string, uint256_t>>> getNamesAndValuesInArrayOfArrays(const uint256_t& i) const;
 
-    /**
-    * Register the contract structure.
-    */
+    /// Register the contract structure.
     static void registerContract() {
-      ContractReflectionInterface::registerContract<
+      ContractReflectionInterface::registerContractMethods<
         SimpleContract, const std::string&, uint256_t,
         ContractManagerInterface&,
         const Address&, const Address&, const uint64_t&,
@@ -126,6 +139,12 @@ class SimpleContract : public DynamicContract {
         std::make_tuple("getNamesAndValues", &SimpleContract::getNamesAndValues, FunctionTypes::View, std::vector<std::string>{"i"}),
         std::make_tuple("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, FunctionTypes::View, std::vector<std::string>{"i"}),
         std::make_tuple("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, FunctionTypes::View, std::vector<std::string>{"i"})
+      );
+      ContractReflectionInterface::registerContractEvents<SimpleContract>(
+        std::make_tuple("nameChanged", false, &SimpleContract::nameChanged, std::vector<std::string>{"name"}),
+        std::make_tuple("valueChanged", false, &SimpleContract::valueChanged, std::vector<std::string>{"value"}),
+        std::make_tuple("nameAndValueChanged", false, &SimpleContract::nameAndValueChanged, std::vector<std::string>{"name", "value"}),
+        std::make_tuple("nameAndValueTupleChanged", false, &SimpleContract::nameAndValueTupleChanged, std::vector<std::string>{"nameAndValue"})
       );
     }
 };

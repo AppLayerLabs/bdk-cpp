@@ -197,18 +197,18 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
   Signature sig = Secp256k1::makeSig(this->r_, this->s_, this->v_);
-  auto txMessage = this->rlpSerialize(false);
-  Hash msgHash = Utils::sha3(txMessage); // Do not include signature
+  Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
   if (!key) throw std::runtime_error("Invalid tx signature - cannot recover public key");
 
   this->from_ = Secp256k1::toAddress(key);
+  this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
 
 TxBlock::TxBlock(
-  const Address to, const Address from, const Bytes& data,
-  const uint64_t chainId, const uint256_t nonce, const uint256_t value,
-  const uint256_t maxPriorityFeePerGas, const uint256_t maxFeePerGas, const uint256_t gasLimit, const PrivKey privKey
+  const Address& to, const Address& from, const Bytes& data,
+  const uint64_t& chainId, const uint256_t& nonce, const uint256_t& value,
+  const uint256_t& maxPriorityFeePerGas, const uint256_t& maxFeePerGas, const uint256_t& gasLimit, const PrivKey& privKey
 ) : to_(to), from_(from), data_(data), chainId_(chainId), nonce_(nonce),
   value_(value), maxPriorityFeePerGas_(maxPriorityFeePerGas), maxFeePerGas_(maxFeePerGas), gasLimit_(gasLimit)
 {
@@ -216,18 +216,19 @@ TxBlock::TxBlock(
   Address add = Secp256k1::toAddress(pubKey);
   if (add != this->from_) throw std::runtime_error("Private key does not match sender address (from)");
 
-  Hash hash = this->hash(false);
-  Signature sig = Secp256k1::sign(hash, privKey);
+  Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
+  Signature sig = Secp256k1::sign(msgHash, privKey);
   this->r_ = Utils::bytesToUint256(sig.view_const(0, 32));
   this->s_ = Utils::bytesToUint256(sig.view_const(32,32));
   this->v_ = sig[64];
 
-  if (pubKey != Secp256k1::recover(sig, hash)) {
+  if (pubKey != Secp256k1::recover(sig, msgHash)) {
     throw std::runtime_error("Invalid tx signature - derived key doesn't match public key");
   }
   if (!Secp256k1::verifySig(this->r_, this->s_, this->v_)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
+  this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
 
 Bytes TxBlock::rlpSerialize(bool includeSig) const {
@@ -500,22 +501,23 @@ TxValidator::TxValidator(const BytesArrView bytes, const uint64_t& requiredChain
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
   Signature sig = Secp256k1::makeSig(this->r_, this->s_, recoveryId);
-  Hash msgHash = this->hash(false); // Do not include signature
+  Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
   if (key == UPubKey()) throw std::runtime_error("Invalid tx signature - cannot recover public key");
   this->from_ = Secp256k1::toAddress(key);
+  this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
 
 TxValidator::TxValidator(
-  const Address from, const Bytes& data, const uint64_t chainId,
-  const uint64_t nHeight, const PrivKey privKey
+  const Address& from, const Bytes& data, const uint64_t& chainId,
+  const uint64_t& nHeight, const PrivKey& privKey
 ) : from_(from), data_(data), chainId_(chainId), nHeight_(nHeight) {
   UPubKey pubKey = Secp256k1::toUPub(privKey);
   Address add = Secp256k1::toAddress(pubKey);
-  Hash hash = this->hash(false);
+  Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   if (add != this->from_) throw std::runtime_error("Private key does not match sender address (from)");
 
-  Signature sig = Secp256k1::sign(hash, privKey);
+  Signature sig = Secp256k1::sign(msgHash, privKey);
   this->r_ = Utils::bytesToUint256(sig.view_const(0, 32));
   this->s_ = Utils::bytesToUint256(sig.view_const(32,32));
   uint8_t recoveryIds = sig[64];
@@ -524,9 +526,10 @@ TxValidator::TxValidator(
   if (!Secp256k1::verifySig(this->r_, this->s_, recoveryIds)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
-  if (pubKey != Secp256k1::recover(sig, hash)) {
+  if (pubKey != Secp256k1::recover(sig, msgHash)) {
     throw std::runtime_error("Invalid transaction signature, signature derived key doens't match public key");
   }
+  this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
 
 Bytes TxValidator::rlpSerialize(bool includeSig) const {

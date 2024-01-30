@@ -8,240 +8,238 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef JSONABI_H
 #define JSONABI_H
 
-#include "../contract/customcontracts.h"
-#include "contractreflectioninterface.h"
-#include "utils.h" //nlohmann/json.hpp
 #include <boost/algorithm/string/split.hpp>
+
+#include "contractreflectioninterface.h"
+#include "utils.h" // contains nlohmann/json.hpp
+
+#include "../contract/customcontracts.h"
 
 /// Namespace for managing and converting contract ABI data to JSON format.
 namespace JsonAbi {
-
-
-/**
- * Tell if a type contained within std::string is a tuple
- */
-bool isTuple(const std::string &type);
-
-/**
- * Tell if a type contained within std::string is a array
- */
-bool isArray(const std::string &type);
-
-/**
- * Count how many arrays there are in a tuple type
- */
-uint64_t countTupleArrays(const std::string &type);
-
-/**
- * Extract the types of a tuple contained within std::string
- * @param type The type to extract the tuple types from.
- * @return A vector containing the types of the tuple.
- */
-std::vector<std::string> getTupleTypes(const std::string &type);
-
-/**
- * Create the JSON "components" object for a tuple type.
- * @param tupleTypes The types of the tuple.
- * @return a json array containing the components of the tuple.
- */
-
-json handleTupleComponents(const std::vector<std::string> &tupleTypes);
-
-/**
- * Parse a given method input to a JSON object
- * @param inputDescription The input description of the method. pair<type,name>
- * Be aware that tuple types are concatenated into the string itself.
- */
-json parseMethodInput(const std::vector<std::pair<std::string,std::string>> &inputDescription);
-
-/**
- * Parse a given method output to a JSON Object
- * @param outputDescription The output description of the method.
- * Be aware that tuple types are concatenated into the string itself.
- */
-json parseMethodOutput(const std::vector<std::string> &outputDescription);
-
-
-/**
- * This function converts a MethodDescription object to JSON format.
- * @param description The MethodDescription object to convert.
- * @return The JSON object.
- */
-json methodToJSON(const ABI::MethodDescription &description);
-
-/**
- * This function registers a contract and gets the contract data in JSON format.
- * @tparam Contract The contract to register.
- * @param contractData The JSON object to store the contract data in.
- */
-template <typename Contract>
-void registerContractAndGetData(json &contractData) {
-  Contract::registerContract();
-  auto functionData = ContractReflectionInterface::getFunctionsDataStructure<Contract>();
-  for (const auto &function : functionData) {
-    contractData.push_back(methodToJSON(function));
-  }
-}
-
-/**
- * This function writes the contract data of a contract to a JSON file.
- * @tparam Contract The contract to write the data of.
- * @param outputFilename The name of the output file.
- */
-template <typename Contract> void writeContractToJson() {
-  json contractData;
-  registerContractAndGetData<Contract>(contractData);
-
-  std::string outputFileName = Utils::getRealTypeName<Contract>();
-  if (outputFileName.substr(outputFileName.find_last_of(".") + 1) != "json") {
-    outputFileName += ".json";
-  }
-
-  const std::string dirName = "ABI";
-  if (!std::filesystem::exists(dirName)) {
-    std::filesystem::create_directory(dirName);
-  }
-
-  const std::string fullOutputFileName = dirName + "/" + outputFileName;
-
-  std::ofstream jsonFile(fullOutputFileName);
-  jsonFile << std::setw(2) << contractData << std::endl;
-}
-
-/**
- * This function writes the contract data of a contract to a JSON file.
- * @tparam Contract The contract to write the data of.
- * @tparam N The number of contracts to write.
- */
-// For handling a tuple of contracts
-template <typename ContractTuple, std::size_t N>
-void writeContractsToJsonImpl() {
-  if constexpr (N > 0) {
-    writeContractToJson<std::tuple_element_t<N, ContractTuple>>();
-    writeContractsToJsonImpl<ContractTuple, N - 1>();
-  } else {
-    writeContractToJson<std::tuple_element_t<0, ContractTuple>>();
-  }
-}
-
-/**
- * Base struct for writing contracts to JSON
- */
-template <typename T> struct ContractWriter;
-
-/**
- * Writer specialization for tuple of contracts
- * @tparam Contracts The contracts to write.
- */
-template <typename... Contracts>
-struct ContractWriter<std::tuple<Contracts...>> {
+  /**
+   * Check if a type contained within the string input is a tuple.
+   * @param type The type to check.
+   * @return `true` if type is a tuple, `false` otherwise.
+   */
+  bool isTuple(const std::string& type);
 
   /**
-  * This function writes the contract data of a contract to a JSON file.
-  */
-  static void write() {
-    writeContractsToJsonImpl<std::tuple<Contracts...>,
-                             sizeof...(Contracts) - 1>();
-  }
-};
-
-/**
- * Writer specialization for single contract
- * @tparam Contract The contract to write.
- */
-template <typename Contract> struct ContractWriter {
+   * Check if a type contained within the string input is an array.
+   * @param type The type to check.
+   * @return `true` if type is an array, `false` otherwise.
+   */
+  bool isArray(const std::string& type);
 
   /**
-  * This function writes the contract data of a contract to a JSON file.
-  */
-  static void write() { writeContractToJson<Contract>(); }
-};
+   * Count how many arrays there are in a tuple type from the given string input.
+   * @param type The type to count from.
+   * @return The number of arrays inside the given tuple.
+   */
+  uint64_t countTupleArrays(const std::string& type);
 
-/**
- * Builder function for creating the ContractManager ABI functions
- * @tparam Contract The contract to write.
- * @return An array of JSON objects containing the ABI functions
- */
-template <typename Contract> json getConstructorABI() {
-  auto constructorData = ContractReflectionInterface::getConstructorDataStructure<Contract>();
-  return JsonAbi::methodToJSON(constructorData);
-}
+  /**
+   * Extract the types of a tuple contained within the string input.
+   * @param type The type to extract the tuple types from.
+   * @return A vector containing the types of the tuple.
+   */
+  std::vector<std::string> getTupleTypes(const std::string &type);
 
-/**
- * Get ABI of all constructors in a tuple of contracts
- * @tparam ContractTuple The tuple of contracts to get the constructors of.
- * @tparam N The number of contracts in the tuple.
- * @param abis The array of JSON objects to store the ABI functions in.
- */
-template <typename ContractTuple, std::size_t N>
-std::enable_if_t<(N < std::tuple_size<ContractTuple>::value)>
-getConstructorsABI(json &abis) {
-  json ctor = getConstructorABI<std::tuple_element_t<N, ContractTuple>>();
-  abis.push_back(ctor);
-  if constexpr (N + 1 < std::tuple_size<ContractTuple>::value) {
-    getConstructorsABI<ContractTuple, N + 1>(abis);
+  /**
+   * Create the JSON "components" object for a tuple type.
+   * @param tupleTypes The types of the tuple.
+   * @return A JSON array containing the components of the tuple.
+   */
+  json handleTupleComponents(const std::vector<std::string>& tupleTypes);
+
+  /**
+   * Parse a given method input to a JSON object.
+   * @param inputDesc The input description of the method (std::pair<type,name>).
+   * Be aware that tuple types are concatenated into the string itself.
+   * @return A JSON object containing the inputs of the method.
+   */
+  json parseMethodInput(const std::vector<std::pair<std::string,std::string>>& inputDesc);
+
+  /**
+   * Parse a given method output to a JSON object.
+   * @param outputDesc The output description of the method (std::pair<type,name>).
+   * Be aware that tuple types are concatenated into the string itself.
+   * @return A JSON object containing the outputs of the method.
+   */
+  json parseMethodOutput(const std::vector<std::string>& outputDesc);
+
+
+  /**
+   * Parse a given event args to a JSON object
+   * @param args The args description of the event (std::tuple<type,name,indexed>).
+   * Be aware that tuple types are concatenated into the string itself.
+   * @return A JSON object containing the args of the event.
+   */
+  json parseEventArgs(const std::vector<std::tuple<std::string, std::string, bool>>& args);
+
+  /**
+   * Convert a MethodDescription object to JSON format.
+   * @param desc The MethodDescription object to convert.
+   * @return The JSON object.
+   */
+  json methodToJSON(const ABI::MethodDescription& desc);
+
+  /**
+   * Convert an EventDescription object to JSON format.
+   * @param desc The EventDescription object to convert.
+   * @return A JSON object containing the event data.
+   */
+  json eventToJSON(const ABI::EventDescription& desc);
+
+  /**
+   * Register a contract and get its data in JSON format.
+   * @tparam Contract The contract to register.
+   * @param contractData The JSON object to store the contract data in.
+   */
+  template <typename Contract> void registerContractAndGetData(json& contractData) {
+    Contract::registerContract();
+    std::vector<ABI::MethodDescription> funcData;
+    std::vector<ABI::EventDescription> eventData;
+    funcData = ContractReflectionInterface::getFunctionsDataStructure<Contract>();
+    eventData = ContractReflectionInterface::getEventsDataStructure<Contract>();
+    for (const auto& func : funcData) contractData.push_back(methodToJSON(func));
+    for (const auto& event : eventData) contractData.push_back(eventToJSON(event));
   }
-}
 
-/**
- * Base case for getConstructorsABI recursion
- * @tparam ContractTuple The tuple of contracts to get the constructors of.
- * @tparam N The number of contracts in the tuple.
- * @param abis The array of JSON objects to store the ABI functions in.
- */
-template <typename ContractTuple, std::size_t N>
-std::enable_if_t<(N == std::tuple_size<ContractTuple>::value)>
-getConstructorsABI(json &abis) { /* do nothing */
-}
+  /**
+   * Write contract data to a JSON file. Output filename is the contract's class name.
+   * @tparam Contract The contract to write the data of.
+   */
+  template <typename Contract> void writeContractToJson() {
+    json contractData;
+    registerContractAndGetData<Contract>(contractData);
+    std::string fileName = Utils::getRealTypeName<Contract>();
+    if (fileName.substr(fileName.find_last_of(".") + 1) != "json") fileName += ".json";
+    if (!std::filesystem::exists("ABI")) std::filesystem::create_directory("ABI");
+    std::ofstream jsonFile("ABI/" + fileName);
+    jsonFile << std::setw(2) << contractData << std::endl;
+  }
 
-/**
-* Register a tuple of contracts
-* @tparam Tuple The tuple of contracts to register.
-* @tparam Index The index of the contract to register.
-*/
-template <typename Tuple, std::size_t Index = 0>
-void registerContracts()
-{
-    using ContractType = typename std::tuple_element<Index, Tuple>::type;
+  /**
+   * Register a tuple of contracts.
+   * @tparam ContractTuple The tuple of contracts to register.
+   * @tparam Index The index of the contract to register.
+   */
+  template <typename ContractTuple, std::size_t Index = 0> void registerContracts() {
+    using ContractType = typename std::tuple_element<Index, ContractTuple>::type;
     ContractType::registerContract();
-    
-    if constexpr(Index + 1 < std::tuple_size<Tuple>::value)
-    {
-        registerContracts<Tuple, Index + 1>();
+    if constexpr(Index + 1 < std::tuple_size<ContractTuple>::value) {
+      registerContracts<ContractTuple, Index + 1>();
     }
-}
+  }
 
-/**
- * Write manager ABI to a JSON file
- * @tparam ContractTuple The tuple of contracts to get the constructors of.
- */
-template <typename ContractTuple> void writeManagerABI() {
-  registerContracts<ContractTuple>();
-  json managerABI;
-  getConstructorsABI<ContractTuple, 0>(managerABI);
-  managerABI.push_back(
-      {{"inputs", json::array()},
-       {"name", "getDeployedContracts"},
-       {"outputs",
-        {{{"internalType", "string[]"}, {"name", ""}, {"type", "string[]"}},
-         {{"internalType", "address[]"}, {"name", ""}, {"type", "address[]"}}}},
-       {"stateMutability", "view"},
-       {"type", "function"}});
-  std::ofstream jsonFile("ABI/ContractManager.json");
-  jsonFile << std::setw(2) << managerABI << std::endl;
-}
+  /**
+   * Write the data of several contracts to a JSON file.
+   * @tparam ContractTuple The list of contracts to write the data of.
+   * @tparam N The number of contracts in the list.
+   */
+  template <typename ContractTuple, std::size_t N> void writeContractsToJsonImpl() {
+    if constexpr (N > 0) {
+      writeContractToJson<std::tuple_element_t<N, ContractTuple>>();
+      writeContractsToJsonImpl<ContractTuple, N - 1>();
+    } else {
+      writeContractToJson<std::tuple_element_t<0, ContractTuple>>();
+    }
+  }
 
-/**
- * Write all contracts ABI to JSON files
- * @tparam ContractTypes The contracts to write.
- * @return 0
- */
-template <typename... Contracts> int writeContractsToJson() {
-  (ContractWriter<Contracts>::write(), ...);
-  writeManagerABI<ContractTypes>();
-  return 0;
-}
+  /**
+   * Base struct for writing contracts to JSON.
+   * @tparam T The contract type.
+   */
+  template <typename T> struct ContractWriter;
 
+  /**
+   * Specialization of ContractWriter for a list of contracts.
+   * @tparam Contracts The list of contracts to write.
+   */
+  template <typename... Contracts> struct ContractWriter<std::tuple<Contracts...>> {
+    /// Write the data of a contract to a JSON file.
+    static void write() {
+      writeContractsToJsonImpl<std::tuple<Contracts...>, sizeof...(Contracts) - 1>();
+    }
+  };
+
+  /**
+   * Specialization of ContractWriter for a single contract.
+   * @tparam Contract The contract to write.
+   */
+  template <typename Contract> struct ContractWriter {
+    /// Write the data of a contract to a JSON file.
+    static void write() { writeContractToJson<Contract>(); }
+  };
+
+  /**
+   * Builder function for creating the ContractManager ABI functions.
+   * @tparam Contract The contract to write.
+   * @return An array of JSON objects containing the ABI functions.
+   */
+  template <typename Contract> json getConstructorABI() {
+    return JsonAbi::methodToJSON(ContractReflectionInterface::getConstructorDataStructure<Contract>());
+  }
+
+  /**
+   * Get the ABI of all constructors in a tuple of contracts.
+   * @tparam ContractTuple The tuple of contracts to get the constructors of.
+   * @tparam N The number of contracts in the tuple.
+   * @param abis The array of JSON objects to store the ABI functions in.
+   */
+  template <typename ContractTuple, std::size_t N>
+  std::enable_if_t<(N<std::tuple_size<ContractTuple>::value)>
+  getConstructorsABI(json& abis) {
+    abis.push_back(getConstructorABI<std::tuple_element_t<N, ContractTuple>>());
+    if constexpr (N + 1 < std::tuple_size<ContractTuple>::value) {
+      getConstructorsABI<ContractTuple, N + 1>(abis);
+    }
+  }
+
+  /**
+   * Base case for getConstructorsABI recursion (do nothing).
+   * @tparam ContractTuple The tuple of contracts to get the constructors of.
+   * @tparam N The number of contracts in the tuple.
+   * @param abis The array of JSON objects to store the ABI functions in.
+   */
+  template <typename ContractTuple, std::size_t N>
+  std::enable_if_t<(N == std::tuple_size<ContractTuple>::value)>
+  getConstructorsABI(json &abis) {}
+
+  /**
+   * Write manager ABI to a JSON file.
+   * @tparam ContractTuple The tuple of contracts to get the constructors of.
+   */
+  template <typename ContractTuple> void writeManagerABI() {
+    registerContracts<ContractTuple>();
+    json managerABI;
+    getConstructorsABI<ContractTuple, 0>(managerABI);
+    managerABI.push_back({
+      {"inputs", json::array()},
+      {"name", "getDeployedContracts"},
+      {"outputs", {
+        {{"internalType", "string[]"}, {"name", ""}, {"type", "string[]"}},
+        {{"internalType", "address[]"}, {"name", ""}, {"type", "address[]"}}
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    });
+    std::ofstream jsonFile("ABI/ContractManager.json");
+    jsonFile << std::setw(2) << managerABI << std::endl;
+  }
+
+  /**
+   * Write all contract ABIs to JSON files.
+   * @tparam Contracts The list of contracts to write.
+   * @tparam ContractTypes Declared in customcontracts.h.
+   * @return 0
+   */
+  template <typename... Contracts> int writeContractsToJson() {
+    (ContractWriter<Contracts>::write(), ...);
+    writeManagerABI<ContractTypes>();
+    return 0;
+  }
 } // namespace JsonAbi
 
 #endif // JSONABI_H

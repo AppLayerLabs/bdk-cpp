@@ -42,6 +42,7 @@ void SimpleContract::setName(const std::string& argName) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->name_ = argName;
+  this->nameChanged(argName);
 }
 
 void SimpleContract::setNames(const std::vector<std::string>& argName) {
@@ -49,9 +50,8 @@ void SimpleContract::setNames(const std::vector<std::string>& argName) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->name_ = "";
-  for (const auto& name : argName) {
-    this->name_ += name;
-  }
+  for (const auto& name : argName) this->name_ += name;
+  this->nameChanged(this->name_.get());
 }
 
 void SimpleContract::setValue(const uint256_t& argValue) {
@@ -59,53 +59,52 @@ void SimpleContract::setValue(const uint256_t& argValue) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->value_ = argValue;
+  this->valueChanged(argValue);
 }
 
 void SimpleContract::setValues(const std::vector<uint256_t>& argValue) {
   this->value_ = 0;
-  for (const auto& value : argValue) {
-    this->value_ += value;
-  }
+  for (const auto& value : argValue) this->value_ += value;
+  this->valueChanged(this->value_.get());
 }
 
-void SimpleContract::setNamesAndValues(const std::vector<std::string>& argName, const std::vector<uint256_t>& argValue) {
+void SimpleContract::setNamesAndValues(
+  const std::vector<std::string>& argName, const std::vector<uint256_t>& argValue
+) {
   if (this->getCaller() != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->name_ = "";
   this->value_ = 0;
-  for (const auto& name : argName) {
-    this->name_ += name;
-  }
-  for (const auto& value : argValue) {
-    this->value_ += value;
-  }
+  for (const auto& name : argName) this->name_ += name;
+  for (const auto& value : argValue) this->value_ += value;
+  this->nameAndValueChanged(this->name_.get(), this->value_.get());
 }
 
-void SimpleContract::setNamesAndValuesInTuple(const std::vector<std::tuple<std::string, uint256_t>>& argNameAndValue) {
+void SimpleContract::setNamesAndValuesInTuple(
+  const std::vector<std::tuple<std::string, uint256_t>>& argNameAndValue
+) {
   if (this->getCaller() != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->name_ = "";
   this->value_ = 0;
-  for (const auto& [name, value] : argNameAndValue) {
-    this->name_ += name;
-    this->value_ += value;
-  }
+  for (const auto& [name, value] : argNameAndValue) { this->name_ += name; this->value_ += value; }
+  this->nameAndValueTupleChanged(std::make_tuple(this->name_.get(), this->value_.get()));
 }
 
-void SimpleContract::setNamesAndValuesInArrayOfArrays(const std::vector<std::vector<std::tuple<std::string, uint256_t>>> &argNameAndValue) {
+void SimpleContract::setNamesAndValuesInArrayOfArrays(
+  const std::vector<std::vector<std::tuple<std::string, uint256_t>>> &argNameAndValue
+) {
   if (this->getCaller() != this->getContractCreator()) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->name_ = "";
   this->value_ = 0;
   for (const auto& nameAndValue : argNameAndValue) {
-    for (const auto& [name, value] : nameAndValue) {
-      this->name_ += name;
-      this->value_ += value;
-    }
+    for (const auto& [name, value] : nameAndValue) { this->name_ += name; this->value_ += value; }
   }
+  this->nameAndValueChanged(this->name_.get(), this->value_.get());
 }
 
 std::string SimpleContract::getName() const { return this->name_.get(); }
@@ -119,13 +118,12 @@ std::vector<std::string> SimpleContract::getNames(const uint256_t& i) const {
 }
 
 uint256_t SimpleContract::getValue() const { return this->value_.get(); }
+
 uint256_t SimpleContract::getValue(const uint256_t& i) const { return this->value_.get() + i; }
 
 std::vector<uint256_t> SimpleContract::getValues(const uint256_t& i) const {
   std::vector<uint256_t> values;
-  for (uint256_t j = 0; j < i; j++) {
-    values.emplace_back(this->value_.get());
-  }
+  for (uint256_t j = 0; j < i; j++) values.emplace_back(this->value_.get());
   return values;
 }
 
@@ -133,7 +131,8 @@ std::tuple<std::string, uint256_t> SimpleContract::getNameAndValue() const {
   return std::make_tuple(this->name_.get(), this->value_.get());
 }
 
-std::tuple<std::vector<std::string>, std::vector<uint256_t>> SimpleContract::getNamesAndValues(const uint256_t& i) const {
+std::tuple<std::vector<std::string>, std::vector<uint256_t>>
+SimpleContract::getNamesAndValues(const uint256_t& i) const {
   std::vector<std::string> names;
   std::vector<uint256_t> values;
   for (uint256_t j = 0; j < i; j++) {
@@ -143,7 +142,8 @@ std::tuple<std::vector<std::string>, std::vector<uint256_t>> SimpleContract::get
   return std::make_tuple(names, values);
 }
 
-std::vector<std::tuple<std::string, uint256_t>> SimpleContract::getNamesAndValuesInTuple(const uint256_t& i) const {
+std::vector<std::tuple<std::string, uint256_t>>
+SimpleContract::getNamesAndValuesInTuple(const uint256_t& i) const {
   std::vector<std::tuple<std::string, uint256_t>> namesAndValues;
   for (uint256_t j = 0; j < i; j++) {
     namesAndValues.emplace_back(std::make_tuple(this->name_.get(), this->value_.get()));
@@ -151,7 +151,8 @@ std::vector<std::tuple<std::string, uint256_t>> SimpleContract::getNamesAndValue
   return namesAndValues;
 }
 
-std::vector<std::vector<std::tuple<std::string, uint256_t>>> SimpleContract::getNamesAndValuesInArrayOfArrays(const uint256_t& i) const {
+std::vector<std::vector<std::tuple<std::string, uint256_t>>>
+SimpleContract::getNamesAndValuesInArrayOfArrays(const uint256_t& i) const {
   std::vector<std::vector<std::tuple<std::string, uint256_t>>> namesAndValues;
   for (uint256_t j = 0; j < i; j++) {
     std::vector<std::tuple<std::string, uint256_t>> nameAndValuesInternal;
@@ -182,3 +183,4 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, FunctionTypes::View, this);
   this->registerMemberFunction("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, FunctionTypes::View, this);
 }
+

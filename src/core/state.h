@@ -45,8 +45,6 @@ class State {
     /// Pointer to the contract manager.
     const std::unique_ptr<ContractManager> contractManager_;
 
-    // TODO: Add contract functionality to State after ContractManager is ready.
-
     /// Map with information about blockchain accounts (Address -> Account).
     std::unordered_map<Address, Account, SafeHash> accounts_;
 
@@ -67,8 +65,10 @@ class State {
      * Process a transaction within a block. Called by processNextBlock().
      * If the process fails, any state change that this transaction would cause has to be reverted.
      * @param tx The transaction to process.
+     * @param blockHash The hash of the block being processed.
+     * @param txIndex The index of the transaction inside the block that is being processed.
      */
-    void processTransaction(const TxBlock& tx);
+    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex);
 
     /**
      * Update the mempool, removing transactions that are in the given block,
@@ -229,6 +229,34 @@ class State {
 
     /// Get a list of contract addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;
+
+    /**
+     * Get all the events emitted under the given inputs.
+     * Parameters are defined when calling "eth_getLogs" on an HTTP request
+     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
+     * They're supposed to be all "optional" at that point, but here they're
+     * all required, even if all of them turn out to be empty.
+     * @param fromBlock The initial block height to look for.
+     * @param toBlock The final block height to look for.
+     * @param address The address to look for. Defaults to empty (look for all available addresses).
+     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
+     * @return A list of matching events.
+     */
+    const std::vector<Event> getEvents(
+      const uint64_t& fromBlock, const uint64_t& toBlock,
+      const Address& address = Address(), const std::vector<Hash>& topics = {}
+    ) const;
+
+    /**
+     * Overload of getEvents() for transaction receipts.
+     * @param txHash The hash of the transaction to look for events.
+     * @param blockIndex The height of the block to look for events.
+     * @param txIndex The index of the transaction to look for events.
+     * @return A list of matching events.
+     */
+    const std::vector<Event> getEvents(
+      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
+    ) const;
 
     /// the Manager Interface cannot use getNativeBalance. as it will call a lock with the mutex.
     friend class ContractManagerInterface;

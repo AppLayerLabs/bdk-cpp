@@ -7,166 +7,182 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "jsonabi.h"
 
-bool JsonAbi::isTuple(const std::string &type) {
-  /// Tuples always have the same format: "(type1,type2,...)"
-  /// They can also be "(type1,type2,...)[]"
-  if (JsonAbi::isArray(type)) {
-    /// Check if the first and last characters, minus the multiples [] at the end.
-    return (type[0] == '(' && type[type.size() - 2 * JsonAbi::countTupleArrays(type) - 1] == ')');
-  } else {
-    /// Check if the first and last characters are "()"
-    return (type[0] == '(' && type[type.size() - 1] == ')');
-  }
+bool JsonAbi::isTuple(const std::string& type) {
+  // Tuples are always as "(type1, type2, ...)" (alternatively, "(type1,type2,...)[]").
+  // Check if first and last characters are "()" (not counting the "[]" at the end, if there are any).
+  return (JsonAbi::isArray(type))
+    ? (type[0] == '(' && type[type.size() - 2 * JsonAbi::countTupleArrays(type) - 1] == ')')
+    : (type[0] == '(' && type[type.size() - 1] == ')');
 }
 
 bool JsonAbi::isArray(const std::string& type) {
-  /// Arrays always have the same format: "type...[]"
-  /// Check if the last two characters are "[]"
+  // Arrays are always as "type...[]" - check if the last two characters are "[]".
   return (type[type.size() - 2] == '[' && type[type.size() - 1] == ']');
 }
 
-uint64_t JsonAbi::countTupleArrays(const std::string &type) {
-  /// Check how many "[]" there are at the end of string, remember that we need to skip anything inside (...)
-  /// array tuples are always as (type1,type2,...)[]
-  /// or (type1,type2,...)[][] or (type1,type2,...)[][][] etc.
-  /// Count how many [] there after the tuple.
+uint64_t JsonAbi::countTupleArrays(const std::string& type) {
+  // Count how many "[]" there are at the end of string, after the tuple.
+  // Remember we need to skip anything inside "(...)".
+  // Array tuples are always as "(type1,type2,...)[]" // or "(type1,type2,...)[][]" or "(type1,type2,...)[][][]" etc.
   uint64_t count = 0;
   for (int i = type.size() - 1; i >= 0; i--, i--) {
-    if (type[i] == ']' && type[i - 1] == '[') {
-      count++;
-    } else {
-      break;
-    }
+    if (type[i] == ']' && type[i - 1] == '[') count++; else break;
   }
   return count;
 }
 
-std::vector<std::string> JsonAbi::getTupleTypes(const std::string &type) {
-  /// Tuples always have the same format: "(type1,type2,...)"
-  /// Don't forget to remove the "(...)" and the "[]..." if it's an array.
-  /// the vector will return "type1", "type2", ...
+std::vector<std::string> JsonAbi::getTupleTypes(const std::string& type) {
+  // Tuples are always as "(type1,type2,...)" - don't forget to remove "(...)" and "[]..." if it's an array.
+  // Vector will return "type1", "type2", ...
   std::vector<std::string> types;
-  /// Create the string skipping the first character (the "(")
-  std::string tupleString = type.substr(1);
-  /// If array, delete the last two characters (the "[]")
-  if (JsonAbi::isArray(type)) {
-    tupleString = tupleString.substr(0, tupleString.size() - 2 * JsonAbi::countTupleArrays(type));
+  std::string tupleString = type.substr(1); // Skip "("
+  if (JsonAbi::isArray(type)) tupleString = tupleString.substr(
+    0, tupleString.size() - 2 * JsonAbi::countTupleArrays(type) // If array, delete "[]"
+  );
+  tupleString = tupleString.substr(0, tupleString.size() - 1); // Remove ")"
+  std::string tmp;
+  uint16_t tupleCounter = 0; // We need to check if we're inside a tuple, so we don't split on "," inside "(...)".
+  for (const char& c : tupleString) {
+    if (c == '(') ++tupleCounter;
+    if (c == ')') --tupleCounter;
+    if (c == ',' && !tupleCounter) {
+      types.push_back(tmp);
+      tmp = "";
+    } else {
+      tmp += c;
+    }
   }
-  /// Remove the last character (the ")")
-  tupleString = tupleString.substr(0, tupleString.size() - 1);
-  /// Split the string by commas.
-  boost::split(types, tupleString, [](char c) { return c == ','; });
+  /// Push the last type.
+  types.push_back(tmp);
   return types;
 }
 
-json JsonAbi::handleTupleComponents(const std::vector<std::string> &tupleTypes) {
-  json jsonObject = json::array();
-  for (const auto &type : tupleTypes) {
-    json componentObject = json::object();
-    if (JsonAbi::isTuple(type)) {
-      /// Handle the tuple type.1
-      componentObject["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(type));
+json JsonAbi::handleTupleComponents(const std::vector<std::string>& tupleTypes) {
+  json obj = json::array();
+  for (const auto& type : tupleTypes) {
+    json compObj = json::object();
+    if (JsonAbi::isTuple(type)) { // Handle the tuple type.
+      compObj["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(type));
       if (JsonAbi::isArray(type)) {
-        // When inserting an array of tuples into a tuple, we need to check how many nested arrays there are.
-        // This means we can have a tuple[], or a tuple[][], or a tuple[][][], etc.
+        // Check how many nested arrays we have (tuple[], tuple[][], tuple[][][], etc..)
         auto count = JsonAbi::countTupleArrays(type);
         std::string arrayType = "tuple";
-        for (int i = 0; i < count; i++) {
-          arrayType += "[]";
-        }
-        componentObject["type"] = arrayType;
+        for (int i = 0; i < count; i++) arrayType += "[]";
+        compObj["type"] = arrayType;
       } else {
-        componentObject["type"] = "tuple";
+        compObj["type"] = "tuple";
       }
-    } else {
-      /// Handle the non-tuple type.
-      componentObject["internalType"] = type;
-      componentObject["type"] = type;
+    } else {  // Handle the non-tuple type.
+      compObj["internalType"] = type;
+      compObj["type"] = type;
     }
-    jsonObject.push_back(componentObject);
+    obj.push_back(compObj);
   }
-  return jsonObject;
+  return obj;
 }
 
-json JsonAbi::parseMethodInput(const std::vector<std::pair<std::string,std::string>> &inputDescription) {
-  json jsonObject = json::array();
-  for (const auto &input : inputDescription) {
+json JsonAbi::parseMethodInput(const std::vector<std::pair<std::string,std::string>>& inputDesc) {
+  json obj = json::array();
+  for (const auto& input : inputDesc) {
     const auto& [type, name] = input;
-    json inputObject = json::object();
-    if (JsonAbi::isTuple(type)) {
-      /// Handle the tuple type.
-      inputObject["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(type));
-      inputObject["name"] = name;
+    json inObj = json::object();
+    if (JsonAbi::isTuple(type)) { // Handle the tuple type.
+      inObj["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(type));
+      inObj["name"] = name;
       if (JsonAbi::isArray(type)) {
+        // Check how many nested arrays we have (tuple[], tuple[][], tuple[][][], etc..)
         auto count = JsonAbi::countTupleArrays(type);
         std::string arrayType = "tuple";
-        for (int i = 0; i < count; i++) {
-          arrayType += "[]";
-        }
-        inputObject["type"] = arrayType;
+        for (int i = 0; i < count; i++) arrayType += "[]";
+        inObj["type"] = arrayType;
       } else {
-        inputObject["type"] = "tuple";
+        inObj["type"] = "tuple";
       }
-    } else {
-      /// Handle the non-tuple type.
-      inputObject["internalType"] = type;
-      inputObject["name"] = name;
-      inputObject["type"] = type;
+    } else {  // Handle the non-tuple type.
+      inObj["internalType"] = type;
+      inObj["name"] = name;
+      inObj["type"] = type;
     }
-    jsonObject.push_back(inputObject);
+    obj.push_back(inObj);
   }
-  return jsonObject;
+  return obj;
 }
 
-json JsonAbi::parseMethodOutput(const std::vector<std::string> &outputDescription) {
-  json jsonObject = json::array();
-  if (outputDescription.size() == 1 && outputDescription[0] == "") {
-    return jsonObject;
-  }
-  for (const auto &output : outputDescription) {
-    json outputObject = json::object();
-    if (JsonAbi::isTuple(output)) {
-      /// Handle the tuple type.
-      outputObject["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(output));
+json JsonAbi::parseMethodOutput(const std::vector<std::string>& outputDesc) {
+  json obj = json::array();
+  if (outputDesc.size() == 1 && outputDesc[0] == "") return obj;
+  for (const auto& output : outputDesc) {
+    json outObj = json::object();
+    if (JsonAbi::isTuple(output)) { // Handle the tuple type.
+      outObj["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(output));
       if (JsonAbi::isArray(output)) {
+        // Check how many nested arrays we have (tuple[], tuple[][], tuple[][][], etc..)
         auto count = JsonAbi::countTupleArrays(output);
         std::string arrayType = "tuple";
-        for (int i = 0; i < count; i++) {
-          arrayType += "[]";
-        }
-        outputObject["type"] = arrayType;
+        for (int i = 0; i < count; i++) arrayType += "[]";
+        outObj["type"] = arrayType;
       } else {
-        outputObject["type"] = "tuple";
+        outObj["type"] = "tuple";
       }
-    } else {
-      /// Handle the non-tuple type.
-      outputObject["internalType"] = output;
-      outputObject["name"] = "";
-      outputObject["type"] = output;
+    } else { // Handle the non-tuple type.
+      outObj["internalType"] = output;
+      outObj["name"] = "";
+      outObj["type"] = output;
     }
-    jsonObject.push_back(outputObject);
+    obj.push_back(outObj);
   }
-  return jsonObject;
+  return obj;
 }
 
-
-json JsonAbi::methodToJSON(const ABI::MethodDescription &description) {
-  json jsonObject = json::object();
-  jsonObject["inputs"] = JsonAbi::parseMethodInput(description.inputs);
-  jsonObject["name"] = description.name;
-  jsonObject["outputs"] = JsonAbi::parseMethodOutput(description.outputs);
-  switch (description.stateMutability) {
-    case (FunctionTypes::View):
-      jsonObject["stateMutability"] = "view";
-      break;
-    case (FunctionTypes::NonPayable):
-      jsonObject["stateMutability"] = "nonpayable";
-      break;
-    case (FunctionTypes::Payable):
-      jsonObject["stateMutability"] = "payable";
-      break;
+json JsonAbi::parseEventArgs(const std::vector<std::tuple<std::string, std::string, bool>>& args) {
+  json obj = json::array();
+  for (const auto& arg : args) {
+    const auto& [type, name, indexed] = arg;
+    json inObj = json::object();
+    if (JsonAbi::isTuple(type)) { // Handle the tuple type.
+      inObj["components"] = JsonAbi::handleTupleComponents(JsonAbi::getTupleTypes(type));
+      inObj["indexed"] = indexed;
+      inObj["name"] = name;
+      if (JsonAbi::isArray(type)) {
+        // Check how many nested arrays we have (tuple[], tuple[][], tuple[][][], etc..)
+        auto count = JsonAbi::countTupleArrays(type);
+        std::string arrayType = "tuple";
+        for (int i = 0; i < count; i++) arrayType += "[]";
+        inObj["type"] = arrayType;
+      } else {
+        inObj["type"] = "tuple";
+      }
+    } else {  // Handle the non-tuple type.
+      inObj["indexed"] = indexed;
+      inObj["internalType"] = type;
+      inObj["name"] = name;
+      inObj["type"] = type;
+    }
+    obj.push_back(inObj);
   }
-  jsonObject["type"] = description.type;
-  return jsonObject;
+  return obj;
+}
+
+json JsonAbi::methodToJSON(const ABI::MethodDescription& desc) {
+  json obj = json::object();
+  obj["inputs"] = JsonAbi::parseMethodInput(desc.inputs);
+  obj["name"] = desc.name;
+  obj["outputs"] = JsonAbi::parseMethodOutput(desc.outputs);
+  switch (desc.stateMutability) {
+    case (FunctionTypes::View): obj["stateMutability"] = "view"; break;
+    case (FunctionTypes::NonPayable): obj["stateMutability"] = "nonpayable"; break;
+    case (FunctionTypes::Payable): obj["stateMutability"] = "payable"; break;
+  }
+  obj["type"] = desc.type;
+  return obj;
+}
+
+json JsonAbi::eventToJSON(const ABI::EventDescription& desc) {
+  json obj = json::object();
+  obj["anonymous"] = desc.anonymous;
+  obj["inputs"] = JsonAbi::parseEventArgs(desc.args);
+  obj["name"] = desc.name;
+  obj["type"] = "event";
+  return obj;
 }
 

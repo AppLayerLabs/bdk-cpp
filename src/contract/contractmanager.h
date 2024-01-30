@@ -14,6 +14,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "abi.h"
 #include "contract.h"
+#include "contractcalllogger.h"
+#include "event.h"
+#include "variables/safeunorderedmap.h"
 
 #include "../utils/db.h"
 #include "../utils/options.h"
@@ -22,8 +25,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
-#include "contractcalllogger.h"
-#include "variables/safeunorderedmap.h"
 
 // Forward declarations.
 class rdPoS;
@@ -74,6 +75,12 @@ class ContractManager : BaseContract {
      * Responsible for maintaining temporary data used in contract call chains.
      */
     std::unique_ptr<ContractCallLogger> callLogger_;
+
+    /**
+     * Pointer to the event manager object.
+     * Responsible for maintaining events emitted in contract calls.
+     */
+    const std::unique_ptr<EventManager> eventManager_;
 
     /// Reference pointer to the rdPoS contract.
     const std::unique_ptr<rdPoS>& rdpos_;
@@ -180,9 +187,12 @@ class ContractManager : BaseContract {
     /**
      * Process a transaction that calls a function from a given contract.
      * @param tx The transaction to process.
+     * @param blockHash The hash of the block that called the contract. Defaults to an empty hash.
+     * @param txIndex The index of the transaction inside the block that called the contract. Defaults to the first position.
      * @throw std::runtime_error if the call to the ethCall function fails.
+     * TODO: it would be a good idea to revise tests that call this function, default values here only exist as a placeholder
      */
-    void callContract(const TxBlock& tx);
+    void callContract(const TxBlock& tx, const Hash& blockHash = Hash(), const uint64_t& txIndex = 0);
 
     /**
      * Make an eth_call to a view function from the contract. Used by RPC.
@@ -224,6 +234,46 @@ class ContractManager : BaseContract {
 
     /// Get a list of contract names and addresses.
     std::vector<std::pair<std::string, Address>> getContracts() const;
+
+    /**
+     * Get all the events emitted under the given inputs.
+     * Parameters are defined when calling "eth_getLogs" on an HTTP request
+     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
+     * They're supposed to be all "optional" at that point, but here they're
+     * all required, even if all of them turn out to be empty.
+     * @param fromBlock The initial block height to look for.
+     * @param toBlock The final block height to look for.
+     * @param address The address to look for. Defaults to empty (look for all available addresses).
+     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
+     * @return A list of matching events.
+     */
+    const std::vector<Event> getEvents(
+      const uint64_t& fromBlock, const uint64_t& toBlock,
+      const Address& address = Address(), const std::vector<Hash>& topics = {}
+    ) const;
+
+    /**
+     * Overload of getEvents() for transaction receipts.
+     * @param txHash The hash of the transaction to look for events.
+     * @param blockIndex The height of the block to look for events.
+     * @param txIndex The index of the transaction to look for events.
+     * @return A list of matching events.
+     */
+    const std::vector<Event> getEvents(
+      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
+    ) const;
+
+    /**
+     * Update the ContractGlobals variables
+     * Used by the State (when processing a block) to update the variables.
+     * Also used by the tests.
+     * CM does NOT update the variables by itself.
+     * @param coinbase The coinbase address.
+     * @param blockHash The hash of the block.
+     * @param blockHeight The height of the block.
+     * @param blockTimestamp The timestamp of the block.
+     */
+    void updateContractGlobals(const Address& coinbase, const Hash& blockHash, const uint64_t& blockHeight, const uint64_t& blockTimestamp);
 
     /// ContractManagerInterface is a friend so it can access private members.
     friend class ContractManagerInterface;
@@ -281,17 +331,20 @@ class ContractManagerInterface {
       );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
-      } else {
-        if (!this->manager_.contracts_.contains(targetAddr)) {
-          throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
-        }
+      }
+      if (!this->manager_.contracts_.contains(targetAddr)) {
+        throw std::runtime_error(std::string(__func__) + ": Contract does not exist - Type: "
+          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
+        );
       }
       C* contract = this->getContract<C>(targetAddr);
       this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func, std::forward<const Args&>(args)...);
       } catch (const std::exception& e) {
-        throw std::runtime_error(e.what());
+        throw std::runtime_error(e.what() + std::string(" - Type: ")
+          + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
+        );
       }
     }
 
@@ -315,12 +368,9 @@ class ContractManagerInterface {
       if (!this->manager_.callLogger_) throw std::runtime_error(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
-      if (value) {
-        this->sendTokens(fromAddr, targetAddr, value);
-      } else {
-        if (!this->manager_.contracts_.contains(targetAddr)) {
-          throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
-        }
+      if (value) this->sendTokens(fromAddr, targetAddr, value);
+      if (!this->manager_.contracts_.contains(targetAddr)) {
+        throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
       }
       C* contract = this->getContract<C>(targetAddr);
       this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
@@ -358,15 +408,16 @@ class ContractManagerInterface {
       createSignature += ")";
       auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
       from = fromAddr;
-      to = this->manager_.deriveContractAddress();
+      to = this->manager_.getContractAddress();
       gas = gasValue;
       gasPrice = gasPriceValue;
       value = callValue;
       functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
       data = encoder;
       this->manager_.callLogger_->setContractVars(&manager_, txOrigin, fromAddr, value);
+      Address newContractAddress = this->manager_.deriveContractAddress();
       this->manager_.ethCall(callInfo);
-      return to;
+      return newContractAddress;
     }
 
     /**
@@ -411,6 +462,25 @@ class ContractManagerInterface {
         address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
       );
       return ptr;
+    }
+
+    /**
+     * Emit an event from a contract. Called by DynamicContract's emitEvent().
+     * @param event The event to emit.
+     * @throw std::runtime_error if there's an attempt to emit the event outside a contract call.
+     */
+    void emitContractEvent(Event& event) {
+      // Sanity check - events should only be emitted during successful contract
+      // calls AND on non-pure/non-view functions. Since callLogger on view
+      // function calls is set to nullptr, this ensures that events only happen
+      // inside contracts and are not emitted if a transaction reverts.
+      // C++ itself already takes care of events not being emitted on pure/view
+      // functions due to its built-in const-correctness logic.
+      // TODO: check later if events are really not emitted on transaction revert
+      if (!this->manager_.callLogger_) throw std::runtime_error(
+        "Contracts going haywire! Trying to emit an event without an active contract call"
+      );
+      this->manager_.eventManager_->registerEvent(std::move(event));
     }
 
     /**

@@ -168,6 +168,17 @@ namespace JsonRPC {
     json eth_gasPrice();
 
     /**
+     * Encode a `eth_getLogs` response.
+     * @param info A tuple of starting and ending block, address and a list of topics.
+     * @param state Reference pointer to blockchain's state.
+     * @return The encoded JSON response.
+     */
+    json eth_getLogs(
+      std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> info,
+      const std::unique_ptr<State>& state
+    );
+
+    /**
      * Encode a `eth_getBalance` response.
      * @param address The address to get the balance from.
      * @param state Pointer to the blockchain's state.
@@ -237,9 +248,13 @@ namespace JsonRPC {
      * Encode a `eth_getTransactionReceipt` response.
      * @param txHash The transaction's hash.
      * @param storage Pointer to the blockchain's storage.
+     * @param state Pointer to the blockchain's state.
      * @return The encoded JSON response.
      */
-    json eth_getTransactionReceipt(const Hash& txHash, const std::unique_ptr<Storage>& storage);
+    json eth_getTransactionReceipt(
+      const Hash& txHash, const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<State>& state
+    );
   }
 }
 

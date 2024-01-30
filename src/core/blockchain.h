@@ -57,28 +57,28 @@ class Blockchain {
      */
     void stop();
 
-    /// Getter for `options`.
+    /// Getter for `options_`.
     const std::unique_ptr<Options>& getOptions() const { return this->options_; };
 
-    /// Getter for `db`.
+    /// Getter for `db_`.
     const std::unique_ptr<DB>& getDB() const { return this->db_; };
 
-    /// Getter for `storage`.
+    /// Getter for `storage_`.
     const std::unique_ptr<Storage>& getStorage() const { return this->storage_; };
 
-    /// Getter for `rdpos`.
+    /// Getter for `rdpos_`.
     const std::unique_ptr<rdPoS>& getrdPoS() const { return this->rdpos_; };
 
-    /// Getter for `state`.
+    /// Getter for `state_`.
     const std::unique_ptr<State>& getState() const { return this->state_; };
 
-    /// Getter for `p2p`.
+    /// Getter for `p2p_`.
     const std::unique_ptr<P2P::ManagerNormal>& getP2P() const { return this->p2p_; };
 
-    /// Getter for `http`.
+    /// Getter for `http_`.
     const std::unique_ptr<HTTPServer>& getHTTP() const { return this->http_; };
 
-    /// Getter for `syncer`.
+    /// Getter for `syncer_`.
     const std::unique_ptr<Syncer>& getSyncer() const { return this->syncer_; };
 
     /**

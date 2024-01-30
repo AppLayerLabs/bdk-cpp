@@ -37,26 +37,20 @@ See the LICENSE.txt file in the project root for more information.
  *   8 BYTES  - NHEIGHT
  *
  * BLOCK CONTENT:
- *   8 BYTES  - TX VALIDATOR ARRAY START
+ *   8 BYTES  - VALIDATOR TX ARRAY START
  *   [
- *     4 BYTES - TX SIZE
- *     X BYTES - TX
- *     ,
- *     4 BYTES - TX SIZE
- *     X BYTES - TX
- *     ,
+ *     4 BYTES - BLOCK TX SIZE
+ *     N BYTES - BLOCK TX
  *     ...
  *   ]
  *   [
- *     4 BYTES - TX SIZE
- *     X BYTES - TX
- *     ,
- *     4 BYTES - TX SIZE
- *     X BYTES - TX
- *     ,
+ *     4 BYTES - VALIDATOR TX SIZE
+ *     N BYTES - VALIDATOR TX
  *     ...
  *   ]
  * ```
+ *
+ * TODO: Add chainId into the validator signature.
  */
 class Block {
   private:
@@ -224,11 +218,11 @@ class Block {
      */
     bool finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp);
 
-    /// Equality operator. Checks the block hash of both objects.
-    const bool operator==(const Block& b) const { return this->hash() == b.hash(); }
+    /// Equality operator. Checks the block hash AND signature of both objects.
+    const bool operator==(const Block& b) const { return ((this->hash() == b.hash()) && (this->getValidatorSig() == b.getValidatorSig())); }
 
-    /// Inequality operator. Checks the block hash of both objects.
-    const bool operator!=(const Block& b) const { return this->hash() != b.hash(); }
+    /// Inequality operator. Checks the block hash AND signature of both objects.
+    const bool operator!=(const Block& b) const { return ((this->hash() != b.hash()) || (this->getValidatorSig() != b.getValidatorSig())); }
 
     /// Copy assignment operator.
     Block& operator=(const Block& other) {

@@ -58,9 +58,9 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
      * @param options Reference pointer to the options singleton.
      */
     HTTPListener(
-        net::io_context& ioc, tcp::endpoint ep, std::shared_ptr<const std::string>& docroot,
-        const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-        const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+      net::io_context& ioc, tcp::endpoint ep, std::shared_ptr<const std::string>& docroot,
+      const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
     );
 
     void start(); ///< Start accepting incoming connections.

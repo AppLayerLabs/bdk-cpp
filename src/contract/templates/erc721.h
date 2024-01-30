@@ -307,7 +307,7 @@ public:
 
   /// Register contract class via ContractReflectionInterface.
   static void registerContract() {
-    ContractReflectionInterface::registerContract<
+    ContractReflectionInterface::registerContractMethods<
         ERC721, const std::string &, const std::string &,
         ContractManagerInterface &, const Address &, const Address &,
         const uint64_t &, const std::unique_ptr<DB> &>(

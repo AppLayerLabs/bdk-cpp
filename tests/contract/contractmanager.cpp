@@ -14,8 +14,14 @@ See the LICENSE.txt file in the project root for more information.
 #include <filesystem>
 #include <sys/types.h>
 
-// Forward declaration.
-ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
+ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
+  ethCallInfoAllocated callInfo;
+  auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  to = addressToCall;
+  functor = function;
+  data = dataToCall;
+  return callInfo;
+}
 
 namespace TContractManager {
   std::string testDumpPath = Utils::getTestDumpPath();
@@ -185,7 +191,7 @@ namespace TContractManager {
 
         Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransfer);
         Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-        
+
         Bytes getBalanceDestinationResult = contractManager.callContract(buildCallInfo(contractAddress, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
 
         auto getBalanceDestinationDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
@@ -277,23 +283,18 @@ namespace TContractManager {
       std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
       std::unique_ptr<rdPoS> rdpos;
       ContractManager contractManager(nullptr, db, rdpos, options);
-
       Bytes getNumEncA = Bytes(32, 0);
       Bytes getNumEncB = Bytes(32, 0);
       Bytes getNumEncC = Bytes(32, 0);
-
       Functor getNumFunctorA = ABI::FunctorEncoder::encode<void>("getNumA");
       Functor getNumFunctorB = ABI::FunctorEncoder::encode<void>("getNumB");
       Functor getNumFunctorC = ABI::FunctorEncoder::encode<void>("getNumC");
-
       Bytes dataA = contractManager.callContract(buildCallInfo(contractA, getNumFunctorA, getNumEncA));
       Bytes dataB = contractManager.callContract(buildCallInfo(contractB, getNumFunctorB, getNumEncB));
       Bytes dataC = contractManager.callContract(buildCallInfo(contractC, getNumFunctorC, getNumEncC));
-
       auto decA = ABI::Decoder::decodeData<uint256_t>(dataA);
       auto decB = ABI::Decoder::decodeData<uint256_t>(dataB);
       auto decC = ABI::Decoder::decodeData<uint256_t>(dataC);
-
       REQUIRE(std::get<0>(decA) == 0);
       REQUIRE(std::get<0>(decB) == 0);
       REQUIRE(std::get<0>(decC) == 0);

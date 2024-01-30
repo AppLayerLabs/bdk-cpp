@@ -80,7 +80,7 @@ class NativeWrapper : public ERC20 {
 
     /// Register contract using ContractReflectionInterface.
     static void registerContract() {
-      ContractReflectionInterface::registerContract<
+      ContractReflectionInterface::registerContractMethods<
         NativeWrapper, std::string &, std::string &, uint8_t &,
         ContractManagerInterface &, const Address &,
         const Address &, const uint64_t &, const std::unique_ptr<DB> &

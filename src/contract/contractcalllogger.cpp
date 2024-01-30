@@ -37,3 +37,4 @@ void ContractCallLogger::revert() {
     this->manager_.contracts_.erase(badContract); // Erase failed contract creations
   }
 }
+

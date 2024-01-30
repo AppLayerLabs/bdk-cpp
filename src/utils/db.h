@@ -21,13 +21,14 @@ See the LICENSE.txt file in the project root for more information.
 
 /// Namespace for accessing database prefixes.
 namespace DBPrefix {
-  const Bytes blocks =  { 0x00, 0x01 };          ///< "blocks" = "0001"
-  const Bytes blockHeightMaps =  { 0x00, 0x02 }; ///< "blockHeightMaps" = "0002"
-  const Bytes nativeAccounts =  { 0x00, 0x03 };  ///< "nativeAccounts" = "0003"
-  const Bytes txToBlocks =  { 0x00, 0x04 };      ///< "txToBlocks" = "0004"
-  const Bytes rdPoS =  { 0x00, 0x05 };           ///< "rdPoS" = "0005"
-  const Bytes contracts =  { 0x00, 0x06 };       ///< "contracts" = "0006"
-  const Bytes contractManager =  { 0x00, 0x07 }; ///< "contractManager" = "0007"
+  const Bytes blocks =          { 0x00, 0x01 }; ///< "blocks" = "0001"
+  const Bytes blockHeightMaps = { 0x00, 0x02 }; ///< "blockHeightMaps" = "0002"
+  const Bytes nativeAccounts =  { 0x00, 0x03 }; ///< "nativeAccounts" = "0003"
+  const Bytes txToBlocks =      { 0x00, 0x04 }; ///< "txToBlocks" = "0004"
+  const Bytes rdPoS =           { 0x00, 0x05 }; ///< "rdPoS" = "0005"
+  const Bytes contracts =       { 0x00, 0x06 }; ///< "contracts" = "0006"
+  const Bytes contractManager = { 0x00, 0x07 }; ///< "contractManager" = "0007"
+  const Bytes events =          { 0x00, 0x08 }; ///< "events" = "0008"
 };
 
 /// Struct for a database connection/endpoint.
@@ -103,8 +104,10 @@ class DBBatch {
       tmp.reserve(prefix.size() + key.size());
       tmp.insert(tmp.end(), key.begin(), key.end());
       puts_.emplace_back(std::move(tmp), Bytes(value.begin(), value.end()));
-      putsSlices_.emplace_back(rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().key.data()), puts_.back().key.size()),
-                              rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().value.data()), puts_.back().value.size()));
+      putsSlices_.emplace_back(
+        rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().key.data()), puts_.back().key.size()),
+        rocksdb::Slice(reinterpret_cast<const char*>(puts_.back().value.data()), puts_.back().value.size())
+      );
     }
 
     /**
@@ -117,7 +120,9 @@ class DBBatch {
       tmp.reserve(prefix.size() + key.size());
       tmp.insert(tmp.end(), key.begin(), key.end());
       dels_.emplace_back(std::move(tmp));
-      delsSlices_.emplace_back(rocksdb::Slice(reinterpret_cast<const char*>(dels_.back().data()), dels_.back().size()));
+      delsSlices_.emplace_back(
+        rocksdb::Slice(reinterpret_cast<const char*>(dels_.back().data()), dels_.back().size())
+      );
     }
 
     /**
@@ -203,7 +208,7 @@ class DB {
       rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
-      keyTmp.insert(keyTmp.end(), key.begin(), key.end());
+      keyTmp.insert(keyTmp.end(), key.cbegin(), key.cend());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
       for (it->Seek(keySlice); it->Valid(); it->Next()) {
         if (it->key().ToString() == keySlice) {
@@ -286,13 +291,23 @@ class DB {
     ) const;
 
     /**
+     * Get all keys from a given prefix.
+     * Ranges can be used to mitigate very expensive operations
+     * (e.g. a query can return millions of entries).
+     * Prefix is automatically added to the queries themselves internally.
+     * @param pfx The prefix to search keys from.
+     * @param start (optional) The first key to start searching from.
+     * @param end (optional) The last key to end searching at.
+     * @return A list of found keys, WITHOUT their prefixes.
+     */
+    std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {});
+
+    /**
      * Create a Bytes container from a string.
      * @param str The string to convert.
      * @return The Bytes container.
      */
-    inline static Bytes keyFromStr(const std::string str) {
-      return Bytes(str.begin(), str.end());
-    }
+    inline static Bytes keyFromStr(const std::string str) { return Bytes(str.begin(), str.end()); }
 };
 
 #endif // DB_H

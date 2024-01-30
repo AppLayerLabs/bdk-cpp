@@ -45,9 +45,7 @@ class ContractCallLogger {
      */
     std::vector<std::reference_wrapper<SafeBase>> usedVars_;
 
-    /**
-     * Boolean that tells if the current call should be committed or not during the destructor.
-     */
+    /// Indicates whether the current call should be committed or not during logger destruction.
     bool commitCall_ = false;
 
     /// Commit all used SafeVariables registered in the list.
@@ -123,9 +121,7 @@ class ContractCallLogger {
      */
     inline void addUsedVar(SafeBase& var) { this->usedVars_.emplace_back(var); }
 
-    /**
-     * Tell the state that the current call should be committed on the destructor.
-     */
+    /// Tell the state that the current call should be committed on the destructor.
     inline void shouldCommit() { this->commitCall_ = true; }
 };
 

@@ -13,496 +13,102 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/contract/contractmanager.h"
 #include "../../src/core/rdpos.h"
 
+#include "../sdktestsuite.hpp"
+
 #include <filesystem>
 
-ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
-  ethCallInfoAllocated callInfo;
-  auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
-  to = addressToCall;
-  functor = function;
-  data = dataToCall;
-  return callInfo;
-}
-
-
-void initialize(std::unique_ptr<Options>& options,
-                std::unique_ptr<DB>& db,
-                std::unique_ptr<ContractManager> &contractManager,
-                const std::string& dbName,
-                const PrivKey& ownerPrivKey,
-                const std::string& tokenName,
-                const std::string& tokenSymbol,
-                const uint8_t& tokenDecimals,
-                const uint256_t& tokenSupply,
-                bool deleteDB = true) {
-  if (deleteDB) {
-    if (std::filesystem::exists(dbName)) {
-      std::filesystem::remove_all(dbName);
-    }
-  }
-
-  options = std::make_unique<Options>(Options::fromFile(dbName));
-  db = std::make_unique<DB>(dbName);
-  std::unique_ptr<rdPoS> rdpos;
-  contractManager = std::make_unique<ContractManager>(nullptr, db, rdpos, options);
-
-  if (deleteDB) {
-    /// Create the contract.
-
-    Bytes createNewERC20ContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals, tokenSupply);
-    Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");
-    Utils::appendBytes(createNewERC20ContractData, createNewERC20ContractEncoder);
-
-    TxBlock createNewERC2OTx = TxBlock(
-      ProtocolContractAddresses.at("ContractManager"),
-      Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey)),
-      createNewERC20ContractData,
-      8080,
-      0,
-      0,
-      0,
-      0,
-      0,
-      ownerPrivKey
-    );
-
-    contractManager->callContract(createNewERC2OTx);
-  }
-}
+// TODO: test events if/when implemented
 
 namespace TERC20 {
-  std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("ERC2O Class", "[contract][erc20]") {
-    PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
-    Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
-    SECTION("ERC20 Class Constructor") {
-      Address erc20Address;
-      {
-        std::unique_ptr<Options> options;
-        std::unique_ptr<DB> db;
-        std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = testDumpPath + "/erc20ClassConstructor";
-        std::string tokenName = "TestToken";
-        std::string tokenSymbol = "TST";
-        uint8_t tokenDecimals = 18;
-        uint256_t tokenSupply = 1000000000000000000;
-        initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals, tokenSupply);
-
-        erc20Address = contractManager->getContracts()[0].second;
-
-        Bytes nameEncoder = Bytes(32, 0);
-        Bytes symbolEncoder = Bytes(32, 0);
-        Bytes decimalsEncoder = Bytes(32, 0);
-        Bytes totalSupplyEncoder = Bytes(32, 0);
-
-        Functor nameFunctor = ABI::FunctorEncoder::encode<void>("name");
-        Functor symbolFunctor = ABI::FunctorEncoder::encode<void>("symbol");
-        Functor decimalsFunctor = ABI::FunctorEncoder::encode<void>("decimals");
-        Functor totalSupplyFunctor = ABI::FunctorEncoder::encode<void>("totalSupply");
-
-        Bytes nameData = contractManager->callContract(buildCallInfo(erc20Address, nameFunctor, nameEncoder));
-
-        auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
-        REQUIRE(std::get<0>(nameDecoder) == tokenName);
-
-        Bytes symbolData = contractManager->callContract(buildCallInfo(erc20Address, symbolFunctor, symbolEncoder));
-
-        auto symbolDecoderResult = ABI::Decoder::decodeData<std::string>(symbolData);
-        REQUIRE(std::get<0>(symbolDecoderResult) == tokenSymbol);
-
-        Bytes decimalsData = contractManager->callContract(buildCallInfo(erc20Address, decimalsFunctor, decimalsEncoder));
-
-        auto decimalsDecoder = ABI::Decoder::decodeData<uint256_t>(decimalsData);
-        REQUIRE(std::get<0>(decimalsDecoder) == 18);
-
-        Bytes totalSupplyData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyFunctor, totalSupplyEncoder));
-
-        auto totalSupplyDecoder = ABI::Decoder::decodeData<uint256_t>(totalSupplyData);
-        REQUIRE(std::get<0>(totalSupplyDecoder) == tokenSupply);
-
-        Bytes balanceOfData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyFunctor, totalSupplyEncoder));
-
-        auto balanceOfDecoder = ABI::Decoder::decodeData<uint256_t>(balanceOfData);
-        REQUIRE(std::get<0>(balanceOfDecoder) == tokenSupply);
-      }
-
-      std::unique_ptr<Options> options;
-      std::unique_ptr<DB> db;
-      std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = testDumpPath + "/erc20ClassConstructor";
-      std::string tokenName = "TestToken";
-      std::string tokenSymbol = "TST";
-      uint8_t tokenDecimals = 18;
-      uint256_t tokenSupply = 1000000000000000000;
-      initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals, tokenSupply, false);
-
-      REQUIRE(erc20Address == contractManager->getContracts()[0].second);
-    
-      Bytes nameEncoder = Bytes(32, 0);
-      Bytes symbolEncoder = Bytes(32, 0);
-      Bytes decimalsEncoder = Bytes(32, 0);
-      Bytes totalSupplyEncoder = Bytes(32, 0);
-
-      Functor nameFunctor = ABI::FunctorEncoder::encode<void>("name");
-      Functor symbolFunctor = ABI::FunctorEncoder::encode<void>("symbol");
-      Functor decimalsFunctor = ABI::FunctorEncoder::encode<void>("decimals");
-      Functor totalSupplyFunctor = ABI::FunctorEncoder::encode<void>("totalSupply");
-
-      Bytes nameData = contractManager->callContract(buildCallInfo(erc20Address, nameFunctor, nameEncoder));
-
-      auto nameDecoder = ABI::Decoder::decodeData<std::string>(nameData);
-      REQUIRE(std::get<0>(nameDecoder) == tokenName);
-
-      Bytes symbolData = contractManager->callContract(buildCallInfo(erc20Address, symbolFunctor, symbolEncoder));
-
-      auto symbolDecoder = ABI::Decoder::decodeData<std::string>(symbolData);
-      REQUIRE(std::get<0>(symbolDecoder) == tokenSymbol);
-
-      Bytes decimalsData = contractManager->callContract(buildCallInfo(erc20Address, decimalsFunctor, decimalsEncoder));
-
-      auto decimalsDecoder = ABI::Decoder::decodeData<uint256_t>(decimalsData);
-      REQUIRE(std::get<0>(decimalsDecoder) == 18);
-
-      Bytes totalSupplyData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyFunctor, totalSupplyEncoder));
-
-      auto totalSupplyDecoder = ABI::Decoder::decodeData<uint256_t>(totalSupplyData);
-      REQUIRE(std::get<0>(totalSupplyDecoder) == tokenSupply);
-
-      Bytes balanceOfData = contractManager->callContract(buildCallInfo(erc20Address, totalSupplyFunctor, totalSupplyEncoder));
-
-      auto balanceOfDecoder = ABI::Decoder::decodeData<uint256_t>(balanceOfData);
-      REQUIRE(std::get<0>(balanceOfDecoder) == tokenSupply);
+    SECTION("ERC20 creation") {
+      SDKTestSuite sdk("testERC20Creation");
+      Address erc20 = sdk.deployContract<ERC20>(
+        std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
+      );
+      Address owner = sdk.getChainOwnerAccount().address;
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::name) == "TestToken");
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::symbol) == "TST");
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::decimals) == 18);
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::totalSupply) == uint256_t("1000000000000000000"));
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::balanceOf, owner) == uint256_t("1000000000000000000"));
     }
 
     SECTION("ERC20 transfer()") {
-      Address erc20Address;
-      Address destinationOfTransactions(Utils::randBytes(20));
+      SDKTestSuite sdk("testERC20Transfer");
+      Address erc20 = sdk.deployContract<ERC20>(
+        std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
+      );
+      Address owner = sdk.getChainOwnerAccount().address;
+      Address to(Utils::randBytes(20));
 
-      {
-        std::unique_ptr<Options> options;
-        std::unique_ptr<DB> db;
-        std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = testDumpPath + "/erc20ClassTransfer";
-        std::string tokenName = "TestToken";
-        std::string tokenSymbol = "TST";
-        uint8_t tokenDecimals = 18;
-        uint256_t tokenSupply = 1000000000000000000;
-        initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
-                   tokenSupply);
+      uint256_t balanceMe = sdk.callViewFunction(erc20, &ERC20::balanceOf, owner);
+      uint256_t balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
+      REQUIRE(balanceMe == uint256_t("1000000000000000000")); // 1 TST
+      REQUIRE(balanceTo == 0);
 
-        erc20Address = contractManager->getContracts()[0].second;
+      Hash transferTx = sdk.callFunction(erc20, &ERC20::transfer, to, uint256_t("500000000000000000")); // 0.5 TST
+      balanceMe = sdk.callViewFunction(erc20, &ERC20::balanceOf, owner);
+      balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
+      REQUIRE(balanceMe == uint256_t("500000000000000000"));
+      REQUIRE(balanceTo == uint256_t("500000000000000000"));
 
-        Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
-        Functor getBalanceMeFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-
-        Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransactions);
-        Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-
-        Bytes transferData = Hex::toBytes("0xa9059cbb");
-
-        Bytes transferEncoder = ABI::Encoder::encodeData(destinationOfTransactions, static_cast<uint256_t>(500000000000000000));
-        Utils::appendBytes(transferData, transferEncoder);
-        TxBlock transferTx(
-          erc20Address,
-          owner,
-          transferData,
-          8080,
-          0,
-          0,
-          0,
-          0,
-          0,
-          ownerPrivKey
-        );
-
-        auto randomPrivKey = PrivKey(Utils::randBytes(32));
-        TxBlock transferTxThrows = TxBlock(
-          erc20Address,
-          Secp256k1::toAddress(Secp256k1::toUPub(randomPrivKey)),
-          transferData,
-          8080,
-          0,
-          0,
-          0,
-          0,
-          0,
-          randomPrivKey
-        );
-
-        REQUIRE_THROWS(contractManager->validateCallContractWithTx(transferTxThrows.txToCallInfo()));
-        contractManager->validateCallContractWithTx(transferTx.txToCallInfo());
-
-        Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeFunctor, getBalanceMeEncoder));
-
-        auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
-        REQUIRE(std::get<0>(getBalanceMeDecoder) == 1000000000000000000);
-
-        Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
-
-        auto getBalanceDestinationDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
-        REQUIRE(std::get<0>(getBalanceDestinationDecoder) == 0);
-
-        REQUIRE_THROWS(contractManager->callContract(transferTxThrows));
-        contractManager->callContract(transferTx);
-
-        getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeFunctor, getBalanceMeEncoder));
-
-        auto getBalanceMeDecoder2 = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
-        REQUIRE(std::get<0>(getBalanceMeDecoder2) == 500000000000000000);
-
-        getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
-
-        auto getBalanceDestinationDecoder2 = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
-        REQUIRE(std::get<0>(getBalanceDestinationDecoder2) == 500000000000000000);
-
-      }
-      std::unique_ptr<Options> options;
-      std::unique_ptr<DB> db;
-      std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = testDumpPath + "/erc20ClassTransfer";
-      std::string tokenName = "TestToken";
-      std::string tokenSymbol = "TST";
-      uint8_t tokenDecimals = 18;
-      uint256_t tokenSupply = 1000000000000000000;
-      initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
-                   tokenSupply, false);
-
-      REQUIRE(erc20Address == contractManager->getContracts()[0].second);
-
-      Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
-      Functor getBalanceMeFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-
-      Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfTransactions);
-      Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-
-      Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceMeFunctor, getBalanceMeEncoder));
-
-      auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
-      REQUIRE(std::get<0>(getBalanceMeDecoder) == 500000000000000000);
-
-      Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(erc20Address, getBalanceDestinationFunctor, getBalanceDestinationEncoder));
-
-      auto getBalanceDestinationDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
-      REQUIRE(std::get<0>(getBalanceDestinationDecoder) == 500000000000000000);
+      // "owner" doesn't have enough balance, this should throw and balances should stay intact
+      Hash transferFailTx = sdk.callFunction(erc20, &ERC20::transfer, to, uint256_t("1000000000000000000"));
+      balanceMe = sdk.callViewFunction(erc20, &ERC20::balanceOf, owner);
+      balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
+      REQUIRE(balanceMe == uint256_t("500000000000000000"));
+      REQUIRE(balanceTo == uint256_t("500000000000000000"));
     }
 
-    SECTION("ERC20 Approve") {
-      Address erc20Address;
-      Address destinationOfApproval(Utils::randBytes(20));
+    SECTION("ERC20 approve()") {
+      SDKTestSuite sdk("testERC20Approve");
+      Address erc20 = sdk.deployContract<ERC20>(
+        std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
+      );
+      Address owner = sdk.getChainOwnerAccount().address;
+      Address to(Utils::randBytes(20));
 
-      {
-        std::unique_ptr<Options> options;
-        std::unique_ptr<DB> db;
-        std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = testDumpPath + "/erc20ClassApprove";
-        std::string tokenName = "TestToken";
-        std::string tokenSymbol = "TST";
-        uint8_t tokenDecimals = 18;
-        uint256_t tokenSupply = 1000000000000000000;
-        initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
-                   tokenSupply);
-
-        erc20Address = contractManager->getContracts()[0].second;
-
-        Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, destinationOfApproval);
-        Functor getAllowanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("allowance");
-
-        Bytes approveEncoder = ABI::Encoder::encodeData(destinationOfApproval, static_cast<uint256_t>(500000000000000000));
-        Bytes approveData = Hex::toBytes("0x095ea7b3");
-        Utils::appendBytes(approveData, approveEncoder);
-        TxBlock approveTx(
-          erc20Address,
-          owner,
-          approveData,
-          8080,
-          0,
-          0,
-          0,
-          0,
-          0,
-          ownerPrivKey
-        );
-
-        contractManager->validateCallContractWithTx(approveTx.txToCallInfo());
-
-        Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
-
-        auto getAllowanceDecoder = ABI::Decoder::decodeData<uint256_t>(getAllowanceResult);
-        REQUIRE(std::get<0>(getAllowanceDecoder) == 0);
-
-        contractManager->callContract(approveTx);
-
-        getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
-
-        getAllowanceDecoder = ABI::Decoder::decodeData<uint256_t>(getAllowanceResult);
-        REQUIRE(std::get<0>(getAllowanceDecoder) == 500000000000000000);
-
-      }
-
-      std::unique_ptr<Options> options;
-      std::unique_ptr<DB> db;
-      std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = testDumpPath + "/erc20ClassApprove";
-      std::string tokenName = "TestToken";
-      std::string tokenSymbol = "TST";
-      uint8_t tokenDecimals = 18;
-      uint256_t tokenSupply = 1000000000000000000;
-      initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
-                 tokenSupply, false);
-
-      REQUIRE(erc20Address == contractManager->getContracts()[0].second);
-
-      Bytes getAllowanceEncoder = ABI::Encoder::encodeData(owner, destinationOfApproval);
-      Functor getAllowanceFunctor = ABI::FunctorEncoder::encode<Address,Address>("allowance");
-
-      Bytes getAllowanceResult = contractManager->callContract(buildCallInfo(erc20Address, getAllowanceFunctor, getAllowanceEncoder));
-
-      auto getAllowanceDecoder = ABI::Decoder::decodeData<uint256_t>(getAllowanceResult);
-      REQUIRE(std::get<0>(getAllowanceDecoder) == 500000000000000000);
+      uint256_t allowance = sdk.callViewFunction(erc20, &ERC20::allowance, owner, to);
+      REQUIRE(allowance == 0); // "to" is not allowed (yet) to spend anything on behalf of "erc20"
+      Hash approveTx = sdk.callFunction(erc20, &ERC20::approve, to, uint256_t("500000000000000000"));
+      allowance = sdk.callViewFunction(erc20, &ERC20::allowance, owner, to);
+      REQUIRE(allowance == uint256_t("500000000000000000")); // "to" can now spend 0.5 TST
     }
 
-    SECTION("ERC20 transferFrom") {
-      PrivKey destinationOfApprovalPrivKey(Utils::randBytes(32));
-      Address destinationOfApproval(Secp256k1::toAddress(Secp256k1::toUPub(destinationOfApprovalPrivKey)));
-      Address erc20Address;
-      {
-        std::unique_ptr<Options> options;
-        std::unique_ptr<DB> db;
-        std::unique_ptr<ContractManager> contractManager;
-        std::string dbName = testDumpPath + "/erc20ClassTransferFrom";
-        std::string tokenName = "TestToken";
-        std::string tokenSymbol = "TST";
-        uint8_t tokenDecimals = 18;
-        uint256_t tokenSupply = 1000000000000000000;
-        initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
-                   tokenSupply);
+    SECTION("ERC20 transferFrom()") {
+      SDKTestSuite sdk("testERC20TransferFrom");
+      Address erc20 = sdk.deployContract<ERC20>(
+        std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
+      );
+      Address owner = sdk.getChainOwnerAccount().address;
+      Address to(Utils::randBytes(20));
 
-        erc20Address = contractManager->getContracts()[0].second;
+      // Check "owner" has 1 TST and "to" has 0 TST
+      uint256_t balanceMe = sdk.callViewFunction(erc20, &ERC20::balanceOf, owner);
+      uint256_t balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
+      REQUIRE(balanceMe == uint256_t("1000000000000000000")); // 1 TST
+      REQUIRE(balanceTo == 0);
 
-        Bytes approveEncoder = ABI::Encoder::encodeData(destinationOfApproval, static_cast<uint256_t>(500000000000000000));
-        Bytes approveData = Hex::toBytes("0x095ea7b3");
-        Utils::appendBytes(approveData, approveEncoder);
-        TxBlock approveTx(
-          erc20Address,
-          owner,
-          approveData,
-          8080,
-          0,
-          0,
-          0,
-          0,
-          0,
-          ownerPrivKey
-        );
+      // Approve "owner" first so it can spend up to 3 TST
+      // (it doesn't have that much, but it's on purpose so we can test invalid balances)
+      Hash approveTx = sdk.callFunction(erc20, &ERC20::approve, owner, uint256_t("3000000000000000000"));
+      REQUIRE(sdk.callViewFunction(erc20, &ERC20::allowance, owner, owner) == uint256_t("3000000000000000000"));
 
-        contractManager->callContract(approveTx);
+      // Transfer 0.5 TST specifically from "owner" to "to"
+      Hash transferTx = sdk.callFunction(erc20, &ERC20::transferFrom, owner, to, uint256_t("500000000000000000"));
+      balanceMe = sdk.callViewFunction(erc20, &ERC20::balanceOf, owner);
+      balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
+      REQUIRE(balanceMe == uint256_t("500000000000000000"));
+      REQUIRE(balanceTo == uint256_t("500000000000000000"));
 
-        Bytes transferFromEncoder = ABI::Encoder::encodeData(owner, destinationOfApproval, static_cast<uint256_t>(500000000000000000));
-        Bytes transferFromBytes = Hex::toBytes("0x23b872dd");
-        Utils::appendBytes(transferFromBytes, transferFromEncoder);
-        TxBlock transferFromTx(
-          erc20Address,
-          destinationOfApproval,
-          transferFromBytes,
-          8080,
-          0,
-          0,
-          0,
-          0,
-          0,
-          destinationOfApprovalPrivKey
-        );
-
-        auto randomPrivKey = PrivKey(Utils::randBytes(32));
-        TxBlock transferFromTxThrows = TxBlock(
-          erc20Address,
-          Secp256k1::toAddress(Secp256k1::toUPub(randomPrivKey)),
-          transferFromBytes,
-          8080,
-          0,
-          0,
-          0,
-          0,
-          0,
-          randomPrivKey
-        );
-
-        REQUIRE_THROWS(contractManager->validateCallContractWithTx(transferFromTxThrows.txToCallInfo()));
-        contractManager->validateCallContractWithTx(transferFromTx.txToCallInfo());
-
-        Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
-        Functor getBalanceMeFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-
-        Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(
-          erc20Address, getBalanceMeFunctor, getBalanceMeEncoder
-        ));
-
-        auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
-        REQUIRE(std::get<0>(getBalanceMeDecoder) == 1000000000000000000);
-
-        Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfApproval);
-        Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-
-        Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(
-          erc20Address,
-          getBalanceDestinationFunctor,
-          getBalanceDestinationEncoder
-        ));
-
-        auto getBalanceDestinationDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
-        REQUIRE(std::get<0>(getBalanceDestinationDecoder) == 0);
-
-        REQUIRE_THROWS(contractManager->callContract(transferFromTxThrows));
-        contractManager->callContract(transferFromTx);
-
-        getBalanceMeResult = contractManager->callContract(buildCallInfo(
-          erc20Address, getBalanceMeFunctor, getBalanceMeEncoder
-        ));
-
-        getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
-        REQUIRE(std::get<0>(getBalanceMeDecoder) == 500000000000000000);
-
-        getBalanceDestinationResult = contractManager->callContract(buildCallInfo(
-          erc20Address,
-          getBalanceDestinationFunctor,
-          getBalanceDestinationEncoder
-        ));
-        getBalanceDestinationDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
-        REQUIRE(std::get<0>(getBalanceDestinationDecoder) == 500000000000000000);
-      }
-
-      std::unique_ptr<Options> options;
-      std::unique_ptr<DB> db;
-      std::unique_ptr<ContractManager> contractManager;
-      std::string dbName = testDumpPath + "/erc20ClassTransferFrom";
-      std::string tokenName = "TestToken";
-      std::string tokenSymbol = "TST";
-      uint8_t tokenDecimals = 18;
-      uint256_t tokenSupply = 1000000000000000000;
-      initialize(options, db, contractManager, dbName, ownerPrivKey, tokenName, tokenSymbol, tokenDecimals,
-                 tokenSupply, false);
-
-      Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(owner);
-      Functor getBalanceMeFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-
-      Bytes getBalanceMeResult = contractManager->callContract(buildCallInfo(
-        erc20Address, getBalanceMeFunctor, getBalanceMeEncoder
-      ));
-
-      auto getBalanceMeDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeResult);
-      REQUIRE(std::get<0>(getBalanceMeDecoder) == 500000000000000000);
-
-      Bytes getBalanceDestinationEncoder = ABI::Encoder::encodeData(destinationOfApproval);
-      Functor getBalanceDestinationFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
-
-      Bytes getBalanceDestinationResult = contractManager->callContract(buildCallInfo(
-        erc20Address,
-        getBalanceDestinationFunctor,
-        getBalanceDestinationEncoder
-      ));
-
-      auto getBalanceDestinationDecoder = ABI::Decoder::decodeData<uint256_t>(getBalanceDestinationResult);
-      REQUIRE(std::get<0>(getBalanceDestinationDecoder) == 500000000000000000);
+      // "owner" doesn't have enough balance, this should throw and balances should stay intact
+      Hash transferFailTx = sdk.callFunction(erc20, &ERC20::transferFrom, owner, to, uint256_t("1000000000000000000"));
+      balanceMe = sdk.callViewFunction(erc20, &ERC20::balanceOf, owner);
+      balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
+      REQUIRE(balanceMe == uint256_t("500000000000000000"));
+      REQUIRE(balanceTo == uint256_t("500000000000000000"));
     }
   }
 }
+

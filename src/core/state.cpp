@@ -19,14 +19,13 @@ contractManager_(std::make_unique<ContractManager>(this, db, rdpos, options))
   std::unique_lock lock(this->stateMutex_);
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
-    // Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
-    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
-    // See ~State for encoding
-    uint256_t desiredBalance("1000000000000000000000");
-    Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-    Utils::appendBytes(value,Utils::uintToBytes(desiredBalance));
-    value.insert(value.end(), 0x00);
-    db->put(dev1.get(), value, DBPrefix::nativeAccounts);
+    for (const auto& [account, balance] : options_->getGenesisBalances()) {
+      // Initialize all accounts within options genesis balances.
+      Bytes value = Utils::uintToBytes(Utils::bytesRequired(balance));
+      Utils::appendBytes(value,Utils::uintToBytes(balance));
+      value.insert(value.end(), 0x00);
+      db->put(account.get(), value, DBPrefix::nativeAccounts);
+    }
     accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   }
 
@@ -53,6 +52,8 @@ contractManager_(std::make_unique<ContractManager>(this, db, rdpos, options))
 
     this->accounts_.insert({Address(dbEntry.key), Account(std::move(balance), std::move(nonce))});
   }
+  auto latestBlock = this->storage_->latest();
+  this->contractManager_->updateContractGlobals(Secp256k1::toAddress(latestBlock->getValidatorPubKey()), latestBlock->hash(), latestBlock->getNHeight(), latestBlock->getTimestamp());
 }
 
 State::~State() {
@@ -126,11 +127,10 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   return TxInvalid::NotInvalid;
 }
 
-void State::processTransaction(const TxBlock& tx) {
+void State::processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex) {
   // Lock is already called by processNextBlock.
-  // processNextBlock already calls validateTransaction in every tx, as it
-  // calls validateNextBlock as a sanity check.
-  // TODO: Contract calling, including "payable" functions.
+  // processNextBlock already calls validateTransaction in every tx,
+  // as it calls validateNextBlock as a sanity check.
   auto accountIt = this->accounts_.find(tx.getFrom());
   auto& balance = accountIt->second.balance;
   auto& nonce = accountIt->second.nonce;
@@ -143,7 +143,7 @@ void State::processTransaction(const TxBlock& tx) {
     if (this->contractManager_->isContractCall(tx)) {
       Utils::safePrint(std::string("Processing transaction call txid: ") + tx.hash().hex().get());
       if (this->contractManager_->isPayable(tx.txToCallInfo())) this->processingPayable_ = true;
-      this->contractManager_->callContract(tx);
+      this->contractManager_->callContract(tx, blockHash, txIndex);
       this->processingPayable_ = false;
     }
   } catch (const std::exception& e) {
@@ -266,14 +266,17 @@ void State::processNextBlock(Block&& block) {
   }
 
   std::unique_lock lock(this->stateMutex_);
-  
+
   // Update contract globals based on (now) latest block
-  ContractGlobals::blockHash_ = block.hash();
-  ContractGlobals::blockHeight_++;
-  ContractGlobals::blockTimestamp_ = block.getTimestamp();
+  const Hash blockHash = block.hash();
+  this->contractManager_->updateContractGlobals(Secp256k1::toAddress(block.getValidatorPubKey()), blockHash, block.getNHeight(), block.getTimestamp());
 
   // Process transactions of the block within the current state
-  for (auto const& tx : block.getTxs()) this->processTransaction(tx);
+  uint64_t txIndex = 0;
+  for (auto const& tx : block.getTxs()) {
+    this->processTransaction(tx, blockHash, txIndex);
+    txIndex++;
+  }
 
   // Process rdPoS State
   this->rdpos_->processBlock(block);
@@ -377,5 +380,20 @@ void State::processContractPayable(std::unordered_map<Address, uint256_t, SafeHa
 std::vector<std::pair<std::string, Address>> State::getContracts() const {
   std::shared_lock lock(this->stateMutex_);
   return this->contractManager_->getContracts();
+}
+
+const std::vector<Event> State::getEvents(
+  const uint64_t& fromBlock, const uint64_t& toBlock,
+  const Address& address, const std::vector<Hash>& topics
+) const {
+  std::shared_lock lock(this->stateMutex_);
+  return this->contractManager_->getEvents(fromBlock, toBlock, address, topics);
+}
+
+const std::vector<Event> State::getEvents(
+  const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
+) const {
+  std::shared_lock lock(this->stateMutex_);
+  return this->contractManager_->getEvents(txHash, blockIndex, txIndex);
 }
 

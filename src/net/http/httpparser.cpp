@@ -105,6 +105,11 @@ std::string parseJsonRpcRequest(
         JsonRPC::Decoding::eth_gasPrice(request);
         ret = JsonRPC::Encoding::eth_gasPrice();
         break;
+      case JsonRPC::Methods::eth_getLogs:
+        ret = JsonRPC::Encoding::eth_getLogs(
+          JsonRPC::Decoding::eth_getLogs(request, storage), state
+        );
+        break;
       case JsonRPC::Methods::eth_getBalance:
         ret = JsonRPC::Encoding::eth_getBalance(
           JsonRPC::Decoding::eth_getBalance(request, storage), state
@@ -145,7 +150,7 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_getTransactionReceipt:
         ret = JsonRPC::Encoding::eth_getTransactionReceipt(
-          JsonRPC::Decoding::eth_getTransactionReceipt(request), storage
+          JsonRPC::Decoding::eth_getTransactionReceipt(request), storage, state
         );
         break;
       default:

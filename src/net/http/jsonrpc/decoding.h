@@ -14,6 +14,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../../utils/strings.h"
 #include "../../../utils/tx.h"
 
+#include "../../../contract/contract.h"
+
 #include "methods.h"
 
 // Forward declarations.
@@ -152,10 +154,20 @@ namespace JsonRPC {
     ethCallInfoAllocated eth_estimateGas(const json& request, const std::unique_ptr<Storage>& storage);
 
     /**
-     * Check if `eth_gasPrice` is valid
+     * Check if `eth_gasPrice` is valid.
      * @param request The request object.
      */
     void eth_gasPrice(const json& request);
+
+    /**
+     * Parse an `eth_getLogs` call's parameters.
+     * @param request The request object.
+     * @param storage Reference pointer to the blockchain's storage.
+     * @return A tuple with starting and ending block height, address and a list of topics.
+     */
+    std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> eth_getLogs(
+      const json& request, const std::unique_ptr<Storage>& storage
+    );
 
     /**
      * Parse an `eth_getBalance` address and check if it is valid.

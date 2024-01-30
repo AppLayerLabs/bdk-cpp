@@ -26,6 +26,7 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/tx.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/block.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/options.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/optionsdefaults.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.cpp
   PARENT_SCOPE

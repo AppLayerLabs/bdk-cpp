@@ -22,48 +22,13 @@ Bytes ABI::Encoder::encodeInt(const int256_t& num) {
   if (num < 0) {
     valueToEncode = -num;
     for (int i = 0; i < 32; i++) ret[31 - i] = ~((unsigned char*)&valueToEncode)[i];
-    for (int i = 31; i >= 0; i--) {
-      if (ret[i] != 0xff) {
-        ret[i]++; break;
-      } else {
-        ret[i] = 0x00;
-      }
-    }
+    for (int i = 31; i >= 0; i--) { if (ret[i] != 0xff) { ret[i]++; break; } else ret[i] = 0x00; }
   } else {
     Bytes tempBytes;
     boost::multiprecision::export_bits(valueToEncode, std::back_inserter(tempBytes), 8);
     std::copy(tempBytes.rbegin(), tempBytes.rend(), ret.rbegin());
   }
   return ret;
-}
-
-Bytes ABI::Encoder::encode(const Address& add) {
-  return Utils::padLeftBytes(add.get(), 32);
-}
-
-Bytes ABI::Encoder::encode(const bool& b) {
-  return Utils::padLeftBytes((b ? Bytes{0x01} : Bytes{0x00}), 32);
-}
-
-Bytes ABI::Encoder::encode(const Bytes &bytes) {
-  int pad = 0;
-  do { pad += 32; } while (pad < bytes.size());
-  Bytes len = Utils::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
-  Bytes data = Utils::padRightBytes(bytes, pad);
-  len.reserve(len.size() + data.size());
-  len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
-  return len;
-}
-
-Bytes ABI::Encoder::encode(const std::string& str) {
-  BytesArrView bytes = Utils::create_view_span(str);
-  int pad = 0;
-  do { pad += 32; } while (pad < bytes.size());
-  Bytes len = Utils::padLeftBytes(Utils::uintToBytes(bytes.size()), 32);
-  Bytes data = Utils::padRightBytes(bytes, pad);
-  len.reserve(len.size() + data.size());
-  len.insert(len.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
-  return len;
 }
 
 uint256_t ABI::Decoder::decodeUint(const BytesArrView &bytes, uint64_t &index) {

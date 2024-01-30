@@ -207,6 +207,24 @@ namespace JsonRPC {
       return ret;
     }
 
+    json eth_getLogs(
+      std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> info,
+      const std::unique_ptr<State>& state
+    ) {
+      json ret;
+      ret["jsonrpc"] = "2.0";
+      try {
+        const std::vector<Event> events = state->getEvents(
+          std::get<0>(info), std::get<1>(info), std::get<2>(info), std::get<3>(info)
+        );
+        for (const Event& e : events) ret["result"].push_back(e.serializeForRPC());
+      } catch (std::exception& e) {
+        ret["error"]["code"] = -32000;
+        ret["error"]["message"] = "Internal error: " + std::string(e.what());
+      }
+      return ret;
+    }
+
     json eth_getBalance(const Address& address, const std::unique_ptr<State>& state) {
       json ret;
       ret["jsonrpc"] = "2.0";
@@ -352,14 +370,17 @@ namespace JsonRPC {
       return ret;
     }
 
-    json eth_getTransactionReceipt(const Hash& txHash, const std::unique_ptr<Storage>& storage) {
+    json eth_getTransactionReceipt(
+      const Hash& txHash, const std::unique_ptr<Storage>& storage,
+      const std::unique_ptr<State>& state
+    ) {
       json ret;
       ret["jsonrpc"] = "2.0";
       auto txInfo = storage->getTx(txHash);
-      const auto& [tx, blockHash, blockIndex, blockHeight] = txInfo;
+      const auto& [tx, blockHash, txIndex, blockHeight] = txInfo;
       if (tx != nullptr) {
         ret["result"]["transactionHash"] = tx->hash().hex(true);
-        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(blockIndex), true).forRPC();
+        ret["result"]["transactionIndex"] = Hex::fromBytes(Utils::uintToBytes(txIndex), true).forRPC();
         ret["result"]["blockHash"] = blockHash.hex(true);
         ret["result"]["blockNumber"] = Hex::fromBytes(Utils::uintToBytes(blockHeight), true).forRPC();
         ret["result"]["from"] = tx->getFrom().hex(true);
@@ -374,6 +395,9 @@ namespace JsonRPC {
         ret["result"]["type"] = "0x00";
         ret["result"]["root"] = Hash().hex(true);
         ret["result"]["status"] = "0x1"; // TODO: change this when contracts are ready
+        for (const Event& e : state->getEvents(txHash, blockHeight, txIndex)) {
+          ret["result"]["logs"].push_back(e.serializeForRPC());
+        }
         return ret;
       }
       ret["result"] = json::value_t::null;

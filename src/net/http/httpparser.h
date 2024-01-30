@@ -152,7 +152,9 @@ template<class Body, class Allocator, class Send> void handle_request(
   }
 
   std::string request = req.body();
-  std::string answer = parseJsonRpcRequest(request, state, storage, p2p, options);
+  std::string answer = parseJsonRpcRequest(
+    request, state, storage, p2p, options
+  );
 
   http::response<http::string_body> res{http::status::ok, req.version()};
   res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
