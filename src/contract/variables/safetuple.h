@@ -73,7 +73,13 @@ template<typename... Types> class SafeTuple : public SafeBase {
     template <typename... OtherTypes> friend class SafeTuple;
 
   public:
-    SafeTuple() : tuple_() {} ///< Default constructor.
+    SafeTuple() : SafeBase(nullptr), tuple_() {} ///< Empty constructor.
+
+    /**
+     * Constructor with owner, also empty.
+     * @param owner The contract that owns the variable.
+     */
+    SafeTuple(DynamicContract* owner) : SafeBase(owner), tuple_() {}
 
     /**
      * Forward declaration constructor.

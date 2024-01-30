@@ -115,7 +115,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     std::ifstream i("ABI/SimpleContract.json");
     i >> j;
 
-    REQUIRE(j.size() == 20);
+    REQUIRE(j.size() == 23);
     auto findSetName = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setName);
     REQUIRE(findSetName != j.end());
     auto findSetNames = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setNames);
@@ -130,6 +130,8 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(findSetNamesAndValuesInTuple != j.end());
     auto findSetNamesAndValuesInArrayOfArrays = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setNamesAndValuesInArrayOfArrays);
     REQUIRE(findSetNamesAndValuesInArrayOfArrays != j.end());
+    auto findSetTuple = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::setTuple);
+    REQUIRE(findSetTuple != j.end());
     auto findGetName = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::getName);
     REQUIRE(findGetName != j.end());
     auto findGetNames = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::getNames);
@@ -146,6 +148,8 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(findGetNamesAndValuesInTuple != j.end());
     auto findGetNamesAndValuesInArrayOfArrays = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::getNamesAndValuesInArrayOfArrays);
     REQUIRE(findGetNamesAndValuesInArrayOfArrays != j.end());
+    auto findGetTuple = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::getTuple);
+    REQUIRE(findGetTuple != j.end());
     auto findGetValueOverload = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::getValueOverload);
     REQUIRE(findGetValueOverload != j.end());
     auto findNameAndValueTupleChanged = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::nameAndValueTupleChanged);
@@ -156,6 +160,8 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(findValueChanged != j.end());
     auto findNameChanged = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::nameChanged);
     REQUIRE(findNameChanged != j.end());
+    auto findTupleChanged = std::find(j.begin(), j.end(), EXPECTED::SimpleContract::tupleChanged);
+    REQUIRE(findTupleChanged != j.end());
   }
 
   SECTION("ContractABIGenerator getFunctionName") {

@@ -10,14 +10,18 @@ See the LICENSE.txt file in the project root for more information.
 SimpleContract::SimpleContract(
   const std::string& name,
   const uint256_t& value,
+  const std::tuple<std::string, uint256_t>& tuple,
   ContractManagerInterface &interface,
   const Address& address,
   const Address& creator,
   const uint64_t& chainId,
   const std::unique_ptr<DB> &db
-) : DynamicContract(interface, "SimpleContract", address, creator, chainId, db), name_(this), value_(this) {
+) : DynamicContract(interface, "SimpleContract", address, creator, chainId, db),
+  name_(this), value_(this), tuple_(this)
+{
   this->name_ = name;
   this->value_ = value;
+  this->tuple_ = tuple;
   registerContractFunctions();
 }
 
@@ -25,16 +29,21 @@ SimpleContract::SimpleContract(
   ContractManagerInterface &interface,
   const Address& address,
   const std::unique_ptr<DB> &db
-) : DynamicContract(interface, address, db), name_(this), value_(this) {
+) : DynamicContract(interface, address, db), name_(this), value_(this), tuple_(this) {
   this->name_ = Utils::bytesToString(db->get(std::string("name_"), this->getDBPrefix()));
   this->value_ = Utils::bytesToUint256(db->get(std::string("value_"), this->getDBPrefix()));
+  this->tuple_ = std::make_tuple(
+    Utils::bytesToString(db->get(std::string("tuple_name"), this->getDBPrefix())),
+    Utils::bytesToUint256(db->get(std::string("tuple_value"), this->getDBPrefix()))
+  );
   registerContractFunctions();
 }
 
 SimpleContract::~SimpleContract() {
   this->db_->put(std::string("name_"), Utils::stringToBytes(this->name_.get()), this->getDBPrefix());
   this->db_->put(std::string("value_"), Utils::uint256ToBytes(this->value_.get()), this->getDBPrefix());
-  return;
+  this->db_->put(std::string("tuple_name"), Utils::stringToBytes(get<0>(this->tuple_)), this->getDBPrefix());
+  this->db_->put(std::string("tuple_value"), Utils::uint256ToBytes(get<1>(this->tuple_)), this->getDBPrefix());
 }
 
 void SimpleContract::setName(const std::string& argName) {
@@ -42,7 +51,7 @@ void SimpleContract::setName(const std::string& argName) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->name_ = argName;
-  this->nameChanged(argName);
+  this->nameChanged(this->name_.get());
 }
 
 void SimpleContract::setNames(const std::vector<std::string>& argName) {
@@ -59,7 +68,7 @@ void SimpleContract::setValue(const uint256_t& argValue) {
     throw std::runtime_error("Only contract creator can call this function.");
   }
   this->value_ = argValue;
-  this->valueChanged(argValue);
+  this->valueChanged(this->value_.get());
 }
 
 void SimpleContract::setValues(const std::vector<uint256_t>& argValue) {
@@ -105,6 +114,14 @@ void SimpleContract::setNamesAndValuesInArrayOfArrays(
     for (const auto& [name, value] : nameAndValue) { this->name_ += name; this->value_ += value; }
   }
   this->nameAndValueChanged(this->name_.get(), this->value_.get());
+}
+
+void SimpleContract::setTuple(const std::tuple<std::string, uint256_t>& argTuple) {
+  if (this->getCaller() != this->getContractCreator()) {
+    throw std::runtime_error("Only contract creator can call this function.");
+  }
+  this->tuple_ = argTuple;
+  this->tupleChanged(std::make_tuple(get<0>(this->tuple_), get<1>(this->tuple_)));
 }
 
 std::string SimpleContract::getName() const { return this->name_.get(); }
@@ -164,6 +181,10 @@ SimpleContract::getNamesAndValuesInArrayOfArrays(const uint256_t& i) const {
   return namesAndValues;
 }
 
+std::tuple<std::string, uint256_t> SimpleContract::getTuple() const {
+  return std::make_tuple(get<0>(this->tuple_), get<1>(this->tuple_));
+}
+
 void SimpleContract::registerContractFunctions() {
   registerContract();
   this->registerMemberFunction("setName", &SimpleContract::setName, FunctionTypes::NonPayable, this);;
@@ -173,6 +194,7 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("setNamesAndValues", &SimpleContract::setNamesAndValues, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("setNamesAndValuesInTuple", &SimpleContract::setNamesAndValuesInTuple, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("setNamesAndValuesInArrayOfArrays", &SimpleContract::setNamesAndValuesInArrayOfArrays, FunctionTypes::NonPayable, this);
+  this->registerMemberFunction("setTuple", &SimpleContract::setTuple, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("getName", &SimpleContract::getName, FunctionTypes::View, this);
   this->registerMemberFunction("getNames", &SimpleContract::getNames, FunctionTypes::View, this);
   this->registerMemberFunction("getValue", static_cast<uint256_t(SimpleContract::*)() const>(&SimpleContract::getValue), FunctionTypes::View, this);
@@ -182,5 +204,6 @@ void SimpleContract::registerContractFunctions() {
   this->registerMemberFunction("getNamesAndValues", &SimpleContract::getNamesAndValues, FunctionTypes::View, this);
   this->registerMemberFunction("getNamesAndValuesInTuple", &SimpleContract::getNamesAndValuesInTuple, FunctionTypes::View, this);
   this->registerMemberFunction("getNamesAndValuesInArrayOfArrays", &SimpleContract::getNamesAndValuesInArrayOfArrays, FunctionTypes::View, this);
+  this->registerMemberFunction("getTuple", &SimpleContract::getTuple, FunctionTypes::View, this);
 }
 

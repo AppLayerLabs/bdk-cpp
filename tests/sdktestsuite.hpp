@@ -817,7 +817,7 @@ class SDKTestSuite {
                                 bool anonymous = false) {
         // Get all the events emitted by the transaction.
         using TupleType = typename FunctionTraits<decltype(func)>::TupleType;
-        
+
         //if TupleType is a empty tuple, then we throw an error
         auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
             ContractReflectionInterface::getFunctionName(func)
@@ -852,7 +852,7 @@ class SDKTestSuite {
         } else {
             throw std::runtime_error("Attempted to decode an event with only indexed parameters (empty tuple).");
         }
-        
+
         return tuples;
     }
 
