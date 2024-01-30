@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <unordered_set>
 
 #include "../../utils/safehash.h"
+#include "../../libs/unordered_dense.h"
 #include "safebase.h"
 
 // TODO: somehow figure out a way to make loops work with this class
@@ -25,14 +26,14 @@ See the LICENSE.txt file in the project root for more information.
  */
 template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
 private:
-  std::unordered_map<Key, T, SafeHash> map_; ///< Value.
-  mutable std::unique_ptr<std::unordered_map<Key, T, SafeHash>> mapPtr_; ///< Pointer to the value.
-  mutable std::unique_ptr<std::unordered_set<Key, SafeHash>> erasedKeys_; ///< Pointer to the set of erased keys.
+  ankerl::unordered_dense::map<Key, T, SafeHash> map_; ///< Value.
+  mutable std::unique_ptr<ankerl::unordered_dense::map<Key, T, SafeHash>> mapPtr_; ///< Pointer to the value.
+  mutable std::unique_ptr<ankerl::unordered_dense::set<Key, SafeHash>> erasedKeys_; ///< Pointer to the set of erased keys.
 
   /// Check if pointers are initialized (and initialize them if not).
   inline void check() const override {
-    if (mapPtr_ == nullptr) mapPtr_ = std::make_unique<std::unordered_map<Key, T, SafeHash>>();
-    if (erasedKeys_ == nullptr) erasedKeys_ = std::make_unique<std::unordered_set<Key, SafeHash>>();
+    if (mapPtr_ == nullptr) mapPtr_ = std::make_unique<ankerl::unordered_dense::map<Key, T, SafeHash>>();
+    if (erasedKeys_ == nullptr) erasedKeys_ = std::make_unique<ankerl::unordered_dense::set<Key, SafeHash>>();
   }
 
   /**
@@ -103,22 +104,22 @@ public:
    * @param map The initial value. Defaults to an empty map.
    */
   SafeUnorderedMap(
-    DynamicContract* owner, const std::unordered_map<Key, T, SafeHash>& map = {}
+    DynamicContract* owner, const ankerl::unordered_dense::map<Key, T, SafeHash>& map = {}
   ) : SafeBase(owner), map_(map) {}
 
   /**
    * Empty constructor.
    * @param map The initial value. Defaults to an empty map.
    */
-  SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {})
-    : SafeBase(nullptr), mapPtr_(std::make_unique<std::unordered_map<Key, T, SafeHash>>(map)) {}
+  SafeUnorderedMap(const ankerl::unordered_dense::map<Key, T, SafeHash>& map = {})
+    : SafeBase(nullptr), mapPtr_(std::make_unique<ankerl::unordered_dense::map<Key, T, SafeHash>>(map)) {}
 
   /// Copy constructor.
   SafeUnorderedMap(const SafeUnorderedMap& other) : SafeBase(nullptr) {
     other.check();
     map_ = other.map_;
-    mapPtr_ = std::make_unique<std::unordered_map<Key, T, SafeHash>>(*other.mapPtr_);
-    erasedKeys_ = std::make_unique<std::unordered_set<Key, SafeHash>>(*other.erasedKeys_);
+    mapPtr_ = std::make_unique<ankerl::unordered_dense::map<Key, T, SafeHash>>(*other.mapPtr_);
+    erasedKeys_ = std::make_unique<ankerl::unordered_dense::set<Key, SafeHash>>(*other.erasedKeys_);
   }
 
   /**
@@ -133,7 +134,7 @@ public:
    * @param key The key to find.
    * @return An iterator to the found key and its value.
    */
-  typename std::unordered_map<Key, T, SafeHash>::iterator find(const Key& key) {
+  typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator find(const Key& key) {
     checkKeyAndCopy(key); markAsUsed(); return mapPtr_->find(key);
   }
 
@@ -142,7 +143,7 @@ public:
    * @param key The key to find.
    * @return An const iterator to the found key and its value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
     checkKeyAndCopy(key); return mapPtr_->find(key);
   }
 
@@ -159,7 +160,6 @@ public:
    */
   void commit() override {
     check();
-    map_.merge(*mapPtr_);
     for (const auto &[key, value] : (*mapPtr_)) map_[key] = value;
     for (const auto& key : (*erasedKeys_)) map_.erase(key);
     mapPtr_ = nullptr;
@@ -175,7 +175,7 @@ public:
    * Iterating over it DOES NOT load temporary values.
    * @return An iterator to the start of the original map.
    */
-  inline std::unordered_map<Key, T>::const_iterator cbegin() const noexcept { return map_.cbegin(); }
+  inline ankerl::unordered_dense::map<Key, T>::const_iterator cbegin() const noexcept { return map_.cbegin(); }
 
   /**
    * Get an iterator to the end of the original map value.
@@ -183,7 +183,7 @@ public:
    * Iterating over it DOES NOT load temporary values.
    * @return An iterator to the end of the original map.
    */
-  inline std::unordered_map<Key, T>::const_iterator cend() const noexcept { return map_.cend(); }
+  inline ankerl::unordered_dense::map<Key, T>::const_iterator cend() const noexcept { return map_.cend(); }
 
   /**
    * Get an iterator to the start of the temporary map value.
@@ -191,7 +191,7 @@ public:
    * Iterating over it DOES NOT load temporary values.
    * @return An iterator to the start of the temporary map.
    */
-  inline std::unordered_map<Key, T>::iterator begin() const noexcept { check(); return mapPtr_->begin(); }
+  inline ankerl::unordered_dense::map<Key, T>::iterator begin() const noexcept { check(); return mapPtr_->begin(); }
 
   /**
    * Get an iterator to the end of the temporary map value.
@@ -199,7 +199,7 @@ public:
    * Iterating over it DOES NOT load temporary values.
    * @return An iterator to the end of the temporary map.
    */
-  inline std::unordered_map<Key, T>::iterator end() const noexcept { check(); return mapPtr_->end(); }
+  inline ankerl::unordered_dense::map<Key, T>::iterator end() const noexcept { check(); return mapPtr_->end(); }
 
   /**
    * Check if the map is empty (has no values).
@@ -223,8 +223,8 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(
-    const typename std::unordered_map<Key, T, SafeHash>::value_type& value
+  const std::pair<typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator, bool> insert(
+    const typename ankerl::unordered_dense::map<Key, T, SafeHash>::value_type& value
   ) {
     check(); markAsUsed(); return mapPtr_->insert(value);
   }
@@ -235,8 +235,8 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(
-    typename std::unordered_map<Key, T, SafeHash>::value_type&& value
+  const std::pair<typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator, bool> insert(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::value_type&& value
   ) {
     check(); markAsUsed(); return mapPtr_->insert(std::move(value));
   }
@@ -247,7 +247,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(T&& value) {
+  const std::pair<typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator, bool> insert(T&& value) {
     check(); markAsUsed(); return mapPtr_->insert(std::forward<T>(value));
   }
 
@@ -257,9 +257,9 @@ public:
    * @param value The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
-    const typename std::unordered_map<Key, T, SafeHash>::value_type& value
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator insert(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator hint,
+    const typename ankerl::unordered_dense::map<Key, T, SafeHash>::value_type& value
   ) {
     check(); markAsUsed(); return mapPtr_->insert(hint, value);
   }
@@ -270,9 +270,9 @@ public:
    * @param value The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
-    typename std::unordered_map<Key, T, SafeHash>::value_type&& value
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator insert(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator hint,
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::value_type&& value
   ) {
     check(); markAsUsed(); return mapPtr_->insert(hint, std::move(value));
   }
@@ -283,8 +283,8 @@ public:
    * @param value The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, T&& value
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator insert(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator hint, T&& value
   ) {
     check(); markAsUsed(); return mapPtr_->insert(hint, std::forward<T>(value));
   }
@@ -303,36 +303,9 @@ public:
    * @param ilist The list of values to insert.
    */
   void insert(std::initializer_list<
-    typename std::unordered_map<Key, T, SafeHash>::value_type
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::value_type
   > ilist) {
     check(); markAsUsed(); mapPtr_->insert(ilist);
-  }
-
-  /**
-   * Insert a value into the map, using move with a node handle.
-   * @param nh The value to insert.
-   * @return A pair consisting of an iterator to the inserted value and a
-   *         boolean indicating whether the insertion was successful.
-   */
-  typename std::unordered_map<Key, T, SafeHash>::insert_return_type
-  insert(typename std::unordered_map<Key, T, SafeHash>::node_type&& nh) {
-    check();
-    markAsUsed();
-    return mapPtr_->insert(std::move(nh));
-  }
-
-  /**
-   * Insert a value into the map, using move with a node handle and a hint
-   * (the position before the insertion).
-   * @param nh The value to insert.
-   * @param hint The hint to use.
-   * @return An iterator to the inserted value.
-   */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
-    typename std::unordered_map<Key, T, SafeHash>::node_type&& nh
-  ) {
-    check(); markAsUsed(); return mapPtr_->insert(hint, std::move(nh));
   }
 
   /**
@@ -342,7 +315,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert_or_assign(
+  const std::pair<typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator, bool> insert_or_assign(
     const Key& k, const T& obj
   ) {
     check(); markAsUsed(); return mapPtr_->insert_or_assign(k, obj);
@@ -355,7 +328,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool>
+  const std::pair<typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator, bool>
   insert_or_assign(Key&& k, T&& obj) {
     check();
     markAsUsed();
@@ -370,8 +343,8 @@ public:
    * @param obj The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert_or_assign(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator insert_or_assign(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator hint,
     const Key& k, const T& obj
   ) {
     check(); markAsUsed(); return mapPtr_->insert_or_assign(hint, k, obj);
@@ -385,8 +358,8 @@ public:
    * @param obj The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert_or_assign(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator insert_or_assign(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator hint,
     Key&& k, T&& obj
   ) {
     check(); markAsUsed(); return mapPtr_->insert_or_assign(hint, std::move(k), std::move(obj));
@@ -399,7 +372,7 @@ public:
    *         boolean indicating whether the insertion was successful.
    */
   template <typename... Args> const std::pair<
-    typename std::unordered_map<Key, T, SafeHash>::iterator, bool
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator, bool
   > emplace(Args&&... args) {
     check(); markAsUsed(); return mapPtr_->emplace(std::forward<Args>(args)...);
   }
@@ -410,9 +383,9 @@ public:
    * @param args The arguments to build the value for insertion.
    * @return An iterator to the inserted value.
    */
-  template <typename... Args> const typename std::unordered_map<Key, T, SafeHash>::iterator
+  template <typename... Args> const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator
   emplace_hint(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator hint,
     Args&& ...args
   ) {
     check(); markAsUsed(); return mapPtr_->emplace_hint(hint, std::forward<Args>(args)...);
@@ -423,8 +396,8 @@ public:
    * @param pos The position of the value to erase.
    * @return An iterator to the next value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator erase(
-    typename std::unordered_map<Key, T, SafeHash>::iterator pos
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator erase(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator pos
   ) {
     check(); markAsUsed(); erasedKeys_->insert(pos->first); return mapPtr_->erase(pos);
   }
@@ -434,8 +407,8 @@ public:
    * @param pos The position of the value to erase.
    * @return An iterator to the next value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator erase(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator pos
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator erase(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator pos
   ) {
     check(); markAsUsed(); erasedKeys_->insert(pos->first); return mapPtr_->erase(pos);
   }
@@ -446,9 +419,9 @@ public:
    * @param last The last position to erase.
    * @return An iterator to the next value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator erase(
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator first,
-    typename std::unordered_map<Key, T, SafeHash>::const_iterator last
+  const typename ankerl::unordered_dense::map<Key, T, SafeHash>::iterator erase(
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator first,
+    typename ankerl::unordered_dense::map<Key, T, SafeHash>::const_iterator last
   ) {
     check();
     markAsUsed();
@@ -461,7 +434,7 @@ public:
    * @param key The key of the value to erase.
    * @return The number of values erased.
    */
-  typename std::unordered_map<Key, T, SafeHash>::size_type erase(const Key& key) {
+  typename ankerl::unordered_dense::map<Key, T, SafeHash>::size_type erase(const Key& key) {
     check(); markAsUsed(); erasedKeys_->insert(key); return mapPtr_->erase(key);
   }
 
@@ -470,7 +443,7 @@ public:
    * @param key The key of the value to erase.
    * @return The number of values erased.
    */
-  template <class K> typename std::unordered_map<Key, T, SafeHash>::size_type erase(K&& key) {
+  template <class K> typename ankerl::unordered_dense::map<Key, T, SafeHash>::size_type erase(K&& key) {
     check(); markAsUsed(); erasedKeys_->insert(std::forward<K>(key));
     return mapPtr_->erase(std::forward<K>(key));
   }

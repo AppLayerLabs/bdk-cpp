@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "event.h"
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
+#include "../libs/unordered_dense.h"
 
 /**
  * Template for a smart contract.
@@ -26,7 +27,7 @@ class DynamicContract : public BaseContract {
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
-    std::unordered_map<
+    ankerl::unordered_dense::map<
       Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
     > publicFunctions_;
 
@@ -35,7 +36,7 @@ class DynamicContract : public BaseContract {
     * The key is the function signature (first 4 hex bytes of keccak).
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
-    std::unordered_map<
+    ankerl::unordered_dense::map<
       Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
     > payableFunctions_;
 
@@ -45,7 +46,7 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     * Function return type is the encoded return value as viewFunctions is only used by eth_call.
     */
-    std::unordered_map<
+    ankerl::unordered_dense::map<
       Functor, std::function<Bytes(const ethCallInfo& callInfo)>, SafeHash
     > viewFunctions_;
 

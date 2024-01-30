@@ -25,6 +25,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/tx.h"
 #include "../utils/utils.h"
 #include "../utils/contractreflectioninterface.h"
+#include "../libs/unordered_dense.h"
 
 // Forward declarations.
 class rdPoS;
@@ -38,7 +39,7 @@ class ContractManagerInterface;
  * They cannot be destroyed nor dynamically deployed like other contracts.
  * Instead, they are deployed in the constructor of State.
  */
-const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
+const ankerl::unordered_dense::map<std::string, Address> ProtocolContractAddresses = {
   {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"))},           // Sha3("randomDeterministicProofOfStake").substr(0,20)
   {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))}  // Sha3("ContractManager").substr(0,20)
 };
@@ -58,7 +59,7 @@ class ContractManager : BaseContract {
     State* state_;
 
     /// List of currently deployed contracts.
-    std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
+    ankerl::unordered_dense::map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
 
     /**
      * Pointer to the contract factory object.

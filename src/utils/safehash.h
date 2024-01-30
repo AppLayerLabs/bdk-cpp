@@ -15,6 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "strings.h"
 #include "utils.h"
 #include "tx.h"
+#include "../libs/unordered_dense.h"
 
 /**
  * Custom hashing implementation for use in `std::unordered_map`.
@@ -29,6 +30,7 @@ See the LICENSE.txt file in the project root for more information.
  */
 
 struct SafeHash {
+  using is_avalanching = void;
   using clock = std::chrono::steady_clock;  ///< Typedef for a less verbose clock.
 
   /**
@@ -106,26 +108,12 @@ struct SafeHash {
   }
 
   /**
-   * Wrapper for 'splitmix()'.
-   * @param bytesArrMutableView A std::span<Byte, std::dynamic_extent> object
-   * @returns The same as `splitmix()`.
-   */
-  size_t operator()(const BytesArrMutableView& bytesArrMutableView) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytesArrMutableView.begin(), bytesArrMutableView.end()) + FIXED_RANDOM);
-  }
-
-  /**
    * Wrapper for 'splitmix()'
    * @param address A Address (FixedBytes<20>) object
    * @returns The same as `splitmix()`
    */
   size_t operator()(const Address& address) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    // Faster hashing for 20 bytes of data.
-    uint32_t const* data = reinterpret_cast<uint32_t const*>(address.raw());
-    // 160 / 32 = 5
-    return splitmix(boost::hash_range(data, data + 5) + FIXED_RANDOM);
+    return ankerl::unordered_dense::detail::wyhash::hash(address.raw(), 16);
   }
 
   /**
@@ -133,11 +121,7 @@ struct SafeHash {
    * @param functor A functor (FixedBytes<4>) object.
    */
   size_t operator()(const Functor& functor) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-   // Faster hashing for 4 bytes of data.
-   uint32_t const* data = reinterpret_cast<uint32_t const*>(functor.raw());
-   // 32 / 32 = 1
-   return splitmix(boost::hash_range(data, data + 1) + FIXED_RANDOM);
+    return ankerl::unordered_dense::detail::wyhash::hash(functor.raw(), 4);
   }
 
   /**
@@ -146,10 +130,7 @@ struct SafeHash {
    * @returns The same as `splitmix()`.
    */
   size_t operator()(const Hash& hash) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    // Fast compatible object for hashing 32 bytes of data.
-    uint64_t const* data = reinterpret_cast<uint64_t const*>(hash.raw());
-    return splitmix(boost::hash_range(data, data + 4) + FIXED_RANDOM);
+    return ankerl::unordered_dense::detail::wyhash::hash(hash.raw(), 16);
   }
   /**
    * Wrapper for `splitmix()`.
