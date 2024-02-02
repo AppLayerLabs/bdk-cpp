@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <algorithm>
 #include <shared_mutex>
+#include <source_location>
 #include <string>
 
 #include "../libs/json.hpp"
@@ -85,7 +86,7 @@ class Event {
       if (!anonymous) this->topics_.push_back(eventSignature);
       for (const auto& topic : topics) {
         if (this->topics_.size() >= 4) {
-          Logger::logToDebug(LogType::WARNING, Log::event, __func__,
+          Logger::logToDebug(LogType::WARNING, Log::event, std::source_location::current().function_name(),
             "Attention! Event " + name + " has more than 3 indexed parameters. Only the first 3 will be indexed."
           );
           break;
@@ -177,8 +178,8 @@ struct event_indices : bmi::indexed_by<
   bmi::ordered_non_unique<bmi::member<Event, Hash, &Event::txHash_>>
 > {};
 
-/// Typedef for the event multi-index container.
-typedef bmi::multi_index_container<Event, event_indices> EventContainer;
+/// Alias for the event multi-index container.
+using EventContainer = bmi::multi_index_container<Event, event_indices>;
 
 /**
  * Class that holds all events emitted by contracts in the blockchain.
@@ -215,6 +216,7 @@ class EventManager {
      * @param address The address to look for. Defaults to empty (look for all available addresses).
      * @param topics The topics to filter by. Defaults to empty (look for all available topics).
      * @return A list of matching events, limited by the block and/or log caps set above.
+     * @throw std::out_of_range if specified block range exceeds the limit set in Options.
      */
     const std::vector<Event> getEvents(
       const uint64_t& fromBlock, const uint64_t& toBlock,

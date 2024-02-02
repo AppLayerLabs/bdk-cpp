@@ -94,21 +94,19 @@ const std::vector<Event> EventManager::getEvents(
   std::vector<Event> ret;
   // Check if block range is within limits
   uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
-  if (heightDiff > this->options_->getEventBlockCap()) throw std::runtime_error(
+  if (heightDiff > this->options_->getEventBlockCap()) throw std::out_of_range(
     "Block range too large for event querying! Max allowed is " +
     std::to_string(this->options_->getEventBlockCap())
   );
   // Fetch from memory, then match topics from memory
-  std::vector<Event> fil = this->filterFromMemory(fromBlock, toBlock, address);
-  for (const Event& e : fil) {
+  for (const Event& e : this->filterFromMemory(fromBlock, toBlock, address)) {
     if (this->matchTopics(e, topics) && ret.size() < this->options_->getEventLogCap()) {
       ret.push_back(e);
     }
   }
   if (ret.size() >= this->options_->getEventLogCap()) return ret;
   // Fetch from database if we have space left
-  const std::vector<Event> filDB = this->filterFromDB(fromBlock, toBlock, address, topics);
-  for (const Event& e : filDB) {
+  for (const Event& e : this->filterFromDB(fromBlock, toBlock, address, topics)) {
     if (ret.size() >= this->options_->getEventLogCap()) break;
     ret.push_back(std::move(e));
   }
@@ -120,9 +118,9 @@ const std::vector<Event> EventManager::getEvents(
 ) const {
   std::vector<Event> ret;
   // Fetch from memory
-  auto& txHashIndex = this->events_.get<2>(); // txHash is the third index
-  auto range = txHashIndex.equal_range(txHash);
-  for (auto it = range.first; it != range.second; it++) {
+  const auto& txHashIndex = this->events_.get<2>(); // txHash is the third index
+  auto [start, end] = txHashIndex.equal_range(txHash);
+  for (auto it = start; it != end; it++) {
     if (ret.size() >= this->options_->getEventLogCap()) break;
     const Event& e = *it;
     if (e.getBlockIndex() == blockIndex && e.getTxIndex() == txIndex) ret.push_back(e);
@@ -151,7 +149,7 @@ const std::vector<Event> EventManager::filterFromMemory(
       it++
     ) { if (it->getBlockIndex() >= fromBlock) ret.push_back(*it); }
   } else {
-    auto& blockIndex = this->events_.get<0>();
+    const auto& blockIndex = this->events_.get<0>();
     for (const Event& e : blockIndex) {
       uint64_t idx = e.getBlockIndex();
       if (idx >= fromBlock && idx <= toBlock) ret.push_back(e);
@@ -167,7 +165,8 @@ const std::vector<Event> EventManager::filterFromDB(
   // Filter by block range
   std::vector<Event> ret;
   std::vector<Bytes> dbKeys;
-  Bytes startBytes, endBytes;
+  Bytes startBytes;
+  Bytes endBytes;
   Utils::appendBytes(startBytes, Utils::uint64ToBytes(fromBlock));
   Utils::appendBytes(endBytes, Utils::uint64ToBytes(toBlock));
 
