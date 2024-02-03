@@ -108,13 +108,14 @@ jobs:
 
       - name: Collect coverage into one XML report
         run: |
-          gcovr --gcov-ignore-parse-errors --sonarqube > coverage.xml  
+          mkdir coverage
+          gcovr --gcov-ignore-parse-errors --sonarqube > coverage/coverage.xml  
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: coverage.xml
+          path: coverage
 
   analysis:
     needs: test
@@ -147,7 +148,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage
-          path: coverage.xml
+          path: coverage
 
       - name: Update apt-get
         run: apt-get update
@@ -163,7 +164,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" --define sonar.coverageReportPaths=coverage.xml
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" --define sonar.coverageReportPaths=coverage/coverage.xml
 
   documentation:
     needs: test
