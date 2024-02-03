@@ -19,13 +19,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Update apt-get
         run: apt-get update
 
       - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git doxygen
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git doxygen curl
 
       - name: Print GCC version
         run: gcc --version
@@ -44,13 +44,13 @@ jobs:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Update apt-get
         run: apt-get update
 
       - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git curl
 
       - name: Install sonar-scanner and build-wrapper
         uses: SonarSource/sonarcloud-github-c-cpp@v2
@@ -62,13 +62,13 @@ jobs:
         run: build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build/ --config Release -- -j $(nproc)
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: build
           path: build
 
       - name: Upload build wrapper output
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: build_wrapper_output
           path: ${{ env.BUILD_WRAPPER_OUT_DIR }}
@@ -86,7 +86,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       
       - name: Download build artifacts
         uses: actions/download-artifact@v2
@@ -98,7 +98,7 @@ jobs:
         run: apt-get update
 
       - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git gcovr
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git gcovr curl
         
       - name: Give execute permissions
         run: chmod +x ./build/orbitersdkd-tests
@@ -111,7 +111,7 @@ jobs:
           gcovr --gcov-ignore-parse-errors --sonarqube > coverage.xml  
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage.xml
@@ -129,7 +129,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Download build artifacts
         uses: actions/download-artifact@v2
@@ -153,7 +153,10 @@ jobs:
         run: apt-get update
 
       - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git gcovr
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git gcovr curl
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
 
       - name: Run SonarQube Scanner
         env:
@@ -171,7 +174,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       
       - name: Download build artifacts
         uses: actions/download-artifact@v2
@@ -191,7 +194,7 @@ jobs:
           doxygen Doxyfile
 
       - name: Publish Documentation
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: Documentation
           path: docs
