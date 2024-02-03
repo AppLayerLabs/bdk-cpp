@@ -24,6 +24,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 SET(DEBUG ON CACHE BOOL "Debug mode")
 if(DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -g -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector -Werror=unused-variable") # Provides faster compile time.
+elseif(SONARQUBE_ANALYSIS)
+  set(CMAKE_CXX_FLAGS "-O0 -g --coverage")
 else()
   set(CMAKE_CXX_FLAGS "-O2 -Werror=unused-variable")
 endif()
