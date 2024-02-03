@@ -50,7 +50,7 @@ jobs:
         run: apt-get update
 
       - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git curl unzip
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git curl unzip gcovr
 
       - name: Install sonar-scanner and build-wrapper
         uses: SonarSource/sonarcloud-github-c-cpp@v2
@@ -77,7 +77,6 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" --define sonar.coverageReportPaths=coverage.xml
-
   documentation:
     needs: build_test_and_analyse
     runs-on: ubuntu-latest
