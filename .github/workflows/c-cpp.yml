@@ -89,7 +89,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: build
           path: build
@@ -132,19 +132,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: build
           path: build
 
       - name: Download build wrapper output
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: build_wrapper_output
           path: ${{ env.BUILD_WRAPPER_OUT_DIR }}
 
       - name: Download coverage report
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: coverage
           path: coverage.xml
@@ -177,7 +177,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: build
           path: build
