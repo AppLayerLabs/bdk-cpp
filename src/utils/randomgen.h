@@ -35,7 +35,7 @@ class RandomGen {
      * Constructor.
      * @param seed A random seed for initialization.
      */
-    RandomGen(const Hash& seed) : seed_(seed) {};
+    explicit RandomGen(const Hash& seed) : seed_(seed) {};
 
     /// Getter for `seed`.
     inline const Hash getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }

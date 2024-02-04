@@ -75,7 +75,7 @@ class SafeBase {
      * Only variables built with this constructor will be registered within the contract.
      * @param owner A pointer to the owner contract.
      */
-    SafeBase(DynamicContract* owner) : owner_(owner) {};
+    explicit SafeBase(DynamicContract* owner) : owner_(owner) {};
 
     /**
      * Constructor for variables that are not registered within the contract.

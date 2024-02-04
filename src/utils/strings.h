@@ -45,24 +45,40 @@ template <unsigned N> class FixedBytes {
     constexpr inline FixedBytes() { this->data_.fill(uint8_t{0x00}); };
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const Bytes& data) { if (data.size() != N) { std::invalid_argument("Invalid size."); } std::copy(data.begin(), data.end(), this->data_.begin()); }
+    constexpr inline FixedBytes(const Bytes& data) {
+      if (data.size() != N) throw std::invalid_argument("Invalid size.");
+      std::copy(data.begin(), data.end(), this->data_.begin());
+    }
 
     /// Copy constructor.
     constexpr inline FixedBytes(const BytesArr<N>& data) { this->data_ = data; }
 
     /// Move constructor.
     constexpr inline FixedBytes(BytesArr<N>&& data) noexcept { this->data_ = std::move(data); }
-    /// Copy constructor.
-    constexpr inline FixedBytes(const BytesArrView& data) { if (data.size() != N) { throw std::invalid_argument("Invalid size."); } std::copy(data.begin(), data.end(), this->data_.begin()); }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const BytesArrMutableView& data) { if (data.size() != N) { throw std::invalid_argument("Invalid size."); }  std::copy(data.begin(), data.end(), this->data_.begin()); }
+    constexpr inline FixedBytes(const BytesArrView& data) {
+      if (data.size() != N) throw std::invalid_argument("Invalid size.");
+      std::copy(data.begin(), data.end(), this->data_.begin());
+    }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const std::string_view data) { if (data.size() != N) { throw std::invalid_argument("Invalid size."); } std::copy(data.begin(), data.end(), this->data_.begin()); }
+    constexpr inline FixedBytes(const BytesArrMutableView& data) {
+      if (data.size() != N) throw std::invalid_argument("Invalid size.");
+      std::copy(data.begin(), data.end(), this->data_.begin());
+    }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const FixedBytes& other) { if (other.size() != N) { throw std::invalid_argument("Invalid size."); } this->data_ = other.data_; }
+    constexpr inline FixedBytes(const std::string_view data) {
+      if (data.size() != N) throw std::invalid_argument("Invalid size.");
+      std::copy(data.begin(), data.end(), this->data_.begin());
+    }
+
+    /// Copy constructor.
+    constexpr inline FixedBytes(const FixedBytes& other) {
+      if (other.size() != N) throw std::invalid_argument("Invalid size.");
+      this->data_ = other.data_;
+    }
 
     /// Getter for `data`.
     inline const BytesArr<N>& get() const { return this->data_; }
@@ -238,28 +254,28 @@ class Address : public FixedBytes<20> {
      */
     Address(const std::string_view add, bool inBytes);
 
+    /// Copy constructor.
+    Address(const BytesArrView add) {
+      if (add.size() != 20) throw std::invalid_argument("Invalid address size");
+      std::copy(add.begin(), add.end(), this->data_.begin());
+    }
+
+    /// Copy constructor.
+    Address(const BytesArr<20>& add) {
+      std::copy(add.begin(), add.end(), this->data_.begin());
+    }
+
+    /// Copy constructor.
+    template <unsigned N> Address(const BytesArr<N>& add) {
+      if (add.size() != 20) throw std::invalid_argument("Invalid address size");
+      std::copy(add.begin(), add.end(), this->data_.begin());
+    }
+
     /**
-     * Copy constructor.
+     * Move constructor.
+     * @param add The address itself.
      */
-
-    Address(const BytesArrView add) { if (add.size() != 20) { throw std::invalid_argument("Invalid address size"); } std::copy(add.begin(), add.end(), this->data_.begin()); }
-
-    /**
-     * Copy constructor.
-     */
-    Address(const BytesArr<20>& add) { std::copy(add.begin(), add.end(), this->data_.begin()); }
-
-    /**
-     * Copy constructor.
-     */
-    template <unsigned N>
-    Address(const BytesArr<N>& add) { if (add.size() != 20) { throw std::invalid_argument("Invalid address size"); } std::copy(add.begin(), add.end(), this->data_.begin()); }
-
-    /**
-    * Move constructor.
-    * @param add The address itself.
-    */
-    Address(BytesArr<20>&& add) : FixedBytes<20>(std::move(add)) { }
+    Address(BytesArr<20>&& add) : FixedBytes<20>(std::move(add)) {}
 
     /// Copy constructor.
     inline Address(const Address& other) { this->data_ = other.data_; }

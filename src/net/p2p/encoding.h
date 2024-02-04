@@ -118,10 +118,10 @@ namespace P2P {
       using FixedBytes<8>::operator=;
 
       /**
-i       * Constructor.
+       * Constructor.
        * @param value The unsigned number to convert into a hash string.
        */
-      RequestID(const uint64_t& value);
+      explicit RequestID(const uint64_t& value);
 
       /// Convert the hash string back to an unsigned number.
       uint64_t toUint64() const;

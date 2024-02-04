@@ -36,75 +36,75 @@ namespace ContractReflectionInterface {
     public:
       /// Specialization for non-const functions without args.
       template <typename TContract, typename R>
-        UniqueFunctionPointerIdentifier(R(TContract::*func)()) {
-          this->returnType = Utils::getRealTypeName<R>();
-          this->className = Utils::getRealTypeName<TContract>();
-          /// Check if sizeof func is sizeof(uint64_t) * 2
-          static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
-          /// Copy the function pointer into the two uint64_t
-          memcpy(&ptr1, &func, sizeof(uint64_t));
-          memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
-        }
+      explicit UniqueFunctionPointerIdentifier(R(TContract::*func)()) {
+        this->returnType = Utils::getRealTypeName<R>();
+        this->className = Utils::getRealTypeName<TContract>();
+        /// Check if sizeof func is sizeof(uint64_t) * 2
+        static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+        /// Copy the function pointer into the two uint64_t
+        memcpy(&ptr1, &func, sizeof(uint64_t));
+        memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+      }
 
       /// Specialization for const functions without args.
       template <typename TContract, typename R>
-        UniqueFunctionPointerIdentifier(R(TContract::*func)() const) {
-          this->returnType = Utils::getRealTypeName<R>();
-          this->className = Utils::getRealTypeName<TContract>();
-          /// Check if sizeof func is sizeof(uint64_t) * 2
-          static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
-          /// Copy the function pointer into the two uint64_t
-          memcpy(&ptr1, &func, sizeof(uint64_t));
-          memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
-        }
+      explicit UniqueFunctionPointerIdentifier(R(TContract::*func)() const) {
+        this->returnType = Utils::getRealTypeName<R>();
+        this->className = Utils::getRealTypeName<TContract>();
+        /// Check if sizeof func is sizeof(uint64_t) * 2
+        static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+        /// Copy the function pointer into the two uint64_t
+        memcpy(&ptr1, &func, sizeof(uint64_t));
+        memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+      }
 
       /// Specialization for non-const functions with non-const args.
       template <typename TContract, typename R, typename... Args>
-        UniqueFunctionPointerIdentifier(R(TContract::*func)(Args...)) {
-          this->returnType = Utils::getRealTypeName<R>();
-          this->className = Utils::getRealTypeName<TContract>();
-          /// Check if sizeof func is sizeof(uint64_t) * 2
-          static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
-          /// Copy the function pointer into the two uint64_t
-          memcpy(&ptr1, &func, sizeof(uint64_t));
-          memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
-        }
+      explicit UniqueFunctionPointerIdentifier(R(TContract::*func)(Args...)) {
+        this->returnType = Utils::getRealTypeName<R>();
+        this->className = Utils::getRealTypeName<TContract>();
+        /// Check if sizeof func is sizeof(uint64_t) * 2
+        static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+        /// Copy the function pointer into the two uint64_t
+        memcpy(&ptr1, &func, sizeof(uint64_t));
+        memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+      }
 
       /// Specialization for const functions with non-const args.
       template <typename TContract, typename R, typename... Args>
-        UniqueFunctionPointerIdentifier(R(TContract::*func)(Args...) const) {
-          this->returnType = Utils::getRealTypeName<R>();
-          this->className = Utils::getRealTypeName<TContract>();
-          /// Check if sizeof func is sizeof(uint64_t) * 2
-          static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
-          /// Copy the function pointer into the two uint64_t
-          memcpy(&ptr1, &func, sizeof(uint64_t));
-          memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
-        }
+      explicit UniqueFunctionPointerIdentifier(R(TContract::*func)(Args...) const) {
+        this->returnType = Utils::getRealTypeName<R>();
+        this->className = Utils::getRealTypeName<TContract>();
+        /// Check if sizeof func is sizeof(uint64_t) * 2
+        static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+        /// Copy the function pointer into the two uint64_t
+        memcpy(&ptr1, &func, sizeof(uint64_t));
+        memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+      }
 
       /// Specialization for non-const functions with const args.
       template <typename TContract, typename R, typename... Args>
-        UniqueFunctionPointerIdentifier(R(TContract::*func)(const Args&...)) {
-          this->returnType = Utils::getRealTypeName<R>();
-          this->className = Utils::getRealTypeName<TContract>();
-          /// Check if sizeof func is sizeof(uint64_t) * 2
-          static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
-          /// Copy the function pointer into the two uint64_t
-          memcpy(&ptr1, &func, sizeof(uint64_t));
-          memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
-        }
+      explicit UniqueFunctionPointerIdentifier(R(TContract::*func)(const Args&...)) {
+        this->returnType = Utils::getRealTypeName<R>();
+        this->className = Utils::getRealTypeName<TContract>();
+        /// Check if sizeof func is sizeof(uint64_t) * 2
+        static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+        /// Copy the function pointer into the two uint64_t
+        memcpy(&ptr1, &func, sizeof(uint64_t));
+        memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+      }
 
       /// Specialization for const functions with const args.
       template <typename TContract, typename R, typename... Args>
-        UniqueFunctionPointerIdentifier(R(TContract::*func)(const Args&...) const) {
-          this->returnType = Utils::getRealTypeName<R>();
-          this->className = Utils::getRealTypeName<TContract>();
-          /// Check if sizeof func is sizeof(uint64_t) * 2
-          static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
-          /// Copy the function pointer into the two uint64_t
-          memcpy(&ptr1, &func, sizeof(uint64_t));
-          memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
-        }
+      explicit UniqueFunctionPointerIdentifier(R(TContract::*func)(const Args&...) const) {
+        this->returnType = Utils::getRealTypeName<R>();
+        this->className = Utils::getRealTypeName<TContract>();
+        /// Check if sizeof func is sizeof(uint64_t) * 2
+        static_assert(sizeof(func) == sizeof(uint64_t) * 2, "Function pointer size is not 16 bytes");
+        /// Copy the function pointer into the two uint64_t
+        memcpy(&ptr1, &func, sizeof(uint64_t));
+        memcpy(&ptr2, ((uint64_t*)&func) + 1, sizeof(uint64_t));
+      }
 
       /// Equality operator.
       bool operator==(const UniqueFunctionPointerIdentifier& other) const {

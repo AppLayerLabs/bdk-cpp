@@ -40,7 +40,7 @@ class Blockchain {
      * Constructor.
      * @param blockchainPath Root path of the blockchain.
      */
-    Blockchain(std::string blockchainPath);
+    explicit Blockchain(std::string blockchainPath);
 
     /// Destructor.
     ~Blockchain() {};
@@ -158,7 +158,7 @@ class Syncer {
      * Constructor.
      * @param blockchain Reference to the parent blockchain.
      */
-    Syncer(Blockchain& blockchain) : blockchain_(blockchain) {};
+    explicit Syncer(Blockchain& blockchain) : blockchain_(blockchain) {};
 
     /**
      * Destructor.

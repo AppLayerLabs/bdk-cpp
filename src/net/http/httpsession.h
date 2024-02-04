@@ -34,7 +34,7 @@ class HTTPQueue {
      * Constructor.
      * @param session Reference to the HTTP session that will handle the queue.
      */
-    HTTPQueue(HTTPSession& session);
+    explicit HTTPQueue(HTTPSession& session);
 
     /**
      * Check if the queue limit was hit.

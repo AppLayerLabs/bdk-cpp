@@ -84,7 +84,7 @@ public:
      * Constructor.
      * @param value The initial value.
      */
-    SafeUint_t(const uint_t& value = 0)
+    explicit SafeUint_t(const uint_t& value = 0)
       : SafeBase(nullptr), value_(0), valuePtr_(std::make_unique<uint_t>(value))
     {};
 

@@ -57,14 +57,14 @@ class SafeVector : public SafeBase {
 
   public:
 
-    /// Default Constructor.
+    /// Default constructor.
     SafeVector() : SafeBase(nullptr) {};
 
     /**
-    * Constructor with owner.
-    * @param owner The owner of the variable.
-    */
-    SafeVector(DynamicContract* owner) : SafeBase(owner) {};
+     * Constructor with owner.
+     * @param owner The owner of the variable.
+     */
+    explicit SafeVector(DynamicContract* owner) : SafeBase(owner) {};
 
     /// SafeVector( size_type count, const T& value );
     SafeVector(std::size_t count, const T& value) {
@@ -104,7 +104,7 @@ class SafeVector : public SafeBase {
     }
 
     /// SafeVector( std::initializer_list<T> init );
-    SafeVector(std::initializer_list<T> init) {
+    explicit SafeVector(std::initializer_list<T> init) {
       check();
       for (const auto& val : init) {
         tmp_->emplace(maxIndex_, val);

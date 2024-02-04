@@ -92,7 +92,7 @@ namespace P2P {
      * Constructor.
      * @param manager Reference to the parent connection manager.
      */
-    DiscoveryWorker(ManagerBase& manager) : manager_(manager) {}
+    explicit DiscoveryWorker(ManagerBase& manager) : manager_(manager) {}
 
     /// Destructor. Automatically stops the worker thread.
     ~DiscoveryWorker() { this->stop(); }

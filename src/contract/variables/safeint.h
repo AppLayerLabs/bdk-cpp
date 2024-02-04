@@ -80,7 +80,7 @@ public:
     /**
     * Constructor.
     * @param owner The DynamicContract that owns this variable.
-    * @param value The initial value of the variable.
+    * @param value The initial value of the variable. Defaults to 0.
     */
     SafeInt_t(DynamicContract* owner, const int_t& value = 0)
       : SafeBase(owner), value_(0), valuePtr_(std::make_unique<int_t>(value))
@@ -88,9 +88,9 @@ public:
 
     /**
     * Constructor.
-    * @param value The initial value of the variable.
+    * @param value The initial value of the variable. Defaults to 0.
     */
-    SafeInt_t(const int_t& value = 0)
+    explicit SafeInt_t(const int_t& value = 0)
       : SafeBase(nullptr), value_(0), valuePtr_(std::make_unique<int_t>(value))
     {};
 

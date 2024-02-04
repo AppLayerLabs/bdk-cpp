@@ -166,7 +166,7 @@ class DB {
      * @param path The database's filesystem path (relative to the binary's current working directory).
      * @throw std::runtime_error if database opening fails.
      */
-    DB(const std::string path);
+    explicit DB(const std::string path);
 
     /// Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
     ~DB() { this->close(); }

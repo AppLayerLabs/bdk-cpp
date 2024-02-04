@@ -99,7 +99,7 @@ class Event {
      * Constructor from deserialization.
      * @param jsonstr The JSON string to deserialize.
      */
-    Event(const std::string& jsonstr);
+    explicit Event(const std::string& jsonstr);
 
     /**
      * Set data from the block and transaction that is supposed to emit the event.

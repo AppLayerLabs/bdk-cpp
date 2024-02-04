@@ -54,7 +54,7 @@ class Hex {
      * Empty string constructor.
      * @param strict (optional) If `true`, sets `hex` to "0x". Defaults to `false`.
      */
-    Hex(bool strict = false) : strict_(strict) { if (strict) this->hex_ = "0x"; }
+    explicit Hex(bool strict = false) : strict_(strict) { if (strict) this->hex_ = "0x"; }
 
     /**
      * Move constructor.

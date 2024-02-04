@@ -29,7 +29,7 @@ class ReentrancyGuard {
      * @param lock Reference to the mutex.
      * @throw std::runtime_error if the mutex is already locked.
      */
-    ReentrancyGuard(bool &lock) : lock_(lock) {
+    explicit ReentrancyGuard(bool &lock) : lock_(lock) {
       if (lock_) throw std::runtime_error("ReentrancyGuard: reentrancy attack detected");
       lock_ = true;
     }

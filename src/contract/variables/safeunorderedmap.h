@@ -110,7 +110,7 @@ public:
    * Empty constructor.
    * @param map The initial value. Defaults to an empty map.
    */
-  SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {})
+  explicit SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {})
     : SafeBase(nullptr), mapPtr_(std::make_unique<std::unordered_map<Key, T, SafeHash>>(map)) {}
 
   /// Copy constructor.

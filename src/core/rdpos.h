@@ -277,7 +277,7 @@ class rdPoSWorker {
      * Constructor.
      * @param rdpos Reference to the parent rdPoS object.
      */
-    rdPoSWorker(rdPoS& rdpos) : rdpos_(rdpos) {}
+    explicit rdPoSWorker(rdPoS& rdpos) : rdpos_(rdpos) {}
 
     /**
      * Destructor.

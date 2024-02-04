@@ -40,14 +40,14 @@ class Merkle {
      * Constructor.
      * @param leaves The list of leaves to create the %Merkle tree from.
      */
-    Merkle(const std::vector<Hash>& leaves);
+    explicit Merkle(const std::vector<Hash>& leaves);
 
     /**
      * Constructor for block transactions.
      * TxType would be one of the enum types described in rdPoS.
      * @param txs The list of transactions to create the %Merkle tree from.
      */
-    template <typename TxType> Merkle(const std::vector<TxType>& txs) {
+    template <typename TxType> explicit Merkle(const std::vector<TxType>& txs) {
       // Mount the base leaves
       std::vector<Hash> tmp;
       for (auto tx : txs) tmp.emplace_back(std::move(Utils::sha3(tx.hash().get())));

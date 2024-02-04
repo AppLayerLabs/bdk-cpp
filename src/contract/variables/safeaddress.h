@@ -34,14 +34,14 @@ class SafeAddress : public SafeBase {
      * @param address The initial value. Defaults to an empty address.
      */
     SafeAddress(DynamicContract* owner, const Address& address = Address())
-      : SafeBase(owner), address_(address), addressPtr_(std::make_unique<Address>(address))
+      : SafeBase(owner), address_(Address()), addressPtr_(std::make_unique<Address>(address))
     {};
 
     /**
      * Empty constructor.
      * @param address The initial value. Defaults to an empty address.
      */
-    SafeAddress(const Address& address = Address())
+    explicit SafeAddress(const Address& address = Address())
       : SafeBase(nullptr), address_(Address()), addressPtr_(std::make_unique<Address>(address))
     {};
 
