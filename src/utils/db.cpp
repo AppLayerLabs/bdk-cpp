@@ -33,7 +33,7 @@ std::vector<DBEntry> DB::getBatch(
 ) const {
   std::lock_guard lock(this->batchLock_);
   std::vector<DBEntry> ret;
-  rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
+  std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
   rocksdb::Slice pfx(reinterpret_cast<const char*>(bytesPfx.data()), bytesPfx.size());
 
   // Search for all entries
@@ -43,7 +43,7 @@ std::vector<DBEntry> DB::getBatch(
       keySlice.remove_prefix(pfx.size());
       ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()), Bytes(it->value().data(), it->value().data() + it->value().size()));
     }
-    delete it;
+    it.reset();
     return ret;
   }
 
@@ -57,13 +57,13 @@ std::vector<DBEntry> DB::getBatch(
       }
     }
   }
-  delete it;
+  it.reset();
   return ret;
 }
 
 std::vector<Bytes> DB::getKeys(const Bytes& pfx, const Bytes& start, const Bytes& end) {
   std::vector<Bytes> ret;
-  rocksdb::Iterator* it = this->db_->NewIterator(rocksdb::ReadOptions());
+  std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
   Bytes startBytes = pfx;
   Bytes endBytes = pfx;
   if (!start.empty()) Utils::appendBytes(startBytes, start);
@@ -75,7 +75,7 @@ std::vector<Bytes> DB::getKeys(const Bytes& pfx, const Bytes& start, const Bytes
     keySlice.remove_prefix(pfx.size());
     ret.emplace_back(Bytes(keySlice.data(), keySlice.data() + keySlice.size()));
   }
-  delete it;
+  it.reset();
   return ret;
 }
 

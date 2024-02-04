@@ -98,14 +98,19 @@ namespace P2P {
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      virtual void handleRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {};
+      virtual void handleRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
+        // Do nothing by default, child classes are meant to override this
+      }
 
       /**
        * Handle an answer from a session (meant to be overriden on child classes).
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      virtual void handleAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {};
+      virtual void handleAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
+        // Do nothing by default, child classes are meant to override this
+      }
+
     public:
       /**
        * Constructor.
@@ -201,8 +206,9 @@ namespace P2P {
        * @param session The session to send an answer to.
        * @param message The message to handle.
        */
-      virtual void handleMessage(std::weak_ptr<Session> session, const std::shared_ptr<const Message> message) {};
-
+      virtual void handleMessage(std::weak_ptr<Session> session, const std::shared_ptr<const Message> message) {
+        // Do nothing by default, child classes are meant to override this
+      }
 
       /**
        * Ping a node and wait for it to answer. Throws on failure.

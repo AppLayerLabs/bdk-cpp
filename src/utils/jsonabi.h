@@ -205,7 +205,9 @@ namespace JsonAbi {
    */
   template <typename ContractTuple, std::size_t N>
   std::enable_if_t<(N == std::tuple_size<ContractTuple>::value)>
-  getConstructorsABI(json &abis) {}
+  getConstructorsABI(json &abis) {
+    // Do nothing by default on recursion
+  }
 
   /**
    * Write manager ABI to a JSON file.

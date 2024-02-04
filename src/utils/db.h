@@ -156,9 +156,9 @@ class DBBatch {
  */
 class DB {
   private:
-    rocksdb::DB* db_;              ///< Pointer to the database object itself.
-    rocksdb::Options opts_;        ///< Struct with options for managing the database.
-    mutable std::mutex batchLock_; ///< Mutex for managing read/write access to batch operations.
+    rocksdb::DB* db_;               ///< Pointer to the database object itself.
+    rocksdb::Options opts_;         ///< Struct with options for managing the database.
+    mutable std::mutex batchLock_;  ///< Mutex for managing read/write access to batch operations.
 
   public:
     /**
@@ -185,15 +185,15 @@ class DB {
      */
     template <typename BytesContainer>
     bool has(const BytesContainer& key, const Bytes& pfx = {}) {
-      rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
+      std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
       rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
       for (it->Seek(keySlice); it->Valid(); it->Next()) {
-        if (it->key() == keySlice) { delete it; return true; }
+        if (it->key() == keySlice) { it.reset(); return true; }
       }
-      delete it;
+      it.reset();
       return false;
     }
 
@@ -205,7 +205,7 @@ class DB {
      */
     template <typename BytesContainer>
     Bytes get(const BytesContainer& key, const Bytes& pfx = {}) const {
-      rocksdb::Iterator *it = this->db_->NewIterator(rocksdb::ReadOptions());
+      std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.cbegin(), key.cend());
@@ -213,11 +213,11 @@ class DB {
       for (it->Seek(keySlice); it->Valid(); it->Next()) {
         if (it->key().ToString() == keySlice) {
           Bytes value(it->value().data(), it->value().data() + it->value().size());
-          delete it;
+          it.reset();
           return value;
         }
       }
-      delete it;
+      it.reset();
       return {};
     }
 

@@ -945,7 +945,9 @@ namespace ABI {
     /// Specialization of decodeTupleHelper() for when tuple index is the last one
     template<std::size_t Index = 0, typename... Args>
     typename std::enable_if_t<Index == sizeof...(Args), void>
-    decodeTupleHelper(const BytesArrView&, const uint64_t&, std::tuple<Args...>&) {} // End of recursion
+    decodeTupleHelper(const BytesArrView&, const uint64_t&, std::tuple<Args...>&) {
+      // End of recursion, do nothing
+    }
 
     /**
      * Recursive helper function to decode each element of the tuple.
