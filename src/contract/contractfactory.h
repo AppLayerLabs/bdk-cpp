@@ -33,7 +33,7 @@ class ContractFactory {
      * Constructor.
      * @param manager Reference to the contract manager.
      */
-    ContractFactory(ContractManager& manager) : manager_(manager) {}
+    explicit ContractFactory(ContractManager& manager) : manager_(manager) {}
 
     /// Getter for `recentContracts`.
     std::unordered_set<Address, SafeHash> getRecentContracts() const;
@@ -52,8 +52,8 @@ class ContractFactory {
      * Setup data for a new contract before creating/validating it.
      * @param callInfo The call info to process.
      * @return A pair containing the contract address and the ABI decoder.
-     * @throw runtime_error if non contract creator tries to create a contract.
-     * @throw runtime_error if contract already exists.
+     * @throw std::runtime_error if non contract creator tries to create a contract.
+     * @throw std::runtime_error if contract already exists.
      */
     template <typename TContract> auto setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
@@ -172,7 +172,7 @@ class ContractFactory {
      * @param createFunc Function to create a new contract
      */
     template <typename Contract>
-    void addContractFuncs(std::function<void(const ethCallInfo &)> createFunc) {
+    void addContractFuncs(const std::function<void(const ethCallInfo &)>& createFunc) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
       // Append args
       createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
@@ -224,7 +224,7 @@ class ContractFactory {
      * @tparam Is The indices of the tuple.
      */
     template <typename Tuple, std::size_t... Is>
-    void registerContractsHelper(std::index_sequence<Is...>) {
+    void registerContractsHelper(std::index_sequence<Is...>) const {
       (RegisterContract<std::tuple_element_t<Is, Tuple>>(), ...);
     }
 

@@ -32,14 +32,14 @@ Bytes ABI::Encoder::encodeInt(const int256_t& num) {
 }
 
 uint256_t ABI::Decoder::decodeUint(const BytesArrView &bytes, uint64_t &index) {
-  if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for uint256");
+  if (index + 32 > bytes.size()) throw std::length_error("Data too short for uint256");
   uint256_t result = Utils::bytesToUint256(bytes.subspan(index, 32));
   index += 32;
   return result;
 }
 
 int256_t ABI::Decoder::decodeInt(const BytesArrView& bytes, uint64_t& index) {
-  if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for int256");
+  if (index + 32 > bytes.size()) throw std::length_error("Data too short for int256");
   int256_t result = Utils::bytesToInt256(bytes.subspan(index, 32));
   index += 32;
   return result;

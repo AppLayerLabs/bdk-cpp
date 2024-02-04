@@ -30,17 +30,12 @@ class ReentrancyGuard {
      * @throw std::runtime_error if the mutex is already locked.
      */
     ReentrancyGuard(bool &lock) : lock_(lock) {
-      if(lock_) {
-        throw std::runtime_error("ReentrancyGuard: reentrancy attack detected");
-      }
+      if (lock_) throw std::runtime_error("ReentrancyGuard: reentrancy attack detected");
       lock_ = true;
     }
 
     /// Destructor.
-    ~ReentrancyGuard() {
-      lock_ = false;
-    }
+    ~ReentrancyGuard() { lock_ = false; }
 };
 
-
-#endif
+#endif  // REENTRANCY_GUARD_H

@@ -14,10 +14,10 @@ See the LICENSE.txt file in the project root for more information.
 #include "../core/state.h"
 
 ContractManager::ContractManager(
-  State* state, const std::unique_ptr<DB>& db,
+  const std::unique_ptr<DB>& db, State* state,
   const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
-) : state_(state), BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"),
-  options->getChainOwner(), 0, db),
+) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options->getChainOwner(), 0, db),
+  state_(state),
   rdpos_(rdpos),
   options_(options),
   factory_(std::make_unique<ContractFactory>(*this)),

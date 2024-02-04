@@ -59,10 +59,22 @@ class ContractCallLogger {
      * Constructor.
      * @param manager Pointer back to the contract manager.
      */
-    ContractCallLogger(ContractManager& manager);
+    explicit ContractCallLogger(ContractManager& manager);
 
     /// Destructor. Clears recently created contracts, altered balances and used SafeVariables.
     ~ContractCallLogger();
+
+    /// Copy constructor (deleted).
+    ContractCallLogger(ContractCallLogger& other) = delete;
+
+    /// Move constructor (deleted).
+    ContractCallLogger(ContractCallLogger&& other) = delete;
+
+    /// Copy assignment opetator (deleted).
+    ContractCallLogger& operator=(ContractCallLogger& other) = delete;
+
+    /// Move assignment opetator (deleted).
+    ContractCallLogger& operator=(ContractCallLogger&& other) = delete;
 
     /// Getter for `balances`.
     std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances_; }
@@ -79,7 +91,7 @@ class ContractCallLogger {
      * @param add The address to set a balance to.
      * @param value The balance value to set.
      */
-    inline void setBalanceAt(const Address& add, uint256_t value) { this->balances_[add] = value; }
+    inline void setBalanceAt(const Address& add, const uint256_t& value) { this->balances_[add] = value; }
 
     /**
      * Set the local variables for a given contract (origin, caller, value)
@@ -88,7 +100,10 @@ class ContractCallLogger {
      * @param caller The caller address to set.
      * @param value The value to set.
      */
-    inline void setContractVars(ContractLocals* contract, const Address& origin, const Address& caller, const uint256_t value) {
+    inline void setContractVars(
+      ContractLocals* contract, const Address& origin,
+      const Address& caller, const uint256_t& value
+    ) const {
       contract->origin_ = origin;
       contract->caller_ = caller;
       contract->value_ = value;
@@ -99,14 +114,14 @@ class ContractCallLogger {
      * @param to The address to add balance to.
      * @param value The balance value to add.
      */
-    inline void addBalance(const Address& to, const uint256_t value) { this->balances_[to] += value; }
+    inline void addBalance(const Address& to, const uint256_t& value) { this->balances_[to] += value; }
 
     /**
      * Subtract a given balance value to a given address.
      * @param to The address to subtract balance to.
      * @param value The balance value to subtract.
      */
-    inline void subBalance(const Address& to, const uint256_t value) { this->balances_[to] -= value; }
+    inline void subBalance(const Address& to, const uint256_t& value) { this->balances_[to] -= value; }
 
     /**
      * Check if a given address is registered in the balances map.

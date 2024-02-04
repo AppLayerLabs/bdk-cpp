@@ -17,8 +17,10 @@ void ContractFactory::clearRecentContracts() {
 
 std::function<void(const ethCallInfo&)> ContractFactory::getCreateContractFunc(Functor func) const {
   std::function<void(const ethCallInfo&)> ret;
-  auto createIt = this->createContractFuncs_.find(func.asBytes());
-  if (createIt != this->createContractFuncs_.end()) ret = createIt->second;
+  if (
+    auto it = this->createContractFuncs_.find(func.asBytes());
+    it != this->createContractFuncs_.end()
+  ) ret = it->second;
   return ret;
 }
 

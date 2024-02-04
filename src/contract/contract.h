@@ -81,10 +81,11 @@ class BaseContract : public ContractLocals {
     uint64_t contractChainId_; ///< Chain where the contract is deployed.
 
   protected:
-    bool reentrancyLock_ = false;    ///< Lock (for reentrancy).
-    const std::unique_ptr<DB> &db_; ///< Pointer to the DB instance.
+    const std::unique_ptr<DB>& db_; ///< Pointer reference to the DB instance.
 
   public:
+    bool reentrancyLock_ = false;    ///< Lock (for reentrancy).
+
     /**
      * Constructor from scratch.
      * @param contractName The name of the contract.
@@ -93,12 +94,12 @@ class BaseContract : public ContractLocals {
      * @param chainId The chain where the contract will be deployed.
      * @param db Pointer to the DB instance.
      */
-    BaseContract(const std::string &contractName, const Address &address,
-      const Address &creator, const uint64_t &chainId, const std::unique_ptr<DB> &db
+    BaseContract(const std::string& contractName, const Address& address,
+      const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB>& db
     ) : contractName_(contractName), contractAddress_(address),
       contractCreator_(creator), contractChainId_(chainId), db_(db)
     {
-      dbPrefix_ = [&]() -> Bytes {
+      this->dbPrefix_ = [&]() {
         Bytes prefix = DBPrefix::contracts;
         prefix.reserve(prefix.size() + contractAddress_.size());
         prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
@@ -131,7 +132,7 @@ class BaseContract : public ContractLocals {
      * Destructor.
      * All derived classes should override it in order to call DB functions.
      */
-    virtual ~BaseContract() {}
+    virtual ~BaseContract() = default;
 
     /**
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice,
@@ -151,8 +152,7 @@ class BaseContract : public ContractLocals {
      * @throw std::runtime_error if the derived class does not override this.
      */
     virtual const Bytes ethCallView(const ethCallInfo &data) const {
-      throw std::runtime_error(
-          "Derived Class from Contract does not override ethCall()");
+      throw std::runtime_error("Derived Class from Contract does not override ethCall()");
     }
 
     /// Getter for `contractAddress`.
@@ -168,14 +168,14 @@ class BaseContract : public ContractLocals {
     const std::string& getContractName() const { return this->contractName_; }
 
     /// Getter for `dbPrefix`.
-    const Bytes &getDBPrefix() const { return this->dbPrefix_; }
+    const Bytes& getDBPrefix() const { return this->dbPrefix_; }
 
     /**
      * Creates a new DB prefix appending a new string to the current prefix.
      * @param newPrefix The new prefix to append.
      * @return The new prefix.
      */
-    const Bytes getNewPrefix(const std::string &newPrefix) const {
+    const Bytes getNewPrefix(const std::string& newPrefix) const {
       Bytes prefix = this->dbPrefix_;
       prefix.reserve(prefix.size() + newPrefix.size());
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());

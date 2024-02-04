@@ -153,7 +153,7 @@ namespace ABI {
    * @param src The Bytes piece to be appended.
    */
   template <typename T> void append(Bytes &dest, const T &src) {
-    dest.insert(dest.end(), src.cbegin(), src.cend());
+    dest.insert(dest.end(), std::cbegin(src), std::cend(src));
   }
 
   /**
@@ -390,7 +390,7 @@ namespace ABI {
     // General template for encoding type to bytes
     template<typename T, typename Enable = void>
     struct TypeEncoder {
-      static Bytes encode(const T& type) {
+      static Bytes encode(const T&) {
         static_assert(always_false<T>, "TypeName specialization for this type is not defined");
         return Bytes();
       }
@@ -470,14 +470,12 @@ namespace ABI {
     };
 
     /// Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
-    template <typename T>
-    struct TypeEncoder<std::vector<T>> {
+    template <typename T> struct TypeEncoder<std::vector<T>> {
       static Bytes encode(const std::vector<T>& v);
     };
 
     /// Specialization for std::tuple<T>
-    template <typename... Ts>
-    struct TypeEncoder<std::tuple<Ts...>> {
+    template <typename... Ts> struct TypeEncoder<std::tuple<Ts...>> {
       static Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
         Bytes dynamicBytes;
@@ -561,10 +559,11 @@ namespace ABI {
     }
   }; // namespace Encoder
 
-  /// EventEncoder works similarly to FunctionEncoder and the ABI Encoder itself
-  /// But not only has different data structures, but also, different rules
+  /**
+   * EventEncoder works similarly to FunctionEncoder and the ABI Encoder itself,
+   * but with different data structures and rules.
+   */
   namespace EventEncoder {
-
     /**
      * Encode a event signature following Solidity rules.
      * @tparam Args The argument types.
@@ -578,7 +577,7 @@ namespace ABI {
     ///@cond
     template<typename T, typename Enable = void>
     struct TypeEncoder {
-      static Bytes encode(const T& type) {
+      static Bytes encode(const T&) {
         static_assert(always_false<T>, "TypeName specialization for this type is not defined");
         return Bytes();
       }
@@ -644,22 +643,19 @@ namespace ABI {
     };
 
     /// Specialization for enum types
-    template <typename T>
-    struct TypeEncoder<T, std::enable_if_t<std::is_enum_v<T>>> {
+    template <typename T> struct TypeEncoder<T, std::enable_if_t<std::is_enum_v<T>>> {
       static Bytes encode(const T& i) {
         return ABI::Encoder::encodeUint(static_cast<uint8_t>(i));
       }
     };
 
     /// Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
-    template <typename T>
-    struct TypeEncoder<std::vector<T>> {
+    template <typename T> struct TypeEncoder<std::vector<T>> {
       static Bytes encode(const std::vector<T>& v);
     };
 
     /// Specialization for std::tuple<T>
-    template <typename... Ts>
-    struct TypeEncoder<std::tuple<Ts...>> {
+    template <typename... Ts> struct TypeEncoder<std::tuple<Ts...>> {
       static Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
         std::apply([&](const auto&... args) {
@@ -738,7 +734,7 @@ namespace ABI {
      * @param bytes The data string to decode.
      * @param index The point on the encoded string to start decoding.
      * @return The decoded data.
-     * @throw std::runtime_error if data is too short for the type.
+     * @throw std::length_error if data is too short for the type.
      */
     uint256_t decodeUint(const BytesArrView& bytes, uint64_t& index);
 
@@ -747,16 +743,15 @@ namespace ABI {
      * @param bytes The data string to decode.
      * @param index The point on the encoded string to start decoding.
      * @return The decoded data.
-     * @throw std::runtime_error if data is too short for the type.
+     * @throw std::length_error if data is too short for the type.
      */
-
     int256_t decodeInt(const BytesArrView& bytes, uint64_t& index);
 
     /// @cond
     /// General template for bytes to type decoding
     template<typename T, typename Enable = void>
     struct TypeDecoder {
-      static T decode(const BytesArrView& bytes, uint64_t& index) {
+      static T decode(const BytesArrView&, const uint64_t&) {
         static_assert(always_false<T>, "TypeName specialization for this type is not defined");
         return T();
       }
@@ -765,8 +760,8 @@ namespace ABI {
     /// Specialization for default solidity types
     template <> struct TypeDecoder<Address> {
       static Address decode(const BytesArrView& bytes, uint64_t& index) {
-        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for address");
-        Address result = Address(bytes.subspan(index + 12, 20));
+        if (index + 32 > bytes.size()) throw std::length_error("Data too short for address");
+        auto result = Address(bytes.subspan(index + 12, 20));
         index += 32;
         return result;
       }
@@ -774,7 +769,7 @@ namespace ABI {
 
     template <> struct TypeDecoder<bool> {
       static bool decode(const BytesArrView& bytes, uint64_t& index) {
-        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for bool");
+        if (index + 32 > bytes.size()) throw std::length_error("Data too short for bool");
         bool result = (bytes[index + 31] == 0x01);
         index += 32;
         return result;
@@ -783,19 +778,19 @@ namespace ABI {
 
     template <> struct TypeDecoder<Bytes> {
       static Bytes decode(const BytesArrView& bytes, uint64_t& index) {
-        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for bytes");
+        if (index + 32 > bytes.size()) throw std::length_error("Data too short for bytes");
         Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
         index += 32;
 
         // Get bytes length
         tmp.clear();
-        if (bytesStart + 32 > bytes.size()) throw std::runtime_error("Data too short for bytes");
+        if (bytesStart + 32 > bytes.size()) throw std::length_error("Data too short for bytes");
         tmp.insert(tmp.end(), bytes.begin() + bytesStart, bytes.begin() + bytesStart + 32);
         uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         // Size sanity check
-        if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for bytes");
+        if (bytesStart + 32 + bytesLength > bytes.size()) throw std::length_error("Data too short for bytes");
 
         // Get bytes data
         tmp.clear();
@@ -806,19 +801,19 @@ namespace ABI {
 
     template <> struct TypeDecoder<std::string> {
       static std::string decode(const BytesArrView& bytes, uint64_t& index) {
-        if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for string 1");
+        if (index + 32 > bytes.size()) throw std::length_error("Data too short for string 1");
         std::string tmp(bytes.begin() + index, bytes.begin() + index + 32);
         uint64_t bytesStart = Utils::fromBigEndian<uint64_t>(tmp);
         index += 32;  // Move index to next 32 bytes
 
         // Get bytes length
         tmp.clear();
-        if (bytesStart + 32 > bytes.size()) throw std::runtime_error("Data too short for string 2");
+        if (bytesStart + 32 > bytes.size()) throw std::length_error("Data too short for string 2");
         tmp.insert(tmp.end(), bytes.begin() + bytesStart, bytes.begin() + bytesStart + 32);
         uint64_t bytesLength = Utils::fromBigEndian<uint64_t>(tmp);
 
         // Size sanity check
-        if (bytesStart + 32 + bytesLength > bytes.size()) throw std::runtime_error("Data too short for string 3");
+        if (bytesStart + 32 + bytesLength > bytes.size()) throw std::length_error("Data too short for string 3");
 
         // Get bytes data
         tmp.clear();
@@ -903,7 +898,7 @@ namespace ABI {
       static T decode(const BytesArrView& bytes, uint64_t& index) {
         T ret;
         if constexpr (isTupleOfDynamicTypes<T>::value) {
-          if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for tuple of dynamic types");
+          if (index + 32 > bytes.size()) throw std::length_error("Data too short for tuple of dynamic types");
           Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
           uint64_t offset = Utils::fromBigEndian<uint64_t>(tmp);
           index += 32;
@@ -912,7 +907,7 @@ namespace ABI {
           decodeTuple<T>(view, newIndex, ret);
           return ret;
         }
-        if (index + 32 * std::tuple_size_v<T> > bytes.size()) throw std::runtime_error("Data too short for tuple");
+        if (index + 32 * std::tuple_size_v<T> > bytes.size()) throw std::length_error("Data too short for tuple");
         decodeTuple<T>(bytes, index, ret);
         return ret;
       }
@@ -925,18 +920,18 @@ namespace ABI {
       using ElementType = vectorElementTypeT<T>;
       std::vector<ElementType> retVector;
       // Get array offset
-      if (index + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
+      if (index + 32 > bytes.size()) throw std::length_error("Data too short for vector");
       Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
       uint64_t arrayStart = Utils::fromBigEndian<uint64_t>(tmp);
       index += 32;
 
       // Get array length
       tmp.clear();
-      if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
+      if (arrayStart + 32 > bytes.size()) throw std::length_error("Data too short for vector");
       tmp.insert(tmp.end(), bytes.begin() + arrayStart, bytes.begin() + arrayStart + 32);
       uint64_t arrayLength = Utils::fromBigEndian<uint64_t>(tmp);
 
-      if (arrayStart + 32 > bytes.size()) throw std::runtime_error("Data too short for vector");
+      if (arrayStart + 32 > bytes.size()) throw std::length_error("Data too short for vector");
       uint64_t newIndex = 0;
       auto view = bytes.subspan(arrayStart + 32);
       for (uint64_t i = 0; i < arrayLength; i++) {
@@ -947,6 +942,11 @@ namespace ABI {
 
     ///@endcond
 
+    /// Specialization of decodeTupleHelper() for when tuple index is the last one
+    template<std::size_t Index = 0, typename... Args>
+    typename std::enable_if_t<Index == sizeof...(Args), void>
+    decodeTupleHelper(const BytesArrView&, const uint64_t&, std::tuple<Args...>&) {} // End of recursion
+
     /**
      * Recursive helper function to decode each element of the tuple.
      * @tparam Index The current index in the tuple.
@@ -956,11 +956,7 @@ namespace ABI {
      * @param tuple The tuple to hold the decoded values.
      */
     template<std::size_t Index = 0, typename... Args>
-    typename std::enable_if<Index == sizeof...(Args), void>::type
-    decodeTupleHelper(const BytesArrView& encodedData, uint64_t& index, std::tuple<Args...>& tuple) {} // End of recursion
-
-    template<std::size_t Index = 0, typename... Args>
-    typename std::enable_if<Index < sizeof...(Args), void>::type
+    typename std::enable_if_t<Index < sizeof...(Args), void>
     decodeTupleHelper(const BytesArrView& encodedData, uint64_t& index, std::tuple<Args...>& tuple) {
       // TODO: Technically, we could pass std::get<Index>(tuple) as a reference to decode<>().
       // But, it is worth to reduce code readability for a few nanoseconds? Need to benchmark.
@@ -986,26 +982,22 @@ namespace ABI {
       }
     }
 
-    template<typename T>
-    struct decodeDataAsTuple {
-        static T decode(const BytesArrView& encodedData, uint64_t index = 0) {
-            static_assert(always_false<T>, "Can't use decodeDataAsTuple with a non-tuple type");
-            return T();
-        }
+    template<typename T> struct decodeDataAsTuple {
+      static T decode(const BytesArrView&) {
+        static_assert(always_false<T>, "Can't use decodeDataAsTuple with a non-tuple type");
+        return T();
+      }
     };
 
-    template<typename... Args>
-    struct decodeDataAsTuple<std::tuple<Args...>> {
-        static std::tuple<Args...> decode(const BytesArrView& encodedData, uint64_t index = 0) {
-            if constexpr (sizeof...(Args) == 0) {
-                throw std::runtime_error("Can't decode empty tuple");
-            } else {
-                return decodeData<Args...>(encodedData);
-            }
+    template<typename... Args> struct decodeDataAsTuple<std::tuple<Args...>> {
+      static std::tuple<Args...> decode(const BytesArrView& encodedData) {
+        if constexpr (sizeof...(Args) == 0) {
+          throw std::invalid_argument("Can't decode empty tuple");
+        } else {
+          return decodeData<Args...>(encodedData);
         }
+      }
     };
-
-
   };  // namespace Decoder
 }; // namespace ABI
 

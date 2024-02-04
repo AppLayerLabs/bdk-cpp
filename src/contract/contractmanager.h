@@ -50,6 +50,9 @@ const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
  */
 class ContractManager : BaseContract {
   private:
+    /// List of currently deployed contracts.
+    std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
+
     /**
      * Raw pointer to the blockchain state object.
      * Used if the contract is a payable function.
@@ -57,8 +60,11 @@ class ContractManager : BaseContract {
      */
     State* state_;
 
-    /// List of currently deployed contracts.
-    std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
+    /// Reference pointer to the rdPoS contract.
+    const std::unique_ptr<rdPoS>& rdpos_;
+
+    /// Reference pointer to the options singleton.
+    const std::unique_ptr<Options>& options_;
 
     /**
      * Pointer to the contract factory object.
@@ -71,22 +77,16 @@ class ContractManager : BaseContract {
     std::unique_ptr<ContractManagerInterface> interface_;
 
     /**
-     * Pointer to the call state object.
-     * Responsible for maintaining temporary data used in contract call chains.
-     */
-    std::unique_ptr<ContractCallLogger> callLogger_;
-
-    /**
      * Pointer to the event manager object.
      * Responsible for maintaining events emitted in contract calls.
      */
     const std::unique_ptr<EventManager> eventManager_;
 
-    /// Reference pointer to the rdPoS contract.
-    const std::unique_ptr<rdPoS>& rdpos_;
-
-    /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
+    /**
+     * Pointer to the call state object.
+     * Responsible for maintaining temporary data used in contract call chains.
+     */
+    std::unique_ptr<ContractCallLogger> callLogger_;
 
     /// Mutex that manages read/write access to the contracts.
     mutable std::shared_mutex contractsMutex_;
@@ -152,13 +152,13 @@ class ContractManager : BaseContract {
   public:
     /**
      * Constructor. Automatically loads contracts from the database and deploys them.
-     * @param state Raw pointer to the state.
      * @param db Pointer to the database.
+     * @param state Raw pointer to the state.
      * @param rdpos Pointer to the rdPoS contract.
      * @param options Pointer to the options singleton.
      */
     ContractManager(
-      State* state, const std::unique_ptr<DB>& db,
+      const std::unique_ptr<DB>& db, State* state,
       const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
     );
 
