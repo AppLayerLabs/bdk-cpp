@@ -340,7 +340,7 @@ class ContractManagerInterface {
       C* contract = this->getContract<C>(targetAddr);
       this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
       try {
-        return contract->callContractFunction(func, std::forward<const Args&>(args)...);
+        return contract->callContractFunction(func, args...);
       } catch (const std::exception& e) {
         throw std::runtime_error(e.what() + std::string(" - Type: ")
           + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()

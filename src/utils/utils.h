@@ -1038,8 +1038,11 @@ namespace Utils {
    */
   template <class T> Bytes uintToBytes(T i) {
     Bytes ret(bytesRequired(i));
-    uint8_t *b = reinterpret_cast<uint8_t *>(&ret.back());
-    for (; i; i >>= 8) *(b--) = (uint8_t)(i & 0xff);
+    Bytes::iterator b = ret.end();
+    for (; i; i >>= 8) {
+      if (b == ret.begin()) break;
+      *(--b) = (uint8_t)(i & 0xff);
+    }
     return ret;
   }
 

@@ -242,13 +242,13 @@ public:
   }
 
   /**
-   * Insert a value into the map, using forward.
+   * Insert a value into the map, using move.
    * @param value The value to insert.
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
   const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(T&& value) {
-    check(); markAsUsed(); return mapPtr_->insert(std::forward<T>(value));
+    check(); markAsUsed(); return mapPtr_->insert(std::move(value));
   }
 
   /**
@@ -260,7 +260,7 @@ public:
   const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
     const typename std::unordered_map<Key, T, SafeHash>::value_type& value
-  ) {
+    ) {
     check(); markAsUsed(); return mapPtr_->insert(hint, value);
   }
 
@@ -278,7 +278,7 @@ public:
   }
 
   /**
-   * Insert a value into the map, using forward and a hint (the position before the insertion).
+   * Insert a value into the map, using move and a hint (the position before the insertion).
    * @param hint The hint to use.
    * @param value The value to insert.
    * @return An iterator to the inserted value.
@@ -286,7 +286,7 @@ public:
   const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, T&& value
   ) {
-    check(); markAsUsed(); return mapPtr_->insert(hint, std::forward<T>(value));
+    check(); markAsUsed(); return mapPtr_->insert(hint, std::move(value));
   }
 
   /**

@@ -7,10 +7,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
-
-ERC721::ERC721(ContractManagerInterface& interface, const Address& address, const std::unique_ptr<DB>& db)
-  : DynamicContract(interface, address, db), name_(this), symbol_(this), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this) {
-
+ERC721::ERC721(
+  ContractManagerInterface& interface, const Address& address, const std::unique_ptr<DB>& db
+) : DynamicContract(interface, address, db), name_(this), symbol_(this),
+  owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
+{
   this->name_ = Utils::bytesToString(db->get(std::string("name_"), this->getDBPrefix()));
   this->symbol_ = Utils::bytesToString(db->get(std::string("symbol_"), this->getDBPrefix()));
 

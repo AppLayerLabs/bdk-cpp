@@ -198,18 +198,16 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(Args...) const, const FunctionTypes& methodMutability, T* instance
     ) {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
-
       auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> Bytes {
         using ReturnType = decltype((instance->*memFunc)(std::declval<Args>()...));
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
         DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(std::get<6>(callInfo));
         // Use std::apply to call the member function and encode its return value
         return std::apply([instance, memFunc](Args... args) -> Bytes {
-            // Call the member function and return its encoded result
-            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+          // Call the member function and return its encoded result
+          return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
         }, decodedData);
       };
-
       switch (methodMutability) {
         case (FunctionTypes::View): {
           this->registerViewFunction(functor, registrationFunc);
@@ -391,7 +389,7 @@ class DynamicContract : public BaseContract {
       const Address& address, R(C::*func)(const Args&...) const, const Args&... args
     ) const {
       const C* contract = this->getContract<C>(address);
-      return (contract->*func)(std::forward<const Args&>(args)...);
+      return (contract->*func)(args...);
     }
 
     /**
@@ -422,8 +420,7 @@ class DynamicContract : public BaseContract {
       const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args
     ) {
       return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(),
-        targetAddr, 0, func, std::forward<const Args&>(args)...
+        this->getOrigin(), this->getContractAddress(), targetAddr, 0, func, args...
       );
     }
 
@@ -442,8 +439,7 @@ class DynamicContract : public BaseContract {
       const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args
     ) {
       return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(),
-        address, value, func, std::forward<const Args&>(args)...
+        this->getOrigin(), this->getContractAddress(), address, value, func, args...
       );
     }
 
@@ -493,7 +489,7 @@ class DynamicContract : public BaseContract {
       R (C::*func)(const Args&...), const Args&... args
     ) {
       try {
-        return (static_cast<C*>(this)->*func)(std::forward<const Args&>(args)...);
+        return (static_cast<C*>(this)->*func)(args...);
       } catch (const std::exception& e) {
         throw std::runtime_error(e.what());
       }

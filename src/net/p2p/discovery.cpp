@@ -116,9 +116,9 @@ namespace P2P {
           if (this->stopWorker_) return true;
 
           // Add requested node to list of requested nodes
-          std::unique_lock(this->requestedNodesMutex_);
+          std::unique_lock<std::shared_mutex> lock(this->requestedNodesMutex_);
           this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
-              std::chrono::high_resolution_clock::now().time_since_epoch()
+            std::chrono::high_resolution_clock::now().time_since_epoch()
           ).count();
         }
       }

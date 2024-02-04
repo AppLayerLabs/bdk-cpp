@@ -57,13 +57,13 @@ contractManager_(std::make_unique<ContractManager>(db, this, rdpos, options))
 }
 
 State::~State() {
-  /// DB is stored as following
-  /// Under the DBPrefix::nativeAccounts
-  /// Each key == Address
-  /// Each Value == Balance + uint256_t (not exact bytes)
-  /// Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
-  /// Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
-  /// If the nonce equals to 0, it will be *empty*
+  // DB is stored as following
+  // Under the DBPrefix::nativeAccounts
+  // Each key == Address
+  // Each Value == Balance + uint256_t (not exact bytes)
+  // Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
+  // Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
+  // If the nonce equals to 0, it will be *empty*
   DBBatch accountsBatch;
   std::unique_lock lock(this->stateMutex_);
   for (const auto& [address, account] : this->accounts_) {
