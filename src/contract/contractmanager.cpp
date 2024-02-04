@@ -67,7 +67,7 @@ Address ContractManager::deriveContractAddress() const {
 }
 
 Bytes ContractManager::getDeployedContracts() const {
-  std::shared_lock lock(this->contractsMutex_);
+  std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   std::vector<std::string> names;
   std::vector<Address> addresses;
   for (const auto& [address, contract] : this->contracts_) {
@@ -157,7 +157,7 @@ const Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
   if (to == this->getContractAddress()) return this->ethCallView(callInfo);
   if (to == ProtocolContractAddresses.at("rdPoS")) return rdpos_->ethCallView(callInfo);
-  std::shared_lock lock(this->contractsMutex_);
+  std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   if (!this->contracts_.contains(to)) {
     throw std::runtime_error(std::string(__func__) + "(Bytes): Contract does not exist");
   }
@@ -167,7 +167,7 @@ const Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
 bool ContractManager::isPayable(const ethCallInfo& callInfo) const {
   const auto& address = std::get<1>(callInfo);
   const auto& functor = std::get<5>(callInfo);
-  std::shared_lock lock(this->contractsMutex_);
+  std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   auto it = this->contracts_.find(address);
   if (it == this->contracts_.end()) return false;
   return it->second->isPayableFunction(functor);
@@ -198,7 +198,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       return true;
     }
 
-    std::shared_lock lock(this->contractsMutex_);
+    std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
     if (!this->contracts_.contains(to)) {
       this->callLogger_.reset();
       return false;
@@ -219,12 +219,12 @@ bool ContractManager::isContractCall(const TxBlock &tx) const {
   for (const auto& [protocolName, protocolAddress] : ProtocolContractAddresses) {
     if (tx.getTo() == protocolAddress) return true;
   }
-  std::shared_lock lock(this->contractsMutex_);
+  std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   return this->contracts_.contains(tx.getTo());
 }
 
 bool ContractManager::isContractAddress(const Address &address) const {
-  std::shared_lock(this->contractsMutex_);
+  std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   for (const auto& [protocolName, protocolAddress] : ProtocolContractAddresses) {
     if (address == protocolAddress) return true;
   }
@@ -232,7 +232,7 @@ bool ContractManager::isContractAddress(const Address &address) const {
 }
 
 std::vector<std::pair<std::string, Address>> ContractManager::getContracts() const {
-  std::shared_lock lock(this->contractsMutex_);
+  std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   std::vector<std::pair<std::string, Address>> contracts;
   for (const auto& [address, contract] : this->contracts_) {
     contracts.push_back({contract->getContractName(), address});

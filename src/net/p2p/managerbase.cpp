@@ -61,7 +61,7 @@ namespace P2P {
 
   std::shared_ptr<Request> ManagerBase::sendRequestTo(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
     if (this->closed_) return nullptr;
-    std::shared_lock lockSession(this->sessionsMutex_); // ManagerBase::sendRequestTo doesn't change sessions_ map.
+    std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_); // ManagerBase::sendRequestTo doesn't change sessions_ map.
     if(!sessions_.contains(nodeId)) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
       Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
@@ -69,8 +69,9 @@ namespace P2P {
     }
     auto session = sessions_[nodeId];
     // We can only request ping, info and requestNode to discovery nodes
-    if (session->hostType() == NodeType::DISCOVERY_NODE && (message->command() == CommandType::Info ||
-                                                            message->command() == CommandType::RequestValidatorTxs)) {
+    if (session->hostType() == NodeType::DISCOVERY_NODE &&
+      (message->command() == CommandType::Info || message->command() == CommandType::RequestValidatorTxs)
+    ) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
       Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__, "Session is discovery, cannot send message");
       return nullptr;
@@ -81,10 +82,11 @@ namespace P2P {
     return requests_[message->id()];
   }
 
+  // ManagerBase::answerSession doesn't change sessions_ map, but we still need to
+  // be sure that the session io_context doesn't get deleted while we are using it.
   void ManagerBase::answerSession(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
     if (this->closed_) return;
-    std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_); // ManagerBase::answerSession doesn't change sessions_ map.
-                                                                           // But we still need to be sure that the session io_context doesn't get deleted while we are using it.
+    std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_);
     if (auto ptr = session.lock()) {
       ptr->write(message);
     } else {
@@ -114,10 +116,8 @@ namespace P2P {
 
   std::vector<NodeID> ManagerBase::getSessionsIDs() const {
     std::vector<NodeID> nodes;
-    std::shared_lock lock(this->sessionsMutex_);
-    for (auto& session : sessions_) {
-      nodes.push_back(session.first);
-    }
+    std::shared_lock<std::shared_mutex> lock(this->sessionsMutex_);
+    for (auto& session : sessions_) nodes.push_back(session.first);
     return nodes;
   }
 
@@ -136,12 +136,9 @@ namespace P2P {
   void ManagerBase::connectToServer(const boost::asio::ip::address& address, uint16_t port) {
     if (this->closed_) return;
     if (address == this->server_->getLocalAddress() && port == this->serverPort_) return; /// Cannot connect to itself.
-
     {
-      std::shared_lock(this->sessionsMutex_);
-      if (this->sessions_.contains({address, port})) {
-        return; // Node is already connected
-      }
+      std::shared_lock<std::shared_mutex> lock(this->sessionsMutex_);
+      if (this->sessions_.contains({address, port})) return; // Node is already connected
     }
     this->clientfactory_->connectToServer(address, port);
   }
@@ -151,8 +148,8 @@ namespace P2P {
     Utils::logToFile("Pinging " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) throw std::runtime_error(
-          "Failed to send ping to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second)
-      );
+      "Failed to send ping to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second)
+    );
     requestPtr->answerFuture().wait();
   }
 
@@ -177,10 +174,10 @@ namespace P2P {
       return AnswerDecoder::requestNodes(*answerPtr);
     } catch (std::exception &e) {
       Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
+        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
       );
       return {};
     }
   }
-
 }
+

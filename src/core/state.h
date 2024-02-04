@@ -126,7 +126,10 @@ class State {
     const std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
 
     /// Get the mempool's current size.
-    inline const size_t getMempoolSize() const { std::shared_lock (this->stateMutex_); return this->mempool_.size(); }
+    inline const size_t getMempoolSize() const {
+      std::shared_lock<std::shared_mutex> lock (this->stateMutex_);
+      return this->mempool_.size();
+    }
 
     /**
      * Validate the next block given the current state and its transactions.

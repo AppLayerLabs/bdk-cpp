@@ -12,8 +12,8 @@ namespace P2P {
     std::unique_lock lock(this->requestedNodesMutex_);
     for (auto it = this->requestedNodes_.begin(); it != this->requestedNodes_.end();) {
       if (std::chrono::duration_cast<std::chrono::seconds>(
-          std::chrono::high_resolution_clock::now().time_since_epoch()).count() - it->second > 60
-          ) {
+        std::chrono::high_resolution_clock::now().time_since_epoch()
+      ).count() - it->second > 60) {
         this->requestedNodes_.erase(it++);
       } else {
         it++;
@@ -25,8 +25,8 @@ namespace P2P {
     std::unordered_set<NodeID, SafeHash>, std::unordered_set<NodeID, SafeHash>
   > DiscoveryWorker::listConnectedNodes() {
     std::pair<std::unordered_set<NodeID, SafeHash>, std::unordered_set<NodeID ,SafeHash>> connectedNodes;
-    std::shared_lock requestedNodesLock(this->requestedNodesMutex_);
-    std::shared_lock sessionsLock(this->manager_.sessionsMutex_);
+    std::shared_lock<std::shared_mutex> requestedNodesLock(this->requestedNodesMutex_);
+    std::shared_lock<std::shared_mutex> sessionsLock(this->manager_.sessionsMutex_);
     for (const auto& [nodeId, session] : this->manager_.sessions_) {
       // Skip nodes that were already requested in the last 60 seconds
       if (this->requestedNodes_.contains(nodeId)) continue;
@@ -51,13 +51,12 @@ namespace P2P {
 
   bool DiscoveryWorker::discoverLoop() {
     bool discoveryPass = false;
-
     Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Discovery thread started");
     while (!this->stopWorker_) {
       // Check if we reached connection limit
       {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::shared_lock lock(this->manager_.sessionsMutex_);
+        std::shared_lock<std::shared_mutex> lock(this->manager_.sessionsMutex_);
         if (this->manager_.sessions_.size() >= this->manager_.minConnections()) {
           // If we don't have at least 11 connections, we don't sleep discovery.
           // This is to make sure that local_testnet can quickly start up a new
@@ -95,9 +94,9 @@ namespace P2P {
           if (this->stopWorker_) return true;
 
           // Add requested node to list of requested nodes
-          std::unique_lock(this->requestedNodesMutex_);
+          std::unique_lock lock(this->requestedNodesMutex_);
           this->requestedNodes_[nodeId] = std::chrono::duration_cast<std::chrono::seconds>(
-              std::chrono::high_resolution_clock::now().time_since_epoch()
+            std::chrono::high_resolution_clock::now().time_since_epoch()
           ).count();
         }
         discoveryPass = true;

@@ -230,7 +230,7 @@ StorageStatus Storage::blockExists(const uint64_t& height) {
   auto it = this->blockHashByHeight_.find(height);
   if (it != this->blockHashByHeight_.end()) {
     if (this->blockByHash_.contains(it->second)) return StorageStatus::OnChain;
-    std::shared_lock lock(this->cacheLock_);
+    std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
     if (this->cachedBlocks_.contains(it->second)) return StorageStatus::OnCache;
     return StorageStatus::OnDB;
   } else {
@@ -247,15 +247,15 @@ const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
       return nullptr;
     }
     case StorageStatus::OnChain: {
-      std::shared_lock lock(this->chainLock_);
+      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
       return this->blockByHash_.find(hash)->second;
     }
     case StorageStatus::OnCache: {
-      std::shared_lock lock(this->cacheLock_);
+      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
       return this->cachedBlocks_[hash];
     }
     case StorageStatus::OnDB: {
-      std::unique_lock lock(this->cacheLock_);
+      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       this->cachedBlocks_.insert({hash, std::make_shared<Block>(
         this->db_->get(hash.get(), DBPrefix::blocks), this->options_->getChainID()
       )});
@@ -275,16 +275,16 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
       return nullptr;
     }
     case StorageStatus::OnChain: {
-      std::shared_lock lock(this->chainLock_);
+      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
       return this->blockByHash_.find(this->blockHashByHeight_.find(height)->second)->second;
     }
     case StorageStatus::OnCache: {
-      std::shared_lock lock(this->cacheLock_);
+      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
       Hash hash = this->blockHashByHeight_.find(height)->second;
       return this->cachedBlocks_.find(hash)->second;
     }
     case StorageStatus::OnDB: {
-      std::unique_lock lock(this->cacheLock_);
+      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       Hash hash = this->blockHashByHeight_.find(height)->second;
       auto blockData = this->db_->get(hash.get(), DBPrefix::blocks);
       this->cachedBlocks_.insert({hash, std::make_shared<Block>(blockData, this->options_->getChainID())});
@@ -325,7 +325,7 @@ const std::tuple<
       return {std::make_shared<const TxBlock>(transaction), blockHash, blockIndex, blockHeight};
     }
     case StorageStatus::OnCache: {
-      std::shared_lock(this->cacheLock_);
+      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
       return this->cachedTxs_[tx];
     }
     case StorageStatus::OnDB: {
@@ -336,7 +336,7 @@ const std::tuple<
       uint64_t blockHeight = Utils::bytesToUint64(txDataView.subspan(36,8));
       Bytes blockData(this->db_->get(blockHash.get(), DBPrefix::blocks));
       auto Tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
-      std::unique_lock(this->cacheLock_);
+      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       this->cachedTxs_.insert({tx, {std::make_shared<const TxBlock>(Tx), blockHash, blockIndex, blockHeight}});
       return this->cachedTxs_[tx];
     }
@@ -353,7 +353,7 @@ const std::tuple<
       return { nullptr, Hash(), 0, 0 };
     }
     case StorageStatus::OnChain: {
-      std::shared_lock lock(this->chainLock_);
+      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
       auto txHash = this->blockByHash_[blockHash]->getTxs()[blockIndex].hash();
       const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_[txHash];
       if (txBlockHash != blockHash || txBlockIndex != blockIndex) {
@@ -363,14 +363,14 @@ const std::tuple<
       return {std::make_shared<const TxBlock>(transaction), txBlockHash, txBlockIndex, txBlockHeight};
     }
     case StorageStatus::OnCache: {
-      std::shared_lock lock(this->cacheLock_);
+      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
       auto txHash = this->cachedBlocks_[blockHash]->getTxs()[blockIndex].hash();
       return this->cachedTxs_[txHash];
     }
     case StorageStatus::OnDB: {
       Bytes blockData = this->db_->get(blockHash.get(), DBPrefix::blocks);
       auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
-      std::unique_lock lock(this->cacheLock_);
+      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       auto blockHeight = this->blockHeightByHash_[blockHash];
       this->cachedTxs_.insert({tx.hash(), {std::make_shared<TxBlock>(tx), blockHash, blockIndex, blockHeight}});
       return this->cachedTxs_[tx.hash()];
@@ -388,7 +388,7 @@ const std::tuple<
       return { nullptr, Hash(), 0, 0 };
     }
     case StorageStatus::OnChain: {
-      std::shared_lock lock(this->chainLock_);
+      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
       auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
       auto txHash = this->blockByHash_[blockHash]->getTxs()[blockIndex].hash();
       const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_[txHash];
@@ -396,7 +396,7 @@ const std::tuple<
       return {std::make_shared<TxBlock>(transaction), txBlockHash, txBlockIndex, txBlockHeight};
     }
     case StorageStatus::OnCache: {
-      std::shared_lock lock(this->cacheLock_);
+      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
       auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
       auto txHash = this->cachedBlocks_[blockHash]->getTxs()[blockIndex].hash();
       return this->cachedTxs_[txHash];
@@ -405,7 +405,7 @@ const std::tuple<
       auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
       Bytes blockData = this->db_->get(blockHash.get(), DBPrefix::blocks);
       auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
-      std::unique_lock lock(this->cacheLock_);
+      std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       auto blockHeight = this->blockHeightByHash_[blockHash];
       this->cachedTxs_.insert({tx.hash(), { std::make_shared<TxBlock>(tx), blockHash, blockIndex, blockHeight}});
       return this->cachedTxs_[tx.hash()];
