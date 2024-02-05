@@ -12,6 +12,7 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.h
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.h
   ${CMAKE_SOURCE_DIR}/src/utils/logger.h
+  ${CMAKE_SOURCE_DIR}/src/utils/dynamicexception.h
   PARENT_SCOPE
 )
 
@@ -29,5 +30,6 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/optionsdefaults.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/dynamicexception.tpp
   PARENT_SCOPE
 )
