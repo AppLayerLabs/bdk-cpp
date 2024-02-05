@@ -21,23 +21,33 @@ class DynamicException : public std::exception {
 public:
 
     /**
-    * @brief Construct a new Dynamic Exception object
+    * @brief Construct a new DynamicException object with a message
     * @param message The message to be displayed when the exception is caught
+    */
+    template<typename... Args>
+    DynamicException(Args... args);
+
+    /**
+    * @brief Construct a new DynamicException object with a message and stack trace information
+    * @tparam FirstArg The type of the first argument
+    * @tparam RestArgs The types of the rest of the arguments
+    * @param firstArg The first part of the message
+    * @param restArgs The rest of the parts of the message
     * @param file The file where the exception was thrown
     * @param line The line where the exception was thrown
     * @param func The function where the exception was thrown
     */
-    template<typename... Args>
-    DynamicException(const std::string& message, 
-                     const std::string& file = "Unknown File", 
-                     int line = -1, 
-                     const std::string& func = "Unknown Function");
+    template<typename FirstArg, typename... RestArgs>
+    DynamicException(FirstArg firstArg, RestArgs... restArgs, const std::string& file = "", int line = 0, const std::string& func = "");
 
     /// Getter for the message to be displayed when the exception is caught
     const char* what() const noexcept override;
 
     /// Getter for the timestamp when the exception was thrown
     std::string getTimestamp() const;
+
+    /// Setter for the timestamp when the exception was thrown
+    void setTimestamp();
 
     /// Getter for the file where the exception was thrown
     const std::string& getFile() const;
@@ -47,6 +57,15 @@ public:
 
     /// Getter for the function where the exception was thrown
     const std::string& getFunction() const;
+
+    /**
+    * @brief Concatenates the arguments into a single message
+    * @tparam Args The types of the arguments to be concatenated into the message
+    * @param args The arguments to be concatenated into the message
+    * @return The concatenated message
+    */
+    template<typename... Args>
+    std::string buildMessage(Args... args);
 
 private:
 

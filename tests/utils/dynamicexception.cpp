@@ -1,48 +1,91 @@
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/dynamicexception.h"
-
-using Catch::Matchers::Equals;
+#include <iostream>
 
 namespace TDynamicException {
     TEST_CASE("DynamicException Class", "[utils][dynamicexception]") {
         SECTION("Exception message is set and retrieved correctly") {
-            const std::string expectedMessage = "Test error message";
-            DynamicException exception(expectedMessage);
+            const std::string filename = "test.cpp";
+            const int line = 42;
+            const std::string function = "testFunction";
+            const std::string message = "Test message";
+            DynamicException exception("Function " + function + " failed: " + message + " at " + filename + ":", line);
 
-            REQUIRE(std::string(exception.what()) == expectedMessage);
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                REQUIRE(e.what() == "Function " + function + " failed: " + message + " at " + filename + ":" + std::to_string(line));
+                REQUIRE(e.getFile() == "");
+                REQUIRE(e.getLine() == 0);
+                REQUIRE(e.getFunction() == "");
+            }
         }
 
-        SECTION("File name is set and retrieved correctly") {
-            const std::string expectedFile = "test.cpp";
-            DynamicException exception("Test error message", expectedFile);
+        SECTION("Exception with file, line, and function information") {
+            const std::string filename = "test.cpp";
+            const int line = 42;
+            const std::string function = "testFunction";
+            const std::string message = "Error in file " + filename + " at line " + std::to_string(line) + " in function " + function;
+            DynamicException exception(message, filename, line, function);
 
-            REQUIRE(exception.getFile() == expectedFile);
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                REQUIRE(e.what() == message);
+                REQUIRE(e.getFile() == filename);
+                REQUIRE(e.getLine() == line);
+                REQUIRE(e.getFunction() == function);
+            }
         }
 
-        SECTION("Line number is set and retrieved correctly") {
-            const int expectedLine = 42;
-            DynamicException exception("Test error message", "test.cpp", expectedLine);
 
-            REQUIRE(exception.getLine() == expectedLine);
+        SECTION("Timestamp is correctly formatted") {
+            const std::string message = "Error with timestamp";
+            DynamicException exception(message);
+
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                std::string timestamp = e.getTimestamp();
+                REQUIRE(!timestamp.empty());
+                REQUIRE(timestamp.length() == 19); // Checking the length of the timestamp
+                REQUIRE(timestamp[4] == '-');
+                REQUIRE(timestamp[7] == '-');
+                REQUIRE(timestamp[10] == ' ');
+                REQUIRE(timestamp[13] == ':');
+                REQUIRE(timestamp[16] == ':');
+            }
         }
 
-        SECTION("Function name is set and retrieved correctly") {
-            const std::string expectedFunction = "testFunction";
-            DynamicException exception("Test error message", "test.cpp", 42, expectedFunction);
+        SECTION("Exception with single message") {
+            const std::string message = "Error with single string message";
+            DynamicException exception(message);
 
-            REQUIRE(exception.getFunction() == expectedFunction);
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                REQUIRE(e.what() == message);
+                REQUIRE(e.getFile() == "");
+                REQUIRE(e.getLine() == 0);
+                REQUIRE(e.getFunction() == "");
+            }
         }
 
-        SECTION("Timestamp is set correctly") {
-            DynamicException exception("Test error message", "test.cpp", 42, "testFunction");
-            
-            std::string timestamp = exception.getTimestamp();
-            REQUIRE(timestamp.length() == 19);
-            REQUIRE(timestamp[4] == '-');
-            REQUIRE(timestamp[7] == '-');
-            REQUIRE(timestamp[10] == ' ');
-            REQUIRE(timestamp[13] == ':');
-            REQUIRE(timestamp[16] == ':');
+        SECTION("Exception with multiple messages") {
+            int a = 5;
+            int b = 10;
+            const std::string message = "Error with multiple messages: " + std::to_string(a) + " and " + std::to_string(b);
+            DynamicException exception("Error with multiple messages: ", a, " and ", b);
+
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                REQUIRE(e.what() == message);
+                REQUIRE(e.getFile() == "");
+                REQUIRE(e.getLine() == 0);
+                REQUIRE(e.getFunction() == "");
+            }
         }
+
     }
 }
