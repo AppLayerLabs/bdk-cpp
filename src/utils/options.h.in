@@ -19,7 +19,7 @@ See the LICENSE.txt file in the project root for more information.
  * Example options.json file:
  * {
  *   "rootPath": "blockchain",
- *   "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+ *   "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
  *   "version": 1,
  *   "chainID": 808080,
  *   "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",

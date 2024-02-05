@@ -64,7 +64,7 @@ void initialize(std::unique_ptr<DB>& db,
   if (!validatorKey) {
     options = std::make_unique<Options>(
         folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.2.0",
         1,
         8080,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -82,7 +82,7 @@ void initialize(std::unique_ptr<DB>& db,
   } else {
     options = std::make_unique<Options>(
       folderName,
-      "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+      "OrbiterSDK/cpp/linux_x86-64/0.2.0",
       1,
       8080,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -552,7 +552,7 @@ namespace TRdPoS {
       }
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
           testDumpPath + "/rdPoSdiscoveryNodeTestBroadcast",
-          "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+          "OrbiterSDK/cpp/linux_x86-64/0.2.0",
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -853,7 +853,7 @@ namespace TRdPoS {
     }
     std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
       testDumpPath + "/rdPoSdiscoveryNodeTestMove10Blocks",
-      "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+      "OrbiterSDK/cpp/linux_x86-64/0.2.0",
       1,
       8080,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),

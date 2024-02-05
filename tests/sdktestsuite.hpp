@@ -115,7 +115,7 @@ class SDKTestSuite {
         }
         this->options_ = std::make_unique<Options>(
           sdkPath,
-          "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+          "OrbiterSDK/cpp/linux_x86-64/0.2.0",
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
