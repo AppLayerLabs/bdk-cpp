@@ -30,11 +30,11 @@ class TxBlock {
     uint256_t maxPriorityFeePerGas_;  ///< Max priority fee per gas, as per [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559), in Wei.
     uint256_t maxFeePerGas_;          ///< Max fee per gas, as per [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559), in Wei.
     uint256_t gasLimit_;              ///< Gas limit.
-    void* accessList_ = nullptr;      ///< Access list (not implemented).
     uint8_t v_;                       ///< ECDSA recovery ID.
     uint256_t r_;                     ///< ECDSA first half.
     uint256_t s_;                     ///< ECDSA second half.
     Hash hash_;                       ///< Transaction hash. (with signature!)
+    //void* accessList_ = nullptr;      ///< Access list (not implemented).
 
   public:
     /**
@@ -187,9 +187,6 @@ class TxBlock {
 
     /// Equality operator. Checks if both transaction hashes are equal.
     bool operator==(const TxBlock& tx) const { return this->hash() == tx.hash(); }
-
-    /// Inequality operator. Checks if both transaction hashes are different.
-    bool operator!=(const TxBlock& tx) const { return this->hash() != tx.hash(); }
 };
 
 /**
@@ -205,7 +202,7 @@ class TxValidator {
     uint256_t v_;      ///< ECDSA recovery ID.
     uint256_t r_;      ///< ECDSA first half.
     uint256_t s_;      ///< ECDSA second half.
-    Hash hash_;                       ///< Transaction hash. (with signature!)
+    Hash hash_;        ///< Transaction hash (with signature).
 
   public:
     /**
@@ -233,13 +230,13 @@ class TxValidator {
     /// Copy constructor.
     TxValidator(const TxValidator& other) noexcept
     : from_(other.from_), data_(other.data_), chainId_(other.chainId_),
-    nHeight_(other.nHeight_), v_(other.v_), r_(other.r_), s_(other.s_), hash_(other.hash_) {}
+      nHeight_(other.nHeight_), v_(other.v_), r_(other.r_), s_(other.s_), hash_(other.hash_) {}
 
     /// Move constructor.
     TxValidator(TxValidator&& other) noexcept
     : from_(std::move(other.from_)), data_(std::move(other.data_)),
-    chainId_(std::move(other.chainId_)), nHeight_(std::move(other.nHeight_)),
-    v_(std::move(other.v_)), r_(std::move(other.r_)), s_(std::move(other.s_)), hash_(std::move(other.hash_)) {}
+      chainId_(std::move(other.chainId_)), nHeight_(std::move(other.nHeight_)),
+      v_(std::move(other.v_)), r_(std::move(other.r_)), s_(std::move(other.s_)), hash_(std::move(other.hash_)) {}
 
     /// Getter for `from`.
     inline const Address& getFrom() const { return this->from_; }
@@ -317,9 +314,6 @@ class TxValidator {
 
     /// Equality operator. Checks if both transaction hashes are equal.
     bool operator==(const TxValidator& tx) const { return this->hash() == tx.hash(); }
-
-    /// Inequality operator. Checks if both transaction hashes are different.
-    bool operator!=(const TxValidator& tx) const { return this->hash() != tx.hash(); }
 };
 
 #endif // TX_H

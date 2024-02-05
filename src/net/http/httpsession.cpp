@@ -12,7 +12,7 @@ HTTPQueue::HTTPQueue(HTTPSession& session) : session_(session) {
   this->items_.reserve(this->limit_);
 }
 
-bool HTTPQueue::full() { return this->items_.size() >= this->limit_; }
+bool HTTPQueue::full() const { return this->items_.size() >= this->limit_; }
 
 bool HTTPQueue::on_write() {
   BOOST_ASSERT(!this->items_.empty());

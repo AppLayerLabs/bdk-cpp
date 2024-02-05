@@ -75,21 +75,21 @@ namespace P2P {
 
       // Refresh and get the list of requested nodes
       this->refreshRequestedNodes();
-      auto connectedNodes = this->listConnectedNodes();
+      auto [connectedDiscoveries, connectedNormals] = this->listConnectedNodes();
       if (this->stopWorker_) return true;
 
       if (!discoveryPass) {
         // Ask each found discovery node for their peer list,
         // connect to said peer, and add them to the list of requested nodes
-        for (const auto& nodeId : connectedNodes.first) {
+        for (const auto& nodeId : connectedDiscoveries) {
           // Request nodes from discovery node
           auto nodeList = this->getConnectedNodes(nodeId);
           if (this->stopWorker_) return true;
 
           // Connect to all found nodes
-          for (const auto& [nodeId, nodeInfo] : nodeList) {
+          for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
             if (this->stopWorker_) return true;
-            this->connectToNode(nodeId, nodeInfo);
+            this->connectToNode(foundNodeId, foundNodeInfo);
           }
           if (this->stopWorker_) return true;
 
@@ -103,15 +103,15 @@ namespace P2P {
       } else {
         // Ask each found normal node for their peer list
         // Connect to said peer, and add them to the list of requested nodes
-        for (const auto& nodeId : connectedNodes.second) {
+        for (const auto& nodeId : connectedNormals) {
           // Request nodes from normal node
           auto nodeList = this->getConnectedNodes(nodeId);
           if (this->stopWorker_) return true;
 
           // Connect to all found nodes.
-          for (const auto& [nodeId, nodeInfo] : nodeList) {
+          for (const auto& [foundNodeId, foundNodeInfo] : nodeList) {
             if (this->stopWorker_) return true;
-            this->connectToNode(nodeId, nodeInfo);
+            this->connectToNode(foundNodeId, foundNodeInfo);
           }
           if (this->stopWorker_) return true;
 

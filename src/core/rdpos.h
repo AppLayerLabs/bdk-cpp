@@ -100,7 +100,7 @@ class rdPoS : public BaseContract {
      * Initializes the blockchain with the default information for rdPoS.
      * Called by the constructor if no previous blockchain is found.
      */
-    void initializeBlockchain();
+    void initializeBlockchain() const;
 
   public:
     /// Enum for Validator transaction functions.

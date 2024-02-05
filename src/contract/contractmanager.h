@@ -48,7 +48,7 @@ const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
  * Responsible for creating and deploying contracts in the chain.
  * Also acts as an access point for contracts to access each other.
  */
-class ContractManager : BaseContract {
+class ContractManager : public BaseContract {
   private:
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
@@ -273,7 +273,10 @@ class ContractManager : BaseContract {
      * @param blockHeight The height of the block.
      * @param blockTimestamp The timestamp of the block.
      */
-    void updateContractGlobals(const Address& coinbase, const Hash& blockHash, const uint64_t& blockHeight, const uint64_t& blockTimestamp);
+    void updateContractGlobals(
+      const Address& coinbase, const Hash& blockHash,
+      const uint64_t& blockHeight, const uint64_t& blockTimestamp
+    ) const;
 
     /// ContractManagerInterface is a friend so it can access private members.
     friend class ContractManagerInterface;
@@ -434,7 +437,7 @@ class ContractManagerInterface {
         "ContractManager::getContract: contract at address " +
         address.hex().get() + " not found."
       );
-      T* ptr = dynamic_cast<T*>(it->second.get());
+      auto ptr = dynamic_cast<T*>(it->second.get());
       if (ptr == nullptr) throw std::runtime_error(
         "ContractManager::getContract: Contract at address " +
         address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
@@ -456,7 +459,7 @@ class ContractManagerInterface {
         "ContractManager::getContract: contract at address " +
         address.hex().get() + " not found."
       );
-      T* ptr = dynamic_cast<T*>(it->second.get());
+      auto ptr = dynamic_cast<T*>(it->second.get());
       if (ptr == nullptr) throw std::runtime_error(
         "ContractManager::getContract: Contract at address " +
         address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()

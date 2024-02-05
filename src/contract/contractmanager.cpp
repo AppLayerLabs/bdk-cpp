@@ -50,7 +50,7 @@ ContractManager::~ContractManager() {
 }
 
 Address ContractManager::deriveContractAddress() const {
-  // Contract address = sha3(rlp(tx.from() + tx.nonce()).substr(12);
+  // Contract address is last 20 bytes of sha3 ( rlp ( tx from address + tx nonce ) )
   uint8_t rlpSize = 0xc0;
     rlpSize += this->getCaller().size();
     // As we don't have actually access to the nonce, we will use the number of contracts existing in the chain
@@ -88,7 +88,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
 
 const Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
   const auto& functor = std::get<5>(data);
-  // function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
+  // This hash is equivalent to "function getDeployedContracts() public view returns (string[] memory, address[] memory) {}"
   if (functor == Hex::toBytes("0xaa9a068f")) return this->getDeployedContracts();
   throw std::runtime_error("Invalid function call");
 }
@@ -235,7 +235,7 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
   std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   std::vector<std::pair<std::string, Address>> contracts;
   for (const auto& [address, contract] : this->contracts_) {
-    contracts.push_back({contract->getContractName(), address});
+    contracts.emplace_back(std::make_pair(contract->getContractName(), address));
   }
   return contracts;
 }
@@ -256,7 +256,7 @@ const std::vector<Event> ContractManager::getEvents(
 void ContractManager::updateContractGlobals(
   const Address& coinbase, const Hash& blockHash,
   const uint64_t& blockHeight, const uint64_t& blockTimestamp
-) {
+) const {
   ContractGlobals::coinbase_ = coinbase;
   ContractGlobals::blockHash_ = blockHash;
   ContractGlobals::blockHeight_ = blockHeight;

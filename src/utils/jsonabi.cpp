@@ -169,9 +169,9 @@ json JsonAbi::methodToJSON(const ABI::MethodDescription& desc) {
   obj["name"] = desc.name;
   obj["outputs"] = JsonAbi::parseMethodOutput(desc.outputs);
   switch (desc.stateMutability) {
-    case (FunctionTypes::View): obj["stateMutability"] = "view"; break;
-    case (FunctionTypes::NonPayable): obj["stateMutability"] = "nonpayable"; break;
-    case (FunctionTypes::Payable): obj["stateMutability"] = "payable"; break;
+    case FunctionTypes::View: obj["stateMutability"] = "view"; break;
+    case FunctionTypes::NonPayable: obj["stateMutability"] = "nonpayable"; break;
+    case FunctionTypes::Payable: obj["stateMutability"] = "payable"; break;
   }
   obj["type"] = desc.type;
   return obj;

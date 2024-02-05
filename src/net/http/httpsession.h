@@ -40,7 +40,7 @@ class HTTPQueue {
      * Check if the queue limit was hit.
      * @return `true` if queue is full, `false` otherwise.
      */
-    bool full();
+    bool full() const;
 
     /**
      * Callback for when a message is sent.
@@ -125,14 +125,14 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
      * @param p2p Reference pointer to the P2P connection manager.
      * @param options Reference pointer to the options singleton.
      */
-    HTTPSession(
-      tcp::socket&& sock, std::shared_ptr<const std::string>& docroot,
+    HTTPSession(tcp::socket&& sock,
+      const std::shared_ptr<const std::string>& docroot,
       const std::unique_ptr<State>& state,
       const std::unique_ptr<Storage>& storage,
       const std::unique_ptr<P2P::ManagerNormal>& p2p,
       const std::unique_ptr<Options>& options
     ) : stream_(std::move(sock)), docroot_(docroot), queue_(*this), state_(state),
-    storage_(storage), p2p_(p2p), options_(options)
+      storage_(storage), p2p_(p2p), options_(options)
     {}
 
     /// Start the HTTP session.

@@ -496,7 +496,7 @@ TxValidator::TxValidator(const BytesArrView bytes, const uint64_t& requiredChain
   }
 
   // Get recoveryId, verify the signature and derive sender address (from)
-  uint8_t recoveryId = uint8_t{this->v_ - (uint256_t(this->chainId_) * 2 + 35)};
+  auto recoveryId = uint8_t{this->v_ - (uint256_t(this->chainId_) * 2 + 35)};
   if (!Secp256k1::verifySig(this->r_, this->s_, recoveryId)) {
     throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
   }
@@ -537,7 +537,7 @@ Bytes TxValidator::rlpSerialize(bool includeSig) const {
   uint64_t total_size = 0;
   uint64_t reqBytesData = this->data_.size();
   uint64_t reqBytesnHeight = Utils::bytesRequired(this->nHeight_);
-  uint64_t reqBytesV = Utils::bytesRequired((includeSig) ? this->v_ : this->chainId_);
+  uint64_t reqBytesV = Utils::bytesRequired(includeSig ? this->v_ : this->chainId_);
   uint64_t reqBytesR = Utils::bytesRequired(this->r_);
   uint64_t reqBytesS = Utils::bytesRequired(this->s_);
 

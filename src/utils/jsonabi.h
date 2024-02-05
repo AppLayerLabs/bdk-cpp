@@ -114,7 +114,7 @@ namespace JsonAbi {
     json contractData;
     registerContractAndGetData<Contract>(contractData);
     std::string fileName = Utils::getRealTypeName<Contract>();
-    if (fileName.substr(fileName.find_last_of(".") + 1) != "json") fileName += ".json";
+    if (!fileName.substr(fileName.find_last_of(".") + 1).ends_with("json")) fileName += ".json";
     if (!std::filesystem::exists("ABI")) std::filesystem::create_directory("ABI");
     std::ofstream jsonFile("ABI/" + fileName);
     jsonFile << std::setw(2) << contractData << std::endl;
@@ -189,7 +189,7 @@ namespace JsonAbi {
    * @param abis The array of JSON objects to store the ABI functions in.
    */
   template <typename ContractTuple, std::size_t N>
-  std::enable_if_t<(N<std::tuple_size<ContractTuple>::value)>
+  std::enable_if_t<(N < std::tuple_size<ContractTuple>::value)>
   getConstructorsABI(json& abis) {
     abis.push_back(getConstructorABI<std::tuple_element_t<N, ContractTuple>>());
     if constexpr (N + 1 < std::tuple_size<ContractTuple>::value) {

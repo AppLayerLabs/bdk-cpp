@@ -117,7 +117,7 @@ namespace P2P {
   std::vector<NodeID> ManagerBase::getSessionsIDs() const {
     std::vector<NodeID> nodes;
     std::shared_lock<std::shared_mutex> lock(this->sessionsMutex_);
-    for (auto& session : sessions_) nodes.push_back(session.first);
+    for (auto& [nodeId, session] : this->sessions_) nodes.push_back(nodeId);
     return nodes;
   }
 

@@ -142,7 +142,7 @@ Options Options::fromFile(const std::string& rootPath) {
 
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
     for (const auto& node : options["discoveryNodes"]) {
-      discoveryNodes.push_back(std::make_pair(
+      discoveryNodes.emplace_back(std::make_pair(
         boost::asio::ip::address::from_string(node["address"].get<std::string>()),
         node["port"].get<uint64_t>()
       ));
@@ -159,7 +159,7 @@ Options Options::fromFile(const std::string& rootPath) {
 
     std::vector<std::pair<Address, uint256_t>> genesisBalances;
     for (const auto& balance : options["genesis"]["balances"]) {
-      genesisBalances.push_back(std::make_pair(
+      genesisBalances.emplace_back(std::make_pair(
         Address(Hex::toBytes(balance["address"].get<std::string>())),
         uint256_t(balance["balance"].get<std::string>())
       ));

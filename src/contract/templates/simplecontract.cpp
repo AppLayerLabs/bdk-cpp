@@ -187,7 +187,7 @@ std::tuple<std::string, uint256_t> SimpleContract::getTuple() const {
 
 void SimpleContract::registerContractFunctions() {
   registerContract();
-  this->registerMemberFunction("setName", &SimpleContract::setName, FunctionTypes::NonPayable, this);;
+  this->registerMemberFunction("setName", &SimpleContract::setName, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("setNames", &SimpleContract::setNames, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("setValue", &SimpleContract::setValue, FunctionTypes::NonPayable, this);
   this->registerMemberFunction("setValues", &SimpleContract::setValues, FunctionTypes::NonPayable, this);

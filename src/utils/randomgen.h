@@ -29,7 +29,7 @@ class RandomGen {
      * Implemented in conformity with UniformRandomBitGenerator:
      * https://en.cppreference.com/w/cpp/named_req/UniformRandomBitGenerator
      */
-    typedef uint256_t result_type;
+    using result_type = uint256_t;
 
     /**
      * Constructor.
@@ -58,7 +58,7 @@ class RandomGen {
       std::lock_guard lock(seedLock_);
       for (uint64_t i = 0; i < v.size(); ++i) {
         this->seed_ = Utils::sha3(this->seed_.get());
-        //std::cout << this->seed_.hex() << std::endl; // Uncomment to print seed
+        // Print seed as hex here if you want to debug it
         uint64_t n = uint64_t(i + this->seed_.toUint256() % (v.size() - i));
         std::swap(v[n], v[i]);
       }

@@ -68,7 +68,7 @@ class HTTPServer {
      * Check if the server is currently active and running.
      * @return `true` if the server is running, `false` otherwise.
      */
-    bool running() { return this->runFuture_.valid(); }
+    bool running() const { return this->runFuture_.valid(); }
 };
 
 #endif  // HTTPSERVER_H

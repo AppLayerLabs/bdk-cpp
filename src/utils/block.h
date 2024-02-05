@@ -221,9 +221,6 @@ class Block {
     /// Equality operator. Checks the block hash AND signature of both objects.
     const bool operator==(const Block& b) const { return ((this->hash() == b.hash()) && (this->getValidatorSig() == b.getValidatorSig())); }
 
-    /// Inequality operator. Checks the block hash AND signature of both objects.
-    const bool operator!=(const Block& b) const { return ((this->hash() != b.hash()) || (this->getValidatorSig() != b.getValidatorSig())); }
-
     /// Copy assignment operator.
     Block& operator=(const Block& other) {
       this->validatorSig_ = other.validatorSig_;

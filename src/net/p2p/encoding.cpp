@@ -152,8 +152,8 @@ namespace P2P {
     Bytes message = getRequestTypePrefix(Answering);
     Utils::appendBytes(message, request.id());
     Utils::appendBytes(message, getCommandPrefix(RequestValidatorTxs));
-    for (const auto& validatorTx : txs) {
-      Bytes rlp = validatorTx.second.rlpSerialize();
+    for (const auto& [validatorTxHash, validatorTx] : txs) {
+      Bytes rlp = validatorTx.rlpSerialize();
       Utils::appendBytes(message, Utils::uint32ToBytes(rlp.size()));
       message.insert(message.end(), rlp.begin(), rlp.end());
     }
@@ -189,7 +189,7 @@ namespace P2P {
     while (index < data.size()) {
       boost::asio::ip::address address;
       if (data.size() < 8) { throw std::runtime_error("Invalid data size."); }
-      NodeType nodeType = NodeType(Utils::bytesToUint8(data.subspan(index, 1)));
+      auto nodeType = NodeType(Utils::bytesToUint8(data.subspan(index, 1)));
       index += 1;
       uint8_t ipVersion = Utils::bytesToUint8(data.subspan(index, 1));
       index += 1; // Move index to IP address

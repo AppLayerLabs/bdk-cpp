@@ -40,10 +40,10 @@ class Blockchain {
      * Constructor.
      * @param blockchainPath Root path of the blockchain.
      */
-    explicit Blockchain(std::string blockchainPath);
+    explicit Blockchain(const std::string& blockchainPath);
 
-    /// Destructor.
-    ~Blockchain() {};
+    /// Default destructor.
+    ~Blockchain() = default;
 
     /**
      * Start the blockchain.
@@ -133,13 +133,13 @@ class Syncer {
      * If the node is a Validator, this function will be called to make the
      * node wait until it receives a new block.
      */
-    void doValidatorTx();
+    void doValidatorTx() const;
 
     /// Routine loop for when the node is a Validator.
     void validatorLoop();
 
     /// Routine loop for when the node is NOT a Validator.
-    void nonValidatorLoop();
+    void nonValidatorLoop() const;
 
     /// Routine loop for the syncer worker.
     bool syncerLoop();

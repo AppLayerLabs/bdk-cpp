@@ -175,7 +175,7 @@ class Hex {
 
     /// Concat operator. Throws on invalid concat.
     Hex& operator+=(const std::string& hex) {
-      if (this->isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
+      if (Hex::isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
         this->hex_ += (
           hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
         ) ? hex.substr(2) : hex;

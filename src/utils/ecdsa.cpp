@@ -148,14 +148,14 @@ bool Secp256k1::verify(const Hash& msg, const UPubKey& key, const Signature& sig
   auto* ctx = Secp256k1::getCtx();
 
   secp256k1_ecdsa_signature rawSig;
-  if (!secp256k1_ecdsa_signature_parse_compact(ctx, &rawSig, reinterpret_cast<const unsigned char*>(sig.raw())))
+  if (!secp256k1_ecdsa_signature_parse_compact(ctx, &rawSig, sig.raw()))
     return false;
 
   secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey, reinterpret_cast<const unsigned char*>(key.raw()), key.size()))
+  if (!secp256k1_ec_pubkey_parse(ctx, &rawPubkey, key.raw(), key.size()))
     return false;
 
-  int ret = secp256k1_ecdsa_verify(ctx, &rawSig, reinterpret_cast<const unsigned char*>(msg.raw()), &rawPubkey);
+  int ret = secp256k1_ecdsa_verify(ctx, &rawSig, msg.raw(), &rawPubkey);
   return ret;
 }
 

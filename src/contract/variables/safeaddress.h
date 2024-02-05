@@ -90,16 +90,6 @@ class SafeAddress : public SafeBase {
     inline bool operator==(const SafeAddress& other) const {
       check(); return (*addressPtr_ == other.get());
     }
-
-    /// Inequality operator.
-    inline bool operator!=(const Address& other) const {
-      check(); return (*addressPtr_ != other);
-    }
-
-    /// Inequality operator.
-    inline bool operator!=(const SafeAddress& other) const {
-      check(); return (*addressPtr_ != other.get());
-    }
 };
 
 #endif  // SAFEADDRESS_H

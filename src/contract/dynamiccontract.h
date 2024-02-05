@@ -56,7 +56,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerFunction(
-      const Functor& functor, std::function<void(const ethCallInfo& tx)> f
+      const Functor& functor, const std::function<void(const ethCallInfo& tx)>& f
     ) {
       publicFunctions_[functor] = f;
     }
@@ -170,20 +170,16 @@ class DynamicContract : public BaseContract {
         }, decodedData);
       };
       switch (methodMutability) {
-        case (FunctionTypes::View): {
+        case FunctionTypes::View:
           throw std::runtime_error("View must be const because it does not modify the state.");
-        }
-        case (FunctionTypes::NonPayable): {
+        case FunctionTypes::NonPayable:
           this->registerFunction(functor, registrationFunc);
           break;
-        }
-        case (FunctionTypes::Payable): {
+        case FunctionTypes::Payable:
           this->registerPayableFunction(functor, registrationFunc);
           break;
-        }
-        default: {
+        default:
           throw std::runtime_error("Invalid function signature.");
-        }
       }
     }
 
@@ -209,17 +205,15 @@ class DynamicContract : public BaseContract {
         }, decodedData);
       };
       switch (methodMutability) {
-        case (FunctionTypes::View): {
+        case FunctionTypes::View:
           this->registerViewFunction(functor, registrationFunc);
           break;
-        }
-        case (FunctionTypes::NonPayable): {
+        case FunctionTypes::NonPayable:
           this->registerFunction(functor, registrationFunc);
-        }
-        case (FunctionTypes::Payable): {
+          break;
+        case FunctionTypes::Payable:
           this->registerPayableFunction(functor, registrationFunc);
           break;
-        }
       }
     }
 
@@ -229,7 +223,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerPayableFunction(
-      const Functor& functor, std::function<void(const ethCallInfo& tx)> f
+      const Functor& functor, const std::function<void(const ethCallInfo& tx)>& f
     ) {
       payableFunctions_[functor] = f;
     }
@@ -240,7 +234,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerViewFunction(
-      const Functor& functor, std::function<Bytes(const ethCallInfo& str)> f
+      const Functor& functor, const std::function<Bytes(const ethCallInfo& str)>& f
     ) {
       viewFunctions_[functor] = f;
     }
@@ -350,7 +344,7 @@ class DynamicContract : public BaseContract {
      * @return `true` if the functor is registered as a payable function, `false` otherwise.
      */
     bool isPayableFunction(const Functor& functor) const {
-      return this->payableFunctions_.find(functor) != this->payableFunctions_.end();
+      return this->payableFunctions_.contains(functor);
     }
 
     /**

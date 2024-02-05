@@ -18,7 +18,7 @@ See the LICENSE.txt file in the project root for more information.
  * Used to safely store a string within a contract.
  * @see SafeBase
  */
-class SafeString : SafeBase {
+class SafeString : public SafeBase {
   private:
     std::string str_;  ///< Value.
     mutable std::unique_ptr<std::string> strPtr_; ///< Pointer to the value. check() requires this to be mutable.
@@ -201,13 +201,13 @@ class SafeString : SafeBase {
     inline std::string::reverse_iterator rbegin() { check(); markAsUsed(); return strPtr_->rbegin(); }
 
     /// Get a const reverse iterator to the start of a string.
-    inline std::string::const_reverse_iterator crbegin() { check(); return strPtr_->crbegin(); }
+    inline std::string::const_reverse_iterator crbegin() const { check(); return strPtr_->crbegin(); }
 
     /// Get a reverse iterator to the end of a string.
     inline std::string::reverse_iterator rend() { check(); markAsUsed(); return strPtr_->rend(); }
 
     /// Get a const reverse iterator to the end of a string.
-    inline std::string::const_reverse_iterator crend() { check(); return strPtr_->crend(); }
+    inline std::string::const_reverse_iterator crend() const { check(); return strPtr_->crend(); }
 
     /**
      * Check if the string is empty (has no characters, aka "").
@@ -656,8 +656,7 @@ class SafeString : SafeBase {
      */
     inline bool ends_with(const char* s) const { check(); return strPtr_->ends_with(s); }
 
-    // TODO: contains (C++23)
-    // constexpr bool contains( std::basic_string_view<CharT,Traits> sv ) const noexcept;
+    // TODO: contains (C++23) - (1) in https://en.cppreference.com/w/cpp/string/basic_string/contains
 
     /**
      * Replace part of this string with a SafeString.
@@ -1258,7 +1257,7 @@ class SafeString : SafeBase {
     };
 
     /// Concat operator.
-    inline SafeString operator+(const std::string rhs) const {
+    inline SafeString operator+(const std::string& rhs) const {
       check(); return SafeString(*strPtr_ + rhs);
     };
 
@@ -1285,16 +1284,6 @@ class SafeString : SafeBase {
     /// Equality operator.
     inline bool operator==(const char* rhs) const {
       check(); return *strPtr_ == rhs;
-    };
-
-    /// Inequality operator.
-    inline bool operator!=(const SafeString& rhs) const {
-      check(); return *strPtr_ != rhs.get();
-    };
-
-    /// Inequality operator.
-    inline bool operator!=(const std::string& rhs) const {
-      check(); return *strPtr_ != rhs;
     };
 
     /// Inequality operator.

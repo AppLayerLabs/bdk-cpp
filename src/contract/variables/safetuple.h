@@ -149,7 +149,7 @@ template<typename... Types> class SafeTuple : public SafeBase {
       markAsUsed();
       if (&other == this) return *this;
       tuplePtr_ = std::make_unique<std::tuple<Types...>>(
-        ((other.tuplePtr_) ? *other.tuplePtr_ : other.tuple_)
+        (other.tuplePtr_) ? *other.tuplePtr_ : other.tuple_
       );
       return *this;
     }
@@ -176,7 +176,7 @@ template<typename... Types> class SafeTuple : public SafeBase {
       check();
       markAsUsed();
       tuplePtr_ = std::make_unique<std::tuple<Types...>>(
-        ((other.tuplePtr_) ? *other.tuplePtr_ : other.tuple_)
+        (other.tuplePtr_) ? *other.tuplePtr_ : other.tuple_
       );
       return *this;
     }

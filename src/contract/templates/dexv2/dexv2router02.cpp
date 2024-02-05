@@ -127,7 +127,8 @@ void DEXV2Router02::_swap(
     if (!pairAddress) throw std::runtime_error("DEXV2Router02::_swap: PAIR_NOT_FOUND");
     auto token0 = DEXV2Library::sortTokens(input, output).first;
     uint256_t amountOut = amounts[i + 1];
-    uint256_t amount0Out, amount1Out;
+    uint256_t amount0Out;
+    uint256_t amount1Out;
     if (input == token0) {
       amount0Out = uint256_t(0);
       amount1Out = amountOut;
@@ -144,8 +145,10 @@ void DEXV2Router02::_swap(
   }
 }
 
-bool DEXV2Router02::ensure(const uint256_t& deadline) {
-  if (deadline < this->getBlockTimestamp()) throw std::runtime_error("DEXV2Router02::ensure: EXPIRED");
+bool DEXV2Router02::ensure(const uint256_t& deadline) const {
+  if (deadline < ContractGlobals::getBlockTimestamp()) {
+    throw std::runtime_error("DEXV2Router02::ensure: EXPIRED");
+  }
   return true;
 }
 
@@ -211,9 +214,7 @@ std::tuple<uint256_t, uint256_t> DEXV2Router02::removeLiquidity(
   this->ensure(deadline);
   auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), tokenA, tokenB);
   this->callContractFunction(pair, &ERC20::transferFrom, this->getCaller(), pair, liquidity);
-  auto burnBytes = this->callContractFunction(pair, &DEXV2Pair::burn, to);
-  auto amount0 = std::get<0>(burnBytes);
-  auto amount1 = std::get<1>(burnBytes);
+  const auto& [amount0, amount1] = this->callContractFunction(pair, &DEXV2Pair::burn, to);
   auto amountA = tokenA == DEXV2Library::sortTokens(tokenA, tokenB).first ? amount0 : amount1;
   auto amountB = tokenA == DEXV2Library::sortTokens(tokenA, tokenB).first ? amount1 : amount0;
   if (amountA < amountAMin) throw std::runtime_error("DEXV2Router02::removeLiquidity: INSUFFICIENT_A_AMOUNT");
@@ -230,12 +231,10 @@ std::tuple<uint256_t, uint256_t> DEXV2Router02::removeLiquidityNative(
   const uint256_t& deadline
 ) {
   this->ensure(deadline);
-  auto amounts = this->removeLiquidity(
-      token, this->wrappedNative_.get(), liquidity, amountTokenMin,
-      amountNativeMin, this->getContractAddress(), deadline
-    );
-  auto amountToken = std::get<0>(amounts);
-  auto amountNative = std::get<1>(amounts);
+  auto [amountToken, amountNative] = this->removeLiquidity(
+    token, this->wrappedNative_.get(), liquidity, amountTokenMin,
+    amountNativeMin, this->getContractAddress(), deadline
+  );
   this->callContractFunction(token, &ERC20::transfer, to, amountToken);
   this->callContractFunction(this->wrappedNative_.get(), &NativeWrapper::withdraw, amountNative);
   this->sendTokens(this->getCaller(), amountNative);

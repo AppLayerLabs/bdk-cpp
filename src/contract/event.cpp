@@ -60,7 +60,7 @@ EventManager::EventManager(
   const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options
 ) : db_(db), options_(options) {
   std::vector<DBEntry> allEvents = this->db_->getBatch(DBPrefix::events);
-  for (DBEntry& event : allEvents) {
+  for (const DBEntry& event : allEvents) {
     Event e(Utils::bytesToString(event.value)); // Create a new Event object by deserializing
     this->events_.insert(std::move(e)); // Use insert for MultiIndex container
   }

@@ -271,7 +271,7 @@ struct Account {
   uint64_t nonce = 0;     ///< Account nonce.
 
   /// Default Constructor.
-  Account() {}
+  Account() = default;
 
   /// Copy Constructor.
   Account(const uint256_t& balance, const uint64_t& nonce) : balance(balance), nonce(nonce) {}
@@ -987,7 +987,7 @@ namespace Utils {
    * @return The converted integer type.
    */
   template <class T, class In> T fromBigEndian(const In& bytes) {
-    T ret = (T)0;
+    auto ret = (T)0;
     for (auto i : bytes) {
       ret = (T)((ret << 8) | (uint8_t)(typename std::make_unsigned<decltype(i)>::type) i);
     }
@@ -1026,7 +1026,7 @@ namespace Utils {
     // bigint does not carry sign bit on shift
     static_assert(std::is_same<bigint, T>::value || !std::numeric_limits<T>::is_signed, "only unsigned types or bigint supported");
     unsigned ic = 0;
-    for (; i != 0; ++ic, i >>= 8) {}
+    for (; i != 0; ++ic, i >>= 8);
     return ic;
   }
 
@@ -1057,7 +1057,7 @@ namespace Utils {
     int status;
     char* demangledName = nullptr;
     std::string mangledName = typeid(T).name();
-    demangledName = abi::__cxa_demangle(mangledName.c_str(), 0, 0, &status);
+    demangledName = abi::__cxa_demangle(mangledName.c_str(), nullptr, nullptr, &status);
     if (status == 0 && demangledName != nullptr) {
       std::string realName(demangledName);
       free(demangledName);

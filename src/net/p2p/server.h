@@ -116,9 +116,10 @@ namespace P2P {
       bool stop();
 
       /// Check if the server is running.
-      bool isRunning();
+      bool isRunning() const;
 
       /// Get the server ip address.
-      net::ip::address getLocalAddress() { return localAddress_; }
+      net::ip::address getLocalAddress() const { return localAddress_; }
   };
 }
+

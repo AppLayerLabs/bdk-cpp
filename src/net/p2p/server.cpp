@@ -98,7 +98,6 @@ namespace P2P {
     return true;
   }
 
-  bool Server::isRunning() {
-    return this->executor_.valid();
-  }
+  bool Server::isRunning() const { return this->executor_.valid(); }
 }
+

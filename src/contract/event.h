@@ -35,6 +35,7 @@ using json = nlohmann::ordered_json;
 /// Abstraction of a Solidity event.
 class Event {
   friend struct event_indices;
+
   private:
     std::string name_;          ///< Event name.
     uint64_t logIndex_;         ///< Position of the event inside the block it was emitted from.
@@ -110,8 +111,8 @@ class Event {
      * @param blockIndex The height of the block.
      */
     void setStateData(
-      uint64_t logIndex, Hash txHash, uint64_t txIndex,
-      Hash blockHash, uint64_t blockIndex
+      uint64_t logIndex, const Hash& txHash, uint64_t txIndex,
+      const Hash& blockHash, uint64_t blockIndex
     ) {
       this->logIndex_ = logIndex;
       this->txHash_ = txHash;
@@ -283,7 +284,7 @@ class EventManager {
      * @param txHash The hash of the transaction that emitted the events.
      * @param txIndex The index of the transaction inside the block that emitted the events.
      */
-    void commitEvents(const Hash txHash, const uint64_t txIndex) {
+    void commitEvents(const Hash& txHash, const uint64_t txIndex) {
       uint64_t logIndex = 0;
       auto it = tempEvents_.begin(); // Use iterators to loop through the MultiIndex container
       while (it != tempEvents_.end()) {

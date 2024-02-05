@@ -112,7 +112,7 @@ class Storage {
      * @param txIndex The index of the transaction to get.
      * @return The transaction itself.
      */
-    const TxBlock getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex);
+    const TxBlock getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const;
 
   public:
     /**
@@ -217,7 +217,7 @@ class Storage {
     uint64_t currentChainSize();
 
     /// Start the periodic save thread. TODO: this should be called by the constructor.
-    void periodicSaveToDB();
+    void periodicSaveToDB() const;
 
     /// Stop the periodic save thread. TODO: this should be called by the destructor.
     void stopPeriodicSaveToDB() { this->stopPeriodicSave_ = true; }

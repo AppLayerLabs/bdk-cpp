@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "blockchain.h"
 
-Blockchain::Blockchain(std::string blockchainPath) :
+Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(std::make_unique<Options>(Options::fromFile(blockchainPath))),
   db_(std::make_unique<DB>(blockchainPath + "/database")),
   storage_(std::make_unique<Storage>(db_, options_)),
@@ -39,7 +39,7 @@ void Syncer::updateCurrentlyConnectedNodes() {
   }
 
   // Update information of already connected nodes
-  for (auto& [nodeId, nodeInfo] : this->currentlyConnectedNodes_) {
+  for (const auto& [nodeId, nodeInfo] : this->currentlyConnectedNodes_) {
     // If node is not connected, remove it from the list
     if (std::find(connectedNodes.begin(), connectedNodes.end(), nodeId) == connectedNodes.end()) {
       this->currentlyConnectedNodes_.erase(nodeId);
@@ -57,7 +57,7 @@ void Syncer::updateCurrentlyConnectedNodes() {
   }
 
   // Add new nodes to the list
-  for (auto& nodeId : connectedNodes) {
+  for (const auto& nodeId : connectedNodes) {
     if (!this->currentlyConnectedNodes_.contains(nodeId)) {
       auto newNodeInfo = blockchain_.p2p_->requestNodeInfo(nodeId);
       if (newNodeInfo != P2P::NodeInfo()) {
@@ -90,7 +90,6 @@ void Syncer::doSync() {
 
   this->latestBlock_ = blockchain_.storage_->latest();
   this->synced_ = true;
-  return;
 }
 
 void Syncer::doValidatorBlock() {
@@ -117,26 +116,22 @@ void Syncer::doValidatorBlock() {
   std::vector<TxValidator> randomnessTxs;
   uint64_t i = 1;
   while (randomHashTxs.size() != rdPoS::minValidators) {
-    for (const auto [txHash, tx]: mempool) {
+    for (const auto& [txHash, tx] : mempool) {
       if (this->stopSyncer_) return;
-      if (tx.getFrom() == randomList[i]) {
-        if (tx.getFunctor() == Hex::toBytes("0xcfffe746")) {
-          randomHashTxs.emplace_back(tx);
-          i++;
-          break;
-        }
+      if (tx.getFrom() == randomList[i] && tx.getFunctor() == Hex::toBytes("0xcfffe746")) {
+        randomHashTxs.emplace_back(tx);
+        i++;
+        break;
       }
     }
   }
   i = 1;
   while (randomnessTxs.size() != rdPoS::minValidators) {
-    for (const auto [txHash, tx]: mempool) {
-      if (tx.getFrom() == randomList[i]) {
-        if (tx.getFunctor() == Hex::toBytes("0x6fc5a2d6")) {
-          randomnessTxs.emplace_back(tx);
-          i++;
-          break;
-        }
+    for (const auto& [txHash, tx] : mempool) {
+      if (tx.getFrom() == randomList[i] && tx.getFunctor() == Hex::toBytes("0x6fc5a2d6")) {
+        randomnessTxs.emplace_back(tx);
+        i++;
+        break;
       }
     }
   }
@@ -169,11 +164,10 @@ void Syncer::doValidatorBlock() {
   // Broadcast the block through P2P
   if (this->stopSyncer_) return;
   this->blockchain_.p2p_->broadcastBlock(this->blockchain_.storage_->latest());
-  return;
 }
 
-void Syncer::doValidatorTx() {
-  ; // There is nothing to do, validatorLoop will wait for the next block.
+void Syncer::doValidatorTx() const {
+  // There is nothing to do, validatorLoop will wait for the next block.
 }
 
 void Syncer::validatorLoop() {
@@ -198,13 +192,11 @@ void Syncer::validatorLoop() {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
-  return;
 }
 
-void Syncer::nonValidatorLoop() {
+void Syncer::nonValidatorLoop() const {
   // TODO: Improve tx broadcasting and syncing
   while (!this->stopSyncer_) std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  return;
 }
 
 bool Syncer::syncerLoop() {
@@ -235,13 +227,11 @@ void Syncer::start() {
   if (!this->syncerLoopFuture_.valid()) {
     this->syncerLoopFuture_ = std::async(std::launch::async, &Syncer::syncerLoop, this);
   }
-  return;
 }
 
 void Syncer::stop() {
   this->stopSyncer_ = true;
   this->blockchain_.rdpos_->stoprdPoSWorker(); // Stop the rdPoS worker.
   if (this->syncerLoopFuture_.valid()) this->syncerLoopFuture_.wait();
-  return;
 }
 

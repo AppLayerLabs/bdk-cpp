@@ -72,7 +72,7 @@ class DEXV2Router02 : public DynamicContract {
      * @return `true` if deadline has not expired yet.
      * @throw std::runtime_error if deadline has expired.
      */
-    bool ensure(const uint256_t& deadline);
+    bool ensure(const uint256_t& deadline) const;
 
   public:
     /// ConstructorArguments is a tuple of the contract constructor arguments in the order they appear in the constructor.

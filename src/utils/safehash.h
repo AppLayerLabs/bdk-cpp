@@ -122,10 +122,8 @@ struct SafeHash {
    */
   size_t operator()(const Address& address) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    // Faster hashing for 20 bytes of data.
-    uint32_t const* data = reinterpret_cast<uint32_t const*>(address.raw());
-    // 160 / 32 = 5
-    return splitmix(boost::hash_range(data, data + 5) + FIXED_RANDOM);
+    auto data = reinterpret_cast<uint32_t const*>(address.raw()); // Faster hashing for 20 bytes of data.
+    return splitmix(boost::hash_range(data, data + 5) + FIXED_RANDOM); // 160 / 32 = 5
   }
 
   /**
@@ -134,10 +132,8 @@ struct SafeHash {
    */
   size_t operator()(const Functor& functor) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-   // Faster hashing for 4 bytes of data.
-   uint32_t const* data = reinterpret_cast<uint32_t const*>(functor.raw());
-   // 32 / 32 = 1
-   return splitmix(boost::hash_range(data, data + 1) + FIXED_RANDOM);
+    auto data = reinterpret_cast<uint32_t const*>(functor.raw()); // Faster hashing for 4 bytes of data.
+    return splitmix(boost::hash_range(data, data + 1) + FIXED_RANDOM); // 32 / 32 = 1
   }
 
   /**
@@ -148,17 +144,16 @@ struct SafeHash {
   size_t operator()(const Hash& hash) const {
     static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
     // Fast compatible object for hashing 32 bytes of data.
-    uint64_t const* data = reinterpret_cast<uint64_t const*>(hash.raw());
+    auto data = reinterpret_cast<uint64_t const*>(hash.raw());
     return splitmix(boost::hash_range(data, data + 4) + FIXED_RANDOM);
   }
+
   /**
    * Wrapper for `splitmix()`.
    * @param tx A TxValidator object.
    * @returns The same as `splitmix()`.
    */
-  size_t operator()(const TxValidator& tx) const {
-    return SafeHash()(tx.hash());
-  }
+  size_t operator()(const TxValidator& tx) const { return SafeHash()(tx.hash()); }
 
   /**
    * Wrapper for `splitmix()`.
@@ -222,10 +217,7 @@ struct FNVHash {
    */
   size_t operator()(BytesArrView s) const {
     size_t result = 2166136261U;
-    BytesArrView::iterator end = s.end();
-    for (BytesArrView::iterator it = s.begin(); it != end; it++) {
-      result = (16777619 * result) ^ (*it);
-    }
+    for (auto it = s.begin(); it != s.end(); it++) result = (16777619 * result) ^ (*it);
     return result;
   }
 };

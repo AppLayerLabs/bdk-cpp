@@ -29,7 +29,10 @@ std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
 Merkle::Merkle(const std::vector<Hash>& leaves) {
   // Mount the base leaves
   std::vector<Hash> tmp;
-  for (const Hash& leaf : leaves) tmp.emplace_back(std::move(Utils::sha3(leaf.get())));
+  for (const Hash& leaf : leaves) {
+    Hash leafHash = Utils::sha3(leaf.get());
+    tmp.emplace_back(std::move(leafHash));
+  }
   this->tree_.emplace_back(tmp);
   // Make the layers up to root
   while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));

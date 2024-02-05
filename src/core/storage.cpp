@@ -105,7 +105,7 @@ void Storage::initializeBlockchain() {
   }
   /// Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
   const auto genesis = this->options_->getGenesisBlock();
-  const Hash genesisInDBHash = Hash(this->db_->get(Utils::uint64ToBytes(0), DBPrefix::blockHeightMaps));
+  const auto genesisInDBHash = Hash(this->db_->get(Utils::uint64ToBytes(0), DBPrefix::blockHeightMaps));
   const auto genesisInDB = Block(this->db_->get(genesisInDBHash, DBPrefix::blocks), this->options_->getChainID());
   if (genesis != genesisInDB) {
     Logger::logToDebug(LogType::ERROR, Log::storage, __func__, "Sanity Check! Genesis block in DB does not match genesis block in Options");
@@ -113,7 +113,7 @@ void Storage::initializeBlockchain() {
   }
 }
 
-const TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) {
+const TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const {
   uint64_t index = 217; // Start of block tx range
   /// Count txs until index.
   uint64_t currentTx = 0;
@@ -129,7 +129,7 @@ const TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, con
 
 void Storage::pushBackInternal(Block&& block) {
   // Push the new block and get a pointer to it
-  if (this->chain_.size() != 0) {
+  if (!this->chain_.empty()) {
     if (this->chain_.back()->hash() != block.getPrevBlockHash()) {
       throw std::runtime_error("Block " + block.hash().hex().get()
         + " does not have the correct previous block hash."
@@ -156,7 +156,7 @@ void Storage::pushBackInternal(Block&& block) {
 
 void Storage::pushFrontInternal(Block&& block) {
   // Push the new block and get a pointer to it
-  if (this->chain_.size() != 0) {
+  if (!this->chain_.empty()) {
     if (this->chain_.front()->getPrevBlockHash() != block.hash()) {
       throw std::runtime_error("Block " + block.hash().hex().get()
         + " does not have the correct previous block hash."
@@ -230,7 +230,7 @@ StorageStatus Storage::blockExists(const uint64_t& height) {
   auto it = this->blockHashByHeight_.find(height);
   if (it != this->blockHashByHeight_.end()) {
     if (this->blockByHash_.contains(it->second)) return StorageStatus::OnChain;
-    std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
+    std::shared_lock<std::shared_mutex> lock2(this->cacheLock_);
     if (this->cachedBlocks_.contains(it->second)) return StorageStatus::OnCache;
     return StorageStatus::OnDB;
   } else {
@@ -331,7 +331,7 @@ const std::tuple<
     case StorageStatus::OnDB: {
       Bytes txData(this->db_->get(tx.get(), DBPrefix::txToBlocks));
       BytesArrView txDataView(txData);
-      Hash blockHash = Hash(txDataView.subspan(0, 32));
+      auto blockHash = Hash(txDataView.subspan(0, 32));
       uint64_t blockIndex = Utils::bytesToUint32(txDataView.subspan(32, 4));
       uint64_t blockHeight = Utils::bytesToUint64(txDataView.subspan(36,8));
       Bytes blockData(this->db_->get(blockHash.get(), DBPrefix::blocks));
@@ -406,8 +406,8 @@ const std::tuple<
       Bytes blockData = this->db_->get(blockHash.get(), DBPrefix::blocks);
       auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
       std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
-      auto blockHeight = this->blockHeightByHash_[blockHash];
-      this->cachedTxs_.insert({tx.hash(), { std::make_shared<TxBlock>(tx), blockHash, blockIndex, blockHeight}});
+      auto blockHeight2 = this->blockHeightByHash_[blockHash];
+      this->cachedTxs_.insert({tx.hash(), { std::make_shared<TxBlock>(tx), blockHash, blockIndex, blockHeight2}});
       return this->cachedTxs_[tx.hash()];
     }
   }
@@ -421,7 +421,7 @@ const std::shared_ptr<const Block> Storage::latest() {
 
 uint64_t Storage::currentChainSize() { return this->latest()->getNHeight() + 1; }
 
-void Storage::periodicSaveToDB() {
+void Storage::periodicSaveToDB() const {
   while (!this->stopPeriodicSave_) {
     std::this_thread::sleep_for(std::chrono::seconds(this->periodicSaveCooldown_));
     if (!this->stopPeriodicSave_ &&

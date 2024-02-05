@@ -136,9 +136,6 @@ template <unsigned N> class FixedBytes {
     /// Equality operator. Checks if both internal strings are the same.
     inline bool operator==(const FixedBytes& other) const { return (this->data_ == other.data_); }
 
-    /// Inequality operator. Checks if both internal strings are different.
-    inline bool operator!=(const FixedBytes& other) const { return (this->data_ != other.data_); }
-
     /// Lesser operator. Does a lexicographical check on both data strings.
     inline bool operator<(const FixedBytes& other) const { return (this->data_ < other.data_); }
 
@@ -154,13 +151,15 @@ template <unsigned N> class FixedBytes {
     /// Copy assignment operator.
     inline FixedBytes& operator=(const FixedBytes& other) {
       if (other.size() != this->size()) { throw std::invalid_argument("Invalid size."); }
-      if (&other != this) this->data_ = other.data_; return *this;
+      if (&other != this) this->data_ = other.data_;
+      return *this;
     }
 
     /// Copy assignment operator.
     inline FixedBytes& operator=(const BytesArrView& other) {
       if (other.size() != this->size()) { throw std::invalid_argument("Invalid size."); }
-      std::copy(other.begin(), other.end(), this->data_.begin()); return *this;
+      std::copy(other.begin(), other.end(), this->data_.begin());
+      return *this;
     }
 
     /// Indexing operator.
@@ -176,14 +175,13 @@ template <unsigned N> class FixedBytes {
 /// Abstraction of a 32-byte hash. Inherits `FixedBytes<32>`.
 class Hash : public FixedBytes<32> {
   public:
-    using FixedBytes<32>::FixedBytes; // Using parent constructor
-    using FixedBytes<32>::operator!=; // Using parent assignment operator
-    using FixedBytes<32>::operator==; // Using parent equality operator
-    using FixedBytes<32>::operator=; // Using parent assignment operator
-    using FixedBytes<32>::operator>=; // Using parent greater-or-equal operator
-    using FixedBytes<32>::operator<=; // Using parent lesser-or-equal operator
-    using FixedBytes<32>::operator>; // Using parent greater operator
-    using FixedBytes<32>::operator<; // Using parent lesser operator
+    using FixedBytes<32>::FixedBytes;
+    using FixedBytes<32>::operator==;
+    using FixedBytes<32>::operator=;
+    using FixedBytes<32>::operator>=;
+    using FixedBytes<32>::operator<=;
+    using FixedBytes<32>::operator>;
+    using FixedBytes<32>::operator<;
 
     /**
      * Constructor.
@@ -203,7 +201,7 @@ class Hash : public FixedBytes<32> {
     /// Generate a random 32-byte/256-bit hash.
     inline static Hash random() {
       Hash h;
-      RAND_bytes((unsigned char*)h.data_.data(), 32);
+      RAND_bytes(h.data_.data(), 32);
       return h;
     }
 };
@@ -211,9 +209,8 @@ class Hash : public FixedBytes<32> {
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash). Inherits FixedBytes<4>.
 class Functor : public FixedBytes<4> {
   public:
-    using FixedBytes<4>::FixedBytes; // Using parent constructor
-    using FixedBytes<4>::operator!=; // Using parent assignment operator
-    using FixedBytes<4>::operator==; // Using parent equality operator
+    using FixedBytes<4>::FixedBytes;
+    using FixedBytes<4>::operator==;
     using FixedBytes<4>::operator=;
 };
 
@@ -237,7 +234,6 @@ class Address : public FixedBytes<20> {
   public:
     // Using all parent operators.
     using FixedBytes<20>::operator==;
-    using FixedBytes<20>::operator!=;
     using FixedBytes<20>::operator<;
     using FixedBytes<20>::operator<=;
     using FixedBytes<20>::operator>;

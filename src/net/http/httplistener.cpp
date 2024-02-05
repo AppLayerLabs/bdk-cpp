@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "httplistener.h"
 
 HTTPListener::HTTPListener(
-  net::io_context& ioc, tcp::endpoint ep, std::shared_ptr<const std::string>& docroot,
+  net::io_context& ioc, tcp::endpoint ep, const std::shared_ptr<const std::string>& docroot,
   const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
   const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
 ) : ioc_(ioc), acc_(net::make_strand(ioc)), docroot_(docroot), state_(state),

@@ -84,7 +84,8 @@ void DEXV2Pair::_safeTransfer(const Address& token, const Address& to, const uin
 }
 
 void DEXV2Pair::_update(const uint256_t& balance0, const uint256_t& balance1, const uint256_t& reserve0, const uint256_t& reserve1) {
-  uint32_t blockTimestamp = uint32_t(this->getBlockTimestamp() / 1000000) ; /// Timestamp is in microseconds, we want in seconds
+  // Timestamp is in microseconds, we want in seconds
+  auto blockTimestamp = uint32_t(ContractGlobals::getBlockTimestamp() / 1000000);
   uint32_t timeElapsed = blockTimestamp - this->blockTimestampLast_.get();
   if (timeElapsed > 0 && reserve0 != 0 && reserve1 != 0) {
     this->price0CumulativeLast_ += uint256_t(UQ112x112::uqdiv(UQ112x112::encode(uint112_t(reserve1)), uint112_t(reserve0))) * timeElapsed;
@@ -97,7 +98,7 @@ void DEXV2Pair::_update(const uint256_t& balance0, const uint256_t& balance1, co
 
 bool DEXV2Pair::_mintFee(uint112_t reserve0, uint112_t reserve1) {
   Address feeTo = this->callContractViewFunction(this->factory_.get(), &DEXV2Factory::feeTo);
-  bool feeOn = (feeTo) ? true : false;
+  bool feeOn = feeTo ? true : false;
   uint256_t _kLast = this->kLast_.get();
   if (feeOn) {
     if (_kLast != 0) {

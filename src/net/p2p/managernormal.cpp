@@ -30,8 +30,8 @@ namespace P2P{
     Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__,
       "Broadcasting message " + message->id().hex().get() + " to all nodes. "
     );
-    for (const auto& session : this->sessions_) {
-      if (session.second->hostType() == NodeType::NORMAL_NODE) session.second->write(message);
+    for (const auto& [nodeId, session] : this->sessions_) {
+      if (session->hostType() == NodeType::NORMAL_NODE) session->write(message);
     }
   }
 
@@ -141,15 +141,13 @@ namespace P2P{
     {
       std::shared_lock broadcastLock(this->broadcastMutex_);
       auto it = broadcastedMessages_.find(message->id().toUint64());
-      if (it != broadcastedMessages_.end()) {
-        if (it->second > 0) {
-          broadcastLock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-          Logger::logToDebug(LogType::DEBUG, Log::P2PManager, __func__,
-            "Already broadcasted message " + message->id().hex().get() +
-            " to all nodes. Skipping broadcast."
-          );
-          return;
-        }
+      if (it != broadcastedMessages_.end() && it->second > 0) {
+        broadcastLock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
+        Logger::logToDebug(LogType::DEBUG, Log::P2PManager, __func__,
+          "Already broadcasted message " + message->id().hex().get() +
+          " to all nodes. Skipping broadcast."
+        );
+        return;
       }
     }
     switch (message->command()) {

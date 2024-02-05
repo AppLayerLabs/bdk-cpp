@@ -228,7 +228,7 @@ class State {
      * @param payableMap A map of the accounts to update and their respective new balances.
      * @throw std::runtime_error on an attempt to change State while not processing a payable contract.
      */
-    void processContractPayable(std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
+    void processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
 
     /// Get a list of contract addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;

@@ -64,8 +64,8 @@ namespace DEXV2Library {
     std::vector<uint256_t> amounts(path.size());
     amounts[0] = amountIn;
     for (size_t i = 0; i < path.size() - 1; i++) {
-      auto reserves = getReserves(interface, factory, path[i], path[i + 1]);
-      amounts[i + 1] = getAmountOut(amounts[i], reserves.first, reserves.second);
+      auto [reservesA, reservesB] = getReserves(interface, factory, path[i], path[i + 1]);
+      amounts[i + 1] = getAmountOut(amounts[i], reservesA, reservesB);
     }
     return amounts;
   }
@@ -78,8 +78,8 @@ namespace DEXV2Library {
     std::vector<uint256_t> amounts(path.size());
     amounts[amounts.size() - 1] = amountOut;
     for (size_t i = path.size() - 1; i > 0; i--) {
-      auto reserves = getReserves(interface, factory, path[i - 1], path[i]);
-      amounts[i - 1] = getAmountIn(amounts[i], reserves.first, reserves.second);
+      auto [reservesA, reservesB] = getReserves(interface, factory, path[i - 1], path[i]);
+      amounts[i - 1] = getAmountIn(amounts[i], reservesA, reservesB);
     }
     return amounts;
   }

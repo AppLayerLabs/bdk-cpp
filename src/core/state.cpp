@@ -29,7 +29,7 @@ contractManager_(std::make_unique<ContractManager>(db, this, rdpos, options))
     accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   }
 
-  for (auto const dbEntry : accountsFromDB) {
+  for (const auto& dbEntry : accountsFromDB) {
     BytesArrView data(dbEntry.value);
     if (dbEntry.key.size() != 20) {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, address from DB size mismatch");
@@ -347,19 +347,17 @@ Bytes State::ethCall(const ethCallInfo& callInfo) {
 
 bool State::estimateGas(const ethCallInfo& callInfo) {
   std::shared_lock lock(this->stateMutex_);
-  auto [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
 
-  /// Check balance/gasLimit/gasPrice if available.
-  if (from) {
-    if (value) {
-      uint256_t totalGas = 0;
-      if (gasLimit && gasPrice) {
-        totalGas = gasLimit * gasPrice;
-      }
-      auto it = this->accounts_.find(from);
-      if (it == this->accounts_.end()) return false;
-      if (it->second.balance < value + totalGas) return false;
+  // Check balance/gasLimit/gasPrice if available.
+  if (from && value) {
+    uint256_t totalGas = 0;
+    if (gasLimit && gasPrice) {
+      totalGas = gasLimit * gasPrice;
     }
+    auto it = this->accounts_.find(from);
+    if (it == this->accounts_.end()) return false;
+    if (it->second.balance < value + totalGas) return false;
   }
 
   if (this->contractManager_->isContractAddress(to)) {
@@ -370,7 +368,7 @@ bool State::estimateGas(const ethCallInfo& callInfo) {
   return true;
 }
 
-void State::processContractPayable(std::unordered_map<Address, uint256_t, SafeHash>& payableMap) {
+void State::processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap) {
   if (!this->processingPayable_) throw std::runtime_error(
     "Uh oh, contracts are going haywire! Cannot change State while not processing a payable contract."
   );

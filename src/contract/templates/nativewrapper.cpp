@@ -27,7 +27,7 @@ NativeWrapper::NativeWrapper(
   this->registerContractFunctions();
 }
 
-NativeWrapper::~NativeWrapper() {}
+NativeWrapper::~NativeWrapper() = default;
 
 void NativeWrapper::registerContractFunctions() {
   registerContract();

@@ -352,10 +352,10 @@ namespace ContractReflectionInterface {
     desc.anonymous = anonymous;
     for (uint64_t i = 0; i < args.size(); i++) {
       std::tuple<std::string, std::string, bool> argDesc;
-      auto& [type, name, indexed] = argDesc;
-      type = args[i].first;
-      indexed = args[i].second;
-      name = (argsNames.size() > i) ? argsNames[i] : "";
+      auto& [argType, argName, argIndexed] = argDesc;
+      argType = args[i].first;
+      argIndexed = args[i].second;
+      argName = (argsNames.size() > i) ? argsNames[i] : "";
       desc.args.push_back(argDesc);
     }
     eventDescsMap[Utils::getRealTypeName<TContract>()].insert(std::make_pair(name, desc));

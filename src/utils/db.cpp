@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "db.h"
 
-DB::DB(const std::string path) {
+DB::DB(const std::filesystem::path& path) {
   this->opts_.create_if_missing = true;
   if (!std::filesystem::exists(path)) { // Ensure the database path can actually be found
     std::filesystem::create_directories(path);
@@ -22,8 +22,8 @@ DB::DB(const std::string path) {
 bool DB::putBatch(const DBBatch& batch) const {
   std::lock_guard lock(this->batchLock_);
   rocksdb::WriteBatch wb;
-  for (const rocksdb::Slice &deletes : batch.getDelsSlices()) { wb.Delete(deletes); };
-  for (const auto& entry : batch.getPutsSlices()) wb.Put(entry.first, entry.second);
+  for (const rocksdb::Slice& dels : batch.getDelsSlices()) { wb.Delete(dels); }
+  for (const auto& [key, value] : batch.getPutsSlices()) wb.Put(key, value);
   rocksdb::Status s = this->db_->Write(rocksdb::WriteOptions(), &wb);
   return s.ok();
 }

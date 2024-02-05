@@ -48,7 +48,7 @@ class ThrowTestB : public DynamicContract {
 
     uint8_t getNumB() const; ///< Getter for `numB`.
 
-    void setNumB(const uint8_t& valB, const Address& addC, const uint8_t& valC); ///< Setter for `numB`.
+    [[noreturn]] void setNumB(const uint8_t& valB, const Address& addC, const uint8_t& valC); ///< Setter for `numB`.
 
     /**
     * Register the contract structure.

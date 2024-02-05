@@ -12,7 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 
 std::unique_ptr<Blockchain> blockchain = nullptr;
 
-void signalHandler(int signum) {
+[[noreturn]] void signalHandler(int signum) {
   Logger::logToDebug(LogType::INFO, "MAIN", "MAIN", "Received signal " + std::to_string(signum) + ". Stopping the blockchain.");
   blockchain->stop();
   blockchain = nullptr; // Destroy the blockchain object, calling the destructor of every module and dumping to DB.

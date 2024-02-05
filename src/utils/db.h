@@ -41,7 +41,7 @@ struct DBServer {
    * @param host The database's host/address.
    * @param version The database's version string.
    */
-  DBServer(std::string host, std::string version) : host(host), version(version) {};
+  DBServer(const std::string& host, const std::string& version) : host(host), version(version) {};
 };
 
 /// Struct for a database entry (key/value).
@@ -166,7 +166,7 @@ class DB {
      * @param path The database's filesystem path (relative to the binary's current working directory).
      * @throw std::runtime_error if database opening fails.
      */
-    explicit DB(const std::string path);
+    explicit DB(const std::filesystem::path& path);
 
     /// Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
     ~DB() { this->close(); }
@@ -270,7 +270,7 @@ class DB {
     * @param pfx (optional) The prefix to delete the key from. Defaults to an empty string.
     * @return `true` if the deletion is successful, `false` otherwise.
     */
-    bool del(const char* key, const Bytes pfx = {}) const { return this->del(std::string(key), pfx); }
+    bool del(const char* key, const Bytes& pfx = {}) const { return this->del(std::string(key), pfx); }
 
     /**
      * Do several put and/or delete operations in one go.
@@ -307,7 +307,7 @@ class DB {
      * @param str The string to convert.
      * @return The Bytes container.
      */
-    inline static Bytes keyFromStr(const std::string str) { return Bytes(str.begin(), str.end()); }
+    inline static Bytes keyFromStr(const std::string& str) { return Bytes(str.begin(), str.end()); }
 };
 
 #endif // DB_H
