@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "client.h"
 
 namespace P2P {
@@ -26,21 +33,21 @@ namespace P2P {
   }
 
   bool ClientFactory::start() {
-    if (this->executor.valid()) {
+    if (this->executor_.valid()) {
       Logger::logToDebug(LogType::ERROR, Log::P2PClientFactory, __func__, "P2P Client Factory already started.");
       return false;
     }
-    this->executor = std::async(std::launch::async, &ClientFactory::run, this);
+    this->executor_ = std::async(std::launch::async, &ClientFactory::run, this);
     return true;
   }
 
   bool ClientFactory::stop() {
-    if (!this->executor.valid()) {
+    if (!this->executor_.valid()) {
       Logger::logToDebug(LogType::ERROR, Log::P2PClientFactory, __func__, "P2P Client Factory not started.");
       return false;
     }
     this->io_context_.stop();
-    this->executor.get();
+    this->executor_.get();
     return true;
   }
 

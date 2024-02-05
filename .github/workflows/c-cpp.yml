@@ -14,18 +14,18 @@ jobs:
   setup:
     runs-on: ubuntu-latest
 
-    container: 
+    container:
       image: debian:bookworm
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-      
+        uses: actions/checkout@v4
+
       - name: Update apt-get
         run: apt-get update
 
       - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git doxygen
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git doxygen curl unzip
 
       - name: Print GCC version
         run: gcc --version
@@ -33,67 +33,52 @@ jobs:
       - name: Install CA certificates
         run: apt-get install -y ca-certificates
 
-  build:
+  build_test_and_analyse:
     needs: setup
     runs-on: ubuntu-latest
 
     container: 
       image: debian:bookworm
-
+    env:
+      # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Update apt-get
         run: apt-get update
 
       - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git
-      
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git curl unzip gcovr
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
+
       - name: Configure CMake
-        run: cmake -S . -B build
+        run: cmake -S . -B build -DSONARQUBE_ANALYSIS=ON -DDEBUG=OFF
 
-      - name: Build with CMake
-        run: cmake --build build || cat build/deps/src/ethash-stamp/ethash-configure-*.log
+      - name: Build with SonarQube BuildWrapper + CMake
+        run: build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build/ --config Release -- -j $(nproc)
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: build
-          path: build
-
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-
-    container: 
-      image: debian:bookworm
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      
-      - name: Download build artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: build
-      
-      - name: Update apt-get
-        run: apt-get update
-
-      - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git
-        
       - name: Give execute permissions
         run: chmod +x ./build/orbitersdkd-tests
 
       - name: Run Catch2 Tests
-        working-directory: build
-        run: ./orbitersdkd-tests -d yes
+        run: ./build/orbitersdkd-tests -d yes
 
+      - name: Collect coverage into one XML report
+        run: |
+          gcovr --gcov-ignore-parse-errors --sonarqube > coverage.xml
+
+      - name: Run SonarQube Scanner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" --define sonar.coverageReportPaths=coverage.xml
   documentation:
-    needs: test
+    needs: build_test_and_analyse
     runs-on: ubuntu-latest
 
     container: 
@@ -101,13 +86,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-      
-      - name: Download build artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: build
+        uses: actions/checkout@v4
 
       - name : Update apt-get
         run: apt-get update
@@ -121,7 +100,7 @@ jobs:
           doxygen Doxyfile
 
       - name: Publish Documentation
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: Documentation
           path: docs

@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef JSONRPC_METHODS_H
 #define JSONRPC_METHODS_H
 
@@ -52,7 +59,7 @@ namespace JsonRPC {
    * eth_uninstallFilter ======================= NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
    * eth_getFilterChanges ====================== NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
    * eth_getFilterLogs ========================= NOT IMPLEMENTED: WE DON'T SUPPORT FILTERS (FOR NOW)
-   * eth_getLogs =============================== NOT IMPLEMENTED: LOGS ARE LOCATED AT DEBUG.LOG
+   * eth_getLogs =============================== DONE
    * eth_mining ================================ NOT IMPLEMENTED: WE ARE RDPOS NOT POW
    * eth_hashrate ============================== NOT IMPLEMENTED: WE ARE RDPOS NOT POW
    * eth_getWork =============================== NOT IMPLEMENTED: WE ARE RDPOS NOT POW

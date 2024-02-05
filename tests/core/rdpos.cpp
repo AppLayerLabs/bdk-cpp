@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/core/rdpos.h"
 #include "../../src/core/storage.h"
@@ -24,7 +31,7 @@ const std::vector<Hash> validatorPrivKeys {
 // We initialize the blockchain database
 // To make sure that if the genesis is changed within the main source code
 // The tests will still work, as tests uses own genesis block.
-void initialize(std::unique_ptr<DB>& db, 
+void initialize(std::unique_ptr<DB>& db,
                 std::unique_ptr<Storage>& storage, 
                 std::unique_ptr<P2P::ManagerNormal>& p2p,
                 PrivKey validatorKey,
@@ -39,45 +46,56 @@ void initialize(std::unique_ptr<DB>& db,
     if (std::filesystem::exists(dbName)) {
       std::filesystem::remove_all(dbName);
     }
-  }
-  db = std::make_unique<DB>(dbName);
-  if (clearDb) {
-    Block genesis(Hash(Utils::uint256ToBytes(0)), 1678887537000000, 0);
-                                                  
-    // Genesis Keys:
-    // Private: 0xe89ef6409c467285bcae9f80ab1cfeb348  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),7cfe61ab28fb7d36443e1daa0c2867
-    // Address: 0x00dead00665771855a34155f5e7405489df2c3c6
-    genesis.finalize(PrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867")), 1678887538000000);
-    db->put(Utils::stringToBytes("latest"), genesis.serializeBlock(), DBPrefix::blocks);
-    db->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
-    db->put(genesis.hash().get(), genesis.serializeBlock(), DBPrefix::blocks);
-
-    // Populate rdPoS DB with unique rdPoS, not default.
-    for (uint64_t i = 0; i < validatorPrivKeys.size(); ++i) {
-      db->put(Utils::uint64ToBytes(i), Address(Secp256k1::toAddress(Secp256k1::toUPub(validatorPrivKeys[i]))).get(),
-              DBPrefix::rdPoS);
+    if(std::filesystem::exists(dbName + "/options.json")) {
+      std::filesystem::remove(dbName + "/options.json");
     }
   }
+  db = std::make_unique<DB>(dbName);
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+  PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+  uint64_t genesisTimestamp = 1678887538000000;
+  Block genesis(Hash(), 0, 0);
+  genesis.finalize(genesisPrivKey, genesisTimestamp);
+  std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+  std::vector<Address> genesisValidators;
+  for (const auto& privKey : validatorPrivKeys) {
+    genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+  }
   if (!validatorKey) {
     options = std::make_unique<Options>(
         folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.2.0",
         1,
         8080,
+        Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
         serverPort,
         9999,
-        discoveryNodes
+        2000,
+        10000,
+        discoveryNodes,
+        genesis,
+        genesisTimestamp,
+        genesisPrivKey,
+        genesisBalances,
+        genesisValidators
       );
   } else {
     options = std::make_unique<Options>(
       folderName,
-      "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+      "OrbiterSDK/cpp/linux_x86-64/0.2.0",
       1,
       8080,
+      Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
       serverPort,
       9999,
+      2000,
+      10000,
       discoveryNodes,
+      genesis,
+      genesisTimestamp,
+      genesisPrivKey,
+      genesisBalances,
+      genesisValidators,
       validatorKey
     );
   }
@@ -184,6 +202,7 @@ Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& 
 namespace TRdPoS {
   // Simple rdPoS execution, does not test network functionality neither validator execution (rdPoSWorker)
   TEST_CASE("rdPoS Class", "[core][rdpos]") {
+    std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("rdPoS class Startup") {
       std::set<Validator> validatorsList;
       {
@@ -194,7 +213,7 @@ namespace TRdPoS {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<Options> options;
         std::unique_ptr<State> state;
-        initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, "rdPoSStartup");
+        initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, testDumpPath + "/rdPoSStartup");
 
         auto validators = rdpos->getValidators();
         REQUIRE(rdpos->getValidators().size() == 8);
@@ -233,7 +252,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<Options> options;
       std::unique_ptr<State> state;
-      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, false, "rdPoSStartup");
+      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, false, testDumpPath + "/rdPoSStartup");
 
       auto validators = rdpos->getValidators();
       REQUIRE(validators == validatorsList);
@@ -247,7 +266,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos;
       std::unique_ptr<Options> options;
       std::unique_ptr<State> state;
-      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, "rdPoSValidateBlock");
+      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, testDumpPath + "/rdPoSValidateBlockOneBlock");
 
       auto block = createValidBlock(rdpos, storage);
       // Validate the block on rdPoS
@@ -265,7 +284,7 @@ namespace TRdPoS {
         std::unique_ptr<rdPoS> rdpos;
         std::unique_ptr<Options> options;
         std::unique_ptr<State> state;
-        initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, "rdPoSValidateBlockTenBlocks");
+        initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, true, testDumpPath + "/rdPoSValidateBlockTenBlocks");
 
         for (uint64_t i = 0; i < 10; ++i) {
           // Create a valid block, with the correct rdPoS transactions
@@ -298,7 +317,7 @@ namespace TRdPoS {
       std::unique_ptr<Options> options;
       std::unique_ptr<State> state;
       // Initialize same DB and storage as before.
-      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, false, "rdPoSValidateBlockTenBlocks");
+      initialize(db, storage, p2p, validatorKey, rdpos, options, state, 8080, false, testDumpPath + "/rdPoSValidateBlockTenBlocks");
 
       REQUIRE(rdpos->getBestRandomSeed() == expectedRandomnessFromBestBlock);
       REQUIRE(rdpos->getRandomList() == expectedRandomList);
@@ -308,6 +327,7 @@ namespace TRdPoS {
   TEST_CASE("rdPoS Class With Network Functionality", "[core][rdpos][net]") {
     SECTION("Two Nodes instances, simple transaction broadcast") {
       // Initialize two different node instances, with different ports and DBs.
+      std::string testDumpPath = Utils::getTestDumpPath();
       std::unique_ptr<DB> db1;
       std::unique_ptr<Storage> storage1;
       std::unique_ptr<P2P::ManagerNormal> p2p1;
@@ -315,7 +335,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<Options> options1;
       std::unique_ptr<State> state1;
-      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, state1, 8080, true, "rdPosBasicNetworkNode1");
+      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, state1, 8080, true, testDumpPath + "/rdPosBasicNetworkNode1");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -324,7 +344,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<Options> options2;
       std::unique_ptr<State> state2;
-      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, state2, 8081, true, "rdPosBasicNetworkNode2");
+      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, state2, 8081, true, testDumpPath + "/rdPosBasicNetworkNode2");
 
 
       // Start respective p2p servers, and connect each other.
@@ -428,6 +448,7 @@ namespace TRdPoS {
 
     SECTION("Ten NormalNodes and one DiscoveryNode, test broadcast") {
       // Initialize ten different node instances, with different ports and DBs.
+      std::string testDumpPath = Utils::getTestDumpPath();
       std::unique_ptr<DB> db1;
       std::unique_ptr<Storage> storage1;
       std::unique_ptr<P2P::ManagerNormal> p2p1;
@@ -435,7 +456,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos1;
       std::unique_ptr<Options> options1;
       std::unique_ptr<State> state1;
-      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, state1, 8080, true, "rdPoSdiscoveryNodeTestBroadcastNode1");
+      initialize(db1, storage1, p2p1, validatorKey1, rdpos1, options1, state1, 8080, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode1");
 
       std::unique_ptr<DB> db2;
       std::unique_ptr<Storage> storage2;
@@ -444,7 +465,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos2;
       std::unique_ptr<Options> options2;
       std::unique_ptr<State> state2;
-      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, state2, 8081, true, "rdPoSdiscoveryNodeTestBroadcastNode2");
+      initialize(db2, storage2, p2p2, validatorKey2, rdpos2, options2, state2, 8081, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode2");
 
       std::unique_ptr<DB> db3;
       std::unique_ptr<Storage> storage3;
@@ -453,7 +474,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos3;
       std::unique_ptr<Options> options3;
       std::unique_ptr<State> state3;
-      initialize(db3, storage3, p2p3, validatorKey3, rdpos3, options3, state3, 8082, true, "rdPoSdiscoveryNodeTestBroadcastNode3");
+      initialize(db3, storage3, p2p3, validatorKey3, rdpos3, options3, state3, 8082, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode3");
 
       std::unique_ptr<DB> db4;
       std::unique_ptr<Storage> storage4;
@@ -462,7 +483,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos4;
       std::unique_ptr<Options> options4;
       std::unique_ptr<State> state4;
-      initialize(db4, storage4, p2p4, validatorKey4, rdpos4, options4, state4, 8083, true, "rdPoSdiscoveryNodeTestBroadcastNode4");
+      initialize(db4, storage4, p2p4, validatorKey4, rdpos4, options4, state4, 8083, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode4");
 
       std::unique_ptr<DB> db5;
       std::unique_ptr<Storage> storage5;
@@ -471,7 +492,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos5;
       std::unique_ptr<Options> options5;
       std::unique_ptr<State> state5;
-      initialize(db5, storage5, p2p5, validatorKey5, rdpos5, options5, state5, 8084, true, "rdPoSdiscoveryNodeTestBroadcastNode5");
+      initialize(db5, storage5, p2p5, validatorKey5, rdpos5, options5, state5, 8084, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode5");
 
       std::unique_ptr<DB> db6;
       std::unique_ptr<Storage> storage6;
@@ -480,7 +501,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos6;
       std::unique_ptr<Options> options6;
       std::unique_ptr<State> state6;
-      initialize(db6, storage6, p2p6, validatorKey6, rdpos6, options6, state6, 8085, true, "rdPoSdiscoveryNodeTestBroadcastNode6");
+      initialize(db6, storage6, p2p6, validatorKey6, rdpos6, options6, state6, 8085, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode6");
 
       std::unique_ptr<DB> db7;
       std::unique_ptr<Storage> storage7;
@@ -489,7 +510,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos7;
       std::unique_ptr<Options> options7;
       std::unique_ptr<State> state7;
-      initialize(db7, storage7, p2p7, validatorKey7, rdpos7, options7, state7, 8086, true, "rdPoSdiscoveryNodeTestBroadcastNode7");
+      initialize(db7, storage7, p2p7, validatorKey7, rdpos7, options7, state7, 8086, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode7");
 
       std::unique_ptr<DB> db8;
       std::unique_ptr<Storage> storage8;
@@ -498,7 +519,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos8;
       std::unique_ptr<Options> options8;
       std::unique_ptr<State> state8;
-      initialize(db8, storage8, p2p8, validatorKey8, rdpos8, options8, state8, 8087, true, "rdPoSdiscoveryNodeTestBroadcastNode8");
+      initialize(db8, storage8, p2p8, validatorKey8, rdpos8, options8, state8, 8087, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode8");
 
       std::unique_ptr<DB> db9;
       std::unique_ptr<Storage> storage9;
@@ -507,7 +528,7 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos9;
       std::unique_ptr<Options> options9;
       std::unique_ptr<State> state9;
-      initialize(db9, storage9, p2p9, validatorKey9, rdpos9, options9, state9, 8088, true, "rdPoSdiscoveryNodeTestBroadcastNode9");
+      initialize(db9, storage9, p2p9, validatorKey9, rdpos9, options9, state9, 8088, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode9");
 
       std::unique_ptr<DB> db10;
       std::unique_ptr<Storage> storage10;
@@ -516,18 +537,35 @@ namespace TRdPoS {
       std::unique_ptr<rdPoS> rdpos10;
       std::unique_ptr<Options> options10;
       std::unique_ptr<State> state10;
-      initialize(db10, storage10, p2p10, validatorKey10, rdpos10, options10, state10, 8089, true, "rdPoSdiscoveryNodeTestBroadcastNode10");
+      initialize(db10, storage10, p2p10, validatorKey10, rdpos10, options10, state10, 8089, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode10");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
+      PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      uint64_t genesisTimestamp = 1678887538000000;
+      Block genesis(Hash(), 0, 0);
+      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+      std::vector<Address> genesisValidators;
+      for (const auto& privKey : validatorPrivKeys) {
+        genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+      }
       std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-          "rdPoSdiscoveryNodeTestBroadcast",
-          "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+          testDumpPath + "/rdPoSdiscoveryNodeTestBroadcast",
+          "OrbiterSDK/cpp/linux_x86-64/0.2.0",
           1,
           8080,
+          Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
-          peers
+          2000,
+          10000,
+          peers,
+          genesis,
+          genesisTimestamp,
+          genesisPrivKey,
+          genesisBalances,
+          genesisValidators
         );
       std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
@@ -729,6 +767,7 @@ namespace TRdPoS {
 
   TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality, move 10 blocks forward", "[core][rdpos][net][heavy]") {
     // Initialize 8 different node instances, with different ports and DBs.
+    std::string testDumpPath = Utils::getTestDumpPath();
     std::unique_ptr<DB> db1;
     std::unique_ptr<Storage> storage1;
     std::unique_ptr<P2P::ManagerNormal> p2p1;
@@ -736,7 +775,7 @@ namespace TRdPoS {
     std::unique_ptr<rdPoS> rdpos1;
     std::unique_ptr<Options> options1;
     std::unique_ptr<State> state1;
-    initialize(db1, storage1, p2p1, validatorPrivKeys[0], rdpos1, options1, state1, 8080, true, "rdPoSdiscoveryNodeTestMove10BlocksNode1");
+    initialize(db1, storage1, p2p1, validatorPrivKeys[0], rdpos1, options1, state1, 8080, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode1");
 
     std::unique_ptr<DB> db2;
     std::unique_ptr<Storage> storage2;
@@ -745,7 +784,7 @@ namespace TRdPoS {
     std::unique_ptr<rdPoS> rdpos2;
     std::unique_ptr<Options> options2;
     std::unique_ptr<State> state2;
-    initialize(db2, storage2, p2p2, validatorPrivKeys[1], rdpos2, options2, state2, 8081, true, "rdPoSdiscoveryNodeTestMove10BlocksNode2");
+    initialize(db2, storage2, p2p2, validatorPrivKeys[1], rdpos2, options2, state2, 8081, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode2");
 
     std::unique_ptr<DB> db3;
     std::unique_ptr<Storage> storage3;
@@ -754,7 +793,7 @@ namespace TRdPoS {
     std::unique_ptr<rdPoS> rdpos3;
     std::unique_ptr<Options> options3;
     std::unique_ptr<State> state3;
-    initialize(db3, storage3, p2p3, validatorPrivKeys[2], rdpos3, options3, state3, 8082, true, "rdPoSdiscoveryNodeTestMove10BlocksNode3");
+    initialize(db3, storage3, p2p3, validatorPrivKeys[2], rdpos3, options3, state3, 8082, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode3");
 
     std::unique_ptr<DB> db4;
     std::unique_ptr<Storage> storage4;
@@ -763,7 +802,7 @@ namespace TRdPoS {
     std::unique_ptr<rdPoS> rdpos4;
     std::unique_ptr<Options> options4;
     std::unique_ptr<State> state4;
-    initialize(db4, storage4, p2p4, validatorPrivKeys[3], rdpos4, options4, state4, 8083, true, "rdPoSdiscoveryNodeTestMove10BlocksNode4");
+    initialize(db4, storage4, p2p4, validatorPrivKeys[3], rdpos4, options4, state4, 8083, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode4");
 
     std::unique_ptr<DB> db5;
     std::unique_ptr<Storage> storage5;
@@ -772,7 +811,7 @@ namespace TRdPoS {
     std::unique_ptr<rdPoS> rdpos5;
     std::unique_ptr<Options> options5;
     std::unique_ptr<State> state5;
-    initialize(db5, storage5, p2p5, validatorPrivKeys[4], rdpos5, options5, state5, 8084, true, "rdPoSdiscoveryNodeTestMove10BlocksNode5");
+    initialize(db5, storage5, p2p5, validatorPrivKeys[4], rdpos5, options5, state5, 8084, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode5");
 
     std::unique_ptr<DB> db6;
     std::unique_ptr<Storage> storage6;
@@ -781,7 +820,7 @@ namespace TRdPoS {
     std::unique_ptr<rdPoS> rdpos6;
     std::unique_ptr<Options> options6;
     std::unique_ptr<State> state6;
-    initialize(db6, storage6, p2p6, validatorPrivKeys[5], rdpos6, options6, state6, 8085, true, "rdPoSdiscoveryNodeTestMove10BlocksNode6");
+    initialize(db6, storage6, p2p6, validatorPrivKeys[5], rdpos6, options6, state6, 8085, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode6");
 
     std::unique_ptr<DB> db7;
     std::unique_ptr<Storage> storage7;
@@ -790,7 +829,7 @@ namespace TRdPoS {
     std::unique_ptr<rdPoS> rdpos7;
     std::unique_ptr<Options> options7;
     std::unique_ptr<State> state7;
-    initialize(db7, storage7, p2p7, validatorPrivKeys[6], rdpos7, options7, state7, 8086, true, "rdPoSdiscoveryNodeTestMove10BlocksNode7");
+    initialize(db7, storage7, p2p7, validatorPrivKeys[6], rdpos7, options7, state7, 8086, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode7");
 
     std::unique_ptr<DB> db8;
     std::unique_ptr<Storage> storage8;
@@ -799,18 +838,35 @@ namespace TRdPoS {
     std::unique_ptr<rdPoS> rdpos8;
     std::unique_ptr<Options> options8;
     std::unique_ptr<State> state8;
-    initialize(db8, storage8, p2p8, validatorPrivKeys[7], rdpos8, options8, state8, 8087, true, "rdPoSdiscoveryNodeTestMove10BlocksNode8");
+    initialize(db8, storage8, p2p8, validatorPrivKeys[7], rdpos8, options8, state8, 8087, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode8");
 
     // Initialize the discovery node.
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+    PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+    uint64_t genesisTimestamp = 1678887538000000;
+    Block genesis(Hash(), 0, 0);
+    genesis.finalize(genesisPrivKey, genesisTimestamp);
+    std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+    std::vector<Address> genesisValidators;
+    for (const auto& privKey : validatorPrivKeys) {
+      genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
+    }
     std::unique_ptr<Options> discoveryOptions = std::make_unique<Options>(
-      "rdPoSdiscoveryNodeTestMove10Blocks",
-      "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+      testDumpPath + "/rdPoSdiscoveryNodeTestMove10Blocks",
+      "OrbiterSDK/cpp/linux_x86-64/0.2.0",
       1,
       8080,
+      Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
       8090,
       9999,
-      discoveryNodes
+      2000,
+      10000,
+      discoveryNodes,
+      genesis,
+      genesisTimestamp,
+      genesisPrivKey,
+      genesisBalances,
+      genesisValidators
     );
     std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery  = std::make_unique<P2P::ManagerDiscovery>(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 

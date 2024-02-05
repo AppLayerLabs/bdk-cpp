@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "managernormal.h"
 #include "../core/rdpos.h"
 #include "../core/storage.h"
@@ -7,7 +14,7 @@ namespace P2P{
   void ManagerNormal::broadcastMessage(const std::shared_ptr<const Message> message) {
     if (this->closed_) return;
     {
-      std::unique_lock broadcastLock(broadcastMutex);
+      std::unique_lock broadcastLock(this->broadcastMutex_);
       if (broadcastedMessages_[message->id().toUint64()] > 0) {
         broadcastLock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
         Logger::logToDebug(LogType::DEBUG, Log::P2PManager, __func__,
@@ -23,8 +30,8 @@ namespace P2P{
     Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__,
       "Broadcasting message " + message->id().hex().get() + " to all nodes. "
     );
-    for (const auto& session : this->sessions_) {
-      if (session.second->hostType() == NodeType::NORMAL_NODE) session.second->write(message);
+    for (const auto& [nodeId, session] : this->sessions_) {
+      if (session->hostType() == NodeType::NORMAL_NODE) session->write(message);
     }
   }
 
@@ -132,17 +139,15 @@ namespace P2P{
   ) {
     if (this->closed_) return;
     {
-      std::shared_lock broadcastLock(broadcastMutex);
+      std::shared_lock broadcastLock(this->broadcastMutex_);
       auto it = broadcastedMessages_.find(message->id().toUint64());
-      if (it != broadcastedMessages_.end()) {
-        if (it->second > 0) {
-          broadcastLock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-          Logger::logToDebug(LogType::DEBUG, Log::P2PManager, __func__,
-            "Already broadcasted message " + message->id().hex().get() +
-            " to all nodes. Skipping broadcast."
-          );
-          return;
-        }
+      if (it != broadcastedMessages_.end() && it->second > 0) {
+        broadcastLock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
+        Logger::logToDebug(LogType::DEBUG, Log::P2PManager, __func__,
+          "Already broadcasted message " + message->id().hex().get() +
+          " to all nodes. Skipping broadcast."
+        );
+        return;
       }
     }
     switch (message->command()) {
@@ -392,7 +397,7 @@ namespace P2P{
     bool rebroadcast = false;
     try {
       auto block = BroadcastDecoder::broadcastBlock(*message, this->options_->getChainID());
-      std::unique_lock lock(this->blockBroadcastMutex);
+      std::unique_lock lock(this->blockBroadcastMutex_);
       if (this->storage_->blockExists(block.hash())) {
         // If the block is latest()->getNHeight() - 1, we should still rebroadcast it
         if (this->storage_->latest()->getNHeight() - 1 == block.getNHeight()) rebroadcast = true;

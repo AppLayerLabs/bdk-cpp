@@ -1,33 +1,40 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "hex.h"
 
-Hex::Hex(const std::string_view value, bool strict) : strict(strict) {
+Hex::Hex(const std::string_view value, bool strict) : strict_(strict) {
   std::string ret(value);
   if (strict) {
     if (ret[0] != '0' && (ret[1] != 'x' || ret[1] != 'X')) ret.insert(0, "0x");
   } else {
     if (ret[0] == '0' && (ret[1] == 'x' || ret[1] == 'X')) ret.erase(0, 2);
   }
-  if (!this->isValid(ret, strict)) throw std::runtime_error("Invalid Hex string at constructor");
-  this->hex = std::move(ret);
+  if (!Hex::isValid(ret, strict)) throw std::runtime_error("Invalid Hex string at constructor");
+  this->hex_ = std::move(ret);
 }
 
-Hex::Hex(std::string&& value, bool strict) : hex(std::move(value)), strict(strict) {
+Hex::Hex(std::string&& value, bool strict) : hex_(std::move(value)), strict_(strict) {
   if (strict) {
-    if (this->hex[0] != '0' && (this->hex[1] != 'x' || this->hex[1] != 'X')) {
-      this->hex.insert(0, "0x");
+    if (this->hex_[0] != '0' && (this->hex_[1] != 'x' || this->hex_[1] != 'X')) {
+      this->hex_.insert(0, "0x");
     }
   } else {
-    if (this->hex[0] == '0' && (this->hex[1] == 'x' || this->hex[1] == 'X')) {
-      this->hex.erase(0, 2);
+    if (this->hex_[0] == '0' && (this->hex_[1] == 'x' || this->hex_[1] == 'X')) {
+      this->hex_.erase(0, 2);
     }
   }
-  if (!this->isValid(this->hex, strict)) throw std::runtime_error("Invalid Hex string at constructor");
+  if (!Hex::isValid(this->hex_, strict)) throw std::runtime_error("Invalid Hex string at constructor");
 }
 
 bool Hex::isValid(const std::string_view hex, bool strict) {
   int off = 0;
   if (strict) {
-    if (hex.substr(0, 2) != "0x" && hex.substr(0, 2) != "0X") return false;
+    if (!hex.starts_with("0x") && !hex.starts_with("0X")) return false;
     off = 2;
   }
   const static std::string_view filter("0123456789abcdefABCDEF");
@@ -39,12 +46,14 @@ Hex Hex::fromBytes(const std::span<const uint8_t> bytes, bool strict) {
   auto beg = bytes.begin();
   auto end = bytes.end();
   static const char* digits = "0123456789abcdef";
-  size_t off = (strict) ? 2 : 0;
+  size_t off = strict ? 2 : 0;
   std::string hex(std::distance(beg, end) * 2 + off, '0');
   hex.replace(0, 2, "0x");
   for (; beg != end; beg++) {
-    hex[off++] = digits[(*beg >> 4) & 0x0f];
-    hex[off++] = digits[*beg & 0x0f];
+    hex[off] = digits[(*beg >> 4) & 0x0f];
+    off++;
+    hex[off] = digits[*beg & 0x0f];
+    off++;
   }
   return Hex(std::move(hex), strict);
 }
@@ -69,9 +78,9 @@ int Hex::toInt(char c) {
 }
 
 std::string Hex::forRPC() const {
-  std::string retHex = this->hex;
+  std::string retHex = this->hex_;
   if (retHex[0] != '0' && retHex[1] != 'x') retHex.insert(0, "0x");
-  if (retHex == "0x") { retHex = "0x0"; return retHex; };
+  if (retHex == "0x") { retHex ="0x0"; return retHex; }
   // Check for leading zeroes!
   size_t i = 2;
   while (retHex[i] == '0') retHex.erase(i, 1);
@@ -88,7 +97,8 @@ Bytes Hex::toBytes(const std::string_view hex) {
       + std::string(hex) + " filter: " + std::string(filter) + " at pos: " + std::to_string(pos));
   }
   if (hex.size() % 2) {
-    int h = Hex::toInt(hex[i++]);
+    int h = Hex::toInt(hex[i]);
+    i++;
     ret.emplace_back(uint8_t(h));
   }
   for (; i < hex.size(); i += 2) {
@@ -102,14 +112,15 @@ Bytes Hex::toBytes(const std::string_view hex) {
 Bytes Hex::bytes() const {
   // Parse two by two chars until the end
   Bytes ret;
-  uint32_t i = (this->strict) ? 2 : 0; // Strict offset ("0x")
-  if (hex.size() % 2) {
-    int h = Hex::toInt(this->hex[i++]);
+  uint32_t i = (this->strict_) ? 2 : 0; // Strict offset ("0x")
+  if (this->hex_.size() % 2) {
+    int h = Hex::toInt(this->hex_[i]);
+    i++;
     ret.emplace_back(uint8_t(h));
   }
-  for (; i < this->hex.size(); i += 2) {
-    int h = Hex::toInt(this->hex[i]);
-    int l = Hex::toInt(this->hex[i + 1]);
+  for (; i < this->hex_.size(); i += 2) {
+    int h = Hex::toInt(this->hex_[i]);
+    int l = Hex::toInt(this->hex_[i + 1]);
     ret.emplace_back(uint8_t(h * 16 + l));
   }
   return ret;

@@ -17,13 +17,15 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
 endif()
 
 # Project data
-project(orbitersdk VERSION 0.1.2 DESCRIPTION "Sparq subnet")
+project(orbitersdk VERSION 0.2.0 DESCRIPTION "Sparq subnet")
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 SET(DEBUG ON CACHE BOOL "Debug mode")
 if(DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -g -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector -Werror=unused-variable") # Provides faster compile time.
+elseif(SONARQUBE_ANALYSIS)
+  set(CMAKE_CXX_FLAGS "-O0 -g --coverage")
 else()
   set(CMAKE_CXX_FLAGS "-O2 -Werror=unused-variable")
 endif()

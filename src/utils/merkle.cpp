@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "merkle.h"
 
 std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
@@ -22,19 +29,22 @@ std::vector<Hash> Merkle::newLayer(const std::vector<Hash>& layer) const {
 Merkle::Merkle(const std::vector<Hash>& leaves) {
   // Mount the base leaves
   std::vector<Hash> tmp;
-  for (const Hash& leaf : leaves) tmp.emplace_back(std::move(Utils::sha3(leaf.get())));
-  this->tree.emplace_back(tmp);
+  for (const Hash& leaf : leaves) {
+    Hash leafHash = Utils::sha3(leaf.get());
+    tmp.emplace_back(std::move(leafHash));
+  }
+  this->tree_.emplace_back(tmp);
   // Make the layers up to root
-  while (this->tree.back().size() > 1) this->tree.emplace_back(newLayer(this->tree.back()));
+  while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));
 }
 
 const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
-  if (leafIndex > this->tree.front().size() - 1) return {};
+  if (leafIndex > this->tree_.front().size() - 1) return {};
   std::vector<Hash> ret;
   uint64_t pos = leafIndex;
   // Check if left (even) or right (odd) child, pick its sibling,
   // move to the next layer, repeat until root layer then skip it
-  for (std::vector<Hash> layer : tree) {
+  for (std::vector<Hash> layer : this->tree_) {
     if (layer.size() == 1) break;
     pos = (pos % 2 == 0) ? pos + 1 : pos - 1;
     ret.push_back(layer[pos]);

@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef GRPCSERVER_H
 #define GRPCSERVER_H
 
@@ -47,14 +54,14 @@ class gRPCServer final : public vm::VM::Service,
   public std::enable_shared_from_this<gRPCServer>
 {
   private:
-    Blockchain& blockchain; ///< Reference to the blockchain.
+    Blockchain& blockchain_; ///< Reference to the blockchain.
 
   public:
     /**
      * Constructor.
      * @param blockchain Reference to the blockchain.
      */
-    gRPCServer(Blockchain& blockchain) : blockchain(blockchain) {}
+    gRPCServer(Blockchain& blockchain) : blockchain_(blockchain) {}
 
     /// Called by AvalancheGo to signal to the Subnet that it can be initialized.
     Status Initialize(

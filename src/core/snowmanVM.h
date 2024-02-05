@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef SNOWMANVM_H
 #define SNOWMANVM_H
 
@@ -47,34 +54,34 @@ enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 class SnowmanVM {
   private:
     /// Struct with initialization request data from AvalancheGo.
-    InitializeRequest initParams;
+    InitializeRequest initParams_;
 
     /// List of all connected nodes.
-    std::vector<std::string> connectedNodes;
+    std::vector<std::string> connectedNodes_;
 
-    /// Mutex for managing read/write access to connectedNodes.
-    std::mutex connectedNodesLock;
+    /// Mutex for managing read/write access to connectedNodes_.
+    std::mutex connectedNodesLock_;
 
     /// Preferred block hash. Set by SetPreference from gRPC.
-    Hash preferredBlockHash;
+    Hash preferredBlockHash_;
 
-    /// Mempool for blocks from AvalancheGo's network. Lookup is made by block hash.
-    std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> mempool;
+    /// mempool for blocks from AvalancheGo's network. Lookup is made by block hash.
+    std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> mempool_;
 
     /// Cached block status. Lookup is made by block hash.
-    std::unordered_map<Hash, BlockStatus, SafeHash> cachedBlockStatus;
+    std::unordered_map<Hash, BlockStatus, SafeHash> cachedBlockStatus_;
 
     /// Mutex for managing read/write access to the class members.
-    mutable std::mutex lock;
+    mutable std::mutex lock_;
 
     /// Pointer to the blockchain history.
-    const std::shared_ptr<Storage> storage;
+    const std::shared_ptr<Storage> storage_;
 
     /// Pointer to the gRPC server.
-    const std::shared_ptr<gRPCServer> grpcServer;
+    const std::shared_ptr<gRPCServer> grpcServer_;
 
     /// Pointer to the gRPC client.
-    const std::shared_ptr<gRPCClient> grpcClient;
+    const std::shared_ptr<gRPCClient> grpcClient_;
 
   public:
     /**
@@ -87,13 +94,13 @@ class SnowmanVM {
       const std::shared_ptr<Storage>& storage,
       const std::shared_ptr<gRPCServer>& grpcServer,
       const std::shared_ptr<gRPCClient>& grpcClient
-    ) : storage(storage), grpcServer(grpcServer), grpcClient(grpcClient) {}
+    ) : storage_(storage), grpcServer_(grpcServer), grpcClient_(grpcClient) {}
 
-    /// Getter for `preferredBlockHash`.
-    const Hash& getPreferredBlockHash() { return this->preferredBlockHash; }
+    /// Getter for `preferredBlockHash_`.
+    const Hash& getpreferredBlockHash_() { return this->preferredBlockHash_; }
 
-    /// Setter for `preferredBlockHash`.
-    void setPreferredBlockHash(const Hash& hash) { this->preferredBlockHash = hash; }
+    /// Setter for `preferredBlockHash_`.
+    void setpreferredBlockHash_(const Hash& hash) { this->preferredBlockHash_ = hash; }
 
     /**
      * Initialize the %SnowmanVM services.
@@ -154,14 +161,14 @@ class SnowmanVM {
     void setPreference(ServerContext* context, const vm::SetPreferenceRequest* request);
 
     /**
-     * Get a block's status in the mempool.
+     * Get a block's status in the mempool_.
      * @param hash The block hash to get the status from.
      * @return The current block's status.
      */
     const BlockStatus getBlockStatus(const Hash& hash);
 
     /**
-     * Set a block's status in the mempool.
+     * Set a block's status in the mempool_.
      * @param hash The block hash to set the status to.
      * @param status The status to set.
      */
@@ -191,7 +198,7 @@ class SnowmanVM {
     void rejectBlock(const Hash& hash);
 
     /**
-     * Check if a block exists in the mempool.
+     * Check if a block exists in the mempool_.
      * @param hash The block hash to check.
      * @return `true` if the block exists, `false` otherwise.
      */
@@ -205,7 +212,7 @@ class SnowmanVM {
     bool blockIsProcessing(const Hash& hash);
 
     /**
-     * Get a block from the mempool by its hash.
+     * Get a block from the mempool_ by its hash.
      * @param hash The block hash to get.
      * @return The found block, or `nullptr` if block is not found.
      */

@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef HEX_H
 #define HEX_H
 
@@ -39,15 +46,15 @@ template <typename ElemT> struct HexTo {
 /// Abstraction of a strictly hex-formatted string (`(0x)[1-9][a-f][A-F]`).
 class Hex {
   private:
-    std::string hex;  ///< Internal string data.
-    bool strict;      ///< If `true`, forces `hex` to include the "0x" prefix.
+    std::string hex_;  ///< Internal string data.
+    bool strict_;      ///< If `true`, forces `hex` to include the "0x" prefix.
 
   public:
     /**
      * Empty string constructor.
      * @param strict (optional) If `true`, sets `hex` to "0x". Defaults to `false`.
      */
-    Hex(bool strict = false) : strict(strict) { if (strict) this->hex = "0x"; }
+    explicit Hex(bool strict = false) : strict_(strict) { if (strict) this->hex_ = "0x"; }
 
     /**
      * Move constructor.
@@ -116,11 +123,11 @@ class Hex {
     static Bytes toBytes(const std::string_view hex);
 
     /// Getter for `hex`.
-    inline const std::string& get() const { return this->hex; }
+    inline const std::string& get() const { return this->hex_; }
 
     /// Getter for `hex`, but converts it back to an unsigned integer.
     inline uint256_t getUint() const {
-      return boost::lexical_cast<HexTo<uint256_t>>(this->hex);
+      return boost::lexical_cast<HexTo<uint256_t>>(this->hex_);
     }
 
     /**
@@ -132,12 +139,12 @@ class Hex {
      * @return The hex substring.
     */
     inline std::string substr(size_t pos = 0, size_t len = std::string::npos) const {
-      return this->hex.substr(pos, len);
+      return this->hex_.substr(pos, len);
     }
 
     /// Overload of `substr()` that returns a string_view instead.
     inline std::string_view substr_view(size_t pos = 0, size_t len = std::string::npos) const {
-      return std::string_view(this->hex).substr(pos, len);
+      return std::string_view(this->hex_).substr(pos, len);
     }
 
     /**
@@ -168,8 +175,8 @@ class Hex {
 
     /// Concat operator. Throws on invalid concat.
     Hex& operator+=(const std::string& hex) {
-      if (this->isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
-        this->hex += (
+      if (Hex::isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
+        this->hex_ += (
           hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
         ) ? hex.substr(2) : hex;
       } else {
@@ -180,7 +187,7 @@ class Hex {
 
     /// Concat operator.
     Hex& operator+=(const Hex& other) {
-      this->hex += (other.strict) ? other.hex.substr(2) : other.hex;
+      this->hex_ += (other.strict_) ? other.hex_.substr(2) : other.hex_;
       return *this;
     }
 
@@ -197,7 +204,7 @@ class Hex {
      * $ My Hex is: 48656c6c6f20576f726c64
      * ```
      */
-    inline operator std::string() const { return this->hex; }
+    inline operator std::string() const { return this->hex_; }
 
     /**
      * Default operator to return the internal hex string directly as a string_view.
@@ -212,7 +219,7 @@ class Hex {
      * $ My Hex is: 48656c6c6f20576f726c64
      * ```
      */
-    inline operator std::string_view() const { return this->hex; }
+    inline operator std::string_view() const { return this->hex_; }
 
     /**
      * Friend function to allow left shift in output stream.
@@ -226,7 +233,7 @@ class Hex {
      * ```
      */
     inline friend std::ostream& operator<<(std::ostream& out, const Hex& other) {
-      return out << other.hex;
+      return out << other.hex_;
     }
 };
 

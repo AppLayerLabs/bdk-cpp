@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef P2P_SESSION_H
 #define P2P_SESSION_H
 
@@ -185,9 +192,7 @@ namespace P2P {
       void write(const std::shared_ptr<const Message>& message);
 
       /// Check if the session is closed.
-      inline bool isDisconnected() {
-        return !socket_.is_open();
-      }
+      inline bool isDisconnected() const { return !socket_.is_open(); }
 
       /// Getter for `address_`.
       const net::ip::address& address() const { return this->address_; }
@@ -196,7 +201,9 @@ namespace P2P {
       const unsigned short& port() const { return port_; }
 
       /// Getter for `address_` and `port_`, in form of a pair.
-      const std::pair<net::ip::address, unsigned short> addressAndPort() { return std::make_pair(this->address_, this->port_); }
+      const std::pair<net::ip::address, unsigned short> addressAndPort() const {
+        return std::make_pair(this->address_, this->port_);
+      }
 
       /// Getter for `hostNodeId_`.
       const NodeID& hostNodeId() const { return this->nodeId_; }

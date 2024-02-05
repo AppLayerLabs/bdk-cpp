@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef BLOCKCHAIN_H
 #define BLOCKCHAIN_H
 
@@ -19,24 +26,24 @@ class Syncer;
  */
 class Blockchain {
   private:
-    const std::unique_ptr<Options> options; ///< Pointer to the options singleton.
-    const std::unique_ptr<DB> db; ///< Pointer to the database.
-    const std::unique_ptr<Storage> storage; ///< Pointer to the blockchain storage.
-    const std::unique_ptr<State> state; ///< Pointer to the blockchain state.
-    const std::unique_ptr<rdPoS> rdpos; ///< Pointer to the rdPoS object (consensus).
-    const std::unique_ptr<P2P::ManagerNormal> p2p; ///< Pointer to the P2P connection manager.
-    const std::unique_ptr<HTTPServer> http; ///< Pointer to the HTTP server.
-    const std::unique_ptr<Syncer> syncer; ///< Pointer to the blockchain syncer.
+    const std::unique_ptr<Options> options_; ///< Pointer to the options singleton.
+    const std::unique_ptr<DB> db_; ///< Pointer to the database.
+    const std::unique_ptr<Storage> storage_; ///< Pointer to the blockchain storage.
+    const std::unique_ptr<State> state_; ///< Pointer to the blockchain state.
+    const std::unique_ptr<rdPoS> rdpos_; ///< Pointer to the rdPoS object (consensus).
+    const std::unique_ptr<P2P::ManagerNormal> p2p_; ///< Pointer to the P2P connection manager.
+    const std::unique_ptr<HTTPServer> http_; ///< Pointer to the HTTP server.
+    const std::unique_ptr<Syncer> syncer_; ///< Pointer to the blockchain syncer.
 
   public:
     /**
      * Constructor.
      * @param blockchainPath Root path of the blockchain.
      */
-    Blockchain(std::string blockchainPath);
+    explicit Blockchain(const std::string& blockchainPath);
 
-    /// Destructor.
-    ~Blockchain() {};
+    /// Default destructor.
+    ~Blockchain() = default;
 
     /**
      * Start the blockchain.
@@ -50,29 +57,29 @@ class Blockchain {
      */
     void stop();
 
-    /// Getter for `options`.
-    const std::unique_ptr<Options>& getOptions() const { return this->options; };
+    /// Getter for `options_`.
+    const std::unique_ptr<Options>& getOptions() const { return this->options_; };
 
-    /// Getter for `db`.
-    const std::unique_ptr<DB>& getDB() const { return this->db; };
+    /// Getter for `db_`.
+    const std::unique_ptr<DB>& getDB() const { return this->db_; };
 
-    /// Getter for `storage`.
-    const std::unique_ptr<Storage>& getStorage() const { return this->storage; };
+    /// Getter for `storage_`.
+    const std::unique_ptr<Storage>& getStorage() const { return this->storage_; };
 
-    /// Getter for `rdpos`.
-    const std::unique_ptr<rdPoS>& getrdPoS() const { return this->rdpos; };
+    /// Getter for `rdpos_`.
+    const std::unique_ptr<rdPoS>& getrdPoS() const { return this->rdpos_; };
 
-    /// Getter for `state`.
-    const std::unique_ptr<State>& getState() const { return this->state; };
+    /// Getter for `state_`.
+    const std::unique_ptr<State>& getState() const { return this->state_; };
 
-    /// Getter for `p2p`.
-    const std::unique_ptr<P2P::ManagerNormal>& getP2P() const { return this->p2p; };
+    /// Getter for `p2p_`.
+    const std::unique_ptr<P2P::ManagerNormal>& getP2P() const { return this->p2p_; };
 
-    /// Getter for `http`.
-    const std::unique_ptr<HTTPServer>& getHTTP() const { return this->http; };
+    /// Getter for `http_`.
+    const std::unique_ptr<HTTPServer>& getHTTP() const { return this->http_; };
 
-    /// Getter for `syncer`.
-    const std::unique_ptr<Syncer>& getSyncer() const { return this->syncer; };
+    /// Getter for `syncer_`.
+    const std::unique_ptr<Syncer>& getSyncer() const { return this->syncer_; };
 
     /**
      * Check if the blockchain syncer is synced.
@@ -95,13 +102,13 @@ class Blockchain {
 class Syncer {
   private:
     /// Reference to the parent blockchain.
-    Blockchain& blockchain;
+    Blockchain& blockchain_;
 
     /// List of currently connected nodes and their info.
-    std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> currentlyConnectedNodes;
+    std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> currentlyConnectedNodes_;
 
     /// Pointer to the blockchain's latest block.
-    std::shared_ptr<const Block> latestBlock;
+    std::shared_ptr<const Block> latestBlock_;
 
     /// Update `currentlyConnectedNodes`.
     void updateCurrentlyConnectedNodes();
@@ -126,32 +133,32 @@ class Syncer {
      * If the node is a Validator, this function will be called to make the
      * node wait until it receives a new block.
      */
-    void doValidatorTx();
+    void doValidatorTx() const;
 
     /// Routine loop for when the node is a Validator.
     void validatorLoop();
 
     /// Routine loop for when the node is NOT a Validator.
-    void nonValidatorLoop();
+    void nonValidatorLoop() const;
 
     /// Routine loop for the syncer worker.
     bool syncerLoop();
 
     /// Future object holding the thread for the syncer loop.
-    std::future<bool> syncerLoopFuture;
+    std::future<bool> syncerLoopFuture_;
 
     /// Flag for stopping the syncer.
-    std::atomic<bool> stopSyncer = false;
+    std::atomic<bool> stopSyncer_ = false;
 
     /// Indicates whether or not the syncer is synced.
-    std::atomic<bool> synced = false;
+    std::atomic<bool> synced_ = false;
 
   public:
     /**
      * Constructor.
      * @param blockchain Reference to the parent blockchain.
      */
-    Syncer(Blockchain& blockchain) : blockchain(blockchain) {};
+    explicit Syncer(Blockchain& blockchain) : blockchain_(blockchain) {};
 
     /**
      * Destructor.
@@ -160,7 +167,7 @@ class Syncer {
     ~Syncer() { this->stop(); };
 
     /// Getter for `synced`.
-    const std::atomic<bool>& isSynced() const { return this->synced; }
+    const std::atomic<bool>& isSynced() const { return this->synced_; }
 
     /// Start the syncer routine loop.
     void start();

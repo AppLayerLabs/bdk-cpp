@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "state.h"
 
 State::State(
@@ -6,24 +13,23 @@ State::State(
   const std::unique_ptr<rdPoS>& rdpos,
   const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
   const std::unique_ptr<Options>& options
-) : db(db), storage(storage), rdpos(rdpos), p2pManager(p2pManager), options(options),
-contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
+) : db_(db), storage_(storage), rdpos_(rdpos), p2pManager_(p2pManager), options_(options),
+contractManager_(std::make_unique<ContractManager>(db, this, rdpos, options))
 {
-  std::unique_lock lock(this->stateMutex);
+  std::unique_lock lock(this->stateMutex_);
   auto accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
-    // Initialize with 0x00dead00665771855a34155f5e7405489df2c3c6 with nonce 0.
-    Address dev1(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6"));
-    // See ~State for encoding
-    uint256_t desiredBalance("1000000000000000000000");
-    Bytes value = Utils::uintToBytes(Utils::bytesRequired(desiredBalance));
-    Utils::appendBytes(value,Utils::uintToBytes(desiredBalance));
-    value.insert(value.end(), 0x00);
-    db->put(dev1.get(), value, DBPrefix::nativeAccounts);
+    for (const auto& [account, balance] : options_->getGenesisBalances()) {
+      // Initialize all accounts within options genesis balances.
+      Bytes value = Utils::uintToBytes(Utils::bytesRequired(balance));
+      Utils::appendBytes(value,Utils::uintToBytes(balance));
+      value.insert(value.end(), 0x00);
+      db->put(account.get(), value, DBPrefix::nativeAccounts);
+    }
     accountsFromDB = db->getBatch(DBPrefix::nativeAccounts);
   }
 
-  for (auto const dbEntry : accountsFromDB) {
+  for (const auto& dbEntry : accountsFromDB) {
     BytesArrView data(dbEntry.value);
     if (dbEntry.key.size() != 20) {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, address from DB size mismatch");
@@ -44,21 +50,23 @@ contractManager(std::make_unique<ContractManager>(this, db, rdpos, options))
     }
     uint64_t nonce = Utils::fromBigEndian<uint64_t>(data.subspan(2 + balanceSize, nonceSize));
 
-    this->accounts.insert({Address(dbEntry.key), Account(std::move(balance), std::move(nonce))});
+    this->accounts_.insert({Address(dbEntry.key), Account(std::move(balance), std::move(nonce))});
   }
+  auto latestBlock = this->storage_->latest();
+  this->contractManager_->updateContractGlobals(Secp256k1::toAddress(latestBlock->getValidatorPubKey()), latestBlock->hash(), latestBlock->getNHeight(), latestBlock->getTimestamp());
 }
 
 State::~State() {
-  /// DB is stored as following
-  /// Under the DBPrefix::nativeAccounts
-  /// Each key == Address
-  /// Each Value == Balance + uint256_t (not exact bytes)
-  /// Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
-  /// Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
-  /// If the nonce equals to 0, it will be *empty*
+  // DB is stored as following
+  // Under the DBPrefix::nativeAccounts
+  // Each key == Address
+  // Each Value == Balance + uint256_t (not exact bytes)
+  // Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
+  // Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
+  // If the nonce equals to 0, it will be *empty*
   DBBatch accountsBatch;
-  std::unique_lock lock(this->stateMutex);
-  for (const auto& [address, account] : this->accounts) {
+  std::unique_lock lock(this->stateMutex_);
+  for (const auto& [address, account] : this->accounts_) {
     // Serialize Balance.
     Bytes serializedBytes;
     if (account.balance == 0) {
@@ -77,7 +85,7 @@ State::~State() {
     accountsBatch.push_back(address.get(), serializedBytes, DBPrefix::nativeAccounts);
   }
 
-  this->db->putBatch(accountsBatch);
+  this->db_->putBatch(accountsBatch);
 }
 
 TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
@@ -88,12 +96,12 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
    */
 
   /// Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
-  if (this->mempool.contains(tx.hash())) {
+  if (this->mempool_.contains(tx.hash())) {
     Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
     return TxInvalid::NotInvalid;
   }
-  auto accountIt = this->accounts.find(tx.getFrom());
-  if (accountIt == this->accounts.end()) {
+  auto accountIt = this->accounts_.find(tx.getFrom());
+  if (accountIt == this->accounts_.end()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
     return TxInvalid::InvalidBalance;
   }
@@ -119,12 +127,11 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   return TxInvalid::NotInvalid;
 }
 
-void State::processTransaction(const TxBlock& tx) {
+void State::processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex) {
   // Lock is already called by processNextBlock.
-  // processNextBlock already calls validateTransaction in every tx, as it
-  // calls validateNextBlock as a sanity check.
-  // TODO: Contract calling, including "payable" functions.
-  auto accountIt = this->accounts.find(tx.getFrom());
+  // processNextBlock already calls validateTransaction in every tx,
+  // as it calls validateNextBlock as a sanity check.
+  auto accountIt = this->accounts_.find(tx.getFrom());
   auto& balance = accountIt->second.balance;
   auto& nonce = accountIt->second.nonce;
   try {
@@ -132,21 +139,21 @@ void State::processTransaction(const TxBlock& tx) {
       tx.getGasLimit() * tx.getMaxFeePerGas()
     ); // This needs to change with payable contract functions
     balance -= txValueWithFees;
-    this->accounts[tx.getTo()].balance += tx.getValue();
-    if (this->contractManager->isContractCall(tx)) {
+    this->accounts_[tx.getTo()].balance += tx.getValue();
+    if (this->contractManager_->isContractCall(tx)) {
       Utils::safePrint(std::string("Processing transaction call txid: ") + tx.hash().hex().get());
-      if (this->contractManager->isPayable(tx.txToCallInfo())) this->processingPayable = true;
-      this->contractManager->callContract(tx);
-      this->processingPayable = false;
+      if (this->contractManager_->isPayable(tx.txToCallInfo())) this->processingPayable_ = true;
+      this->contractManager_->callContract(tx, blockHash, txIndex);
+      this->processingPayable_ = false;
     }
   } catch (const std::exception& e) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
     );
-    if(this->processingPayable) {
+    if(this->processingPayable_) {
       balance += tx.getValue();
-      this->accounts[tx.getTo()].balance -= tx.getValue();
-      this->processingPayable = false;
+      this->accounts_[tx.getTo()].balance -= tx.getValue();
+      this->processingPayable_ = false;
     }
     balance += tx.getValue();
   }
@@ -157,49 +164,49 @@ void State::refreshMempool(const Block& block) {
   /// No need to lock mutex as function caller (this->processNextBlock) already lock mutex.
   /// Remove all transactions within the block that exists on the unordered_map.
   for (const auto& tx : block.getTxs()) {
-    const auto it = this->mempool.find(tx.hash());
-    if (it != this->mempool.end()) {
-      this->mempool.erase(it);
+    const auto it = this->mempool_.find(tx.hash());
+    if (it != this->mempool_.end()) {
+      this->mempool_.erase(it);
     }
   }
 
   /// Copy mempool over
-  auto mempoolCopy = this->mempool;
-  this->mempool.clear();
+  auto mempoolCopy = this->mempool_;
+  this->mempool_.clear();
 
   /// Verify if the transactions within the old mempool
   /// not added to the block are valid given the current state
   for (const auto& [hash, tx] : mempoolCopy) {
     /// Calls internal function which doesn't lock mutex.
     if (!this->validateTransactionInternal(tx)) {
-      this->mempool.insert({hash, tx});
+      this->mempool_.insert({hash, tx});
     }
   }
 }
 
 const uint256_t State::getNativeBalance(const Address &addr) const {
-  std::shared_lock lock(this->stateMutex);
-  auto it = this->accounts.find(addr);
-  if (it == this->accounts.end()) return 0;
+  std::shared_lock lock(this->stateMutex_);
+  auto it = this->accounts_.find(addr);
+  if (it == this->accounts_.end()) return 0;
   return it->second.balance;
 }
 
 
 const uint64_t State::getNativeNonce(const Address& addr) const {
-  std::shared_lock lock(this->stateMutex);
-  auto it = this->accounts.find(addr);
-  if (it == this->accounts.end()) return 0;
+  std::shared_lock lock(this->stateMutex_);
+  auto it = this->accounts_.find(addr);
+  if (it == this->accounts_.end()) return 0;
   return it->second.nonce;
 }
 
 const std::unordered_map<Address, Account, SafeHash> State::getAccounts() const {
-  std::shared_lock lock(this->stateMutex);
-  return this->accounts;
+  std::shared_lock lock(this->stateMutex_);
+  return this->accounts_;
 }
 
 const std::unordered_map<Hash, TxBlock, SafeHash> State::getMempool() const {
-  std::shared_lock lock(this->stateMutex);
-  return this->mempool;
+  std::shared_lock lock(this->stateMutex_);
+  return this->mempool_;
 }
 
 bool State::validateNextBlock(const Block& block) const {
@@ -213,7 +220,7 @@ bool State::validateNextBlock(const Block& block) const {
    * Block constructor already checks if merkle roots within a block are valid.
    */
 
-  auto latestBlock = this->storage->latest();
+  auto latestBlock = this->storage_->latest();
   if (block.getNHeight() != latestBlock->getNHeight() + 1) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Block nHeight doesn't match, expected "
                       + std::to_string(latestBlock->getNHeight() + 1) + " got " + std::to_string(block.getNHeight()));
@@ -232,12 +239,12 @@ bool State::validateNextBlock(const Block& block) const {
     return false;
   }
 
-  if (!this->rdpos->validateBlock(block)) {
+  if (!this->rdpos_->validateBlock(block)) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Invalid rdPoS in block");
     return false;
   }
 
-  std::shared_lock verifyingBlockTxs(this->stateMutex);
+  std::shared_lock verifyingBlockTxs(this->stateMutex_);
   for (const auto& tx : block.getTxs()) {
     if (this->validateTransactionInternal(tx)) {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction " + tx.hash().hex().get() + " within block is invalid");
@@ -250,123 +257,141 @@ bool State::validateNextBlock(const Block& block) const {
 }
 
 void State::processNextBlock(Block&& block) {
-  /// Sanity Check.
+  // Sanity check - if it passes, the block is valid and will be processed
   if (!this->validateNextBlock(block)) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Sanity check failed, blockchain is trying to append a invalid block, throwing.");
-    throw std::runtime_error("Invalid block detected during processNextBlock sanity check.");
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
+      "Sanity check failed - blockchain is trying to append a invalid block, throwing"
+    );
+    throw std::runtime_error("Invalid block detected during processNextBlock sanity check");
   }
 
-  std::unique_lock lock(this->stateMutex);
-  /// Process transactions of the block within the current state.
+  std::unique_lock lock(this->stateMutex_);
+
+  // Update contract globals based on (now) latest block
+  const Hash blockHash = block.hash();
+  this->contractManager_->updateContractGlobals(Secp256k1::toAddress(block.getValidatorPubKey()), blockHash, block.getNHeight(), block.getTimestamp());
+
+  // Process transactions of the block within the current state
+  uint64_t txIndex = 0;
   for (auto const& tx : block.getTxs()) {
-    this->processTransaction(tx);
+    this->processTransaction(tx, blockHash, txIndex);
+    txIndex++;
   }
 
-  /// Process rdPoS State
-  this->rdpos->processBlock(block);
+  // Process rdPoS State
+  this->rdpos_->processBlock(block);
 
-  /// Refresh the mempool based on the block transactions;
+  // Refresh the mempool based on the block transactions
   this->refreshMempool(block);
-
   Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.) block bytes: " + Hex::fromBytes(block.serializeBlock()).get());
   Utils::safePrint("Block: " + block.hash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
   for (const auto& tx : block.getTxs()) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
   }
-  /// Move block to storage.
-  this->storage->pushBack(std::move(block));
-  return;
+
+  // Move block to storage
+  this->storage_->pushBack(std::move(block));
 }
 
 void State::fillBlockWithTransactions(Block& block) const {
-  std::shared_lock lock(this->stateMutex);
-  for (const auto& [hash, tx] : this->mempool) {
-    block.appendTx(tx);
-  }
-  return;
+  std::shared_lock lock(this->stateMutex_);
+  for (const auto& [hash, tx] : this->mempool_) block.appendTx(tx);
 }
 
 TxInvalid State::validateTransaction(const TxBlock& tx) const {
-  std::shared_lock lock(this->stateMutex);
+  std::shared_lock lock(this->stateMutex_);
   return this->validateTransactionInternal(tx);
 }
 
 TxInvalid State::addTx(TxBlock&& tx) {
   auto TxInvalid = this->validateTransaction(tx);
   if (TxInvalid) return TxInvalid;
-  std::unique_lock lock(this->stateMutex);
+  std::unique_lock lock(this->stateMutex_);
   auto txHash = tx.hash();
-  this->mempool.insert({txHash, std::move(tx)});
+  this->mempool_.insert({txHash, std::move(tx)});
   Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was added to the mempool");
   return TxInvalid;
 }
 
 bool State::addValidatorTx(const TxValidator& tx) {
-  std::unique_lock lock(this->stateMutex);
-  return this->rdpos->addValidatorTx(tx);
+  std::unique_lock lock(this->stateMutex_);
+  return this->rdpos_->addValidatorTx(tx);
 }
 
 bool State::isTxInMempool(const Hash& txHash) const {
-  std::shared_lock lock(this->stateMutex);
-  return this->mempool.contains(txHash);
+  std::shared_lock lock(this->stateMutex_);
+  return this->mempool_.contains(txHash);
 }
 
 std::unique_ptr<TxBlock> State::getTxFromMempool(const Hash &txHash) const {
-  std::shared_lock lock(this->stateMutex);
-  auto it = this->mempool.find(txHash);
-  if (it == this->mempool.end()) return nullptr;
+  std::shared_lock lock(this->stateMutex_);
+  auto it = this->mempool_.find(txHash);
+  if (it == this->mempool_.end()) return nullptr;
   return std::make_unique<TxBlock>(it->second);
 }
 
 void State::addBalance(const Address& addr) {
-  std::unique_lock lock(this->stateMutex);
-  this->accounts[addr].balance += uint256_t("1000000000000000000000");
+  std::unique_lock lock(this->stateMutex_);
+  this->accounts_[addr].balance += uint256_t("1000000000000000000000");
 }
 
 Bytes State::ethCall(const ethCallInfo& callInfo) {
-  std::shared_lock lock(this->stateMutex);
+  std::shared_lock lock(this->stateMutex_);
   auto &address = std::get<1>(callInfo);
-  if (this->contractManager->isContractAddress(address)) {
-    return this->contractManager->callContract(callInfo);
+  if (this->contractManager_->isContractAddress(address)) {
+    return this->contractManager_->callContract(callInfo);
   } else {
     return {};
   }
 }
 
 bool State::estimateGas(const ethCallInfo& callInfo) {
-  std::shared_lock lock(this->stateMutex);
-  auto [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  std::shared_lock lock(this->stateMutex_);
+  const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
 
-  /// Check balance/gasLimit/gasPrice if available.
-  if (from) {
-    if (value) {
-      uint256_t totalGas = 0;
-      if (gasLimit && gasPrice) {
-        totalGas = gasLimit * gasPrice;
-      }
-      auto it = this->accounts.find(from);
-      if (it == this->accounts.end()) return false;
-      if (it->second.balance < value + totalGas) return false;
+  // Check balance/gasLimit/gasPrice if available.
+  if (from && value) {
+    uint256_t totalGas = 0;
+    if (gasLimit && gasPrice) {
+      totalGas = gasLimit * gasPrice;
     }
+    auto it = this->accounts_.find(from);
+    if (it == this->accounts_.end()) return false;
+    if (it->second.balance < value + totalGas) return false;
   }
 
-  if (this->contractManager->isContractAddress(to)) {
+  if (this->contractManager_->isContractAddress(to)) {
     Utils::safePrint("Estimating gas from state...");
-    contractManager->validateCallContractWithTx(callInfo);
+    this->contractManager_->validateCallContractWithTx(callInfo);
   }
 
   return true;
 }
 
-void State::processContractPayable(std::unordered_map<Address, uint256_t, SafeHash>& payableMap) {
-  if (!this->processingPayable) throw std::runtime_error(
+void State::processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap) {
+  if (!this->processingPayable_) throw std::runtime_error(
     "Uh oh, contracts are going haywire! Cannot change State while not processing a payable contract."
   );
-  for (const auto& [address, amount] : payableMap) this->accounts[address].balance = amount;
+  for (const auto& [address, amount] : payableMap) this->accounts_[address].balance = amount;
 }
 
 std::vector<std::pair<std::string, Address>> State::getContracts() const {
-  std::shared_lock lock(this->stateMutex);
-  return this->contractManager->getContracts();
+  std::shared_lock lock(this->stateMutex_);
+  return this->contractManager_->getContracts();
+}
+
+const std::vector<Event> State::getEvents(
+  const uint64_t& fromBlock, const uint64_t& toBlock,
+  const Address& address, const std::vector<Hash>& topics
+) const {
+  std::shared_lock lock(this->stateMutex_);
+  return this->contractManager_->getEvents(fromBlock, toBlock, address, topics);
+}
+
+const std::vector<Event> State::getEvents(
+  const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
+) const {
+  std::shared_lock lock(this->stateMutex_);
+  return this->contractManager_->getEvents(txHash, blockIndex, txIndex);
 }
 

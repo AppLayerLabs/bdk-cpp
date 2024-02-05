@@ -1,6 +1,14 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef STATE_H
 #define STATE_H
 
+#include "../contract/contract.h"
 #include "../contract/contractmanager.h"
 #include "../utils/utils.h"
 #include "../utils/db.h"
@@ -20,33 +28,31 @@ enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
 class State {
   private:
     /// Pointer to the database.
-    const std::unique_ptr<DB>& db;
+    const std::unique_ptr<DB>& db_;
 
     /// Pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage;
+    const std::unique_ptr<Storage>& storage_;
 
     /// Pointer to the rdPoS object.
-    const std::unique_ptr<rdPoS>& rdpos;
+    const std::unique_ptr<rdPoS>& rdpos_;
 
     /// Pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal> &p2pManager;
+    const std::unique_ptr<P2P::ManagerNormal> &p2pManager_;
 
     /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options_;
 
     /// Pointer to the contract manager.
-    const std::unique_ptr<ContractManager> contractManager;
-
-    // TODO: Add contract functionality to State after ContractManager is ready.
+    const std::unique_ptr<ContractManager> contractManager_;
 
     /// Map with information about blockchain accounts (Address -> Account).
-    std::unordered_map<Address, Account, SafeHash> accounts;
+    std::unordered_map<Address, Account, SafeHash> accounts_;
 
     /// TxBlock mempool.
-    std::unordered_map<Hash, TxBlock, SafeHash> mempool;
+    std::unordered_map<Hash, TxBlock, SafeHash> mempool_;
 
     /// Mutex for managing read/write access to the state object.
-    mutable std::shared_mutex stateMutex;
+    mutable std::shared_mutex stateMutex_;
 
     /**
      * Verify if a transaction can be accepted within the current state.
@@ -59,8 +65,10 @@ class State {
      * Process a transaction within a block. Called by processNextBlock().
      * If the process fails, any state change that this transaction would cause has to be reverted.
      * @param tx The transaction to process.
+     * @param blockHash The hash of the block being processed.
+     * @param txIndex The index of the transaction inside the block that is being processed.
      */
-    void processTransaction(const TxBlock& tx);
+    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex);
 
     /**
      * Update the mempool, removing transactions that are in the given block,
@@ -74,7 +82,7 @@ class State {
     void refreshMempool(const Block& block);
 
     /// Flag indicating whether the state is currently processing a payable contract function
-    bool processingPayable = false;
+    bool processingPayable_ = false;
 
   public:
     /**
@@ -118,7 +126,10 @@ class State {
     const std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
 
     /// Get the mempool's current size.
-    inline const size_t getMempoolSize() const { std::shared_lock (this->stateMutex); return mempool.size(); }
+    inline const size_t getMempoolSize() const {
+      std::shared_lock<std::shared_mutex> lock (this->stateMutex_);
+      return this->mempool_.size();
+    }
 
     /**
      * Validate the next block given the current state and its transactions.
@@ -217,10 +228,38 @@ class State {
      * @param payableMap A map of the accounts to update and their respective new balances.
      * @throw std::runtime_error on an attempt to change State while not processing a payable contract.
      */
-    void processContractPayable(std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
+    void processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
 
     /// Get a list of contract addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;
+
+    /**
+     * Get all the events emitted under the given inputs.
+     * Parameters are defined when calling "eth_getLogs" on an HTTP request
+     * (directly from the http/jsonrpc submodules, through handle_request() on httpparser).
+     * They're supposed to be all "optional" at that point, but here they're
+     * all required, even if all of them turn out to be empty.
+     * @param fromBlock The initial block height to look for.
+     * @param toBlock The final block height to look for.
+     * @param address The address to look for. Defaults to empty (look for all available addresses).
+     * @param topics The topics to filter by. Defaults to empty (look for all available topics).
+     * @return A list of matching events.
+     */
+    const std::vector<Event> getEvents(
+      const uint64_t& fromBlock, const uint64_t& toBlock,
+      const Address& address = Address(), const std::vector<Hash>& topics = {}
+    ) const;
+
+    /**
+     * Overload of getEvents() for transaction receipts.
+     * @param txHash The hash of the transaction to look for events.
+     * @param blockIndex The height of the block to look for events.
+     * @param txIndex The index of the transaction to look for events.
+     * @return A list of matching events.
+     */
+    const std::vector<Event> getEvents(
+      const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
+    ) const;
 
     /// the Manager Interface cannot use getNativeBalance. as it will call a lock with the mutex.
     friend class ContractManagerInterface;

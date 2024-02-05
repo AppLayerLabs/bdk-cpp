@@ -1,5 +1,6 @@
 set(TESTS_HEADERS
   ""
+  ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.hpp
   PARENT_SCOPE
 )
 
@@ -24,24 +25,25 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/contractabigenerator.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/dexv2.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint8_t.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint16_t.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint32_t.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint64_t.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint128_t.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint160_t.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint256_t.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/simplecontract.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_c++.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_c++.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_boost.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_boost.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safestring.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeaddress.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeunorderedmap.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safebool.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safevector.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safearray.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/variables/safetuple.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp
   # ${CMAKE_SOURCE_DIR}/tests/core/blockchain.cpp # TODO: Blockchain is failing due to rdPoSWorker.
   ${CMAKE_SOURCE_DIR}/tests/net/p2p/p2p.cpp
   ${CMAKE_SOURCE_DIR}/tests/net/http/httpjsonrpc.cpp
+  ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.cpp
   PARENT_SCOPE
 )
+

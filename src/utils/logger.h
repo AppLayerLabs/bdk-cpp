@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef LOGGER_H
 #define LOGGER_H
 
@@ -7,12 +14,8 @@
 #include <condition_variable>
 #include <future>
 
-enum class LogType {
-  DEBUG,
-  INFO,
-  WARNING,
-  ERROR
-};
+/// Enum for the log message types.
+enum class LogType { DEBUG, INFO, WARNING, ERROR };
 
 /// Namespace with string prefixes for each blockchain module, for printing log/debug messages.
 namespace Log {
@@ -44,122 +47,109 @@ namespace Log {
   const std::string P2PDiscoveryWorker = "P2P::DiscoveryWorker";   ///< String for `P2P::DiscoveryWorker`.
   const std::string contractManager = "ContractManager";           ///< String for `ContractManager`.
   const std::string syncer = "Syncer";                             ///< String for `Syncer`.
+  const std::string event = "Event";                               ///< String for `Event`.
 }
 
+/// Class for storing log information.
 class LogInfo {
   private:
-    /// Log type.
-    LogType type_;
-    /// Log source.
-    std::string logSrc_;
-    /// Function name.
-    std::string func_;
-    /// Message to log.
-    std::string message_;
+    LogType type_;        ///< Log type.
+    std::string logSrc_;  ///< Log source.
+    std::string func_;    ///< Function name.
+    std::string message_; ///< Message to log.
 
-public:
-  /// Default constructor.
-  LogInfo() : type_(LogType::DEBUG), func_(""), logSrc_(""), message_("") {};
+  public:
+    /// Default constructor.
+    LogInfo() : type_(LogType::DEBUG), func_(""), logSrc_(""), message_("") {};
 
-  /// Constructor.
-  LogInfo(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) :
-    type_(type), logSrc_(logSrc), func_(std::move(func)), message_(std::move(message)) {};
+    /// Constructor.
+    LogInfo(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) :
+      type_(type), logSrc_(logSrc), func_(std::move(func)), message_(std::move(message)) {};
 
-  /// Default destructor.
-  ~LogInfo() {};
+    /// Default destructor.
+    ~LogInfo() = default;
 
-  /// Move constructor
-  LogInfo(LogInfo&& other) noexcept :
-    type_(other.type_), func_(std::move(other.func_)), logSrc_(std::move(other.logSrc_)), message_(std::move(other.message_)) {};
+    /// Move constructor
+    LogInfo(LogInfo&& other) noexcept :
+      type_(other.type_), func_(std::move(other.func_)), logSrc_(std::move(other.logSrc_)), message_(std::move(other.message_)) {};
 
-  /// Move assign operator
-  LogInfo& operator=(LogInfo&& other) noexcept {
-    this->type_ = other.type_;
-    this->func_ = std::move(other.func_);
-    this->logSrc_ = std::move(other.logSrc_);
-    this->message_ = std::move(other.message_);
-    return *this;
-  }
+    /// Move assign operator
+    LogInfo& operator=(LogInfo&& other) noexcept {
+      this->type_ = other.type_;
+      this->func_ = std::move(other.func_);
+      this->logSrc_ = std::move(other.logSrc_);
+      this->message_ = std::move(other.message_);
+      return *this;
+    }
 
-  /// Get Type
-  inline const LogType& getType() const noexcept { return type_; };
+    /// Getter for `type_`.
+    inline const LogType& getType() const noexcept { return type_; };
 
-  /// Get Log Source
-  inline const std::string& getLogSrc() const noexcept { return logSrc_; };
+    /// Getter for `logSrc_`.
+    inline const std::string& getLogSrc() const noexcept { return logSrc_; };
 
-  /// Get Function
-  inline const std::string& getFunc() const noexcept { return func_; };
+    /// Getter for `func_`.
+    inline const std::string& getFunc() const noexcept { return func_; };
 
-  /// Get Message
-  inline const std::string& getMessage() const noexcept { return message_; };
+    /// Getter for `message_`.
+    inline const std::string& getMessage() const noexcept { return message_; };
 };
 
-
+/// Singleton class for logging.
 class Logger {
   private:
     /// Private constructor as it is a singleton.
     Logger() : logFile_("debug.log", std::ios::out | std::ios::app) {
       logThreadFuture_ = std::async(std::launch::async, &Logger::logger, this);
     }
-    /// Make it non-copyable
-    Logger(const Logger&) = delete;
-    /// Make it non-assignable.
-    Logger& operator=(const Logger&) = delete;
+    Logger(const Logger&) = delete;             ///< Make it non-copyable
+    Logger& operator=(const Logger&) = delete;  ///< Make it non-assignable.
+
     /// Get the instance.
     static Logger& getInstance() {
       static Logger instance;
       return instance;
     };
-    /// The file stream.
-    std::ofstream logFile_;
-    /// Mutex for protecting access to the log queue.
-    std::mutex logQueueMutex_;
-    /// Conditional variable to wait for new tasks.
-    std::condition_variable cv_;
-    /// Queue for the log tasks.
-    std::queue<LogInfo> logQueue_;
-    /// Current task being executed.
-    LogInfo currentTask_;
-    /// Flag for stopping the thread.
-    std::atomic<bool> stopWorker_ = false;
-    /// Future object that will be used to wait for the log thread to finish.
-    std::future<void> logThreadFuture_;
+
+    std::ofstream logFile_;                 ///< The file stream.
+    std::mutex logQueueMutex_;              ///< Mutex for protecting access to the log queue.
+    std::condition_variable cv_;            ///< Conditional variable to wait for new tasks.
+    std::queue<LogInfo> logQueue_;          ///< Queue for the log tasks.
+    LogInfo curTask_;                       ///< Current task being executed.
+    std::atomic<bool> stopWorker_ = false;  ///< Flag for stopping the thread.
+    std::future<void> logThreadFuture_;     ///< Future object used to wait for the log thread to finish.
+
     /// Function for the future object.
     void logger() {
       while (true) {
         std::unique_lock<std::mutex> lock(logQueueMutex_);
         // Wait until there's a task in the queue or stopWorker_ is true.
         cv_.wait(lock, [this] { return !logQueue_.empty() || stopWorker_; });
-        // If stopWorker_ is true, return.
-        if (stopWorker_) {
-          return;
-        }
-        currentTask_ = std::move(logQueue_.front());
+        if (stopWorker_) return;  // If stopWorker_ is true, return.
+        curTask_ = std::move(logQueue_.front());
         logQueue_.pop();
         lock.unlock();
         logFileInternal();
       }
     };
+
     /**
      * Log something to the debug file
-     * It doesnt consume a parameter as it will use the currentTask_ variable
+     * It doesnt consume a parameter as it will use the curTask_ variable
      */
     void logFileInternal() {
-      switch (currentTask_.getType()) {
-        case LogType::DEBUG:
-          logFile_ << "[" << getCurrentTimestamp() << " DEBUG] " << currentTask_.getLogSrc() << "::" << currentTask_.getFunc() << " - " << currentTask_.getMessage() << std::endl;
-          break;
-        case LogType::INFO:
-          logFile_ << "[" << getCurrentTimestamp() << " INFO] " << currentTask_.getLogSrc() << "::" << currentTask_.getFunc() << " - " << currentTask_.getMessage() << std::endl;
-          break;
-        case LogType::WARNING:
-          logFile_ << "[" << getCurrentTimestamp() << " WARNING] " << currentTask_.getLogSrc() << "::" << currentTask_.getFunc() << " - " << currentTask_.getMessage() << std::endl;
-          break;
-        case LogType::ERROR:
-          logFile_ << "[" << getCurrentTimestamp() << " ERROR] " << currentTask_.getLogSrc() << "::" << currentTask_.getFunc() << " - " << currentTask_.getMessage() << std::endl;
-          break;
+      std::string logType = "";
+      switch (curTask_.getType()) {
+        case LogType::DEBUG: logType = "DEBUG"; break;
+        case LogType::INFO: logType = "INFO"; break;
+        case LogType::WARNING: logType = "WARNING"; break;
+        case LogType::ERROR: logType = "ERROR"; break;
       }
+      this->logFile_ << "[" << getCurrentTimestamp() << " " << logType << "] "
+        << curTask_.getLogSrc() << "::" << curTask_.getFunc()
+        << " - " << curTask_.getMessage() << std::endl;
     };
+
     /// Post a task to the queue.
     void postLogTask(LogInfo&& infoToLog) noexcept {
       {
@@ -170,24 +160,36 @@ class Logger {
     };
 
   public:
-    /// Post the log task to the queue.
+    /**
+     * Log debug data to the debug file.
+     * @param infoToLog The data to log.
+     */
     static inline void logToDebug(LogInfo&& infoToLog) noexcept {
       getInstance().postLogTask(std::move(infoToLog));
     }
 
-    /// Create and post the log task to the queue.
+    /**
+     * Log debug data to the debug file.
+     * @param type The type of the log.
+     * @param logSrc The source of the log.
+     * @param func The function name.
+     * @param message The message to log.
+     */
     static inline void logToDebug(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) noexcept {
-      LogInfo log = LogInfo(type, logSrc, std::move(func), std::move(message));
+      auto log = LogInfo(type, logSrc, std::move(func), std::move(message));
       getInstance().postLogTask(std::move(log));
     }
 
+    /**
+     * Destructor.
+     */
     ~Logger() {
       stopWorker_ = true;
       cv_.notify_one();
       logThreadFuture_.get();
-      /// Flush the remaining queue
+      // Flush the remaining queue
       while (!logQueue_.empty()) {
-        currentTask_ = std::move(logQueue_.front());
+        curTask_ = std::move(logQueue_.front());
         logQueue_.pop();
         logFileInternal();
       }
@@ -197,6 +199,7 @@ class Logger {
      * Get the current timestamp as string in the following format:
      * "%Y-%m-%d %H:%M:%S.ms"
      * "%Y-%m-%d %H:%M:%S.ms"
+     * @return The current timestamp as string.
      */
     static inline std::string getCurrentTimestamp() {
       auto now = std::chrono::system_clock::now();

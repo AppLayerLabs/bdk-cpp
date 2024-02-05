@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef HTTPSESSION_H
 #define HTTPSESSION_H
 
@@ -18,22 +25,22 @@ class HTTPQueue {
       virtual void operator()() = 0;  ///< Default call operator.
     };
 
-    unsigned int limit = 8; ///< Maximum number of responses to queue.
-    HTTPSession& session;   ///< Reference to the HTTP session that is handling the queue.
-    std::vector<std::unique_ptr<work>> items; ///< Array of pointers to work structs.
+    unsigned int limit_ = 8; ///< Maximum number of responses to queue.
+    HTTPSession& session_;   ///< Reference to the HTTP session that is handling the queue.
+    std::vector<std::unique_ptr<work>> items_; ///< Array of pointers to work structs.
 
   public:
     /**
      * Constructor.
      * @param session Reference to the HTTP session that will handle the queue.
      */
-    HTTPQueue(HTTPSession& session);
+    explicit HTTPQueue(HTTPSession& session);
 
     /**
      * Check if the queue limit was hit.
      * @return `true` if queue is full, `false` otherwise.
      */
-    bool full();
+    bool full() const;
 
     /**
      * Callback for when a message is sent.
@@ -55,35 +62,35 @@ class HTTPQueue {
 class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
   private:
     /// TCP/IP stream socket.
-    beast::tcp_stream stream;
+    beast::tcp_stream stream_;
 
     /// Internal buffer to read and write from.
-    beast::flat_buffer buf;
+    beast::flat_buffer buf_;
 
     /// Pointer to the root directory of the endpoint.
-    std::shared_ptr<const std::string> docroot;
+    std::shared_ptr<const std::string> docroot_;
 
     /// Queue object that the session is responsible for.
-    HTTPQueue queue;
+    HTTPQueue queue_;
 
     /**
      * HTTP/1 parser for producing a request message.
      * The parser is stored in an optional container so we can construct it
      * from scratch at the beginning of each new message.
      */
-    boost::optional<http::request_parser<http::string_body>> parser;
+    boost::optional<http::request_parser<http::string_body>> parser_;
 
     /// Reference pointer to the blockchain's state.
-    const std::unique_ptr<State>& state;
+    const std::unique_ptr<State>& state_;
 
     /// Reference pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage;
+    const std::unique_ptr<Storage>& storage_;
 
     /// Reference pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal>& p2p;
+    const std::unique_ptr<P2P::ManagerNormal>& p2p_;
 
     /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options;
+    const std::unique_ptr<Options>& options_;
 
     /// Read whatever is on the internal buffer.
     void do_read();
@@ -118,14 +125,14 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
      * @param p2p Reference pointer to the P2P connection manager.
      * @param options Reference pointer to the options singleton.
      */
-    HTTPSession(
-      tcp::socket&& sock, std::shared_ptr<const std::string>& docroot,
+    HTTPSession(tcp::socket&& sock,
+      const std::shared_ptr<const std::string>& docroot,
       const std::unique_ptr<State>& state,
       const std::unique_ptr<Storage>& storage,
       const std::unique_ptr<P2P::ManagerNormal>& p2p,
       const std::unique_ptr<Options>& options
-    ) : stream(std::move(sock)), docroot(docroot), queue(*this), state(state),
-    storage(storage), p2p(p2p), options(options)
+    ) : stream_(std::move(sock)), docroot_(docroot), queue_(*this), state_(state),
+      storage_(storage), p2p_(p2p), options_(options)
     {}
 
     /// Start the HTTP session.

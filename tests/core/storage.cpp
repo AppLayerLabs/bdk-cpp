@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/core/storage.h"
 #include "../../src/utils/db.h"
@@ -9,22 +16,40 @@
 // Initialize db to be used in tests.
 // DB here is the same
 void initialize(std::unique_ptr<DB> &db, std::unique_ptr<Storage>& storage, std::unique_ptr<Options>& options, bool clearDB = true) {
+  std::string testDumpPath = Utils::getTestDumpPath();
   if (clearDB) {
-    if (std::filesystem::exists("blocksTests")) {
-      std::filesystem::remove_all("blocksTests");
+    if (std::filesystem::exists(testDumpPath + "/blocksTests")) {
+      std::filesystem::remove_all(testDumpPath + "/blocksTests");
+    }
+    if(std::filesystem::exists(testDumpPath + "/blocksTests" + "/options.json")) {
+      std::filesystem::remove(testDumpPath + "/blocksTests" + "/options.json");
     }
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  db = std::make_unique<DB>("blocksTests/db");
+  db = std::make_unique<DB>(testDumpPath + "/blocksTests/db");
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+  PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+  uint64_t genesisTimestamp = 1656356646000000;
+  Block genesis(Hash(), 0, 0);
+  genesis.finalize(genesisPrivKey, genesisTimestamp);
+  std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
+  std::vector<Address> genesisValidators;
   options = std::make_unique<Options>(
-    "blocksTests",
-    "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    testDumpPath + "/blocksTests",
+    "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     1,
     8080,
+    Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
     8080,
     9999,
-    discoveryNodes
+    2000,
+    10000,
+    discoveryNodes,
+    genesis,
+    genesisTimestamp,
+    genesisPrivKey,
+    genesisBalances,
+    genesisValidators
   );
   storage = std::make_unique<Storage>(db, options);
 }

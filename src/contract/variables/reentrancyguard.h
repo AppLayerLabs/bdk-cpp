@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef REENTRANCY_GUARD_H
 #define REENTRANCY_GUARD_H
 
@@ -17,19 +24,18 @@ class ReentrancyGuard {
     bool &lock_; ///< Reference to the mutex.
 
   public:
-    /// Constructor.
-    ReentrancyGuard(bool &lock) : lock_(lock) {
-      if(lock_) {
-        throw std::runtime_error("ReentrancyGuard: reentrancy attack detected");
-      }
+    /**
+     * Constructor.
+     * @param lock Reference to the mutex.
+     * @throw std::runtime_error if the mutex is already locked.
+     */
+    explicit ReentrancyGuard(bool &lock) : lock_(lock) {
+      if (lock_) throw std::runtime_error("ReentrancyGuard: reentrancy attack detected");
       lock_ = true;
     }
 
     /// Destructor.
-    ~ReentrancyGuard() {
-      lock_ = false;
-    }
+    ~ReentrancyGuard() { lock_ = false; }
 };
 
-
-#endif
+#endif  // REENTRANCY_GUARD_H

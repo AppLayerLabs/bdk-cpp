@@ -1,3 +1,10 @@
+/*
+Copyright (c) [2023-2024] [Sparq Network]
+
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
+*/
+
 #ifndef MERKLE_H
 #define MERKLE_H
 
@@ -19,7 +26,7 @@
  */
 class Merkle {
   private:
-    std::vector<std::vector<Hash>> tree;  ///< The %Merkle tree itself.
+    std::vector<std::vector<Hash>> tree_;  ///< The %Merkle tree itself.
 
     /**
      * Insert a new layer in the %Merkle tree.
@@ -33,33 +40,33 @@ class Merkle {
      * Constructor.
      * @param leaves The list of leaves to create the %Merkle tree from.
      */
-    Merkle(const std::vector<Hash>& leaves);
+    explicit Merkle(const std::vector<Hash>& leaves);
 
     /**
      * Constructor for block transactions.
      * TxType would be one of the enum types described in rdPoS.
      * @param txs The list of transactions to create the %Merkle tree from.
      */
-    template <typename TxType> Merkle(const std::vector<TxType>& txs) {
+    template <typename TxType> explicit Merkle(const std::vector<TxType>& txs) {
       // Mount the base leaves
       std::vector<Hash> tmp;
       for (auto tx : txs) tmp.emplace_back(std::move(Utils::sha3(tx.hash().get())));
-      this->tree.emplace_back(tmp);
+      this->tree_.emplace_back(tmp);
       // Make the layers up to root
-      while (this->tree.back().size() > 1) this->tree.emplace_back(newLayer(this->tree.back()));
+      while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));
     }
 
     /// Getter for `tree`.
-    inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree; }
+    inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree_; }
 
     /// Getter for `tree`, but returns only the root.
     inline const Hash getRoot() const {
-      if (this->tree.back().size() == 0) return Hash();
-      return this->tree.back().front();
+      if (this->tree_.back().size() == 0) return Hash();
+      return this->tree_.back().front();
     }
 
     /// Getter for `tree`, but returns only the leaves.
-    inline const std::vector<Hash>& getLeaves() const { return this->tree.front(); }
+    inline const std::vector<Hash>& getLeaves() const { return this->tree_.front(); }
 
     /**
      * Get the proof for a given leaf in the %Merkle tree.
