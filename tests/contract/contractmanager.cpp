@@ -11,6 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/core/rdpos.h"
 #include "../../src/utils/db.h"
 #include "../../src/utils/options.h"
+#include "../../src/utils/dynamicexception.h"
 #include <filesystem>
 #include <sys/types.h>
 
@@ -299,6 +300,40 @@ namespace TContractManager {
       REQUIRE(std::get<0>(decB) == 0);
       REQUIRE(std::get<0>(decC) == 0);
     }
+
+    SECTION("ContractManager ethCall() throws") {
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
+      }
+      if (!std::filesystem::exists(testDumpPath)) { // Ensure the testdump folder actually exists
+        std::filesystem::create_directories(testDumpPath);
+      }
+
+      PrivKey privKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+      Address owner = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
+
+      {
+        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
+        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
+        std::unique_ptr<rdPoS> rdpos;
+        ethCallInfo callInfo;
+        ContractManager contractManager(db, nullptr, rdpos, options);
+
+        try {
+            contractManager.ethCall(callInfo);
+            FAIL("Expected DynamicException was not thrown."); // This line will fail the test if no exception is thrown
+        } catch (const DynamicException& e) {
+            // Check that the exception message matches the expected message
+            std::string expectedMessage = "Invalid function call with functor: 00000000";
+            REQUIRE(std::string(e.what()) == expectedMessage);
+        } catch (...) {
+            FAIL("An unexpected exception type was thrown.");
+        }
+        
+      }
+
+    }
+
   }
 }
 
