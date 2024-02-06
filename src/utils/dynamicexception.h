@@ -25,7 +25,8 @@ public:
     * @param args The message parts to be concatenated.
     */
     template<typename... Args>
-    DynamicException(Args... args) {
+    DynamicException(Args... args)
+        : file_(""), line_(0), function_("") {
         message_ = buildMessage(args...);
         setTimestamp();
     }
@@ -101,6 +102,9 @@ private:
     /// The function where the exception was thrown.
     std::string function_;
 
+    /**
+    * @brief Sets the timestamp of the exception.
+    */
     void setTimestamp() {
         auto now = std::chrono::system_clock::now();
         auto now_c = std::chrono::system_clock::to_time_t(now);
@@ -109,6 +113,11 @@ private:
         timestamp_ = ss.str();
     }
 
+    /**
+    * @brief Builds the exception message from the given parts.
+    * @param args The message parts to be concatenated.
+    * @return The built exception message.
+    */
     template<typename... Args>
     std::string buildMessage(Args... args) {
         std::ostringstream stream;
