@@ -13,80 +13,108 @@ See the LICENSE.txt file in the project root for more information.
 #include <sstream>
 #include <chrono>
 #include <ctime>
+#include <iomanip>
 
 /**
-* @brief A dynamic exception class that records the timestamp, file, line, and function where the exception was thrown.
+* @brief A dynamic exception class that allows for dynamic message building and timestamping.
 */
 class DynamicException : public std::exception {
 public:
-
     /**
-    * @brief Construct a new DynamicException object with a message
-    * @param message The message to be displayed when the exception is caught
+    * @brief Constructor for the DynamicException class with a dynamic message.
+    * @param args The message parts to be concatenated.
     */
     template<typename... Args>
-    DynamicException(Args... args);
+    DynamicException(Args... args) {
+        message_ = buildMessage(args...);
+        setTimestamp();
+    }
 
     /**
-    * @brief Construct a new DynamicException object with a message and stack trace information
-    * @tparam FirstArg The type of the first argument
-    * @tparam RestArgs The types of the rest of the arguments
-    * @param firstArg The first part of the message
-    * @param restArgs The rest of the parts of the message
-    * @param file The file where the exception was thrown
-    * @param line The line where the exception was thrown
-    * @param func The function where the exception was thrown
+    * @brief Constructor for the DynamicException class with a dynamic message and stacktrace information.
+    * @param firstArg The first part of the message.
+    * @param restArgs The rest of the message parts.
+    * @param file The file where the exception was thrown.
+    * @param line The line where the exception was thrown.
+    * @param func The function where the exception was thrown.
     */
     template<typename FirstArg, typename... RestArgs>
-    DynamicException(FirstArg firstArg, RestArgs... restArgs, const std::string& file = "", int line = 0, const std::string& func = "");
-
-    /// Getter for the message to be displayed when the exception is caught
-    const char* what() const noexcept override;
-
-    /// Getter for the timestamp when the exception was thrown
-    std::string getTimestamp() const;
-
-    /// Setter for the timestamp when the exception was thrown
-    void setTimestamp();
-
-    /// Getter for the file where the exception was thrown
-    const std::string& getFile() const;
-
-    /// Getter for the line where the exception was thrown
-    int getLine() const;
-
-    /// Getter for the function where the exception was thrown
-    const std::string& getFunction() const;
+    DynamicException(FirstArg firstArg, RestArgs... restArgs, const std::string& file = "", int line = 0, const std::string& func = "") 
+        : file_(file), line_(line), function_(func) {
+        std::ostringstream stream;
+        stream << firstArg;
+        (stream << ... << restArgs);
+        message_ = stream.str();
+        setTimestamp();
+    }
 
     /**
-    * @brief Concatenates the arguments into a single message
-    * @tparam Args The types of the arguments to be concatenated into the message
-    * @param args The arguments to be concatenated into the message
-    * @return The concatenated message
+    * @brief Returns the exception message.
+    * @return The exception message.
     */
-    template<typename... Args>
-    std::string buildMessage(Args... args);
+    const char* what() const noexcept override {
+        return message_.c_str();
+    }
+
+    /**
+    * @brief Returns the timestamp of the exception.
+    * @return The timestamp of the exception.
+    */
+    std::string getTimestamp() const {
+        return timestamp_;
+    }
+
+    /**
+    * @brief Returns the file where the exception was thrown.
+    * @return The file where the exception was thrown.
+    */
+    const std::string& getFile() const {
+        return file_;
+    }
+
+    /**
+    * @brief Returns the line where the exception was thrown.
+    * @return The line where the exception was thrown.
+    */
+    int getLine() const {
+        return line_;
+    }
+
+    /**
+    * @brief Returns the function where the exception was thrown.
+    * @return The function where the exception was thrown.
+    */
+    const std::string& getFunction() const {
+        return function_;
+    }
 
 private:
 
-    /// The message to be displayed when the exception is caught
+    /// The exception message.
     std::string message_;
-
-    /// The timestamp when the exception was thrown
+    /// The timestamp of the exception.
     std::string timestamp_;
-
-    /// The file where the exception was thrown
+    /// The file where the exception was thrown.
     std::string file_;
-
-    /// The line where the exception was thrown
+    /// The line where the exception was thrown.
     int line_;
-
-    /// The function where the exception was thrown
+    /// The function where the exception was thrown.
     std::string function_;
+
+    void setTimestamp() {
+        auto now = std::chrono::system_clock::now();
+        auto now_c = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
+        timestamp_ = ss.str();
+    }
+
+    template<typename... Args>
+    std::string buildMessage(Args... args) {
+        std::ostringstream stream;
+        ((stream << args), ...);
+        return stream.str();
+    }
 };
 
-
-#include "dynamicexception.tpp" // Include template implementation
-
 #endif // DYNAMIC_EXCEPTION_H
-

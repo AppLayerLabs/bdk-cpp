@@ -30,6 +30,5 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/optionsdefaults.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.cpp
-  ${CMAKE_SOURCE_DIR}/src/utils/dynamicexception.tpp
   PARENT_SCOPE
 )

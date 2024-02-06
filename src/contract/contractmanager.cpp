@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "customcontracts.h"
 #include "../core/rdpos.h"
 #include "../core/state.h"
+#include "../utils/dynamicexception.h"
 
 ContractManager::ContractManager(
   const std::unique_ptr<DB>& db, State* state,
@@ -82,7 +83,9 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
   Functor functor = std::get<5>(callInfo);
   std::function<void(const ethCallInfo&)> f;
   f = this->factory_->getCreateContractFunc(functor.asBytes());
-  if (!f) throw std::runtime_error("Invalid function call with functor: " + functor.hex().get());
+  if (!f) {
+    throw DynamicException("Invalid function call with functor: ", functor.hex().get());
+  }
   f(callInfo);
 }
 
