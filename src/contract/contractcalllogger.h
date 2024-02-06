@@ -65,15 +65,15 @@ class ContractCallLogger {
     ~ContractCallLogger();
 
     /// Copy constructor (deleted).
-    ContractCallLogger(ContractCallLogger& other) = delete;
+    ContractCallLogger(const ContractCallLogger& other) = delete;
 
     /// Move constructor (deleted).
     ContractCallLogger(ContractCallLogger&& other) = delete;
 
-    /// Copy assignment opetator (deleted).
-    ContractCallLogger& operator=(ContractCallLogger& other) = delete;
+    /// Copy assignment operator (deleted).
+    ContractCallLogger& operator=(const ContractCallLogger& other) = delete;
 
-    /// Move assignment opetator (deleted).
+    /// Move assignment operator (deleted).
     ContractCallLogger& operator=(ContractCallLogger&& other) = delete;
 
     /// Getter for `balances`.
