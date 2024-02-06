@@ -25,9 +25,8 @@ public:
     * @param args The message parts to be concatenated.
     */
     template<typename... Args>
-    DynamicException(Args... args)
-        : file_(""), line_(0), function_("") {
-        message_ = buildMessage(args...);
+    explicit DynamicException(Args... args)
+        : file_(""), line_(0), function_(""), message_(buildMessage(args...)) {
         setTimestamp();
     }
 
@@ -40,12 +39,8 @@ public:
     * @param func The function where the exception was thrown.
     */
     template<typename FirstArg, typename... RestArgs>
-    DynamicException(FirstArg firstArg, RestArgs... restArgs, const std::string& file = "", int line = 0, const std::string& func = "") 
-        : file_(file), line_(line), function_(func) {
-        std::ostringstream stream;
-        stream << firstArg;
-        (stream << ... << restArgs);
-        message_ = stream.str();
+    DynamicException(FirstArg firstArg, RestArgs... restArgs, const std::string& file, int line, const std::string& func)
+        : file_(file), line_(line), function_(func), message_(buildMessage(firstArg, restArgs...)) {
         setTimestamp();
     }
 
@@ -108,9 +103,16 @@ private:
     void setTimestamp() {
         auto now = std::chrono::system_clock::now();
         auto now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm tm_buf;
         std::stringstream ss;
-        ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
-        timestamp_ = ss.str();
+
+        // Using localtime_r for thread safety
+        if (localtime_r(&now_c, &tm_buf)) {
+            ss << std::put_time(&tm_buf, "%Y-%m-%d %H:%M:%S");
+            timestamp_ = ss.str();
+        } else {
+            timestamp_ = "Error: Unable to get local time";
+        }
     }
 
     /**
@@ -118,10 +120,10 @@ private:
     * @param args The message parts to be concatenated.
     * @return The built exception message.
     */
-    template<typename... Args>
-    std::string buildMessage(Args... args) {
+     template<typename... Args>
+    std::string buildMessage(Args... args) const {
         std::ostringstream stream;
-        ((stream << args), ...);
+        (stream << ... << args);
         return stream.str();
     }
 };
