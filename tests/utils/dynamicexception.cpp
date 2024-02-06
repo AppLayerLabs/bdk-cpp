@@ -3,6 +3,16 @@
 #include <iostream>
 
 namespace TDynamicException {
+
+    class CustomObject {
+    public:
+        int value;
+        CustomObject(int v) : value(v) {}
+        friend std::ostream& operator<<(std::ostream& os, const CustomObject& obj) {
+            return os << "CustomObject(value=" << obj.value << ")";
+        }
+    };
+
     TEST_CASE("DynamicException Class", "[utils][dynamicexception]") {
         SECTION("Exception message is set and retrieved correctly") {
             const std::string filename = "test.cpp";
@@ -86,6 +96,60 @@ namespace TDynamicException {
                 REQUIRE(e.getFunction() == "");
             }
         }
+
+        SECTION("Exception with default file, line, and function") {
+            const std::string message = "Default file, line, and function";
+            DynamicException exception("Default file, line, and function");
+
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                REQUIRE(e.what() == message);
+                REQUIRE(e.getFile() == "");
+                REQUIRE(e.getLine() == 0);
+                REQUIRE(e.getFunction() == "");
+            }
+        }
+
+        SECTION("Exception with various basic types") {
+            int intValue = 42;
+            double doubleValue = 3.14;
+            const std::string message = "Error occurred with values: ";
+            DynamicException exception(message, intValue, " and ", doubleValue);
+
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                REQUIRE_THAT(e.what(), Catch::Matchers::Equals("Error occurred with values: 42 and 3.14"));
+            }
+        }
+
+        SECTION("Exception with strings and literals") {
+            const std::string part1 = "Error: ";
+            const char* part2 = "Invalid operation";
+            DynamicException exception(part1, part2);
+
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                REQUIRE(e.what() == std::string("Error: Invalid operation"));
+            }
+        }
+
+
+        SECTION("Exception with custom objects") {
+            CustomObject obj(100);
+            DynamicException exception("Encountered an issue with ", obj);
+
+            try {
+                throw exception;
+            } catch (const DynamicException& e) {
+                REQUIRE_THAT(e.what(), Catch::Matchers::Equals("Encountered an issue with CustomObject(value=100)"));
+            }
+        }
+
+
+
 
     }
 }
