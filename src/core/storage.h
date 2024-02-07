@@ -25,7 +25,7 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
  * Abstraction of the blockchain history.
  * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
- * TODO: Improve const correctness.
+ * TODO:
  * Possible replace `std::shared_ptr<const Block>` with a better solution.
  */
 class Storage {
@@ -114,6 +114,28 @@ class Storage {
      */
     const TxBlock getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const;
 
+    /**
+     * Check if a block exists anywhere in storage (memory/chain, then cache, then database).
+     * Does **not** lock `chainLock_` or `cacheLock_`.
+     * @param hash The block hash to search.
+     * @return An enum telling where the block is.
+     */
+    StorageStatus blockExistsInternal(const Hash& hash) const;
+    /**
+     * Overload of blockExistsInternal() that works with block height instead of hash.
+     * Does **not** lock `chainLock_` or `cacheLock_`.
+     * @param height The block height to search.
+     * @return Bool telling if the block exists.
+     */
+    StorageStatus blockExistsInternal(const uint64_t& height) const;
+
+    /**
+     * Check if a transaction exists anywhere in storage (memory/chain, then cache, then database).
+     * @param tx The transaction to check.
+     * @return Bool telling if the transaction exists.
+     */
+    StorageStatus txExistsInternal(const Hash& tx) const;
+
   public:
     /**
      * Constructor. Automatically loads the chain from the database
@@ -143,38 +165,40 @@ class Storage {
 
     /**
      * Check if a block exists anywhere in storage (memory/chain, then cache, then database).
+     * Locks `chainLock_` and `cacheLock_`, to be used by external actors.
      * @param hash The block hash to search.
      * @return An enum telling where the block is.
      */
-    StorageStatus blockExists(const Hash& hash);
+    bool blockExists(const Hash& hash) const;
 
     /**
      * Overload of blockExists() that works with block height instead of hash.
+     * Locks `chainLock_` and `cacheLock_`, to be used by external actors.
      * @param height The block height to search.
-     * @return An enum telling where the block is.
+     * @return Bool telling if the block exists.
      */
-    StorageStatus blockExists(const uint64_t& height);
+    bool blockExists(const uint64_t& height) const;
 
     /**
      * Get a block from the chain using a given hash.
      * @param hash The block hash to get.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const Hash& hash);
+    const std::shared_ptr<const Block> getBlock(const Hash& hash) const;
 
     /**
      * Get a block from the chain using a given height.
      * @param height The block height to get.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const uint64_t& height);
+    const std::shared_ptr<const Block> getBlock(const uint64_t& height) const;
 
     /**
      * Check if a transaction exists anywhere in storage (memory/chain, then cache, then database).
      * @param tx The transaction to check.
-     * @return An enum telling where the transaction is.
+     * @return Bool telling if the transaction exists.
      */
-    StorageStatus txExists(const Hash& tx);
+    bool txExists(const Hash& tx) const;
 
     /**
      * Get a transaction from the chain using a given hash.
@@ -184,7 +208,7 @@ class Storage {
      */
     const std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTx(const Hash& tx);
+    > getTx(const Hash& tx) const;
 
     /**
      * Get a transaction from a block with a specific index.
@@ -195,7 +219,7 @@ class Storage {
      */
     const std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex);
+    > getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const;
 
     /**
      * Get a transaction from a block with a specific index.
@@ -205,7 +229,7 @@ class Storage {
      */
     const std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-    > getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex);
+    > getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) const;
 
     /**
      * Get the most recently added block from the chain.
