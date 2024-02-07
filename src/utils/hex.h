@@ -26,22 +26,7 @@ using BytesArr = std::array<Byte, N>;
 using BytesArrView = std::span<const Byte, std::dynamic_extent>;
 using BytesArrMutableView = std::span<Byte, std::dynamic_extent>;
 
-
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
-
-/**
- * Helper struct for use with Boost's lexical_cast to convert hex strings
- * to a given type (`boost::lexical_cast<%HexTo<uint256_t>>(hexStr)`).
- */
-template <typename ElemT> struct HexTo {
-  ElemT value;  ///< The value to hold.
-  operator ElemT() const { return value; } ///< Operator to get the value.
-  /// Stream operator.
-  friend std::istream& operator>>(std::istream& in, HexTo& out) {
-    in >> std::hex >> out.value;
-    return in;
-  }
-};
 
 /// Abstraction of a strictly hex-formatted string (`(0x)[1-9][a-f][A-F]`).
 class Hex {
@@ -125,9 +110,17 @@ class Hex {
     /// Getter for `hex`.
     inline const std::string& get() const { return this->hex_; }
 
-    /// Getter for `hex`, but converts it back to an unsigned integer.
+    /**
+     * Getter for `hex`, but converts it back to an unsigned 256-bit integer.
+     * @throw std::length_error if hex is too big to be converted to uint256_t.
+     */
     inline uint256_t getUint() const {
-      return boost::lexical_cast<HexTo<uint256_t>>(this->hex_);
+      Bytes b = Hex::toBytes(this->hex_);
+      if (b.size() > 32) throw std::length_error("Hex too big for uint conversion");
+      BytesArrView bV(b.data(), b.size());
+      uint256_t ret;
+      boost::multiprecision::import_bits(ret, bV.begin(), bV.end(), 8);
+      return ret;
     }
 
     /**

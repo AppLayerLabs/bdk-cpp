@@ -47,9 +47,7 @@ class SafeAddress : public SafeBase {
 
     /// Copy constructor.
     SafeAddress(const SafeAddress& other) : SafeBase(nullptr) {
-      check();
-      address_ = other.address_;
-      addressPtr_ = std::make_unique<Address>(*other.addressPtr_);
+      other.check(); addressPtr_ = std::make_unique<Address>(*other.addressPtr_);
     }
 
     /// Getter for the value. Returns the value from the pointer.
