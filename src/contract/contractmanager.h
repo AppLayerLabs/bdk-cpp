@@ -141,7 +141,8 @@ class ContractManager : public BaseContract {
      * @return True if the contract exists in the database, false otherwise.
      */
     template <typename Tuple>
-    std::enable_if_t<Utils::is_tuple<Tuple>::value, bool> loadFromDB(
+    requires Utils::is_tuple<Tuple>::value
+    bool loadFromDB(
       const auto& contract, const Address& contractAddress
     ) {
       return loadFromDBHelper<Tuple>(

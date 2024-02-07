@@ -189,8 +189,8 @@ namespace JsonAbi {
    * @param abis The array of JSON objects to store the ABI functions in.
    */
   template <typename ContractTuple, std::size_t N>
-  std::enable_if_t<(N < std::tuple_size<ContractTuple>::value)>
-  getConstructorsABI(json& abis) {
+  requires (N < std::tuple_size<ContractTuple>::value)
+  void getConstructorsABI(json& abis) {
     abis.push_back(getConstructorABI<std::tuple_element_t<N, ContractTuple>>());
     if constexpr (N + 1 < std::tuple_size<ContractTuple>::value) {
       getConstructorsABI<ContractTuple, N + 1>(abis);
@@ -204,8 +204,8 @@ namespace JsonAbi {
    * @param abis The array of JSON objects to store the ABI functions in.
    */
   template <typename ContractTuple, std::size_t N>
-  std::enable_if_t<(N == std::tuple_size<ContractTuple>::value)>
-  getConstructorsABI(json &abis) {
+  requires (N == std::tuple_size<ContractTuple>::value)
+  void getConstructorsABI(json &abis) {
     // Do nothing by default on recursion
   }
 

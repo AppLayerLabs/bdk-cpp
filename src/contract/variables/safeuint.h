@@ -158,8 +158,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the addition.
      */
     template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-    operator+(const uint_t& other) const {
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator+(const uint_t& other) const {
       check();
       if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
       {
@@ -206,8 +206,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the subtraction.
      */
     template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-    operator-(const uint_t& other) const {
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator-(const uint_t& other) const {
       check();
       if (*valuePtr_ < other)
       {
@@ -281,16 +281,16 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the multiplication.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator*(const uint_t& other) const {
-        check();
-        if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
-        if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other)
-        {
-          throw std::overflow_error("Overflow in multiplication operation.");
-        }
-        return SafeUint_t<Size>(*valuePtr_ * other);
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator*(const uint_t& other) const {
+      check();
+      if (other == 0 || *valuePtr_ == 0) throw std::domain_error("Multiplication by zero");
+      if (*valuePtr_ > std::numeric_limits<uint_t>::max() / other)
+      {
+        throw std::overflow_error("Overflow in multiplication operation.");
       }
+      return SafeUint_t<Size>(*valuePtr_ * other);
+    }
 
     /**
      * Multiplication operator.
@@ -345,12 +345,12 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the division.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator/(const uint_t& other) const {
-        check();
-        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division by zero");
-        return SafeUint_t<Size>(*valuePtr_ / other);
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator/(const uint_t& other) const {
+      check();
+      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division by zero");
+      return SafeUint_t<Size>(*valuePtr_ / other);
+    }
 
 
     /**
@@ -402,12 +402,12 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the modulus.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator%(const uint64_t& other) const {
-        check();
-        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
-        return SafeUint_t<Size>(*valuePtr_ % other);
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator%(const uint64_t& other) const {
+      check();
+      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus by zero");
+      return SafeUint_t<Size>(*valuePtr_ % other);
+    }
 
     /**
      * Modulo operator.
@@ -451,11 +451,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the AND.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator&(const uint64_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ & other);
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator&(const uint64_t& other) const {
+      check();
+      return SafeUint_t<Size>(*valuePtr_ & other);
+    }
 
     /**
      * Bitwise AND operator.
@@ -494,11 +494,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the OR.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator|(const uint64_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ | other);
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator|(const uint64_t& other) const {
+      check();
+      return SafeUint_t<Size>(*valuePtr_ | other);
+    }
 
     /**
      * Bitwise OR operator.
@@ -537,11 +537,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the XOR.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator^(const uint64_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ ^ other);
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator^(const uint64_t& other) const {
+      check();
+      return SafeUint_t<Size>(*valuePtr_ ^ other);
+    }
 
     /**
      * Bitwise XOR operator.
@@ -580,11 +580,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the shift.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator<<(const uint64_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ << other);
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator<<(const uint64_t& other) const {
+      check();
+      return SafeUint_t<Size>(*valuePtr_ << other);
+    }
 
     /**
      * Left shift operator.
@@ -613,11 +613,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A new SafeUint_t with the result of the shift.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>>::type
-      operator>>(const uint_t& other) const {
-        check();
-        return SafeUint_t<Size>(*valuePtr_ >> other);
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator>>(const uint_t& other) const {
+      check();
+      return SafeUint_t<Size>(*valuePtr_ >> other);
+    }
 
     /**
      * Right shift operator.
@@ -679,11 +679,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return True if both values are not zero, false otherwise.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-      operator&&(const uint_t& other) const {
-        check();
-        return *valuePtr_ && other;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator&&(const uint_t& other) const {
+      check();
+      return *valuePtr_ && other;
+    }
 
 
     /**
@@ -712,11 +712,11 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return True if at least one value is not zero, false otherwise.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-      operator||(const uint64_t& other) const {
-        check();
-        return *valuePtr_ || other;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator||(const uint64_t& other) const {
+      check();
+      return *valuePtr_ || other;
+    }
 
     // ====================
     // Comparison operators
@@ -748,8 +748,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return True if both values are equal, false otherwise.
      */
     template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator==(const uint64_t& other) const {
+    requires (!std::is_same<T, uint64_t>::value)
+    bool operator==(const uint64_t& other) const {
       check();
       return *valuePtr_ == other;
     }
@@ -783,8 +783,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return True if both values are not equal, false otherwise.
      */
     template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator!=(const uint64_t& other) const {
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator!=(const uint64_t& other) const {
       check();
       return *valuePtr_ != other;
     }
@@ -815,8 +815,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return True if the value is less than the other value, false otherwise.
      */
     template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator<(const uint64_t& other) const {
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator<(const uint64_t& other) const {
       check();
       return *valuePtr_ < other;
     }
@@ -837,8 +837,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return True if the value is less than or equal to the other value, false otherwise.
      */
     template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator<=(const uint_t& other) const {
+    requires (!std::is_same<T, uint64_t>::value)
+    bool operator<=(const uint_t& other) const {
       check();
       return *valuePtr_ <= other;
     }
@@ -869,8 +869,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return True if the value is greater than the other value, false otherwise.
      */
     template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator>(const uint_t& other) const {
+    requires (!std::is_same<T, uint64_t>::value)
+    bool operator>(const uint_t& other) const {
       check();
       return *valuePtr_ > other;
     }
@@ -911,8 +911,8 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return True if the value is greater than or equal to the other value, false otherwise.
      */
     template<typename T = uint_t>
-    inline typename std::enable_if<!std::is_same<T, uint64_t>::value, bool>::type
-    operator>=(const uint64_t& other) const {
+    requires (!std::is_same<T, uint64_t>::value)
+    bool operator>=(const uint64_t& other) const {
       check();
       return *valuePtr_ >= other;
     }
@@ -951,13 +951,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ = other;
-        return *this;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator=(const uint_t& other) {
+      check();
+      markAsUsed();
+      *valuePtr_ = other;
+      return *this;
+    }
 
     /**
      * Assignment operator.
@@ -1016,17 +1016,17 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator+=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
-        {
-          throw std::overflow_error("Overflow in addition assignment operation.");
-        }
-        *valuePtr_ += other;
-        return *this;
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator+=(const uint64_t& other) {
+      check();
+      markAsUsed();
+      if (*valuePtr_ > std::numeric_limits<uint_t>::max() - other)
+      {
+        throw std::overflow_error("Overflow in addition assignment operation.");
       }
+      *valuePtr_ += other;
+      return *this;
+    }
 
     /**
      * Addition assignment operator.
@@ -1087,17 +1087,17 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator-=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        if (*valuePtr_ < other)
-        {
-          throw std::underflow_error("Underflow in subtraction assignment operation.");
-        }
-        *valuePtr_ -= other;
-        return *this;
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator-=(const uint64_t& other) {
+      check();
+      markAsUsed();
+      if (*valuePtr_ < other)
+      {
+        throw std::underflow_error("Underflow in subtraction assignment operation.");
       }
+      *valuePtr_ -= other;
+      return *this;
+    }
 
     /**
      * Subtraction assignment operator.
@@ -1218,14 +1218,14 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator/=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division assignment by zero");
-        *valuePtr_ /= other;
-        return *this;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size> operator/=(const uint64_t& other) {
+      check();
+      markAsUsed();
+      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Division assignment by zero");
+      *valuePtr_ /= other;
+      return *this;
+    }
 
     /**
      * Division assignment operator.
@@ -1283,14 +1283,14 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator%=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
-        *valuePtr_ %= other;
-        return *this;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size>& operator%=(const uint64_t& other) {
+      check();
+      markAsUsed();
+      if (*valuePtr_ == 0 || other == 0) throw std::domain_error("Modulus assignment by zero");
+      *valuePtr_ %= other;
+      return *this;
+    }
 
     /**
      * Modulus assignment operator.
@@ -1331,13 +1331,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator&=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ &= other;
-        return *this;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size>& operator&=(const uint_t& other) {
+      check();
+      markAsUsed();
+      *valuePtr_ &= other;
+      return *this;
+    }
 
     /**
      * Bitwise AND assignment operator.
@@ -1387,13 +1387,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator|=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ |= other;
-        return *this;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size>& operator|=(const uint_t& other) {
+      check();
+      markAsUsed();
+      *valuePtr_ |= other;
+      return *this;
+    }
 
     /**
      * Bitwise OR assignment operator.
@@ -1442,13 +1442,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator^=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ ^= other;
-        return *this;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size>& operator^=(const uint_t& other) {
+      check();
+      markAsUsed();
+      *valuePtr_ ^= other;
+      return *this;
+    }
 
     /**
      * Bitwise XOR assignment operator.
@@ -1497,13 +1497,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator<<=(const uint_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ <<= other;
-        return *this;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size>& operator<<=(const uint_t& other) {
+      check();
+      markAsUsed();
+      *valuePtr_ <<= other;
+      return *this;
+    }
 
     /**
      * Left shift assignment operator.
@@ -1564,13 +1564,13 @@ template <int Size> class SafeUint_t : public SafeBase {
      * @return A reference to this SafeUint_t.
      */
     template<typename T = uint_t>
-      inline typename std::enable_if<!std::is_same<T, uint64_t>::value, SafeUint_t<Size>&>::type
-      operator>>=(const uint64_t& other) {
-        check();
-        markAsUsed();
-        *valuePtr_ >>= other;
-        return *this;
-      }
+    requires (!std::is_same<T, uint64_t>::value)
+    SafeUint_t<Size>& operator>>=(const uint64_t& other) {
+      check();
+      markAsUsed();
+      *valuePtr_ >>= other;
+      return *this;
+    }
 
     /**
      * Right shift assignment operator.
