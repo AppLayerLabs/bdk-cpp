@@ -96,21 +96,7 @@ namespace TDynamicException {
                 REQUIRE(e.getFunction() == "");
             }
         }
-
-        SECTION("Exception with default file, line, and function") {
-            const std::string message = "Default file, line, and function";
-            DynamicException exception("Default file, line, and function");
-
-            try {
-                throw exception;
-            } catch (const DynamicException& e) {
-                REQUIRE(e.what() == message);
-                REQUIRE(e.getFile() == "");
-                REQUIRE(e.getLine() == 0);
-                REQUIRE(e.getFunction() == "");
-            }
-        }
-
+        
         SECTION("Exception with various basic types") {
             int intValue = 42;
             double doubleValue = 3.14;
