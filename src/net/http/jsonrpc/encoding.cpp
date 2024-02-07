@@ -238,7 +238,7 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_getCode(const Address& address) {
+  json eth_getCode(const Address&) {
     json ret;
     ret["jsonrpc"] = "2.0";
     ret["result"] = "0x";

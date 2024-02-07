@@ -93,7 +93,7 @@ const Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
   throw std::runtime_error("Invalid function call");
 }
 
-void ContractManager::callContract(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex) {
+void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_t& txIndex) {
   this->callLogger_ = std::make_unique<ContractCallLogger>(*this);
   auto callInfo = tx.txToCallInfo();
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;

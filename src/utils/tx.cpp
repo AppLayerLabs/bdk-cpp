@@ -7,7 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "tx.h"
 
-TxBlock::TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId) {
+TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   uint64_t index = 0;
   const auto txData = bytes.subspan(1);
 
@@ -398,7 +398,7 @@ ethCallInfo TxBlock::txToCallInfo() const {
   return ret;
 }
 
-TxValidator::TxValidator(const BytesArrView bytes, const uint64_t& requiredChainId) {
+TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
   uint64_t index = 0;
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list

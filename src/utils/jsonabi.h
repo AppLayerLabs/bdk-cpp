@@ -68,9 +68,8 @@ namespace JsonAbi {
    */
   json parseMethodOutput(const std::vector<std::string>& outputDesc);
 
-
   /**
-   * Parse a given event args to a JSON object
+   * Parse a given event's args to a JSON object.
    * @param args The args description of the event (std::tuple<type,name,indexed>).
    * Be aware that tuple types are concatenated into the string itself.
    * @return A JSON object containing the args of the event.
@@ -205,7 +204,7 @@ namespace JsonAbi {
    */
   template <typename ContractTuple, std::size_t N>
   requires (N == std::tuple_size<ContractTuple>::value)
-  void getConstructorsABI(json &abis) {
+  void getConstructorsABI(json&) {
     // Do nothing by default on recursion
   }
 

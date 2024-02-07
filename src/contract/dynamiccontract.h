@@ -84,21 +84,21 @@ class DynamicContract : public BaseContract {
       std::string functStr = funcSignature + "()";
       switch (methodMutability) {
         case FunctionTypes::View: {
-          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> Bytes {
+          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo&) -> Bytes {
             using ReturnType = decltype((instance->*memFunc)());
             return ABI::Encoder::encodeData<ReturnType>((instance->*memFunc)());
           });
           break;
         }
         case FunctionTypes::NonPayable: {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
+          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo&) -> void {
             (instance->*memFunc)();
             return;
           });
           break;
         }
         case FunctionTypes::Payable: {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo &callInfo) -> void {
+          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4), [instance, memFunc](const ethCallInfo&) -> void {
             (instance->*memFunc)();
             return;
           });
@@ -128,7 +128,7 @@ class DynamicContract : public BaseContract {
         case FunctionTypes::NonPayable: {
           this->registerFunction(
             Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4),
-            [instance, memFunc](const ethCallInfo &callInfo) -> void {
+            [instance, memFunc](const ethCallInfo&) -> void {
               (instance->*memFunc)();
               return;
             }
@@ -138,7 +138,7 @@ class DynamicContract : public BaseContract {
         case FunctionTypes::Payable: {
           this->registerPayableFunction(
             Utils::sha3(Utils::create_view_span(functStr)).view_const(0, 4),
-            [instance, memFunc](const ethCallInfo &callInfo) -> void {
+            [instance, memFunc](const ethCallInfo&) -> void {
               (instance->*memFunc)();
               return;
             }
