@@ -163,7 +163,7 @@ std::vector<std::tuple<std::string, uint256_t>>
 SimpleContract::getNamesAndValuesInTuple(const uint256_t& i) const {
   std::vector<std::tuple<std::string, uint256_t>> namesAndValues;
   for (uint256_t j = 0; j < i; j++) {
-    namesAndValues.emplace_back(std::make_tuple(this->name_.get(), this->value_.get()));
+    namesAndValues.emplace_back(this->name_.get(), this->value_.get());
   }
   return namesAndValues;
 }
@@ -174,7 +174,7 @@ SimpleContract::getNamesAndValuesInArrayOfArrays(const uint256_t& i) const {
   for (uint256_t j = 0; j < i; j++) {
     std::vector<std::tuple<std::string, uint256_t>> nameAndValuesInternal;
     for (uint256_t k = 0; k < i; k++) {
-      nameAndValuesInternal.emplace_back(std::make_tuple(this->name_.get(), this->value_.get()));
+      nameAndValuesInternal.emplace_back(this->name_.get(), this->value_.get());
     }
     namesAndValues.emplace_back(nameAndValuesInternal);
   }

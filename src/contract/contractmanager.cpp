@@ -235,7 +235,7 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
   std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   std::vector<std::pair<std::string, Address>> contracts;
   for (const auto& [address, contract] : this->contracts_) {
-    contracts.emplace_back(std::make_pair(contract->getContractName(), address));
+    contracts.emplace_back(contract->getContractName(), address);
   }
   return contracts;
 }
