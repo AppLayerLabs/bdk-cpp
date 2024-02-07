@@ -79,15 +79,15 @@ namespace TSDKTestSuite {
       auto simpleContractAddress = sdkTestSuite.deployContract<SimpleContract>(
         std::string("Hello World!"), uint256_t(10), std::make_tuple(std::string("From Inside"), uint256_t(5000))
       );
-      auto changeNameAndValueTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setName, std::string("Hello World 2!"));
-      auto events = sdkTestSuite.getEventsEmittedByTx(changeNameAndValueTx, &SimpleContract::nameChanged);
+      auto changeNameAndNumberTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setName, std::string("Hello World 2!"));
+      auto events = sdkTestSuite.getEventsEmittedByTx(changeNameAndNumberTx, &SimpleContract::nameChanged);
       REQUIRE(events.size() == 1);
       auto filteredEvents = sdkTestSuite.getEventsEmittedByTx(
-        changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!"))
+        changeNameAndNumberTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!"))
       );
       REQUIRE(filteredEvents.size() == 1);
       auto filteredEvents2 = sdkTestSuite.getEventsEmittedByTx(
-        changeNameAndValueTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 3!"))
+        changeNameAndNumberTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 3!"))
       );
       REQUIRE(filteredEvents2.size() == 0);
       auto filteredEvents3 = sdkTestSuite.getEventsEmittedByAddress(
@@ -95,8 +95,8 @@ namespace TSDKTestSuite {
       );
       REQUIRE(filteredEvents3.size() == 1);
 
-      auto changeValueTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setValue, uint256_t(20));
-      auto tupleVec = sdkTestSuite.getEventsEmittedByTxTup(changeValueTx, &SimpleContract::valueChanged);
+      auto changeNumberTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setNumber, uint256_t(20));
+      auto tupleVec = sdkTestSuite.getEventsEmittedByTxTup(changeNumberTx, &SimpleContract::numberChanged);
       REQUIRE(tupleVec.size() == 1);
       for (auto& tuple : tupleVec) REQUIRE(std::get<0>(tuple) == uint256_t(20));
 
