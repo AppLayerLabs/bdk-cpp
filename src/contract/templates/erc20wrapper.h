@@ -101,7 +101,7 @@ class ERC20Wrapper : public DynamicContract {
      * function withdraw (address _token, uint256 _value) public returns (bool)
      * @param token The address of the token.
      * @param value The amount of tokens to withdraw.
-     * @throw std::runtime_error if the contract does not have enough tokens,
+     * @throw DynamicException if the contract does not have enough tokens,
      * or if the token was not found.
      */
     void withdraw(const Address& token, const uint256_t& value);
@@ -112,7 +112,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param token The address of the token.
      * @param to The address of the user to send tokens to.
      * @param value The amount of tokens to transfer.
-     * @throw std::runtime_error if the contract does not have enough tokens,
+     * @throw DynamicException if the contract does not have enough tokens,
      * or if either the token or the user were not found.
      */
     void transferTo(const Address& token, const Address& to, const uint256_t& value);

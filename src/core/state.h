@@ -92,7 +92,7 @@ class State {
      * @param rdpos Pointer to the rdPoS object.
      * @param p2pManager Pointer to the P2P connection manager.
      * @param options Pointer to the options singleton.
-     * @throw std::runtime_error on any database size mismatch.
+     * @throw DynamicException on any database size mismatch.
      */
     State(
       const std::unique_ptr<DB>& db,
@@ -146,7 +146,7 @@ class State {
      * DOES update the state.
      * Appends block to Storage after processing.
      * @param block The block to process.
-     * @throw std::runtime_error if block is invalid.
+     * @throw DynamicException if block is invalid.
      */
     void processNextBlock(Block&& block);
 
@@ -226,7 +226,7 @@ class State {
     /**
      * Update the State's account balances after a contract call. Called by ContractManager.
      * @param payableMap A map of the accounts to update and their respective new balances.
-     * @throw std::runtime_error on an attempt to change State while not processing a payable contract.
+     * @throw DynamicException on an attempt to change State while not processing a payable contract.
      */
     void processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
 

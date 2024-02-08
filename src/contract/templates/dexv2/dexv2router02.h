@@ -70,7 +70,7 @@ class DEXV2Router02 : public DynamicContract {
      * ensure() doesn't have to execute the anything after the function call, so we can make it a bool function.
      * @param deadline The timestamp to check against, in seconds.
      * @return `true` if deadline has not expired yet.
-     * @throw std::runtime_error if deadline has expired.
+     * @throw DynamicException if deadline has expired.
      */
     bool ensure(const uint256_t& deadline) const;
 

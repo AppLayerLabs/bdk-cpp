@@ -245,7 +245,7 @@ class Address : public FixedBytes<20> {
      * Copy constructor.
      * @param add The address itself.
      * @param inBytes If `true`, treats the input as a raw bytes string.
-     * @throw std::runtime_error if address has wrong size or is invalid.
+     * @throw DynamicException if address has wrong size or is invalid.
      */
     Address(const std::string_view add, bool inBytes);
 

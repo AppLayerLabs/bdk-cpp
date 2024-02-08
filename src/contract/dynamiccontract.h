@@ -105,7 +105,7 @@ class DynamicContract : public BaseContract {
           break;
         }
         default: {
-          throw std::runtime_error("Invalid function signature.");
+          throw DynamicException("Invalid function signature.");
         }
       }
     }
@@ -123,7 +123,7 @@ class DynamicContract : public BaseContract {
       std::string functStr = funcSignature + "()";
       switch (methodMutability) {
         case FunctionTypes::View: {
-          throw std::runtime_error("View must be const because it does not modify the state.");
+          throw DynamicException("View must be const because it does not modify the state.");
         }
         case FunctionTypes::NonPayable: {
           this->registerFunction(
@@ -146,7 +146,7 @@ class DynamicContract : public BaseContract {
           break;
         }
         default: {
-          throw std::runtime_error("Invalid function signature.");
+          throw DynamicException("Invalid function signature.");
         }
       }
     }
@@ -171,7 +171,7 @@ class DynamicContract : public BaseContract {
       };
       switch (methodMutability) {
         case FunctionTypes::View:
-          throw std::runtime_error("View must be const because it does not modify the state.");
+          throw DynamicException("View must be const because it does not modify the state.");
         case FunctionTypes::NonPayable:
           this->registerFunction(functor, registrationFunc);
           break;
@@ -179,7 +179,7 @@ class DynamicContract : public BaseContract {
           this->registerPayableFunction(functor, registrationFunc);
           break;
         default:
-          throw std::runtime_error("Invalid function signature.");
+          throw DynamicException("Invalid function signature.");
       }
     }
 
@@ -242,10 +242,10 @@ class DynamicContract : public BaseContract {
     /**
      * Template function for calling the register functions.
      * Should be called by the derived class.
-     * @throw std::runtime_error if the derived class does not override this.
+     * @throw DynamicException if the derived class does not override this.
      */
     virtual void registerContractFunctions() {
-      throw std::runtime_error(
+      throw DynamicException(
         "Derived Class from Contract does not override registerContractFunctions()"
       );
     }
@@ -283,22 +283,22 @@ class DynamicContract : public BaseContract {
      * Automatically differs between payable and non-payable functions.
      * Used by State when calling `processNewBlock()/validateNewBlock()`.
      * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
-     * @throw std::runtime_error if the functor is not found or the function throws an exception.
+     * @throw DynamicException if the functor is not found or the function throws an exception.
      */
     void ethCall(const ethCallInfo& callInfo) override {
       try {
         Functor funcName = std::get<5>(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->payableFunctions_.find(funcName);
-          if (func == this->payableFunctions_.end()) throw std::runtime_error("Functor not found for payable function");
+          if (func == this->payableFunctions_.end()) throw DynamicException("Functor not found for payable function");
           func->second(callInfo);
         } else {
           auto func = this->publicFunctions_.find(funcName);
-          if (func == this->publicFunctions_.end()) throw std::runtime_error("Functor not found for non-payable function");
+          if (func == this->publicFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
           func->second(callInfo);
         }
       } catch (const std::exception& e) {
-        throw std::runtime_error(e.what());
+        throw DynamicException(e.what());
       }
     };
 
@@ -306,16 +306,16 @@ class DynamicContract : public BaseContract {
      * Do a contract call to a view function.
      * @param data Tuple of (from, to, gasLimit, gasPrice, value, data).
      * @return The result of the view function.
-     * @throw std::runtime_error if the functor is not found or the function throws an exception.
+     * @throw DynamicException if the functor is not found or the function throws an exception.
      */
     const Bytes ethCallView(const ethCallInfo& data) const override {
       try {
         Functor funcName = std::get<5>(data);
         auto func = this->viewFunctions_.find(funcName);
-        if (func == this->viewFunctions_.end()) throw std::runtime_error("Functor not found");
+        if (func == this->viewFunctions_.end()) throw DynamicException("Functor not found");
         return func->second(data);
       } catch (std::exception& e) {
-        throw std::runtime_error(e.what());
+        throw DynamicException(e.what());
       }
     }
 
@@ -485,7 +485,7 @@ class DynamicContract : public BaseContract {
       try {
         return (static_cast<C*>(this)->*func)(args...);
       } catch (const std::exception& e) {
-        throw std::runtime_error(e.what());
+        throw DynamicException(e.what());
       }
     }
 
@@ -501,7 +501,7 @@ class DynamicContract : public BaseContract {
       try {
         return (static_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
-        throw std::runtime_error(e.what());
+        throw DynamicException(e.what());
       }
     }
 

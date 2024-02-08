@@ -232,7 +232,7 @@ class SDKTestSuite {
       }
 
       // After finalization, the block should be valid. If it is, process the next one.
-      if (!this->state_->validateNextBlock(newBlock)) throw std::runtime_error(
+      if (!this->state_->validateNextBlock(newBlock)) throw DynamicException(
         "SDKTestSuite::advanceBlock: Block is not valid"
       );
       state_->processNextBlock(std::move(newBlock));
@@ -291,7 +291,7 @@ class SDKTestSuite {
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
      * @return A tuple with the found transaction, block hash, index and height, nullptr if the tx was not found
-     * @throw std::runtime_error on hash mismatch (should never happen).
+     * @throw DynamicException on hash mismatch (should never happen).
      */
     const std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
@@ -850,7 +850,7 @@ class SDKTestSuite {
                 tuples.push_back(tuple);
             }
         } else {
-            throw std::runtime_error("Attempted to decode an event with only indexed parameters (empty tuple).");
+            throw DynamicException("Attempted to decode an event with only indexed parameters (empty tuple).");
         }
 
         return tuples;

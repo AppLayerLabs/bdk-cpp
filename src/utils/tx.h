@@ -41,7 +41,7 @@ class TxBlock {
      * Raw constructor.
      * @param bytes The raw tx bytes to parse.
      * @param requiredChainId The chain ID of the transaction.
-     * @throw std::runtime_error on any parsing failure.
+     * @throw DynamicException on any parsing failure.
      */
     TxBlock(const BytesArrView bytes, const uint64_t& requiredChainId);
 
@@ -57,7 +57,7 @@ class TxBlock {
      * @param maxFeePerGas The maximum fee per gas of the transaction.
      * @param gasLimit The gas limit of the transaction.
      * @param privKey The private key used to sign the transaction.
-     * @throw std::runtime_error on signing failure or sender mismatch.
+     * @throw DynamicException on signing failure or sender mismatch.
      */
     TxBlock(
       const Address& to, const Address& from, const Bytes& data,
@@ -209,7 +209,7 @@ class TxValidator {
      * Raw constructor.
      * @param bytes The raw tx bytes to parse.
      * @param requiredChainId The chain ID of the transaction.
-     * @throw std::runtime_error on any parsing failure.
+     * @throw DynamicException on any parsing failure.
      */
     TxValidator(const BytesArrView bytes, const uint64_t& requiredChainId);
 
@@ -220,7 +220,7 @@ class TxValidator {
      * @param chainId The chain ID of the transaction.
      * @param nHeight The block height of the transaction.
      * @param privKey The private key used to sign the transaction.
-     * @throw std::runtime_error on signing failure or sender mismatch.
+     * @throw DynamicException on signing failure or sender mismatch.
      */
     TxValidator(
       const Address& from, const Bytes& data, const uint64_t& chainId,

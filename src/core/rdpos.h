@@ -113,7 +113,7 @@ class rdPoS : public BaseContract {
      * @param p2p Pointer to the P2P connection manager.
      * @param options Pointer to the options singleton.
      * @param state Pointer to the blockchain's state.
-     * @throw std::runtime_error if there are no Validators registered in the database.
+     * @throw DynamicException if there are no Validators registered in the database.
      */
     rdPoS(
       const std::unique_ptr<DB>& db, const std::unique_ptr<Storage>& storage,
@@ -170,7 +170,7 @@ class rdPoS : public BaseContract {
      * Should be called from State, after a block is validated and before it is added to Storage.
      * @param block The block to process.
      * @return The new randomness seed to be used for the next block.
-     * @throw std::runtime_error if block is not finalized.
+     * @throw DynamicException if block is not finalized.
      */
     Hash processBlock(const Block& block);
 

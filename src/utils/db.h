@@ -18,6 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <rocksdb/write_batch.h>
 
 #include "utils.h"
+#include "dynamicexception.h"
 
 /// Namespace for accessing database prefixes.
 namespace DBPrefix {
@@ -164,7 +165,7 @@ class DB {
     /**
      * Constructor. Automatically creates the database if it doesn't exist.
      * @param path The database's filesystem path (relative to the binary's current working directory).
-     * @throw std::runtime_error if database opening fails.
+     * @throw DynamicException if database opening fails.
      */
     explicit DB(const std::filesystem::path& path);
 

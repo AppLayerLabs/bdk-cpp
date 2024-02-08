@@ -118,7 +118,7 @@ bool DEXV2Pair::_mintFee(uint112_t reserve0, uint112_t reserve1) {
 }
 
 void DEXV2Pair::initialize(const Address& token0, const Address& token1) {
-  if (this->factory_ != this->getCaller()) throw std::runtime_error("DEXV2Pair: FORBIDDEN");
+  if (this->factory_ != this->getCaller()) throw DynamicException("DEXV2Pair: FORBIDDEN");
   this->token0_ = token0;
   this->token1_ = token1;
 }
@@ -161,7 +161,7 @@ uint256_t DEXV2Pair::mint(const Address& to) {
     liquidity = std::min(amount0 * totalSupply / this->reserve0_.get(), amount1 * totalSupply / this->reserve1_.get());
   }
 
-  if (liquidity == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_LIQUIDITY_MINTED");
+  if (liquidity == 0) throw DynamicException("DEXV2Pair: INSUFFICIENT_LIQUIDITY_MINTED");
   this->mintValue_(to, liquidity);
   this->_update(balance0, balance1, this->reserve0_.get(), this->reserve1_.get());
   if (feeOn) this->kLast_ = uint256_t(this->reserve0_.get()) * uint256_t(this->reserve1_.get());
@@ -182,7 +182,7 @@ std::tuple<uint256_t, uint256_t> DEXV2Pair::burn(const Address& to) {
   uint256_t totalSupply = this->totalSupply_.get();
   uint256_t amount0 = liquidity * balance0 / totalSupply;
   uint256_t amount1 = liquidity * balance1 / totalSupply;
-  if (amount0 == 0 || amount1 == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+  if (amount0 == 0 || amount1 == 0) throw DynamicException("DEXV2Pair: INSUFFICIENT_LIQUIDITY_BURNED");
   this->burnValue_(this->getContractAddress(), liquidity);
   this->_safeTransfer(this->token0_.get(), to, amount0);
   this->_safeTransfer(this->token1_.get(), to, amount1);
@@ -195,19 +195,19 @@ std::tuple<uint256_t, uint256_t> DEXV2Pair::burn(const Address& to) {
 
 void DEXV2Pair::swap(const uint256_t& amount0Out, const uint256_t& amount1Out, const Address& to) {
   ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
-  if (amount0Out == 0 && amount1Out == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_OUTPUT_AMOUNT");
-  if (reserve0_ <= uint112_t(amount0Out) && reserve1_ <= uint112_t(amount1Out)) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_LIQUIDITY");
-  if (token0_ == to || token1_ == to) throw std::runtime_error("DEXV2Pair: INVALID_TO");
+  if (amount0Out == 0 && amount1Out == 0) throw DynamicException("DEXV2Pair: INSUFFICIENT_OUTPUT_AMOUNT");
+  if (reserve0_ <= uint112_t(amount0Out) && reserve1_ <= uint112_t(amount1Out)) throw DynamicException("DEXV2Pair: INSUFFICIENT_LIQUIDITY");
+  if (token0_ == to || token1_ == to) throw DynamicException("DEXV2Pair: INVALID_TO");
   if (amount0Out > 0) this->_safeTransfer(this->token0_.get(), to, amount0Out);
   if (amount1Out > 0) this->_safeTransfer(this->token1_.get(), to, amount1Out);
   uint256_t balance0 = this->callContractViewFunction(this->token0_.get(), &ERC20::balanceOf, this->getContractAddress());
   uint256_t balance1 = this->callContractViewFunction(this->token1_.get(), &ERC20::balanceOf, this->getContractAddress());
   uint256_t amount0In = balance0 > this->reserve0_.get() - uint112_t(amount0Out) ? balance0 - this->reserve0_.get() + uint112_t(amount0Out) : 0;
   uint256_t amount1In = balance1 > this->reserve1_.get() - uint112_t(amount1Out) ? balance1 - this->reserve1_.get() + uint112_t(amount1Out) : 0;
-  if (amount0In == 0 && amount1In == 0) throw std::runtime_error("DEXV2Pair: INSUFFICIENT_INPUT_AMOUNT");
+  if (amount0In == 0 && amount1In == 0) throw DynamicException("DEXV2Pair: INSUFFICIENT_INPUT_AMOUNT");
   uint256_t balance0Adjusted = balance0 * 1000 - amount0In * 3;
   uint256_t balance1Adjusted = balance1 * 1000 - amount1In * 3;
-  if (balance0Adjusted * balance1Adjusted < uint256_t(this->reserve0_.get()) * this->reserve1_.get() * 1000 * 1000) throw std::runtime_error("DEXV2Pair: K");
+  if (balance0Adjusted * balance1Adjusted < uint256_t(this->reserve0_.get()) * this->reserve1_.get() * 1000 * 1000) throw DynamicException("DEXV2Pair: K");
   this->_update(balance0, balance1, this->reserve0_.get(), this->reserve1_.get());
 }
 

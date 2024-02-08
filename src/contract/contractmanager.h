@@ -181,7 +181,7 @@ class ContractManager : public BaseContract {
      * SafeVariables as contract creation actively writes to DB).
      * @param data The call info to process.
      * @return A string with the requested info.
-     * @throw std::runtime_error if the call is not valid.
+     * @throw DynamicException if the call is not valid.
      */
     const Bytes ethCallView(const ethCallInfo& data) const override;
 
@@ -190,7 +190,7 @@ class ContractManager : public BaseContract {
      * @param tx The transaction to process.
      * @param blockHash The hash of the block that called the contract. Defaults to an empty hash.
      * @param txIndex The index of the transaction inside the block that called the contract. Defaults to the first position.
-     * @throw std::runtime_error if the call to the ethCall function fails.
+     * @throw DynamicException if the call to the ethCall function fails.
      * TODO: it would be a good idea to revise tests that call this function, default values here only exist as a placeholder
      */
     void callContract(const TxBlock& tx, const Hash& blockHash = Hash(), const uint64_t& txIndex = 0);
@@ -199,7 +199,7 @@ class ContractManager : public BaseContract {
      * Make an eth_call to a view function from the contract. Used by RPC.
      * @param callInfo The call info to process.
      * @return A string with the requested info.
-     * @throw std::runtime_error if the call to the ethCall function fails
+     * @throw DynamicException if the call to the ethCall function fails
      * or if the contract does not exist.
      */
     const Bytes callContract(const ethCallInfo& callInfo) const;
@@ -215,7 +215,7 @@ class ContractManager : public BaseContract {
      * Validate a transaction that calls a function from a given contract.
      * @param callInfo The call info to validate.
      * @return `true` if the transaction is valid, `false` otherwise.
-     * @throw std::runtime_error if the validation fails.
+     * @throw DynamicException if the validation fails.
      */
     bool validateCallContractWithTx(const ethCallInfo& callInfo);
 
@@ -330,14 +330,14 @@ class ContractManagerInterface {
       const uint256_t& value,
       R(C::*func)(const Args&...), const Args&... args
     ) {
-      if (!this->manager_.callLogger_) throw std::runtime_error(
+      if (!this->manager_.callLogger_) throw DynamicException(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       if (value) {
         this->sendTokens(fromAddr, targetAddr, value);
       }
       if (!this->manager_.contracts_.contains(targetAddr)) {
-        throw std::runtime_error(std::string(__func__) + ": Contract does not exist - Type: "
+        throw DynamicException(std::string(__func__) + ": Contract does not exist - Type: "
           + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
         );
       }
@@ -346,7 +346,7 @@ class ContractManagerInterface {
       try {
         return contract->callContractFunction(func, args...);
       } catch (const std::exception& e) {
-        throw std::runtime_error(e.what() + std::string(" - Type: ")
+        throw DynamicException(e.what() + std::string(" - Type: ")
           + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
         );
       }
@@ -369,19 +369,19 @@ class ContractManagerInterface {
       const Address& txOrigin, const Address& fromAddr, const Address& targetAddr,
       const uint256_t& value, R(C::*func)()
     ) {
-      if (!this->manager_.callLogger_) throw std::runtime_error(
+      if (!this->manager_.callLogger_) throw DynamicException(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       if (value) this->sendTokens(fromAddr, targetAddr, value);
       if (!this->manager_.contracts_.contains(targetAddr)) {
-        throw std::runtime_error(std::string(__func__) + ": Contract does not exist");
+        throw DynamicException(std::string(__func__) + ": Contract does not exist");
       }
       C* contract = this->getContract<C>(targetAddr);
       this->manager_.callLogger_->setContractVars(contract, txOrigin, fromAddr, value);
       try {
         return contract->callContractFunction(func);
       } catch (const std::exception& e) {
-        throw std::runtime_error(e.what());
+        throw DynamicException(e.what());
       }
     }
 
@@ -402,7 +402,7 @@ class ContractManagerInterface {
       const uint256_t &gasPriceValue, const uint256_t &callValue,
       const Bytes &encoder
     ) {
-      if (!this->manager_.callLogger_) throw std::runtime_error(
+      if (!this->manager_.callLogger_) throw DynamicException(
         "Contracts going haywire! Trying to call ContractState without an active callContract"
       );
       ethCallInfo callInfo;
@@ -434,12 +434,12 @@ class ContractManagerInterface {
      */
     template <typename T> const T* getContract(const Address &address) const {
       auto it = this->manager_.contracts_.find(address);
-      if (it == this->manager_.contracts_.end()) throw std::runtime_error(
+      if (it == this->manager_.contracts_.end()) throw DynamicException(
         "ContractManager::getContract: contract at address " +
         address.hex().get() + " not found."
       );
       auto ptr = dynamic_cast<T*>(it->second.get());
-      if (ptr == nullptr) throw std::runtime_error(
+      if (ptr == nullptr) throw DynamicException(
         "ContractManager::getContract: Contract at address " +
         address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
       );
@@ -456,12 +456,12 @@ class ContractManagerInterface {
      */
     template <typename T> T* getContract(const Address& address) {
       auto it = this->manager_.contracts_.find(address);
-      if (it == this->manager_.contracts_.end()) throw std::runtime_error(
+      if (it == this->manager_.contracts_.end()) throw DynamicException(
         "ContractManager::getContract: contract at address " +
         address.hex().get() + " not found."
       );
       auto ptr = dynamic_cast<T*>(it->second.get());
-      if (ptr == nullptr) throw std::runtime_error(
+      if (ptr == nullptr) throw DynamicException(
         "ContractManager::getContract: Contract at address " +
         address.hex().get() + " is not of the requested type: " + Utils::getRealTypeName<T>()
       );
@@ -471,7 +471,7 @@ class ContractManagerInterface {
     /**
      * Emit an event from a contract. Called by DynamicContract's emitEvent().
      * @param event The event to emit.
-     * @throw std::runtime_error if there's an attempt to emit the event outside a contract call.
+     * @throw DynamicException if there's an attempt to emit the event outside a contract call.
      */
     void emitContractEvent(Event& event) {
       // Sanity check - events should only be emitted during successful contract
@@ -481,7 +481,7 @@ class ContractManagerInterface {
       // C++ itself already takes care of events not being emitted on pure/view
       // functions due to its built-in const-correctness logic.
       // TODO: check later if events are really not emitted on transaction revert
-      if (!this->manager_.callLogger_) throw std::runtime_error(
+      if (!this->manager_.callLogger_) throw DynamicException(
         "Contracts going haywire! Trying to emit an event without an active contract call"
       );
       this->manager_.eventManager_->registerEvent(std::move(event));

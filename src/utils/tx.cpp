@@ -12,10 +12,10 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   const auto txData = bytes.subspan(1);
 
   // Check if Tx is type 2
-  if (bytes[0] != 0x02) throw std::runtime_error("Tx is not type 2");
+  if (bytes[0] != 0x02) throw DynamicException("Tx is not type 2");
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list
-  if (txData[0] < 0xf7) throw std::runtime_error("Tx is not a list");
+  if (txData[0] < 0xf7) throw DynamicException("Tx is not a list");
 
   // Get list length
   uint8_t listLengthSize = txData[index] - 0xf7;
@@ -27,9 +27,9 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
 
   // Size sanity check
   if (listLength < txData.size() - listLengthSize - 1) {
-    throw std::runtime_error("Tx RLP returns smaller size than reported");
+    throw DynamicException("Tx RLP returns smaller size than reported");
   } else if (listLength > txData.size() - listLengthSize - 1) {
-    throw std::runtime_error("Tx RLP returns larger size than reported");
+    throw DynamicException("Tx RLP returns larger size than reported");
   }
 
   // If chainId > 0, get chainId from string.
@@ -37,7 +37,7 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   const uint8_t chainIdLength = (txData[index] >= 0x80)
                               ? txData[index] - 0x80 : 0;
   if (chainIdLength != 0) {
-    if (chainIdLength > 0x37) throw std::runtime_error("ChainId is too large");
+    if (chainIdLength > 0x37) throw DynamicException("ChainId is too large");
     index++; // Index at rlp[0] payload
     this->chainId_ = Utils::fromBigEndian<uint64_t>(
       txData.subspan(index, chainIdLength)
@@ -54,7 +54,7 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   const uint8_t nonceLength = (txData[index] >= 0x80)
                                 ? txData[index] - 0x80 : 0;
   if (nonceLength != 0) {
-    if (nonceLength > 0x37) throw std::runtime_error("Nonce is too large");
+    if (nonceLength > 0x37) throw DynamicException("Nonce is too large");
     index++; // Index at rlp[1] payload
     this->nonce_ = Utils::fromBigEndian<uint64_t>(
       txData.subspan(index, nonceLength)
@@ -71,7 +71,7 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   const uint8_t maxPriorityFeePerGasLength = txData[index] >= 0x80
                               ? txData[index] - 0x80 : 0;
   if (maxPriorityFeePerGasLength != 0) {
-    if (maxPriorityFeePerGasLength > 0x37) throw std::runtime_error("MaxPriorityFeePerGas is too large");
+    if (maxPriorityFeePerGasLength > 0x37) throw DynamicException("MaxPriorityFeePerGas is too large");
     index++; // Index at rlp[2] payload
     this->maxPriorityFeePerGas_ = Utils::fromBigEndian<uint256_t>(
       txData.subspan(index, maxPriorityFeePerGasLength)
@@ -88,7 +88,7 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   const uint8_t maxFeePerGasLength = txData[index] >= 0x80
                                              ? txData[index] - 0x80 : 0;
   if (maxFeePerGasLength != 0) {
-    if (maxFeePerGasLength > 0x37) throw std::runtime_error("MaxFeePerGas is too large");
+    if (maxFeePerGasLength > 0x37) throw DynamicException("MaxFeePerGas is too large");
     index++; // Index at rlp[3] payload
     this->maxFeePerGas_ = Utils::fromBigEndian<uint256_t>(
       txData.subspan(index, maxFeePerGasLength)
@@ -105,7 +105,7 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   const uint8_t gasLimitLength = txData[index] >= 0x80
                                 ? txData[index] - 0x80 : 0;
   if (gasLimitLength != 0) {
-    if (gasLimitLength > 0x37) throw std::runtime_error("GasLimit is too large");
+    if (gasLimitLength > 0x37) throw DynamicException("GasLimit is too large");
     index++; // Index at rlp[0] payload
     this->gasLimit_ = Utils::fromBigEndian<uint64_t>(
       txData.subspan(index, gasLimitLength)
@@ -119,7 +119,7 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
 
   // Get receiver addess (to) - small string.
   // We don't actually need to get the size, because to/from has a size of 20
-  if (txData[index] != 0x94) throw std::runtime_error(
+  if (txData[index] != 0x94) throw DynamicException(
     "Receiver address (to) is not a 20 byte string (address)"
   );
   index++; // Index at rlp[5] payload
@@ -129,7 +129,7 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
   // Get value - small string or byte itself.
   uint8_t valueLength = txData[index] >= 0x80 ? txData[index] - 0x80 : 0;
   if (valueLength != 0) {
-    if (valueLength > 0x37) throw std::runtime_error("Value is not a small string");
+    if (valueLength > 0x37) throw DynamicException("Value is not a small string");
     index++; // Index at rlp[6] payload
     this->value_ = Utils::fromBigEndian<uint256_t>(
       txData.subspan(index, valueLength)
@@ -162,12 +162,12 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
     this->data_.assign(txData.begin() + index, txData.begin() + index + dataLength);
     index += dataLength; // Index at rlp[8] size
   } else {
-    throw std::runtime_error("Data is too large");
+    throw DynamicException("Data is too large");
   }
 
   // Get access list
   // ALWAYS 0xc0 (empty list)
-  if (txData[index] != 0xc0) throw std::runtime_error("Access list is not empty");
+  if (txData[index] != 0xc0) throw DynamicException("Access list is not empty");
   index++; // Index at rlp[9] size
 
   // Get v - always byte itself (1 byte)
@@ -175,31 +175,31 @@ TxBlock::TxBlock(const BytesArrView bytes, const uint64_t&) {
     this->v_ = 0;
   } else {
     this->v_ = Utils::fromBigEndian<uint8_t>(txData.subspan(index, 1));
-    if (this->v_ > 0x01) throw std::runtime_error("V is not 0 or 1");
+    if (this->v_ > 0x01) throw DynamicException("V is not 0 or 1");
   }
   ++index; // Index at rlp[10] size
 
   // Get r - small string
   uint8_t rLength = txData[index] - 0x80;
-  if (rLength > 0x20) throw std::runtime_error("R is bigger than 32 bytes");
+  if (rLength > 0x20) throw DynamicException("R is bigger than 32 bytes");
   index++; // Index at rlp[10] payload
   this->r_ = Utils::fromBigEndian<uint256_t>(txData.subspan(index, rLength));
   index += rLength; // Index at rlp[11] size
 
   // Get s - small string
   uint8_t sLength = txData[index] - 0x80;
-  if (sLength > 0x20) throw std::runtime_error("S is bigger than 32 bytes");
+  if (sLength > 0x20) throw DynamicException("S is bigger than 32 bytes");
   index++; // Index at rlp[11] payload
   this->s_ = Utils::fromBigEndian<uint256_t>(txData.subspan(index, sLength));
   index += sLength; // Index at rlp[12] size
 
   if (!Secp256k1::verifySig(this->r_, this->s_, this->v_)) {
-    throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
+    throw DynamicException("Invalid tx signature - doesn't fit elliptic curve verification");
   }
   Signature sig = Secp256k1::makeSig(this->r_, this->s_, this->v_);
   Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
-  if (!key) throw std::runtime_error("Invalid tx signature - cannot recover public key");
+  if (!key) throw DynamicException("Invalid tx signature - cannot recover public key");
 
   this->from_ = Secp256k1::toAddress(key);
   this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
@@ -214,7 +214,7 @@ TxBlock::TxBlock(
 {
   UPubKey pubKey = Secp256k1::toUPub(privKey);
   Address add = Secp256k1::toAddress(pubKey);
-  if (add != this->from_) throw std::runtime_error("Private key does not match sender address (from)");
+  if (add != this->from_) throw DynamicException("Private key does not match sender address (from)");
 
   Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   Signature sig = Secp256k1::sign(msgHash, privKey);
@@ -223,10 +223,10 @@ TxBlock::TxBlock(
   this->v_ = sig[64];
 
   if (pubKey != Secp256k1::recover(sig, msgHash)) {
-    throw std::runtime_error("Invalid tx signature - derived key doesn't match public key");
+    throw DynamicException("Invalid tx signature - derived key doesn't match public key");
   }
   if (!Secp256k1::verifySig(this->r_, this->s_, this->v_)) {
-    throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
+    throw DynamicException("Invalid tx signature - doesn't fit elliptic curve verification");
   }
   this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
@@ -402,7 +402,7 @@ TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
   uint64_t index = 0;
 
   // Check if first byte is equal or higher than 0xf7, meaning it is a list
-  if (bytes[0] < 0xf7) throw std::runtime_error("Tx is not a list");
+  if (bytes[0] < 0xf7) throw DynamicException("Tx is not a list");
 
   // Get list length
   uint8_t listLengthSize = bytes[index] - 0xf7;
@@ -414,9 +414,9 @@ TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
 
   // Size sanity check
   if (listLength < bytes.size() - listLengthSize - 1) {
-    throw std::runtime_error("Tx RLP returns smaller size than reported");
+    throw DynamicException("Tx RLP returns smaller size than reported");
   } else if (listLength > bytes.size() - listLengthSize - 1) {
-    throw std::runtime_error("Tx RLP returns larger size than reported");
+    throw DynamicException("Tx RLP returns larger size than reported");
   }
 
   // Get data - it can be anything really, from nothing (0x80) to a big string (0xb7)
@@ -458,7 +458,7 @@ TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
   // Get v - small string or the byte itself
   uint8_t vLength = (bytes[index] >= 0x80) ? bytes[index] - 0x80 : 0;
   if (vLength != 0) {
-    if (vLength > 0x37) throw std::runtime_error("V is not a small string");
+    if (vLength > 0x37) throw DynamicException("V is not a small string");
     index++; // Index at rlp[2] payload
     this->v_ = Utils::fromBigEndian<uint256_t>(
       bytes.subspan(index, vLength)
@@ -472,14 +472,14 @@ TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
 
   // Get r - small string
   uint8_t rLength = bytes[index] - 0x80;
-  if (rLength > 0x37) throw std::runtime_error("R is not a small string");
+  if (rLength > 0x37) throw DynamicException("R is not a small string");
   index++; // Index at rlp[3] payload
   this->r_ = Utils::fromBigEndian<uint256_t>(bytes.subspan(index, rLength));
   index += rLength; // Index at rlp[4] size
 
   // Get s - small string
   uint8_t sLength = bytes[index] - 0x80;
-  if (sLength > 0x37) throw std::runtime_error("S is not a small string");
+  if (sLength > 0x37) throw DynamicException("S is not a small string");
   index++; // Index at rlp[4] payload
   this->s_ = Utils::fromBigEndian<uint256_t>(bytes.subspan(index, sLength));
   index += sLength; // Index at rlp[5] size. rlp[5] doesn't exist on Validator txs
@@ -488,22 +488,22 @@ TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
   if (this->v_ > 36) {
     this->chainId_ = static_cast<uint64_t>((this->v_ - 35) / 2);
     if (this->chainId_ > std::numeric_limits<uint64_t>::max()) {
-      throw std::runtime_error("chainId too high");
+      throw DynamicException("chainId too high");
     }
   } else if (this->v_ != 27 && this->v_ != 28) {
-    throw std::runtime_error("Invalid tx signature - v is not 27 or 28, v is "
+    throw DynamicException("Invalid tx signature - v is not 27 or 28, v is "
       + boost::lexical_cast<std::string>(this->v_));
   }
 
   // Get recoveryId, verify the signature and derive sender address (from)
   auto recoveryId = uint8_t{this->v_ - (uint256_t(this->chainId_) * 2 + 35)};
   if (!Secp256k1::verifySig(this->r_, this->s_, recoveryId)) {
-    throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
+    throw DynamicException("Invalid tx signature - doesn't fit elliptic curve verification");
   }
   Signature sig = Secp256k1::makeSig(this->r_, this->s_, recoveryId);
   Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   UPubKey key = Secp256k1::recover(sig, msgHash);
-  if (key == UPubKey()) throw std::runtime_error("Invalid tx signature - cannot recover public key");
+  if (key == UPubKey()) throw DynamicException("Invalid tx signature - cannot recover public key");
   this->from_ = Secp256k1::toAddress(key);
   this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
@@ -515,7 +515,7 @@ TxValidator::TxValidator(
   UPubKey pubKey = Secp256k1::toUPub(privKey);
   Address add = Secp256k1::toAddress(pubKey);
   Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
-  if (add != this->from_) throw std::runtime_error("Private key does not match sender address (from)");
+  if (add != this->from_) throw DynamicException("Private key does not match sender address (from)");
 
   Signature sig = Secp256k1::sign(msgHash, privKey);
   this->r_ = Utils::bytesToUint256(sig.view_const(0, 32));
@@ -524,10 +524,10 @@ TxValidator::TxValidator(
   this->v_ = recoveryIds + (this->chainId_ * 2 + 35);
 
   if (!Secp256k1::verifySig(this->r_, this->s_, recoveryIds)) {
-    throw std::runtime_error("Invalid tx signature - doesn't fit elliptic curve verification");
+    throw DynamicException("Invalid tx signature - doesn't fit elliptic curve verification");
   }
   if (pubKey != Secp256k1::recover(sig, msgHash)) {
-    throw std::runtime_error("Invalid transaction signature, signature derived key doens't match public key");
+    throw DynamicException("Invalid transaction signature, signature derived key doens't match public key");
   }
   this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }

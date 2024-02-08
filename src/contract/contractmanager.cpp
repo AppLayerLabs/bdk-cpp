@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "customcontracts.h"
 #include "../core/rdpos.h"
 #include "../core/state.h"
+#include "../utils/dynamicexception.h"
 
 ContractManager::ContractManager(
   const std::unique_ptr<DB>& db, State* state,
@@ -32,7 +33,7 @@ ContractManager::ContractManager(
   for (const DBEntry& contract : contractsFromDB) {
     Address address(contract.key);
     if (!this->loadFromDB<ContractTypes>(contract, address)) {
-      throw std::runtime_error("Unknown contract: " + Utils::bytesToString(contract.value));
+      throw DynamicException("Unknown contract: " + Utils::bytesToString(contract.value));
     }
   }
 }
@@ -82,7 +83,9 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
   Functor functor = std::get<5>(callInfo);
   std::function<void(const ethCallInfo&)> f;
   f = this->factory_->getCreateContractFunc(functor.asBytes());
-  if (!f) throw std::runtime_error("Invalid function call with functor: " + functor.hex().get());
+  if (!f) {
+    throw DynamicException("Invalid function call with functor: ", functor.hex().get());
+  }
   f(callInfo);
 }
 
@@ -90,7 +93,7 @@ const Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
   const auto& functor = std::get<5>(data);
   // This hash is equivalent to "function getDeployedContracts() public view returns (string[] memory, address[] memory) {}"
   if (functor == Hex::toBytes("0xaa9a068f")) return this->getDeployedContracts();
-  throw std::runtime_error("Invalid function call");
+  throw DynamicException("Invalid function call");
 }
 
 void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_t& txIndex) {
@@ -104,7 +107,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
     } catch (std::exception &e) {
       this->callLogger_.reset();
       this->eventManager_->revertEvents();
-      throw std::runtime_error(e.what());
+      throw DynamicException(e.what());
     }
     this->callLogger_->shouldCommit();
     this->callLogger_.reset();
@@ -119,7 +122,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
     } catch (std::exception &e) {
       this->callLogger_.reset();
       this->eventManager_->revertEvents();
-      throw std::runtime_error(e.what());
+      throw DynamicException(e.what());
     }
     this->callLogger_->shouldCommit();
     this->callLogger_.reset();
@@ -132,7 +135,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
   if (it == this->contracts_.end()) {
     this->callLogger_.reset();
     this->eventManager_->revertEvents();
-    throw std::runtime_error(std::string(__func__) + "(void): Contract does not exist");
+    throw DynamicException(std::string(__func__) + "(void): Contract does not exist");
   }
 
   const std::unique_ptr<DynamicContract>& contract = it->second;
@@ -142,7 +145,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
   } catch (std::exception &e) {
     this->callLogger_.reset();
     this->eventManager_->revertEvents();
-    throw std::runtime_error(e.what());
+    throw DynamicException(e.what());
   }
 
   if (contract->isPayableFunction(functor)) {
@@ -159,7 +162,7 @@ const Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
   if (to == ProtocolContractAddresses.at("rdPoS")) return rdpos_->ethCallView(callInfo);
   std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   if (!this->contracts_.contains(to)) {
-    throw std::runtime_error(std::string(__func__) + "(Bytes): Contract does not exist");
+    throw DynamicException(std::string(__func__) + "(Bytes): Contract does not exist");
   }
   return this->contracts_.at(to)->ethCallView(callInfo);
 }
@@ -208,7 +211,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     this->callLogger_.reset();
-    throw std::runtime_error(e.what());
+    throw DynamicException(e.what());
   }
   this->callLogger_.reset();
   return true;
@@ -268,7 +271,7 @@ void ContractManagerInterface::registerVariableUse(SafeBase& variable) {
 }
 
 void ContractManagerInterface::populateBalance(const Address &address) const {
-  if (!this->manager_.callLogger_) throw std::runtime_error(
+  if (!this->manager_.callLogger_) throw DynamicException(
     "Contracts going haywire! Trying to call ContractState without an active callContract"
   );
   if (!this->manager_.callLogger_->hasBalance(address)) {
@@ -280,7 +283,7 @@ void ContractManagerInterface::populateBalance(const Address &address) const {
 }
 
 uint256_t ContractManagerInterface::getBalanceFromAddress(const Address& address) const {
-  if (!this->manager_.callLogger_) throw std::runtime_error(
+  if (!this->manager_.callLogger_) throw DynamicException(
     "Contracts going haywire! Trying to call ContractState without an active callContract"
   );
   this->populateBalance(address);
@@ -290,13 +293,13 @@ uint256_t ContractManagerInterface::getBalanceFromAddress(const Address& address
 void ContractManagerInterface::sendTokens(
   const Address& from, const Address& to, const uint256_t& amount
 ) {
-  if (!this->manager_.callLogger_) throw std::runtime_error(
+  if (!this->manager_.callLogger_) throw DynamicException(
     "Contracts going haywire! Trying to call ContractState without an active callContract"
   );
   this->populateBalance(from);
   this->populateBalance(to);
   if (this->manager_.callLogger_->getBalanceAt(from) < amount) {
-    throw std::runtime_error("ContractManager::sendTokens: Not enough balance");
+    throw DynamicException("ContractManager::sendTokens: Not enough balance");
   }
   this->manager_.callLogger_->subBalance(from, amount);
   this->manager_.callLogger_->addBalance(to, amount);

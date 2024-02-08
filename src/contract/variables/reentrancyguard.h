@@ -27,10 +27,10 @@ class ReentrancyGuard {
     /**
      * Constructor.
      * @param lock Reference to the mutex.
-     * @throw std::runtime_error if the mutex is already locked.
+     * @throw DynamicException if the mutex is already locked.
      */
     explicit ReentrancyGuard(bool &lock) : lock_(lock) {
-      if (lock_) throw std::runtime_error("ReentrancyGuard: reentrancy attack detected");
+      if (lock_) throw DynamicException("ReentrancyGuard: reentrancy attack detected");
       lock_ = true;
     }
 

@@ -52,27 +52,27 @@ class ContractFactory {
      * Setup data for a new contract before creating/validating it.
      * @param callInfo The call info to process.
      * @return A pair containing the contract address and the ABI decoder.
-     * @throw std::runtime_error if non contract creator tries to create a contract.
-     * @throw std::runtime_error if contract already exists.
+     * @throw DynamicException if non contract creator tries to create a contract.
+     * @throw DynamicException if contract already exists.
      */
     template <typename TContract> auto setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
       // TODO: Check if caller is creator of the contract, not the creator of the transaction
       // Allow contracts to create other contracts though.
       if (this->manager_.getOrigin() != this->manager_.getContractCreator()) {
-        throw std::runtime_error("Only contract creator can create new contracts");
+        throw DynamicException("Only contract creator can create new contracts");
       }
 
       // Check if contract address already exists on the Dynamic Contract list
       const Address derivedAddress = this->manager_.deriveContractAddress();
       if (this->manager_.contracts_.contains(derivedAddress)) {
-        throw std::runtime_error("Contract already exists as a Dynamic Contract");
+        throw DynamicException("Contract already exists as a Dynamic Contract");
       }
 
       // Check if contract address already exists on the Protocol Contract list
       for (const auto &[name, address] : ProtocolContractAddresses) {
         if (address == derivedAddress) {
-          throw std::runtime_error("Contract already exists as a Protocol Contract");
+          throw DynamicException("Contract already exists as a Protocol Contract");
         }
       }
 
@@ -96,7 +96,7 @@ class ContractFactory {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       auto setupResult = this->setupNewContract<TContract>(callInfo);
       if (!ContractReflectionInterface::isContractFunctionsRegistered<TContract>()) {
-        throw std::runtime_error("Contract " + Utils::getRealTypeName<TContract>() + " is not registered");
+        throw DynamicException("Contract " + Utils::getRealTypeName<TContract>() + " is not registered");
       }
 
       Address derivedAddress = setupResult.first;
@@ -141,7 +141,7 @@ class ContractFactory {
         /// But the variables owned by the contract were registered as used in the ContractCallLogger.
         /// Meaning: we throw here, the variables are freed (as TContract ceases from existing), but a reference to the variable is still
         /// in the ContractCallLogger. This causes a instant segfault when ContractCallLogger tries to revert the variable
-        throw std::runtime_error(
+        throw DynamicException(
           "Could not construct contract " + Utils::getRealTypeName<TContract>() + ": " + ex.what()
         );
       }

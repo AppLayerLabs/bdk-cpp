@@ -451,13 +451,13 @@ namespace ContractReflectionInterface {
    * @return The constructor ABI data structure.
    */
   template <typename Contract> ABI::MethodDescription inline getConstructorDataStructure() {
-    if (!isContractFunctionsRegistered<Contract>()) throw std::runtime_error(
+    if (!isContractFunctionsRegistered<Contract>()) throw DynamicException(
       "Contract " + Utils::getRealTypeName<Contract>() + " not registered"
     );
     // Derive from Contract::ConstructorArguments to get the constructor
     auto ctorArgs = ABI::FunctorEncoder::listArgumentTypesVFromTuple<typename Contract::ConstructorArguments>();
     auto ctorArgsNames = ctorArgNamesMap[Utils::getRealTypeName<Contract>()];
-    if (ctorArgs.size() != ctorArgsNames.size()) throw std::runtime_error(
+    if (ctorArgs.size() != ctorArgsNames.size()) throw DynamicException(
       "Contract " + Utils::getRealTypeName<Contract>() + " constructor argument names not registered, wanted: " +
       std::to_string(ctorArgs.size()) + " got: " + std::to_string(ctorArgsNames.size())
     );
@@ -481,7 +481,7 @@ namespace ContractReflectionInterface {
    * @return The function ABI data structure.
    */
   template <typename Contract> std::vector<ABI::MethodDescription> inline getFunctionsDataStructure() {
-    if (!isContractFunctionsRegistered<Contract>()) throw std::runtime_error(
+    if (!isContractFunctionsRegistered<Contract>()) throw DynamicException(
       "Contract " + Utils::getRealTypeName<Contract>() + " not registered"
     );
     std::vector<ABI::MethodDescription> descriptions;
@@ -498,7 +498,7 @@ namespace ContractReflectionInterface {
    */
   template <typename Contract>
   std::vector<ABI::EventDescription> inline getEventsDataStructure() {
-    if (!isContractFunctionsRegistered<Contract>()) throw std::runtime_error(
+    if (!isContractFunctionsRegistered<Contract>()) throw DynamicException(
       "Contract " + Utils::getRealTypeName<Contract>() + " not registered"
     );
     std::vector<ABI::EventDescription> descriptions;

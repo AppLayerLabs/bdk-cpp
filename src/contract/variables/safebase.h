@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define SAFEBASE_H
 
 #include <memory>
+#include "../utils/dynamicexception.h"
 
 // Forward declarations.
 class DynamicContract;
@@ -54,10 +55,10 @@ class SafeBase {
 
     /**
      * Check if the variable is initialized (and initialize it if not).
-     * @throw std::runtime_error if not overridden by the child class.
+     * @throw DynamicException if not overridden by the child class.
      */
     inline virtual void check() const {
-      throw std::runtime_error("Derived Class from SafeBase does not override check()");
+      throw DynamicException("Derived Class from SafeBase does not override check()");
     };
 
     /**
@@ -87,20 +88,20 @@ class SafeBase {
      * Commit a structure value to the contract.
      * Should always be overridden by the child class.
      * Child class should always do `this->registered = false;` at the end of commit().
-     * @throw std::runtime_error if not overridden by the child class.
+     * @throw DynamicException if not overridden by the child class.
      */
     inline virtual void commit() {
-      throw std::runtime_error("Derived Class from SafeBase does not override commit()");
+      throw DynamicException("Derived Class from SafeBase does not override commit()");
     };
 
     /**
      * Revert a structure value (nullify).
      * Should always be overridden by the child class.
      * Child class should always do `this->registered = false;` at the end of revert().
-     * @throw std::runtime_error if not overridden by the child class.
+     * @throw DynamicException if not overridden by the child class.
      */
     inline virtual void revert() const {
-      throw std::runtime_error("Derived Class from SafeBase does not override revert()");
+      throw DynamicException("Derived Class from SafeBase does not override revert()");
     };
 };
 

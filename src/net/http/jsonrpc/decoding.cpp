@@ -29,7 +29,7 @@ namespace JsonRPC::Decoding {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while checking json RPC spec: ") + e.what()
       );
-      throw std::runtime_error("Error while checking json RPC spec: " + std::string(e.what()));
+      throw DynamicException("Error while checking json RPC spec: " + std::string(e.what()));
     }
   }
 
@@ -43,21 +43,21 @@ namespace JsonRPC::Decoding {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while getting method: ") + e.what()
       );
-      throw std::runtime_error("Error while checking json RPC spec: " + std::string(e.what()));
+      throw DynamicException("Error while checking json RPC spec: " + std::string(e.what()));
     }
   }
 
   void web3_clientVersion(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error(
+      if (!request["params"].empty()) throw DynamicException(
         "web3_clientVersion does not need params"
       );
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding web3_clientVersion: ") + e.what()
       );
-      throw std::runtime_error(
+      throw DynamicException(
         "Error while decoding web3_clientVersion: " + std::string(e.what())
       );
     }
@@ -66,73 +66,73 @@ namespace JsonRPC::Decoding {
   Bytes web3_sha3(const json& request) {
     try {
       // Data to hash will always be at index 0.
-      if (request["params"].size() != 1) throw std::runtime_error(
+      if (request["params"].size() != 1) throw DynamicException(
         "web3_sha3 needs 1 param"
       );
       std::string data = request["params"].at(0).get<std::string>();
-      if (!Hex::isValid(data, true)) throw std::runtime_error("Invalid hex string");
+      if (!Hex::isValid(data, true)) throw DynamicException("Invalid hex string");
       return Hex::toBytes(data);
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding web3_sha3: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding web3_sha3: " + std::string(e.what()));
+      throw DynamicException("Error while decoding web3_sha3: " + std::string(e.what()));
     }
   }
 
   void net_version(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error(
+      if (!request["params"].empty()) throw DynamicException(
         "net_version does not need params"
       );
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding net_version: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding net_version: " + std::string(e.what()));
+      throw DynamicException("Error while decoding net_version: " + std::string(e.what()));
     }
   }
 
   void net_listening(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error(
+      if (!request["params"].empty()) throw DynamicException(
         "net_listening does not need params"
       );
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding net_listening: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding net_listening: " + std::string(e.what()));
+      throw DynamicException("Error while decoding net_listening: " + std::string(e.what()));
     }
   }
 
   void net_peerCount(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error(
+      if (!request["params"].empty()) throw DynamicException(
         "net_peerCount does not need params"
       );
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding net_peerCount: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding net_peerCount: " + std::string(e.what()));
+      throw DynamicException("Error while decoding net_peerCount: " + std::string(e.what()));
     }
   }
 
   void eth_protocolVersion(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error(
+      if (!request["params"].empty()) throw DynamicException(
         "eth_protocolVersion does not need params"
       );
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_protocolVersion: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_protocolVersion: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_protocolVersion: " + std::string(e.what()));
     }
   }
 
@@ -141,13 +141,13 @@ namespace JsonRPC::Decoding {
     try {
       bool includeTxs = (request["params"].size() == 2) ? request["params"].at(1).get<bool>() : false;
       std::string blockHash = request["params"].at(0).get<std::string>();
-      if (!std::regex_match(blockHash, hashFilter)) throw std::runtime_error("Invalid block hash hex");
+      if (!std::regex_match(blockHash, hashFilter)) throw DynamicException("Invalid block hash hex");
       return std::make_pair(Hash(Hex::toBytes(blockHash)), includeTxs);
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getBlockByHash: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_getBlockByHash: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_getBlockByHash: " + std::string(e.what()));
     }
   }
 
@@ -161,14 +161,14 @@ namespace JsonRPC::Decoding {
       std::string blockNum = request["params"].at(0).get<std::string>();
       if (blockNum == "latest") return std::make_pair(storage->latest()->getNHeight(), includeTxs);
       if (blockNum == "earliest") return std::make_pair(0, includeTxs);
-      if (blockNum == "pending") throw std::runtime_error("Pending block is not supported");
-      if (!std::regex_match(blockNum, numFilter)) throw std::runtime_error("Invalid block hash hex");
+      if (blockNum == "pending") throw DynamicException("Pending block is not supported");
+      if (!std::regex_match(blockNum, numFilter)) throw DynamicException("Invalid block hash hex");
       return std::make_pair(uint64_t(Hex(blockNum).getUint()), includeTxs);
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getBlockByNumber: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_getBlockByNumber: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_getBlockByNumber: " + std::string(e.what()));
     }
   }
 
@@ -177,13 +177,13 @@ namespace JsonRPC::Decoding {
     try {
       // Check block hash.
       std::string blockHash = request["params"].at(0).get<std::string>();
-      if (!std::regex_match(blockHash, hashFilter)) throw std::runtime_error("Invalid block hash hex");
+      if (!std::regex_match(blockHash, hashFilter)) throw DynamicException("Invalid block hash hex");
       return Hash(Hex::toBytes(blockHash));
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getBlockTransactionCountByHash: ") + e.what()
       );
-      throw std::runtime_error(
+      throw DynamicException(
         "Error while decoding eth_getBlockTransactionCountByHash: " + std::string(e.what())
       );
     }
@@ -196,14 +196,14 @@ namespace JsonRPC::Decoding {
       std::string blockNum = request["params"].at(0).get<std::string>();
       if (blockNum == "latest") return storage->latest()->getNHeight();
       if (blockNum == "earliest") return 0;
-      if (blockNum == "pending") throw std::runtime_error("Pending block is not supported");
-      if (!std::regex_match(blockNum, numFilter)) throw std::runtime_error("Invalid block hash hex");
+      if (blockNum == "pending") throw DynamicException("Pending block is not supported");
+      if (!std::regex_match(blockNum, numFilter)) throw DynamicException("Invalid block hash hex");
       return uint64_t(Hex(blockNum).getUint());
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getBlockTransactionCountByNumber: ") + e.what()
       );
-      throw std::runtime_error(
+      throw DynamicException(
         "Error while decoding eth_getBlockTransactionCountByNumber: " + std::string(e.what())
       );
     }
@@ -212,47 +212,47 @@ namespace JsonRPC::Decoding {
   void eth_chainId(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error("eth_chainId does not need params");
+      if (!request["params"].empty()) throw DynamicException("eth_chainId does not need params");
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_chainId: ") + e.what());
-      throw std::runtime_error("Error while decoding eth_chainId: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_chainId: " + std::string(e.what()));
     }
   }
 
   void eth_syncing(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error("eth_syncing does not need params");
+      if (!request["params"].empty()) throw DynamicException("eth_syncing does not need params");
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_syncing: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_syncing: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_syncing: " + std::string(e.what()));
     }
   }
 
   void eth_coinbase(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error("eth_coinbase does not need params");
+      if (!request["params"].empty()) throw DynamicException("eth_coinbase does not need params");
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_coinbase: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_coinbase: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_coinbase: " + std::string(e.what()));
     }
   }
 
   void eth_blockNumber(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw std::runtime_error("eth_blockNumber does not need params");
+      if (!request["params"].empty()) throw DynamicException("eth_blockNumber does not need params");
       return;
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_blockNumber: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_blockNumber: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_blockNumber: " + std::string(e.what()));
     }
   }
 
@@ -268,11 +268,11 @@ namespace JsonRPC::Decoding {
         if (request["params"].size() > 1) {
           const auto block = request["params"].at(1).get<std::string>();
           if (block != "latest") {
-            if (!std::regex_match(block, numFilter)) throw std::runtime_error(
+            if (!std::regex_match(block, numFilter)) throw DynamicException(
               "Invalid block number"
             );
             auto blockNum = uint64_t(Hex(block).getUint());
-            if (blockNum != storage->latest()->getNHeight()) throw std::runtime_error(
+            if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
               "Only latest block is supported"
             );
           }
@@ -280,41 +280,41 @@ namespace JsonRPC::Decoding {
       } else if (request["params"].is_object()) {
         txObj = request["params"];
       } else {
-        throw std::runtime_error("Invalid params");
+        throw DynamicException("Invalid params");
       }
 
       // Optional: Check from address
       if (txObj.contains("from") && !txObj["from"].is_null()) {
         std::string fromAdd = txObj["from"].get<std::string>();
-        if (!std::regex_match(fromAdd, addFilter)) throw std::runtime_error("Invalid from address hex");
+        if (!std::regex_match(fromAdd, addFilter)) throw DynamicException("Invalid from address hex");
         from = Address(Hex::toBytes(fromAdd));
       }
       // Check to address
       std::string toAdd = txObj["to"].get<std::string>();
-      if (!std::regex_match(toAdd, addFilter)) throw std::runtime_error("Invalid to address hex");
+      if (!std::regex_match(toAdd, addFilter)) throw DynamicException("Invalid to address hex");
       to = Address(Hex::toBytes(toAdd));
       // Optional: Check gas
       if (txObj.contains("gas") && !txObj["gas"].is_null()) {
         std::string gasHex = txObj["gas"].get<std::string>();
-        if (!std::regex_match(gasHex, numFilter)) throw std::runtime_error("Invalid gas hex");
+        if (!std::regex_match(gasHex, numFilter)) throw DynamicException("Invalid gas hex");
         gas = uint64_t(Hex(gasHex).getUint());
       }
       // Optional: Check gasPrice
       if (txObj.contains("gasPrice") && !txObj["gasPrice"].is_null()) {
         std::string gasPriceHex = txObj["gasPrice"].get<std::string>();
-        if (!std::regex_match(gasPriceHex, numFilter)) throw std::runtime_error("Invalid gasPrice hex");
+        if (!std::regex_match(gasPriceHex, numFilter)) throw DynamicException("Invalid gasPrice hex");
         gasPrice = uint256_t(Hex(gasPriceHex).getUint());
       }
       // Optional: Check value
       if (txObj.contains("value") && !txObj["value"].is_null()) {
         std::string valueHex = txObj["value"].get<std::string>();
-        if (!std::regex_match(valueHex, numFilter)) throw std::runtime_error("Invalid value hex");
+        if (!std::regex_match(valueHex, numFilter)) throw DynamicException("Invalid value hex");
         value = uint256_t(Hex(valueHex).getUint());
       }
       // Optional: Check data
       if (txObj.contains("data") && !txObj["data"].is_null()) {
         std::string dataHex = txObj["data"].get<std::string>();
-        if (!Hex::isValid(dataHex, true)) throw std::runtime_error("Invalid data hex");
+        if (!Hex::isValid(dataHex, true)) throw DynamicException("Invalid data hex");
         auto dataBytes = Hex::toBytes(dataHex);
         if (dataBytes.size() >= 4) {
           functor = Functor(Utils::create_view_span(dataBytes, 0, 4));
@@ -328,7 +328,7 @@ namespace JsonRPC::Decoding {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_call: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_call: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_call: " + std::string(e.what()));
     }
   }
 
@@ -344,11 +344,11 @@ namespace JsonRPC::Decoding {
         if (request["params"].size() > 1) {
           const auto block = request["params"].at(1).get<std::string>();
           if (block != "latest") {
-            if (!std::regex_match(block, numFilter)) throw std::runtime_error(
+            if (!std::regex_match(block, numFilter)) throw DynamicException(
               "Invalid block number"
             );
             auto blockNum = uint64_t(Hex(block).getUint());
-            if (blockNum != storage->latest()->getNHeight()) throw std::runtime_error(
+            if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
               "Only latest block is supported"
             );
           }
@@ -356,25 +356,25 @@ namespace JsonRPC::Decoding {
       } else if (request["params"].is_object()) {
         txObj = request["params"];
       } else {
-        throw std::runtime_error("Invalid params");
+        throw DynamicException("Invalid params");
       }
 
       // Optional: Check from address
       if (txObj.contains("from") && !txObj["from"].is_null()) {
         std::string fromAdd = txObj["from"].get<std::string>();
-        if (!std::regex_match(fromAdd, addFilter)) throw std::runtime_error("Invalid from address hex");
+        if (!std::regex_match(fromAdd, addFilter)) throw DynamicException("Invalid from address hex");
         from = Address(Hex::toBytes(fromAdd));
       }
       // Optional: Check to address
       if (txObj.contains("to") && !txObj["to"].is_null()) {
         std::string toAdd = txObj["to"].get<std::string>();
-        if (!std::regex_match(toAdd, addFilter)) throw std::runtime_error("Invalid to address hex");
+        if (!std::regex_match(toAdd, addFilter)) throw DynamicException("Invalid to address hex");
         to = Address(Hex::toBytes(toAdd));
       }
       // Optional: Check gas
       if (txObj.contains("gas") && !txObj["gas"].is_null()) {
         std::string gasHex = txObj["gas"].get<std::string>();
-        if (!std::regex_match(gasHex, numFilter)) throw std::runtime_error("Invalid gas hex");
+        if (!std::regex_match(gasHex, numFilter)) throw DynamicException("Invalid gas hex");
         gas = uint64_t(Hex(gasHex).getUint());
       } else { // eth_estimateGas set gas to max if not specified
         // TODO: Change this if we ever change gas dynamics with the chain
@@ -383,19 +383,19 @@ namespace JsonRPC::Decoding {
       // Optional: Check gasPrice
       if (txObj.contains("gasPrice") && !txObj["gasPrice"].is_null()) {
         std::string gasPriceHex = txObj["gasPrice"].get<std::string>();
-        if (!std::regex_match(gasPriceHex, numFilter)) throw std::runtime_error("Invalid gasPrice hex");
+        if (!std::regex_match(gasPriceHex, numFilter)) throw DynamicException("Invalid gasPrice hex");
         gasPrice = uint256_t(Hex(gasPriceHex).getUint());
       }
       // Optional: Check value
       if (txObj.contains("value") && !txObj["value"].is_null()) {
         std::string valueHex = txObj["value"].get<std::string>();
-        if (!std::regex_match(valueHex, numFilter)) throw std::runtime_error("Invalid value hex");
+        if (!std::regex_match(valueHex, numFilter)) throw DynamicException("Invalid value hex");
         value = uint256_t(Hex(valueHex).getUint());
       }
       // Optional: Check data
       if (txObj.contains("data") && !txObj["data"].is_null()) {
         std::string dataHex = txObj["data"].get<std::string>();
-        if (!Hex::isValid(dataHex, true)) throw std::runtime_error("Invalid data hex");
+        if (!Hex::isValid(dataHex, true)) throw DynamicException("Invalid data hex");
         auto dataBytes = Hex::toBytes(dataHex);
         if (dataBytes.size() >= 4) {
           functor = Functor(Utils::create_view_span(dataBytes, 0, 4));
@@ -409,18 +409,18 @@ namespace JsonRPC::Decoding {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_estimateGas: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_estimateGas: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_estimateGas: " + std::string(e.what()));
     }
   }
 
   void eth_gasPrice(const json& request) {
     try {
-      if (!request["params"].empty()) throw std::runtime_error("eth_gasPrice does not need params");
+      if (!request["params"].empty()) throw DynamicException("eth_gasPrice does not need params");
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_gasPrice: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_gasPrice: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_gasPrice: " + std::string(e.what()));
     }
   }
 
@@ -439,7 +439,7 @@ namespace JsonRPC::Decoding {
 
       if (logsObject.contains("blockHash")) {
         std::string blockHashHex = logsObject["blockHash"].get<std::string>();
-        if (!std::regex_match(blockHashHex, hashFilter)) throw std::runtime_error("Invalid block hash hex");
+        if (!std::regex_match(blockHashHex, hashFilter)) throw DynamicException("Invalid block hash hex");
         const std::shared_ptr<const Block> block = storage->getBlock(Hash(Hex::toBytes(blockHashHex)));
         fromBlock = toBlock = block->getNHeight();
       } else {
@@ -450,11 +450,11 @@ namespace JsonRPC::Decoding {
           } else if (fromBlockHex == "earliest") {
             fromBlock = 0;
           } else if (fromBlockHex == "pending") {
-            throw std::runtime_error("Pending block is not supported");
+            throw DynamicException("Pending block is not supported");
           } else if (std::regex_match(fromBlockHex, numFilter)) {
             fromBlock = uint64_t(Hex(fromBlockHex).getUint());
           } else {
-            throw std::runtime_error("Invalid fromBlock hex");
+            throw DynamicException("Invalid fromBlock hex");
           }
         }
         if (logsObject.contains("toBlock")) {
@@ -464,28 +464,28 @@ namespace JsonRPC::Decoding {
           } else if (toBlockHex == "earliest") {
             toBlock = 0;
           } else if (toBlockHex == "pending") {
-            throw std::runtime_error("Pending block is not supported");
+            throw DynamicException("Pending block is not supported");
           } else if (std::regex_match(toBlockHex, numFilter)) {
             toBlock = uint64_t(Hex(toBlockHex).getUint());
           } else {
-            throw std::runtime_error("Invalid fromBlock hex");
+            throw DynamicException("Invalid fromBlock hex");
           }
         }
       }
 
       if (logsObject.contains("address")) {
         std::string addressHex = logsObject["address"].get<std::string>();
-        if (!std::regex_match(addressHex, addFilter)) throw std::runtime_error("Invalid address hex");
+        if (!std::regex_match(addressHex, addFilter)) throw DynamicException("Invalid address hex");
         address = Address(Hex::toBytes(addressHex));
       }
 
       if (logsObject.contains("topics")) {
         if (!logsObject.at("topics").is_array()) {
-          throw std::runtime_error("topics is not an array");
+          throw DynamicException("topics is not an array");
         }
         auto topicsArray = logsObject.at("topics").get<std::vector<std::string>>();
         for (const auto& topic : topicsArray) {
-          if (!std::regex_match(topic, hashFilter)) throw std::runtime_error("Invalid topic hex");
+          if (!std::regex_match(topic, hashFilter)) throw DynamicException("Invalid topic hex");
           topics.emplace_back(Hex::toBytes(topic));
         }
       }
@@ -495,7 +495,7 @@ namespace JsonRPC::Decoding {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getLogs: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_getLogs: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_getLogs: " + std::string(e.what()));
     }
   }
 
@@ -506,21 +506,21 @@ namespace JsonRPC::Decoding {
       const auto address = request["params"].at(0).get<std::string>();
       const auto block = request["params"].at(1).get<std::string>();
       if (block != "latest") {
-        if (!std::regex_match(block, numFilter)) throw std::runtime_error(
+        if (!std::regex_match(block, numFilter)) throw DynamicException(
           "Invalid block number"
         );
         auto blockNum = uint64_t(Hex(block).getUint());
-        if (blockNum != storage->latest()->getNHeight()) throw std::runtime_error(
+        if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
           "Only latest block is supported"
         );
       }
-      if (!std::regex_match(address, addFilter)) throw std::runtime_error("Invalid address hex");
+      if (!std::regex_match(address, addFilter)) throw DynamicException("Invalid address hex");
       return Address(Hex::toBytes(address));
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getBalance: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_getBalance: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_getBalance: " + std::string(e.what()));
     }
   }
 
@@ -531,21 +531,21 @@ namespace JsonRPC::Decoding {
       const auto address = request["params"].at(0).get<std::string>();
       const auto block = request["params"].at(1).get<std::string>();
       if (block != "latest") {
-        if (!std::regex_match(block, numFilter)) throw std::runtime_error(
+        if (!std::regex_match(block, numFilter)) throw DynamicException(
           "Invalid block number"
         );
         auto blockNum = uint64_t(Hex(block).getUint());
-        if (blockNum != storage->latest()->getNHeight()) throw std::runtime_error(
+        if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
           "Only latest block is supported"
         );
       }
-      if (!std::regex_match(address, addFilter)) throw std::runtime_error("Invalid address hex");
+      if (!std::regex_match(address, addFilter)) throw DynamicException("Invalid address hex");
       return Address(Hex::toBytes(address));
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getTransactionCount: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_getTransactionCount: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_getTransactionCount: " + std::string(e.what()));
     }
   }
 
@@ -556,34 +556,34 @@ namespace JsonRPC::Decoding {
       const auto address = request["params"].at(0).get<std::string>();
       const auto block = request["params"].at(1).get<std::string>();
       if (block != "latest") {
-        if (!std::regex_match(block, numFilter)) throw std::runtime_error(
+        if (!std::regex_match(block, numFilter)) throw DynamicException(
           "Invalid block number"
         );
         auto blockNum = uint64_t(Hex(block).getUint());
-        if (blockNum != storage->latest()->getNHeight()) throw std::runtime_error(
+        if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
           "Only latest block is supported"
         );
       }
-      if (!std::regex_match(address, addFilter)) throw std::runtime_error("Invalid address hex");
+      if (!std::regex_match(address, addFilter)) throw DynamicException("Invalid address hex");
       return Address(Hex::toBytes(address));
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getCode: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_getCode: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_getCode: " + std::string(e.what()));
     }
   }
 
   TxBlock eth_sendRawTransaction(const json& request, const uint64_t& requiredChainId) {
     try {
       const auto txHex = request["params"].at(0).get<std::string>();
-      if (!Hex::isValid(txHex, true)) throw std::runtime_error("Invalid transaction hex");
+      if (!Hex::isValid(txHex, true)) throw DynamicException("Invalid transaction hex");
       return TxBlock(Hex::toBytes(txHex), requiredChainId);
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_sendRawTransaction: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_sendRawTransaction: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_sendRawTransaction: " + std::string(e.what()));
     }
   }
 
@@ -591,13 +591,13 @@ namespace JsonRPC::Decoding {
     static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
     try {
       const auto hash = request["params"].at(0).get<std::string>();
-      if (!std::regex_match(hash, hashFilter)) throw std::runtime_error("Invalid hash hex");
+      if (!std::regex_match(hash, hashFilter)) throw DynamicException("Invalid hash hex");
       return Hash(Hex::toBytes(hash));
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getTransactionByHash: ") + e.what()
       );
-      throw std::runtime_error("Error while decoding eth_getTransactionByHash: " + std::string(e.what()));
+      throw DynamicException("Error while decoding eth_getTransactionByHash: " + std::string(e.what()));
     }
   }
 
@@ -607,14 +607,14 @@ namespace JsonRPC::Decoding {
     try {
       std::string blockHash = request["params"].at(0).get<std::string>();
       std::string index = request["params"].at(1).get<std::string>();
-      if (!std::regex_match(blockHash, hashFilter)) throw std::runtime_error("Invalid blockHash hex");
-      if (!std::regex_match(index, numFilter)) throw std::runtime_error("Invalid index hex");
+      if (!std::regex_match(blockHash, hashFilter)) throw DynamicException("Invalid blockHash hex");
+      if (!std::regex_match(index, numFilter)) throw DynamicException("Invalid index hex");
       return std::make_pair(Hash(Hex::toBytes(blockHash)), uint64_t(Hex(index).getUint()));
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getTransactionByBlockHashAndIndex: ") + e.what()
       );
-      throw std::runtime_error(
+      throw DynamicException(
         "Error while decoding eth_getTransactionByBlockHashAndIndex: " + std::string(e.what())
       );
     }
@@ -627,11 +627,11 @@ namespace JsonRPC::Decoding {
     try {
       std::string blockNum = request["params"].at(0).get<std::string>();
       std::string index = request["params"].at(1).get<std::string>();
-      if (!std::regex_match(index, numFilter)) throw std::runtime_error("Invalid index hex");
+      if (!std::regex_match(index, numFilter)) throw DynamicException("Invalid index hex");
       if (blockNum == "latest") return std::make_pair<uint64_t,uint64_t>(
         storage->latest()->getNHeight(), uint64_t(Hex(index).getUint())
       );
-      if (!std::regex_match(blockNum, numFilter)) throw std::runtime_error("Invalid blockNumber hex");
+      if (!std::regex_match(blockNum, numFilter)) throw DynamicException("Invalid blockNumber hex");
       return std::make_pair<uint64_t,uint64_t>(
         uint64_t(Hex(blockNum).getUint()), uint64_t(Hex(index).getUint())
       );
@@ -639,7 +639,7 @@ namespace JsonRPC::Decoding {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getTransactionByBlockNumberAndIndex: ") + e.what()
       );
-      throw std::runtime_error(
+      throw DynamicException(
         "Error while decoding eth_getTransactionByBlockNumberAndIndex: " + std::string(e.what())
       );
     }
@@ -649,13 +649,13 @@ namespace JsonRPC::Decoding {
     static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
     try {
       std::string txHash = request["params"].at(0).get<std::string>();
-      if (!std::regex_match(txHash, hashFilter)) throw std::runtime_error("Invalid Hex");
+      if (!std::regex_match(txHash, hashFilter)) throw DynamicException("Invalid Hex");
       return Hash(Hex::toBytes(txHash));
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_getTransactionReceipt: ") + e.what()
       );
-      throw std::runtime_error(
+      throw DynamicException(
         "Error while decoding eth_getTransactionReceipt: " + std::string(e.what())
       );
     }

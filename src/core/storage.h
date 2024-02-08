@@ -86,7 +86,7 @@ class Storage {
      * Add a block to the end of the chain.
      * Only call this function directly if absolutely sure that `chainLock_` is locked.
      * @param block The block to add.
-     * @throw std::runtime_error on incorrect previous hash or height.
+     * @throw DynamicException on incorrect previous hash or height.
      */
     void pushBackInternal(Block&& block);
 
@@ -94,7 +94,7 @@ class Storage {
      * Add a block to the start of the chain.
      * Only call this function directly if absolutely sure that `chainLock_` is locked.
      * @param block The block to add.
-     * @throw std::runtime_error on incorrect previous hash or height.
+     * @throw DynamicException on incorrect previous hash or height.
      */
     void pushFrontInternal(Block&& block);
 
@@ -204,7 +204,7 @@ class Storage {
      * Get a transaction from the chain using a given hash.
      * @param tx The transaction hash to get.
      * @return A tuple with the found transaction, block hash, index and height.
-     * @throw std::runtime_error on hash mismatch.
+     * @throw DynamicException on hash mismatch.
      */
     const std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
@@ -215,7 +215,7 @@ class Storage {
      * @param blockHash The block hash
      * @param blockIndex the index within the block
      * @return A tuple with the found transaction, block hash, index and height.
-     * @throw std::runtime_error on hash mismatch.
+     * @throw DynamicException on hash mismatch.
      */
     const std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t

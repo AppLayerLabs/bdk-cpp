@@ -15,18 +15,18 @@ namespace P2P {
   RequestID RequestID::random() { return RequestID(Utils::randBytes(8)); }
 
   CommandType getCommandType(const BytesArrView message) {
-    if (message.size() != 2) { throw std::runtime_error("Invalid Command Type size." + std::to_string(message.size())); }
+    if (message.size() != 2) { throw DynamicException("Invalid Command Type size." + std::to_string(message.size())); }
     uint16_t commandType = Utils::bytesToUint16(message);
-    if (commandType > commandPrefixes.size()) { throw std::runtime_error("Invalid command type."); }
+    if (commandType > commandPrefixes.size()) { throw DynamicException("Invalid command type."); }
     return static_cast<CommandType>(commandType);
   }
 
   const Bytes& getCommandPrefix(const CommandType& commType) { return commandPrefixes[commType]; }
 
   RequestType getRequestType(const BytesArrView message) {
-    if (message.size() != 1) { throw std::runtime_error("Invalid Request Type size. " + std::to_string(message.size())); }
+    if (message.size() != 1) { throw DynamicException("Invalid Request Type size. " + std::to_string(message.size())); }
     uint8_t requestType = Utils::bytesToUint8(message);
-    if (requestType > typePrefixes.size()) { throw std::runtime_error("Invalid request type."); }
+    if (requestType > typePrefixes.size()) { throw DynamicException("Invalid request type."); }
     return static_cast<RequestType>(requestType);
   }
 
@@ -77,8 +77,8 @@ namespace P2P {
   }
 
   NodeInfo RequestDecoder::info(const Message& message) {
-    if (message.size() != 67) { throw std::runtime_error("Invalid Info message size."); }
-    if (message.command() != Info) { throw std::runtime_error("Invalid Info message command."); }
+    if (message.size() != 67) { throw DynamicException("Invalid Info message size."); }
+    if (message.command() != Info) { throw DynamicException("Invalid Info message command."); }
     uint64_t nodeVersion = Utils::bytesToUint64(message.message().subspan(0, 8));
     uint64_t nodeEpoch = Utils::bytesToUint64(message.message().subspan(8, 8));
     uint64_t nodeHeight = Utils::bytesToUint64(message.message().subspan(16, 8));
@@ -168,8 +168,8 @@ namespace P2P {
   }
 
   NodeInfo AnswerDecoder::info(const Message& message) {
-    if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
-    if (message.command() != Info) { throw std::runtime_error("Invalid command."); }
+    if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
+    if (message.command() != Info) { throw DynamicException("Invalid command."); }
     uint64_t nodeVersion = Utils::bytesToUint64(message.message().subspan(0, 8));
     uint64_t nodeEpoch = Utils::bytesToUint64(message.message().subspan(8, 8));
     uint64_t nodeHeight = Utils::bytesToUint64(message.message().subspan(16, 8));
@@ -180,15 +180,15 @@ namespace P2P {
   std::unordered_map<
       NodeID, NodeType, SafeHash
   > AnswerDecoder::requestNodes(const Message& message) {
-    if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
-    if (message.command() != RequestNodes) { throw std::runtime_error("Invalid command."); }
+    if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
+    if (message.command() != RequestNodes) { throw DynamicException("Invalid command."); }
     std::unordered_map<NodeID, NodeType, SafeHash> nodes;
 
     BytesArrView data = message.message();
     size_t index = 0;
     while (index < data.size()) {
       boost::asio::ip::address address;
-      if (data.size() < 8) { throw std::runtime_error("Invalid data size."); }
+      if (data.size() < 8) { throw DynamicException("Invalid data size."); }
       auto nodeType = NodeType(Utils::bytesToUint8(data.subspan(index, 1)));
       index += 1;
       uint8_t ipVersion = Utils::bytesToUint8(data.subspan(index, 1));
@@ -204,7 +204,7 @@ namespace P2P {
         address = boost::asio::ip::address_v6(ipBytes);
         index += 16;
       } else {
-        throw std::runtime_error("Invalid ip version.");
+        throw DynamicException("Invalid ip version.");
       }
       auto port = Utils::bytesToUint16(data.subspan(index, 2));
       nodes.insert({NodeID(address, port), nodeType});
@@ -216,16 +216,16 @@ namespace P2P {
   std::vector<TxValidator> AnswerDecoder::requestValidatorTxs(
     const Message& message, const uint64_t& requiredChainId
   ) {
-    if (message.type() != Answering) { throw std::runtime_error("Invalid message type."); }
-    if (message.command() != RequestValidatorTxs) { throw std::runtime_error("Invalid command."); }
+    if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
+    if (message.command() != RequestValidatorTxs) { throw DynamicException("Invalid command."); }
     std::vector<TxValidator> txs;
     BytesArrView data = message.message();
     size_t index = 0;
     while (index < data.size()) {
-      if (data.size() < 4) { throw std::runtime_error("Invalid data size."); }
+      if (data.size() < 4) { throw DynamicException("Invalid data size."); }
       uint32_t txSize = Utils::bytesToUint32(data.subspan(index, 4));
       index += 4;
-      if (data.size() < txSize) { throw std::runtime_error("Invalid data size."); }
+      if (data.size() < txSize) { throw DynamicException("Invalid data size."); }
       BytesArrView txData = data.subspan(index, txSize);
       index += txSize;
       txs.emplace_back(txData, requiredChainId);
@@ -265,23 +265,23 @@ namespace P2P {
   }
 
   TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId) {
-    if (message.type() != Broadcasting) { throw std::runtime_error("Invalid message type."); }
-    if (message.id().toUint64() != FNVHash()(message.message())) { throw std::runtime_error("Invalid message id."); }
-    if (message.command() != BroadcastValidatorTx) { throw std::runtime_error("Invalid command."); }
+    if (message.type() != Broadcasting) { throw DynamicException("Invalid message type."); }
+    if (message.id().toUint64() != FNVHash()(message.message())) { throw DynamicException("Invalid message id."); }
+    if (message.command() != BroadcastValidatorTx) { throw DynamicException("Invalid command."); }
     return TxValidator(message.message(), requiredChainId);
   }
 
   TxBlock BroadcastDecoder::broadcastTx(const P2P::Message &message, const uint64_t &requiredChainId) {
-    if (message.type() != Broadcasting) { throw std::runtime_error("Invalid message type."); }
-    if (message.id().toUint64() != FNVHash()(message.message())) { throw std::runtime_error("Invalid message id."); }
-    if (message.command() != BroadcastTx) { throw std::runtime_error("Invalid command."); }
+    if (message.type() != Broadcasting) { throw DynamicException("Invalid message type."); }
+    if (message.id().toUint64() != FNVHash()(message.message())) { throw DynamicException("Invalid message id."); }
+    if (message.command() != BroadcastTx) { throw DynamicException("Invalid command."); }
     return TxBlock(message.message(), requiredChainId);
   }
 
   Block BroadcastDecoder::broadcastBlock(const P2P::Message &message, const uint64_t &requiredChainId) {
-    if (message.type() != Broadcasting) { throw std::runtime_error("Invalid message type."); }
-    if (message.id().toUint64() != FNVHash()(message.message())) { throw std::runtime_error("Invalid message id. "); }
-    if (message.command() != BroadcastBlock) { throw std::runtime_error("Invalid command."); }
+    if (message.type() != Broadcasting) { throw DynamicException("Invalid message type."); }
+    if (message.id().toUint64() != FNVHash()(message.message())) { throw DynamicException("Invalid message id. "); }
+    if (message.command() != BroadcastBlock) { throw DynamicException("Invalid command."); }
     return Block(message.message(), requiredChainId);
   }
 }

@@ -166,7 +166,7 @@ std::string parseJsonRpcRequest(
     } else if(request["id"].is_null()) {
       ret["id"] = nullptr;
     } else {
-      throw std::runtime_error("Invalid id type");
+      throw DynamicException("Invalid id type");
     }
   } catch (std::exception &e) {
     json error;
