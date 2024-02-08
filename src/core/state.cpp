@@ -121,9 +121,6 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
                                             + " got: " + tx.getNonce().str());
     return TxInvalid::InvalidNonce;
   }
-
-
-
   return TxInvalid::NotInvalid;
 }
 
@@ -184,27 +181,26 @@ void State::refreshMempool(const Block& block) {
   }
 }
 
-const uint256_t State::getNativeBalance(const Address &addr) const {
+uint256_t State::getNativeBalance(const Address &addr) const {
   std::shared_lock lock(this->stateMutex_);
   auto it = this->accounts_.find(addr);
   if (it == this->accounts_.end()) return 0;
   return it->second.balance;
 }
 
-
-const uint64_t State::getNativeNonce(const Address& addr) const {
+uint64_t State::getNativeNonce(const Address& addr) const {
   std::shared_lock lock(this->stateMutex_);
   auto it = this->accounts_.find(addr);
   if (it == this->accounts_.end()) return 0;
   return it->second.nonce;
 }
 
-const std::unordered_map<Address, Account, SafeHash> State::getAccounts() const {
+const std::unordered_map<Address, Account, SafeHash>& State::getAccounts() const {
   std::shared_lock lock(this->stateMutex_);
   return this->accounts_;
 }
 
-const std::unordered_map<Hash, TxBlock, SafeHash> State::getMempool() const {
+const std::unordered_map<Hash, TxBlock, SafeHash>& State::getMempool() const {
   std::shared_lock lock(this->stateMutex_);
   return this->mempool_;
 }
@@ -380,7 +376,7 @@ std::vector<std::pair<std::string, Address>> State::getContracts() const {
   return this->contractManager_->getContracts();
 }
 
-const std::vector<Event> State::getEvents(
+std::vector<Event> State::getEvents(
   const uint64_t& fromBlock, const uint64_t& toBlock,
   const Address& address, const std::vector<Hash>& topics
 ) const {
@@ -388,7 +384,7 @@ const std::vector<Event> State::getEvents(
   return this->contractManager_->getEvents(fromBlock, toBlock, address, topics);
 }
 
-const std::vector<Event> State::getEvents(
+std::vector<Event> State::getEvents(
   const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
 ) const {
   std::shared_lock lock(this->stateMutex_);

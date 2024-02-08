@@ -112,7 +112,7 @@ class Storage {
      * @param txIndex The index of the transaction to get.
      * @return The transaction itself.
      */
-    const TxBlock getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const;
+    TxBlock getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const;
 
     /**
      * Check if a block exists anywhere in storage (memory/chain, then cache, then database).
@@ -184,14 +184,14 @@ class Storage {
      * @param hash The block hash to get.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const Hash& hash) const;
+    std::shared_ptr<const Block> getBlock(const Hash& hash) const;
 
     /**
      * Get a block from the chain using a given height.
      * @param height The block height to get.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    const std::shared_ptr<const Block> getBlock(const uint64_t& height) const;
+    std::shared_ptr<const Block> getBlock(const uint64_t& height) const;
 
     /**
      * Check if a transaction exists anywhere in storage (memory/chain, then cache, then database).
@@ -206,7 +206,7 @@ class Storage {
      * @return A tuple with the found transaction, block hash, index and height.
      * @throw DynamicException on hash mismatch.
      */
-    const std::tuple<
+    std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
     > getTx(const Hash& tx) const;
 
@@ -217,7 +217,7 @@ class Storage {
      * @return A tuple with the found transaction, block hash, index and height.
      * @throw DynamicException on hash mismatch.
      */
-    const std::tuple<
+    std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
     > getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const;
 
@@ -227,7 +227,7 @@ class Storage {
      * @param blockIndex The index within the block.
      * @return A tuple with the found transaction, block hash, index and height.
      */
-    const std::tuple<
+    std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
     > getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) const;
 
@@ -235,7 +235,7 @@ class Storage {
      * Get the most recently added block from the chain.
      * @returns A pointer to the latest block.
      */
-    const std::shared_ptr<const Block> latest();
+    std::shared_ptr<const Block> latest();
 
     /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
     uint64_t currentChainSize();

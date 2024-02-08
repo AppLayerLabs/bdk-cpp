@@ -38,7 +38,7 @@ Merkle::Merkle(const std::vector<Hash>& leaves) {
   while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));
 }
 
-const std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
+std::vector<Hash> Merkle::getProof(const uint64_t leafIndex) const {
   if (leafIndex > this->tree_.front().size() - 1) return {};
   std::vector<Hash> ret;
   uint64_t pos = leafIndex;

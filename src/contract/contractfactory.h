@@ -177,7 +177,7 @@ class ContractFactory {
       // Append args
       createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
       createSignature += ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
+      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
       this->createContractFuncs_[functor.asBytes()] = createFunc;
     }
 

@@ -45,7 +45,7 @@ class Validator : public Address {
      * Getter for the address.
      * @return The address.
      */
-    const Address address() const { return Address(this->data_); }
+    Address address() const { return Address(this->data_); }
 
     /// Copy assignment operator.
     Validator& operator=(const Validator& other) {
@@ -131,29 +131,37 @@ class rdPoS : public BaseContract {
     static const uint32_t minValidators = 4;
 
     /// Getter for `validators`. Not a reference because the inner set can be changed.
-    const std::set<Validator> getValidators() const { std::shared_lock lock(this->mutex_); return validators_; }
+    const std::set<Validator>& getValidators() const {
+      std::shared_lock lock(this->mutex_); return this->validators_;
+    }
 
     /// Getter for `randomList`. Not a reference because the inner vector can be changed.
-    const std::vector<Validator> getRandomList() const { std::shared_lock lock(this->mutex_); return randomList_; }
+    const std::vector<Validator>& getRandomList() const {
+      std::shared_lock lock(this->mutex_); return this->randomList_;
+    }
 
     /// Getter for `mempool`. Not a reference because the inner map can be changed.
-    const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const { std::shared_lock lock(this->mutex_); return validatorMempool_; }
+    const std::unordered_map<Hash, TxValidator, SafeHash>& getMempool() const {
+      std::shared_lock lock(this->mutex_); return this->validatorMempool_;
+    }
 
     /// Getter for `bestRandomSeed`.
-    const Hash getBestRandomSeed() const { std::shared_lock lock(this->mutex_); return this->bestRandomSeed_; }
+    const Hash& getBestRandomSeed() const { std::shared_lock lock(this->mutex_); return this->bestRandomSeed_; }
 
     /// Getter for `isValidator`.
-    const bool getIsValidator() const { return this->isValidator_; }
+    bool getIsValidator() const { return this->isValidator_; }
 
     /// Getter for `validatorKey`, converted to an uncompressed public key.
-    const UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey_); }
+    UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey_); }
 
     /**
      * Check if a given Address is a Validator.
      * @param add The address to check.
      * @return `true` if address is in the validator list, `false` otherwise.
      */
-    const bool isValidatorAddress(const Address& add) const { std::shared_lock lock(this->mutex_); return validators_.contains(Validator(add)); }
+    bool isValidatorAddress(const Address& add) const {
+      std::shared_lock lock(this->mutex_); return validators_.contains(Validator(add));
+    }
 
     /// Clear the mempool.
     void clearMempool() { std::unique_lock lock(this->mutex_); this->validatorMempool_.clear(); }

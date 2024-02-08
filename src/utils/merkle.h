@@ -60,7 +60,7 @@ class Merkle {
     inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree_; }
 
     /// Getter for `tree`, but returns only the root.
-    inline const Hash getRoot() const {
+    inline Hash getRoot() const {
       if (this->tree_.back().size() == 0) return Hash();
       return this->tree_.back().front();
     }
@@ -75,7 +75,7 @@ class Merkle {
      *                  `getProof(2)` would get the proof for leaf C).
      * @return A list of proofs for the leaf.
      */
-    const std::vector<Hash> getProof(const uint64_t leafIndex) const;
+    std::vector<Hash> getProof(const uint64_t leafIndex) const;
 
     /**
      * Verify a leaf node's data integrity against its proof and the root hash.

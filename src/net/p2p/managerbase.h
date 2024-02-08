@@ -24,7 +24,7 @@ namespace P2P {
   class ManagerBase {
     protected:
       /// The manager's port.
-      unsigned short serverPort_;
+      const unsigned short serverPort_;
 
       /// The manager's node type.
       const NodeType nodeType_;
@@ -140,7 +140,7 @@ namespace P2P {
       /// Stop the P2P::Server and P2P::ClientFactory.
       void stop();
 
-      /// Start the discovery thread.a
+      /// Start the discovery thread.
       void startDiscovery() { this->discoveryWorker_->start(); };
 
       /// Stop the discovery thread.
@@ -150,25 +150,25 @@ namespace P2P {
       std::vector<NodeID> getSessionsIDs() const;
 
       /// Getter for `nodeType_`.
-      const NodeType &nodeType() const { return nodeType_; }
+      const NodeType& nodeType() const { return this->nodeType_; }
 
       /// Getter for `hostPort_`.
-      const unsigned int serverPort() const { return serverPort_; }
+      unsigned int serverPort() const { return this->serverPort_; }
 
       /// Getter for `maxConnections_`.
-      const unsigned int maxConnections() const { return maxConnections_; }
+      unsigned int maxConnections() const { return this->maxConnections_; }
 
       /// Getter for `minConnections_`.
-      const unsigned int minConnections() const { return minConnections_; }
+      unsigned int minConnections() const { return this->minConnections_; }
 
       /// Getter for `closed_`.
-      const std::atomic<bool>& isClosed() const { return closed_; }
+      const std::atomic<bool>& isClosed() const { return this->closed_; }
 
       /// Get the size of the session list.
-      const uint64_t getPeerCount() const { std::shared_lock lock(this->sessionsMutex_); return sessions_.size(); }
+      uint64_t getPeerCount() const { std::shared_lock lock(this->sessionsMutex_); return this->sessions_.size(); }
 
       /// Check if the P2P server is running.
-      const bool isServerRunning() const { return this->server_->isRunning(); }
+      bool isServerRunning() const { return this->server_->isRunning(); }
 
       /**
        * Register a session into the list.

@@ -177,19 +177,19 @@ class Block {
      * Validator Merkle Root + Transaction Merkle Root + timestamp_ + nHeight_).
      * @return The serialized header string.
      */
-    const Bytes serializeHeader() const;
+    Bytes serializeHeader() const;
 
     /**
      * Serialize the entire block and its contents.
      * @return The serialized block string.
      */
-    const Bytes serializeBlock() const;
+    Bytes serializeBlock() const;
 
     /**
      * SHA3-hash the block header (calls serializeHeader() internally).
      * @return The hash of the block header.
      */
-    const Hash hash() const;
+    Hash hash() const;
 
     // ==============================
     // Transaction related functions
@@ -219,7 +219,9 @@ class Block {
     bool finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp);
 
     /// Equality operator. Checks the block hash AND signature of both objects.
-    const bool operator==(const Block& b) const { return ((this->hash() == b.hash()) && (this->getValidatorSig() == b.getValidatorSig())); }
+    bool operator==(const Block& b) const {
+      return ((this->hash() == b.hash()) && (this->getValidatorSig() == b.getValidatorSig()));
+    }
 
     /// Copy assignment operator.
     Block& operator=(const Block& other) {

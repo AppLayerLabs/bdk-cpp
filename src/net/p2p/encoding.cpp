@@ -177,9 +177,7 @@ namespace P2P {
     return NodeInfo(nodeVersion, nodeEpoch, nodeHeight, nodeHash);
   }
 
-  std::unordered_map<
-      NodeID, NodeType, SafeHash
-  > AnswerDecoder::requestNodes(const Message& message) {
+  std::unordered_map<NodeID, NodeType, SafeHash> AnswerDecoder::requestNodes(const Message& message) {
     if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
     if (message.command() != RequestNodes) { throw DynamicException("Invalid command."); }
     std::unordered_map<NodeID, NodeType, SafeHash> nodes;

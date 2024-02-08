@@ -142,7 +142,7 @@ public:
    * @param key The key to find.
    * @return An const iterator to the found key and its value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
+  typename std::unordered_map<Key, T, SafeHash>::const_iterator find(const Key& key) const {
     checkKeyAndCopy(key); return mapPtr_->find(key);
   }
 
@@ -223,7 +223,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(
+  std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(
     const typename std::unordered_map<Key, T, SafeHash>::value_type& value
   ) {
     check(); markAsUsed(); return mapPtr_->insert(value);
@@ -235,7 +235,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(
+  std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(
     typename std::unordered_map<Key, T, SafeHash>::value_type&& value
   ) {
     check(); markAsUsed(); return mapPtr_->insert(std::move(value));
@@ -247,7 +247,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(T&& value) {
+  std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert(T&& value) {
     check(); markAsUsed(); return mapPtr_->insert(std::move(value));
   }
 
@@ -257,7 +257,7 @@ public:
    * @param value The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
+  typename std::unordered_map<Key, T, SafeHash>::iterator insert(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
     const typename std::unordered_map<Key, T, SafeHash>::value_type& value
     ) {
@@ -270,7 +270,7 @@ public:
    * @param value The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
+  typename std::unordered_map<Key, T, SafeHash>::iterator insert(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
     typename std::unordered_map<Key, T, SafeHash>::value_type&& value
   ) {
@@ -283,7 +283,7 @@ public:
    * @param value The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
+  typename std::unordered_map<Key, T, SafeHash>::iterator insert(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, T&& value
   ) {
     check(); markAsUsed(); return mapPtr_->insert(hint, std::move(value));
@@ -328,7 +328,7 @@ public:
    * @param hint The hint to use.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert(
+  typename std::unordered_map<Key, T, SafeHash>::iterator insert(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
     typename std::unordered_map<Key, T, SafeHash>::node_type&& nh
   ) {
@@ -342,7 +342,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert_or_assign(
+  std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool> insert_or_assign(
     const Key& k, const T& obj
   ) {
     check(); markAsUsed(); return mapPtr_->insert_or_assign(k, obj);
@@ -355,7 +355,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  const std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool>
+  std::pair<typename std::unordered_map<Key, T, SafeHash>::iterator, bool>
   insert_or_assign(Key&& k, T&& obj) {
     check();
     markAsUsed();
@@ -370,7 +370,7 @@ public:
    * @param obj The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert_or_assign(
+  typename std::unordered_map<Key, T, SafeHash>::iterator insert_or_assign(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
     const Key& k, const T& obj
   ) {
@@ -385,7 +385,7 @@ public:
    * @param obj The value to insert.
    * @return An iterator to the inserted value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator insert_or_assign(
+  typename std::unordered_map<Key, T, SafeHash>::iterator insert_or_assign(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
     Key&& k, T&& obj
   ) {
@@ -398,7 +398,7 @@ public:
    * @return A pair consisting of an iterator to the inserted value and a
    *         boolean indicating whether the insertion was successful.
    */
-  template <typename... Args> const std::pair<
+  template <typename... Args> std::pair<
     typename std::unordered_map<Key, T, SafeHash>::iterator, bool
   > emplace(Args&&... args) {
     check(); markAsUsed(); return mapPtr_->emplace(std::forward<Args>(args)...);
@@ -410,7 +410,7 @@ public:
    * @param args The arguments to build the value for insertion.
    * @return An iterator to the inserted value.
    */
-  template <typename... Args> const typename std::unordered_map<Key, T, SafeHash>::iterator
+  template <typename... Args> typename std::unordered_map<Key, T, SafeHash>::iterator
   emplace_hint(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
     Args&& ...args
@@ -423,7 +423,7 @@ public:
    * @param pos The position of the value to erase.
    * @return An iterator to the next value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator erase(
+  typename std::unordered_map<Key, T, SafeHash>::iterator erase(
     typename std::unordered_map<Key, T, SafeHash>::iterator pos
   ) {
     check(); markAsUsed(); erasedKeys_->insert(pos->first); return mapPtr_->erase(pos);
@@ -434,7 +434,7 @@ public:
    * @param pos The position of the value to erase.
    * @return An iterator to the next value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator erase(
+  typename std::unordered_map<Key, T, SafeHash>::iterator erase(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator pos
   ) {
     check(); markAsUsed(); erasedKeys_->insert(pos->first); return mapPtr_->erase(pos);
@@ -446,7 +446,7 @@ public:
    * @param last The last position to erase.
    * @return An iterator to the next value.
    */
-  const typename std::unordered_map<Key, T, SafeHash>::iterator erase(
+  typename std::unordered_map<Key, T, SafeHash>::iterator erase(
     typename std::unordered_map<Key, T, SafeHash>::const_iterator first,
     typename std::unordered_map<Key, T, SafeHash>::const_iterator last
   ) {

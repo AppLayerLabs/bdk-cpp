@@ -50,7 +50,6 @@ using Byte = uint8_t; ///< Typedef for Byte.
 using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
-using BytesArrMutableView = std::span<Byte, std::dynamic_extent>; ///< Typedef for BytesArrMutableView.
 
 /// Typedef for uint24_t.
 using uint24_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<24, 24, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
@@ -1068,27 +1067,6 @@ namespace Utils {
   }
 
   /**
-   * Convert a vector to span.
-   * @param vec The vector to convert.
-   * @return The converted span.
-   */
-  inline BytesArrMutableView create_span(Bytes& vec) {
-    return BytesArrMutableView(vec.data(), vec.size());
-  }
-
-  /**
-  * Convert a "subvector" to span.
-  * @param vec The vector to convert.
-  * @param start The start index of the subvector.
-  * @param size The size of the subvector.
-  * @return The converted span.
-  */
-  inline BytesArrMutableView create_span(Bytes& vec, size_t start, size_t size) {
-    if (start + size > vec.size()) throw DynamicException("Invalid range for span");
-    return BytesArrMutableView(vec.data() + start, size);
-  }
-
-  /**
    * Convert a vector to const span.
    * @param vec The vector to convert.
    * @return The converted span.
@@ -1110,33 +1088,10 @@ namespace Utils {
    }
 
   /**
-  * Template for converting a fixed-size array to span.
-  * @param arr The array to convert.
-  * @return The converted span.
-  */
-  template<std::size_t N> inline BytesArrMutableView create_span(BytesArr<N>& arr) {
-    return BytesArrMutableView(arr.data(), arr.size());
-  }
-
-  /**
-  * Convert a "subarray" to span.
-  * @param arr The array to convert.
-  * @param start The start index of the subarray.
-  * @param size The size of the subarray.
-  * @return The converted span.
-  */
-  template<std::size_t N> inline BytesArrMutableView create_span(
-    BytesArr<N>& arr, size_t start, size_t size
-  ) {
-    if (start + size > arr.size()) throw DynamicException("Invalid range for span");
-    return BytesArrMutableView(arr.data() + start, size);
-  }
-
-  /**
-  * Convert an array to const span.
-  * @param arr The array to convert.
-  * @return The converted span.
-  */
+   * Convert an array to const span.
+   * @param arr The array to convert.
+   * @return The converted span.
+   */
   template<std::size_t N> inline BytesArrView create_view_span(const BytesArr<N>& arr) {
     return BytesArrView(arr.data(), arr.size());
   }

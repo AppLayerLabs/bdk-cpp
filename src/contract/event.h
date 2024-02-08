@@ -219,7 +219,7 @@ class EventManager {
      * @return A list of matching events, limited by the block and/or log caps set above.
      * @throw std::out_of_range if specified block range exceeds the limit set in Options.
      */
-    const std::vector<Event> getEvents(
+    std::vector<Event> getEvents(
       const uint64_t& fromBlock, const uint64_t& toBlock,
       const Address& address = Address(), const std::vector<Hash>& topics = {}
     ) const;
@@ -232,7 +232,7 @@ class EventManager {
      * @param txIndex The index of the transaction to look for events.
      * @return A list of matching events, limited by the block and/or log caps set above.
      */
-    const std::vector<Event> getEvents(
+    std::vector<Event> getEvents(
       const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     ) const;
 
@@ -243,7 +243,7 @@ class EventManager {
      * @param address The address to look for. Defaults to empty (look for all available addresses).
      * @return A list of found events.
      */
-    const std::vector<Event> filterFromMemory(
+    std::vector<Event> filterFromMemory(
       const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address = Address()
     ) const;
 
@@ -255,7 +255,7 @@ class EventManager {
      * @param topics The topics to filter by. Defaults to empty (look for all available topics).
      * @return A list of found events.
      */
-    const std::vector<Event> filterFromDB(
+    std::vector<Event> filterFromDB(
       const uint64_t& fromBlock, const uint64_t& toBlock,
       const Address& address = Address(), const std::vector<Hash>& topics = {}
     ) const;

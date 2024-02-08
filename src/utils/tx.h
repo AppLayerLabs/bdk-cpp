@@ -121,7 +121,7 @@ class TxBlock {
     inline const uint256_t& getS() const { return this->s_; }
 
     /// Getter for `v_`, but calculates the real ID value based on chainId.
-    inline const uint256_t recoverId() const {
+    inline uint256_t recoverId() const {
       return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35)));
     }
 
@@ -245,7 +245,7 @@ class TxValidator {
     inline const Bytes& getData() const { return this->data_; }
 
     /// Getter for the functor within `data`.
-    inline const Functor getFunctor() const {
+    inline Functor getFunctor() const {
       return Functor(Bytes(this->data_.begin(), this->data_.begin() + 4));
     }
 
@@ -265,7 +265,7 @@ class TxValidator {
     inline const uint256_t& getS() const { return this->s_; }
 
     /// Getter for `v`, but calculates the real ID value based on chainId.
-    inline const uint256_t recoverId() const {
+    inline uint256_t recoverId() const {
       return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35)));
     }
 

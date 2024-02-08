@@ -183,7 +183,7 @@ class ContractManager : public BaseContract {
      * @return A string with the requested info.
      * @throw DynamicException if the call is not valid.
      */
-    const Bytes ethCallView(const ethCallInfo& data) const override;
+    Bytes ethCallView(const ethCallInfo& data) const override;
 
     /**
      * Process a transaction that calls a function from a given contract.
@@ -202,7 +202,7 @@ class ContractManager : public BaseContract {
      * @throw DynamicException if the call to the ethCall function fails
      * or if the contract does not exist.
      */
-    const Bytes callContract(const ethCallInfo& callInfo) const;
+    Bytes callContract(const ethCallInfo& callInfo) const;
 
     /**
      * Check if an ethCallInfo is trying to access a payable function.
@@ -248,7 +248,7 @@ class ContractManager : public BaseContract {
      * @param topics The topics to filter by. Defaults to empty (look for all available topics).
      * @return A list of matching events.
      */
-    const std::vector<Event> getEvents(
+    std::vector<Event> getEvents(
       const uint64_t& fromBlock, const uint64_t& toBlock,
       const Address& address = Address(), const std::vector<Hash>& topics = {}
     ) const;
@@ -416,7 +416,7 @@ class ContractManagerInterface {
       gas = gasValue;
       gasPrice = gasPriceValue;
       value = callValue;
-      functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
+      functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
       data = encoder;
       this->manager_.callLogger_->setContractVars(&manager_, txOrigin, fromAddr, value);
       Address newContractAddress = this->manager_.deriveContractAddress();

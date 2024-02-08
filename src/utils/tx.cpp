@@ -218,8 +218,8 @@ TxBlock::TxBlock(
 
   Hash msgHash = Utils::sha3(this->rlpSerialize(false)); // Do not include signature
   Signature sig = Secp256k1::sign(msgHash, privKey);
-  this->r_ = Utils::bytesToUint256(sig.view_const(0, 32));
-  this->s_ = Utils::bytesToUint256(sig.view_const(32,32));
+  this->r_ = Utils::bytesToUint256(sig.view(0, 32));
+  this->s_ = Utils::bytesToUint256(sig.view(32,32));
   this->v_ = sig[64];
 
   if (pubKey != Secp256k1::recover(sig, msgHash)) {
@@ -518,8 +518,8 @@ TxValidator::TxValidator(
   if (add != this->from_) throw DynamicException("Private key does not match sender address (from)");
 
   Signature sig = Secp256k1::sign(msgHash, privKey);
-  this->r_ = Utils::bytesToUint256(sig.view_const(0, 32));
-  this->s_ = Utils::bytesToUint256(sig.view_const(32,32));
+  this->r_ = Utils::bytesToUint256(sig.view(0, 32));
+  this->s_ = Utils::bytesToUint256(sig.view(32,32));
   uint8_t recoveryIds = sig[64];
   this->v_ = recoveryIds + (this->chainId_ * 2 + 35);
 

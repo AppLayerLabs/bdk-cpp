@@ -141,7 +141,7 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
   }
 }
 
-const Bytes Block::serializeHeader() const {
+Bytes Block::serializeHeader() const {
   // Block header is 144 bytes, made of:
   // previous block hash + block randomness + validator merkle root
   // + tx merkle root + timestamp + block height
@@ -156,7 +156,7 @@ const Bytes Block::serializeHeader() const {
   return ret;
 }
 
-const Bytes Block::serializeBlock() const {
+Bytes Block::serializeBlock() const {
   Bytes ret;
   // Block is made of: validator signature + block header + validator tx offset + [block txs...] + [validator txs...]
   ret.insert(ret.end(), this->validatorSig_.cbegin(), this->validatorSig_.cend());
@@ -187,7 +187,7 @@ const Bytes Block::serializeBlock() const {
   return ret;
 }
 
-const Hash Block::hash() const { return Utils::sha3(this->serializeHeader()); }
+Hash Block::hash() const { return Utils::sha3(this->serializeHeader()); }
 
 bool Block::appendTx(const TxBlock &tx) {
   if (this->finalized_) {

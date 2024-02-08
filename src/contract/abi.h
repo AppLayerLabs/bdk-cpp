@@ -366,7 +366,7 @@ namespace ABI {
      */
     template <typename... Args> static Functor encode(const std::string& funcSig) {
       std::string fullSig = funcSig + "(" + listArgumentTypes<Args...>() + ")";
-      return Utils::sha3(Utils::create_view_span(fullSig)).view_const(0, 4);
+      return Utils::sha3(Utils::create_view_span(fullSig)).view(0, 4);
     }
   }; // namespace FunctorEncoder
 

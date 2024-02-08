@@ -38,7 +38,7 @@ class RandomGen {
     explicit RandomGen(const Hash& seed) : seed_(seed) {};
 
     /// Getter for `seed`.
-    inline const Hash getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }
+    inline const Hash& getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }
 
     /// Setter for `seed`.
     inline void setSeed(const Hash& seed) { std::lock_guard lock(seedLock_); this->seed_ = seed; }

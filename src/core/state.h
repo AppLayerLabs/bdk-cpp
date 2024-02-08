@@ -110,23 +110,23 @@ class State {
      * @param addr The address of the account to check.
      * @return The native account balance of the given address.
      */
-    const uint256_t getNativeBalance(const Address& addr) const;
+    uint256_t getNativeBalance(const Address& addr) const;
 
     /**
      * Get the native nonce of an account in the state.
      * @param addr The address of the account to check.
      * @return The native account nonce of the given address.
      */
-    const uint64_t getNativeNonce(const Address& addr) const;
+    uint64_t getNativeNonce(const Address& addr) const;
 
     /// Getter for `accounts`. Returns a copy.
-    const std::unordered_map<Address, Account, SafeHash> getAccounts() const;
+    const std::unordered_map<Address, Account, SafeHash>& getAccounts() const;
 
     /// Getter for `mempool`. Returns a copy.
-    const std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
+    const std::unordered_map<Hash, TxBlock, SafeHash>& getMempool() const;
 
     /// Get the mempool's current size.
-    inline const size_t getMempoolSize() const {
+    inline size_t getMempoolSize() const {
       std::shared_lock<std::shared_mutex> lock (this->stateMutex_);
       return this->mempool_.size();
     }
@@ -245,7 +245,7 @@ class State {
      * @param topics The topics to filter by. Defaults to empty (look for all available topics).
      * @return A list of matching events.
      */
-    const std::vector<Event> getEvents(
+    std::vector<Event> getEvents(
       const uint64_t& fromBlock, const uint64_t& toBlock,
       const Address& address = Address(), const std::vector<Hash>& topics = {}
     ) const;
@@ -257,7 +257,7 @@ class State {
      * @param txIndex The index of the transaction to look for events.
      * @return A list of matching events.
      */
-    const std::vector<Event> getEvents(
+    std::vector<Event> getEvents(
       const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     ) const;
 

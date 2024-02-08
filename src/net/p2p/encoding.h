@@ -397,6 +397,7 @@ namespace P2P {
     public:
       /// Default constructor.
       Message() = default;
+
       /// Copy constructor.
       Message(const Message& message) { this->rawMessage_ = message.rawMessage_; }
 
@@ -404,22 +405,22 @@ namespace P2P {
       Message(Message&& message) { this->rawMessage_ = std::move(message.rawMessage_); }
 
       /// Get the request type of the message.
-      const RequestType type() const { return getRequestType(BytesArrView(rawMessage_).subspan(0,1)); }
+      RequestType type() const { return getRequestType(BytesArrView(rawMessage_).subspan(0,1)); }
 
       /// Get the request ID of the message.
-      const RequestID id() const { return RequestID(BytesArrView(rawMessage_).subspan(1, 8)); }
+      RequestID id() const { return RequestID(BytesArrView(rawMessage_).subspan(1, 8)); }
 
       /// Get the command type of the message.
-      const CommandType command() const { return getCommandType(BytesArrView(rawMessage_).subspan(9,2)); }
+      CommandType command() const { return getCommandType(BytesArrView(rawMessage_).subspan(9,2)); }
 
       /// Get the message data (without the flags and IDs).
-      const BytesArrView message() const { return BytesArrView(rawMessage_).subspan(11); }
+      BytesArrView message() const { return BytesArrView(rawMessage_).subspan(11); }
 
       /// Get the whole message.
-      const BytesArrView raw() const { return rawMessage_; }
+      BytesArrView raw() const { return this->rawMessage_; }
 
       /// Get the message's size.
-      const size_t size() const { return rawMessage_.size(); }
+      size_t size() const { return this->rawMessage_.size(); }
 
       friend class RequestEncoder;
       friend class AnswerEncoder;
@@ -431,12 +432,12 @@ namespace P2P {
   /// Abstraction of a %P2P request, passed through the network.
   class Request {
     private:
-      CommandType command_; ///< Command type.
-      RequestID id_;                                                                        ///< Request ID.
-      NodeID nodeId_;                                                                       ///< Host node ID.
-      std::promise<const std::shared_ptr<const Message>> answer_;                           ///< Answer to the request.
-      const std::shared_ptr<const Message> message_;                                        ///< The request message. Used if we need to ask another node.
-      bool isAnswered_ = false;                                                             ///< Indicates whether the request was answered.
+      const CommandType command_;                                 ///< Command type.
+      const RequestID id_;                                        ///< Request ID.
+      const NodeID nodeId_;                                       ///< Host node ID.
+      std::promise<const std::shared_ptr<const Message>> answer_; ///< Answer to the request.
+      const std::shared_ptr<const Message> message_;              ///< The request message. Used if we need to ask another node.
+      bool isAnswered_ = false;                                   ///< Indicates whether the request was answered.
 
     public:
       /**
@@ -446,23 +447,25 @@ namespace P2P {
        * @param nodeId The request's host node ID.
         * @param message The request's message.
        */
-      Request(const CommandType& command, const RequestID& id, const NodeID& nodeId, const std::shared_ptr<const Message>& message) :
-              command_(command), id_(id), nodeId_(nodeId), message_(message) {};
+      Request(
+        const CommandType& command, const RequestID& id, const NodeID& nodeId,
+        const std::shared_ptr<const Message>& message
+      ) : command_(command), id_(id), nodeId_(nodeId), message_(message) {};
 
       /// Getter for `command_`.
-      const CommandType& command() const { return command_; };
+      const CommandType& command() const { return this->command_; };
 
       /// Getter for `id_`.
-      const RequestID& id() const { return id_; };
+      const RequestID& id() const { return this->id_; };
 
       /// Getter for `nodeId_`.
-      const NodeID& nodeId() const { return nodeId_; };
+      const NodeID& nodeId() const { return this->nodeId_; };
 
       /// Getter for `answer_`.
-      std::future<const std::shared_ptr<const Message>> answerFuture() { return answer_.get_future(); };
+      std::future<const std::shared_ptr<const Message>> answerFuture() { return this->answer_.get_future(); };
 
       /// Getter for `isAnswered_`.
-      const bool isAnswered() const { return isAnswered_; };
+      bool isAnswered() const { return this->isAnswered_; };
 
       /// Setter for `answer_`. Also sets `isAnswered_` to `true`.
       void setAnswer(const std::shared_ptr<const Message> answer) { answer_.set_value(answer); isAnswered_ = true; };

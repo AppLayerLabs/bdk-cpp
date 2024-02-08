@@ -50,9 +50,9 @@ DEXV2Pair::DEXV2Pair(
 
 DEXV2Pair::~DEXV2Pair() {
   DBBatch batchOperations;
-  batchOperations.push_back(Utils::stringToBytes("factory_"), this->factory_.get().view_const(), this->getDBPrefix());
-  batchOperations.push_back(Utils::stringToBytes("token0_"), this->token0_.get().view_const(), this->getDBPrefix());
-  batchOperations.push_back(Utils::stringToBytes("token1_"), this->token1_.get().view_const(), this->getDBPrefix());
+  batchOperations.push_back(Utils::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
+  batchOperations.push_back(Utils::stringToBytes("token0_"), this->token0_.get().view(), this->getDBPrefix());
+  batchOperations.push_back(Utils::stringToBytes("token1_"), this->token1_.get().view(), this->getDBPrefix());
   batchOperations.push_back(Utils::stringToBytes("reserve0_"), Utils::uint112ToBytes(this->reserve0_.get()), this->getDBPrefix());
   batchOperations.push_back(Utils::stringToBytes("reserve1_"), Utils::uint112ToBytes(this->reserve1_.get()), this->getDBPrefix());
   batchOperations.push_back(Utils::stringToBytes("blockTimestampLast_"), Utils::uint32ToBytes(this->blockTimestampLast_.get()), this->getDBPrefix());

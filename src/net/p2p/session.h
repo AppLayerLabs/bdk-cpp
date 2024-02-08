@@ -201,7 +201,7 @@ namespace P2P {
       const unsigned short& port() const { return port_; }
 
       /// Getter for `address_` and `port_`, in form of a pair.
-      const std::pair<net::ip::address, unsigned short> addressAndPort() const {
+      std::pair<const net::ip::address, const unsigned short> addressAndPort() const {
         return std::make_pair(this->address_, this->port_);
       }
 

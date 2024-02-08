@@ -313,7 +313,7 @@ class SDKTestSuite {
       // Encode the functor
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract("
         + ContractReflectionInterface::getConstructorArgumentTypesString<TContract>() + ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
+      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
       Bytes data(functor.cbegin(), functor.cend());
 
       // Create the transaction, advance the chain with it, and get the new contract address.
@@ -351,7 +351,7 @@ class SDKTestSuite {
       // Encode the functor
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract("
         + ContractReflectionInterface::getConstructorArgumentTypesString<TContract>() + ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view_const(0, 4);
+      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
       Bytes data(functor.cbegin(), functor.cend());
 
       // Encode the arguments

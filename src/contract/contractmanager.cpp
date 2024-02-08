@@ -64,7 +64,7 @@ Address ContractManager::deriveContractAddress() const {
       ? (char)this->contracts_.size()
       : (char)0x80 + Utils::bytesRequired(this->contracts_.size())
   );
-  return Address(Utils::sha3(rlp).view_const(12));
+  return Address(Utils::sha3(rlp).view(12));
 }
 
 Bytes ContractManager::getDeployedContracts() const {
@@ -89,7 +89,7 @@ void ContractManager::ethCall(const ethCallInfo& callInfo) {
   f(callInfo);
 }
 
-const Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
+Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
   const auto& functor = std::get<5>(data);
   // This hash is equivalent to "function getDeployedContracts() public view returns (string[] memory, address[] memory) {}"
   if (functor == Hex::toBytes("0xaa9a068f")) return this->getDeployedContracts();
@@ -156,7 +156,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
   this->eventManager_->commitEvents(tx.hash(), txIndex);
 }
 
-const Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
+Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
   if (to == this->getContractAddress()) return this->ethCallView(callInfo);
   if (to == ProtocolContractAddresses.at("rdPoS")) return rdpos_->ethCallView(callInfo);
@@ -243,7 +243,7 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
   return contracts;
 }
 
-const std::vector<Event> ContractManager::getEvents(
+std::vector<Event> ContractManager::getEvents(
   const uint64_t& fromBlock, const uint64_t& toBlock,
   const Address& address, const std::vector<Hash>& topics
 ) const {

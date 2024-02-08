@@ -113,7 +113,7 @@ void Storage::initializeBlockchain() {
   }
 }
 
-const TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const {
+TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const {
   uint64_t index = 217; // Start of block tx range
   /// Count txs until index.
   uint64_t currentTx = 0;
@@ -267,7 +267,7 @@ bool Storage::txExists(const Hash& tx) const {
   return this->txExistsInternal(tx) != StorageStatus::NotFound;
 }
 
-const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) const {
+std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) const {
   // Check chain first, then cache, then database
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
@@ -294,7 +294,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) const {
   return nullptr;
 }
 
-const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) const {
+std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) const {
   // Check chain first, then cache, then database
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
@@ -325,7 +325,7 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) con
 }
 
 
-const std::tuple<
+std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTx(const Hash& tx) const {
   // Check chain first, then cache, then database
@@ -365,7 +365,7 @@ const std::tuple<
   return { nullptr, Hash(), 0, 0 };
 }
 
-const std::tuple<
+std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const {
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
@@ -403,7 +403,7 @@ const std::tuple<
   return { nullptr, Hash(), 0, 0 };
 }
 
-const std::tuple<
+std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
 > Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) const {
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
@@ -441,7 +441,7 @@ const std::tuple<
   return { nullptr, Hash(), 0, 0 };
 }
 
-const std::shared_ptr<const Block> Storage::latest() {
+std::shared_ptr<const Block> Storage::latest() {
   std::shared_lock<std::shared_mutex> lock(this->chainLock_);
   return this->chain_.back();
 }

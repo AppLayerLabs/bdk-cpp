@@ -115,7 +115,7 @@ Options::Options(
   o.close();
 }
 
-const PrivKey Options::getValidatorPrivKey() const {
+PrivKey Options::getValidatorPrivKey() const {
   json options;
   std::ifstream i(this->rootPath_ + "/options.json");
   i >> options;

@@ -152,7 +152,7 @@ class BaseContract : public ContractLocals {
      * @return A string with the answer to the call.
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual const Bytes ethCallView(const ethCallInfo &data) const {
+    virtual Bytes ethCallView(const ethCallInfo &data) const {
       throw DynamicException("Derived Class from Contract does not override ethCallView()");
     }
 

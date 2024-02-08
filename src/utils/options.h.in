@@ -207,7 +207,7 @@ class Options {
     const uint64_t& getPatchSDKVersion() const { return this->patchSDKVersion_; }
 
     /// Getter for the full SDK version as a string.
-    const std::string getSDKVersion() const {
+    std::string getSDKVersion() const {
       return std::to_string(this->majorSDKVersion_)
         + "." + std::to_string(this->minorSDKVersion_)
         + "." + std::to_string(this->patchSDKVersion_);
@@ -259,7 +259,7 @@ class Options {
      * Get the Validator node's private key from the JSON file.
      * @return The Validator node's private key, or an empty private key if missing.
      */
-    const PrivKey getValidatorPrivKey() const;
+    PrivKey getValidatorPrivKey() const;
 
     /**
      * Load an options.json file from a given path and construct the singleton object.

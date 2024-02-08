@@ -24,7 +24,6 @@ using Bytes = std::vector<Byte>;
 template <std::size_t N>
 using BytesArr = std::array<Byte, N>;
 using BytesArrView = std::span<const Byte, std::dynamic_extent>;
-using BytesArrMutableView = std::span<Byte, std::dynamic_extent>;
 
 using uint256_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256, 256, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
 

@@ -46,11 +46,11 @@ DEXV2Factory::DEXV2Factory(
 
 DEXV2Factory::~DEXV2Factory() {
   DBBatch batchOperations;
-  batchOperations.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view_const(), this->getDBPrefix());
-  batchOperations.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view_const(), this->getDBPrefix());
+  batchOperations.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
+  batchOperations.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
   uint32_t index = 0;
   for (const auto& address : this->allPairs_.get()) batchOperations.push_back(
-    Utils::uint32ToBytes(index), address.view_const(), this->getNewPrefix("allPairs_")
+    Utils::uint32ToBytes(index), address.view(), this->getNewPrefix("allPairs_")
   );
   for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
     for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {

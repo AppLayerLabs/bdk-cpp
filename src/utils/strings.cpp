@@ -15,13 +15,13 @@ Hash::Hash(const std::string_view sv) {
   std::copy(sv.begin(), sv.end(), this->data_.begin());
 }
 
-const uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data_); }
+uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data_); }
 
-uint256_t Signature::r() const { return Utils::bytesToUint256(this->view_const(0, 32)); }
+uint256_t Signature::r() const { return Utils::bytesToUint256(this->view(0, 32)); }
 
-uint256_t Signature::s() const { return Utils::bytesToUint256(this->view_const(32, 32)); }
+uint256_t Signature::s() const { return Utils::bytesToUint256(this->view(32, 32)); }
 
-uint8_t Signature::v() const { return Utils::bytesToUint8(this->view_const(64, 1)); }
+uint8_t Signature::v() const { return Utils::bytesToUint8(this->view(64, 1)); }
 
 Address::Address(const std::string_view add, bool inBytes) {
   if (inBytes) {

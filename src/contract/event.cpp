@@ -87,7 +87,7 @@ EventManager::~EventManager() {
   this->events_.clear();
 }
 
-const std::vector<Event> EventManager::getEvents(
+std::vector<Event> EventManager::getEvents(
   const uint64_t& fromBlock, const uint64_t& toBlock,
   const Address& address, const std::vector<Hash>& topics
 ) const {
@@ -113,7 +113,7 @@ const std::vector<Event> EventManager::getEvents(
   return ret;
 }
 
-const std::vector<Event> EventManager::getEvents(
+std::vector<Event> EventManager::getEvents(
   const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
 ) const {
   std::vector<Event> ret;
@@ -137,7 +137,7 @@ const std::vector<Event> EventManager::getEvents(
   return ret;
 }
 
-const std::vector<Event> EventManager::filterFromMemory(
+std::vector<Event> EventManager::filterFromMemory(
   const uint64_t& fromBlock, const uint64_t& toBlock, const Address& address
 ) const {
   std::vector<Event> ret;
@@ -158,7 +158,7 @@ const std::vector<Event> EventManager::filterFromMemory(
   return ret;
 }
 
-const std::vector<Event> EventManager::filterFromDB(
+std::vector<Event> EventManager::filterFromDB(
   const uint64_t& fromBlock, const uint64_t& toBlock,
   const Address& address, const std::vector<Hash>& topics
 ) const {

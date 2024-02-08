@@ -106,16 +106,6 @@ struct SafeHash {
   }
 
   /**
-   * Wrapper for 'splitmix()'.
-   * @param bytesArrMutableView A std::span<Byte, std::dynamic_extent> object
-   * @returns The same as `splitmix()`.
-   */
-  size_t operator()(const BytesArrMutableView& bytesArrMutableView) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    return splitmix(boost::hash_range(bytesArrMutableView.begin(), bytesArrMutableView.end()) + FIXED_RANDOM);
-  }
-
-  /**
    * Wrapper for 'splitmix()'
    * @param address A Address (FixedBytes<20>) object
    * @returns The same as `splitmix()`

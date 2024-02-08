@@ -62,12 +62,6 @@ template <unsigned N> class FixedBytes {
     }
 
     /// Copy constructor.
-    constexpr inline FixedBytes(const BytesArrMutableView& data) {
-      if (data.size() != N) throw std::invalid_argument("Invalid size.");
-      std::copy(data.begin(), data.end(), this->data_.begin());
-    }
-
-    /// Copy constructor.
     constexpr inline FixedBytes(const std::string_view data) {
       if (data.size() != N) throw std::invalid_argument("Invalid size.");
       std::copy(data.begin(), data.end(), this->data_.begin());
@@ -89,13 +83,13 @@ template <unsigned N> class FixedBytes {
     inline const Byte* raw() const { return this->data_.data(); }
 
     /// Create a Bytes object from the data string.
-    inline const Bytes asBytes() const { return Bytes(this->data_.begin(), this->data_.end()); }
+    inline Bytes asBytes() const { return Bytes(this->data_.begin(), this->data_.end()); }
 
     /**
      * Getter for `data`, but returns the data in hex format.
      * @param strict If `true`, returns the value with an appended "0x" prefix.
      */
-    inline const Hex hex(bool strict = false) const { return Hex::fromBytes(this->view_const(), strict); }
+    inline Hex hex(bool strict = false) const { return Hex::fromBytes(this->view(), strict); }
 
     /**
      * Getter for `data`, but returns a span of the data string.
@@ -103,34 +97,20 @@ template <unsigned N> class FixedBytes {
      * @param len (optional) Number of chars to get. Defaults to the whole string.
      * @return A string view of the data string.
      */
-    inline const BytesArrMutableView view_non_const(size_t pos = 0, size_t len = N) const {
+    inline BytesArrView view(size_t pos = 0, size_t len = N) const {
       auto real_len = std::min(len, N - pos);
       if (pos + real_len > N) { throw std::out_of_range("len > N"); }
-      BytesArrMutableView ret(this->data_.begin() + pos, this->data_.begin() + pos + real_len);
-      return ret;
-    }
-
-    /**
-     * Getter for `data`, but returns a span of the data string.
-     * @param pos (optional) Index to start getting chars from. Defaults to the start of the string.
-     * @param len (optional) Number of chars to get. Defaults to the whole string.
-     * @return A string view of the data string.
-     */
-    inline const BytesArrView view_const(size_t pos = 0, size_t len = N) const {
-      auto real_len = std::min(len, N - pos);
-      if (pos + real_len > N) { throw std::out_of_range("len > N"); }
-      BytesArrView ret(this->data_.begin() + pos, this->data_.begin() + pos + real_len);
-      return ret;
+      return BytesArrView(this->data_.begin() + pos, this->data_.begin() + pos + real_len);
     }
 
     /// Get the data string's size.
     inline size_t size() const { return this->data_.size(); }
 
     /// Get an iterator pointing to the start of the data string.
-    inline const BytesArr<N>::const_iterator cbegin() const { return this->data_.cbegin(); }
+    inline BytesArr<N>::const_iterator cbegin() const { return this->data_.cbegin(); }
 
     /// Get an iterator pointing to the end of the data string.
-    inline const BytesArr<N>::const_iterator cend() const { return this->data_.cend(); }
+    inline BytesArr<N>::const_iterator cend() const { return this->data_.cend(); }
 
     /// Equality operator. Checks if both internal strings are the same.
     inline bool operator==(const FixedBytes& other) const { return (this->data_ == other.data_); }
@@ -195,7 +175,7 @@ class Hash : public FixedBytes<32> {
     Hash(const std::string_view sv);
 
     /// Convert the hash string back to an unsigned 256-bit number.
-    const uint256_t toUint256() const;
+    uint256_t toUint256() const;
 
     /// Generate a random 32-byte/256-bit hash.
     inline static Hash random() {
