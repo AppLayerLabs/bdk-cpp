@@ -14,7 +14,7 @@ Hex::Hex(const std::string_view value, bool strict) : strict_(strict) {
   } else {
     if (ret[0] == '0' && (ret[1] == 'x' || ret[1] == 'X')) ret.erase(0, 2);
   }
-  if (!Hex::isValid(ret, strict)) throw std::runtime_error("Invalid Hex string at constructor");
+  if (!Hex::isValid(ret, strict)) throw DynamicException("Invalid Hex string at constructor");
   this->hex_ = std::move(ret);
 }
 
@@ -28,7 +28,7 @@ Hex::Hex(std::string&& value, bool strict) : hex_(std::move(value)), strict_(str
       this->hex_.erase(0, 2);
     }
   }
-  if (!Hex::isValid(this->hex_, strict)) throw std::runtime_error("Invalid Hex string at constructor");
+  if (!Hex::isValid(this->hex_, strict)) throw DynamicException("Invalid Hex string at constructor");
 }
 
 bool Hex::isValid(const std::string_view hex, bool strict) {
@@ -93,7 +93,7 @@ Bytes Hex::toBytes(const std::string_view hex) {
   const static std::string_view filter("0123456789abcdefABCDEF");
   auto pos = hex.find_first_not_of(filter, i);
   if (pos != std::string::npos) {
-    throw std::runtime_error(std::string(__func__) + ": Invalid hex string: "
+    throw DynamicException(std::string(__func__) + ": Invalid hex string: "
       + std::string(hex) + " filter: " + std::string(filter) + " at pos: " + std::to_string(pos));
   }
   if (hex.size() % 2) {

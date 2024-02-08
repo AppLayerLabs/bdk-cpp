@@ -145,9 +145,9 @@ Address ERC721::update_(const Address& to, const uint256_t& tokenId, const Addre
 void ERC721::checkAuthorized_(const Address& owner, const Address& spender, const uint256_t& tokenId) const {
   if (!this->isAuthorized_(owner, spender, tokenId)) {
     if (owner) {
-      throw std::runtime_error("ERC721::checkAuthorized_: Not authorized");
+      throw DynamicException("ERC721::checkAuthorized_: Not authorized");
     }
-    throw std::runtime_error("ERC721::checkAuthorized_: inexistent token");
+    throw DynamicException("ERC721::checkAuthorized_: inexistent token");
   }
 }
 
@@ -161,7 +161,7 @@ bool ERC721::isAuthorized_(const Address& owner, const Address& spender, const u
 
 void ERC721::mint_(const Address& to, const uint256_t& tokenId) {
   if (to == Address()) {
-    throw std::runtime_error("ERC721::mint_: mint to the zero address");
+    throw DynamicException("ERC721::mint_: mint to the zero address");
   }
   Address prevOwner = this->update_(to, tokenId, Address());
 }
@@ -169,20 +169,20 @@ void ERC721::mint_(const Address& to, const uint256_t& tokenId) {
 void ERC721::burn_(const uint256_t& tokenId) {
   Address prevOwner = this->update_(Address(), tokenId, Address());
   if (prevOwner == Address()) {
-    throw std::runtime_error("ERC721::burn_: inexistent token");
+    throw DynamicException("ERC721::burn_: inexistent token");
   }
 }
 
 void ERC721::transfer_(const Address& from, const Address& to, const uint256_t& tokenId) {
   if (to == Address()) {
-    throw std::runtime_error("ERC721::transfer_: transfer to the zero address");
+    throw DynamicException("ERC721::transfer_: transfer to the zero address");
   }
 
   Address prevOwner = this->update_(to, tokenId, Address());
   if (prevOwner == Address()) {
-    throw std::runtime_error("ERC721::transfer_: inexistent token");
+    throw DynamicException("ERC721::transfer_: inexistent token");
   } else if (prevOwner != from) {
-    throw std::runtime_error("ERC721::transfer_: incorrect owner");
+    throw DynamicException("ERC721::transfer_: incorrect owner");
   }
 }
 
@@ -190,7 +190,7 @@ Address ERC721::approve_(const Address& to, const uint256_t& tokenId, const Addr
   Address owner = this->ownerOf(tokenId);
 
   if (auth != Address() && owner != auth && !this->isApprovedForAll(owner, auth)) {
-    throw std::runtime_error("ERC721::approve_: Not authorized");
+    throw DynamicException("ERC721::approve_: Not authorized");
   }
 
   this->tokenApprovals_[tokenId] = to;
@@ -208,7 +208,7 @@ std::string ERC721::symbol() const {
 
 uint256_t ERC721::balanceOf(const Address& owner) const {
   if (owner == Address()) {
-    throw std::runtime_error("ERC721::balanceOf: zero address");
+    throw DynamicException("ERC721::balanceOf: zero address");
   }
   auto it = this->balances_.find(owner);
   if (it == this->balances_.end()) {
@@ -220,7 +220,7 @@ uint256_t ERC721::balanceOf(const Address& owner) const {
 Address ERC721::ownerOf(const uint256_t& tokenId) const {
   Address owner = this->ownerOf_(tokenId);
   if (owner == Address()) {
-    throw std::runtime_error("ERC721::ownerOf: inexistent token");
+    throw DynamicException("ERC721::ownerOf: inexistent token");
   }
   return owner;
 }
@@ -245,14 +245,14 @@ void ERC721::setApprovalForAll(const Address& operatorAddress, const bool& appro
 
 void ERC721::setApprovalForAll_(const Address& owner, const Address& operatorAddress, bool approved) {
   if (operatorAddress == Address()) {
-    throw std::runtime_error("ERC721::setApprovalForAll_: zero address");
+    throw DynamicException("ERC721::setApprovalForAll_: zero address");
   }
   this->operatorAddressApprovals_[owner][operatorAddress] = approved;
 }
 
 void ERC721::requireMinted_(const uint256_t& tokenId) const {
   if (this->ownerOf_(tokenId) == Address()) {
-    throw std::runtime_error("ERC721::requireMinted_: inexistent token");
+    throw DynamicException("ERC721::requireMinted_: inexistent token");
   }
 }
 
@@ -270,12 +270,12 @@ bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddre
 
 void ERC721::transferFrom(const Address& from, const Address& to, const uint256_t& tokenId) {
   if (to == Address()) {
-    throw std::runtime_error("ERC721::transferFrom: transfer to the zero address");
+    throw DynamicException("ERC721::transferFrom: transfer to the zero address");
   }
   Address prevOwner = this->update_(to, tokenId, this->getCaller());
   if (prevOwner == Address()) {
-    throw std::runtime_error("ERC721::transferFrom: inexistent token");
+    throw DynamicException("ERC721::transferFrom: inexistent token");
   } else if (prevOwner != from) {
-    throw std::runtime_error("ERC721::transferFrom: incorrect owner");
+    throw DynamicException("ERC721::transferFrom: incorrect owner");
   }
 }

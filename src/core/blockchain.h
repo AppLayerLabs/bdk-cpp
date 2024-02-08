@@ -124,7 +124,7 @@ class Syncer {
      * If the node is a Validator and it has to create a new block,
      * this function will be called, the new block will be created based on the
      * current State and rdPoS objects, and then it will be broadcasted.
-     * @throw std::runtime_error if block is invalid.
+     * @throw DynamicException if block is invalid.
      */
     void doValidatorBlock();
 

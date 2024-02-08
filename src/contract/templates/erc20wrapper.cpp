@@ -61,20 +61,20 @@ uint256_t ERC20Wrapper::getUserBalance(const Address& token, const Address& user
 
 void ERC20Wrapper::withdraw(const Address& token, const uint256_t& value) {
   auto it = this->tokensAndBalances_.find(token);
-  if (it == this->tokensAndBalances_.end()) throw std::runtime_error("Token not found");
+  if (it == this->tokensAndBalances_.end()) throw DynamicException("Token not found");
   auto itUser = it->second.find(this->getCaller());
-  if (itUser == it->second.end()) throw std::runtime_error("User not found");
-  if (itUser->second <= value) throw std::runtime_error("ERC20Wrapper: Not enough balance");
+  if (itUser == it->second.end()) throw DynamicException("User not found");
+  if (itUser->second <= value) throw DynamicException("ERC20Wrapper: Not enough balance");
   itUser->second -= value;
   this->callContractFunction(token, &ERC20::transfer, this->getCaller(), value);
 }
 
 void ERC20Wrapper::transferTo(const Address& token, const Address& to, const uint256_t& value) {
   auto it = this->tokensAndBalances_.find(token);
-  if (it == this->tokensAndBalances_.end()) throw std::runtime_error("Token not found");
+  if (it == this->tokensAndBalances_.end()) throw DynamicException("Token not found");
   auto itUser = it->second.find(this->getCaller());
-  if (itUser == it->second.end()) throw std::runtime_error("User not found");
-  if (itUser->second <= value) throw std::runtime_error("ERC20Wrapper: Not enough balance");
+  if (itUser == it->second.end()) throw DynamicException("User not found");
+  if (itUser->second <= value) throw DynamicException("ERC20Wrapper: Not enough balance");
   itUser->second -= value;
   this->callContractFunction(token, &ERC20::transfer, to, value);
 }

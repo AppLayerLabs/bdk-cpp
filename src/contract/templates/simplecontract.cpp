@@ -48,7 +48,7 @@ SimpleContract::~SimpleContract() {
 
 void SimpleContract::setName(const std::string& argName) {
   if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
+    throw DynamicException("Only contract creator can call this function.");
   }
   this->name_ = argName;
   this->nameChanged(this->name_.get());
@@ -56,7 +56,7 @@ void SimpleContract::setName(const std::string& argName) {
 
 void SimpleContract::setNames(const std::vector<std::string>& argName) {
   if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
+    throw DynamicException("Only contract creator can call this function.");
   }
   this->name_ = "";
   for (const auto& name : argName) this->name_ += name;
@@ -65,7 +65,7 @@ void SimpleContract::setNames(const std::vector<std::string>& argName) {
 
 void SimpleContract::setValue(const uint256_t& argValue) {
   if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
+    throw DynamicException("Only contract creator can call this function.");
   }
   this->value_ = argValue;
   this->valueChanged(this->value_.get());
@@ -81,7 +81,7 @@ void SimpleContract::setNamesAndValues(
   const std::vector<std::string>& argName, const std::vector<uint256_t>& argValue
 ) {
   if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
+    throw DynamicException("Only contract creator can call this function.");
   }
   this->name_ = "";
   this->value_ = 0;
@@ -94,7 +94,7 @@ void SimpleContract::setNamesAndValuesInTuple(
   const std::vector<std::tuple<std::string, uint256_t>>& argNameAndValue
 ) {
   if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
+    throw DynamicException("Only contract creator can call this function.");
   }
   this->name_ = "";
   this->value_ = 0;
@@ -106,7 +106,7 @@ void SimpleContract::setNamesAndValuesInArrayOfArrays(
   const std::vector<std::vector<std::tuple<std::string, uint256_t>>> &argNameAndValue
 ) {
   if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
+    throw DynamicException("Only contract creator can call this function.");
   }
   this->name_ = "";
   this->value_ = 0;
@@ -118,7 +118,7 @@ void SimpleContract::setNamesAndValuesInArrayOfArrays(
 
 void SimpleContract::setTuple(const std::tuple<std::string, uint256_t>& argTuple) {
   if (this->getCaller() != this->getContractCreator()) {
-    throw std::runtime_error("Only contract creator can call this function.");
+    throw DynamicException("Only contract creator can call this function.");
   }
   this->tuple_ = argTuple;
   this->tupleChanged(std::make_tuple(get<0>(this->tuple_), get<1>(this->tuple_)));

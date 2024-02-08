@@ -99,11 +99,11 @@ Address DEXV2Factory::getPairByIndex(const uint64_t& index) const {
 }
 
 Address DEXV2Factory::createPair(const Address& tokenA, const Address& tokenB) {
-  if (tokenA == tokenB) throw std::runtime_error("DEXV2Factory::createPair: IDENTICAL_ADDRESSES");
+  if (tokenA == tokenB) throw DynamicException("DEXV2Factory::createPair: IDENTICAL_ADDRESSES");
   auto& token0 = (tokenA < tokenB) ? tokenA : tokenB;
   auto& token1 = (tokenA < tokenB) ? tokenB : tokenA;
-  if (token0 == Address()) throw std::runtime_error("DEXV2Factory::createPair: ZERO_ADDRESS");
-  if (this->getPair(token0, token1) != Address()) throw std::runtime_error("DEXV2Factory::createPair: PAIR_EXISTS");
+  if (token0 == Address()) throw DynamicException("DEXV2Factory::createPair: ZERO_ADDRESS");
+  if (this->getPair(token0, token1) != Address()) throw DynamicException("DEXV2Factory::createPair: PAIR_EXISTS");
   Utils::safePrint("DEXV2Factory: creating pair...");
   auto pair = this->callCreateContract<DEXV2Pair>(0, 0, 0);
   Utils::safePrint("DEXV2Factory: pair created...");

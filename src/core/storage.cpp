@@ -94,7 +94,7 @@ void Storage::initializeBlockchain() {
     /// Genesis block comes from Options, not hardcoded
     const auto genesis = this->options_->getGenesisBlock();
     if (genesis.getNHeight() != 0) {
-      throw std::runtime_error("Genesis block height is not 0");
+      throw DynamicException("Genesis block height is not 0");
     }
     this->db_->put(std::string("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     this->db_->put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.hash().get(), DBPrefix::blockHeightMaps);
@@ -109,7 +109,7 @@ void Storage::initializeBlockchain() {
   const auto genesisInDB = Block(this->db_->get(genesisInDBHash, DBPrefix::blocks), this->options_->getChainID());
   if (genesis != genesisInDB) {
     Logger::logToDebug(LogType::ERROR, Log::storage, __func__, "Sanity Check! Genesis block in DB does not match genesis block in Options");
-    throw std::runtime_error("Sanity Check! Genesis block in DB does not match genesis block in Options");
+    throw DynamicException("Sanity Check! Genesis block in DB does not match genesis block in Options");
   }
 }
 
@@ -131,12 +131,12 @@ void Storage::pushBackInternal(Block&& block) {
   // Push the new block and get a pointer to it
   if (!this->chain_.empty()) {
     if (this->chain_.back()->hash() != block.getPrevBlockHash()) {
-      throw std::runtime_error("Block " + block.hash().hex().get()
+      throw DynamicException("Block " + block.hash().hex().get()
         + " does not have the correct previous block hash."
       );
     }
     if (block.getNHeight() != this->chain_.back()->getNHeight() + 1) {
-      throw std::runtime_error("Block " + block.hash().hex().get()
+      throw DynamicException("Block " + block.hash().hex().get()
         + " does not have the correct height."
       );
     }
@@ -158,12 +158,12 @@ void Storage::pushFrontInternal(Block&& block) {
   // Push the new block and get a pointer to it
   if (!this->chain_.empty()) {
     if (this->chain_.front()->getPrevBlockHash() != block.hash()) {
-      throw std::runtime_error("Block " + block.hash().hex().get()
+      throw DynamicException("Block " + block.hash().hex().get()
         + " does not have the correct previous block hash."
       );
     }
     if (block.getNHeight() != this->chain_.front()->getNHeight() - 1) {
-      throw std::runtime_error("Block " + block.hash().hex().get()
+      throw DynamicException("Block " + block.hash().hex().get()
         + " does not have the correct height."
       );
     }
@@ -321,7 +321,7 @@ const std::tuple<
       std::shared_lock<std::shared_mutex> lock(this->chainLock_);
       const auto& [blockHash, blockIndex, blockHeight] = this->txByHash_.find(tx)->second;
       const auto transaction = blockByHash_[blockHash]->getTxs()[blockIndex];
-      if (transaction.hash() != tx) throw std::runtime_error("Tx hash mismatch");
+      if (transaction.hash() != tx) throw DynamicException("Tx hash mismatch");
       return {std::make_shared<const TxBlock>(transaction), blockHash, blockIndex, blockHeight};
     }
     case StorageStatus::OnCache: {
@@ -357,7 +357,7 @@ const std::tuple<
       auto txHash = this->blockByHash_[blockHash]->getTxs()[blockIndex].hash();
       const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_[txHash];
       if (txBlockHash != blockHash || txBlockIndex != blockIndex) {
-        throw std::runtime_error("Tx hash mismatch");
+        throw DynamicException("Tx hash mismatch");
       }
       const auto transaction = blockByHash_[blockHash]->getTxs()[blockIndex];
       return {std::make_shared<const TxBlock>(transaction), txBlockHash, txBlockIndex, txBlockHeight};

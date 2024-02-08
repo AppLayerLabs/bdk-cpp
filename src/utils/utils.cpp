@@ -322,7 +322,7 @@ BytesArr<32> Utils::uint256ToBytes(const uint256_t& i) {
 }
 
 uint256_t Utils::bytesToUint256(const BytesArrView b) {
-  if (b.size() != 32) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 32) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 32, got " + std::to_string(b.size())
   );
   uint256_t ret;
@@ -331,7 +331,7 @@ uint256_t Utils::bytesToUint256(const BytesArrView b) {
 }
 
 uint248_t Utils::bytesToUint248(const BytesArrView b) {
-  if (b.size() != 31) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 31) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 31, got " + std::to_string(b.size())
   );
   uint248_t ret;
@@ -340,7 +340,7 @@ uint248_t Utils::bytesToUint248(const BytesArrView b) {
 }
 
 uint240_t Utils::bytesToUint240(const BytesArrView b) {
-  if (b.size() != 30) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 30) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 30, got " + std::to_string(b.size())
   );
   uint240_t ret;
@@ -349,7 +349,7 @@ uint240_t Utils::bytesToUint240(const BytesArrView b) {
 }
 
 uint232_t Utils::bytesToUint232(const BytesArrView b) {
-  if (b.size() != 29) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 29) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 29, got " + std::to_string(b.size())
   );
   uint232_t ret;
@@ -358,7 +358,7 @@ uint232_t Utils::bytesToUint232(const BytesArrView b) {
 }
 
 uint224_t Utils::bytesToUint224(const BytesArrView b) {
-  if (b.size() != 28) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 28) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 28, got " + std::to_string(b.size())
   );
   uint224_t ret;
@@ -367,7 +367,7 @@ uint224_t Utils::bytesToUint224(const BytesArrView b) {
 }
 
 uint216_t Utils::bytesToUint216(const BytesArrView b) {
-  if (b.size() != 27) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 27) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 27, got " + std::to_string(b.size())
   );
   uint216_t ret;
@@ -376,7 +376,7 @@ uint216_t Utils::bytesToUint216(const BytesArrView b) {
 }
 
 uint208_t Utils::bytesToUint208(const BytesArrView b) {
-  if (b.size() != 26) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 26) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 26, got " + std::to_string(b.size())
   );
   uint208_t ret;
@@ -385,7 +385,7 @@ uint208_t Utils::bytesToUint208(const BytesArrView b) {
 }
 
 uint200_t Utils::bytesToUint200(const BytesArrView b) {
-  if (b.size() != 25) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 25) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 25, got " + std::to_string(b.size())
   );
   uint200_t ret;
@@ -394,7 +394,7 @@ uint200_t Utils::bytesToUint200(const BytesArrView b) {
 }
 
 uint192_t Utils::bytesToUint192(const BytesArrView b) {
-  if (b.size() != 24) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 24) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 24, got " + std::to_string(b.size())
   );
   uint192_t ret;
@@ -403,7 +403,7 @@ uint192_t Utils::bytesToUint192(const BytesArrView b) {
 }
 
 uint184_t Utils::bytesToUint184(const BytesArrView b) {
-  if (b.size() != 23) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 23) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 23, got " + std::to_string(b.size())
   );
   uint184_t ret;
@@ -412,7 +412,7 @@ uint184_t Utils::bytesToUint184(const BytesArrView b) {
 }
 
 uint176_t Utils::bytesToUint176(const BytesArrView b) {
-  if (b.size() != 22) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 22) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 22, got " + std::to_string(b.size())
   );
   uint176_t ret;
@@ -421,7 +421,7 @@ uint176_t Utils::bytesToUint176(const BytesArrView b) {
 }
 
 uint168_t Utils::bytesToUint168(const BytesArrView b) {
-  if (b.size() != 21) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 21) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 21, got " + std::to_string(b.size())
   );
   uint168_t ret;
@@ -430,7 +430,7 @@ uint168_t Utils::bytesToUint168(const BytesArrView b) {
 }
 
 uint160_t Utils::bytesToUint160(const BytesArrView b) {
-  if (b.size() != 20) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 20) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 20, got " + std::to_string(b.size())
   );
   uint160_t ret;
@@ -439,7 +439,7 @@ uint160_t Utils::bytesToUint160(const BytesArrView b) {
 }
 
 uint152_t Utils::bytesToUint152(const BytesArrView b) {
-  if (b.size() != 19) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 19) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 19, got " + std::to_string(b.size())
   );
   uint152_t ret;
@@ -448,7 +448,7 @@ uint152_t Utils::bytesToUint152(const BytesArrView b) {
 }
 
 uint144_t Utils::bytesToUint144(const BytesArrView b) {
-  if (b.size() != 18) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 18) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 18, got " + std::to_string(b.size())
   );
   uint144_t ret;
@@ -457,7 +457,7 @@ uint144_t Utils::bytesToUint144(const BytesArrView b) {
 }
 
 uint136_t Utils::bytesToUint136(const BytesArrView b) {
-  if (b.size() != 17) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 17) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 17, got " + std::to_string(b.size())
   );
   uint136_t ret;
@@ -466,7 +466,7 @@ uint136_t Utils::bytesToUint136(const BytesArrView b) {
 }
 
 uint128_t Utils::bytesToUint128(const BytesArrView b) {
-  if (b.size() != 16) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 16) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
   );
   uint128_t ret;
@@ -475,7 +475,7 @@ uint128_t Utils::bytesToUint128(const BytesArrView b) {
 }
 
 uint120_t Utils::bytesToUint120(const BytesArrView b) {
-  if (b.size() != 15) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 15) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 15, got " + std::to_string(b.size())
   );
   uint120_t ret;
@@ -484,7 +484,7 @@ uint120_t Utils::bytesToUint120(const BytesArrView b) {
 }
 
 uint112_t Utils::bytesToUint112(const BytesArrView b) {
-  if (b.size() != 14) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 14) throw DynamicException(std::string(__func__)
                                                + ": Invalid bytes size - expected 16, got " + std::to_string(b.size())
     );
   uint112_t ret;
@@ -493,7 +493,7 @@ uint112_t Utils::bytesToUint112(const BytesArrView b) {
 }
 
 uint104_t Utils::bytesToUint104(const BytesArrView b) {
-  if (b.size() != 13) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 13) throw DynamicException(std::string(__func__)
                                                + ": Invalid bytes size - expected 13, got " + std::to_string(b.size())
     );
   uint104_t ret;
@@ -502,7 +502,7 @@ uint104_t Utils::bytesToUint104(const BytesArrView b) {
 }
 
 uint96_t Utils::bytesToUint96(const BytesArrView b) {
-  if (b.size() != 12) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 12) throw DynamicException(std::string(__func__)
                                                + ": Invalid bytes size - expected 12, got " + std::to_string(b.size())
     );
   uint96_t ret;
@@ -511,7 +511,7 @@ uint96_t Utils::bytesToUint96(const BytesArrView b) {
 }
 
 uint88_t Utils::bytesToUint88(const BytesArrView b) {
-  if (b.size() != 11) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 11) throw DynamicException(std::string(__func__)
                                                + ": Invalid bytes size - expected 11, got " + std::to_string(b.size())
     );
   uint88_t ret;
@@ -520,7 +520,7 @@ uint88_t Utils::bytesToUint88(const BytesArrView b) {
 }
 
 uint80_t Utils::bytesToUint80(const BytesArrView b) {
-  if (b.size() != 10) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 10) throw DynamicException(std::string(__func__)
                                                + ": Invalid bytes size - expected 10, got " + std::to_string(b.size())
     );
   uint80_t ret;
@@ -529,7 +529,7 @@ uint80_t Utils::bytesToUint80(const BytesArrView b) {
 }
 
 uint72_t Utils::bytesToUint72(const BytesArrView b) {
-  if (b.size() != 9) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 9) throw DynamicException(std::string(__func__)
                                               + ": Invalid bytes size - expected 9, got " + std::to_string(b.size())
     );
   uint72_t ret;
@@ -538,7 +538,7 @@ uint72_t Utils::bytesToUint72(const BytesArrView b) {
 }
 
 uint56_t Utils::bytesToUint56(const BytesArrView b) {
-  if (b.size() != 7) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 7) throw DynamicException(std::string(__func__)
                                               + ": Invalid bytes size - expected 7, got " + std::to_string(b.size())
     );
   uint56_t ret;
@@ -547,7 +547,7 @@ uint56_t Utils::bytesToUint56(const BytesArrView b) {
 }
 
 uint48_t Utils::bytesToUint48(const BytesArrView b) {
-  if (b.size() != 6) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 6) throw DynamicException(std::string(__func__)
                                               + ": Invalid bytes size - expected 6, got " + std::to_string(b.size())
     );
   uint48_t ret;
@@ -556,7 +556,7 @@ uint48_t Utils::bytesToUint48(const BytesArrView b) {
 }
 
 uint40_t Utils::bytesToUint40(const BytesArrView b) {
-  if (b.size() != 5) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 5) throw DynamicException(std::string(__func__)
                                               + ": Invalid bytes size - expected 5, got " + std::to_string(b.size())
     );
   uint40_t ret;
@@ -565,7 +565,7 @@ uint40_t Utils::bytesToUint40(const BytesArrView b) {
 }
 
 uint24_t Utils::bytesToUint24(const BytesArrView b) {
-  if (b.size() != 3) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 3) throw DynamicException(std::string(__func__)
                                               + ": Invalid bytes size - expected 3, got " + std::to_string(b.size())
     );
   uint24_t ret;
@@ -583,7 +583,7 @@ BytesArr<8> Utils::uint64ToBytes(const uint64_t& i) {
 }
 
 uint64_t Utils::bytesToUint64(const BytesArrView b) {
-  if (b.size() != 8) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 8) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 8, got " + std::to_string(b.size())
   );
   uint64_t ret = 0;
@@ -604,7 +604,7 @@ BytesArr<4> Utils::uint32ToBytes(const uint32_t& i) {
 }
 
 uint32_t Utils::bytesToUint32(const BytesArrView b) {
-  if (b.size() != 4) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 4) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 4, got " + std::to_string(b.size())
   );
   uint32_t ret = 0;
@@ -625,7 +625,7 @@ BytesArr<2> Utils::uint16ToBytes(const uint16_t& i) {
 }
 
 uint16_t Utils::bytesToUint16(const BytesArrView b) {
-  if (b.size() != 2) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 2) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 2, got " + std::to_string(b.size())
   );
   uint16_t ret = 0;
@@ -643,7 +643,7 @@ BytesArr<1> Utils::uint8ToBytes(const uint8_t& i) {
 }
 
 uint8_t Utils::bytesToUint8(const BytesArrView b) {
-  if (b.size() != 1) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 1) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 1, got " + std::to_string(b.size())
   );
   uint8_t ret;
@@ -652,7 +652,7 @@ uint8_t Utils::bytesToUint8(const BytesArrView b) {
 }
 
 int256_t Utils::bytesToInt256(const BytesArrView b) {
-  if (b.size() != 32) throw std::runtime_error(std::string(__func__)
+  if (b.size() != 32) throw DynamicException(std::string(__func__)
     + ": Invalid bytes size - expected 32, got " + std::to_string(b.size())
   );
   uint256_t ret;

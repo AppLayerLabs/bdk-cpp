@@ -33,12 +33,12 @@ contractManager_(std::make_unique<ContractManager>(db, this, rdpos, options))
     BytesArrView data(dbEntry.value);
     if (dbEntry.key.size() != 20) {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, address from DB size mismatch");
-      throw std::runtime_error("Error when loading State from DB, address from DB size mismatch");
+      throw DynamicException("Error when loading State from DB, address from DB size mismatch");
     }
     uint8_t balanceSize = Utils::fromBigEndian<uint8_t>(data.subspan(0,1));
     if (data.size() + 1 < data.size()) {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on balanceSize");
-      throw std::runtime_error("Error when loading State from DB, value from DB size mismatch on balanceSize");
+      throw DynamicException("Error when loading State from DB, value from DB size mismatch on balanceSize");
     }
 
     uint256_t balance = Utils::fromBigEndian<uint256_t>(data.subspan(1, balanceSize));
@@ -46,7 +46,7 @@ contractManager_(std::make_unique<ContractManager>(db, this, rdpos, options))
 
     if (2 + balanceSize + nonceSize != data.size()) {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on nonceSize");
-      throw std::runtime_error("Error when loading State from DB, value from DB size mismatch on nonceSize");
+      throw DynamicException("Error when loading State from DB, value from DB size mismatch on nonceSize");
     }
     uint64_t nonce = Utils::fromBigEndian<uint64_t>(data.subspan(2 + balanceSize, nonceSize));
 
@@ -262,7 +262,7 @@ void State::processNextBlock(Block&& block) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Sanity check failed - blockchain is trying to append a invalid block, throwing"
     );
-    throw std::runtime_error("Invalid block detected during processNextBlock sanity check");
+    throw DynamicException("Invalid block detected during processNextBlock sanity check");
   }
 
   std::unique_lock lock(this->stateMutex_);
@@ -369,7 +369,7 @@ bool State::estimateGas(const ethCallInfo& callInfo) {
 }
 
 void State::processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap) {
-  if (!this->processingPayable_) throw std::runtime_error(
+  if (!this->processingPayable_) throw DynamicException(
     "Uh oh, contracts are going haywire! Cannot change State while not processing a payable contract."
   );
   for (const auto& [address, amount] : payableMap) this->accounts_[address].balance = amount;

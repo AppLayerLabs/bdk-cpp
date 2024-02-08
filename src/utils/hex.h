@@ -16,8 +16,8 @@ See the LICENSE.txt file in the project root for more information.
 #include <string_view>
 #include <thread>
 #include <span>
-
 #include <boost/multiprecision/cpp_int.hpp>
+#include "dynamicexception.h"
 
 using Byte = uint8_t;
 using Bytes = std::vector<Byte>;
@@ -60,7 +60,7 @@ class Hex {
      * Move constructor.
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @throw std::runtime_error if hex string is invalid.
+     * @throw DynamicException if hex string is invalid.
      */
     Hex(std::string&& value, bool strict = false);
 
@@ -68,7 +68,7 @@ class Hex {
      * Copy constructor.
      * @param value The hex string.
      * @param strict (optional) If `true`, includes "0x". Defaults to `false`.
-     * @throw std::runtime_error if hex string is invalid.
+     * @throw DynamicException if hex string is invalid.
      */
     Hex(const std::string_view value, bool strict = false);
 
@@ -118,7 +118,7 @@ class Hex {
      * Static overload of bytes().
      * @param hex The hex string to convert to bytes.
      * @return The converted bytes string.
-     * @throw std::runtime_error if hex string is invalid.
+     * @throw DynamicException if hex string is invalid.
      */
     static Bytes toBytes(const std::string_view hex);
 
@@ -180,7 +180,7 @@ class Hex {
           hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
         ) ? hex.substr(2) : hex;
       } else {
-        throw std::runtime_error("Invalid Hex concat operation");
+        throw DynamicException("Invalid Hex concat operation");
       }
       return *this;
     }

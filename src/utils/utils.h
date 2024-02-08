@@ -680,7 +680,7 @@ namespace Utils {
    * Convert a bytes string to a 256-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 256-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint256_t bytesToUint256(const BytesArrView b);
 
@@ -688,7 +688,7 @@ namespace Utils {
    * Convert a bytes string to a 248-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 248-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint248_t bytesToUint248(const BytesArrView b);
 
@@ -696,7 +696,7 @@ namespace Utils {
    * Convert a bytes string to a 240-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 240-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint240_t bytesToUint240(const BytesArrView b);
 
@@ -704,7 +704,7 @@ namespace Utils {
    * Convert a bytes string to a 232-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 232-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint232_t bytesToUint232(const BytesArrView b);
 
@@ -712,7 +712,7 @@ namespace Utils {
    * Convert a bytes string to a 224-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 224-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint224_t bytesToUint224(const BytesArrView b);
 
@@ -720,7 +720,7 @@ namespace Utils {
    * Convert a bytes string to a 216-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 216-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint216_t bytesToUint216(const BytesArrView b);
 
@@ -728,7 +728,7 @@ namespace Utils {
    * Convert a bytes string to a 208-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 208-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint208_t bytesToUint208(const BytesArrView b);
 
@@ -736,7 +736,7 @@ namespace Utils {
    * Convert a bytes string to a 200-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 200-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint200_t bytesToUint200(const BytesArrView b);
 
@@ -744,7 +744,7 @@ namespace Utils {
    * Convert a bytes string to a 192-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 192-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint192_t bytesToUint192(const BytesArrView b);
 
@@ -752,7 +752,7 @@ namespace Utils {
    * Convert a bytes string to a 184-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 184-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint184_t bytesToUint184(const BytesArrView b);
 
@@ -760,7 +760,7 @@ namespace Utils {
    * Convert a bytes string to a 176-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 176-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint176_t bytesToUint176(const BytesArrView b);
 
@@ -768,7 +768,7 @@ namespace Utils {
    * Convert a bytes string to a 168-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 168-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint168_t bytesToUint168(const BytesArrView b);
 
@@ -776,7 +776,7 @@ namespace Utils {
    * Convert a bytes string to a 160-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 160-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint160_t bytesToUint160(const BytesArrView b);
 
@@ -784,7 +784,7 @@ namespace Utils {
    * Convert a bytes string to a 152-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 152-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint152_t bytesToUint152(const BytesArrView b);
 
@@ -792,7 +792,7 @@ namespace Utils {
    * Convert a bytes string to a 144-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 144-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint144_t bytesToUint144(const BytesArrView b);
 
@@ -800,7 +800,7 @@ namespace Utils {
    * Convert a bytes string to a 136-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 136-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint136_t bytesToUint136(const BytesArrView b);
 
@@ -808,7 +808,7 @@ namespace Utils {
    * Convert a bytes string to a 128-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 128-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint128_t bytesToUint128(const BytesArrView b);
 
@@ -816,7 +816,7 @@ namespace Utils {
    * Convert a bytes string to a 120-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 120-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint120_t bytesToUint120(const BytesArrView b);
 
@@ -824,7 +824,7 @@ namespace Utils {
    * Convert a bytes string to a 112-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 112-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint112_t bytesToUint112(const BytesArrView b);
 
@@ -832,7 +832,7 @@ namespace Utils {
    * Convert a bytes string to a 104-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 104-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint104_t bytesToUint104(const BytesArrView b);
 
@@ -840,7 +840,7 @@ namespace Utils {
    * Convert a bytes string to a 96-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 96-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint96_t bytesToUint96(const BytesArrView b);
 
@@ -848,7 +848,7 @@ namespace Utils {
    * Convert a bytes string to a 88-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 88-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint88_t bytesToUint88(const BytesArrView b);
 
@@ -856,7 +856,7 @@ namespace Utils {
    * Convert a bytes string to a 80-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 80-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint80_t bytesToUint80(const BytesArrView b);
 
@@ -864,7 +864,7 @@ namespace Utils {
    * Convert a bytes string to a 72-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 72-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint72_t bytesToUint72(const BytesArrView b);
 
@@ -872,7 +872,7 @@ namespace Utils {
    * Convert a bytes string to a 112-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 112-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint112_t bytesToUint112(const BytesArrView b);
 
@@ -880,7 +880,7 @@ namespace Utils {
    * Convert a bytes string to a 64-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 64-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint64_t bytesToUint64(const BytesArrView b);
 
@@ -888,7 +888,7 @@ namespace Utils {
    * Convert a bytes string to a 56-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 56-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint56_t bytesToUint56(const BytesArrView b);
 
@@ -896,7 +896,7 @@ namespace Utils {
    * Convert a bytes string to a 48-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 48-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint48_t bytesToUint48(const BytesArrView b);
 
@@ -905,7 +905,7 @@ namespace Utils {
    * Convert a bytes string to a 40-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 40-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint40_t bytesToUint40(const BytesArrView b);
 
@@ -913,7 +913,7 @@ namespace Utils {
    * Convert a bytes string to a 32-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 32-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint32_t bytesToUint32(const BytesArrView b);
 
@@ -921,7 +921,7 @@ namespace Utils {
    * Convert a bytes string to a 24-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 24-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint24_t bytesToUint24(const BytesArrView b);
 
@@ -929,7 +929,7 @@ namespace Utils {
    * Convert a bytes string to a 16-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 16-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint16_t bytesToUint16(const BytesArrView b);
 
@@ -937,7 +937,7 @@ namespace Utils {
    * Convert a bytes string to a 8-bit unsigned integer.
    * @param b The bytes string to convert.
    * @return The converted 8-bit integer.
-   * @throw std::runtime_error if string size is invalid.
+   * @throw DynamicException if string size is invalid.
    */
   uint8_t bytesToUint8(const BytesArrView b);
 
@@ -945,7 +945,7 @@ namespace Utils {
     * Convert a bytes string to a 256-bit signed integer.
     * @param b The bytes string to convert.
     * @return The converted 256-bit integer.
-    * @throw std::runtime_error if string size is invalid.
+    * @throw DynamicException if string size is invalid.
     */
   int256_t bytesToInt256(const BytesArrView b);
 
@@ -1084,7 +1084,7 @@ namespace Utils {
   * @return The converted span.
   */
   inline BytesArrMutableView create_span(Bytes& vec, size_t start, size_t size) {
-    if (start + size > vec.size()) throw std::runtime_error("Invalid range for span");
+    if (start + size > vec.size()) throw DynamicException("Invalid range for span");
     return BytesArrMutableView(vec.data() + start, size);
   }
 
@@ -1105,7 +1105,7 @@ namespace Utils {
    * @return The converted span.
    */
    inline BytesArrView create_view_span(const Bytes& vec, size_t start, size_t size) {
-     if (start + size > vec.size()) throw std::runtime_error("Invalid range for span");
+     if (start + size > vec.size()) throw DynamicException("Invalid range for span");
      return BytesArrView(vec.data() + start, size);
    }
 
@@ -1128,7 +1128,7 @@ namespace Utils {
   template<std::size_t N> inline BytesArrMutableView create_span(
     BytesArr<N>& arr, size_t start, size_t size
   ) {
-    if (start + size > arr.size()) throw std::runtime_error("Invalid range for span");
+    if (start + size > arr.size()) throw DynamicException("Invalid range for span");
     return BytesArrMutableView(arr.data() + start, size);
   }
 
@@ -1151,7 +1151,7 @@ namespace Utils {
   template<std::size_t N> inline BytesArrView create_view_span(
     const BytesArr<N>& arr, size_t start, size_t size
   ) {
-    if (start + size > arr.size()) throw std::runtime_error("Invalid range for span");
+    if (start + size > arr.size()) throw DynamicException("Invalid range for span");
     return BytesArrView(arr.data() + start, size);
   }
 
@@ -1173,7 +1173,7 @@ namespace Utils {
    */
   inline BytesArrView create_view_span(const std::string_view str, size_t start, size_t size) {
     if (start + size > str.size()) {
-      throw std::runtime_error("Invalid range for span");
+      throw DynamicException("Invalid range for span");
     }
     return BytesArrView(reinterpret_cast<const uint8_t*>(str.data()) + start, size);
   }

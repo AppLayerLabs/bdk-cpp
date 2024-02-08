@@ -17,6 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/strings.h"
 #include "../utils/tx.h"
 #include "../utils/utils.h"
+#include "../utils/dynamicexception.h"
 #include "variables/safebase.h"
 
 // Forward declarations.
@@ -138,10 +139,10 @@ class BaseContract : public ContractLocals {
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice,
      * value, data). Should be overriden by derived classes.
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
-     * @throw std::runtime_error if the derived class does not override this.
+     * @throw DynamicException if the derived class does not override this.
      */
     virtual void ethCall(const ethCallInfo& data) {
-      throw std::runtime_error("Derived Class from Contract does not override ethCall()");
+      throw DynamicException("Derived Class from Contract does not override ethCall()");
     }
 
     /**
@@ -149,10 +150,10 @@ class BaseContract : public ContractLocals {
      * Should be overriden by derived classes.
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
      * @return A string with the answer to the call.
-     * @throw std::runtime_error if the derived class does not override this.
+     * @throw DynamicException if the derived class does not override this.
      */
     virtual const Bytes ethCallView(const ethCallInfo &data) const {
-      throw std::runtime_error("Derived Class from Contract does not override ethCall()");
+      throw DynamicException("Derived Class from Contract does not override ethCallView()");
     }
 
     /// Getter for `contractAddress`.

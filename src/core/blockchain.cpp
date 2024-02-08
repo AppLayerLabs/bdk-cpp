@@ -151,14 +151,14 @@ void Syncer::doValidatorBlock() {
   this->blockchain_.rdpos_->signBlock(block);
   if (!this->blockchain_.state_->validateNextBlock(block)) {
     Logger::logToDebug(LogType::ERROR, Log::syncer, __func__, "Block is not valid!");
-    throw std::runtime_error("Block is not valid!");
+    throw DynamicException("Block is not valid!");
   }
   if (this->stopSyncer_) return;
   Hash latestBlockHash = block.hash();
   this->blockchain_.state_->processNextBlock(std::move(block));
   if (this->blockchain_.storage_->latest()->hash() != latestBlockHash) {
     Logger::logToDebug(LogType::ERROR, Log::syncer, __func__, "Block is not valid!");
-    throw std::runtime_error("Block is not valid!");
+    throw DynamicException("Block is not valid!");
   }
 
   // Broadcast the block through P2P

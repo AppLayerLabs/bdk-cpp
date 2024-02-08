@@ -147,7 +147,7 @@ namespace P2P {
     auto request = std::make_shared<const Message>(RequestEncoder::ping());
     Utils::logToFile("Pinging " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
-    if (requestPtr == nullptr) throw std::runtime_error(
+    if (requestPtr == nullptr) throw DynamicException(
       "Failed to send ping to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second)
     );
     requestPtr->answerFuture().wait();

@@ -204,7 +204,7 @@ Options Options::fromFile(const std::string& rootPath) {
       genesisValidators
     );
   } catch (std::exception &e) {
-    throw std::runtime_error("Could not create blockchain directory: " + std::string(e.what()));
+    throw DynamicException("Could not create blockchain directory: " + std::string(e.what()));
   }
 }
 

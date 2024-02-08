@@ -29,7 +29,7 @@ uint8_t ThrowTestB::getNumB() const { return this->num_.get(); }
 
 [[noreturn]] void ThrowTestB::setNumB(const uint8_t& valB, const Address& addC, const uint8_t& valC) {
   this->num_ = valB;
-  throw std::runtime_error("Intended throw in ThrowTestB");
+  throw DynamicException("Intended throw in ThrowTestB");
 }
 
 void ThrowTestB::registerContractFunctions() {

@@ -76,7 +76,7 @@ private:
   /**
    * Check if a key exists, throw if it doesn't.
    * @param key The key to check.
-   * @throw std::runtime_error if key doesn't exist.
+   * @throw DynamicException if key doesn't exist.
    */
   inline void checkKeyAndThrow(const Key& key) const {
     check();
@@ -84,13 +84,13 @@ private:
     if (itP == mapPtr_->end()) {
       auto itM = map_.find(key);
       if (itM == map_.end()) {
-        throw std::runtime_error("Key not found");
+        throw DynamicException("Key not found");
       } else {
         auto itD = erasedKeys_->find(key);
         if (itD == erasedKeys_->end()) {
           (*mapPtr_)[key] = itM->second;
         } else {
-          throw std::runtime_error("Key not found");
+          throw DynamicException("Key not found");
         }
       }
     }

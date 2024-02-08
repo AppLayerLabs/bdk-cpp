@@ -386,7 +386,7 @@ namespace P2P {
 
       /// Raw string move constructor. Throws on invalid size.
       explicit Message(Bytes&& raw) : rawMessage_(std::move(raw)) {
-        if (rawMessage_.size() < 11) throw std::runtime_error("Invalid message size.");
+        if (rawMessage_.size() < 11) throw DynamicException("Invalid message size.");
       }
 
       /// Assignment operator.

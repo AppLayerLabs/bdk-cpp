@@ -41,7 +41,7 @@ rdPoS::rdPoS(const std::unique_ptr<DB>& db,
   if (validatorsDb.empty()) {
     // No rdPoS in DB, this should have been initialized by Storage.
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "No rdPoS in DB, cannot proceed.");
-    throw std::runtime_error("No rdPoS in DB.");
+    throw DynamicException("No rdPoS in DB.");
   }
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
   // TODO: check if no index is missing from DB.
@@ -222,7 +222,7 @@ Hash rdPoS::processBlock(const Block& block) {
   std::unique_lock lock(this->mutex_);
   if (!block.isFinalized()) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "Block is not finalized.");
-    throw std::runtime_error("Block is not finalized.");
+    throw DynamicException("Block is not finalized.");
   }
   validatorMempool_.clear();
   this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());

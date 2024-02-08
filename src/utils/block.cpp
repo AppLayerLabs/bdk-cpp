@@ -11,7 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
   try {
     // Split the bytes string
-    if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
+    if (bytes.size() < 217) throw DynamicException("Invalid block size - too short");
     this->validatorSig_ = Signature(bytes.subspan(0, 65));
     this->prevBlockHash_ = Hash(bytes.subspan(65, 32));
     this->blockRandomness_= Hash(bytes.subspan(97, 32));
@@ -106,7 +106,7 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
       index += 4;
       this->txValidators_.emplace_back(bytes.subspan(index, txSize), requiredChainId);
       if (this->txValidators_.back().getNHeight() != this->nHeight_) {
-        throw std::runtime_error("Invalid validator tx height");
+        throw DynamicException("Invalid validator tx height");
       }
       index += txSize;
     }
@@ -115,19 +115,19 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
     auto expectedValidatorMerkleRoot = Merkle(this->txValidators_).getRoot();
     auto expectedRandomness = rdPoS::parseTxSeedList(this->txValidators_);
     if (expectedTxMerkleRoot != this->txMerkleRoot_) {
-      throw std::runtime_error("Invalid tx merkle root");
+      throw DynamicException("Invalid tx merkle root");
     }
     if (expectedValidatorMerkleRoot != this->validatorMerkleRoot_) {
-      throw std::runtime_error("Invalid validator merkle root");
+      throw DynamicException("Invalid validator merkle root");
     }
     if (expectedRandomness != this->blockRandomness_) {
-      throw std::runtime_error("Invalid block randomness");
+      throw DynamicException("Invalid block randomness");
     }
     Hash msgHash = this->hash();
     if (!Secp256k1::verifySig(
       this->validatorSig_.r(), this->validatorSig_.s(), this->validatorSig_.v()
     )) {
-      throw std::runtime_error("Invalid validator signature");
+      throw DynamicException("Invalid validator signature");
     }
     // Get the signature and finalize the block
     this->validatorPubKey_ = Secp256k1::recover(this->validatorSig_, msgHash);
@@ -137,7 +137,7 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
       "Error when deserializing a block: " + std::string(e.what())
     );
     // Throw again because invalid blocks should not be created at all.
-    throw std::runtime_error(std::string(__func__) + ": " + e.what());
+    throw DynamicException(std::string(__func__) + ": " + e.what());
   }
 }
 

@@ -152,7 +152,7 @@ namespace P2P {
             {
               if (connectionType == ConnectionType::OUTBOUND) {
                 /// Not a server, it will not call do_connect().
-                throw std::runtime_error("Session: Invalid connection type.");
+                throw DynamicException("Session: Invalid connection type.");
               }
             }
 
@@ -175,7 +175,7 @@ namespace P2P {
       {
         if (connectionType == ConnectionType::INBOUND) {
           /// Not a client, it will try to write handshake without connecting.
-          throw std::runtime_error("Session: Invalid connection type.");
+          throw DynamicException("Session: Invalid connection type.");
         }
       }
 
