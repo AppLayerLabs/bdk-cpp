@@ -274,14 +274,9 @@ namespace TContractManager {
 
         // Create the transaction that will nest call setNum
         // Remember that uint256_t encodes and decodes all other uints
-
-
-
         Bytes setNumEnc = ABI::Encoder::encodeData(200, contractB, 100, contractC, 3);
         Functor setNumFunctor = ABI::FunctorEncoder::encode<uint8_t, Address, uint8_t, Address, uint8_t>("setNumA");
-        Bytes setNumBytes;
-
-        Utils::appendBytes(setNumBytes, setNumFunctor);
+        Bytes setNumBytes(setNumFunctor.cbegin(), setNumFunctor.cend());
         Utils::appendBytes(setNumBytes, setNumEnc);
         TxBlock setNumTx(contractA, owner, setNumBytes, 8080, 0, 0, 0, 0, 0, privKey);
         try {
@@ -329,20 +324,17 @@ namespace TContractManager {
         ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
 
         try {
-            contractManager.ethCall(callInfo);
-            FAIL("Expected DynamicException was not thrown."); // This line will fail the test if no exception is thrown
+          contractManager.ethCall(callInfo);
+          FAIL("Expected DynamicException was not thrown."); // This line will fail the test if no exception is thrown
         } catch (const DynamicException& e) {
-            // Check that the exception message matches the expected message
-            std::string expectedMessage = "Invalid function call with functor: 00000000";
-            REQUIRE(std::string(e.what()) == expectedMessage);
+          // Check that the exception message matches the expected message
+          std::string expectedMessage = "Invalid function call with functor: 00000000";
+          REQUIRE(std::string(e.what()) == expectedMessage);
         } catch (...) {
-            FAIL("An unexpected exception type was thrown.");
+          FAIL("An unexpected exception type was thrown.");
         }
-        
       }
-
     }
-
   }
 }
 
