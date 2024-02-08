@@ -90,8 +90,8 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(findCreateNewERC20WrapperContract != j.end());
     auto findCreateNewNativeWrapperContract = std::find(j.begin(), j.end(), EXPECTED::ContractManager::createNewNativeWrapperContract);
     REQUIRE(findCreateNewNativeWrapperContract != j.end());
-    auto findCreateNewSimpleContract = std::find(j.begin(), j.end(), EXPECTED::ContractManager::createNewSimpleContract);
-    REQUIRE(findCreateNewSimpleContract != j.end());
+    auto findCreateNewSimpleContractContract = std::find(j.begin(), j.end(), EXPECTED::ContractManager::createNewSimpleContractContract);
+    REQUIRE(findCreateNewSimpleContractContract != j.end());
     auto findCreateNewDEXV2PairContract = std::find(j.begin(), j.end(), EXPECTED::ContractManager::createNewDEXV2PairContract);
     REQUIRE(findCreateNewDEXV2PairContract != j.end());
     auto findCreateNewDEXV2Router02Contract = std::find(j.begin(), j.end(), EXPECTED::ContractManager::createNewDEXV2Router02Contract);

@@ -7,963 +7,608 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../../src/libs/json.hpp"
 
-/// Typedef for json.
-using json = nlohmann::ordered_json;
+using json = nlohmann::ordered_json; ///< Typedef for json.
 
-// TODO: redo this but better organized
-namespace EXPECTED
-{
+/// Namespace for testing expected contract ABI generation outputs
+namespace EXPECTED {
   namespace ERC20 {
-    json transferFrom = json::parse("{\n"
-                                    "        \"inputs\": [\n"
-                                    "            {\n"
-                                    "                \"internalType\": \"address\",\n"
-                                    "                \"name\": \"from\",\n"
-                                    "                \"type\": \"address\"\n"
-                                    "            },\n"
-                                    "            {\n"
-                                    "                \"internalType\": \"address\",\n"
-                                    "                \"name\": \"to\",\n"
-                                    "                \"type\": \"address\"\n"
-                                    "            },\n"
-                                    "            {\n"
-                                    "                \"internalType\": \"uint256\",\n"
-                                    "                \"name\": \"value\",\n"
-                                    "                \"type\": \"uint256\"\n"
-                                    "            }\n"
-                                    "        ],\n"
-                                    "        \"name\": \"transferFrom\",\n"
-                                    "        \"outputs\": [],\n"
-                                    "        \"stateMutability\": \"nonpayable\",\n"
-                                    "        \"type\": \"function\"\n"
-                                    "    }");
+    json transferFrom = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "from"}, {"type", "address"} },
+        { {"internalType", "address"}, {"name", "to"}, {"type", "address"} },
+        { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
+      }},
+      {"name", "transferFrom"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json approve = json::parse("{\n"
-                               "        \"inputs\": [\n"
-                               "            {\n"
-                               "                \"internalType\": \"address\",\n"
-                               "                \"name\": \"spender\",\n"
-                               "                \"type\": \"address\"\n"
-                               "            },\n"
-                               "            {\n"
-                               "                \"internalType\": \"uint256\",\n"
-                               "                \"name\": \"value\",\n"
-                               "                \"type\": \"uint256\"\n"
-                               "            }\n"
-                               "        ],\n"
-                               "        \"name\": \"approve\",\n"
-                               "        \"outputs\": [],\n"
-                               "        \"stateMutability\": \"nonpayable\",\n"
-                               "        \"type\": \"function\"\n"
-                               "    }");
+    json approve = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "spender"}, {"type", "address"} },
+        { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
+      }},
+      {"name", "approve"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json balanceOf = json::parse("{\n"
-                                 "        \"inputs\": [\n"
-                                 "            {\n"
-                                 "                \"internalType\": \"address\",\n"
-                                 "                \"name\": \"owner\",\n"
-                                 "                \"type\": \"address\"\n"
-                                 "            }\n"
-                                 "        ],\n"
-                                 "        \"name\": \"balanceOf\",\n"
-                                 "        \"outputs\": [\n"
-                                 "            {\n"
-                                 "                \"internalType\": \"uint256\",\n"
-                                 "                \"name\": \"\",\n"
-                                 "                \"type\": \"uint256\"\n"
-                                 "            }\n"
-                                 "        ],\n"
-                                 "        \"stateMutability\": \"view\",\n"
-                                 "        \"type\": \"function\"\n"
-                                 "    }");
+    json balanceOf = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "owner"}, {"type", "address"} }
+      }},
+      {"name", "balanceOf"},
+      {"outputs", {
+        { {"internalType", "uint256"}, {"name", ""}, {"type", "uint256"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json totalSupply = json::parse("    {\n"
-                                   "        \"inputs\": [],\n"
-                                   "        \"name\": \"totalSupply\",\n"
-                                   "        \"outputs\": [\n"
-                                   "            {\n"
-                                   "                \"internalType\": \"uint256\",\n"
-                                   "                \"name\": \"\",\n"
-                                   "                \"type\": \"uint256\"\n"
-                                   "            }\n"
-                                   "        ],\n"
-                                   "        \"stateMutability\": \"view\",\n"
-                                   "        \"type\": \"function\"\n"
-                                   "    }");
+    json totalSupply = {
+      {"inputs", json::array()},
+      {"name", "totalSupply"},
+      {"outputs", {
+        { {"internalType", "uint256"}, {"name", ""}, {"type", "uint256"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json transfer = json::parse("    {\n"
-                                "        \"inputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"address\",\n"
-                                "                \"name\": \"to\",\n"
-                                "                \"type\": \"address\"\n"
-                                "            },\n"
-                                "            {\n"
-                                "                \"internalType\": \"uint256\",\n"
-                                "                \"name\": \"value\",\n"
-                                "                \"type\": \"uint256\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"name\": \"transfer\",\n"
-                                "        \"outputs\": [],\n"
-                                "        \"stateMutability\": \"nonpayable\",\n"
-                                "        \"type\": \"function\"\n"
-                                "    }");
+    json transfer = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "to"}, {"type", "address"} },
+        { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
+      }},
+      {"name", "transfer"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json decimals = json::parse("    {\n"
-                                "        \"inputs\": [],\n"
-                                "        \"name\": \"decimals\",\n"
-                                "        \"outputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"uint8\",\n"
-                                "                \"name\": \"\",\n"
-                                "                \"type\": \"uint8\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"stateMutability\": \"view\",\n"
-                                "        \"type\": \"function\"\n"
-                                "    }");
+    json decimals = {
+      {"inputs", json::array()},
+      {"name", "decimals"},
+      {"outputs", {
+        { {"internalType", "uint8"}, {"name", ""}, {"type", "uint8"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json symbol = json::parse("    {\n"
-                              "        \"inputs\": [],\n"
-                              "        \"name\": \"symbol\",\n"
-                              "        \"outputs\": [\n"
-                              "            {\n"
-                              "                \"internalType\": \"string\",\n"
-                              "                \"name\": \"\",\n"
-                              "                \"type\": \"string\"\n"
-                              "            }\n"
-                              "        ],\n"
-                              "        \"stateMutability\": \"view\",\n"
-                              "        \"type\": \"function\"\n"
-                              "    }");
+    json symbol = {
+      {"inputs", json::array()},
+      {"name", "symbol"},
+      {"outputs", {
+        { {"internalType", "string"}, {"name", ""}, {"type", "string"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json allowance = json::parse("    {\n"
-                                 "        \"inputs\": [\n"
-                                 "            {\n"
-                                 "                \"internalType\": \"address\",\n"
-                                 "                \"name\": \"owner\",\n"
-                                 "                \"type\": \"address\"\n"
-                                 "            },\n"
-                                 "            {\n"
-                                 "                \"internalType\": \"address\",\n"
-                                 "                \"name\": \"spender\",\n"
-                                 "                \"type\": \"address\"\n"
-                                 "            }\n"
-                                 "        ],\n"
-                                 "        \"name\": \"allowance\",\n"
-                                 "        \"outputs\": [\n"
-                                 "            {\n"
-                                 "                \"internalType\": \"uint256\",\n"
-                                 "                \"name\": \"\",\n"
-                                 "                \"type\": \"uint256\"\n"
-                                 "            }\n"
-                                 "        ],\n"
-                                 "        \"stateMutability\": \"view\",\n"
-                                 "        \"type\": \"function\"\n"
-                                 "    }");
+    json allowance = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "owner"}, {"type", "address"} },
+        { {"internalType", "address"}, {"name", "spender"}, {"type", "address"} }
+      }},
+      {"name", "allowance"},
+      {"outputs", {
+        { {"internalType", "uint256"}, {"name", ""}, {"type", "uint256"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json name = json::parse("    {\n"
-                            "        \"inputs\": [],\n"
-                            "        \"name\": \"name\",\n"
-                            "        \"outputs\": [\n"
-                            "            {\n"
-                            "                \"internalType\": \"string\",\n"
-                            "                \"name\": \"\",\n"
-                            "                \"type\": \"string\"\n"
-                            "            }\n"
-                            "        ],\n"
-                            "        \"stateMutability\": \"view\",\n"
-                            "        \"type\": \"function\"\n"
-                            "    }");
+    json name = {
+      {"inputs", json::array()},
+      {"name", "name"},
+      {"outputs", {
+        { {"internalType", "string"}, {"name", ""}, {"type", "string"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
   }
 
   namespace ERC20Wrapper {
-    json deposit = json::parse("    {\n"
-                               "        \"inputs\": [\n"
-                               "            {\n"
-                               "                \"internalType\": \"address\",\n"
-                               "                \"name\": \"token\",\n"
-                               "                \"type\": \"address\"\n"
-                               "            },\n"
-                               "            {\n"
-                               "                \"internalType\": \"uint256\",\n"
-                               "                \"name\": \"value\",\n"
-                               "                \"type\": \"uint256\"\n"
-                               "            }\n"
-                               "        ],\n"
-                               "        \"name\": \"deposit\",\n"
-                               "        \"outputs\": [],\n"
-                               "        \"stateMutability\": \"nonpayable\",\n"
-                               "        \"type\": \"function\"\n"
-                               "    }");
+    json deposit = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "token"}, {"type", "address"} },
+        { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
+      }},
+      {"name", "deposit"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json transferTo = json::parse("    {\n"
-                                  "        \"inputs\": [\n"
-                                  "            {\n"
-                                  "                \"internalType\": \"address\",\n"
-                                  "                \"name\": \"token\",\n"
-                                  "                \"type\": \"address\"\n"
-                                  "            },\n"
-                                  "            {\n"
-                                  "                \"internalType\": \"address\",\n"
-                                  "                \"name\": \"to\",\n"
-                                  "                \"type\": \"address\"\n"
-                                  "            },\n"
-                                  "            {\n"
-                                  "                \"internalType\": \"uint256\",\n"
-                                  "                \"name\": \"value\",\n"
-                                  "                \"type\": \"uint256\"\n"
-                                  "            }\n"
-                                  "        ],\n"
-                                  "        \"name\": \"transferTo\",\n"
-                                  "        \"outputs\": [],\n"
-                                  "        \"stateMutability\": \"nonpayable\",\n"
-                                  "        \"type\": \"function\"\n"
-                                  "    }");
+    json transferTo = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "token"}, {"type", "address"} },
+        { {"internalType", "address"}, {"name", "to"}, {"type", "address"} },
+        { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
+      }},
+      {"name", "transferTo"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json withdraw = json::parse("    {\n"
-                                "        \"inputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"address\",\n"
-                                "                \"name\": \"token\",\n"
-                                "                \"type\": \"address\"\n"
-                                "            },\n"
-                                "            {\n"
-                                "                \"internalType\": \"uint256\",\n"
-                                "                \"name\": \"value\",\n"
-                                "                \"type\": \"uint256\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"name\": \"withdraw\",\n"
-                                "        \"outputs\": [],\n"
-                                "        \"stateMutability\": \"nonpayable\",\n"
-                                "        \"type\": \"function\"\n"
-                                "    }");
+    json withdraw = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "token"}, {"type", "address"} },
+        { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
+      }},
+      {"name", "withdraw"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json getUserBalance = json::parse("{\n"
-                                      "        \"inputs\": [\n"
-                                      "            {\n"
-                                      "                \"internalType\": \"address\",\n"
-                                      "                \"name\": \"token\",\n"
-                                      "                \"type\": \"address\"\n"
-                                      "            },\n"
-                                      "            {\n"
-                                      "                \"internalType\": \"address\",\n"
-                                      "                \"name\": \"user\",\n"
-                                      "                \"type\": \"address\"\n"
-                                      "            }\n"
-                                      "        ],\n"
-                                      "        \"name\": \"getUserBalance\",\n"
-                                      "        \"outputs\": [\n"
-                                      "            {\n"
-                                      "                \"internalType\": \"uint256\",\n"
-                                      "                \"name\": \"\",\n"
-                                      "                \"type\": \"uint256\"\n"
-                                      "            }\n"
-                                      "        ],\n"
-                                      "        \"stateMutability\": \"view\",\n"
-                                      "        \"type\": \"function\"\n"
-                                      "    }");
+    json getUserBalance = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "token"}, {"type", "address"} },
+        { {"internalType", "address"}, {"name", "user"}, {"type", "address"} }
+      }},
+      {"name", "getUserBalance"},
+      {"outputs", {
+        { {"internalType", "uint256"}, {"name", ""}, {"type", "uint256"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json getContractBalance = json::parse("    {\n"
-                                          "        \"inputs\": [\n"
-                                          "            {\n"
-                                          "                \"internalType\": \"address\",\n"
-                                          "                \"name\": \"token\",\n"
-                                          "                \"type\": \"address\"\n"
-                                          "            }\n"
-                                          "        ],\n"
-                                          "        \"name\": \"getContractBalance\",\n"
-                                          "        \"outputs\": [\n"
-                                          "            {\n"
-                                          "                \"internalType\": \"uint256\",\n"
-                                          "                \"name\": \"\",\n"
-                                          "                \"type\": \"uint256\"\n"
-                                          "            }\n"
-                                          "        ],\n"
-                                          "        \"stateMutability\": \"view\",\n"
-                                          "        \"type\": \"function\"\n"
-                                          "    }");
+    json getContractBalance = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "token"}, {"type", "address"} }
+      }},
+      {"name", "getContractBalance"},
+      {"outputs", {
+        { {"internalType", "uint256"}, {"name", ""}, {"type", "uint256"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
   }
 
   namespace NativeWrapper {
-    json withdraw = json::parse("    {\n"
-                                "        \"inputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"uint256\",\n"
-                                "                \"name\": \"value\",\n"
-                                "                \"type\": \"uint256\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"name\": \"withdraw\",\n"
-                                "        \"outputs\": [],\n"
-                                "        \"stateMutability\": \"payable\",\n"
-                                "        \"type\": \"function\"\n"
-                                "    }");
+    json withdraw = {
+      {"inputs", {
+        { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
+      }},
+      {"name", "withdraw"},
+      {"outputs", json::array()},
+      {"stateMutability", "payable"},
+      {"type", "function"}
+    };
 
-    json deposit = json::parse("    {\n"
-                               "        \"inputs\": [],\n"
-                               "        \"name\": \"deposit\",\n"
-                               "        \"outputs\": [],\n"
-                               "        \"stateMutability\": \"payable\",\n"
-                               "        \"type\": \"function\"\n"
-                               "    }");
+    json deposit = {
+      {"inputs", json::array()},
+      {"name", "deposit"},
+      {"outputs", json::array()},
+      {"stateMutability", "payable"},
+      {"type", "function"}
+    };
   }
 
   namespace ContractManager {
-    json createNewERC20Contract = json::parse("{\n"
-                                              "        \"inputs\": [\n"
-                                              "            {\n"
-                                              "                \"internalType\": \"string\",\n"
-                                              "                \"name\": \"erc20name\",\n"
-                                              "                \"type\": \"string\"\n"
-                                              "            },\n"
-                                              "            {\n"
-                                              "                \"internalType\": \"string\",\n"
-                                              "                \"name\": \"erc20symbol\",\n"
-                                              "                \"type\": \"string\"\n"
-                                              "            },\n"
-                                              "            {\n"
-                                              "                \"internalType\": \"uint8\",\n"
-                                              "                \"name\": \"erc20decimals\",\n"
-                                              "                \"type\": \"uint8\"\n"
-                                              "            },\n"
-                                              "            {\n"
-                                              "                \"internalType\": \"uint256\",\n"
-                                              "                \"name\": \"mintValue\",\n"
-                                              "                \"type\": \"uint256\"\n"
-                                              "            }\n"
-                                              "        ],\n"
-                                              "        \"name\": \"createNewERC20Contract\",\n"
-                                              "        \"outputs\": [],\n"
-                                              "        \"stateMutability\": \"nonpayable\",\n"
-                                              "        \"type\": \"function\"\n"
-                                              "    }");
+    json createNewERC20Contract = {
+      {"inputs", {
+        { {"internalType", "string"}, {"name", "erc20name"}, {"type", "string"} },
+        { {"internalType", "string"}, {"name", "erc20symbol"}, {"type", "string"} },
+        { {"internalType", "uint8"}, {"name", "erc20decimals"}, {"type", "uint8"} },
+        { {"internalType", "uint256"}, {"name", "mintValue"}, {"type", "uint256"} }
+      }},
+      {"name", "createNewERC20Contract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewERC20WrapperContract = json::parse("    {\n"
-                                                     "        \"inputs\": [],\n"
-                                                     "        \"name\": \"createNewERC20WrapperContract\",\n"
-                                                     "        \"outputs\": [],\n"
-                                                     "        \"stateMutability\": \"nonpayable\",\n"
-                                                     "        \"type\": \"function\"\n"
-                                                     "    }");
+    json createNewERC20WrapperContract = {
+      {"inputs", json::array()},
+      {"name", "createNewERC20WrapperContract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewNativeWrapperContract = json::parse("{\n"
-                                                      "        \"inputs\": [\n"
-                                                      "            {\n"
-                                                      "                \"internalType\": \"string\",\n"
-                                                      "                \"name\": \"erc20_name\",\n"
-                                                      "                \"type\": \"string\"\n"
-                                                      "            },\n"
-                                                      "            {\n"
-                                                      "                \"internalType\": \"string\",\n"
-                                                      "                \"name\": \"erc20_symbol\",\n"
-                                                      "                \"type\": \"string\"\n"
-                                                      "            },\n"
-                                                      "            {\n"
-                                                      "                \"internalType\": \"uint8\",\n"
-                                                      "                \"name\": \"erc20_decimals\",\n"
-                                                      "                \"type\": \"uint8\"\n"
-                                                      "            }\n"
-                                                      "        ],\n"
-                                                      "        \"name\": \"createNewNativeWrapperContract\",\n"
-                                                      "        \"outputs\": [],\n"
-                                                      "        \"stateMutability\": \"nonpayable\",\n"
-                                                      "        \"type\": \"function\"\n"
-                                                      "    }");
+    json createNewNativeWrapperContract = {
+      {"inputs", {
+        { {"internalType", "string"}, {"name", "erc20_name"}, {"type", "string"} },
+        { {"internalType", "string"}, {"name", "erc20_symbol"}, {"type", "string"} },
+        { {"internalType", "uint8"}, {"name", "erc20_decimals"}, {"type", "uint8"} }
+      }},
+      {"name", "createNewNativeWrapperContract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewSimpleContract = json::parse("{\n"
-                                               "  \"inputs\": [\n"
-                                               "    {\n"
-                                               "      \"internalType\": \"string\",\n"
-                                               "      \"name\": \"name_\",\n"
-                                               "      \"type\": \"string\"\n"
-                                               "    },\n"
-                                               "    {\n"
-                                               "      \"internalType\": \"uint256\",\n"
-                                               "      \"name\": \"number_\",\n"
-                                               "      \"type\": \"uint256\"\n"
-                                               "    },\n"
-                                               "    {\n"
-                                               "      \"components\": [\n"
-                                               "        {\n"
-                                               "          \"internalType\": \"string\",\n"
-                                               "          \"type\": \"string\"\n"
-                                               "        },\n"
-                                               "        {\n"
-                                               "          \"internalType\": \"uint256\",\n"
-                                               "          \"type\": \"uint256\"\n"
-                                               "        }\n"
-                                               "      ],\n"
-                                               "      \"name\": \"tuple_\",\n"
-                                               "      \"type\": \"tuple\"\n"
-                                               "    }\n"
-                                               "  ],\n"
-                                               "  \"name\": \"createNewSimpleContractContract\",\n"
-                                               "  \"outputs\": [],\n"
-                                               "  \"stateMutability\": \"nonpayable\",\n"
-                                               "  \"type\": \"function\"\n"
-                                               "}\n");
+    json createNewSimpleContractContract = {
+      {"inputs", {
+        { {"internalType", "string"}, {"name", "name_"}, {"type", "string"} },
+        { {"internalType", "uint256"}, {"name", "number_"}, {"type", "uint256"} },
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"name", "tuple_"}, {"type", "tuple"}
+        }
+      }},
+      {"name", "createNewSimpleContractContract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewDEXV2PairContract = json::parse("    {\n"
-                                                  "        \"inputs\": [],\n"
-                                                  "        \"name\": \"createNewDEXV2PairContract\",\n"
-                                                  "        \"outputs\": [],\n"
-                                                  "        \"stateMutability\": \"nonpayable\",\n"
-                                                  "        \"type\": \"function\"\n"
-                                                  "    }");
+    json createNewDEXV2PairContract = {
+      {"inputs", json::array()},
+      {"name", "createNewDEXV2PairContract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewDEXV2FactoryContract = json::parse("    {\n"
-                                                     "        \"inputs\": [\n"
-                                                     "            {\n"
-                                                     "                \"internalType\": \"address\",\n"
-                                                     "                \"name\": \"_feeToSetter\",\n"
-                                                     "                \"type\": \"address\"\n"
-                                                     "            }\n"
-                                                     "        ],\n"
-                                                     "        \"name\": \"createNewDEXV2FactoryContract\",\n"
-                                                     "        \"outputs\": [],\n"
-                                                     "        \"stateMutability\": \"nonpayable\",\n"
-                                                     "        \"type\": \"function\"\n"
-                                                     "    }");
+    json createNewDEXV2FactoryContract = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "_feeToSetter"}, {"type", "address"} }
+      }},
+      {"name", "createNewDEXV2FactoryContract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewDEXV2Router02Contract = json::parse("    {\n"
-                                                      "        \"inputs\": [\n"
-                                                      "            {\n"
-                                                      "                \"internalType\": \"address\",\n"
-                                                      "                \"name\": \"factory\",\n"
-                                                      "                \"type\": \"address\"\n"
-                                                      "            },\n"
-                                                      "            {\n"
-                                                      "                \"internalType\": \"address\",\n"
-                                                      "                \"name\": \"wrappedNative\",\n"
-                                                      "                \"type\": \"address\"\n"
-                                                      "            }\n"
-                                                      "        ],\n"
-                                                      "        \"name\": \"createNewDEXV2Router02Contract\",\n"
-                                                      "        \"outputs\": [],\n"
-                                                      "        \"stateMutability\": \"nonpayable\",\n"
-                                                      "        \"type\": \"function\"\n"
-                                                      "    }");
+    json createNewDEXV2Router02Contract = {
+      {"inputs", {
+        { {"internalType", "address"}, {"name", "factory"}, {"type", "address"} },
+        { {"internalType", "address"}, {"name", "wrappedNative"}, {"type", "address"} }
+      }},
+      {"name", "createNewDEXV2Router02Contract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewERC721Contract = json::parse("{\n"
-                                               "        \"inputs\": [\n"
-                                               "            {\n"
-                                               "                \"internalType\": \"string\",\n"
-                                               "                \"name\": \"erc721name\",\n"
-                                               "                \"type\": \"string\"\n"
-                                               "            },\n"
-                                               "            {\n"
-                                               "                \"internalType\": \"string\",\n"
-                                               "                \"name\": \"erc721symbol\",\n"
-                                               "                \"type\": \"string\"\n"
-                                               "            }\n"
-                                               "        ],\n"
-                                               "        \"name\": \"createNewERC721Contract\",\n"
-                                               "        \"outputs\": [],\n"
-                                               "        \"stateMutability\": \"nonpayable\",\n"
-                                               "        \"type\": \"function\"\n"
-                                               "    }");
+    json createNewERC721Contract = {
+      {"inputs", {
+        { {"internalType", "string"}, {"name", "erc721name"}, {"type", "string"} },
+        { {"internalType", "string"}, {"name", "erc721symbol"}, {"type", "string"} }
+      }},
+      {"name", "createNewERC721Contract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewThrowTestAContract = json::parse("    {\n"
-                                                   "        \"inputs\": [],\n"
-                                                   "        \"name\": \"createNewThrowTestAContract\",\n"
-                                                   "        \"outputs\": [],\n"
-                                                   "        \"stateMutability\": \"nonpayable\",\n"
-                                                   "        \"type\": \"function\"\n"
-                                                   "    }");
+    json createNewThrowTestAContract = {
+      {"inputs", json::array()},
+      {"name", "createNewThrowTestAContract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewThrowTestBContract = json::parse("    {\n"
-                                                   "        \"inputs\": [],\n"
-                                                   "        \"name\": \"createNewThrowTestBContract\",\n"
-                                                   "        \"outputs\": [],\n"
-                                                   "        \"stateMutability\": \"nonpayable\",\n"
-                                                   "        \"type\": \"function\"\n"
-                                                   "    }");
+    json createNewThrowTestBContract = {
+      {"inputs", json::array()},
+      {"name", "createNewThrowTestBContract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json createNewThrowTestCContract = json::parse("    {\n"
-                                                   "        \"inputs\": [],\n"
-                                                   "        \"name\": \"createNewThrowTestCContract\",\n"
-                                                   "        \"outputs\": [],\n"
-                                                   "        \"stateMutability\": \"nonpayable\",\n"
-                                                   "        \"type\": \"function\"\n"
-                                                   "    }");
+    json createNewThrowTestCContract = {
+      {"inputs", json::array()},
+      {"name", "createNewThrowTestCContract"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json getDeployedContracts = json::parse("    {\n"
-                                            "        \"inputs\": [],\n"
-                                            "        \"name\": \"getDeployedContracts\",\n"
-                                            "        \"outputs\": [\n"
-                                            "            {\n"
-                                            "                \"internalType\": \"string[]\",\n"
-                                            "                \"name\": \"\",\n"
-                                            "                \"type\": \"string[]\"\n"
-                                            "            },\n"
-                                            "            {\n"
-                                            "                \"internalType\": \"address[]\",\n"
-                                            "                \"name\": \"\",\n"
-                                            "                \"type\": \"address[]\"\n"
-                                            "            }\n"
-                                            "        ],\n"
-                                            "        \"stateMutability\": \"view\",\n"
-                                            "        \"type\": \"function\"\n"
-                                            "    }");
+    json getDeployedContracts = {
+      {"inputs", json::array()},
+      {"name", "getDeployedContracts"},
+      {"outputs", {
+        { {"internalType", "string[]"}, {"name", ""}, {"type", "string[]"} },
+        { {"internalType", "address[]"}, {"name", ""}, {"type", "address[]"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
   }
 
   namespace SimpleContract {
-    json getNamesAndNumbersInArrayOfArrays = json::parse("  {\n"
-                                                        "    \"inputs\": [\n"
-                                                        "      {\n"
-                                                        "        \"internalType\": \"uint256\",\n"
-                                                        "        \"name\": \"i\",\n"
-                                                        "        \"type\": \"uint256\"\n"
-                                                        "      }\n"
-                                                        "    ],\n"
-                                                        "    \"name\": \"getNamesAndNumbersInArrayOfArrays\",\n"
-                                                        "    \"outputs\": [\n"
-                                                        "      {\n"
-                                                        "        \"components\": [\n"
-                                                        "          {\n"
-                                                        "            \"internalType\": \"string\",\n"
-                                                        "            \"type\": \"string\"\n"
-                                                        "          },\n"
-                                                        "          {\n"
-                                                        "            \"internalType\": \"uint256\",\n"
-                                                        "            \"type\": \"uint256\"\n"
-                                                        "          }\n"
-                                                        "        ],\n"
-                                                        "        \"type\": \"tuple[][]\"\n"
-                                                        "      }\n"
-                                                        "    ],\n"
-                                                        "    \"stateMutability\": \"view\",\n"
-                                                        "    \"type\": \"function\"\n"
-                                                        "  }");
+    json getNamesAndNumbersInArrayOfArrays = {
+      {"inputs", {
+        { {"internalType", "uint256"}, {"name", "i"}, {"type", "uint256"} }
+      }},
+      {"name", "getNamesAndNumbersInArrayOfArrays"},
+      {"outputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"type", "tuple[][]"}
+        }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json getNamesAndNumbersInTuple = json::parse("    {\n"
-                                                "        \"inputs\": [\n"
-                                                "            {\n"
-                                                "                \"internalType\": \"uint256\",\n"
-                                                "                \"name\": \"i\",\n"
-                                                "                \"type\": \"uint256\"\n"
-                                                "            }\n"
-                                                "        ],\n"
-                                                "        \"name\": \"getNamesAndNumbersInTuple\",\n"
-                                                "        \"outputs\": [\n"
-                                                "            {\n"
-                                                "                \"components\": [\n"
-                                                "                    {\n"
-                                                "                        \"internalType\": \"string\",\n"
-                                                "                        \"type\": \"string\"\n"
-                                                "                    },\n"
-                                                "                    {\n"
-                                                "                        \"internalType\": \"uint256\",\n"
-                                                "                        \"type\": \"uint256\"\n"
-                                                "                    }\n"
-                                                "                ],\n"
-                                                "                \"type\": \"tuple[]\"\n"
-                                                "            }\n"
-                                                "        ],\n"
-                                                "        \"stateMutability\": \"view\",\n"
-                                                "        \"type\": \"function\"\n"
-                                                "    }");
+    json getNamesAndNumbersInTuple = {
+      {"inputs", {
+        { {"internalType", "uint256"}, {"name", "i"}, {"type", "uint256"} }
+      }},
+      {"name", "getNamesAndNumbersInTuple"},
+      {"outputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"type", "tuple[]"}
+        }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json getNameAndNumber = json::parse("    {\n"
-                                       "        \"inputs\": [],\n"
-                                       "        \"name\": \"getNameAndNumber\",\n"
-                                       "        \"outputs\": [\n"
-                                       "            {\n"
-                                       "                \"components\": [\n"
-                                       "                    {\n"
-                                       "                        \"internalType\": \"string\",\n"
-                                       "                        \"type\": \"string\"\n"
-                                       "                    },\n"
-                                       "                    {\n"
-                                       "                        \"internalType\": \"uint256\",\n"
-                                       "                        \"type\": \"uint256\"\n"
-                                       "                    }\n"
-                                       "                ],\n"
-                                       "                \"type\": \"tuple\"\n"
-                                       "            }\n"
-                                       "        ],\n"
-                                       "        \"stateMutability\": \"view\",\n"
-                                       "        \"type\": \"function\"\n"
-                                       "    }");
+    json getNameAndNumber = {
+      {"inputs", json::array()},
+      {"name", "getNameAndNumber"},
+      {"outputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"type", "tuple"}
+        }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json getNumbers = json::parse("    {\n"
-                                 "        \"inputs\": [\n"
-                                 "            {\n"
-                                 "                \"internalType\": \"uint256\",\n"
-                                 "                \"name\": \"i\",\n"
-                                 "                \"type\": \"uint256\"\n"
-                                 "            }\n"
-                                 "        ],\n"
-                                 "        \"name\": \"getNumbers\",\n"
-                                 "        \"outputs\": [\n"
-                                 "            {\n"
-                                 "                \"internalType\": \"uint256[]\",\n"
-                                 "                \"name\": \"\",\n"
-                                 "                \"type\": \"uint256[]\"\n"
-                                 "            }\n"
-                                 "        ],\n"
-                                 "        \"stateMutability\": \"view\",\n"
-                                 "        \"type\": \"function\"\n"
-                                 "    }");
+    json getNumbers = {
+      {"inputs", {
+        { {"internalType", "uint256"}, {"name", "i"}, {"type", "uint256"} }
+      }},
+      {"name", "getNumbers"},
+      {"outputs", {
+        { {"internalType", "uint256[]"}, {"name", ""}, {"type", "uint256[]"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json getNumber = json::parse("    {\n"
-                                "        \"inputs\": [],\n"
-                                "        \"name\": \"getNumber\",\n"
-                                "        \"outputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"uint256\",\n"
-                                "                \"name\": \"\",\n"
-                                "                \"type\": \"uint256\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"stateMutability\": \"view\",\n"
-                                "        \"type\": \"function\"\n"
-                                "    }");
+    json getNumber = {
+      {"inputs", json::array()},
+      {"name", "getNumber"},
+      {"outputs", {
+        { {"internalType", "uint256"}, {"name", ""}, {"type", "uint256"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json getName = json::parse("    {\n"
-                               "        \"inputs\": [],\n"
-                               "        \"name\": \"getName\",\n"
-                               "        \"outputs\": [\n"
-                               "            {\n"
-                               "                \"internalType\": \"string\",\n"
-                               "                \"name\": \"\",\n"
-                               "                \"type\": \"string\"\n"
-                               "            }\n"
-                               "        ],\n"
-                               "        \"stateMutability\": \"view\",\n"
-                               "        \"type\": \"function\"\n"
-                               "    }");
+    json getName = {
+      {"inputs", json::array()},
+      {"name", "getName"},
+      {"outputs", {
+        { {"internalType", "string"}, {"name", ""}, {"type", "string"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json getTuple = json::parse("{\n"
-                                "  \"inputs\": [],\n"
-                                "  \"name\": \"getTuple\",\n"
-                                "  \"outputs\": [\n"
-                                "    {\n"
-                                "      \"components\": [\n"
-                                "        {\n"
-                                "          \"internalType\": \"string\",\n"
-                                "          \"type\": \"string\"\n"
-                                "        },\n"
-                                "        {\n"
-                                "          \"internalType\": \"uint256\",\n"
-                                "          \"type\": \"uint256\"\n"
-                                "        }\n"
-                                "      ],\n"
-                                "      \"type\": \"tuple\"\n"
-                                "    }\n"
-                                "  ],\n"
-                                "  \"stateMutability\": \"view\",\n"
-                                "  \"type\": \"function\"\n"
-                                "}\n");
+    json getTuple = {
+      {"inputs", json::array()},
+      {"name", "getTuple"},
+      {"outputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"type", "tuple"}
+        }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json setNamesAndNumbersInArrayOfArrays = json::parse("  {\n"
-                                                        "    \"inputs\": [\n"
-                                                        "      {\n"
-                                                        "        \"components\": [\n"
-                                                        "          {\n"
-                                                        "            \"internalType\": \"string\",\n"
-                                                        "            \"type\": \"string\"\n"
-                                                        "          },\n"
-                                                        "          {\n"
-                                                        "            \"internalType\": \"uint256\",\n"
-                                                        "            \"type\": \"uint256\"\n"
-                                                        "          }\n"
-                                                        "        ],\n"
-                                                        "        \"name\": \"argNameAndNumber\",\n"
-                                                        "        \"type\": \"tuple[][]\"\n"
-                                                        "      }\n"
-                                                        "    ],\n"
-                                                        "    \"name\": \"setNamesAndNumbersInArrayOfArrays\",\n"
-                                                        "    \"outputs\": [],\n"
-                                                        "    \"stateMutability\": \"nonpayable\",\n"
-                                                        "    \"type\": \"function\"\n"
-                                                        "  }");
+    json setNamesAndNumbersInArrayOfArrays = {
+      {"inputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"name", "argNameAndNumber"}, {"type", "tuple[][]"}
+        }
+      }},
+      {"name", "setNamesAndNumbersInArrayOfArrays"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json setNamesAndNumbersInTuple = json::parse("    {\n"
-                                                "        \"inputs\": [\n"
-                                                "            {\n"
-                                                "                \"components\": [\n"
-                                                "                    {\n"
-                                                "                        \"internalType\": \"string\",\n"
-                                                "                        \"type\": \"string\"\n"
-                                                "                    },\n"
-                                                "                    {\n"
-                                                "                        \"internalType\": \"uint256\",\n"
-                                                "                        \"type\": \"uint256\"\n"
-                                                "                    }\n"
-                                                "                ],\n"
-                                                "                \"name\": \"argNameAndNumber\",\n"
-                                                "                \"type\": \"tuple[]\"\n"
-                                                "            }\n"
-                                                "        ],\n"
-                                                "        \"name\": \"setNamesAndNumbersInTuple\",\n"
-                                                "        \"outputs\": [],\n"
-                                                "        \"stateMutability\": \"nonpayable\",\n"
-                                                "        \"type\": \"function\"\n"
-                                                "    }");
+    json setNamesAndNumbersInTuple = {
+      {"inputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"name", "argNameAndNumber"}, {"type", "tuple[]"}
+        }
+      }},
+      {"name", "setNamesAndNumbersInTuple"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json getNames = json::parse("    {\n"
-                                "        \"inputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"uint256\",\n"
-                                "                \"name\": \"i\",\n"
-                                "                \"type\": \"uint256\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"name\": \"getNames\",\n"
-                                "        \"outputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"string[]\",\n"
-                                "                \"name\": \"\",\n"
-                                "                \"type\": \"string[]\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"stateMutability\": \"view\",\n"
-                                "        \"type\": \"function\"\n"
-                                "    }");
+    json getNames = {
+      {"inputs", {
+        { {"internalType", "uint256"}, {"name", "i"}, {"type", "uint256"} },
+      }},
+      {"name", "getNames"},
+      {"outputs", {
+        { {"internalType", "string[]"}, {"name", ""}, {"type", "string[]"} },
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json setNumbers = json::parse("    {\n"
-                                 "        \"inputs\": [\n"
-                                 "            {\n"
-                                 "                \"internalType\": \"uint256[]\",\n"
-                                 "                \"name\": \"argNumber\",\n"
-                                 "                \"type\": \"uint256[]\"\n"
-                                 "            }\n"
-                                 "        ],\n"
-                                 "        \"name\": \"setNumbers\",\n"
-                                 "        \"outputs\": [],\n"
-                                 "        \"stateMutability\": \"nonpayable\",\n"
-                                 "        \"type\": \"function\"\n"
-                                 "    }");
+    json setNumbers = {
+      {"inputs", {
+        { {"internalType", "uint256[]"}, {"name", "argNumber"}, {"type", "uint256[]"} },
+      }},
+      {"name", "setNumbers"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json setNumber = json::parse("    {\n"
-                                "        \"inputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"uint256\",\n"
-                                "                \"name\": \"argNumber\",\n"
-                                "                \"type\": \"uint256\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"name\": \"setNumber\",\n"
-                                "        \"outputs\": [],\n"
-                                "        \"stateMutability\": \"nonpayable\",\n"
-                                "        \"type\": \"function\"\n"
-                                "    }");
+    json setNumber = {
+      {"inputs", {
+        { {"internalType", "uint256"}, {"name", "argNumber"}, {"type", "uint256"} },
+      }},
+      {"name", "setNumber"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json setNamesAndNumbers = json::parse("    {\n"
-                                         "        \"inputs\": [\n"
-                                         "            {\n"
-                                         "                \"internalType\": \"string[]\",\n"
-                                         "                \"name\": \"argName\",\n"
-                                         "                \"type\": \"string[]\"\n"
-                                         "            },\n"
-                                         "            {\n"
-                                         "                \"internalType\": \"uint256[]\",\n"
-                                         "                \"name\": \"argNumber\",\n"
-                                         "                \"type\": \"uint256[]\"\n"
-                                         "            }\n"
-                                         "        ],\n"
-                                         "        \"name\": \"setNamesAndNumbers\",\n"
-                                         "        \"outputs\": [],\n"
-                                         "        \"stateMutability\": \"nonpayable\",\n"
-                                         "        \"type\": \"function\"\n"
-                                         "    }");
+    json setNamesAndNumbers = {
+      {"inputs", {
+        { {"internalType", "string[]"}, {"name", "argName"}, {"type", "string[]"} },
+        { {"internalType", "uint256[]"}, {"name", "argNumber"}, {"type", "uint256[]"} }
+      }},
+      {"name", "setNamesAndNumbers"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json setNames = json::parse("    {\n"
-                                "        \"inputs\": [\n"
-                                "            {\n"
-                                "                \"internalType\": \"string[]\",\n"
-                                "                \"name\": \"argName\",\n"
-                                "                \"type\": \"string[]\"\n"
-                                "            }\n"
-                                "        ],\n"
-                                "        \"name\": \"setNames\",\n"
-                                "        \"outputs\": [],\n"
-                                "        \"stateMutability\": \"nonpayable\",\n"
-                                "        \"type\": \"function\"\n"
-                                "    }");
+    json setNames = {
+      {"inputs", {
+        { {"internalType", "string[]"}, {"name", "argName"}, {"type", "string[]"} }
+      }},
+      {"name", "setNames"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json getNamesAndNumbers = json::parse("{\n"
-                                         "        \"inputs\": [\n"
-                                         "            {\n"
-                                         "                \"internalType\": \"uint256\",\n"
-                                         "                \"name\": \"i\",\n"
-                                         "                \"type\": \"uint256\"\n"
-                                         "            }\n"
-                                         "        ],\n"
-                                         "        \"name\": \"getNamesAndNumbers\",\n"
-                                         "        \"outputs\": [\n"
-                                         "            {\n"
-                                         "                \"components\": [\n"
-                                         "                    {\n"
-                                         "                        \"internalType\": \"string[]\",\n"
-                                         "                        \"type\": \"string[]\"\n"
-                                         "                    },\n"
-                                         "                    {\n"
-                                         "                        \"internalType\": \"uint256[]\",\n"
-                                         "                        \"type\": \"uint256[]\"\n"
-                                         "                    }\n"
-                                         "                ],\n"
-                                         "                \"type\": \"tuple\"\n"
-                                         "            }\n"
-                                         "        ],\n"
-                                         "        \"stateMutability\": \"view\",\n"
-                                         "        \"type\": \"function\"\n"
-                                         "    }");
+    json getNamesAndNumbers = {
+      {"inputs", {
+        { {"internalType", "uint256"}, {"name", "i"}, {"type", "uint256"} }
+      }},
+      {"name", "getNamesAndNumbers"},
+      {"outputs", {
+        {
+          {"components", {
+            { {"internalType", "string[]"}, {"type", "string[]"} },
+            { {"internalType", "uint256[]"}, {"type", "uint256[]"} }
+          } }, {"type", "tuple"}
+        }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json setName = json::parse("    {\n"
-                               "        \"inputs\": [\n"
-                               "            {\n"
-                               "                \"internalType\": \"string\",\n"
-                               "                \"name\": \"argName\",\n"
-                               "                \"type\": \"string\"\n"
-                               "            }\n"
-                               "        ],\n"
-                               "        \"name\": \"setName\",\n"
-                               "        \"outputs\": [],\n"
-                               "        \"stateMutability\": \"nonpayable\",\n"
-                               "        \"type\": \"function\"\n"
-                               "    }");
+    json setName = {
+      {"inputs", {
+        { {"internalType", "string"}, {"name", "argName"}, {"type", "string"} }
+      }},
+      {"name", "setName"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json getNumberOverload = json::parse("{\n"
-                                        "    \"inputs\": [\n"
-                                        "      {\n"
-                                        "        \"internalType\": \"uint256\",\n"
-                                        "        \"name\": \"\",\n"
-                                        "        \"type\": \"uint256\"\n"
-                                        "      }\n"
-                                        "    ],\n"
-                                        "    \"name\": \"getNumber\",\n"
-                                        "    \"outputs\": [\n"
-                                        "      {\n"
-                                        "        \"internalType\": \"uint256\",\n"
-                                        "        \"name\": \"\",\n"
-                                        "        \"type\": \"uint256\"\n"
-                                        "      }\n"
-                                        "    ],\n"
-                                        "    \"stateMutability\": \"view\",\n"
-                                        "    \"type\": \"function\"\n"
-                                        "  }");
+    json getNumberOverload = {
+      {"inputs", {
+        { {"internalType", "uint256"}, {"name", ""}, {"type", "uint256"} }
+      }},
+      {"name", "getNumber"},
+      {"outputs", {
+        { {"internalType", "uint256"}, {"name", ""}, {"type", "uint256"} }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
 
-    json setTuple = json::parse("{\n"
-                                "  \"inputs\": [\n"
-                                "    {\n"
-                                "      \"components\": [\n"
-                                "        {\n"
-                                "          \"internalType\": \"string\",\n"
-                                "          \"type\": \"string\"\n"
-                                "        },\n"
-                                "        {\n"
-                                "          \"internalType\": \"uint256\",\n"
-                                "          \"type\": \"uint256\"\n"
-                                "        }\n"
-                                "      ],\n"
-                                "      \"name\": \"argTupĺe\",\n"
-                                "      \"type\": \"tuple\"\n"
-                                "    }\n"
-                                "  ],\n"
-                                "  \"name\": \"setTuple\",\n"
-                                "  \"outputs\": [],\n"
-                                "  \"stateMutability\": \"nonpayable\",\n"
-                                "  \"type\": \"function\"\n"
-                                "}\n");
+    json setTuple = {
+      {"inputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"name", "argTuple"}, {"type", "tuple"}
+        }
+      }},
+      {"name", "setTuple"},
+      {"outputs", json::array()},
+      {"stateMutability", "nonpayable"},
+      {"type", "function"}
+    };
 
-    json nameAndNumberTupleChanged = json::parse("{\n"
-                                                "    \"anonymous\": false,\n"
-                                                "    \"inputs\": [\n"
-                                                "      {\n"
-                                                "        \"components\": [\n"
-                                                "          {\n"
-                                                "            \"internalType\": \"string\",\n"
-                                                "            \"type\": \"string\"\n"
-                                                "          },\n"
-                                                "          {\n"
-                                                "            \"internalType\": \"uint256\",\n"
-                                                "            \"type\": \"uint256\"\n"
-                                                "          }\n"
-                                                "        ],\n"
-                                                "        \"indexed\": true,\n"
-                                                "        \"name\": \"nameAndNumber\",\n"
-                                                "        \"type\": \"tuple\"\n"
-                                                "      }\n"
-                                                "    ],\n"
-                                                "    \"name\": \"nameAndNumberTupleChanged\",\n"
-                                                "    \"type\": \"event\"\n"
-                                                "  }");
+    json nameAndNumberTupleChanged = {
+      {"anonymous", false},
+      {"inputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"indexed", true}, {"name", "nameAndNumber"}, {"type", "tuple"}
+        }
+      }},
+      {"name", "nameAndNumberTupleChanged"},
+      {"type", "event"}
+    };
 
-    json nameAndNumberChanged = json::parse("{\n"
-                                           "    \"anonymous\": false,\n"
-                                           "    \"inputs\": [\n"
-                                           "      {\n"
-                                           "        \"indexed\": true,\n"
-                                           "        \"internalType\": \"string\",\n"
-                                           "        \"name\": \"name\",\n"
-                                           "        \"type\": \"string\"\n"
-                                           "      },\n"
-                                           "      {\n"
-                                           "        \"indexed\": true,\n"
-                                           "        \"internalType\": \"uint256\",\n"
-                                           "        \"name\": \"number\",\n"
-                                           "        \"type\": \"uint256\"\n"
-                                           "      }\n"
-                                           "    ],\n"
-                                           "    \"name\": \"nameAndNumberChanged\",\n"
-                                           "    \"type\": \"event\"\n"
-                                           "  }");
+    json nameAndNumberChanged = {
+      {"anonymous", false},
+      {"inputs", {
+        { {"indexed", true}, {"internalType", "string"}, {"name", "name"}, {"type", "string"} },
+        { {"indexed", true}, {"internalType", "uint256"}, {"name", "number"}, {"type", "uint256"} }
+      }},
+      {"name", "nameAndNumberChanged"},
+      {"type", "event"}
+    };
 
-    json numberChanged = json::parse("{\n"
-                                    "    \"anonymous\": false,\n"
-                                    "    \"inputs\": [\n"
-                                    "      {\n"
-                                    "        \"indexed\": false,\n"
-                                    "        \"internalType\": \"uint256\",\n"
-                                    "        \"name\": \"number\",\n"
-                                    "        \"type\": \"uint256\"\n"
-                                    "      }\n"
-                                    "    ],\n"
-                                    "    \"name\": \"numberChanged\",\n"
-                                    "    \"type\": \"event\"\n"
-                                    "  }");
+    json numberChanged = {
+      {"anonymous", false},
+      {"inputs", {
+        { {"indexed", false}, {"internalType", "uint256"}, {"name", "number"}, {"type", "uint256"} }
+      }},
+      {"name", "numberChanged"},
+      {"type", "event"}
+    };
 
-    json nameChanged = json::parse("{\n"
-                                   "    \"anonymous\": false,\n"
-                                   "    \"inputs\": [\n"
-                                   "      {\n"
-                                   "        \"indexed\": true,\n"
-                                   "        \"internalType\": \"string\",\n"
-                                   "        \"name\": \"name\",\n"
-                                   "        \"type\": \"string\"\n"
-                                   "      }\n"
-                                   "    ],\n"
-                                   "    \"name\": \"nameChanged\",\n"
-                                   "    \"type\": \"event\"\n"
-                                   "  }");
+    json nameChanged = {
+      {"anonymous", false},
+      {"inputs", {
+        { {"indexed", true}, {"internalType", "string"}, {"name", "name"}, {"type", "string"} }
+      }},
+      {"name", "nameChanged"},
+      {"type", "event"}
+    };
 
-    json tupleChanged = json::parse("{\n"
-                                    "  \"anonymous\": false,\n"
-                                    "  \"inputs\": [\n"
-                                    "    {\n"
-                                    "      \"components\": [\n"
-                                    "        {\n"
-                                    "          \"internalType\": \"string\",\n"
-                                    "          \"type\": \"string\"\n"
-                                    "        },\n"
-                                    "        {\n"
-                                    "          \"internalType\": \"uint256\",\n"
-                                    "          \"type\": \"uint256\"\n"
-                                    "        }\n"
-                                    "      ],\n"
-                                    "      \"indexed\": true,\n"
-                                    "      \"name\": \"tuple\",\n"
-                                    "      \"type\": \"tuple\"\n"
-                                    "    }\n"
-                                    "  ],\n"
-                                    "  \"name\": \"tupleChanged\",\n"
-                                    "  \"type\": \"event\"\n"
-                                    "}");
+    json tupleChanged = {
+      {"anonymous", false},
+      {"inputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "uint256"}, {"type", "uint256"} }
+          } }, {"indexed", true}, {"name", "tuple"}, {"type", "tuple"}
+        }
+      }},
+      {"name", "tupleChanged"},
+      {"type", "event"}
+    };
   }
 }
 
