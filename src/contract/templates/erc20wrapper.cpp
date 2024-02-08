@@ -9,10 +9,10 @@ See the LICENSE.txt file in the project root for more information.
 
 ERC20Wrapper::ERC20Wrapper(
   ContractManagerInterface& interface,
-  const Address& contractAddress, const std::unique_ptr<DB>& db
+  const Address& contractAddress, DB& db
 ) : DynamicContract(interface, contractAddress, db), tokensAndBalances_(this) {
   registerContractFunctions();
-  auto tokensAndBalances = this->db_->getBatch(this->getNewPrefix("tokensAndBalances_"));
+  auto tokensAndBalances = this->db_.getBatch(this->getNewPrefix("tokensAndBalances_"));
   for (const auto& dbEntry : tokensAndBalances) {
     BytesArrView valueView(dbEntry.value);
     this->tokensAndBalances_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
@@ -22,7 +22,7 @@ ERC20Wrapper::ERC20Wrapper(
 
 ERC20Wrapper::ERC20Wrapper(
   ContractManagerInterface& interface, const Address& address,
-  const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB>& db
+  const Address& creator, const uint64_t& chainId, DB& db
 ) : DynamicContract(interface, "ERC20Wrapper", address, creator, chainId, db),
   tokensAndBalances_(this)
 {
@@ -40,7 +40,7 @@ ERC20Wrapper::~ERC20Wrapper() {
       tokensAndBalancesBatch.push_back(key, value, this->getNewPrefix("tokensAndBalances_"));
     }
   }
-  this->db_->putBatch(tokensAndBalancesBatch);
+  this->db_.putBatch(tokensAndBalancesBatch);
 }
 
 uint256_t ERC20Wrapper::getContractBalance(const Address& token) const {

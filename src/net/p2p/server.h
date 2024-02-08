@@ -26,7 +26,7 @@ namespace P2P {
       /// Pointer back to the Manager object.
       ManagerBase& manager_;
       /// Reference to the thread pool.
-      const std::unique_ptr<BS::thread_pool_light>& threadPool_;
+      BS::thread_pool_light& threadPool_;
     public:
       /**
        * Constructor for the ServerListener.
@@ -38,7 +38,7 @@ namespace P2P {
       ServerListener(net::io_context& io_context,
                      tcp::endpoint endpoint,
                      ManagerBase& manager,
-                     const std::unique_ptr<BS::thread_pool_light> &threadPool) :
+                     BS::thread_pool_light& threadPool) :
         io_context_(io_context),
         acceptor_(io_context),
         manager_(manager),
@@ -86,7 +86,7 @@ namespace P2P {
       ManagerBase& manager_;
 
       /// Reference to the thread pool.
-      const std::unique_ptr<BS::thread_pool_light>& threadPool_;
+      BS::thread_pool_light& threadPool_;
 
     public:
       /**
@@ -101,7 +101,7 @@ namespace P2P {
              const uint16_t &localPort,
              const uint8_t& threadCount,
              ManagerBase& manager,
-             const std::unique_ptr<BS::thread_pool_light>& threadPool) :
+             BS::thread_pool_light& threadPool) :
         localAddress_(localAddress),
         localPort_(localPort),
         threadCount_(threadCount),

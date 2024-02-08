@@ -41,14 +41,14 @@ namespace P2P {
       void handleBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
     private:
-      /// Pointer to the rdPoS object.
-      const std::unique_ptr<rdPoS>& rdpos_;
+      /// Reference to the rdPoS object.
+      rdPoS& rdpos_;
 
-      /// Pointer to the blockchain's storage.
-      const std::unique_ptr<Storage>& storage_;
+      /// Reference to the blockchain's storage.
+      const Storage& storage_;
 
-      /// Pointer to the blockchain's state.
-      const std::unique_ptr<State>& state_;
+      /// Reference to the blockchain's state.
+      State& state_;
 
       /**
        * Map with broadcasted messages and a counter of how many times they were broadcast.
@@ -155,9 +155,9 @@ namespace P2P {
        * @param state Pointer to the blockchain's state.
        */
       ManagerNormal(
-        const boost::asio::ip::address& hostIp, const std::unique_ptr<rdPoS>& rdpos,
-        const std::unique_ptr<Options>& options, const std::unique_ptr<Storage>& storage,
-        const std::unique_ptr<State>& state
+        const boost::asio::ip::address& hostIp, rdPoS& rdpos,
+        const Options& options, const Storage& storage,
+        State& state
       ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options),
       rdpos_(rdpos), storage_(storage), state_(state)
       {};

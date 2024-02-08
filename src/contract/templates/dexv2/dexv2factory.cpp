@@ -9,16 +9,16 @@ See the LICENSE.txt file in the project root for more information.
 #include "dexv2pair.h"
 
 DEXV2Factory::DEXV2Factory(
-  ContractManagerInterface &interface, const Address &address, const std::unique_ptr<DB> &db
+  ContractManagerInterface &interface, const Address &address, DB& db
 ) : DynamicContract(interface, address, db), feeTo_(this), feeToSetter_(this),
   allPairs_(this), getPair_(this)
 {
   // Load from DB constructor
-  this->feeTo_ = Address(db->get(std::string("feeTo_"), this->getDBPrefix()));
-  this->feeToSetter_ = Address(db->get(std::string("feeToSetter_"), this->getDBPrefix()));
-  std::vector<DBEntry> allPairs = db->getBatch(this->getNewPrefix("allPairs_"));
+  this->feeTo_ = Address(db_.get(std::string("feeTo_"), this->getDBPrefix()));
+  this->feeToSetter_ = Address(db_.get(std::string("feeToSetter_"), this->getDBPrefix()));
+  std::vector<DBEntry> allPairs = db_.getBatch(this->getNewPrefix("allPairs_"));
   for (const auto& dbEntry : allPairs) this->allPairs_.push_back(Address(dbEntry.value));
-  std::vector<DBEntry> getPairs = db->getBatch(this->getNewPrefix("getPair_"));
+  std::vector<DBEntry> getPairs = db_.getBatch(this->getNewPrefix("getPair_"));
   for (const auto& dbEntry : getPairs) {
     BytesArrView valueView(dbEntry.value);
     this->getPair_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Address(valueView.subspan(20));
@@ -34,7 +34,7 @@ DEXV2Factory::DEXV2Factory(
   const Address& feeToSetter,
   ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
-  const std::unique_ptr<DB> &db
+  DB& db
 ) : DynamicContract(interface, "DEXV2Factory", address, creator, chainId, db),
   feeTo_(this), feeToSetter_(this), allPairs_(this), getPair_(this)
 {
@@ -60,7 +60,7 @@ DEXV2Factory::~DEXV2Factory() {
       batchOperations.push_back(key, value, this->getNewPrefix("getPair_"));
     }
   }
-  this->db_->putBatch(batchOperations);
+  this->db_.putBatch(batchOperations);
 }
 
 void DEXV2Factory::registerContractFunctions() {

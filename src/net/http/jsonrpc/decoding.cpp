@@ -152,14 +152,14 @@ namespace JsonRPC::Decoding {
   }
 
   std::pair<uint64_t,bool> eth_getBlockByNumber(
-    const json& request, const std::unique_ptr<Storage>& storage
+    const json& request, const Storage& storage
   ) {
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
       bool includeTxs = (request["params"].size() == 2) ? request["params"].at(1).get<bool>() : false;
       // eth_getBlockByNumber has flags for its params instead of hex numbers.
       std::string blockNum = request["params"].at(0).get<std::string>();
-      if (blockNum == "latest") return std::make_pair(storage->latest()->getNHeight(), includeTxs);
+      if (blockNum == "latest") return std::make_pair(storage.latest()->getNHeight(), includeTxs);
       if (blockNum == "earliest") return std::make_pair(0, includeTxs);
       if (blockNum == "pending") throw DynamicException("Pending block is not supported");
       if (!std::regex_match(blockNum, numFilter)) throw DynamicException("Invalid block hash hex");
@@ -189,12 +189,12 @@ namespace JsonRPC::Decoding {
     }
   }
 
-  uint64_t eth_getBlockTransactionCountByNumber(const json& request, const std::unique_ptr<Storage>& storage) {
+  uint64_t eth_getBlockTransactionCountByNumber(const json& request, const Storage& storage) {
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
       // eth_getBlockTransactionCountByNumber has flags for its params instead of hex numbers.
       std::string blockNum = request["params"].at(0).get<std::string>();
-      if (blockNum == "latest") return storage->latest()->getNHeight();
+      if (blockNum == "latest") return storage.latest()->getNHeight();
       if (blockNum == "earliest") return 0;
       if (blockNum == "pending") throw DynamicException("Pending block is not supported");
       if (!std::regex_match(blockNum, numFilter)) throw DynamicException("Invalid block hash hex");
@@ -256,7 +256,7 @@ namespace JsonRPC::Decoding {
     }
   }
 
-  ethCallInfoAllocated eth_call(const json& request, const std::unique_ptr<Storage> &storage) {
+  ethCallInfoAllocated eth_call(const json& request, const Storage& storage) {
     ethCallInfoAllocated result;
     auto& [from, to, gas, gasPrice, value, functor, data] = result;
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
@@ -272,7 +272,7 @@ namespace JsonRPC::Decoding {
               "Invalid block number"
             );
             auto blockNum = uint64_t(Hex(block).getUint());
-            if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
+            if (blockNum != storage.latest()->getNHeight()) throw DynamicException(
               "Only latest block is supported"
             );
           }
@@ -332,7 +332,7 @@ namespace JsonRPC::Decoding {
     }
   }
 
-  ethCallInfoAllocated eth_estimateGas(const json& request, const std::unique_ptr<Storage> &storage) {
+  ethCallInfoAllocated eth_estimateGas(const json& request, const Storage& storage) {
     ethCallInfoAllocated result;
     auto& [from, to, gas, gasPrice, value, functor, data] = result;
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
@@ -348,7 +348,7 @@ namespace JsonRPC::Decoding {
               "Invalid block number"
             );
             auto blockNum = uint64_t(Hex(block).getUint());
-            if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
+            if (blockNum != storage.latest()->getNHeight()) throw DynamicException(
               "Only latest block is supported"
             );
           }
@@ -425,7 +425,7 @@ namespace JsonRPC::Decoding {
   }
 
   std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> eth_getLogs(
-    const json& request, const std::unique_ptr<Storage>& storage
+    const json& request, const Storage& storage
   ) {
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
@@ -440,13 +440,13 @@ namespace JsonRPC::Decoding {
       if (logsObject.contains("blockHash")) {
         std::string blockHashHex = logsObject["blockHash"].get<std::string>();
         if (!std::regex_match(blockHashHex, hashFilter)) throw DynamicException("Invalid block hash hex");
-        const std::shared_ptr<const Block> block = storage->getBlock(Hash(Hex::toBytes(blockHashHex)));
+        const std::shared_ptr<const Block> block = storage.getBlock(Hash(Hex::toBytes(blockHashHex)));
         fromBlock = toBlock = block->getNHeight();
       } else {
         if (logsObject.contains("fromBlock")) {
           std::string fromBlockHex = logsObject["fromBlock"].get<std::string>();
           if (fromBlockHex == "latest") {
-            fromBlock = storage->latest()->getNHeight();
+            fromBlock = storage.latest()->getNHeight();
           } else if (fromBlockHex == "earliest") {
             fromBlock = 0;
           } else if (fromBlockHex == "pending") {
@@ -460,7 +460,7 @@ namespace JsonRPC::Decoding {
         if (logsObject.contains("toBlock")) {
           std::string toBlockHex = logsObject["toBlock"].get<std::string>();
           if (toBlockHex == "latest") {
-            toBlock = storage->latest()->getNHeight();
+            toBlock = storage.latest()->getNHeight();
           } else if (toBlockHex == "earliest") {
             toBlock = 0;
           } else if (toBlockHex == "pending") {
@@ -499,7 +499,7 @@ namespace JsonRPC::Decoding {
     }
   }
 
-  Address eth_getBalance(const json& request, const std::unique_ptr<Storage>& storage) {
+  Address eth_getBalance(const json& request, const Storage& storage) {
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -510,7 +510,7 @@ namespace JsonRPC::Decoding {
           "Invalid block number"
         );
         auto blockNum = uint64_t(Hex(block).getUint());
-        if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
+        if (blockNum != storage.latest()->getNHeight()) throw DynamicException(
           "Only latest block is supported"
         );
       }
@@ -524,7 +524,7 @@ namespace JsonRPC::Decoding {
     }
   }
 
-  Address eth_getTransactionCount(const json& request, const std::unique_ptr<Storage>& storage) {
+  Address eth_getTransactionCount(const json& request, const Storage& storage) {
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -535,7 +535,7 @@ namespace JsonRPC::Decoding {
           "Invalid block number"
         );
         auto blockNum = uint64_t(Hex(block).getUint());
-        if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
+        if (blockNum != storage.latest()->getNHeight()) throw DynamicException(
           "Only latest block is supported"
         );
       }
@@ -549,7 +549,7 @@ namespace JsonRPC::Decoding {
     }
   }
 
-  Address eth_getCode(const json& request, const std::unique_ptr<Storage>& storage) {
+  Address eth_getCode(const json& request, const Storage& storage) {
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -560,7 +560,7 @@ namespace JsonRPC::Decoding {
           "Invalid block number"
         );
         auto blockNum = uint64_t(Hex(block).getUint());
-        if (blockNum != storage->latest()->getNHeight()) throw DynamicException(
+        if (blockNum != storage.latest()->getNHeight()) throw DynamicException(
           "Only latest block is supported"
         );
       }
@@ -621,7 +621,7 @@ namespace JsonRPC::Decoding {
   }
 
   std::pair<uint64_t,uint64_t> eth_getTransactionByBlockNumberAndIndex(
-    const json& request, const std::unique_ptr<Storage>& storage
+    const json& request, const Storage& storage
   ) {
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -629,7 +629,7 @@ namespace JsonRPC::Decoding {
       std::string index = request["params"].at(1).get<std::string>();
       if (!std::regex_match(index, numFilter)) throw DynamicException("Invalid index hex");
       if (blockNum == "latest") return std::make_pair<uint64_t,uint64_t>(
-        storage->latest()->getNHeight(), uint64_t(Hex(index).getUint())
+        storage.latest()->getNHeight(), uint64_t(Hex(index).getUint())
       );
       if (!std::regex_match(blockNum, numFilter)) throw DynamicException("Invalid blockNumber hex");
       return std::make_pair<uint64_t,uint64_t>(

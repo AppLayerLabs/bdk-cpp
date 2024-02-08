@@ -24,26 +24,26 @@ See the LICENSE.txt file in the project root for more information.
 namespace TERC20Wrapper {
   TEST_CASE("ERC20Wrapper Class", "[contract][erc20wrapper]") {
     SECTION("ERC20Wrapper creation") {
-      SDKTestSuite sdk("testERC20Creation");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20Creation");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& [name, address] : sdk.getState()->getContracts()) {
+      for (const auto& [name, address] : sdk.getState().getContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }
     }
 
     SECTION("ERC20Wrapper deposit() and withdraw()") {
-      SDKTestSuite sdk("testERC20DepositAndWithdraw");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20DepositAndWithdraw");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& [name, address] : sdk.getState()->getContracts()) {
+      for (const auto& [name, address] : sdk.getState().getContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }
@@ -81,14 +81,14 @@ namespace TERC20Wrapper {
     }
 
     SECTION("ERC20Wrapper transferTo()") {
-      SDKTestSuite sdk("testERC20TransferTo");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20TransferTo");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
       Address erc20Wrapper = sdk.deployContract<ERC20Wrapper>();
       Address owner = sdk.getChainOwnerAccount().address;
       Address dest(Utils::randBytes(20));
-      for (const auto& [name, address] : sdk.getState()->getContracts()) {
+      for (const auto& [name, address] : sdk.getState().getContracts()) {
         if (name == "ERC20") REQUIRE(address == erc20);
         if (name == "ERC20Wrapper") REQUIRE(address == erc20Wrapper);
       }

@@ -61,7 +61,7 @@ namespace P2P {
       ManagerBase& manager_;
 
       /// Reference to the thread pool.
-      const std::unique_ptr<BS::thread_pool_light>& threadPool_;
+      BS::thread_pool_light& threadPool_;
 
       net::strand<net::any_io_executor> readStrand_; ///< Strand for read operations.
       net::strand<net::any_io_executor> writeStrand_; ///< Strand for write operations.
@@ -140,7 +140,7 @@ namespace P2P {
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
                        ManagerBase& manager,
-                       const std::unique_ptr<BS::thread_pool_light>& threadPool)
+                       BS::thread_pool_light& threadPool)
           : socket_(std::move(socket)),
             readStrand_(socket_.get_executor()),
             writeStrand_(socket_.get_executor()),
@@ -160,7 +160,7 @@ namespace P2P {
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
                        ManagerBase& manager,
-                       const std::unique_ptr<BS::thread_pool_light>& threadPool,
+                       BS::thread_pool_light& threadPool,
                        const net::ip::address& address,
                        unsigned short port
                        )

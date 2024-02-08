@@ -191,8 +191,8 @@ class EventManager {
     // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
     EventContainer events_;                   ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
     EventContainer tempEvents_;               ///< List of temporary events waiting to be commited or reverted.
-    const std::unique_ptr<DB>& db_;           ///< Reference pointer to the database.
-    const std::unique_ptr<Options>& options_; ///< Reference pointer to the Options singleton.
+    DB& db_;           ///< Reference pointer to the database.
+    const Options& options_; ///< Reference pointer to the Options singleton.
     mutable std::shared_mutex lock_;          ///< Mutex for managing read/write access to the permanent events vector.
 
   public:
@@ -201,7 +201,7 @@ class EventManager {
      * @param db The database to use.
      * @param options The Options singleton to use (for event caps).
      */
-    EventManager(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options);
+    EventManager(DB& db, const Options& options);
 
     /// Destructor. Automatically saves events to the database.
     ~EventManager();

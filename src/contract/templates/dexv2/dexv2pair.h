@@ -97,7 +97,7 @@ class DEXV2Pair : public ERC20 {
     */
     DEXV2Pair(
       ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
+      const Address& address, DB& db
     );
 
     /**
@@ -111,7 +111,7 @@ class DEXV2Pair : public ERC20 {
     DEXV2Pair(
       ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
-      const std::unique_ptr<DB> &db
+      DB& db
     );
 
     /// Destructor.
@@ -216,7 +216,7 @@ class DEXV2Pair : public ERC20 {
       ContractReflectionInterface::registerContractMethods<
         DEXV2Pair, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
+        DB&
       >(
         std::vector<std::string>{},
         std::make_tuple("initialize", &DEXV2Pair::initialize, FunctionTypes::NonPayable, std::vector<std::string>{"token0_", "token1_"}),

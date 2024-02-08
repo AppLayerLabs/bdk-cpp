@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 ThrowTestA::ThrowTestA(
   ContractManagerInterface &interface,
   const Address& address, const Address& creator,
-  const uint64_t& chainId, const std::unique_ptr<DB> &db
+  const uint64_t& chainId, DB& db
 ) : DynamicContract(interface, "ThrowTestA", address, creator, chainId, db) {
   registerContractFunctions();
 }
@@ -18,7 +18,7 @@ ThrowTestA::ThrowTestA(
 ThrowTestA::ThrowTestA(
   ContractManagerInterface &interface,
   const Address& address,
-  const std::unique_ptr<DB> &db
+  DB& db
 ) : DynamicContract(interface, address, db) {
   registerContractFunctions();
 }

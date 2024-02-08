@@ -82,7 +82,7 @@ class BaseContract : public ContractLocals {
     uint64_t contractChainId_; ///< Chain where the contract is deployed.
 
   protected:
-    const std::unique_ptr<DB>& db_; ///< Pointer reference to the DB instance.
+    DB& db_; ///< Pointer reference to the DB instance.
 
   public:
     bool reentrancyLock_ = false;    ///< Lock (for reentrancy).
@@ -96,7 +96,7 @@ class BaseContract : public ContractLocals {
      * @param db Pointer to the DB instance.
      */
     BaseContract(const std::string& contractName, const Address& address,
-      const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB>& db
+      const Address& creator, const uint64_t& chainId, DB& db
     ) : contractName_(contractName), contractAddress_(address),
       contractCreator_(creator), contractChainId_(chainId), db_(db)
     {
@@ -106,10 +106,10 @@ class BaseContract : public ContractLocals {
         prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
         return prefix;
       }();
-      db->put(std::string("contractName_"), contractName_, this->getDBPrefix());
-      db->put(std::string("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
-      db->put(std::string("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
-      db->put(std::string("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
+      db.put(std::string("contractName_"), contractName_, this->getDBPrefix());
+      db.put(std::string("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
+      db.put(std::string("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
+      db.put(std::string("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
     }
 
     /**
@@ -117,16 +117,16 @@ class BaseContract : public ContractLocals {
      * @param address The address where the contract will be deployed.
      * @param db Pointer to the DB instance.
      */
-    BaseContract(const Address &address, const std::unique_ptr<DB> &db) : contractAddress_(address), db_(db) {
+    BaseContract(const Address &address, DB& db) : contractAddress_(address), db_(db) {
       this->dbPrefix_ = [&]() -> Bytes {
         Bytes prefix = DBPrefix::contracts;
         prefix.reserve(prefix.size() + contractAddress_.size());
         prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
         return prefix;
       }();
-      this->contractName_ = Utils::bytesToString(db->get(std::string("contractName_"), this->getDBPrefix()));
-      this->contractCreator_ = Address(db->get(std::string("contractCreator_"), this->getDBPrefix()));
-      this->contractChainId_ = Utils::bytesToUint64(db->get(std::string("contractChainId_"), this->getDBPrefix()));
+      this->contractName_ = Utils::bytesToString(db.get(std::string("contractName_"), this->getDBPrefix()));
+      this->contractCreator_ = Address(db.get(std::string("contractCreator_"), this->getDBPrefix()));
+      this->contractChainId_ = Utils::bytesToUint64(db.get(std::string("contractChainId_"), this->getDBPrefix()));
     }
 
     /**

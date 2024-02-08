@@ -15,7 +15,7 @@ SimpleContract::SimpleContract(
   const Address& address,
   const Address& creator,
   const uint64_t& chainId,
-  const std::unique_ptr<DB> &db
+  DB& db
 ) : DynamicContract(interface, "SimpleContract", address, creator, chainId, db),
   name_(this), number_(this), tuple_(this)
 {
@@ -28,22 +28,22 @@ SimpleContract::SimpleContract(
 SimpleContract::SimpleContract(
   ContractManagerInterface &interface,
   const Address& address,
-  const std::unique_ptr<DB> &db
+  DB& db
 ) : DynamicContract(interface, address, db), name_(this), number_(this), tuple_(this) {
-  this->name_ = Utils::bytesToString(db->get(std::string("name_"), this->getDBPrefix()));
-  this->number_ = Utils::bytesToUint256(db->get(std::string("number_"), this->getDBPrefix()));
+  this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
+  this->number_ = Utils::bytesToUint256(db_.get(std::string("number_"), this->getDBPrefix()));
   this->tuple_ = std::make_tuple(
-    Utils::bytesToString(db->get(std::string("tuple_name"), this->getDBPrefix())),
-    Utils::bytesToUint256(db->get(std::string("tuple_number"), this->getDBPrefix()))
+    Utils::bytesToString(db_.get(std::string("tuple_name"), this->getDBPrefix())),
+    Utils::bytesToUint256(db_.get(std::string("tuple_number"), this->getDBPrefix()))
   );
   registerContractFunctions();
 }
 
 SimpleContract::~SimpleContract() {
-  this->db_->put(std::string("name_"), Utils::stringToBytes(this->name_.get()), this->getDBPrefix());
-  this->db_->put(std::string("number_"), Utils::uint256ToBytes(this->number_.get()), this->getDBPrefix());
-  this->db_->put(std::string("tuple_name"), Utils::stringToBytes(get<0>(this->tuple_)), this->getDBPrefix());
-  this->db_->put(std::string("tuple_number"), Utils::uint256ToBytes(get<1>(this->tuple_)), this->getDBPrefix());
+  this->db_.put(std::string("name_"), Utils::stringToBytes(this->name_.get()), this->getDBPrefix());
+  this->db_.put(std::string("number_"), Utils::uint256ToBytes(this->number_.get()), this->getDBPrefix());
+  this->db_.put(std::string("tuple_name"), Utils::stringToBytes(get<0>(this->tuple_)), this->getDBPrefix());
+  this->db_.put(std::string("tuple_number"), Utils::uint256ToBytes(get<1>(this->tuple_)), this->getDBPrefix());
 }
 
 void SimpleContract::setName(const std::string& argName) {

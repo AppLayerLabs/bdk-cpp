@@ -134,7 +134,7 @@ class ContractFactory {
         return std::make_unique<TContract>(
           std::get<Is>(dataTlp)...,
           *this->manager_.interface_, derivedContractAddress, creator,
-          this->manager_.options_->getChainID(), this->manager_.db_
+          this->manager_.options_.getChainID(), this->manager_.db_
         );
       } catch (const std::exception& ex) {
         /// TODO: If the contract constructor throws an exception, the contract is not created.

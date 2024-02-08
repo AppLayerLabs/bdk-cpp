@@ -73,7 +73,7 @@ class ERC20 : public DynamicContract {
     */
     ERC20(
       ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
+      const Address& address, DB& db
     );
 
     /**
@@ -93,7 +93,7 @@ class ERC20 : public DynamicContract {
       const uint8_t &erc20decimals, const uint256_t &mintValue,
       ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
-      const std::unique_ptr<DB> &db
+      DB& db
     );
 
     /// Constructor for derived types!
@@ -103,7 +103,7 @@ class ERC20 : public DynamicContract {
       const uint8_t &erc20decimals, const uint256_t &mintValue,
       ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
-      const std::unique_ptr<DB> &db
+      DB& db
     );
 
     /// Destructor.
@@ -191,7 +191,7 @@ class ERC20 : public DynamicContract {
         ERC20, const std::string &, const std::string &, const uint8_t &,
         const uint256_t &, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
+        DB&
       >(
         std::vector<std::string>{"erc20name", "erc20symbol", "erc20decimals", "mintValue"},
         std::make_tuple("name", &ERC20::name, FunctionTypes::View, std::vector<std::string>{}),

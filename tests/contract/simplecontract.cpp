@@ -20,7 +20,7 @@ See the LICENSE.txt file in the project root for more information.
 namespace TSimpleContract {
   TEST_CASE("SimpleContract class", "[contract][simplecontract]") {
     SECTION("SimpleContract creation") {
-      SDKTestSuite sdk("testSimpleContractCreation");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSimpleContractCreation");
       Address simpleContract = sdk.deployContract<SimpleContract>(
         std::string("TestName"), uint256_t(19283187581),
         std::make_tuple(std::string("TupleName"), uint256_t(987654321))
@@ -35,7 +35,7 @@ namespace TSimpleContract {
     }
 
     SECTION("SimpleContract setName, setNumber and setTuple") {
-      SDKTestSuite sdk("testSimpleContractSetNameNumberAndTuple");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testSimpleContractSetNameNumberAndTuple");
       Address simpleContract = sdk.deployContract<SimpleContract>(
         std::string("TestName"), uint256_t(19283187581),
         std::make_tuple(std::string("TupleName"), uint256_t(987654321))

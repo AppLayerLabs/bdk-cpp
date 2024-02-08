@@ -23,17 +23,17 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
     /// Pointer to the root directory of the endpoint.
     const std::shared_ptr<const std::string> docroot_;
 
-    /// Reference pointer to the blockchain's state.
-    const std::unique_ptr<State>& state_;
+    /// Reference to the blockchain's state.
+    State& state_;
 
-    /// Reference pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage_;
+    /// Reference to the blockchain's storage.
+    const Storage& storage_;
 
-    /// Reference pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal>& p2p_;
+    /// Reference to the P2P connection manager.
+    P2P::ManagerNormal& p2p_;
 
-    /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
+    /// Reference to the options singleton.
+    const Options& options_;
 
     /// Accept an incoming connection from the endpoint. The new connection gets its own strand.
     void do_accept();
@@ -59,8 +59,8 @@ class HTTPListener : public std::enable_shared_from_this<HTTPListener> {
      */
     HTTPListener(
       net::io_context& ioc, tcp::endpoint ep, const std::shared_ptr<const std::string>& docroot,
-      const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+      State& state, const Storage& storage,
+      P2P::ManagerNormal& p2p, const Options& options
     );
 
     void start(); ///< Start accepting incoming connections.

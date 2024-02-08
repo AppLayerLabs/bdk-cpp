@@ -54,17 +54,16 @@ class ContractManager : public BaseContract {
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
 
     /**
-     * Raw pointer to the blockchain state object.
+     * Raw reference to the blockchain state object.
      * Used if the contract is a payable function.
-     * Can be `nullptr` due to tests not requiring state (contract balance).
      */
-    State* state_;
+    State& state_;
 
-    /// Reference pointer to the rdPoS contract.
-    const std::unique_ptr<rdPoS>& rdpos_;
+    /// Reference to the rdPoS contract.
+    rdPoS& rdpos_;
 
-    /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
+    /// Reference to the options singleton.
+    const Options& options_;
 
     /**
      * Pointer to the contract factory object.
@@ -80,7 +79,7 @@ class ContractManager : public BaseContract {
      * Pointer to the event manager object.
      * Responsible for maintaining events emitted in contract calls.
      */
-    const std::unique_ptr<EventManager> eventManager_;
+    EventManager eventManager_;
 
     /**
      * Pointer to the call state object.
@@ -159,8 +158,8 @@ class ContractManager : public BaseContract {
      * @param options Pointer to the options singleton.
      */
     ContractManager(
-      const std::unique_ptr<DB>& db, State* state,
-      const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
+      DB& db, State& state,
+      rdPoS& rdpos, const Options& options
     );
 
     /// Destructor. Automatically saves contracts to the database before wiping them.
@@ -484,7 +483,7 @@ class ContractManagerInterface {
       if (!this->manager_.callLogger_) throw DynamicException(
         "Contracts going haywire! Trying to emit an event without an active contract call"
       );
-      this->manager_.eventManager_->registerEvent(std::move(event));
+      this->manager_.eventManager_.registerEvent(std::move(event));
     }
 
     /**

@@ -40,7 +40,7 @@ class NativeWrapper : public ERC20 {
      */
     NativeWrapper(
       ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
+      const Address& address, DB& db
     );
 
     /**
@@ -59,7 +59,7 @@ class NativeWrapper : public ERC20 {
       const uint8_t &erc20_decimals,
       ContractManagerInterface &interface,
       const Address &address, const Address &creator,
-      const uint64_t &chainId, const std::unique_ptr<DB> &db
+      const uint64_t &chainId, DB& db
     );
 
     /// Destructor.
@@ -83,7 +83,7 @@ class NativeWrapper : public ERC20 {
       ContractReflectionInterface::registerContractMethods<
         NativeWrapper, std::string &, std::string &, uint8_t &,
         ContractManagerInterface &, const Address &,
-        const Address &, const uint64_t &, const std::unique_ptr<DB> &
+        const Address &, const uint64_t &, DB&
       >(
         std::vector<std::string>{"erc20_name", "erc20_symbol", "erc20_decimals"},
         std::make_tuple("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, std::vector<std::string>{}),

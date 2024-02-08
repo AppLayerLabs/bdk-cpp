@@ -86,7 +86,7 @@ class DEXV2Router02 : public DynamicContract {
     */
     DEXV2Router02(
       ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
+      const Address& address, DB& db
     );
 
     /**
@@ -103,7 +103,7 @@ class DEXV2Router02 : public DynamicContract {
       const Address& factory, const Address& wrappedNative,
       ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
-      const std::unique_ptr<DB> &db
+      DB& db
     );
 
     // Destructor.
@@ -318,7 +318,7 @@ class DEXV2Router02 : public DynamicContract {
       ContractReflectionInterface::registerContractMethods<
         DEXV2Router02, const Address &, const Address &, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
+        const DB&
       >(
         std::vector<std::string>{"factory", "wrappedNative"},
         std::make_tuple("factory", &DEXV2Router02::factory, FunctionTypes::View, std::vector<std::string>{}),

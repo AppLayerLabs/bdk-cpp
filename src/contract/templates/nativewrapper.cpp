@@ -9,7 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 
 // Default Constructor when loading contract from DB.
 NativeWrapper::NativeWrapper(
-  ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db
+  ContractManagerInterface &interface, const Address& address, DB& db
 ) : ERC20(interface, address, db)
 {
   this->registerContractFunctions();
@@ -20,7 +20,7 @@ NativeWrapper::NativeWrapper(
   const uint8_t &erc20_decimals,
   ContractManagerInterface &interface,
   const Address &address, const Address &creator,
-  const uint64_t &chainId,const std::unique_ptr<DB> &db
+  const uint64_t &chainId, DB& db
 ) : ERC20("NativeWrapper", erc20_name, erc20_symbol, erc20_decimals,
   0, interface, address, creator, chainId, db
 ) {

@@ -96,8 +96,8 @@ namespace P2P {
 
   void ManagerBase::start() {
     this->closed_ = false;
-    this->server_->start();
-    this->clientfactory_->start();
+    this->server_.start();
+    this->clientfactory_.start();
   }
 
   void ManagerBase::stop() {
@@ -110,8 +110,8 @@ namespace P2P {
         if (auto sessionPtr = session.lock()) sessionPtr->close();
       }
     }
-    this->server_->stop();
-    this->clientfactory_->stop();
+    this->server_.stop();
+    this->clientfactory_.stop();
   }
 
   std::vector<NodeID> ManagerBase::getSessionsIDs() const {
@@ -135,12 +135,12 @@ namespace P2P {
 
   void ManagerBase::connectToServer(const boost::asio::ip::address& address, uint16_t port) {
     if (this->closed_) return;
-    if (address == this->server_->getLocalAddress() && port == this->serverPort_) return; /// Cannot connect to itself.
+    if (address == this->server_.getLocalAddress() && port == this->serverPort_) return; /// Cannot connect to itself.
     {
       std::shared_lock<std::shared_mutex> lock(this->sessionsMutex_);
       if (this->sessions_.contains({address, port})) return; // Node is already connected
     }
-    this->clientfactory_->connectToServer(address, port);
+    this->clientfactory_.connectToServer(address, port);
   }
 
   void ManagerBase::ping(const NodeID& nodeId) {

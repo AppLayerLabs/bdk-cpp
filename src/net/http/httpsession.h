@@ -81,16 +81,16 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
     boost::optional<http::request_parser<http::string_body>> parser_;
 
     /// Reference pointer to the blockchain's state.
-    const std::unique_ptr<State>& state_;
+    State& state_;
 
     /// Reference pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage_;
+    const Storage& storage_;
 
     /// Reference pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal>& p2p_;
+    P2P::ManagerNormal& p2p_;
 
     /// Reference pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
+    const Options& options_;
 
     /// Read whatever is on the internal buffer.
     void do_read();
@@ -127,10 +127,10 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
      */
     HTTPSession(tcp::socket&& sock,
       const std::shared_ptr<const std::string>& docroot,
-      const std::unique_ptr<State>& state,
-      const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p,
-      const std::unique_ptr<Options>& options
+      State& state,
+      const Storage& storage,
+      P2P::ManagerNormal& p2p,
+      const Options& options
     ) : stream_(std::move(sock)), docroot_(docroot), queue_(*this), state_(state),
       storage_(storage), p2p_(p2p), options_(options)
     {}

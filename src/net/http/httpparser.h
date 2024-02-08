@@ -71,10 +71,10 @@ namespace P2P { class ManagerNormal; }
  */
 std::string parseJsonRpcRequest(
   const std::string& body,
-  const std::unique_ptr<State>& state,
-  const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p,
-  const std::unique_ptr<Options>& options
+  State& state,
+  const Storage& storage,
+  P2P::ManagerNormal& p2p,
+  const Options& options
 );
 
 /**
@@ -92,8 +92,8 @@ std::string parseJsonRpcRequest(
 template<class Body, class Allocator, class Send> void handle_request(
   [[maybe_unused]] beast::string_view docroot,
   http::request<Body, http::basic_fields<Allocator>>&& req,
-  Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+  Send&& send, State& state, const Storage& storage,
+  P2P::ManagerNormal& p2p, const Options& options
 ) {
   // Returns a bad request response
   const auto bad_request = [&req](beast::string_view why){

@@ -203,7 +203,7 @@ namespace P2P{
   ) {
     RequestDecoder::info(*message);
     this->answerSession(session, std::make_shared<const Message>(AnswerEncoder::info(
-      *message, this->storage_->latest(), this->options_
+      *message, this->storage_.latest(), this->options_
     )));
   }
 
@@ -255,7 +255,7 @@ namespace P2P{
       }
       return;
     }
-    this->answerSession(session, std::make_shared<const Message>(AnswerEncoder::requestValidatorTxs(*message, this->rdpos_->getMempool())));
+    this->answerSession(session, std::make_shared<const Message>(AnswerEncoder::requestValidatorTxs(*message, this->rdpos_.getMempool())));
   }
 
   void ManagerNormal::handlePingAnswer(
@@ -350,8 +350,8 @@ namespace P2P{
     std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
   ) {
     try {
-      auto tx = BroadcastDecoder::broadcastValidatorTx(*message, this->options_->getChainID());
-      if (this->state_->addValidatorTx(tx)) this->broadcastMessage(message);
+      auto tx = BroadcastDecoder::broadcastValidatorTx(*message, this->options_.getChainID());
+      if (this->state_.addValidatorTx(tx)) this->broadcastMessage(message);
     } catch (std::exception &e) {
       if (auto sessionPtr = session.lock()) {
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -371,8 +371,8 @@ namespace P2P{
     std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
   ) {
     try {
-      auto tx = BroadcastDecoder::broadcastTx(*message, this->options_->getChainID());
-      if (!this->state_->addTx(std::move(tx))) this->broadcastMessage(message);
+      auto tx = BroadcastDecoder::broadcastTx(*message, this->options_.getChainID());
+      if (!this->state_.addTx(std::move(tx))) this->broadcastMessage(message);
     } catch (std::exception &e) {
       if (auto sessionPtr = session.lock()) {
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -396,15 +396,15 @@ namespace P2P{
     // making the same block be accepted, and then rejected, disconnecting the node.
     bool rebroadcast = false;
     try {
-      auto block = BroadcastDecoder::broadcastBlock(*message, this->options_->getChainID());
+      auto block = BroadcastDecoder::broadcastBlock(*message, this->options_.getChainID());
       std::unique_lock lock(this->blockBroadcastMutex_);
-      if (this->storage_->blockExists(block.hash())) {
+      if (this->storage_.blockExists(block.hash())) {
         // If the block is latest()->getNHeight() - 1, we should still rebroadcast it
-        if (this->storage_->latest()->getNHeight() - 1 == block.getNHeight()) rebroadcast = true;
+        if (this->storage_.latest()->getNHeight() - 1 == block.getNHeight()) rebroadcast = true;
         return;
       }
-      if (this->state_->validateNextBlock(block)) {
-        this->state_->processNextBlock(std::move(block));
+      if (this->state_.validateNextBlock(block)) {
+        this->state_.processNextBlock(std::move(block));
         rebroadcast = true;
       }
     } catch (std::exception &e) {
@@ -446,7 +446,7 @@ namespace P2P{
     }
     try {
       auto answerPtr = answer.get();
-      return AnswerDecoder::requestValidatorTxs(*answerPtr, this->options_->getChainID());
+      return AnswerDecoder::requestValidatorTxs(*answerPtr, this->options_.getChainID());
     } catch (std::exception &e) {
       Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
         "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
@@ -456,7 +456,7 @@ namespace P2P{
   }
 
   NodeInfo ManagerNormal::requestNodeInfo(const NodeID& nodeId) {
-    auto request = std::make_shared<const Message>(RequestEncoder::info(this->storage_->latest(), this->options_));
+    auto request = std::make_shared<const Message>(RequestEncoder::info(this->storage_.latest(), this->options_));
     Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {

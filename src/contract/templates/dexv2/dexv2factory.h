@@ -51,7 +51,7 @@ class DEXV2Factory : public DynamicContract {
      */
     DEXV2Factory(
       ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
+      const Address& address, DB& db
     );
 
     /**
@@ -67,7 +67,7 @@ class DEXV2Factory : public DynamicContract {
       const Address& feeToSetter,
       ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
-      const std::unique_ptr<DB> &db
+      DB& db
     );
 
     // Destructor.
@@ -109,9 +109,9 @@ class DEXV2Factory : public DynamicContract {
     /// Register the contract functions to the ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        DEXV2Factory, const Address&,  ContractManagerInterface &,
+        DEXV2Factory, const Address&, ContractManagerInterface &,
         const Address &, const Address &, const uint64_t &,
-        const std::unique_ptr<DB> &
+        DB &
       >(
         std::vector<std::string>{"_feeToSetter"},
         std::make_tuple("feeTo", &DEXV2Factory::feeTo, FunctionTypes::View, std::vector<std::string>{}),

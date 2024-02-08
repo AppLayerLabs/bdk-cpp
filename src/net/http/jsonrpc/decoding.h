@@ -92,7 +92,7 @@ namespace JsonRPC::Decoding {
    * @return A pair of block height and bool (include transactions).
    */
   std::pair<uint64_t,bool> eth_getBlockByNumber(
-    const json& request, const std::unique_ptr<Storage>& storage
+    const json& request, const Storage& storage
   );
 
   /**
@@ -109,7 +109,7 @@ namespace JsonRPC::Decoding {
    * @return The block number.
    */
   uint64_t eth_getBlockTransactionCountByNumber(
-    const json& request, const std::unique_ptr<Storage>& storage
+    const json& request, const Storage& storage
   );
 
   /**
@@ -142,7 +142,7 @@ namespace JsonRPC::Decoding {
    * @param storage Pointer to the blockchain's storage.
    * @return A tuple with the call response data (from, to, gas, gasPrice, value, functor, data).
    */
-  ethCallInfoAllocated eth_call(const json& request, const std::unique_ptr<Storage>& storage);
+  ethCallInfoAllocated eth_call(const json& request, const Storage& storage);
 
   /**
    * Check and parse a given `eth_estimateGas` request.
@@ -150,7 +150,7 @@ namespace JsonRPC::Decoding {
    * @param storage Reference pointer to the blockchain's storage.
    * @return A tuple with the call response data (from, to, gas, gasPrice, value, functor, data).
    */
-  ethCallInfoAllocated eth_estimateGas(const json& request, const std::unique_ptr<Storage>& storage);
+  ethCallInfoAllocated eth_estimateGas(const json& request, const Storage& storage);
 
   /**
    * Check if `eth_gasPrice` is valid.
@@ -165,7 +165,7 @@ namespace JsonRPC::Decoding {
    * @return A tuple with starting and ending block height, address and a list of topics.
    */
   std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> eth_getLogs(
-    const json& request, const std::unique_ptr<Storage>& storage
+    const json& request, const Storage& storage
   );
 
   /**
@@ -174,7 +174,7 @@ namespace JsonRPC::Decoding {
    * @param storage Pointer to the blockchain's storage.
    * @return The requested address.
    */
-  Address eth_getBalance(const json& request, const std::unique_ptr<Storage>& storage);
+  Address eth_getBalance(const json& request, const Storage& storage);
 
   /**
    * Parse an `eth_getTransactionCount` address and check if it is valid.
@@ -182,7 +182,7 @@ namespace JsonRPC::Decoding {
    * @param storage Pointer to the blockchain's storage.
    * @return The requested address.
    */
-  Address eth_getTransactionCount(const json& request, const std::unique_ptr<Storage>& storage);
+  Address eth_getTransactionCount(const json& request, const Storage& storage);
 
   /**
    * Parse an `eth_getCode` address and check if it is valid.
@@ -190,7 +190,7 @@ namespace JsonRPC::Decoding {
    * @param storage Pointer to the blockchain's storage.
    * @return The requested address.
    */
-  Address eth_getCode(const json& request, const std::unique_ptr<Storage>& storage);
+  Address eth_getCode(const json& request, const Storage& storage);
 
   /**
    * Parse a `eth_sendRawTransaction` tx and check if it is valid.
@@ -221,7 +221,7 @@ namespace JsonRPC::Decoding {
    * @return A pair of block height and index.
    */
   std::pair<uint64_t,uint64_t> eth_getTransactionByBlockNumberAndIndex(
-    const json& request, const std::unique_ptr<Storage>& storage
+    const json& request, const Storage& storage
   );
 
   /**

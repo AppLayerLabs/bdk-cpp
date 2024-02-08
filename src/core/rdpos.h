@@ -21,7 +21,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <set>
 
 // Forward declarations.
-class rdPoSWorker;
+class rdPoS;
 class Storage;
 class Block;
 class State;
@@ -54,23 +54,103 @@ class Validator : public Address {
     }
 };
 
+/**
+ * Worker class for rdPoS.
+ * This separates the class from the %rdPoS operation which runs the %rdPoS consensus.
+ */
+class rdPoSWorker {
+  private:
+    /// Reference to the parent rdPoS object.
+    rdPoS& rdpos_;
+
+    /// Flag for stopping the worker thread.
+    std::atomic<bool> stopWorker_ = false;
+
+    /**
+     * Future object for the worker thread.
+     * Used to wait for the thread to finish after stopWorker_ is set to true.
+     */
+    std::future<bool> workerFuture_;
+
+    /// Flag for knowing if the worker is ready to create a block.
+    std::atomic<bool> canCreateBlock_ = false;
+
+    /// Pointer to the latest block.
+    std::shared_ptr<const Block> latestBlock_;
+
+    /**
+     * Check if the latest block has updated.
+     * Does NOT update latestBlock per se, this is done by workerLoop().
+     * @return `true` if latest block has been updated, `false` otherwise.
+     */
+    bool checkLatestBlock();
+
+    /**
+     * Entry function for the worker thread (runs the workerLoop() function).
+     * TODO: document return
+     */
+    bool workerLoop();
+
+    /**
+     * Wait for transactions to be added to the mempool and create a block by rdPoS consesus.
+     * Called by workerLoop().
+     * TODO: this function should call State or Blockchain to let them know that we are ready to create a block.
+     */
+    void doBlockCreation();
+
+    /**
+     * Create a transaction by rdPoS consensus and broadcast it to the network.
+     * @param nHeight The block height for the transaction.
+     * @param me The Validator that will create the transaction.
+     */
+    void doTxCreation(const uint64_t& nHeight, const Validator& me);
+
+  public:
+    /**
+     * Constructor.
+     * @param rdpos Reference to the parent rdPoS object.
+     */
+    explicit rdPoSWorker(rdPoS& rdpos) : rdpos_(rdpos) {}
+
+    /**
+     * Destructor.
+     * Automatically stops the worker thread if it's still running.
+     */
+    ~rdPoSWorker() { this->stop(); }
+
+    /// Getter for `canCreateBlock_`.
+    const std::atomic<bool>& getCanCreateBlock() const { return this->canCreateBlock_; }
+
+    /// Setter for `canCreateBlock_`.
+    void blockCreated() { this->canCreateBlock_ = false; }
+
+    /**
+     * Start workerFuture_ and workerLoop.
+     * Should only be called after node is synced.
+     */
+    void start();
+
+    /// Stop workerFuture_ and workerLoop.
+    void stop();
+};
+
 /// Abstraction of the %rdPoS (Random Deterministic Proof of Stake) consensus algorithm.
 class rdPoS : public BaseContract {
   private:
+    /// Pointer to the options singleton.
+    const Options& options_;
+
     /// Pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage_;
+    const Storage& storage_;
 
     /// Pointer to the P2P Manager (for sending/requesting TxValidators from other nodes).
-    const std::unique_ptr<P2P::ManagerNormal>& p2p_;
+    P2P::ManagerNormal& p2p_;
 
     /// Pointer to the blockchain state.
-    const std::unique_ptr<State>& state_;
-
-    /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
+    State& state_;
 
     /// Pointer to the worker object.
-    const std::unique_ptr<rdPoSWorker> worker_;
+    rdPoSWorker worker_;
 
     /// Ordered list of rdPoS validators.
     std::set<Validator> validators_;
@@ -116,9 +196,9 @@ class rdPoS : public BaseContract {
      * @throw DynamicException if there are no Validators registered in the database.
      */
     rdPoS(
-      const std::unique_ptr<DB>& db, const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<P2P::ManagerNormal>& p2p,
-      const std::unique_ptr<Options>& options, const std::unique_ptr<State>& state
+      DB& db, const Storage& storage,
+      P2P::ManagerNormal& p2p,
+      const Options& options, State& state
     );
 
     /// Destructor.
@@ -141,7 +221,7 @@ class rdPoS : public BaseContract {
     }
 
     /// Getter for `mempool`. Not a reference because the inner map can be changed.
-    const std::unordered_map<Hash, TxValidator, SafeHash>& getMempool() const {
+    const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const {
       std::shared_lock lock(this->mutex_); return this->validatorMempool_;
     }
 
@@ -227,86 +307,6 @@ class rdPoS : public BaseContract {
 
     /// Worker class is a friend.
     friend rdPoSWorker;
-};
-
-/**
- * Worker class for rdPoS.
- * This separates the class from the %rdPoS operation which runs the %rdPoS consensus.
- */
-class rdPoSWorker {
-  private:
-    /// Reference to the parent rdPoS object.
-    rdPoS& rdpos_;
-
-    /// Flag for stopping the worker thread.
-    std::atomic<bool> stopWorker_ = false;
-
-    /**
-     * Future object for the worker thread.
-     * Used to wait for the thread to finish after stopWorker_ is set to true.
-     */
-    std::future<bool> workerFuture_;
-
-    /// Flag for knowing if the worker is ready to create a block.
-    std::atomic<bool> canCreateBlock_ = false;
-
-    /// Pointer to the latest block.
-    std::shared_ptr<const Block> latestBlock_;
-
-    /**
-     * Check if the latest block has updated.
-     * Does NOT update latestBlock per se, this is done by workerLoop().
-     * @return `true` if latest block has been updated, `false` otherwise.
-     */
-    bool checkLatestBlock();
-
-    /**
-     * Entry function for the worker thread (runs the workerLoop() function).
-     * TODO: document return
-     */
-    bool workerLoop();
-
-    /**
-     * Wait for transactions to be added to the mempool and create a block by rdPoS consesus.
-     * Called by workerLoop().
-     * TODO: this function should call State or Blockchain to let them know that we are ready to create a block.
-     */
-    void doBlockCreation();
-
-    /**
-     * Create a transaction by rdPoS consensus and broadcast it to the network.
-     * @param nHeight The block height for the transaction.
-     * @param me The Validator that will create the transaction.
-     */
-    void doTxCreation(const uint64_t& nHeight, const Validator& me);
-
-  public:
-    /**
-     * Constructor.
-     * @param rdpos Reference to the parent rdPoS object.
-     */
-    explicit rdPoSWorker(rdPoS& rdpos) : rdpos_(rdpos) {}
-
-    /**
-     * Destructor.
-     * Automatically stops the worker thread if it's still running.
-     */
-    ~rdPoSWorker() { this->stop(); }
-
-    /// Getter for `canCreateBlock_`.
-    const std::atomic<bool>& getCanCreateBlock() const { return this->canCreateBlock_; }
-
-    /// Setter for `canCreateBlock_`.
-    void blockCreated() { this->canCreateBlock_ = false; }
-
-    /**
-     * Start workerFuture_ and workerLoop.
-     * Should only be called after node is synced.
-     */
-    void start();
-
-    /// Stop workerFuture_ and workerLoop.
-    void stop();
 };
 
 #endif // RDPOS_H

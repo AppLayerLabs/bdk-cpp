@@ -16,13 +16,13 @@ namespace TSDKTestSuite {
   TEST_CASE("SDK Test Suite", "[sdktestsuite]") {
     SECTION("SDK Test Suite Constructor") {
       Address destinationOfTransfer = Address(Utils::randBytes(20));
-      SDKTestSuite sdkTestSuite("testSuitConstructor");
+      SDKTestSuite sdkTestSuite = SDKTestSuite::createNewEnvironment("testSuitConstructor");
       auto latestBlock = sdkTestSuite.getLatestBlock();
       REQUIRE(latestBlock->getNHeight() == 0); // Genesis
     }
 
     SECTION("SDK Test Suite advanceChain") {
-      SDKTestSuite sdkTestSuite("testSuiteAdvanceChain");
+      SDKTestSuite sdkTestSuite = SDKTestSuite::createNewEnvironment("testSuiteAdvanceChain");
       auto latestBlock = sdkTestSuite.getLatestBlock();
       REQUIRE(latestBlock->getNHeight() == 0); // Genesis
       sdkTestSuite.advanceChain();
@@ -32,7 +32,7 @@ namespace TSDKTestSuite {
 
     SECTION("SDK Test Suite Simple Transfer") {
       Address destinationOfTransfer = Address(Utils::randBytes(20));
-      SDKTestSuite sdkTestSuite("testSuiteSimpleTransfer");
+      SDKTestSuite sdkTestSuite = SDKTestSuite::createNewEnvironment("testSuiteSimpleTransfer");
       auto latestBlock = sdkTestSuite.getLatestBlock();
       REQUIRE(latestBlock->getNHeight() == 0); // Genesis
       sdkTestSuite.transfer(sdkTestSuite.getChainOwnerAccount(), destinationOfTransfer, 1000000000000000000);
@@ -44,7 +44,7 @@ namespace TSDKTestSuite {
     }
 
     SECTION("SDK Test Suite Deploy Contract") {
-      SDKTestSuite sdkTestSuite("testSuiteDeployContract");
+      SDKTestSuite sdkTestSuite = SDKTestSuite::createNewEnvironment("testSuiteDeployContract");
       auto latestBlock = sdkTestSuite.getLatestBlock();
       REQUIRE(latestBlock->getNHeight() == 0); // Genesis
       Address newContract = sdkTestSuite.deployContract<ERC20>(std::string("ERC20"), std::string("ERC20"), uint8_t(18), uint256_t("1000000000000000000"));
@@ -57,7 +57,7 @@ namespace TSDKTestSuite {
     SECTION("SDK Test Suite Deploy and Call Contract")
     {
       Address destinationOfTransfer = Address(Utils::randBytes(20));
-      SDKTestSuite sdkTestSuite("testSuiteDeployAndCall");
+      SDKTestSuite sdkTestSuite = SDKTestSuite::createNewEnvironment("testSuiteDeployAndCall");
       auto latestBlock = sdkTestSuite.getLatestBlock();
       REQUIRE(latestBlock->getNHeight() == 0); // Genesis
       Address newContract = sdkTestSuite.deployContract<ERC20>(std::string("ERC20"), std::string("ERC20"), uint8_t(18), uint256_t("1000000000000000000"));
@@ -75,7 +75,7 @@ namespace TSDKTestSuite {
     }
 
     SECTION("SDK Test Suite getEvents") {
-      SDKTestSuite sdkTestSuite("testSuiteGetEvents");
+      SDKTestSuite sdkTestSuite = SDKTestSuite::createNewEnvironment("testSuiteGetEvents");
       auto simpleContractAddress = sdkTestSuite.deployContract<SimpleContract>(
         std::string("Hello World!"), uint256_t(10), std::make_tuple(std::string("From Inside"), uint256_t(5000))
       );

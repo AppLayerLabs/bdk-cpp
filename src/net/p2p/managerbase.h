@@ -39,10 +39,10 @@ namespace P2P {
       std::atomic<bool> closed_ = true;
 
       /// Pointer to the thread pool.
-      const std::unique_ptr<BS::thread_pool_light> threadPool_;
+      BS::thread_pool_light threadPool_;
 
       /// Pointer to the options singleton.
-      const std::unique_ptr<Options>& options_;
+      const Options& options_;
 
       /// Mutex for managing read/write access to the sessions list.
       mutable std::shared_mutex sessionsMutex_;
@@ -58,13 +58,13 @@ namespace P2P {
       std::unordered_map<RequestID, std::shared_ptr<Request>, SafeHash> requests_;
 
       /// Server Object
-      const std::unique_ptr<Server> server_;
+      Server server_;
 
       /// ClientFactory Object
-      const std::unique_ptr<ClientFactory> clientfactory_;
+      ClientFactory clientfactory_;
 
       /// DiscoveryWorker.
-      const std::unique_ptr<DiscoveryWorker> discoveryWorker_;
+      DiscoveryWorker discoveryWorker_;
 
       /// Internal register function for sessions.
       bool registerSessionInternal(const std::shared_ptr<Session>& session);
@@ -121,12 +121,12 @@ namespace P2P {
        */
       ManagerBase(
           const net::ip::address& hostIp, NodeType nodeType,
-          unsigned int maxConnections, const std::unique_ptr<Options>& options
-      ) : serverPort_(options->getP2PPort()), nodeType_(nodeType), maxConnections_(maxConnections), options_(options),
-          threadPool_(std::make_unique<BS::thread_pool_light>(std::thread::hardware_concurrency() * 4)),
-          server_(std::make_unique<Server>(hostIp, options->getP2PPort(), 4, *this, this->threadPool_)),
-          clientfactory_(std::make_unique<ClientFactory>(*this, 4, this->threadPool_)),
-          discoveryWorker_(std::make_unique<DiscoveryWorker>(*this)) {};
+          unsigned int maxConnections, const Options& options
+      ) : serverPort_(options.getP2PPort()), nodeType_(nodeType), maxConnections_(maxConnections), options_(options),
+          threadPool_(std::thread::hardware_concurrency() * 4),
+          server_(hostIp, options.getP2PPort(), 4, *this, this->threadPool_),
+          clientfactory_(*this, 4, this->threadPool_),
+          discoveryWorker_(*this) {};
 
       /// Destructor. Automatically stops the manager.
       ~ManagerBase() {
@@ -141,10 +141,10 @@ namespace P2P {
       void stop();
 
       /// Start the discovery thread.
-      void startDiscovery() { this->discoveryWorker_->start(); };
+      void startDiscovery() { this->discoveryWorker_.start(); };
 
       /// Stop the discovery thread.
-      void stopDiscovery() { this->discoveryWorker_->stop(); };
+      void stopDiscovery() { this->discoveryWorker_.stop(); };
 
       /// Get the current sessions' IDs from the list.
       std::vector<NodeID> getSessionsIDs() const;
@@ -168,7 +168,7 @@ namespace P2P {
       uint64_t getPeerCount() const { std::shared_lock lock(this->sessionsMutex_); return this->sessions_.size(); }
 
       /// Check if the P2P server is running.
-      bool isServerRunning() const { return this->server_->isRunning(); }
+      bool isServerRunning() const { return this->server_.isRunning(); }
 
       /**
        * Register a session into the list.

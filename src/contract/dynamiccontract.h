@@ -264,7 +264,7 @@ class DynamicContract : public BaseContract {
       ContractManagerInterface& interface,
       const std::string& contractName, const Address& address,
       const Address& creator, const uint64_t& chainId,
-      const std::unique_ptr<DB>& db
+      DB& db
     ) : BaseContract(contractName, address, creator, chainId, db), interface_(interface) {}
 
     /**
@@ -275,7 +275,7 @@ class DynamicContract : public BaseContract {
      */
     DynamicContract(
       ContractManagerInterface& interface,
-      const Address& address, const std::unique_ptr<DB>& db
+      const Address& address, DB& db
     ) : BaseContract(address, db), interface_(interface) {}
 
     /**

@@ -57,9 +57,9 @@ std::string Event::serializeForRPC() const {
 }
 
 EventManager::EventManager(
-  const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options
+  DB& db, const Options& options
 ) : db_(db), options_(options) {
-  std::vector<DBEntry> allEvents = this->db_->getBatch(DBPrefix::events);
+  std::vector<DBEntry> allEvents = this->db_.getBatch(DBPrefix::events);
   for (const DBEntry& event : allEvents) {
     Event e(Utils::bytesToString(event.value)); // Create a new Event object by deserializing
     this->events_.insert(std::move(e)); // Use insert for MultiIndex container
@@ -83,7 +83,7 @@ EventManager::~EventManager() {
     }
   }
   // Batch save to database and clear the list
-  this->db_->putBatch(batchedOperations);
+  this->db_.putBatch(batchedOperations);
   this->events_.clear();
 }
 
@@ -94,20 +94,20 @@ std::vector<Event> EventManager::getEvents(
   std::vector<Event> ret;
   // Check if block range is within limits
   uint64_t heightDiff = std::max(fromBlock, toBlock) - std::min(fromBlock, toBlock);
-  if (heightDiff > this->options_->getEventBlockCap()) throw std::out_of_range(
+  if (heightDiff > this->options_.getEventBlockCap()) throw std::out_of_range(
     "Block range too large for event querying! Max allowed is " +
-    std::to_string(this->options_->getEventBlockCap())
+    std::to_string(this->options_.getEventBlockCap())
   );
   // Fetch from memory, then match topics from memory
   for (const Event& e : this->filterFromMemory(fromBlock, toBlock, address)) {
-    if (this->matchTopics(e, topics) && ret.size() < this->options_->getEventLogCap()) {
+    if (this->matchTopics(e, topics) && ret.size() < this->options_.getEventLogCap()) {
       ret.push_back(e);
     }
   }
-  if (ret.size() >= this->options_->getEventLogCap()) return ret;
+  if (ret.size() >= this->options_.getEventLogCap()) return ret;
   // Fetch from database if we have space left
   for (const Event& e : this->filterFromDB(fromBlock, toBlock, address, topics)) {
-    if (ret.size() >= this->options_->getEventLogCap()) break;
+    if (ret.size() >= this->options_.getEventLogCap()) break;
     ret.push_back(std::move(e));
   }
   return ret;
@@ -121,7 +121,7 @@ std::vector<Event> EventManager::getEvents(
   const auto& txHashIndex = this->events_.get<2>(); // txHash is the third index
   auto [start, end] = txHashIndex.equal_range(txHash);
   for (auto it = start; it != end; it++) {
-    if (ret.size() >= this->options_->getEventLogCap()) break;
+    if (ret.size() >= this->options_.getEventLogCap()) break;
     const Event& e = *it;
     if (e.getBlockIndex() == blockIndex && e.getTxIndex() == txIndex) ret.push_back(e);
   }
@@ -129,8 +129,8 @@ std::vector<Event> EventManager::getEvents(
   Bytes fetchBytes = DBPrefix::events;
   Utils::appendBytes(fetchBytes, Utils::uint64ToBytes(blockIndex));
   Utils::appendBytes(fetchBytes, Utils::uint64ToBytes(txIndex));
-  for (DBEntry entry : this->db_->getBatch(fetchBytes)) {
-    if (ret.size() >= this->options_->getEventLogCap()) break;
+  for (DBEntry entry : this->db_.getBatch(fetchBytes)) {
+    if (ret.size() >= this->options_.getEventLogCap()) break;
     Event e(Utils::bytesToString(entry.value));
     ret.push_back(e);
   }
@@ -171,7 +171,7 @@ std::vector<Event> EventManager::filterFromDB(
   Utils::appendBytes(endBytes, Utils::uint64ToBytes(toBlock));
 
   // Get the keys first, based on block height, then filter by address if there is one
-  for (Bytes key : this->db_->getKeys(DBPrefix::events, startBytes, endBytes)) {
+  for (Bytes key : this->db_.getKeys(DBPrefix::events, startBytes, endBytes)) {
     uint64_t nHeight = Utils::bytesToUint64(Utils::create_view_span(key, 0, 8));
     Address addr(Utils::create_view_span(key, 24, 20));
     if (
@@ -181,8 +181,8 @@ std::vector<Event> EventManager::filterFromDB(
   }
 
   // Get the key values
-  for (DBEntry item : this->db_->getBatch(DBPrefix::events, dbKeys)) {
-    if (ret.size() >= this->options_->getEventLogCap()) break;
+  for (DBEntry item : this->db_.getBatch(DBPrefix::events, dbKeys)) {
+    if (ret.size() >= this->options_.getEventLogCap()) break;
     Event e(Utils::bytesToString(item.value));
     if (this->matchTopics(e, topics)) ret.push_back(e);
   }

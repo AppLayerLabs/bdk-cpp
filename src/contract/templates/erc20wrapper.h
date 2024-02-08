@@ -45,7 +45,7 @@ class ERC20Wrapper : public DynamicContract {
      */
     ERC20Wrapper(
       ContractManagerInterface& interface,
-      const Address& contractAddress, const std::unique_ptr<DB>& db
+      const Address& contractAddress, DB& db
     );
 
     /**
@@ -59,7 +59,7 @@ class ERC20Wrapper : public DynamicContract {
     ERC20Wrapper(
       ContractManagerInterface& interface,
       const Address& address, const Address& creator,
-      const uint64_t& chainId, const std::unique_ptr<DB>& db
+      const uint64_t& chainId, DB& db
     );
 
     /// Register contract class via ContractReflectionInterface.
@@ -67,7 +67,7 @@ class ERC20Wrapper : public DynamicContract {
       ContractReflectionInterface::registerContractMethods<
         ERC20Wrapper, ContractManagerInterface&,
         const Address&, const Address&, const uint64_t&,
-        const std::unique_ptr<DB>&
+        DB&
       >(
         std::vector<std::string>{},
         std::make_tuple("getContractBalance", &ERC20Wrapper::getContractBalance, FunctionTypes::View, std::vector<std::string>{"token"}),

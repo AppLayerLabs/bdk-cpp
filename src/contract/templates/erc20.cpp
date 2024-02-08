@@ -8,19 +8,19 @@ See the LICENSE.txt file in the project root for more information.
 #include "erc20.h"
 
 // Default Constructor when loading contract from DB.
-ERC20::ERC20(ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db) :
+ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db) :
   DynamicContract(interface, address, db), name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this) {
 
-  this->name_ = Utils::bytesToString(db->get(std::string("name_"), this->getDBPrefix()));
-  this->symbol_ = Utils::bytesToString(db->get(std::string("symbol_"), this->getDBPrefix()));
-  this->decimals_ = Utils::bytesToUint8(db->get(std::string("decimals_"), this->getDBPrefix()));
-  this->totalSupply_ = Utils::bytesToUint256(db->get(std::string("totalSupply_"), this->getDBPrefix()));
-  auto balances = db->getBatch(this->getNewPrefix("balances_"));
+  this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = Utils::bytesToString(db_.get(std::string("symbol_"), this->getDBPrefix()));
+  this->decimals_ = Utils::bytesToUint8(db_.get(std::string("decimals_"), this->getDBPrefix()));
+  this->totalSupply_ = Utils::bytesToUint256(db_.get(std::string("totalSupply_"), this->getDBPrefix()));
+  auto balances = db_.getBatch(this->getNewPrefix("balances_"));
   for (const auto& dbEntry : balances) {
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
 
-  auto allowances = db->getBatch(this->getNewPrefix("allowed_"));
+  auto allowances = db_.getBatch(this->getNewPrefix("allowed_"));
   for (const auto& dbEntry : allowances) {
     BytesArrView valueView(dbEntry.value);
     this->allowed_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
@@ -40,7 +40,7 @@ ERC20::ERC20(
   const uint8_t& erc20decimals_, const uint256_t& mintValue,
   ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
-  const std::unique_ptr<DB>& db
+  DB& db
 ) : DynamicContract(interface, "ERC20", address, creator, chainId, db),
   name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
@@ -59,7 +59,7 @@ ERC20::ERC20(
   const uint8_t& erc20decimals_, const uint256_t& mintValue,
   ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
-  const std::unique_ptr<DB>& db
+  DB& db
 ) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
     name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
@@ -73,10 +73,10 @@ ERC20::ERC20(
 
 ERC20::~ERC20() {
   DBBatch batchOperations;
-  this->db_->put(std::string("name_"), name_.get(), this->getDBPrefix());
-  this->db_->put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
-  this->db_->put(std::string("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
-  this->db_->put(std::string("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
+  this->db_.put(std::string("name_"), name_.get(), this->getDBPrefix());
+  this->db_.put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
+  this->db_.put(std::string("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
+  this->db_.put(std::string("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
 
   for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
     const auto& key = it->first.get();
@@ -92,7 +92,7 @@ ERC20::~ERC20() {
       batchOperations.push_back(key, value, this->getNewPrefix("allowed_"));
     }
   }
-  this->db_->putBatch(batchOperations);
+  this->db_.putBatch(batchOperations);
 }
 
 void ERC20::registerContractFunctions() {

@@ -27,23 +27,23 @@ enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
  */
 class State {
   private:
-    /// Pointer to the database.
-    const std::unique_ptr<DB>& db_;
+    /// Reference to the options singleton.
+    const Options& options_;
 
-    /// Pointer to the blockchain's storage.
-    const std::unique_ptr<Storage>& storage_;
+    /// Reference to the database.
+    DB& db_;
 
-    /// Pointer to the rdPoS object.
-    const std::unique_ptr<rdPoS>& rdpos_;
+    /// Reference to the blockchain's storage.
+    Storage& storage_;
 
-    /// Pointer to the P2P connection manager.
-    const std::unique_ptr<P2P::ManagerNormal> &p2pManager_;
+    /// Reference to the rdPoS object.
+    rdPoS& rdpos_;
 
-    /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
+    /// Reference to the P2P connection manager.
+    P2P::ManagerNormal &p2pManager_;
 
-    /// Pointer to the contract manager.
-    const std::unique_ptr<ContractManager> contractManager_;
+    /// Contract Manager.
+    ContractManager contractManager_;
 
     /// Map with information about blockchain accounts (Address -> Account).
     std::unordered_map<Address, Account, SafeHash> accounts_;
@@ -95,11 +95,11 @@ class State {
      * @throw DynamicException on any database size mismatch.
      */
     State(
-      const std::unique_ptr<DB>& db,
-      const std::unique_ptr<Storage>& storage,
-      const std::unique_ptr<rdPoS>& rdpos,
-      const std::unique_ptr<P2P::ManagerNormal>& p2pManager,
-      const std::unique_ptr<Options>& options
+      DB& db,
+      Storage& storage,
+      rdPoS& rdpos,
+      P2P::ManagerNormal& p2pManager,
+      const Options& options
     );
 
     /// Destructor.
@@ -213,13 +213,16 @@ class State {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The return of the called function as a data string.
      */
-    Bytes ethCall(const ethCallInfo& callInfo);
+    Bytes ethCall(const ethCallInfo& callInfo) const;
 
     /**
      * Estimate gas for callInfo in RPC.
      * Doesn't really "estimate" gas, but rather tells if the transaction is valid or not.
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return `true` if the call is valid, `false` otherwise.
+     * TODO: This function should be considered 'const' as it doesn't change the state, but it is not due
+     * to calling non-const contract functions. This should be fixed in the future (even if we call non-const functions,
+     * the state is ALWAYS reverted to its original state after the call).
      */
     bool estimateGas(const ethCallInfo& callInfo);
 

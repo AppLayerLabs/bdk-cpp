@@ -23,7 +23,7 @@ See the LICENSE.txt file in the project root for more information.
 namespace TNativeWrapper {
   TEST_CASE("NativeWrapper tests", "[contract][nativewrapper]") {
     SECTION("NativeWrapper creation") {
-      SDKTestSuite sdk("testNativeWrapperCreation");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testNativeWrapperCreation");
       Address nativeWrapper = sdk.deployContract<NativeWrapper>(
         std::string("WrappedToken"), std::string("WTKN"), uint8_t(18)
       );
@@ -35,7 +35,7 @@ namespace TNativeWrapper {
     }
 
     SECTION("NativeWrapper deposit() and withdraw()") {
-      SDKTestSuite sdk("testNativeWrapperDepositAndWithdraw");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testNativeWrapperDepositAndWithdraw");
       Address nativeWrapper = sdk.deployContract<NativeWrapper>(
         std::string("WrappedToken"), std::string("WTKN"), uint8_t(18)
       );

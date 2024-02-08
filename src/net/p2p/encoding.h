@@ -185,7 +185,7 @@ namespace P2P {
        */
       static Message info(
         const std::shared_ptr<const Block>& latestBlock,
-        const std::unique_ptr<Options>& options
+        const Options& options
       );
 
       /**
@@ -253,7 +253,7 @@ namespace P2P {
        */
       static Message info(const Message& request,
         const std::shared_ptr<const Block>& latestBlock,
-        const std::unique_ptr<Options>& options
+        const Options& options
       );
 
       /**

@@ -32,7 +32,7 @@ class ThrowTestC : public DynamicContract {
     * @param db The database to use.
     */
     ThrowTestC(ContractManagerInterface &interface, const Address& address,
-      const Address& creator, const uint64_t& chainId, const std::unique_ptr<DB> &db
+      const Address& creator, const uint64_t& chainId, DB& db
     );
 
     /**
@@ -41,7 +41,7 @@ class ThrowTestC : public DynamicContract {
     * @param address The address of the contract.
     * @param db The database to use.
     */
-    ThrowTestC(ContractManagerInterface &interface, const Address& address, const std::unique_ptr<DB> &db);
+    ThrowTestC(ContractManagerInterface &interface, const Address& address, DB& db);
 
     ~ThrowTestC() override; ///< Destructor.
 
@@ -54,7 +54,7 @@ class ThrowTestC : public DynamicContract {
     */
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        ThrowTestC, ContractManagerInterface&, const Address&, const Address&, const uint64_t&, const std::unique_ptr<DB>&
+        ThrowTestC, ContractManagerInterface&, const Address&, const Address&, const uint64_t&, DB&
       >(
         std::vector<std::string>{},
         std::make_tuple("getNumC", &ThrowTestC::getNumC, FunctionTypes::View, std::vector<std::string>{}),

@@ -1,6 +1,7 @@
 set(TESTS_HEADERS
   ""
   ${CMAKE_SOURCE_DIR}/tests/sdktestsuite.hpp
+  ${CMAKE_SOURCE_DIR}/tests/blockchainwrapper.hpp
   PARENT_SCOPE
 )
 

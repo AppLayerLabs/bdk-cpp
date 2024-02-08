@@ -9,10 +9,10 @@ See the LICENSE.txt file in the project root for more information.
 
 std::string parseJsonRpcRequest(
   const std::string& body,
-  const std::unique_ptr<State>& state,
-  const std::unique_ptr<Storage>& storage,
-  const std::unique_ptr<P2P::ManagerNormal>& p2p,
-  const std::unique_ptr<Options>& options
+  State& state,
+  const Storage& storage,
+  P2P::ManagerNormal& p2p,
+  const Options& options
 ) {
   json ret;
   uint64_t id = 0;
@@ -127,7 +127,7 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_sendRawTransaction:
         ret = JsonRPC::Encoding::eth_sendRawTransaction(
-          JsonRPC::Decoding::eth_sendRawTransaction(request, options->getChainID()),
+          JsonRPC::Decoding::eth_sendRawTransaction(request, options.getChainID()),
           state, p2p
         );
         break;

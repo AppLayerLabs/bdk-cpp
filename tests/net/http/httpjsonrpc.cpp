@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/net/http/httpserver.h"
 #include "../../src/core/state.h"
 #include "../../src/core/storage.h"
+#include "../../blockchainwrapper.hpp"
 
 std::string makeHTTPRequest(
   const std::string& reqBody, const std::string& host, const std::string& port,
@@ -82,7 +83,7 @@ std::string makeHTTPRequest(
 }
 
 
-const std::vector<Hash> validatorPrivKeys {
+const std::vector<Hash> validatorPrivKeysHttpJsonRpc {
   Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
   Hash(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
   Hash(Hex::toBytes("0x8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da")),
@@ -97,67 +98,15 @@ const std::vector<Hash> validatorPrivKeys {
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
 // Definition from state.cpp, when linking, the compiler should find the function.
-Block createValidBlock(std::unique_ptr<rdPoS>& rdpos, std::unique_ptr<Storage>& storage, const std::vector<TxBlock>& txs = {});
+Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, rdPoS& rdpos, Storage& storage, const std::vector<TxBlock>& txs = {});
 
-// We initialize the blockchain database
-// To make sure that if the genesis is changed within the main source code
-// The tests will still work, as tests uses own genesis block.
-void initialize(std::unique_ptr<DB>& db,
-                std::unique_ptr<Storage>& storage,
-                std::unique_ptr<P2P::ManagerNormal>& p2p,
-                std::unique_ptr<rdPoS>& rdpos,
-                std::unique_ptr<State>& state,
-                std::unique_ptr<HTTPServer>& httpServer,
-                std::unique_ptr<Options>& options,
-                PrivKey validatorKey,
-                uint64_t serverPort,
-                uint64_t httpServerPort,
-                bool clearDb,
-                std::string folderPath) {
-  std::string dbName = folderPath + "/db";
-  if (clearDb) {
-    if (std::filesystem::exists(dbName)) {
-      std::filesystem::remove_all(dbName);
-    }
-    if(std::filesystem::exists(dbName + "/options.json")) {
-      std::filesystem::remove(dbName + "/options.json");
-    }
-  }
-  db = std::make_unique<DB>(dbName);
-  std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
-  PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
-  uint64_t genesisTimestamp = 1678887538000000;
-  Block genesis(Hash(), 0, 0);
-  genesis.finalize(genesisPrivKey, genesisTimestamp);
-  std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
-  std::vector<Address> genesisValidators;
-  for (const auto& privKey : validatorPrivKeys) {
-    genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
-  }
-  options = std::make_unique<Options>(
-    folderPath,
-    "OrbiterSDK/cpp/linux_x86-64/0.2.0",
-    1,
-    8080,
-    Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-    serverPort,
-    httpServerPort,
-    2000,
-    10000,
-    discoveryNodes,
-    genesis,
-    genesisTimestamp,
-    genesisPrivKey,
-    genesisBalances,
-    genesisValidators
-  );
-  storage = std::make_unique<Storage>(db, options);
-  p2p = std::make_unique<P2P::ManagerNormal>(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, state);
-  rdpos = std::make_unique<rdPoS>(db, storage, p2p, options, state);
-
-  state = std::make_unique<State>(db, storage, rdpos, p2p, options);
-  httpServer = std::make_unique<HTTPServer>(state, storage, p2p, options);
-}
+// Blockchain wrapper initializer for testing purposes.
+// Defined in rdpos.cpp
+TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
+                                 const PrivKey& validatorKey,
+                                 const uint64_t& serverPort,
+                                 bool clearDb,
+                                 const std::string& folderName);
 
 template <typename T>
 json requestMethod(std::string method, T params) {
@@ -169,7 +118,7 @@ json requestMethod(std::string method, T params) {
            {"params", params}
          }).dump(),
     "127.0.0.1",
-    std::to_string(8081),
+    std::to_string(9999), // Default port for HTTPJsonRPC
     "/",
     "POST",
     "application/json"));
@@ -180,16 +129,9 @@ namespace THTTPJsonRPC{
     SECTION("HTTPJsonRPC") {
       /// One section to lead it all
       /// Reasoning: we don't want to keep opening and closing everything per Section, just initialize once and run.
-      std::unique_ptr<DB> db;
-      std::unique_ptr<Storage> storage;
-      std::unique_ptr<P2P::ManagerNormal> p2p;
-      std::unique_ptr<rdPoS> rdpos;
-      std::unique_ptr<State> state;
-      std::unique_ptr<HTTPServer> httpServer;
-      std::unique_ptr<Options> options;
       std::string testDumpPath = Utils::getTestDumpPath();
-      initialize(db, storage, p2p, rdpos, state, httpServer, options, validatorPrivKeys[0], 8080, 8081, true, testDumpPath + "/HTTPjsonRPC");
-
+      auto blockchainWrapper = initialize(validatorPrivKeysHttpJsonRpc, validatorPrivKeysHttpJsonRpc[0], 8080, true, testDumpPath + "/HTTPjsonRPC");
+      std::cout << "blockchainWrapper coinbase: " << blockchainWrapper.options.getCoinbase().hex() << std::endl;
 
       /// Make random transactions within a given block, we need to include requests for getting txs and blocks
       Address targetOfTransactions = Address(Utils::randBytes(20));
@@ -202,13 +144,13 @@ namespace THTTPJsonRPC{
       std::vector<TxBlock> transactions;
       for (auto &[privkey, val]: randomAccounts) {
         Address me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
-        state->addBalance(me);
+        blockchainWrapper.state.addBalance(me);
         transactions.emplace_back(
           targetOfTransactions,
           me,
           Bytes(),
           8080,
-          state->getNativeNonce(me),
+          blockchainWrapper.state.getNativeNonce(me),
           1000000000000000000,
           21000,
           1000000000,
@@ -217,19 +159,19 @@ namespace THTTPJsonRPC{
         );
 
         /// Take note of expected balance and nonce
-        val.first = state->getNativeBalance(me) - (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
+        val.first = blockchainWrapper.state.getNativeBalance(me) - (transactions.back().getMaxFeePerGas() * transactions.back().getGasLimit()) -
                     transactions.back().getValue();
-        val.second = state->getNativeNonce(me) + 1;
+        val.second = blockchainWrapper.state.getNativeNonce(me) + 1;
         targetExpectedValue += transactions.back().getValue();
       }
 
-      auto newBestBlock = createValidBlock(rdpos, storage, transactions);
+      auto newBestBlock = createValidBlock(validatorPrivKeysHttpJsonRpc, blockchainWrapper.rdpos, blockchainWrapper.storage, transactions);
 
-      REQUIRE(state->validateNextBlock(newBestBlock));
+      REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
 
-      state->processNextBlock(Block(newBestBlock));
+      blockchainWrapper.state.processNextBlock(Block(newBestBlock));
 
-      httpServer->start();
+      blockchainWrapper.http.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       json web3_clientVersionResponse = requestMethod("web3_clientVersion", json::array());
@@ -339,7 +281,7 @@ namespace THTTPJsonRPC{
       REQUIRE(eth_syncingResponse["result"] == false);
 
       json eth_coinbaseResponse = requestMethod("eth_coinbase", json::array());
-      REQUIRE(eth_coinbaseResponse["result"] == Address().hex(true));
+      REQUIRE(eth_coinbaseResponse["result"] == Address(Hex::toBytes("0x1531bfdf7d48555a0034e4647fa46d5a04c002c3")).hex(true));
 
       json eth_blockNumberResponse = requestMethod("eth_blockNumber", json::array());
       REQUIRE(eth_blockNumberResponse["result"] == "0x1");
@@ -371,7 +313,7 @@ namespace THTTPJsonRPC{
         Secp256k1::toAddress(Secp256k1::toUPub(randomAccounts.begin()->first)),
         Bytes(),
         8080,
-        state->getNativeNonce(Secp256k1::toAddress(Secp256k1::toUPub(randomAccounts.begin()->first))),
+        blockchainWrapper.state.getNativeNonce(Secp256k1::toAddress(Secp256k1::toUPub(randomAccounts.begin()->first))),
         1000000000000000000,
         21000,
         1000000000,

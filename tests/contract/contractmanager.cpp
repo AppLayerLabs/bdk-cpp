@@ -12,8 +12,20 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/db.h"
 #include "../../src/utils/options.h"
 #include "../../src/utils/dynamicexception.h"
+#include "../blockchainwrapper.hpp"
 #include <filesystem>
 #include <sys/types.h>
+
+const std::vector<Hash> validatorPrivKeysContractManager {
+  Hash(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8")),
+  Hash(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66")),
+  Hash(Hex::toBytes("0x8a52bb289198f0bcf141688a8a899bf1f04a02b003a8b1aa3672b193ce7930da")),
+  Hash(Hex::toBytes("0x9048f5e80549e244b7899e85a4ef69512d7d68613a3dba828266736a580e7745")),
+  Hash(Hex::toBytes("0x0b6f5ad26f6eb79116da8c98bed5f3ed12c020611777d4de94c3c23b9a03f739")),
+  Hash(Hex::toBytes("0xa69eb3a3a679e7e4f6a49fb183fb2819b7ab62f41c341e2e2cc6288ee22fbdc7")),
+  Hash(Hex::toBytes("0xd9b0613b7e4ccdb0f3a5ab0956edeb210d678db306ab6fae1e2b0c9ebca1c2c5")),
+  Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
+};
 
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
   ethCallInfoAllocated callInfo;
@@ -23,6 +35,12 @@ ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& 
   data = dataToCall;
   return callInfo;
 }
+
+TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
+                                 const PrivKey& validatorKey,
+                                 const uint64_t& serverPort,
+                                 bool clearDb,
+                                 const std::string& folderName);
 
 namespace TContractManager {
   std::string testDumpPath = Utils::getTestDumpPath();
@@ -44,10 +62,8 @@ namespace TContractManager {
       uint256_t tokenSupply = 1000000000000000000;
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
-        std::unique_ptr<rdPoS> rdpos;
-        ContractManager contractManager(db, nullptr, rdpos, options);
+        auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, true, "ContractManagerTestCreateNew");
+        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
 
         Bytes createNewERC20ContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals, tokenSupply);
         Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");  // createNewERC20Contract(string,string,uint8,uint256)
@@ -98,10 +114,8 @@ namespace TContractManager {
         REQUIRE(std::get<0>(getBalanceMeDecoder) == tokenSupply);
       }
 
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
-      std::unique_ptr<rdPoS> rdpos;
-      ContractManager contractManager(db, nullptr, rdpos, options);
+      auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, false, "ContractManagerTestCreateNew");
+      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
 
       const auto contractAddress = contractManager.getContracts()[0].second;
 
@@ -116,8 +130,8 @@ namespace TContractManager {
     }
 
     SECTION("ContractManager createNewContractERC20ContractTransferTo()") {
-      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
-        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestTransferTo")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestTransferTo");
       }
       if (!std::filesystem::exists(testDumpPath)) { // Ensure the testdump folder actually exists
         std::filesystem::create_directories(testDumpPath);
@@ -132,10 +146,8 @@ namespace TContractManager {
       uint256_t tokenSupply = 1000000000000000000;
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
-        std::unique_ptr<rdPoS> rdpos;
-        ContractManager contractManager(db, nullptr, rdpos, options);
+        auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, true, "ContractManagerTestTransferTo");
+        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
 
         Bytes createNewERC20ContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals, tokenSupply);
 
@@ -199,10 +211,9 @@ namespace TContractManager {
         REQUIRE(std::get<0>(getBalanceDestinationDecoder) == 500000000000000000);
       }
 
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
-      std::unique_ptr<rdPoS> rdpos;
-      ContractManager contractManager(db, nullptr, rdpos, options);
+      auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, false, "ContractManagerTestTransferTo");
+      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
+
 
       const auto contractAddress = contractManager.getContracts()[0].second;
 
@@ -224,8 +235,8 @@ namespace TContractManager {
     }
 
     SECTION("ContractManager testNestedCalls") {
-      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
-        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestNestedCalls")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestNestedCalls");
       }
       if (!std::filesystem::exists(testDumpPath)) { // Ensure the testdump folder actually exists
         std::filesystem::create_directories(testDumpPath);
@@ -236,10 +247,8 @@ namespace TContractManager {
       Address contractA, contractB, contractC;
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
-        std::unique_ptr<rdPoS> rdpos;
-        ContractManager contractManager(db, nullptr, rdpos, options);
+        auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, true, "ContractManagerTestNestedCalls");
+        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
 
         // Create the contracts
         TxBlock createNewTestThrowATx = TxBlock(
@@ -266,9 +275,12 @@ namespace TContractManager {
         // Create the transaction that will nest call setNum
         // Remember that uint256_t encodes and decodes all other uints
 
+
+
         Bytes setNumEnc = ABI::Encoder::encodeData(200, contractB, 100, contractC, 3);
         Functor setNumFunctor = ABI::FunctorEncoder::encode<uint8_t, Address, uint8_t, Address, uint8_t>("setNumA");
         Bytes setNumBytes;
+
         Utils::appendBytes(setNumBytes, setNumFunctor);
         Utils::appendBytes(setNumBytes, setNumEnc);
         TxBlock setNumTx(contractA, owner, setNumBytes, 8080, 0, 0, 0, 0, 0, privKey);
@@ -280,10 +292,8 @@ namespace TContractManager {
       }
 
       // Tx should've thrown by now, check if all values are intact
-      std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
-      std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
-      std::unique_ptr<rdPoS> rdpos;
-      ContractManager contractManager(db, nullptr, rdpos, options);
+      auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, false, "ContractManagerTestNestedCalls");
+      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
       Bytes getNumEncA = Bytes(32, 0);
       Bytes getNumEncB = Bytes(32, 0);
       Bytes getNumEncC = Bytes(32, 0);
@@ -302,8 +312,8 @@ namespace TContractManager {
     }
 
     SECTION("ContractManager ethCall() throws") {
-      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestCreateNew")) {
-        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestCreateNew");
+      if (std::filesystem::exists(testDumpPath + "/ContractManagerTestEthCall")) {
+        std::filesystem::remove_all(testDumpPath + "/ContractManagerTestEthCall");
       }
       if (!std::filesystem::exists(testDumpPath)) { // Ensure the testdump folder actually exists
         std::filesystem::create_directories(testDumpPath);
@@ -313,11 +323,10 @@ namespace TContractManager {
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(privKey));
 
       {
-        std::unique_ptr options = std::make_unique<Options>(Options::fromFile(testDumpPath + "/ContractManagerTestCreateNew"));
-        std::unique_ptr db = std::make_unique<DB>(testDumpPath + "/ContractManagerTestCreateNew");
-        std::unique_ptr<rdPoS> rdpos;
         ethCallInfo callInfo;
-        ContractManager contractManager(db, nullptr, rdpos, options);
+
+        auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, true, "ContractManagerTestEthCall");
+        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
 
         try {
             contractManager.ethCall(callInfo);

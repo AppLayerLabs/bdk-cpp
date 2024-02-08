@@ -104,7 +104,7 @@ if [ "$ONLY_DEPLOY" = false ]; then
   ## Build the project
   cd build_local_testnet
   cmake -DDEBUG=$DEBUG ..
-  make -j${CORES}
+  cmake --build . --target orbitersdkd orbitersdkd-discovery -- -j${CORES}
 fi
 
 if [ "$DEPLOY" = true ]; then

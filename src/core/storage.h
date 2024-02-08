@@ -31,10 +31,10 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
 class Storage {
   private:
     /// Pointer to the database that contains the blockchain's entire history.
-    const std::unique_ptr<DB>& db_;
+    DB& db_;
 
     /// Pointer to the options singleton.
-    const std::unique_ptr<Options>& options_;
+    const Options& options_;
 
     /**
      * The recent blockchain history, up to the 1000 most recent blocks,
@@ -143,7 +143,7 @@ class Storage {
      * @param db Pointer to the database.
      * @param options Pointer to the options singleton.
      */
-    Storage(const std::unique_ptr<DB>& db, const std::unique_ptr<Options>& options);
+    Storage(DB& db, const Options& options);
 
     /**
      * Destructor.
@@ -235,13 +235,13 @@ class Storage {
      * Get the most recently added block from the chain.
      * @returns A pointer to the latest block.
      */
-    std::shared_ptr<const Block> latest();
+    std::shared_ptr<const Block> latest() const;
 
     /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
-    uint64_t currentChainSize();
+    uint64_t currentChainSize() const;
 
     /// Start the periodic save thread. TODO: this should be called by the constructor.
-    void periodicSaveToDB() const;
+    void periodicSaveToDB();
 
     /// Stop the periodic save thread. TODO: this should be called by the destructor.
     void stopPeriodicSaveToDB() { this->stopPeriodicSave_ = true; }

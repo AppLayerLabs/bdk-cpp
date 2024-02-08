@@ -16,79 +16,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/options.h"
 #include "../utils/db.h"
 
-// Forward declarations.
-class Syncer;
-
-/**
- * Master class that represents the blockchain as a whole.
- * Contains, and acts as the middleman of, every other part of the core and net protocols.
- * Those parts interact with one another by communicating through this class.
- */
-class Blockchain {
-  private:
-    const std::unique_ptr<Options> options_; ///< Pointer to the options singleton.
-    const std::unique_ptr<DB> db_; ///< Pointer to the database.
-    const std::unique_ptr<Storage> storage_; ///< Pointer to the blockchain storage.
-    const std::unique_ptr<State> state_; ///< Pointer to the blockchain state.
-    const std::unique_ptr<rdPoS> rdpos_; ///< Pointer to the rdPoS object (consensus).
-    const std::unique_ptr<P2P::ManagerNormal> p2p_; ///< Pointer to the P2P connection manager.
-    const std::unique_ptr<HTTPServer> http_; ///< Pointer to the HTTP server.
-    const std::unique_ptr<Syncer> syncer_; ///< Pointer to the blockchain syncer.
-
-  public:
-    /**
-     * Constructor.
-     * @param blockchainPath Root path of the blockchain.
-     */
-    explicit Blockchain(const std::string& blockchainPath);
-
-    /// Default destructor.
-    ~Blockchain() = default;
-
-    /**
-     * Start the blockchain.
-     * Initializes P2P, HTTP and Syncer, in this order.
-     */
-    void start();
-
-    /**
-     * Stop/shutdown the blockchain.
-     * Stops Syncer, HTTP and P2P, in this order (reverse order of start()).
-     */
-    void stop();
-
-    /// Getter for `options_`.
-    const std::unique_ptr<Options>& getOptions() const { return this->options_; };
-
-    /// Getter for `db_`.
-    const std::unique_ptr<DB>& getDB() const { return this->db_; };
-
-    /// Getter for `storage_`.
-    const std::unique_ptr<Storage>& getStorage() const { return this->storage_; };
-
-    /// Getter for `rdpos_`.
-    const std::unique_ptr<rdPoS>& getrdPoS() const { return this->rdpos_; };
-
-    /// Getter for `state_`.
-    const std::unique_ptr<State>& getState() const { return this->state_; };
-
-    /// Getter for `p2p_`.
-    const std::unique_ptr<P2P::ManagerNormal>& getP2P() const { return this->p2p_; };
-
-    /// Getter for `http_`.
-    const std::unique_ptr<HTTPServer>& getHTTP() const { return this->http_; };
-
-    /// Getter for `syncer_`.
-    const std::unique_ptr<Syncer>& getSyncer() const { return this->syncer_; };
-
-    /**
-     * Check if the blockchain syncer is synced.
-     * @return `true` if the syncer is synced, `false` otherwise.
-     */
-    const std::atomic<bool>& isSynced() const;
-
-    friend class Syncer;
-};
+// Forward declaration for Syncer.
+class Blockchain;
 
 /**
  * Helper class that syncs the node with the network.
@@ -174,6 +103,77 @@ class Syncer {
 
     /// Stop the syncer routine loop.
     void stop();
+};
+
+/**
+ * Master class that represents the blockchain as a whole.
+ * Contains, and acts as the middleman of, every other part of the core and net protocols.
+ * Those parts interact with one another by communicating through this class.
+ */
+class Blockchain {
+  private:
+    Options options_; ///< options singleton.
+    DB db_; ///< database.
+    Storage storage_; ///< blockchain storage.
+    State state_; ///< blockchain state.
+    rdPoS rdpos_; ///< rdPoS object (consensus).
+    P2P::ManagerNormal p2p_; ///< P2P connection manager.
+    HTTPServer http_; ///< HTTP server.
+    Syncer syncer_; ///< blockchain syncer.
+
+  public:
+    /**
+     * Constructor.
+     * @param blockchainPath Root path of the blockchain.
+     */
+    explicit Blockchain(const std::string& blockchainPath);
+
+    /// Default destructor.
+    ~Blockchain() = default;
+
+    /**
+     * Start the blockchain.
+     * Initializes P2P, HTTP and Syncer, in this order.
+     */
+    void start();
+
+    /**
+     * Stop/shutdown the blockchain.
+     * Stops Syncer, HTTP and P2P, in this order (reverse order of start()).
+     */
+    void stop();
+
+    /// Getter for `options_`.
+    Options& getOptions() { return this->options_; };
+
+    /// Getter for `db_`.
+    DB& getDB() { return this->db_; };
+
+    /// Getter for `storage_`.
+    Storage& getStorage() { return this->storage_; };
+
+    /// Getter for `rdpos_`.
+    rdPoS& getrdPoS() { return this->rdpos_; };
+
+    /// Getter for `state_`.
+    State& getState() { return this->state_; };
+
+    /// Getter for `p2p_`.
+    P2P::ManagerNormal& getP2P() { return this->p2p_; };
+
+    /// Getter for `http_`.
+    HTTPServer& getHTTP() { return this->http_; };
+
+    /// Getter for `syncer_`.
+    Syncer& getSyncer() { return this->syncer_; };
+
+    /**
+     * Check if the blockchain syncer is synced.
+     * @return `true` if the syncer is synced, `false` otherwise.
+     */
+    const std::atomic<bool>& isSynced() const;
+
+    friend class Syncer;
 };
 
 #endif // BLOCKCHAIN_H

@@ -15,21 +15,21 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/dynamicexception.h"
 
 ContractManager::ContractManager(
-  const std::unique_ptr<DB>& db, State* state,
-  const std::unique_ptr<rdPoS>& rdpos, const std::unique_ptr<Options>& options
-) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options->getChainOwner(), 0, db),
+  DB& db, State& state,
+  rdPoS& rdpos, const Options& options
+) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), 0, db),
   state_(state),
   rdpos_(rdpos),
   options_(options),
   factory_(std::make_unique<ContractFactory>(*this)),
   interface_(std::make_unique<ContractManagerInterface>(*this)),
-  eventManager_(std::make_unique<EventManager>(db, options))
+  eventManager_(db, options)
 {
   this->callLogger_ = std::make_unique<ContractCallLogger>(*this);
   this->factory_->registerContracts<ContractTypes>();
   this->factory_->addAllContractFuncs<ContractTypes>();
   // Load Contracts from DB
-  std::vector<DBEntry> contractsFromDB = this->db_->getBatch(DBPrefix::contractManager);
+  std::vector<DBEntry> contractsFromDB = this->db_.getBatch(DBPrefix::contractManager);
   for (const DBEntry& contract : contractsFromDB) {
     Address address(contract.key);
     if (!this->loadFromDB<ContractTypes>(contract, address)) {
@@ -47,7 +47,7 @@ ContractManager::~ContractManager() {
       DBPrefix::contractManager
     );
   }
-  this->db_->putBatch(contractsBatch);
+  this->db_.putBatch(contractsBatch);
 }
 
 Address ContractManager::deriveContractAddress() const {
@@ -106,27 +106,27 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
       this->ethCall(callInfo);
     } catch (std::exception &e) {
       this->callLogger_.reset();
-      this->eventManager_->revertEvents();
+      this->eventManager_.revertEvents();
       throw DynamicException(e.what());
     }
     this->callLogger_->shouldCommit();
     this->callLogger_.reset();
-    this->eventManager_->commitEvents(tx.hash(), txIndex);
+    this->eventManager_.commitEvents(tx.hash(), txIndex);
     return;
   }
 
   if (to == ProtocolContractAddresses.at("rdPoS")) {
-    this->callLogger_->setContractVars(rdpos_.get(), from, from, value);
+    this->callLogger_->setContractVars(&rdpos_, from, from, value);
     try {
-      rdpos_->ethCall(callInfo);
+      rdpos_.ethCall(callInfo);
     } catch (std::exception &e) {
       this->callLogger_.reset();
-      this->eventManager_->revertEvents();
+      this->eventManager_.revertEvents();
       throw DynamicException(e.what());
     }
     this->callLogger_->shouldCommit();
     this->callLogger_.reset();
-    this->eventManager_->commitEvents(tx.hash(), txIndex);
+    this->eventManager_.commitEvents(tx.hash(), txIndex);
     return;
   }
 
@@ -134,7 +134,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
   auto it = this->contracts_.find(to);
   if (it == this->contracts_.end()) {
     this->callLogger_.reset();
-    this->eventManager_->revertEvents();
+    this->eventManager_.revertEvents();
     throw DynamicException(std::string(__func__) + "(void): Contract does not exist");
   }
 
@@ -144,22 +144,22 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     this->callLogger_.reset();
-    this->eventManager_->revertEvents();
+    this->eventManager_.revertEvents();
     throw DynamicException(e.what());
   }
 
   if (contract->isPayableFunction(functor)) {
-    this->state_->processContractPayable(this->callLogger_->getBalances());
+    this->state_.processContractPayable(this->callLogger_->getBalances());
   }
   this->callLogger_->shouldCommit();
   this->callLogger_.reset();
-  this->eventManager_->commitEvents(tx.hash(), txIndex);
+  this->eventManager_.commitEvents(tx.hash(), txIndex);
 }
 
 Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
   if (to == this->getContractAddress()) return this->ethCallView(callInfo);
-  if (to == ProtocolContractAddresses.at("rdPoS")) return rdpos_->ethCallView(callInfo);
+  if (to == ProtocolContractAddresses.at("rdPoS")) return rdpos_.ethCallView(callInfo);
   std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   if (!this->contracts_.contains(to)) {
     throw DynamicException(std::string(__func__) + "(Bytes): Contract does not exist");
@@ -195,8 +195,8 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     }
 
     if (to == ProtocolContractAddresses.at("rdPoS")) {
-      this->callLogger_->setContractVars(rdpos_.get(), from, from, value);
-      rdpos_->ethCall(callInfo);
+      this->callLogger_->setContractVars(&rdpos_, from, from, value);
+      rdpos_.ethCall(callInfo);
       this->callLogger_.reset();
       return true;
     }
@@ -247,13 +247,13 @@ std::vector<Event> ContractManager::getEvents(
   const uint64_t& fromBlock, const uint64_t& toBlock,
   const Address& address, const std::vector<Hash>& topics
 ) const {
-  return this->eventManager_->getEvents(fromBlock, toBlock, address, topics);
+  return this->eventManager_.getEvents(fromBlock, toBlock, address, topics);
 }
 
 const std::vector<Event> ContractManager::getEvents(
   const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
 ) const {
-  return this->eventManager_->getEvents(txHash, blockIndex, txIndex);
+  return this->eventManager_.getEvents(txHash, blockIndex, txIndex);
 }
 
 void ContractManager::updateContractGlobals(
@@ -275,9 +275,9 @@ void ContractManagerInterface::populateBalance(const Address &address) const {
     "Contracts going haywire! Trying to call ContractState without an active callContract"
   );
   if (!this->manager_.callLogger_->hasBalance(address)) {
-    auto it = this->manager_.state_->accounts_.find(address);
+    auto it = this->manager_.state_.accounts_.find(address);
     this->manager_.callLogger_->setBalanceAt(address,
-      (it != this->manager_.state_->accounts_.end()) ? it->second.balance : 0
+      (it != this->manager_.state_.accounts_.end()) ? it->second.balance : 0
     );
   }
 }

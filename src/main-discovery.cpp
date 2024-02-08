@@ -13,7 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 int main() {
   // Local binary path + /blockchain
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/discoveryNode");
-  const auto options = std::make_unique<Options>(Options::fromFile(blockchainPath));
+  const auto options = Options::fromFile(blockchainPath);
   P2P::ManagerDiscovery p2p(boost::asio::ip::address::from_string("127.0.0.1"), options);
   p2p.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));

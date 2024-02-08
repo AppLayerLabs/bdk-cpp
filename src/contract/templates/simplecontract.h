@@ -74,7 +74,7 @@ class SimpleContract : public DynamicContract {
       const Address& address,
       const Address& creator,
       const uint64_t& chainId,
-      const std::unique_ptr<DB> &db
+      DB& db
     );
 
     /**
@@ -86,7 +86,7 @@ class SimpleContract : public DynamicContract {
     SimpleContract(
       ContractManagerInterface &interface,
       const Address& address,
-      const std::unique_ptr<DB> &db
+      DB& db
     );
 
     ~SimpleContract() override; ///< Destructor.
@@ -158,7 +158,7 @@ class SimpleContract : public DynamicContract {
         SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
         ContractManagerInterface&,
         const Address&, const Address&, const uint64_t&,
-        const std::unique_ptr<DB>&
+        DB&
       >(
         std::vector<std::string>{"name_", "number_", "tuple_"},
         std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),

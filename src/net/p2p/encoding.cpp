@@ -40,12 +40,12 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message RequestEncoder::info(const std::shared_ptr<const Block>& latestBlock, const std::unique_ptr<Options> &options) {
+  Message RequestEncoder::info(const std::shared_ptr<const Block>& latestBlock, const Options& options) {
     Bytes message = getRequestTypePrefix(Requesting);
     message.reserve(message.size() + 8 + 2 + 8 + 8 + 8 + 32);
     Utils::appendBytes(message, Utils::randBytes(8));
     Utils::appendBytes(message, getCommandPrefix(Info));
-    Utils::appendBytes(message, Utils::uint64ToBytes(options->getVersion()));
+    Utils::appendBytes(message, Utils::uint64ToBytes(options.getVersion()));
     uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::system_clock::now().time_since_epoch()
     ).count();
@@ -108,13 +108,13 @@ namespace P2P {
 
   Message AnswerEncoder::info(const Message& request,
     const std::shared_ptr<const Block>& latestBlock,
-    const std::unique_ptr<Options> &options
+    const Options& options
   ) {
     Bytes message = getRequestTypePrefix(Answering);
     message.reserve(message.size() + 8 + 2 + 8 + 8 + 8 + 32);
     Utils::appendBytes(message, request.id());
     Utils::appendBytes(message, getCommandPrefix(Info));
-    Utils::appendBytes(message, Utils::uint64ToBytes(options->getVersion()));
+    Utils::appendBytes(message, Utils::uint64ToBytes(options.getVersion()));
     uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::system_clock::now().time_since_epoch()
     ).count();

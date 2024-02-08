@@ -69,10 +69,10 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json web3_clientVersion(const std::unique_ptr<Options>& options) {
+  json web3_clientVersion(const Options& options) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    ret["result"] = options->getWeb3ClientVersion();
+    ret["result"] = options.getWeb3ClientVersion();
     return ret;
   }
 
@@ -83,10 +83,10 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json net_version(const std::unique_ptr<Options>& options) {
+  json net_version(const Options& options) {
     json ret;
     ret["jsonrpc"] = 2.0;
-    ret["result"] = std::to_string(options->getVersion());
+    ret["result"] = std::to_string(options.getVersion());
     return ret;
   }
 
@@ -97,54 +97,54 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json net_peerCount(const std::unique_ptr<P2P::ManagerNormal>& manager) {
+  json net_peerCount(const P2P::ManagerNormal& manager) {
     json ret;
     ret["jsonrpc"] = 2.0;
-    ret["result"] = Hex::fromBytes(Utils::uintToBytes(manager->getPeerCount()), true).forRPC();
+    ret["result"] = Hex::fromBytes(Utils::uintToBytes(manager.getPeerCount()), true).forRPC();
     return ret;
   }
 
-  json eth_protocolVersion(const std::unique_ptr<Options>& options) {
+  json eth_protocolVersion(const Options& options) {
     json ret;
     ret["jsonrpc"] = 2.0;
-    ret["result"] = options->getSDKVersion();
+    ret["result"] = options.getSDKVersion();
     return ret;
   }
 
-  json eth_getBlockByHash(const std::pair<Hash,bool>& blockInfo, const std::unique_ptr<Storage>& storage) {
+  json eth_getBlockByHash(const std::pair<Hash,bool>& blockInfo, const Storage& storage) {
     auto const& [blockHash, includeTransactions] = blockInfo;
-    auto block = storage->getBlock(blockHash);
+    auto block = storage.getBlock(blockHash);
     return getBlockJson(block, includeTransactions);
   }
 
-  json eth_getBlockByNumber(const std::pair<uint64_t,bool>& blockInfo, const std::unique_ptr<Storage>& storage) {
+  json eth_getBlockByNumber(const std::pair<uint64_t,bool>& blockInfo, const Storage& storage) {
     auto const& [blockNumber, includeTransactions] = blockInfo;
-    auto block = storage->getBlock(blockNumber);
+    auto block = storage.getBlock(blockNumber);
     return getBlockJson(block, includeTransactions);
   }
 
-  json eth_getBlockTransactionCountByHash(const Hash& blockHash, const std::unique_ptr<Storage>& storage) {
+  json eth_getBlockTransactionCountByHash(const Hash& blockHash, const Storage& storage) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    auto block = storage->getBlock(blockHash);
+    auto block = storage.getBlock(blockHash);
     if (block == nullptr) ret["result"] = json::value_t::null;
     ret["result"] = Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true).forRPC();
     return ret;
   }
 
-  json eth_getBlockTransactionCountByNumber(const uint64_t& blockNumber, const std::unique_ptr<Storage>& storage) {
+  json eth_getBlockTransactionCountByNumber(const uint64_t& blockNumber, const Storage& storage) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    auto block = storage->getBlock(blockNumber);
+    auto block = storage.getBlock(blockNumber);
     if (block == nullptr) ret["result"] = json::value_t::null;
     ret["result"] = Hex::fromBytes(Utils::uintToBytes(block->getTxs().size()), true).forRPC();
     return ret;
   }
 
-  json eth_chainId(const std::unique_ptr<Options>& options) {
+  json eth_chainId(const Options& options) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    ret["result"] = Hex::fromBytes(Utils::uintToBytes(options->getChainID()), true).forRPC();
+    ret["result"] = Hex::fromBytes(Utils::uintToBytes(options.getChainID()), true).forRPC();
     return ret;
   }
 
@@ -155,28 +155,28 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_coinbase(const std::unique_ptr<Options>& options) {
+  json eth_coinbase(const Options& options) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    ret["result"] = options->getCoinbase().hex(true);
+    ret["result"] = options.getCoinbase().hex(true);
     return ret;
   }
 
-  json eth_blockNumber(const std::unique_ptr<Storage>& storage) {
+  json eth_blockNumber(const Storage& storage) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    auto latestBlock = storage->latest();
+    auto latestBlock = storage.latest();
     ret["result"] = Hex::fromBytes(Utils::uintToBytes(latestBlock->getNHeight()), true).forRPC();
     return ret;
   }
 
-  json eth_call(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state) {
+  json eth_call(const ethCallInfoAllocated& callInfo, const State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
     try {
       std::cout << "Calling State...: " << std::endl;
       std::cout << "callInfo functor: " << std::get<5>(callInfo).hex() << std::endl;
-      auto result = Hex::fromBytes(state->ethCall(callInfo), true);
+      auto result = Hex::fromBytes(state.ethCall(callInfo), true);
       ret["result"] = result;
     } catch (std::exception& e) {
       ret["error"]["code"] = -32000;
@@ -185,11 +185,13 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_estimateGas(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state) {
+  json eth_estimateGas(const ethCallInfoAllocated& callInfo, State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
     try {
-      state->estimateGas(callInfo);
+      if (!state.estimateGas(callInfo)) {
+        throw std::runtime_error("Insufficient balance for tx.value() + gas");
+      }
       ret["result"] = "0x5208"; // Fixed to 21000 for now.
     } catch (std::exception& e) {
       ret["error"]["code"] = -32000;
@@ -208,12 +210,12 @@ namespace JsonRPC::Encoding {
 
   json eth_getLogs(
     std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> info,
-    const std::unique_ptr<State>& state
+    const State& state
   ) {
     json ret;
     ret["jsonrpc"] = "2.0";
     try {
-      const std::vector<Event> events = state->getEvents(
+      const std::vector<Event> events = state.getEvents(
         std::get<0>(info), std::get<1>(info), std::get<2>(info), std::get<3>(info)
       );
       for (const Event& e : events) ret["result"].push_back(e.serializeForRPC());
@@ -224,17 +226,17 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_getBalance(const Address& address, const std::unique_ptr<State>& state) {
+  json eth_getBalance(const Address& address, const State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    ret["result"] = Hex::fromBytes(Utils::uintToBytes(state->getNativeBalance(address)), true).forRPC();
+    ret["result"] = Hex::fromBytes(Utils::uintToBytes(state.getNativeBalance(address)), true).forRPC();
     return ret;
   }
 
-  json eth_getTransactionCount(const Address& address, const std::unique_ptr<State>& state) {
+  json eth_getTransactionCount(const Address& address, const State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    ret["result"] = Hex::fromBytes(Utils::uintToBytes(state->getNativeNonce(address)), true).forRPC();
+    ret["result"] = Hex::fromBytes(Utils::uintToBytes(state.getNativeNonce(address)), true).forRPC();
     return ret;
   }
 
@@ -245,17 +247,17 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_sendRawTransaction(const TxBlock& tx, const std::unique_ptr<State>& state, const std::unique_ptr<P2P::ManagerNormal>& p2p) {
+  json eth_sendRawTransaction(const TxBlock& tx, State& state, P2P::ManagerNormal& p2p) {
     json ret;
     ret["jsonrpc"] = "2.0";
     const auto& txHash = tx.hash();
     // We can't move as we need to broadcast the tx (see below)
-    auto TxInvalid = state->addTx(TxBlock(tx));
+    auto TxInvalid = state.addTx(TxBlock(tx));
     if (!TxInvalid) {
       ret["result"] = txHash.hex(true);
       // TODO: Make this use threadpool instead of blocking
-      // TODO: Make tx broadcasting better, the current solution is not good.
-      p2p->broadcastTxBlock(tx);
+      // TODO: Make tx broadcasting better, the current solution is **not good**.
+      p2p.broadcastTxBlock(tx);
     } else {
       ret["error"]["code"] = -32000;
       switch (TxInvalid) {
@@ -272,10 +274,10 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_getTransactionByHash(const Hash& txHash, const std::unique_ptr<Storage>& storage, const std::unique_ptr<State>& state) {
+  json eth_getTransactionByHash(const Hash& txHash, const Storage& storage, const State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    auto txOnMempool = state->getTxFromMempool(txHash);
+    auto txOnMempool = state.getTxFromMempool(txHash);
     if (txOnMempool != nullptr) {
       ret["result"]["blockHash"] = json::value_t::null;
       ret["result"]["blockIndex"] = json::value_t::null;
@@ -294,7 +296,7 @@ namespace JsonRPC::Encoding {
       return ret;
     }
 
-    auto txOnChain = storage->getTx(txHash);
+    auto txOnChain = storage.getTx(txHash);
     const auto& [tx, blockHash, blockIndex, blockHeight] = txOnChain;
     if (tx != nullptr) {
       ret["result"]["blockHash"] = blockHash.hex(true);
@@ -317,11 +319,11 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_getTransactionByBlockHashAndIndex(const std::pair<Hash,uint64_t>& requestInfo, const std::unique_ptr<Storage>& storage) {
+  json eth_getTransactionByBlockHashAndIndex(const std::pair<Hash,uint64_t>& requestInfo, const Storage& storage) {
     json ret;
     ret["jsonrpc"] = "2.0";
     const auto& [blockHash, blockIndex] = requestInfo;
-    auto txInfo = storage->getTxByBlockHashAndIndex(blockHash, blockIndex);
+    auto txInfo = storage.getTxByBlockHashAndIndex(blockHash, blockIndex);
     const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
     if (tx != nullptr) {
       ret["result"]["blockHash"] = txBlockHash.hex(true);
@@ -344,11 +346,11 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_getTransactionByBlockNumberAndIndex(const std::pair<uint64_t,uint64_t>& requestInfo, const std::unique_ptr<Storage>& storage) {
+  json eth_getTransactionByBlockNumberAndIndex(const std::pair<uint64_t,uint64_t>& requestInfo, const Storage& storage) {
     json ret;
     ret["jsonrpc"] = "2.0";
     const auto& [blockNumber, blockIndex] = requestInfo;
-    auto txInfo = storage->getTxByBlockNumberAndIndex(blockNumber, blockIndex);
+    auto txInfo = storage.getTxByBlockNumberAndIndex(blockNumber, blockIndex);
     const auto& [tx, txBlockHash, txBlockIndex, txBlockHeight] = txInfo;
     if (tx != nullptr) {
       ret["result"]["blockHash"] = txBlockHash.hex(true);
@@ -372,12 +374,12 @@ namespace JsonRPC::Encoding {
   }
 
   json eth_getTransactionReceipt(
-    const Hash& txHash, const std::unique_ptr<Storage>& storage,
-    const std::unique_ptr<State>& state
+    const Hash& txHash, const Storage& storage,
+    const State& state
   ) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    auto txInfo = storage->getTx(txHash);
+    auto txInfo = storage.getTx(txHash);
     const auto& [tx, blockHash, txIndex, blockHeight] = txInfo;
     if (tx != nullptr) {
       ret["result"]["transactionHash"] = tx->hash().hex(true);
@@ -396,7 +398,7 @@ namespace JsonRPC::Encoding {
       ret["result"]["type"] = "0x00";
       ret["result"]["root"] = Hash().hex(true);
       ret["result"]["status"] = "0x1"; // TODO: change this when contracts are ready
-      for (const Event& e : state->getEvents(txHash, blockHeight, txIndex)) {
+      for (const Event& e : state.getEvents(txHash, blockHeight, txIndex)) {
         ret["result"]["logs"].push_back(e.serializeForRPC());
       }
       return ret;

@@ -37,7 +37,7 @@ namespace JsonRPC::Encoding {
    * @param options Pointer to the options singleton.
    * @return The encoded JSON response.
    */
-  json web3_clientVersion(const std::unique_ptr<Options>& options);
+  json web3_clientVersion(const Options& options);
 
   /**
    * Encode a `web3_sha3` response.
@@ -51,7 +51,7 @@ namespace JsonRPC::Encoding {
    * @param options Pointer to the options singleton.
    * @return The encoded JSON response.
    */
-  json net_version(const std::unique_ptr<Options>& options);
+  json net_version(const Options& options);
 
   /**
    * Encode a `net_listening` response.
@@ -65,14 +65,14 @@ namespace JsonRPC::Encoding {
    * @param manager Pointer to the P2P connection manager.
    * @return The encoded JSON response.
    */
-  json net_peerCount(const std::unique_ptr<P2P::ManagerNormal>& manager);
+  json net_peerCount(const P2P::ManagerNormal& manager);
 
   /**
    * Encode a `eth_protocolVersion` response.
    * @param options Pointer to the options singleton.
    * @return The encoded JSON response.
    */
-  json eth_protocolVersion(const std::unique_ptr<Options>& options);
+  json eth_protocolVersion(const Options& options);
 
   /**
    * Encode a `eth_getBlockByHash` response.
@@ -81,7 +81,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   json eth_getBlockByHash(
-    const std::pair<Hash,bool>& blockInfo, const std::unique_ptr<Storage>& storage
+    const std::pair<Hash,bool>& blockInfo, const Storage& storage
   );
 
   /**
@@ -91,7 +91,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   json eth_getBlockByNumber(
-    const std::pair<uint64_t,bool>& blockInfo, const std::unique_ptr<Storage>& storage
+    const std::pair<uint64_t,bool>& blockInfo, const Storage& storage
   );
 
   /**
@@ -101,7 +101,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   json eth_getBlockTransactionCountByHash(
-    const Hash& blockHash, const std::unique_ptr<Storage>& storage
+    const Hash& blockHash, const Storage& storage
   );
 
   /**
@@ -111,7 +111,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   json eth_getBlockTransactionCountByNumber(
-    const uint64_t& blockNumber, const std::unique_ptr<Storage>& storage
+    const uint64_t& blockNumber, const Storage& storage
   );
 
   /**
@@ -119,7 +119,7 @@ namespace JsonRPC::Encoding {
    * @param options Pointer to the options singleton.
    * @return The encoded JSON response.
    */
-  json eth_chainId(const std::unique_ptr<Options>& options);
+  json eth_chainId(const Options& options);
 
   /**
    * Encode a `eth_syncing` response.
@@ -133,14 +133,14 @@ namespace JsonRPC::Encoding {
    * @param options Pointer to the options singleton.
    * @return The encoded JSON response.
    */
-  json eth_coinbase(const std::unique_ptr<Options>& options);
+  json eth_coinbase(const Options& options);
 
   /**
    * Encode a `eth_blockNumber` response.
    * @param storage Pointer to the blockchain's storage.
    * @return The encoded JSON response.
    */
-  json eth_blockNumber(const std::unique_ptr<Storage>& storage);
+  json eth_blockNumber(const Storage& storage);
 
   /**
    * Encode a `eth_call` response.
@@ -148,7 +148,7 @@ namespace JsonRPC::Encoding {
    * @param state Pointer to the blockchain's state.
    * @return The encoded JSON response.
    */
-  json eth_call(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state);
+  json eth_call(const ethCallInfoAllocated& callInfo, const State& state);
 
   /**,
    * Encode a `eth_estimateGas` response.
@@ -157,7 +157,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   // TODO: We don't really estimate gas because we don't have a Gas structure, it is fixed to 21000
-  json eth_estimateGas(const ethCallInfoAllocated& callInfo, const std::unique_ptr<State>& state);
+  json eth_estimateGas(const ethCallInfoAllocated& callInfo, State& state);
 
   /**
    * Encode a `eth_gasPrice` response.
@@ -174,7 +174,7 @@ namespace JsonRPC::Encoding {
    */
   json eth_getLogs(
     std::tuple<uint64_t, uint64_t, Address, std::vector<Hash>> info,
-    const std::unique_ptr<State>& state
+    const State& state
   );
 
   /**
@@ -183,7 +183,7 @@ namespace JsonRPC::Encoding {
    * @param state Pointer to the blockchain's state.
    * @return The encoded JSON response.
    */
-  json eth_getBalance(const Address& address, const std::unique_ptr<State>& state);
+  json eth_getBalance(const Address& address, const State& state);
 
   /**
    * Encode a `eth_getTransactionCount` response.
@@ -191,7 +191,7 @@ namespace JsonRPC::Encoding {
    * @param state Pointer to the blockchain's state.
    * @return The encoded JSON response.
    */
-  json eth_getTransactionCount(const Address& address, const std::unique_ptr<State>& state);
+  json eth_getTransactionCount(const Address& address, const State& state);
 
   /**
    * Encode a `eth_getCode` response (always returns "0x").
@@ -209,7 +209,7 @@ namespace JsonRPC::Encoding {
    */
   // TODO: WAITING FOR BLOCKCHAIN
   json eth_sendRawTransaction(
-    const TxBlock& tx, const std::unique_ptr<State>& state, const std::unique_ptr<P2P::ManagerNormal>& p2p
+    const TxBlock& tx, State& state, P2P::ManagerNormal& p2p
   );
 
   /**
@@ -220,7 +220,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   json eth_getTransactionByHash(
-    const Hash& txHash, const std::unique_ptr<Storage>& storage, const std::unique_ptr<State>& state
+    const Hash& txHash, const Storage& storage, const State& state
   );
 
   /**
@@ -230,7 +230,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   json eth_getTransactionByBlockHashAndIndex(
-    const std::pair<Hash,uint64_t>& requestInfo, const std::unique_ptr<Storage>& storage
+    const std::pair<Hash,uint64_t>& requestInfo, const Storage& storage
   );
 
   /**
@@ -240,7 +240,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   json eth_getTransactionByBlockNumberAndIndex(
-    const std::pair<uint64_t,uint64_t>& requestInfo, const std::unique_ptr<Storage>& storage
+    const std::pair<uint64_t,uint64_t>& requestInfo, const Storage& storage
   );
 
   /**
@@ -251,8 +251,8 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   json eth_getTransactionReceipt(
-    const Hash& txHash, const std::unique_ptr<Storage>& storage,
-    const std::unique_ptr<State>& state
+    const Hash& txHash, const Storage& storage,
+    const State& state
   );
 }
 

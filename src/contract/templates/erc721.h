@@ -177,7 +177,7 @@ public:
    * @param db Reference to the database object.
    */
   ERC721(ContractManagerInterface &interface, const Address &address,
-         const std::unique_ptr<DB> &db);
+         DB& db);
 
   /**
    * Constructor to be used when creating a new contract.
@@ -192,7 +192,7 @@ public:
   ERC721(const std::string &erc721name, const std::string &erc721symbol,
          ContractManagerInterface &interface, const Address &address,
          const Address &creator, const uint64_t &chainId,
-         const std::unique_ptr<DB> &db);
+         DB& db);
 
   /**
    * Constructor to be used when creating a new contract.
@@ -208,7 +208,7 @@ public:
   ERC721(const std::string &derivedTypeName, const std::string &erc721name,
          const std::string &erc721symbol, ContractManagerInterface &interface,
          const Address &address, const Address &creator,
-         const uint64_t &chainId, const std::unique_ptr<DB> &db);
+         const uint64_t &chainId, DB& db);
 
   /// Destructor.
   ~ERC721() override;
@@ -310,7 +310,7 @@ public:
     ContractReflectionInterface::registerContractMethods<
         ERC721, const std::string &, const std::string &,
         ContractManagerInterface &, const Address &, const Address &,
-        const uint64_t &, const std::unique_ptr<DB> &>(
+        const uint64_t &, DB&>(
         std::vector<std::string>{"erc721name", "erc721symbol"},
         std::make_tuple("name", &ERC721::name, FunctionTypes::View,
                         std::vector<std::string>{}),

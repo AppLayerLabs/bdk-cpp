@@ -67,7 +67,7 @@ namespace P2P {
        * @param options Pointer to the options singleton.
        */
       ManagerDiscovery(
-        const boost::asio::ip::address& hostIp, const std::unique_ptr<Options>& options
+        const boost::asio::ip::address& hostIp, const Options& options
       ) : ManagerBase(hostIp, NodeType::DISCOVERY_NODE, 200, options) {};
 
       /// Destructor. Automatically stops the manager.

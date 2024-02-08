@@ -12,11 +12,11 @@ See the LICENSE.txt file in the project root for more information.
 #include <sys/types.h>
 
 DEXV2Router02::DEXV2Router02(
-  ContractManagerInterface &interface, const Address &address, const std::unique_ptr<DB> &db
+  ContractManagerInterface &interface, const Address &address, DB& db
 ) : DynamicContract(interface, address, db), factory_(this), wrappedNative_(this)
 {
-  this->factory_ = Address(this->db_->get(Utils::stringToBytes("factory_"), this->getDBPrefix()));
-  this->wrappedNative_ = Address(this->db_->get(Utils::stringToBytes("wrappedNative_"), this->getDBPrefix()));
+  this->factory_ = Address(this->db_.get(Utils::stringToBytes("factory_"), this->getDBPrefix()));
+  this->wrappedNative_ = Address(this->db_.get(Utils::stringToBytes("wrappedNative_"), this->getDBPrefix()));
   this->factory_.commit();
   this->wrappedNative_.commit();
   this->registerContractFunctions();
@@ -26,7 +26,7 @@ DEXV2Router02::DEXV2Router02(
   const Address& factory, const Address& nativeWrapper,
   ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
-  const std::unique_ptr<DB> &db
+  DB& db
 ) : DynamicContract(interface, "DEXV2Router02", address, creator, chainId, db),
   factory_(this), wrappedNative_(this)
 {
@@ -45,7 +45,7 @@ DEXV2Router02::~DEXV2Router02() {
   batchOperations.push_back(
     Utils::stringToBytes("wrappedNative_"), this->wrappedNative_.get().view(), this->getDBPrefix()
   );
-  this->db_->putBatch(batchOperations);
+  this->db_.putBatch(batchOperations);
 }
 
 void DEXV2Router02::registerContractFunctions() {

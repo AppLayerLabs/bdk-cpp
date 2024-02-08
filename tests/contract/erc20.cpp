@@ -22,7 +22,7 @@ See the LICENSE.txt file in the project root for more information.
 namespace TERC20 {
   TEST_CASE("ERC2O Class", "[contract][erc20]") {
     SECTION("ERC20 creation") {
-      SDKTestSuite sdk("testERC20Creation");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20Creation");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
@@ -35,7 +35,7 @@ namespace TERC20 {
     }
 
     SECTION("ERC20 transfer()") {
-      SDKTestSuite sdk("testERC20Transfer");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20Transfer");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
@@ -62,7 +62,7 @@ namespace TERC20 {
     }
 
     SECTION("ERC20 approve()") {
-      SDKTestSuite sdk("testERC20Approve");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20Approve");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );
@@ -77,7 +77,7 @@ namespace TERC20 {
     }
 
     SECTION("ERC20 transferFrom()") {
-      SDKTestSuite sdk("testERC20TransferFrom");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20TransferFrom");
       Address erc20 = sdk.deployContract<ERC20>(
         std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("1000000000000000000")
       );

@@ -26,12 +26,12 @@ See the LICENSE.txt file in the project root for more information.
 namespace TDEXV2 {
   TEST_CASE("DEXV2 Test", "[contract][dexv2]") {
     SECTION("Deploy DEXV2Router/Factory with a single pair") {
-      SDKTestSuite sdk("testDEXV2SinglePair");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2SinglePair");
       Address wrapped = sdk.deployContract<NativeWrapper>(std::string("WSPARQ"), std::string("WSPARQ"), uint8_t(18));
       Address factory = sdk.deployContract<DEXV2Factory>(Address());
       Address router = sdk.deployContract<DEXV2Router02>(factory, wrapped);
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& contract : sdk.getState()->getContracts()) {
+      for (const auto& contract : sdk.getState().getContracts()) {
         if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
         if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
         if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
@@ -39,14 +39,14 @@ namespace TDEXV2 {
     }
 
     SECTION("Deploy DEXV2 and add liquidity to token/token pair") {
-      SDKTestSuite sdk("testDEXV2LiqTokenTokenPair");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenTokenPair");
       Address tokenA = sdk.deployContract<ERC20>(std::string("TokenA"), std::string("TKNA"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address tokenB = sdk.deployContract<ERC20>(std::string("TokenB"), std::string("TKNB"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address wrapped = sdk.deployContract<NativeWrapper>(std::string("WSPARQ"), std::string("WSPARQ"), uint8_t(18));
       Address factory = sdk.deployContract<DEXV2Factory>(Address());
       Address router = sdk.deployContract<DEXV2Router02>(factory, wrapped);
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& contract : sdk.getState()->getContracts()) {
+      for (const auto& contract : sdk.getState().getContracts()) {
         if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
         if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
         if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
@@ -84,13 +84,13 @@ namespace TDEXV2 {
     }
 
     SECTION("Deploy DEXV2 and add liquidity to token/native pair") {
-      SDKTestSuite sdk("testDEXV2LiqTokenNativePair");
+      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testDEXV2LiqTokenNativePair");
       Address tokenA = sdk.deployContract<ERC20>(std::string("TokenA"), std::string("TKNA"), uint8_t(18), uint256_t("10000000000000000000000"));
       Address wrapped = sdk.deployContract<NativeWrapper>(std::string("WSPARQ"), std::string("WSPARQ"), uint8_t(18));
       Address factory = sdk.deployContract<DEXV2Factory>(Address());
       Address router = sdk.deployContract<DEXV2Router02>(factory, wrapped);
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& contract : sdk.getState()->getContracts()) {
+      for (const auto& contract : sdk.getState().getContracts()) {
         if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
         if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
         if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
