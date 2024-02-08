@@ -136,7 +136,7 @@ void initialize(std::unique_ptr<DB>& db,
   }
   options = std::make_unique<Options>(
     folderPath,
-    "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     1,
     8080,
     Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -234,7 +234,7 @@ namespace THTTPJsonRPC{
 
       json web3_clientVersionResponse = requestMethod("web3_clientVersion", json::array());
 
-      REQUIRE(web3_clientVersionResponse["result"] == "OrbiterSDK/cpp/linux_x86-64/0.1.2");
+      REQUIRE(web3_clientVersionResponse["result"] == "OrbiterSDK/cpp/linux_x86-64/0.2.0");
 
       json web3_sha3Response = requestMethod("web3_sha3", json::array({"0x68656c6c6f20776f726c64"}));
 
@@ -254,7 +254,7 @@ namespace THTTPJsonRPC{
 
       json eth_protocolVersionResponse = requestMethod("eth_protocolVersion", json::array());
 
-      REQUIRE(eth_protocolVersionResponse["result"] == "0.1.2");
+      REQUIRE(eth_protocolVersionResponse["result"] == "0.2.0");
 
       json eth_getBlockByHashResponse = requestMethod("eth_getBlockByHash", json::array({newBestBlock.hash().hex(true), true}));
       REQUIRE(eth_getBlockByHashResponse["result"]["number"] == "0x1");

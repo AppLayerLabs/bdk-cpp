@@ -18,6 +18,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <array>
 #include <span>
 #include <cxxabi.h>
+#include <variant>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -33,7 +34,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/libs/json.hpp"
 #include "src/contract/variables/safeuint.h"
 #include "src/contract/variables/safeint.h"
-#include <variant>
 
 /// @file utils.h
 

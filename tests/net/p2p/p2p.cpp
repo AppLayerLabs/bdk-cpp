@@ -43,7 +43,7 @@ namespace TP2P {
     }
     options = std::make_unique<Options>(
       folderPath,
-      "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+      "OrbiterSDK/cpp/linux_x86-64/0.2.0",
       1,
       8080,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -96,7 +96,7 @@ namespace TP2P {
     if (!validatorKey) {
       options = std::make_unique<Options>(
         folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.2.0",
         1,
         8080,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -114,7 +114,7 @@ namespace TP2P {
     } else {
       options = std::make_unique<Options>(
         folderName,
-        "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+        "OrbiterSDK/cpp/linux_x86-64/0.2.0",
         1,
         8080,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),

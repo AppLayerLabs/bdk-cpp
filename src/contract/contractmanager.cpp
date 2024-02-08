@@ -96,7 +96,7 @@ const Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
   throw DynamicException("Invalid function call");
 }
 
-void ContractManager::callContract(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex) {
+void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_t& txIndex) {
   this->callLogger_ = std::make_unique<ContractCallLogger>(*this);
   auto callInfo = tx.txToCallInfo();
   const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
@@ -238,7 +238,7 @@ std::vector<std::pair<std::string, Address>> ContractManager::getContracts() con
   std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
   std::vector<std::pair<std::string, Address>> contracts;
   for (const auto& [address, contract] : this->contracts_) {
-    contracts.emplace_back(std::make_pair(contract->getContractName(), address));
+    contracts.emplace_back(contract->getContractName(), address);
   }
   return contracts;
 }

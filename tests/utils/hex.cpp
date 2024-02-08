@@ -122,10 +122,23 @@ namespace THex {
 
     SECTION("Hex GetUint") {
       std::string hexStr = "0x1234";
+      std::string oddHexStr = "0xfffff";
+      std::string evenHexStr = "0x0fffff";
+      std::string tooBigHexStr = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"; // 33 bytes
       Hex hex(hexStr, false);
       Hex hexStrict(hexStr, true);
+      Hex oddHex(oddHexStr, true);
+      Hex evenHex(evenHexStr, true);
+      Hex tooBigHex(tooBigHexStr, true);
       REQUIRE(hex.getUint() == uint256_t(4660));
       REQUIRE(hexStrict.getUint() == uint256_t(4660));
+      REQUIRE(oddHex.getUint() == uint256_t(1048575));
+      REQUIRE(evenHex.getUint() == uint256_t(1048575));
+      try {
+        uint256_t wrongNumber = tooBigHex.getUint();
+      } catch (std::length_error& e) {
+        REQUIRE(e.what() == std::string("Hex too big for uint conversion"));
+      }
     }
 
     SECTION("Hex Substr") {

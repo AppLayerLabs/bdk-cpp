@@ -197,17 +197,9 @@ class ContractFactory {
      * @tparam Tuple The tuple of contracts to add.
      */
     template <typename Tuple>
-    std::enable_if_t<Utils::is_tuple<Tuple>::value, void> addAllContractFuncs() {
+    requires Utils::is_tuple<Tuple>::value
+    void addAllContractFuncs() {
       addAllContractFuncsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
-    }
-
-    /**
-     * Add all contract functions to the respective maps.
-     * @tparam Contracts The contracts to add.
-     */
-    template <typename... Contracts>
-    std::enable_if_t<!Utils::is_tuple<std::tuple<Contracts...>>::value, void> addAllContractFuncs() {
-      (void)std::initializer_list<int>{((void)addAllContractFuncs<Contracts>(), 0)...};
     }
 
     /**
@@ -233,7 +225,8 @@ class ContractFactory {
      * @tparam Tuple The tuple of contracts to register.
      */
     template <typename Tuple>
-    std::enable_if_t<Utils::is_tuple<Tuple>::value, void> registerContracts() {
+    requires Utils::is_tuple<Tuple>::value
+    void registerContracts() {
       registerContractsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
     }
 };

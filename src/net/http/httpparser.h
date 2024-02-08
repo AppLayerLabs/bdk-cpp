@@ -90,10 +90,10 @@ std::string parseJsonRpcRequest(
  * @param options Reference pointer to the options singleton.
  */
 template<class Body, class Allocator, class Send> void handle_request(
-    beast::string_view docroot,
-    http::request<Body, http::basic_fields<Allocator>>&& req,
-    Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
-    const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
+  [[maybe_unused]] beast::string_view docroot,
+  http::request<Body, http::basic_fields<Allocator>>&& req,
+  Send&& send, const std::unique_ptr<State>& state, const std::unique_ptr<Storage>& storage,
+  const std::unique_ptr<P2P::ManagerNormal>& p2p, const std::unique_ptr<Options>& options
 ) {
   // Returns a bad request response
   const auto bad_request = [&req](beast::string_view why){

@@ -134,7 +134,7 @@ if [ "$DEPLOY" = true ]; then
   # Create the JSON files for the Discovery Node, Validators and Normal Nodes
   echo '{
     "rootPath": "discoveryNode",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -162,7 +162,7 @@ if [ "$DEPLOY" = true ]; then
   # Create the JSON file for the Validators
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -195,7 +195,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -228,7 +228,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -261,7 +261,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -294,7 +294,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -328,7 +328,7 @@ if [ "$DEPLOY" = true ]; then
   # Create the json file for the Normal Nodes
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -360,7 +360,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -392,7 +392,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -424,7 +424,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -456,7 +456,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -488,7 +488,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -520,7 +520,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -552,7 +552,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.1.2",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",

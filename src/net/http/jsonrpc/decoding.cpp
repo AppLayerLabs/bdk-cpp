@@ -486,7 +486,7 @@ namespace JsonRPC::Decoding {
         auto topicsArray = logsObject.at("topics").get<std::vector<std::string>>();
         for (const auto& topic : topicsArray) {
           if (!std::regex_match(topic, hashFilter)) throw DynamicException("Invalid topic hex");
-          topics.emplace_back(Hash(Hex::toBytes(topic)));
+          topics.emplace_back(Hex::toBytes(topic));
         }
       }
 

@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 /// Typedef for json.
 using json = nlohmann::ordered_json;
 
-
+// TODO: redo this but better organized
 namespace EXPECTED
 {
   namespace ERC20 {
@@ -382,7 +382,7 @@ namespace EXPECTED
                                                "    },\n"
                                                "    {\n"
                                                "      \"internalType\": \"uint256\",\n"
-                                               "      \"name\": \"value_\",\n"
+                                               "      \"name\": \"number_\",\n"
                                                "      \"type\": \"uint256\"\n"
                                                "    },\n"
                                                "    {\n"
@@ -511,7 +511,7 @@ namespace EXPECTED
   }
 
   namespace SimpleContract {
-    json getNamesAndValuesInArrayOfArrays = json::parse("  {\n"
+    json getNamesAndNumbersInArrayOfArrays = json::parse("  {\n"
                                                         "    \"inputs\": [\n"
                                                         "      {\n"
                                                         "        \"internalType\": \"uint256\",\n"
@@ -519,7 +519,7 @@ namespace EXPECTED
                                                         "        \"type\": \"uint256\"\n"
                                                         "      }\n"
                                                         "    ],\n"
-                                                        "    \"name\": \"getNamesAndValuesInArrayOfArrays\",\n"
+                                                        "    \"name\": \"getNamesAndNumbersInArrayOfArrays\",\n"
                                                         "    \"outputs\": [\n"
                                                         "      {\n"
                                                         "        \"components\": [\n"
@@ -539,7 +539,7 @@ namespace EXPECTED
                                                         "    \"type\": \"function\"\n"
                                                         "  }");
 
-    json getNamesAndValuesInTuple = json::parse("    {\n"
+    json getNamesAndNumbersInTuple = json::parse("    {\n"
                                                 "        \"inputs\": [\n"
                                                 "            {\n"
                                                 "                \"internalType\": \"uint256\",\n"
@@ -547,7 +547,7 @@ namespace EXPECTED
                                                 "                \"type\": \"uint256\"\n"
                                                 "            }\n"
                                                 "        ],\n"
-                                                "        \"name\": \"getNamesAndValuesInTuple\",\n"
+                                                "        \"name\": \"getNamesAndNumbersInTuple\",\n"
                                                 "        \"outputs\": [\n"
                                                 "            {\n"
                                                 "                \"components\": [\n"
@@ -567,9 +567,9 @@ namespace EXPECTED
                                                 "        \"type\": \"function\"\n"
                                                 "    }");
 
-    json getNameAndValue = json::parse("    {\n"
+    json getNameAndNumber = json::parse("    {\n"
                                        "        \"inputs\": [],\n"
-                                       "        \"name\": \"getNameAndValue\",\n"
+                                       "        \"name\": \"getNameAndNumber\",\n"
                                        "        \"outputs\": [\n"
                                        "            {\n"
                                        "                \"components\": [\n"
@@ -589,7 +589,7 @@ namespace EXPECTED
                                        "        \"type\": \"function\"\n"
                                        "    }");
 
-    json getValues = json::parse("    {\n"
+    json getNumbers = json::parse("    {\n"
                                  "        \"inputs\": [\n"
                                  "            {\n"
                                  "                \"internalType\": \"uint256\",\n"
@@ -597,7 +597,7 @@ namespace EXPECTED
                                  "                \"type\": \"uint256\"\n"
                                  "            }\n"
                                  "        ],\n"
-                                 "        \"name\": \"getValues\",\n"
+                                 "        \"name\": \"getNumbers\",\n"
                                  "        \"outputs\": [\n"
                                  "            {\n"
                                  "                \"internalType\": \"uint256[]\",\n"
@@ -609,9 +609,9 @@ namespace EXPECTED
                                  "        \"type\": \"function\"\n"
                                  "    }");
 
-    json getValue = json::parse("    {\n"
+    json getNumber = json::parse("    {\n"
                                 "        \"inputs\": [],\n"
-                                "        \"name\": \"getValue\",\n"
+                                "        \"name\": \"getNumber\",\n"
                                 "        \"outputs\": [\n"
                                 "            {\n"
                                 "                \"internalType\": \"uint256\",\n"
@@ -659,7 +659,7 @@ namespace EXPECTED
                                 "  \"type\": \"function\"\n"
                                 "}\n");
 
-    json setNamesAndValuesInArrayOfArrays = json::parse("  {\n"
+    json setNamesAndNumbersInArrayOfArrays = json::parse("  {\n"
                                                         "    \"inputs\": [\n"
                                                         "      {\n"
                                                         "        \"components\": [\n"
@@ -672,17 +672,17 @@ namespace EXPECTED
                                                         "            \"type\": \"uint256\"\n"
                                                         "          }\n"
                                                         "        ],\n"
-                                                        "        \"name\": \"argNameAndValue\",\n"
+                                                        "        \"name\": \"argNameAndNumber\",\n"
                                                         "        \"type\": \"tuple[][]\"\n"
                                                         "      }\n"
                                                         "    ],\n"
-                                                        "    \"name\": \"setNamesAndValuesInArrayOfArrays\",\n"
+                                                        "    \"name\": \"setNamesAndNumbersInArrayOfArrays\",\n"
                                                         "    \"outputs\": [],\n"
                                                         "    \"stateMutability\": \"nonpayable\",\n"
                                                         "    \"type\": \"function\"\n"
                                                         "  }");
 
-    json setNamesAndValuesInTuple = json::parse("    {\n"
+    json setNamesAndNumbersInTuple = json::parse("    {\n"
                                                 "        \"inputs\": [\n"
                                                 "            {\n"
                                                 "                \"components\": [\n"
@@ -695,11 +695,11 @@ namespace EXPECTED
                                                 "                        \"type\": \"uint256\"\n"
                                                 "                    }\n"
                                                 "                ],\n"
-                                                "                \"name\": \"argNameAndValue\",\n"
+                                                "                \"name\": \"argNameAndNumber\",\n"
                                                 "                \"type\": \"tuple[]\"\n"
                                                 "            }\n"
                                                 "        ],\n"
-                                                "        \"name\": \"setNamesAndValuesInTuple\",\n"
+                                                "        \"name\": \"setNamesAndNumbersInTuple\",\n"
                                                 "        \"outputs\": [],\n"
                                                 "        \"stateMutability\": \"nonpayable\",\n"
                                                 "        \"type\": \"function\"\n"
@@ -725,35 +725,35 @@ namespace EXPECTED
                                 "        \"type\": \"function\"\n"
                                 "    }");
 
-    json setValues = json::parse("    {\n"
+    json setNumbers = json::parse("    {\n"
                                  "        \"inputs\": [\n"
                                  "            {\n"
                                  "                \"internalType\": \"uint256[]\",\n"
-                                 "                \"name\": \"argValue\",\n"
+                                 "                \"name\": \"argNumber\",\n"
                                  "                \"type\": \"uint256[]\"\n"
                                  "            }\n"
                                  "        ],\n"
-                                 "        \"name\": \"setValues\",\n"
+                                 "        \"name\": \"setNumbers\",\n"
                                  "        \"outputs\": [],\n"
                                  "        \"stateMutability\": \"nonpayable\",\n"
                                  "        \"type\": \"function\"\n"
                                  "    }");
 
-    json setValue = json::parse("    {\n"
+    json setNumber = json::parse("    {\n"
                                 "        \"inputs\": [\n"
                                 "            {\n"
                                 "                \"internalType\": \"uint256\",\n"
-                                "                \"name\": \"argValue\",\n"
+                                "                \"name\": \"argNumber\",\n"
                                 "                \"type\": \"uint256\"\n"
                                 "            }\n"
                                 "        ],\n"
-                                "        \"name\": \"setValue\",\n"
+                                "        \"name\": \"setNumber\",\n"
                                 "        \"outputs\": [],\n"
                                 "        \"stateMutability\": \"nonpayable\",\n"
                                 "        \"type\": \"function\"\n"
                                 "    }");
 
-    json setNamesAndValues = json::parse("    {\n"
+    json setNamesAndNumbers = json::parse("    {\n"
                                          "        \"inputs\": [\n"
                                          "            {\n"
                                          "                \"internalType\": \"string[]\",\n"
@@ -762,11 +762,11 @@ namespace EXPECTED
                                          "            },\n"
                                          "            {\n"
                                          "                \"internalType\": \"uint256[]\",\n"
-                                         "                \"name\": \"argValue\",\n"
+                                         "                \"name\": \"argNumber\",\n"
                                          "                \"type\": \"uint256[]\"\n"
                                          "            }\n"
                                          "        ],\n"
-                                         "        \"name\": \"setNamesAndValues\",\n"
+                                         "        \"name\": \"setNamesAndNumbers\",\n"
                                          "        \"outputs\": [],\n"
                                          "        \"stateMutability\": \"nonpayable\",\n"
                                          "        \"type\": \"function\"\n"
@@ -786,7 +786,7 @@ namespace EXPECTED
                                 "        \"type\": \"function\"\n"
                                 "    }");
 
-    json getNamesAndValues = json::parse("{\n"
+    json getNamesAndNumbers = json::parse("{\n"
                                          "        \"inputs\": [\n"
                                          "            {\n"
                                          "                \"internalType\": \"uint256\",\n"
@@ -794,7 +794,7 @@ namespace EXPECTED
                                          "                \"type\": \"uint256\"\n"
                                          "            }\n"
                                          "        ],\n"
-                                         "        \"name\": \"getNamesAndValues\",\n"
+                                         "        \"name\": \"getNamesAndNumbers\",\n"
                                          "        \"outputs\": [\n"
                                          "            {\n"
                                          "                \"components\": [\n"
@@ -828,7 +828,7 @@ namespace EXPECTED
                                "        \"type\": \"function\"\n"
                                "    }");
 
-    json getValueOverload = json::parse("{\n"
+    json getNumberOverload = json::parse("{\n"
                                         "    \"inputs\": [\n"
                                         "      {\n"
                                         "        \"internalType\": \"uint256\",\n"
@@ -836,7 +836,7 @@ namespace EXPECTED
                                         "        \"type\": \"uint256\"\n"
                                         "      }\n"
                                         "    ],\n"
-                                        "    \"name\": \"getValue\",\n"
+                                        "    \"name\": \"getNumber\",\n"
                                         "    \"outputs\": [\n"
                                         "      {\n"
                                         "        \"internalType\": \"uint256\",\n"
@@ -871,7 +871,7 @@ namespace EXPECTED
                                 "  \"type\": \"function\"\n"
                                 "}\n");
 
-    json nameAndValueTupleChanged = json::parse("{\n"
+    json nameAndNumberTupleChanged = json::parse("{\n"
                                                 "    \"anonymous\": false,\n"
                                                 "    \"inputs\": [\n"
                                                 "      {\n"
@@ -886,15 +886,15 @@ namespace EXPECTED
                                                 "          }\n"
                                                 "        ],\n"
                                                 "        \"indexed\": true,\n"
-                                                "        \"name\": \"nameAndValue\",\n"
+                                                "        \"name\": \"nameAndNumber\",\n"
                                                 "        \"type\": \"tuple\"\n"
                                                 "      }\n"
                                                 "    ],\n"
-                                                "    \"name\": \"nameAndValueTupleChanged\",\n"
+                                                "    \"name\": \"nameAndNumberTupleChanged\",\n"
                                                 "    \"type\": \"event\"\n"
                                                 "  }");
 
-    json nameAndValueChanged = json::parse("{\n"
+    json nameAndNumberChanged = json::parse("{\n"
                                            "    \"anonymous\": false,\n"
                                            "    \"inputs\": [\n"
                                            "      {\n"
@@ -906,25 +906,25 @@ namespace EXPECTED
                                            "      {\n"
                                            "        \"indexed\": true,\n"
                                            "        \"internalType\": \"uint256\",\n"
-                                           "        \"name\": \"value\",\n"
+                                           "        \"name\": \"number\",\n"
                                            "        \"type\": \"uint256\"\n"
                                            "      }\n"
                                            "    ],\n"
-                                           "    \"name\": \"nameAndValueChanged\",\n"
+                                           "    \"name\": \"nameAndNumberChanged\",\n"
                                            "    \"type\": \"event\"\n"
                                            "  }");
 
-    json valueChanged = json::parse("{\n"
+    json numberChanged = json::parse("{\n"
                                     "    \"anonymous\": false,\n"
                                     "    \"inputs\": [\n"
                                     "      {\n"
                                     "        \"indexed\": false,\n"
                                     "        \"internalType\": \"uint256\",\n"
-                                    "        \"name\": \"value\",\n"
+                                    "        \"name\": \"number\",\n"
                                     "        \"type\": \"uint256\"\n"
                                     "      }\n"
                                     "    ],\n"
-                                    "    \"name\": \"valueChanged\",\n"
+                                    "    \"name\": \"numberChanged\",\n"
                                     "    \"type\": \"event\"\n"
                                     "  }");
 

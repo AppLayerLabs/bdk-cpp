@@ -81,9 +81,8 @@ class SafeBase {
     /**
      * Constructor for variables that are not registered within the contract.
      * Should be used only within local variables within functions.
-     * @param other The variable to copy from.
      */
-    SafeBase(const SafeBase& other) : owner_(nullptr) {};
+    SafeBase(const SafeBase&) : owner_(nullptr) {};
 
     /**
      * Commit a structure value to the contract.

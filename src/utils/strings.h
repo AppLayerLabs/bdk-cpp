@@ -35,7 +35,6 @@ See the LICENSE.txt file in the project root for more information.
  * This class is used as a base for both classes inheriting it
  * (e.g. Hash, Signature, etc.) and aliases (e.g. PrivKey, PubKey, etc.).
  */
-
 template <unsigned N> class FixedBytes {
   protected:
     BytesArr<N> data_; ///< Internal string data.

@@ -127,6 +127,46 @@ const TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, con
   return TxBlock(blockData.subspan(index, txSize), this->options_->getChainID());
 }
 
+StorageStatus Storage::blockExistsInternal(const Hash& hash) const {
+  // Check chain first, then cache, then database
+  if (this->blockByHash_.contains(hash)) {
+    return StorageStatus::OnChain;
+  } else if (this->cachedBlocks_.contains(hash)) {
+    return StorageStatus::OnCache;
+  } else if (this->db_->has(hash.get(), DBPrefix::blocks)) {
+    return StorageStatus::OnDB;
+  } else {
+    return StorageStatus::NotFound;
+  }
+  return StorageStatus::NotFound;
+}
+
+StorageStatus Storage::blockExistsInternal(const uint64_t& height) const {
+  // Check chain first, then cache, then database
+  auto it = this->blockHashByHeight_.find(height);
+  if (it != this->blockHashByHeight_.end()) {
+    if (this->blockByHash_.contains(it->second)) return StorageStatus::OnChain;
+    if (this->cachedBlocks_.contains(it->second)) return StorageStatus::OnCache;
+    return StorageStatus::OnDB;
+  } else {
+    return StorageStatus::NotFound;
+  }
+  return StorageStatus::NotFound;
+}
+
+StorageStatus Storage::txExistsInternal(const Hash& tx) const {
+  // Check chain first, then cache, then database
+  if (this->txByHash_.contains(tx)) {
+    return StorageStatus::OnChain;
+  } else if (this->cachedTxs_.contains(tx)) {
+    return StorageStatus::OnCache;
+  } else if (this->db_->has(tx.get(), DBPrefix::txToBlocks)) {
+    return StorageStatus::OnDB;
+  } else {
+    return StorageStatus::NotFound;
+  }
+}
+
 void Storage::pushBackInternal(Block&& block) {
   // Push the new block and get a pointer to it
   if (!this->chain_.empty()) {
@@ -209,65 +249,56 @@ void Storage::popFront() {
   this->chain_.pop_front();
 }
 
-StorageStatus Storage::blockExists(const Hash& hash) {
-  // Check chain first, then cache, then database
-  std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-  if (this->blockByHash_.contains(hash)) {
-    return StorageStatus::OnChain;
-  } else if (this->cachedBlocks_.contains(hash)) {
-    return StorageStatus::OnCache;
-  } else if (this->db_->has(hash.get(), DBPrefix::blocks)) {
-    return StorageStatus::OnDB;
-  } else {
-    return StorageStatus::NotFound;
-  }
-  return StorageStatus::NotFound;
+bool Storage::blockExists(const Hash& hash) const {
+  std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
+  std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
+  return this->blockExistsInternal(hash) != StorageStatus::NotFound;
 }
 
-StorageStatus Storage::blockExists(const uint64_t& height) {
-  // Check chain first, then cache, then database
-  std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-  auto it = this->blockHashByHeight_.find(height);
-  if (it != this->blockHashByHeight_.end()) {
-    if (this->blockByHash_.contains(it->second)) return StorageStatus::OnChain;
-    std::shared_lock<std::shared_mutex> lock2(this->cacheLock_);
-    if (this->cachedBlocks_.contains(it->second)) return StorageStatus::OnCache;
-    return StorageStatus::OnDB;
-  } else {
-    return StorageStatus::NotFound;
-  }
-  return StorageStatus::NotFound;
+bool Storage::blockExists(const uint64_t& height) const {
+  std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
+  std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
+  return this->blockExistsInternal(height) != StorageStatus::NotFound;
 }
 
-const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) {
+bool Storage::txExists(const Hash& tx) const {
+  std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
+  std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
+  return this->txExistsInternal(tx) != StorageStatus::NotFound;
+}
+
+const std::shared_ptr<const Block> Storage::getBlock(const Hash& hash) const {
   // Check chain first, then cache, then database
-  StorageStatus blockStatus = this->blockExists(hash);
+  std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
+  std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
+  StorageStatus blockStatus = this->blockExistsInternal(hash);
   switch (blockStatus) {
     case StorageStatus::NotFound: {
       return nullptr;
     }
     case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-      return this->blockByHash_.find(hash)->second;
+      return this->blockByHash_.at(hash);
     }
     case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
-      return this->cachedBlocks_[hash];
+      return this->cachedBlocks_.at(hash);
     }
     case StorageStatus::OnDB: {
+      lockCache.unlock(); // Unlock shared lock so we can lock uniquely and insert into cache
       std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       this->cachedBlocks_.insert({hash, std::make_shared<Block>(
         this->db_->get(hash.get(), DBPrefix::blocks), this->options_->getChainID()
       )});
-      return this->cachedBlocks_[hash];
+      return this->cachedBlocks_.at(hash);
     }
   }
   return nullptr;
 }
 
-const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
+const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) const {
   // Check chain first, then cache, then database
-  StorageStatus blockStatus = this->blockExists(height);
+  std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
+  std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
+  StorageStatus blockStatus = this->blockExistsInternal(height);
   if (blockStatus == StorageStatus::NotFound) return nullptr;
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "height: " + std::to_string(height));
   switch (blockStatus) {
@@ -275,60 +306,50 @@ const std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) {
       return nullptr;
     }
     case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-      return this->blockByHash_.find(this->blockHashByHeight_.find(height)->second)->second;
+      return this->blockByHash_.at(this->blockHashByHeight_.at(height));
     }
     case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
       Hash hash = this->blockHashByHeight_.find(height)->second;
       return this->cachedBlocks_.find(hash)->second;
     }
     case StorageStatus::OnDB: {
+      lockCache.unlock(); /// Unlock shared lock so we can lock uniquely and insert into cache
       std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       Hash hash = this->blockHashByHeight_.find(height)->second;
       auto blockData = this->db_->get(hash.get(), DBPrefix::blocks);
       this->cachedBlocks_.insert({hash, std::make_shared<Block>(blockData, this->options_->getChainID())});
-      return this->cachedBlocks_[hash];
+      return this->cachedBlocks_.at(hash);
     }
   }
   return nullptr;
 }
 
-StorageStatus Storage::txExists(const Hash& tx) {
-  // Check chain first, then cache, then database
-  std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-  if (this->txByHash_.contains(tx)) {
-    return StorageStatus::OnChain;
-  } else if (this->cachedTxs_.contains(tx)) {
-    return StorageStatus::OnCache;
-  } else if (this->db_->has(tx.get(), DBPrefix::txToBlocks)) {
-    return StorageStatus::OnDB;
-  } else {
-    return StorageStatus::NotFound;
-  }
-}
 
 const std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTx(const Hash& tx) {
+> Storage::getTx(const Hash& tx) const {
   // Check chain first, then cache, then database
-  StorageStatus txStatus = this->txExists(tx);
+  std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
+  std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
+  StorageStatus txStatus = this->txExistsInternal(tx);
   switch (txStatus) {
     case StorageStatus::NotFound: {
       return {nullptr, Hash(), 0, 0};
     }
     case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
       const auto& [blockHash, blockIndex, blockHeight] = this->txByHash_.find(tx)->second;
-      const auto transaction = blockByHash_[blockHash]->getTxs()[blockIndex];
+      const auto& transactionList = blockByHash_.at(blockHash)->getTxs(); /// We can use at() because we know it exists
+      /// Check if transactionList can be accessed at the index
+      if (transactionList.size() <= blockIndex) throw DynamicException("Tx index out of bounds");
+      const auto& transaction = transactionList[blockIndex];
       if (transaction.hash() != tx) throw DynamicException("Tx hash mismatch");
       return {std::make_shared<const TxBlock>(transaction), blockHash, blockIndex, blockHeight};
     }
     case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
-      return this->cachedTxs_[tx];
+      return this->cachedTxs_.at(tx);
     }
     case StorageStatus::OnDB: {
+      lockCache.unlock();
       Bytes txData(this->db_->get(tx.get(), DBPrefix::txToBlocks));
       BytesArrView txDataView(txData);
       auto blockHash = Hash(txDataView.subspan(0, 32));
@@ -338,7 +359,7 @@ const std::tuple<
       auto Tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
       std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       this->cachedTxs_.insert({tx, {std::make_shared<const TxBlock>(Tx), blockHash, blockIndex, blockHeight}});
-      return this->cachedTxs_[tx];
+      return this->cachedTxs_.at(tx);
     }
   }
   return { nullptr, Hash(), 0, 0 };
@@ -346,34 +367,37 @@ const std::tuple<
 
 const std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) {
-  auto Status = this->blockExists(blockHash);
+> Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const {
+  std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
+  std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
+  auto Status = this->blockExistsInternal(blockHash);
   switch (Status) {
     case StorageStatus::NotFound: {
       return { nullptr, Hash(), 0, 0 };
     }
     case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
-      auto txHash = this->blockByHash_[blockHash]->getTxs()[blockIndex].hash();
-      const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_[txHash];
+      const auto& transactionList = this->blockByHash_.at(blockHash)->getTxs(); /// We can use at() because we know it exists
+      if (transactionList.size() <= blockIndex) throw DynamicException("Tx index out of bounds");
+      const auto& transaction = transactionList[blockIndex];
+      const auto& txHash = transaction.hash();  /// We can use at() because we know it exists
+      const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_.at(txHash);
       if (txBlockHash != blockHash || txBlockIndex != blockIndex) {
         throw DynamicException("Tx hash mismatch");
       }
-      const auto transaction = blockByHash_[blockHash]->getTxs()[blockIndex];
       return {std::make_shared<const TxBlock>(transaction), txBlockHash, txBlockIndex, txBlockHeight};
     }
     case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
-      auto txHash = this->cachedBlocks_[blockHash]->getTxs()[blockIndex].hash();
-      return this->cachedTxs_[txHash];
+      auto txHash = this->cachedBlocks_.at(blockHash)->getTxs()[blockIndex].hash();
+      return this->cachedTxs_.at(txHash);
     }
     case StorageStatus::OnDB: {
+      lockCache.unlock();
       Bytes blockData = this->db_->get(blockHash.get(), DBPrefix::blocks);
       auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
       std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
-      auto blockHeight = this->blockHeightByHash_[blockHash];
+      auto blockHeight = this->blockHeightByHash_.at(blockHash);
       this->cachedTxs_.insert({tx.hash(), {std::make_shared<TxBlock>(tx), blockHash, blockIndex, blockHeight}});
-      return this->cachedTxs_[tx.hash()];
+      return this->cachedTxs_.at(tx.hash());
     }
   }
   return { nullptr, Hash(), 0, 0 };
@@ -381,34 +405,37 @@ const std::tuple<
 
 const std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) {
-  auto Status = this->blockExists(blockHeight);
+> Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) const {
+  std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
+  std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
+  auto Status = this->blockExistsInternal(blockHeight);
   switch (Status) {
     case StorageStatus::NotFound: {
       return { nullptr, Hash(), 0, 0 };
     }
     case StorageStatus::OnChain: {
-      std::shared_lock<std::shared_mutex> lock(this->chainLock_);
       auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
-      auto txHash = this->blockByHash_[blockHash]->getTxs()[blockIndex].hash();
-      const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_[txHash];
-      const auto transaction = this->blockByHash_[blockHash]->getTxs()[blockIndex];
+      const auto& transactionList = this->blockByHash_.at(blockHash)->getTxs();
+      if (transactionList.size() <= blockIndex) throw DynamicException("Tx index out of bounds");
+      const auto& transaction = transactionList[blockIndex];
+      const auto& txHash = transaction.hash();
+      const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_.at(txHash);
       return {std::make_shared<TxBlock>(transaction), txBlockHash, txBlockIndex, txBlockHeight};
     }
     case StorageStatus::OnCache: {
-      std::shared_lock<std::shared_mutex> lock(this->cacheLock_);
       auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
-      auto txHash = this->cachedBlocks_[blockHash]->getTxs()[blockIndex].hash();
-      return this->cachedTxs_[txHash];
+      auto txHash = this->cachedBlocks_.at(blockHash)->getTxs()[blockIndex].hash();
+      return this->cachedTxs_.at(txHash);
     }
     case StorageStatus::OnDB: {
+      lockCache.unlock();
       auto blockHash = this->blockHashByHeight_.find(blockHeight)->second;
       Bytes blockData = this->db_->get(blockHash.get(), DBPrefix::blocks);
       auto tx = this->getTxFromBlockWithIndex(blockData, blockIndex);
       std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
-      auto blockHeight2 = this->blockHeightByHash_[blockHash];
+      auto blockHeight2 = this->blockHeightByHash_.at(blockHash);
       this->cachedTxs_.insert({tx.hash(), { std::make_shared<TxBlock>(tx), blockHash, blockIndex, blockHeight2}});
-      return this->cachedTxs_[tx.hash()];
+      return this->cachedTxs_.at(tx.hash());
     }
   }
   return { nullptr, Hash(), 0, 0 };

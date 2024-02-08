@@ -118,13 +118,10 @@ template<typename... Types> class SafeTuple : public SafeBase {
      * @tparam U The argument types.
      * @param args The arguments to construct the tuple with.
      */
-    template<
-      typename... U,
-      typename = std::enable_if_t<
-        !(... && std::is_base_of_v<SafeTuple, std::decay_t<U>>) &&
-        !std::conjunction_v<std::is_same<std::pair<typename std::decay<U>::type...>, U>...>
-      >
-    > SafeTuple(U&&... args) : tuple_(std::forward<U>(args)...) {
+    template<typename... U>
+    requires (!(... && std::is_base_of_v<SafeTuple, std::decay_t<U>>) &&
+              !std::conjunction_v<std::is_same<std::pair<typename std::decay<U>::type...>, U>...>)
+    SafeTuple(U&&... args) : tuple_(std::forward<U>(args)...) {
       check();
       static_assert(sizeof...(U) == sizeof...(Types), "Number of arguments must match tuple size.");
     }

@@ -36,7 +36,7 @@ namespace P2P {
     ));
   }
 
-  void Session::on_connect(boost::system::error_code ec, const net::ip::tcp::endpoint& endpoint) {
+  void Session::on_connect(boost::system::error_code ec, const net::ip::tcp::endpoint&) {
     if (ec && this->handle_error(__func__, ec)) return;
     this->write_handshake();
   }

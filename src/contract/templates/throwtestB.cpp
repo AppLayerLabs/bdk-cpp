@@ -27,7 +27,9 @@ ThrowTestB::~ThrowTestB() { return; }
 
 uint8_t ThrowTestB::getNumB() const { return this->num_.get(); }
 
-[[noreturn]] void ThrowTestB::setNumB(const uint8_t& valB, const Address& addC, const uint8_t& valC) {
+[[noreturn]] void ThrowTestB::setNumB(
+  const uint8_t& valB, const Address&, const uint8_t&
+) {
   this->num_ = valB;
   throw DynamicException("Intended throw in ThrowTestB");
 }
