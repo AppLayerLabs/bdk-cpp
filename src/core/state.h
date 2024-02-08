@@ -120,7 +120,7 @@ class State {
     uint64_t getNativeNonce(const Address& addr) const;
 
     /// Getter for `accounts`. Returns a copy.
-    const std::unordered_map<Address, Account, SafeHash>& getAccounts() const;
+    const std::unordered_map<Address, Account, SafeHash> getAccounts() const;
 
     /// Getter for `mempool`. Returns a copy.
     const std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
