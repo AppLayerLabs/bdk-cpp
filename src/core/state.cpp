@@ -195,12 +195,12 @@ uint64_t State::getNativeNonce(const Address& addr) const {
   return it->second.nonce;
 }
 
-const std::unordered_map<Address, Account, SafeHash>& State::getAccounts() const {
+std::unordered_map<Address, Account, SafeHash> State::getAccounts() const {
   std::shared_lock lock(this->stateMutex_);
   return this->accounts_;
 }
 
-const std::unordered_map<Hash, TxBlock, SafeHash>& State::getMempool() const {
+std::unordered_map<Hash, TxBlock, SafeHash> State::getMempool() const {
   std::shared_lock lock(this->stateMutex_);
   return this->mempool_;
 }
