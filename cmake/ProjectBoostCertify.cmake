@@ -1,8 +1,8 @@
 include(ExternalProject)
 
 if (MSVC)
-    set(_only_release_configuration -DCMAKE_CONFIGURATION_TYPES=Release)
-    set(_overwrite_install_command INSTALL_COMMAND cmake --build <BINARY_DIR> --config Release --target install)
+  set(_only_release_configuration -DCMAKE_CONFIGURATION_TYPES=Release)
+  set(_overwrite_install_command INSTALL_COMMAND cmake --build <BINARY_DIR> --config Release --target install)
 endif()
 
 set(prefix "${CMAKE_BINARY_DIR}/deps")
@@ -37,3 +37,4 @@ set_property(TARGET Certify PROPERTY IMPORTED_CONFIGURATIONS Release)
 set_property(TARGET Certify PROPERTY IMPORTED_LOCATION_RELEASE "${CERTIFY_LIBRARY}")
 set_property(TARGET Certify PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${CERTIFY_INCLUDE_DIR}")
 add_dependencies(Certify certify ${CERTIFY_BYPRODUCTS})
+
