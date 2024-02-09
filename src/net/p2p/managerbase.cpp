@@ -102,6 +102,7 @@ namespace P2P {
 
   void ManagerBase::stop() {
     this->closed_ = true;
+    this->threadPool_.wait_for_tasks();
     {
       std::unique_lock lock(this->sessionsMutex_);
       for (auto it = sessions_.begin(); it != sessions_.end();) {
