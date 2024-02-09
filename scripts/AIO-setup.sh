@@ -112,8 +112,8 @@ if [ "$DEPLOY" = true ]; then
     cd build_local_testnet
   fi
   ## Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory
-  cp orbitersdkd ../local_testnet
-  cp orbitersdkd-discovery ../local_testnet
+  cp src/bins/orbitersdkd/orbitersdkd ../local_testnet
+  cp src/bins/orbitersdkd-discovery/orbitersdkd-discovery ../local_testnet
 
   # Create the directories for the Validators and Discovery Node and copy the executables
   cd ../local_testnet
