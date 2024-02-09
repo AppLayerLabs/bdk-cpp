@@ -391,28 +391,6 @@ if(BUILD_AVALANCHEGO)
 
   set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
 
-  # Compile and link the executable
-  add_executable(orbitersdkd "${CMAKE_SOURCE_DIR}/src/main.cpp")
-
-  add_dependencies(orbitersdkd orbitersdk_lib gen-grpc ProtoFiles)
-  target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(orbitersdkd
-    orbitersdk_lib
-    ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} Speedb
-    ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-    absl::flags Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-  )
-
-  # Compile and link the ABI generator executable
-  add_executable(contractabigenerator "${CMAKE_SOURCE_DIR}/src/main-contract-abi.cpp")
-
-  add_dependencies(contractabigenerator orbitersdk_lib)
-  target_include_directories(contractabigenerator PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(contractabigenerator
-    orbitersdk_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-  )
-
-  # TODO: Implement tests for AvalancheGo compilation.
 else()
   add_library(orbitersdk_lib STATIC
     ${UTILS_HEADERS}
@@ -433,52 +411,7 @@ else()
   )
 
   set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
-
-  # Compile and link the executable
-  add_executable(orbitersdkd "${CMAKE_SOURCE_DIR}/src/main.cpp")
-
-  add_dependencies(orbitersdkd orbitersdk_lib)
-  target_include_directories(orbitersdkd PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(orbitersdkd
-    orbitersdk_lib Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-  )
-
-  # Compile and link the ABI generator executable
-  add_executable(contractabigenerator "${CMAKE_SOURCE_DIR}/src/main-contract-abi.cpp")
-
-  add_dependencies(contractabigenerator orbitersdk_lib)
-  target_include_directories(contractabigenerator PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(contractabigenerator
-    orbitersdk_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-  )
-
-  # Compile and link the ABI generator executable
-  add_executable(networkdeployer "${CMAKE_SOURCE_DIR}/src/networkdeployer.cpp")
-
-  add_dependencies(networkdeployer orbitersdk_lib)
-  target_include_directories(networkdeployer PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(networkdeployer
-    orbitersdk_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-  )
 endif()
 
-# Compile and link the test executable if set to build it
-if (BUILD_TESTS)
-  add_executable(orbitersdkd-tests ${TESTS_HEADERS} ${TESTS_SOURCES})
-  add_dependencies(orbitersdkd-tests orbitersdk_lib)
-  target_include_directories(orbitersdkd-tests PRIVATE orbitersdk_lib  ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(orbitersdkd-tests
-    orbitersdk_lib Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 catch2 Ethash ${ETHASH_BYPRODUCTS}
-  )
-endif()
-
-# Compile and link the Discovery Node test executable if set to build it
-if (BUILD_DISCOVERY)
-  add_executable(orbitersdkd-discovery "${CMAKE_SOURCE_DIR}/src/main-discovery.cpp")
-  add_dependencies(orbitersdkd-discovery orbitersdk_lib)
-  target_include_directories(orbitersdkd-discovery PRIVATE orbitersdk_lib ${OPENSSL_INCLUDE_DIR})
-  target_link_libraries(orbitersdkd-discovery
-    orbitersdk_lib Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-  )
-endif()
+add_subdirectory(src/bins)
 

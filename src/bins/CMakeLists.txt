@@ -1,0 +1,5 @@
+add_subdirectory(orbitersdkd)
+add_subdirectory(orbitersdkd-tests)
+add_subdirectory(orbitersdkd-discovery)
+add_subdirectory(networkdeployer)
+add_subdirectory(contractabigenerator)
