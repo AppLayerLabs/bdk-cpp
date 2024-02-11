@@ -95,15 +95,23 @@ void Syncer::doSync() {
 void Syncer::doValidatorBlock() {
   // TODO: Improve this somehow.
   // Wait until we are ready to create the block
+  bool logged = false;
   while (!this->blockchain_.rdpos_.canCreateBlock()) {
-    Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for rdPoS to be ready to create a block.");
+    if (!logged) {
+      logged = true;
+      Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for rdPoS to be ready to create a block.");
+    }
     if (this->stopSyncer_) return;
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
   // Wait until we have at least one transaction in the state mempool.
+  logged = false;
   while (this->blockchain_.state_.getMempoolSize() < 1) {
-    Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for at least one transaction in the mempool.");
+    if (!logged) {
+      logged = true;
+      Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for at least one transaction in the mempool.");
+    }
     if (this->stopSyncer_) return;
     // Try to get transactions from the network.
     auto connectedNodesList = this->blockchain_.p2p_.getSessionsIDs();
@@ -116,7 +124,7 @@ void Syncer::doValidatorBlock() {
         this->blockchain_.state_.addTx(std::move(txBlock));
       }
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
   // Create the block.
@@ -200,17 +208,21 @@ void Syncer::validatorLoop() {
     if (this->stopSyncer_) return;
     if (!isBlockCreator) this->doValidatorTx();
 
+    bool logged = false;
     while (!this->checkLatestBlock() && !this->stopSyncer_) {
-      Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for next block to be created.");
+      if (!logged) {
+        Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for next block to be created.");
+        logged = true;
+      }
       // Wait for next block to be created.
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
   }
 }
 
 void Syncer::nonValidatorLoop() const {
   // TODO: Improve tx broadcasting and syncing
-  while (!this->stopSyncer_) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  while (!this->stopSyncer_) std::this_thread::sleep_for(std::chrono::microseconds(10));
 }
 
 bool Syncer::syncerLoop() {

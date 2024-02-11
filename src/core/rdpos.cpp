@@ -379,16 +379,27 @@ bool rdPoSWorker::workerLoop() {
     }
 
     // After processing everything. wait until the new block is appended to the chain.
+    std::unique_ptr<std::tuple<uint64_t, uint64_t, uint64_t>> lastLog = nullptr;
     while (!this->checkLatestBlock() && !this->stopWorker_) {
-      Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
-        "Waiting for new block to be appended to the chain. (Height: "
-        + std::to_string(this->latestBlock_->getNHeight()) + ")" + " latest height: "
-        + std::to_string(this->rdpos_.storage_.latest()->getNHeight())
-      );
-      Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
-        "Currently has " + std::to_string(this->rdpos_.validatorMempool_.size())
-        + " transactions in mempool."
-      );
+      if (lastLog == nullptr ||
+          std::get<0>(*lastLog) != this->latestBlock_->getNHeight() ||
+          std::get<1>(*lastLog) != this->rdpos_.storage_.latest()->getNHeight() ||
+          std::get<2>(*lastLog) != this->rdpos_.validatorMempool_.size()) {
+        lastLog = std::make_unique<std::tuple<uint64_t, uint64_t, uint64_t>>(
+          this->latestBlock_->getNHeight(),
+          this->rdpos_.storage_.latest()->getNHeight(),
+          this->rdpos_.validatorMempool_.size()
+        );
+        Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
+          "Waiting for new block to be appended to the chain. (Height: "
+          + std::to_string(this->latestBlock_->getNHeight()) + ")" + " latest height: "
+          + std::to_string(this->rdpos_.storage_.latest()->getNHeight())
+        );
+        Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
+          "Currently has " + std::to_string(this->rdpos_.validatorMempool_.size())
+          + " transactions in mempool."
+        );
+      }
       std::unique_lock mempoolSizeLock(this->rdpos_.mutex_);
       uint64_t mempoolSize = this->rdpos_.validatorMempool_.size();
       if (mempoolSize < rdPoS::minValidators) { // Always try to fill the mempool to 8 transactions
@@ -404,7 +415,7 @@ bool rdPoSWorker::workerLoop() {
       } else {
         mempoolSizeLock.unlock();
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(25));
+      std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
     // Update latest block if necessary.
     if (isBlockCreator) this->canCreateBlock_ = false;
@@ -417,13 +428,15 @@ void rdPoSWorker::doBlockCreation() {
   // TODO: add requesting transactions to other nodes when mempool is not filled up
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Block creator: waiting for txs");
   uint64_t validatorMempoolSize = 0;
+  std::unique_ptr<uint64_t> lastLog = nullptr;
   while (validatorMempoolSize != rdPoS::minValidators * 2 && !this->stopWorker_)
   {
-    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
-    "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool (Height: "
-      + std::to_string(this->latestBlock_->getNHeight()) + ")" + " latest height: "
-      + std::to_string(this->rdpos_.storage_.latest()->getNHeight())
-    );
+    if (lastLog == nullptr || *lastLog != validatorMempoolSize) {
+      lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
+      Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
+        "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
+      );
+    }
     // Scope for lock.
     {
       std::unique_lock mempoolSizeLock(this->rdpos_.mutex_);
@@ -436,7 +449,7 @@ void rdPoSWorker::doBlockCreation() {
       if (this->stopWorker_) return;
       for (auto const& tx : txList) this->rdpos_.state_.addValidatorTx(tx);
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Validator ready to create a block");
   // After processing everything, we can let everybody know that we are ready to create a block
@@ -483,10 +496,14 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
   // Wait until we received all randomHash transactions to broadcast the randomness transaction
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Waiting for randomHash transactions to be broadcasted");
   uint64_t validatorMempoolSize = 0;
+  std::unique_ptr<uint64_t> lastLog = nullptr;
   while (validatorMempoolSize < rdPoS::minValidators && !this->stopWorker_) {
-    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
-      "Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
-    );
+    if (lastLog == nullptr || *lastLog != validatorMempoolSize) {
+      lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
+      Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
+        "Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
+      );
+    }
     // Scope for lock
     {
       std::unique_lock mempoolSizeLock(this->rdpos_.mutex_);
@@ -499,7 +516,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
       auto txList = this->rdpos_.p2p_.requestValidatorTxs(nodeId);
       for (auto const& tx : txList) this->rdpos_.state_.addValidatorTx(tx);
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Broadcasting random transaction");
