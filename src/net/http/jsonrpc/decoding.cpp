@@ -649,7 +649,7 @@ namespace JsonRPC::Decoding {
     static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
     try {
       std::string txHash = request["params"].at(0).get<std::string>();
-      if (!std::regex_match(txHash, hashFilter)) throw DynamicException("Invalid Hex");
+      if (!std::regex_match(txHash, hashFilter)) throw DynamicException("Invalid Hex: " + txHash);
       return Hash(Hex::toBytes(txHash));
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,

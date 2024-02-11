@@ -420,7 +420,9 @@ void rdPoSWorker::doBlockCreation() {
   while (validatorMempoolSize != rdPoS::minValidators * 2 && !this->stopWorker_)
   {
     Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__,
-      "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
+    "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool (Height: "
+      + std::to_string(this->latestBlock_->getNHeight()) + ")" + " latest height: "
+      + std::to_string(this->rdpos_.storage_.latest()->getNHeight())
     );
     // Scope for lock.
     {

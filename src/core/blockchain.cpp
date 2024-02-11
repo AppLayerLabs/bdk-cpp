@@ -96,13 +96,26 @@ void Syncer::doValidatorBlock() {
   // TODO: Improve this somehow.
   // Wait until we are ready to create the block
   while (!this->blockchain_.rdpos_.canCreateBlock()) {
+    Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for rdPoS to be ready to create a block.");
     if (this->stopSyncer_) return;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   // Wait until we have at least one transaction in the state mempool.
   while (this->blockchain_.state_.getMempoolSize() < 1) {
+    Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for at least one transaction in the mempool.");
     if (this->stopSyncer_) return;
+    // Try to get transactions from the network.
+    auto connectedNodesList = this->blockchain_.p2p_.getSessionsIDs();
+    for (auto const& nodeId : connectedNodesList) {
+      if (this->checkLatestBlock() || this->stopSyncer_) break;
+      auto txList = this->blockchain_.p2p_.requestTxs(nodeId);
+      if (this->checkLatestBlock() || this->stopSyncer_) break;
+      for (auto const& tx : txList) {
+        TxBlock txBlock(tx);
+        this->blockchain_.state_.addTx(std::move(txBlock));
+      }
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
@@ -188,6 +201,7 @@ void Syncer::validatorLoop() {
     if (!isBlockCreator) this->doValidatorTx();
 
     while (!this->checkLatestBlock() && !this->stopSyncer_) {
+      Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for next block to be created.");
       // Wait for next block to be created.
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

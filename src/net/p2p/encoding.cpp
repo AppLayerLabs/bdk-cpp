@@ -70,6 +70,13 @@ namespace P2P {
     return Message(std::move(message));
   }
 
+  Message RequestEncoder::requestTxs() {
+    Bytes message = getRequestTypePrefix(Requesting);
+    Utils::appendBytes(message, Utils::randBytes(8));
+    Utils::appendBytes(message, getCommandPrefix(RequestTxs));
+    return Message(std::move(message));
+  }
+
   bool RequestDecoder::ping(const Message& message) {
     if (message.size() != 11) { return false; }
     if (message.command() != Ping) { return false; }
@@ -95,6 +102,12 @@ namespace P2P {
   bool RequestDecoder::requestValidatorTxs(const Message& message) {
     if (message.size() != 11) { return false; }
     if (message.command() != RequestValidatorTxs) { return false; }
+    return true;
+  }
+
+  bool RequestDecoder::requestTxs(const Message& message) {
+    if (message.size() != 11) { return false; }
+    if (message.command() != RequestTxs) { return false; }
     return true;
   }
 
@@ -160,6 +173,20 @@ namespace P2P {
     return Message(std::move(message));
   }
 
+  Message AnswerEncoder::requestTxs(const Message& request,
+    const std::unordered_map<Hash, TxBlock, SafeHash>& txs
+  ) {
+    Bytes message = getRequestTypePrefix(Answering);
+    Utils::appendBytes(message, request.id());
+    Utils::appendBytes(message, getCommandPrefix(RequestTxs));
+    for (const auto& [txHash, tx] : txs) {
+      Bytes rlp = tx.rlpSerialize();
+      Utils::appendBytes(message, Utils::uint32ToBytes(rlp.size()));
+      message.insert(message.end(), rlp.begin(), rlp.end());
+    }
+    return Message(std::move(message));
+  }
+
   bool AnswerDecoder::ping(const Message& message) {
     if (message.size() != 11) { return false; }
     if (message.type() != Answering) { return false; }
@@ -217,6 +244,26 @@ namespace P2P {
     if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
     if (message.command() != RequestValidatorTxs) { throw DynamicException("Invalid command."); }
     std::vector<TxValidator> txs;
+    BytesArrView data = message.message();
+    size_t index = 0;
+    while (index < data.size()) {
+      if (data.size() < 4) { throw DynamicException("Invalid data size."); }
+      uint32_t txSize = Utils::bytesToUint32(data.subspan(index, 4));
+      index += 4;
+      if (data.size() < txSize) { throw DynamicException("Invalid data size."); }
+      BytesArrView txData = data.subspan(index, txSize);
+      index += txSize;
+      txs.emplace_back(txData, requiredChainId);
+    }
+    return txs;
+  }
+
+  std::vector<TxBlock> AnswerDecoder::requestTxs(
+    const Message& message, const uint64_t& requiredChainId
+  ) {
+    if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
+    if (message.command() != RequestTxs) { throw DynamicException("Invalid command."); }
+    std::vector<TxBlock> txs;
     BytesArrView data = message.message();
     size_t index = 0;
     while (index < data.size()) {

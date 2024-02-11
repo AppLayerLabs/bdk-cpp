@@ -97,6 +97,13 @@ namespace P2P {
       void handleTxValidatorRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
+       * Handle a `RequestTxs` request.
+       * @param session The session that sent the request.
+       * @param message The request message to handle.
+       */
+      void handleTxRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+
+      /**
        * Handle a `Ping` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
@@ -123,6 +130,13 @@ namespace P2P {
        * @param message The answer message to handle.
        */
       void handleTxValidatorAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+
+      /**
+       * Handle a `RequestTxs` answer.
+       * @param session The session that sent the answer.
+       * @param message The answer message to handle.
+       */
+      void handleTxAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a Validator transaction broadcast message.
@@ -178,6 +192,13 @@ namespace P2P {
        * @return A list of the node's Validator transactions.
        */
       std::vector<TxValidator> requestValidatorTxs(const NodeID& nodeId);
+
+      /**
+       * Request Validator transactions from a given node.
+       * @param nodeId The ID of the node to request.
+       * @return A list of the node's Validator transactions.
+       */
+      std::vector<TxBlock> requestTxs(const NodeID& nodeId);
 
       /**
        * Request info about a given node.

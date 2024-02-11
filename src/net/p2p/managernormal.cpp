@@ -82,6 +82,9 @@ namespace P2P{
       case RequestValidatorTxs:
         handleTxValidatorRequest(session, message);
         break;
+      case RequestTxs:
+        handleTxRequest(session, message);
+        break;
       default:
         if (auto sessionPtr = session.lock()) {
           Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -115,6 +118,9 @@ namespace P2P{
         break;
       case RequestValidatorTxs:
         handleTxValidatorAnswer(session, message);
+        break;
+      case RequestTxs:
+        handleTxAnswer(session, message);
         break;
       default:
         if (auto sessionPtr = session.lock()) {
@@ -258,6 +264,26 @@ namespace P2P{
     this->answerSession(session, std::make_shared<const Message>(AnswerEncoder::requestValidatorTxs(*message, this->rdpos_.getMempool())));
   }
 
+  void ManagerNormal::handleTxRequest(
+    std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
+  ) {
+    if (!RequestDecoder::requestTxs(*message)) {
+      if (auto sessionPtr = session.lock()) {
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+          "Invalid requestTxs request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
+          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
+        );
+        this->disconnectSession(sessionPtr->hostNodeId());
+      } else {
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+          "Invalid requestTxs request from unknown session, closing session."
+        );
+      }
+      return;
+    }
+    this->answerSession(session, std::make_shared<const Message>(AnswerEncoder::requestTxs(*message, this->state_.getMempool())));
+  }
+
   void ManagerNormal::handlePingAnswer(
     std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
   ) {
@@ -325,6 +351,28 @@ namespace P2P{
   }
 
   void ManagerNormal::handleTxValidatorAnswer(
+    std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
+  ) {
+    std::unique_lock lock(this->requestsMutex_);
+    if (!requests_.contains(message->id())) {
+      lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
+      if (auto sessionPtr = session.lock()) {
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+          "Answer to invalid request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
+          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
+        );
+        this->disconnectSession(sessionPtr->hostNodeId());
+      } else {
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+          "Answer to invalid request from unknown session, closing session."
+        );
+      }
+      return;
+    }
+    requests_[message->id()]->setAnswer(message);
+  }
+
+  void ManagerNormal::handleTxAnswer(
     std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
   ) {
     std::unique_lock lock(this->requestsMutex_);
@@ -447,6 +495,35 @@ namespace P2P{
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestValidatorTxs(*answerPtr, this->options_.getChainID());
+    } catch (std::exception &e) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
+      );
+      return {};
+    }
+  }
+
+  std::vector<TxBlock> ManagerNormal::requestTxs(const NodeID& nodeId) {
+    auto request = std::make_shared<const Message>(RequestEncoder::requestTxs());
+    Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    auto requestPtr = this->sendRequestTo(nodeId, request);
+    if (requestPtr == nullptr) {
+      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
+        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed."
+      );
+      return {};
+    }
+    auto answer = requestPtr->answerFuture();
+    auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
+    if (status == std::future_status::timeout) {
+      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
+        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " timed out."
+      );
+      return {};
+    }
+    try {
+      auto answerPtr = answer.get();
+      return AnswerDecoder::requestTxs(*answerPtr, this->options_.getChainID());
     } catch (std::exception &e) {
       Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
         "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()

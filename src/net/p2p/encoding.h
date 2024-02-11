@@ -45,7 +45,8 @@ namespace P2P {
     RequestValidatorTxs,
     BroadcastValidatorTx,
     BroadcastTx,
-    BroadcastBlock
+    BroadcastBlock,
+    RequestTxs
   };
 
   /**
@@ -71,6 +72,7 @@ namespace P2P {
    * - "0004" = BroadcastValidatorTx
    * - "0005" = BroadcastTx
    * - "0006" = BroadcastBlock
+   * - "0007" = RequestTxs
    */
   inline extern const std::vector<Bytes> commandPrefixes {
     Bytes{0x00, 0x00}, // Ping
@@ -79,7 +81,8 @@ namespace P2P {
     Bytes{0x00, 0x03}, // RequestValidatorTxs
     Bytes{0x00, 0x04}, // BroadcastValidatorTx
     Bytes{0x00, 0x05}, // BroadcastTx
-    Bytes{0x00, 0x06}  // BroadcastBlock
+    Bytes{0x00, 0x06}, // BroadcastBlock
+    Bytes{0x00, 0x07}  // RequestTxs
   };
 
   /**
@@ -199,6 +202,12 @@ namespace P2P {
        * @return The formatted request.
        */
       static Message requestValidatorTxs();
+
+      /**
+       * Create a `RequestTxs` request.
+       * @return The formatted request.
+       */
+      static Message requestTxs();
   };
 
   /// Helper class used to parse requests.
@@ -232,6 +241,13 @@ namespace P2P {
        * @return `true` if the message is valid, `false` otherwise.
        */
       static bool requestValidatorTxs(const Message& message);
+
+      /**
+       * Parse a `RequestTxs` message.
+       * @param message The message to parse.
+       * @return `true` if the message is valid, `false` otherwise.
+       */
+      static bool requestTxs(const Message& message);
   };
 
   /// Helper class used to create answers to requests.
@@ -275,6 +291,16 @@ namespace P2P {
       static Message requestValidatorTxs(const Message& request,
         const std::unordered_map<Hash, TxValidator, SafeHash>& txs
       );
+
+      /**
+       * Create a `RequestTxs` answer.
+       * @param request The request message.
+       * @param txs The list of transactions to use as reference.
+       * @return The formatted answer.
+       */
+      static Message requestTxs(const Message& request,
+        const std::unordered_map<Hash, TxBlock, SafeHash>& txs
+      );
   };
 
   /// Helper class used to parse answers to requests.
@@ -310,6 +336,16 @@ namespace P2P {
        * @return A list of requested Validator transactions.
        */
       static std::vector<TxValidator> requestValidatorTxs(
+        const Message& message, const uint64_t& requiredChainId
+      );
+
+      /**
+       * Parse a `RequestTxs` answer.
+       * @param message The answer to parse.
+       * @param requiredChainId The chain ID to use as reference.
+       * @return A list of requested Validator transactions.
+       */
+      static std::vector<TxBlock> requestTxs(
         const Message& message, const uint64_t& requiredChainId
       );
   };
