@@ -64,6 +64,11 @@ namespace P2P {
 
   void Session::finish_handshake(boost::system::error_code ec, std::size_t) {
     if (ec && this->handle_error(__func__, ec)) return;
+    if (this->inboundHandshake_.size() != 3) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PSession, __func__, "Invalid handshake size");
+      this->close();
+      return;
+    }
     this->type_ = (!this->inboundHandshake_[0]) ? NodeType::NORMAL_NODE : NodeType::DISCOVERY_NODE;
     this->serverPort_ = Utils::bytesToUint16(Utils::create_view_span(this->inboundHandshake_, 1, 2));
     this->doneHandshake_ = true;
