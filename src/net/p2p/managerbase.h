@@ -149,6 +149,9 @@ namespace P2P {
       /// Get the current sessions' IDs from the list.
       std::vector<NodeID> getSessionsIDs() const;
 
+      /// Get the current Session ID's for the given NodeType.
+      std::vector<NodeID> getSessionsIDs(const NodeType& nodeType) const;
+
       /// Getter for `nodeType_`.
       const NodeType& nodeType() const { return this->nodeType_; }
 

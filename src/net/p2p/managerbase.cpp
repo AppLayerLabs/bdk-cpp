@@ -122,6 +122,13 @@ namespace P2P {
     return nodes;
   }
 
+  std::vector<NodeID> ManagerBase::getSessionsIDs(const NodeType& type) const {
+    std::vector<NodeID> nodes;
+    std::shared_lock<std::shared_mutex> lock(this->sessionsMutex_);
+    for (auto& [nodeId, session] : this->sessions_) if (session->hostType() == type) nodes.push_back(nodeId);
+    return nodes;
+  }
+
   bool ManagerBase::registerSession(const std::shared_ptr<Session> &session) {
     return this->registerSessionInternal(session);
   }

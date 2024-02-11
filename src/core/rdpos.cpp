@@ -405,7 +405,7 @@ bool rdPoSWorker::workerLoop() {
       if (mempoolSize < rdPoS::minValidators) { // Always try to fill the mempool to 8 transactions
         mempoolSizeLock.unlock();
         // Try to get more transactions from other nodes within the network
-        auto connectedNodesList = this->rdpos_.p2p_.getSessionsIDs();
+        auto connectedNodesList = this->rdpos_.p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
         for (auto const& nodeId : connectedNodesList) {
           if (this->checkLatestBlock() || this->stopWorker_) break;
           auto txList = this->rdpos_.p2p_.requestValidatorTxs(nodeId);
@@ -443,7 +443,7 @@ void rdPoSWorker::doBlockCreation() {
       validatorMempoolSize = this->rdpos_.validatorMempool_.size();
     }
     // Try to get more transactions from other nodes within the network
-    auto connectedNodesList = this->rdpos_.p2p_.getSessionsIDs();
+    auto connectedNodesList = this->rdpos_.p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     for (auto const& nodeId : connectedNodesList) {
       auto txList = this->rdpos_.p2p_.requestValidatorTxs(nodeId);
       if (this->stopWorker_) return;
@@ -510,7 +510,7 @@ void rdPoSWorker::doTxCreation(const uint64_t& nHeight, const Validator& me) {
       validatorMempoolSize = this->rdpos_.validatorMempool_.size();
     }
     // Try to get more transactions from other nodes within the network
-    auto connectedNodesList = this->rdpos_.p2p_.getSessionsIDs();
+    auto connectedNodesList = this->rdpos_.p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     for (auto const& nodeId : connectedNodesList) {
       if (this->stopWorker_) return;
       auto txList = this->rdpos_.p2p_.requestValidatorTxs(nodeId);
