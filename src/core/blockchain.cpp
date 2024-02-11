@@ -94,8 +94,8 @@ void Syncer::doSync() {
 
 void Syncer::doValidatorBlock() {
   // TODO: Improve this somehow.
-  // Wait until we have enough transactions in the rdpos mempool.
-  while (this->blockchain_.rdpos_.getMempool().size() < rdPoS::minValidators * 2) {
+  // Wait until we are ready to create the block
+  while (!this->blockchain_.rdpos_.canCreateBlock()) {
     if (this->stopSyncer_) return;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
