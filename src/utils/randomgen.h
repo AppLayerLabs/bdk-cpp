@@ -20,14 +20,13 @@ See the LICENSE.txt file in the project root for more information.
 /// Custom Pseudo-Random Number Generator (PRNG) for use in rdPoS.
 class RandomGen {
   private:
-    Hash seed_;  ///< The seed used by the generator.
-    mutable std::mutex seedLock_;  ///< Mutex for managing read/write access to the seed.
+    Hash seed_;                   ///< The seed used by the generator.
+    mutable std::mutex seedLock_; ///< Mutex for managing read/write access to the seed.
 
   public:
     /**
-     * Alias for the result type.
-     * Implemented in conformity with UniformRandomBitGenerator:
-     * https://en.cppreference.com/w/cpp/named_req/UniformRandomBitGenerator
+     * Alias for the result type, implemented in conformity with UniformRandomBitGenerator.
+     * @see https://en.cppreference.com/w/cpp/named_req/UniformRandomBitGenerator
      */
     using result_type = uint256_t;
 
@@ -37,10 +36,10 @@ class RandomGen {
      */
     explicit RandomGen(const Hash& seed) : seed_(seed) {};
 
-    /// Getter for `seed`.
+    /// Getter for `seed_`.
     inline const Hash& getSeed() const { std::lock_guard lock(seedLock_); return this->seed_; }
 
-    /// Setter for `seed`.
+    /// Setter for `seed_`.
     inline void setSeed(const Hash& seed) { std::lock_guard lock(seedLock_); this->seed_ = seed; }
 
     /// Return the maximum numeric limit of a 256-bit unsigned integer.
@@ -51,7 +50,7 @@ class RandomGen {
 
     /**
      * Shuffle the elements of a given vector.
-     * Vector is a std::vector of any given type.
+     * @tparam Vector Any type of std::vector.
      * @param v The vector to shuffle.
      */
     template <typename Vector> void shuffle(Vector& v) {

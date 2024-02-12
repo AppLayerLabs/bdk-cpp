@@ -19,7 +19,6 @@ See the LICENSE.txt file in the project root for more information.
 
 /**
  * Abstraction of a block.
- *
  * Does NOT check transaction logic but does check Tx Signature validty.
  * Logic is handled by State.
  * (Summed up) Structure is as follows:
@@ -49,43 +48,21 @@ See the LICENSE.txt file in the project root for more information.
  *     ...
  *   ]
  * ```
- *
- * TODO: Add chainId into the validator signature.
  */
 class Block {
+  // TODO: Add chainId into the validator signature.
   private:
-    /// Validator signature for the block.
-    Signature validatorSig_;
-
-    /// Previous block hash.
-    Hash prevBlockHash_;
-
-    /// Current block randomness based on rdPoS.
-    Hash blockRandomness_;
-
-    /// Merkle root for Validator transactions.
-    Hash validatorMerkleRoot_;
-
-    /// Merkle root for block transactions.
-    Hash txMerkleRoot_;
-
-    /// Epoch timestamp of the block, in microsseconds.
-    uint64_t timestamp_ = 0;
-
-    /// Height of the block in chain.
-    uint64_t nHeight_ = 0;
-
-    /// List of Validator transactions.
-    std::vector<TxValidator> txValidators_;
-
-    /// List of block transactions.
-    std::vector<TxBlock> txs_;
-
-    /// Validator public key for the block.
-    UPubKey validatorPubKey_;
-
-    /// Indicates whether the block is finalized or not. See finalize().
-    bool finalized_ = false;
+    Signature validatorSig_;                ///< Validator signature for the block.
+    Hash prevBlockHash_;                    ///< Previous block hash.
+    Hash blockRandomness_;                  ///< Current block randomness based on rdPoS.
+    Hash validatorMerkleRoot_;              ///< Merkle root for Validator transactions.
+    Hash txMerkleRoot_;                     ///< Merkle root for block transactions.
+    uint64_t timestamp_ = 0;                ///< Epoch timestamp of the block, in microsseconds.
+    uint64_t nHeight_ = 0;                  ///< Height of the block in chain.
+    std::vector<TxValidator> txValidators_; ///< List of Validator transactions.
+    std::vector<TxBlock> txs_;              ///< List of block transactions.
+    UPubKey validatorPubKey_;               ///< Validator public key for the block.
+    bool finalized_ = false;                ///< Indicates whether the block is finalized or not. See finalize().
 
   public:
     /**
@@ -135,52 +112,31 @@ class Block {
       finalized_(std::move(block.finalized_))
     { block.finalized_ = false; return; } // Block moved -> invalid block, as members of block were moved
 
-    /// Getter for `validatorSig_`.
+    ///@{
+    /** Getter. */
     const Signature& getValidatorSig() const { return this->validatorSig_; }
-
-    /// Getter for `prevBlockHash_`.
     const Hash& getPrevBlockHash() const { return this->prevBlockHash_; }
-
-    /// Getter for `blockRandomness_`.
     const Hash& getBlockRandomness() const { return this->blockRandomness_; }
-
-    /// Getter for `validatorMerkleRoot_`.
     const Hash& getValidatorMerkleRoot() const { return this->validatorMerkleRoot_; }
-
-    /// Getter for `txMerkleRoot_`.
     const Hash& getTxMerkleRoot() const { return this->txMerkleRoot_; }
-
-    /// Getter for `timestamp_`.
     uint64_t getTimestamp() const { return this->timestamp_; }
-
-    /// Getter for `nHeight_`.
     uint64_t getNHeight() const { return this->nHeight_; }
-
-    /// Getter for `txValidators_`.
     const std::vector<TxValidator>& getTxValidators() const { return this->txValidators_; }
-
-    /// Getter for `txs_`.
     const std::vector<TxBlock>& getTxs() const { return this->txs_; }
-
-    /// Getter for `validatorPubKey_`.
     const UPubKey& getValidatorPubKey() const { return this->validatorPubKey_; }
-
-    /// Getter for `finalized_`.
     bool isFinalized() const { return this->finalized_; }
-
-    // ========================
-    // Serialization Functions
-    // ========================
+    ///@}
 
     /**
-     * Serialize the block header (prev block hash + randomness +
-     * Validator Merkle Root + Transaction Merkle Root + timestamp_ + nHeight_).
+     * Serialize the block header (144 bytes = previous block hash + block randomness
+     * + validator merkle root + tx merkle root + timestamp + block height).
      * @return The serialized header string.
      */
     Bytes serializeHeader() const;
 
     /**
-     * Serialize the entire block and its contents.
+     * Serialize the entire block and its contents (validator signature + block header
+     * + validator tx offset + [block txs...] + [validator txs...]).
      * @return The serialized block string.
      */
     Bytes serializeBlock() const;
@@ -191,29 +147,24 @@ class Block {
      */
     Hash hash() const;
 
-    // ==============================
-    // Transaction related functions
-    // ==============================
-
     /**
-     * Append a block transaction to the block.
+     * Append a transaction to the block.
      * @param tx The transaction to append.
-     * @return `true` on success, `false` if block is finalized_.
+     * @return `true` on success, `false` if block is finalized.
      */
     bool appendTx(const TxBlock& tx);
 
     /**
      * Append a Validator transaction to the block.
-     * @param tx The transaction to append.
-     * @return `true` on success, `false` if block is finalized_.
+     * @param tx The Validator transaction to append.
+     * @return `true` on success, `false` if block is finalized.
      */
     bool appendTxValidator(const TxValidator& tx);
 
     /**
-     * Finalize the block.
-     * This means the block will be "closed" to new transactions,
-     * signed and validated by the Validator, and a new randomness seed
-     * will be generated for the next block.
+     * Finalize the block (close it so new transactions won't be accepted,
+     * sign and validate it through a Validator, and generate a new randomness
+     * seed for the next block).
      * @return `true` on success, `false` if block is already finalized_.
      */
     bool finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp);

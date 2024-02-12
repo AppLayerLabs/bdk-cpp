@@ -92,11 +92,7 @@ class Hex {
      */
     static bool isValid(const std::string_view hex, bool strict = false);
 
-    /**
-     * Convert internal hex data to bytes.
-     * @return The converted bytes string.
-     */
-    Bytes bytes() const;
+    Bytes bytes() const;  ///< Convert internal hex data to raw bytes.
 
     /**
      * Static overload of bytes().
@@ -124,10 +120,8 @@ class Hex {
 
     /**
      * Get a substring of the internal hex string.
-     * @param pos (optional) The position of the first character to start from.
-     *                       Defaults to the start of the string.
-     * @param len (optional) The number of characters to get.
-     *                       Defaults to the end of the string.
+     * @param pos (optional) Position of the first character to start from. Defaults to start of string.
+     * @param len (optional) Number of characters to get. Defaults to end of string.
      * @return The hex substring.
     */
     inline std::string substr(size_t pos = 0, size_t len = std::string::npos) const {
@@ -147,30 +141,25 @@ class Hex {
     static int toInt(char c);
 
     /**
-     * Return an Ethereum-JSONRPC-friendly hex string.
-     *
-     * See: https://ethereum.org/pt/developers/docs/apis/json-rpc/#hex-encoding
-     *
-     * 0x41 (65 in decimal)
-     *
-     * 0x400 (1024 in decimal)
-     *
-     * WRONG: 0x (should always have at least one digit - zero is "0x0")
-     *
-     * WRONG: 0x0400 (no leading zeroes allowed)
-     *
-     * WRONG: ff (must be prefixed 0x)
+     * Return an Ethereum-JSONRPC-friendly hex string. Examples:
+     * - 0x41 (65 in decimal)
+     * - 0x400 (1024 in decimal)
+     * - WRONG: 0x (should always have at least one digit - zero is "0x0")
+     * - WRONG: 0x0400 (no leading zeroes allowed)
+     * - WRONG: ff (must be prefixed with "0x")
      *
      * @return The internal hex string, modified as above if needed.
+     * @see https://ethereum.org/pt/developers/docs/apis/json-rpc/#hex-encoding
      */
     std::string forRPC() const;
 
-    /// Concat operator. Throws on invalid concat.
+    /**
+     * Concat operator.
+     * @throw DynamicException on invalid concat.
+     */
     Hex& operator+=(const std::string& hex) {
       if (Hex::isValid(hex, (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')))) {
-        this->hex_ += (
-          hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')
-        ) ? hex.substr(2) : hex;
+        this->hex_ += (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) ? hex.substr(2) : hex;
       } else {
         throw DynamicException("Invalid Hex concat operation");
       }
@@ -184,49 +173,38 @@ class Hex {
     }
 
     /**
-     * Default operator to return the internal hex string directly as a string.
-     *
-     * Example:
+     * Default operator to return the internal hex string directly as a string. Example:
      * ```
      * std::string myHexString = "My Hex is:";
      * Hex hex = Hex::fromString("Hello World");
      * myHexString += hex;
      * std::cout << myHexString << std::endl;
-     *
      * $ My Hex is: 48656c6c6f20576f726c64
      * ```
      */
     inline operator std::string() const { return this->hex_; }
 
     /**
-     * Default operator to return the internal hex string directly as a string_view.
-     *
-     * Example:
+     * Default operator to return the internal hex string directly as a string_view. Example:
      * ```
      * std::string myStringHex = "My Hex is:";
      * Hex hex = Hex::fromString("Hello World");
      * std::string_view myHexString = hex;
      * std::cout << myStringHex << myHexString << std::endl;
-     *
      * $ My Hex is: 48656c6c6f20576f726c64
      * ```
      */
     inline operator std::string_view() const { return this->hex_; }
 
     /**
-     * Friend function to allow left shift in output stream.
-     *
-     * Example:
+     * Friend function to allow left shift in output stream. Example:
      * ```
      * Hex hex = Hex("48656c6c6f20576f726c64");
      * std::cout << "My hex is: " << hex << std::endl;
-     *
      * $ My hex is: 48656c6c6f20576f726c64
      * ```
      */
-    inline friend std::ostream& operator<<(std::ostream& out, const Hex& other) {
-      return out << other.hex_;
-    }
+    inline friend std::ostream& operator<<(std::ostream& out, const Hex& other) { return out << other.hex_; }
 };
 
 #endif // HEX_H

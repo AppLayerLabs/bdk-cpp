@@ -49,8 +49,7 @@ namespace Secp256k1 {
   UPubKey recover(const Signature& sig, const Hash& msg);
 
   /**
-   * Create an [ECDSA](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
-   * (Elliptic Curve Digital %Signature Algorithm) signature.
+   * Create an [ECDSA](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm) signature.
    * @param r The first half (32 bytes) of the ECDSA signature.
    * @param s The second half (32 bytes) of the ECDSA signature.
    * @param v The recovery id (1 byte).

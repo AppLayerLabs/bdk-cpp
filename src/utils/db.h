@@ -57,45 +57,35 @@ struct DBEntry {
    */
   DBEntry(const Bytes& key, const Bytes& value) : key(key), value(value) {};
 
+  ///@{
   /**
-  * Move constructor (key/value)
-  * @param key The entry's key.
-  * @param value The entry's value.
-  */
+   * Move constructor.
+   * @param key The entry's key.
+   * @param value The entry's value.
+   */
   DBEntry(Bytes&& key, Bytes&& value) : key(std::move(key)), value(std::move(value)) {};
-
-  /**
-  * Move constructor (value)
-  * @param key The entry's key.
-  * @param value The entry's value.
-  */
   DBEntry(const Bytes& key, Bytes&& value) : key(key), value(std::move(value)) {};
-
-  /**
-  * Move constructor (key)
-  * @param key The entry's key.
-  * @param value The entry's value.
-  */
   DBEntry(Bytes&& key, const Bytes& value) : key(std::move(key)), value(value) {};
+  ///@}
 };
 
 /**
- * Class for a database batch request.
+ * Abstraction of a database batch request.
  * Several requests can be grouped here to be issued at once.
- * Requests grouped within DBBatch will automatically add the appropriate prefix to their keys.
- * Automatically create respective slices for RocksDB referencing the inner vectors.
+ * Automatically adds the appropriate prefix to keys and creates the respective
+ * slices for the internal database object referencing the inner vectors.
  */
 class DBBatch {
   private:
-    std::vector<DBEntry> puts_;      ///< List of entries to insert.
-    std::vector<Bytes> dels_;        ///< List of entries to delete.
+    std::vector<DBEntry> puts_; ///< List of entries to insert.
+    std::vector<Bytes> dels_; ///< List of entries to delete.
     std::vector<std::pair<rocksdb::Slice, rocksdb::Slice>> putsSlices_; ///< List of slices to insert. (key/value)
     std::vector<rocksdb::Slice> delsSlices_; ///< List of slices to delete. (key)
   public:
     DBBatch() = default; ///< Default constructor.
 
     /**
-     * Add an puts entry to the batch.
+     * Add a put entry to the batch.
      * @param key The entry's key.
      * @param value The entry's value.
      * @param prefix The entry's prefix.
@@ -112,7 +102,7 @@ class DBBatch {
     }
 
     /**
-     * Add an delete entry to the batch.
+     * Add a delete entry to the batch.
      * @param key The entry's key.
      * @param prefix The entry's prefix.
      */
@@ -126,34 +116,23 @@ class DBBatch {
       );
     }
 
-    /**
-     * Get the list of puts entries.
-     * @return The list of puts entries.
-     */
+    /// Get the list of put entries.
     inline const std::vector<DBEntry>& getPuts() const { return puts_; }
 
-    /**
-     * Get the list of delete entries.
-     * @return The list of delete entries.
-     */
+    /// Get the list of delete entries.
     inline const std::vector<Bytes>& getDels() const { return dels_; }
 
-    /**
-     * Get the list of puts slices.
-     * @return The list of puts slices.
-     */
+    /// Get the list of put slices.
     inline const std::vector<std::pair<rocksdb::Slice, rocksdb::Slice>>& getPutsSlices() const { return putsSlices_; }
 
-    /**
-     * Get the list of delete slices.
-     * @return The list of delete slices.
-     */
+    /// Get the list of delete slices.
     inline const std::vector<rocksdb::Slice>& getDelsSlices() const { return delsSlices_; }
 };
 
 /**
  * Abstraction of a [Speedb](https://github.com/speedb-io/speedb) database (Speedb is a RocksDB drop-in replacement).
- * Keys begin with prefixes that separate entries in several categories. See DBPrefix.
+ * Keys begin with prefixes that separate entries in several categories.
+ * @see DBPrefix
  */
 class DB {
   private:
@@ -180,12 +159,12 @@ class DB {
 
     /**
      * Check if a key exists in the database.
+     * @tparam BytesContainer Any container that stores Bytes.
      * @param key The key to search for.
-     * @param pfx (optional) The prefix to search for. Defaults to an empty string.
+     * @param pfx (optional) The prefix to search for. Defaults to none.
      * @return `true` if the key exists, `false` otherwise.
      */
-    template <typename BytesContainer>
-    bool has(const BytesContainer& key, const Bytes& pfx = {}) {
+    template <typename BytesContainer> bool has(const BytesContainer& key, const Bytes& pfx = {}) {
       std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
@@ -200,12 +179,12 @@ class DB {
 
     /**
      * Get a value from a given key in the database.
+     * @tparam BytesContainer Any container that stores Bytes.
      * @param key The key to search for.
-     * @param pfx (optional) The prefix to search for. Defaults to an empty string.
-     * @return The requested value, or an empty string if the key doesn't exist.
+     * @param pfx (optional) The prefix to search for. Defaults to none.
+     * @return The requested value, or an empty Bytes object if the key doesn't exist.
      */
-    template <typename BytesContainer>
-    Bytes get(const BytesContainer& key, const Bytes& pfx = {}) const {
+    template <typename BytesContainer> Bytes get(const BytesContainer& key, const Bytes& pfx = {}) const {
       std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
@@ -222,16 +201,17 @@ class DB {
       return {};
     }
 
-
     /**
      * Insert an entry into the database.
+     * @tparam BytesContainerKey Any container that stores Bytes (for the key).
+     * @tparam BytesContainerValue Any container that stores Bytes (for the value).
      * @param key The key to insert.
      * @param value The value to insert.
-     * @param pfx (optional) The prefix to insert the key into. Defaults to an empty string.
+     * @param pfx (optional) The prefix to insert the key into. Defaults to none.
      * @return `true` if the insert is successful, `false` otherwise.
      */
-    template <typename BytesContainerTypeOne, typename BytesContainerTypeSecond>
-    bool put(const BytesContainerTypeOne& key, const BytesContainerTypeSecond& value, const Bytes& pfx = {}) const {
+    template <typename BytesContainerKey, typename BytesContainerValue>
+    bool put(const BytesContainerKey& key, const BytesContainerValue& value, const Bytes& pfx = {}) const {
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
@@ -246,13 +226,13 @@ class DB {
     }
 
     /**
-     * Delete an entry from the database.
+     * Delete an entry from the database (overload for Bytes).
+     * @tparam BytesContainer Any container that stores Bytes.
      * @param key The key to delete.
-     * @param pfx (optional) The prefix to delete the key from. Defaults to an empty string.
+     * @param pfx (optional) The prefix to delete the key from. Defaults to none.
      * @return `true` if the deletion is successful, `false` otherwise.
      */
-    template <typename BytesContainer>
-    bool del(const BytesContainer& key, const Bytes& pfx = {}) const {
+    template <typename BytesContainer> bool del(const BytesContainer& key, const Bytes& pfx = {}) const {
       auto keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
@@ -266,16 +246,16 @@ class DB {
     }
 
     /**
-    * Delete an entry from the database.
-    * @param key The key to delete.
-    * @param pfx (optional) The prefix to delete the key from. Defaults to an empty string.
-    * @return `true` if the deletion is successful, `false` otherwise.
-    */
+     * Delete an entry from the database (overload for C-style strings).
+     * @param key The key to delete.
+     * @param pfx (optional) The prefix to delete the key from. Defaults to none.
+     * @return `true` if the deletion is successful, `false` otherwise.
+     */
     bool del(const char* key, const Bytes& pfx = {}) const { return this->del(std::string(key), pfx); }
 
     /**
      * Do several put and/or delete operations in one go.
-     * Pfx is already included in DBBatch keys.
+     * Prefix is already included in DBBatch keys.
      * @param batch The batch object with the put/del operations to be done.
      * @return `true` if all operations were successful, `false` otherwise.
      */
@@ -285,7 +265,7 @@ class DB {
      * Get all entries from a given prefix.
      * @param bytesPfx The prefix to search for.
      * @param keys (optional) A list of keys to search for. Defaults to an empty list.
-     * @return A list of DBEntry objects.
+     * @return A list of found entries.
      */
     std::vector<DBEntry> getBatch(
       const Bytes& bytesPfx, const std::vector<Bytes>& keys = {}
@@ -294,11 +274,11 @@ class DB {
     /**
      * Get all keys from a given prefix.
      * Ranges can be used to mitigate very expensive operations
-     * (e.g. a query can return millions of entries).
+     * (e.g. a query that returns millions of entries at once).
      * Prefix is automatically added to the queries themselves internally.
      * @param pfx The prefix to search keys from.
-     * @param start (optional) The first key to start searching from.
-     * @param end (optional) The last key to end searching at.
+     * @param start (optional) The first key to start searching from. Defaults to none.
+     * @param end (optional) The last key to end searching at. Defaults to none.
      * @return A list of found keys, WITHOUT their prefixes.
      */
     std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {});

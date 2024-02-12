@@ -142,9 +142,6 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
 }
 
 Bytes Block::serializeHeader() const {
-  // Block header is 144 bytes, made of:
-  // previous block hash + block randomness + validator merkle root
-  // + tx merkle root + timestamp + block height
   Bytes ret;
   ret.reserve(144);
   ret.insert(ret.end(), this->prevBlockHash_.cbegin(), this->prevBlockHash_.cend());
@@ -158,7 +155,6 @@ Bytes Block::serializeHeader() const {
 
 Bytes Block::serializeBlock() const {
   Bytes ret;
-  // Block is made of: validator signature + block header + validator tx offset + [block txs...] + [validator txs...]
   ret.insert(ret.end(), this->validatorSig_.cbegin(), this->validatorSig_.cend());
   Utils::appendBytes(ret, this->serializeHeader());
 

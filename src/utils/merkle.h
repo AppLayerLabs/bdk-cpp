@@ -18,11 +18,9 @@ See the LICENSE.txt file in the project root for more information.
 #include "utils.h"
 
 /**
- * Custom implementation of a %Merkle tree. Adapted from:
- *
- * https://medium.com/coinmonks/implementing-merkle-tree-and-patricia-tree-b8badd6d9591
- *
- * https://lab.miguelmota.com/merkletreejs/example/
+ * Custom implementation of a %Merkle tree.
+ * @see https://medium.com/coinmonks/implementing-merkle-tree-and-patricia-tree-b8badd6d9591
+ * @see https://lab.miguelmota.com/merkletreejs/example/
  */
 class Merkle {
   private:
@@ -56,23 +54,22 @@ class Merkle {
       while (this->tree_.back().size() > 1) this->tree_.emplace_back(newLayer(this->tree_.back()));
     }
 
-    /// Getter for `tree`.
+    /// Getter for `tree_`.
     inline const std::vector<std::vector<Hash>>& getTree() const { return this->tree_; }
 
-    /// Getter for `tree`, but returns only the root.
+    /// Getter for `tree_`, but returns only the root.
     inline Hash getRoot() const {
       if (this->tree_.back().size() == 0) return Hash();
       return this->tree_.back().front();
     }
 
-    /// Getter for `tree`, but returns only the leaves.
+    /// Getter for `tree_`, but returns only the leaves.
     inline const std::vector<Hash>& getLeaves() const { return this->tree_.front(); }
 
     /**
      * Get the proof for a given leaf in the %Merkle tree.
-     * @param leafIndex The index of the leaf to get the proof from.
-     *                  Considers only the leaf layer (e.g. {A, B, C, D, E, F},
-     *                  `getProof(2)` would get the proof for leaf C).
+     * @param leafIndex The index of the leaf to get the proof from. Considers only the leaf layer
+     *                  (e.g. {A, B, C, D, E, F}, `getProof(2)` would get the proof for leaf C).
      * @return A list of proofs for the leaf.
      */
     std::vector<Hash> getProof(const uint64_t leafIndex) const;

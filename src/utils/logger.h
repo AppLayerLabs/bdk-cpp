@@ -59,19 +59,26 @@ class LogInfo {
     std::string message_; ///< Message to log.
 
   public:
-    /// Default constructor.
+    /// Empty constructor.
     LogInfo() : type_(LogType::DEBUG), func_(""), logSrc_(""), message_("") {};
 
-    /// Constructor.
+    /**
+     * Constructor.
+     * @param type The log type.
+     * @param logSrc The log source.
+     * @param func The function name.
+     * @param message The message to log.
+     */
     LogInfo(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) :
       type_(type), logSrc_(logSrc), func_(std::move(func)), message_(std::move(message)) {};
 
-    /// Default destructor.
-    ~LogInfo() = default;
+    ~LogInfo() = default; ///< Default destructor.
 
     /// Move constructor
     LogInfo(LogInfo&& other) noexcept :
-      type_(other.type_), func_(std::move(other.func_)), logSrc_(std::move(other.logSrc_)), message_(std::move(other.message_)) {};
+      type_(other.type_), func_(std::move(other.func_)),
+      logSrc_(std::move(other.logSrc_)), message_(std::move(other.message_))
+    {};
 
     /// Move assign operator
     LogInfo& operator=(LogInfo&& other) noexcept {
@@ -82,17 +89,13 @@ class LogInfo {
       return *this;
     }
 
-    /// Getter for `type_`.
-    inline const LogType& getType() const noexcept { return type_; };
-
-    /// Getter for `logSrc_`.
-    inline const std::string& getLogSrc() const noexcept { return logSrc_; };
-
-    /// Getter for `func_`.
-    inline const std::string& getFunc() const noexcept { return func_; };
-
-    /// Getter for `message_`.
-    inline const std::string& getMessage() const noexcept { return message_; };
+    ///@{
+    /** Getter. */
+    inline const LogType& getType() const noexcept { return this->type_; };
+    inline const std::string& getLogSrc() const noexcept { return this->logSrc_; };
+    inline const std::string& getFunc() const noexcept { return this->func_; };
+    inline const std::string& getMessage() const noexcept { return this->message_; };
+    ///@}
 };
 
 /// Singleton class for logging.
@@ -106,10 +109,7 @@ class Logger {
     Logger& operator=(const Logger&) = delete;  ///< Make it non-assignable.
 
     /// Get the instance.
-    static Logger& getInstance() {
-      static Logger instance;
-      return instance;
-    };
+    static Logger& getInstance() { static Logger instance; return instance; }
 
     std::ofstream logFile_;                 ///< The file stream.
     std::mutex logQueueMutex_;              ///< Mutex for protecting access to the log queue.
@@ -134,8 +134,8 @@ class Logger {
     };
 
     /**
-     * Log something to the debug file
-     * It doesnt consume a parameter as it will use the curTask_ variable
+     * Log something to the debug file.
+     * Does not consume a parameter as it will use the `curTask_` variable.
      */
     void logFileInternal() {
       std::string logType = "";
@@ -175,14 +175,14 @@ class Logger {
      * @param func The function name.
      * @param message The message to log.
      */
-    static inline void logToDebug(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) noexcept {
+    static inline void logToDebug(
+      LogType type, const std::string& logSrc, std::string&& func, std::string&& message
+    ) noexcept {
       auto log = LogInfo(type, logSrc, std::move(func), std::move(message));
       getInstance().postLogTask(std::move(log));
     }
 
-    /**
-     * Destructor.
-     */
+    /// Destructor.
     ~Logger() {
       stopWorker_ = true;
       cv_.notify_one();
@@ -195,12 +195,7 @@ class Logger {
       }
     }
 
-    /**
-     * Get the current timestamp as string in the following format:
-     * "%Y-%m-%d %H:%M:%S.ms"
-     * "%Y-%m-%d %H:%M:%S.ms"
-     * @return The current timestamp as string.
-     */
+    /// Get the current timestamp as a string in the "%Y-%m-%d %H:%M:%S.ms" format.
     static inline std::string getCurrentTimestamp() {
       auto now = std::chrono::system_clock::now();
       auto itt = std::chrono::system_clock::to_time_t(now);

@@ -15,13 +15,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "hex.h"
 
-
-// TODO:
-// It is possible to implement **fast** operators for some types, such as Address, Functor and Hash.
-// Taking advantage that memory located within the array are contiguous, we can cast the data to
-// a pointer of native types (such as uint64_t*) and compare them faster than using a for loop.
-// See the following example:
-// /// Fast equality operator for h256.
+// TODO: It is possible to implement **fast** operators for some types,
+// such as Address, Functor and Hash. Taking advantage that memory located within
+// the array are contiguous, we can cast the data to a pointer of native types
+// (such as uint64_t*) and compare them faster than using a for loop. Example:
+// // Fast equality operator for h256.
 // template<> inline bool FixedHash<32>::operator==(FixedHash<32> const& _other) const
 // {
 //   const uint64_t* hash1 = (const uint64_t*)data();
@@ -30,18 +28,20 @@ See the LICENSE.txt file in the project root for more information.
 // }
 
 /**
- * Abstraction of a fixed-size bytes container (`FixedBytes<10>` would have
- * *exactly* 10 characters, no more, no less).
- * This class is used as a base for both classes inheriting it
- * (e.g. Hash, Signature, etc.) and aliases (e.g. PrivKey, PubKey, etc.).
+ * Abstraction of a fixed-size bytes container.
+ * `FixedBytes<10>` would have *exactly* 10 bytes, no more, no less.
+ * Used as a base for both aliases (e.g. PrivKey, PubKey, etc.) and classes inheriting it (e.g. Hash, Signature, etc.).
  */
 template <unsigned N> class FixedBytes {
   protected:
-    BytesArr<N> data_; ///< Internal string data.
+    BytesArr<N> data_; ///< Internal data string, in raw bytes.
 
   public:
-    /// Constructor.
+    /// Empty constructor.
     constexpr inline FixedBytes() { this->data_.fill(uint8_t{0x00}); };
+
+    /// Move constructor.
+    constexpr inline FixedBytes(BytesArr<N>&& data) noexcept { this->data_ = std::move(data); }
 
     /// Copy constructor.
     constexpr inline FixedBytes(const Bytes& data) {
@@ -51,9 +51,6 @@ template <unsigned N> class FixedBytes {
 
     /// Copy constructor.
     constexpr inline FixedBytes(const BytesArr<N>& data) { this->data_ = data; }
-
-    /// Move constructor.
-    constexpr inline FixedBytes(BytesArr<N>&& data) noexcept { this->data_ = std::move(data); }
 
     /// Copy constructor.
     constexpr inline FixedBytes(const BytesArrView& data) {
@@ -73,35 +70,35 @@ template <unsigned N> class FixedBytes {
       this->data_ = other.data_;
     }
 
-    /// Getter for `data`.
+    /// Getter for `data_`, const version.
     inline const BytesArr<N>& get() const { return this->data_; }
 
-    /// Getter for `data`.
+    /// Getter for `data_`, non-const version.
     inline BytesArr<N>& get_non_const() const { return this->data_; }
 
-    /// Getter for `data`, but returns the C-style string.
+    /// Getter for `data_`, but returns it as a C-style string.
     inline const Byte* raw() const { return this->data_.data(); }
 
-    /// Create a Bytes object from the data string.
-    inline Bytes asBytes() const { return Bytes(this->data_.begin(), this->data_.end()); }
-
     /**
-     * Getter for `data`, but returns the data in hex format.
+     * Getter for `data_`, but returns it as a hex string.
      * @param strict If `true`, returns the value with an appended "0x" prefix.
      */
     inline Hex hex(bool strict = false) const { return Hex::fromBytes(this->view(), strict); }
 
     /**
-     * Getter for `data`, but returns a span of the data string.
+     * Getter for `data_`, but returns it as a span of the data string.
      * @param pos (optional) Index to start getting chars from. Defaults to the start of the string.
      * @param len (optional) Number of chars to get. Defaults to the whole string.
-     * @return A string view of the data string.
+     * @return A string view of the data, in bytes.
      */
     inline BytesArrView view(size_t pos = 0, size_t len = N) const {
       auto real_len = std::min(len, N - pos);
       if (pos + real_len > N) { throw std::out_of_range("len > N"); }
       return BytesArrView(this->data_.begin() + pos, this->data_.begin() + pos + real_len);
     }
+
+    /// Create a Bytes object from the internal data string.
+    inline Bytes asBytes() const { return Bytes(this->data_.begin(), this->data_.end()); }
 
     /// Get the data string's size.
     inline size_t size() const { return this->data_.size(); }
@@ -163,26 +160,21 @@ class Hash : public FixedBytes<32> {
     using FixedBytes<32>::operator<;
 
     /**
-     * Constructor.
+     * Constructor using uint256_t.
      * @param data The unsigned 256-bit number to convert into a hash string.
      */
     Hash(const uint256_t& data);
 
     /**
-     * Constructor.
+     * Constructor using string_view.
      * @param sv The string view to convert into a hash string.
      */
     Hash(const std::string_view sv);
 
-    /// Convert the hash string back to an unsigned 256-bit number.
-    uint256_t toUint256() const;
+    uint256_t toUint256() const;  ///< Convert the hash string back to an unsigned 256-bit number.
 
     /// Generate a random 32-byte/256-bit hash.
-    inline static Hash random() {
-      Hash h;
-      RAND_bytes(h.data_.data(), 32);
-      return h;
-    }
+    inline static Hash random() { Hash h; RAND_bytes(h.data_.data(), 32); return h; }
 };
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash). Inherits FixedBytes<4>.
@@ -196,22 +188,15 @@ class Functor : public FixedBytes<4> {
 /// Abstraction of a 65-byte ECDSA signature. Inherits `FixedBytes<65>`.
 class Signature : public FixedBytes<65> {
   public:
-    using FixedBytes<65>::FixedBytes; // Using parent constructor
-
-    /// Get the first half (32 bytes) of the signature.
-    uint256_t r() const;
-
-    /// Get the second half (32 bytes) of the signature.
-    uint256_t s() const;
-
-    /// Get the recovery ID (1 byte) of the signature.
-    uint8_t v() const;
+    using FixedBytes<65>::FixedBytes;
+    uint256_t r() const;  ///< Get the first half (32 bytes) of the signature.
+    uint256_t s() const;  ///< Get the second half (32 bytes) of the signature.
+    uint8_t v() const;  ///< Get the recovery ID (1 byte) of the signature.
 };
 
 /// Abstraction for a single 20-byte address (e.g. "1234567890abcdef..."). Inherits `FixedBytes<20>`.
 class Address : public FixedBytes<20> {
   public:
-    // Using all parent operators.
     using FixedBytes<20>::operator==;
     using FixedBytes<20>::operator<;
     using FixedBytes<20>::operator<=;
@@ -219,6 +204,7 @@ class Address : public FixedBytes<20> {
     using FixedBytes<20>::operator>=;
     using FixedBytes<20>::operator=;
 
+    /// Empty constructor.
     inline Address() { this->data_.fill(uint8_t{0x00}); };
 
     /**
@@ -229,31 +215,22 @@ class Address : public FixedBytes<20> {
      */
     Address(const std::string_view add, bool inBytes);
 
-    /// Copy constructor.
+    ///@{
+    /** Copy constructor. */
+    inline Address(const Address& other) { this->data_ = other.data_; }
     Address(const BytesArrView add) {
       if (add.size() != 20) throw std::invalid_argument("Invalid address size");
       std::copy(add.begin(), add.end(), this->data_.begin());
     }
-
-    /// Copy constructor.
-    Address(const BytesArr<20>& add) {
-      std::copy(add.begin(), add.end(), this->data_.begin());
-    }
-
-    /// Copy constructor.
+    Address(const BytesArr<20>& add) { std::copy(add.begin(), add.end(), this->data_.begin()); }
     template <unsigned N> Address(const BytesArr<N>& add) {
       if (add.size() != 20) throw std::invalid_argument("Invalid address size");
       std::copy(add.begin(), add.end(), this->data_.begin());
     }
+    ///@}
 
-    /**
-     * Move constructor.
-     * @param add The address itself.
-     */
+    /// Move constructor.
     Address(BytesArr<20>&& add) : FixedBytes<20>(std::move(add)) {}
-
-    /// Copy constructor.
-    inline Address(const Address& other) { this->data_ = other.data_; }
 
     /**
      * Convert the address to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).

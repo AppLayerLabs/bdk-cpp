@@ -52,7 +52,7 @@ std::vector<std::string> JsonAbi::getTupleTypes(const std::string& type) {
       tmp += c;
     }
   }
-  /// Push the last type.
+  // Push the last type and return.
   types.push_back(tmp);
   return types;
 }

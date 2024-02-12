@@ -53,65 +53,29 @@ See the LICENSE.txt file in the project root for more information.
 /// Singleton class for global node data.
 class Options {
   private:
-    /// Path to data root folder.
-    const std::string rootPath_;
-
-    /// Major version of the OrbiterSDK.
-    const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;
-
-    /// Minor version of the OrbiterSDK.
-    const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;
-
-    /// Patch version of the OrbiterSDK.
-    const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;
-
-    /// Version of the client (string for display/Web3).
-    const std::string web3clientVersion_;
-
-    /// Version of the blockchain.
-    const uint64_t version_;
-
-    /// Chain ID of the blockchain.
-    const uint64_t chainID_;
-
-    /// Websocket server port.
-    const uint16_t wsPort_;
-
-    /// HTTP server port.
-    const uint16_t httpPort_;
-
-    /// Maximum block range for querying contract events.
-    const uint64_t eventBlockCap_;
-
-    /// Maximum number of contract events that can be queried at once.
-    const uint64_t eventLogCap_;
-
-    /// Chain owner address (used by ContractManager to see who can deploy contracts)
-    const Address chainOwner_;
-
-    /// Coinbase address (if found), used by rdPoS.
-    const Address coinbase_;
-
-    /// Indicates whether the node is a Validator, set by constructor or if found on file.
-    const bool isValidator_;
-
-    /// List of known Discovery nodes.
-    const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes_;
-
-    /// Genesis block.
-    const Block genesisBlock_;
-
-    /// List of addresses and their respective initial balances.
-    const std::vector<std::pair<Address, uint256_t>> genesisBalances_;
-
-    /// List of genesis validators.
-    const std::vector<Address> genesisValidators_;
+    const std::string rootPath_; ///< Path to data root folder.
+    const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;  ///< Major version of OrbiterSDK.
+    const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;  ///< Minor version of OrbiterSDK.
+    const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;  ///< Patch version of OrbiterSDK.
+    const std::string web3clientVersion_; ///< String for displaying the client version (for Web3).
+    const uint64_t version_;  ///< Blockchain version.
+    const uint64_t chainID_;  ///< Blockchain chain ID.
+    const uint16_t wsPort_; ///< Websocket server port.
+    const uint16_t httpPort_; ///< HTTP server port.
+    const uint64_t eventBlockCap_;  ///< Maximum block range for querying contract events.
+    const uint64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
+    const Address chainOwner_;  ///< Chain owner address (used by ContractManager for deploying contracts).
+    const Address coinbase_;  ///< Coinbase address (if found), used by rdPoS.
+    const bool isValidator_;  ///< Indicates whether the node is a Validator, set by constructor or if found on file.
+    const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes_; ///< List of known Discovery nodes.
+    const Block genesisBlock_;  ///< Genesis block.
+    const std::vector<std::pair<Address, uint256_t>> genesisBalances_;  ///< List of addresses and their respective initial balances.
+    const std::vector<Address> genesisValidators_;  ///< List of genesis validators.
 
   public:
     /**
-     * Constructor for a normal node.
+     * Constructor for a normal node. Creates option.json file within rootPath.
      * Populates coinbase() and isValidator() with false.
-     * Creates option.json file within rootPath.
      * @param rootPath Path to data root folder.
      * @param web3clientVersion Version of the client.
      * @param version Version of the chain.
@@ -140,9 +104,8 @@ class Options {
     );
 
     /**
-     * Constructor for a Validator node.
+     * Constructor for a Validator node. Creates option.json file within rootPath.
      * Populates coinbase() and isValidator() with privKey address and true respectively.
-     * Creates option.json file within rootPath.
      * @param rootPath Path to data root folder.
      * @param web3clientVersion Version of the client.
      * @param version Version of the chain.
@@ -194,71 +157,36 @@ class Options {
       genesisValidators_(other.genesisValidators_)
     {}
 
-    /// Getter for `rootPath`.
+    ///@{
+    /** Getter. */
     const std::string& getRootPath() const { return this->rootPath_; }
-
-    /// Getter for `majorSDKVersion`.
     const uint64_t& getMajorSDKVersion() const { return this->majorSDKVersion_; }
-
-    /// Getter for `minorSDKVersion`.
     const uint64_t& getMinorSDKVersion() const { return this->minorSDKVersion_; }
-
-    /// Getter for `patchSDKVersion`.
     const uint64_t& getPatchSDKVersion() const { return this->patchSDKVersion_; }
+    const std::string& getWeb3ClientVersion() const { return this->web3clientVersion_; }
+    const uint64_t& getVersion() const { return this->version_; }
+    const Address& getChainOwner() const { return this->chainOwner_; }
+    const uint64_t& getChainID() const { return this->chainID_; }
+    const uint16_t& getP2PPort() const { return this->wsPort_; }
+    const uint16_t& getHttpPort() const { return this->httpPort_; }
+    const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
+    const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
+    const Address& getCoinbase() const { return this->coinbase_; }
+    const bool& getIsValidator() const { return this->isValidator_; }
+    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }
+    const Block& getGenesisBlock() const { return this->genesisBlock_; }
+    const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
+    const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
+    ///@}
 
-    /// Getter for the full SDK version as a string.
+    /// Get the full SDK version as a SemVer string ("x.y.z").
     std::string getSDKVersion() const {
       return std::to_string(this->majorSDKVersion_)
         + "." + std::to_string(this->minorSDKVersion_)
         + "." + std::to_string(this->patchSDKVersion_);
     }
 
-    /// Getter for `web3clientVersion`.
-    const std::string& getWeb3ClientVersion() const { return this->web3clientVersion_; }
-
-    /// Getter for `version`.
-    const uint64_t& getVersion() const { return this->version_; }
-
-    /// Getter for `chainOwner`.
-    const Address& getChainOwner() const { return this->chainOwner_; }
-
-    /// Getter for `chainID`.
-    const uint64_t& getChainID() const { return this->chainID_; }
-
-    /// Getter for `wsPort`.
-    const uint16_t& getP2PPort() const { return this->wsPort_; }
-
-    /// Getter for `httpPort`.
-    const uint16_t& getHttpPort() const { return this->httpPort_; }
-
-    /// Getter for `eventBlockCap_`.
-    const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
-
-    /// Getter for `eventLogCap_`.
-    const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
-
-    /// Getter for `coinbase`.
-    const Address& getCoinbase() const { return this->coinbase_; }
-
-    /// Getter for `isValidator`.
-    const bool& getIsValidator() const { return this->isValidator_; }
-
-    /// Getter for `discoveryNodes`.
-    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }
-
-    /// Getter for `genesisBlock`.
-    const Block& getGenesisBlock() const { return this->genesisBlock_; }
-
-    /// Getter for `genesisBalances`.
-    const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
-
-    /// Getter for `genesisValidators`.
-    const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
-
-    /**
-     * Get the Validator node's private key from the JSON file.
-     * @return The Validator node's private key, or an empty private key if missing.
-     */
+    /// Get the Validator node's private key from the JSON file, or an empty private key if missing.
     PrivKey getValidatorPrivKey() const;
 
     /**

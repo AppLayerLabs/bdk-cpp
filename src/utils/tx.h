@@ -15,9 +15,8 @@ See the LICENSE.txt file in the project root for more information.
 /**
  * Abstraction of a block transaction.
  * All transactions are final and defined as such during construction.
- * TODO: For better const correctness within Tx classes
- * we should transfor all members to const, and have static methods
- * That returns a Tx object, instead of having a constructor.
+ * TODO: For better const correctness within Tx classes we should transform all members to const,
+ * and have static methods that return a Tx object, instead of having a constructor.
  */
 class TxBlock {
   private:
@@ -84,60 +83,29 @@ class TxBlock {
     gasLimit_(std::move(other.gasLimit_)), v_(std::move(other.v_)),
     r_(std::move(other.r_)), s_(std::move(other.s_)), hash_(std::move(other.hash_)) {}
 
-    /// Getter for `to_`.
+    ///@{
+    /** Getter. */
     inline const Address& getTo() const { return this->to_; }
-
-    /// Getter for `from_`.
     inline const Address& getFrom() const { return this->from_; }
-
-    /// Getter for `data_`.
     inline const Bytes& getData() const { return this->data_; }
-
-    /// Getter for `chainId_`.
     inline const uint64_t& getChainId() const { return this->chainId_; }
-
-    /// Getter for `nonce_`.
     inline const uint256_t& getNonce() const { return this->nonce_; }
-
-    /// Getter for `value_`.
     inline const uint256_t& getValue() const { return this->value_; }
-
-    /// Getter for `maxPriorityFeePerGas_`.
     inline const uint256_t& getMaxPriorityFeePerGas() const { return this->maxPriorityFeePerGas_; }
-
-    /// Getter for `maxFeePerGas_`.
     inline const uint256_t& getMaxFeePerGas() const { return this->maxFeePerGas_; }
-
-    /// Getter for `gasLimit_`.
     inline const uint256_t& getGasLimit() const { return this->gasLimit_; }
-
-    /// Getter for `v_`.
     inline const uint8_t& getV() const { return this->v_; }
-
-    /// Getter for `r_`.
     inline const uint256_t& getR() const { return this->r_; }
-
-    /// Getter for `s_`.
     inline const uint256_t& getS() const { return this->s_; }
+    inline const Hash& hash() const { return this->hash_; }
+    ///@}
 
-    /// Getter for `v_`, but calculates the real ID value based on chainId.
-    inline uint256_t recoverId() const {
-      return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35)));
-    }
-
-    /**
-     * Getter for `hash_`.
-     * @return The hash of the transaction, in bytes.
-     */
-    inline const Hash& hash() const {
-      return this->hash_;
-    }
+    /// Getter for the recovery ID, but calculates the real ID value based on chainId.
+    inline uint256_t recoverId() const { return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35))); }
 
     /**
-     * Serialize the transaction to a string in RLP format
-     * ([EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible).
-     * @param includeSig (optional) If `true`, includes the transaction signature
-     * (v/r/s). Defaults to `true`.
+     * Serialize the transaction to a string in RLP format. [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
+     * @param includeSig (optional) If `true`, includes the transaction signature (v/r/s). Defaults to `true`.
      * @return The serialized transaction string.
      */
     Bytes rlpSerialize(bool includeSig = true) const;
@@ -238,50 +206,27 @@ class TxValidator {
       chainId_(std::move(other.chainId_)), nHeight_(std::move(other.nHeight_)),
       v_(std::move(other.v_)), r_(std::move(other.r_)), s_(std::move(other.s_)), hash_(std::move(other.hash_)) {}
 
-    /// Getter for `from`.
+    ///@{
+    /** Getter. */
     inline const Address& getFrom() const { return this->from_; }
-
-    /// Getter for `data`.
     inline const Bytes& getData() const { return this->data_; }
-
-    /// Getter for the functor within `data`.
-    inline Functor getFunctor() const {
-      return Functor(Bytes(this->data_.begin(), this->data_.begin() + 4));
-    }
-
-    /// Getter for `chainId`.
+    inline Functor getFunctor() const { return Functor(Bytes(this->data_.begin(), this->data_.begin() + 4)); }
     inline const uint64_t& getChainId() const { return this->chainId_; }
-
-    /// Getter for `nHeight`.
     inline const uint64_t& getNHeight() const { return this->nHeight_; }
-
-    /// Getter for `v`.
     inline const uint256_t& getV() const { return this->v_; }
-
-    /// Getter for `r`.
     inline const uint256_t& getR() const { return this->r_; }
-
-    /// Getter for `s`.
     inline const uint256_t& getS() const { return this->s_; }
+    inline const Hash& hash() const { return this->hash_; }
+    ///@}
 
-    /// Getter for `v`, but calculates the real ID value based on chainId.
+    /// Getter for the recovery ID, but calculates the real ID value based on chainId.
     inline uint256_t recoverId() const {
       return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35)));
     }
 
     /**
-     * Getter for `hash_`.
-     * @return The hash of the transaction, in bytes.
-     */
-    inline const Hash& hash() const {
-      return this->hash_;
-    }
-
-    /**
-     * Serialize the transaction to a string in RLP format
-     * ([EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible).
-     * @param includeSig (optional) If `true`, includes the transaction signature
-     * (v/r/s). Defaults to `true`.
+     * Serialize the transaction to a string in RLP format. [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
+     * @param includeSig (optional) If `true`, includes the transaction signature (v/r/s). Defaults to `true`.
      * @return The serialized transaction string.
      */
     Bytes rlpSerialize(bool includeSig = true) const;
