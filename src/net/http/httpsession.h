@@ -133,7 +133,9 @@ class HTTPSession : public std::enable_shared_from_this<HTTPSession> {
       const Options& options
     ) : stream_(std::move(sock)), docroot_(docroot), queue_(*this), state_(state),
       storage_(storage), p2p_(p2p), options_(options)
-    {}
+    {
+      stream_.expires_never();
+    }
 
     /// Start the HTTP session.
     void start();
