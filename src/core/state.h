@@ -15,44 +15,25 @@ See the LICENSE.txt file in the project root for more information.
 #include "storage.h"
 #include "rdpos.h"
 
-// TODO: We could possibly change the bool functions
-// into a enum function, to be able to properly return each error case
-// We need this in order to slash invalid rdPoS blocks.
+// TODO: We could possibly change the bool functions into an enum function,
+// to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
+
 /// Enum for labeling transaction validity.
 enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
 
-/**
- * Abstraction of the blockchain's state.
- * Responsible for maintaining the current blockchain state at the current block.
- */
+/// Abstraction of the blockchain's current state at the current block.
 class State {
   private:
-    /// Reference to the options singleton.
-    const Options& options_;
-
-    /// Reference to the database.
-    DB& db_;
-
-    /// Reference to the blockchain's storage.
-    Storage& storage_;
-
-    /// Reference to the rdPoS object.
-    rdPoS& rdpos_;
-
-    /// Reference to the P2P connection manager.
-    P2P::ManagerNormal &p2pManager_;
-
-    /// Contract Manager.
-    ContractManager contractManager_;
-
-    /// Map with information about blockchain accounts (Address -> Account).
-    std::unordered_map<Address, Account, SafeHash> accounts_;
-
-    /// TxBlock mempool.
-    std::unordered_map<Hash, TxBlock, SafeHash> mempool_;
-
-    /// Mutex for managing read/write access to the state object.
-    mutable std::shared_mutex stateMutex_;
+    const Options& options_;  ///< Reference to the options singleton.
+    DB& db_;  ///< Reference to the database.
+    Storage& storage_;  ///< Reference to the blockchain's storage.
+    rdPoS& rdpos_;  ///< Reference to the rdPoS object.
+    P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
+    ContractManager contractManager_; ///< Contract Manager.
+    std::unordered_map<Address, Account, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
+    std::unordered_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
+    mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
+    bool processingPayable_ = false;  ///< Indicates whether the state is currently processing a payable contract function.
 
     /**
      * Verify if a transaction can be accepted within the current state.
@@ -71,18 +52,13 @@ class State {
     void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex);
 
     /**
-     * Update the mempool, removing transactions that are in the given block,
-     * and leaving only valid transactions in it.
-     * Called by processNewBlock(), used to filter the current mempool based
-     * on transactions that have been accepted on the block, and verify if
-     * transactions on the mempool are valid given the new state after processing
-     * the block itself.
+     * Update the mempool, remove transactions that are in the given block, and leave only valid transactions in it.
+     * Called by processNewBlock(), used to filter the current mempool based on transactions that have been
+     * accepted on the block, and verify if transactions on the mempool are valid given the new state after
+     * processing the block itself.
      * @param block The block to use for pruning transactions from the mempool.
      */
     void refreshMempool(const Block& block);
-
-    /// Flag indicating whether the state is currently processing a payable contract function
-    bool processingPayable_ = false;
 
   public:
     /**
@@ -94,16 +70,9 @@ class State {
      * @param options Pointer to the options singleton.
      * @throw DynamicException on any database size mismatch.
      */
-    State(
-      DB& db,
-      Storage& storage,
-      rdPoS& rdpos,
-      P2P::ManagerNormal& p2pManager,
-      const Options& options
-    );
+    State(DB& db, Storage& storage, rdPoS& rdpos, P2P::ManagerNormal& p2pManager, const Options& options);
 
-    /// Destructor.
-    ~State();
+    ~State(); ///< Destructor.
 
     /**
      * Get the native balance of an account in the state.
@@ -119,11 +88,8 @@ class State {
      */
     uint64_t getNativeNonce(const Address& addr) const;
 
-    /// Getter for `accounts`. Returns a copy.
-    std::unordered_map<Address, Account, SafeHash> getAccounts() const;
-
-    /// Getter for `mempool`. Returns a copy.
-    std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const;
+    std::unordered_map<Address, Account, SafeHash> getAccounts() const; ///< Getter for `accounts_`. Returns a copy.
+    std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const; ///< Getter for `mempool_`. Returns a copy.
 
     /// Get the mempool's current size.
     inline size_t getMempoolSize() const {
@@ -132,8 +98,7 @@ class State {
     }
 
     /**
-     * Validate the next block given the current state and its transactions.
-     * Does NOT update the state.
+     * Validate the next block given the current state and its transactions. Does NOT update the state.
      * The block will be rejected if there are invalid transactions in it
      * (e.g. invalid signature, insufficient balance, etc.).
      * @param block The block to validate.
@@ -142,8 +107,7 @@ class State {
     bool validateNextBlock(const Block& block) const;
 
     /**
-     * Process the next block given current state from the network.
-     * DOES update the state.
+     * Process the next block given current state from the network. DOES update the state.
      * Appends block to Storage after processing.
      * @param block The block to process.
      * @throw DynamicException if block is invalid.
@@ -151,15 +115,14 @@ class State {
     void processNextBlock(Block&& block);
 
     /**
-     * Fill a block with all transactions currently in the mempool.
-     * DOES NOT FINALIZE THE BLOCK.
+     * Fill a block with all transactions currently in the mempool. DOES NOT FINALIZE THE BLOCK.
      * @param block The block to fill.
      */
     void fillBlockWithTransactions(Block& block) const;
 
     /**
      * Verify if a transaction can be accepted within the current state.
-     * Calls validateTransactionInternal(), but locking the mutex in a shared manner.
+     * Calls validateTransactionInternal(), but locks the mutex in a shared manner.
      * @param tx The transaction to verify.
      * @return An enum telling if the transaction is valid or not.
      */
@@ -197,6 +160,8 @@ class State {
      */
     std::unique_ptr<TxBlock> getTxFromMempool(const Hash& txHash) const;
 
+    // TODO: remember this function is for testing purposes only,
+    // it should probably be removed at some point before definitive release.
     /**
      * Add balance to a given account.
      * Used through HTTP RPC to add balance to a given address
@@ -215,14 +180,14 @@ class State {
      */
     Bytes ethCall(const ethCallInfo& callInfo) const;
 
+    // TODO: This function should be considered 'const' as it doesn't change the state,
+    // but it is not due to calling non-const contract functions. This should be fixed in the future
+    // (even if we call non-const functions, the state is ALWAYS reverted to its original state after the call).
     /**
      * Estimate gas for callInfo in RPC.
      * Doesn't really "estimate" gas, but rather tells if the transaction is valid or not.
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return `true` if the call is valid, `false` otherwise.
-     * TODO: This function should be considered 'const' as it doesn't change the state, but it is not due
-     * to calling non-const contract functions. This should be fixed in the future (even if we call non-const functions,
-     * the state is ALWAYS reverted to its original state after the call).
      */
     bool estimateGas(const ethCallInfo& callInfo);
 
@@ -264,7 +229,7 @@ class State {
       const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     ) const;
 
-    /// the Manager Interface cannot use getNativeBalance. as it will call a lock with the mutex.
+    /// ContractManagerInterface cannot use getNativeBalance, as it will call a lock with the mutex.
     friend class ContractManagerInterface;
 };
 

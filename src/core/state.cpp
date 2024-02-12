@@ -95,7 +95,7 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
    * Transaction nonce must match account nonce
    */
 
-  /// Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
+  // Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
   if (this->mempool_.contains(tx.hash())) {
     Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
     return TxInvalid::NotInvalid;
@@ -114,8 +114,7 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
                       + " expected: " + txWithFees.str() + " has: " + accBalance.str());
     return TxInvalid::InvalidBalance;
   }
-  // TODO: The blockchain is able to store higher nonce transactions until they are valid
-  // Handle this case.
+  // TODO: The blockchain is able to store higher nonce transactions until they are valid. Handle this case.
   if (accNonce != tx.getNonce()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
                                             + " got: " + tx.getNonce().str());
@@ -158,8 +157,8 @@ void State::processTransaction(const TxBlock& tx, const Hash& blockHash, const u
 }
 
 void State::refreshMempool(const Block& block) {
-  /// No need to lock mutex as function caller (this->processNextBlock) already lock mutex.
-  /// Remove all transactions within the block that exists on the unordered_map.
+  // No need to lock mutex as function caller (this->processNextBlock) already lock mutex.
+  // Remove all transactions within the block that exists on the unordered_map.
   for (const auto& tx : block.getTxs()) {
     const auto it = this->mempool_.find(tx.hash());
     if (it != this->mempool_.end()) {
@@ -167,14 +166,14 @@ void State::refreshMempool(const Block& block) {
     }
   }
 
-  /// Copy mempool over
+  // Copy mempool over
   auto mempoolCopy = this->mempool_;
   this->mempool_.clear();
 
-  /// Verify if the transactions within the old mempool
-  /// not added to the block are valid given the current state
+  // Verify if the transactions within the old mempool
+  // not added to the block are valid given the current state
   for (const auto& [hash, tx] : mempoolCopy) {
-    /// Calls internal function which doesn't lock mutex.
+    // Calls internal function which doesn't lock mutex.
     if (!this->validateTransactionInternal(tx)) {
       this->mempool_.insert({hash, tx});
     }

@@ -49,39 +49,25 @@ enum BlockStatus { Unknown, Processing, Rejected, Accepted };
 
 /**
  * Abstraction of AvalancheGo's %SnowmanVM protocol.
- * See [Ava Labs' docs](https://github.com/ava-labs/avalanchego/tree/master/vms#readme) for more details.
+ * @see https://github.com/ava-labs/avalanchego/tree/master/vms#readme
  */
 class SnowmanVM {
   private:
-    /// Struct with initialization request data from AvalancheGo.
-    InitializeRequest initParams_;
+    InitializeRequest initParams_;            ///< Struct with initialization request data from AvalancheGo.
+    std::vector<std::string> connectedNodes_; ///< List of all connected nodes.
+    std::mutex connectedNodesLock_;           ///< Mutex for managing read/write access to connectedNodes_.
+    Hash preferredBlockHash_;                 ///< Preferred block hash. Set by SetPreference from gRPC.
 
-    /// List of all connected nodes.
-    std::vector<std::string> connectedNodes_;
-
-    /// Mutex for managing read/write access to connectedNodes_.
-    std::mutex connectedNodesLock_;
-
-    /// Preferred block hash. Set by SetPreference from gRPC.
-    Hash preferredBlockHash_;
-
-    /// mempool for blocks from AvalancheGo's network. Lookup is made by block hash.
+    /// Mempool for blocks from AvalancheGo's network. Lookup is made by block hash.
     std::unordered_map<Hash, std::shared_ptr<const Block>, SafeHash> mempool_;
 
     /// Cached block status. Lookup is made by block hash.
     std::unordered_map<Hash, BlockStatus, SafeHash> cachedBlockStatus_;
 
-    /// Mutex for managing read/write access to the class members.
-    mutable std::mutex lock_;
-
-    /// Pointer to the blockchain history.
-    const std::shared_ptr<Storage> storage_;
-
-    /// Pointer to the gRPC server.
-    const std::shared_ptr<gRPCServer> grpcServer_;
-
-    /// Pointer to the gRPC client.
-    const std::shared_ptr<gRPCClient> grpcClient_;
+    mutable std::mutex lock_;                       ///< Mutex for managing read/write access to the class members.
+    const std::shared_ptr<Storage> storage_;        ///< Pointer to the blockchain history.
+    const std::shared_ptr<gRPCServer> grpcServer_;  ///< Pointer to the gRPC server.
+    const std::shared_ptr<gRPCClient> grpcClient_;  ///< Pointer to the gRPC client.
 
   public:
     /**

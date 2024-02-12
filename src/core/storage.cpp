@@ -91,7 +91,7 @@ Storage::~Storage() {
 
 void Storage::initializeBlockchain() {
   if (!this->db_.has(std::string("latest"), DBPrefix::blocks)) {
-    /// Genesis block comes from Options, not hardcoded
+    // Genesis block comes from Options, not hardcoded
     const auto genesis = this->options_.getGenesisBlock();
     if (genesis.getNHeight() != 0) {
       throw DynamicException("Genesis block height is not 0");
@@ -103,7 +103,7 @@ void Storage::initializeBlockchain() {
       std::string("Created genesis block: ") + Hex::fromBytes(genesis.hash().get()).get()
     );
   }
-  /// Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
+  // Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
   const auto genesis = this->options_.getGenesisBlock();
   const auto genesisInDBHash = Hash(this->db_.get(Utils::uint64ToBytes(0), DBPrefix::blockHeightMaps));
   const auto genesisInDB = Block(this->db_.get(genesisInDBHash, DBPrefix::blocks), this->options_.getChainID());
@@ -115,7 +115,7 @@ void Storage::initializeBlockchain() {
 
 TxBlock Storage::getTxFromBlockWithIndex(const BytesArrView blockData, const uint64_t& txIndex) const {
   uint64_t index = 217; // Start of block tx range
-  /// Count txs until index.
+  // Count txs until index.
   uint64_t currentTx = 0;
   while (currentTx < txIndex) {
     uint32_t txSize = Utils::bytesToUint32(blockData.subspan(index, 4));
@@ -313,7 +313,7 @@ std::shared_ptr<const Block> Storage::getBlock(const uint64_t& height) const {
       return this->cachedBlocks_.find(hash)->second;
     }
     case StorageStatus::OnDB: {
-      lockCache.unlock(); /// Unlock shared lock so we can lock uniquely and insert into cache
+      lockCache.unlock(); // Unlock shared lock so we can lock uniquely and insert into cache
       std::unique_lock<std::shared_mutex> lock(this->cacheLock_);
       Hash hash = this->blockHashByHeight_.find(height)->second;
       auto blockData = this->db_.get(hash.get(), DBPrefix::blocks);
@@ -338,8 +338,8 @@ std::tuple<
     }
     case StorageStatus::OnChain: {
       const auto& [blockHash, blockIndex, blockHeight] = this->txByHash_.find(tx)->second;
-      const auto& transactionList = blockByHash_.at(blockHash)->getTxs(); /// We can use at() because we know it exists
-      /// Check if transactionList can be accessed at the index
+      const auto& transactionList = blockByHash_.at(blockHash)->getTxs(); // We can use at() because we know it exists
+      // Check if transactionList can be accessed at the index
       if (transactionList.size() <= blockIndex) throw DynamicException("Tx index out of bounds");
       const auto& transaction = transactionList[blockIndex];
       if (transaction.hash() != tx) throw DynamicException("Tx hash mismatch");
@@ -376,10 +376,10 @@ std::tuple<
       return { nullptr, Hash(), 0, 0 };
     }
     case StorageStatus::OnChain: {
-      const auto& transactionList = this->blockByHash_.at(blockHash)->getTxs(); /// We can use at() because we know it exists
+      const auto& transactionList = this->blockByHash_.at(blockHash)->getTxs(); // We can use at() because we know it exists
       if (transactionList.size() <= blockIndex) throw DynamicException("Tx index out of bounds");
       const auto& transaction = transactionList[blockIndex];
-      const auto& txHash = transaction.hash();  /// We can use at() because we know it exists
+      const auto& txHash = transaction.hash();  // We can use at() because we know it exists
       const auto& [txBlockHash, txBlockIndex, txBlockHeight] = this->txByHash_.at(txHash);
       if (txBlockHash != blockHash || txBlockIndex != blockIndex) {
         throw DynamicException("Tx hash mismatch");
