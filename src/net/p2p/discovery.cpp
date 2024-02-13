@@ -14,9 +14,9 @@ namespace P2P {
       if (std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::high_resolution_clock::now().time_since_epoch()
       ).count() - it->second > 60) {
-        this->requestedNodes_.erase(it++);
+        it = this->requestedNodes_.erase(it);
       } else {
-        it++;
+        ++it;
       }
     }
   }
