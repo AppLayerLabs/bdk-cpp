@@ -278,7 +278,7 @@ void State::processNextBlock(Block&& block) {
 
   // Refresh the mempool based on the block transactions
   this->refreshMempool(block);
-  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.) block bytes: " + Hex::fromBytes(block.serializeBlock()).get());
+  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.");
   Utils::safePrint("Block: " + block.hash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
   for (const auto& tx : block.getTxs()) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
