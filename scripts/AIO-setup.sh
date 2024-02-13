@@ -154,7 +154,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     }
   }' >> local_testnet_discovery/discoveryNode/options.json
@@ -182,7 +182,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -215,7 +215,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -248,7 +248,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -281,7 +281,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -314,7 +314,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -347,7 +347,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -379,7 +379,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -411,7 +411,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -443,7 +443,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -475,7 +475,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -507,7 +507,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -539,7 +539,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
@@ -571,7 +571,7 @@ if [ "$DEPLOY" = true ]; then
       "timestamp" : 1656356646000000,
       "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
       "balances": [
-        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "1000000000000000000000" }
+        { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
       ]
     },
     "discoveryNodes": [
