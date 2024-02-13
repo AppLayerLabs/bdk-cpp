@@ -18,20 +18,16 @@ void registerVariableUse(DynamicContract &contract, SafeBase &variable);
 
 /**
  * Base class for all safe variables. Used to safely store a variable within a contract.
- * @see SafeAddress
- * @see SafeBool
- * @see SafeString
- * @see SafeUnorderedMap
+ * @see SafeAddress, SafeBool, SafeInt_t, SafeUint_t, SafeString, SafeUnorderedMap, SafeTuple, SafeVector
  */
 class SafeBase {
   private:
     /**
-     * Pointer to the contract that owns the variable.
-     * Why pointer and not reference?
+     * Pointer to the contract that owns the variable. Why pointer and not reference?
      * Certain operators return a new copy of the variable, and such copy is
-     * not stored within the contract, only within the function. Thus, the
-     * contract pointer is not available because we don't need to register a
-     * variable that will be destroyed, regardless of whether it reverts or not.
+     * not stored within the contract, only within the function.
+     * Thus, the contract pointer is not available because we don't need to register
+     * a variable that will be destroyed, regardless of whether it reverts or not.
      * Variables of the contract should be initialized during the constructor of
      * such contract. Passing the contract as a pointer allows us to register it
      * to the contract, and call commit() and/or revert() properly.
@@ -39,11 +35,9 @@ class SafeBase {
     DynamicContract* owner_ = nullptr;
 
   protected:
-    /// Indicates whether the variable is already registered within the contract.
-    mutable bool registered_ = false;
+    mutable bool registered_ = false; ///< Indicates whether the variable is already registered within the contract.
 
-    /// Getter for `owner`.
-    inline DynamicContract* getOwner() const { return owner_; }
+    inline DynamicContract* getOwner() const { return owner_; } ///< Getter for `owner`.
 
     /// Register the use of the variable within the contract.
     void markAsUsed() {
@@ -72,8 +66,7 @@ class SafeBase {
     SafeBase() : owner_(nullptr) {};
 
     /**
-     * Constructor.
-     * Only variables built with this constructor will be registered within the contract.
+     * Constructor with owner. Only variables built with this constructor will be registered within the contract.
      * @param owner A pointer to the owner contract.
      */
     explicit SafeBase(DynamicContract* owner) : owner_(owner) {};
@@ -85,8 +78,7 @@ class SafeBase {
     SafeBase(const SafeBase&) : owner_(nullptr) {};
 
     /**
-     * Commit a structure value to the contract.
-     * Should always be overridden by the child class.
+     * Commit a structure value to the contract. Should always be overridden by the child class.
      * Child class should always do `this->registered = false;` at the end of commit().
      * @throw DynamicException if not overridden by the child class.
      */
@@ -95,8 +87,7 @@ class SafeBase {
     };
 
     /**
-     * Revert a structure value (nullify).
-     * Should always be overridden by the child class.
+     * Revert a structure value (nullify). Should always be overridden by the child class.
      * Child class should always do `this->registered = false;` at the end of revert().
      * @throw DynamicException if not overridden by the child class.
      */

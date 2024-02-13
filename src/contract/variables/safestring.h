@@ -14,8 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "safebase.h"
 
 /**
- * Safe wrapper for a string variable.
- * Used to safely store a string within a contract.
+ * Safe wrapper for a `std::string`. Used to safely store a string within a contract.
  * @see SafeBase
  */
 class SafeString : public SafeBase {
@@ -57,10 +56,7 @@ class SafeString : public SafeBase {
     /// Getter for the value. Returns the value from the pointer.
     inline const std::string& get() const { check(); return *strPtr_; }
 
-    /**
-     * Commit the value. Updates the value from the pointer, nullifies it and
-     * unregisters the variable.
-     */
+    /// Commit the value. Updates the value from the pointer, nullifies it and unregisters the variable.
     inline void commit() override { check(); str_ = *strPtr_; registered_ = false; }
 
     /// Revert the value. Nullifies the pointer and unregisters the variable.
@@ -73,10 +69,7 @@ class SafeString : public SafeBase {
      * @return The new value.
      */
     inline SafeString& assign(size_t count, char ch) {
-      check();
-      markAsUsed();
-      strPtr_->assign(count, ch);
-      return *this;
+      check(); markAsUsed(); strPtr_->assign(count, ch); return *this;
     }
 
     /**
@@ -85,10 +78,7 @@ class SafeString : public SafeBase {
      * @return The new value.
      */
     inline SafeString& assign(const SafeString& str) {
-      check();
-      markAsUsed();
-      strPtr_->assign(str.get());
-      return *this;
+      check(); markAsUsed(); strPtr_->assign(str.get()); return *this;
     }
 
     /**
@@ -101,10 +91,7 @@ class SafeString : public SafeBase {
      * @return The new value.
      */
     inline SafeString& assign(const SafeString& str, size_t pos, size_t count = std::string::npos) {
-      check();
-      markAsUsed();
-      strPtr_->assign(str.get(), pos, count);
-      return *this;
+      check(); markAsUsed(); strPtr_->assign(str.get(), pos, count); return *this;
     }
 
     /**
@@ -114,10 +101,7 @@ class SafeString : public SafeBase {
      * @return The new value.
      */
     inline SafeString& assign(const char* s, size_t count) {
-      check();
-      markAsUsed();
-      strPtr_->assign(s, count);
-      return *this;
+      check(); markAsUsed(); strPtr_->assign(s, count); return *this;
     }
 
     /**
@@ -126,23 +110,18 @@ class SafeString : public SafeBase {
      * @return The new value.
      */
     inline SafeString& assign(const char* s) {
-      check();
-      markAsUsed();
-      strPtr_->assign(s);
-      return *this;
+      check(); markAsUsed(); strPtr_->assign(s); return *this;
     }
 
     /**
      * Assign a new value from input iterators.
+     * @tparam InputIt Any iterator type.
      * @param first An iterator pointing to the start of the input.
      * @param last An iterator pointing to the end of the input.
      * @return The new value.
      */
     template <class InputIt> inline SafeString& assign(InputIt first, InputIt last) {
-      check();
-      markAsUsed();
-      strPtr_->assign(first, last);
-      return *this;
+      check(); markAsUsed(); strPtr_->assign(first, last); return *this;
     }
 
     /**
@@ -151,63 +130,60 @@ class SafeString : public SafeBase {
      * @return The new value.
      */
     inline SafeString& assign(std::initializer_list<char> ilist) {
-      check();
-      markAsUsed();
-      strPtr_->assign(ilist);
-      return *this;
+      check(); markAsUsed(); strPtr_->assign(ilist); return *this;
     }
 
+    ///@{
     /**
      * Get a character from a specified position.
      * @param pos The position of the character.
      * @return The requsted character.
      */
     inline char& at(size_t pos) { check(); markAsUsed(); return strPtr_->at(pos); }
-
-    /// Const overload for at().
     inline const char& at(size_t pos) const { check(); return strPtr_->at(pos); }
+    ///@}
 
-    /// Get the first character from the string.
+    ///@{
+    /** Get the first character from the string. */
     inline char& front() { check(); markAsUsed(); return strPtr_->front(); }
-
-    /// Const overload for front().
     inline const char& front() const { check(); return strPtr_->front(); }
+    ///@}
 
-    /// Get the last character from the string.
+    ///@{
+    /** Get the last character from the string. */
     inline char& back() { check(); markAsUsed(); return strPtr_->back(); }
-
-    /// Const overload for back().
     inline const char& back() const { check(); return strPtr_->back(); }
-
-    /// Get the value from the pointer as a NULL-terminated C-style string.
-    inline const char* c_str() const { check(); return strPtr_->c_str(); }
+    ///@}
 
     /// Get the value from the pointer.
     inline const char* data() const { check(); return strPtr_->data(); }
 
-    /// Get an iterator to the start of the string.
+    /// Same as data, but returns a NULL-terminated C-style string.
+    inline const char* c_str() const { check(); return strPtr_->c_str(); }
+
+    ///@{
+    /** Get an iterator to the start of the string. */
     inline std::string::iterator begin() { check(); markAsUsed(); return strPtr_->begin(); }
-
-    /// Get a const iterator to the start of the string.
     inline std::string::const_iterator cbegin() const { check(); return strPtr_->cbegin(); }
+    ///@}
 
-    /// Get an iterator to the end of the string.
+    ///@{
+    /** Get an iterator to the end of the string. */
     inline std::string::iterator end() { check(); markAsUsed(); return strPtr_->end(); }
-
-    /// Get a const iterator to the end of the string.
     inline std::string::const_iterator cend() const { check(); return strPtr_->cend(); }
+    ///@}
 
-    /// Get a reverse iterator to the start of a string.
+    ///@{
+    /** Get a reverse iterator to the start of a string. */
     inline std::string::reverse_iterator rbegin() { check(); markAsUsed(); return strPtr_->rbegin(); }
-
-    /// Get a const reverse iterator to the start of a string.
     inline std::string::const_reverse_iterator crbegin() const { check(); return strPtr_->crbegin(); }
+    ///@}
 
-    /// Get a reverse iterator to the end of a string.
+    ///@{
+    /** Get a reverse iterator to the end of a string. */
     inline std::string::reverse_iterator rend() { check(); markAsUsed(); return strPtr_->rend(); }
-
-    /// Get a const reverse iterator to the end of a string.
     inline std::string::const_reverse_iterator crend() const { check(); return strPtr_->crend(); }
+    ///@}
 
     /**
      * Check if the string is empty (has no characters, aka "").
@@ -215,13 +191,13 @@ class SafeString : public SafeBase {
      */
     inline bool empty() const { check(); return strPtr_->empty(); }
 
-    /// Get the number of characters in the string.
+    ///@{
+    /** Get the number of characters in the string. */
     inline size_t size() const { check(); return strPtr_->size(); }
-
-    /// Same as size().
     inline size_t length() const { check(); return strPtr_->length(); }
+    ///@}
 
-    /// Get the maximum number of characters the string can hold
+    /// Get the maximum number of characters the string can hold.
     inline size_t max_size() const { check(); return strPtr_->max_size(); }
 
     /**
@@ -240,7 +216,7 @@ class SafeString : public SafeBase {
     inline void clear() { check(); markAsUsed(); strPtr_->clear(); }
 
     /**
-     * Insert characters into the string.
+     * Insert repeated characters into the string.
      * @param index The index at which the characters will be inserted.
      * @param count The number of characters to insert.
      * @param ch The character to insert.
@@ -251,7 +227,7 @@ class SafeString : public SafeBase {
     }
 
     /**
-     * Insert a NULL_terminated C-style string into the string.
+     * Insert a NULL-terminated C-style string into the string.
      * @param index The index at which the substring will be inserted.
      * @param s The substring to insert.
      * @return The new value.
@@ -342,6 +318,7 @@ class SafeString : public SafeBase {
 
     /**
      * Insert a range [first, last) of characters into the string.
+     * @tparam InputIt Any iterator type.
      * @param pos The position at which the characters will be inserted.
      * @param first An iterator that points to the first character to insert.
      * @param last An iterator that points to one past the last character to insert.
@@ -481,24 +458,25 @@ class SafeString : public SafeBase {
 
     /**
      * Append a range of [first, last) characters to the end of the string.
+     * @tparam InputIt Any iterator type.
      * @param first An iterator that points to the first character to append.
      * @param last An iterator that points to one past the last character to append.
      * @return The new value.
      */
-    template <class InputIt>
-    inline SafeString& append(InputIt first, InputIt last) {
+    template <class InputIt> inline SafeString& append(InputIt first, InputIt last) {
       check(); markAsUsed(); strPtr_->append(first, last); return *this;
     }
 
     /**
      * Append characters from an initializer list to the end of a string.
-     *  @param ilist The initializer list to append.
+     * @param ilist The initializer list to append.
      * @return The new value.
      */
     inline SafeString& append(std::initializer_list<char> ilist) {
       check(); markAsUsed(); strPtr_->append(ilist); return *this;
     }
 
+    ///@{
     /**
      * Compare the string to another SafeString.
      * @param str The string to compare to.
@@ -506,17 +484,12 @@ class SafeString : public SafeBase {
      * is less than, equal to, or greater than the compared string, respectively.
      */
     inline int compare(const SafeString& str) const { check(); return strPtr_->compare(str.get()); }
-
-    /**
-     * Compare the string to another string.
-     * @param str The string to compare to.
-     * @return An integer less than, equal to, or greater than zero if the string
-     * is less than, equal to, or greater than the compared string, respectively.
-     */
     inline int compare(const std::string& str) const { check(); return strPtr_->compare(str); }
+    ///@}
 
+    ///@{
     /**
-     * Compare the string to another SafeString substring.
+     * Compare the string to another substring.
      * @param pos The index of the first character of the substring to compare to.
      * @param count The number of characters of the substring to compare to.
      * @param str The string to compare to.
@@ -526,21 +499,14 @@ class SafeString : public SafeBase {
     inline int compare(size_t pos, size_t count, const SafeString& str) const {
       check(); return strPtr_->compare(pos, count, str.get());
     }
-
-    /**
-     * Compare the string to another substring.
-     * @param pos The index of the first character of the substring to compare to.
-     * @param count The number of characters of the substring to compare to.
-     * @param str The string to compare to.
-     * @return An integer less than, equal to, or greater than zero if the string
-     * is less than, equal to, or greater than the compared string, respectively.
-     */
     inline int compare(size_t pos, size_t count, const std::string& str) const {
       check(); return strPtr_->compare(pos, count, str);
     }
+    ///@}
 
+    ///@{
     /**
-     * Compare a substring of this string to another SafeString substring
+     * Compare a substring of this string to another substring
      * (you better check yourself before you wreck yourself!).
      * @param pos1 The index of the first character of this string.
      * @param count1 The number of characters of the substring of this string.
@@ -556,23 +522,13 @@ class SafeString : public SafeBase {
     ) const {
       check(); return strPtr_->compare(pos1, count1, str.get(), pos2, count2);
     }
-
-    /**
-     * Compare a substring of this string to another substring.
-     * @param pos1 The index of the first character of this string.
-     * @param count1 The number of characters of the substring of this string.
-     * @param str The substring to compare to.
-     * @param pos2 The index of the first character of the substring to compare to.
-     * @param count2 The number of characters of the substring to compare to.
-     * @return An integer less than, equal to, or greater than zero if the string
-     * is less than, equal to, or greater than the compared string, respectively.
-     */
     inline int compare(
       size_t pos1, size_t count1, const std::string& str,
       size_t pos2, size_t count2 = std::string::npos
     ) const {
       check(); return strPtr_->compare(pos1, count1, str, pos2, count2);
     }
+    ///@}
 
     /**
      * Compare the string to another C-style string.
@@ -594,13 +550,6 @@ class SafeString : public SafeBase {
       check(); return strPtr_->compare(pos, count, s);
     }
 
-    /**constexpr int compare( size_type pos1, size_type count1,const CharT* s,
-    size_type count2 ) const;
-    @brief Compares the safe string to a substring of an array of characters.
-    @return An integer less than, equal to, or greater than zero if the substring
-    of the safe string is less than, equal to, or greater than the substring of
-    the string s, respectively.
-    */
     /**
      * Compare a substring of this string to another C-style substring.
      * @param pos1 The index of the first character of this string.
@@ -658,8 +607,9 @@ class SafeString : public SafeBase {
 
     // TODO: contains (C++23) - (1) in https://en.cppreference.com/w/cpp/string/basic_string/contains
 
+    ///@{
     /**
-     * Replace part of this string with a SafeString.
+     * Replace part of this string with another string.
      * @param pos The index of the first character of this string to replace.
      * @param count The number of characters of this string to replace.
      * @param str The string to use as a replacement.
@@ -668,20 +618,14 @@ class SafeString : public SafeBase {
     inline SafeString& replace(size_t pos, size_t count, const SafeString& str) {
       check(); markAsUsed(); strPtr_->replace(pos, count, str.get()); return *this;
     }
-
-    /**
-     * Replace part of this string with a string.
-     * @param pos The index of the first character of this string to replace.
-     * @param count The number of characters of this string to replace.
-     * @param str The string to use as a replacement.
-     * @return The new value.
-     */
     inline SafeString& replace(size_t pos, size_t count, const std::string& str) {
       check(); markAsUsed(); strPtr_->replace(pos, count, str); return *this;
     }
+    ///@}
 
+    ///@{
     /**
-     * Replace part of this string with a SafeString, using iterators.
+     * Replace part of this string with another string, using iterators.
      * @param first An iterator to the first character of this string to replace.
      * @param last An iterator to the last character of this string to replace.
      * @param str The string to use as a replacement.
@@ -692,22 +636,16 @@ class SafeString : public SafeBase {
     ) {
       check(); markAsUsed(); strPtr_->replace(first, last, str.get()); return *this;
     }
-
-    /**
-     * Replace part of this string with a string, using iterators.
-     * @param first An iterator to the first character of this string to replace.
-     * @param last An iterator to the last character of this string to replace.
-     * @param str The string to use as a replacement.
-     * @return The new value.
-     */
     inline SafeString& replace(
       std::string::const_iterator first, std::string::const_iterator last, const std::string& str
     ) {
       check(); markAsUsed(); strPtr_->replace(first, last, str); return *this;
     }
+    ///@}
 
+    ///@{
     /**
-     * Replace part of this string with a SafeString substring.
+     * Replace part of this string with a substring.
      * @param pos The index of the first character of this string to replace.
      * @param count The number of characters of this string to replace.
      * @param str The string to use as a replacement.
@@ -720,24 +658,16 @@ class SafeString : public SafeBase {
     ) {
       check(); markAsUsed(); strPtr_->replace(pos, count, str.get(), pos2, count2); return *this;
     }
-
-    /**
-     * Replace part of this string with a substring.
-     * @param pos The index of the first character of this string to replace.
-     * @param count The number of characters of this string to replace.
-     * @param str The string to use as a replacement.
-     * @param pos2 The index of the first character of the substring to use as a replacement.
-     * @param count2 The number of characters of the substring to use as a replacement.
-     * @return The new value.
-     */
     inline SafeString& replace(
       size_t pos, size_t count, const std::string& str, size_t pos2, size_t count2 = std::string::npos
     ) {
       check(); markAsUsed(); strPtr_->replace(pos, count, str, pos2, count2); return *this;
     }
+    ///@}
 
     /**
      * Replace part of this string with a substring, using iterators.
+     * @tparam InputIt Any iterator type.
      * @param first An iterator to the first character of this string to replace.
      * @param last An iterator to the last character of this string to replace.
      * @param first2 An iterator to the first character of the substring to use as a replacement.
@@ -803,7 +733,7 @@ class SafeString : public SafeBase {
     }
 
     /**
-     * Replace part of this string with a number of characters.
+     * Replace part of this string with a number of repeated characters.
      * @param pos The index of the first character of this string to replace.
      * @param count The number of characters in this string to replace.
      * @param count2 The number of characters to replace.
@@ -815,7 +745,7 @@ class SafeString : public SafeBase {
     }
 
     /**
-     * Replace part of this string with a number of characters, using iterators.
+     * Replace part of this string with a number of repeated characters, using iterators.
      * @param first An iterator to the first character of this string to replace.
      * @param last An iterator to the last character of this string to replace.
      * @param count The number of characters to replace.
@@ -871,7 +801,7 @@ class SafeString : public SafeBase {
     inline void resize(size_t count) { check(); markAsUsed(); strPtr_->resize(count); }
 
     /**
-     * Resize the safe string and fill the extra space with a given character.
+     * Resize the string and fill the extra space with a given character.
      * @param count The new size of the string.
      * @param ch The character to use as filling.
      */
@@ -885,8 +815,9 @@ class SafeString : public SafeBase {
       check(); other.check(); markAsUsed(); other.markAsUsed(); strPtr_.swap(other.strPtr_);
     }
 
+    ///@{
     /**
-     * Find the first occurrence of a given SafeString.
+     * Find the first occurrence of a given string.
      * @param str The string to find.
      * @param pos The index of the first character to search. Defaults to the start of the string.
      * @return The index of the first occurrence, or std::string::npos if not found.
@@ -894,16 +825,10 @@ class SafeString : public SafeBase {
     inline size_t find(const SafeString& str, size_t pos = 0) const {
       check(); return strPtr_->find(str.get(), pos);
     }
-
-    /**
-     * Find the first occurrence of a given string.
-     * @param str The string to find.
-     * @param pos The index of the first character to search. Defaults to the start of the string.
-     * @return The index of the first occurrence, or std::string::npos if not found.
-     */
     inline size_t find(const std::string& str, size_t pos = 0) const {
       check(); return strPtr_->find(str, pos);
     }
+    ///@}
 
     /**
      * Find the first occurrence of a given C-style substring.
@@ -936,8 +861,9 @@ class SafeString : public SafeBase {
       check(); return strPtr_->find(ch, pos);
     }
 
+    ///@{
     /**
-     * Find the last occurrence of a given SafeString.
+     * Find the last occurrence of a given string.
      * @param str The string to find.
      * @param pos The index of the first character to search. Defaults to the end of the string.
      * @return The index of the last occurrence, or std::string::npos if not found.
@@ -945,16 +871,10 @@ class SafeString : public SafeBase {
     inline size_t rfind(const SafeString& str, size_t pos = std::string::npos) const {
       check(); return strPtr_->rfind(str.get(), pos);
     }
-
-    /**
-     * Find the last occurrence of a given string.
-     * @param str The string to find.
-     * @param pos The index of the first character to search. Defaults to the end of the string.
-     * @return The index of the last occurrence, or std::string::npos if not found.
-     */
     inline size_t rfind(const std::string& str, size_t pos = std::string::npos) const {
       check(); return strPtr_->rfind(str, pos);
     }
+    ///@}
 
     /**
      * Find the last occurrence of a given C-style substring.
@@ -987,8 +907,9 @@ class SafeString : public SafeBase {
       check(); return strPtr_->rfind(ch, pos);
     }
 
+    ///@{
     /**
-     * Find the first occurrence of any of the characters in a given SafeString.
+     * Find the first occurrence of any of the characters in a given string.
      * @param str The string to use as a reference for searching.
      * @param pos The index of the first character to search. Defaults to the start of the string.
      * @return The index of the first occurrence, or std::string::npos if not found.
@@ -996,16 +917,10 @@ class SafeString : public SafeBase {
     inline size_t find_first_of(const SafeString& str, size_t pos = 0) const {
       check(); return strPtr_->find_first_of(str.get(), pos);
     }
-
-    /**
-     * Find the first occurrence of any of the characters in a given string.
-     * @param str The string to use as a reference for searching.
-     * @param pos The index of the first character to search. Defaults to the start of the string.
-     * @return The index of the first occurrence, or std::string::npos if not found.
-     */
     inline size_t find_first_of(const std::string& str, size_t pos = 0) const {
       check(); return strPtr_->find_first_of(str, pos);
     }
+    ///@}
 
     /**
      * Find the first occurrence of any of the characters in a given C-style substring.
@@ -1038,8 +953,9 @@ class SafeString : public SafeBase {
       check(); return strPtr_->find_first_of(ch, pos);
     }
 
+    ///@{
     /**
-     * Find the first occurrence of none of the characters in a given SafeString.
+     * Find the first occurrence of none of the characters in a given string.
      * @param str The string to use as a reference for searching.
      * @param pos The index of the first character to search. Defaults to the start of the string.
      * @return The index of the first occurrence, or std::string::npos if not found.
@@ -1047,16 +963,10 @@ class SafeString : public SafeBase {
     inline size_t find_first_not_of(const SafeString& str, size_t pos = 0) const {
       check(); return strPtr_->find_first_not_of(str.get(), pos);
     }
-
-    /**
-     * Find the first occurrence of none of the characters in a given string.
-     * @param str The string to use as a reference for searching.
-     * @param pos The index of the first character to search. Defaults to the start of the string.
-     * @return The index of the first occurrence, or std::string::npos if not found.
-     */
     inline size_t find_first_not_of(const std::string& str, size_t pos = 0) const {
       check(); return strPtr_->find_first_not_of(str, pos);
     }
+    ///@}
 
     /**
      * Find the first occurrence of none of the characters in a given C-style substring.
@@ -1089,8 +999,9 @@ class SafeString : public SafeBase {
       check(); return strPtr_->find_first_not_of(ch, pos);
     }
 
+    ///@{
     /**
-     * Find the last occurrence of any of the characters in a given SafeString.
+     * Find the last occurrence of any of the characters in a given string.
      * @param str The string to use as a reference for searching.
      * @param pos The index of the first character to search. Defaults to the end of the string.
      * @return The index of the last occurrence, or std::string::npos if not found.
@@ -1098,16 +1009,10 @@ class SafeString : public SafeBase {
     inline size_t find_last_of(const SafeString& str, size_t pos = std::string::npos) const {
       check(); return strPtr_->find_last_of(str.get(), pos);
     }
-
-    /**
-     * Find the last occurrence of any of the characters in a given string.
-     * @param str The string to use as a reference for searching.
-     * @param pos The index of the first character to search. Defaults to the end of the string.
-     * @return The index of the last occurrence, or std::string::npos if not found.
-     */
     inline size_t find_last_of(const std::string& str, size_t pos = std::string::npos) const {
       check(); return strPtr_->find_last_of(str, pos);
     }
+    ///@}
 
     /**
      * Find the last occurrence of any of the characters in a given C-style substring.
@@ -1140,8 +1045,9 @@ class SafeString : public SafeBase {
       check(); return strPtr_->find_last_of(ch, pos);
     }
 
+    ///@{
     /**
-     * Find the last occurrence of none of the characters in a given SafeString.
+     * Find the last occurrence of none of the characters in a given string.
      * @param str The string to use as a reference for searching.
      * @param pos The index of the first character to search. Defaults to the end of the string.
      * @return The index of the last occurrence, or std::string::npos if not found.
@@ -1149,16 +1055,10 @@ class SafeString : public SafeBase {
     inline size_t find_last_not_of(const SafeString& str, size_t pos = std::string::npos) const {
       check(); return strPtr_->find_last_not_of(str.get(), pos);
     }
-
-    /**
-     * Find the last occurrence of none of the characters in a given string.
-     * @param str The string to use as a reference for searching.
-     * @param pos The index of the first character to search. Defaults to the end of the string.
-     * @return The index of the last occurrence, or std::string::npos if not found.
-     */
     inline size_t find_last_not_of(const std::string& str, size_t pos = std::string::npos) const {
       check(); return strPtr_->find_last_not_of(str, pos);
     }
+    ///@}
 
     /**
      * Find the last occurrence of none of the characters in a given C-style substring.
@@ -1191,165 +1091,95 @@ class SafeString : public SafeBase {
       check(); return strPtr_->find_last_not_of(ch, pos);
     }
 
-    /// Assignment operator.
+    ///@{
+    /** Assignment operator. */
     inline SafeString& operator=(const SafeString& other) {
       check(); markAsUsed(); *strPtr_ = other.get(); return *this;
     }
-
-    /// Assignment operator.
     inline SafeString& operator=(const std::string& other) {
       check(); markAsUsed(); *strPtr_ = other; return *this;
     }
-
-    /// Assignment operator.
     inline SafeString& operator=(const char* s) {
       check(); markAsUsed(); *strPtr_ = s; return *this;
     }
-
-    /// Assignment operator.
     inline SafeString& operator=(char ch) {
       check(); markAsUsed(); *strPtr_ = ch; return *this;
     }
-
-    /// Assignment operator.
     inline SafeString& operator=(std::initializer_list<char> ilist) {
       check(); markAsUsed(); *strPtr_ = ilist; return *this;
     }
+    ///@}
 
-    /// Compound assignment operator.
+    ///@{
+    /** Compound assignment operator. */
     inline SafeString& operator+=(const SafeString& str) {
       check(); markAsUsed(); strPtr_->operator+=(str.get()); return *this;
     }
-
-    /// Compound assignment operator.
     inline SafeString& operator+=(const std::string& str) {
       check(); markAsUsed(); strPtr_->operator+=(str); return *this;
     }
-
-    /// Compound assignment operator.
     inline SafeString& operator+=(char ch) {
       check(); markAsUsed(); strPtr_->operator+=(ch); return *this;
     }
-
-    /// Compound assignment operator.
     inline SafeString& operator+=(const char* s) {
       check(); markAsUsed(); strPtr_->operator+=(s); return *this;
     }
-
-    /// Compound assignment operator.
     inline SafeString& operator+=(std::initializer_list<char> ilist) {
       check(); markAsUsed(); strPtr_->operator+=(ilist); return *this;
     }
+    ///@}
 
-    /// Subscript/Indexing operator.
-    inline char& operator[](size_t pos) {
-      check(); markAsUsed(); return strPtr_->operator[](pos);
-    }
+    ///@{
+    /** Subscript/Indexing operator. */
+    inline char& operator[](size_t pos) { check(); markAsUsed(); return strPtr_->operator[](pos); }
+    inline const char& operator[](size_t pos) const { check(); return strPtr_->operator[](pos); }
+    ///@}
 
-    /// Subscript/Indexing operator.
-    inline const char& operator[](size_t pos) const {
-      check(); return strPtr_->operator[](pos);
-    }
+    ///@{
+    /** Concat operator. */
+    inline SafeString operator+(const SafeString& rhs) const { check(); return SafeString(*strPtr_ + rhs.get()); };
+    inline SafeString operator+(const std::string& rhs) const { check(); return SafeString(*strPtr_ + rhs); };
+    inline SafeString operator+(const char* rhs) const { check(); return SafeString(*strPtr_ + rhs); };
+    inline SafeString operator+(char rhs) const { check(); return SafeString(*strPtr_ + rhs); };
+    ///@}
 
-    /// Concat operator.
-    inline SafeString operator+(const SafeString& rhs) const {
-      check(); return SafeString(*strPtr_ + rhs.get());
-    };
-
-    /// Concat operator.
-    inline SafeString operator+(const std::string& rhs) const {
-      check(); return SafeString(*strPtr_ + rhs);
-    };
-
-    /// Concat operator.
-    inline SafeString operator+(const char* rhs) const {
-      check(); return SafeString(*strPtr_ + rhs);
-    };
-
-    /// Concat operator.
-    inline SafeString operator+(char rhs) const {
-      check(); return SafeString(*strPtr_ + rhs);
-    };
-
-    /// Equality operator.
-    inline bool operator==(const SafeString& rhs) const {
-      check(); return *strPtr_ == rhs.get();
-    };
-
-    /// Equality operator.
-    inline bool operator==(const std::string& rhs) const {
-      check(); return *strPtr_ == rhs;
-    };
-
-    /// Equality operator.
-    inline bool operator==(const char* rhs) const {
-      check(); return *strPtr_ == rhs;
-    };
+    ///@{
+    /** Equality operator. */
+    inline bool operator==(const SafeString& rhs) const { check(); return *strPtr_ == rhs.get(); };
+    inline bool operator==(const std::string& rhs) const { check(); return *strPtr_ == rhs; };
+    inline bool operator==(const char* rhs) const { check(); return *strPtr_ == rhs; };
+    ///@}
 
     /// Inequality operator.
-    inline bool operator!=(const char* rhs) const {
-      check(); return *strPtr_ != rhs;
-    };
+    inline bool operator!=(const char* rhs) const { check(); return *strPtr_ != rhs; };
 
-    /// Lesser comparison operator.
-    inline bool operator<(const SafeString& rhs) const {
-      check(); return *strPtr_ < rhs.get();
-    };
+    ///@{
+    /** Lesser comparison operator. */
+    inline bool operator<(const SafeString& rhs) const { check(); return *strPtr_ < rhs.get(); };
+    inline bool operator<(const std::string& rhs) const { check(); return *strPtr_ < rhs; };
+    inline bool operator<(const char* rhs) const { check(); return *strPtr_ < rhs; };
+    ///@}
 
-    /// Lesser comparison operator.
-    inline bool operator<(const std::string& rhs) const {
-      check(); return *strPtr_ < rhs;
-    };
+    ///@{
+    /** Greater comparison operator. */
+    inline bool operator>(const SafeString& rhs) const { check(); return *strPtr_ > rhs.get(); };
+    inline bool operator>(const std::string& rhs) const { check(); return *strPtr_ > rhs; };
+    inline bool operator>(const char* rhs) const { check(); return *strPtr_ > rhs; };
+    ///@}
 
-    /// Lesser comparison operator.
-    inline bool operator<(const char* rhs) const {
-      check(); return *strPtr_ < rhs;
-    };
+    ///@{
+    /** Lesser-or-equal comparison operator. */
+    inline bool operator<=(const SafeString& rhs) const { check(); return *strPtr_ <= rhs.get(); };
+    inline bool operator<=(const std::string& rhs) const { check(); return *strPtr_ <= rhs; };
+    inline bool operator<=(const char* rhs) const { check(); return *strPtr_ <= rhs; };
+    ///@}
 
-    /// Greater comparison operator.
-    inline bool operator>(const SafeString& rhs) const {
-      check(); return *strPtr_ > rhs.get();
-    };
-
-    /// Greater comparison operator.
-    inline bool operator>(const std::string& rhs) const {
-      check(); return *strPtr_ > rhs;
-    };
-
-    /// Greater comparison operator.
-    inline bool operator>(const char* rhs) const {
-      check(); return *strPtr_ > rhs;
-    };
-
-    /// Lesser-or-equal comparison operator.
-    inline bool operator<=(const SafeString& rhs) const {
-      check(); return *strPtr_ <= rhs.get();
-    };
-
-    /// Lesser-or-equal comparison operator.
-    inline bool operator<=(const std::string& rhs) const {
-      check(); return *strPtr_ <= rhs;
-    };
-
-    /// Lesser-or-equal comparison operator.
-    inline bool operator<=(const char* rhs) const {
-      check(); return *strPtr_ <= rhs;
-    };
-
-    /// Greater-or-equal comparison operator.
-    inline bool operator>=(const SafeString& rhs) const {
-      check(); return *strPtr_ >= rhs.get();
-    };
-
-    /// Greater-or-equal comparison operator.
-    inline bool operator>=(const std::string& rhs) const {
-      check(); return *strPtr_ >= rhs;
-    };
-
-    /// Greater-or-equal comparison operator.
-    inline bool operator>=(const char* rhs) const {
-      check(); return *strPtr_ >= rhs;
-    };
+    ///@{
+    /** Greater-or-equal comparison operator. */
+    inline bool operator>=(const SafeString& rhs) const { check(); return *strPtr_ >= rhs.get(); };
+    inline bool operator>=(const std::string& rhs) const { check(); return *strPtr_ >= rhs; };
+    inline bool operator>=(const char* rhs) const { check(); return *strPtr_ >= rhs; };
+    ///@}
 };
 
 /**
@@ -1358,8 +1188,6 @@ class SafeString : public SafeBase {
  * @param _t The safe string to write.
  * @return The output stream.
 */
-inline std::ostream& operator<<(std::ostream& _out, SafeString const& _t) {
-  _out << _t.get(); return _out;
-}
+inline std::ostream& operator<<(std::ostream& _out, SafeString const& _t) { _out << _t.get(); return _out; }
 
 #endif  // SAFESTRING_H

@@ -45,7 +45,7 @@ class Event {
     uint64_t blockIndex_;       ///< Height of the block that the event was emitted from.
     Address address_;           ///< Address that emitted the event.
     Bytes data_;                ///< Non-indexed arguments of the event.
-    std::vector<Hash> topics_;  ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events). Topics are Hashes since they are all 32 bytes.
+    std::vector<Hash> topics_;  ///< Indexed arguments of the event, limited to a max of 3 (4 for anonymous events). Topics are Hashes since they are always 32 bytes.
     bool anonymous_;            ///< Whether the event is anonymous or not (its signature is indexed and searchable).
 
   public:
@@ -111,8 +111,7 @@ class Event {
      * @param blockIndex The height of the block.
      */
     void setStateData(
-      uint64_t logIndex, const Hash& txHash, uint64_t txIndex,
-      const Hash& blockHash, uint64_t blockIndex
+      uint64_t logIndex, const Hash& txHash, uint64_t txIndex, const Hash& blockHash, uint64_t blockIndex
     ) {
       this->logIndex_ = logIndex;
       this->txHash_ = txHash;
@@ -121,35 +120,19 @@ class Event {
       this->blockIndex_ = blockIndex;
     }
 
-    /// Getter for `name_`.
+    ///@{
+    /** Getter. */
     const std::string& getName() const { return this->name_; }
-
-    /// Getter for `logIndex_`.
     const uint64_t& getLogIndex() const { return this->logIndex_; }
-
-    /// Getter for `txHash_`.
     const Hash& getTxHash() const { return this->txHash_; }
-
-    /// Getter for `txIndex_`.
     const uint64_t& getTxIndex() const { return this->txIndex_; }
-
-    /// Getter for `blockHash_`.
     const Hash& getBlockHash() const { return this->blockHash_; }
-
-    /// Getter for `blockIndex_`.
     const uint64_t& getBlockIndex() const { return this->blockIndex_; }
-
-    /// Getter for `address_`.
     const Address& getAddress() const { return this->address_; }
-
-    /// Getter for `data_`.
     const Bytes& getData() const { return this->data_; }
-
-    /// Getter for `topics_`.
     const std::vector<Hash>& getTopics() const { return this->topics_; }
-
-    /// Getter for `anonymous_`.
     bool isAnonymous() const { return this->anonymous_; }
+    ///@}
 
     /**
      * Get the event's selector (keccak hash of its signature).
@@ -159,12 +142,11 @@ class Event {
       if (!this->anonymous_) return this->topics_[0]; else return Hash();
     }
 
-    /// Serialize event data from the object to a JSON string.
-    std::string serialize() const;
+    std::string serialize() const;  ///< Serialize event data from the object to a JSON string.
 
     /**
-     * Serialize event data to a JSON string, formatted to RPC response standards:
-     * https://medium.com/alchemy-api/deep-dive-into-eth-getlogs-5faf6a66fd81
+     * Serialize event data to a JSON string, formatted to RPC response standards
+     * @see https://medium.com/alchemy-api/deep-dive-into-eth-getlogs-5faf6a66fd81
      */
     std::string serializeForRPC() const;
 };
@@ -179,8 +161,7 @@ struct event_indices : bmi::indexed_by<
   bmi::ordered_non_unique<bmi::member<Event, Hash, &Event::txHash_>>
 > {};
 
-/// Alias for the event multi-index container.
-using EventContainer = bmi::multi_index_container<Event, event_indices>;
+using EventContainer = bmi::multi_index_container<Event, event_indices>;  ///< Alias for the event multi-index container.
 
 /**
  * Class that holds all events emitted by contracts in the blockchain.
@@ -189,11 +170,11 @@ using EventContainer = bmi::multi_index_container<Event, event_indices>;
 class EventManager {
   private:
     // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
-    EventContainer events_;                   ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
-    EventContainer tempEvents_;               ///< List of temporary events waiting to be commited or reverted.
-    DB& db_;           ///< Reference pointer to the database.
-    const Options& options_; ///< Reference pointer to the Options singleton.
-    mutable std::shared_mutex lock_;          ///< Mutex for managing read/write access to the permanent events vector.
+    EventContainer events_;           ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
+    EventContainer tempEvents_;       ///< List of temporary events waiting to be commited or reverted.
+    DB& db_;                          ///< Reference to the database.
+    const Options& options_;          ///< Reference to the Options singleton.
+    mutable std::shared_mutex lock_;  ///< Mutex for managing read/write access to the permanent events vector.
 
   public:
     /**
@@ -203,8 +184,7 @@ class EventManager {
      */
     EventManager(DB& db, const Options& options);
 
-    /// Destructor. Automatically saves events to the database.
-    ~EventManager();
+    ~EventManager();  ///< Destructor. Automatically saves events to the database.
 
     // TODO: maybe a periodicSaveToDB() just like on Storage?
 

@@ -12,10 +12,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "safebase.h"
 
 /**
- * Safe wrapper for an Address variable.
- * Used to safely store an Address within a contract.
- * @see SafeBase
- * @see Address
+ * Safe wrapper for an Address variable. Used to safely store an Address within a contract.
+ * @see SafeBase, Address
  */
 class SafeAddress : public SafeBase {
   private:
@@ -55,39 +53,27 @@ class SafeAddress : public SafeBase {
 
     /// Commit the value. Updates the value from the pointer and nullifies it.
     inline void commit() override {
-      check();
-      address_ = *addressPtr_;
-      addressPtr_ = nullptr;
+      check(); address_ = *addressPtr_; addressPtr_ = nullptr;
     };
 
     /// Revert the value. Nullifies the pointer.
     inline void revert() const override { addressPtr_ = nullptr; };
 
-    /// Assignment operator.
+    ///@{
+    /** Assignment operator. */
     inline Address& operator=(const Address& address) {
-      check();
-      markAsUsed();
-      *addressPtr_ = address;
-      return *addressPtr_;
+      check(); markAsUsed(); *addressPtr_ = address; return *addressPtr_;
     };
-
-    /// Assignment operator.
     inline Address& operator=(const SafeAddress& other) {
-      check();
-      markAsUsed();
-      *addressPtr_ = other.get();
-      return *addressPtr_;
+      check(); markAsUsed(); *addressPtr_ = other.get(); return *addressPtr_;
     };
+    ///@}
 
-    /// Equality operator.
-    inline bool operator==(const Address& other) const {
-      check(); return (*addressPtr_ == other);
-    }
-
-    /// Equality operator.
-    inline bool operator==(const SafeAddress& other) const {
-      check(); return (*addressPtr_ == other.get());
-    }
+    ///@{
+    /** Equality operator. */
+    inline bool operator==(const Address& other) const { check(); return (*addressPtr_ == other); }
+    inline bool operator==(const SafeAddress& other) const { check(); return (*addressPtr_ == other.get()); }
+    ///@}
 };
 
 #endif  // SAFEADDRESS_H

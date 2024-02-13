@@ -44,7 +44,7 @@ template <> struct IntType<64> {
 };
 
 /**
- * SafeInt_t class template.
+ * Safe wrapper for an int_t variable.
  * @tparam Size The size of the int.
  */
 template <int Size> class SafeInt_t : public SafeBase {
@@ -63,19 +63,19 @@ template <int Size> class SafeInt_t : public SafeBase {
 
     /**
      * Constructor.
+     * @param value The initial value of the variable. Defaults to 0.
+     */
+    explicit SafeInt_t(const int_t& value = 0)
+      : SafeBase(nullptr), value_(0), valuePtr_(std::make_unique<int_t>(value))
+    {};
+
+    /**
+     * Constructor with owner.
      * @param owner The DynamicContract that owns this variable.
      * @param value The initial value of the variable. Defaults to 0.
      */
     SafeInt_t(DynamicContract* owner, const int_t& value = 0)
       : SafeBase(owner), value_(0), valuePtr_(std::make_unique<int_t>(value))
-    {};
-
-    /**
-     * Constructor.
-     * @param value The initial value of the variable. Defaults to 0.
-     */
-    explicit SafeInt_t(const int_t& value = 0)
-      : SafeBase(nullptr), value_(0), valuePtr_(std::make_unique<int_t>(value))
     {};
 
     /**
@@ -95,9 +95,10 @@ template <int Size> class SafeInt_t : public SafeBase {
     /// Revert the value.
     inline void revert() const override { valuePtr_ = nullptr; registered_ = false; };
 
+    ///@{
     /**
      * Addition operator.
-     * @param other The SafeInt_t to add.
+     * @param other The integer to add.
      * @throw std::overflow_error if an overflow happens.
      * @throw std::underflow_error if an underflow happens.
      * @return A new SafeInt_t with the result of the addition.
@@ -112,14 +113,6 @@ template <int Size> class SafeInt_t : public SafeBase {
       }
       return SafeInt_t<Size>(*valuePtr_ + other.get());
     }
-
-    /**
-     * Addition operator.
-     * @param other The int_t to add.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::underflow_error if an underflow happens.
-     * @return A new SafeInt_t with the result of the addition.
-     */
     inline SafeInt_t<Size> operator+(const int_t& other) const {
       check();
       if ((other > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other)) {
@@ -130,10 +123,12 @@ template <int Size> class SafeInt_t : public SafeBase {
       }
       return SafeInt_t<Size>(*valuePtr_ + other);
     }
+    ///@}
 
+    ///@{
     /**
      * Subtraction operator.
-     * @param other The SafeInt_t to subtract.
+     * @param other The integer to subtract.
      * @throw std::overflow_error if an overflow happens.
      * @throw std::underflow_error if an underflow happens.
      * @return A new SafeInt_t with the result of the subtraction.
@@ -148,14 +143,6 @@ template <int Size> class SafeInt_t : public SafeBase {
       }
       return SafeInt_t<Size>(*valuePtr_ - other.get());
     }
-
-    /**
-     * Subtraction operator.
-     * @param other The int_t to subtract.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::underflow_error if an underflow happens.
-     * @return A new SafeInt_t with the result of the subtraction.
-     */
     inline SafeInt_t<Size> operator-(const int_t& other) const {
       check();
       if ((other < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other)) {
@@ -166,10 +153,12 @@ template <int Size> class SafeInt_t : public SafeBase {
       }
       return SafeInt_t<Size>(*valuePtr_ - other);
     }
+    ///@}
 
+    ///@{
     /**
      * Multiplication operator.
-     * @param other The SafeInt_t to multiply.
+     * @param other The integer to multiply.
      * @throw std::overflow_error if an overflow happens.
      * @throw std::underflow_error if an underflow happens.
      * @throw std::domain_error if multiplying by 0.
@@ -188,15 +177,6 @@ template <int Size> class SafeInt_t : public SafeBase {
       }
       return SafeInt_t<Size>(*valuePtr_ * other.get());
     }
-
-    /**
-     * Multiplication operator.
-     * @param other The int_t to multiply.
-     * @throw std::overflow_error if an overflow happens.
-     * @throw std::underflow_error if an underflow happens.
-     * @throw std::domain_error if multiplying by 0.
-     * @return A new SafeInt_t with the result of the multiplication.
-     */
     inline SafeInt_t<Size> operator*(const int_t& other) const {
       check();
       if (*valuePtr_ == 0 || other == 0) {
@@ -210,10 +190,12 @@ template <int Size> class SafeInt_t : public SafeBase {
       }
       return SafeInt_t<Size>(*valuePtr_ * other);
     }
+    ///@}
 
+    ///@{
     /**
      * Division operator.
-     * @param other The SafeInt_t to divide.
+     * @param other The integer to divide.
      * @throw std::domain_error if the other value is zero.
      * @throw std::overflow_error if division results in overflow.
      * @return A new SafeInt_t with the result of the division.
@@ -221,336 +203,206 @@ template <int Size> class SafeInt_t : public SafeBase {
     inline SafeInt_t<Size> operator/(const SafeInt_t<Size>& other) const {
       check();
       if (other.get() == 0) throw std::domain_error("Division by zero");
-
       // Handling the edge case where dividing the smallest negative number by -1 causes overflow
       if (*valuePtr_ == std::numeric_limits<int_t>::min() && other.get() == -1) {
         throw std::overflow_error("Overflow in division operation.");
       }
-
       return SafeInt_t<Size>(*valuePtr_ / other.get());
     }
-
-    /**
-     * Division operator.
-     * @param other The int_t to divide.
-     * @throw std::domain_error if the other value is zero.
-     * @throw std::overflow_error if division results in overflow.
-     * @return A new SafeInt_t with the result of the division.
-     */
     inline SafeInt_t<Size> operator/(const int_t& other) const {
       check();
       if (other == 0) throw std::domain_error("Division by zero");
-
       // Handling the edge case where dividing the smallest negative number by -1 causes overflow
       if (*valuePtr_ == std::numeric_limits<int_t>::min() && other == -1) {
         throw std::overflow_error("Overflow in division operation.");
       }
-
       return SafeInt_t<Size>(*valuePtr_ / other);
     }
+    ///@}
 
+    ///@{
     /**
      * Modulus operator.
-     * @param other The SafeInt_t to take the modulus by.
+     * @param other The integer to take the modulus of.
      * @throw std::domain_error if the other value is zero.
      * @return A new SafeInt_t with the result of the modulus.
      */
     inline SafeInt_t<Size> operator%(const SafeInt_t<Size>& other) const {
       check();
       if (other.get() == 0) throw std::domain_error("Modulus by zero");
-
       return SafeInt_t<Size>(*valuePtr_ % other.get());
     }
-
-    /**
-     * Modulus operator.
-     * @param other The int_t to take the modulus by.
-     * @throw std::domain_error if the other value is zero.
-     * @return A new SafeInt_t with the result of the modulus.
-     */
     inline SafeInt_t<Size> operator%(const int_t& other) const {
       check();
       if (other == 0) throw std::domain_error("Modulus by zero");
-
       return SafeInt_t<Size>(*valuePtr_ % other);
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise AND operator.
-     * @param other The SafeInt_t to AND.
+     * @param other The integer to apply AND.
      * @return A new SafeInt_t with the result of the AND.
      */
     inline SafeInt_t<Size> operator&(const SafeInt_t<Size>& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ & other.get());
+      check(); return SafeInt_t<Size>(*valuePtr_ & other.get());
     }
-
-    /**
-     * Bitwise AND operator.
-     * @param other The int_t to AND.
-     * @return A new SafeInt_t with the result of the AND.
-     */
     inline SafeInt_t<Size> operator&(const int_t& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ & other);
+      check(); return SafeInt_t<Size>(*valuePtr_ & other);
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise OR operator.
-     * @param other The SafeInt_t to OR.
+     * @param other The integer to apply OR.
      * @return A new SafeInt_t with the result of the OR.
      */
     inline SafeInt_t<Size> operator|(const SafeInt_t<Size>& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ | other.get());
+      check(); return SafeInt_t<Size>(*valuePtr_ | other.get());
     }
-
-    /**
-     * Bitwise OR operator.
-     * @param other The int_t to OR.
-     * @return A new SafeInt_t with the result of the OR.
-     */
     inline SafeInt_t<Size> operator|(const int_t& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ | other);
+      check(); return SafeInt_t<Size>(*valuePtr_ | other);
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise XOR operator.
-     * @param other The SafeInt_t to XOR.
+     * @param other The integer to apply XOR.
      * @return A new SafeInt_t with the result of the XOR.
      */
     inline SafeInt_t<Size> operator^(const SafeInt_t<Size>& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ ^ other.get());
+      check(); return SafeInt_t<Size>(*valuePtr_ ^ other.get());
     }
-
-    /**
-     * Bitwise XOR operator.
-     * @param other The int_t to XOR.
-     * @return A new SafeInt_t with the result of the XOR.
-     */
     inline SafeInt_t<Size> operator^(const int_t& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ ^ other);
+      check(); return SafeInt_t<Size>(*valuePtr_ ^ other);
     }
+    ///@}
 
+    ///@{
     /**
      * Left shift operator.
-     * @param other The SafeInt_t indicating the number of positions to shift.
+     * @param other The integer indicating the number of positions to shift.
      * @return A new SafeInt_t with the result of the shift.
      */
     inline SafeInt_t<Size> operator<<(const SafeInt_t<Size>& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ << other.get());
+      check(); return SafeInt_t<Size>(*valuePtr_ << other.get());
     }
-
-    /**
-     * Left shift operator.
-     * @param other The int_t indicating the number of positions to shift.
-     * @return A new SafeInt_t with the result of the shift.
-     */
     inline SafeInt_t<Size> operator<<(const int_t& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ << other);
+      check(); return SafeInt_t<Size>(*valuePtr_ << other);
     }
+    ///@}
 
+    ///@{
     /**
      * Right shift operator.
-     * @param other The SafeInt_t indicating the number of positions to shift.
+     * @param other The integer indicating the number of positions to shift.
      * @return A new SafeInt_t with the result of the shift.
      */
     inline SafeInt_t<Size> operator>>(const SafeInt_t<Size>& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ >> other.get());
+      check(); return SafeInt_t<Size>(*valuePtr_ >> other.get());
     }
-
-    /**
-     * Right shift operator.
-     * @param other The int_t indicating the number of positions to shift.
-     * @return A new SafeInt_t with the result of the shift.
-     */
     inline SafeInt_t<Size> operator>>(const int_t& other) const {
-      check();
-      return SafeInt_t<Size>(*valuePtr_ >> other);
+      check(); return SafeInt_t<Size>(*valuePtr_ >> other);
     }
+    ///@}
 
     /**
      * Logical NOT operator.
-     * @return True if the value is zero, false otherwise.
+     * @return `true` if the value is zero, `false` otherwise.
      */
-    inline bool operator!() const {
-      check();
-      return (!*valuePtr_);
-    }
+    inline bool operator!() const { check(); return (!*valuePtr_); }
 
+    ///@{
     /**
      * Logical AND operator.
-     * @param other The SafeInt_t to AND.
-     * @return True if both values are non-zero, false otherwise.
+     * @param other The integer to apply AND.
+     * @return `true` if both values are non-zero, `false` otherwise.
      */
-    inline bool operator&&(const SafeInt_t<Size>& other) const {
-      check();
-      return (*valuePtr_ && other.get());
-    }
+    inline bool operator&&(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ && other.get()); }
+    inline bool operator&&(const int_t& other) const { check(); return (*valuePtr_ && other); }
+    ///@}
 
-    /**
-     * Logical AND operator.
-     * @param other The int_t to AND.
-     * @return True if both values are non-zero, false otherwise.
-     */
-    inline bool operator&&(const int_t& other) const {
-      check();
-      return (*valuePtr_ && other);
-    }
-
+    ///@{
     /**
      * Logical OR operator.
-     * @param other The SafeInt_t to OR.
-     * @return True if either value is non-zero, false otherwise.
+     * @param other The integer to apply OR.
+     * @return `true` if either value is non-zero, `false` otherwise.
      */
-    inline bool operator||(const SafeInt_t<Size>& other) const {
-      check();
-      return (*valuePtr_ || other.get());
-    }
+    inline bool operator||(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ || other.get()); }
+    inline bool operator||(const int_t& other) const { check(); return (*valuePtr_ || other); }
+    ///@}
 
-    /**
-     * Logical OR operator.
-     * @param other The int_t to OR.
-     * @return True if either value is non-zero, false otherwise.
-     */
-    inline bool operator||(const int_t& other) const {
-      check();
-      return (*valuePtr_ || other);
-    }
-
+    ///@{
     /**
      * Equality operator.
-     * @param other The SafeInt_t to compare to.
-     * @return True if the values are equal, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the values are equal, `false` otherwise.
      */
-    inline bool operator==(const SafeInt_t<Size>& other) const {
-      check();
-      return (*valuePtr_ == other.get());
-    }
+    inline bool operator==(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ == other.get()); }
+    inline bool operator==(const int_t& other) const { check(); return (*valuePtr_ == other); }
+    ///@}
 
-    /**
-     * Equality operator.
-     * @param other The int_t to compare to.
-     * @return True if the values are equal, false otherwise.
-     */
-    inline bool operator==(const int_t& other) const {
-      check();
-      return (*valuePtr_ == other);
-    }
-
+    ///@{
     /**
      * Less than operator.
-     * @param other The SafeInt_t to compare to.
-     * @return True if the value is less than the other value, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the value is less than the other value, `false` otherwise.
      */
-    inline bool operator<(const SafeInt_t<Size>& other) const {
-      check();
-      return (*valuePtr_ < other.get());
-    }
+    inline bool operator<(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ < other.get()); }
+    inline bool operator<(const int_t& other) const { check(); return (*valuePtr_ < other); }
+    ///@}
 
-    /**
-     * Less than operator.
-     * @param other The int_t to compare to.
-     * @return True if the value is less than the other value, false otherwise.
-     */
-    inline bool operator<(const int_t& other) const {
-      check();
-      return (*valuePtr_ < other);
-    }
-
+    ///@{
     /**
      * Less than or equal to operator.
-     * @param other The SafeInt_t to compare to.
-     * @return True if the value is less than or equal to the other value, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the value is less than or equal to the other value, `false` otherwise.
      */
-    inline bool operator<=(const SafeInt_t<Size>& other) const {
-      check();
-      return (*valuePtr_ <= other.get());
-    }
+    inline bool operator<=(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ <= other.get()); }
+    inline bool operator<=(const int_t& other) const { check(); return (*valuePtr_ <= other); }
+    ///@}
 
-    /**
-     * Less than or equal to operator.
-     * @param other The int_t to compare to.
-     * @return True if the value is less than or equal to the other value, false otherwise.
-     */
-    inline bool operator<=(const int_t& other) const {
-      check();
-      return (*valuePtr_ <= other);
-    }
-
+    ///@{
     /**
      * Greater than operator.
-     * @param other The SafeInt_t to compare to.
-     * @return True if the value is greater than the other value, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the value is greater than the other value, `false` otherwise.
      */
-    inline bool operator>(const SafeInt_t<Size>& other) const {
-      check();
-      return (*valuePtr_ > other.get());
-    }
+    inline bool operator>(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ > other.get()); }
+    inline bool operator>(const int_t& other) const { check(); return (*valuePtr_ > other); }
+    ///@}
 
-    /**
-     * Greater than operator.
-     * @param other The int_t to compare to.
-     * @return True if the value is greater than the other value, false otherwise.
-     */
-    inline bool operator>(const int_t& other) const {
-      check();
-      return (*valuePtr_ > other);
-    }
-
+    ///@{
     /**
      * Greater than or equal to operator.
-     * @param other The SafeInt_t to compare to.
-     * @return True if the value is greater than or equal to the other value, false otherwise.
+     * @param other The integer to compare.
+     * @return `true` if the value is greater than or equal to the other value, `false` otherwise.
      */
-    inline bool operator>=(const SafeInt_t<Size>& other) const {
-      check();
-      return (*valuePtr_ >= other.get());
-    }
+    inline bool operator>=(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ >= other.get()); }
+    inline bool operator>=(const int_t& other) const { check(); return (*valuePtr_ >= other); }
+    ///@}
 
-    /**
-     * Greater than or equal to operator.
-     * @param other The int_t to compare to.
-     * @return True if the value is greater than or equal to the other value, false otherwise.
-     */
-    inline bool operator>=(const int_t& other) const {
-      check();
-      return (*valuePtr_ >= other);
-    }
-
+    ///@{
     /**
      * Assignment operator.
-     * @param other The SafeInt_t to assign.
+     * @param other The integer to assign.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator=(const SafeInt_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ = other.get();
-      return *this;
+      check(); markAsUsed(); *valuePtr_ = other.get(); return *this;
     }
-
-    /**
-     * Assignment operator.
-     * @param other The int_t to assign.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator=(const int_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ = other;
-      return *this;
+      check(); markAsUsed(); *valuePtr_ = other; return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Addition assignment operator.
-     * @param other The SafeInt_t to add.
+     * @param other The integer to add.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator+=(const SafeInt_t<Size>& other) {
@@ -565,12 +417,6 @@ template <int Size> class SafeInt_t : public SafeBase {
       *valuePtr_ += other.get();
       return *this;
     }
-
-    /**
-     * Addition assignment operator.
-     * @param other The int_t to add.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator+=(const int_t& other) {
       check();
       if ((other > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other)) {
@@ -583,10 +429,12 @@ template <int Size> class SafeInt_t : public SafeBase {
       *valuePtr_ += other;
       return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Subtraction assignment operator.
-     * @param other The SafeInt_t to subtract.
+     * @param other The integer to subtract.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator-=(const SafeInt_t<Size>& other) {
@@ -601,12 +449,6 @@ template <int Size> class SafeInt_t : public SafeBase {
       *valuePtr_ -= other.get();
       return *this;
     }
-
-    /**
-     * Subtraction assignment operator.
-     * @param other The int_t to subtract.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator-=(const int_t& other) {
       check();
       if ((other < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other)) {
@@ -619,10 +461,12 @@ template <int Size> class SafeInt_t : public SafeBase {
       *valuePtr_ -= other;
       return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Multiplication assignment operator.
-     * @param other The SafeInt_t to multiply.
+     * @param other The integer to multiply.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator*=(const SafeInt_t<Size>& other) {
@@ -637,12 +481,6 @@ template <int Size> class SafeInt_t : public SafeBase {
       *valuePtr_ *= other.get();
       return *this;
     }
-
-    /**
-     * Multiplication assignment operator.
-     * @param other The int_t to multiply.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator*=(const int_t& other) {
       check();
       if (*valuePtr_ > std::numeric_limits<int_t>::max() / other) {
@@ -655,45 +493,39 @@ template <int Size> class SafeInt_t : public SafeBase {
       *valuePtr_ *= other;
       return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Division assignment operator.
-     * @param other The SafeInt_t to divide.
+     * @param other The integer to divide.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator/=(const SafeInt_t<Size>& other) {
       check();
       if (other.get() == 0) throw std::domain_error("Division assignment by zero.");
-
       // Handling the edge case where dividing the smallest negative number by -1 causes overflow
       if (*valuePtr_ == std::numeric_limits<int_t>::min() && other.get() == -1) {
         throw std::overflow_error("Overflow in division assignment operation.");
       }
-
       markAsUsed();
       *valuePtr_ /= other.get();
       return *this;
     }
-
-    /**
-     * Division assignment operator.
-     * @param other The int_t to divide.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator/=(const int_t& other) {
       check();
       if (other == 0) throw std::domain_error("Division assignment by zero.");
-
       // Handling the edge case where dividing the smallest negative number by -1 causes overflow
       if (*valuePtr_ == std::numeric_limits<int_t>::min() && other == -1) {
         throw std::overflow_error("Overflow in division assignment operation.");
       }
-
       markAsUsed();
       *valuePtr_ /= other;
       return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Modulus assignment operator.
      * @param other The SafeInt_t to take the modulus by.
@@ -706,12 +538,6 @@ template <int Size> class SafeInt_t : public SafeBase {
       *valuePtr_ %= other.get();
       return *this;
     }
-
-    /**
-     * Modulus assignment operator.
-     * @param other The int_t to take the modulus by.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator%=(const int_t& other) {
       check();
       if (other == 0) throw std::domain_error("Modulus assignment by zero.");
@@ -719,126 +545,77 @@ template <int Size> class SafeInt_t : public SafeBase {
       *valuePtr_ %= other;
       return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise AND assignment operator.
-     * @param other The SafeInt_t to AND.
+     * @param other The integer to apply AND.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator&=(const SafeInt_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ &= other.get();
-      return *this;
+      check(); markAsUsed(); *valuePtr_ &= other.get(); return *this;
     }
-
-    /**
-     * Bitwise AND assignment operator.
-     * @param other The int_t to AND.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator&=(const int_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ &= other;
-      return *this;
+      check(); markAsUsed(); *valuePtr_ &= other; return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise OR assignment operator.
-     * @param other The SafeInt_t to OR.
+     * @param other The integer to apply OR.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator|=(const SafeInt_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ |= other.get();
-      return *this;
+      check(); markAsUsed(); *valuePtr_ |= other.get(); return *this;
     }
-
-    /**
-     * Bitwise OR assignment operator.
-     * @param other The int_t to OR.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator|=(const int_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ |= other;
-      return *this;
+      check(); markAsUsed(); *valuePtr_ |= other; return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Bitwise XOR assignment operator.
-     * @param other The SafeInt_t to XOR.
+     * @param other The integer to apply XOR.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator^=(const SafeInt_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ ^= other.get();
-      return *this;
+      check(); markAsUsed(); *valuePtr_ ^= other.get(); return *this;
     }
-
-    /**
-     * Bitwise XOR assignment operator.
-     * @param other The int_t to XOR.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator^=(const int_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ ^= other;
-      return *this;
+      check(); markAsUsed(); *valuePtr_ ^= other; return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Left shift assignment operator.
-     * @param other The SafeInt_t indicating the number of positions to shift.
+     * @param other The integer indicating the number of positions to shift.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator<<=(const SafeInt_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ <<= other.get();
-      return *this;
+      check(); markAsUsed(); *valuePtr_ <<= other.get(); return *this;
     }
-
-    /**
-     * Left shift assignment operator.
-     * @param other The int_t indicating the number of positions to shift.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator<<=(const int_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ <<= other;
-      return *this;
+      check(); markAsUsed(); *valuePtr_ <<= other; return *this;
     }
+    ///@}
 
+    ///@{
     /**
      * Right shift assignment operator.
-     * @param other The SafeInt_t indicating the number of positions to shift.
+     * @param other The integer indicating the number of positions to shift.
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator>>=(const SafeInt_t<Size>& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ >>= other.get();
-      return *this;
+      check(); markAsUsed(); *valuePtr_ >>= other.get(); return *this;
     }
-
-    /**
-     * Right shift assignment operator.
-     * @param other The int_t indicating the number of positions to shift.
-     * @return A reference to this SafeInt_t.
-     */
     inline SafeInt_t<Size>& operator>>=(const int_t& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ >>= other;
-      return *this;
+      check(); markAsUsed(); *valuePtr_ >>= other; return *this;
     }
+    ///@}
 
     /**
      * Prefix increment operator.

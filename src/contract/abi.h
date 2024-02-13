@@ -31,9 +31,11 @@ namespace ABI {
     std::string type; ///< Type of the method.
   };
 
-  /// Struct that contains the data for a contract event.
-  /// args are encoded with ABI::FunctorEncoder::listArgumentTypesV.
-  /// Follow same rules as MethodDescription, but has a extra bool for indexed args.
+  /**
+   * Struct that contains the data for a contract event.
+   * Args are encoded with ABI::FunctorEncoder::listArgumentTypesV.
+   * Follows the same rules as MethodDescription, but has an extra bool for indexed args.
+   */
   struct EventDescription {
     std::string name; ///< Name of the event.
     std::vector<std::tuple<std::string, std::string, bool>> args; ///< List of tuples of event arg types, names and indexed flag.
@@ -88,9 +90,7 @@ namespace ABI {
    */
   template<typename T> constexpr bool isDynamic() {
     if constexpr (
-      std::is_same_v<T, Bytes> ||
-      std::is_same_v<T, BytesArrView> ||
-      std::is_same_v<T, std::string> || false
+      std::is_same_v<T, Bytes> || std::is_same_v<T, BytesArrView> || std::is_same_v<T, std::string> || false
     ) return true;
     if constexpr (isVectorV<T>) return true;
     if constexpr (isTupleOfDynamicTypes<T>::value) return true;
@@ -396,7 +396,7 @@ namespace ABI {
       }
     };
 
-    /// Specialization for default solidity types
+    // Specialization for default solidity types
     template <> struct TypeEncoder<Address> { static Bytes encode(const Address& add) { return Utils::padLeftBytes(add.get(), 32); }};
     template <> struct TypeEncoder<bool> { static Bytes encode(const bool& b) { return Utils::padLeftBytes((b ? Bytes{0x01} : Bytes{0x00}), 32); }};
     template <> struct TypeEncoder<Bytes> {
@@ -423,47 +423,47 @@ namespace ABI {
       }
     };
 
-    /// Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
-    /// Takes advantage of requires to check if the type is a or int.
+    // Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
+    // Takes advantage of requires to check if the type is a or int.
     template<typename T>
     requires std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
-        std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
-        std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
-        std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
-        std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
-        std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
-        std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
-        std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
-        std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
-        std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
-        std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
+      std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
+      std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
+      std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
+      std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
+      std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
+      std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
+      std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
+      std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
+      std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
+      std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
     struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return encodeInt(i);
       }
     };
 
-    /// Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
-    /// Takes advantage of requires to check if the type is a or uint.
+    // Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
+    // Takes advantage of requires to check if the type is a or uint.
     template<typename T>
     requires std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
-        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
-        std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
-        std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
-        std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
-        std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
-        std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
-        std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
-        std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
-        std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
-        std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
+      std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
+      std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
+      std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
+      std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
+      std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
+      std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
+      std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
+      std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
+      std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
+      std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
     struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return encodeUint(i);
       }
     };
 
-    /// Specialization for enum types
+    // Specialization for enum types
     template <typename T>
     requires std::is_enum_v<T>
     struct TypeEncoder<T> {
@@ -472,12 +472,12 @@ namespace ABI {
       }
     };
 
-    /// Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
+    // Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
     template <typename T> struct TypeEncoder<std::vector<T>> {
       static Bytes encode(const std::vector<T>& v);
     };
 
-    /// Specialization for std::tuple<T>
+    // Specialization for std::tuple<T>
     template <typename... Ts> struct TypeEncoder<std::tuple<Ts...>> {
       static Bytes encode(const std::tuple<Ts...>& t) {
         Bytes result;
@@ -502,7 +502,7 @@ namespace ABI {
       }
     };
 
-    /// Specialization for std::vector<T>
+    // Specialization for std::vector<T>
     template <typename T>
     Bytes TypeEncoder<std::vector<T>>::encode(const std::vector<T>& v) {
       Bytes result;
@@ -532,8 +532,8 @@ namespace ABI {
         return result;
       }
     };
-
     ///@endcond
+
     /**
      * The main encode function. Use this one.
      * @tparam T Any supported ABI type (first one).
@@ -586,12 +586,12 @@ namespace ABI {
       }
     };
 
-    /// Specialization for default solidity types
+    // Specialization for default solidity types
     template <> struct TypeEncoder<Address> { static Bytes encode(const Address& add) { return Encoder::TypeEncoder<Address>::encode(add); }};
     template <> struct TypeEncoder<bool> { static Bytes encode(const bool& b) { return Encoder::TypeEncoder<bool>::encode(b); }};
     template <> struct TypeEncoder<Bytes> {
       static Bytes encode(const Bytes& bytes) {
-        /// Almost the same as ABI::Encoder::encode, but without the padding.
+        // Almost the same as ABI::Encoder::encode, but without the padding.
         int pad = 0;
         do { pad += 32; } while (pad < bytes.size());
         return Utils::padRightBytes(bytes, pad);
@@ -607,56 +607,52 @@ namespace ABI {
       }
     };
 
-    /// Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
-    /// Takes advantage of requires to check if the type is a or int.
+    // Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
+    // Takes advantage of requires to check if the type is a or int.
     template<typename T>
     requires std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
-        std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
-        std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
-        std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
-        std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
-        std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
-        std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
-        std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
-        std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
-        std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
-        std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
+      std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
+      std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
+      std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
+      std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
+      std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
+      std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
+      std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
+      std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
+      std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
+      std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
     struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return ABI::Encoder::encodeInt(i);
       }
     };
 
-    /// Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
-    /// Takes advantage of requires to check if the type is a or uint.
+    // Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
+    // Takes advantage of requires to check if the type is a or uint.
     template<typename T>
     requires std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
-        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
-        std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
-        std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
-        std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
-        std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
-        std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
-        std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
-        std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
-        std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
-        std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
+      std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
+      std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
+      std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
+      std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
+      std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
+      std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
+      std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
+      std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
+      std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
+      std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
     struct TypeEncoder<T> {
       static Bytes encode(const T& i) {
         return ABI::Encoder::encodeUint(i);
       }
     };
 
-    /// Specialization for enum types
-    template <typename T>
-    requires std::is_enum_v<T>
-    struct TypeEncoder<T> {
-      static Bytes encode(const T& i) {
-        return ABI::Encoder::encodeUint(static_cast<uint8_t>(i));
-      }
+    // Specialization for enum types
+    template <typename T> requires std::is_enum_v<T> struct TypeEncoder<T> {
+      static Bytes encode(const T& i) { return ABI::Encoder::encodeUint(static_cast<uint8_t>(i)); }
     };
 
-    /// Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
+    // Forward declaration of TypeEncode<std::vector<T>> so TypeEncoder<std::tuple<Ts...>> can see it.
     template <typename T> struct TypeEncoder<std::vector<T>> {
       static Bytes encode(const std::vector<T>& v);
     };
@@ -676,13 +672,10 @@ namespace ABI {
       }
     };
 
-    /// Specialization for std::vector<T>
-    template <typename T>
-    Bytes TypeEncoder<std::vector<T>>::encode(const std::vector<T>& v) {
+    // Specialization for std::vector<T>
+    template <typename T> Bytes TypeEncoder<std::vector<T>>::encode(const std::vector<T>& v) {
       Bytes result;
-      for (const T& item : v) {
-        append(result, TypeEncoder<T>::encode(item));
-      }
+      for (const T& item : v) append(result, TypeEncoder<T>::encode(item));
       return result;
     };
     ///@endcond
@@ -755,16 +748,15 @@ namespace ABI {
     int256_t decodeInt(const BytesArrView& bytes, uint64_t& index);
 
     /// @cond
-    /// General template for bytes to type decoding
-    template<typename T, typename Enable = void>
-    struct TypeDecoder {
+    // General template for bytes to type decoding
+    template<typename T, typename Enable = void> struct TypeDecoder {
       static T decode(const BytesArrView&, const uint64_t&) {
         static_assert(always_false<T>, "TypeName specialization for this type is not defined");
         return T();
       }
     };
 
-    /// Specialization for default solidity types
+    // Specialization for default solidity types
     template <> struct TypeDecoder<Address> {
       static Address decode(const BytesArrView& bytes, uint64_t& index) {
         if (index + 32 > bytes.size()) throw std::length_error("Data too short for address");
@@ -829,59 +821,55 @@ namespace ABI {
       }
     };
 
-    /// Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
-    /// Takes advantage of requires to check if the type is a or int.
+    // Specializations for int types (int8_t, int16_t, int24_t, ..., int256_t)
+    // Takes advantage of requires to check if the type is a or int.
     template<typename T>
     requires std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int24_t> ||
-        std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
-        std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
-        std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
-        std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
-        std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
-        std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
-        std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
-        std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
-        std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
-        std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
+      std::is_same_v<T, int32_t> || std::is_same_v<T, int40_t> || std::is_same_v<T, int48_t> ||
+      std::is_same_v<T, int56_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, int72_t> ||
+      std::is_same_v<T, int80_t> || std::is_same_v<T, int88_t> || std::is_same_v<T, int96_t> ||
+      std::is_same_v<T, int104_t> || std::is_same_v<T, int112_t> || std::is_same_v<T, int120_t> ||
+      std::is_same_v<T, int128_t> || std::is_same_v<T, int136_t> || std::is_same_v<T, int144_t> ||
+      std::is_same_v<T, int152_t> || std::is_same_v<T, int160_t> || std::is_same_v<T, int168_t> ||
+      std::is_same_v<T, int176_t> || std::is_same_v<T, int184_t> || std::is_same_v<T, int192_t> ||
+      std::is_same_v<T, int200_t> || std::is_same_v<T, int208_t> || std::is_same_v<T, int216_t> ||
+      std::is_same_v<T, int224_t> || std::is_same_v<T, int232_t> || std::is_same_v<T, int240_t> ||
+      std::is_same_v<T, int248_t> || std::is_same_v<T, int256_t>
     struct TypeDecoder<T> {
       static T decode(const BytesArrView& bytes, uint64_t& index) {
         return static_cast<T>(decodeInt(bytes, index));
       }
     };
 
-    /// Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
-    /// Takes advantage of requires to check if the type is a or uint.
+    // Specialization for uint types (uint8_t, uint16_t, uint24_t, ..., uint256_t)
+    // Takes advantage of requires to check if the type is a or uint.
     template <typename T>
     requires std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint24_t> ||
-        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
-        std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
-        std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
-        std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
-        std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
-        std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
-        std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
-        std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
-        std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
-        std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
+      std::is_same_v<T, uint32_t> || std::is_same_v<T, uint40_t> || std::is_same_v<T, uint48_t> ||
+      std::is_same_v<T, uint56_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint72_t> ||
+      std::is_same_v<T, uint80_t> || std::is_same_v<T, uint88_t> || std::is_same_v<T, uint96_t> ||
+      std::is_same_v<T, uint104_t> || std::is_same_v<T, uint112_t> || std::is_same_v<T, uint120_t> ||
+      std::is_same_v<T, uint128_t> || std::is_same_v<T, uint136_t> || std::is_same_v<T, uint144_t> ||
+      std::is_same_v<T, uint152_t> || std::is_same_v<T, uint160_t> || std::is_same_v<T, uint168_t> ||
+      std::is_same_v<T, uint176_t> || std::is_same_v<T, uint184_t> || std::is_same_v<T, uint192_t> ||
+      std::is_same_v<T, uint200_t> || std::is_same_v<T, uint208_t> || std::is_same_v<T, uint216_t> ||
+      std::is_same_v<T, uint224_t> || std::is_same_v<T, uint232_t> || std::is_same_v<T, uint240_t> ||
+      std::is_same_v<T, uint248_t> || std::is_same_v<T, uint256_t>
     struct TypeDecoder<T> {
         static T decode(const BytesArrView& bytes, uint64_t& index) {
           return static_cast<T>(decodeUint(bytes, index));
         }
     };
 
-    /// Specialization for enum types
-    template <typename T>
-    requires std::is_enum_v<T>
-    struct TypeDecoder<T> {
+    // Specialization for enum types
+    template <typename T> requires std::is_enum_v<T> struct TypeDecoder<T> {
       static T decode(const BytesArrView& bytes, uint64_t& index) {
         return static_cast<T>(decodeUint(bytes, index));
       }
     };
 
-    /// Forward declaration of TypeDecode<std::vector<T>> so TypeDecoder<std::tuple<Ts...>> can see it.
-    template <typename T>
-    requires isVectorV<T>
-    struct TypeDecoder<T> {
+    // Forward declaration of TypeDecode<std::vector<T>> so TypeDecoder<std::tuple<Ts...>> can see it.
+    template <typename T> requires isVectorV<T> struct TypeDecoder<T> {
       static T decode(const BytesArrView& bytes, uint64_t& index);
     };
 
@@ -894,8 +882,7 @@ namespace ABI {
      * @param index The point on the encoded string to start decoding.
      * @param ret The tuple object to "return". Needs to be a reference and created outside the function due to recursion.
      */
-    template<typename TupleLike, size_t I = 0>
-    void decodeTuple(const BytesArrView& bytes, uint64_t& index, TupleLike& ret) {
+    template<typename TupleLike, size_t I = 0> void decodeTuple(const BytesArrView& bytes, uint64_t& index, TupleLike& ret) {
       if constexpr (I < std::tuple_size_v<TupleLike>) {
         using SelectedType = typename std::tuple_element<I, TupleLike>::type;
         std::get<I>(ret) = TypeDecoder<SelectedType>::decode(bytes, index);
@@ -903,10 +890,8 @@ namespace ABI {
       }
     }
 
-    /// Specialization for std::tuple<Ts...>
-    template <typename T>
-    requires isTuple<T>::value
-    struct TypeDecoder<T> {
+    // Specialization for std::tuple<Ts...>
+    template <typename T> requires isTuple<T>::value struct TypeDecoder<T> {
       static T decode(const BytesArrView& bytes, uint64_t& index) {
         T ret;
         if constexpr (isTupleOfDynamicTypes<T>::value) {
@@ -925,13 +910,11 @@ namespace ABI {
       }
     };
 
-
     /// Specialization for std::vector<T>
-    template <typename T>
-    requires isVectorV<T>
-    T TypeDecoder<T>::decode(const BytesArrView& bytes, uint64_t& index) {
+    template <typename T> requires isVectorV<T> T TypeDecoder<T>::decode(const BytesArrView& bytes, uint64_t& index) {
       using ElementType = vectorElementTypeT<T>;
       std::vector<ElementType> retVector;
+
       // Get array offset
       if (index + 32 > bytes.size()) throw std::length_error("Data too short for vector");
       Bytes tmp(bytes.begin() + index, bytes.begin() + index + 32);
@@ -952,7 +935,6 @@ namespace ABI {
       }
       return retVector;
     };
-
     ///@endcond
 
     /// Specialization of decodeTupleHelper() for when tuple index is the last one
@@ -997,14 +979,18 @@ namespace ABI {
       }
     }
 
+    /// Specialization for tuples without args.
     template<typename T> struct decodeDataAsTuple {
+      /// Decode the tuple.
       static T decode(const BytesArrView&) {
         static_assert(always_false<T>, "Can't use decodeDataAsTuple with a non-tuple type");
         return T();
       }
     };
 
+    /// Specialization for tuples with args.
     template<typename... Args> struct decodeDataAsTuple<std::tuple<Args...>> {
+      /// Decode the tuple.
       static std::tuple<Args...> decode(const BytesArrView& encodedData) {
         if constexpr (sizeof...(Args) == 0) {
           throw std::invalid_argument("Can't decode empty tuple");

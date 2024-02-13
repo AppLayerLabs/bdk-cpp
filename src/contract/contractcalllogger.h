@@ -24,8 +24,7 @@ class ContractLocals;
 /// Class for managing contract nested call chains and their temporary data.
 class ContractCallLogger {
   private:
-    /// Pointer back to the contract manager.
-    ContractManager& manager_;
+    ContractManager& manager_;  ///< Reference to the contract manager.
 
     /**
      * Temporary map of balances within the chain.
@@ -45,14 +44,9 @@ class ContractCallLogger {
      */
     std::vector<std::reference_wrapper<SafeBase>> usedVars_;
 
-    /// Indicates whether the current call should be committed or not during logger destruction.
-    bool commitCall_ = false;
-
-    /// Commit all used SafeVariables registered in the list.
-    void commit();
-
-    /// Revert all used SafeVariables registered in the list.
-    void revert();
+    bool commitCall_ = false; ///< Indicates whether the current call should be committed or not during logger destruction.
+    void commit();  ///< Commit all used SafeVariables registered in the list.
+    void revert();  ///< Revert all used SafeVariables registered in the list.
 
   public:
     /**
@@ -60,21 +54,11 @@ class ContractCallLogger {
      * @param manager Pointer back to the contract manager.
      */
     explicit ContractCallLogger(ContractManager& manager);
-
-    /// Destructor. Clears recently created contracts, altered balances and used SafeVariables.
-    ~ContractCallLogger();
-
-    /// Copy constructor (deleted).
-    ContractCallLogger(const ContractCallLogger& other) = delete;
-
-    /// Move constructor (deleted).
-    ContractCallLogger(ContractCallLogger&& other) = delete;
-
-    /// Copy assignment operator (deleted).
-    ContractCallLogger& operator=(const ContractCallLogger& other) = delete;
-
-    /// Move assignment operator (deleted).
-    ContractCallLogger& operator=(ContractCallLogger&& other) = delete;
+    ~ContractCallLogger();  ///< Destructor. Clears recently created contracts, altered balances and used SafeVariables.
+    ContractCallLogger(const ContractCallLogger& other) = delete;             ///< Copy constructor (deleted).
+    ContractCallLogger(ContractCallLogger&& other) = delete;                  ///< Move constructor (deleted).
+    ContractCallLogger& operator=(const ContractCallLogger& other) = delete;  ///< Copy assignment operator (deleted).
+    ContractCallLogger& operator=(ContractCallLogger&& other) = delete;       ///< Move assignment operator (deleted).
 
     /// Getter for `balances`.
     std::unordered_map<Address, uint256_t, SafeHash>& getBalances() { return this->balances_; }
@@ -94,15 +78,14 @@ class ContractCallLogger {
     inline void setBalanceAt(const Address& add, const uint256_t& value) { this->balances_[add] = value; }
 
     /**
-     * Set the local variables for a given contract (origin, caller, value)
+     * Set the local variables for a given contract (origin, caller, value).
      * @param contract The contract to set the local variables for.
      * @param origin The origin address to set.
      * @param caller The caller address to set.
      * @param value The value to set.
      */
     inline void setContractVars(
-      ContractLocals* contract, const Address& origin,
-      const Address& caller, const uint256_t& value
+      ContractLocals* contract, const Address& origin, const Address& caller, const uint256_t& value
     ) const {
       contract->origin_ = origin;
       contract->caller_ = caller;

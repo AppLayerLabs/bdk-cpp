@@ -29,52 +29,44 @@ class ContractGlobals {
   protected:
     static Address coinbase_;         ///< Coinbase address (creator of current block).
     static Hash blockHash_;           ///< Current block hash.
-    static uint64_t blockHeight_;    ///< Current block height.
-    static uint64_t blockTimestamp_; ///< Current block timestamp.
+    static uint64_t blockHeight_;     ///< Current block height.
+    static uint64_t blockTimestamp_;  ///< Current block timestamp.
 
   public:
-    /// Getter for `coinbase_`.
+    ///@{
+    /** Getter. */
     static const Address& getCoinbase() { return ContractGlobals::coinbase_; }
-
-    /// Getter for `blockHash_`.
     static const Hash& getBlockHash() { return ContractGlobals::blockHash_; }
-
-    /// Getter for `blockHeight_`.
     static const uint64_t& getBlockHeight() { return ContractGlobals::blockHeight_; }
-
-    /// Getter for `getBlockTimestamp_`.
     static const uint64_t& getBlockTimestamp() { return ContractGlobals::blockTimestamp_; }
+    ///@}
 
-    /// ContractManager is a friend as it can update private global vars
-    /// (e.g. before ethCall() with a TxBlock, State calls CM->updateContractGlobals(...)).
+    /// ContractManager can update private global vars (e.g. before ethCall() with a TxBlock, State calls CM->updateContractGlobals(...)).
     friend class ContractManager;
 };
 
 /// Class that maintains local variables for contracts.
 class ContractLocals : public ContractGlobals {
   private:
-    mutable Address origin_;       ///< Who called the contract.
-    mutable Address caller_;       ///< Who sent the transaction.
-    mutable uint256_t value_;      ///< Value sent within the transaction.
+    mutable Address origin_;  ///< Who called the contract.
+    mutable Address caller_;  ///< Who sent the transaction.
+    mutable uint256_t value_; ///< Value sent within the transaction.
 
   protected:
-    /// Getter for `origin`.
+    ///@{
+    /** Getter. */
     const Address& getOrigin() const { return this->origin_; }
-
-    /// Getter for `caller`.
     const Address& getCaller() const { return this->caller_; }
-
-    /// Getter for `value`.
     const uint256_t& getValue() const { return this->value_; }
+    ///@}
 
-    /// ContractCallLogger is a friend as it can update private local vars (e.g. before ethCall() within a contract).
+    /// ContractCallLogger can update private local vars (e.g. before ethCall() within a contract).
     friend class ContractCallLogger;
 };
 
 /// Base class for all contracts.
 class BaseContract : public ContractLocals {
   private:
-    /* Contract-specific variables */
     std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
     Bytes dbPrefix_;           ///< Prefix for the contract DB.
     Address contractAddress_;  ///< Address where the contract is deployed.
@@ -82,10 +74,10 @@ class BaseContract : public ContractLocals {
     uint64_t contractChainId_; ///< Chain where the contract is deployed.
 
   protected:
-    DB& db_; ///< Pointer reference to the DB instance.
+    DB& db_; ///< Reference to the DB instance.
 
   public:
-    bool reentrancyLock_ = false;    ///< Lock (for reentrancy).
+    bool reentrancyLock_ = false; ///< Lock (for reentrancy).
 
     /**
      * Constructor from scratch.
@@ -129,11 +121,7 @@ class BaseContract : public ContractLocals {
       this->contractChainId_ = Utils::bytesToUint64(db.get(std::string("contractChainId_"), this->getDBPrefix()));
     }
 
-    /**
-     * Destructor.
-     * All derived classes should override it in order to call DB functions.
-     */
-    virtual ~BaseContract() = default;
+    virtual ~BaseContract() = default;  ///< Destructor. All derived classes should override it in order to call DB functions.
 
     /**
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice,
@@ -156,23 +144,17 @@ class BaseContract : public ContractLocals {
       throw DynamicException("Derived Class from Contract does not override ethCallView()");
     }
 
-    /// Getter for `contractAddress`.
+    ///@{
+    /** Getter. */
     const Address& getContractAddress() const { return this->contractAddress_; }
-
-    /// Getter for `contractCreator`.
     const Address& getContractCreator() const { return this->contractCreator_; }
-
-    /// Getter for `contractChainId`.
     const uint64_t& getContractChainId() const { return this->contractChainId_; }
-
-    /// Getter for `contractName_`.
     const std::string& getContractName() const { return this->contractName_; }
-
-    /// Getter for `dbPrefix`.
     const Bytes& getDBPrefix() const { return this->dbPrefix_; }
+    ///@}
 
     /**
-     * Creates a new DB prefix appending a new string to the current prefix.
+     * Create a new DB prefix by appending a new string to the current prefix.
      * @param newPrefix The new prefix to append.
      * @return The new prefix.
      */

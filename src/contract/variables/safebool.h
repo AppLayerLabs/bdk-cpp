@@ -13,8 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "safebase.h"
 
 /**
- * Safe wrapper for a bool variable.
- * Used to safely store a bool within a contract.
+ * Safe wrapper for a bool variable. Used to safely store a bool within a contract.
  * @see SafeBase
  */
 class SafeBool : public SafeBase {
@@ -63,33 +62,23 @@ class SafeBool : public SafeBase {
      * unregisters the variable.
      */
     inline void commit() override {
-      check();
-      value_ = *valuePtr_;
-      valuePtr_ = nullptr;
-      registered_ = false;
+      check(); value_ = *valuePtr_; valuePtr_ = nullptr; registered_ = false;
     };
 
     /// Revert the value. Nullifies the pointer and unregisters the variable.
     inline void revert() const override {
-      valuePtr_ = nullptr;
-      registered_ = false;
+      valuePtr_ = nullptr; registered_ = false;
     };
 
-    /// Assignment operator.
+    ///@{
+    /** Assignment operator. */
     inline SafeBool& operator=(bool value) {
-      check();
-      markAsUsed();
-      *valuePtr_ = value;
-      return *this;
+      check(); markAsUsed(); *valuePtr_ = value; return *this;
     }
-
-    /// Assignment operator.
     inline SafeBool& operator=(const SafeBool& other) {
-      check();
-      markAsUsed();
-      *valuePtr_ = other.get();
-      return *this;
+      check(); markAsUsed(); *valuePtr_ = other.get(); return *this;
     }
+    ///@}
 };
 
 #endif  // SAFEBOOL_H

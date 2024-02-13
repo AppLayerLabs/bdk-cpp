@@ -22,11 +22,11 @@ class ContractFactory {
   private:
     ContractManager& manager_; ///< Reference to the contract manager.
 
-    /// Map of contract functors and create functions, used to create contracts.
-    std::unordered_map<Bytes, std::function<void(const ethCallInfo&)>, SafeHash> createContractFuncs_;
+    std::unordered_map<
+      Bytes, std::function<void(const ethCallInfo&)>, SafeHash
+    > createContractFuncs_; ///< Map of contract functors and create functions, used to create contracts.
 
-    /// Set of recently created contracts.
-    std::unordered_set<Address, SafeHash> recentContracts_;
+    std::unordered_set<Address, SafeHash> recentContracts_; ///< Set of recently created contracts.
 
   public:
     /**
@@ -34,12 +34,8 @@ class ContractFactory {
      * @param manager Reference to the contract manager.
      */
     explicit ContractFactory(ContractManager& manager) : manager_(manager) {}
-
-    /// Getter for `recentContracts`.
-    std::unordered_set<Address, SafeHash> getRecentContracts() const;
-
-    /// Clearer for `recentContracts`.
-    void clearRecentContracts();
+    std::unordered_set<Address, SafeHash> getRecentContracts() const; ///< Getter for `recentContracts_`.
+    void clearRecentContracts();  ///< Clear the `recentContracts_` set.
 
     /**
      * Get the createNewContract function of a given contract.
@@ -53,7 +49,7 @@ class ContractFactory {
      * @param callInfo The call info to process.
      * @return A pair containing the contract address and the ABI decoder.
      * @throw DynamicException if non contract creator tries to create a contract.
-     * @throw DynamicException if contract already exists.
+     * @throw DynamicException if contract already exists as either a Dynamic or Protocol contract.
      */
     template <typename TContract> auto setupNewContract(const ethCallInfo &callInfo) {
       // Check if caller is creator
@@ -89,8 +85,7 @@ class ContractFactory {
     /**
      * Create a new contract from a given call info.
      * @param callInfo The call info to process.
-     * @throw runtime_error if the call to the ethCall function fails,
-     *                      or if the contract does not exist.
+     * @throw DynamicException if the call to the ethCall function fails, or if the contract does not exist.
      */
     template <typename TContract> void createNewContract(const ethCallInfo& callInfo) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
@@ -121,14 +116,11 @@ class ContractFactory {
      * @param derivedContractAddress The address of the contract to create.
      * @param dataTlp The tuple of arguments to pass to the contract constructor.
      * @return A unique pointer to the newly created contract.
-     * @throw runtime_error if any argument type mismatches.
+     * @throw DynamicException if any argument type mismatches.
      */
     template <typename TContract, typename TTuple, std::size_t... Is>
     std::unique_ptr<TContract> createContractWithTuple(
-      const Address& creator,
-      const Address& derivedContractAddress,
-      const TTuple& dataTlp,
-      std::index_sequence<Is...>
+      const Address& creator, const Address& derivedContractAddress, const TTuple& dataTlp, std::index_sequence<Is...>
     ) {
       try {
         return std::make_unique<TContract>(
@@ -137,10 +129,10 @@ class ContractFactory {
           this->manager_.options_.getChainID(), this->manager_.db_
         );
       } catch (const std::exception& ex) {
-        /// TODO: If the contract constructor throws an exception, the contract is not created.
-        /// But the variables owned by the contract were registered as used in the ContractCallLogger.
-        /// Meaning: we throw here, the variables are freed (as TContract ceases from existing), but a reference to the variable is still
-        /// in the ContractCallLogger. This causes a instant segfault when ContractCallLogger tries to revert the variable
+        // TODO: If the contract constructor throws an exception, the contract is not created.
+        // But the variables owned by the contract were registered as used in the ContractCallLogger.
+        // Meaning: we throw here, the variables are freed (as TContract ceases from existing), but a reference to the variable is still
+        // in the ContractCallLogger. This causes a instant segfault when ContractCallLogger tries to revert the variable
         throw DynamicException(
           "Could not construct contract " + Utils::getRealTypeName<TContract>() + ": " + ex.what()
         );
@@ -152,13 +144,11 @@ class ContractFactory {
      * @param creator The address of the contract creator.
      * @param derivedContractAddress The address of the contract to create.
      * @param dataTpl The vector of arguments to pass to the contract constructor.
-     * @throw runtime_error if the size of the vector does not match the number of
-     * arguments of the contract constructor.
+     * @throw DynamicException if the size of the vector does not match the number of arguments of the contract constructor.
      */
     template <typename TContract, typename TTuple>
     std::unique_ptr<TContract> createContractWithTuple(
-      const Address& creator, const Address& derivedContractAddress,
-      const TTuple& dataTpl
+      const Address& creator, const Address& derivedContractAddress, const TTuple& dataTpl
     ) {
       constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
       return this->createContractWithTuple<TContract, TTuple>(
@@ -185,8 +175,7 @@ class ContractFactory {
      * Register all contracts in the variadic template.
      * @tparam Contracts The contracts to register.
      */
-    template <typename Tuple, std::size_t... Is>
-    void addAllContractFuncsHelper(std::index_sequence<Is...>) {
+    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(std::index_sequence<Is...>) {
       ((this->addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const ethCallInfo &callInfo) {
         this->createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo);
       })), ...);
@@ -196,9 +185,7 @@ class ContractFactory {
      * Add all contract functions to the respective maps using the helper function.
      * @tparam Tuple The tuple of contracts to add.
      */
-    template <typename Tuple>
-    requires Utils::is_tuple<Tuple>::value
-    void addAllContractFuncs() {
+    template <typename Tuple> requires Utils::is_tuple<Tuple>::value void addAllContractFuncs() {
       addAllContractFuncsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
     }
 
@@ -206,17 +193,14 @@ class ContractFactory {
      * Struct for calling the registerContract function of a contract.
      * @tparam TContract The contract to register.
      */
-    template <class T> struct RegisterContract {
-      RegisterContract() { T::registerContract(); }
-    };
+    template <class T> struct RegisterContract { RegisterContract() { T::registerContract(); } };
 
     /**
      * Helper function to register all contracts.
      * @tparam Tuple The tuple of contracts to register.
      * @tparam Is The indices of the tuple.
      */
-    template <typename Tuple, std::size_t... Is>
-    void registerContractsHelper(std::index_sequence<Is...>) const {
+    template <typename Tuple, std::size_t... Is> void registerContractsHelper(std::index_sequence<Is...>) const {
       (RegisterContract<std::tuple_element_t<Is, Tuple>>(), ...);
     }
 
@@ -224,9 +208,7 @@ class ContractFactory {
      * Register all contracts in the tuple.
      * @tparam Tuple The tuple of contracts to register.
      */
-    template <typename Tuple>
-    requires Utils::is_tuple<Tuple>::value
-    void registerContracts() {
+    template <typename Tuple> requires Utils::is_tuple<Tuple>::value void registerContracts() {
       registerContractsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
     }
 };

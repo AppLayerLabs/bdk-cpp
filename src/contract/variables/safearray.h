@@ -16,8 +16,7 @@ See the LICENSE.txt file in the project root for more information.
  * Safe wrapper for `std::array`.
  * Works the same as SafeVector, but with more constraints as a std::array is a fixed size container.
  * SafeArray is ALWAYS initialized with default values, differently from std::array.
- * @see SafeVector
- * @see SafeBase
+ * @see SafeVector, SafeBase
  */
 template <typename T, unsigned N> class SafeArray : public SafeBase {
   private:
@@ -29,7 +28,6 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
       if (this->tmp_ == nullptr) this->tmp_ = std::make_unique<std::map<uint64_t, T>>();
     }
 
-    /// Check a index and copy if necessary.
     /**
      * Check if a specific index exists in the temporary array, copying it from the original if not.
      * @param index The index to check.
@@ -45,8 +43,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
   public:
     /**
      * Default constructor.
-     * @param a (optional) An array of T with fixed size of N to use during construction.
-     *                      Defaults to an empty array.
+     * @param a (optional) An array of T with fixed size of N to use during construction. Defaults to an empty array.
      */
     SafeArray(const std::array<T, N>& a = {}) : SafeBase(nullptr) {
       check();
@@ -60,8 +57,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     /**
      * Constructor with owner, for contracts.
      * @param owner The owner of the variable.
-     * @param a (optional) An array of T with fixed size of N to use during construction.
-     *                      Defaults to an empty array.
+     * @param a (optional) An array of T with fixed size of N to use during construction. Defaults to an empty array.
      */
     SafeArray(DynamicContract* owner, const std::array<T, N>& a = {}) : SafeBase(owner) {
       check();
@@ -72,6 +68,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
       }
     };
 
+    ///@{
     /**
      * Access a specified element of the temporary array with bounds checking.
      * @param pos The position of the index to access.
@@ -82,17 +79,13 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
       markAsUsed();
       return this->tmp_->at(pos);
     }
-
-    /**
-     * Const overload of at().
-     * @param pos The position of the index to access.
-     * @return The element at the given index.
-     */
     const T& at(std::size_t pos) const {
       checkIndexAndCopy_(pos);
       return this->tmp_->at(pos);
     }
+    ///@}
 
+    ///@{
     /**
      * Access a specified element of the temporary array without bounds checking.
      * @param pos The position of the index to access.
@@ -103,16 +96,11 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
       markAsUsed();
       return (*this->tmp_)[pos];
     }
-
-    /**
-     * Const overload of operator[].
-     * @param pos The position of the index to access.
-     * @return The element at the given index.
-     */
     inline const T& operator[](std::size_t pos) const {
       checkIndexAndCopy_(pos);
       return (*this->tmp_)[pos];
     }
+    ///@}
 
     /// Get an iterator to the beginning of the original array.
     inline std::array<T, N>::const_iterator cbegin() const { return this->array_.cbegin(); }
@@ -132,16 +120,10 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      */
     inline bool empty() const { return (N == 0); }
 
-    /**
-     * Get the current size of the original array.
-     * @return The size of the array.
-     */
+    /// Get the current size of the original array.
     inline std::size_t size() const { return N; }
 
-    /**
-     * Get the maximum possible size of the original array.
-     * @return The maximum size.
-     */
+    /// Get the maximum possible size of the original array.
     inline std::size_t max_size() const { return N; }
 
     /**

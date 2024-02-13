@@ -11,17 +11,15 @@ See the LICENSE.txt file in the project root for more information.
 #include <atomic>
 
 /**
- * The ReentrancyGuard class is used to prevent reentrancy attacks.
- * Similarly to std::unique_lock or std::shared_lock, ReentrancyGuard is a RAII object.
+ * RAII object used to prevent reentrancy attacks, similar to std::unique_lock or std::shared_lock.
  * It is meant to be used within the first line of the function you want to protect against reentrancy attacks.
  * The constructor of ReentrancyGuard will check the bool and set it to true.
  * If the bool is already true, the constructor will throw an exception.
  * The destructor of ReentrancyGuard will set the bool to false.
  */
-
 class ReentrancyGuard {
   private:
-    bool &lock_; ///< Reference to the mutex.
+    bool& lock_; ///< Reference to the mutex.
 
   public:
     /**
@@ -29,7 +27,7 @@ class ReentrancyGuard {
      * @param lock Reference to the mutex.
      * @throw DynamicException if the mutex is already locked.
      */
-    explicit ReentrancyGuard(bool &lock) : lock_(lock) {
+    explicit ReentrancyGuard(bool& lock) : lock_(lock) {
       if (lock_) throw DynamicException("ReentrancyGuard: reentrancy attack detected");
       lock_ = true;
     }

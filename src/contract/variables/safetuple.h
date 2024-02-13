@@ -81,32 +81,23 @@ template<typename... Types> class SafeTuple : public SafeBase {
      */
     SafeTuple(DynamicContract* owner) : SafeBase(owner), tuple_() {}
 
+    ///@{
     /**
      * Forward declaration constructor.
      * @param tpl The tuple to forward.
      */
     template<typename... U> SafeTuple(const std::tuple<U...>& tpl) : tuple_(tpl) {}
-
-    /**
-     * Forward declaration constructor.
-     * @param tpl The tuple to forward.
-     */
     template<typename... U> SafeTuple(std::tuple<U...>&& tpl) : tuple_(std::move(tpl)) {}
+    ///@}
 
-    /**
-     * Copy constructor.
-     * @param other The SafeTuple to copy.
-     */
+    /// Copy constructor.
     SafeTuple(const SafeTuple& other) {
       other.check();
       tuple_ = other.tuple_;
       tuplePtr_ = std::make_unique<std::tuple<Types...>>(*other.tuplePtr_);
     }
 
-    /**
-     * Move constructor.
-     * @param other The SafeTuple to move.
-     */
+    /// Move constructor.
     SafeTuple(SafeTuple&& other) noexcept {
       other.check();
       tuple_ = std::move(other.tuple_);
@@ -122,8 +113,7 @@ template<typename... Types> class SafeTuple : public SafeBase {
     requires (!(... && std::is_base_of_v<SafeTuple, std::decay_t<U>>) &&
               !std::conjunction_v<std::is_same<std::pair<typename std::decay<U>::type...>, U>...>)
     SafeTuple(U&&... args) : tuple_(std::forward<U>(args)...) {
-      check();
-      static_assert(sizeof...(U) == sizeof...(Types), "Number of arguments must match tuple size.");
+      check(); static_assert(sizeof...(U) == sizeof...(Types), "Number of arguments must match tuple size.");
     }
 
     /**
@@ -145,9 +135,7 @@ template<typename... Types> class SafeTuple : public SafeBase {
       check();
       markAsUsed();
       if (&other == this) return *this;
-      tuplePtr_ = std::make_unique<std::tuple<Types...>>(
-        (other.tuplePtr_) ? *other.tuplePtr_ : other.tuple_
-      );
+      tuplePtr_ = std::make_unique<std::tuple<Types...>>((other.tuplePtr_) ? *other.tuplePtr_ : other.tuple_);
       return *this;
     }
 
@@ -172,9 +160,7 @@ template<typename... Types> class SafeTuple : public SafeBase {
     template<typename... OtherTypes> SafeTuple& operator=(const SafeTuple<OtherTypes...>& other) {
       check();
       markAsUsed();
-      tuplePtr_ = std::make_unique<std::tuple<Types...>>(
-        (other.tuplePtr_) ? *other.tuplePtr_ : other.tuple_
-      );
+      tuplePtr_ = std::make_unique<std::tuple<Types...>>((other.tuplePtr_) ? *other.tuplePtr_ : other.tuple_);
       return *this;
     }
 
@@ -250,7 +236,6 @@ template<typename... LTypes, typename... RTypes>
 bool operator<=(const SafeTuple<LTypes...>& lhs, const SafeTuple<RTypes...>& rhs) {
   lhs.check(); rhs.check(); return lhs.tuple_ <= rhs.tuple_;
 }
-
 
 /// Non-member greater than operator for SafeTuple. @see SafeTuple
 template<typename... LTypes, typename... RTypes>

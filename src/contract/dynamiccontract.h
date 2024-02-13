@@ -15,10 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
 
-/**
- * Template for a smart contract.
- * All contracts have to inherit this class.
- */
+/// Template for a smart contract. All contracts must inherit this class.
 class DynamicContract : public BaseContract {
   private:
    /**
@@ -68,8 +65,7 @@ class DynamicContract : public BaseContract {
     inline void registerVariableUse(SafeBase& variable) { interface_.registerVariableUse(variable); }
 
   protected:
-    /// Reference to the contract manager interface.
-    ContractManagerInterface& interface_;
+    ContractManagerInterface& interface_; ///< Reference to the contract manager interface.
 
     /**
      * Template for registering a const member function with no arguments.
@@ -245,9 +241,7 @@ class DynamicContract : public BaseContract {
      * @throw DynamicException if the derived class does not override this.
      */
     virtual void registerContractFunctions() {
-      throw DynamicException(
-        "Derived Class from Contract does not override registerContractFunctions()"
-      );
+      throw DynamicException("Derived Class from Contract does not override registerContractFunctions()");
     }
 
   public:
@@ -261,10 +255,8 @@ class DynamicContract : public BaseContract {
      * @param db Reference to the database object.
      */
     DynamicContract(
-      ContractManagerInterface& interface,
-      const std::string& contractName, const Address& address,
-      const Address& creator, const uint64_t& chainId,
-      DB& db
+      ContractManagerInterface& interface, const std::string& contractName,
+      const Address& address, const Address& creator, const uint64_t& chainId, DB& db
     ) : BaseContract(contractName, address, creator, chainId, db), interface_(interface) {}
 
     /**
@@ -274,8 +266,7 @@ class DynamicContract : public BaseContract {
      * @param db Reference to the database object.
      */
     DynamicContract(
-      ContractManagerInterface& interface,
-      const Address& address, DB& db
+      ContractManagerInterface& interface, const Address& address, DB& db
     ) : BaseContract(address, db), interface_(interface) {}
 
     /**
@@ -419,7 +410,7 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-     * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag
+     * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag.
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @tparam Args The argument types of the function.
@@ -438,23 +429,21 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-     * Call a contract function (non-view) based on the basic requirements of a contract call with no arguments
+     * Call a contract function (non-view) based on the basic requirements of a contract call with no arguments.
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @param targetAddr The address of the contract to call.
      * @param func The function to call.
      * @return The result of the function.
      */
-    template <typename R, typename C> R callContractFunction(
-      const Address& targetAddr, R(C::*func)()
-    ) {
+    template <typename R, typename C> R callContractFunction(const Address& targetAddr, R(C::*func)()) {
       return this->interface_.callContractFunction(
         this->getOrigin(), this->getContractAddress(), targetAddr, 0, func
       );
     }
 
     /**
-     * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag and no arguments
+     * Call a contract function (non-view) based on the basic requirements of a contract call with the value flag and no arguments.
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @param value Flag to send value with the call.
@@ -490,7 +479,7 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-     * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call with no arguments
+     * Wrapper for calling a contract function (non-view) based on the basic requirements of a contract call with no arguments.
      * @tparam R The return type of the function.
      * @tparam C The contract type.
      * @tparam Args The argument types of the function.
@@ -535,9 +524,7 @@ class DynamicContract : public BaseContract {
      * @param address The address of the contract.
      * @return The balance of the contract.
      */
-    uint256_t getBalance(const Address& address) const {
-      return interface_.getBalanceFromAddress(address);
-    }
+    uint256_t getBalance(const Address& address) const { return interface_.getBalanceFromAddress(address); }
 
     /**
      * Send an amount of tokens from the contract to another address.

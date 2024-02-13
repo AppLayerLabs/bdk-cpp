@@ -33,9 +33,9 @@ class ContractFactory;
 class ContractManagerInterface;
 
 /**
- * Addresses for the contracts that are deployed at protocol level (contract name -> contract address).
- * That means these contracts are deployed at the beginning of the chain.
- * They cannot be destroyed nor dynamically deployed like other contracts.
+ * Map with addresses for contracts deployed at protocol level (name -> address).
+ * These contracts are deployed at the beginning of the chain and cannot be
+ * destroyed or dynamically deployed like other contracts.
  * Instead, they are deployed in the constructor of State.
  */
 const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
@@ -52,46 +52,33 @@ class ContractManager : public BaseContract {
   private:
     /// List of currently deployed contracts.
     std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
+    State& state_;  ///< Reference to the blockchain state object. Used if the contract is a payable function.
+    rdPoS& rdpos_;  ///< Reference to the rdPoS contract.
+    const Options& options_;  ///< Reference to the options singleton.
+    EventManager eventManager_; ///< Event manager object. Responsible for maintaining events emitted in contract calls.
+    mutable std::shared_mutex contractsMutex_;  ///< Mutex that manages read/write access to the contracts.
 
     /**
-     * Raw reference to the blockchain state object.
-     * Used if the contract is a payable function.
-     */
-    State& state_;
-
-    /// Reference to the rdPoS contract.
-    rdPoS& rdpos_;
-
-    /// Reference to the options singleton.
-    const Options& options_;
-
-    /**
-     * Pointer to the contract factory object.
-     * Responsible for actually creating the contracts and
-     * deploying them in the contract manager.
+     * Pointer to the contract factory object. Has to be a pointer due to cyclical reference problems.
+     * Responsible for actually creating the contracts and deploying them in the contract manager.
      */
     std::unique_ptr<ContractFactory> factory_;
 
-    /// Pointer to the contract manager's interface to be passed to DynamicContract.
-    std::unique_ptr<ContractManagerInterface> interface_;
-
     /**
-     * Pointer to the event manager object.
-     * Responsible for maintaining events emitted in contract calls.
+     * Pointer to the contract manager's interface to be passed to DynamicContract.
+     * Has to be a pointer due to cyclical reference problems.
      */
-    EventManager eventManager_;
+    std::unique_ptr<ContractManagerInterface> interface_;
 
     /**
      * Pointer to the call state object.
      * Responsible for maintaining temporary data used in contract call chains.
+     * Has to be a pointer due to cyclical reference problems, and also because it gets
+     * destructed at the end of every call to be able to revert SafeVariables if necessary.
      */
     std::unique_ptr<ContractCallLogger> callLogger_;
 
-    /// Mutex that manages read/write access to the contracts.
-    mutable std::shared_mutex contractsMutex_;
-
-    /// Derive a new contract address based on transaction sender and nonce.
-    Address deriveContractAddress() const;
+    Address deriveContractAddress() const;  ///< Derive a new contract address based on transaction sender and nonce.
 
     /**
      * Get a serialized string with the deployed contracts. Solidity counterpart:
@@ -105,7 +92,7 @@ class ContractManager : public BaseContract {
      * @tparam Is The indices of the tuple.
      * @param contract The contract to load.
      * @param contractAddress The address of the contract.
-     * @return True if the contract exists in the database, false otherwise.
+     * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename Tuple, std::size_t... Is>
     bool loadFromDBHelper(const auto& contract, const Address& contractAddress, std::index_sequence<Is...>) {
@@ -117,7 +104,7 @@ class ContractManager : public BaseContract {
      * @tparam Tuple The tuple of contracts to load.
      * @param contract The contract to load.
      * @param contractAddress The address of the contract.
-     * @return True if the contract exists in the database, false otherwise.
+     * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename T>
     bool loadFromDBT(const auto& contract, const Address& contractAddress) {
@@ -137,11 +124,9 @@ class ContractManager : public BaseContract {
      * @tparam Tuple The tuple of contracts to load.
      * @param contract The contract to load.
      * @param contractAddress The address of the contract.
-     * @return True if the contract exists in the database, false otherwise.
+     * @return `true` if the contract exists in the database, `false` otherwise.
      */
-    template <typename Tuple>
-    requires Utils::is_tuple<Tuple>::value
-    bool loadFromDB(
+    template <typename Tuple> requires Utils::is_tuple<Tuple>::value bool loadFromDB(
       const auto& contract, const Address& contractAddress
     ) {
       return loadFromDBHelper<Tuple>(
@@ -152,54 +137,50 @@ class ContractManager : public BaseContract {
   public:
     /**
      * Constructor. Automatically loads contracts from the database and deploys them.
-     * @param db Pointer to the database.
-     * @param state Raw pointer to the state.
-     * @param rdpos Pointer to the rdPoS contract.
-     * @param options Pointer to the options singleton.
+     * @param db Reference to the database.
+     * @param state Reference to the state.
+     * @param rdpos Reference to the rdPoS contract.
+     * @param options Reference to the options singleton.
+     * @throw DynamicException if contract address doesn't exist in the database.
      */
-    ContractManager(
-      DB& db, State& state,
-      rdPoS& rdpos, const Options& options
-    );
+    ContractManager(DB& db, State& state, rdPoS& rdpos, const Options& options);
 
-    /// Destructor. Automatically saves contracts to the database before wiping them.
-    ~ContractManager() override;
+    ~ContractManager() override; ///< Destructor. Automatically saves contracts to the database before wiping them.
 
     /**
      * Override the default contract function call.
-     * ContractManager processes things in a non-standard way (you cannot use
-     * SafeVariables as contract creation actively writes to DB).
+     * ContractManager processes things in a non-standard way
+     * (you cannot use SafeVariables as contract creation actively writes to DB).
      * @param callInfo The call info to process.
-     * @throw runtime_error if the call is not valid.
+     * @throw DynamicException if the call is not valid.
      */
     void ethCall(const ethCallInfo& callInfo) override;
 
     /**
      * Override the default contract view function call.
-     * ContractManager process things in a non-standard way (you cannot use
-     * SafeVariables as contract creation actively writes to DB).
+     * ContractManager process things in a non-standard way
+     * (you cannot use SafeVariables as contract creation actively writes to DB).
      * @param data The call info to process.
      * @return A string with the requested info.
      * @throw DynamicException if the call is not valid.
      */
     Bytes ethCallView(const ethCallInfo& data) const override;
 
+    // TODO: it would be a good idea to revise tests that call this function, default values here only exist as a placeholder
     /**
      * Process a transaction that calls a function from a given contract.
      * @param tx The transaction to process.
      * @param blockHash The hash of the block that called the contract. Defaults to an empty hash.
      * @param txIndex The index of the transaction inside the block that called the contract. Defaults to the first position.
      * @throw DynamicException if the call to the ethCall function fails.
-     * TODO: it would be a good idea to revise tests that call this function, default values here only exist as a placeholder
      */
     void callContract(const TxBlock& tx, const Hash& blockHash = Hash(), const uint64_t& txIndex = 0);
 
     /**
-     * Make an eth_call to a view function from the contract. Used by RPC.
+     * Make an `eth_call` to a view function from the contract. Used by RPC.
      * @param callInfo The call info to process.
      * @return A string with the requested info.
-     * @throw DynamicException if the call to the ethCall function fails
-     * or if the contract does not exist.
+     * @throw DynamicException if the call to the ethCall function fails or if contract does not exist.
      */
     Bytes callContract(const ethCallInfo& callInfo) const;
 
@@ -429,7 +410,7 @@ class ContractManagerInterface {
      * @tparam T The contract type.
      * @param address The address of the contract.
      * @return A pointer to the contract.
-     * @throw runtime_error if contract is not found or not of the requested type.
+     * @throw DynamicException if contract is not found or not of the requested type.
      */
     template <typename T> const T* getContract(const Address &address) const {
       auto it = this->manager_.contracts_.find(address);
@@ -451,7 +432,7 @@ class ContractManagerInterface {
      * @tparam T The contract type.
      * @param address The address of the contract.
      * @return A pointer to the contract.
-     * @throw runtime_error if contract is not found or not of the requested type.
+     * @throw DynamicException if contract is not found or not of the requested type.
      */
     template <typename T> T* getContract(const Address& address) {
       auto it = this->manager_.contracts_.find(address);
