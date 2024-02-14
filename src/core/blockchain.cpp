@@ -116,9 +116,9 @@ void Syncer::doValidatorBlock() {
     // Try to get transactions from the network.
     auto connectedNodesList = this->blockchain_.p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     for (auto const& nodeId : connectedNodesList) {
-      if (this->checkLatestBlock() || this->stopSyncer_) break;
+      if (this->stopSyncer_) break;
       auto txList = this->blockchain_.p2p_.requestTxs(nodeId);
-      if (this->checkLatestBlock() || this->stopSyncer_) break;
+      if (this->stopSyncer_) break;
       for (auto const& tx : txList) {
         TxBlock txBlock(tx);
         this->blockchain_.state_.addTx(std::move(txBlock));
