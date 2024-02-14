@@ -113,7 +113,7 @@ namespace P2P {
     if (ec && this->handle_error(__func__, ec)) return;
     // Make it a unique_ptr<const Message> so that we can pass it to the thread pool.
     this->threadPool_.push_task(
-      &ManagerBase::handleMessage, &this->manager_, shared_from_this(), this->inboundMessage_
+      &ManagerBase::handleMessage, &this->manager_, weak_from_this(), this->inboundMessage_
     );
     this->inboundMessage_ = nullptr;
     this->do_read_header();
