@@ -83,6 +83,14 @@ class SDKTestSuite {
       p2p_(boost::asio::ip::address::from_string("127.0.0.1"), rdpos_, options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)
     {}
+
+    ~SDKTestSuite() {
+      rdpos_.stoprdPoSWorker();
+      p2p_.stopDiscovery();
+      p2p_.stop();
+      http_.stop();
+    }
+
     /**
      * Initialize all components of a full blockchain node.
      * @param sdkPath Path to the SDK folder.

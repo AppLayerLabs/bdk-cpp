@@ -40,6 +40,13 @@ struct TestBlockchainWrapper {
     rdpos(db, storage, p2p, options, state),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, state),
     http(state, storage, p2p, options) {};
+
+  ~TestBlockchainWrapper() {
+    rdpos.stoprdPoSWorker();
+    p2p.stopDiscovery();
+    p2p.stop();
+    http.stop();
+  }
 };
 
 #endif // SDKTESTSUITE_H
