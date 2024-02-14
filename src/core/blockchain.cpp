@@ -39,21 +39,23 @@ void Syncer::updateCurrentlyConnectedNodes() {
   }
 
   // Update information of already connected nodes
-  for (const auto& [nodeId, nodeInfo] : this->currentlyConnectedNodes_) {
-    // If node is not connected, remove it from the list
+  auto it = currentlyConnectedNodes_.begin();
+  while (it != currentlyConnectedNodes_.end()) {
+    const auto& nodeId = it->first;
     if (std::find(connectedNodes.begin(), connectedNodes.end(), nodeId) == connectedNodes.end()) {
-      this->currentlyConnectedNodes_.erase(nodeId);
-      continue;
+      // Node is not connected, so remove it from the list
+      it = currentlyConnectedNodes_.erase(it);
+    } else {
+      auto newNodeInfo = blockchain_.p2p_.requestNodeInfo(nodeId);
+      if (newNodeInfo == P2P::NodeInfo()) {
+        // Node is not responding to info request, so remove it from the list
+        it = currentlyConnectedNodes_.erase(it);
+      } else {
+        // Save the node's response to the info request
+        it->second = newNodeInfo;
+        ++it;
+      }
     }
-    // If node is connected, update its information
-    auto newNodeInfo = blockchain_.p2p_.requestNodeInfo(nodeId);
-    // If node is not responding, remove it from the list
-    if (newNodeInfo == P2P::NodeInfo()) {
-      this->currentlyConnectedNodes_.erase(nodeId);
-      continue;
-    }
-    // If node is responding, update its information
-    this->currentlyConnectedNodes_[nodeId] = newNodeInfo;
   }
 
   // Add new nodes to the list
