@@ -63,6 +63,7 @@ class Block {
     std::vector<TxBlock> txs_;              ///< List of block transactions.
     UPubKey validatorPubKey_;               ///< Validator public key for the block.
     bool finalized_ = false;                ///< Indicates whether the block is finalized or not. See finalize().
+    Hash hash_;                             ///< Cached hash of the block.
 
   public:
     /**
@@ -94,7 +95,8 @@ class Block {
       txValidators_(block.txValidators_),
       txs_(block.txs_),
       validatorPubKey_(block.validatorPubKey_),
-      finalized_(block.finalized_)
+      finalized_(block.finalized_),
+      hash_(block.hash_)
     {}
 
     /// Move constructor.
@@ -109,7 +111,8 @@ class Block {
       txValidators_(std::move(block.txValidators_)),
       txs_(std::move(block.txs_)),
       validatorPubKey_(std::move(block.validatorPubKey_)),
-      finalized_(std::move(block.finalized_))
+      finalized_(std::move(block.finalized_)),
+      hash_(std::move(block.hash_))
     { block.finalized_ = false; return; } // Block moved -> invalid block, as members of block were moved
 
     ///@{
@@ -145,7 +148,7 @@ class Block {
      * SHA3-hash the block header (calls serializeHeader() internally).
      * @return The hash of the block header.
      */
-    Hash hash() const;
+    const Hash& hash() const;
 
     /**
      * Append a transaction to the block.
@@ -187,6 +190,7 @@ class Block {
       this->txs_ = other.txs_;
       this->validatorPubKey_ = other.validatorPubKey_;
       this->finalized_ = other.finalized_;
+      this->hash_ = other.hash_;
       return *this;
     }
 
@@ -203,6 +207,7 @@ class Block {
       this->txs_ = std::move(other.txs_);
       this->validatorPubKey_ = std::move(other.validatorPubKey_);
       this->finalized_ = std::move(other.finalized_);
+      this->hash_ = std::move(other.hash_);
       return *this;
     }
 };

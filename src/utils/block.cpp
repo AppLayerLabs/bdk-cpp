@@ -123,6 +123,7 @@ Block::Block(const BytesArrView bytes, const uint64_t& requiredChainId) {
     if (expectedRandomness != this->blockRandomness_) {
       throw DynamicException("Invalid block randomness");
     }
+    this->hash_ = Utils::sha3(this->serializeHeader());
     Hash msgHash = this->hash();
     if (!Secp256k1::verifySig(
       this->validatorSig_.r(), this->validatorSig_.s(), this->validatorSig_.v()
@@ -183,7 +184,7 @@ Bytes Block::serializeBlock() const {
   return ret;
 }
 
-Hash Block::hash() const { return Utils::sha3(this->serializeHeader()); }
+const Hash& Block::hash() const { return this->hash_; }
 
 bool Block::appendTx(const TxBlock &tx) {
   if (this->finalized_) {
@@ -224,6 +225,7 @@ bool Block::finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimesta
   this->txMerkleRoot_ = Merkle(this->txs_).getRoot();
   this->validatorMerkleRoot_ = Merkle(this->txValidators_).getRoot();
   this->blockRandomness_= rdPoS::parseTxSeedList(this->txValidators_);
+  this->hash_ = Utils::sha3(this->serializeHeader());
   this->validatorSig_ = Secp256k1::sign(this->hash(), validatorPrivKey);
   this->validatorPubKey_ = Secp256k1::recover(this->validatorSig_, this->hash());
   this->finalized_ = true;
