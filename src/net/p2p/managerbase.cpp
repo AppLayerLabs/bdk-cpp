@@ -96,7 +96,7 @@ namespace P2P {
   // ManagerBase::answerSession doesn't change sessions_ map, but we still need to
   // be sure that the session io_context doesn't get deleted while we are using it.
   void ManagerBase::answerSession(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
-    std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_);
+    std::shared_lock lockSession(this->sessionsMutex_);
     if (this->closed_) return;
     auto it = sessions_.find(nodeId);
     if (it == sessions_.end()) {
