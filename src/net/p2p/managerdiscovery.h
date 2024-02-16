@@ -22,14 +22,14 @@ namespace P2P {
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handleRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) override;
+      void handleRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message) override;
 
       /**
        * Handle an answer from a server.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) override;
+      void handleAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message) override;
 
     private:
       /**
@@ -37,28 +37,28 @@ namespace P2P {
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handlePingRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handlePingRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestNodes` request.
        * @param session The session that sent the request.
        * @param message The request message to handle.
        */
-      void handleRequestNodesRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleRequestNodesRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `Ping` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handlePingAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handlePingAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a `RequestNodes` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
        */
-      void handleRequestNodesAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void handleRequestNodesAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
     public:
       /**
@@ -78,7 +78,7 @@ namespace P2P {
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      void handleMessage(std::weak_ptr<Session> session, const std::shared_ptr<const Message> message) override;
+      void handleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message) override;
   };
 };
 

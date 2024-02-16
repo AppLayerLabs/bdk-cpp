@@ -9,17 +9,18 @@ See the LICENSE.txt file in the project root for more information.
 
 namespace P2P {
   void ManagerDiscovery::handleMessage(
-    std::weak_ptr<Session> session, const std::shared_ptr<const Message> message
+    const NodeID &nodeId, const std::shared_ptr<const Message> message
   ) {
     if (this->closed_) return;
     switch (message->type()) {
       case Requesting:
-        handleRequest(session, message);
+        handleRequest(nodeId, message);
         break;
       case Answering:
-        handleAnswer(session, message);
+        handleAnswer(nodeId, message);
         break;
       default:
+        auto session = getWeakPtrToSession(nodeId);
         if (auto sessionPtr = session.lock()) {
           Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
             "Invalid message type from " + sessionPtr->hostNodeId().first.to_string() + ":" +
@@ -36,16 +37,17 @@ namespace P2P {
   }
 
   void ManagerDiscovery::handleRequest(
-    std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     switch (message->command()) {
       case Ping:
-        handlePingRequest(session, message);
+        handlePingRequest(nodeId, message);
         break;
       case RequestNodes:
-        handleRequestNodesRequest(session, message);
+        handleRequestNodesRequest(nodeId, message);
         break;
       default:
+        auto session = getWeakPtrToSession(nodeId);
         if (auto sessionPtr = session.lock()) {
           Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
             "Invalid Request Command Type from " + sessionPtr->hostNodeId().first.to_string() + ":" +
@@ -62,18 +64,19 @@ namespace P2P {
   }
 
   void ManagerDiscovery::handleAnswer(
-    std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     switch (message->command()) {
       case Ping:
-        handlePingAnswer(session, message);
+        handlePingAnswer(nodeId, message);
         break;
       case Info:
         break;
       case RequestNodes:
-        handleRequestNodesAnswer(session, message);
+        handleRequestNodesAnswer(nodeId, message);
         break;
       default:
+        auto session = getWeakPtrToSession(nodeId);
         if (auto sessionPtr = session.lock()) {
           Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
             "Invalid Answer Command Type from " + sessionPtr->hostNodeId().first.to_string() + ":" +
@@ -90,8 +93,9 @@ namespace P2P {
   }
 
   void ManagerDiscovery::handlePingRequest(
-    std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
+    auto session = getWeakPtrToSession(nodeId);
     if (!RequestDecoder::ping(*message)) {
       if (auto sessionPtr = session.lock()) {
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -106,12 +110,13 @@ namespace P2P {
       }
       return;
     }
-    this->answerSession(session, std::make_shared<const Message>(AnswerEncoder::ping(*message)));
+    this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::ping(*message)));
   }
 
   void ManagerDiscovery::handleRequestNodesRequest(
-    std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
+    auto session = getWeakPtrToSession(nodeId);
     if (!RequestDecoder::requestNodes(*message)) {
       if (auto sessionPtr = session.lock()) {
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -137,15 +142,16 @@ namespace P2P {
         }
       );
     }
-    this->answerSession(session, std::make_shared<const Message>(AnswerEncoder::requestNodes(*message, nodes)));
+    this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestNodes(*message, nodes)));
   }
 
   void ManagerDiscovery::handlePingAnswer(
-    std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
+      auto session = getWeakPtrToSession(nodeId);
       if (auto sessionPtr = session.lock()) {
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
           "Answer to invalid request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
@@ -163,11 +169,12 @@ namespace P2P {
   }
 
   void ManagerDiscovery::handleRequestNodesAnswer(
-    std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
+      auto session = getWeakPtrToSession(nodeId);
       if (auto sessionPtr = session.lock()) {
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
           "Answer to invalid request from " + sessionPtr->hostNodeId().first.to_string() + ":" +

@@ -59,6 +59,17 @@ namespace P2P {
     return true;
   }
 
+  std::weak_ptr<Session> ManagerBase::getWeakPtrToSession(const NodeID &nodeId) {
+    if (! this->closed_) {
+      std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_);
+      auto it = sessions_.find(nodeId);
+      if (it != sessions_.end()) {
+        return std::weak_ptr<Session>(it->second);
+      }
+    }
+    return std::weak_ptr<Session>();
+  }
+
   std::shared_ptr<Request> ManagerBase::sendRequestTo(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
     if (this->closed_) return nullptr;
     std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_); // ManagerBase::sendRequestTo doesn't change sessions_ map.
@@ -84,14 +95,15 @@ namespace P2P {
 
   // ManagerBase::answerSession doesn't change sessions_ map, but we still need to
   // be sure that the session io_context doesn't get deleted while we are using it.
-  void ManagerBase::answerSession(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
-    if (this->closed_) return;
+  void ManagerBase::answerSession(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
     std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_);
-    if (auto ptr = session.lock()) {
-      ptr->write(message);
-    } else {
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session is no longer valid");
+    if (this->closed_) return;
+    auto it = sessions_.find(nodeId);
+    if (it == sessions_.end()) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Cannot find session for " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+      return;
     }
+    it->second->write(message);
   }
 
   void ManagerBase::start() {
@@ -188,4 +200,3 @@ namespace P2P {
     }
   }
 }
-

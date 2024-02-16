@@ -75,6 +75,9 @@ namespace P2P {
       /// Internal disconnect function for sessions.
       bool disconnectSessionInternal(const NodeID& session);
 
+      /// Get a weak_ptr<Session> for a nodeId (nullptr if none found)
+      std::weak_ptr<Session> getWeakPtrToSession(const NodeID &nodeId);
+
       /**
        * Send a Request to a given node.
        * @param nodeId The ID of the node to send the message to.
@@ -88,7 +91,7 @@ namespace P2P {
        * @param session The session to answer to.
        * @param message The message to answer.
        */
-      void answerSession(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void answerSession(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       // TODO: There is a bug with handleRequest that throws std::system_error.
       // I believe that this is related with the std::shared_ptr<Session> getting deleted or
@@ -98,7 +101,7 @@ namespace P2P {
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      virtual void handleRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
+      virtual void handleRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
         // Do nothing by default, child classes are meant to override this
       }
 
@@ -107,7 +110,7 @@ namespace P2P {
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      virtual void handleAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
+      virtual void handleAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
         // Do nothing by default, child classes are meant to override this
       }
 
@@ -209,7 +212,7 @@ namespace P2P {
        * @param session The session to send an answer to.
        * @param message The message to handle.
        */
-      virtual void handleMessage(std::weak_ptr<Session> session, const std::shared_ptr<const Message> message) {
+      virtual void handleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message) {
         // Do nothing by default, child classes are meant to override this
       }
 
