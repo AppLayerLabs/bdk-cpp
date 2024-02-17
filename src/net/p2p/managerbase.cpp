@@ -59,17 +59,6 @@ namespace P2P {
     return true;
   }
 
-  std::weak_ptr<Session> ManagerBase::getWeakPtrToSession(const NodeID &nodeId) {
-    if (! this->closed_) {
-      std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_);
-      auto it = sessions_.find(nodeId);
-      if (it != sessions_.end()) {
-        return std::weak_ptr<Session>(it->second);
-      }
-    }
-    return std::weak_ptr<Session>();
-  }
-
   std::shared_ptr<Request> ManagerBase::sendRequestTo(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
     if (this->closed_) return nullptr;
     std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_); // ManagerBase::sendRequestTo doesn't change sessions_ map.

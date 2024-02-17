@@ -75,9 +75,6 @@ namespace P2P {
       /// Internal disconnect function for sessions.
       bool disconnectSessionInternal(const NodeID& session);
 
-      /// Get a weak_ptr<Session> for a nodeId (nullptr if none found)
-      std::weak_ptr<Session> getWeakPtrToSession(const NodeID &nodeId);
-
       /**
        * Send a Request to a given node.
        * @param nodeId The ID of the node to send the message to.

@@ -50,19 +50,9 @@ namespace P2P{
         handleBroadcast(nodeId, message);
         break;
       default:
-        auto session = getWeakPtrToSession(nodeId);
-        if (auto sessionPtr = session.lock()) {
-          Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-            "Invalid message type from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-            std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-          );
-
-          this->disconnectSession(sessionPtr->hostNodeId());
-        } else {
-          Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-            "Invalid message type from unknown session, closing session."
-          );
-        }
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                           "Invalid message type from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " , closing session.");
+        this->disconnectSession(nodeId);
         break;
     }
   }
@@ -87,20 +77,11 @@ namespace P2P{
         handleTxRequest(nodeId, message);
         break;
       default:
-        auto session = getWeakPtrToSession(nodeId);
-        if (auto sessionPtr = session.lock()) {
-          Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-            "Invalid Request Command Type: " + std::to_string(message->command())
-            + " from: " + sessionPtr->hostNodeId().first.to_string() + ":" +
-              std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-          );
-          this->disconnectSession(sessionPtr->hostNodeId());
-        } else {
-          Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-            "Invalid Request Command Type: " + std::to_string(message->command())
-            + " from unknown session, closing session."
-          );
-        }
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                           "Invalid Request Command Type: " + std::to_string(message->command()) +
+                           " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                           ", closing session.");
+        this->disconnectSession(nodeId);
         break;
     }
   }
@@ -125,20 +106,11 @@ namespace P2P{
         handleTxAnswer(nodeId, message);
         break;
       default:
-        auto session = getWeakPtrToSession(nodeId);
-        if (auto sessionPtr = session.lock()) {
-          Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-            "Invalid Answer Command Type: " + std::to_string(message->command())
-            + " from: " + sessionPtr->hostNodeId().first.to_string() + ":" +
-              std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-          );
-          this->disconnectSession(sessionPtr->hostNodeId());
-        } else {
-          Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-            "Invalid Answer Command Type: " + std::to_string(message->command())
-            + " from unknown session, closing session."
-          );
-        }
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                           "Invalid Answer Command Type: " + std::to_string(message->command()) +
+                           " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                           " , closing session.");
+        this->disconnectSession(nodeId);
         break;
     }
   }
@@ -170,20 +142,11 @@ namespace P2P{
         handleBlockBroadcast(nodeId, message);
         break;
       default:
-        auto session = getWeakPtrToSession(nodeId);
-        if (auto sessionPtr = session.lock()) {
-          Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-            "Invalid Broadcast Command Type: " + std::to_string(message->command())
-            + " from: " + sessionPtr->hostNodeId().first.to_string() + ":" +
-              std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-          );
-          this->disconnectSession(sessionPtr->hostNodeId());
-        } else {
-          Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-            "Invalid Broadcast Command Type: " + std::to_string(message->command())
-            + " from unknown session, closing session."
-          );
-        }
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                           "Invalid Broadcast Command Type: " + std::to_string(message->command()) +
+                           " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                           " , closing session.");
+        this->disconnectSession(nodeId);
         break;
     }
   }
@@ -191,19 +154,11 @@ namespace P2P{
   void ManagerNormal::handlePingRequest(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    auto session = getWeakPtrToSession(nodeId);
     if (!RequestDecoder::ping(*message)) {
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid ping request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid ping request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid ping request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::ping(*message)));
@@ -221,19 +176,11 @@ namespace P2P{
   void ManagerNormal::handleRequestNodesRequest(
       const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    auto session = getWeakPtrToSession(nodeId);
     if (!RequestDecoder::requestNodes(*message)) {
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid requestNodes request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid requestNodes request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid requestNodes request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
 
@@ -253,19 +200,11 @@ namespace P2P{
   void ManagerNormal::handleTxValidatorRequest(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    auto session = getWeakPtrToSession(nodeId);
     if (!RequestDecoder::requestValidatorTxs(*message)) {
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid requestValidatorTxs request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid requestValidatorTxs request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid requestValidatorTxs request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestValidatorTxs(*message, this->rdpos_.getMempool())));
@@ -274,19 +213,11 @@ namespace P2P{
   void ManagerNormal::handleTxRequest(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    auto session = getWeakPtrToSession(nodeId);
     if (!RequestDecoder::requestTxs(*message)) {
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid requestTxs request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid requestTxs request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid requestTxs request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestTxs(*message, this->state_.getMempool())));
@@ -298,18 +229,10 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before doing anything else to avoid waiting for other locks.
-      auto session = getWeakPtrToSession(nodeId);
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     requests_[message->id()]->setAnswer(message);
@@ -321,18 +244,10 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      auto session = getWeakPtrToSession(nodeId);
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     requests_[message->id()]->setAnswer(message);
@@ -344,18 +259,10 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      auto session = getWeakPtrToSession(nodeId);
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     requests_[message->id()]->setAnswer(message);
@@ -367,18 +274,10 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      auto session = getWeakPtrToSession(nodeId);
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     requests_[message->id()]->setAnswer(message);
@@ -390,18 +289,10 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      auto session = getWeakPtrToSession(nodeId);
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Answer to invalid request from unknown session, closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Answer to invalid request from " + nodeId.first.to_string() + ":" +
+                         std::to_string(nodeId.second) + " , closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     requests_[message->id()]->setAnswer(message);
@@ -414,18 +305,10 @@ namespace P2P{
       auto tx = BroadcastDecoder::broadcastValidatorTx(*message, this->options_.getChainID());
       if (this->state_.addValidatorTx(tx)) this->broadcastMessage(message);
     } catch (std::exception &e) {
-      auto session = getWeakPtrToSession(nodeId);
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid txValidatorBroadcast from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , error: " + e.what() + " closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          std::string("Invalid txValidatorBroadcast from unknown session, error: ") + e.what() + " closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid txValidatorBroadcast from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , error: " + e.what() + " closing session.");
+      this->disconnectSession(nodeId);
     }
   }
 
@@ -436,18 +319,10 @@ namespace P2P{
       auto tx = BroadcastDecoder::broadcastTx(*message, this->options_.getChainID());
       if (!this->state_.addTx(std::move(tx))) this->broadcastMessage(message);
     } catch (std::exception &e) {
-      auto session = getWeakPtrToSession(nodeId);
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid txBroadcast from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , error: " + e.what() + " closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          std::string("Invalid txBroadcast from unknown session, error: ") + e.what() + " closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid txBroadcast from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , error: " + e.what() + " closing session.");
+      this->disconnectSession(nodeId);
     }
   }
 
@@ -471,18 +346,10 @@ namespace P2P{
         rebroadcast = true;
       }
     } catch (std::exception &e) {
-      auto session = getWeakPtrToSession(nodeId);
-      if (auto sessionPtr = session.lock()) {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          "Invalid blockBroadcast from " + sessionPtr->hostNodeId().first.to_string() + ":" +
-          std::to_string(sessionPtr->hostNodeId().second) + " , error: " + e.what() + " closing session."
-        );
-        this->disconnectSession(sessionPtr->hostNodeId());
-      } else {
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-          std::string("Invalid blockBroadcast from unknown session, error: ") + e.what() + " closing session."
-        );
-      }
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid blockBroadcast from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , error: " + e.what() + " closing session.");
+      this->disconnectSession(nodeId);
       return;
     }
     if (rebroadcast) this->broadcastMessage(message);
