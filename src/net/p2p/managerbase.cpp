@@ -10,10 +10,10 @@ See the LICENSE.txt file in the project root for more information.
 namespace P2P {
 
   bool ManagerBase::registerSessionInternal(const std::shared_ptr<Session>& session) {
+    std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::registerSessionInternal can change sessions_ map.
     if (this->closed_) {
       return false;
     }
-    std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::registerSessionInternal can change sessions_ map.
     // The NodeID of a session is made by the host IP and his server port.
     // That means, it is possible for us to receive a inbound connection for someone that we already have a outbound connection.
     // In this case, we will keep the oldest connection alive and close the new one.
@@ -31,10 +31,10 @@ namespace P2P {
   }
 
   bool ManagerBase::unregisterSessionInternal(const std::shared_ptr<Session> &session) {
+    std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::unregisterSessionInternal can change sessions_ map.
     if (this->closed_) {
       return false;
     }
-    std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::unregisterSessionInternal can change sessions_ map.
     if (!sessions_.contains(session->hostNodeId())) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
       Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " +
@@ -47,6 +47,9 @@ namespace P2P {
 
   bool ManagerBase::disconnectSessionInternal(const NodeID& nodeId) {
     std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::disconnectSessionInternal can change sessions_ map.
+    if (this->closed_) {
+      return false;
+    }
     if (!sessions_.contains(nodeId)) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
       Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
@@ -102,18 +105,18 @@ namespace P2P {
   }
 
   void ManagerBase::stop() {
-    this->closed_ = true;
     {
       std::unique_lock lock(this->sessionsMutex_);
+      this->closed_ = true;
       for (auto it = sessions_.begin(); it != sessions_.end();) {
         std::weak_ptr<Session> session = std::weak_ptr(it->second);
         it = sessions_.erase(it);
         if (auto sessionPtr = session.lock()) sessionPtr->close();
       }
     }
-    this->threadPool_.wait_for_tasks();
     this->server_.stop();
     this->clientfactory_.stop();
+    this->threadPool_.wait_for_tasks();
   }
 
   std::vector<NodeID> ManagerBase::getSessionsIDs() const {

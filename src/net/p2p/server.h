@@ -7,6 +7,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "session.h"
 
+#ifndef P2P_SERVER
+#define P2P_SERVER
+
 namespace P2P {
   /**
    * ServerListener class
@@ -123,3 +126,4 @@ namespace P2P {
   };
 }
 
+#endif

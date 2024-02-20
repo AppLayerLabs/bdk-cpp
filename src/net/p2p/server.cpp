@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "server.h"
+#include "managerbase.h"
 
 namespace P2P {
   void ServerListener::do_accept() {
