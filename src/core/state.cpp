@@ -10,11 +10,11 @@ See the LICENSE.txt file in the project root for more information.
 State::State(
   DB& db,
   Storage& storage,
-  rdPoS& rdpos,
   P2P::ManagerNormal& p2pManager,
   const Options& options
-) : db_(db), storage_(storage), rdpos_(rdpos), p2pManager_(p2pManager), options_(options),
-contractManager_(db, *this, rdpos, options)
+) : db_(db), storage_(storage), p2pManager_(p2pManager), options_(options),
+rdpos_(db, storage, p2pManager, options, *this),
+contractManager_(db, *this, rdpos_, options)
 {
   std::unique_lock lock(this->stateMutex_);
   auto accountsFromDB = db_.getBatch(DBPrefix::nativeAccounts);
@@ -214,23 +214,28 @@ bool State::validateNextBlock(const Block& block) const {
    * All transactions within Block are valid (does not return false on validateTransaction)
    * Block constructor already checks if merkle roots within a block are valid.
    */
-
   auto latestBlock = this->storage_.latest();
   if (block.getNHeight() != latestBlock->getNHeight() + 1) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Block nHeight doesn't match, expected "
-                      + std::to_string(latestBlock->getNHeight() + 1) + " got " + std::to_string(block.getNHeight()));
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
+      "Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
+      + " got " + std::to_string(block.getNHeight())
+    );
     return false;
   }
 
   if (block.getPrevBlockHash() != latestBlock->hash()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Block prevBlockHash doesn't match, expected " +
-                      latestBlock->hash().hex().get() + " got: " + block.getPrevBlockHash().hex().get());
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
+      "Block prevBlockHash doesn't match, expected " + latestBlock->hash().hex().get()
+      + " got: " + block.getPrevBlockHash().hex().get()
+    );
     return false;
   }
 
   if (latestBlock->getTimestamp() > block.getTimestamp()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Block timestamp is lower than latest block, expected higher than " + std::to_string(latestBlock->getTimestamp())
-                      + " got " + std::to_string(block.getTimestamp()));
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
+      "Block timestamp is lower than latest block, expected higher than "
+      + std::to_string(latestBlock->getTimestamp()) + " got " + std::to_string(block.getTimestamp())
+    );
     return false;
   }
 
@@ -242,12 +247,16 @@ bool State::validateNextBlock(const Block& block) const {
   std::shared_lock verifyingBlockTxs(this->stateMutex_);
   for (const auto& tx : block.getTxs()) {
     if (this->validateTransactionInternal(tx)) {
-      Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction " + tx.hash().hex().get() + " within block is invalid");
+      Logger::logToDebug(LogType::ERROR, Log::state, __func__,
+        "Transaction " + tx.hash().hex().get() + " within block is invalid"
+      );
       return false;
     }
   }
 
-  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.hash().hex().get() + " is valid. (Sanity Check Passed)");
+  Logger::logToDebug(LogType::INFO, Log::state, __func__,
+    "Block " + block.hash().hex().get() + " is valid. (Sanity Check Passed)"
+  );
   return true;
 }
 

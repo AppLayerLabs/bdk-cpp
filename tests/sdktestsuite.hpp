@@ -43,11 +43,10 @@ struct TestAccount {
  */
 class SDKTestSuite {
   private:
-    const Options options_;      ///< options singleton.
-    DB db_;                      ///< database.
-    Storage storage_;            ///< blockchain storage.
-    State state_;                ///< blockchain state.
-    rdPoS rdpos_;                ///< rdPoS object (consensus).
+    const Options options_;      ///< Options singleton.
+    DB db_;                      ///< Database.
+    Storage storage_;            ///< Blockchain storage.
+    State state_;                ///< Blockchain state.
     P2P::ManagerNormal p2p_;     ///< P2P connection manager.
     HTTPServer http_;            ///< HTTP server.
 
@@ -78,14 +77,13 @@ class SDKTestSuite {
       options_(options),
       db_(options_.getRootPath() + "/db"),
       storage_(db_, options_),
-      state_(db_, storage_, rdpos_, p2p_, options_),
-      rdpos_(db_, storage_, p2p_, options_, state_),
-      p2p_(boost::asio::ip::address::from_string("127.0.0.1"), rdpos_, options_, storage_, state_),
+      state_(db_, storage_, p2p_, options_),
+      p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)
     {}
 
     ~SDKTestSuite() {
-      rdpos_.stoprdPoSWorker();
+      state_.rdposStopWorker();
       p2p_.stopDiscovery();
       p2p_.stop();
       http_.stop();
@@ -175,8 +173,8 @@ class SDKTestSuite {
      * @return A pointer to the new block.
      */
     const std::shared_ptr<const Block> advanceChain(const uint64_t& timestamp = 0, const std::vector<TxBlock>& txs = {}) {
-      auto validators = rdpos_.getValidators();
-      auto randomList = rdpos_.getRandomList();
+      auto validators = state_.rdposGetValidators();
+      auto randomList = state_.rdposGetRandomList();
       Hash blockSignerPrivKey;           // Private key for the block signer.
       std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
       orderedPrivKeys.reserve(4);
@@ -225,10 +223,10 @@ class SDKTestSuite {
 
       // Append the transactions to the block.
       for (const auto& tx : randomHashTxs) {
-        this->rdpos_.addValidatorTx(tx); newBlock.appendTxValidator(tx);
+        this->state_.rdposAddValidatorTx(tx); newBlock.appendTxValidator(tx);
       }
       for (const auto& tx : randomTxs) {
-        this->rdpos_.addValidatorTx(tx); newBlock.appendTxValidator(tx);
+        this->state_.rdposAddValidatorTx(tx); newBlock.appendTxValidator(tx);
       }
       for (const auto& tx : txs) newBlock.appendTx(tx);
 
@@ -968,9 +966,6 @@ class SDKTestSuite {
 
     /// Getter for `storage_`.
     Storage& getStorage() { return this->storage_; };
-
-    /// Getter for `rdpos_`.
-    rdPoS& getrdPoS() { return this->rdpos_; };
 
     /// Getter for `state_`.
     State& getState() { return this->state_; };

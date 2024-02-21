@@ -11,7 +11,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "managerbase.h"
 
 // Forward declaration.
-class rdPoS;
 class Storage;
 class State;
 
@@ -41,9 +40,6 @@ namespace P2P {
       void handleBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
     private:
-      /// Reference to the rdPoS object.
-      rdPoS& rdpos_;
-
       /// Reference to the blockchain's storage.
       const Storage& storage_;
 
@@ -163,18 +159,14 @@ namespace P2P {
       /**
        * Constructor.
        * @param hostIp The manager's host IP/address.
-       * @param rdpos Pointer to the rdPoS object.
        * @param options Pointer to the options singleton.
        * @param storage Pointer to the blockchain's storage.
        * @param state Pointer to the blockchain's state.
        */
       ManagerNormal(
-        const boost::asio::ip::address& hostIp, rdPoS& rdpos,
-        const Options& options, const Storage& storage,
-        State& state
-      ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options),
-      rdpos_(rdpos), storage_(storage), state_(state)
-      {};
+        const boost::asio::ip::address& hostIp, const Options& options,
+        const Storage& storage, State& state
+      ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options), storage_(storage), state_(state) {};
 
       /// Destructor. Automatically stops the manager.
       ~ManagerNormal() { this->stop(); }

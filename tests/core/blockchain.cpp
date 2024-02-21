@@ -272,17 +272,17 @@ namespace TBlockchain {
           /// Commment this out and IT WILL NOT WORK.
           /// Waiting for rdPoSWorker rework.
           auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
-            while (blockchainValidator1->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainValidator2->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainValidator3->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainValidator4->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainValidator5->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainNode1->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainNode2->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainNode3->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainNode4->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainNode5->getrdPoS()->getMempool().size() != 8 ||
-                   blockchainNode6->getrdPoS()->getMempool().size() != 8) {
+            while (blockchainValidator1->getState().rdposGetMempool().size() != 8 ||
+                   blockchainValidator2->getState().rdposGetMempool().size() != 8 ||
+                   blockchainValidator3->getState().rdposGetMempool().size() != 8 ||
+                   blockchainValidator4->getState().rdposGetMempool().size() != 8 ||
+                   blockchainValidator5->getState().rdposGetMempool().size() != 8 ||
+                   blockchainNode1->getState().rdposGetMempool().size() != 8 ||
+                   blockchainNode2->getState().rdposGetMempool().size() != 8 ||
+                   blockchainNode3->getState().rdposGetMempool().size() != 8 ||
+                   blockchainNode4->getState().rdposGetMempool().size() != 8 ||
+                   blockchainNode5->getState().rdposGetMempool().size() != 8 ||
+                   blockchainNode6->getState().rdposGetMempool().size() != 8) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
           });

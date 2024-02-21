@@ -14,10 +14,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../core/state.h"
 #include "../utils/dynamicexception.h"
 
-ContractManager::ContractManager(
-  DB& db, State& state,
-  rdPoS& rdpos, const Options& options
-) : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), 0, db),
+ContractManager::ContractManager(DB& db, State& state, rdPoS& rdpos, const Options& options)
+: BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), 0, db),
   state_(state),
   rdpos_(rdpos),
   options_(options),

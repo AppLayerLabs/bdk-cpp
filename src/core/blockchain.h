@@ -87,7 +87,6 @@ class Blockchain {
     DB db_;                   ///< Database.
     Storage storage_;         ///< Blockchain storage.
     State state_;             ///< Blockchain state.
-    rdPoS rdpos_;             ///< rdPoS object (consensus).
     P2P::ManagerNormal p2p_;  ///< P2P connection manager.
     HTTPServer http_;         ///< HTTP server.
     Syncer syncer_;           ///< Blockchain syncer.
@@ -107,7 +106,6 @@ class Blockchain {
     Options& getOptions() { return this->options_; };
     DB& getDB() { return this->db_; };
     Storage& getStorage() { return this->storage_; };
-    rdPoS& getrdPoS() { return this->rdpos_; };
     State& getState() { return this->state_; };
     P2P::ManagerNormal& getP2P() { return this->p2p_; };
     HTTPServer& getHTTP() { return this->http_; };

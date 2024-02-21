@@ -11,9 +11,8 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
   db_(blockchainPath + "/database"),
   storage_(db_, options_),
-  rdpos_(db_, storage_, p2p_, options_, state_),
-  state_(db_, storage_, rdpos_, p2p_, options_),
-  p2p_(boost::asio::ip::address::from_string("127.0.0.1"), rdpos_, options_, storage_, state_),
+  state_(db_, storage_, p2p_, options_),
+  p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
   syncer_(*this)
 {}
@@ -98,7 +97,7 @@ void Syncer::doValidatorBlock() {
   // TODO: Improve this somehow.
   // Wait until we are ready to create the block
   bool logged = false;
-  while (!this->blockchain_.rdpos_.canCreateBlock()) {
+  while (!this->blockchain_.state_.rdposCanCreateBlock()) {
     if (!logged) {
       logged = true;
       Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Waiting for rdPoS to be ready to create a block.");
@@ -131,8 +130,8 @@ void Syncer::doValidatorBlock() {
 
   // Create the block.
   if (this->stopSyncer_) return;
-  auto mempool = this->blockchain_.rdpos_.getMempool();
-  auto randomList = this->blockchain_.rdpos_.getRandomList();
+  auto mempool = this->blockchain_.state_.rdposGetMempool();
+  auto randomList = this->blockchain_.state_.rdposGetRandomList();
 
   // Order the transactions in the proper manner.
   std::vector<TxValidator> randomHashTxs;
@@ -171,7 +170,7 @@ void Syncer::doValidatorBlock() {
 
   // Add transactions from state, sign, validate and process the block.
   this->blockchain_.state_.fillBlockWithTransactions(block);
-  this->blockchain_.rdpos_.signBlock(block);
+  this->blockchain_.state_.rdposSignBlock(block);
   if (!this->blockchain_.state_.validateNextBlock(block)) {
     Logger::logToDebug(LogType::ERROR, Log::syncer, __func__, "Block is not valid!");
     throw DynamicException("Block is not valid!");
@@ -196,11 +195,11 @@ void Syncer::doValidatorTx() const {
 void Syncer::validatorLoop() {
   Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Starting validator loop.");
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->blockchain_.options_.getValidatorPrivKey())));
-  this->blockchain_.rdpos_.startrdPoSWorker();
+  this->blockchain_.state_.rdposStartWorker();
   while (!this->stopSyncer_) {
     this->latestBlock_ = this->blockchain_.storage_.latest();
     // Check if validator is within the current validator list.
-    const auto currentRandomList = this->blockchain_.rdpos_.getRandomList();
+    const auto currentRandomList = this->blockchain_.state_.rdposGetRandomList();
     bool isBlockCreator = false;
     if (currentRandomList[0] == me) {
       isBlockCreator = true;
@@ -259,7 +258,7 @@ void Syncer::start() {
 
 void Syncer::stop() {
   this->stopSyncer_ = true;
-  this->blockchain_.rdpos_.stoprdPoSWorker(); // Stop the rdPoS worker.
+  this->blockchain_.state_.rdposStopWorker(); // Stop the rdPoS worker.
   if (this->syncerLoopFuture_.valid()) this->syncerLoopFuture_.wait();
 }
 
