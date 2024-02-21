@@ -28,24 +28,19 @@ namespace P2P {
       void on_accept(boost::system::error_code ec, net::ip::tcp::socket socket);
       /// Pointer back to the Manager object.
       ManagerBase& manager_;
-      /// Reference to the thread pool.
-      BS::thread_pool_light& threadPool_;
     public:
       /**
        * Constructor for the ServerListener.
        * @param io_context Reference to the server io_context.
        * @param endpoint The endpoint to listen on.
        * @param manager Reference to the manager.
-       * @param threadPool Reference to the thread pool.
        */
       ServerListener(net::io_context& io_context,
                      tcp::endpoint endpoint,
-                     ManagerBase& manager,
-                     BS::thread_pool_light& threadPool) :
+                     ManagerBase& manager) :
         io_context_(io_context),
         acceptor_(io_context),
-        manager_(manager),
-        threadPool_(threadPool) {
+        manager_(manager) {
          boost::system::error_code ec;
          acceptor_.open(endpoint.protocol(), ec); // Open the acceptor
          if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Open Acceptor: " + ec.message()); return; }
@@ -88,9 +83,6 @@ namespace P2P {
       /// Pointer to the manager.
       ManagerBase& manager_;
 
-      /// Reference to the thread pool.
-      BS::thread_pool_light& threadPool_;
-
     public:
       /**
       * Constructor for the server.
@@ -98,18 +90,15 @@ namespace P2P {
       * @param localPort The local port.
       * @param threadCount Reference to the thread count.
       * @param manager Reference to the manager.
-      * @param threadPool Reference to the thread pool.
       */
       Server(const net::ip::address &localAddress,
              const uint16_t &localPort,
              const uint8_t& threadCount,
-             ManagerBase& manager,
-             BS::thread_pool_light& threadPool) :
+             ManagerBase& manager) :
         localAddress_(localAddress),
         localPort_(localPort),
         threadCount_(threadCount),
-        manager_(manager),
-        threadPool_(threadPool)
+        manager_(manager)
         {}
 
       /// Start the Server.

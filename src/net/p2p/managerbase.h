@@ -35,11 +35,14 @@ namespace P2P {
       /// Minimum number of simultaneous connections. See DiscoveryWorker for more information.
       const unsigned int minConnections_ = 11;
 
-      /// Indicates whether the manager is closed to new connections.
-      std::atomic<bool> closed_ = true;
+      /// Check if manager is in the start() state (stop() not called yet).
+      std::atomic<bool> started_ = false;
+
+      /// Core mutex for serializing start(), stop(), and threadPool_.
+      mutable std::shared_mutex stateMutex_;
 
       /// Pointer to the thread pool.
-      BS::thread_pool_light threadPool_;
+      std::unique_ptr<BS::thread_pool_light> threadPool_;
 
       /// Pointer to the options singleton.
       const Options& options_;
@@ -123,9 +126,8 @@ namespace P2P {
           const net::ip::address& hostIp, NodeType nodeType,
           unsigned int maxConnections, const Options& options
       ) : serverPort_(options.getP2PPort()), nodeType_(nodeType), maxConnections_(maxConnections), options_(options),
-          threadPool_(std::thread::hardware_concurrency() * 4),
-          server_(hostIp, options.getP2PPort(), 4, *this, this->threadPool_),
-          clientfactory_(*this, 4, this->threadPool_),
+          server_(hostIp, options.getP2PPort(), 4, *this),
+          clientfactory_(*this, 4),
           discoveryWorker_(*this) {};
 
       /// Destructor. Automatically stops the manager.
@@ -164,9 +166,6 @@ namespace P2P {
       /// Getter for `minConnections_`.
       unsigned int minConnections() const { return this->minConnections_; }
 
-      /// Getter for `closed_`.
-      const std::atomic<bool>& isClosed() const { return this->closed_; }
-
       /// Get the size of the session list.
       uint64_t getPeerCount() const { std::shared_lock lock(this->sessionsMutex_); return this->sessions_.size(); }
 
@@ -199,6 +198,13 @@ namespace P2P {
        * @param port The websocket's port.
        */
       void connectToServer(const boost::asio::ip::address& address, uint16_t port);
+
+      /**
+       * Entrust the internal thread pool to call handleMessage() with the supplied arguments.
+       * @param session The session to send an answer to.
+       * @param message The message to handle.
+       */
+      void asyncHandleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message);
 
       /**
        * Handle a message from a session.

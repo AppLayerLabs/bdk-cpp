@@ -26,7 +26,7 @@ namespace P2P {
       /// TODO: Handle error
       return;
     } else {
-      std::make_shared<Session>(std::move(socket), ConnectionType::INBOUND, this->manager_, this->threadPool_)->run();
+      std::make_shared<Session>(std::move(socket), ConnectionType::INBOUND, this->manager_)->run();
     }
     this->do_accept();
   }
@@ -59,7 +59,7 @@ namespace P2P {
       io_context_.restart();
       Logger::logToDebug(LogType::DEBUG, Log::P2PServer, __func__, "Starting listener.");
       this->listener_ = std::make_shared<ServerListener>(
-          io_context_, tcp::endpoint{this->localAddress_, this->localPort_}, this->manager_, this->threadPool_
+        io_context_, tcp::endpoint{this->localAddress_, this->localPort_}, this->manager_
       );
       this->listener_->run();
       Logger::logToDebug(LogType::DEBUG, Log::P2PServer, __func__, "Listener started.");

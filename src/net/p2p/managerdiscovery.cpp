@@ -11,7 +11,7 @@ namespace P2P {
   void ManagerDiscovery::handleMessage(
     const NodeID &nodeId, const std::shared_ptr<const Message> message
   ) {
-    if (this->closed_) return;
+    if (!this->started_) return;
     switch (message->type()) {
       case Requesting:
         handleRequest(nodeId, message);

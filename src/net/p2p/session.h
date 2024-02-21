@@ -19,7 +19,6 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/asio/buffer.hpp>
 
 #include "../../utils/utils.h"
-#include "../../libs/BS_thread_pool_light.hpp"
 #include "encoding.h"
 
 using boost::asio::ip::tcp;
@@ -59,9 +58,6 @@ namespace P2P {
 
       /// Reference back to the Manager object.
       ManagerBase& manager_;
-
-      /// Reference to the thread pool.
-      BS::thread_pool_light& threadPool_;
 
       net::strand<net::any_io_executor> readStrand_; ///< Strand for read operations.
       net::strand<net::any_io_executor> writeStrand_; ///< Strand for write operations.
@@ -139,13 +135,11 @@ namespace P2P {
       /// Construct a session with the given socket. (Used by the server)
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
-                       ManagerBase& manager,
-                       BS::thread_pool_light& threadPool)
+                       ManagerBase& manager)
           : socket_(std::move(socket)),
             readStrand_(socket_.get_executor()),
             writeStrand_(socket_.get_executor()),
             manager_(manager),
-            threadPool_(threadPool),
             address_(socket_.remote_endpoint().address()),
             port_(socket_.remote_endpoint().port()),
             connectionType_(connectionType)
@@ -160,7 +154,6 @@ namespace P2P {
       explicit Session(tcp::socket &&socket,
                        ConnectionType connectionType,
                        ManagerBase& manager,
-                       BS::thread_pool_light& threadPool,
                        const net::ip::address& address,
                        unsigned short port
                        )
@@ -168,7 +161,6 @@ namespace P2P {
             readStrand_(socket_.get_executor()),
             writeStrand_(socket_.get_executor()),
             manager_(manager),
-            threadPool_(threadPool),
             address_(address),
             port_(port),
             connectionType_(connectionType)

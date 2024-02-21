@@ -12,7 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 
 namespace P2P{
   void ManagerNormal::broadcastMessage(const std::shared_ptr<const Message> message) {
-    if (this->closed_) return;
+    if (!this->started_) return;
     {
       std::unique_lock broadcastLock(this->broadcastMutex_);
       if (broadcastedMessages_[message->id().toUint64()] > 0) {
@@ -38,7 +38,7 @@ namespace P2P{
   void ManagerNormal::handleMessage(
     const NodeID &nodeId, const std::shared_ptr<const Message> message
   ) {
-    if (this->closed_) return;
+    if (!this->started_) return;
     switch (message->type()) {
       case Requesting:
         handleRequest(nodeId, message);
@@ -118,7 +118,7 @@ namespace P2P{
   void ManagerNormal::handleBroadcast(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    if (this->closed_) return;
+    if (!this->started_) return;
     {
       std::shared_lock broadcastLock(this->broadcastMutex_);
       auto it = broadcastedMessages_.find(message->id().toUint64());

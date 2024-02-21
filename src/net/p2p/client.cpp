@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 namespace P2P {
   void ClientFactory::createClientSession(const boost::asio::ip::address &address, const unsigned short &port) {
     tcp::socket socket(io_context_);
-    auto session = std::make_shared<Session>(std::move(socket), ConnectionType::OUTBOUND, manager_, this->threadPool_, address, port);
+    auto session = std::make_shared<Session>(std::move(socket), ConnectionType::OUTBOUND, manager_, address, port);
     session->run();
   }
 

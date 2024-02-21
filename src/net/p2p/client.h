@@ -43,9 +43,6 @@ namespace P2P {
       /// Reference to the manager.
       ManagerBase& manager_;
 
-      /// Reference to the thread pool.
-      BS::thread_pool_light& threadPool_;
-
       /// Internal function for creating a new client session.
       void createClientSession(const boost::asio::ip::address &address, const unsigned short &port);
 
@@ -55,14 +52,12 @@ namespace P2P {
       * Constructor for the ClientFactory.
       * @param manager Reference to the manager.
       * @param threadCount Number of threads to use.
-      * @param threadPool Reference to the thread pool.
       */
-      ClientFactory(ManagerBase& manager, const uint8_t &threadCount, BS::thread_pool_light& threadPool) :
+      ClientFactory(ManagerBase& manager, const uint8_t &threadCount) :
         work_guard_(boost::asio::make_work_guard(io_context_)),
         connectorStrand_(io_context_.get_executor()),
         threadCount_(threadCount),
-        manager_(manager),
-        threadPool_(threadPool) {}
+        manager_(manager) {}
 
       /// Start the Factory.
       bool start();
