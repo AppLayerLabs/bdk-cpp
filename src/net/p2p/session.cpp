@@ -111,7 +111,7 @@ namespace P2P {
 
   void Session::on_read_message(boost::system::error_code ec, std::size_t) {
     if (ec && this->handle_error(__func__, ec)) return;
-    manager_.asyncHandleMessage(nodeId_, inboundMessage_);
+    this->manager_.asyncHandleMessage(this->nodeId_, this->inboundMessage_);
     this->inboundMessage_ = nullptr;
     this->do_read_header();
   }

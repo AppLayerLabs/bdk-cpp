@@ -14,7 +14,6 @@ namespace P2P {
     session->run();
   }
 
-
   bool ClientFactory::run() {
     Logger::logToDebug(LogType::INFO, Log::P2PClientFactory, __func__,
                       "Starting P2P Client Factory "

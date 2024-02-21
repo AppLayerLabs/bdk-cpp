@@ -99,18 +99,18 @@ namespace P2P {
   }
 
   void ManagerBase::start() {
-    std::scoped_lock lock(stateMutex_);
-    if (started_) return;
-    started_ = true;
-    threadPool_ = std::make_unique<BS::thread_pool_light>(std::thread::hardware_concurrency() * 4);
+    std::scoped_lock lock(this->stateMutex_);
+    if (this->started_) return;
+    this->started_ = true;
+    this->threadPool_ = std::make_unique<BS::thread_pool_light>(std::thread::hardware_concurrency() * 4);
     this->server_.start();
     this->clientfactory_.start();
   }
 
   void ManagerBase::stop() {
-    std::scoped_lock lock(stateMutex_);
-    if (! started_) return;
-    started_ = false;
+    std::scoped_lock lock(this->stateMutex_);
+    if (! this->started_) return;
+    this->started_ = false;
     {
       std::unique_lock lock(this->sessionsMutex_);
       for (auto it = sessions_.begin(); it != sessions_.end();) {
@@ -121,13 +121,13 @@ namespace P2P {
     }
     this->server_.stop();
     this->clientfactory_.stop();
-    threadPool_.reset();
+    this->threadPool_.reset();
   }
 
   void ManagerBase::asyncHandleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message) {
-    std::shared_lock lock(stateMutex_);
-    if (threadPool_) {
-      threadPool_->push_task(&ManagerBase::handleMessage, this, nodeId, message);
+    std::shared_lock lock(this->stateMutex_);
+    if (this->threadPool_) {
+      this->threadPool_->push_task(&ManagerBase::handleMessage, this, nodeId, message);
     }
   }
 
