@@ -58,6 +58,9 @@ namespace P2P {
       /// Mutex for managing read/write access to block broadcasts.
       std::mutex blockBroadcastMutex_;
 
+      /// Default number for maximum allowed connections on normal nodes.
+      static const unsigned int MAX_CONNECTIONS = 50;
+
       /**
        * Broadcast a message to all connected nodes.
        * @param message The message to broadcast.
@@ -166,7 +169,8 @@ namespace P2P {
       ManagerNormal(
         const boost::asio::ip::address& hostIp, const Options& options,
         const Storage& storage, State& state
-      ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, 50, options), storage_(storage), state_(state) {};
+      ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, ManagerNormal::MAX_CONNECTIONS, options),
+      storage_(storage), state_(state) {};
 
       /// Destructor. Automatically stops the manager.
       ~ManagerNormal() { this->stop(); }
