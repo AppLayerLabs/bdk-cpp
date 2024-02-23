@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/templates/erc20.h"
 #include "../../src/contract/contractmanager.h"
-#include "../../src/core/rdpos.h"
 #include "../../src/utils/db.h"
 #include "../../src/utils/options.h"
 #include "../../src/utils/dynamicexception.h"
@@ -62,8 +61,9 @@ namespace TContractManager {
       uint256_t tokenSupply = 1000000000000000000;
 
       {
+        // We don't need rdPoS here for testing ContractManager, so we pass a nullptr instead
         auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, true, "ContractManagerTestCreateNew");
-        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
+        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, *(static_cast<rdPoS*>(nullptr)), blockchainWrapper.options);
 
         Bytes createNewERC20ContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals, tokenSupply);
         Bytes createNewERC20ContractData = Hex::toBytes("0xb74e5ed5");  // createNewERC20Contract(string,string,uint8,uint256)
@@ -115,7 +115,7 @@ namespace TContractManager {
       }
 
       auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, false, "ContractManagerTestCreateNew");
-      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
+      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, *(static_cast<rdPoS*>(nullptr)), blockchainWrapper.options);
 
       const auto contractAddress = contractManager.getContracts()[0].second;
 
@@ -147,7 +147,7 @@ namespace TContractManager {
 
       {
         auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, true, "ContractManagerTestTransferTo");
-        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
+        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, *(static_cast<rdPoS*>(nullptr)), blockchainWrapper.options);
 
         Bytes createNewERC20ContractEncoder = ABI::Encoder::encodeData(tokenName, tokenSymbol, tokenDecimals, tokenSupply);
 
@@ -212,7 +212,7 @@ namespace TContractManager {
       }
 
       auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, false, "ContractManagerTestTransferTo");
-      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
+      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, *(static_cast<rdPoS*>(nullptr)), blockchainWrapper.options);
 
 
       const auto contractAddress = contractManager.getContracts()[0].second;
@@ -248,7 +248,7 @@ namespace TContractManager {
 
       {
         auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, true, "ContractManagerTestNestedCalls");
-        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
+        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, *(static_cast<rdPoS*>(nullptr)), blockchainWrapper.options);
 
         // Create the contracts
         TxBlock createNewTestThrowATx = TxBlock(
@@ -288,7 +288,7 @@ namespace TContractManager {
 
       // Tx should've thrown by now, check if all values are intact
       auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, false, "ContractManagerTestNestedCalls");
-      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
+      ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, *(static_cast<rdPoS*>(nullptr)), blockchainWrapper.options);
       Bytes getNumEncA = Bytes(32, 0);
       Bytes getNumEncB = Bytes(32, 0);
       Bytes getNumEncC = Bytes(32, 0);
@@ -321,7 +321,7 @@ namespace TContractManager {
         ethCallInfo callInfo;
 
         auto blockchainWrapper = initialize(validatorPrivKeysContractManager, PrivKey(), 8080, true, "ContractManagerTestEthCall");
-        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, blockchainWrapper.rdpos, blockchainWrapper.options);
+        ContractManager contractManager(blockchainWrapper.db, blockchainWrapper.state, *(static_cast<rdPoS*>(nullptr)), blockchainWrapper.options);
 
         try {
           contractManager.ethCall(callInfo);

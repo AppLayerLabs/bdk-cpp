@@ -140,8 +140,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8080,
     "httpPort": 9999,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "privKey": "0000000000000000000000000000000000000000000000000000000000000000",
     "genesis" : {
       "validators": [
@@ -168,8 +173,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8081,
     "httpPort": 8090,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "privKey": "0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759",
     "genesis" : {
       "validators": [
@@ -201,8 +211,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8082,
     "httpPort": 8091,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "privKey": "0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4",
     "genesis" : {
       "validators": [
@@ -234,8 +249,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8083,
     "httpPort": 8092,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "privKey": "0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751",
     "genesis" : {
       "validators": [
@@ -267,8 +287,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8084,
     "httpPort": 8093,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "privKey": "0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7",
     "genesis" : {
       "validators": [
@@ -300,8 +325,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8085,
     "httpPort": 8094,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "privKey": "0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6",
     "genesis" : {
       "validators": [
@@ -334,8 +364,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8086,
     "httpPort": 8095,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "genesis" : {
       "validators": [
         "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -366,8 +401,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8087,
     "httpPort": 8096,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "genesis" : {
       "validators": [
         "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -398,8 +438,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8088,
     "httpPort": 8097,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "genesis" : {
       "validators": [
         "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -430,8 +475,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8089,
     "httpPort": 8098,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "genesis" : {
       "validators": [
         "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -462,8 +512,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8110,
     "httpPort": 8099,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "genesis" : {
       "validators": [
         "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -494,8 +549,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8111,
     "httpPort": 8100,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "genesis" : {
       "validators": [
         "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -526,8 +586,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8110,
     "httpPort": 8099,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "genesis" : {
       "validators": [
         "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -558,8 +623,13 @@ if [ "$DEPLOY" = true ]; then
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
     "wsPort": 8111,
     "httpPort": 8100,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "minValidators": 4,
     "genesis" : {
       "validators": [
         "0x7588b0f553d1910266089c58822e1120db47e572",

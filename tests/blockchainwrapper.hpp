@@ -9,7 +9,6 @@ See the LICENSE.txt file in the project root for more information.
 #define BLOCKCHAINWRAPPER_H
 
 #include "../src/core/storage.h"
-#include "../src/core/rdpos.h"
 #include "../src/core/state.h"
 #include "../src/net/p2p/managernormal.h"
 #include "../src/net/http/httpserver.h"
@@ -19,34 +18,37 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/utils/utils.h"
 
 /**
- * Simple wrapper struct for management all blockchain related objects
- * Allow direct access to the underlying objects, does not apply any logic or checks.
- * But initialize them properly in the constructor
+ * Simple wrapper struct for management of all blockchain related objects.
+ * Initializes them properly in the constructor, allowing direct access to the
+ * underlying objects, but does not apply any logic or checks.
  */
-
 struct TestBlockchainWrapper {
-  const Options options;        ///< Pointer to the options singleton.
-  DB db;                  ///< Pointer to the database.
-  Storage storage;        ///< Pointer to the blockchain storage.
-  State state;            ///< Pointer to the blockchain state.
-  rdPoS rdpos;            ///< Pointer to the rdPoS object (consensus).
-  P2P::ManagerNormal p2p; ///< Pointer to the P2P connection manager.
-  HTTPServer http;        ///< Pointer to the HTTP server.
+  const Options options;  ///< Options singleton.
+  DB db;                  ///< Database.
+  Storage storage;        ///< Blockchain storage.
+  State state;            ///< Blockchain state.
+  P2P::ManagerNormal p2p; ///< P2P connection manager.
+  HTTPServer http;        ///< HTTP server.
+
+  /**
+   * Constructor.
+   * @param options_ Reference to the Options singleton.
+   */
   explicit TestBlockchainWrapper(const Options& options_) :
     options(options_),
     db(options.getRootPath() + "/db"),
     storage(db, options),
-    state(db, storage, rdpos, p2p, options),
-    rdpos(db, storage, p2p, options, state),
-    p2p(boost::asio::ip::address::from_string("127.0.0.1"), rdpos, options, storage, state),
+    state(db, storage, p2p, options),
+    p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
     http(state, storage, p2p, options) {};
 
+  /// Destructor.
   ~TestBlockchainWrapper() {
-    rdpos.stoprdPoSWorker();
+    state.rdposStopWorker();
     p2p.stopDiscovery();
     p2p.stop();
     http.stop();
   }
 };
 
-#endif // SDKTESTSUITE_H
+#endif // BLOCKCHAINWRAPPER_H

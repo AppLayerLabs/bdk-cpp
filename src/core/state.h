@@ -27,8 +27,8 @@ class State {
     const Options& options_;  ///< Reference to the options singleton.
     DB& db_;  ///< Reference to the database.
     Storage& storage_;  ///< Reference to the blockchain's storage.
-    rdPoS& rdpos_;  ///< Reference to the rdPoS object.
     P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
+    rdPoS rdpos_; ///< rdPoS object (consensus).
     ContractManager contractManager_; ///< Contract Manager.
     std::unordered_map<Address, Account, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     std::unordered_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
@@ -65,14 +65,39 @@ class State {
      * Constructor.
      * @param db Pointer to the database.
      * @param storage Pointer to the blockchain's storage.
-     * @param rdpos Pointer to the rdPoS object.
      * @param p2pManager Pointer to the P2P connection manager.
      * @param options Pointer to the options singleton.
      * @throw DynamicException on any database size mismatch.
      */
-    State(DB& db, Storage& storage, rdPoS& rdpos, P2P::ManagerNormal& p2pManager, const Options& options);
+    State(DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const Options& options);
 
     ~State(); ///< Destructor.
+
+    // ======================================================================
+    // RDPOS WRAPPER FUNCTIONS
+    // ======================================================================
+
+    ///@{
+    /** Wrapper for the respective rdPoS function. */
+    const std::set<Validator>& rdposGetValidators() const { return this->rdpos_.getValidators(); }
+    const std::vector<Validator>& rdposGetRandomList() const { return this->rdpos_.getRandomList(); }
+    const std::unordered_map<Hash, TxValidator, SafeHash> rdposGetMempool() const { return this->rdpos_.getMempool(); }
+    const Hash& rdposGetBestRandomSeed() const { return this->rdpos_.getBestRandomSeed(); }
+    bool rdposGetIsValidator() const { return this->rdpos_.getIsValidator(); }
+    const uint32_t& rdposGetMinValidators() const { return this->rdpos_.getMinValidators(); }
+    void rdposClearMempool() { return this->rdpos_.clearMempool(); }
+    bool rdposValidateBlock(const Block& block) const { return this->rdpos_.validateBlock(block); }
+    Hash rdposProcessBlock(const Block& block) { return this->rdpos_.processBlock(block); }
+    void rdposSignBlock(Block& block) { this->rdpos_.signBlock(block); }
+    bool rdposAddValidatorTx(const TxValidator& tx) { return this->rdpos_.addValidatorTx(tx); }
+    const std::atomic<bool>& rdposCanCreateBlock() const { return this->rdpos_.canCreateBlock(); }
+    void rdposStartWorker() { this->rdpos_.startrdPoSWorker(); }
+    void rdposStopWorker() { this->rdpos_.stoprdPoSWorker(); }
+    ///@}
+
+    // ======================================================================
+    // STATE FUNCTIONS
+    // ======================================================================
 
     /**
      * Get the native balance of an account in the state.

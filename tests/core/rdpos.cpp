@@ -65,8 +65,13 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
         serverPort,
         9999,
+        11,
+        11,
+        200,
+        50,
         2000,
         10000,
+        4,
         discoveryNodes,
         genesis,
         genesisTimestamp,
@@ -83,8 +88,13 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
       serverPort,
       9999,
+      11,
+      11,
+      200,
+      50,
       2000,
       10000,
+      4,
       discoveryNodes,
       genesis,
       genesisTimestamp,
@@ -96,21 +106,15 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
   }
 }
 
-/*    Options(const std::string& rootPath,
-            const std::string& web3clientVersion,
-            const uint64_t& version,
-            const uint64_t& chainID,
-            const uint16_t& wsPort,
-            const uint16_t& httpPort); */
 // This creates a valid block given the state within the rdPoS class.
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
-Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, rdPoS& rdpos, Storage& storage, const std::vector<TxBlock>& txs = {}) {
-  auto validators = rdpos.getValidators();
-  auto randomList = rdpos.getRandomList();
+Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {}) {
+  auto validators = state.rdposGetValidators();
+  auto randomList = state.rdposGetRandomList();
 
   Hash blockSignerPrivKey;           // Private key for the block signer.
-  std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
+  std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS' minValidators.
   orderedPrivKeys.reserve(4);
   for (const auto& privKey : validatorPrivKeys) {
     if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
@@ -119,7 +123,7 @@ Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, rdPoS& rdpos,
     }
   }
 
-  for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+  for (uint64_t i = 1; i < state.rdposGetMinValidators() + 1; i++) {
     for (const auto& privKey : validatorPrivKeys) {
       if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
         orderedPrivKeys.push_back(privKey);
@@ -163,11 +167,11 @@ Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, rdPoS& rdpos,
   }
   // Append the transactions to the block.
   for (const auto& tx : randomHashTxs) {
-    rdpos.addValidatorTx(tx);
+    state.rdposAddValidatorTx(tx);
     block.appendTxValidator(tx);
   }
   for (const auto& tx : randomTxs) {
-    rdpos.addValidatorTx(tx);
+    state.rdposAddValidatorTx(tx);
     block.appendTxValidator(tx);
   }
   for (const auto& tx : txs) {
@@ -175,8 +179,8 @@ Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, rdPoS& rdpos,
   }
 
   // Check rdPoS mempool.
-  auto rdPoSmempool = rdpos.getMempool();
-  REQUIRE(rdpos.getMempool().size() == 8);
+  auto rdPoSmempool = state.rdposGetMempool();
+  REQUIRE(state.rdposGetMempool().size() == 8);
   for (const auto& tx : randomHashTxs) {
     REQUIRE(rdPoSmempool.contains(tx.hash()));
   }
@@ -199,8 +203,8 @@ namespace TRdPoS {
         PrivKey validatorKey = PrivKey();
         auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, true, testDumpPath + "/rdPoSStartup");
 
-        auto validators = blockchainWrapper.rdpos.getValidators();
-        REQUIRE(blockchainWrapper.rdpos.getValidators().size() == 8);
+        auto validators = blockchainWrapper.state.rdposGetValidators();
+        REQUIRE(blockchainWrapper.state.rdposGetValidators().size() == 8);
         REQUIRE(validators.contains(Address(Hex::toBytes("1531bfdf7d48555a0034e4647fa46d5a04c002c3"))));
         REQUIRE(validators.contains(Address(Hex::toBytes("e3dff2cc3f367df7d0254c834a0c177064d7c7f5"))));
         REQUIRE(validators.contains(Address(Hex::toBytes("24e10d8ebe80abd3d3fddd89a26f08f3888d1380"))));
@@ -209,10 +213,10 @@ namespace TRdPoS {
         REQUIRE(validators.contains(Address(Hex::toBytes("50d2ce9815e0e2354de7834f6fdd4d6946442a24"))));
         REQUIRE(validators.contains(Address(Hex::toBytes("7c2b2a0a75e10b49e652d99bba8afee3a6bc78dd"))));
         REQUIRE(validators.contains(Address(Hex::toBytes("6e67067edc1b4837b67c0b1def689eddee257521"))));
-        REQUIRE(blockchainWrapper.rdpos.getBestRandomSeed() == Hash()); // Genesis blocks randomness is 0.
+        REQUIRE(blockchainWrapper.state.rdposGetBestRandomSeed() == Hash()); // Genesis blocks randomness is 0.
 
-        auto randomList = blockchainWrapper.rdpos.getRandomList();
-        validatorsList = blockchainWrapper.rdpos.getValidators();
+        auto randomList = blockchainWrapper.state.rdposGetRandomList();
+        validatorsList = blockchainWrapper.state.rdposGetValidators();
         REQUIRE(randomList.size() == 8);
         for (const auto& i : randomList) {
           REQUIRE(validatorsList.contains(i));
@@ -228,11 +232,11 @@ namespace TRdPoS {
         REQUIRE(randomList[6] == Address(Hex::toBytes("e3dff2cc3f367df7d0254c834a0c177064d7c7f5")));
         REQUIRE(randomList[7] == Address(Hex::toBytes("098ff62812043f5106db718e5c4349111de3b6b4")));
       }
-      
+
       PrivKey validatorKey = PrivKey();
       auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, false, testDumpPath + "/rdPoSStartup");
 
-      auto validators = blockchainWrapper.rdpos.getValidators();
+      auto validators = blockchainWrapper.state.rdposGetValidators();
       REQUIRE(validators == validatorsList);
     }
 
@@ -240,9 +244,9 @@ namespace TRdPoS {
       PrivKey validatorKey = PrivKey();
       auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, true, testDumpPath + "/rdPoSValidateBlockOneBlock");
 
-      auto block = createValidBlock(validatorPrivKeysRdpos, blockchainWrapper.rdpos, blockchainWrapper.storage);
+      auto block = createValidBlock(validatorPrivKeysRdpos, blockchainWrapper.state, blockchainWrapper.storage);
       // Validate the block on rdPoS
-      REQUIRE(blockchainWrapper.rdpos.validateBlock(block));
+      REQUIRE(blockchainWrapper.state.rdposValidateBlock(block));
     }
 
     SECTION ("rdPoS validateBlock(), ten block from genesis") {
@@ -254,13 +258,13 @@ namespace TRdPoS {
 
         for (uint64_t i = 0; i < 10; ++i) {
           // Create a valid block, with the correct rdPoS transactions
-          auto block = createValidBlock(validatorPrivKeysRdpos, blockchainWrapper.rdpos, blockchainWrapper.storage);
+          auto block = createValidBlock(validatorPrivKeysRdpos, blockchainWrapper.state, blockchainWrapper.storage);
 
           // Validate the block on rdPoS
-          REQUIRE(blockchainWrapper.rdpos.validateBlock(block));
+          REQUIRE(blockchainWrapper.state.rdposValidateBlock(block));
 
           // Process block on rdPoS.
-          blockchainWrapper.rdpos.processBlock(block);
+          blockchainWrapper.state.rdposProcessBlock(block);
 
           // Add the block to the storage.
           blockchainWrapper.storage.pushBack(std::move(block));
@@ -269,18 +273,18 @@ namespace TRdPoS {
         // We expect to have moved 10 blocks forward.
         auto latestBlock = blockchainWrapper.storage.latest();
         REQUIRE(latestBlock->getNHeight() == 10);
-        REQUIRE(latestBlock->getBlockRandomness() == blockchainWrapper.rdpos.getBestRandomSeed());
+        REQUIRE(latestBlock->getBlockRandomness() == blockchainWrapper.state.rdposGetBestRandomSeed());
 
-        expectedRandomList = blockchainWrapper.rdpos.getRandomList();
-        expectedRandomnessFromBestBlock = blockchainWrapper.rdpos.getBestRandomSeed();
+        expectedRandomList = blockchainWrapper.state.rdposGetRandomList();
+        expectedRandomnessFromBestBlock = blockchainWrapper.state.rdposGetBestRandomSeed();
       }
-      
+
       PrivKey validatorKey = PrivKey();
       // Initialize same DB and storage as before.
       auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, false, testDumpPath + "/rdPoSValidateBlockTenBlocks");
 
-      REQUIRE(blockchainWrapper.rdpos.getBestRandomSeed() == expectedRandomnessFromBestBlock);
-      REQUIRE(blockchainWrapper.rdpos.getRandomList() == expectedRandomList);
+      REQUIRE(blockchainWrapper.state.rdposGetBestRandomSeed() == expectedRandomnessFromBestBlock);
+      REQUIRE(blockchainWrapper.state.rdposGetRandomList() == expectedRandomList);
     }
   }
 
@@ -290,7 +294,7 @@ namespace TRdPoS {
       std::string testDumpPath = Utils::getTestDumpPath();
       PrivKey validatorKey1 = PrivKey();
       auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorKey1, 8080, true, testDumpPath + "/rdPosBasicNetworkNode1");
-      
+
       PrivKey validatorKey2 = PrivKey();
       auto blockchainWrapper2 = initialize(validatorPrivKeysRdpos, validatorKey2, 8081, true, testDumpPath + "/rdPosBasicNetworkNode2");
 
@@ -305,11 +309,11 @@ namespace TRdPoS {
 
       // Create valid TxValidator transactions (8 in total), append them to node 1's storage.
       // After appending to node 1's storage, broadcast them to all nodes.
-      auto validators = blockchainWrapper1.rdpos.getValidators();
-      auto randomList = blockchainWrapper1.rdpos.getRandomList();
+      auto validators = blockchainWrapper1.state.rdposGetValidators();
+      auto randomList = blockchainWrapper1.state.rdposGetRandomList();
 
       Hash blockSignerPrivKey;           // Private key for the block signer.
-      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS' minValidators.
       orderedPrivKeys.reserve(4);
       for (const auto& privKey : validatorPrivKeysRdpos) {
         if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
@@ -318,7 +322,7 @@ namespace TRdPoS {
         }
       }
 
-      for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+      for (uint64_t i = 1; i < blockchainWrapper1.state.rdposGetMinValidators() + 1; i++) {
         for (const auto& privKey : validatorPrivKeysRdpos) {
           if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
             orderedPrivKeys.push_back(privKey);
@@ -358,7 +362,7 @@ namespace TRdPoS {
       }
       // Append the transactions to the block.
       for (const auto& tx : txValidators) {
-        REQUIRE(blockchainWrapper1.rdpos.addValidatorTx(tx));
+        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
       }
 
       // Broadcast the transactions
@@ -368,14 +372,14 @@ namespace TRdPoS {
 
       std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
-      auto node1Mempool = blockchainWrapper1.rdpos.getMempool();
-      auto node2Mempool = blockchainWrapper2.rdpos.getMempool();
+      auto node1Mempool = blockchainWrapper1.state.rdposGetMempool();
+      auto node2Mempool = blockchainWrapper2.state.rdposGetMempool();
 
       // As transactions were broadcasted, they should be included in both nodes.
       REQUIRE(node1Mempool == node2Mempool);
 
       // Clear mempool from node 1.
-      blockchainWrapper1.rdpos.clearMempool();
+      blockchainWrapper1.state.rdposClearMempool();
 
       // Request the transactions from node 1 to node 2
       std::vector<P2P::NodeID> nodesIds = blockchainWrapper1.p2p.getSessionsIDs();
@@ -386,11 +390,11 @@ namespace TRdPoS {
 
       // Append transactions back to node 1 mempool.
       for (const auto& tx : transactionList) {
-        REQUIRE(blockchainWrapper1.rdpos.addValidatorTx(tx));
+        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
       }
 
       // Check that the mempool is the same as before.
-      node1Mempool = blockchainWrapper1.rdpos.getMempool();
+      node1Mempool = blockchainWrapper1.state.rdposGetMempool();
       REQUIRE(node1Mempool == node2Mempool);
     }
 
@@ -446,8 +450,13 @@ namespace TRdPoS {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          4,
           peers,
           genesis,
           genesisTimestamp,
@@ -550,11 +559,11 @@ namespace TRdPoS {
 
       // Create valid TxValidator transactions (8 in total), append them to node 1's storage.
       // After appending to node 1's storage, broadcast them to all nodes.
-      auto validators = blockchainWrapper1.rdpos.getValidators();
-      auto randomList = blockchainWrapper1.rdpos.getRandomList();
+      auto validators = blockchainWrapper1.state.rdposGetValidators();
+      auto randomList = blockchainWrapper1.state.rdposGetRandomList();
 
       Hash blockSignerPrivKey;           // Private key for the block signer.
-      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS' minValidators.
       orderedPrivKeys.reserve(4);
       for (const auto& privKey : validatorPrivKeysRdpos) {
         if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
@@ -563,7 +572,7 @@ namespace TRdPoS {
         }
       }
 
-      for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+      for (uint64_t i = 1; i < blockchainWrapper1.state.rdposGetMinValidators() + 1; i++) {
         for (const auto& privKey : validatorPrivKeysRdpos) {
           if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
             orderedPrivKeys.push_back(privKey);
@@ -602,7 +611,7 @@ namespace TRdPoS {
       }
       // Append the transactions to the block.
       for (const auto& tx : txValidators) {
-        REQUIRE(blockchainWrapper1.rdpos.addValidatorTx(tx));
+        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
       }
 
       // Broadcast transactions to all nodes.
@@ -611,18 +620,18 @@ namespace TRdPoS {
       }
 
       /// Wait till transactions are broadcasted
-      auto finalMempool = blockchainWrapper1.rdpos.getMempool();
+      auto finalMempool = blockchainWrapper1.state.rdposGetMempool();
 
       auto broadcastFuture = std::async(std::launch::async, [&]() {
-        while(blockchainWrapper2.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool() ||
-            blockchainWrapper3.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool() ||
-            blockchainWrapper4.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool() ||
-            blockchainWrapper5.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool() ||
-            blockchainWrapper6.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool() ||
-            blockchainWrapper7.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool() ||
-            blockchainWrapper8.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool() ||
-            blockchainWrapper9.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool() ||
-            blockchainWrapper10.rdpos.getMempool() != blockchainWrapper1.rdpos.getMempool()) {
+        while(blockchainWrapper2.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool() ||
+            blockchainWrapper3.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool() ||
+            blockchainWrapper4.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool() ||
+            blockchainWrapper5.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool() ||
+            blockchainWrapper6.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool() ||
+            blockchainWrapper7.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool() ||
+            blockchainWrapper8.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool() ||
+            blockchainWrapper9.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool() ||
+            blockchainWrapper10.state.rdposGetMempool() != blockchainWrapper1.state.rdposGetMempool()) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
       });
@@ -630,16 +639,16 @@ namespace TRdPoS {
       REQUIRE(broadcastFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
       // Check if all mempools matchs
-      auto node1Mempool = blockchainWrapper1.rdpos.getMempool();
-      auto node2Mempool = blockchainWrapper2.rdpos.getMempool();
-      auto node3Mempool = blockchainWrapper3.rdpos.getMempool();
-      auto node4Mempool = blockchainWrapper4.rdpos.getMempool();
-      auto node5Mempool = blockchainWrapper5.rdpos.getMempool();
-      auto node6Mempool = blockchainWrapper6.rdpos.getMempool();
-      auto node7Mempool = blockchainWrapper7.rdpos.getMempool();
-      auto node8Mempool = blockchainWrapper8.rdpos.getMempool();
-      auto node9Mempool = blockchainWrapper9.rdpos.getMempool();
-      auto node10Mempool = blockchainWrapper10.rdpos.getMempool();
+      auto node1Mempool = blockchainWrapper1.state.rdposGetMempool();
+      auto node2Mempool = blockchainWrapper2.state.rdposGetMempool();
+      auto node3Mempool = blockchainWrapper3.state.rdposGetMempool();
+      auto node4Mempool = blockchainWrapper4.state.rdposGetMempool();
+      auto node5Mempool = blockchainWrapper5.state.rdposGetMempool();
+      auto node6Mempool = blockchainWrapper6.state.rdposGetMempool();
+      auto node7Mempool = blockchainWrapper7.state.rdposGetMempool();
+      auto node8Mempool = blockchainWrapper8.state.rdposGetMempool();
+      auto node9Mempool = blockchainWrapper9.state.rdposGetMempool();
+      auto node10Mempool = blockchainWrapper10.state.rdposGetMempool();
 
       REQUIRE(node1Mempool == node2Mempool);
       REQUIRE(node2Mempool == node3Mempool);
@@ -691,8 +700,13 @@ namespace TRdPoS {
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
       8090,
       9999,
+      11,
+      11,
+      200,
+      50,
       2000,
       10000,
+      4,
       discoveryNodes,
       genesis,
       genesisTimestamp,
@@ -702,16 +716,19 @@ namespace TRdPoS {
     );
     P2P::ManagerDiscovery p2pDiscovery(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
-    // References for the rdPoS workers vector.
-    std::vector<std::reference_wrapper<rdPoS>> rdPoSreferences;
-    rdPoSreferences.emplace_back(blockchainWrapper1.rdpos);
-    rdPoSreferences.emplace_back(blockchainWrapper2.rdpos);
-    rdPoSreferences.emplace_back(blockchainWrapper3.rdpos);
-    rdPoSreferences.emplace_back(blockchainWrapper4.rdpos);
-    rdPoSreferences.emplace_back(blockchainWrapper5.rdpos);
-    rdPoSreferences.emplace_back(blockchainWrapper6.rdpos);
-    rdPoSreferences.emplace_back(blockchainWrapper7.rdpos);
-    rdPoSreferences.emplace_back(blockchainWrapper8.rdpos);
+    // Vector of references for the states' rdPoS workers
+    // (rdPoS is exclusively owned by State and can't be exposed in any way,
+    // so we have to pass the whole State object to access rdPoS functionality
+    // via wrapper functions from the State)
+    std::vector<std::reference_wrapper<State>> rdPoSreferences;
+    rdPoSreferences.emplace_back(blockchainWrapper1.state);
+    rdPoSreferences.emplace_back(blockchainWrapper2.state);
+    rdPoSreferences.emplace_back(blockchainWrapper3.state);
+    rdPoSreferences.emplace_back(blockchainWrapper4.state);
+    rdPoSreferences.emplace_back(blockchainWrapper5.state);
+    rdPoSreferences.emplace_back(blockchainWrapper6.state);
+    rdPoSreferences.emplace_back(blockchainWrapper7.state);
+    rdPoSreferences.emplace_back(blockchainWrapper8.state);
 
     // Start servers
     p2pDiscovery.start();
@@ -736,14 +753,10 @@ namespace TRdPoS {
 
     // Wait for connection towards discovery node.
     auto discoveryFuture = std::async(std::launch::async, [&]() {
-      while(p2pDiscovery.getSessionsIDs().size() != 8)
-      {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
+      while (p2pDiscovery.getSessionsIDs().size() != 8) std::this_thread::sleep_for(std::chrono::milliseconds(100));
     });
 
     REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
-
 
     REQUIRE(p2pDiscovery.getSessionsIDs().size() == 8);
     REQUIRE(blockchainWrapper1.p2p.getSessionsIDs().size() == 1);
@@ -794,48 +807,46 @@ namespace TRdPoS {
     blockchainWrapper8.p2p.stopDiscovery();
     p2pDiscovery.stopDiscovery();
 
-
     // After a while, the discovery thread should have found all the nodes and connected between each other.
+    REQUIRE(blockchainWrapper1.state.rdposGetIsValidator());
+    REQUIRE(blockchainWrapper2.state.rdposGetIsValidator());
+    REQUIRE(blockchainWrapper3.state.rdposGetIsValidator());
+    REQUIRE(blockchainWrapper4.state.rdposGetIsValidator());
+    REQUIRE(blockchainWrapper5.state.rdposGetIsValidator());
+    REQUIRE(blockchainWrapper6.state.rdposGetIsValidator());
+    REQUIRE(blockchainWrapper7.state.rdposGetIsValidator());
+    REQUIRE(blockchainWrapper8.state.rdposGetIsValidator());
 
-    REQUIRE(blockchainWrapper1.rdpos.getIsValidator());
-    REQUIRE(blockchainWrapper2.rdpos.getIsValidator());
-    REQUIRE(blockchainWrapper3.rdpos.getIsValidator());
-    REQUIRE(blockchainWrapper4.rdpos.getIsValidator());
-    REQUIRE(blockchainWrapper5.rdpos.getIsValidator());
-    REQUIRE(blockchainWrapper6.rdpos.getIsValidator());
-    REQUIRE(blockchainWrapper7.rdpos.getIsValidator());
-    REQUIRE(blockchainWrapper8.rdpos.getIsValidator());
-
-    blockchainWrapper1.rdpos.startrdPoSWorker();
-    blockchainWrapper2.rdpos.startrdPoSWorker();
-    blockchainWrapper3.rdpos.startrdPoSWorker();
-    blockchainWrapper4.rdpos.startrdPoSWorker();
-    blockchainWrapper5.rdpos.startrdPoSWorker();
-    blockchainWrapper6.rdpos.startrdPoSWorker();
-    blockchainWrapper7.rdpos.startrdPoSWorker();
-    blockchainWrapper8.rdpos.startrdPoSWorker();
+    blockchainWrapper1.state.rdposStartWorker();
+    blockchainWrapper2.state.rdposStartWorker();
+    blockchainWrapper3.state.rdposStartWorker();
+    blockchainWrapper4.state.rdposStartWorker();
+    blockchainWrapper5.state.rdposStartWorker();
+    blockchainWrapper6.state.rdposStartWorker();
+    blockchainWrapper7.state.rdposStartWorker();
+    blockchainWrapper8.state.rdposStartWorker();
 
     // Loop for block creation.
     uint64_t blocks = 0;
     while (blocks < 10) {
       auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
-        while (blockchainWrapper1.rdpos.getMempool().size() != 8) {
+        while (blockchainWrapper1.state.rdposGetMempool().size() != 8) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
       });
 
       REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
-      for (auto &blockCreator: rdPoSreferences) {
-        if (blockCreator.get().canCreateBlock()) {
+      for (auto& blockCreator: rdPoSreferences) {
+        if (blockCreator.get().rdposCanCreateBlock()) {
           // Create the block.
-          auto mempool = blockCreator.get().getMempool();
-          auto randomList = blockCreator.get().getRandomList();
+          auto mempool = blockCreator.get().rdposGetMempool();
+          auto randomList = blockCreator.get().rdposGetRandomList();
           // Order the transactions in the proper manner.
           std::vector<TxValidator> randomHashTxs;
           std::vector<TxValidator> randomnessTxs;
           uint64_t i = 1;
-          while (randomHashTxs.size() != rdPoS::minValidators) {
+          while (randomHashTxs.size() != blockCreator.get().rdposGetMinValidators()) {
             for (const auto& [txHash, tx]: mempool) {
               if (tx.getFrom() == randomList[i]) {
                 if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
@@ -847,7 +858,7 @@ namespace TRdPoS {
             }
           }
           i = 1;
-          while (randomnessTxs.size() != rdPoS::minValidators) {
+          while (randomnessTxs.size() != blockCreator.get().rdposGetMinValidators()) {
             for (const auto& [txHash, tx]: mempool) {
               if (tx.getFrom() == randomList[i]) {
                 if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
@@ -870,39 +881,40 @@ namespace TRdPoS {
             block.appendTxValidator(tx);
           }
 
-          blockCreator.get().signBlock(block);
-          // Validate the block.
-          REQUIRE(blockchainWrapper2.rdpos.validateBlock(block));
-          REQUIRE(blockchainWrapper3.rdpos.validateBlock(block));
-          REQUIRE(blockchainWrapper4.rdpos.validateBlock(block));
-          REQUIRE(blockchainWrapper5.rdpos.validateBlock(block));
-          REQUIRE(blockchainWrapper1.rdpos.validateBlock(block));
-          REQUIRE(blockchainWrapper8.rdpos.validateBlock(block));
-          REQUIRE(blockchainWrapper6.rdpos.validateBlock(block));
-          REQUIRE(blockchainWrapper7.rdpos.validateBlock(block));
+          blockCreator.get().rdposSignBlock(block);
 
-          blockchainWrapper1.rdpos.processBlock(block);
+          // Validate the block.
+          REQUIRE(blockchainWrapper2.state.rdposValidateBlock(block));
+          REQUIRE(blockchainWrapper3.state.rdposValidateBlock(block));
+          REQUIRE(blockchainWrapper4.state.rdposValidateBlock(block));
+          REQUIRE(blockchainWrapper5.state.rdposValidateBlock(block));
+          REQUIRE(blockchainWrapper1.state.rdposValidateBlock(block));
+          REQUIRE(blockchainWrapper8.state.rdposValidateBlock(block));
+          REQUIRE(blockchainWrapper6.state.rdposValidateBlock(block));
+          REQUIRE(blockchainWrapper7.state.rdposValidateBlock(block));
+
+          blockchainWrapper1.state.rdposProcessBlock(block);
           blockchainWrapper1.storage.pushBack(Block(block));
 
-          blockchainWrapper2.rdpos.processBlock(block);
+          blockchainWrapper2.state.rdposProcessBlock(block);
           blockchainWrapper2.storage.pushBack(Block(block));
 
-          blockchainWrapper3.rdpos.processBlock(block);
+          blockchainWrapper3.state.rdposProcessBlock(block);
           blockchainWrapper3.storage.pushBack(Block(block));
 
-          blockchainWrapper4.rdpos.processBlock(block);
+          blockchainWrapper4.state.rdposProcessBlock(block);
           blockchainWrapper4.storage.pushBack(Block(block));
 
-          blockchainWrapper5.rdpos.processBlock(block);
+          blockchainWrapper5.state.rdposProcessBlock(block);
           blockchainWrapper5.storage.pushBack(Block(block));
 
-          blockchainWrapper6.rdpos.processBlock(block);
+          blockchainWrapper6.state.rdposProcessBlock(block);
           blockchainWrapper6.storage.pushBack(Block(block));
 
-          blockchainWrapper7.rdpos.processBlock(block);
+          blockchainWrapper7.state.rdposProcessBlock(block);
           blockchainWrapper7.storage.pushBack(Block(block));
 
-          blockchainWrapper8.rdpos.processBlock(block);
+          blockchainWrapper8.state.rdposProcessBlock(block);
           blockchainWrapper8.storage.pushBack(Block(block));
           ++blocks;
           break;
@@ -910,14 +922,14 @@ namespace TRdPoS {
       }
     }
 
-    blockchainWrapper1.rdpos.stoprdPoSWorker();
-    blockchainWrapper2.rdpos.stoprdPoSWorker();
-    blockchainWrapper3.rdpos.stoprdPoSWorker();
-    blockchainWrapper4.rdpos.stoprdPoSWorker();
-    blockchainWrapper5.rdpos.stoprdPoSWorker();
-    blockchainWrapper6.rdpos.stoprdPoSWorker();
-    blockchainWrapper7.rdpos.stoprdPoSWorker();
-    blockchainWrapper8.rdpos.stoprdPoSWorker();
+    blockchainWrapper1.state.rdposStopWorker();
+    blockchainWrapper2.state.rdposStopWorker();
+    blockchainWrapper3.state.rdposStopWorker();
+    blockchainWrapper4.state.rdposStopWorker();
+    blockchainWrapper5.state.rdposStopWorker();
+    blockchainWrapper6.state.rdposStopWorker();
+    blockchainWrapper7.state.rdposStopWorker();
+    blockchainWrapper8.state.rdposStopWorker();
     // Sleep so it can conclude the last operations.
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }

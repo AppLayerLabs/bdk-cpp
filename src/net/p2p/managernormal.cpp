@@ -207,7 +207,7 @@ namespace P2P{
       this->disconnectSession(nodeId);
       return;
     }
-    this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestValidatorTxs(*message, this->rdpos_.getMempool())));
+    this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestValidatorTxs(*message, this->state_.rdposGetMempool())));
   }
 
   void ManagerNormal::handleTxRequest(

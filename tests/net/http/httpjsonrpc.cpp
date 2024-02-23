@@ -98,7 +98,7 @@ const std::vector<Hash> validatorPrivKeysHttpJsonRpc {
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
 // Definition from state.cpp, when linking, the compiler should find the function.
-Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, rdPoS& rdpos, Storage& storage, const std::vector<TxBlock>& txs = {});
+Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
 
 // Blockchain wrapper initializer for testing purposes.
 // Defined in rdpos.cpp
@@ -165,7 +165,7 @@ namespace THTTPJsonRPC{
         targetExpectedValue += transactions.back().getValue();
       }
 
-      auto newBestBlock = createValidBlock(validatorPrivKeysHttpJsonRpc, blockchainWrapper.rdpos, blockchainWrapper.storage, transactions);
+      auto newBestBlock = createValidBlock(validatorPrivKeysHttpJsonRpc, blockchainWrapper.state, blockchainWrapper.storage, transactions);
 
       REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
 
