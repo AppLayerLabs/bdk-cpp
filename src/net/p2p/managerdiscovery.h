@@ -68,7 +68,8 @@ namespace P2P {
        */
       ManagerDiscovery(
         const boost::asio::ip::address& hostIp, const Options& options
-      ) : ManagerBase(hostIp, NodeType::DISCOVERY_NODE, 200, options) {};
+      ) : ManagerBase(hostIp, NodeType::DISCOVERY_NODE, options, options.getMinDiscoveryConns(), options.getMaxDiscoveryConns())
+      {}
 
       /// Destructor. Automatically stops the manager.
       ~ManagerDiscovery() { this->stop(); }

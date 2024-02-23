@@ -84,6 +84,7 @@ class State {
     const std::unordered_map<Hash, TxValidator, SafeHash> rdposGetMempool() const { return this->rdpos_.getMempool(); }
     const Hash& rdposGetBestRandomSeed() const { return this->rdpos_.getBestRandomSeed(); }
     bool rdposGetIsValidator() const { return this->rdpos_.getIsValidator(); }
+    const uint32_t& rdposGetMinValidators() const { return this->rdpos_.getMinValidators(); }
     void rdposClearMempool() { return this->rdpos_.clearMempool(); }
     bool rdposValidateBlock(const Block& block) const { return this->rdpos_.validateBlock(block); }
     Hash rdposProcessBlock(const Block& block) { return this->rdpos_.processBlock(block); }

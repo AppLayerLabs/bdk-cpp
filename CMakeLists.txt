@@ -33,7 +33,10 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # Always look for static libraries - "ZLIB_USE_STATIC_LIBS" was added in 3.24
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
 
-# Set project version inside the code
+# Set project version inside the code (forcefully so changes in the .in file are always reflected correctly to the compiler)
+if (EXISTS ${CMAKE_SOURCE_DIR}/src/utils/options.h)
+  file(REMOVE ${CMAKE_SOURCE_DIR}/src/utils/options.h)
+endif()
 configure_file(
   ${CMAKE_SOURCE_DIR}/src/utils/options.h.in
   ${CMAKE_SOURCE_DIR}/src/utils/options.h

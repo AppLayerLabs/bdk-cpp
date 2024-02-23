@@ -25,8 +25,13 @@ See the LICENSE.txt file in the project root for more information.
  *   "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
  *   "wsPort": 8086,
  *   "httpPort": 8095,
+ *   "minDiscoveryConns": 11,
+ *   "minNormalConns": 11,
+ *   "maxDiscoveryConns": 200,
+ *   "maxNormalConns": 50,
  *   "eventBlockCap": 2000,
  *   "eventLogCap": 10000,
+ *   "minValidators": 4,
  *   "genesis" : {
  *      "validators": [
  *        "0x7588b0f553d1910266089c58822e1120db47e572",
@@ -62,8 +67,13 @@ class Options {
     const uint64_t chainID_;  ///< Blockchain chain ID.
     const uint16_t wsPort_; ///< Websocket server port.
     const uint16_t httpPort_; ///< HTTP server port.
+    const uint16_t minDiscoveryConns_; ///< Minimum required simultaneous connections for Discovery nodes.
+    const uint16_t minNormalConns_; ///< Minimum required simultaneous connections for Normal nodes.
+    const uint16_t maxDiscoveryConns_; ///< Maximum allowed simultaneous connections for Discovery nodes.
+    const uint16_t maxNormalConns_; ///< Maximum allowed simultaneous connections for Normal nodes.
     const uint64_t eventBlockCap_;  ///< Maximum block range for querying contract events.
     const uint64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
+    const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
     const Address chainOwner_;  ///< Chain owner address (used by ContractManager for deploying contracts).
     const Address coinbase_;  ///< Coinbase address (if found), used by rdPoS.
     const bool isValidator_;  ///< Indicates whether the node is a Validator, set by constructor or if found on file.
@@ -83,8 +93,13 @@ class Options {
      * @param chainOwner Chain owner address.
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
+     * @param minDiscoveryConns Minimum required simultaneous connections for Discovery nodes.
+     * @param minNormalConns Minimum required simultaneous connections for Normal nodes.
+     * @param maxDiscoveryConns Maximum allowed simultaneous connections for Discovery nodes.
+     * @param maxNormalConns Maximum allowed simultaneous connections for Normal nodes.
      * @param eventBlockCap Block range limit for querying events.
      * @param eventLogCap Maximum number of events that can be queried.
+     * @param minValidators Minimum required number of Validators for creating and signing blocks.
      * @param discoveryNodes List of known Discovery nodes.
      * @param genesisBlock Genesis block.
      * @param genesisTimestamp Genesis timestamp.
@@ -96,7 +111,10 @@ class Options {
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
+      const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
+      const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
       const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
@@ -113,8 +131,13 @@ class Options {
      * @param chainOwner Chain owner address.
      * @param wsPort Websocket server port.
      * @param httpPort HTTP server port.
+     * @param minDiscoveryConns Minimum required simultaneous connections for Discovery nodes.
+     * @param minNormalConns Minimum required simultaneous connections for Normal nodes.
+     * @param maxDiscoveryConns Maximum allowed simultaneous connections for Discovery nodes.
+     * @param maxNormalConns Maximum allowed simultaneous connections for Normal nodes.
      * @param eventBlockCap Block range limit for querying events.
      * @param eventLogCap Maximum number of events that can be queried.
+     * @param minValidators Minimum required number of Validators for creating and signing blocks.
      * @param discoveryNodes List of known Discovery nodes.
      * @param genesisBlock Genesis block.
      * @param genesisTimestamp Genesis timestamp.
@@ -127,7 +150,10 @@ class Options {
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
       const uint16_t& wsPort, const uint16_t& httpPort,
+      const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
+      const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
       const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
@@ -147,8 +173,13 @@ class Options {
       chainOwner_(other.chainOwner_),
       wsPort_(other.wsPort_),
       httpPort_(other.httpPort_),
+      minDiscoveryConns_(other.minDiscoveryConns_),
+      minNormalConns_(other.minNormalConns_),
+      maxDiscoveryConns_(other.maxDiscoveryConns_),
+      maxNormalConns_(other.maxNormalConns_),
       eventBlockCap_(other.eventBlockCap_),
       eventLogCap_(other.eventLogCap_),
+      minValidators_(other.minValidators_),
       coinbase_(other.coinbase_),
       isValidator_(other.isValidator_),
       discoveryNodes_(other.discoveryNodes_),
@@ -169,8 +200,13 @@ class Options {
     const uint64_t& getChainID() const { return this->chainID_; }
     const uint16_t& getP2PPort() const { return this->wsPort_; }
     const uint16_t& getHttpPort() const { return this->httpPort_; }
+    const uint16_t& getMinDiscoveryConns() const { return this->minDiscoveryConns_; }
+    const uint16_t& getMinNormalConns() const { return this->minNormalConns_; }
+    const uint16_t& getMaxDiscoveryConns() const { return this->maxDiscoveryConns_; }
+    const uint16_t& getMaxNormalConns() const { return this->maxNormalConns_; }
     const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
     const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
+    const uint32_t& getMinValidators() const { return this->minValidators_; }
     const Address& getCoinbase() const { return this->coinbase_; }
     const bool& getIsValidator() const { return this->isValidator_; }
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }

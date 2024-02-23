@@ -137,7 +137,7 @@ void Syncer::doValidatorBlock() {
   std::vector<TxValidator> randomHashTxs;
   std::vector<TxValidator> randomnessTxs;
   uint64_t i = 1;
-  while (randomHashTxs.size() != rdPoS::minValidators) {
+  while (randomHashTxs.size() != this->blockchain_.state_.rdposGetMinValidators()) {
     for (const auto& [txHash, tx] : mempool) {
       if (this->stopSyncer_) return;
       if (tx.getFrom() == randomList[i] && tx.getFunctor() == Hex::toBytes("0xcfffe746")) {
@@ -148,7 +148,7 @@ void Syncer::doValidatorBlock() {
     }
   }
   i = 1;
-  while (randomnessTxs.size() != rdPoS::minValidators) {
+  while (randomnessTxs.size() != this->blockchain_.state_.rdposGetMinValidators()) {
     for (const auto& [txHash, tx] : mempool) {
       if (tx.getFrom() == randomList[i] && tx.getFunctor() == Hex::toBytes("0x6fc5a2d6")) {
         randomnessTxs.emplace_back(tx);

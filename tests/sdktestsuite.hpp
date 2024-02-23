@@ -133,8 +133,13 @@ class SDKTestSuite {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8080,
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          4,
           discoveryNodes,
           genesis,
           genesisTimestamp,
@@ -176,14 +181,14 @@ class SDKTestSuite {
       auto validators = state_.rdposGetValidators();
       auto randomList = state_.rdposGetRandomList();
       Hash blockSignerPrivKey;           // Private key for the block signer.
-      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS' minValidators.
       orderedPrivKeys.reserve(4);
       for (const auto& privKey : this->validatorPrivKeys()) {
         if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
           blockSignerPrivKey = privKey; break;
         }
       }
-      for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+      for (uint64_t i = 1; i < state_.rdposGetMinValidators() + 1; i++) {
         for (const auto& privKey : this->validatorPrivKeys()) {
           if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
             orderedPrivKeys.push_back(privKey); break;

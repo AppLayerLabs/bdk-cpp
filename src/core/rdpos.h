@@ -133,6 +133,7 @@ class rdPoS : public BaseContract {
     const bool isValidator_ = false;  ///< Indicates whether node is a Validator.
     RandomGen randomGen_; ///< Randomness generator (for use in seeding).
     Hash bestRandomSeed_; ///< Best randomness seed (taken from the last block).
+    const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
     mutable std::shared_mutex mutex_; ///< Mutex for managing read/write access to the class members.
 
     /**
@@ -148,8 +149,6 @@ class rdPoS : public BaseContract {
     /// Enum for transaction types.
     enum TxType { addValidator, removeValidator, randomHash, randomSeed };
 
-    /// Minimum number of required Validators for creating and signing blocks.
-    static const uint32_t minValidators = 4;
 
     /**
      * Constructor.
@@ -179,6 +178,7 @@ class rdPoS : public BaseContract {
     const Hash& getBestRandomSeed() const { std::shared_lock lock(this->mutex_); return this->bestRandomSeed_; }
     bool getIsValidator() const { return this->isValidator_; }
     UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey_); }
+    const uint32_t& getMinValidators() const { return this->minValidators_; }
     ///@}
 
     /**

@@ -65,8 +65,13 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
         serverPort,
         9999,
+        11,
+        11,
+        200,
+        50,
         2000,
         10000,
+        4,
         discoveryNodes,
         genesis,
         genesisTimestamp,
@@ -83,8 +88,13 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
       serverPort,
       9999,
+      11,
+      11,
+      200,
+      50,
       2000,
       10000,
+      4,
       discoveryNodes,
       genesis,
       genesisTimestamp,
@@ -96,12 +106,6 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
   }
 }
 
-/*    Options(const std::string& rootPath,
-            const std::string& web3clientVersion,
-            const uint64_t& version,
-            const uint64_t& chainID,
-            const uint16_t& wsPort,
-            const uint16_t& httpPort); */
 // This creates a valid block given the state within the rdPoS class.
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
@@ -110,7 +114,7 @@ Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state,
   auto randomList = state.rdposGetRandomList();
 
   Hash blockSignerPrivKey;           // Private key for the block signer.
-  std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
+  std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS' minValidators.
   orderedPrivKeys.reserve(4);
   for (const auto& privKey : validatorPrivKeys) {
     if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
@@ -119,7 +123,7 @@ Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state,
     }
   }
 
-  for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+  for (uint64_t i = 1; i < state.rdposGetMinValidators() + 1; i++) {
     for (const auto& privKey : validatorPrivKeys) {
       if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
         orderedPrivKeys.push_back(privKey);
@@ -309,7 +313,7 @@ namespace TRdPoS {
       auto randomList = blockchainWrapper1.state.rdposGetRandomList();
 
       Hash blockSignerPrivKey;           // Private key for the block signer.
-      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS' minValidators.
       orderedPrivKeys.reserve(4);
       for (const auto& privKey : validatorPrivKeysRdpos) {
         if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
@@ -318,7 +322,7 @@ namespace TRdPoS {
         }
       }
 
-      for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+      for (uint64_t i = 1; i < blockchainWrapper1.state.rdposGetMinValidators() + 1; i++) {
         for (const auto& privKey : validatorPrivKeysRdpos) {
           if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
             orderedPrivKeys.push_back(privKey);
@@ -446,8 +450,13 @@ namespace TRdPoS {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          4,
           peers,
           genesis,
           genesisTimestamp,
@@ -554,7 +563,7 @@ namespace TRdPoS {
       auto randomList = blockchainWrapper1.state.rdposGetRandomList();
 
       Hash blockSignerPrivKey;           // Private key for the block signer.
-      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS::minValidators.
+      std::vector<Hash> orderedPrivKeys; // Private keys for the rdPoS in the order of the random list, limited to rdPoS' minValidators.
       orderedPrivKeys.reserve(4);
       for (const auto& privKey : validatorPrivKeysRdpos) {
         if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[0]) {
@@ -563,7 +572,7 @@ namespace TRdPoS {
         }
       }
 
-      for (uint64_t i = 1; i < rdPoS::minValidators + 1; i++) {
+      for (uint64_t i = 1; i < blockchainWrapper1.state.rdposGetMinValidators() + 1; i++) {
         for (const auto& privKey : validatorPrivKeysRdpos) {
           if (Secp256k1::toAddress(Secp256k1::toUPub(privKey)) == randomList[i]) {
             orderedPrivKeys.push_back(privKey);
@@ -691,8 +700,13 @@ namespace TRdPoS {
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
       8090,
       9999,
+      11,
+      11,
+      200,
+      50,
       2000,
       10000,
+      4,
       discoveryNodes,
       genesis,
       genesisTimestamp,
@@ -832,7 +846,7 @@ namespace TRdPoS {
           std::vector<TxValidator> randomHashTxs;
           std::vector<TxValidator> randomnessTxs;
           uint64_t i = 1;
-          while (randomHashTxs.size() != rdPoS::minValidators) {
+          while (randomHashTxs.size() != blockCreator.get().rdposGetMinValidators()) {
             for (const auto& [txHash, tx]: mempool) {
               if (tx.getFrom() == randomList[i]) {
                 if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
@@ -844,7 +858,7 @@ namespace TRdPoS {
             }
           }
           i = 1;
-          while (randomnessTxs.size() != rdPoS::minValidators) {
+          while (randomnessTxs.size() != blockCreator.get().rdposGetMinValidators()) {
             for (const auto& [txHash, tx]: mempool) {
               if (tx.getFrom() == randomList[i]) {
                 if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {

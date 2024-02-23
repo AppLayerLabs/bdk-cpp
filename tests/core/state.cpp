@@ -414,8 +414,13 @@ namespace TState {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          4,
           discoveryNodes,
           genesis,
           genesisTimestamp,
@@ -634,8 +639,13 @@ namespace TState {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          4,
           discoveryNodes,
           genesis,
           genesisTimestamp,
@@ -788,7 +798,7 @@ namespace TState {
             std::vector<TxValidator> randomHashTxs;
             std::vector<TxValidator> randomnessTxs;
             uint64_t i = 1;
-            while (randomHashTxs.size() != rdPoS::minValidators) {
+            while (randomHashTxs.size() != blockCreator.get().rdposGetMinValidators()) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
                   if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
@@ -800,7 +810,7 @@ namespace TState {
               }
             }
             i = 1;
-            while (randomnessTxs.size() != rdPoS::minValidators) {
+            while (randomnessTxs.size() != blockCreator.get().rdposGetMinValidators()) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
                   if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
@@ -916,8 +926,13 @@ namespace TState {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          4,
           discoveryNodes,
           genesis,
           genesisTimestamp,
@@ -1090,7 +1105,7 @@ namespace TState {
             std::vector<TxValidator> randomHashTxs;
             std::vector<TxValidator> randomnessTxs;
             uint64_t i = 1;
-            while (randomHashTxs.size() != rdPoS::minValidators) {
+            while (randomHashTxs.size() != blockCreator.get().rdposGetMinValidators()) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
                   if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
@@ -1102,7 +1117,7 @@ namespace TState {
               }
             }
             i = 1;
-            while (randomnessTxs.size() != rdPoS::minValidators) {
+            while (randomnessTxs.size() != blockCreator.get().rdposGetMinValidators()) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
                   if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
@@ -1257,8 +1272,13 @@ namespace TState {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          4,
           discoveryNodes,
           genesis,
           genesisTimestamp,
@@ -1428,7 +1448,7 @@ namespace TState {
             std::vector<TxValidator> randomHashTxs;
             std::vector<TxValidator> randomnessTxs;
             uint64_t i = 1;
-            while (randomHashTxs.size() != rdPoS::minValidators) {
+            while (randomHashTxs.size() != blockCreator.get().rdposGetMinValidators()) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
                   if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
@@ -1440,7 +1460,7 @@ namespace TState {
               }
             }
             i = 1;
-            while (randomnessTxs.size() != rdPoS::minValidators) {
+            while (randomnessTxs.size() != blockCreator.get().rdposGetMinValidators()) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
                   if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
@@ -1617,8 +1637,13 @@ namespace TState {
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
           8090,
           9999,
+          11,
+          11,
+          200,
+          50,
           2000,
           10000,
+          4,
           discoveryNodes,
           genesis,
           genesisTimestamp,
@@ -1785,7 +1810,7 @@ namespace TState {
             std::vector<TxValidator> randomHashTxs;
             std::vector<TxValidator> randomnessTxs;
             uint64_t i = 1;
-            while (randomHashTxs.size() != rdPoS::minValidators) {
+            while (randomHashTxs.size() != blockCreator.get().rdposGetMinValidators()) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
                   if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
@@ -1797,7 +1822,7 @@ namespace TState {
               }
             }
             i = 1;
-            while (randomnessTxs.size() != rdPoS::minValidators) {
+            while (randomnessTxs.size() != blockCreator.get().rdposGetMinValidators()) {
               for (const auto [txHash, tx]: mempool) {
                 if (tx.getFrom() == randomList[i]) {
                   if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {

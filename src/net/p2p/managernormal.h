@@ -40,11 +40,8 @@ namespace P2P {
       void handleBroadcast(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
 
     private:
-      /// Reference to the blockchain's storage.
-      const Storage& storage_;
-
-      /// Reference to the blockchain's state.
-      State& state_;
+      const Storage& storage_; ///< Reference to the blockchain's storage.
+      State& state_; ///< Reference to the blockchain's state.
 
       /**
        * Map with broadcasted messages and a counter of how many times they were broadcast.
@@ -57,9 +54,6 @@ namespace P2P {
 
       /// Mutex for managing read/write access to block broadcasts.
       std::mutex blockBroadcastMutex_;
-
-      /// Default number for maximum allowed connections on normal nodes.
-      static const unsigned int MAX_CONNECTIONS = 50;
 
       /**
        * Broadcast a message to all connected nodes.
@@ -167,10 +161,10 @@ namespace P2P {
        * @param state Pointer to the blockchain's state.
        */
       ManagerNormal(
-        const boost::asio::ip::address& hostIp, const Options& options,
-        const Storage& storage, State& state
-      ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, ManagerNormal::MAX_CONNECTIONS, options),
-      storage_(storage), state_(state) {};
+        const boost::asio::ip::address& hostIp, const Options& options, const Storage& storage, State& state
+      ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, options, options.getMinNormalConns(), options.getMaxNormalConns()),
+        storage_(storage), state_(state)
+      {}
 
       /// Destructor. Automatically stops the manager.
       ~ManagerNormal() { this->stop(); }
