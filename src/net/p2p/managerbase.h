@@ -35,11 +35,14 @@ namespace P2P {
       /// Minimum number of simultaneous connections. See DiscoveryWorker for more information.
       const unsigned int minConnections_ = 11;
 
-      /// Indicates whether the manager is closed to new connections.
-      std::atomic<bool> closed_ = true;
+      /// Check if manager is in the start() state (stop() not called yet).
+      std::atomic<bool> started_ = false;
+
+      /// Core mutex for serializing start(), stop(), and threadPool_.
+      mutable std::shared_mutex stateMutex_;
 
       /// Pointer to the thread pool.
-      BS::thread_pool_light threadPool_;
+      std::unique_ptr<BS::thread_pool_light> threadPool_;
 
       /// Pointer to the options singleton.
       const Options& options_;
@@ -88,7 +91,7 @@ namespace P2P {
        * @param session The session to answer to.
        * @param message The message to answer.
        */
-      void answerSession(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message);
+      void answerSession(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       // TODO: There is a bug with handleRequest that throws std::system_error.
       // I believe that this is related with the std::shared_ptr<Session> getting deleted or
@@ -98,7 +101,7 @@ namespace P2P {
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      virtual void handleRequest(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
+      virtual void handleRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
         // Do nothing by default, child classes are meant to override this
       }
 
@@ -107,7 +110,7 @@ namespace P2P {
        * @param session The session that sent the message.
        * @param message The message to handle.
        */
-      virtual void handleAnswer(std::weak_ptr<Session> session, const std::shared_ptr<const Message>& message) {
+      virtual void handleAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
         // Do nothing by default, child classes are meant to override this
       }
 
@@ -123,9 +126,8 @@ namespace P2P {
           const net::ip::address& hostIp, NodeType nodeType,
           unsigned int maxConnections, const Options& options
       ) : serverPort_(options.getP2PPort()), nodeType_(nodeType), maxConnections_(maxConnections), options_(options),
-          threadPool_(std::thread::hardware_concurrency() * 4),
-          server_(hostIp, options.getP2PPort(), 4, *this, this->threadPool_),
-          clientfactory_(*this, 4, this->threadPool_),
+          server_(hostIp, options.getP2PPort(), 4, *this),
+          clientfactory_(*this, 4),
           discoveryWorker_(*this) {};
 
       /// Destructor. Automatically stops the manager.
@@ -164,9 +166,6 @@ namespace P2P {
       /// Getter for `minConnections_`.
       unsigned int minConnections() const { return this->minConnections_; }
 
-      /// Getter for `closed_`.
-      const std::atomic<bool>& isClosed() const { return this->closed_; }
-
       /// Get the size of the session list.
       uint64_t getPeerCount() const { std::shared_lock lock(this->sessionsMutex_); return this->sessions_.size(); }
 
@@ -201,6 +200,13 @@ namespace P2P {
       void connectToServer(const boost::asio::ip::address& address, uint16_t port);
 
       /**
+       * Entrust the internal thread pool to call handleMessage() with the supplied arguments.
+       * @param session The session to send an answer to.
+       * @param message The message to handle.
+       */
+      void asyncHandleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message);
+
+      /**
        * Handle a message from a session.
        * The pointer is a weak_ptr because the parser doesn't need to own the session.
        * The session is owned by the manager (if registered) and the session io_context itself.
@@ -209,7 +215,7 @@ namespace P2P {
        * @param session The session to send an answer to.
        * @param message The message to handle.
        */
-      virtual void handleMessage(std::weak_ptr<Session> session, const std::shared_ptr<const Message> message) {
+      virtual void handleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message) {
         // Do nothing by default, child classes are meant to override this
       }
 
