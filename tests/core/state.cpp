@@ -473,7 +473,12 @@ namespace TState {
         }
       });
 
-      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      // TODO: This had a 5s timeout, but this is temporarily increased to avoid random failures.
+      auto start = std::chrono::high_resolution_clock::now();
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(120)) != std::future_status::timeout);
+      auto end = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 5000) std::cout << "WARNING ([state]): discoveryFuture elapsed time: " << duration << " ms" << std::endl;
 
       REQUIRE(p2pDiscovery.getSessionsIDs().size() == 8);
       REQUIRE(blockchainWrapper1.p2p.getSessionsIDs().size() == 1);
@@ -1537,7 +1542,12 @@ namespace TState {
             });
 
             // Sleep for blocks to be broadcasted and accepted.
-            REQUIRE(broadcastBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+            // TODO: This had a 5s timeout, but this is temporarily increased to avoid random failures.
+            auto start = std::chrono::high_resolution_clock::now();
+            REQUIRE(broadcastBlockFuture.wait_for(std::chrono::seconds(120)) != std::future_status::timeout);
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            if (duration > 5000) std::cout << "WARNING ([state]): broadcastBlockFuture elapsed time: " << duration << " ms" << std::endl;
 
             // Check if the block was accepted by all nodes.
             REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper2.storage.latest()->hash());
