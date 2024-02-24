@@ -95,6 +95,8 @@ ERC721::~ERC721() {
       batchedOperations.push_back(key, value, this->getNewPrefix("operatorAddressApprovals_"));
     }
   }
+
+  this->db_.putBatch(batchedOperations);
 }
 
 void ERC721::registerContractFunctions() {

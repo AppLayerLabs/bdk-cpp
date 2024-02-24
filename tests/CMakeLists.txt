@@ -24,6 +24,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20wrapper.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/erc721.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/contractabigenerator.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/dexv2.cpp
