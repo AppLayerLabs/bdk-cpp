@@ -219,9 +219,9 @@ namespace TERC721 {
         REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::balanceOf, accountToSent.address) == 100);
       }
       REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::totalSupply) == 100);
-      // Make sure that the allowance was removed after the transfer
+      // Make sure that the allowance was removed af  ter the transfer
       for (int i = 0; i < 100; ++i) {
-        REQUIRE_THROWS(sdk.callViewFunction(ERC721Address, &ERC721Test::getApproved, uint256_t(i)) == Address());
+        REQUIRE(sdk.callViewFunction(ERC721Address, &ERC721Test::getApproved, uint256_t(i)) == Address());
       }
     }
   }
