@@ -189,6 +189,7 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       this->callLogger_->setContractVars(this, from, from, value);
       this->ethCall(callInfo);
       this->callLogger_.reset();
+      this->eventManager_.revertEvents();
       return true;
     }
 
@@ -196,12 +197,14 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
       this->callLogger_->setContractVars(&rdpos_, from, from, value);
       rdpos_.ethCall(callInfo);
       this->callLogger_.reset();
+      this->eventManager_.revertEvents();
       return true;
     }
 
     std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
     if (!this->contracts_.contains(to)) {
       this->callLogger_.reset();
+      this->eventManager_.revertEvents();
       return false;
     }
     const auto &contract = contracts_.at(to);
@@ -209,9 +212,11 @@ bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
     contract->ethCall(callInfo);
   } catch (std::exception &e) {
     this->callLogger_.reset();
+    this->eventManager_.revertEvents();
     throw DynamicException(e.what());
   }
   this->callLogger_.reset();
+  this->eventManager_.revertEvents();
   return true;
 }
 

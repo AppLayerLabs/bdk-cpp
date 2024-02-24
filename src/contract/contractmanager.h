@@ -460,7 +460,6 @@ class ContractManagerInterface {
       // inside contracts and are not emitted if a transaction reverts.
       // C++ itself already takes care of events not being emitted on pure/view
       // functions due to its built-in const-correctness logic.
-      // TODO: check later if events are really not emitted on transaction revert
       if (!this->manager_.callLogger_) throw DynamicException(
         "Contracts going haywire! Trying to emit an event without an active contract call"
       );

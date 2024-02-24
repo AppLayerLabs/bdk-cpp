@@ -469,7 +469,7 @@ class SDKTestSuite {
       );
       ret = tx.hash();
       // Check if the execution is not going to be reverted/throw
-      this->state_.estimateGas(tx.txToCallInfo()); // TODO: this is emitting duplicate events, needs to be fixed
+      this->state_.estimateGas(tx.txToCallInfo());
       this->advanceChain(timestamp, {tx});
       return ret;
     }
