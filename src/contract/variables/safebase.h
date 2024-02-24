@@ -36,14 +36,15 @@ class SafeBase {
 
   protected:
     mutable bool registered_ = false; ///< Indicates whether the variable is already registered within the contract.
+    bool shouldRegister_ = false; ///< Indicates whether the variable should be registered within the contract.
 
-    inline DynamicContract* getOwner() const { return owner_; } ///< Getter for `owner`.
+    inline DynamicContract* getOwner() const { return this->owner_; } ///< Getter for `owner`.
 
     /// Register the use of the variable within the contract.
     void markAsUsed() {
-      if (owner_ != nullptr && !registered_) {
+      if (this->owner_ != nullptr && !this->registered_ && this->shouldRegister_) {
         registerVariableUse(*owner_, *this);
-        registered_ = true;
+        this->registered_ = true;
       }
     }
 
@@ -59,7 +60,7 @@ class SafeBase {
      * Check if the variable is registered within the contract.
      * @return `true` if the variable is registered, `false` otherwise.
      */
-    inline bool isRegistered() const { return registered_; }
+    inline bool isRegistered() const { return this->registered_; }
 
   public:
     /// Empty constructor. Should be used only within local variables within functions.
@@ -76,6 +77,8 @@ class SafeBase {
      * Should be used only within local variables within functions.
      */
     SafeBase(const SafeBase&) : owner_(nullptr) {};
+
+    void enableRegister() { this->shouldRegister_ = true; } ///< Enable variable registration.
 
     /**
      * Commit a structure value to the contract. Should always be overridden by the child class.

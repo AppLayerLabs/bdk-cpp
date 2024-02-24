@@ -7,10 +7,10 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc20.h"
 
-// Default Constructor when loading contract from DB.
-ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db) :
-  DynamicContract(interface, address, db), name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this) {
-
+ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db)
+: DynamicContract(interface, address, db), name_(this), symbol_(this), decimals_(this),
+  totalSupply_(this), balances_(this), allowed_(this)
+{
   this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
   this->symbol_ = Utils::bytesToString(db_.get(std::string("symbol_"), this->getDBPrefix()));
   this->decimals_ = Utils::bytesToUint8(db_.get(std::string("decimals_"), this->getDBPrefix()));
@@ -19,13 +19,11 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db
   for (const auto& dbEntry : balances) {
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
-
   auto allowances = db_.getBatch(this->getNewPrefix("allowed_"));
   for (const auto& dbEntry : allowances) {
     BytesArrView valueView(dbEntry.value);
     this->allowed_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
   }
-  this->registerContractFunctions();
 
   this->name_.commit();
   this->symbol_.commit();
@@ -33,6 +31,15 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db
   this->totalSupply_.commit();
   this->balances_.commit();
   this->allowed_.commit();
+
+  this->registerContractFunctions();
+
+  this->name_.enableRegister();
+  this->symbol_.enableRegister();
+  this->decimals_.enableRegister();
+  this->totalSupply_.enableRegister();
+  this->balances_.enableRegister();
+  this->allowed_.enableRegister();
 }
 
 ERC20::ERC20(
@@ -44,14 +51,26 @@ ERC20::ERC20(
 ) : DynamicContract(interface, "ERC20", address, creator, chainId, db),
   name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
-  name_ = erc20name_;
-  symbol_ = erc20symbol_;
-  decimals_ = erc20decimals_;
-  mintValue_(creator, mintValue);
+  this->name_ = erc20name_;
+  this->symbol_ = erc20symbol_;
+  this->decimals_ = erc20decimals_;
+  this->mintValue_(creator, mintValue);
+
+  this->name_.commit();
+  this->symbol_.commit();
+  this->decimals_.commit();
+  this->totalSupply_.commit();
+  this->balances_.commit();
+  this->allowed_.commit();
+
   this->registerContractFunctions();
-  name_.commit();
-  symbol_.commit();
-  decimals_.commit();
+
+  this->name_.enableRegister();
+  this->symbol_.enableRegister();
+  this->decimals_.enableRegister();
+  this->totalSupply_.enableRegister();
+  this->balances_.enableRegister();
+  this->allowed_.enableRegister();
 }
 
 ERC20::ERC20(
@@ -63,13 +82,27 @@ ERC20::ERC20(
 ) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
     name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
-  name_ = erc20name_;
-  symbol_ = erc20symbol_;
-  decimals_ = erc20decimals_;
-  mintValue_(creator, mintValue);
-  this->registerContractFunctions();
-}
+  this->name_ = erc20name_;
+  this->symbol_ = erc20symbol_;
+  this->decimals_ = erc20decimals_;
+  this->mintValue_(creator, mintValue);
 
+  this->name_.commit();
+  this->symbol_.commit();
+  this->decimals_.commit();
+  this->totalSupply_.commit();
+  this->balances_.commit();
+  this->allowed_.commit();
+
+  this->registerContractFunctions();
+
+  this->name_.enableRegister();
+  this->symbol_.enableRegister();
+  this->decimals_.enableRegister();
+  this->totalSupply_.enableRegister();
+  this->balances_.enableRegister();
+  this->allowed_.enableRegister();
+}
 
 ERC20::~ERC20() {
   DBBatch batchOperations;

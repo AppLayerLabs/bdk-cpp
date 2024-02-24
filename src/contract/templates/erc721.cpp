@@ -14,30 +14,40 @@ ERC721::ERC721(
 {
   this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
   this->symbol_ = Utils::bytesToString(db_.get(std::string("symbol_"), this->getDBPrefix()));
-
   auto owners = db_.getBatch(this->getNewPrefix("owners_"));
   for (const auto& dbEntry : owners) {
     BytesArrView valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
-
   auto balances = db_.getBatch(this->getNewPrefix("balances_"));
   for (const auto& dbEntry : balances) {
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
-
   auto approvals = db_.getBatch(this->getNewPrefix("tokenApprovals_"));
   for (const auto& dbEntry : approvals) {
     this->tokenApprovals_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(dbEntry.value);
   }
-
   auto operatorAddressApprovals = db_.getBatch(this->getNewPrefix("operatorAddressApprovals_"));
   for (const auto& dbEntry : operatorAddressApprovals) {
     BytesArrView valueView(dbEntry.value);
     this->operatorAddressApprovals_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = valueView[20];
   }
 
+  this->name_.commit();
+  this->symbol_.commit();
+  this->owners_.commit();
+  this->balances_.commit();
+  this->tokenApprovals_.commit();
+  this->operatorAddressApprovals_.commit();
+
   this->registerContractFunctions();
+
+  this->name_.enableRegister();
+  this->symbol_.enableRegister();
+  this->owners_.enableRegister();
+  this->balances_.enableRegister();
+  this->tokenApprovals_.enableRegister();
+  this->operatorAddressApprovals_.enableRegister();
 }
 
 ERC721::ERC721(
@@ -46,10 +56,23 @@ ERC721::ERC721(
   const Address &address, const Address &creator, const uint64_t &chainId,
   DB& db
 ) : DynamicContract(interface, "ERC721", address, creator, chainId, db), name_(this, erc721name),
-  symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this) {
+  symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
+{
   this->name_.commit();
   this->symbol_.commit();
+  this->owners_.commit();
+  this->balances_.commit();
+  this->tokenApprovals_.commit();
+  this->operatorAddressApprovals_.commit();
+
   this->registerContractFunctions();
+
+  this->name_.enableRegister();
+  this->symbol_.enableRegister();
+  this->owners_.enableRegister();
+  this->balances_.enableRegister();
+  this->tokenApprovals_.enableRegister();
+  this->operatorAddressApprovals_.enableRegister();
 }
 
 ERC721::ERC721(
@@ -59,10 +82,23 @@ ERC721::ERC721(
   const Address &address, const Address &creator, const uint64_t &chainId,
   DB& db
 ) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db), name_(this, erc721name),
-    symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this) {
+  symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
+{
   this->name_.commit();
   this->symbol_.commit();
+  this->owners_.commit();
+  this->balances_.commit();
+  this->tokenApprovals_.commit();
+  this->operatorAddressApprovals_.commit();
+
   this->registerContractFunctions();
+
+  this->name_.enableRegister();
+  this->symbol_.enableRegister();
+  this->owners_.enableRegister();
+  this->balances_.enableRegister();
+  this->tokenApprovals_.enableRegister();
+  this->operatorAddressApprovals_.enableRegister();
 }
 
 ERC721::~ERC721() {
@@ -114,17 +150,13 @@ void ERC721::registerContractFunctions() {
 
 Address ERC721::ownerOf_(const uint256_t& tokenId) const {
   auto it = this->owners_.find(tokenId);
-  if (it == this->owners_.end()) {
-    return Address();
-  }
+  if (it == this->owners_.end()) return Address();
   return it->second;
 }
 
 Address ERC721::getApproved_(const uint256_t& tokenId) const {
   auto it = this->tokenApprovals_.find(tokenId);
-  if (it == this->tokenApprovals_.end()) {
-    return Address();
-  }
+  if (it == this->tokenApprovals_.end()) return Address();
   return it->second;
 }
 

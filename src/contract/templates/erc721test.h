@@ -20,14 +20,11 @@
 
 class ERC721Test : public ERC721 {
   private:
-    /// TokenId Counter for the public mint() functions
-    SafeUint64_t tokenIdCounter_;
-    /// How many tokens can be minted (used by mint())
-    SafeUint64_t maxTokens_;
-    /// How many tokens exists
-    SafeUint64_t totalSupply_;
-    /// Register contract functions
-    void registerContractFunctions() override;
+    SafeUint64_t tokenIdCounter_; ///< TokenId Counter for the public mint() functions.
+    SafeUint64_t maxTokens_; ///< How many tokens can be minted (used by mint()).
+    SafeUint64_t totalSupply_; ///< How many tokens exist.
+    void registerContractFunctions() override; ///< Register contract functions.
+
   public:
     /**
      * ConstructorArguments is a tuple of the contract constructor arguments in
@@ -42,8 +39,7 @@ class ERC721Test : public ERC721 {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    ERC721Test(ContractManagerInterface &interface, const Address &address,
-          DB& db);
+    ERC721Test(ContractManagerInterface &interface, const Address &address, DB& db);
 
     /**
      * Constructor to be used when creating a new contract.

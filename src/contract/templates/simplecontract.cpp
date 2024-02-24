@@ -22,7 +22,16 @@ SimpleContract::SimpleContract(
   this->name_ = name;
   this->number_ = number;
   this->tuple_ = tuple;
+
+  this->name_.commit();
+  this->number_.commit();
+  this->tuple_.commit();
+
   registerContractFunctions();
+
+  this->name_.enableRegister();
+  this->number_.enableRegister();
+  this->tuple_.enableRegister();
 }
 
 SimpleContract::SimpleContract(
@@ -36,7 +45,16 @@ SimpleContract::SimpleContract(
     Utils::bytesToString(db_.get(std::string("tuple_name"), this->getDBPrefix())),
     Utils::bytesToUint256(db_.get(std::string("tuple_number"), this->getDBPrefix()))
   );
+
+  this->name_.commit();
+  this->number_.commit();
+  this->tuple_.commit();
+
   registerContractFunctions();
+
+  this->name_.enableRegister();
+  this->number_.enableRegister();
+  this->tuple_.enableRegister();
 }
 
 SimpleContract::~SimpleContract() {

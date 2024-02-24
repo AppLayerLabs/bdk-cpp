@@ -7,7 +7,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "nativewrapper.h"
 
-// Default Constructor when loading contract from DB.
 NativeWrapper::NativeWrapper(
   ContractManagerInterface &interface, const Address& address, DB& db
 ) : ERC20(interface, address, db)

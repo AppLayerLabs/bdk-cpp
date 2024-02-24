@@ -37,21 +37,17 @@ protected:
   /// Solidity: mapping(uint256 => address) internal tokenApp;
   SafeUnorderedMap<uint256_t, Address> tokenApprovals_;
 
-  /// Solidity: mapping(address => mapping(address => bool)) internal
-  /// operatorAddressApprovals_;
-  SafeUnorderedMap<Address, std::unordered_map<Address, bool, SafeHash>>
-      operatorAddressApprovals_;
+  /// Solidity: mapping(address => mapping(address => bool)) internal operatorAddressApprovals_;
+  SafeUnorderedMap<Address, std::unordered_map<Address, bool, SafeHash>> operatorAddressApprovals_;
 
-  /**
-   * Get the baseURI of the contract.
-   */
+  /// Get the baseURI of the contract.
   virtual std::string baseURI_() const { return ""; }
 
-  /** Returns the owner of the Token
+  /**
+   * Returns the owner of the Token
    * @param tokenId The id of the token.
    * @return The address of the owner of the token.
-   * Solidity counterpart: function ownerOf_(uint256 tokenId) internal view
-   * virtual returns (address)
+   * Solidity counterpart: function ownerOf_(uint256 tokenId) internal view virtual returns (address)
    */
   Address ownerOf_(const uint256_t &tokenId) const;
 
@@ -59,8 +55,7 @@ protected:
    * Returns the approved address for tokenId
    * @param tokenId The id of the token.
    * @return The address of the approved address for tokenId.
-   * Solidity counterpart: function getApproved_(uint256 tokenId) internal view
-   * virtual returns (address) {
+   * Solidity counterpart: function getApproved_(uint256 tokenId) internal view virtual returns (address)
    */
   Address getApproved_(const uint256_t &tokenId) const;
 

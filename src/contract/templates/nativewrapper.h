@@ -38,10 +38,7 @@ class NativeWrapper : public ERC20 {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    NativeWrapper(
-      ContractManagerInterface& interface,
-      const Address& address, DB& db
-    );
+    NativeWrapper(ContractManagerInterface& interface, const Address& address, DB& db);
 
     /**
      * Constructor to be used when creating a new contract.
