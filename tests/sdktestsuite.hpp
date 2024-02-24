@@ -421,6 +421,8 @@ class SDKTestSuite {
         contractAddress, value, txData
       );
       ret = tx.hash();
+      // Check if the execution is not going to be reverted/throw
+      this->state_.estimateGas(tx.txToCallInfo());
       this->advanceChain(timestamp, {tx});
       return ret;
     }
@@ -464,6 +466,8 @@ class SDKTestSuite {
         contractAddress, value, txData
       );
       ret = tx.hash();
+      // Check if the execution is not going to be reverted/throw
+      this->state_.estimateGas(tx.txToCallInfo());
       this->advanceChain(timestamp, {tx});
       return ret;
     }
