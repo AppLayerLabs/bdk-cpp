@@ -99,7 +99,7 @@ namespace TERC20 {
       REQUIRE(balanceTo == uint256_t("500000000000000000"));
 
       // "owner" doesn't have enough balance, this should throw and balances should stay intact
-      Hash transferFailTx = sdk.callFunction(erc20, &ERC20::transferFrom, owner, to, uint256_t("1000000000000000000"));
+      REQUIRE_THROWS(sdk.callFunction(erc20, &ERC20::transferFrom, owner, to, uint256_t("1000000000000000000")));
       balanceMe = sdk.callViewFunction(erc20, &ERC20::balanceOf, owner);
       balanceTo = sdk.callViewFunction(erc20, &ERC20::balanceOf, to);
       REQUIRE(balanceMe == uint256_t("500000000000000000"));

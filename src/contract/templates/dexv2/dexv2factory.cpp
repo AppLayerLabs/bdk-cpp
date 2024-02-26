@@ -13,7 +13,6 @@ DEXV2Factory::DEXV2Factory(
 ) : DynamicContract(interface, address, db), feeTo_(this), feeToSetter_(this),
   allPairs_(this), getPair_(this)
 {
-  // Load from DB constructor
   this->feeTo_ = Address(db_.get(std::string("feeTo_"), this->getDBPrefix()));
   this->feeToSetter_ = Address(db_.get(std::string("feeToSetter_"), this->getDBPrefix()));
   std::vector<DBEntry> allPairs = db_.getBatch(this->getNewPrefix("allPairs_"));
@@ -23,11 +22,18 @@ DEXV2Factory::DEXV2Factory(
     BytesArrView valueView(dbEntry.value);
     this->getPair_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Address(valueView.subspan(20));
   }
-  this->registerContractFunctions();
+
   this->feeTo_.commit();
   this->feeToSetter_.commit();
   this->allPairs_.commit();
   this->getPair_.commit();
+
+  this->registerContractFunctions();
+
+  this->feeTo_.enableRegister();
+  this->feeToSetter_.enableRegister();
+  this->allPairs_.enableRegister();
+  this->getPair_.enableRegister();
 }
 
 DEXV2Factory::DEXV2Factory(
@@ -38,10 +44,19 @@ DEXV2Factory::DEXV2Factory(
 ) : DynamicContract(interface, "DEXV2Factory", address, creator, chainId, db),
   feeTo_(this), feeToSetter_(this), allPairs_(this), getPair_(this)
 {
-  // Create new constructor
   this->feeToSetter_ = feeToSetter;
+
+  this->feeTo_.commit();
   this->feeToSetter_.commit();
+  this->allPairs_.commit();
+  this->getPair_.commit();
+
   this->registerContractFunctions();
+
+  this->feeTo_.enableRegister();
+  this->feeToSetter_.enableRegister();
+  this->allPairs_.enableRegister();
+  this->getPair_.enableRegister();
 }
 
 DEXV2Factory::~DEXV2Factory() {

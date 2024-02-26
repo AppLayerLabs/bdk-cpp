@@ -17,9 +17,14 @@ DEXV2Router02::DEXV2Router02(
 {
   this->factory_ = Address(this->db_.get(Utils::stringToBytes("factory_"), this->getDBPrefix()));
   this->wrappedNative_ = Address(this->db_.get(Utils::stringToBytes("wrappedNative_"), this->getDBPrefix()));
+
   this->factory_.commit();
   this->wrappedNative_.commit();
+
   this->registerContractFunctions();
+
+  this->factory_.enableRegister();
+  this->wrappedNative_.enableRegister();
 }
 
 DEXV2Router02::DEXV2Router02(
@@ -32,9 +37,14 @@ DEXV2Router02::DEXV2Router02(
 {
   this->factory_ = factory;
   this->wrappedNative_ = nativeWrapper;
+
   this->factory_.commit();
   this->wrappedNative_.commit();
+
   this->registerContractFunctions();
+
+  this->factory_.enableRegister();
+  this->wrappedNative_.enableRegister();
 }
 
 DEXV2Router02::~DEXV2Router02() {

@@ -51,7 +51,7 @@ namespace TERC20Wrapper {
       // Try depositing without allowance first
       uint256_t allowance = sdk.callViewFunction(erc20, &ERC20::allowance, owner, erc20Wrapper);
       REQUIRE(allowance == 0);  // "erc20Wrapper" is not allowed (yet) to spend anything on behalf of "owner"
-      Hash depositFailTx = sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000"));
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000")));
       REQUIRE(sdk.callViewFunction(erc20Wrapper, &ERC20Wrapper::getUserBalance, erc20, owner) == 0);
 
       // Allow "erc20Wrapper" and make a deposit of 0.5 TST
@@ -96,7 +96,7 @@ namespace TERC20Wrapper {
       // Try depositing without allowance first
       uint256_t allowance = sdk.callViewFunction(erc20, &ERC20::allowance, owner, erc20Wrapper);
       REQUIRE(allowance == 0);  // "erc20Wrapper" is not allowed (yet) to spend anything on behalf of "owner"
-      Hash depositFailTx = sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000"));
+      REQUIRE_THROWS(sdk.callFunction(erc20Wrapper, &ERC20Wrapper::deposit, erc20, uint256_t("500000000000000000")));
       REQUIRE(sdk.callViewFunction(erc20Wrapper, &ERC20Wrapper::getUserBalance, erc20, owner) == 0);
 
       // Allow "erc20Wrapper" and make a deposit of 0.5 TST

@@ -23,6 +23,7 @@ DEXV2Pair::DEXV2Pair(
   this->price0CumulativeLast_ = Utils::bytesToUint256(this->db_.get(std::string("price0CumulativeLast_"), this->getDBPrefix()));
   this->price1CumulativeLast_ = Utils::bytesToUint256(this->db_.get(std::string("price1CumulativeLast_"), this->getDBPrefix()));
   this->kLast_ = Utils::bytesToUint256(this->db_.get(std::string("kLast_"), this->getDBPrefix()));
+
   this->factory_.commit();
   this->token0_.commit();
   this->token1_.commit();
@@ -32,7 +33,18 @@ DEXV2Pair::DEXV2Pair(
   this->price0CumulativeLast_.commit();
   this->price1CumulativeLast_.commit();
   this->kLast_.commit();
+
   this->registerContractFunctions();
+
+  this->factory_.enableRegister();
+  this->token0_.enableRegister();
+  this->token1_.enableRegister();
+  this->reserve0_.enableRegister();
+  this->reserve1_.enableRegister();
+  this->blockTimestampLast_ .enableRegister();
+  this->price0CumulativeLast_.enableRegister();
+  this->price1CumulativeLast_.enableRegister();
+  this->kLast_.enableRegister();
 }
 
 DEXV2Pair::DEXV2Pair(
@@ -44,8 +56,28 @@ DEXV2Pair::DEXV2Pair(
   blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
   this->factory_ = creator;
+
   this->factory_.commit();
+  this->token0_.commit();
+  this->token1_.commit();
+  this->reserve0_.commit();
+  this->reserve1_.commit();
+  this->blockTimestampLast_ .commit();
+  this->price0CumulativeLast_.commit();
+  this->price1CumulativeLast_.commit();
+  this->kLast_.commit();
+
   this->registerContractFunctions();
+
+  this->factory_.enableRegister();
+  this->token0_.enableRegister();
+  this->token1_.enableRegister();
+  this->reserve0_.enableRegister();
+  this->reserve1_.enableRegister();
+  this->blockTimestampLast_ .enableRegister();
+  this->price0CumulativeLast_.enableRegister();
+  this->price1CumulativeLast_.enableRegister();
+  this->kLast_.enableRegister();
 }
 
 DEXV2Pair::~DEXV2Pair() {
