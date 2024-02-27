@@ -1,0 +1,31 @@
+{
+    "rootPath": "discoveryNode",
+    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "version": 1,
+    "chainID": 808080,
+    "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
+    "wsPort": 8080,
+    "httpPort": 9999,
+    "minDiscoveryConns": 11,
+    "minNormalConns": 11,
+    "maxDiscoveryConns": 200,
+    "maxNormalConns": 50,
+    "eventBlockCap": 2000,
+    "eventLogCap": 10000,
+    "minValidators": 4,
+    "privKey": "0000000000000000000000000000000000000000000000000000000000000000",
+    "genesis" : {
+        "validators": [
+            "0x7588b0f553d1910266089c58822e1120db47e572",
+            "0xcabf34a268847a610287709d841e5cd590cc5c00",
+            "0x5fb516dc2cfc1288e689ed377a9eebe2216cf1e3",
+            "0x795083c42583842774febc21abb6df09e784fce5",
+            "0xbec7b74f70c151707a0bfb20fe3767c6e65499e0"
+        ],
+        "timestamp" : 1656356646000000,
+        "signer" : "0x4d48bdf34d65ef2bed2e4ee9020a7d3162b494ac31d3088153425f286f3d3c8c",
+        "balances": [
+            { "address": "0x00dead00665771855a34155f5e7405489df2c3c6", "balance": "100000000000000000000000000000000000000000" }
+        ]
+    }
+}
