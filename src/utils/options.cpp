@@ -8,28 +8,52 @@ See the LICENSE.txt file in the project root for more information.
 #include "options.h"
 
 Options::Options(
-  const std::string& rootPath, const std::string& web3clientVersion,
-  const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-  const uint16_t& wsPort, const uint16_t& httpPort,
-  const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
-  const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
-  const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+  const std::string& rootPath,
+  const std::string& web3clientVersion,
+  const uint64_t& version,
+  const uint64_t& chainID,
+  const Address& chainOwner,
+  const uint16_t& wsPort,
+  const uint16_t& httpPort,
+  const uint16_t& minDiscoveryConns,
+  const uint16_t& minNormalConns,
+  const uint16_t& maxDiscoveryConns,
+  const uint16_t& maxNormalConns,
+  const uint64_t& eventBlockCap,
+  const uint64_t& eventLogCap,
   const uint32_t& minValidators,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-  const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+  const Block& genesisBlock,
+  const uint64_t genesisTimestamp,
+  const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
-  const std::vector<Address>& genesisValidators
-) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
-  version_(version), chainID_(chainID), chainOwner_(chainOwner), wsPort_(wsPort), httpPort_(httpPort),
-  minDiscoveryConns_(minDiscoveryConns), minNormalConns_(minNormalConns),
-  maxDiscoveryConns_(maxDiscoveryConns), maxNormalConns_(maxNormalConns),
-  eventBlockCap_(eventBlockCap), eventLogCap_(eventLogCap),
+  const std::vector<Address>& genesisValidators) :
+  rootPath_(rootPath),
+  web3clientVersion_(web3clientVersion),
+  version_(version),
+  chainID_(chainID),
+  chainOwner_(chainOwner),
+  wsPort_(wsPort),
+  httpPort_(httpPort),
+  minDiscoveryConns_(minDiscoveryConns),
+  minNormalConns_(minNormalConns),
+  maxDiscoveryConns_(maxDiscoveryConns),
+  maxNormalConns_(maxNormalConns),
+  eventBlockCap_(eventBlockCap),
+  eventLogCap_(eventLogCap),
   minValidators_(minValidators),
-  coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes),
-  genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators)
+  coinbase_(Address()),
+  isValidator_(false),
+  discoveryNodes_(discoveryNodes),
+  genesisBlock_(genesisBlock),
+  genesisBalances_(genesisBalances),
+  genesisValidators_(genesisValidators)
 {
+  if (std::filesystem::exists(rootPath + "/options.json"))
+    return;
+
   json options;
-  if (std::filesystem::exists(rootPath + "/options.json")) return;
+
   options["rootPath"] = rootPath;
   options["web3clientVersion"] = web3clientVersion;
   options["version"] = version;
@@ -47,9 +71,9 @@ Options::Options(
   options["discoveryNodes"] = json::array();
   for (const auto& [address, port] : discoveryNodes) {
     options["discoveryNodes"].push_back(json::object({
-      {"address", address.to_string()},
-      {"port", port}
-    }));
+          {"address", address.to_string()},
+          {"port", port}
+        }));
   }
   options["genesis"] = json::object();
   options["genesis"]["timestamp"] = genesisTimestamp;
@@ -57,9 +81,9 @@ Options::Options(
   options["genesis"]["balances"] = json::array();
   for (const auto& [address, balance] : this->genesisBalances_) {
     options["genesis"]["balances"].push_back(json::object({
-      {"address", address.hex(true)},
-      {"balance", balance.str()}
-    }));
+          {"address", address.hex(true)},
+          {"balance", balance.str()}
+        }));
   }
   options["genesis"]["validators"] = json::array();
   for (const auto& validator : this->genesisValidators_) {
@@ -72,29 +96,53 @@ Options::Options(
 }
 
 Options::Options(
-  const std::string& rootPath, const std::string& web3clientVersion,
-  const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-  const uint16_t& wsPort, const uint16_t& httpPort,
-  const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
-  const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
-  const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+  const std::string& rootPath,
+  const std::string& web3clientVersion,
+  const uint64_t& version,
+  const uint64_t& chainID,
+  const Address& chainOwner,
+  const uint16_t& wsPort,
+  const uint16_t& httpPort,
+  const uint16_t& minDiscoveryConns,
+  const uint16_t& minNormalConns,
+  const uint16_t& maxDiscoveryConns,
+  const uint16_t& maxNormalConns,
+  const uint64_t& eventBlockCap,
+  const uint64_t& eventLogCap,
   const uint32_t& minValidators,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-  const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+  const Block& genesisBlock,
+  const uint64_t genesisTimestamp,
+  const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const std::vector<Address>& genesisValidators,
-  const PrivKey& privKey
-) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
-  version_(version), chainID_(chainID), chainOwner_(chainOwner), wsPort_(wsPort), httpPort_(httpPort),
-  minDiscoveryConns_(minDiscoveryConns), minNormalConns_(minNormalConns),
-  maxDiscoveryConns_(maxDiscoveryConns), maxNormalConns_(maxNormalConns),
-  eventBlockCap_(eventBlockCap), eventLogCap_(eventLogCap),
+  const PrivKey& privKey) :
+  rootPath_(rootPath),
+  web3clientVersion_(web3clientVersion),
+  version_(version),
+  chainID_(chainID),
+  chainOwner_(chainOwner),
+  wsPort_(wsPort),
+  httpPort_(httpPort),
+  minDiscoveryConns_(minDiscoveryConns),
+  minNormalConns_(minNormalConns),
+  maxDiscoveryConns_(maxDiscoveryConns),
+  maxNormalConns_(maxNormalConns),
+  eventBlockCap_(eventBlockCap),
+  eventLogCap_(eventLogCap),
   minValidators_(minValidators),
-  discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
-  isValidator_(true), genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators)
+  discoveryNodes_(discoveryNodes),
+  coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
+  isValidator_(true),
+  genesisBlock_(genesisBlock),
+  genesisBalances_(genesisBalances),
+  genesisValidators_(genesisValidators)
 {
-  if (std::filesystem::exists(rootPath + "/options.json")) return;
+  if (std::filesystem::exists(rootPath + "/options.json"))
+    return;
+
   json options;
+
   options["rootPath"] = rootPath;
   options["web3clientVersion"] = web3clientVersion;
   options["version"] = version;
@@ -112,9 +160,9 @@ Options::Options(
   options["discoveryNodes"] = json::array();
   for (const auto& [address, port] : discoveryNodes) {
     options["discoveryNodes"].push_back(json::object({
-      {"address", address.to_string()},
-      {"port", port}
-    }));
+          {"address", address.to_string()},
+          {"port", port}
+        }));
   }
   options["genesis"] = json::object();
   options["genesis"]["timestamp"] = genesisTimestamp;
@@ -122,9 +170,9 @@ Options::Options(
   options["genesis"]["balances"] = json::array();
   for (const auto& [address, balance] : this->genesisBalances_) {
     options["genesis"]["balances"].push_back(json::object({
-      {"address", address.hex(true)},
-      {"balance", balance.str()}
-    }));
+          {"address", address.hex(true)},
+          {"balance", balance.str()}
+        }));
   }
   options["genesis"]["validators"] = json::array();
   for (const auto& validator : this->genesisValidators_) {
@@ -149,70 +197,72 @@ PrivKey Options::getValidatorPrivKey() const {
   return PrivKey();
 }
 
-Options Options::fromFile(const std::string& rootPath) {
+std::string Options::resolveAddress(const std::string& host) {
+  std::string ipAddress = host;
+  boost::system::error_code ec;
   try {
-    // Check if rootPath is valid
-    if (!std::filesystem::exists(rootPath + "/options.json")) {
+    boost::asio::io_context io_context;
+    boost::asio::ip::tcp::resolver resolver{io_context};
+    boost::asio::ip::tcp::resolver::results_type endpoints =
+      resolver.resolve(host, "", ec);
+
+    if (ec.value() == 0) {
+      boost::asio::ip::tcp::endpoint endpoint = *(endpoints.cbegin());
+      ipAddress = endpoint.address().to_string();
+    }
+  }
+  catch (std::exception& e) {
+    Logger::logToDebug(LogType::INFO,
+                       Log::options,
+                       __func__,
+                       "TCP Resolver Exception: " + std::string(e.what()));
+  }
+  return ipAddress;
+}
+
+Options Options::fromFile(const std::string& rootPath) {
+  // Check if rootPath is valid
+  if (!std::filesystem::exists(rootPath + "/options.json")) {
+    try {
       std::filesystem::create_directory(rootPath);
-      return Options::binaryDefaultOptions(rootPath);
     }
+    catch (std::exception &e) {
+      throw DynamicException("Could not create blockchain directory: " + std::string(e.what()));
+    }
+    return Options::binaryDefaultOptions(rootPath);
+  }
 
-    std::ifstream i(rootPath + "/options.json");
-    json options;
-    i >> options;
-    i.close();
+  std::ifstream i(rootPath + "/options.json");
+  json options;
+  i >> options;
+  i.close();
 
-    std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
-    for (const auto& node : options["discoveryNodes"]) {
-      discoveryNodes.emplace_back(
-        boost::asio::ip::address::from_string(node["address"].get<std::string>()),
-        node["port"].get<uint64_t>()
+  uint64_t port = 0;
+  std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+  for (const auto& node : options["discoveryNodes"]) {
+    port = node["port"].get<uint64_t>();
+    discoveryNodes.emplace_back(
+      boost::asio::ip::address::from_string(
+        resolveAddress(node["address"].get<std::string>())),
+      port);
+  }
+
+  const PrivKey genesisSigner(Hex::toBytes(options["genesis"]["signer"].get<std::string>()));
+  Block genesis(Hash(), 0, 0);
+  genesis.finalize(genesisSigner, options["genesis"]["timestamp"].get<uint64_t>());
+
+  std::vector<Address> genesisValidators;
+  for (const auto& validator : options["genesis"]["validators"]) {
+    genesisValidators.push_back(Address(Hex::toBytes(validator.get<std::string>())));
+  }
+  std::vector<std::pair<Address, uint256_t>> genesisBalances;
+  for (const auto& balance : options["genesis"]["balances"]) {
+    genesisBalances.emplace_back(
+      Address(Hex::toBytes(balance["address"].get<std::string>())),
+      uint256_t(balance["balance"].get<std::string>())
       );
-    }
-
-    const PrivKey genesisSigner(Hex::toBytes(options["genesis"]["signer"].get<std::string>()));
-    Block genesis(Hash(), 0, 0);
-    genesis.finalize(genesisSigner, options["genesis"]["timestamp"].get<uint64_t>());
-
-    std::vector<Address> genesisValidators;
-    for (const auto& validator : options["genesis"]["validators"]) {
-      genesisValidators.push_back(Address(Hex::toBytes(validator.get<std::string>())));
-    }
-
-    std::vector<std::pair<Address, uint256_t>> genesisBalances;
-    for (const auto& balance : options["genesis"]["balances"]) {
-      genesisBalances.emplace_back(
-        Address(Hex::toBytes(balance["address"].get<std::string>())),
-        uint256_t(balance["balance"].get<std::string>())
-      );
-    }
-
-    if (options.contains("privKey")) {
-      return Options(
-        options["rootPath"].get<std::string>(),
-        options["web3clientVersion"].get<std::string>(),
-        options["version"].get<uint64_t>(),
-        options["chainID"].get<uint64_t>(),
-        Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
-        options["wsPort"].get<uint64_t>(),
-        options["httpPort"].get<uint64_t>(),
-        options["minDiscoveryConns"].get<uint16_t>(),
-        options["minNormalConns"].get<uint16_t>(),
-        options["maxDiscoveryConns"].get<uint16_t>(),
-        options["maxNormalConns"].get<uint16_t>(),
-        options["eventBlockCap"].get<uint64_t>(),
-        options["eventLogCap"].get<uint64_t>(),
-        options["minValidators"].get<uint32_t>(),
-        discoveryNodes,
-        genesis,
-        options["genesis"]["timestamp"].get<uint64_t>(),
-        genesisSigner,
-        genesisBalances,
-        genesisValidators,
-        PrivKey(Hex::toBytes(options["privKey"].get<std::string>()))
-      );
-    }
-
+  }
+  if (options.contains("privKey")) {
     return Options(
       options["rootPath"].get<std::string>(),
       options["web3clientVersion"].get<std::string>(),
@@ -233,10 +283,29 @@ Options Options::fromFile(const std::string& rootPath) {
       options["genesis"]["timestamp"].get<uint64_t>(),
       genesisSigner,
       genesisBalances,
-      genesisValidators
-    );
-  } catch (std::exception &e) {
-    throw DynamicException("Could not create blockchain directory: " + std::string(e.what()));
+      genesisValidators,
+      PrivKey(Hex::toBytes(options["privKey"].get<std::string>()))
+      );
   }
+  return Options(
+    options["rootPath"].get<std::string>(),
+    options["web3clientVersion"].get<std::string>(),
+    options["version"].get<uint64_t>(),
+    options["chainID"].get<uint64_t>(),
+    Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
+    options["wsPort"].get<uint64_t>(),
+    options["httpPort"].get<uint64_t>(),
+    options["minDiscoveryConns"].get<uint16_t>(),
+    options["minNormalConns"].get<uint16_t>(),
+    options["maxDiscoveryConns"].get<uint16_t>(),
+    options["maxNormalConns"].get<uint16_t>(),
+    options["eventBlockCap"].get<uint64_t>(),
+    options["eventLogCap"].get<uint64_t>(),
+    options["minValidators"].get<uint32_t>(),
+    discoveryNodes,
+    genesis,
+    options["genesis"]["timestamp"].get<uint64_t>(),
+    genesisSigner,
+    genesisBalances,
+    genesisValidators);
 }
-
