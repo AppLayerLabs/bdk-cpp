@@ -28,6 +28,10 @@ compile_commands.json
 # Supra has a lot of patches in root
 *.patch
 
+# Emacs
+TAGS
+.dir-locals.el
+
 # IDEA's IDE
 .idea/
 cmake-build-debug/
