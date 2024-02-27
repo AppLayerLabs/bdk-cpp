@@ -6,7 +6,7 @@ version: '3'
 
 services:
   orbitersdk-cpp-dev:
-    build: 
+    build:
       context: .
     ports:
       - "8080-8099:8080-8099"
@@ -15,3 +15,34 @@ services:
       - :/orbitersdk-volume
     tty: true
     stdin_open: true
+
+  orbitersdk-base:
+    build:
+      context: docker
+      dockerfile: orbiter.dockerfile
+
+  orbitersdk-discover:
+    build:
+      context: docker
+      dockerfile: discover.dockerfile
+    volumes:
+      - type: bind
+        source: ./build/src/bins
+        target: /opt/app/
+    command: ["/opt/app/orbitersdkd-discovery/orbitersdkd-discovery"]
+    ports:
+      - "8080:8080"
+      - "9999:9999"
+
+  orbitersdk-validator:
+    build:
+      context: docker
+      dockerfile: validator.dockerfile
+    volumes:
+      - type: bind
+        source: ./build/src/bins
+        target: /opt/app/
+    command: ["/opt/app/orbitersdkd/orbitersdkd"]
+    ports:
+      - "8081:8081"
+      - "8090:8090"
