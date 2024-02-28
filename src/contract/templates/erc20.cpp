@@ -21,8 +21,10 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db
   }
   auto allowances = db_.getBatch(this->getNewPrefix("allowed_"));
   for (const auto& dbEntry : allowances) {
-    BytesArrView valueView(dbEntry.value);
-    this->allowed_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Utils::fromBigEndian<uint256_t>(valueView.subspan(20));
+    BytesArrView key(dbEntry.key);
+    Address owner(key.subspan(0,20));
+    Address spender(key.subspan(20));
+    this->allowed_[owner][spender] = Utils::bytesToUint256(dbEntry.value);
   }
 
   this->name_.commit();
@@ -117,12 +119,14 @@ ERC20::~ERC20() {
     batchOperations.push_back(key, value, this->getNewPrefix("balances_"));
   }
 
+  // SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>>
   for (auto it = allowed_.cbegin(); it != allowed_.cend(); ++it) {
     for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
-      const auto& key = it->first.get();
-      Bytes value = it2->first.asBytes();
-      Utils::appendBytes(value, Utils::uintToBytes(it2->second));
-      batchOperations.push_back(key, value, this->getNewPrefix("allowed_"));
+      // Key = Address + Address
+      // value = uint256_t
+      auto key = it->first.asBytes();
+      Utils::appendBytes(key, it2->first.asBytes());
+      batchOperations.push_back(key, Utils::uint256ToBytes(it2->second), this->getNewPrefix("allowed_"));
     }
   }
   this->db_.putBatch(batchOperations);

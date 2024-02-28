@@ -29,8 +29,10 @@ ERC721::ERC721(
   }
   auto operatorAddressApprovals = db_.getBatch(this->getNewPrefix("operatorAddressApprovals_"));
   for (const auto& dbEntry : operatorAddressApprovals) {
-    BytesArrView valueView(dbEntry.value);
-    this->operatorAddressApprovals_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = valueView[20];
+    BytesArrView keyView(dbEntry.key);
+    Address owner(keyView.subspan(0, 20));
+    Address operatorAddress(keyView.subspan(20));
+    this->operatorAddressApprovals_[owner][operatorAddress] = dbEntry.value[0];
   }
 
   this->name_.commit();
@@ -124,11 +126,10 @@ ERC721::~ERC721() {
 
   for (auto it = operatorAddressApprovals_.cbegin(); it != operatorAddressApprovals_.cend(); ++it) {
     for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
-      // key: address -> value: address + bool (1 byte)
-      const auto& key = it->first.get();
-      Bytes value = it2->first.asBytes();
-      value.insert(value.end(), char(it2->second));
-      batchedOperations.push_back(key, value, this->getNewPrefix("operatorAddressApprovals_"));
+      // key: address + address -> bool
+      Bytes key = it->first.asBytes();
+      Utils::appendBytes(key, it2->first.asBytes());
+      Bytes value = {uint8_t(it2->second)};
     }
   }
 
