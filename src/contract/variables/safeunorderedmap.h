@@ -26,8 +26,8 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     std::unordered_map<Key, T, SafeHash> map_; ///< Value.
     mutable std::unique_ptr<std::unordered_map<Key, T, SafeHash>> mapPtr_; ///< Pointer to the value.
     mutable std::unique_ptr<std::unordered_set<Key, SafeHash>> erasedKeys_; ///< Pointer to the set of erased keys in map_ (not mapPtr_).
-    mutable uint64_t size_;
-    mutable bool dirtySize_;
+    mutable uint64_t size_; ///< Cache of this container's element count (valid only if dirtySize_ == false)
+    mutable bool dirtySize_; ///< True if size_ has to be be recomputed
 
     /// Check if pointers are initialized (and initialize them if not).
     inline void check() const override {
