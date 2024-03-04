@@ -72,12 +72,15 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
         2000,
         10000,
         4,
+        false,
         discoveryNodes,
+        Address(),
         genesis,
         genesisTimestamp,
         genesisPrivKey,
         genesisBalances,
-        genesisValidators
+        genesisValidators,
+        nullptr
       ));
   } else {
     return TestBlockchainWrapper(Options(
@@ -95,13 +98,15 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
       2000,
       10000,
       4,
+      true,
       discoveryNodes,
+      Secp256k1::toAddress(Secp256k1::toUPub(validatorKey)),
       genesis,
       genesisTimestamp,
       genesisPrivKey,
       genesisBalances,
       genesisValidators,
-      validatorKey
+      &validatorKey
     ));
   }
 }
@@ -457,12 +462,15 @@ namespace TRdPoS {
           2000,
           10000,
           4,
+          false,
           peers,
+          Address(),
           genesis,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          nullptr
         );
       P2P::ManagerDiscovery p2pDiscovery(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
@@ -707,12 +715,15 @@ namespace TRdPoS {
       2000,
       10000,
       4,
+      false,
       discoveryNodes,
+      Address(),
       genesis,
       genesisTimestamp,
       genesisPrivKey,
       genesisBalances,
-      genesisValidators
+      genesisValidators,
+      nullptr
     );
     P2P::ManagerDiscovery p2pDiscovery(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 

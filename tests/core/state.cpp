@@ -421,12 +421,15 @@ namespace TState {
           2000,
           10000,
           4,
+          false,
           discoveryNodes,
+          Address(),
           genesis,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          nullptr
       );
       P2P::ManagerDiscovery p2pDiscovery(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -651,12 +654,15 @@ namespace TState {
           2000,
           10000,
           4,
+          false,
           discoveryNodes,
+          Address(),
           genesis,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          nullptr
       );
       P2P::ManagerDiscovery p2pDiscovery(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -938,12 +944,15 @@ namespace TState {
           2000,
           10000,
           4,
+          false,
           discoveryNodes,
+          Address(),
           genesis,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          nullptr
       );
       P2P::ManagerDiscovery p2pDiscovery(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -1284,12 +1293,15 @@ namespace TState {
           2000,
           10000,
           4,
+          false,
           discoveryNodes,
+          Address(),
           genesis,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          nullptr
       );
       P2P::ManagerDiscovery p2pDiscovery(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -1654,12 +1666,15 @@ namespace TState {
           2000,
           10000,
           4,
+          false,
           discoveryNodes,
+          Address(),
           genesis,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          nullptr
       );
       P2P::ManagerDiscovery p2pDiscovery(
           boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);

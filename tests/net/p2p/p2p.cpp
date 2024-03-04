@@ -183,7 +183,7 @@ namespace TP2P {
 
     SECTION("2 Node Network, request info") {
       auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), 8080, true, testDumpPath + "/p2pRequestInfoNode1");
-      
+
       auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/p2pRequestInfoNode2");
 
       /// Start the servers
@@ -234,12 +234,15 @@ namespace TP2P {
         2000,
         10000,
         4,
+        false,
         discoveryNodes,
+        Address(),
         genesis,
         genesisTimestamp,
         genesisPrivKey,
         genesisBalances,
-        genesisValidators
+        genesisValidators,
+        nullptr
       );
 
       P2P::ManagerDiscovery p2pDiscoveryNode(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
@@ -265,7 +268,7 @@ namespace TP2P {
       blockchainWrapper8.p2p.start();
       blockchainWrapper9.p2p.start();
       blockchainWrapper10.p2p.start();
-      
+
       blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
       blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
       blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);

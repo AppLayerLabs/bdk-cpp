@@ -140,12 +140,15 @@ class SDKTestSuite {
           2000,
           10000,
           4,
+          false,
           discoveryNodes,
+          Address(),
           genesis,
           genesisTimestamp,
           genesisSigner,
           genesisBalances,
-          genesisValidators
+          genesisValidators,
+          nullptr
         );
       } else {
         options_ = std::make_unique<Options>(*options);

@@ -36,6 +36,10 @@ namespace TOptions {
       for (const auto& privKey : validatorPrivKeys_) {
         genesisValidators.push_back(Secp256k1::toAddress(Secp256k1::toUPub(privKey)));
       }
+
+      PrivKey *privKey = new PrivKey(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66"));
+      Address coinbase = Secp256k1::toAddress(Secp256k1::toUPub(*privKey));
+
       Options optionsWithPrivKey(
         testDumpPath + "/optionClassFromFileWithPrivKey",
         "OrbiterSDK/cpp/linux_x86-64/0.2.0",
@@ -51,13 +55,15 @@ namespace TOptions {
         2000,
         10000,
         4,
+        true,
         {},
+        coinbase,
         genesis,
         genesisTimestamp,
         genesisPrivKey,
         genesisBalances,
         genesisValidators,
-        PrivKey(Hex::toBytes("0xb254f12b4ca3f0120f305cabf1188fe74f0bd38e58c932a3df79c4c55df8fa66"))
+        privKey
       );
 
       Options optionsFromFileWithPrivKey(Options::fromFile(testDumpPath + "/optionClassFromFileWithPrivKey"));
