@@ -13,7 +13,8 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.h
   ${CMAKE_SOURCE_DIR}/src/utils/logger.h
   ${CMAKE_SOURCE_DIR}/src/utils/dynamicexception.h
-  ${CMAKE_SOURCE_DIR}/src/utils/mutableblock.hpp
+  ${CMAKE_SOURCE_DIR}/src/utils/mutableblock.h
+  ${CMAKE_SOURCE_DIR}/src/utils/finalizedblock.h
   PARENT_SCOPE
 )
 
