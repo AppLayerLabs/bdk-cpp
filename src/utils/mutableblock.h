@@ -38,6 +38,11 @@ class MutableBlock {
      */
     void deserialize(const BytesArrView bytes, const uint64_t& requiredChainId);
 
+    /**
+    * Helper method for validating the block.
+    */
+    void validateBlock();
+
   public:
     /**
      * Constructor.
@@ -84,6 +89,7 @@ class MutableBlock {
      * Finalize the block, preventing any further modifications.
      * @param validatorPrivKey The private key of the Validator that will sign the block.
      * @param newTimestamp The new timestamp for the block.
+     * @param bytes The raw byte string to finalize.
      * @return A finalized and signed instance of the block.
      */
     FinalizedBlock finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp);

@@ -24,7 +24,7 @@ See the LICENSE.txt file in the project root for more information.
 class FinalizedBlock {
   private:
     const Signature validatorSig_;                ///< Validator signature for the block.
-    const PublicKey validatorPubKey_;             ///< Public key of the Validator that signed the block.
+    const UPubKey validatorPubKey_;               ///< Public key of the Validator that signed the block.
     const Hash prevBlockHash_;                    ///< Hash of the previous block.
     const Hash blockRandomness_;                  ///< Current block randomness based on rdPoS.
     const Hash validatorMerkleRoot_;              ///< Merkle root for Validator transactions.
@@ -52,7 +52,7 @@ class FinalizedBlock {
      */
     FinalizedBlock(
       const Signature& validatorSig,
-      const PublicKey& validatorPubKey,
+      const UPubKey& validatorPubKey,
       const Hash& prevBlockHash,
       const Hash& blockRandomness,
       const Hash& validatorMerkleRoot,
@@ -72,7 +72,7 @@ class FinalizedBlock {
     ///@{
     /** Getter. */
     const Signature& getValidatorSig() const { return this->validatorSig_; }
-    const PublicKey& getValidatorPubKey() const { return this->validatorPubKey_; }
+    const UPubKey& getValidatorPubKey() const { return this->validatorPubKey_; }
     const Hash& getPrevBlockHash() const { return this->prevBlockHash_; }
     const Hash& getBlockRandomness() const { return this->blockRandomness_; }
     const Hash& getValidatorMerkleRoot() const { return this->validatorMerkleRoot_; }
