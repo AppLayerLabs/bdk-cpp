@@ -88,7 +88,6 @@ private:
 public:
   /**
    * Constructor for a normal node. Creates option.json file within rootPath.
-   * Populates coinbase() and isValidator() with false.
    * @param rootPath Path to data root folder.
    * @param web3clientVersion Version of the client.
    * @param version Version of the chain.
@@ -104,44 +103,7 @@ public:
    * @param eventLogCap Maximum number of events that can be queried.
    * @param minValidators Minimum required number of Validators for creating and signing blocks.
    * @param discoveryNodes List of known Discovery nodes.
-   * @param genesisBlock Genesis block.
-   * @param genesisTimestamp Genesis timestamp.
-   * @param genesisSigner Genesis signer.
-   * @param genesisBalances List of addresses and their respective initial balances.
-   * @param genesisValidators List of genesis validators.
-   */
-  Options(
-    const std::string& rootPath, const std::string& web3clientVersion,
-    const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-    const uint16_t& wsPort, const uint16_t& httpPort,
-    const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
-    const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
-    const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
-    const uint32_t& minValidators,
-    const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-    const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
-    const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
-    const std::vector<Address>& genesisValidators
-    );
-
-  /**
-   * Constructor for a Validator node. Creates option.json file within rootPath.
-   * Populates coinbase() and isValidator() with privKey address and true respectively.
-   * @param rootPath Path to data root folder.
-   * @param web3clientVersion Version of the client.
-   * @param version Version of the chain.
-   * @param chainID Chain ID of the chain.
-   * @param chainOwner Chain owner address.
-   * @param wsPort Websocket server port.
-   * @param httpPort HTTP server port.
-   * @param minDiscoveryConns Minimum required simultaneous connections for Discovery nodes.
-   * @param minNormalConns Minimum required simultaneous connections for Normal nodes.
-   * @param maxDiscoveryConns Maximum allowed simultaneous connections for Discovery nodes.
-   * @param maxNormalConns Maximum allowed simultaneous connections for Normal nodes.
-   * @param eventBlockCap Block range limit for querying events.
-   * @param eventLogCap Maximum number of events that can be queried.
-   * @param minValidators Minimum required number of Validators for creating and signing blocks.
-   * @param discoveryNodes List of known Discovery nodes.
+   * @param coinbase Coinbase address used by rdPoS.
    * @param genesisBlock Genesis block.
    * @param genesisTimestamp Genesis timestamp.
    * @param genesisSigner Genesis signer.
@@ -150,18 +112,29 @@ public:
    * @param privKey Private key of the Validator.
    */
   Options(
-    const std::string& rootPath, const std::string& web3clientVersion,
-    const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-    const uint16_t& wsPort, const uint16_t& httpPort,
-    const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
-    const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
-    const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+    const std::string& rootPath,
+    const std::string& web3clientVersion,
+    const uint64_t& version,
+    const uint64_t& chainID,
+    const Address& chainOwner,
+    const uint16_t& wsPort,
+    const uint16_t& httpPort,
+    const uint16_t& minDiscoveryConns,
+    const uint16_t& minNormalConns,
+    const uint16_t& maxDiscoveryConns,
+    const uint16_t& maxNormalConns,
+    const uint64_t& eventBlockCap,
+    const uint64_t& eventLogCap,
     const uint32_t& minValidators,
+    const bool isValidator,
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-    const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+    const Address coinbase,
+    const Block& genesisBlock,
+    const uint64_t genesisTimestamp,
+    const PrivKey& genesisSigner,
     const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
     const std::vector<Address>& genesisValidators,
-    const PrivKey& privKey
+    const PrivKey *privKey
     );
 
   /// Copy constructor.
@@ -235,7 +208,10 @@ public:
    */
   static std::string resolveAddress(const std::string& host);
 
-  /// Get the Validator node's private key from the JSON file, or an empty private key if missing.
+  /**
+   * Get the Validator node's private key from the JSON file,
+   * or an empty private key if missing.
+   */
   PrivKey getValidatorPrivKey() const;
 
   /**
@@ -246,6 +222,23 @@ public:
    * @throw DynamicException on failure.
    */
   static Options fromFile(const std::string& rootPath);
+
+  /**
+   * Create json options file.
+   *
+   * @param rootPath Path to data root folder.
+   * @param options Options json object.
+   * @throw DynamicException on failure.
+   */
+  static void createOptionsFile(const std::string& rootPath, const json &options);
+
+  /**
+   * Returns options json object.
+   *
+   * @param rootPath Path to data root folder.
+   * @return The constructed options object.
+   */
+  static json getOptionsFromFile(const std::string& rootPath);
 
   /**
    * Load the default options defined within the optionsdefaults.cpp file
