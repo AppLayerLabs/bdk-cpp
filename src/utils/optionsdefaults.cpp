@@ -37,12 +37,14 @@ Options Options::binaryDefaultOptions(const std::string& rootPath) {
    * eventBlockCap,
    * eventLogCap,
    * minValidators,
+   * isValidator,
    * discoveryNodes,
    * genesisBlock,
    * genesisTimestamp,
    * genesisSigner,
    * genesisBalances,
    * genesisValidators
+   * privKey (null)
    */
   return {
     rootPath,
@@ -59,12 +61,15 @@ Options Options::binaryDefaultOptions(const std::string& rootPath) {
     2000,
     10000,
     4,
+    false,
     {},
+    Address(),
     genesis,
     genesis.getTimestamp(),
     genesisSigner,
     genesisBalanceList,
-    genesisValidators
+    genesisValidators,
+    nullptr
   };
 }
 
