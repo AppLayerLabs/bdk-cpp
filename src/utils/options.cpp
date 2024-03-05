@@ -22,101 +22,15 @@ Options::Options(
   const uint64_t& eventBlockCap,
   const uint64_t& eventLogCap,
   const uint32_t& minValidators,
+  const bool isValidator,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-  const Block& genesisBlock,
-  const uint64_t genesisTimestamp,
-  const PrivKey& genesisSigner,
-  const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
-  const std::vector<Address>& genesisValidators) :
-  rootPath_(rootPath),
-  web3clientVersion_(web3clientVersion),
-  version_(version),
-  chainID_(chainID),
-  chainOwner_(chainOwner),
-  wsPort_(wsPort),
-  httpPort_(httpPort),
-  minDiscoveryConns_(minDiscoveryConns),
-  minNormalConns_(minNormalConns),
-  maxDiscoveryConns_(maxDiscoveryConns),
-  maxNormalConns_(maxNormalConns),
-  eventBlockCap_(eventBlockCap),
-  eventLogCap_(eventLogCap),
-  minValidators_(minValidators),
-  coinbase_(Address()),
-  isValidator_(false),
-  discoveryNodes_(discoveryNodes),
-  genesisBlock_(genesisBlock),
-  genesisBalances_(genesisBalances),
-  genesisValidators_(genesisValidators)
-{
-  if (std::filesystem::exists(rootPath + "/options.json"))
-    return;
-
-  json options;
-
-  options["rootPath"] = rootPath;
-  options["web3clientVersion"] = web3clientVersion;
-  options["version"] = version;
-  options["chainID"] = chainID;
-  options["chainOwner"] = chainOwner.hex(true);
-  options["wsPort"] = wsPort;
-  options["httpPort"] = httpPort;
-  options["minDiscoveryConns"] = minDiscoveryConns;
-  options["minNormalConns"] = minNormalConns;
-  options["maxDiscoveryConns"] = maxDiscoveryConns;
-  options["maxNormalConns"] = maxNormalConns;
-  options["eventBlockCap"] = eventBlockCap;
-  options["eventLogCap"] = eventLogCap;
-  options["minValidators"] = minValidators;
-  options["discoveryNodes"] = json::array();
-  for (const auto& [address, port] : discoveryNodes) {
-    options["discoveryNodes"].push_back(json::object({
-          {"address", address.to_string()},
-          {"port", port}
-        }));
-  }
-  options["genesis"] = json::object();
-  options["genesis"]["timestamp"] = genesisTimestamp;
-  options["genesis"]["signer"] = genesisSigner.hex(true);
-  options["genesis"]["balances"] = json::array();
-  for (const auto& [address, balance] : this->genesisBalances_) {
-    options["genesis"]["balances"].push_back(json::object({
-          {"address", address.hex(true)},
-          {"balance", balance.str()}
-        }));
-  }
-  options["genesis"]["validators"] = json::array();
-  for (const auto& validator : this->genesisValidators_) {
-    options["genesis"]["validators"].push_back(validator.hex(true));
-  }
-  std::filesystem::create_directories(rootPath);
-  std::ofstream o(rootPath + "/options.json");
-  o << options.dump(2) << std::endl;
-  o.close();
-}
-
-Options::Options(
-  const std::string& rootPath,
-  const std::string& web3clientVersion,
-  const uint64_t& version,
-  const uint64_t& chainID,
-  const Address& chainOwner,
-  const uint16_t& wsPort,
-  const uint16_t& httpPort,
-  const uint16_t& minDiscoveryConns,
-  const uint16_t& minNormalConns,
-  const uint16_t& maxDiscoveryConns,
-  const uint16_t& maxNormalConns,
-  const uint64_t& eventBlockCap,
-  const uint64_t& eventLogCap,
-  const uint32_t& minValidators,
-  const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
+  const Address coinbase,
   const Block& genesisBlock,
   const uint64_t genesisTimestamp,
   const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const std::vector<Address>& genesisValidators,
-  const PrivKey& privKey) :
+  const PrivKey *privKey) :
   rootPath_(rootPath),
   web3clientVersion_(web3clientVersion),
   version_(version),
@@ -131,15 +45,12 @@ Options::Options(
   eventBlockCap_(eventBlockCap),
   eventLogCap_(eventLogCap),
   minValidators_(minValidators),
+  isValidator_(isValidator),
   discoveryNodes_(discoveryNodes),
-  coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
-  isValidator_(true),
+  coinbase_(coinbase),
   genesisBlock_(genesisBlock),
   genesisBalances_(genesisBalances),
-  genesisValidators_(genesisValidators)
-{
-  if (std::filesystem::exists(rootPath + "/options.json"))
-    return;
+  genesisValidators_(genesisValidators) {
 
   json options;
 
@@ -178,18 +89,42 @@ Options::Options(
   for (const auto& validator : this->genesisValidators_) {
     options["genesis"]["validators"].push_back(validator.hex(true));
   }
-  options["privKey"] = privKey.hex();
-  std::filesystem::create_directories(rootPath);
-  std::ofstream o(rootPath + "/options.json");
-  o << options.dump(2) << std::endl;
-  o.close();
+  // check if we have a private key
+  if (privKey != nullptr)
+    options["privKey"] = privKey->hex();
+
+  if (!std::filesystem::exists(rootPath + "/options.json"))
+    createOptionsFile(rootPath, options);
+}
+
+void Options::createOptionsFile(const std::string& rootPath, const json &options)
+{
+  try {
+    std::filesystem::create_directory(rootPath);
+    std::ofstream o(rootPath + "/options.json");
+    o << options.dump(2) << std::endl;
+    o.close();
+  }
+  catch (std::exception &e) {
+    throw DynamicException(
+      "Could not create rootPaht directory: " + std::string(e.what())
+      );
+  }
+}
+
+json Options::getOptionsFromFile(const std::string& rootPath)
+{
+  json options;
+  std::ifstream i(rootPath + "/options.json");
+
+  i >> options;
+  i.close();
+
+  return options;
 }
 
 PrivKey Options::getValidatorPrivKey() const {
-  json options;
-  std::ifstream i(this->rootPath_ + "/options.json");
-  i >> options;
-  i.close();
+  json options = getOptionsFromFile(this->rootPath_);
   if (options.contains("privKey")) {
     const auto privKey = options["privKey"].get<std::string>();
     return PrivKey(Hex::toBytes(privKey));
@@ -197,7 +132,8 @@ PrivKey Options::getValidatorPrivKey() const {
   return PrivKey();
 }
 
-std::string Options::resolveAddress(const std::string& host) {
+std::string Options::resolveAddress(const std::string& host)
+{
   std::string ipAddress = host;
   boost::system::error_code ec;
   try {
@@ -220,8 +156,17 @@ std::string Options::resolveAddress(const std::string& host) {
   return ipAddress;
 }
 
-Options Options::fromFile(const std::string& rootPath) {
-  // Check if rootPath is valid
+Options Options::fromFile(const std::string& rootPath)
+{
+  // default values
+  bool isValidator = false;
+  PrivKey *privKey = nullptr;
+  Address coinbase = Address();
+  std::vector<Address> genesisValidators;
+  std::vector<std::pair<Address, uint256_t>> genesisBalances;
+  std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+
+  // check if options file is valid
   if (!std::filesystem::exists(rootPath + "/options.json")) {
     try {
       std::filesystem::create_directory(rootPath);
@@ -232,30 +177,20 @@ Options Options::fromFile(const std::string& rootPath) {
     return Options::binaryDefaultOptions(rootPath);
   }
 
-  std::ifstream i(rootPath + "/options.json");
-  json options;
-  i >> options;
-  i.close();
-
-  uint64_t port = 0;
-  std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
+  json options = getOptionsFromFile(rootPath);
   for (const auto& node : options["discoveryNodes"]) {
-    port = node["port"].get<uint64_t>();
     discoveryNodes.emplace_back(
       boost::asio::ip::address::from_string(
         resolveAddress(node["address"].get<std::string>())),
-      port);
+      node["port"].get<uint64_t>()
+      );
   }
-
   const PrivKey genesisSigner(Hex::toBytes(options["genesis"]["signer"].get<std::string>()));
   Block genesis(Hash(), 0, 0);
   genesis.finalize(genesisSigner, options["genesis"]["timestamp"].get<uint64_t>());
-
-  std::vector<Address> genesisValidators;
   for (const auto& validator : options["genesis"]["validators"]) {
     genesisValidators.push_back(Address(Hex::toBytes(validator.get<std::string>())));
   }
-  std::vector<std::pair<Address, uint256_t>> genesisBalances;
   for (const auto& balance : options["genesis"]["balances"]) {
     genesisBalances.emplace_back(
       Address(Hex::toBytes(balance["address"].get<std::string>())),
@@ -263,29 +198,9 @@ Options Options::fromFile(const std::string& rootPath) {
       );
   }
   if (options.contains("privKey")) {
-    return Options(
-      options["rootPath"].get<std::string>(),
-      options["web3clientVersion"].get<std::string>(),
-      options["version"].get<uint64_t>(),
-      options["chainID"].get<uint64_t>(),
-      Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
-      options["wsPort"].get<uint64_t>(),
-      options["httpPort"].get<uint64_t>(),
-      options["minDiscoveryConns"].get<uint16_t>(),
-      options["minNormalConns"].get<uint16_t>(),
-      options["maxDiscoveryConns"].get<uint16_t>(),
-      options["maxNormalConns"].get<uint16_t>(),
-      options["eventBlockCap"].get<uint64_t>(),
-      options["eventLogCap"].get<uint64_t>(),
-      options["minValidators"].get<uint32_t>(),
-      discoveryNodes,
-      genesis,
-      options["genesis"]["timestamp"].get<uint64_t>(),
-      genesisSigner,
-      genesisBalances,
-      genesisValidators,
-      PrivKey(Hex::toBytes(options["privKey"].get<std::string>()))
-      );
+    isValidator = true;
+    privKey = new PrivKey(Hex::toBytes(options["privKey"].get<std::string>()));
+    coinbase = Secp256k1::toAddress(Secp256k1::toUPub(*privKey));
   }
   return Options(
     options["rootPath"].get<std::string>(),
@@ -302,10 +217,13 @@ Options Options::fromFile(const std::string& rootPath) {
     options["eventBlockCap"].get<uint64_t>(),
     options["eventLogCap"].get<uint64_t>(),
     options["minValidators"].get<uint32_t>(),
+    isValidator,
     discoveryNodes,
+    coinbase,
     genesis,
     options["genesis"]["timestamp"].get<uint64_t>(),
     genesisSigner,
     genesisBalances,
-    genesisValidators);
+    genesisValidators,
+    privKey);
 }
