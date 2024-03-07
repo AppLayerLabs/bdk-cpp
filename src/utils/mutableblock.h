@@ -26,8 +26,8 @@ class MutableBlock {
   private:
     Hash prevBlockHash_;                    ///< Hash of the previous block.
     Hash blockRandomness_;                  ///< Current block randomness based on rdPoS.
-    uint64_t timestamp_;                    ///< Epoch timestamp of the block, in microseconds.
-    uint64_t nHeight_;                      ///< Height of the block in chain.
+    uint64_t timestamp_ = 0;                ///< Epoch timestamp of the block, in microsseconds.
+    uint64_t nHeight_ = 0;                  ///< Height of the block in chain.
     std::vector<TxBlock> txs_;              ///< List of block transactions.
     std::vector<TxValidator> txValidators_; ///< List of Validator transactions.
     bool isDeserialized_ = false;          ///< Flag to prevent new transactions from being added after deserialization.
@@ -100,6 +100,16 @@ class MutableBlock {
      * @return A finalized and signed instance of the block.
      */
     FinalizedBlock finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp);
+
+    ///@{
+    /** Getter. */
+    const Hash& getPrevBlockHash() const { return this->prevBlockHash_; }
+    const Hash& getBlockRandomness() const { return this->blockRandomness_; }
+    const uint64_t& getTimestamp() const { return this->timestamp_; }
+    const uint64_t& getNHeight() const { return this->nHeight_; }
+    const std::vector<TxValidator>& getTxValidators() const { return this->txValidators_; }
+    const std::vector<TxBlock>& getTxs() const { return this->txs_; }
+    ///@}
 
     /// Copy assignment operator.
     MutableBlock& operator=(const MutableBlock& other) {

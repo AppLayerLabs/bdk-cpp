@@ -74,7 +74,7 @@ class FinalizedBlock {
         validatorMerkleRoot_(std::move(validatorMerkleRoot)), txMerkleRoot_(std::move(txMerkleRoot)),
         timestamp_(timestamp), nHeight_(nHeight),
         txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash))
-    {}
+    {Logger::logToDebug(LogType::INFO, Log::mutableblock, __func__, "Finalized block created");}
 
     Bytes serializeBlock() const;
 

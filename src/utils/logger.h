@@ -23,6 +23,7 @@ namespace Log {
   const std::string storage = "Storage";                           ///< String for `Storage`.
   const std::string snowmanVM = "SnowmanVM";                       ///< String for `SnowmanVM`.
   const std::string block = "Block";                               ///< String for `Block`.
+  const std::string mutableblock = "MutableBlock";                 ///< String for `MutableBlock`.
   const std::string db = "DB";                                     ///< String for `DB`.
   const std::string state = "State";                               ///< String for `State`.
   const std::string grpcServer = "gRPCServer";                     ///< String for `gRPCServer`.
