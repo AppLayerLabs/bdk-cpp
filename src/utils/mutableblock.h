@@ -30,7 +30,7 @@ class MutableBlock {
     uint64_t nHeight_;                      ///< Height of the block in chain.
     std::vector<TxBlock> txs_;              ///< List of block transactions.
     std::vector<TxValidator> txValidators_; ///< List of Validator transactions.
-    bool readyToFinalize_ = false;          ///< Flag to prevent further modifications.
+    bool isDeserialized_ = false;          ///< Flag to prevent new transactions from being added after deserialization.
 
     /**
      * Helper method for deserializing a raw byte string into block data.
@@ -54,6 +54,15 @@ class MutableBlock {
      * @param requiredChainId The chain ID that the block belongs to.
      */
     MutableBlock(const BytesArrView bytes, const uint64_t& requiredChainId);
+
+    /**
+     * Constructor from creation.
+     * @param prevBlockHash_ The previous block hash.
+     * @param timestamp_ The epoch timestamp_ of the block.
+     * @param nHeight_ The height of the block.
+     */
+    MutableBlock(const Hash& prevBlockHash_, const uint64_t& timestamp_, const uint64_t& nHeight_)
+      : prevBlockHash_(prevBlockHash_), timestamp_(timestamp_), nHeight_(nHeight_) {}
 
     /// Copy constructor.
     MutableBlock(const MutableBlock& block) :

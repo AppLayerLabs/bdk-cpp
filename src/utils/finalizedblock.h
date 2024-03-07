@@ -35,6 +35,13 @@ class FinalizedBlock {
     const std::vector<TxBlock> txs_;              ///< List of block transactions.
     const Hash hash_;                             ///< Cached hash of the block.
 
+    /**
+     * Serialize the block header (144 bytes = previous block hash + block randomness
+     * + validator merkle root + tx merkle root + timestamp + block height).
+     * @return The serialized header string.
+     */
+    Bytes serializeHeader() const;
+
   public:
     /**
      * Constructor.
@@ -68,6 +75,8 @@ class FinalizedBlock {
         timestamp_(timestamp), nHeight_(nHeight),
         txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash))
     {}
+
+    Bytes serializeBlock() const;
 
     ///@{
     /** Getter. */

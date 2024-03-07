@@ -121,11 +121,11 @@ void MutableBlock::deserialize(const BytesArrView bytes, const uint64_t& require
       index += txSize;
     }
 
-    this->readyToFinalize_ = true;
+    this->isDeserialized_ = true;
 }
 
 bool MutableBlock::appendTx(const TxBlock& tx) {
-  if (this->readyToFinalize_) {
+  if (this->isDeserialized_) {
     Logger::logToDebug(LogType::ERROR, Log::block, __func__, "Block is already deserialized");
     return false;
   }
@@ -134,7 +134,7 @@ bool MutableBlock::appendTx(const TxBlock& tx) {
 }
 
 bool MutableBlock::appendTxValidator(const TxValidator& tx) {
-  if (this->readyToFinalize_) {
+  if (this->isDeserialized_) {
     Logger::logToDebug(LogType::ERROR, Log::block, __func__, "Block is already deserialized");
     return false;
   }
