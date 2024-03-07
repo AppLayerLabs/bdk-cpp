@@ -23,7 +23,6 @@ MutableBlock::MutableBlock(const BytesArrView bytes, const uint64_t& requiredCha
         // since they will be calculated during the deserialization process
 
         this->deserialize(bytes, requiredChainId);
-        this->validateBlock();
     } catch (const std::exception &e) {
         throw std::runtime_error(std::string("Error when deserializing a MutableBlock: ") + e.what());
     }
@@ -121,6 +120,39 @@ void MutableBlock::deserialize(const BytesArrView bytes, const uint64_t& require
       }
       index += txSize;
     }
+
+    this->readyToFinalize_ = true;
+}
+
+bool MutableBlock::appendTx(const TxBlock& tx) {
+  if (this->readyToFinalize_) {
+    Logger::logToDebug(LogType::ERROR, Log::block, __func__, "Block is already deserialized");
+    return false;
+  }
+  this->txs_.emplace_back(tx);
+  return true;
+}
+
+bool MutableBlock::appendTxValidator(const TxValidator& tx) {
+  if (this->readyToFinalize_) {
+    Logger::logToDebug(LogType::ERROR, Log::block, __func__, "Block is already deserialized");
+    return false;
+  }
+  this->txValidators_.emplace_back(tx);
+  return true;
+}
+
+Bytes MutableBlock::serializeMutableHeader(Hash validatorMerkleRoot, Hash txMerkleRoot) const {
+  Bytes bytes;
+  bytes.reserve(144);
+  bytes.insert(bytes.end(), this->prevBlockHash_.cbegin(), this->prevBlockHash_.cend());
+  bytes.insert(bytes.end(), this->blockRandomness_.cbegin(), this->blockRandomness_.cend());
+  bytes.insert(bytes.end(), validatorMerkleRoot.cbegin(), validatorMerkleRoot.cend());
+  bytes.insert(bytes.end(), txMerkleRoot.cbegin(), txMerkleRoot.cend());
+  Utils::appendBytes(bytes, Utils::uint64ToBytes(this->timestamp_));
+  Utils::appendBytes(bytes, Utils::uint64ToBytes(this->nHeight_));
+
+  return bytes;
 }
 
 FinalizedBlock MutableBlock::finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp) {
@@ -132,18 +164,23 @@ FinalizedBlock MutableBlock::finalize(const PrivKey& validatorPrivKey, const uin
     throw DynamicException("Block timestamp not satisfiable");
   }
 
-  // Create the finalized block
-  Hash hash = Utils::sha3(this->serializeHeader());
-  Signature validatorSig = Secp256k1::sign(hash, validatorPrivKey);
-  UPubKey validatorPubKey = Secp256k1::recover(validatorSig, hash);
+  // Return a finalized block
   Hash validatorMerkleRoot = Merkle(this->txValidators_).getRoot();
   Hash txMerkleRoot = Merkle(this->txs_).getRoot();
-  
+  Hash hash = Utils::sha3(this->serializeMutableHeader(validatorMerkleRoot, txMerkleRoot));
+  Signature validatorSig = Secp256k1::sign(hash, validatorPrivKey);
+  UPubKey validatorPubKey = Secp256k1::recover(validatorSig, hash);
   return FinalizedBlock(
-    validatorSig, validatorPubKey, this->prevBlockHash_, this->blockRandomness_,
-    validatorMerkleRoot, txMerkleRoot, newTimestamp, this->nHeight_,
-    this->txValidators_, this->txs_, hash
+      std::move(validatorSig),
+      std::move(validatorPubKey),
+      std::move(this->prevBlockHash_),
+      std::move(this->blockRandomness_),
+      std::move(validatorMerkleRoot),
+      std::move(txMerkleRoot),
+      newTimestamp, // Directly passed since it's a primitive type
+      nHeight_, // Same for nHeight_
+      std::move(this->txValidators_),
+      std::move(this->txs_),
+      std::move(hash)
   );
-
-
 }

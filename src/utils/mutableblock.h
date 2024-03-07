@@ -30,6 +30,7 @@ class MutableBlock {
     uint64_t nHeight_;                      ///< Height of the block in chain.
     std::vector<TxBlock> txs_;              ///< List of block transactions.
     std::vector<TxValidator> txValidators_; ///< List of Validator transactions.
+    bool readyToFinalize_ = false;          ///< Flag to prevent further modifications.
 
     /**
      * Helper method for deserializing a raw byte string into block data.
@@ -39,9 +40,12 @@ class MutableBlock {
     void deserialize(const BytesArrView bytes, const uint64_t& requiredChainId);
 
     /**
-    * Helper method for validating the block.
+    * Serialize the mutable header of the block.
+    * @param validatorMerkleRoot The merkle root of the Validator transactions.
+    * @param txMerkleRoot The merkle root of the block transactions.
+    * @return The serialized mutable header.
     */
-    void validateBlock();
+    Bytes serializeMutableHeader(Hash validatorMerkleRoot, Hash txMerkleRoot) const;
 
   public:
     /**
@@ -78,12 +82,6 @@ class MutableBlock {
      * @return `true` if the transaction was added succesfully, `false` otherwise.
      */
     bool appendTxValidator(const TxValidator& tx);
-
-    /// Serialize only the block header to a raw byte string. Does not include transactions.
-    Bytes serializeHeader() const;
-
-    /// Serialize the entire block to a raw byte string, including transactions.
-    Bytes serializeBlock() const;
 
     /**
      * Finalize the block, preventing any further modifications.
