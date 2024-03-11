@@ -16,12 +16,16 @@ MutableBlock::MutableBlock(const BytesArrView bytes, const uint64_t& requiredCha
         this->prevBlockHash_ = Hash(bytes.subspan(65, 32));
         this->timestamp_ = Utils::bytesToUint64(bytes.subspan(193, 8));
         this->nHeight_ = Utils::bytesToUint64(bytes.subspan(201, 8));
+        this->blockRandomness_ = Hash(bytes.subspan(97, 32));
+        Hash validatorMerkleRoot = Hash(bytes.subspan(129, 32));
+        Hash txMerkleRoot = Hash(bytes.subspan(161, 32));
 
         // Initialization for transaction counts is not required here
         // since they will be calculated during the deserialization process
 
         Logger::logToDebug(LogType::INFO, Log::mutableblock, __func__, "Deserializing block...");
         this->deserialize(bytes, requiredChainId);
+        this->hash_ = Utils::sha3(this->serializeMutableHeader(validatorMerkleRoot, txMerkleRoot));
     } catch (const std::exception &e) {
         Logger::logToDebug(LogType::ERROR, Log::mutableblock, __func__, "Error when deserializing a MutableBlock: " + std::string(e.what()));
         throw std::runtime_error(std::string("Error when deserializing a MutableBlock: ") + e.what());
