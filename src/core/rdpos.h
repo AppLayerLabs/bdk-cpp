@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/safehash.h"
 #include "../utils/randomgen.h"
 #include "../utils/options.h"
+#include "../utils/mutableblock.h"
 #include "../net/p2p/managernormal.h"
 
 #include <optional>
@@ -23,7 +24,6 @@ See the LICENSE.txt file in the project root for more information.
 // Forward declarations.
 class rdPoS;
 class Storage;
-class Block;
 class State;
 
 // "0x6fc5a2d6" -> Function for random tx
@@ -70,7 +70,7 @@ class rdPoSWorker {
     std::atomic<bool> canCreateBlock_ = false;
 
     /// Pointer to the latest block.
-    std::shared_ptr<const Block> latestBlock_;
+    std::shared_ptr<const FinalizedBlock> latestBlock_;
 
     /**
      * Check if the latest block has updated.
@@ -198,7 +198,7 @@ class rdPoS : public BaseContract {
      * @param block The block to validate.
      * @return `true` if the block is properly validated, `false` otherwise.
      */
-    bool validateBlock(const Block& block) const;
+    bool validateBlock(const FinalizedBlock& block) const;
 
     /**
      * Process a block. Should be called from State, after a block is validated but before it is added to Storage.
@@ -206,13 +206,13 @@ class rdPoS : public BaseContract {
      * @return The new randomness seed to be used for the next block.
      * @throw DynamicException if block is not finalized.
      */
-    Hash processBlock(const Block& block);
+    Hash processBlock(const FinalizedBlock& block);
 
     /**
      * Sign a block using the Validator's private key.
      * @param block The block to sign.
      */
-    void signBlock(Block& block);
+    FinalizedBlock signBlock(MutableBlock& block);
 
     /**
      * Add a Validator transaction to the mempool.

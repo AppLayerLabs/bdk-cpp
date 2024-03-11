@@ -53,7 +53,7 @@ contractManager_(db, *this, rdpos_, options)
     this->accounts_.insert({Address(dbEntry.key), Account(std::move(balance), std::move(nonce))});
   }
   auto latestBlock = this->storage_.latest();
-  this->contractManager_.updateContractGlobals(Secp256k1::toAddress(latestBlock->getValidatorPubKey()), latestBlock->hash(), latestBlock->getNHeight(), latestBlock->getTimestamp());
+  this->contractManager_.updateContractGlobals(Secp256k1::toAddress(latestBlock->getValidatorPubKey()), latestBlock->getHash(), latestBlock->getNHeight(), latestBlock->getTimestamp());
 }
 
 State::~State() {
@@ -156,7 +156,7 @@ void State::processTransaction(const TxBlock& tx, const Hash& blockHash, const u
   nonce++;
 }
 
-void State::refreshMempool(const Block& block) {
+void State::refreshMempool(const FinalizedBlock& block) {
   // No need to lock mutex as function caller (this->processNextBlock) already lock mutex.
   // Remove all transactions within the block that exists on the unordered_map.
   for (const auto& tx : block.getTxs()) {
@@ -204,7 +204,7 @@ std::unordered_map<Hash, TxBlock, SafeHash> State::getMempool() const {
   return this->mempool_;
 }
 
-bool State::validateNextBlock(const Block& block) const {
+bool State::validateNextBlock(const FinalizedBlock& block) const {
   /**
    * Rules for a block to be accepted within the current state
    * Block nHeight must match latest nHeight + 1
@@ -223,9 +223,9 @@ bool State::validateNextBlock(const Block& block) const {
     return false;
   }
 
-  if (block.getPrevBlockHash() != latestBlock->hash()) {
+  if (block.getPrevBlockHash() != latestBlock->getHash()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Block prevBlockHash doesn't match, expected " + latestBlock->hash().hex().get()
+      "Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
       + " got: " + block.getPrevBlockHash().hex().get()
     );
     return false;
@@ -255,12 +255,12 @@ bool State::validateNextBlock(const Block& block) const {
   }
 
   Logger::logToDebug(LogType::INFO, Log::state, __func__,
-    "Block " + block.hash().hex().get() + " is valid. (Sanity Check Passed)"
+    "Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)"
   );
   return true;
 }
 
-void State::processNextBlock(Block&& block) {
+void State::processNextBlock(FinalizedBlock&& block) {
   // Sanity check - if it passes, the block is valid and will be processed
   if (!this->validateNextBlock(block)) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
@@ -272,7 +272,7 @@ void State::processNextBlock(Block&& block) {
   std::unique_lock lock(this->stateMutex_);
 
   // Update contract globals based on (now) latest block
-  const Hash blockHash = block.hash();
+  const Hash blockHash = block.getHash();
   this->contractManager_.updateContractGlobals(Secp256k1::toAddress(block.getValidatorPubKey()), blockHash, block.getNHeight(), block.getTimestamp());
 
   // Process transactions of the block within the current state
@@ -287,8 +287,8 @@ void State::processNextBlock(Block&& block) {
 
   // Refresh the mempool based on the block transactions
   this->refreshMempool(block);
-  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.hash().hex().get() + " processed successfully.");
-  Utils::safePrint("Block: " + block.hash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
+  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.getHash().hex().get() + " processed successfully.");
+  Utils::safePrint("Block: " + block.getHash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
   for (const auto& tx : block.getTxs()) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
   }
@@ -297,7 +297,7 @@ void State::processNextBlock(Block&& block) {
   this->storage_.pushBack(std::move(block));
 }
 
-void State::fillBlockWithTransactions(Block& block) const {
+void State::fillBlockWithTransactions(MutableBlock& block) const {
   std::shared_lock lock(this->stateMutex_);
   for (const auto& [hash, tx] : this->mempool_) block.appendTx(tx);
 }

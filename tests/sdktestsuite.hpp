@@ -110,8 +110,8 @@ class SDKTestSuite {
         // Create a genesis block with a timestamp of 1678887538000000 (2023-02-12 00:45:38 UTC)
         uint64_t genesisTimestamp = 1678887538000000;
         PrivKey genesisSigner(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8"));
-        Block genesis(Hash(), 0, 0);
-        genesis.finalize(genesisSigner, genesisTimestamp);
+        MutableBlock genesis(Hash(), 0, 0);
+        FinalizedBlock genesisFinal = genesis.finalize(genesisSigner, genesisTimestamp);
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::vector<std::pair<Address,uint256_t>> genesisBalances;
         // Add the chain owner account to the genesis balances.
@@ -141,7 +141,7 @@ class SDKTestSuite {
           10000,
           4,
           discoveryNodes,
-          genesis,
+          genesisFinal,
           genesisTimestamp,
           genesisSigner,
           genesisBalances,
@@ -158,7 +158,7 @@ class SDKTestSuite {
      * @param hash Hash of the block to get.
      * @return A pointer to the block, or nullptr if not found.
      */
-    const std::shared_ptr<const Block> getBlock(const Hash& hash) const {
+    const std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash) const {
       return this->storage_.getBlock(hash);
     }
 
@@ -167,7 +167,7 @@ class SDKTestSuite {
      * @param height Height of the block to get.
      * @return A pointer to the block, or nullptr if not found.
      */
-    const std::shared_ptr<const Block> getBlock(const uint64_t height) const {
+    const std::shared_ptr<const FinalizedBlock> getBlock(const uint64_t height) const {
       return this->storage_.getBlock(height);
     }
 
@@ -177,7 +177,7 @@ class SDKTestSuite {
      * @param txs (optional) List of transactions to include in the block. Defaults to none (empty vector).
      * @return A pointer to the new block.
      */
-    const std::shared_ptr<const Block> advanceChain(const uint64_t& timestamp = 0, const std::vector<TxBlock>& txs = {}) {
+    const std::shared_ptr<const FinalizedBlock> advanceChain(const uint64_t& timestamp = 0, const std::vector<TxBlock>& txs = {}) {
       auto validators = state_.rdposGetValidators();
       auto randomList = state_.rdposGetRandomList();
       Hash blockSignerPrivKey;           // Private key for the block signer.
@@ -206,8 +206,8 @@ class SDKTestSuite {
       uint64_t newBlockTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::high_resolution_clock::now().time_since_epoch()
       ).count();
-      Hash newBlockPrevHash = this->storage_.latest()->hash();
-      Block newBlock(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
+      Hash newBlockPrevHash = this->storage_.latest()->getHash();
+      MutableBlock newBlock(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
       std::vector<TxValidator> randomHashTxs;
       std::vector<TxValidator> randomTxs;
 
@@ -236,19 +236,21 @@ class SDKTestSuite {
       for (const auto& tx : txs) newBlock.appendTx(tx);
 
       // Finalize the block.
-      if (timestamp == 0) {
-        newBlock.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::high_resolution_clock::now().time_since_epoch()
-        ).count());
-      } else {
-        newBlock.finalize(blockSignerPrivKey, timestamp);
-      }
+      FinalizedBlock finalized = [&, this] {
+        if (timestamp == 0) {
+            return newBlock.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::high_resolution_clock::now().time_since_epoch()
+            ).count());
+        } else {
+            return newBlock.finalize(blockSignerPrivKey, timestamp);
+        }
+      }();
 
       // After finalization, the block should be valid. If it is, process the next one.
-      if (!this->state_.validateNextBlock(newBlock)) throw DynamicException(
-        "SDKTestSuite::advanceBlock: Block is not valid"
-      );
-      state_.processNextBlock(std::move(newBlock));
+      if (!this->state_.validateNextBlock(finalized)) {
+          throw DynamicException("SDKTestSuite::advanceBlock: Block is not valid");
+      }
+      state_.processNextBlock(std::move(finalized));
       return this->storage_.latest();
     }
 
@@ -298,7 +300,7 @@ class SDKTestSuite {
      * Get the latest accepted block.
      * @return A pointer to the latest accepted block.
      */
-    inline const std::shared_ptr<const Block> getLatestBlock() const { return this->storage_.latest(); }
+    inline const std::shared_ptr<const FinalizedBlock > getLatestBlock() const { return this->storage_.latest(); }
 
     /**
      * Get a transaction from the chain using a given hash.

@@ -9,7 +9,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "storage.h"
 #include "state.h"
 #include "../contract/contractmanager.h"
-#include "../utils/block.h"
 
 rdPoS::rdPoS(DB& db, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options, State& state)
 : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID(), db),
@@ -62,18 +61,9 @@ rdPoS::~rdPoS() {
   this->db_.putBatch(validatorsBatch);
 }
 
-bool rdPoS::validateBlock(const Block& block) const {
+bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   std::lock_guard lock(this->mutex_);
   auto latestBlock = this->storage_.latest();
-  // Check if block signature matches randomList[0]
-  if (!block.isFinalized()) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-      "Block is not finalized, cannot be validated. latest nHeight: "
-      + std::to_string(latestBlock->getNHeight())
-      + " Block nHeight: " + std::to_string(block.getNHeight())
-    );
-    return false;
-  }
 
   if (Secp256k1::toAddress(block.getValidatorPubKey()) != randomList_[0]) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
@@ -210,12 +200,8 @@ bool rdPoS::validateBlock(const Block& block) const {
   return true;
 }
 
-Hash rdPoS::processBlock(const Block& block) {
+Hash rdPoS::processBlock(const FinalizedBlock& block) {
   std::unique_lock lock(this->mutex_);
-  if (!block.isFinalized()) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "Block is not finalized.");
-    throw DynamicException("Block is not finalized.");
-  }
   validatorMempool_.clear();
   this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());
   this->bestRandomSeed_ = block.getBlockRandomness();
@@ -224,12 +210,13 @@ Hash rdPoS::processBlock(const Block& block) {
   return this->bestRandomSeed_;
 }
 
-void rdPoS::signBlock(Block &block) {
+FinalizedBlock rdPoS::signBlock(MutableBlock &block) {
   uint64_t newTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::high_resolution_clock::now().time_since_epoch()
   ).count();
-  block.finalize(this->validatorKey_, newTimestamp);
+  FinalizedBlock finalized = block.finalize(this->validatorKey_, newTimestamp);
   this->worker_.blockCreated();
+  return finalized;
 }
 
 bool rdPoS::addValidatorTx(const TxValidator& tx) {

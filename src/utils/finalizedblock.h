@@ -74,7 +74,46 @@ class FinalizedBlock {
         validatorMerkleRoot_(std::move(validatorMerkleRoot)), txMerkleRoot_(std::move(txMerkleRoot)),
         timestamp_(timestamp), nHeight_(nHeight),
         txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash))
-    {Logger::logToDebug(LogType::INFO, Log::mutableblock, __func__, "Finalized block created");}
+    {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block created");}
+
+    /**
+     * Move constructor.
+     * @param block The FinalizedBlock to move.
+     */
+    FinalizedBlock(FinalizedBlock&& block) noexcept :
+      validatorSig_(std::move(block.validatorSig_)),
+      validatorPubKey_(std::move(block.validatorPubKey_)),
+      prevBlockHash_(std::move(block.prevBlockHash_)),
+      blockRandomness_(std::move(block.blockRandomness_)),
+      validatorMerkleRoot_(std::move(block.validatorMerkleRoot_)),
+      txMerkleRoot_(std::move(block.txMerkleRoot_)),
+      timestamp_(block.timestamp_),
+      nHeight_(block.nHeight_),
+      txValidators_(std::move(block.txValidators_)),
+      txs_(std::move(block.txs_)),
+      hash_(std::move(block.hash_))
+    {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block moved");}
+
+    /**
+     * Copy constructor.
+     * @param block The FinalizedBlock to copy.
+     */
+    FinalizedBlock(const FinalizedBlock& block) :
+      validatorSig_(block.validatorSig_),
+      validatorPubKey_(block.validatorPubKey_),
+      prevBlockHash_(block.prevBlockHash_),
+      blockRandomness_(block.blockRandomness_),
+      validatorMerkleRoot_(block.validatorMerkleRoot_),
+      txMerkleRoot_(block.txMerkleRoot_),
+      timestamp_(block.timestamp_),
+      nHeight_(block.nHeight_),
+      txValidators_(block.txValidators_),
+      txs_(block.txs_),
+      hash_(block.hash_)
+    {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block copied");}
+
+
+    static FinalizedBlock fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId);
 
     Bytes serializeBlock() const;
 

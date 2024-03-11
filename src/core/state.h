@@ -58,7 +58,7 @@ class State {
      * processing the block itself.
      * @param block The block to use for pruning transactions from the mempool.
      */
-    void refreshMempool(const Block& block);
+    void refreshMempool(const FinalizedBlock& block);
 
   public:
     /**
@@ -86,9 +86,9 @@ class State {
     bool rdposGetIsValidator() const { return this->rdpos_.getIsValidator(); }
     const uint32_t& rdposGetMinValidators() const { return this->rdpos_.getMinValidators(); }
     void rdposClearMempool() { return this->rdpos_.clearMempool(); }
-    bool rdposValidateBlock(const Block& block) const { return this->rdpos_.validateBlock(block); }
-    Hash rdposProcessBlock(const Block& block) { return this->rdpos_.processBlock(block); }
-    void rdposSignBlock(Block& block) { this->rdpos_.signBlock(block); }
+    bool rdposValidateBlock(const FinalizedBlock& block) const { return this->rdpos_.validateBlock(block); }
+    Hash rdposProcessBlock(const FinalizedBlock& block) { return this->rdpos_.processBlock(block); }
+    FinalizedBlock rdposSignBlock(MutableBlock& block) { return this->rdpos_.signBlock(block); }
     bool rdposAddValidatorTx(const TxValidator& tx) { return this->rdpos_.addValidatorTx(tx); }
     const std::atomic<bool>& rdposCanCreateBlock() const { return this->rdpos_.canCreateBlock(); }
     void rdposStartWorker() { this->rdpos_.startrdPoSWorker(); }
@@ -129,7 +129,7 @@ class State {
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    bool validateNextBlock(const Block& block) const;
+    bool validateNextBlock(const FinalizedBlock& block) const;
 
     /**
      * Process the next block given current state from the network. DOES update the state.
@@ -137,13 +137,13 @@ class State {
      * @param block The block to process.
      * @throw DynamicException if block is invalid.
      */
-    void processNextBlock(Block&& block);
+    void processNextBlock(FinalizedBlock&& block);
 
     /**
      * Fill a block with all transactions currently in the mempool. DOES NOT FINALIZE THE BLOCK.
      * @param block The block to fill.
      */
-    void fillBlockWithTransactions(Block& block) const;
+    void fillBlockWithTransactions(MutableBlock& block) const;
 
     /**
      * Verify if a transaction can be accepted within the current state.

@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <shared_mutex>
 
-#include "../utils/block.h"
+#include "../utils/mutableblock.h"
 #include "../utils/db.h"
 #include "../utils/ecdsa.h"
 #include "../utils/randomgen.h"
@@ -39,10 +39,10 @@ class Storage {
      * This keeps the blockchain lightweight in memory and extremely responsive.
      * Older blocks always at FRONT, newer blocks always at BACK.
      */
-    std::deque<std::shared_ptr<const Block>> chain_;
+    std::deque<std::shared_ptr<const FinalizedBlock>> chain_;
 
     /// Map that indexes blocks in memory by their respective hashes.
-    std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> blockByHash_;
+    std::unordered_map<Hash, const std::shared_ptr<const FinalizedBlock>, SafeHash> blockByHash_;
 
     /// Map that indexes Tx, blockHash, blockIndex and blockHeight by their respective hashes
     std::unordered_map<Hash, const std::tuple<const Hash,const uint64_t,const uint64_t>, SafeHash> txByHash_;
@@ -54,7 +54,7 @@ class Storage {
     std::unordered_map<uint64_t, const Hash, SafeHash> blockHashByHeight_;
 
     /// Cache space for blocks that will be included in the blockchain.
-    mutable std::unordered_map<Hash, const std::shared_ptr<const Block>, SafeHash> cachedBlocks_;
+    mutable std::unordered_map<Hash, const std::shared_ptr<const FinalizedBlock>, SafeHash> cachedBlocks_;
 
     /// Cache space for transactions that will be included in the blockchain (tx, txBlockHash, txBlockIndex, txBlockHeight).
     mutable std::unordered_map<Hash,
@@ -73,7 +73,7 @@ class Storage {
      * @param block The block to add.
      * @throw DynamicException on incorrect previous hash or height.
      */
-    void pushBackInternal(Block&& block);
+    void pushBackInternal(FinalizedBlock&& block);
 
     /**
      * Add a block to the start of the chain.
@@ -81,7 +81,7 @@ class Storage {
      * @param block The block to add.
      * @throw DynamicException on incorrect previous hash or height.
      */
-    void pushFrontInternal(Block&& block);
+    void pushFrontInternal(FinalizedBlock&& block);
 
     /**
      * Initialize the blockchain the first time the blockchain binary is booted. Called by the constructor.
@@ -130,8 +130,8 @@ class Storage {
      */
     Storage(DB& db, const Options& options);
     ~Storage(); ///< Destructor. Automatically saves the chain to the database.
-    void pushBack(Block&& block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
-    void pushFront(Block&& block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
+    void pushBack(FinalizedBlock&& block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
+    void pushFront(FinalizedBlock&& block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
     void popBack(); ///< Remove a block from the end of the chain.
     void popFront();  ///< Remove a block from the start of the chain.
 
@@ -155,14 +155,14 @@ class Storage {
      * @param hash The block hash to get.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    std::shared_ptr<const Block> getBlock(const Hash& hash) const;
+    std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash) const;
 
     /**
      * Get a block from the chain using a given height.
      * @param height The block height to get.
      * @return A pointer to the found block, or `nullptr` if block is not found.
      */
-    std::shared_ptr<const Block> getBlock(const uint64_t& height) const;
+    std::shared_ptr<const FinalizedBlock> getBlock(const uint64_t& height) const;
 
     /**
      * Check if a transaction exists anywhere in storage (memory/chain, then cache, then database).
@@ -203,7 +203,7 @@ class Storage {
     > getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) const;
 
     /// Get the most recently added block from the chain.
-    std::shared_ptr<const Block> latest() const;
+    std::shared_ptr<const FinalizedBlock> latest() const;
 
     /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
     uint64_t currentChainSize() const;

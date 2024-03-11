@@ -36,7 +36,7 @@ ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& 
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
 // Definition from state.cpp, when linking, the compiler should find the function.
-Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
+FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
 
 // Blockchain wrapper initializer for testing purposes.
 // Defined in rdpos.cpp
@@ -92,18 +92,18 @@ namespace TState {
     }
 
     SECTION("Test Simple block on State (No Transactions only rdPoS") {
-      std::unique_ptr<Block> latestBlock = nullptr;
+      std::unique_ptr<FinalizedBlock> latestBlock = nullptr;
       {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
         auto newBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage);
         REQUIRE(blockchainWrapper.state.validateNextBlock(newBlock));
         blockchainWrapper.state.processNextBlock(std::move(newBlock));
-        latestBlock = std::make_unique<Block>(*blockchainWrapper.storage.latest().get());
+        latestBlock = std::make_unique<FinalizedBlock>(*blockchainWrapper.storage.latest().get());
       }
       auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, false, testDumpPath + "/stateSimpleBlockTest");
 
-      REQUIRE(latestBlock->hash() == blockchainWrapper.storage.latest()->hash());
+      REQUIRE(latestBlock->getHash() == blockchainWrapper.storage.latest()->getHash());
     }
 
     SECTION("Test Block with Transactions on State") {
@@ -291,7 +291,7 @@ namespace TState {
 
       Address targetOfTransactions = Address(Utils::randBytes(20));
       uint256_t targetExpectedValue = 0;
-      std::unique_ptr<Block> latestBlock = nullptr;
+      std::unique_ptr<FinalizedBlock> latestBlock = nullptr;
       {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/state10BlocksTest");
         /// Add balance to the given addresses
@@ -337,11 +337,11 @@ namespace TState {
           REQUIRE(blockchainWrapper.state.getNativeBalance(targetOfTransactions) == targetExpectedValue);
         }
 
-        latestBlock = std::make_unique<Block>(*blockchainWrapper.storage.latest().get());
+        latestBlock = std::make_unique<FinalizedBlock>(*blockchainWrapper.storage.latest().get());
       }
       auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, false, testDumpPath + "/state10BlocksTest");
 
-      REQUIRE(latestBlock->hash() == blockchainWrapper.storage.latest()->hash());
+      REQUIRE(latestBlock->getHash() == blockchainWrapper.storage.latest()->getHash());
       REQUIRE(blockchainWrapper.storage.latest()->getNHeight() == 10);
       for (const auto &[privkey, val]: randomAccounts) {
         auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
@@ -399,8 +399,8 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      Block genesis(Hash(), 0, 0);
-      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesis(Hash(), 0, 0);
+      FinalizedBlock genesisFinal = genesis.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {
@@ -422,7 +422,7 @@ namespace TState {
           10000,
           4,
           discoveryNodes,
-          genesis,
+          genesisFinal,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
@@ -629,8 +629,8 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      Block genesis(Hash(), 0, 0);
-      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesis(Hash(), 0, 0);
+      FinalizedBlock genesisFinal = genesis.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {
@@ -652,7 +652,7 @@ namespace TState {
           10000,
           4,
           discoveryNodes,
-          genesis,
+          genesisFinal,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
@@ -829,7 +829,7 @@ namespace TState {
 
             // Create the block and append to all chains, we can use any storage for latestblock
             auto latestBlock = blockchainWrapper1.storage.latest();
-            Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
+            MutableBlock block(latestBlock->getHash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
             // Append transactions towards block.
             for (const auto &tx: randomHashTxs) {
               block.appendTxValidator(tx);
@@ -838,26 +838,26 @@ namespace TState {
               block.appendTxValidator(tx);
             }
 
-            blockCreator.get().rdposSignBlock(block);
+            FinalizedBlock finalized = blockCreator.get().rdposSignBlock(block);
 
             // Validate the block.
-            REQUIRE(blockchainWrapper1.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper2.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper3.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper4.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper5.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper6.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper7.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper8.state.validateNextBlock(block));
+            REQUIRE(blockchainWrapper1.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper2.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper3.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper4.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper5.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper6.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper7.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper8.state.validateNextBlock(finalized));
 
-            blockchainWrapper1.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper2.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper3.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper4.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper5.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper6.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper7.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper8.state.processNextBlock(Block(block)); // Create copy.
+            blockchainWrapper1.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper2.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper3.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper4.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper5.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper6.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper7.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper8.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
 
             ++blocks;
             break;
@@ -916,8 +916,8 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      Block genesis(Hash(), 0, 0);
-      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesis(Hash(), 0, 0);
+      FinalizedBlock genesisFinal = genesis.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {
@@ -939,7 +939,7 @@ namespace TState {
           10000,
           4,
           discoveryNodes,
-          genesis,
+          genesisFinal,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
@@ -1136,7 +1136,7 @@ namespace TState {
 
             // Create the block and append to all chains, we can use any storage for latestblock
             auto latestBlock = blockchainWrapper1.storage.latest();
-            Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
+            MutableBlock block(latestBlock->getHash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
             // Append transactions towards block.
             for (const auto &tx: randomHashTxs) {
               block.appendTxValidator(tx);
@@ -1168,26 +1168,26 @@ namespace TState {
               block.appendTx(tx);
             }
 
-            blockCreator.get().rdposSignBlock(block);
+            FinalizedBlock finalized = blockCreator.get().rdposSignBlock(block);
 
             // Validate the block.
-            REQUIRE(blockchainWrapper1.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper2.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper3.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper4.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper5.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper6.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper7.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper8.state.validateNextBlock(block));
+            REQUIRE(blockchainWrapper1.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper2.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper3.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper4.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper5.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper6.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper7.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper8.state.validateNextBlock(finalized));
 
-            blockchainWrapper1.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper2.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper3.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper4.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper5.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper6.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper7.state.processNextBlock(Block(block)); // Create copy.
-            blockchainWrapper8.state.processNextBlock(Block(block)); // Create copy.
+            blockchainWrapper1.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper2.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper3.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper4.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper5.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper6.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper7.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
+            blockchainWrapper8.state.processNextBlock(FinalizedBlock(finalized)); // Create copy.
 
             for (const auto &[privkey, val]: randomAccounts) {
               auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
@@ -1262,8 +1262,8 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      Block genesis(Hash(), 0, 0);
-      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesis(Hash(), 0, 0);
+      FinalizedBlock genesisFinal = genesis.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {
@@ -1285,7 +1285,7 @@ namespace TState {
           10000,
           4,
           discoveryNodes,
-          genesis,
+          genesisFinal,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
@@ -1479,7 +1479,7 @@ namespace TState {
 
             // Create the block and append to all chains, we can use any storage for latestblock
             auto latestBlock = blockchainWrapper1.storage.latest();
-            Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
+            MutableBlock block(latestBlock->getHash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
             // Append transactions towards block.
             for (const auto &tx: randomHashTxs) {
               block.appendTxValidator(tx);
@@ -1511,32 +1511,32 @@ namespace TState {
               block.appendTx(tx);
             }
 
-            blockCreator.get().rdposSignBlock(block);
+            FinalizedBlock finalized = blockCreator.get().rdposSignBlock(block);
 
             // Validate the block.
-            REQUIRE(blockchainWrapper1.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper2.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper3.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper4.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper5.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper6.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper7.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper8.state.validateNextBlock(block));
+            REQUIRE(blockchainWrapper1.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper2.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper3.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper4.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper5.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper6.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper7.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper8.state.validateNextBlock(finalized));
 
-            Hash latestBlockHash = block.hash();
-            blockchainWrapper1.state.processNextBlock(std::move(block));
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == latestBlockHash);
+            Hash latestBlockHash = finalized.getHash();
+            blockchainWrapper1.state.processNextBlock(std::move(finalized));
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == latestBlockHash);
             // Broadcast the Block!
             blockchainWrapper1.p2p.broadcastBlock(blockchainWrapper1.storage.latest());
 
             auto broadcastBlockFuture = std::async(std::launch::async, [&]() {
-              while (blockchainWrapper2.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper3.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper4.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper5.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper6.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper7.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper8.storage.latest()->hash() != latestBlockHash) {
+              while (blockchainWrapper2.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper3.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper4.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper5.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper6.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper7.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper8.storage.latest()->getHash() != latestBlockHash) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
               }
             });
@@ -1550,13 +1550,13 @@ namespace TState {
             if (duration > 5000) std::cout << "WARNING ([state]): broadcastBlockFuture elapsed time: " << duration << " ms" << std::endl;
 
             // Check if the block was accepted by all nodes.
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper2.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper3.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper4.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper5.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper6.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper7.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper8.storage.latest()->hash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper2.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper3.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper4.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper5.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper6.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper7.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper8.storage.latest()->getHash());
 
             for (const auto &[privkey, val]: randomAccounts) {
               auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
@@ -1632,8 +1632,8 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      Block genesis(Hash(), 0, 0);
-      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesis(Hash(), 0, 0);
+      FinalizedBlock genesisFinal = genesis.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {
@@ -1655,7 +1655,7 @@ namespace TState {
           10000,
           4,
           discoveryNodes,
-          genesis,
+          genesisFinal,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
@@ -1846,7 +1846,7 @@ namespace TState {
 
             // Create the block and append to all chains, we can use any storage for latestblock
             auto latestBlock = blockchainWrapper1.storage.latest();
-            Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
+            MutableBlock block(latestBlock->getHash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
             // Append transactions towards block.
             for (const auto &tx: randomHashTxs) {
               block.appendTxValidator(tx);
@@ -1908,32 +1908,32 @@ namespace TState {
             }
 
 
-            blockCreator.get().rdposSignBlock(block);
+            FinalizedBlock finalized = blockCreator.get().rdposSignBlock(block);
 
             // Validate the block.
-            REQUIRE(blockchainWrapper1.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper2.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper3.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper4.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper5.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper6.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper7.state.validateNextBlock(block));
-            REQUIRE(blockchainWrapper8.state.validateNextBlock(block));
+            REQUIRE(blockchainWrapper1.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper2.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper3.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper4.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper5.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper6.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper7.state.validateNextBlock(finalized));
+            REQUIRE(blockchainWrapper8.state.validateNextBlock(finalized));
 
-            Hash latestBlockHash = block.hash();
-            blockchainWrapper1.state.processNextBlock(std::move(block));
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == latestBlockHash);
+            Hash latestBlockHash = finalized.getHash();
+            blockchainWrapper1.state.processNextBlock(std::move(finalized));
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == latestBlockHash);
             // Broadcast the Block!
             blockchainWrapper1.p2p.broadcastBlock(blockchainWrapper1.storage.latest());
 
             auto broadcastBlockFuture = std::async(std::launch::async, [&]() {
-              while (blockchainWrapper2.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper3.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper4.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper5.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper6.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper7.storage.latest()->hash() != latestBlockHash ||
-                     blockchainWrapper8.storage.latest()->hash() != latestBlockHash) {
+              while (blockchainWrapper2.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper3.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper4.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper5.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper6.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper7.storage.latest()->getHash() != latestBlockHash ||
+                     blockchainWrapper8.storage.latest()->getHash() != latestBlockHash) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
               }
             });
@@ -1941,13 +1941,13 @@ namespace TState {
             REQUIRE(broadcastBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
             // Check if the block was accepted by all nodes.
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper2.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper3.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper4.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper5.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper6.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper7.storage.latest()->hash());
-            REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper8.storage.latest()->hash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper2.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper3.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper4.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper5.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper6.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper7.storage.latest()->getHash());
+            REQUIRE(blockchainWrapper1.storage.latest()->getHash() == blockchainWrapper8.storage.latest()->getHash());
 
 
             const auto contractAddress = blockchainWrapper1.state.getContracts()[0].second;

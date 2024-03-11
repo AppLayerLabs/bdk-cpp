@@ -39,14 +39,6 @@ class MutableBlock {
      */
     void deserialize(const BytesArrView bytes, const uint64_t& requiredChainId);
 
-    /**
-    * Serialize the mutable header of the block.
-    * @param validatorMerkleRoot The merkle root of the Validator transactions.
-    * @param txMerkleRoot The merkle root of the block transactions.
-    * @return The serialized mutable header.
-    */
-    Bytes serializeMutableHeader(Hash validatorMerkleRoot, Hash txMerkleRoot) const;
-
   public:
     /**
      * Constructor.
@@ -93,6 +85,14 @@ class MutableBlock {
     bool appendTxValidator(const TxValidator& tx);
 
     /**
+    * Serialize the mutable header of the block.
+    * @param validatorMerkleRoot The merkle root of the Validator transactions.
+    * @param txMerkleRoot The merkle root of the block transactions.
+    * @return The serialized mutable header.
+    */
+    Bytes serializeMutableHeader(Hash validatorMerkleRoot, Hash txMerkleRoot) const;
+
+    /**
      * Finalize the block, preventing any further modifications.
      * @param validatorPrivKey The private key of the Validator that will sign the block.
      * @param newTimestamp The new timestamp for the block.
@@ -103,12 +103,12 @@ class MutableBlock {
 
     ///@{
     /** Getter. */
-    const Hash& getPrevBlockHash() const { return this->prevBlockHash_; }
+    Hash& getPrevBlockHash() { return this->prevBlockHash_; }
     const Hash& getBlockRandomness() const { return this->blockRandomness_; }
     const uint64_t& getTimestamp() const { return this->timestamp_; }
     const uint64_t& getNHeight() const { return this->nHeight_; }
-    const std::vector<TxValidator>& getTxValidators() const { return this->txValidators_; }
-    const std::vector<TxBlock>& getTxs() const { return this->txs_; }
+    std::vector<TxValidator>& getTxValidators() { return this->txValidators_; }
+    std::vector<TxBlock>& getTxs() { return this->txs_; }
     ///@}
 
     /// Copy assignment operator.

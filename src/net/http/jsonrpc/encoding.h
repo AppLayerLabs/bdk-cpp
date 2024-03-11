@@ -9,7 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define JSONRPC_ENCODING_H
 
 #include "../../../utils/utils.h"
-#include "../../../utils/block.h"
+#include "../../../utils/mutableblock.h"
 #include "../../../utils/tx.h"
 #include "../../../utils/options.h"
 #include "../../p2p/managernormal.h"
@@ -30,7 +30,7 @@ namespace JsonRPC::Encoding {
    * @param includeTransactions If `true`, includes the block's transactions in the JSON response.
    * @return The block's contents as a JSON object.
    */
-  json getBlockJson(const std::shared_ptr<const Block>& block, bool includeTransactions);
+  json getBlockJson(const std::shared_ptr<const FinalizedBlock>& block, bool includeTransactions);
 
   /**
    * Encode a `web3_clientVersion` response.

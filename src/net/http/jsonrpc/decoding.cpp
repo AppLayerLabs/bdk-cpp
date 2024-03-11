@@ -440,7 +440,7 @@ namespace JsonRPC::Decoding {
       if (logsObject.contains("blockHash")) {
         std::string blockHashHex = logsObject["blockHash"].get<std::string>();
         if (!std::regex_match(blockHashHex, hashFilter)) throw DynamicException("Invalid block hash hex");
-        const std::shared_ptr<const Block> block = storage.getBlock(Hash(Hex::toBytes(blockHashHex)));
+        const std::shared_ptr<const FinalizedBlock> block = storage.getBlock(Hash(Hex::toBytes(blockHashHex)));
         fromBlock = toBlock = block->getNHeight();
       } else {
         if (logsObject.contains("fromBlock")) {
@@ -628,7 +628,7 @@ namespace JsonRPC::Decoding {
       std::string blockNum = request["params"].at(0).get<std::string>();
       std::string index = request["params"].at(1).get<std::string>();
       if (!std::regex_match(index, numFilter)) throw DynamicException("Invalid index hex");
-      if (blockNum == "latest") return std::make_pair<uint64_t,uint64_t>(
+      if (blockNum == "latest") return std::make_pair(
         storage.latest()->getNHeight(), uint64_t(Hex(index).getUint())
       );
       if (!std::regex_match(blockNum, numFilter)) throw DynamicException("Invalid blockNumber hex");

@@ -40,7 +40,7 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message RequestEncoder::info(const std::shared_ptr<const Block>& latestBlock, const Options& options) {
+  Message RequestEncoder::info(const std::shared_ptr<const FinalizedBlock>& latestBlock, const Options& options) {
     Bytes message = getRequestTypePrefix(Requesting);
     message.reserve(message.size() + 8 + 2 + 8 + 8 + 8 + 32);
     Utils::appendBytes(message, Utils::randBytes(8));
@@ -51,7 +51,7 @@ namespace P2P {
     ).count();
     Utils::appendBytes(message, Utils::uint64ToBytes(currentEpoch));
     Utils::appendBytes(message, Utils::uint64ToBytes(latestBlock->getNHeight()));
-    Utils::appendBytes(message, latestBlock->hash());
+    Utils::appendBytes(message, latestBlock->getHash());
     return Message(std::move(message));
   }
 
@@ -120,7 +120,7 @@ namespace P2P {
   }
 
   Message AnswerEncoder::info(const Message& request,
-    const std::shared_ptr<const Block>& latestBlock,
+    const std::shared_ptr<const FinalizedBlock>& latestBlock,
     const Options& options
   ) {
     Bytes message = getRequestTypePrefix(Answering);
@@ -133,7 +133,7 @@ namespace P2P {
     ).count();
     Utils::appendBytes(message, Utils::uint64ToBytes(currentEpoch));
     Utils::appendBytes(message, Utils::uint64ToBytes(latestBlock->getNHeight()));
-    Utils::appendBytes(message, latestBlock->hash());
+    Utils::appendBytes(message, latestBlock->getHash());
     return Message(std::move(message));
   }
 
@@ -298,7 +298,7 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message BroadcastEncoder::broadcastBlock(const std::shared_ptr<const Block>& block) {
+  Message BroadcastEncoder::broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block) {
     Bytes message = getRequestTypePrefix(Broadcasting);
     // We need to use std::hash instead of SafeHash
     // Because hashing with SafeHash will always be different between nodes
@@ -323,11 +323,12 @@ namespace P2P {
     return TxBlock(message.message(), requiredChainId);
   }
 
-  Block BroadcastDecoder::broadcastBlock(const P2P::Message &message, const uint64_t &requiredChainId) {
+  FinalizedBlock BroadcastDecoder::broadcastBlock(const P2P::Message &message, const uint64_t &requiredChainId) {
     if (message.type() != Broadcasting) { throw DynamicException("Invalid message type."); }
     if (message.id().toUint64() != FNVHash()(message.message())) { throw DynamicException("Invalid message id. "); }
     if (message.command() != BroadcastBlock) { throw DynamicException("Invalid command."); }
-    return Block(message.message(), requiredChainId);
+    FinalizedBlock block = FinalizedBlock::fromBytes(message.message(), requiredChainId);
+    return block;
   }
 }
 

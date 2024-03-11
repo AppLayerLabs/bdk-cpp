@@ -11,12 +11,12 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../../core/state.h"
 
 namespace JsonRPC::Encoding {
-  json getBlockJson(const std::shared_ptr<const Block>& block, bool includeTransactions) {
+  json getBlockJson(const std::shared_ptr<const FinalizedBlock>& block, bool includeTransactions) {
     json ret;
     ret["jsonrpc"] = 2.0;
     try {
       if (block == nullptr) { ret["result"] = json::value_t::null; return ret; }
-      ret["result"]["hash"] = block->hash().hex(true);
+      ret["result"]["hash"] = block->getHash().hex(true);
       ret["result"]["parentHash"] = block->getPrevBlockHash().hex(true);
       ret["result"]["sha3Uncles"] = Hash().hex(true); // Uncles do not exist.
       ret["result"]["miner"] = Secp256k1::toAddress(block->getValidatorPubKey()).hex(true);

@@ -31,7 +31,7 @@ class Syncer {
   private:
     Blockchain& blockchain_;  ///< Reference to the parent blockchain.
     std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> currentlyConnectedNodes_;  ///< List of currently connected nodes and their info.
-    std::shared_ptr<const Block> latestBlock_;  ///< Pointer to the blockchain's latest block.
+    std::shared_ptr<const FinalizedBlock> latestBlock_;  ///< Pointer to the blockchain's latest block.
     std::future<bool> syncerLoopFuture_;  ///< Future object holding the thread for the syncer loop.
     std::atomic<bool> stopSyncer_ = false;  ///< Flag for stopping the syncer.
     std::atomic<bool> synced_ = false;  ///< Indicates whether or not the syncer is synced.
