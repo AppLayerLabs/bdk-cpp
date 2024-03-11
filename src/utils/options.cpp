@@ -107,7 +107,7 @@ void Options::createOptionsFile(const std::string& rootPath, const json &options
   }
   catch (std::exception &e) {
     throw DynamicException(
-      "Could not create rootPaht directory: " + std::string(e.what())
+      "Could not create rootPath directory: " + std::string(e.what())
       );
   }
 }
