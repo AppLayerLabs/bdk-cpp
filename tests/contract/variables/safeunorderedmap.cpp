@@ -269,8 +269,12 @@ namespace TSafeUnorderedMap {
       map[3] = 4;
       map[4] = 5;
       map.commit();
+      REQUIRE(map.size() == 5);
+      map.erase(2);
+      REQUIRE(map.size() == 4);
       map[2] = 33;
       map[3] = 44;
+      REQUIRE(map.size() == 5);
       std::vector<uint64_t> seenModify(5, 0);
       auto it = map.begin();
       while (it != map.end()) {
@@ -293,9 +297,12 @@ namespace TSafeUnorderedMap {
       REQUIRE(seenModify[4] == 1);
       std::vector<uint64_t> seenErase(5, 0);
       it = map.begin();
+      int targetSize = 5;
       while (it != map.end()) {
         ++seenErase[it->first];
         it = map.erase(it);
+        --targetSize;
+        REQUIRE(map.size() == targetSize);
       }
       REQUIRE(seenErase[0] == 1);
       REQUIRE(seenErase[1] == 1);
@@ -309,14 +316,18 @@ namespace TSafeUnorderedMap {
       map2[4] = 5;
       map2[6] = 7;
       map2[8] = 9;
+      REQUIRE(map2.size() == 5);
       std::vector<uint64_t> seenInsert(10, 0);
       it = map2.begin();
+      targetSize = 5;
       while (it != map2.end()) {
         ++seenInsert[it->first];
         if (it->first % 2 == 0) {
           uint64_t keyToInsert = 9 - it->first;
           REQUIRE(map2.find(keyToInsert) == map2.end());
           map2.insert({keyToInsert, it->first});
+          ++targetSize;
+          REQUIRE(map2.size() == targetSize);
         }
         ++it;
       }
@@ -368,10 +379,11 @@ namespace TSafeUnorderedMap {
       }
 
       SafeUnorderedMap<Address, uint256_t> safeUnorderedMap;
-
+      REQUIRE(safeUnorderedMap.size() == 0);
       for (auto& address : randomAddresses) {
         safeUnorderedMap.insert_or_assign(std::move(address), uint256_t("124918123712956236125812263412317341"));
       }
+      REQUIRE(safeUnorderedMap.size() == 100);
 
       SafeUnorderedMap safeUnorderedMapCopy = safeUnorderedMap;
 
@@ -444,12 +456,14 @@ namespace TSafeUnorderedMap {
         std::pair<const uint64_t, uint64_t> keyValue(0, 1);
         map.insert(keyValue);
         REQUIRE(map[0] == 0);
+        REQUIRE(map.size() == 1);
       }
       {
         SafeUnorderedMap<uint64_t, uint64_t> map;
         map[0] = 0;
         map.insert(std::make_pair(0,1));
         REQUIRE(map[0] == 0);
+        REQUIRE(map.size() == 1);
       }
     }
   }

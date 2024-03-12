@@ -62,17 +62,27 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
         auto itM = map_.find(key);
         if (itM == map_.end()) {
           (*mapPtr_)[key] = T();
-          dirtySize_ = true;
+          ++size_;
         } else {
           auto itD = erasedKeys_->find(key);
           if (itD == erasedKeys_->end()) {
             (*mapPtr_)[key] = itM->second;
           } else {
             (*mapPtr_)[key] = T();
-            dirtySize_ = true;
+            ++size_;
           }
         }
       }
+    }
+
+    /**
+     * Check if a key is committed to the map.
+     * @param key The key to check.
+     * @return `true` if  `key` in present in map_ and absent from erasedKeys_,
+     *         false otherwise.
+     */
+    inline bool hasCommittedKey(const Key& key) const {
+      return map_.find(key) != map_.end() && erasedKeys_->find(key) == erasedKeys_->end();
     }
 
     /**
@@ -387,8 +397,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     std::pair<typename SafeUnorderedMap<Key, T>::iterator, bool> insert(
       const typename SafeUnorderedMap<Key, T>::value_type& value
     ) {
-      check(); markAsUsed(); dirtySize_ = true;
+      check(); markAsUsed();
       auto r = mapPtr_->insert(value);
+      if (!dirtySize_ && r.second && !hasCommittedKey(value.first)) ++size_;
       return {iterator(this, r.first, true), r.second};
     }
 
@@ -401,8 +412,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     std::pair<typename SafeUnorderedMap<Key, T>::iterator, bool> insert(
       const typename SafeUnorderedMap<Key, T>::value_type&& value
     ) {
-      check(); markAsUsed(); dirtySize_ = true;
+      check(); markAsUsed();
       auto r = mapPtr_->insert(std::move(value));
+      if (!dirtySize_ && r.second && !hasCommittedKey(value.first)) ++size_;
       return {iterator(this, r.first, true), r.second};
     }
 
@@ -466,8 +478,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     std::pair<typename SafeUnorderedMap<Key, T>::iterator, bool> insert_or_assign(
       const Key& k, const T& obj
     ) {
-      check(); markAsUsed(); dirtySize_ = true;
+      check(); markAsUsed();
       auto r = mapPtr_->insert_or_assign(k, obj);
+      if (!dirtySize_ && r.second && !hasCommittedKey(k)) ++size_;
       return {iterator(this, r.first, true), r.second};
     }
 
@@ -481,8 +494,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     std::pair<typename SafeUnorderedMap<Key, T>::iterator, bool> insert_or_assign(
       Key&& k, T&& obj
     ) {
-      check(); markAsUsed(); dirtySize_ = true;
+      check(); markAsUsed();
       auto r = mapPtr_->insert_or_assign(std::move(k), std::move(obj));
+      if (!dirtySize_ && r.second && !hasCommittedKey(k)) ++size_;
       return {iterator(this, r.first, true), r.second};
     }
 
@@ -534,7 +548,6 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       return {iterator(this, r.first, true), r.second};
     }
 
-
     /**
      * Emplace a value into the map, using a hint (the position before the insertion).
      * @param hint The hint to use.
@@ -560,7 +573,6 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     ) {
       check();
       markAsUsed();
-      dirtySize_ = true;
       erasedKeys_->insert(pos.it_->first);
       if (pos.inMapPtr_) {
         pos.it_ = mapPtr_->erase(pos.it_);
@@ -568,6 +580,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
         ++pos.it_;
       }
       pos.skip();
+      --size_;
       return pos;
     }
 
@@ -581,7 +594,6 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     ) {
       check();
       markAsUsed();
-      dirtySize_ = true;
       erasedKeys_->insert(pos.it_->first);
       if (pos.inMapPtr_) {
         pos.it_ = mapPtr_->erase(pos.it_);
@@ -589,6 +601,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
         ++pos.it_;
       }
       pos.skip();
+      --size_;
       return pos;
     }
 
@@ -625,8 +638,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
         }
       }
       if (deleted) {
-        markAsUsed(); dirtySize_ = true;
+        markAsUsed();
         erasedKeys_->insert(std::forward<K>(key));
+        --size_;
         return 1;
       }
       return 0;
