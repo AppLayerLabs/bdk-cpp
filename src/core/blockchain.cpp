@@ -14,6 +14,7 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
   state_(db_, storage_, p2p_, options_),
   p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
+  nodeConns_(*this),
   syncer_(*this)
 {}
 
@@ -23,62 +24,17 @@ void Blockchain::stop() { syncer_.stop(); http_.stop(); p2p_.stop(); }
 
 const std::atomic<bool>& Blockchain::isSynced() const { return this->syncer_.isSynced(); }
 
-void Syncer::updateCurrentlyConnectedNodes() {
-  // Get the list of currently connected nodes
-  std::vector<P2P::NodeID> connectedNodes = blockchain_.p2p_.getSessionsIDs();
-  while (connectedNodes.size() < blockchain_.p2p_.minConnections() && !this->stopSyncer_) {
-    Logger::logToDebug(LogType::INFO, Log::syncer, __func__,
-      "Waiting for discoveryWorker to connect to more nodes, currently connected to: "
-      + std::to_string(connectedNodes.size())
-    );
-    // If we have less than the minimum number of connections,
-    // wait for a bit for discoveryWorker to kick in and connect to more nodes
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    connectedNodes = blockchain_.p2p_.getSessionsIDs();
-  }
-
-  // Update information of already connected nodes
-  auto it = currentlyConnectedNodes_.begin();
-  while (it != currentlyConnectedNodes_.end()) {
-    const auto& nodeId = it->first;
-    if (std::find(connectedNodes.begin(), connectedNodes.end(), nodeId) == connectedNodes.end()) {
-      // Node is not connected, so remove it from the list
-      it = currentlyConnectedNodes_.erase(it);
-    } else {
-      auto newNodeInfo = blockchain_.p2p_.requestNodeInfo(nodeId);
-      if (newNodeInfo == P2P::NodeInfo()) {
-        // Node is not responding to info request, so remove it from the list
-        it = currentlyConnectedNodes_.erase(it);
-      } else {
-        // Save the node's response to the info request
-        it->second = newNodeInfo;
-        ++it;
-      }
-    }
-  }
-
-  // Add new nodes to the list
-  for (const auto& nodeId : connectedNodes) {
-    if (!this->currentlyConnectedNodes_.contains(nodeId)) {
-      auto newNodeInfo = blockchain_.p2p_.requestNodeInfo(nodeId);
-      if (newNodeInfo != P2P::NodeInfo()) {
-        this->currentlyConnectedNodes_[nodeId] = newNodeInfo;
-      }
-    }
-  }
-}
-
 bool Syncer::checkLatestBlock() { return (this->latestBlock_ != this->blockchain_.storage_.latest()); }
 
 void Syncer::doSync() {
   // TODO: Fully implement Sync
   this->latestBlock_ = blockchain_.storage_.latest();
   // Get the list of currently connected nodes and their current height
-  this->updateCurrentlyConnectedNodes();
+  this->blockchain_.getNodeConns().refresh();
   std::pair<P2P::NodeID, uint64_t> highestNode = {P2P::NodeID(), 0};
 
   // Get the highest node.
-  for (auto& [nodeId, nodeInfo] : this->currentlyConnectedNodes_) {
+  for (auto& [nodeId, nodeInfo] : this->blockchain_.getNodeConns().getConnected()) {
     if (nodeInfo.latestBlockHeight > highestNode.second) {
       highestNode = {nodeId, nodeInfo.latestBlockHeight};
     }

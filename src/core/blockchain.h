@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "rdpos.h"
 #include "state.h"
 #include "../net/p2p/managerbase.h"
+#include "../net/p2p/nodeconns.h"
 #include "../net/http/httpserver.h"
 #include "../utils/options.h"
 #include "../utils/db.h"
@@ -30,13 +31,11 @@ class Syncer {
   // TODO: Maybe it is better to move rdPoSWorker to Syncer
   private:
     Blockchain& blockchain_;  ///< Reference to the parent blockchain.
-    std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> currentlyConnectedNodes_;  ///< List of currently connected nodes and their info.
     std::shared_ptr<const Block> latestBlock_;  ///< Pointer to the blockchain's latest block.
     std::future<bool> syncerLoopFuture_;  ///< Future object holding the thread for the syncer loop.
     std::atomic<bool> stopSyncer_ = false;  ///< Flag for stopping the syncer.
     std::atomic<bool> synced_ = false;  ///< Indicates whether or not the syncer is synced.
 
-    void updateCurrentlyConnectedNodes(); ///< Update the list of currently connected nodes.
     bool checkLatestBlock();  ///< Check latest block (used by validatorLoop()).
     void doSync(); ///< Do the syncing.
     void validatorLoop(); ///< Routine loop for when the node is a Validator.
@@ -69,8 +68,11 @@ class Syncer {
     /// Destructor. Automatically stops the syncer.
     ~Syncer() { this->stop(); }
 
-    /// Getter for `synced_`.
+    ///@{
+    /** Getter. */
+    const std::atomic<bool>& isStopped() const { return this->stopSyncer_; }
     const std::atomic<bool>& isSynced() const { return this->synced_; }
+    ///@}
 
     void start(); ///< Start the syncer routine loop.
     void stop();  ///< Stop the syncer routine loop.
@@ -83,13 +85,14 @@ class Syncer {
  */
 class Blockchain {
   private:
-    Options options_;         ///< Options singleton.
-    DB db_;                   ///< Database.
-    Storage storage_;         ///< Blockchain storage.
-    State state_;             ///< Blockchain state.
-    P2P::ManagerNormal p2p_;  ///< P2P connection manager.
-    HTTPServer http_;         ///< HTTP server.
-    Syncer syncer_;           ///< Blockchain syncer.
+    Options options_;           ///< Options singleton.
+    DB db_;                     ///< Database.
+    Storage storage_;           ///< Blockchain storage.
+    State state_;               ///< Blockchain state.
+    P2P::ManagerNormal p2p_;    ///< P2P connection manager.
+    HTTPServer http_;           ///< HTTP server.
+    P2P::NodeConns nodeConns_;  ///< Node connection manager.
+    Syncer syncer_;             ///< Blockchain syncer.
 
   public:
     /**
@@ -109,6 +112,7 @@ class Blockchain {
     State& getState() { return this->state_; };
     P2P::ManagerNormal& getP2P() { return this->p2p_; };
     HTTPServer& getHTTP() { return this->http_; };
+    P2P::NodeConns& getNodeConns() { return this->nodeConns_; };
     Syncer& getSyncer() { return this->syncer_; };
     ///@}
 
