@@ -20,7 +20,7 @@ See the LICENSE.txt file in the project root for more information.
 
 // TODO: tests for NodeConns (if necessary)
 
-class Blockchain;
+class Blockchain; // Forward declaration.
 
 namespace P2P {
   /**

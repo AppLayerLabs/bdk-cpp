@@ -8,17 +8,18 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BLOCKCHAIN_H
 #define BLOCKCHAIN_H
 
+#include "broadcaster.h"
 #include "storage.h"
 #include "rdpos.h"
 #include "state.h"
+
 #include "../net/p2p/managerbase.h"
 #include "../net/p2p/nodeconns.h"
 #include "../net/http/httpserver.h"
 #include "../utils/options.h"
 #include "../utils/db.h"
 
-// Forward declaration for Syncer.
-class Blockchain;
+class Blockchain; // Forward declaration for Syncer.
 
 /**
  * Helper class that syncs the node with other nodes in the network,
@@ -31,32 +32,12 @@ class Syncer {
   // TODO: Maybe it is better to move rdPoSWorker to Syncer
   private:
     Blockchain& blockchain_;  ///< Reference to the parent blockchain.
-    std::shared_ptr<const Block> latestBlock_;  ///< Pointer to the blockchain's latest block.
     std::future<bool> syncerLoopFuture_;  ///< Future object holding the thread for the syncer loop.
     std::atomic<bool> stopSyncer_ = false;  ///< Flag for stopping the syncer.
     std::atomic<bool> synced_ = false;  ///< Indicates whether or not the syncer is synced.
 
-    bool checkLatestBlock();  ///< Check latest block (used by validatorLoop()).
     void doSync(); ///< Do the syncing.
-    void validatorLoop(); ///< Routine loop for when the node is a Validator.
-    void nonValidatorLoop() const;  ///< Routine loop for when the node is NOT a Validator.
     bool syncerLoop();  ///< Routine loop for the syncer worker.
-
-    /**
-     * Create and broadcast a Validator block (called by validatorLoop()).
-     * If the node is a Validator and it has to create a new block,
-     * this function will be called, the new block will be created based on the
-     * current State and rdPoS objects, and then it will be broadcast.
-     * @throw DynamicException if block is invalid.
-     */
-    void doValidatorBlock();
-
-    /**
-     * Wait for a new block (called by validatorLoop()).
-     * If the node is a Validator, this function will be called to make the
-     * node wait until it receives a new block.
-     */
-    void doValidatorTx() const;
 
   public:
     /**
@@ -93,6 +74,7 @@ class Blockchain {
     HTTPServer http_;           ///< HTTP server.
     P2P::NodeConns nodeConns_;  ///< Node connection manager.
     Syncer syncer_;             ///< Blockchain syncer.
+    Broadcaster broadcaster_;   ///< Block and transaction broadcaster.
 
   public:
     /**
@@ -106,14 +88,15 @@ class Blockchain {
 
     ///@{
     /** Getter. */
-    Options& getOptions() { return this->options_; };
-    DB& getDB() { return this->db_; };
-    Storage& getStorage() { return this->storage_; };
-    State& getState() { return this->state_; };
-    P2P::ManagerNormal& getP2P() { return this->p2p_; };
-    HTTPServer& getHTTP() { return this->http_; };
-    P2P::NodeConns& getNodeConns() { return this->nodeConns_; };
-    Syncer& getSyncer() { return this->syncer_; };
+    Options& getOptions() { return this->options_; }
+    DB& getDB() { return this->db_; }
+    Storage& getStorage() { return this->storage_; }
+    State& getState() { return this->state_; }
+    P2P::ManagerNormal& getP2P() { return this->p2p_; }
+    HTTPServer& getHTTP() { return this->http_; }
+    P2P::NodeConns& getNodeConns() { return this->nodeConns_; }
+    Syncer& getSyncer() { return this->syncer_; }
+    Broadcaster& getBroadcaster() { return this->broadcaster_; }
     ///@}
 
     const std::atomic<bool>& isSynced() const;  ///< Check if the blockchain syncer is synced.

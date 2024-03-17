@@ -51,6 +51,7 @@ namespace Log {
   const std::string syncer = "Syncer";
   const std::string event = "Event";
   const std::string nodeConns = "P2P::NodeConns";
+  const std::string broadcaster = "Broadcaster";
   ///@}
 }
 
