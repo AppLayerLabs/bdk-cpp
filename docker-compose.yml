@@ -19,30 +19,49 @@ services:
   orbitersdk-base:
     build:
       context: docker
-      dockerfile: orbiter.dockerfile
+      dockerfile: base.dockerfile
 
-  orbitersdk-discover:
+  orbitersdk-node:
     build:
       context: docker
-      dockerfile: discover.dockerfile
+      dockerfile: node.dockerfile
+
+  orbitersdk-discovery:
+    build:
+      context: docker
+      dockerfile: discovery.dockerfile
     volumes:
       - type: bind
-        source: ./build/src/bins
-        target: /opt/app/
-    command: ["/opt/app/orbitersdkd-discovery/orbitersdkd-discovery"]
+        source: ./docker/app/discovery
+        target: /app
+    command: ["./orbitersdkd-discovery"]
     ports:
       - "8080:8080"
       - "9999:9999"
 
-  orbitersdk-validator:
+  orbitersdk-validator_1:
     build:
       context: docker
       dockerfile: validator.dockerfile
     volumes:
       - type: bind
-        source: ./build/src/bins
-        target: /opt/app/
-    command: ["/opt/app/orbitersdkd/orbitersdkd"]
+        source: ./docker/app/validator_1
+        target: /app
+    command: ["./orbitersdkd"]
     ports:
       - "8081:8081"
       - "8090:8090"
+
+  orbitersdk-validator_2:
+    build:
+      context: docker
+      dockerfile: validator.dockerfile
+    volumes:
+      - type: bind
+        source: ./docker/app/validator_2
+        target: /app
+    command: ["./orbitersdkd"]
+    ports:
+      - "8082:8082"
+      - "8092:8092"
+
