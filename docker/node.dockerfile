@@ -2,11 +2,8 @@
 # This software is distributed under the MIT License.
 # See the LICENSE.txt file in the project root for more information.
 
-# Start from a base Debian image
-FROM debian:bookworm
+# Now copy it into our base image.
+FROM orbitersdk-cpp_orbitersdk-base
 
-# Update the system
-RUN apt-get update && apt-get upgrade -y
+COPY ./app/orbitersdkd /
 
-# Install dependencies
-RUN apt-get install -y libasan8

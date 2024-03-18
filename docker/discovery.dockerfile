@@ -4,3 +4,6 @@
 
 # Start from a base Debian image
 FROM orbitersdk-cpp_orbitersdk-base
+
+# change current working directory
+WORKDIR /app
