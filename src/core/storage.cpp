@@ -7,7 +7,11 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "storage.h"
 
-Storage::Storage(DB& db, const Options& options) : db_(db), options_(options) {
+Storage::Storage(DB& db, DumpManager& dumpManager, const Options& options)
+  : db_(db),
+    options_(options),
+    dumpManager_(dumpManager)
+{
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading blockchain from DB");
 
   // Initialize the blockchain if latest block doesn't exist.
@@ -38,14 +42,16 @@ Storage::Storage(DB& db, const Options& options) : db_(db), options_(options) {
   // Append up to 500 most recent blocks from DB to chain
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Appending recent blocks");
   for (uint64_t i = 0; i <= 500 && i <= depth; i++) {
-    Logger::logToDebug(LogType::DEBUG, Log::storage, __func__,
-      std::string("Height: ") + std::to_string(depth - i) + ", Hash: "
+    Logger::logToDebug(LogType::DEBUG, Log::storage, __func__, std::string("Height: ")
+      + std::to_string(depth - i)
+      + ", Hash: "
       + this->blockHashByHeight_[depth - i].hex().get()
     );
     FinalizedBlock finalBlock = FinalizedBlock::fromBytes(this->db_.get(this->blockHashByHeight_[depth - i].get(), DBPrefix::blocks), this->options_.getChainID());
     this->pushFrontInternal(std::move(finalBlock));
   }
-
+  // register itself as a dumpable object
+  dumpManager.pushBack(this);
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Blockchain successfully loaded");
 }
 
@@ -61,7 +67,6 @@ Storage::~Storage() {
       std::shared_ptr<const FinalizedBlock> block = this->chain_.front();
       batchedOperations.push_back(block->getHash().get(), block->serializeBlock(), DBPrefix::blocks);
       batchedOperations.push_back(Utils::uint64ToBytes(block->getNHeight()), block->getHash().get(), DBPrefix::blockHeightMaps);
-
       // Batch txs to be saved to the database and delete them from the mappings
       auto Txs = block->getTxs();
       for (uint32_t i = 0; i < Txs.size(); i++) {
@@ -73,13 +78,11 @@ Storage::~Storage() {
         batchedOperations.push_back(TxHash.get(), value, DBPrefix::txToBlocks);
         this->txByHash_.erase(TxHash);
       }
-
       // Delete block from internal mappings and the chain
       this->blockByHash_.erase(block->getHash());
       this->chain_.pop_front();
     }
   }
-
   // Batch save to database
   this->db_.putBatch(batchedOperations);
   this->db_.put(std::string("latest"), latest->serializeBlock(), DBPrefix::blocks);
@@ -168,16 +171,16 @@ void Storage::pushBackInternal(FinalizedBlock&& block) {
   if (!this->chain_.empty()) {
     if (this->chain_.back()->getHash() != block.getPrevBlockHash()) {
       throw DynamicException("Block " + block.getHash().hex().get()
-        + " does not have the correct previous block hash. Expected: "
-        + this->chain_.back()->getHash().hex().get()
-        + ", got: " + block.getPrevBlockHash().hex().get()
-        + " in pushBackInternal()"
-      );
+                             + " does not have the correct previous block hash. Expected: "
+                             + this->chain_.back()->getHash().hex().get()
+                             + ", got: " + block.getPrevBlockHash().hex().get()
+                             + " in pushBackInternal()"
+        );
     }
     if (block.getNHeight() != this->chain_.back()->getNHeight() + 1) {
       throw DynamicException("Block " + block.getHash().hex().get()
-        + " does not have the correct height."
-      );
+                             + " does not have the correct height."
+        );
     }
   }
   this->chain_.emplace_back(std::make_shared<FinalizedBlock>(std::move(block)));
@@ -198,16 +201,16 @@ void Storage::pushFrontInternal(FinalizedBlock&& block) {
   if (!this->chain_.empty()) {
     if (this->chain_.front()->getPrevBlockHash() != block.getHash()) {
       throw DynamicException("Block " + block.getHash().hex().get()
-        + " does not have the correct previous block hash. Expected: "
-        + this->chain_.front()->getHash().hex().get()
-        + ", got: " + block.getPrevBlockHash().hex().get()
-        + " in pushFrontInternal()"
-      );
+                             + " does not have the correct previous block hash. Expected: "
+                             + this->chain_.front()->getHash().hex().get()
+                             + ", got: " + block.getPrevBlockHash().hex().get()
+                             + " in pushFrontInternal()"
+        );
     }
     if (block.getNHeight() != this->chain_.front()->getNHeight() - 1) {
       throw DynamicException("Block " + block.getHash().hex().get()
-        + " does not have the correct height."
-      );
+                             + " does not have the correct height."
+        );
     }
   }
   this->chain_.emplace_front(std::make_shared<FinalizedBlock>(std::move(block)));
@@ -326,10 +329,9 @@ std::shared_ptr<const FinalizedBlock> Storage::getBlock(const uint64_t& height) 
   return nullptr;
 }
 
-
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTx(const Hash& tx) const {
+  > Storage::getTx(const Hash& tx) const {
   // Check chain first, then cache, then database
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
@@ -369,7 +371,7 @@ std::tuple<
 
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const {
+  > Storage::getTxByBlockHashAndIndex(const Hash& blockHash, const uint64_t blockIndex) const {
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
   auto Status = this->blockExistsInternal(blockHash);
@@ -407,7 +409,7 @@ std::tuple<
 
 std::tuple<
   const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
-> Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) const {
+  > Storage::getTxByBlockNumberAndIndex(const uint64_t& blockHeight, const uint64_t blockIndex) const {
   std::shared_lock<std::shared_mutex> lockChain(this->chainLock_);
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
   auto Status = this->blockExistsInternal(blockHeight);
@@ -457,8 +459,7 @@ void Storage::periodicSaveToDB() {
   while (!this->stopPeriodicSave_) {
     std::this_thread::sleep_for(std::chrono::seconds(this->periodicSaveCooldown_));
     if (!this->stopPeriodicSave_ &&
-      (this->cachedBlocks_.size() > 1000 || this->cachedTxs_.size() > 1000000)
-    ) {
+        (this->cachedBlocks_.size() > 1000 || this->cachedTxs_.size() > 1000000)) {
       // TODO: Properly implement periodic save to DB, saveToDB() function saves **everything** to DB.
       // Requirements:
       // 1. Save up to 50% of current block list size to DB (e.g. 500 blocks if there are 1000 blocks).
@@ -473,3 +474,50 @@ void Storage::periodicSaveToDB() {
   }
 }
 
+void Storage::dump()
+{
+  DBBatch batchedOperations;
+  // get chain lock
+  std::unique_lock<std::shared_mutex> lock(this->chainLock_);
+  // cache last finalized block pointer/reference
+  std::shared_ptr<const FinalizedBlock> lastBlock = this->chain_.back();
+  // index
+  uint32_t i = 0;
+  // loop until chain contains blocks
+  while (!this->chain_.empty()) {
+    // batch block to be saved to the database
+    // we can't call this->popBack() because of the mutex
+    std::shared_ptr<const FinalizedBlock> block = this->chain_.front();
+    // block common information
+    auto blockHash = block->getHash();
+    auto blockHeight = block->getNHeight();
+    auto blockHashValue = blockHash.get();
+    // push back the block hash value and its bytes representation
+    batchedOperations.push_back(blockHashValue,
+                                block->serializeBlock(),
+                                DBPrefix::blocks);
+    // push the block n height
+    batchedOperations.push_back(Utils::uint64ToBytes(blockHeight),
+                                blockHashValue,
+                                DBPrefix::blockHeightMaps);
+    // handle block transactions
+    // batch txs to be saved to the database and delete them from the mappings
+    for (const auto &Tx: block->getTxs()) {
+      const auto TxHash = Tx.hash();
+      Bytes value = blockHash.asBytes();
+      value.reserve(value.size() + 4 + 8);
+      Utils::appendBytes(value, Utils::uint32ToBytes(i++));
+      Utils::appendBytes(value, Utils::uint64ToBytes(blockHeight));
+      batchedOperations.push_back(TxHash.get(), value, DBPrefix::txToBlocks);
+      this->txByHash_.erase(TxHash);
+    }
+    // reset index
+    i = 0;
+    // delete block from internal mappings and the chain
+    this->blockByHash_.erase(blockHash);
+    this->chain_.pop_front();
+  }
+  // batch save to database
+  this->db_.putBatch(batchedOperations);
+  this->db_.put(std::string("latest"), lastBlock->serializeBlock(), DBPrefix::blocks);
+}
