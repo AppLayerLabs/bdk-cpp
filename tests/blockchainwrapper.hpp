@@ -1,8 +1,8 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+  Copyright (c) [2023-2024] [Sparq Network]
 
-This software is distributed under the MIT License.
-See the LICENSE.txt file in the project root for more information.
+  This software is distributed under the MIT License.
+  See the LICENSE.txt file in the project root for more information.
 */
 
 #ifndef BLOCKCHAINWRAPPER_H
@@ -16,6 +16,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/utils/db.h"
 #include "../src/core/blockchain.h"
 #include "../src/utils/utils.h"
+#include "../src/utils/dump.h"
 
 /**
  * Simple wrapper struct for management of all blockchain related objects.
@@ -23,21 +24,23 @@ See the LICENSE.txt file in the project root for more information.
  * underlying objects, but does not apply any logic or checks.
  */
 struct TestBlockchainWrapper {
-  const Options options;  ///< Options singleton.
-  DB db;                  ///< Database.
-  Storage storage;        ///< Blockchain storage.
-  State state;            ///< Blockchain state.
-  P2P::ManagerNormal p2p; ///< P2P connection manager.
-  HTTPServer http;        ///< HTTP server.
+  const Options options;   ///< Options singleton.
+  DB db;                   ///< Database.
+  DumpManager dumpManager; ///< DumpManager.
+  Storage storage;         ///< Blockchain storage.
+  State state;             ///< Blockchain state.
+  P2P::ManagerNormal p2p;  ///< P2P connection manager.
+  HTTPServer http;         ///< HTTP server.
 
   /**
    * Constructor.
    * @param options_ Reference to the Options singleton.
    */
   explicit TestBlockchainWrapper(const Options& options_) :
-    options(options_),
+    options(options),
     db(options.getRootPath() + "/db"),
-    storage(db, options),
+    dumpManager(),
+    storage(db, dumpManager, options_),
     state(db, storage, p2p, options),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
     http(state, storage, p2p, options) {};
