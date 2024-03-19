@@ -10,7 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
   db_(blockchainPath + "/database"),
-  storage_(db_, options_),
+  dumpManager_(),
+  storage_(db_, dumpManager_, options_),
   state_(db_, storage_, p2p_, options_),
   p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
