@@ -11,7 +11,11 @@ See the LICENSE.txt file in the project root for more information.
 void P2P::NodeConns::refresh() {
   // Get the list of currently connected nodes
   std::vector<P2P::NodeID> connectedNodes = this->blockchain_.getP2P().getSessionsIDs();
-  while (connectedNodes.size() < this->blockchain_.getP2P().minConnections() && !this->blockchain_.getSyncer().isStopped()) {
+  //while (connectedNodes.size() < this->blockchain_.getP2P().minConnections() && !this->blockchain_.getSyncer().isStopped()) {
+  // TODO: Syncer::stopSyncer_ doesn't exist anymore, this needs to be replaced
+  // with either another flag that makes sense, or some other logic that stops
+  // the function in case of general shutdown so it doesn't hang forever
+  while (connectedNodes.size() < this->blockchain_.getP2P().minConnections()) {
     Logger::logToDebug(LogType::INFO, Log::nodeConns, __func__,
       "Waiting for discoveryWorker to connect to more nodes, currently connected to: "
       + std::to_string(connectedNodes.size())

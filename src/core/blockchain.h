@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef BLOCKCHAIN_H
 #define BLOCKCHAIN_H
 
-#include "broadcaster.h"
+#include "consensus.h"
 #include "storage.h"
 #include "rdpos.h"
 #include "state.h"
@@ -22,22 +22,13 @@ See the LICENSE.txt file in the project root for more information.
 class Blockchain; // Forward declaration for Syncer.
 
 /**
- * Helper class that syncs the node with other nodes in the network,
- * broadcasts transactions and creates new blocks if the node is a Validator.
- * This is where the magic happens.
+ * Helper class that syncs the node with other nodes in the network.
  * Currently it's *single threaded*, meaning that it doesn't require mutexes.
  */
 class Syncer {
-  // TODO: Maybe this class could also be responsible for slashing rdPoS if they are not behaving correctly
-  // TODO: Maybe it is better to move rdPoSWorker to Syncer
   private:
     Blockchain& blockchain_;  ///< Reference to the parent blockchain.
-    std::future<bool> syncerLoopFuture_;  ///< Future object holding the thread for the syncer loop.
-    std::atomic<bool> stopSyncer_ = false;  ///< Flag for stopping the syncer.
     std::atomic<bool> synced_ = false;  ///< Indicates whether or not the syncer is synced.
-
-    void doSync(); ///< Do the syncing.
-    bool syncerLoop();  ///< Routine loop for the syncer worker.
 
   public:
     /**
@@ -46,17 +37,12 @@ class Syncer {
      */
     explicit Syncer(Blockchain& blockchain) : blockchain_(blockchain) {}
 
-    /// Destructor. Automatically stops the syncer.
-    ~Syncer() { this->stop(); }
+    void sync(); ///< Do the syncing between nodes.
 
     ///@{
     /** Getter. */
-    const std::atomic<bool>& isStopped() const { return this->stopSyncer_; }
     const std::atomic<bool>& isSynced() const { return this->synced_; }
     ///@}
-
-    void start(); ///< Start the syncer routine loop.
-    void stop();  ///< Stop the syncer routine loop.
 };
 
 /**
@@ -74,7 +60,7 @@ class Blockchain {
     HTTPServer http_;           ///< HTTP server.
     P2P::NodeConns nodeConns_;  ///< Node connection manager.
     Syncer syncer_;             ///< Blockchain syncer.
-    Broadcaster broadcaster_;   ///< Block and transaction broadcaster.
+    Consensus consensus_;       ///< Block and transaction processing.
 
   public:
     /**
@@ -96,12 +82,11 @@ class Blockchain {
     HTTPServer& getHTTP() { return this->http_; }
     P2P::NodeConns& getNodeConns() { return this->nodeConns_; }
     Syncer& getSyncer() { return this->syncer_; }
-    Broadcaster& getBroadcaster() { return this->broadcaster_; }
+    Consensus& getConsensus() { return this->consensus_; }
     ///@}
 
-    const std::atomic<bool>& isSynced() const;  ///< Check if the blockchain syncer is synced.
-
-    friend class Syncer; ///< Friend class.
+    /// Check if the blockchain is synced.
+    const std::atomic<bool>& isSynced() const { return this->syncer_.isSynced(); }
 };
 
 #endif // BLOCKCHAIN_H
