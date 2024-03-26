@@ -90,7 +90,11 @@ namespace P2P {
     uint64_t nodeEpoch = Utils::bytesToUint64(message.message().subspan(8, 8));
     uint64_t nodeHeight = Utils::bytesToUint64(message.message().subspan(16, 8));
     Hash nodeHash(message.message().subspan(24, 32));
-    return NodeInfo(nodeVersion, nodeEpoch, nodeHeight, nodeHash);
+    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+    int64_t diff = currentEpoch - nodeEpoch;
+    return NodeInfo(nodeVersion, nodeEpoch, currentEpoch, diff, nodeHeight, nodeHash);
   }
 
   bool RequestDecoder::requestNodes(const Message& message) {
@@ -201,7 +205,11 @@ namespace P2P {
     uint64_t nodeEpoch = Utils::bytesToUint64(message.message().subspan(8, 8));
     uint64_t nodeHeight = Utils::bytesToUint64(message.message().subspan(16, 8));
     Hash nodeHash(message.message().subspan(24, 32));
-    return NodeInfo(nodeVersion, nodeEpoch, nodeHeight, nodeHash);
+    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+    int64_t diff = currentEpoch - nodeEpoch;
+    return NodeInfo(nodeVersion, nodeEpoch, currentEpoch, diff, nodeHeight, nodeHash);
   }
 
   std::unordered_map<NodeID, NodeType, SafeHash> AnswerDecoder::requestNodes(const Message& message) {
@@ -309,6 +317,22 @@ namespace P2P {
     return Message(std::move(message));
   }
 
+  Message BroadcastEncoder::broadcastInfo(const std::shared_ptr<const Block>& latestBlock, const Options& options) {
+    // Almost the same as answering a NodeInfo request, but instead of Answering, we use Broadcasting
+    Bytes message = getRequestTypePrefix(Broadcasting);
+    message.reserve(message.size() + 8 + 2 + 8 + 8 + 8 + 32);
+    Utils::appendBytes(message, Utils::randBytes(8));
+    Utils::appendBytes(message, getCommandPrefix(Info));
+    Utils::appendBytes(message, Utils::uint64ToBytes(options.getVersion()));
+    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+    Utils::appendBytes(message, Utils::uint64ToBytes(currentEpoch));
+    Utils::appendBytes(message, Utils::uint64ToBytes(latestBlock->getNHeight()));
+    Utils::appendBytes(message, latestBlock->hash());
+    return Message(std::move(message));
+  }
+
   TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId) {
     if (message.type() != Broadcasting) { throw DynamicException("Invalid message type."); }
     if (message.id().toUint64() != FNVHash()(message.message())) { throw DynamicException("Invalid message id."); }
@@ -328,6 +352,21 @@ namespace P2P {
     if (message.id().toUint64() != FNVHash()(message.message())) { throw DynamicException("Invalid message id. "); }
     if (message.command() != BroadcastBlock) { throw DynamicException("Invalid command."); }
     return Block(message.message(), requiredChainId);
+  }
+
+  NodeInfo BroadcastDecoder::broadcastInfo(const Message& message) {
+    // Basically the same decoding as AnswerDecoder::info
+    if (message.type() != Broadcasting) { throw DynamicException("Invalid message type."); }
+    if (message.command() != BroadcastInfo) { throw DynamicException("Invalid command."); }
+    uint64_t nodeVersion = Utils::bytesToUint64(message.message().subspan(0, 8));
+    uint64_t nodeEpoch = Utils::bytesToUint64(message.message().subspan(8, 8));
+    uint64_t nodeHeight = Utils::bytesToUint64(message.message().subspan(16, 8));
+    Hash nodeHash(message.message().subspan(24, 32));
+    uint64_t currentEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+    int64_t diff = currentEpoch - nodeEpoch;
+    return NodeInfo(nodeVersion, nodeEpoch, currentEpoch, diff, nodeHeight, nodeHash);
   }
 }
 

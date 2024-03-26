@@ -46,6 +46,7 @@ namespace P2P {
     BroadcastValidatorTx,
     BroadcastTx,
     BroadcastBlock,
+    BroadcastInfo,
     RequestTxs
   };
 
@@ -82,7 +83,8 @@ namespace P2P {
     Bytes{0x00, 0x04}, // BroadcastValidatorTx
     Bytes{0x00, 0x05}, // BroadcastTx
     Bytes{0x00, 0x06}, // BroadcastBlock
-    Bytes{0x00, 0x07}  // RequestTxs
+    Bytes{0x00, 0x07}, // RequestTxs
+    Bytes(0x00, 0x08) // BroadcastInfo
   };
 
   /**
@@ -136,39 +138,73 @@ namespace P2P {
   using NodeID = std::pair<boost::asio::ip::address, uint16_t>;
 
   /// Struct with information about a given node.
-  struct NodeInfo {
-    /// Node version.
-    uint64_t nodeVersion = 0;
+  class NodeInfo {
+    private:
+      /// Node version.
+      uint64_t nodeVersion_;
 
-    /// Current epoch timestamp, in microseconds.
-    uint64_t currentTimestamp = 0;
+      /// Current node epoch timestamp, in microseconds.
+      uint64_t currentNodeTimestamp_;
 
-    /// Height of the latest block the node is at.
-    uint64_t latestBlockHeight = 0;
+      /// Current epoch timestamp, in seconds.
+      uint64_t currentTimestamp_;
 
-    /// %Hash of the latest block the node is at.
-    Hash latestBlockHash = Hash();
+      /// Difference between the current node timestamp and the current timestamp, in seconds.
+      /// int because the node clock can be ahead or behind our system clock.
+      /// This **does not** determine latency.
+      int64_t timeDifference_;
 
-    /// Equality operator. Checks if all members are the same.
-    bool operator==(const NodeInfo& other) const {
-      return (
-        nodeVersion == other.nodeVersion &&
-        currentTimestamp == other.currentTimestamp &&
-        latestBlockHeight == other.latestBlockHeight &&
-        latestBlockHash == other.latestBlockHash
-      );
-    }
+      /// Height of the latest block the node is at.
+      uint64_t latestBlockHeight_;
 
-    /// Assignment operator.
-    NodeInfo& operator=(const NodeInfo& other) {
-      if (this != &other) {
-        nodeVersion = other.nodeVersion;
-        currentTimestamp = other.currentTimestamp;
-        latestBlockHeight = other.latestBlockHeight;
-        latestBlockHash = other.latestBlockHash;
+      /// %Hash of the latest block the node is at.
+      Hash latestBlockHash_;
+
+    public:
+      NodeInfo() : nodeVersion_(0), currentNodeTimestamp_(0), currentTimestamp_(0),
+        timeDifference_(0), latestBlockHeight_(0), latestBlockHash_(Hash()) {};
+
+      /// Default constructor.
+      NodeInfo(const uint64_t& nodeVersion, const uint64_t& currentNodeTimestamp,
+        const uint64_t& currentTimestamp, const int64_t& timeDifference,
+        const uint64_t& latestBlockHeight, const Hash& latestBlockHash
+      ) : nodeVersion_(nodeVersion), currentNodeTimestamp_(currentNodeTimestamp),
+          currentTimestamp_(currentTimestamp), timeDifference_(timeDifference),
+          latestBlockHeight_(latestBlockHeight), latestBlockHash_(latestBlockHash) {};
+
+      /// Equality operator. Checks if all members are the same.
+      bool operator==(const NodeInfo& other) const {
+        return (
+          this->nodeVersion_ == other.nodeVersion_ &&
+          this->currentNodeTimestamp_ == other.currentNodeTimestamp_ &&
+          this->currentTimestamp_ == other.currentTimestamp_ &&
+          this->timeDifference_ == other.timeDifference_ &&
+          this->latestBlockHeight_ == other.latestBlockHeight_ &&
+          this->latestBlockHash_ == other.latestBlockHash_
+        );
       }
-      return *this;
-    }
+
+      /// Assignment operator.
+      NodeInfo& operator=(const NodeInfo& other) {
+        if (this != &other) {
+          this->nodeVersion_ = other.nodeVersion_;
+          this->currentTimestamp_ = other.currentTimestamp_;
+          this->currentNodeTimestamp_ = other.currentNodeTimestamp_;
+          this->timeDifference_ = other.timeDifference_;
+          this->latestBlockHeight_ = other.latestBlockHeight_;
+          this->latestBlockHash_ = other.latestBlockHash_;
+        }
+        return *this;
+      }
+
+      /// Getter functions
+      const uint64_t& nodeVersion() const { return this->nodeVersion_; }
+      const uint64_t& currentNodeTimestamp() const { return this->currentNodeTimestamp_; }
+      const uint64_t& currentTimestamp() const { return this->currentTimestamp_; }
+      const int64_t& timeDifference() const { return this->timeDifference_; }
+      const uint64_t& latestBlockHeight() const { return this->latestBlockHeight_; }
+      const Hash& latestBlockHash() const { return this->latestBlockHash_; }
+
   };
 
   /// Helper class used to create requests.
@@ -373,6 +409,13 @@ namespace P2P {
        * @return The formatted message.
        */
       static Message broadcastBlock(const std::shared_ptr<const Block>& block);
+
+      /**
+       * Create a message to broadcast the node's information.
+       * @param nodeInfo The node's information.
+       * @return The formatted message.
+       */
+      static Message broadcastInfo(const std::shared_ptr<const Block>& latestBlock, const Options& options);
   };
 
   /// Helper class used to parse broadcast messages.
@@ -401,6 +444,13 @@ namespace P2P {
        * @return The build block object.
        */
       static Block broadcastBlock(const Message& message, const uint64_t& requiredChainId);
+
+      /**
+       * Parse a broadcasted message for a node's information.
+       * @param message The message that was broadcast.
+       * @return The node's information.
+       */
+      static NodeInfo broadcastInfo(const Message& message);
   };
 
   /**

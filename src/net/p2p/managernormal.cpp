@@ -461,5 +461,11 @@ namespace P2P{
     this->broadcastMessage(broadcast);
     return;
   }
+
+  void ManagerNormal::broadcastInfo() {
+    auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastInfo(this->storage_.latest(), this->options_));
+    this->broadcastMessage(broadcast);
+    return;
+  }
 };
 

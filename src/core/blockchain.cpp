@@ -52,7 +52,7 @@ void Syncer::sync() {
   std::pair<P2P::NodeID, uint64_t> highestNode = {P2P::NodeID(), 0};
   // Get the highest node.
   for (auto& [nodeId, nodeInfo] : this->blockchain_.getNodeConns().getConnected()) {
-    if (nodeInfo.latestBlockHeight > highestNode.second) highestNode = {nodeId, nodeInfo.latestBlockHeight};
+    if (nodeInfo.latestBlockHeight() > highestNode.second) highestNode = {nodeId, nodeInfo.latestBlockHeight()};
   }
   // Sync from the best node.
   if (highestNode.second > this->blockchain_.getStorage().latest()->getNHeight()) {

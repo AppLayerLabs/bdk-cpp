@@ -214,6 +214,11 @@ namespace P2P {
        * @param block The block to broadcast.
        */
       void broadcastBlock(const std::shared_ptr<const Block> block);
+
+      /**
+       * Broadcast current node info
+       */
+      void broadcastInfo();
   };
 };
 
