@@ -29,7 +29,7 @@ namespace P2P {
    */
   class NodeConns {
     private:
-      Blockchain& blockchain_;  ///< Reference to the blockchain.
+      ManagerNormal& manager_;  ///< Reference to the blockchain.
 
       /// List of currently connected nodes and their info.
       std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> connected_;
@@ -37,9 +37,9 @@ namespace P2P {
     public:
       /**
        * Constructor.
-       * @param blockchain Reference to the blockchain.
+       * @param manager Reference to the blockchain.
        */
-      explicit NodeConns(Blockchain& blockchain) : blockchain_(blockchain) {}
+      explicit NodeConns(ManagerNormal& manager) : manager_(manager) {}
 
       /// Getter.
       std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash>& getConnected() { return this->connected_; }

@@ -14,9 +14,9 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
   state_(db_, storage_, p2p_, options_),
   p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
-  nodeConns_(*this),
-  syncer_(*this),
-  consensus_(*this)
+  nodeConns_(p2p_),
+  syncer_(nodeConns_, storage_),
+  consensus_(state_, p2p_, storage_, options_)
 {}
 
 void Blockchain::start() {
@@ -48,14 +48,14 @@ void Syncer::sync() {
   // Get the list of currently connected nodes and their current height
   Utils::safePrint("Syncing with other nodes in the network...");
   Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Syncing with other nodes in the network...");
-  this->blockchain_.getNodeConns().refresh();
+  this->nodeConns_.refresh();
   std::pair<P2P::NodeID, uint64_t> highestNode = {P2P::NodeID(), 0};
   // Get the highest node.
-  for (auto& [nodeId, nodeInfo] : this->blockchain_.getNodeConns().getConnected()) {
+  for (auto& [nodeId, nodeInfo] : this->nodeConns_.getConnected()) {
     if (nodeInfo.latestBlockHeight() > highestNode.second) highestNode = {nodeId, nodeInfo.latestBlockHeight()};
   }
   // Sync from the best node.
-  if (highestNode.second > this->blockchain_.getStorage().latest()->getNHeight()) {
+  if (highestNode.second > this->storage_.latest()->getNHeight()) {
     // TODO: actually implement syncing - currently we are starting all the nodes from genesis (0)
   }
   this->synced_ = true; // TODO: this isn't being set back to false later, probably an oversight

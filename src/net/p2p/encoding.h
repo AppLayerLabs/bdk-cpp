@@ -144,9 +144,11 @@ namespace P2P {
       uint64_t nodeVersion_;
 
       /// Current node epoch timestamp, in microseconds.
+      /// This is the timestamp that the node answered us
       uint64_t currentNodeTimestamp_;
 
       /// Current epoch timestamp, in seconds.
+      /// Timestamp for when we parsed the NodeInfo
       uint64_t currentTimestamp_;
 
       /// Difference between the current node timestamp and the current timestamp, in seconds.

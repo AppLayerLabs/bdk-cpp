@@ -24,7 +24,11 @@ class Blockchain; // Forward declaration.
 /// Class responsible for processing blocks and transactions.
 class Consensus {
   private:
-    Blockchain& blockchain_; ///< Reference to the blockchain.
+    State& state_; ///< Reference to the State object.
+    P2P::ManagerNormal& p2p_; ///< Reference to the P2P connection manager.
+    const Storage& storage_; ///< Reference to the blockchain storage.
+    const Options& options_; ///< Reference to the Options singleton.
+
     std::future<void> loopFuture_;  ///< Future object holding the thread for the consensus loop.
     std::atomic<bool> canCreateBlock_ = false; ///< Flag for knowing if the worker is ready to create a block.
     std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus processing.
@@ -67,9 +71,13 @@ class Consensus {
   public:
     /**
      * Constructor.
-     * @param blockchain Reference to the blockchain.
+     * @param state Reference to the State object.
+     * @param p2p Reference to the P2P connection manager.
+     * @param storage Reference to the blockchain storage.
+     * @param options Reference to the Options singleton.
      */
-    explicit Consensus(Blockchain& blockchain) : blockchain_(blockchain) {}
+    explicit Consensus(State& state, P2P::ManagerNormal& p2p, const Storage& storage, const Options& options) :
+      state_(state), p2p_(p2p), storage_(storage), options_(options) {}
 
     /**
      * Entry function for the worker thread (runs the workerLoop() function).

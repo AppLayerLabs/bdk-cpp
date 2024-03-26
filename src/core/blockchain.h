@@ -27,15 +27,18 @@ class Blockchain; // Forward declaration for Syncer.
  */
 class Syncer {
   private:
-    Blockchain& blockchain_;  ///< Reference to the parent blockchain.
+    P2P::NodeConns& nodeConns_;  ///< Reference to the NodeConns object.
+    const Storage& storage_;     ///< Reference to the blockchain storage.
     std::atomic<bool> synced_ = false;  ///< Indicates whether or not the syncer is synced.
 
   public:
     /**
      * Constructor.
-     * @param blockchain Reference to the parent blockchain.
+     * @param nodeConns Reference to the NodeConns object.
+     * @param storage Reference to the blockchain storage.
      */
-    explicit Syncer(Blockchain& blockchain) : blockchain_(blockchain) {}
+    explicit Syncer(P2P::NodeConns& nodeConns, const Storage& storage) :
+      nodeConns_(nodeConns), storage_(storage) {}
 
     void sync(); ///< Do the syncing between nodes.
 
