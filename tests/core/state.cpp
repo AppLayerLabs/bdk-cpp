@@ -49,6 +49,8 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
 namespace TState {
   std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("State Class", "[core][state]") {
+    PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+    Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     SECTION("State Class Constructor/Destructor", "[state]") {
       {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateConstructorTest");
@@ -796,6 +798,21 @@ namespace TState {
         while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+        // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
+        // otherwise it will sleep forever
+        Address targetOfTransactions(Utils::randBytes(20));
+        TxBlock tx (targetOfTransactions,
+              chainOwnerAddress,
+              Bytes(),
+              8080,
+              blockchainWrapper1.state.getNativeNonce(chainOwnerAddress),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              chainOwnerPrivKey);
+        blockchainWrapper1.p2p.broadcastTxBlock(tx);
+        blockchainWrapper1.state.addTx(std::move(tx));
       });
 
       REQUIRE(stateBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);

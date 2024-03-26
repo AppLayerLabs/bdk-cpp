@@ -22,11 +22,11 @@ void Consensus::validatorLoop() {
       this->doValidatorBlock();
     }
     if (this->stop_) return;
-    if (!isBlockCreator) this->doValidatorTx();
+    if (!isBlockCreator) this->doValidatorTx(latestBlock->getNHeight() + 1, me);
 
     // Keep looping while we don't reach the latest block
     bool logged = false;
-    while (latestBlock != this->storage_.latest() && !this->stop_) {
+    while (latestBlock == this->storage_.latest() && !this->stop_) {
       if (!logged) {
         Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Waiting for next block to be created.");
         logged = true;
@@ -40,18 +40,32 @@ void Consensus::validatorLoop() {
 void Consensus::doValidatorBlock() {
   // TODO: Improve this somehow.
   // Wait until we are ready to create the block
-  bool logged = false;
-  while (!this->canCreateBlock_) {
-    if (!logged) {
-      logged = true;
-      Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Waiting for rdPoS to be ready to create a block.");
+  auto start = std::chrono::high_resolution_clock::now();
+  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Block creator: waiting for txs");
+  uint64_t validatorMempoolSize = 0;
+  std::unique_ptr<uint64_t> lastLog = nullptr;
+  while (validatorMempoolSize != this->state_.rdposGetMinValidators() * 2 && !this->stop_) {
+    if (lastLog == nullptr || *lastLog != validatorMempoolSize) {
+      lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
+      Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
+        "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
+      );
     }
-    if (this->stop_) return;
+    validatorMempoolSize = this->state_.rdposGetMempoolSize();
+    // Try to get more transactions from other nodes within the network
+    auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
+    for (auto const& nodeId : connectedNodesList) {
+      auto txList = this->p2p_.requestValidatorTxs(nodeId);
+      if (this->stop_) return;
+      for (auto const& tx : txList) this->state_.addValidatorTx(tx);
+    }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
+  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Validator ready to create a block");
 
-  // Wait until we have at least one transaction in the state mempool.
-  logged = false;
+  // Wait until we have all required transactions to create the block.
+  auto waitForTxs = std::chrono::high_resolution_clock::now();
+  bool logged = false;
   while (this->state_.getMempoolSize() < 1) {
     if (!logged) {
       logged = true;
@@ -72,6 +86,8 @@ void Consensus::doValidatorBlock() {
     }
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
+
+  auto creatingBlock = std::chrono::high_resolution_clock::now();
 
   // Create the block.
   if (this->stop_) return;
@@ -132,39 +148,20 @@ void Consensus::doValidatorBlock() {
   // TODO: this should go to its own class (Broadcaster)
   if (this->stop_) return;
   this->p2p_.broadcastBlock(this->storage_.latest());
+  auto end = std::chrono::high_resolution_clock::now();
+  double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  double timeToConsensus = std::chrono::duration_cast<std::chrono::milliseconds>(waitForTxs - start).count();
+  double timeToTxs = std::chrono::duration_cast<std::chrono::milliseconds>(creatingBlock - waitForTxs).count();
+  double timeToBlock = std::chrono::duration_cast<std::chrono::milliseconds>(end - creatingBlock).count();
+  Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
+    "Block created in: " + std::to_string(duration) + "ms, " +
+    "Time to consensus: " + std::to_string(timeToConsensus) + "ms, " +
+    "Time to txs: " + std::to_string(timeToTxs) + "ms, " +
+    "Time to block: " + std::to_string(timeToBlock) + "ms"
+  );
 }
 
-void Consensus::doValidatorTx() const {
-  // There is nothing to do, validatorLoop will wait for the next block.
-}
-
-void Consensus::doBlockCreation() {
-  // TODO: add requesting transactions to other nodes when mempool is not filled up
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Block creator: waiting for txs");
-  uint64_t validatorMempoolSize = 0;
-  std::unique_ptr<uint64_t> lastLog = nullptr;
-  while (validatorMempoolSize != this->state_.rdposGetMinValidators() * 2 && !this->stop_) {
-    if (lastLog == nullptr || *lastLog != validatorMempoolSize) {
-      lastLog = std::make_unique<uint64_t>(validatorMempoolSize);
-      Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
-        "Block creator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
-      );
-    }
-    validatorMempoolSize = this->state_.rdposGetMempool().size();
-    // Try to get more transactions from other nodes within the network
-    auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
-    for (auto const& nodeId : connectedNodesList) {
-      auto txList = this->p2p_.requestValidatorTxs(nodeId);
-      if (this->stop_) return;
-      for (auto const& tx : txList) this->state_.addValidatorTx(tx);
-    }
-    std::this_thread::sleep_for(std::chrono::microseconds(10));
-  }
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Validator ready to create a block");
-  this->canCreateBlock_ = true; // Let everybody know that we are ready to create another block
-}
-
-void Consensus::doTxCreation(const uint64_t& nHeight, const Validator& me) {
+void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   Hash randomness = Hash::random();
   Hash randomHash = Utils::sha3(randomness.get());
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Creating random Hash transaction");
@@ -213,7 +210,7 @@ void Consensus::doTxCreation(const uint64_t& nHeight, const Validator& me) {
         "Validator has: " + std::to_string(validatorMempoolSize) + " transactions in mempool"
       );
     }
-    validatorMempoolSize = this->state_.rdposGetMempool().size();
+    validatorMempoolSize = this->state_.rdposGetMempoolSize();
     // Try to get more transactions from other nodes within the network
     auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     for (auto const& nodeId : connectedNodesList) {
@@ -231,73 +228,11 @@ void Consensus::doTxCreation(const uint64_t& nHeight, const Validator& me) {
   this->p2p_.broadcastTxValidator(seedTx);
 }
 
-bool Consensus::workerLoop() {
-  Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->options_.getValidatorPrivKey())));
-  const std::shared_ptr<const Block> latestBlock = this->storage_.latest();
-  while (!this->stop_) {
-    // Check if we are the validator required for signing the block.
-    bool isBlockCreator = false;
-    if (me == this->state_.rdposGetRandomList()[0]) {
-      isBlockCreator = true;
-      this->doBlockCreation();
-    }
-
-    // Check if we are one of the rdPoS that need to create random transactions.
-    if (!isBlockCreator) {
-      for (uint64_t i = 1; i <= this->state_.rdposGetMinValidators(); i++) {
-        if (me == this->state_.rdposGetRandomList()[i]) {
-          this->doTxCreation(latestBlock->getNHeight() + 1, me);
-        }
-      }
-    }
-
-    // After processing everything. wait until the new block is appended to the chain.
-    std::unique_ptr<std::tuple<uint64_t, uint64_t, uint64_t>> lastLog = nullptr;
-    while (latestBlock != this->storage_.latest() && !this->stop_) {
-      if (lastLog == nullptr || std::get<0>(*lastLog) != latestBlock->getNHeight() ||
-        std::get<1>(*lastLog) != this->storage_.latest()->getNHeight() ||
-        std::get<2>(*lastLog) != this->state_.rdposGetMempool().size()
-      ) {
-        lastLog = std::make_unique<std::tuple<uint64_t, uint64_t, uint64_t>>(
-          latestBlock->getNHeight(),
-          this->storage_.latest()->getNHeight(),
-          this->state_.rdposGetMempool().size()
-        );
-        Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
-          "Waiting for new block to be appended to the chain. (Height: "
-          + std::to_string(latestBlock->getNHeight()) + ")" + " latest height: "
-          + std::to_string(this->storage_.latest()->getNHeight())
-        );
-        Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
-          "Currently has " + std::to_string(this->state_.rdposGetMempool().size())
-          + " transactions in mempool."
-        );
-      }
-      uint64_t mempoolSize = this->state_.rdposGetMempool().size();
-      // Always try to fill the mempool to 8 transactions
-      if (mempoolSize < this->state_.rdposGetMinValidators()) {
-        // Try to get more transactions from other nodes within the network
-        auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
-        for (auto const& nodeId : connectedNodesList) {
-          if (latestBlock == this->storage_.latest() || this->stop_) break;
-          auto txList = this->p2p_.requestValidatorTxs(nodeId);
-          if (latestBlock == this->storage_.latest() || this->stop_) break;
-          for (auto const& tx : txList) this->state_.addValidatorTx(tx);
-        }
-      }
-      std::this_thread::sleep_for(std::chrono::microseconds(10));
-    }
-    if (isBlockCreator) this->canCreateBlock_ = false;
-  }
-  return true;
-}
-
 void Consensus::signBlock(Block &block) {
   uint64_t newTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::high_resolution_clock::now().time_since_epoch()
   ).count();
   block.finalize(this->options_.getValidatorPrivKey(), newTimestamp);
-  this->canCreateBlock_ = false;
 }
 
 void Consensus::start() {

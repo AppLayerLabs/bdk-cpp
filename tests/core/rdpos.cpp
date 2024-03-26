@@ -196,6 +196,8 @@ Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state,
 namespace TRdPoS {
   // Simple rdPoS execution, does not test network functionality neither validator execution (rdPoSWorker)
   TEST_CASE("rdPoS Class", "[core][rdpos]") {
+    PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+    Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("rdPoS class Startup") {
       std::set<Validator> validatorsList;
@@ -289,6 +291,8 @@ namespace TRdPoS {
   }
 
   TEST_CASE("rdPoS Class With Network Functionality", "[core][rdpos][net]") {
+    PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+    Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     SECTION("Two Nodes instances, simple transaction broadcast") {
       // Initialize two different node instances, with different ports and DBs.
       std::string testDumpPath = Utils::getTestDumpPath();
@@ -663,6 +667,8 @@ namespace TRdPoS {
   }
 
   TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality, move 10 blocks forward", "[core][rdpos][net][heavy]") {
+    PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+    Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     // Initialize 8 different node instances, with different ports and DBs.
     std::string testDumpPath = Utils::getTestDumpPath();
     auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[0], 8080, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode1");
@@ -829,7 +835,23 @@ namespace TRdPoS {
     // When consensus is running, we can just wait for the blocks to be created.
     auto rdPoSBlockFuture = std::async(std::launch::async, [&]() {
       while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
+        std::cout << "nHeight: " << blockchainWrapper1.storage.latest()->getNHeight() << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
+        // otherwise it will sleep forever
+        Address targetOfTransactions(Utils::randBytes(20));
+        TxBlock tx (targetOfTransactions,
+              chainOwnerAddress,
+              Bytes(),
+              8080,
+              blockchainWrapper1.state.getNativeNonce(chainOwnerAddress),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              chainOwnerPrivKey);
+        blockchainWrapper1.p2p.broadcastTxBlock(tx);
+        blockchainWrapper1.state.addTx(std::move(tx));
       }
     });
 

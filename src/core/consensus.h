@@ -30,7 +30,6 @@ class Consensus {
     const Options& options_; ///< Reference to the Options singleton.
 
     std::future<void> loopFuture_;  ///< Future object holding the thread for the consensus loop.
-    std::atomic<bool> canCreateBlock_ = false; ///< Flag for knowing if the worker is ready to create a block.
     std::atomic<bool> stop_ = false; ///< Flag for stopping the consensus processing.
 
     /**
@@ -47,20 +46,7 @@ class Consensus {
      * If the node is a Validator, this function will be called to make the
      * node wait until it receives a new block.
      */
-    void doValidatorTx() const;
-
-    /**
-     * Wait for transactions to be added to the mempool and create a block by rdPoS consensus. Called by workerLoop().
-     * TODO: this function should call State or Blockchain to let them know that we are ready to create a block.
-     */
-    void doBlockCreation();
-
-    /**
-     * Create a transaction by rdPoS consensus and broadcast it to the network.
-     * @param nHeight The block height for the transaction.
-     * @param me The Validator that will create the transaction.
-     */
-    void doTxCreation(const uint64_t& nHeight, const Validator& me);
+    void doValidatorTx(const uint64_t& nHeight, const Validator& me);
 
     /**
      * Sign a block using the Validator's private key.

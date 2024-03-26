@@ -94,8 +94,9 @@ class rdPoS : public BaseContract {
     /** Getter. */
     const std::set<Validator>& getValidators() const { return this->validators_; }
     const std::vector<Validator>& getRandomList() const { return this->randomList_; }
-    const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const {
-      return this->validatorMempool_; // NOT a ref because inner map can be changed
+    const std::unordered_map<Hash, TxValidator, SafeHash>& getMempool() const {
+      return this->validatorMempool_; // A reference because only State can access it.
+                                      // If someone is accessing thru the State, the State copies it (see State::rdposGetMempool).
     }
     const Hash& getBestRandomSeed() const { return this->bestRandomSeed_; }
     bool getIsValidator() const { return this->isValidator_; }

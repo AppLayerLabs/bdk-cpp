@@ -89,23 +89,28 @@ class State {
     std::vector<Validator> rdposGetRandomList() const {
       std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.getRandomList();
     }
+    size_t rdposGetMempoolSize() const {
+      std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.getMempool().size();
+    }
     std::unordered_map<Hash, TxValidator, SafeHash> rdposGetMempool() const {
       std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.getMempool();
     }
     Hash rdposGetBestRandomSeed() const {
       std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.getBestRandomSeed();
     }
-    bool rdposGetIsValidator() const {
-      std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.getIsValidator();
+    // only used by tests
+    Hash rdposProcessBlock(const Block& block) {
+      std::unique_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.processBlock(block);
     }
-    uint32_t rdposGetMinValidators() const {
-      std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.getMinValidators();
-    }
+    // only used by tests
     bool rdposValidateBlock(const Block& block) const {
       std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.validateBlock(block);
     }
-    Hash rdposProcessBlock(const Block& block) {
-      std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.processBlock(block);
+    bool rdposGetIsValidator() const {
+      return this->rdpos_.getIsValidator();
+    }
+    uint32_t rdposGetMinValidators() const {
+      return this->rdpos_.getMinValidators();
     }
     bool rdposAddValidatorTx(const TxValidator& tx) {
       std::shared_lock<std::shared_mutex> lock (this->stateMutex_); return this->rdpos_.addValidatorTx(tx);
