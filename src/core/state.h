@@ -273,6 +273,15 @@ class State {
 
     /// ContractManagerInterface cannot use getNativeBalance, as it will call a lock with the mutex.
     friend class ContractManagerInterface;
+
+    /**
+     * Clear rdPoS mempool.
+     * Used by tests, but rdPoS also clear its mempool when a new block is processed.
+     */
+    void rdposClearMempool() {
+      std::unique_lock<std::shared_mutex> lock (this->stateMutex_);
+      this->rdpos_.clearMempool();
+    }
 };
 
 #endif // STATE_H

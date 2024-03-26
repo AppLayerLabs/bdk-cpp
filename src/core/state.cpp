@@ -308,13 +308,13 @@ TxInvalid State::validateTransaction(const TxBlock& tx) const {
 }
 
 TxInvalid State::addTx(TxBlock&& tx) {
-  auto TxInvalid = this->validateTransaction(tx);
-  if (TxInvalid) return TxInvalid;
+  const auto txResult = this->validateTransaction(tx);
+  if (txResult) return txResult;
   std::unique_lock lock(this->stateMutex_);
   auto txHash = tx.hash();
   this->mempool_.insert({txHash, std::move(tx)});
   Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was added to the mempool");
-  return TxInvalid;
+  return txResult;
 }
 
 bool State::addValidatorTx(const TxValidator& tx) {

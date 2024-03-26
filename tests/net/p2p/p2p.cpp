@@ -202,9 +202,9 @@ namespace TP2P {
 
       auto p2p2NodeInfo = blockchainWrapper1.p2p.requestNodeInfo(p2p2NodeId);
 
-      REQUIRE(p2p2NodeInfo.nodeVersion == blockchainWrapper2.options.getVersion());
-      REQUIRE(p2p2NodeInfo.latestBlockHeight == blockchainWrapper2.storage.latest()->getNHeight());
-      REQUIRE(p2p2NodeInfo.latestBlockHash == blockchainWrapper2.storage.latest()->hash());
+      REQUIRE(p2p2NodeInfo.nodeVersion() == blockchainWrapper2.options.getVersion());
+      REQUIRE(p2p2NodeInfo.latestBlockHeight() == blockchainWrapper2.storage.latest()->getNHeight());
+      REQUIRE(p2p2NodeInfo.latestBlockHash() == blockchainWrapper2.storage.latest()->hash());
     }
 
     SECTION("10 P2P::ManagerNormal 1 P2P::ManagerDiscovery") {

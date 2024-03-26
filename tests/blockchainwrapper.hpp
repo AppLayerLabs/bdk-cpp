@@ -29,18 +29,26 @@ struct TestBlockchainWrapper {
   State state;            ///< Blockchain state.
   P2P::ManagerNormal p2p; ///< P2P connection manager.
   HTTPServer http;        ///< HTTP server.
+  P2P::NodeConns nodeConns;  ///< Node connection manager.
+  Syncer syncer;             ///< Blockchain syncer.
+  Consensus consensus;       ///< Block and transaction processing.
 
   /**
    * Constructor.
    * @param options_ Reference to the Options singleton.
    */
+
   explicit TestBlockchainWrapper(const Options& options_) :
     options(options_),
     db(options.getRootPath() + "/db"),
     storage(db, options),
     state(db, storage, p2p, options),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
-    http(state, storage, p2p, options) {};
+    http(state, storage, p2p, options),
+    nodeConns(p2p),
+    syncer(nodeConns, storage),
+    consensus(state, p2p, storage, options)
+    {};
 
   /// Destructor.
   ~TestBlockchainWrapper() {

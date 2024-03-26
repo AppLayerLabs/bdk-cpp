@@ -148,6 +148,13 @@ class rdPoS : public BaseContract {
      * @return The function type.
      */
     static TxValidatorFunction getTxValidatorFunction(const TxValidator& tx);
+
+    /**
+     * Clear the mempool
+     * Used by tests
+     */
+    void clearMempool() { this->validatorMempool_.clear(); }
+
 };
 
 #endif // RDPOS_H
