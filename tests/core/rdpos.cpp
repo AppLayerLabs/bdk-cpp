@@ -835,7 +835,6 @@ namespace TRdPoS {
     // When consensus is running, we can just wait for the blocks to be created.
     auto rdPoSBlockFuture = std::async(std::launch::async, [&]() {
       while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
-        std::cout << "nHeight: " << blockchainWrapper1.storage.latest()->getNHeight() << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
         // otherwise it will sleep forever

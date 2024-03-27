@@ -313,7 +313,7 @@ TxInvalid State::addTx(TxBlock&& tx) {
   std::unique_lock lock(this->stateMutex_);
   auto txHash = tx.hash();
   this->mempool_.insert({txHash, std::move(tx)});
-  Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was added to the mempool");
+  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + txHash.hex().get() + " was added to the mempool");
   return txResult;
 }
 

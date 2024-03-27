@@ -37,7 +37,7 @@ namespace P2P {
   }
 
   void Session::on_connect(boost::system::error_code ec, const net::ip::tcp::endpoint&) {
-    if (ec && this->handle_error(__func__, ec)) return;
+    if (ec) { this->handle_error(__func__, ec); return; }
     this->write_handshake();
   }
 
@@ -54,7 +54,7 @@ namespace P2P {
   }
 
   void Session::read_handshake(boost::system::error_code ec, std::size_t) {
-    if (ec && this->handle_error(__func__, ec)) return;
+    if (ec) { this->handle_error(__func__, ec); return; }
     net::async_read(this->socket_, net::buffer(this->inboundHandshake_, 3), net::bind_executor(
       this->readStrand_, std::bind(
         &Session::finish_handshake, shared_from_this(), std::placeholders::_1, std::placeholders::_2
@@ -63,7 +63,7 @@ namespace P2P {
   }
 
   void Session::finish_handshake(boost::system::error_code ec, std::size_t) {
-    if (ec && this->handle_error(__func__, ec)) return;
+    if (ec) { this->handle_error(__func__, ec); return; }
     if (this->inboundHandshake_.size() != 3) {
       Logger::logToDebug(LogType::ERROR, Log::P2PSession, __func__, "Invalid handshake size");
       this->close();
@@ -73,6 +73,9 @@ namespace P2P {
     this->serverPort_ = Utils::bytesToUint16(Utils::create_view_span(this->inboundHandshake_, 1, 2));
     this->doneHandshake_ = true;
     this->nodeId_ = {this->address_, this->serverPort_};
+    boost::system::error_code nec;
+    this->socket_.set_option(boost::asio::ip::tcp::no_delay(true), nec);
+    if (nec) { this->handle_error(__func__, nec); this->close(); return; }
     if (!this->manager_.registerSession(shared_from_this())) { this->close(); return; }
     this->do_read_header(); // Start reading messages.
   }
@@ -87,7 +90,7 @@ namespace P2P {
   }
 
   void Session::on_read_header(boost::system::error_code ec, std::size_t) {
-    if (ec && this->handle_error(__func__, ec)) return;
+    if (ec) { this->handle_error(__func__, ec); return; }
     uint64_t messageSize = Utils::bytesToUint64(this->inboundHeader_);
     if (messageSize > this->maxMessageSize_) {
       Logger::logToDebug(LogType::WARNING, Log::P2PSession, __func__,
@@ -110,7 +113,7 @@ namespace P2P {
   }
 
   void Session::on_read_message(boost::system::error_code ec, std::size_t) {
-    if (ec && this->handle_error(__func__, ec)) return;
+    if (ec) { this->handle_error(__func__, ec); return; }
     this->manager_.asyncHandleMessage(this->nodeId_, this->inboundMessage_);
     this->inboundMessage_ = nullptr;
     this->do_read_header();
@@ -128,7 +131,7 @@ namespace P2P {
   }
 
   void Session::on_write_header(boost::system::error_code ec, std::size_t) {
-    if (ec && this->handle_error(__func__, ec)) return;
+    if (ec) { this->handle_error(__func__, ec); return; }
     this->do_write_message();
   }
 
@@ -141,7 +144,7 @@ namespace P2P {
   }
 
   void Session::on_write_message(boost::system::error_code ec, std::size_t) {
-    if (ec && this->handle_error(__func__, ec)) return;
+    if (ec) { this->handle_error(__func__, ec); return; }
     std::unique_lock lock(this->writeQueueMutex_);
     if (this->outboundMessages_.empty()) {
       this->outboundMessage_ = nullptr;

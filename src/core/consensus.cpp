@@ -76,6 +76,7 @@ void Consensus::doValidatorBlock() {
     // Try to get transactions from the network.
     auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     for (auto const& nodeId : connectedNodesList) {
+      Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Requesting txs...");
       if (this->stop_) break;
       auto txList = this->p2p_.requestTxs(nodeId);
       if (this->stop_) break;
@@ -90,6 +91,7 @@ void Consensus::doValidatorBlock() {
   auto creatingBlock = std::chrono::high_resolution_clock::now();
 
   // Create the block.
+  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Ordering transactions and creating block");
   if (this->stop_) return;
   auto mempool = this->state_.rdposGetMempool();
   auto randomList = this->state_.rdposGetRandomList();
@@ -124,6 +126,7 @@ void Consensus::doValidatorBlock() {
   const std::shared_ptr<const Block> latestBlock = this->storage_.latest();
   Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
 
+  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Filling block with transactions.");
   // Append transactions towards block.
   for (const auto& tx: randomHashTxs) block.appendTxValidator(tx);
   for (const auto& tx: randomnessTxs) block.appendTxValidator(tx);
@@ -146,6 +149,7 @@ void Consensus::doValidatorBlock() {
 
   // Broadcast the block through P2P
   // TODO: this should go to its own class (Broadcaster)
+  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Broadcasting block.");
   if (this->stop_) return;
   this->p2p_.broadcastBlock(this->storage_.latest());
   auto end = std::chrono::high_resolution_clock::now();

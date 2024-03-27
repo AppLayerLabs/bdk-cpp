@@ -73,7 +73,8 @@ namespace P2P {
    * - "0004" = BroadcastValidatorTx
    * - "0005" = BroadcastTx
    * - "0006" = BroadcastBlock
-   * - "0007" = RequestTxs
+   * - "0007" = BroadcastInfo
+   * - "0008" = RequestTxs
    */
   inline extern const std::vector<Bytes> commandPrefixes {
     Bytes{0x00, 0x00}, // Ping
@@ -83,8 +84,8 @@ namespace P2P {
     Bytes{0x00, 0x04}, // BroadcastValidatorTx
     Bytes{0x00, 0x05}, // BroadcastTx
     Bytes{0x00, 0x06}, // BroadcastBlock
-    Bytes{0x00, 0x07}, // RequestTxs
-    Bytes(0x00, 0x08) // BroadcastInfo
+    Bytes{0x00, 0x07}, // BroadcastInfo
+    Bytes{0x00, 0x08} // RequestTxs
   };
 
   /**

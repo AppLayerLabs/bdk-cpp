@@ -476,11 +476,7 @@ namespace TState {
       });
 
       // TODO: This had a 5s timeout, but this is temporarily increased to avoid random failures.
-      auto start = std::chrono::high_resolution_clock::now();
-      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(120)) != std::future_status::timeout);
-      auto end = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-      if (duration > 5000) std::cout << "WARNING ([state]): discoveryFuture elapsed time: " << duration << " ms" << std::endl;
+      REQUIRE(discoveryFuture.wait_for(std::chrono::seconds(15)) != std::future_status::timeout);
 
       REQUIRE(p2pDiscovery.getSessionsIDs().size() == 8);
       REQUIRE(blockchainWrapper1.p2p.getSessionsIDs().size() == 1);
@@ -797,22 +793,22 @@ namespace TState {
       auto stateBlockFuture = std::async(std::launch::async, [&]() {
         while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
+          // otherwise it will sleep forever
+          Address targetOfTransactions(Utils::randBytes(20));
+          TxBlock tx (targetOfTransactions,
+                chainOwnerAddress,
+                Bytes(),
+                8080,
+                blockchainWrapper1.state.getNativeNonce(chainOwnerAddress),
+                1000000000000000000,
+                21000,
+                1000000000,
+                1000000000,
+                chainOwnerPrivKey);
+          blockchainWrapper1.p2p.broadcastTxBlock(tx);
+          blockchainWrapper1.state.addTx(std::move(tx));
         }
-        // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
-        // otherwise it will sleep forever
-        Address targetOfTransactions(Utils::randBytes(20));
-        TxBlock tx (targetOfTransactions,
-              chainOwnerAddress,
-              Bytes(),
-              8080,
-              blockchainWrapper1.state.getNativeNonce(chainOwnerAddress),
-              1000000000000000000,
-              21000,
-              1000000000,
-              1000000000,
-              chainOwnerPrivKey);
-        blockchainWrapper1.p2p.broadcastTxBlock(tx);
-        blockchainWrapper1.state.addTx(std::move(tx));
       });
 
       REQUIRE(stateBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
@@ -1076,7 +1072,7 @@ namespace TState {
               me,
               Bytes(),
               8080,
-              blockchainWrapper1.state.getNativeNonce(me),
+              i,
               1000000000000000000,
               21000,
               1000000000,
@@ -1095,7 +1091,8 @@ namespace TState {
       /// For each set of transactions, broadcast them and wait for them to be confirmed
       for (const auto &txSet: txs) {
         for (const auto &tx: txSet) {
-          blockchainWrapper1.state.addTx(TxBlock(tx));
+          auto txInvalid = blockchainWrapper1.state.addTx(TxBlock(tx));
+          REQUIRE(!txInvalid);
           blockchainWrapper1.p2p.broadcastTxBlock(tx);
           targetExpectedValue += tx.getValue();
         }
@@ -1103,19 +1100,21 @@ namespace TState {
         /// Wait for the transactions to be confirmed.
         auto confirmFuture = std::async(std::launch::async, [&]() {
           while (true) {
+            bool allConfirmed = true;
             for (const auto &tx: txSet) {
-              if (blockchainWrapper1.storage.txExists(tx.hash()) &&
-                  blockchainWrapper2.storage.txExists(tx.hash()) &&
-                  blockchainWrapper3.storage.txExists(tx.hash()) &&
-                  blockchainWrapper4.storage.txExists(tx.hash()) &&
-                  blockchainWrapper5.storage.txExists(tx.hash()) &&
-                  blockchainWrapper6.storage.txExists(tx.hash()) &&
-                  blockchainWrapper7.storage.txExists(tx.hash()) &&
-                  blockchainWrapper8.storage.txExists(tx.hash())) {
-                break;
+              if (!blockchainWrapper1.storage.txExists(tx.hash()) ||
+                  !blockchainWrapper2.storage.txExists(tx.hash()) ||
+                  !blockchainWrapper3.storage.txExists(tx.hash()) ||
+                  !blockchainWrapper4.storage.txExists(tx.hash()) ||
+                  !blockchainWrapper5.storage.txExists(tx.hash()) ||
+                  !blockchainWrapper6.storage.txExists(tx.hash()) ||
+                  !blockchainWrapper7.storage.txExists(tx.hash()) ||
+                  !blockchainWrapper8.storage.txExists(tx.hash())) {
+                allConfirmed = false;
               }
             }
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
+            if (allConfirmed) { break; }
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
           }
         });
 
@@ -1373,6 +1372,7 @@ namespace TState {
       // We are doing 10 ERC20 txs, one per block
       std::vector<TxBlock> txs;
       Hash creationHash = Hash();
+      uint64_t nonce = 0;
       for (uint64_t i = 0; i < 10; ++i) {
         if (i == 0) {
           // First Tx **MUST** be contract creation
@@ -1411,13 +1411,14 @@ namespace TState {
               owner,
               transferData,
               8080,
-              blockchainWrapper1.state.getNativeNonce(owner),
+              nonce,
               0,
               21000,
               1000000000,
               1000000000,
               ownerPrivKey
           );
+          ++nonce;
           txs.push_back(transferERC20);
         }
       }
@@ -1427,7 +1428,8 @@ namespace TState {
         if (tx.hash() != creationHash) {
           targetExpectedValue += 10000000000000000;
         }
-        blockchainWrapper1.state.addTx(TxBlock(tx));
+        auto txInvalid = blockchainWrapper1.state.addTx(TxBlock(tx));
+        REQUIRE(!txInvalid);
         blockchainWrapper1.p2p.broadcastTxBlock(tx);
         /// Wait for the transactions to be confirmed.
         ///
