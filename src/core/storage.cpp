@@ -7,10 +7,9 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "storage.h"
 
-Storage::Storage(DB& db, DumpManager& dumpManager, const Options& options)
+Storage::Storage(DB& db, const Options& options)
   : db_(db),
-    options_(options),
-    dumpManager_(dumpManager)
+    options_(options)
 {
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading blockchain from DB");
 
@@ -50,8 +49,6 @@ Storage::Storage(DB& db, DumpManager& dumpManager, const Options& options)
     FinalizedBlock finalBlock = FinalizedBlock::fromBytes(this->db_.get(this->blockHashByHeight_[depth - i].get(), DBPrefix::blocks), this->options_.getChainID());
     this->pushFrontInternal(std::move(finalBlock));
   }
-  // register itself as a dumpable object
-  dumpManager.pushBack(this);
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Blockchain successfully loaded");
 }
 
@@ -472,52 +469,4 @@ void Storage::periodicSaveToDB() {
       // to stop using it so we can save it.
     }
   }
-}
-
-void Storage::dump()
-{
-  DBBatch batchedOperations;
-  // get chain lock
-  std::unique_lock<std::shared_mutex> lock(this->chainLock_);
-  // cache last finalized block pointer/reference
-  std::shared_ptr<const FinalizedBlock> lastBlock = this->chain_.back();
-  // index
-  uint32_t i = 0;
-  // loop until chain contains blocks
-  while (!this->chain_.empty()) {
-    // batch block to be saved to the database
-    // we can't call this->popBack() because of the mutex
-    std::shared_ptr<const FinalizedBlock> block = this->chain_.front();
-    // block common information
-    auto blockHash = block->getHash();
-    auto blockHeight = block->getNHeight();
-    auto blockHashValue = blockHash.get();
-    // push back the block hash value and its bytes representation
-    batchedOperations.push_back(blockHashValue,
-                                block->serializeBlock(),
-                                DBPrefix::blocks);
-    // push the block n height
-    batchedOperations.push_back(Utils::uint64ToBytes(blockHeight),
-                                blockHashValue,
-                                DBPrefix::blockHeightMaps);
-    // handle block transactions
-    // batch txs to be saved to the database and delete them from the mappings
-    for (const auto &Tx: block->getTxs()) {
-      const auto TxHash = Tx.hash();
-      Bytes value = blockHash.asBytes();
-      value.reserve(value.size() + 4 + 8);
-      Utils::appendBytes(value, Utils::uint32ToBytes(i++));
-      Utils::appendBytes(value, Utils::uint64ToBytes(blockHeight));
-      batchedOperations.push_back(TxHash.get(), value, DBPrefix::txToBlocks);
-      this->txByHash_.erase(TxHash);
-    }
-    // reset index
-    i = 0;
-    // delete block from internal mappings and the chain
-    this->blockByHash_.erase(blockHash);
-    this->chain_.pop_front();
-  }
-  // batch save to database
-  this->db_.putBatch(batchedOperations);
-  this->db_.put(std::string("latest"), lastBlock->serializeBlock(), DBPrefix::blocks);
 }

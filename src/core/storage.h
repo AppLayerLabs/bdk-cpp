@@ -12,7 +12,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/mutableblock.h"
 #include "../utils/db.h"
-#include "../utils/dump.h"
 #include "../utils/ecdsa.h"
 #include "../utils/randomgen.h"
 #include "../utils/safehash.h"
@@ -27,11 +26,10 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
  * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
  */
-class Storage : public Dumpable {
+class Storage {
   // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.
 private:
   DB& db_;  ///< Reference to the database that contains the blockchain's entire history.
-  DumpManager &dumpManager_; ///< Reference to the dumpManager.
   const Options& options_;  ///< Reference to the options singleton.
   /**
    * Recent blockchain history, up to the 1000 most recent blocks or 1M transactions, whichever comes first.
@@ -129,7 +127,7 @@ public:
    * @param db Reference to the database.
    * @param options Reference to the options singleton.
    */
-  Storage(DB& db, DumpManager& dumpManager, const Options& options);
+  Storage(DB& db, const Options& options);
   ~Storage(); ///< Destructor. Automatically saves the chain to the database.
   void pushBack(FinalizedBlock&& block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
   void pushFront(FinalizedBlock&& block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
@@ -216,9 +214,6 @@ public:
 
   /// Stop the periodic save thread.
   void stopPeriodicSaveToDB() { this->stopPeriodicSave_ = true; }
-
-  /// Implementation of dump virtual function
-  void dump();
 };
 
 #endif  // STORAGE_H
