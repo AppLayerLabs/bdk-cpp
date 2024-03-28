@@ -17,7 +17,6 @@
 #include "../src/utils/db.h"
 #include "../src/core/blockchain.h"
 #include "../src/utils/utils.h"
-#include "../src/utils/dump.h"
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
@@ -46,7 +45,6 @@ class SDKTestSuite {
 private:
   const Options options_;      ///< Options singleton.
   DB db_;                      ///< Database.
-  DumpManager dumpManager_;    ///< DumpManager.
   Storage storage_;            ///< Blockchain storage.
   State state_;                ///< Blockchain state.
   P2P::ManagerNormal p2p_;     ///< P2P connection manager.
@@ -78,10 +76,12 @@ public:
   explicit SDKTestSuite(const Options& options) :
     options_(options),
     db_(options_.getRootPath() + "/db"),
-    dumpManager_(),
-    storage_(db_, dumpManager_, options_),
-    state_(db_, storage_, p2p_, options_),
-    p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
+    storage_(db_, options_),
+    state_(db_, storage_, p2p_, options_, options_.getRootPath()),
+    p2p_(boost::asio::ip::address::from_string("127.0.0.1"),
+         options_,
+         storage_,
+         state_),
     http_(state_, storage_, p2p_, options_)
   {}
 
