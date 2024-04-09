@@ -10,9 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
   db_(blockchainPath + "/database"),
-  dumpManager_(),
-  storage_(db_, dumpManager_, options_),
-  state_(db_, storage_, p2p_, options_),
+  storage_(db_, options_),
+  state_(db_, storage_, p2p_, options_, blockchainPath),
   p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
   syncer_(*this)
@@ -197,6 +196,7 @@ void Syncer::validatorLoop() {
   Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Starting validator loop.");
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->blockchain_.options_.getValidatorPrivKey())));
   this->blockchain_.state_.rdposStartWorker();
+  this->blockchain_.state_.dumpStartWorker();
   while (!this->stopSyncer_) {
     this->latestBlock_ = this->blockchain_.storage_.latest();
     // Check if validator is within the current validator list.
@@ -260,6 +260,7 @@ void Syncer::start() {
 void Syncer::stop() {
   this->stopSyncer_ = true;
   this->blockchain_.state_.rdposStopWorker(); // Stop the rdPoS worker.
+  this->blockchain_.state_.dumpStopWorker(); // Stop the dump worker.
   if (this->syncerLoopFuture_.valid()) this->syncerLoopFuture_.wait();
 }
 

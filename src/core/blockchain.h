@@ -14,7 +14,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../net/p2p/managerbase.h"
 #include "../net/http/httpserver.h"
 #include "../utils/db.h"
-#include "../utils/dump.h"
 #include "../utils/options.h"
 
 // Forward declaration for Syncer.
@@ -86,7 +85,6 @@ class Blockchain {
 private:
   Options options_;         ///< Options singleton.
   DB db_;                   ///< Database.
-  DumpManager dumpManager_; ///< DumpManager.
   Storage storage_;         ///< Blockchain storage.
   State state_;             ///< Blockchain state.
   P2P::ManagerNormal p2p_;  ///< P2P connection manager.
@@ -107,7 +105,6 @@ public:
   /** Getter. */
   Options& getOptions() { return this->options_; };
   DB& getDB() { return this->db_; };
-  DumpManager& getDumpManager() { return this->dumpManager_; };
   Storage& getStorage() { return this->storage_; };
   State& getState() { return this->state_; };
   P2P::ManagerNormal& getP2P() { return this->p2p_; };
