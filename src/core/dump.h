@@ -38,7 +38,7 @@ private:
   /// Mutex for managing read/write access to the state object
   std::shared_mutex& stateMutex_;
   /// Dumpable objects.
-  std::vector<std::reference_wrapper<Dumpable>> dumpable_;
+  std::vector<std::reference_wrapper<Dumpable>> dumpables_;
 public:
   /**
    * Constructor.
@@ -50,9 +50,7 @@ public:
    * Function that will register dumpable objects.
    * @param dumpable Pointer to be registered.
    */
-  void pushBack(std::reference_wrapper<Dumpable> dumpable) {
-    dumpable_.push_back(dumpable);
-  }
+  void pushBack(Dumpable& dumpable);
 
   /**
    * Call dump functions contained in
@@ -63,10 +61,10 @@ public:
 
 class DumpWorker {
 private:
-  /// Reference to the DumpManager object
-  DumpManager& dumpManager_;
   /// Reference to the storage object
   const Storage& storage_;
+  /// Reference to the DumpManager object
+  DumpManager& dumpManager_;
   /// Flag for stopping the worker thread.
   std::atomic<bool> stopWorker_ = false;
   /// Future object for the worker thread, used to wait the thread to finish
@@ -93,10 +91,10 @@ public:
   ~DumpWorker();
 
   ///< Start `workerFuture_` and `workerLoop()`.
-  void start();
+  void startWorker();
 
   ///< Stop `workerFuture_` and `workerLoop()`.
-  void stop();
+  void stopWorker();
 };
 
 #endif // DUMP

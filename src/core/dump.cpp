@@ -13,6 +13,11 @@ DumpManager::DumpManager(DB& dbState, std::shared_mutex& stateMutex)
 {
 }
 
+void DumpManager::pushBack(Dumpable& dumpable)
+{
+  dumpables_.push_back(std::ref(dumpable));
+}
+
 void DumpManager::dumpAll()
 {
   // state mutex lock
@@ -20,7 +25,7 @@ void DumpManager::dumpAll()
   // Logs
   Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpAll Called!");
   // call dump functions and put the operations ate the database
-  for (const auto dumpable: dumpable_)
+  for (const auto dumpable: dumpables_)
     this->dbState_.putBatch(dumpable.get().dump());
 }
 
@@ -29,13 +34,11 @@ DumpWorker::DumpWorker(const Storage& storage,
   : storage_(storage),
     dumpManager_(dumpManager)
 {
-  this->start();
   Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpWorker Started.");
 }
 
 DumpWorker::~DumpWorker()
 {
-  this->stop();
   Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpWorker Stopped.");
 }
 
@@ -55,7 +58,7 @@ bool DumpWorker::workerLoop()
   return true;
 }
 
-void DumpWorker::start()
+void DumpWorker::startWorker()
 {
   if (!this->workerFuture_.valid()) {
     this->workerFuture_ = std::async(std::launch::async,
@@ -64,7 +67,7 @@ void DumpWorker::start()
   }
 }
 
-void DumpWorker::stop()
+void DumpWorker::stopWorker()
 {
   if (this->workerFuture_.valid()) {
     this->stopWorker_ = true;
