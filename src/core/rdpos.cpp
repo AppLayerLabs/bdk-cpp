@@ -5,11 +5,8 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#include "dump.h"
-#include "rdpos.h"
-#include "storage.h"
 #include "state.h"
-#include "../contract/contractmanager.h"
+#include "rdpos.h"
 
 rdPoS::rdPoS(DB& db,
              DumpManager& dumpManager,
@@ -18,6 +15,7 @@ rdPoS::rdPoS(DB& db,
              const Options& options,
              State& state)
   : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID(), db),
+    db_(db),
     options_(options),
     storage_(storage),
     p2p_(p2p),
@@ -57,7 +55,7 @@ rdPoS::rdPoS(DB& db,
   this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());
   randomGen_.shuffle(randomList_);
   // Register itself at dump management
-  dumpManager_.pushBack(std::ref(*this));
+  dumpManager_.pushBack(*this);
 }
 
 rdPoS::~rdPoS() {

@@ -9,6 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 #define RDPOS_H
 
 #include "dump.h"
+#include "storage.h"
+
 #include "../contract/contract.h"
 #include "../utils/db.h"
 #include "../utils/tx.h"
@@ -18,6 +20,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/randomgen.h"
 #include "../utils/mutableblock.h"
 #include "../net/p2p/managernormal.h"
+#include "../contract/contractmanager.h"
 
 #include <optional>
 #include <shared_mutex>
@@ -124,6 +127,7 @@ public:
 class rdPoS : public BaseContract, public Dumpable {
 private:
   const Options& options_;  ///< Reference to the options singleton.
+  DB& db_;
   const Storage& storage_;  ///< Reference to the blockchain's storage.
   P2P::ManagerNormal& p2p_; ///< Reference to the P2P Manager (for sending/requesting TxValidators from other nodes).
   State& state_;  ///< Reference to the blockchain state.
