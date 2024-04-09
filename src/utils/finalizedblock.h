@@ -34,6 +34,7 @@ class FinalizedBlock {
     const std::vector<TxValidator> txValidators_; ///< List of Validator transactions.
     const std::vector<TxBlock> txs_;              ///< List of block transactions.
     const Hash hash_;                             ///< Cached hash of the block.
+    const size_t size_;
 
     /**
      * Serialize the block header (144 bytes = previous block hash + block randomness
@@ -68,12 +69,13 @@ class FinalizedBlock {
         uint64_t nHeight, // Same for nHeight
         std::vector<TxValidator>&& txValidators,
         std::vector<TxBlock>&& txs,
-        Hash&& hash
+        Hash&& hash,
+        size_t size
     ) : validatorSig_(std::move(validatorSig)), validatorPubKey_(std::move(validatorPubKey)),
         prevBlockHash_(std::move(prevBlockHash)), blockRandomness_(std::move(blockRandomness)),
         validatorMerkleRoot_(std::move(validatorMerkleRoot)), txMerkleRoot_(std::move(txMerkleRoot)),
         timestamp_(timestamp), nHeight_(nHeight),
-        txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash))
+        txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash)), size_(size)
     {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block created");}
 
     /**
@@ -91,7 +93,8 @@ class FinalizedBlock {
       nHeight_(block.nHeight_),
       txValidators_(std::move(block.txValidators_)),
       txs_(std::move(block.txs_)),
-      hash_(std::move(block.hash_))
+      hash_(std::move(block.hash_)),
+      size_(block.size_)
     {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block moved");}
 
     /**
@@ -109,7 +112,8 @@ class FinalizedBlock {
       nHeight_(block.nHeight_),
       txValidators_(block.txValidators_),
       txs_(block.txs_),
-      hash_(block.hash_)
+      hash_(block.hash_),
+      size_(block.size_)
     {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block copied");}
 
 
@@ -130,6 +134,7 @@ class FinalizedBlock {
     const std::vector<TxValidator>& getTxValidators() const { return this->txValidators_; }
     const std::vector<TxBlock>& getTxs() const { return this->txs_; }
     const Hash& getHash() const { return this->hash_; }
+    const size_t& getSize() const { return this->size_; }
     ///@}
 
     /// Equality operator. Checks the block hash AND signature of both blocks.

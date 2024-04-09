@@ -22,7 +22,7 @@ See the LICENSE.txt file in the project root for more information.
 enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
 
 /// Abstraction of the blockchain's current state at the current block.
-class State {
+class State : Dumpable {
 private:
   /// Reference to the options singleton.
   const Options& options_;
@@ -92,7 +92,7 @@ public:
         const Options& options,
         const std::string& blockchainPath);
 
-  ~State(); ///< Destructor.
+  ~State() = default; ///< Destructor.
 
   // ======================================================================
   // RDPOS WRAPPER FUNCTIONS
@@ -276,6 +276,9 @@ public:
   std::vector<Event> getEvents(
     const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     ) const;
+
+
+  DBBatch dump() const;
 
   /// ContractManagerInterface cannot use getNativeBalance, as it will call a lock with the mutex.
   friend class ContractManagerInterface;

@@ -7,31 +7,47 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "dump.h"
 
-DumpManager::DumpManager(DB& dbState, std::shared_mutex& stateMutex)
-  : dbState_(dbState),
+DumpManager::DumpManager(const Storage& storage, const Options& options, std::shared_mutex& stateMutex)
+  : storage_(storage),
+    options_(options),
     stateMutex_(stateMutex)
 {
 }
 
-void DumpManager::pushBack(Dumpable& dumpable)
+void DumpManager::pushBack(Dumpable* dumpable)
 {
-  dumpables_.push_back(std::ref(dumpable));
+  // Check if latest Dumpable* is the same as the one we trying to append
+  if (this->dumpables_.back() == dumpable) {
+    return;
+  }
+  dumpables_.push_back(dumpable);
 }
 
 void DumpManager::dumpAll()
 {
-  // state mutex lock
-  std::unique_lock lock(stateMutex_);
-  // Logs
-  Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpAll Called!");
-  // call dump functions and put the operations ate the database
-  for (const auto dumpable: dumpables_)
-    this->dbState_.putBatch(dumpable.get().dump());
+  std::vector<DBBatch> batches;
+  {
+    // state mutex lock
+    std::unique_lock lock(stateMutex_);
+    // Logs
+    Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpAll Called!");
+    // call dump functions and put the operations ate the database
+    for (const auto dumpable: dumpables_) {
+      batches.emplace_back(dumpable->dump());
+    }
+  }
+  // Write to the database
+  std::string dbName = options_.getRootPath() + "/stateDb/" + std::to_string(this->storage_.latest()->getNHeight());
+  DB stateDb(dbName);
+  for (const auto& batch: batches) {
+    stateDb.putBatch(batch);
+  }
 }
 
-DumpWorker::DumpWorker(const Storage& storage,
+DumpWorker::DumpWorker(const Options& options, const Storage& storage,
                        DumpManager& dumpManager)
-  : storage_(storage),
+  : options_(options),
+    storage_(storage),
     dumpManager_(dumpManager)
 {
   Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpWorker Started.");
@@ -44,16 +60,18 @@ DumpWorker::~DumpWorker()
 
 bool DumpWorker::workerLoop()
 {
-  uint64_t i = 1;
+  uint64_t latestBlock = 0;
   while (!this->stopWorker_) {
-    if ((100 * i) - (storage_.currentChainSize()) >= 0) {
+    if (latestBlock + 100 < this->storage_.currentChainSize()) {
       Logger::logToDebug(LogType::INFO,
                          Log::dump,
                          __func__,
                          "Current size >= 100");
-      ++i;
+      latestBlock = this->storage_.currentChainSize();
+      std::cout << "Dumping all" << std::endl;
       dumpManager_.dumpAll();
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   return true;
 }

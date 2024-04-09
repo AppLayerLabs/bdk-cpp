@@ -196,7 +196,6 @@ void Syncer::validatorLoop() {
   Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Starting validator loop.");
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->blockchain_.options_.getValidatorPrivKey())));
   this->blockchain_.state_.rdposStartWorker();
-  this->blockchain_.state_.dumpStartWorker();
   while (!this->stopSyncer_) {
     this->latestBlock_ = this->blockchain_.storage_.latest();
     // Check if validator is within the current validator list.
@@ -241,6 +240,7 @@ bool Syncer::syncerLoop() {
 
   // Sync the node with the network.
   this->doSync();
+  this->blockchain_.state_.dumpStartWorker(); // Start the dump worker.
   if (this->stopSyncer_) return false;
   Utils::safePrint("Synced with the network, starting the node.");
   if (this->blockchain_.options_.getIsValidator()) {

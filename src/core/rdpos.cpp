@@ -55,7 +55,7 @@ rdPoS::rdPoS(DB& db,
   this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());
   randomGen_.shuffle(randomList_);
   // Register itself at dump management
-  dumpManager_.pushBack(*this);
+  dumpManager_.pushBack(this);
 }
 
 rdPoS::~rdPoS() {

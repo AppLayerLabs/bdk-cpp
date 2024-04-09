@@ -33,24 +33,26 @@ public:
  */
 class DumpManager {
 private:
-  /// Reference to the database that contains the state cache
-  DB& dbState_;
+  /// Reference to the options object
+  const Options& options_;
+  /// Reference to the storage object
+  const Storage& storage_;
   /// Mutex for managing read/write access to the state object
   std::shared_mutex& stateMutex_;
   /// Dumpable objects.
-  std::vector<std::reference_wrapper<Dumpable>> dumpables_;
+  std::vector<Dumpable*> dumpables_;
 public:
   /**
    * Constructor.
    * @param db Pointer to state database.
    */
-  DumpManager(DB& dbState, std::shared_mutex& stateMutex);
+  DumpManager(const Storage& storage, const Options& options, std::shared_mutex& stateMutex);
 
   /**
    * Function that will register dumpable objects.
    * @param dumpable Pointer to be registered.
    */
-  void pushBack(Dumpable& dumpable);
+  void pushBack(Dumpable* dumpable);
 
   /**
    * Call dump functions contained in
@@ -61,6 +63,8 @@ public:
 
 class DumpWorker {
 private:
+  /// Reference to the Options object
+  const Options& options_;
   /// Reference to the storage object
   const Storage& storage_;
   /// Reference to the DumpManager object
@@ -82,7 +86,7 @@ public:
    * Constructor.
    * Automatically starts the worker thread.
    */
-  DumpWorker(const Storage& storage, DumpManager& dumpManager);
+  DumpWorker(const Options& options, const Storage& storage, DumpManager& dumpManager);
 
   /**
    * Destructor.

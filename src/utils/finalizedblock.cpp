@@ -37,7 +37,8 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
         block.getNHeight(),
         std::move(block.getTxValidators()),
         std::move(block.getTxs()),
-        std::move(hash)
+        std::move(hash),
+        bytes.size()
     );
   } catch (const std::exception &e) {
     Logger::logToDebug(LogType::ERROR, Log::finalizedblock, __func__, "Error when deserializing a FinalizedBlock: " + std::string(e.what()));

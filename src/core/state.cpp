@@ -18,11 +18,12 @@ State::State(DB& db,
   options_(options),
   rdpos_(db, dumpManager_, storage, p2pManager, options, *this),
   dbState_(blockchainPath + "/state"),
-  dumpManager_(dbState_, stateMutex_),
-  dumpWorker_(storage_, dumpManager_),
+  dumpManager_(storage_, options_, stateMutex_),
+  dumpWorker_(options_, storage_, dumpManager_),
   contractManager_(db, *this, rdpos_, options)
 {
   std::unique_lock lock(this->stateMutex_);
+  dumpManager_.pushBack(this);
   auto accountsFromDB = db_.getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
     for (const auto& [account, balance] : options_.getGenesisBalances()) {
@@ -60,38 +61,6 @@ State::State(DB& db,
   }
   auto latestBlock = this->storage_.latest();
   this->contractManager_.updateContractGlobals(Secp256k1::toAddress(latestBlock->getValidatorPubKey()), latestBlock->getHash(), latestBlock->getNHeight(), latestBlock->getTimestamp());
-}
-
-State::~State() {
-  // DB is stored as following
-  // Under the DBPrefix::nativeAccounts
-  // Each key == Address
-  // Each Value == Balance + uint256_t (not exact bytes)
-  // Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
-  // Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
-  // If the nonce equals to 0, it will be *empty*
-  DBBatch accountsBatch;
-  std::unique_lock lock(this->stateMutex_);
-  for (const auto& [address, account] : this->accounts_) {
-    // Serialize Balance.
-    Bytes serializedBytes;
-    if (account.balance == 0) {
-      serializedBytes = Bytes(1, 0x00);
-    } else {
-      serializedBytes = Utils::uintToBytes(Utils::bytesRequired(account.balance));
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.balance));
-    }
-    // Serialize Account.
-    if (account.nonce == 0) {
-      Utils::appendBytes(serializedBytes, Bytes(1, 0x00));
-    } else {
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(Utils::bytesRequired(account.nonce)));
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.nonce));
-    }
-    accountsBatch.push_back(address.get(), serializedBytes, DBPrefix::nativeAccounts);
-  }
-
-  this->db_.putBatch(accountsBatch);
 }
 
 TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
@@ -405,3 +374,33 @@ std::vector<Event> State::getEvents(
   return this->contractManager_.getEvents(txHash, blockIndex, txIndex);
 }
 
+DBBatch State::dump() const {
+  // DB is stored as following
+  // Under the DBPrefix::nativeAccounts
+  // Each key == Address
+  // Each Value == Balance + uint256_t (not exact bytes)
+  // Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
+  // Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
+  // If the nonce equals to 0, it will be *empty*
+  DBBatch accountsBatch;
+  for (const auto& [address, account] : this->accounts_) {
+    // Serialize Balance.
+    Bytes serializedBytes;
+    if (account.balance == 0) {
+      serializedBytes = Bytes(1, 0x00);
+    } else {
+      serializedBytes = Utils::uintToBytes(Utils::bytesRequired(account.balance));
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.balance));
+    }
+    // Serialize Account.
+    if (account.nonce == 0) {
+      Utils::appendBytes(serializedBytes, Bytes(1, 0x00));
+    } else {
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(Utils::bytesRequired(account.nonce)));
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.nonce));
+    }
+    accountsBatch.push_back(address.get(), serializedBytes, DBPrefix::nativeAccounts);
+  }
+
+  return accountsBatch;
+}
