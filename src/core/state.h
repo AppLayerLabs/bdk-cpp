@@ -24,20 +24,33 @@ enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
 /// Abstraction of the blockchain's current state at the current block.
 class State {
 private:
-  const Options& options_;  ///< Reference to the options singleton.
-  DB& db_;  ///< Reference to the blockchain database.
-  Storage& storage_;  ///< Reference to the blockchain's storage.
-  P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
-  rdPoS rdpos_; ///< rdPoS object (consensus).
-  ContractManager contractManager_; ///< Contract Manager.
-  std::unordered_map<Address, Account, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
-  std::unordered_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
-  mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
-  bool processingPayable_ = false;  ///< Indicates whether the state is currently processing a payable contract function.
-
-  DB dbState_; ///< State database object
-  DumpWorker dumpWorker_; ///< Dump Worker object
-  DumpManager dumpManager_; ///< Dump Manager object
+  /// Reference to the options singleton.
+  const Options& options_;
+  /// Reference to the blockchain database.
+  DB& db_;
+  /// Reference to the blockchain's storage.
+  Storage& storage_;
+  /// Reference to the P2P connection manager.
+  P2P::ManagerNormal& p2pManager_;
+  /// State database object
+  DB dbState_;
+  /// Dump Worker object
+  DumpWorker dumpWorker_;
+  /// Dump Manager object
+  DumpManager dumpManager_;
+  /// rdPoS object (consensus)
+  rdPoS rdpos_;
+  /// Contract Manager
+  ContractManager contractManager_;
+  /// Map with information about blockchain accounts (Address -> Account)
+  std::unordered_map<Address, Account, SafeHash> accounts_;
+  /// TxBlock mempool.
+  std::unordered_map<Hash, TxBlock, SafeHash> mempool_;
+  /// Mutex for managing read/write access to the state object.
+  mutable std::shared_mutex stateMutex_;
+  /// Indicates whether the state is currently processing a payable
+  /// contract function.
+  bool processingPayable_ = false;
 
   /**
    * Verify if a transaction can be accepted within the current state.
@@ -101,6 +114,8 @@ public:
   const std::atomic<bool>& rdposCanCreateBlock() const { return this->rdpos_.canCreateBlock(); }
   void rdposStartWorker() { this->rdpos_.startrdPoSWorker(); }
   void rdposStopWorker() { this->rdpos_.stoprdPoSWorker(); }
+  void dumpStartWorker() { this->dumpWorker_.startWorker(); }
+  void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
   ///@}
 
   // ======================================================================

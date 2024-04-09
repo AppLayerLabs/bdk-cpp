@@ -16,10 +16,10 @@ State::State(DB& db,
   storage_(storage),
   p2pManager_(p2pManager),
   options_(options),
+  rdpos_(db, dumpManager_, storage, p2pManager, options, *this),
   dbState_(blockchainPath + "/state"),
   dumpManager_(dbState_, stateMutex_),
   dumpWorker_(storage_, dumpManager_),
-  rdpos_(db, dumpManager_, storage, p2pManager, options, *this),
   contractManager_(db, *this, rdpos_, options)
 {
   std::unique_lock lock(this->stateMutex_);
