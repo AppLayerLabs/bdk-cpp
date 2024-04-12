@@ -173,7 +173,7 @@ public:
    * Calls validateTransactionInternal(), but locks the mutex in a shared manner.
    * @param tx The transaction to verify.
    * @return An enum telling if the transaction is valid or not.
-   */
+  nnn */
   TxInvalid validateTransaction(const TxBlock& tx) const;
 
   /**
@@ -277,8 +277,15 @@ public:
     const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     ) const;
 
-
-  DBBatch dump() const;
+  /**
+   * Create batch operations to dump the state values.
+   * DB is stored as following:
+   * Under the DBPrefix::nativeAccounts each address as keys and
+   * each accounts balance plus nonce.
+   *
+   * @return batch operations
+   */
+  DBBatch dump() const override;
 
   /// ContractManagerInterface cannot use getNativeBalance, as it will call a lock with the mutex.
   friend class ContractManagerInterface;
