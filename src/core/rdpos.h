@@ -255,7 +255,7 @@ public:
   void stoprdPoSWorker(); ///< Stop the rdPoSWorker.
   friend rdPoSWorker; ///< Worker class is a friend.
 
-  DBBatch dump() const;
+  DBBatch dump() const override;
 };
 
 #endif // RDPOS_H
