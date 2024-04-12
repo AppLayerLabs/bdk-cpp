@@ -17,7 +17,8 @@ DumpManager::DumpManager(const Storage& storage, const Options& options, std::sh
 void DumpManager::pushBack(Dumpable* dumpable)
 {
   // Check if latest Dumpable* is the same as the one we trying to append
-  if (this->dumpables_.back() == dumpable) {
+  if (this->dumpables_.size() > 0 &&
+      this->dumpables_.back() == dumpable) {
     return;
   }
   dumpables_.push_back(dumpable);
@@ -29,13 +30,21 @@ void DumpManager::dumpAll()
   {
     // state mutex lock
     std::unique_lock lock(stateMutex_);
-    // Logs
-    Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpAll Called!");
-    // call dump functions and put the operations ate the database
+    // Emplace DBBatch operations
+    Logger::logToDebug(LogType::INFO,
+                       Log::dump,
+                       __func__,
+                       "Emplace DBBatch operations");
     for (const auto dumpable: dumpables_) {
+      // call dump functions and put the operations ate the database
       batches.emplace_back(dumpable->dump());
     }
   }
+  // Logs
+  Logger::logToDebug(LogType::INFO,
+                     Log::dump,
+                     __func__,
+                     "Write to state database.");
   // Write to the database
   std::string dbName = options_.getRootPath() + "/stateDb/" + std::to_string(this->storage_.latest()->getNHeight());
   DB stateDb(dbName);
@@ -68,7 +77,6 @@ bool DumpWorker::workerLoop()
                          __func__,
                          "Current size >= 100");
       latestBlock = this->storage_.currentChainSize();
-      std::cout << "Dumping all" << std::endl;
       dumpManager_.dumpAll();
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
