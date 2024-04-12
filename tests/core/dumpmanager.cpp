@@ -46,31 +46,29 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
                                  bool clearDb,
                                  const std::string& folderName);
 
-
 namespace TDumpManager {
   std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("DumpManager Class", "[dumpmanager]") {
     SECTION("DumpManager Simple Test", "[dumpmanager]") {
-      std::cout << "1" << std::endl;
       auto blockchainWrapper = initialize(validatorPrivKeysState,
                              validatorPrivKeysState[0],
                              8080,
                              true,
                              testDumpPath + "/dumpManagerSimpleTests");
-      std::cout << "2" << std::endl;
-
+      // start the dump worker
       blockchainWrapper.state.dumpStartWorker();
-      std::cout << "3" << std::endl;
-
+      // create 150 blocks
       for (uint64_t i = 0; i < 150; ++i) {
-        std::cout << "4" << std::endl;
-        auto block = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage);
-        std::cout << "5" << std::endl;
+        auto block = createValidBlock(validatorPrivKeysState,
+                                      blockchainWrapper.state,
+                                      blockchainWrapper.storage);
         REQUIRE(blockchainWrapper.state.validateNextBlock(block));
-        std::cout << "6" << std::endl;
         blockchainWrapper.state.processNextBlock(std::move(block));
-        std::cout << "7" << std::endl;
       }
+      // stop the dump worker
+      blockchainWrapper.state.dumpStopWorker();
+      // Verify if the database was created
+      REQUIRE(std::filesystem::exists(testDumpPath + "/dumpManagerSimpleTests"  + "/stateDb"));
     }
   }
 }
