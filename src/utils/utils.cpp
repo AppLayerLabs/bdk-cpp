@@ -28,9 +28,9 @@ void Utils::logToFile(std::string_view str) {
 }
 
 void Utils::safePrint(std::string_view str) {
-  if (!Utils::logToCout) return; // Never print if we are in a test
-  std::lock_guard lock(cout_mutex);
-  std::cout << str << std::endl;
+ // if (!Utils::logToCout) return; // Never print if we are in a test
+ // std::lock_guard lock(cout_mutex);
+ // std::cout << str << std::endl;
 }
 
 Hash Utils::sha3(const BytesArrView input) {
@@ -38,6 +38,36 @@ Hash Utils::sha3(const BytesArrView input) {
   BytesArr<32> ret;
   std::copy(reinterpret_cast<const Byte*>(h.bytes), reinterpret_cast<const Byte*>(h.bytes + 32), ret.begin());
   return std::move(ret);
+}
+
+uint256_t Utils::evmcUint256ToUint256(const evmc::uint256be& i) {
+  // We can use the uint256ToBytes directly as it is std::span and we can create a span from an array
+  return Utils::bytesToUint256(BytesArrView(reinterpret_cast<const uint8_t*>(i.bytes[0]), 32));
+}
+evmc::uint256be Utils::uint256ToEvmcUint256(const uint256_t& i) {
+  // Convert the uint256_t to BytesArr<32> then copy it to evmc::uint256be
+  // evmc::uint256be is a struct with a single member, bytes, which holds a uint256 value in *big-endian* order
+  evmc::uint256be ret;
+  BytesArr<32> bytes = Utils::uint256ToBytes(i);
+  std::copy(bytes.begin(), bytes.end(), ret.bytes);
+  return ret;
+}
+BytesArr<32> Utils::evmcUint256ToBytes(const evmc::uint256be& i) {
+  BytesArr<32> ret;
+  std::copy(i.bytes, i.bytes + 32, ret.begin());
+  return ret;
+}
+evmc::uint256be Utils::bytesToEvmcUint256(const BytesArrView b) {
+  evmc::uint256be ret;
+  std::copy(b.begin(), b.end(), ret.bytes);
+  return ret;
+}
+
+Bytes Utils::cArrayToBytes(const uint8_t* arr, size_t size) {
+  Bytes ret;
+  ret.reserve(size);
+  for (size_t i = 0; i < size; i++) ret.push_back(arr[i]);
+  return ret;
 }
 
 BytesArr<31> Utils::uint248ToBytes(const uint248_t &i) {

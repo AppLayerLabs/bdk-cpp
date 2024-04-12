@@ -6,13 +6,14 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "state.h"
+#include <evmone/evmone.h>
 
 State::State(
   DB& db,
   Storage& storage,
   P2P::ManagerNormal& p2pManager,
   const Options& options
-) : db_(db), storage_(storage), p2pManager_(p2pManager), options_(options),
+) : vm_(evmc_create_evmone()), db_(db), storage_(storage), p2pManager_(p2pManager), options_(options),
 rdpos_(db, storage, p2pManager, options, *this),
 contractManager_(db, *this, rdpos_, options)
 {
@@ -66,6 +67,7 @@ State::~State() {
   // If the nonce equals to 0, it will be *empty*
   DBBatch accountsBatch;
   std::unique_lock lock(this->stateMutex_);
+  evmc_destroy(this->vm_);
   for (const auto& [address, account] : this->accounts_) {
     // Serialize Balance.
     Bytes serializedBytes;

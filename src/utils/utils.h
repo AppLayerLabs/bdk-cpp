@@ -19,6 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <span>
 #include <cxxabi.h>
 #include <variant>
+#include <evmc/evmc.hpp>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -351,6 +352,16 @@ namespace Utils {
    */
   Bytes randBytes(const int& size);
 
+  /**
+   * Special functions to convert to evmc_uint256be types.
+   */
+  uint256_t evmcUint256ToUint256(const evmc::uint256be& i);
+  evmc::uint256be uint256ToEvmcUint256(const uint256_t& i);
+  BytesArr<32> evmcUint256ToBytes(const evmc::uint256be& i);
+  evmc::uint256be bytesToEvmcUint256(const BytesArrView b);
+
+  evmc::address ecrecover(evmc::bytes32 hash, evmc::bytes32 v, evmc::bytes32 r, evmc::bytes32 s);
+
   ///@{
   /**
    * Convert a given integer to a bytes string. Use `Hex()` to properly print it.
@@ -432,6 +443,9 @@ namespace Utils {
   uint16_t bytesToUint16(const BytesArrView b);
   uint8_t bytesToUint8(const BytesArrView b);
   int256_t bytesToInt256(const BytesArrView b);
+
+
+  Bytes cArrayToBytes(const uint8_t* arr, size_t size);
 
   /**
    * Add padding to the left of a byte vector.

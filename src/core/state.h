@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/db.h"
 #include "storage.h"
 #include "rdpos.h"
+#include <evmc/evmc.hpp>
 
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
@@ -24,6 +25,7 @@ enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
 /// Abstraction of the blockchain's current state at the current block.
 class State {
   private:
+    evmc_vm* vm_;  ///< Pointer to the EVMC VM.
     const Options& options_;  ///< Reference to the options singleton.
     DB& db_;  ///< Reference to the database.
     Storage& storage_;  ///< Reference to the blockchain's storage.
