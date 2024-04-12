@@ -1,8 +1,8 @@
 /*
-  Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [Sparq Network]
 
-  This software is distributed under the MIT License.
-  See the LICENSE.txt file in the project root for more information.
+This software is distributed under the MIT License.
+See the LICENSE.txt file in the project root for more information.
 */
 
 #ifndef BLOCKCHAINWRAPPER_H
@@ -35,7 +35,7 @@ struct TestBlockchainWrapper {
    * @param options_ Reference to the Options singleton.
    */
   explicit TestBlockchainWrapper(const Options& options_) :
-    options(options),
+    options(options_),
     db(options.getRootPath() + "/db"),
     storage(db, options_),
     state(db, storage, p2p, options, options.getRootPath()),
