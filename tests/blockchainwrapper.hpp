@@ -23,12 +23,12 @@ See the LICENSE.txt file in the project root for more information.
  * underlying objects, but does not apply any logic or checks.
  */
 struct TestBlockchainWrapper {
-  const Options options;  ///< Options singleton.
-  DB db;                  ///< Database.
-  Storage storage;        ///< Blockchain storage.
-  State state;            ///< Blockchain state.
-  P2P::ManagerNormal p2p; ///< P2P connection manager.
-  HTTPServer http;        ///< HTTP server.
+  const Options options;   ///< Options singleton.
+  DB db;                   ///< Database.
+  Storage storage;         ///< Blockchain storage.
+  State state;             ///< Blockchain state.
+  P2P::ManagerNormal p2p;  ///< P2P connection manager.
+  HTTPServer http;         ///< HTTP server.
 
   /**
    * Constructor.
@@ -37,8 +37,8 @@ struct TestBlockchainWrapper {
   explicit TestBlockchainWrapper(const Options& options_) :
     options(options_),
     db(options.getRootPath() + "/db"),
-    storage(db, options),
-    state(db, storage, p2p, options),
+    storage(db, options_),
+    state(db, storage, p2p, options, options.getRootPath()),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
     http(state, storage, p2p, options) {};
 

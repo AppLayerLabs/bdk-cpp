@@ -27,6 +27,7 @@ namespace Log {
   const std::string finalizedblock = "FinalizedBlock";             ///< String for `FinalizedBlock`.
   const std::string db = "DB";                                     ///< String for `DB`.
   const std::string state = "State";                               ///< String for `State`.
+  const std::string dump = "Dump";                                 ///< String for `Dump`.
   const std::string grpcServer = "gRPCServer";                     ///< String for `gRPCServer`.
   const std::string grpcClient = "gRPCClient";                     ///< String for `gRPCClient`.
   const std::string utils = "Utils";                               ///< String for `Utils`.

@@ -13,8 +13,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "state.h"
 #include "../net/p2p/managerbase.h"
 #include "../net/http/httpserver.h"
-#include "../utils/options.h"
 #include "../utils/db.h"
+#include "../utils/options.h"
 
 // Forward declaration for Syncer.
 class Blockchain;
@@ -28,52 +28,52 @@ class Blockchain;
 class Syncer {
   // TODO: Maybe this class could also be responsible for slashing rdPoS if they are not behaving correctly
   // TODO: Maybe it is better to move rdPoSWorker to Syncer
-  private:
-    Blockchain& blockchain_;  ///< Reference to the parent blockchain.
-    std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> currentlyConnectedNodes_;  ///< List of currently connected nodes and their info.
-    std::shared_ptr<const FinalizedBlock> latestBlock_;  ///< Pointer to the blockchain's latest block.
-    std::future<bool> syncerLoopFuture_;  ///< Future object holding the thread for the syncer loop.
-    std::atomic<bool> stopSyncer_ = false;  ///< Flag for stopping the syncer.
-    std::atomic<bool> synced_ = false;  ///< Indicates whether or not the syncer is synced.
+private:
+  Blockchain& blockchain_;  ///< Reference to the parent blockchain.
+  std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> currentlyConnectedNodes_;  ///< List of currently connected nodes and their info.
+  std::shared_ptr<const FinalizedBlock> latestBlock_;  ///< Pointer to the blockchain's latest block.
+  std::future<bool> syncerLoopFuture_;  ///< Future object holding the thread for the syncer loop.
+  std::atomic<bool> stopSyncer_ = false;  ///< Flag for stopping the syncer.
+  std::atomic<bool> synced_ = false;  ///< Indicates whether or not the syncer is synced.
 
-    void updateCurrentlyConnectedNodes(); ///< Update the list of currently connected nodes.
-    bool checkLatestBlock();  ///< Check latest block (used by validatorLoop()).
-    void doSync(); ///< Do the syncing.
-    void validatorLoop(); ///< Routine loop for when the node is a Validator.
-    void nonValidatorLoop() const;  ///< Routine loop for when the node is NOT a Validator.
-    bool syncerLoop();  ///< Routine loop for the syncer worker.
+  void updateCurrentlyConnectedNodes(); ///< Update the list of currently connected nodes.
+  bool checkLatestBlock();  ///< Check latest block (used by validatorLoop()).
+  void doSync(); ///< Do the syncing.
+  void validatorLoop(); ///< Routine loop for when the node is a Validator.
+  void nonValidatorLoop() const;  ///< Routine loop for when the node is NOT a Validator.
+  bool syncerLoop();  ///< Routine loop for the syncer worker.
 
-    /**
-     * Create and broadcast a Validator block (called by validatorLoop()).
-     * If the node is a Validator and it has to create a new block,
-     * this function will be called, the new block will be created based on the
-     * current State and rdPoS objects, and then it will be broadcast.
-     * @throw DynamicException if block is invalid.
-     */
-    void doValidatorBlock();
+  /**
+   * Create and broadcast a Validator block (called by validatorLoop()).
+   * If the node is a Validator and it has to create a new block,
+   * this function will be called, the new block will be created based on the
+   * current State and rdPoS objects, and then it will be broadcast.
+   * @throw DynamicException if block is invalid.
+   */
+  void doValidatorBlock();
 
-    /**
-     * Wait for a new block (called by validatorLoop()).
-     * If the node is a Validator, this function will be called to make the
-     * node wait until it receives a new block.
-     */
-    void doValidatorTx() const;
+  /**
+   * Wait for a new block (called by validatorLoop()).
+   * If the node is a Validator, this function will be called to make the
+   * node wait until it receives a new block.
+   */
+  void doValidatorTx() const;
 
-  public:
-    /**
-     * Constructor.
-     * @param blockchain Reference to the parent blockchain.
-     */
-    explicit Syncer(Blockchain& blockchain) : blockchain_(blockchain) {}
+public:
+  /**
+   * Constructor.
+   * @param blockchain Reference to the parent blockchain.
+   */
+  explicit Syncer(Blockchain& blockchain) : blockchain_(blockchain) {}
 
-    /// Destructor. Automatically stops the syncer.
-    ~Syncer() { this->stop(); }
+  /// Destructor. Automatically stops the syncer.
+  ~Syncer() { this->stop(); }
 
-    /// Getter for `synced_`.
-    const std::atomic<bool>& isSynced() const { return this->synced_; }
+  /// Getter for `synced_`.
+  const std::atomic<bool>& isSynced() const { return this->synced_; }
 
-    void start(); ///< Start the syncer routine loop.
-    void stop();  ///< Stop the syncer routine loop.
+  void start(); ///< Start the syncer routine loop.
+  void stop();  ///< Stop the syncer routine loop.
 };
 
 /**
@@ -82,39 +82,39 @@ class Syncer {
  * Those parts interact with one another by communicating through this class.
  */
 class Blockchain {
-  private:
-    Options options_;         ///< Options singleton.
-    DB db_;                   ///< Database.
-    Storage storage_;         ///< Blockchain storage.
-    State state_;             ///< Blockchain state.
-    P2P::ManagerNormal p2p_;  ///< P2P connection manager.
-    HTTPServer http_;         ///< HTTP server.
-    Syncer syncer_;           ///< Blockchain syncer.
+private:
+  Options options_;         ///< Options singleton.
+  DB db_;                   ///< Database.
+  Storage storage_;         ///< Blockchain storage.
+  State state_;             ///< Blockchain state.
+  P2P::ManagerNormal p2p_;  ///< P2P connection manager.
+  HTTPServer http_;         ///< HTTP server.
+  Syncer syncer_;           ///< Blockchain syncer.
 
-  public:
-    /**
-     * Constructor.
-     * @param blockchainPath Root path of the blockchain.
-     */
-    explicit Blockchain(const std::string& blockchainPath);
-    ~Blockchain() = default;  ///< Default destructor.
-    void start(); ///< Start the blockchain. Initializes P2P, HTTP and Syncer, in this order.
-    void stop();  ///< Stop/shutdown the blockchain. Stops Syncer, HTTP and P2P, in this order (reverse order of start()).
+public:
+  /**
+   * Constructor.
+   * @param blockchainPath Root path of the blockchain.
+   */
+  explicit Blockchain(const std::string& blockchainPath);
+  ~Blockchain() = default;  ///< Default destructor.
+  void start(); ///< Start the blockchain. Initializes P2P, HTTP and Syncer, in this order.
+  void stop();  ///< Stop/shutdown the blockchain. Stops Syncer, HTTP and P2P, in this order (reverse order of start()).
 
-    ///@{
-    /** Getter. */
-    Options& getOptions() { return this->options_; };
-    DB& getDB() { return this->db_; };
-    Storage& getStorage() { return this->storage_; };
-    State& getState() { return this->state_; };
-    P2P::ManagerNormal& getP2P() { return this->p2p_; };
-    HTTPServer& getHTTP() { return this->http_; };
-    Syncer& getSyncer() { return this->syncer_; };
-    ///@}
+  ///@{
+  /** Getter. */
+  Options& getOptions() { return this->options_; };
+  DB& getDB() { return this->db_; };
+  Storage& getStorage() { return this->storage_; };
+  State& getState() { return this->state_; };
+  P2P::ManagerNormal& getP2P() { return this->p2p_; };
+  HTTPServer& getHTTP() { return this->http_; };
+  Syncer& getSyncer() { return this->syncer_; };
+  ///@}
 
-    const std::atomic<bool>& isSynced() const;  ///< Check if the blockchain syncer is synced.
+  const std::atomic<bool>& isSynced() const;  ///< Check if the blockchain syncer is synced.
 
-    friend class Syncer; ///< Friend class.
+  friend class Syncer; ///< Friend class.
 };
 
 #endif // BLOCKCHAIN_H

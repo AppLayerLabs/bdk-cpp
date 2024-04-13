@@ -7,16 +7,23 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "state.h"
 
-State::State(
-  DB& db,
-  Storage& storage,
-  P2P::ManagerNormal& p2pManager,
-  const Options& options
-) : db_(db), storage_(storage), p2pManager_(p2pManager), options_(options),
-rdpos_(db, storage, p2pManager, options, *this),
-contractManager_(db, *this, rdpos_, options)
+State::State(DB& db,
+             Storage& storage,
+             P2P::ManagerNormal& p2pManager,
+             const Options& options,
+             const std::string& blockchainPath) :
+  db_(db),
+  storage_(storage),
+  p2pManager_(p2pManager),
+  options_(options),
+  rdpos_(db, dumpManager_, storage, p2pManager, options, *this),
+  dbState_(blockchainPath + "/state"),
+  dumpManager_(storage_, options_, stateMutex_),
+  dumpWorker_(options_, storage_, dumpManager_),
+  contractManager_(db, *this, rdpos_, options)
 {
   std::unique_lock lock(this->stateMutex_);
+  dumpManager_.pushBack(this);
   auto accountsFromDB = db_.getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
     for (const auto& [account, balance] : options_.getGenesisBalances()) {
@@ -56,38 +63,6 @@ contractManager_(db, *this, rdpos_, options)
   this->contractManager_.updateContractGlobals(Secp256k1::toAddress(latestBlock->getValidatorPubKey()), latestBlock->getHash(), latestBlock->getNHeight(), latestBlock->getTimestamp());
 }
 
-State::~State() {
-  // DB is stored as following
-  // Under the DBPrefix::nativeAccounts
-  // Each key == Address
-  // Each Value == Balance + uint256_t (not exact bytes)
-  // Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
-  // Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
-  // If the nonce equals to 0, it will be *empty*
-  DBBatch accountsBatch;
-  std::unique_lock lock(this->stateMutex_);
-  for (const auto& [address, account] : this->accounts_) {
-    // Serialize Balance.
-    Bytes serializedBytes;
-    if (account.balance == 0) {
-      serializedBytes = Bytes(1, 0x00);
-    } else {
-      serializedBytes = Utils::uintToBytes(Utils::bytesRequired(account.balance));
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.balance));
-    }
-    // Serialize Account.
-    if (account.nonce == 0) {
-      Utils::appendBytes(serializedBytes, Bytes(1, 0x00));
-    } else {
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(Utils::bytesRequired(account.nonce)));
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.nonce));
-    }
-    accountsBatch.push_back(address.get(), serializedBytes, DBPrefix::nativeAccounts);
-  }
-
-  this->db_.putBatch(accountsBatch);
-}
-
 TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   /**
    * Rules for a transaction to be accepted within the current state:
@@ -110,14 +85,14 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
   if (txWithFees > accBalance) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-                      "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
-                      + " expected: " + txWithFees.str() + " has: " + accBalance.str());
+                       "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
+                       + " expected: " + txWithFees.str() + " has: " + accBalance.str());
     return TxInvalid::InvalidBalance;
   }
   // TODO: The blockchain is able to store higher nonce transactions until they are valid. Handle this case.
   if (accNonce != tx.getNonce()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
-                                            + " got: " + tx.getNonce().str());
+                       + " got: " + tx.getNonce().str());
     return TxInvalid::InvalidNonce;
   }
   return TxInvalid::NotInvalid;
@@ -133,7 +108,7 @@ void State::processTransaction(const TxBlock& tx, const Hash& blockHash, const u
   try {
     uint256_t txValueWithFees = tx.getValue() + (
       tx.getGasLimit() * tx.getMaxFeePerGas()
-    ); // This needs to change with payable contract functions
+      ); // This needs to change with payable contract functions
     balance -= txValueWithFees;
     this->accounts_[tx.getTo()].balance += tx.getValue();
     if (this->contractManager_.isContractCall(tx)) {
@@ -144,8 +119,8 @@ void State::processTransaction(const TxBlock& tx, const Hash& blockHash, const u
     }
   } catch (const std::exception& e) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
-    );
+                       "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
+      );
     if(this->processingPayable_) {
       balance += tx.getValue();
       this->accounts_[tx.getTo()].balance -= tx.getValue();
@@ -217,25 +192,25 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   auto latestBlock = this->storage_.latest();
   if (block.getNHeight() != latestBlock->getNHeight() + 1) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
-      + " got " + std::to_string(block.getNHeight())
-    );
+                       "Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
+                       + " got " + std::to_string(block.getNHeight())
+      );
     return false;
   }
 
   if (block.getPrevBlockHash() != latestBlock->getHash()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
-      + " got: " + block.getPrevBlockHash().hex().get()
-    );
+                       "Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
+                       + " got: " + block.getPrevBlockHash().hex().get()
+      );
     return false;
   }
 
   if (latestBlock->getTimestamp() > block.getTimestamp()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Block timestamp is lower than latest block, expected higher than "
-      + std::to_string(latestBlock->getTimestamp()) + " got " + std::to_string(block.getTimestamp())
-    );
+                       "Block timestamp is lower than latest block, expected higher than "
+                       + std::to_string(latestBlock->getTimestamp()) + " got " + std::to_string(block.getTimestamp())
+      );
     return false;
   }
 
@@ -248,15 +223,15 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   for (const auto& tx : block.getTxs()) {
     if (this->validateTransactionInternal(tx)) {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-        "Transaction " + tx.hash().hex().get() + " within block is invalid"
-      );
+                         "Transaction " + tx.hash().hex().get() + " within block is invalid"
+        );
       return false;
     }
   }
 
   Logger::logToDebug(LogType::INFO, Log::state, __func__,
-    "Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)"
-  );
+                     "Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)"
+    );
   return true;
 }
 
@@ -264,8 +239,8 @@ void State::processNextBlock(FinalizedBlock&& block) {
   // Sanity check - if it passes, the block is valid and will be processed
   if (!this->validateNextBlock(block)) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Sanity check failed - blockchain is trying to append a invalid block, throwing"
-    );
+                       "Sanity check failed - blockchain is trying to append a invalid block, throwing"
+      );
     throw DynamicException("Invalid block detected during processNextBlock sanity check");
   }
 
@@ -375,7 +350,7 @@ bool State::estimateGas(const ethCallInfo& callInfo) {
 void State::processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap) {
   if (!this->processingPayable_) throw DynamicException(
     "Uh oh, contracts are going haywire! Cannot change State while not processing a payable contract."
-  );
+    );
   for (const auto& [address, amount] : payableMap) this->accounts_[address].balance = amount;
 }
 
@@ -387,15 +362,37 @@ std::vector<std::pair<std::string, Address>> State::getContracts() const {
 std::vector<Event> State::getEvents(
   const uint64_t& fromBlock, const uint64_t& toBlock,
   const Address& address, const std::vector<Hash>& topics
-) const {
+  ) const {
   std::shared_lock lock(this->stateMutex_);
   return this->contractManager_.getEvents(fromBlock, toBlock, address, topics);
 }
 
 std::vector<Event> State::getEvents(
   const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
-) const {
+  ) const {
   std::shared_lock lock(this->stateMutex_);
   return this->contractManager_.getEvents(txHash, blockIndex, txIndex);
 }
 
+DBBatch State::dump() const {
+  DBBatch accountsBatch;
+  for (const auto& [address, account] : this->accounts_) {
+    // Serialize Balance.
+    Bytes serializedBytes;
+    if (account.balance == 0) {
+      serializedBytes = Bytes(1, 0x00);
+    } else {
+      serializedBytes = Utils::uintToBytes(Utils::bytesRequired(account.balance));
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.balance));
+    }
+    // Serialize Account.
+    if (account.nonce == 0) {
+      Utils::appendBytes(serializedBytes, Bytes(1, 0x00));
+    } else {
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(Utils::bytesRequired(account.nonce)));
+      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.nonce));
+    }
+    accountsBatch.push_back(address.get(), serializedBytes, DBPrefix::nativeAccounts);
+  }
+  return accountsBatch;
+}

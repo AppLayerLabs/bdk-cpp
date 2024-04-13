@@ -137,6 +137,7 @@ bool MutableBlock::appendTx(const TxBlock& tx) {
     return false;
   }
   this->txs_.emplace_back(tx);
+  this->size_ =+ 120 + tx.getData().size();
   return true;
 }
 
@@ -190,6 +191,7 @@ FinalizedBlock MutableBlock::finalize(const PrivKey& validatorPrivKey, const uin
       this->nHeight_,
       std::move(this->txValidators_),
       std::move(this->txs_),
-      std::move(hash)
+      std::move(hash),
+      this->size_
   );
 }

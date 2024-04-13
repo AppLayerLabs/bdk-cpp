@@ -32,6 +32,7 @@ class MutableBlock {
     std::vector<TxValidator> txValidators_; ///< List of Validator transactions.
     bool isDeserialized_ = false;          ///< Flag to prevent new transactions from being added after deserialization.
     Hash hash_;                             ///< Hash of the block.
+    size_t size_ = 152;
 
     /**
      * Helper method for deserializing a raw byte string into block data.

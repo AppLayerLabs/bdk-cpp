@@ -11,7 +11,7 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
   db_(blockchainPath + "/database"),
   storage_(db_, options_),
-  state_(db_, storage_, p2p_, options_),
+  state_(db_, storage_, p2p_, options_, blockchainPath),
   p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
   syncer_(*this)
@@ -240,6 +240,7 @@ bool Syncer::syncerLoop() {
 
   // Sync the node with the network.
   this->doSync();
+  this->blockchain_.state_.dumpStartWorker(); // Start the dump worker.
   if (this->stopSyncer_) return false;
   Utils::safePrint("Synced with the network, starting the node.");
   if (this->blockchain_.options_.getIsValidator()) {
@@ -259,6 +260,7 @@ void Syncer::start() {
 void Syncer::stop() {
   this->stopSyncer_ = true;
   this->blockchain_.state_.rdposStopWorker(); // Stop the rdPoS worker.
+  this->blockchain_.state_.dumpStopWorker(); // Stop the dump worker.
   if (this->syncerLoopFuture_.valid()) this->syncerLoopFuture_.wait();
 }
 
