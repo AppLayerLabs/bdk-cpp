@@ -353,7 +353,7 @@ Bytes State::ethCall(const ethCallInfo& callInfo) const{
 
 bool State::estimateGas(const ethCallInfo& callInfo) {
   std::shared_lock lock(this->stateMutex_);
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  const auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = callInfo;
 
   // Check balance/gasLimit/gasPrice if available.
   if (from && value) {

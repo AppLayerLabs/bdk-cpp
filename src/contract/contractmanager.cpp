@@ -97,7 +97,7 @@ Bytes ContractManager::ethCallView(const ethCallInfo& data) const {
 void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_t& txIndex) {
   this->callLogger_ = std::make_unique<ContractCallLogger>(*this);
   auto callInfo = tx.txToCallInfo();
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  const auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = callInfo;
   if (to == this->getContractAddress()) {
     this->callLogger_->setContractVars(this, from, from, value);
     try {
@@ -155,7 +155,7 @@ void ContractManager::callContract(const TxBlock& tx, const Hash&, const uint64_
 }
 
 Bytes ContractManager::callContract(const ethCallInfo& callInfo) const {
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  const auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = callInfo;
   if (to == this->getContractAddress()) return this->ethCallView(callInfo);
   if (to == ProtocolContractAddresses.at("rdPoS")) return rdpos_.ethCallView(callInfo);
   std::shared_lock<std::shared_mutex> lock(this->contractsMutex_);
@@ -176,7 +176,7 @@ bool ContractManager::isPayable(const ethCallInfo& callInfo) const {
 
 bool ContractManager::validateCallContractWithTx(const ethCallInfo& callInfo) {
   this->callLogger_ = std::make_unique<ContractCallLogger>(*this);
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  const auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = callInfo;
   try {
     if (value) {
       // Payable, we need to "add" the balance to the contract

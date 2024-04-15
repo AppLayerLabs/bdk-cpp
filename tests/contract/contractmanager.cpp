@@ -28,10 +28,12 @@ const std::vector<Hash> validatorPrivKeysContractManager {
 
 ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
   ethCallInfoAllocated callInfo;
-  auto& [from, to, gasLimit, gasPrice, value, functor, data] = callInfo;
+  auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = callInfo;
   to = addressToCall;
+  Utils::appendBytes(fullData, function);
+  Utils::appendBytes(fullData, dataToCall);
   functor = function;
-  data = dataToCall;
+  data = BytesArrView(fullData.cbegin() + 4, fullData.cend());
   return callInfo;
 }
 

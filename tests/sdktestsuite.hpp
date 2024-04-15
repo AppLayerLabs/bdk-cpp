@@ -659,10 +659,11 @@ class SDKTestSuite {
       const Address& contractAddress, ReturnType(TContract::*func)() const
     ) {
       ethCallInfoAllocated callData;
-      auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo] = callData;
+      auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo, fullData] = callData;
       toInfo = contractAddress;
       functorInfo = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
-      dataInfo = Bytes();
+      fullData = Bytes();
+      dataInfo = fullData;
       return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
     }
 
@@ -681,15 +682,19 @@ class SDKTestSuite {
       const Address& contractAddress,
       ReturnType(TContract::*func)(const Args&...) const,
       const Args&... args
-    ) {
+      ) {
       TContract::registerContract();
       ethCallInfoAllocated callData;
-      auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo] = callData;
+      auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo, fullData] = callData;
       toInfo = contractAddress;
       functorInfo = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
-      dataInfo = ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...);
+      Utils::appendBytes(fullData, functorInfo);
+      Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...));
+      dataInfo = BytesArrView(fullData.begin() + 4, fullData.end());
+      gasInfo = 10000000;
       return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
     }
+
 
     /**
      * Get all the events emitted under the given inputs.

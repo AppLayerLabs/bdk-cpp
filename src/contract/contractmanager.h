@@ -390,7 +390,7 @@ class ContractManagerInterface {
       // Append args
       createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
       createSignature += ")";
-      auto& [from, to, gas, gasPrice, value, functor, data] = callInfo;
+      auto& [from, to, gas, gasPrice, value, functor, data, fullData] = callInfo;
       from = fromAddr;
       to = this->manager_.getContractAddress();
       gas = gasValue;

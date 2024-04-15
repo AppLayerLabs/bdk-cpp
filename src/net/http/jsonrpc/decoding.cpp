@@ -258,7 +258,7 @@ namespace JsonRPC::Decoding {
 
   ethCallInfoAllocated eth_call(const json& request, const Storage& storage) {
     ethCallInfoAllocated result;
-    auto& [from, to, gas, gasPrice, value, functor, data] = result;
+    auto& [from, to, gas, gasPrice, value, functor, data, fullData] = result;
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -315,12 +315,12 @@ namespace JsonRPC::Decoding {
       if (txObj.contains("data") && !txObj["data"].is_null()) {
         std::string dataHex = txObj["data"].get<std::string>();
         if (!Hex::isValid(dataHex, true)) throw DynamicException("Invalid data hex");
-        auto dataBytes = Hex::toBytes(dataHex);
-        if (dataBytes.size() >= 4) {
-          functor = Functor(Utils::create_view_span(dataBytes, 0, 4));
+        fullData = Hex::toBytes(dataHex);
+        if (fullData.size() >= 4) {
+          functor = Functor(Utils::create_view_span(fullData, 0, 4));
         }
-        if (dataBytes.size() > 4) {
-          data = Bytes(dataBytes.begin() + 4, dataBytes.end());
+        if (fullData.size() > 4) {
+          data = Bytes(fullData.begin() + 4, fullData.end());
         }
       }
       return result;
@@ -334,7 +334,7 @@ namespace JsonRPC::Decoding {
 
   ethCallInfoAllocated eth_estimateGas(const json& request, const Storage& storage) {
     ethCallInfoAllocated result;
-    auto& [from, to, gas, gasPrice, value, functor, data] = result;
+    auto& [from, to, gas, gasPrice, value, functor, data, fullData] = result;
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -396,12 +396,12 @@ namespace JsonRPC::Decoding {
       if (txObj.contains("data") && !txObj["data"].is_null()) {
         std::string dataHex = txObj["data"].get<std::string>();
         if (!Hex::isValid(dataHex, true)) throw DynamicException("Invalid data hex");
-        auto dataBytes = Hex::toBytes(dataHex);
-        if (dataBytes.size() >= 4) {
-          functor = Functor(Utils::create_view_span(dataBytes, 0, 4));
+        fullData = Hex::toBytes(dataHex);
+        if (fullData.size() >= 4) {
+          functor = Functor(Utils::create_view_span(fullData, 0, 4));
         }
-        if (dataBytes.size() > 4) {
-          data = Bytes(dataBytes.begin() + 4, dataBytes.end());
+        if (fullData.size() > 4) {
+          data = Bytes(fullData.begin() + 4, fullData.end());
         }
       }
       return result;

@@ -383,7 +383,7 @@ Bytes TxBlock::rlpSerialize(bool includeSig) const {
 ethCallInfo TxBlock::txToCallInfo() const {
   // ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
   ethCallInfo ret;
-  auto& [from, to, gasLimit, gasPrice, value, functor, data] = ret;
+  auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = ret;
   from = this->getFrom();
   to = this->getTo();
   gasLimit = this->getGasLimit();
@@ -395,6 +395,7 @@ ethCallInfo TxBlock::txToCallInfo() const {
   if (this->data_.size() > 4) {
     data = Utils::create_view_span(this->data_).subspan(4);
   }
+  fullData = this->data_;
   return ret;
 }
 
