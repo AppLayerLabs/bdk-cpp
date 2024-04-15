@@ -14,28 +14,56 @@ set(EVMC_INSTRUCTIONS_LIBRARY "${prefix}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}evmc-
 set(EVMC_LOADER_LIBRARY "${prefix}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}evmc-loader${CMAKE_STATIC_LIBRARY_SUFFIX}")
 set(EVMC_TOOLING_LIBRARY "${prefix}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}tooling${CMAKE_STATIC_LIBRARY_SUFFIX}")
 
-ExternalProject_Add(
-        evmone
-        PREFIX "${prefix}"
-        GIT_REPOSITORY https://github.com/chfast/evmone
-        GIT_TAG "v${EVMONE_VERSION}"
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${prefix}
-        -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE}
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-        -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-        -DBUILD_SHARED_LIBS=OFF
-        -DEVMC_INSTALL=ON
-        -DCMAKE_INSTALL_LIBDIR=lib
-        ${_only_release_configuration}
-        LOG_CONFIGURE 1
-        ${_overwrite_install_command}
-        LOG_INSTALL 1
-        BUILD_BYPRODUCTS ${EVMONE_LIBRARY}
-        BUILD_BYPRODUCTS ${EVMC_INSTRUCTIONS_LIBRARY}
-        BUILD_BYPRODUCTS ${EVMC_LOADER_LIBRARY}
-        BUILD_BYPRODUCTS ${EVMC_TOOLING_LIBRARY}
-)
+if(DEBUG)
+  ## EVMONE Can't be compiled with address sanitizer/stack protector
+  ## due to GCC stack size limits and GCC not accepting -Wno-stack-usage as a ignore error flag
+  set(EVMONE_CXX_FLAGS "-O0 -g -fno-inline -fno-eliminate-unused-debug-types -Werror=unused-variable") # Provides faster compile time.
+  ExternalProject_Add(
+          evmone
+          PREFIX "${prefix}"
+          GIT_REPOSITORY https://github.com/chfast/evmone
+          GIT_TAG "v${EVMONE_VERSION}"
+          CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${prefix}
+          -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE}
+          -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+          -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+          -DCMAKE_CXX_FLAGS=${EVMONE_CXX_FLAGS}
+          -DBUILD_SHARED_LIBS=OFF
+          -DEVMC_INSTALL=ON
+          -DCMAKE_INSTALL_LIBDIR=lib
+          ${_only_release_configuration}
+          LOG_CONFIGURE 1
+          ${_overwrite_install_command}
+          LOG_INSTALL 1
+          BUILD_BYPRODUCTS ${EVMONE_LIBRARY}
+          BUILD_BYPRODUCTS ${EVMC_INSTRUCTIONS_LIBRARY}
+          BUILD_BYPRODUCTS ${EVMC_LOADER_LIBRARY}
+          BUILD_BYPRODUCTS ${EVMC_TOOLING_LIBRARY}
+  )
+else()
+    ExternalProject_Add(
+            evmone
+            PREFIX "${prefix}"
+            GIT_REPOSITORY https://github.com/chfast/evmone
+            GIT_TAG "v${EVMONE_VERSION}"
+            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${prefix}
+            -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE}
+            -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+            -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+            -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+            -DBUILD_SHARED_LIBS=OFF
+            -DEVMC_INSTALL=ON
+            -DCMAKE_INSTALL_LIBDIR=lib
+            ${_only_release_configuration}
+            LOG_CONFIGURE 1
+            ${_overwrite_install_command}
+            LOG_INSTALL 1
+            BUILD_BYPRODUCTS ${EVMONE_LIBRARY}
+            BUILD_BYPRODUCTS ${EVMC_INSTRUCTIONS_LIBRARY}
+            BUILD_BYPRODUCTS ${EVMC_LOADER_LIBRARY}
+            BUILD_BYPRODUCTS ${EVMC_TOOLING_LIBRARY}
+    )
+endif()
 
 # Create imported library
 add_library(Evmone STATIC IMPORTED)
