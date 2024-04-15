@@ -287,4 +287,51 @@ class Address : public FixedBytes<20> {
     }
 };
 
+/// Abstraction of a EVM Storage key (20-bytes address + 32 bytes slot key). Inherits `FixedBytes<52>`.
+class StorageKey : public FixedBytes<52> {
+  public:
+    using FixedBytes<52>::operator==;
+    using FixedBytes<52>::operator<;
+    using FixedBytes<52>::operator<=;
+    using FixedBytes<52>::operator>;
+    using FixedBytes<52>::operator>=;
+    using FixedBytes<52>::operator=;
+
+    /**
+     * Constructor using a reference to evmc::address and a reference to evmc::bytes32.
+     * @param addr The evmc::address pointer to convert into a storage key.
+     * @param slot The evmc::bytes32 pointer to convert into a storage key.
+     */
+    StorageKey(const evmc::address& addr, const evmc::bytes32& slot);
+
+    /**
+     * Constructor using a reference to evmc_address and a reference to evmc_bytes32.
+     * @param addr The evmc_address pointer to convert into a storage key.
+     * @param slot The evmc::bytes32 pointer to convert into a storage key.
+     */
+    StorageKey(const evmc_address& addr, const evmc_bytes32& slot);
+
+    /**
+     * Constructor using a reference to evmc_address and a reference to evmc::bytes32.
+     * @param addr The evmc::address pointer to convert into a storage key.
+     * @param slot The evmc::bytes32 pointer to convert into a storage key.
+     */
+    StorageKey(const evmc_address& addr, const evmc::bytes32& slot);
+
+     /**
+      * Constructor using a reference to evmc::address and a reference to evmc_bytes32.
+      * @param addr The evmc_address pointer to convert into a storage key.
+      * @param slot The evmc::bytes32 pointer to convert into a storage key.
+      */
+    StorageKey(const evmc::address& addr, const evmc_bytes32& slot);
+
+    /**
+     * Constructor using a reference to Address and a reference to Hash.
+     * @param addr The Address pointer to convert into a storage key.
+     * @param slot The Hash pointer to convert into a storage key.
+     */
+    StorageKey(const Address& addr, const Hash& slot);
+};
+
+
 #endif  // STRINGS_H
