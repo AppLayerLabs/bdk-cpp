@@ -352,26 +352,6 @@ namespace TSafeUnorderedMap {
       }
     }
 
-    SECTION("SafeUnorderedMap erase with forwarding") {
-      SafeUnorderedMap<std::string, int> safeUnorderedMap;
-      const char* key1 = "key1";
-      const char* key2 = "key2";
-      safeUnorderedMap[key1] = 10;
-      safeUnorderedMap.commit();
-      safeUnorderedMap[key2] = 20;
-      REQUIRE(safeUnorderedMap.size() == 2);
-      REQUIRE(safeUnorderedMap.count(key1) == 1);
-      REQUIRE(safeUnorderedMap.count(key2) == 1);
-      auto erasedCount1 = safeUnorderedMap.erase(std::move(key1));
-      REQUIRE(erasedCount1 == 1);
-      REQUIRE(safeUnorderedMap.size() == 1);
-      REQUIRE(safeUnorderedMap.count(key1) == 0);
-      auto erasedCount2 = safeUnorderedMap.erase(std::string(key2));
-      REQUIRE(erasedCount2 == 1);
-      REQUIRE(safeUnorderedMap.size() == 0);
-      REQUIRE(safeUnorderedMap.count(key2) == 0);
-    }
-
     SECTION("SafeUnorderedMap insert_or_assign with move") {
       std::vector<Address> randomAddresses;
       for (uint64_t i = 0; i < 100; ++i) {

@@ -410,7 +410,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      *         boolean indicating whether the insertion was successful.
      */
     std::pair<typename SafeUnorderedMap<Key, T>::iterator, bool> insert(
-      const typename SafeUnorderedMap<Key, T>::value_type&& value
+      typename SafeUnorderedMap<Key, T>::value_type&& value
     ) {
       check(); markAsUsed();
       auto r = mapPtr_->insert(std::move(value));
@@ -615,35 +615,6 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       if (it == end()) return 0;
       erase(it);
       return 1;
-    }
-
-    /**
-     * Erase a value from the map, using a key and move/forward.
-     * @param key The key of the value to erase.
-     * @return The number of values erased.
-     */
-    template <class K> typename SafeUnorderedMap<Key, T>::size_type erase(K&& key) {
-      bool deleted = false;
-      check();
-      auto mapPtrIt = mapPtr_->find(std::forward<K>(key));
-      if (mapPtrIt != mapPtr_->end()) {
-        mapPtr_->erase(std::forward<K>(key));
-        deleted = true;
-      } else {
-        auto mapIt = map_.find(std::forward<K>(key));
-        if (mapIt != map_.end()) {
-          if (erasedKeys_->find(std::forward<K>(key)) == erasedKeys_->end()) {
-            deleted = true;
-          }
-        }
-      }
-      if (deleted) {
-        markAsUsed();
-        erasedKeys_->insert(std::forward<K>(key));
-        --size_;
-        return 1;
-      }
-      return 0;
     }
 
     ///@{
