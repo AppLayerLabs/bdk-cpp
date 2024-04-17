@@ -61,7 +61,6 @@ class Blockchain {
     State state_;               ///< Blockchain state.
     P2P::ManagerNormal p2p_;    ///< P2P connection manager.
     HTTPServer http_;           ///< HTTP server.
-    P2P::NodeConns nodeConns_;  ///< Node connection manager.
     Syncer syncer_;             ///< Blockchain syncer.
     Consensus consensus_;       ///< Block and transaction processing.
 
@@ -83,7 +82,6 @@ class Blockchain {
     State& getState() { return this->state_; }
     P2P::ManagerNormal& getP2P() { return this->p2p_; }
     HTTPServer& getHTTP() { return this->http_; }
-    P2P::NodeConns& getNodeConns() { return this->nodeConns_; }
     Syncer& getSyncer() { return this->syncer_; }
     Consensus& getConsensus() { return this->consensus_; }
     ///@}

@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../core/rdpos.h"
 #include "../core/storage.h"
 #include "../core/state.h"
+#include "nodeconns.h"
 
 namespace P2P{
   void ManagerNormal::broadcastMessage(const std::shared_ptr<const Message> message) {
@@ -35,6 +36,14 @@ namespace P2P{
     }
   }
 
+  void ManagerNormal::notifyAllMessage(const std::shared_ptr<const Message> message) {
+    // ManagerNormal::notifyAllMessage doesn't change sessions_ map
+    std::shared_lock sessionsLock(this->sessionsMutex_);
+    for (const auto& [nodeId, session] : this->sessions_) {
+      if (session->hostType() == NodeType::NORMAL_NODE) session->write(message);
+    }
+  }
+
   void ManagerNormal::handleMessage(
     const NodeID &nodeId, const std::shared_ptr<const Message> message
   ) {
@@ -48,6 +57,9 @@ namespace P2P{
         break;
       case Broadcasting:
         handleBroadcast(nodeId, message);
+        break;
+      case Notifying:
+        handleNotification(nodeId, message);
         break;
       default:
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -141,11 +153,31 @@ namespace P2P{
       case BroadcastBlock:
         handleBlockBroadcast(nodeId, message);
         break;
+      case BroadcastInfo:
+        handleInfoBroadcast(nodeId, message);
+        break;
       default:
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
                            "Invalid Broadcast Command Type: " + std::to_string(message->command()) +
                            " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
                            " , closing session.");
+        this->disconnectSession(nodeId);
+        break;
+    }
+  }
+
+  void ManagerNormal::handleNotification(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    switch (message->command()) {
+      case NotifyInfo:
+        handleInfoNotification(nodeId, message);
+        break;
+      default:
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                           "Invalid Notification Command Type: " + std::to_string(message->command()) +
+                           " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                           ", closing session.");
         this->disconnectSession(nodeId);
         break;
     }
@@ -355,6 +387,36 @@ namespace P2P{
     if (rebroadcast) this->broadcastMessage(message);
   }
 
+  void ManagerNormal::handleInfoBroadcast(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    try {
+      auto nodeInfo = BroadcastDecoder::broadcastInfo(*message);
+      this->nodeConns_.incomingInfo(nodeId, nodeInfo);
+    } catch (std::exception &e) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid infoBroadcast from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , error: " + e.what() + " closing session.");
+      this->disconnectSession(nodeId);
+      return;
+    }
+  }
+
+  void ManagerNormal::handleInfoNotification(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    try {
+      auto nodeInfo = NotificationDecoder::notifyInfo(*message);
+      this->nodeConns_.incomingInfo(nodeId, nodeInfo);
+    } catch (std::exception &e) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid infoNotification from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , error: " + e.what() + " closing session.");
+      this->disconnectSession(nodeId);
+      return;
+    }
+  }
+
   // TODO: Both ping and requestNodes is a blocking call on .wait()
   // Somehow change to wait_for.
   std::vector<TxValidator> ManagerNormal::requestValidatorTxs(const NodeID& nodeId) {
@@ -447,25 +509,26 @@ namespace P2P{
   void ManagerNormal::broadcastTxValidator(const TxValidator& tx) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastValidatorTx(tx));
     this->broadcastMessage(broadcast);
-    return;
   }
 
   void ManagerNormal::broadcastTxBlock(const TxBlock &txBlock) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastTx(txBlock));
     this->broadcastMessage(broadcast);
-    return;
   }
 
   void ManagerNormal::broadcastBlock(const std::shared_ptr<const Block> block) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastBlock(block));
     this->broadcastMessage(broadcast);
-    return;
   }
 
   void ManagerNormal::broadcastInfo() {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastInfo(this->storage_.latest(), this->options_));
     this->broadcastMessage(broadcast);
-    return;
+  }
+
+  void ManagerNormal::notifyAllInfo() {
+    auto notifyall = std::make_shared<const Message>(NotificationEncoder::notifyInfo(this->storage_.latest(), this->options_));
+    this->notifyAllMessage(notifyall);
   }
 };
 

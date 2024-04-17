@@ -24,6 +24,19 @@ namespace P2P {
   enum ConnectionType { INBOUND, OUTBOUND };
 
   /**
+   * Messaging concepts:
+   *
+   * Request: a point-to-point message that requires an Answer;
+   * Answer: a message that fulfills a Request;
+   * Broadcast: use only for messages that must be routed to all nodes
+   *   automatically by the networking engine;
+   * Notification: one-way message between two peers.
+   *
+   * "NotifyAll" methods mean sending a notification to all peers
+   *   (this is not routed; the routed version is a Broadcast).
+   */
+
+  /**
    * Enum for identifying from which type is a given node.
    *
    * "Normal" P2P nodes follow all protocol rules, can answer any request,
@@ -35,7 +48,7 @@ namespace P2P {
   enum NodeType { NORMAL_NODE, DISCOVERY_NODE };
 
   /// Enum for identifying the type of a request.
-  enum RequestType { Requesting, Answering, Broadcasting };
+  enum RequestType { Requesting, Answering, Broadcasting, Notifying };
 
   /// Enum for identifying the type of a command.
   enum CommandType {
@@ -46,21 +59,24 @@ namespace P2P {
     BroadcastValidatorTx,
     BroadcastTx,
     BroadcastBlock,
-    BroadcastInfo,
-    RequestTxs
+    BroadcastInfo, // FIXME/TODO: Remove this message/command if it's not going to be broadcasted (routed)
+    RequestTxs,
+    NotifyInfo
   };
 
   /**
    * List of type prefixes (as per RequestType) for easy conversion.
    * Reference is as follows:
-   * - "00" = %Request
+   * - "00" = Request
    * - "01" = Answer
    * - "02" = Broadcast
+   * - "03" = Notification
    */
   inline extern const std::vector<Bytes> typePrefixes {
     Bytes(1, 0x00), // Request
     Bytes(1, 0x01), // Answer
-    Bytes(1, 0x02)  // Broadcast
+    Bytes(1, 0x02), // Broadcast
+    Bytes(1, 0x03)  // Notification
   };
 
   /**
@@ -75,6 +91,7 @@ namespace P2P {
    * - "0006" = BroadcastBlock
    * - "0007" = BroadcastInfo
    * - "0008" = RequestTxs
+   * - "0009" = NotifyInfo
    */
   inline extern const std::vector<Bytes> commandPrefixes {
     Bytes{0x00, 0x00}, // Ping
@@ -85,7 +102,8 @@ namespace P2P {
     Bytes{0x00, 0x05}, // BroadcastTx
     Bytes{0x00, 0x06}, // BroadcastBlock
     Bytes{0x00, 0x07}, // BroadcastInfo
-    Bytes{0x00, 0x08} // RequestTxs
+    Bytes{0x00, 0x08}, // RequestTxs
+    Bytes{0x00, 0x09}  // NotifyInfo
   };
 
   /**
@@ -456,6 +474,28 @@ namespace P2P {
       static NodeInfo broadcastInfo(const Message& message);
   };
 
+  /// Helper class used to create notification messages.
+  class NotificationEncoder {
+    public:
+      /**
+       * Create a message to notify the node's information.
+       * @param nodeInfo The node's information.
+       * @return The formatted message.
+       */
+      static Message notifyInfo(const std::shared_ptr<const Block>& latestBlock, const Options& options);
+  };
+
+  /// Helper class used to parse notification messages.
+  class NotificationDecoder {
+    public:
+      /**
+       * Parse a notification message for a node's information.
+       * @param message The message that was broadcast.
+       * @return The node's information.
+       */
+      static NodeInfo notifyInfo(const Message& message);
+  };
+
   /**
    * Abstraction of a %P2P message.
    * The structure is a bytes string (1 byte = 2 chars), as follows:
@@ -514,6 +554,7 @@ namespace P2P {
       friend class RequestEncoder;
       friend class AnswerEncoder;
       friend class BroadcastEncoder;
+      friend class NotificationEncoder;
       friend class Session;
       friend class Request;
   };
@@ -534,7 +575,7 @@ namespace P2P {
        * @param command The request's command type.
        * @param id The request's ID.
        * @param nodeId The request's host node ID.
-        * @param message The request's message.
+       * @param message The request's message.
        */
       Request(
         const CommandType& command, const RequestID& id, const NodeID& nodeId,

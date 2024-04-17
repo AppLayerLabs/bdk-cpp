@@ -685,6 +685,13 @@ namespace Utils {
    * @return The converted string as a bytes vector.
    */
   inline Bytes stringToBytes(const std::string& str) { return Bytes(str.cbegin(), str.cend()); }
+
+  /**
+   * Shorthand for obtaining a milliseconds-since-epoch uint64_t timestamp from std::chrono
+   */
+  inline uint64_t getCurrentTimeMillisSinceEpoch() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+  }
 };
 
 #endif  // UTILS_H
