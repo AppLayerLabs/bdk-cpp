@@ -25,7 +25,7 @@ See the LICENSE.txt file in the project root for more information.
  * These original and current values are used in case of reversions due to contract exceptions
  */
 struct EVMAccount {
-  std::pair<uint64_t, uint64_t> nonce;  ///< Account nonce.
+  std::pair<uint64_t, uint64_t> nonce;  ///< Account nonce.w
   std::pair<Bytes, Bytes> code;         ///< Account code.
   std::pair<Hash, Hash> codeHash;       ///< Account code hash.
   std::pair<uint256_t, uint256_t> balance;  ///< Account balance.

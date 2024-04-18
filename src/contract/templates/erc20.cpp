@@ -7,8 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc20.h"
 
-ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db)
-: DynamicContract(interface, address, db), name_(this), symbol_(this), decimals_(this),
+ERC20::ERC20(const Address& address, DB& db)
+: DynamicContract(address, db), name_(this), symbol_(this), decimals_(this),
   totalSupply_(this), balances_(this), allowed_(this)
 {
   this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
@@ -47,10 +47,9 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db
 ERC20::ERC20(
   const std::string& erc20name_, const std::string& erc20symbol_,
   const uint8_t& erc20decimals_, const uint256_t& mintValue,
-  ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
   DB& db
-) : DynamicContract(interface, "ERC20", address, creator, chainId, db),
+) : DynamicContract("ERC20", address, creator, chainId, db),
   name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
   this->name_ = erc20name_;
@@ -78,10 +77,9 @@ ERC20::ERC20(
 ERC20::ERC20(
   const std::string &derivedTypeName, const std::string& erc20name_, const std::string& erc20symbol_,
   const uint8_t& erc20decimals_, const uint256_t& mintValue,
-  ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
   DB& db
-) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
+) : DynamicContract(derivedTypeName, address, creator, chainId, db),
     name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
   this->name_ = erc20name_;

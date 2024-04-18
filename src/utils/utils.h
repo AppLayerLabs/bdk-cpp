@@ -37,7 +37,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/contract/variables/safeint.h"
 
 /// @file utils.h
-
 // Forward declaration.
 class Hash;
 
@@ -190,14 +189,25 @@ using SafeInt256_t = SafeInt_t<256>;
  * TODO: As we had to integrate the full data into the tuple, we should refactor this
  * to remove Functor/Data and use only the fullData.
  */
-using ethCallInfo = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, BytesArrView, BytesArrView>;
+using ethCallInfo = std::tuple<Address,Address,int256_t, uint256_t, uint256_t, Functor, BytesArrView, BytesArrView>;
 
 /**
  * Same as ethCallInfo, but using Bytes instead of BytesArrView, truly
  * allocating and owning the data. Some places need it such as tests.
  * The data is a BytesArrView because it uses the fullData as a reference.
  */
-using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, BytesArrView, Bytes>;
+using ethCallInfoAllocated = std::tuple<Address,Address,int256_t, uint256_t, uint256_t, Functor, BytesArrView, Bytes>;
+
+/**
+ * Map with addresses for contracts deployed at protocol level (name -> address).
+ * These contracts are deployed at the beginning of the chain and cannot be
+ * destroyed or dynamically deployed like other contracts.
+ * Instead, they are deployed in the constructor of State.
+ */
+const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
+  {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"))},           // Sha3("randomDeterministicProofOfStake").substr(0,20)
+  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))}  // Sha3("ContractManager").substr(0,20)
+};
 
 /**
 * Fail a function with a given message.
@@ -214,14 +224,22 @@ enum Networks { Mainnet, Testnet, LocalTestnet };
 /// Enum for FunctionType
 enum FunctionTypes { View, NonPayable, Payable };
 
+/// Enum for the type of the contract.
+enum ContractType { NOT_A_CONTRACT, EVM, CPP };
+
 /**
  * Abstraction of balance and nonce for a single account.
  * Used with Address on State in an unordered_map to track native accounts.
+ * We store both the code and code hash here, but the EVM Storage (map<address,map<bytes32,bytes32>) is
+ * directly implemented in the State as map<StorageKey,Hash> to avoid nested maps.
  * @see State
  */
 struct Account {
-  uint256_t balance = 0;  ///< Account balance.
-  uint64_t nonce = 0;     ///< Account nonce.
+  uint256_t balance = 0;                       ///< Account balance.
+  uint64_t nonce = 0;                          ///< Account nonce.
+  Hash codeHash = Hash();                      ///< Account code hash (if any)
+  Bytes code = Bytes();                        ///< Account code (if any)
+  ContractType contractType = ContractType::NOT_A_CONTRACT; ///< Account contract type.
 
   /// Default constructor.
   Account() = default;
@@ -231,6 +249,8 @@ struct Account {
 
   /// Move constructor.
   Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
+
+  bool isContract() const { return contractType != ContractType::NOT_A_CONTRACT; }
 };
 
 /**
@@ -243,6 +263,17 @@ template<typename T, bool Index> struct EventParam {
   const T& value; ///< Event param value.
   static constexpr bool isIndexed = Index;  ///< Indexed status.
   EventParam(const T& value) : value(value) {}  ///< Constructor.
+};
+
+template<typename T>
+class PointerNullifier {
+private:
+  T*& ptr;
+
+public:
+  PointerNullifier(T*& item) : ptr(item) {}
+  ~PointerNullifier() { ptr = nullptr; }
+
 };
 
 /// Namespace for utility functions.

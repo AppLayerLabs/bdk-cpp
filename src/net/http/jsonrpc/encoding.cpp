@@ -170,7 +170,7 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_call(const ethCallInfoAllocated& callInfo, const State& state) {
+  json eth_call(const ethCallInfoAllocated& callInfo, State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
     try {

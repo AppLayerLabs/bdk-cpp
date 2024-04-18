@@ -171,7 +171,7 @@ public:
    * @param address The address where the contract will be deployed.
    * @param db Reference to the database object.
    */
-  ERC721(ContractManagerInterface &interface, const Address &address,
+  ERC721(const Address &address,
          DB& db);
 
   /**
@@ -185,7 +185,7 @@ public:
    * @param db Reference to the database object.
    */
   ERC721(const std::string &erc721name, const std::string &erc721symbol,
-         ContractManagerInterface &interface, const Address &address,
+         const Address &address,
          const Address &creator, const uint64_t &chainId,
          DB& db);
 
@@ -201,7 +201,7 @@ public:
    * @param db Reference to the database object.
    */
   ERC721(const std::string &derivedTypeName, const std::string &erc721name,
-         const std::string &erc721symbol, ContractManagerInterface &interface,
+         const std::string &erc721symbol,
          const Address &address, const Address &creator,
          const uint64_t &chainId, DB& db);
 
@@ -304,7 +304,7 @@ public:
   static void registerContract() {
     ContractReflectionInterface::registerContractMethods<
         ERC721, const std::string &, const std::string &,
-        ContractManagerInterface &, const Address &, const Address &,
+        const Address &, const Address &,
         const uint64_t &, DB&>(
         std::vector<std::string>{"erc721name", "erc721symbol"},
         std::make_tuple("name", &ERC721::name, FunctionTypes::View,

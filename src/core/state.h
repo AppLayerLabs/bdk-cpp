@@ -31,11 +31,12 @@ class State {
     Storage& storage_;  ///< Reference to the blockchain's storage.
     P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
     rdPoS rdpos_; ///< rdPoS object (consensus).
-    ContractManager contractManager_; ///< Contract Manager.
+    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
+    std::unordered_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
+    EventManager eventManager_; ///< Event manager object. Responsible for storing events emitted in contract calls.
     std::unordered_map<Address, Account, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     std::unordered_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
     mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
-    bool processingPayable_ = false;  ///< Indicates whether the state is currently processing a payable contract function.
 
     /**
      * Verify if a transaction can be accepted within the current state.
@@ -205,25 +206,15 @@ class State {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The return of the called function as a data string.
      */
-    Bytes ethCall(const ethCallInfo& callInfo) const;
+    Bytes ethCall(const ethCallInfo& callInfo);
 
-    // TODO: This function should be considered 'const' as it doesn't change the state,
-    // but it is not due to calling non-const contract functions. This should be fixed in the future
-    // (even if we call non-const functions, the state is ALWAYS reverted to its original state after the call).
     /**
      * Estimate gas for callInfo in RPC.
      * Doesn't really "estimate" gas, but rather tells if the transaction is valid or not.
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
-     * @return `true` if the call is valid, `false` otherwise.
+     * @return The used gas limit of the transaction.
      */
-    bool estimateGas(const ethCallInfo& callInfo);
-
-    /**
-     * Update the State's account balances after a contract call. Called by ContractManager.
-     * @param payableMap A map of the accounts to update and their respective new balances.
-     * @throw DynamicException on an attempt to change State while not processing a payable contract.
-     */
-    void processContractPayable(const std::unordered_map<Address, uint256_t, SafeHash>& payableMap);
+    int64_t estimateGas(const ethCallInfo& callInfo);
 
     /// Get a list of contract addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;
@@ -255,9 +246,6 @@ class State {
     std::vector<Event> getEvents(
       const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     ) const;
-
-    /// ContractManagerInterface cannot use getNativeBalance, as it will call a lock with the mutex.
-    friend class ContractManagerInterface;
 };
 
 #endif // STATE_H

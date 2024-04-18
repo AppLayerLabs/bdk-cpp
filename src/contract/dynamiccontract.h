@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "abi.h"
 #include "contract.h"
-#include "contractmanager.h"
+#include "contracthost.h"
 #include "event.h"
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
@@ -62,11 +62,14 @@ class DynamicContract : public BaseContract {
      * Register a variable that was used by the contract.
      * @param variable Reference to the variable.
      */
-    inline void registerVariableUse(SafeBase& variable) { interface_.registerVariableUse(variable); }
+    inline void registerVariableUse(SafeBase& variable) {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to register variable use without a host_!");
+      }
+      host_->registerVariableUse(variable);
+    }
 
   protected:
-    ContractManagerInterface& interface_; ///< Reference to the contract manager interface.
-
     /**
      * Template for registering a const member function with no arguments.
      * @param funcSignature Solidity function signature.
@@ -254,10 +257,9 @@ class DynamicContract : public BaseContract {
      * @param chainId The chain where the contract wil be deployed.
      * @param db Reference to the database object.
      */
-    DynamicContract(
-      ContractManagerInterface& interface, const std::string& contractName,
+    DynamicContract(const std::string& contractName,
       const Address& address, const Address& creator, const uint64_t& chainId, DB& db
-    ) : BaseContract(contractName, address, creator, chainId, db), interface_(interface) {}
+    ) : BaseContract(contractName, address, creator, chainId, db) {}
 
     /**
      * Constructor for loading the contract from the database.
@@ -265,9 +267,7 @@ class DynamicContract : public BaseContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    DynamicContract(
-      ContractManagerInterface& interface, const Address& address, DB& db
-    ) : BaseContract(address, db), interface_(interface) {}
+    DynamicContract(const Address& address, DB& db) : BaseContract(address, db) {};
 
     /**
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice, value, data).
@@ -276,14 +276,18 @@ class DynamicContract : public BaseContract {
      * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
-    void ethCall(const ethCallInfo& callInfo) override {
+    void ethCall(const ethCallInfo& callInfo, ContractHost* host) override {
+      this->host_ = host;
+      PointerNullifier nullifier(this->host_);
       try {
         Functor funcName = std::get<5>(callInfo);
+        const auto& value = std::get<4>(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->payableFunctions_.find(funcName);
           if (func == this->payableFunctions_.end()) throw DynamicException("Functor not found for payable function");
           func->second(callInfo);
         } else {
+          if (value != 0) throw DynamicException("Cannot send value to non-payable function");
           auto func = this->publicFunctions_.find(funcName);
           if (func == this->publicFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
           func->second(callInfo);
@@ -299,7 +303,9 @@ class DynamicContract : public BaseContract {
      * @return The result of the view function.
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
-    Bytes ethCallView(const ethCallInfo& data) const override {
+    Bytes ethCallView(const ethCallInfo& data, ContractHost* host) const override {
+      this->host_ = host;
+      PointerNullifier nullifier(this->host_);
       try {
         Functor funcName = std::get<5>(data);
         auto func = this->viewFunctions_.find(funcName);
@@ -325,8 +331,10 @@ class DynamicContract : public BaseContract {
       const std::tuple<EventParam<Args, Flags>...>& args = std::make_tuple(),
       bool anonymous = false
     ) const {
-      Event e(name, this->getContractAddress(), args, anonymous);
-      this->interface_.emitContractEvent(e);
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to emit a event without a host!");
+      }
+      this->host_->emitEvent(name, this->getContractAddress(), args, anonymous);
     }
 
     /**
@@ -346,17 +354,7 @@ class DynamicContract : public BaseContract {
      * @return A pointer to the casted contract.
      */
     template <typename T> const T* getContract(const Address& address) const {
-      return interface_.getContract<T>(address);
-    }
-
-    /**
-     * Try to cast a contract to a specific type (non-const).
-     * @tparam T The type to cast to.
-     * @param address The address of the contract to cast.
-     * @return A pointer to the casted contract.
-     */
-    template <typename T> T* getContract(const Address& address) {
-      return interface_.getContract<T>(address);
+      return host_->getContract<T>(address);
     }
 
     /**
@@ -404,9 +402,10 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C, typename... Args> R callContractFunction(
       const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args
     ) {
-      return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(), targetAddr, 0, func, args...
-      );
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractFunction(this, targetAddr, 0, func, args...);
     }
 
     /**
@@ -423,9 +422,10 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C, typename... Args> R callContractFunction(
       const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args
     ) {
-      return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(), address, value, func, args...
-      );
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractFunction(this, address, value, func, args...);
     }
 
     /**
@@ -437,9 +437,10 @@ class DynamicContract : public BaseContract {
      * @return The result of the function.
      */
     template <typename R, typename C> R callContractFunction(const Address& targetAddr, R(C::*func)()) {
-      return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(), targetAddr, 0, func
-      );
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractFunction(this, targetAddr, 0, func);
     }
 
     /**
@@ -454,9 +455,10 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C> R callContractFunction(
       const uint256_t& value, const Address& address, R(C::*func)()
     ) {
-      return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(), address, value, func
-      );
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to create a contract without a host!");
+      }
+      return this->host_->callContractFunction(this, address, value, func);
     }
 
     /**
@@ -469,9 +471,15 @@ class DynamicContract : public BaseContract {
      * @return The result of the function.
      */
     template <typename R, typename C, typename... Args> R callContractFunction(
-      R (C::*func)(const Args&...), const Args&... args
+      ContractHost* contractHost, R (C::*func)(const Args&...), const Args&... args
     ) {
       try {
+        // We don't want to ever overwrite the host_ pointer if it's already set
+        if (this->host_ == nullptr) {
+          this->host_ = contractHost;
+          PointerNullifier nullifier(this->host_);
+          return (static_cast<C*>(this)->*func)(args...);
+        }
         return (static_cast<C*>(this)->*func)(args...);
       } catch (const std::exception& e) {
         throw DynamicException(e.what());
@@ -486,8 +494,14 @@ class DynamicContract : public BaseContract {
      * @param func The function to call.
      * @return The result of the function.
      */
-    template <typename R, typename C> R callContractFunction(R (C::*func)()) {
+    template <typename R, typename C> R callContractFunction(ContractHost* contractHost, R (C::*func)()) {
       try {
+        // We don't want to ever overwrite the host_ pointer if it's already set
+        if (this->host_ == nullptr) {
+          this->host_ = contractHost;
+          PointerNullifier nullifier(this->host_);
+          return (static_cast<C*>(this)->*func)();
+        }
         return (static_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
         throw DynamicException(e.what());
@@ -505,18 +519,18 @@ class DynamicContract : public BaseContract {
      * @return The address of the created contract.
      */
     template<typename TContract, typename... Args> Address callCreateContract(
-      const uint256_t& gas, const uint256_t& gasPrice, const uint256_t& value, Args&&... args
+      Args&&... args
     ) {
-      Utils::safePrint("CallCreateContract being called...");
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to create a contract without a host!");
+      }
       Bytes encoder;
       if constexpr (sizeof...(Args) > 0) {
         encoder = ABI::Encoder::encodeData(std::forward<Args>(args)...);
       } else {
         encoder = Bytes(32, 0);
       }
-      return this->interface_.callCreateContract<TContract>(
-        this->getOrigin(), this->getContractAddress(), gas, gasPrice, value, std::move(encoder)
-      );
+      return this->host_->callCreateContract<TContract>(this, encoder);
     }
 
     /**
@@ -524,7 +538,7 @@ class DynamicContract : public BaseContract {
      * @param address The address of the contract.
      * @return The balance of the contract.
      */
-    uint256_t getBalance(const Address& address) const { return interface_.getBalanceFromAddress(address); }
+    uint256_t getBalance(const Address& address) const { return host_->getBalanceFromAddress(address); }
 
     /**
      * Send an amount of tokens from the contract to another address.
@@ -532,7 +546,7 @@ class DynamicContract : public BaseContract {
      * @param amount The amount of tokens to send.
      */
     void sendTokens(const Address& to, const uint256_t& amount) {
-      interface_.sendTokens(this->getContractAddress(), to, amount);
+      host_->sendTokens(this, to, amount);
     }
 
     /**

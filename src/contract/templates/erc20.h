@@ -10,7 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 
-#include "../../utils/contractreflectioninterface.h"
 #include "../../utils/db.h"
 #include "../../utils/utils.h"
 #include "../abi.h"
@@ -67,12 +66,10 @@ class ERC20 : public DynamicContract {
     using ConstructorArguments = std::tuple<const std::string&, const std::string&, const uint8_t&, const uint256_t&>;
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
     */
     ERC20(
-      ContractManagerInterface& interface,
       const Address& address, DB& db
     );
 
@@ -82,7 +79,6 @@ class ERC20 : public DynamicContract {
      * @param erc20symbol The symbol of the ERC20 token.
      * @param erc20decimals The decimals of the ERC20 token.
      * @param mintValue The amount of tokens that will be minted.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
@@ -91,7 +87,6 @@ class ERC20 : public DynamicContract {
     ERC20(
       const std::string &erc20name, const std::string &erc20symbol,
       const uint8_t &erc20decimals, const uint256_t &mintValue,
-      ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
       DB& db
     );
@@ -101,7 +96,6 @@ class ERC20 : public DynamicContract {
       const std::string &derivedTypeName,
       const std::string &erc20name, const std::string &erc20symbol,
       const uint8_t &erc20decimals, const uint256_t &mintValue,
-      ContractManagerInterface &interface,
       const Address &address, const Address &creator, const uint64_t &chainId,
       DB& db
     );
@@ -189,7 +183,7 @@ class ERC20 : public DynamicContract {
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
         ERC20, const std::string &, const std::string &, const uint8_t &,
-        const uint256_t &, ContractManagerInterface &,
+        const uint256_t &,
         const Address &, const Address &, const uint64_t &,
         DB&
       >(

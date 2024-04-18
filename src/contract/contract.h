@@ -21,7 +21,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "variables/safebase.h"
 
 // Forward declarations.
-class ContractCallLogger;
+class ContractHost;
 class State;
 
 /// Class that maintains global variables for contracts.
@@ -41,27 +41,25 @@ class ContractGlobals {
     static const uint64_t& getBlockTimestamp() { return ContractGlobals::blockTimestamp_; }
     ///@}
 
-    /// ContractManager can update private global vars (e.g. before ethCall() with a TxBlock, State calls CM->updateContractGlobals(...)).
-    friend class ContractManager;
+    /// State can update private global vars (e.g. before starting transaction execution).
+    friend class State;
 };
 
 /// Class that maintains local variables for contracts.
 class ContractLocals : public ContractGlobals {
   private:
-    mutable Address origin_;  ///< Who called the contract.
     mutable Address caller_;  ///< Who sent the transaction.
     mutable uint256_t value_; ///< Value sent within the transaction.
 
   protected:
     ///@{
     /** Getter. */
-    const Address& getOrigin() const { return this->origin_; }
     const Address& getCaller() const { return this->caller_; }
     const uint256_t& getValue() const { return this->value_; }
     ///@}
 
     /// ContractCallLogger can update private local vars (e.g. before ethCall() within a contract).
-    friend class ContractCallLogger;
+    friend class ContractHost;
 };
 
 /// Base class for all contracts.
@@ -75,6 +73,7 @@ class BaseContract : public ContractLocals {
 
   protected:
     DB& db_; ///< Reference to the DB instance.
+    mutable ContractHost* host_ = nullptr; ///< Reference to the ContractHost instance.
 
   public:
     bool reentrancyLock_ = false; ///< Lock (for reentrancy).
@@ -129,7 +128,7 @@ class BaseContract : public ContractLocals {
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual void ethCall(const ethCallInfo& data) {
+    virtual void ethCall(const ethCallInfo& data, ContractHost* host) {
       throw DynamicException("Derived Class from Contract does not override ethCall()");
     }
 
@@ -140,7 +139,7 @@ class BaseContract : public ContractLocals {
      * @return A string with the answer to the call.
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual Bytes ethCallView(const ethCallInfo &data) const {
+    virtual Bytes ethCallView(const ethCallInfo &data, ContractHost* host) const {
       throw DynamicException("Derived Class from Contract does not override ethCallView()");
     }
 
@@ -164,6 +163,9 @@ class BaseContract : public ContractLocals {
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
       return prefix;
     }
+
+    Address getOrigin() const; ///< Get the origin of the transaction.
+    uint64_t getNonce(const Address& address) const; ///< Get the nonce of an address.
 };
 
 #endif // CONTRACT_H
