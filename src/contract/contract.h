@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <string>
 #include <tuple>
 
+#include "../core/dump.h"
 #include "../utils/db.h"
 #include "../utils/strings.h"
 #include "../utils/tx.h"
@@ -65,7 +66,7 @@ class ContractLocals : public ContractGlobals {
 };
 
 /// Base class for all contracts.
-class BaseContract : public ContractLocals {
+class BaseContract : public ContractLocals, public Dumpable {
   private:
     std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
     Bytes dbPrefix_;           ///< Prefix for the contract DB.
