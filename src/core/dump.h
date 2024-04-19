@@ -22,7 +22,7 @@ class Dumpable {
 public:
   /**
    * Pure virtual function to be implemented.
-   * The function should dump implemented by the methods that are dumpable.
+   * The function should pile DBBatch operations.
    */
   virtual DBBatch dump() const = 0;
 };
@@ -46,7 +46,9 @@ public:
    * Constructor.
    * @param db Pointer to state database.
    */
-  DumpManager(const Storage& storage, const Options& options, std::shared_mutex& stateMutex);
+  DumpManager(const Storage& storage,
+              const Options& options,
+              std::shared_mutex& stateMutex);
 
   /**
    * Function that will register dumpable objects.

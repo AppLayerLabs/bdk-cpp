@@ -532,19 +532,16 @@ void rdPoSWorker::stop() {
 DBBatch rdPoS::dump() const
 {
   DBBatch dbBatch;
-  // mutex lock
-  std::unique_lock lock(this->mutex_);
   // logs
   Logger::logToDebug(LogType::INFO,
                      Log::rdPoS,
                      __func__,
                      "Create batch operations.");
-  // index
-  uint64_t i = 0;
   // add batch operations
-  for (const auto &validator : this->validators_) {
-    dbBatch.push_back(Utils::uint64ToBytes(i), validator.get(), DBPrefix::rdPoS);
-    i++;
-  }
+  uint64_t i = 0;
+  for (const auto &validator : this->validators_)
+    dbBatch.push_back(Utils::uint64ToBytes(i++),
+                      validator.get(),
+                      DBPrefix::rdPoS);
   return dbBatch;
 }

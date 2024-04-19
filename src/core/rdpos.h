@@ -124,7 +124,7 @@ public:
 };
 
 /// Abstraction of the %rdPoS (Random Deterministic Proof of Stake) consensus algorithm.
-class rdPoS : public BaseContract, public Dumpable {
+class rdPoS : public BaseContract {
 private:
   const Options& options_;  ///< Reference to the options singleton.
   DB& db_;
@@ -255,6 +255,7 @@ public:
   void stoprdPoSWorker(); ///< Stop the rdPoSWorker.
   friend rdPoSWorker; ///< Worker class is a friend.
 
+  /// Dump method
   DBBatch dump() const override;
 };
 
