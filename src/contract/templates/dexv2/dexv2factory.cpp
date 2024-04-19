@@ -1,8 +1,8 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+  Copyright (c) [2023-2024] [Sparq Network]
 
-This software is distributed under the MIT License.
-See the LICENSE.txt file in the project root for more information.
+  This software is distributed under the MIT License.
+  See the LICENSE.txt file in the project root for more information.
 */
 
 #include "dexv2factory.h"
@@ -10,8 +10,8 @@ See the LICENSE.txt file in the project root for more information.
 
 DEXV2Factory::DEXV2Factory(
   ContractManagerInterface &interface, const Address &address, DB& db
-) : DynamicContract(interface, address, db), feeTo_(this), feeToSetter_(this),
-  allPairs_(this), getPair_(this)
+  ) : DynamicContract(interface, address, db), feeTo_(this), feeToSetter_(this),
+      allPairs_(this), getPair_(this)
 {
   this->feeTo_ = Address(db_.get(std::string("feeTo_"), this->getDBPrefix()));
   this->feeToSetter_ = Address(db_.get(std::string("feeToSetter_"), this->getDBPrefix()));
@@ -41,8 +41,8 @@ DEXV2Factory::DEXV2Factory(
   ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   DB& db
-) : DynamicContract(interface, "DEXV2Factory", address, creator, chainId, db),
-  feeTo_(this), feeToSetter_(this), allPairs_(this), getPair_(this)
+  ) : DynamicContract(interface, "DEXV2Factory", address, creator, chainId, db),
+      feeTo_(this), feeToSetter_(this), allPairs_(this), getPair_(this)
 {
   this->feeToSetter_ = feeToSetter;
 
@@ -59,24 +59,7 @@ DEXV2Factory::DEXV2Factory(
   this->getPair_.enableRegister();
 }
 
-DEXV2Factory::~DEXV2Factory() {
-  DBBatch batchOperations;
-  batchOperations.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
-  batchOperations.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
-  uint32_t index = 0;
-  for (const auto& address : this->allPairs_.get()) batchOperations.push_back(
-    Utils::uint32ToBytes(index), address.view(), this->getNewPrefix("allPairs_")
-  );
-  for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
-    for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
-      const auto& key = tokenA->first.get();
-      Bytes value = tokenB->first.asBytes();
-      Utils::appendBytes(value, tokenB->second.asBytes());
-      batchOperations.push_back(key, value, this->getNewPrefix("getPair_"));
-    }
-  }
-  this->db_.putBatch(batchOperations);
-}
+DEXV2Factory::~DEXV2Factory() {}
 
 void DEXV2Factory::registerContractFunctions() {
   registerContract();
@@ -129,7 +112,42 @@ Address DEXV2Factory::createPair(const Address& tokenA, const Address& tokenB) {
   return pair;
 }
 
-void DEXV2Factory::setFeeTo(const Address& feeTo) { this->feeTo_ = feeTo; }
+void DEXV2Factory::setFeeTo(const Address& feeTo)
+{
+  this->feeTo_ = feeTo;
+}
 
-void DEXV2Factory::setFeeToSetter(const Address& feeToSetter) { this->feeToSetter_ = feeToSetter; }
+void DEXV2Factory::setFeeToSetter(const Address& feeToSetter)
+{
+  this->feeToSetter_ = feeToSetter;
+}
 
+DBBatch DEXV2Factory::dump() const
+{
+  DBBatch dbBatch;
+  uint32_t i = 0;
+  std::unordered_map<std::string,BytesArrView> data {
+    {"feeTo_", this->feeTo_.get().view()},
+    {"feeToSetter_", this->feeToSetter_.get().view()}
+  };
+
+  for (auto it = data.begin(); it != data.end(); ++it) {
+    dbBatch.push_back(Utils::stringToBytes(it->first),
+                      it->second,
+                      this->getDBPrefix());
+  }
+  for (const auto& address : this->allPairs_.get()) {
+    dbBatch.push_back(Utils::uint32ToBytes(i++),
+                      address.view(),
+                      this->getNewPrefix("allPairs_"));
+  }
+  for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
+    for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
+      const auto& key = tokenA->first.get();
+      Bytes value = tokenB->first.asBytes();
+      Utils::appendBytes(value, tokenB->second.asBytes());
+      dbBatch.push_back(key, value, this->getNewPrefix("getPair_"));
+    }
+  }
+  return dbBatch;
+}

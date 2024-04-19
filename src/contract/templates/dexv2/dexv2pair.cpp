@@ -262,3 +262,26 @@ void DEXV2Pair::sync() {
   );
 }
 
+DBBatch DEXV2Pair::dump() const
+{
+  DBBatch dbBatch;
+  std::unordered_map<std::string, BytesArrView> data {
+    {"factory_", this->factory_.get().view()},
+    {"token0_", this->token0_.get().view()},
+    {"token1_", this->token1_.get().view()},
+    {"reserve0_", Utils::uint112ToBytes(this->reserve0_.get())},
+    {"reserve1_", Utils::uint112ToBytes(this->reserve1_.get())},
+    {"blockTimestampLast_", Utils::uint32ToBytes(this->blockTimestampLast_.get())},
+    {"price0CumulativeLast_", Utils::uint256ToBytes(this->price0CumulativeLast_.get())},
+    {"price1CumulativeLast_", Utils::uint256ToBytes(this->price1CumulativeLast_.get())},
+    {"kLast_", Utils::uint256ToBytes(this->kLast_.get())}
+  };
+
+  for (auto it = data.begin(); it != data.end(); ++it) {
+    dbBatch.push_back(Utils::stringToBytes(it->first),
+                      it->second,
+                      this->getDBPrefix());
+  }
+  return dbBatch;
+}
+

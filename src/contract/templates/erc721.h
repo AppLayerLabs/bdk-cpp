@@ -329,6 +329,8 @@ public:
         std::make_tuple("transferFrom", &ERC721::transferFrom, FunctionTypes::NonPayable,
                         std::vector<std::string>{"from", "to", "tokenId"}));
   }
+  /// Dump method
+  DBBatch dump(void) const override;
 };
 
 #endif // ERC721_H

@@ -41,3 +41,9 @@ void ThrowTestA::registerContractFunctions() {
   this->registerMemberFunction("setNumA", &ThrowTestA::setNumA, FunctionTypes::NonPayable, this);
 }
 
+DBBatch ThrowTestA::dump() const
+{
+  DBBatch dbBatch;
+
+  return dbBatch;
+}

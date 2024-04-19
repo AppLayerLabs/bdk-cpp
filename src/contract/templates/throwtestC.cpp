@@ -1,8 +1,8 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+  Copyright (c) [2023-2024] [Sparq Network]
 
-This software is distributed under the MIT License.
-See the LICENSE.txt file in the project root for more information.
+  This software is distributed under the MIT License.
+  See the LICENSE.txt file in the project root for more information.
 */
 
 #include "throwtestC.h"
@@ -10,30 +10,43 @@ See the LICENSE.txt file in the project root for more information.
 ThrowTestC::ThrowTestC(
   ContractManagerInterface &interface,
   const Address& address, const Address& creator,
-  const uint64_t& chainId, DB& db
-) : DynamicContract(interface, "ThrowTestC", address, creator, chainId, db) {
+  const uint64_t& chainId, DB& db)
+  : DynamicContract(interface, "ThrowTestC", address, creator, chainId, db)
+{
   registerContractFunctions();
 }
 
 ThrowTestC::ThrowTestC(
   ContractManagerInterface &interface,
   const Address& address,
-  DB& db
-) : DynamicContract(interface, address, db) {
+  DB& db)
+  : DynamicContract(interface, address, db)
+{
   registerContractFunctions();
 }
 
 ThrowTestC::~ThrowTestC() { return; }
 
-uint8_t ThrowTestC::getNumC() const { return this->num_.get(); }
+uint8_t ThrowTestC::getNumC() const
+{
+  return this->num_.get();
+}
 
-void ThrowTestC::setNumC(const uint8_t& valC) {
+void ThrowTestC::setNumC(const uint8_t& valC)
+{
   this->num_ = valC;
 }
 
-void ThrowTestC::registerContractFunctions() {
+void ThrowTestC::registerContractFunctions()
+{
   registerContract();
   this->registerMemberFunction("getNumC", &ThrowTestC::getNumC, FunctionTypes::View, this);
   this->registerMemberFunction("setNumC", &ThrowTestC::setNumC, FunctionTypes::NonPayable, this);
 }
 
+DBBatch ThrowTestC::dump() const
+{
+  DBBatch dbBatch;
+
+  return dbBatch;
+}

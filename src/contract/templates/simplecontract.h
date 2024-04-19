@@ -1,8 +1,8 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+  Copyright (c) [2023-2024] [Sparq Network]
 
-This software is distributed under the MIT License.
-See the LICENSE.txt file in the project root for more information.
+  This software is distributed under the MIT License.
+  See the LICENSE.txt file in the project root for more information.
 */
 
 #ifndef SIMPLECONTRACT_H
@@ -11,6 +11,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../dynamiccontract.h"
 #include "../variables/safestring.h"
 #include "../variables/safetuple.h"
+#include "../../utils/db.h"
 #include "../../utils/utils.h" // SafeUintX_t aliases declared here
 
 /**
@@ -18,147 +19,148 @@ See the LICENSE.txt file in the project root for more information.
  * It is used to test the Contract Manager.
  */
 class SimpleContract : public DynamicContract {
-  private:
-    SafeString name_; ///< The name of the contract.
-    SafeUint256_t number_; ///< The number of the contract.
-    SafeTuple<std::string, uint256_t> tuple_;  ///< Name and number as a tuple.
-    void registerContractFunctions() override; ///< Register the contract functions.
+private:
+  SafeString name_; ///< The name of the contract.
+  SafeUint256_t number_; ///< The number of the contract.
+  SafeTuple<std::string, uint256_t> tuple_;  ///< Name and number as a tuple.
+  void registerContractFunctions() override; ///< Register the contract functions.
 
-  public:
-    /// Event for when the name changes.
-    void nameChanged(const EventParam<std::string, true>& name) {
-      this->emitEvent(__func__, std::make_tuple(name));
-    }
+public:
+  /// Event for when the name changes.
+  void nameChanged(const EventParam<std::string, true>& name) {
+    this->emitEvent(__func__, std::make_tuple(name));
+  }
 
-    /// Event for when the number changes.
-    void numberChanged(const EventParam<uint256_t, false>& number) {
-      this->emitEvent(__func__, std::make_tuple(number));
-    }
+  /// Event for when the number changes.
+  void numberChanged(const EventParam<uint256_t, false>& number) {
+    this->emitEvent(__func__, std::make_tuple(number));
+  }
 
-    /// Event for when the name and number tuple changes.
-    void tupleChanged(const EventParam<std::tuple<std::string, uint256_t>, true>& tuple) {
-      this->emitEvent(__func__, std::make_tuple(tuple));
-    }
+  /// Event for when the name and number tuple changes.
+  void tupleChanged(const EventParam<std::tuple<std::string, uint256_t>, true>& tuple) {
+    this->emitEvent(__func__, std::make_tuple(tuple));
+  }
 
-    /// Event for when the name and number change. Used for testing JSON ABI generation.
-    void nameAndNumberChanged(const EventParam<std::string, true>& name, const EventParam<uint256_t, true>& number) {
-      this->emitEvent(__func__, std::make_tuple(name, number));
-    }
+  /// Event for when the name and number change. Used for testing JSON ABI generation.
+  void nameAndNumberChanged(const EventParam<std::string, true>& name, const EventParam<uint256_t, true>& number) {
+    this->emitEvent(__func__, std::make_tuple(name, number));
+  }
 
-    /// Event for when the name and number change (as tuple). Used for testing JSON ABI generation
-    void nameAndNumberTupleChanged(const EventParam<std::tuple<std::string, uint256_t>, true>& nameAndNumber) {
-      this->emitEvent(__func__, std::make_tuple(nameAndNumber));
-    }
+  /// Event for when the name and number change (as tuple). Used for testing JSON ABI generation
+  void nameAndNumberTupleChanged(const EventParam<std::tuple<std::string, uint256_t>, true>& nameAndNumber) {
+    this->emitEvent(__func__, std::make_tuple(nameAndNumber));
+  }
 
-    /// The constructor argument types.
-    using ConstructorArguments = std::tuple<
-      const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&
+  /// The constructor argument types.
+  using ConstructorArguments = std::tuple<
+    const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&
     >;
 
-    /**
-     * Constructor from create. Create contract and save it to database.
-     * @param name The name of the contract.
-     * @param number The number of the contract.
-     * @param tuple The name and number tuple of the contract.
-     * @param interface The interface to the contract manager.
-     * @param address The address of the contract.
-     * @param creator The address of the creator of the contract.
-     * @param chainId The chain ID.
-     * @param db The database to use.
-     */
-    SimpleContract(
-      const std::string& name,
-      const uint256_t& number,
-      const std::tuple<std::string, uint256_t>& tuple,
-      ContractManagerInterface &interface,
-      const Address& address,
-      const Address& creator,
-      const uint64_t& chainId,
-      DB& db
+  /**
+   * Constructor from create. Create contract and save it to database.
+   * @param name The name of the contract.
+   * @param number The number of the contract.
+   * @param tuple The name and number tuple of the contract.
+   * @param interface The interface to the contract manager.
+   * @param address The address of the contract.
+   * @param creator The address of the creator of the contract.
+   * @param chainId The chain ID.
+   * @param db The database to use.
+   */
+  SimpleContract(
+    const std::string& name,
+    const uint256_t& number,
+    const std::tuple<std::string, uint256_t>& tuple,
+    ContractManagerInterface &interface,
+    const Address& address,
+    const Address& creator,
+    const uint64_t& chainId,
+    DB& db
     );
 
-    /**
-     * Constructor from load. Load contract from database.
-     * @param interface The interface to the contract manager.
-     * @param address The address of the contract.
-     * @param db The database to use.
-     */
-    SimpleContract(
-      ContractManagerInterface &interface,
-      const Address& address,
-      DB& db
+  /**
+   * Constructor from load. Load contract from database.
+   * @param interface The interface to the contract manager.
+   * @param address The address of the contract.
+   * @param db The database to use.
+   */
+  SimpleContract(
+    ContractManagerInterface &interface,
+    const Address& address,
+    DB& db
     );
 
-    ~SimpleContract() override; ///< Destructor.
+  ~SimpleContract() override; ///< Destructor.
 
-    /// function setName(string memory argName) public
-    void setName(const std::string& argName);
+  /// function setName(string memory argName) public
+  void setName(const std::string& argName);
 
-    /// function setNames(string[] memory argName) public, the final name is the concatenation of all names
-    void setNames(const std::vector<std::string>& argName);
+  /// function setNames(string[] memory argName) public, the final name is the concatenation of all names
+  void setNames(const std::vector<std::string>& argName);
 
-    /// function setNumber(uint256 argNumber) public
-    void setNumber(const uint256_t& argNumber);
+  /// function setNumber(uint256 argNumber) public
+  void setNumber(const uint256_t& argNumber);
 
-    /// function setNumbers(uint256[] memory argNumber) public, the final value is the sum of all values
-    void setNumbers(const std::vector<uint256_t>& argNumber);
+  /// function setNumbers(uint256[] memory argNumber) public, the final value is the sum of all values
+  void setNumbers(const std::vector<uint256_t>& argNumber);
 
-    /// function setNamesAndNumbers(string[] memory argName, uint256[] memory argNumber) public,
-    /// the final name is the concatenation of all names, the final value is the sum of all values
-    void setNamesAndNumbers(const std::vector<std::string>& argName, const std::vector<uint256_t>& argNumber);
+  /// function setNamesAndNumbers(string[] memory argName, uint256[] memory argNumber) public,
+  /// the final name is the concatenation of all names, the final value is the sum of all values
+  void setNamesAndNumbers(const std::vector<std::string>& argName, const std::vector<uint256_t>& argNumber);
 
-    /// function setNamesAndNumbersInTuple(NameAndNumber[] memory argNameAndNumber) public,
-    /// the final name is the concatenation of all names, the final value is the sum of all values
-    void setNamesAndNumbersInTuple(const std::vector<std::tuple<std::string, uint256_t>>& argNameAndNumber);
+  /// function setNamesAndNumbersInTuple(NameAndNumber[] memory argNameAndNumber) public,
+  /// the final name is the concatenation of all names, the final value is the sum of all values
+  void setNamesAndNumbersInTuple(const std::vector<std::tuple<std::string, uint256_t>>& argNameAndNumber);
 
-    /// function setNamesAndNumbersInArrayOfArrays(NameAndNumber[][] memory argNameAndNumber) public.
-    /// the final name is the concatenation of all names, the final value is the sum of all values
-    void setNamesAndNumbersInArrayOfArrays(const std::vector<std::vector<std::tuple<std::string, uint256_t>>>& argNameAndNumber);
+  /// function setNamesAndNumbersInArrayOfArrays(NameAndNumber[][] memory argNameAndNumber) public.
+  /// the final name is the concatenation of all names, the final value is the sum of all values
+  void setNamesAndNumbersInArrayOfArrays(const std::vector<std::vector<std::tuple<std::string, uint256_t>>>& argNameAndNumber);
 
-    /// equivalent to function setTuple(string name, uint256 number) public
-    void setTuple(const std::tuple<std::string, uint256_t>& argTuple);
+  /// equivalent to function setTuple(string name, uint256 number) public
+  void setTuple(const std::tuple<std::string, uint256_t>& argTuple);
 
-    /// function getName() public view returns(string memory)
-    std::string getName() const;
+  /// function getName() public view returns(string memory)
+  std::string getName() const;
 
-    /// function getNames(const uint256_t& i) public view returns(string[] memory) return string[] of size i with this->name_ as all elements.
-    std::vector<std::string> getNames(const uint256_t& i) const;
+  /// function getNames(const uint256_t& i) public view returns(string[] memory) return string[] of size i with this->name_ as all elements.
+  std::vector<std::string> getNames(const uint256_t& i) const;
 
-    /// function getNumber() public view returns(uint256)
-    uint256_t getNumber() const;
+  /// function getNumber() public view returns(uint256)
+  uint256_t getNumber() const;
 
-    // For testing overloading functions...
-    /// Function getNumber(uint256 i) public view returns(uint256) return this->number_ + i.
-    uint256_t getNumber(const uint256_t& i) const;
+  // For testing overloading functions...
+  /// Function getNumber(uint256 i) public view returns(uint256) return this->number_ + i.
+  uint256_t getNumber(const uint256_t& i) const;
 
-    /// function getNumbers(const uint256_t& i) public view returns(uint256[] memory) return uint256[] of size i with this->number_ as all elements.
-    std::vector<uint256_t> getNumbers(const uint256_t& i) const;
+  /// function getNumbers(const uint256_t& i) public view returns(uint256[] memory) return uint256[] of size i with this->number_ as all elements.
+  std::vector<uint256_t> getNumbers(const uint256_t& i) const;
 
-    /// function getNameAndNumber() public view returns(string memory, uint256)
-    std::tuple<std::string, uint256_t> getNameAndNumber() const;
+  /// function getNameAndNumber() public view returns(string memory, uint256)
+  std::tuple<std::string, uint256_t> getNameAndNumber() const;
 
-    /// function getNamesAndNumbers(const uint256_t& i) public view returns(string[] memory, uint256[] memory)
-    /// return string[] of size i with this->name_ as all elements, return uint256[] of size i with this->number_ as all elements.
-    std::tuple<std::vector<std::string>, std::vector<uint256_t>> getNamesAndNumbers(const uint256_t& i) const;
+  /// function getNamesAndNumbers(const uint256_t& i) public view returns(string[] memory, uint256[] memory)
+  /// return string[] of size i with this->name_ as all elements, return uint256[] of size i with this->number_ as all elements.
+  std::tuple<std::vector<std::string>, std::vector<uint256_t>> getNamesAndNumbers(const uint256_t& i) const;
 
-    /// function getNamesAndNumbersInTuple(const uint256_t& i) public view returns(NameAndNumber[] memory)
-    /// return (string, uint256)[] of size i with this->name_ and this->number_ as all elements.
-    std::vector<std::tuple<std::string, uint256_t>> getNamesAndNumbersInTuple(const uint256_t& i) const;
+  /// function getNamesAndNumbersInTuple(const uint256_t& i) public view returns(NameAndNumber[] memory)
+  /// return (string, uint256)[] of size i with this->name_ and this->number_ as all elements.
+  std::vector<std::tuple<std::string, uint256_t>> getNamesAndNumbersInTuple(const uint256_t& i) const;
 
-    /// function getNamesAndNumbersInArrayOfArrays(const uint256_t& i) public view returns(NameAndNumber[][] memory)
-    /// return (string, uint256)[][] of size i with this->name_ and this->number_ as all elements.
-    std::vector<std::vector<std::tuple<std::string, uint256_t>>> getNamesAndNumbersInArrayOfArrays(const uint256_t& i) const;
+  /// function getNamesAndNumbersInArrayOfArrays(const uint256_t& i) public view returns(NameAndNumber[][] memory)
+  /// return (string, uint256)[][] of size i with this->name_ and this->number_ as all elements.
+  std::vector<std::vector<std::tuple<std::string, uint256_t>>> getNamesAndNumbersInArrayOfArrays(const uint256_t& i) const;
 
-    /// equivalent to function getTuple() public view returns(string memory, uint256)
-    std::tuple<std::string, uint256_t> getTuple() const;
+  /// equivalent to function getTuple() public view returns(string memory, uint256)
+  std::tuple<std::string, uint256_t> getTuple() const;
 
-    /// Register the contract structure.
-    static void registerContract() {
-      ContractReflectionInterface::registerContractMethods<
-        SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
-        ContractManagerInterface&,
-        const Address&, const Address&, const uint64_t&,
-        DB&
+  /// Register the contract structure.
+  static void registerContract()
+  {
+    ContractReflectionInterface::registerContractMethods<
+      SimpleContract, const std::string&, const uint256_t&, const std::tuple<std::string, uint256_t>&,
+      ContractManagerInterface&,
+      const Address&, const Address&, const uint64_t&,
+      DB&
       >(
         std::vector<std::string>{"name_", "number_", "tuple_"},
         std::make_tuple("setName", &SimpleContract::setName, FunctionTypes::NonPayable, std::vector<std::string>{"argName"}),
@@ -179,15 +181,17 @@ class SimpleContract : public DynamicContract {
         std::make_tuple("getNamesAndNumbersInTuple", &SimpleContract::getNamesAndNumbersInTuple, FunctionTypes::View, std::vector<std::string>{"i"}),
         std::make_tuple("getNamesAndNumbersInArrayOfArrays", &SimpleContract::getNamesAndNumbersInArrayOfArrays, FunctionTypes::View, std::vector<std::string>{"i"}),
         std::make_tuple("getTuple", &SimpleContract::getTuple, FunctionTypes::View, std::vector<std::string>{})
+        );
+    ContractReflectionInterface::registerContractEvents<SimpleContract>(
+      std::make_tuple("nameChanged", false, &SimpleContract::nameChanged, std::vector<std::string>{"name"}),
+      std::make_tuple("numberChanged", false, &SimpleContract::numberChanged, std::vector<std::string>{"number"}),
+      std::make_tuple("tupleChanged", false, &SimpleContract::tupleChanged, std::vector<std::string>{"tuple"}),
+      std::make_tuple("nameAndNumberChanged", false, &SimpleContract::nameAndNumberChanged, std::vector<std::string>{"name", "number"}),
+      std::make_tuple("nameAndNumberTupleChanged", false, &SimpleContract::nameAndNumberTupleChanged, std::vector<std::string>{"nameAndNumber"})
       );
-      ContractReflectionInterface::registerContractEvents<SimpleContract>(
-        std::make_tuple("nameChanged", false, &SimpleContract::nameChanged, std::vector<std::string>{"name"}),
-        std::make_tuple("numberChanged", false, &SimpleContract::numberChanged, std::vector<std::string>{"number"}),
-        std::make_tuple("tupleChanged", false, &SimpleContract::tupleChanged, std::vector<std::string>{"tuple"}),
-        std::make_tuple("nameAndNumberChanged", false, &SimpleContract::nameAndNumberChanged, std::vector<std::string>{"name", "number"}),
-        std::make_tuple("nameAndNumberTupleChanged", false, &SimpleContract::nameAndNumberTupleChanged, std::vector<std::string>{"nameAndNumber"})
-      );
-    }
+  }
+  /// Dump method
+  DBBatch dump() const override;
 };
 
 #endif // SIMPLECONTRACT_H

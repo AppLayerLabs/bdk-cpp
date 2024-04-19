@@ -103,37 +103,48 @@ ERC721::ERC721(
   this->operatorAddressApprovals_.enableRegister();
 }
 
-ERC721::~ERC721() {
-  DBBatch batchedOperations;
+ERC721::~ERC721() {}
 
-  this->db_.put(std::string("name_"), name_.get(), this->getDBPrefix());
-  this->db_.put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
+DBBatch ERC721::dump(void) const
+{
+  DBBatch dbBatch;
+  std::unordered_map<std::string, BytesArrView> data {
+    {"name_",  Utils::stringToBytes(name_.get())},
+    {"symbol_", Utils::stringToBytes(symbol_.get())}
+  };
 
+  for (auto it = data.cbegin(); it != data.cend(); ++it) {
+    dbBatch.push_back(Utils::stringToBytes(it->first),
+                      it->second,
+                      this->getDBPrefix());
+  }
   for (auto it = owners_.cbegin(), end = owners_.cend(); it != end; ++it) {
     // key: uint -> value: Address
-    batchedOperations.push_back(Utils::uintToBytes(it->first), it->second.get(), this->getNewPrefix("owners_"));
+    dbBatch.push_back(Utils::uintToBytes(it->first),
+                      it->second.get(),
+                      this->getNewPrefix("owners_"));
   }
-
   for (auto it = balances_.cbegin(), end = balances_.cend(); it != end; ++it) {
     // key: Address -> value: uint
-    batchedOperations.push_back(it->first.get(), Utils::uintToBytes(it->second), this->getNewPrefix("balances_"));
+    dbBatch.push_back(it->first.get(),
+                      Utils::uintToBytes(it->second),
+                      this->getNewPrefix("balances_"));
   }
-
   for (auto it = tokenApprovals_.cbegin(), end = tokenApprovals_.cend(); it != end; ++it) {
     // key: uint -> value: Address
-    batchedOperations.push_back(Utils::uintToBytes(it->first), it->second.get(), this->getNewPrefix("tokenApprovals_"));
+    dbBatch.push_back(Utils::uintToBytes(it->first),
+                      it->second.get(),
+                      this->getNewPrefix("tokenApprovals_"));
   }
-
-  for (auto it = operatorAddressApprovals_.cbegin(); it != operatorAddressApprovals_.cend(); ++it) {
-    for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
+  for (auto i = operatorAddressApprovals_.cbegin(); i != operatorAddressApprovals_.cend(); ++i) {
+    for (auto j = i->second.cbegin(); j != i->second.cend(); ++j) {
       // key: address + address -> bool
-      Bytes key = it->first.asBytes();
-      Utils::appendBytes(key, it2->first.asBytes());
-      Bytes value = {uint8_t(it2->second)};
+      Bytes key = i->first.asBytes();
+      Utils::appendBytes(key, j->first.asBytes());
+      Bytes value = {uint8_t(j->second)};
     }
   }
-
-  this->db_.putBatch(batchedOperations);
+  return dbBatch;
 }
 
 void ERC721::registerContractFunctions() {

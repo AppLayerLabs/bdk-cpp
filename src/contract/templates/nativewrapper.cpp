@@ -1,15 +1,15 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+  Copyright (c) [2023-2024] [Sparq Network]
 
-This software is distributed under the MIT License.
-See the LICENSE.txt file in the project root for more information.
+  This software is distributed under the MIT License.
+  See the LICENSE.txt file in the project root for more information.
 */
 
 #include "nativewrapper.h"
 
 NativeWrapper::NativeWrapper(
   ContractManagerInterface &interface, const Address& address, DB& db
-) : ERC20(interface, address, db)
+  ) : ERC20(interface, address, db)
 {
   this->registerContractFunctions();
 }
@@ -20,26 +20,28 @@ NativeWrapper::NativeWrapper(
   ContractManagerInterface &interface,
   const Address &address, const Address &creator,
   const uint64_t &chainId, DB& db
-) : ERC20("NativeWrapper", erc20_name, erc20_symbol, erc20_decimals,
-  0, interface, address, creator, chainId, db
-) {
+  ) : ERC20("NativeWrapper", erc20_name, erc20_symbol, erc20_decimals,
+            0, interface, address, creator, chainId, db)
+{
   this->registerContractFunctions();
 }
 
 NativeWrapper::~NativeWrapper() = default;
 
-void NativeWrapper::registerContractFunctions() {
+void NativeWrapper::registerContractFunctions()
+{
   registerContract();
   this->registerMemberFunction("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, this);
   this->registerMemberFunction("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, this);
 }
 
-void NativeWrapper::deposit() {
+void NativeWrapper::deposit()
+{
   this->mintValue_(this->getCaller(), this->getValue());
 }
 
-void NativeWrapper::withdraw(const uint256_t &value) {
+void NativeWrapper::withdraw(const uint256_t &value)
+{
   this->burnValue_(this->getCaller(), value);
   this->sendTokens(this->getCaller(), value);
 }
-
