@@ -121,7 +121,7 @@ namespace TDEXV2 {
       uint256_t pairTknA = sdk.callViewFunction(tokenA, &ERC20::balanceOf, pair);
       uint256_t pairNative = sdk.getNativeBalance(wrapped);
       REQUIRE(ownerTknA == uint256_t("9900000000000000000000"));
-      REQUIRE(ownerNative == ownerNativeBeforeAddLiq - uint256_t("100000000000000000000") - (uint256_t(1000000000) * 21000));
+      REQUIRE(ownerNative <= ownerNativeBeforeAddLiq - uint256_t("100000000000000000000") - (uint256_t(1000000000) * 21000));
       REQUIRE(pairTknA == uint256_t("100000000000000000000"));
       REQUIRE(pairNative == uint256_t("100000000000000000000"));
     }

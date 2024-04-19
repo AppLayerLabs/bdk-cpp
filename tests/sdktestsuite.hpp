@@ -263,9 +263,35 @@ class SDKTestSuite {
     TxBlock createNewTx(
       const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
     ) {
-      // 1000000000 = 1 GWEI, 21000 = 21000 WEI
+      ethCallInfoAllocated callInfo;
+      auto& [callInfoFrom,
+        callInfoTo,
+        callInfoGasLimit,
+        callInfoGasPrice,
+        callInfoValue,
+        callInfoFunctor,
+        callInfoData,
+        callInfoFulldata] = callInfo;
+
+      callInfoFrom = from.address;
+      callInfoTo = to;
+      callInfoGasLimit = 1000000000;
+      callInfoGasPrice = 1000000000;
+      callInfoValue = value;
+      callInfoFulldata = data;
+      callInfoFunctor = Functor(Utils::create_view_span(callInfoFulldata, 0, 4));
+      callInfoData = Utils::create_view_span(callInfoFulldata, 4, callInfoFulldata.size() - 4);
+
+      auto usedGas = this->state_.estimateGas(callInfo);
+      usedGas += 10000; // Add some extra gas for the transaction itself
+      /// Estimate the gas to see how much gaslimit we should give to the tx itself
       return TxBlock(to, from.address, data, this->options_.getChainID(),
-        this->state_.getNativeNonce(from.address), value, 1000000000, 1000000000, 21000, from.privKey
+        this->state_.getNativeNonce(from.address),
+        value,
+        1000000000,
+        1000000000,
+        usedGas,
+        from.privKey
       );
     }
 
@@ -331,7 +357,6 @@ class SDKTestSuite {
 
       // Create the transaction, advance the chain with it, and get the new contract address.
       TxBlock createContractTx = createNewTx(this->chainOwnerAccount(), ProtocolContractAddresses.at("ContractManager"), 0, data);
-      this->state_.estimateGas(createContractTx.txToCallInfo());
       this->advanceChain(0, {createContractTx});
       auto newContractList = this->state_.getContracts();
 
@@ -375,7 +400,6 @@ class SDKTestSuite {
 
       // Create the transaction, advance the chain with it, and get the new contract address.
       TxBlock createContractTx = createNewTx(this->chainOwnerAccount(), ProtocolContractAddresses.at("ContractManager"), 0, data);
-      this->state_.estimateGas(createContractTx.txToCallInfo());
       this->advanceChain(0, {createContractTx});
       auto newContractList = this->state_.getContracts();
 
@@ -424,7 +448,6 @@ class SDKTestSuite {
       );
       ret = tx.hash();
       // Check if the execution is not going to be reverted/throw
-      this->state_.estimateGas(tx.txToCallInfo());
       this->advanceChain(timestamp, {tx});
       return ret;
     }
@@ -469,7 +492,6 @@ class SDKTestSuite {
       );
       ret = tx.hash();
       // Check if the execution is not going to be reverted/throw
-      this->state_.estimateGas(tx.txToCallInfo());
       this->advanceChain(timestamp, {tx});
       return ret;
     }

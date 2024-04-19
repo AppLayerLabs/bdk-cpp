@@ -117,9 +117,7 @@ Address DEXV2Factory::createPair(const Address& tokenA, const Address& tokenB) {
   auto& token1 = (tokenA < tokenB) ? tokenB : tokenA;
   if (token0 == Address()) throw DynamicException("DEXV2Factory::createPair: ZERO_ADDRESS");
   if (this->getPair(token0, token1) != Address()) throw DynamicException("DEXV2Factory::createPair: PAIR_EXISTS");
-  Utils::safePrint("DEXV2Factory: creating pair...");
   auto pair = this->callCreateContract<DEXV2Pair>();
-  Utils::safePrint("DEXV2Factory: pair created...");
   this->callContractFunction(pair, &DEXV2Pair::initialize, token0, token1);
   getPair_[token0][token1] = pair;
   getPair_[token1][token0] = pair;

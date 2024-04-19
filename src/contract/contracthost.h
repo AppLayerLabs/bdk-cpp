@@ -249,7 +249,8 @@ class ContractHost : public evmc::Host {
       from = caller->getContractAddress();
       to = ProtocolContractAddresses.at("ContractManager");
       gas = this->leftoverGas_;
-      gasPrice = Utils::evmcUint256ToUint256(this->currentTxContext_.tx_gas_price);
+      gasPrice = 0; // TODO: Implement proper gasPrice.
+                    // Using from tx context caused a segfault on dexv2 tests
       value = 0;
       functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
       data = encoder;

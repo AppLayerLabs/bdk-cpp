@@ -15,6 +15,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "abi.h"
 #include "contract.h"
+#include "contracthost.h"
 #include "contractmanager.h"
 
 /// Factory **namespace** that does the setup, creation and registration of contracts to the blockchain.
@@ -29,7 +30,8 @@ See the LICENSE.txt file in the project root for more information.
  *              const Address&,
  *              std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
  *              const uint64_t&,
- *              DB& db
+ *              DB& db,
+ *              ContractHost*
  *              )>,
  *       SafeHash
  *     > createContractFuncs_;
@@ -119,7 +121,8 @@ namespace ContractFactory {
                                                          const Address& derivedAddress,
                                                          std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                                                          const uint64_t& chainId,
-                                                         DB& db) {
+                                                         DB& db,
+                                                         ContractHost* host) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       auto decodedData = setupNewContractArgs<TContract>(callInfo);
       if (!ContractReflectionInterface::isContractFunctionsRegistered<TContract>()) {
@@ -131,6 +134,7 @@ namespace ContractFactory {
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
         std::get<0>(callInfo), derivedAddress, chainId, db, decodedData
       );
+      host->registerNewCPPContract(derivedAddress);
       contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
     }
 
@@ -145,12 +149,14 @@ namespace ContractFactory {
                             const Address&,
                             std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                             const uint64_t&,
-                            DB& db)>& createFunc
+                            DB& db,
+                            ContractHost* host)>& createFunc
                       ,std::unordered_map<Functor,std::function<void(const ethCallInfo&,
                                                                      const Address&,
                                                                      std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                      const uint64_t&,
-                                                                     DB& db)>,SafeHash>& createContractFuncs
+                                                                     DB& db,
+                                                                     ContractHost*)>,SafeHash>& createContractFuncs
     ) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
       // Append args
@@ -168,14 +174,16 @@ namespace ContractFactory {
                                                                      const Address&,
                                                                      std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                      const uint64_t&,
-                                                                     DB& db)>,SafeHash>& createContractFuncs,
+                                                                     DB& db,
+                                                                     ContractHost*)>,SafeHash>& createContractFuncs,
                                                                    std::index_sequence<Is...>) {
       ((addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const ethCallInfo &callInfo,
                                                                 const Address &derivedAddress,
                                                                 std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
                                                                 const uint64_t &chainId,
-                                                                DB &db) {
-        createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo, derivedAddress, contracts, chainId, db);
+                                                                DB &db,
+                                                                ContractHost* host) {
+        createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo, derivedAddress, contracts, chainId, db, host);
       }, createContractFuncs)), ...);
     }
 
@@ -188,7 +196,8 @@ namespace ContractFactory {
                                                                    const Address&,
                                                                    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                    const uint64_t&,
-                                                                   DB& db)>,SafeHash>& createContractFuncs) {
+                                                                   DB& db,
+                                                                   ContractHost*)>,SafeHash>& createContractFuncs) {
       addAllContractFuncsHelper<Tuple>(createContractFuncs, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
     }
 

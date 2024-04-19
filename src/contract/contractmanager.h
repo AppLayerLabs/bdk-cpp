@@ -44,7 +44,8 @@ class ContractManager : public BaseContract {
                  const Address&,
                  std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                  const uint64_t&,
-                 DB& db
+                 DB& db,
+                 ContractHost*
                  )>,
           SafeHash
         > createContractFuncs_;

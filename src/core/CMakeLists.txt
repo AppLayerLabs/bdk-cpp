@@ -5,7 +5,6 @@ if(BUILD_AVALANCHEGO)
      ${CMAKE_SOURCE_DIR}/src/core/state.h
      ${CMAKE_SOURCE_DIR}/src/core/storage.h
      ${CMAKE_SOURCE_DIR}/src/core/rdpos.h
-     ${CMAKE_SOURCE_DIR}/src/core/evmhost.hpp
     PARENT_SCOPE
   )
 
@@ -23,7 +22,6 @@ else()
      ${CMAKE_SOURCE_DIR}/src/core/state.h
      ${CMAKE_SOURCE_DIR}/src/core/storage.h
      ${CMAKE_SOURCE_DIR}/src/core/rdpos.h
-     ${CMAKE_SOURCE_DIR}/src/core/evmhost.hpp
     PARENT_SCOPE
   )
 

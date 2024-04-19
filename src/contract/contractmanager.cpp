@@ -56,6 +56,7 @@ Bytes ContractManager::getDeployedContracts() const {
 }
 
 void ContractManager::ethCall(const ethCallInfo& callInfo, ContractHost* host) {
+  this->host_ = host;
   PointerNullifier nullifier(this->host_);
   const auto& caller = std::get<0>(callInfo);
   const Functor& functor = std::get<5>(callInfo);
@@ -68,7 +69,8 @@ void ContractManager::ethCall(const ethCallInfo& callInfo, ContractHost* host) {
              ContractHost::deriveContractAddress(this->host_->getNonce(caller), caller),
              this->contracts_,
              this->getContractChainId(),
-             this->db_);
+             this->db_,
+             this->host_);
 }
 
 Bytes ContractManager::ethCallView(const ethCallInfo& callInfo, ContractHost* host) const {

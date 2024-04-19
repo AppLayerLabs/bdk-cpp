@@ -20,42 +20,30 @@ State::State(
   std::unique_lock lock(this->stateMutex_);
   auto accountsFromDB = db_.getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
-    for (const auto& [account, balance] : options_.getGenesisBalances()) {
-      // Initialize all accounts within options genesis balances.
-      Bytes value = Utils::uintToBytes(Utils::bytesRequired(balance));
-      Utils::appendBytes(value,Utils::uintToBytes(balance));
-      value.insert(value.end(), 0x00);
-      db_.put(account.get(), value, DBPrefix::nativeAccounts);
+    {
+      DBBatch genesisBatch;
+      for (const auto& [addr, balance] : options_.getGenesisBalances()) {
+        // Create a initial account with the balances from the genesis block
+        Account account;
+        account.balance = balance;
+        genesisBatch.push_back(addr.get(), account.serialize(), DBPrefix::nativeAccounts);
+      }
+      // Also append the ContractManager account
+      Account contractManagerAcc;
+      contractManagerAcc.nonce = 1;
+      contractManagerAcc.contractType = ContractType::CPP;
+      genesisBatch.push_back(ProtocolContractAddresses.at("ContractManager").get(), contractManagerAcc.serialize(), DBPrefix::nativeAccounts);
+      this->db_.putBatch(genesisBatch);
     }
     accountsFromDB = db_.getBatch(DBPrefix::nativeAccounts);
   }
 
   for (const auto& dbEntry : accountsFromDB) {
-    BytesArrView data(dbEntry.value);
-    if (dbEntry.key.size() != 20) {
-      Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, address from DB size mismatch");
-      throw DynamicException("Error when loading State from DB, address from DB size mismatch");
-    }
-    uint8_t balanceSize = Utils::fromBigEndian<uint8_t>(data.subspan(0,1));
-    if (data.size() + 1 < data.size()) {
-      Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on balanceSize");
-      throw DynamicException("Error when loading State from DB, value from DB size mismatch on balanceSize");
-    }
-
-    uint256_t balance = Utils::fromBigEndian<uint256_t>(data.subspan(1, balanceSize));
-    uint8_t nonceSize = Utils::fromBigEndian<uint8_t>(data.subspan(1 + balanceSize, 1));
-
-    if (2 + balanceSize + nonceSize != data.size()) {
-      Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Error when loading State from DB, value from DB doesn't size mismatch on nonceSize");
-      throw DynamicException("Error when loading State from DB, value from DB size mismatch on nonceSize");
-    }
-    uint64_t nonce = Utils::fromBigEndian<uint64_t>(data.subspan(2 + balanceSize, nonceSize));
-
-    this->accounts_.insert({Address(dbEntry.key), Account(std::move(balance), std::move(nonce))});
+    this->accounts_.insert({Address(dbEntry.key), Account(dbEntry.value)});
   }
   auto latestBlock = this->storage_.latest();
 
-  // Create the ContractManager
+  // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
     db, this->contracts_, this->options_
   );
@@ -63,38 +51,29 @@ State::State(
   ContractGlobals::blockHash_ = latestBlock->hash();
   ContractGlobals::blockHeight_ = latestBlock->getNHeight();
   ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
+  // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
+  for (const auto& [addr, acc] : this->accounts_) {
+    switch (acc.contractType) {
+
+    }
+  }
 }
 
 State::~State() {
   // DB is stored as following
   // Under the DBPrefix::nativeAccounts
   // Each key == Address
-  // Each Value == Balance + uint256_t (not exact bytes)
-  // Value == 1 Byte (Balance Size) + N Bytes (Balance) + 1 Byte (Nonce Size) + N Bytes (Nonce).
-  // Max size for Value = 32 Bytes, Max Size for Nonce = 8 Bytes.
-  // If the nonce equals to 0, it will be *empty*
+  // Each Value == Account.serialize()
   DBBatch accountsBatch;
   std::unique_lock lock(this->stateMutex_);
   evmc_destroy(this->vm_);
+  // We need to explicity delete the ContractManager contract
+  // And then delete the rest of the contracts
+  this->contracts_.erase(ProtocolContractAddresses.at("ContractManager"));
+  this->contracts_.clear();
   for (const auto& [address, account] : this->accounts_) {
-    // Serialize Balance.
-    Bytes serializedBytes;
-    if (account.balance == 0) {
-      serializedBytes = Bytes(1, 0x00);
-    } else {
-      serializedBytes = Utils::uintToBytes(Utils::bytesRequired(account.balance));
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.balance));
-    }
-    // Serialize Account.
-    if (account.nonce == 0) {
-      Utils::appendBytes(serializedBytes, Bytes(1, 0x00));
-    } else {
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(Utils::bytesRequired(account.nonce)));
-      Utils::appendBytes(serializedBytes, Utils::uintToBytes(account.nonce));
-    }
-    accountsBatch.push_back(address.get(), serializedBytes, DBPrefix::nativeAccounts);
+    accountsBatch.push_back(address.get(), account.serialize(), DBPrefix::nativeAccounts);
   }
-
   this->db_.putBatch(accountsBatch);
 }
 
@@ -447,6 +426,7 @@ int64_t State::estimateGas(const ethCallInfo& callInfo) {
     this->storage_,
     evmc_tx_context(),
     this->contracts_,
+
     this->accounts_,
     this->vmStorage_,
     Hash(),

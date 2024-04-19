@@ -147,7 +147,6 @@ void ContractHost::execute(const ethCallInfo& tx, const ContractType& type) {
     this->createEVMContract(msg, contractAddress);
     return;
   }
-
   try {
     switch (type) {
       case ContractType::CPP: {
@@ -155,6 +154,7 @@ void ContractHost::execute(const ethCallInfo& tx, const ContractType& type) {
         if (contractIt == this->contracts_.end()) {
           throw DynamicException("contract not found");
         }
+        this->setContractVars(contractIt->second.get(), from, value);
         contractIt->second->ethCall(tx, this);
         break;
       }
@@ -246,6 +246,7 @@ Bytes ContractHost::ethCallView(const ethCallInfo& tx, const ContractType& type)
         /// it may **invalidate** all the references to the elements of the unordered_map
         /// that **includes** this->accounts_[to].code.data() and this->accounts_[to].code.size()
         /// so we must find a way to fix this
+        /// (I think we could make code be a unique_ptr, where the actual code is stored OUTSIDE the unordered_map)
         auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                    evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                     this->accounts_[to].code.data(), this->accounts_[to].code.size()));
@@ -402,7 +403,8 @@ bool ContractHost::selfdestruct(const evmc::address& addr, const evmc::address& 
 
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   // TODO: WE NEED TO COPY THE CODE INSTEAD OF TAKING FROM THE MAP!
-  // the VM call might insert new items into the accounts_ map, invalidating the references
+  // the VM call might insert new items into the accounts_ map, invalidating the references\
+  // Maybe we should have another map for code where we actively call .reserve() before calling.
   evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
            evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
            accounts_[msg.recipient].code.data(), accounts_[msg.recipient].code.size()));

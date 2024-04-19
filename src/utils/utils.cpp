@@ -63,6 +63,26 @@ evmc::uint256be Utils::bytesToEvmcUint256(const BytesArrView b) {
   return ret;
 }
 
+Account::Account(const BytesArrView& bytes) {
+  if (bytes.size() < 73) throw DynamicException(std::string(__func__) + ": Invalid bytes size");
+  this->balance = Utils::bytesToUint256(bytes.subspan(0,32));
+  this->nonce = Utils::bytesToUint64(bytes.subspan(32,8));
+  this->codeHash = Hash(bytes.subspan(40,32));
+  if (bytes[72] > 2) throw DynamicException(std::string(__func__) + ": Invalid contract type");
+  this->contractType = ContractType(bytes[72]);
+  if (bytes.size() > 73) this->code = Bytes(bytes.begin() + 73, bytes.end());
+}
+
+Bytes Account::serialize() const {
+  Bytes ret;
+  Utils::appendBytes(ret, Utils::uint256ToBytes(this->balance));
+  Utils::appendBytes(ret, Utils::uint64ToBytes(this->nonce));
+  Utils::appendBytes(ret, this->codeHash);
+  ret.insert(ret.end(), char(this->contractType));
+  Utils::appendBytes(ret, this->code);
+  return ret;
+}
+
 Bytes Utils::cArrayToBytes(const uint8_t* arr, size_t size) {
   Bytes ret;
   ret.reserve(size);

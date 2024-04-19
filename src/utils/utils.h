@@ -250,6 +250,13 @@ struct Account {
   /// Move constructor.
   Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
 
+  /// Deserialize constructor.
+  Account(const BytesArrView& bytes);
+
+  /// Serialize the account.
+  /// We serialize as balance + nonce + codeHash + contractType + code (if any)
+  /// 32 bytes + 8 bytes + 32 bytes + 1 byte + N (0 or more bytes) = 73 + N bytes
+  Bytes serialize() const;
   bool isContract() const { return contractType != ContractType::NOT_A_CONTRACT; }
 };
 

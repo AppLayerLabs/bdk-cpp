@@ -29,6 +29,7 @@ namespace DEXV2Library {
     const ContractHost* host, const Address& factory,
     const Address& tokenA, const Address& tokenB
   ) {
+    if (host == nullptr) throw DynamicException("DEXV2Library: INVALID_HOST");
     auto pair = pairFor(host, factory, tokenA, tokenB);
     return host->getContract<DEXV2Pair>(pair)->getReservess();
   }
