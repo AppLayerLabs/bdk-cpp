@@ -117,9 +117,6 @@ void ContractHost::createEVMContract(evmc_message& msg, const Address& contractA
 
 void ContractHost::execute(const ethCallInfo& tx, const ContractType& type) {
   const auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = tx;
-  if (type == ContractType::NOT_A_CONTRACT) {
-    throw DynamicException("ContractHost execute: trying to execute a non-contract");
-  }
   /// Obligatory = take out 21000 gas from the transaction
   this->deduceGas(21000);
   if (value) {

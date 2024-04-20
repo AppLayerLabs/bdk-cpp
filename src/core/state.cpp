@@ -174,8 +174,7 @@ void State::processTransaction(const TxBlock& tx,
   accountIt = this->accounts_.find(tx.getFrom());
   accountIt->second.nonce++;
   auto usedGas = tx.getGasLimit() - leftOverGas;
-  accountIt->second.balance -= usedGas * tx.getMaxFeePerGas();
-  nonce++;
+  accountIt->second.balance -= (usedGas * tx.getMaxFeePerGas());
 }
 
 void State::refreshMempool(const Block& block) {

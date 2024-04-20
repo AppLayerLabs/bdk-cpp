@@ -137,9 +137,9 @@ namespace TState {
               8080,
               blockchainWrapper.state.getNativeNonce(me),
               1000000000000000000,
+              1000000000,
+              1000000000,
               21000,
-              1000000000,
-              1000000000,
               privkey
           );
 
@@ -157,12 +157,13 @@ namespace TState {
 
         blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
 
+        REQUIRE(blockchainWrapper.state.getNativeBalance(targetOfTransactions) == targetExpectedValue);
+
         for (const auto &[privkey, val]: randomAccounts) {
           auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
           REQUIRE(blockchainWrapper.state.getNativeBalance(me) == val.first);
           REQUIRE(blockchainWrapper.state.getNativeNonce(me) == val.second);
         }
-        REQUIRE(blockchainWrapper.state.getNativeBalance(targetOfTransactions) == targetExpectedValue);
       }
     }
 
@@ -188,9 +189,9 @@ namespace TState {
               8080,
               blockchainWrapper.state.getNativeNonce(me),
               1000000000000000000,
+              1000000000,
+              1000000000,
               21000,
-              1000000000,
-              1000000000,
               privkey
           );
 
@@ -249,9 +250,9 @@ namespace TState {
               8080,
               blockchainWrapper.state.getNativeNonce(me),
               1000000000000000000,
+              1000000000,
+              1000000000,
               21000,
-              1000000000,
-              1000000000,
               privkey
           );
 
@@ -320,9 +321,9 @@ namespace TState {
                 8080,
                 blockchainWrapper.state.getNativeNonce(me),
                 1000000000000000000,
+                1000000000,
+                1000000000,
                 21000,
-                1000000000,
-                1000000000,
                 privkey
             );
             /// Take note of expected balance and nonce
@@ -564,9 +565,9 @@ namespace TState {
             8080,
             blockchainWrapper1.state.getNativeNonce(me),
             1000000000000000000,
+            1000000000,
+            1000000000,
             21000,
-            1000000000,
-            1000000000,
             privkey
         );
         blockchainWrapper1.state.addTx(TxBlock(tx));
@@ -1158,9 +1159,9 @@ namespace TState {
                   8080,
                   blockchainWrapper1.state.getNativeNonce(me),
                   1000000000000000000,
+                  1000000000,
+                  1000000000,
                   21000,
-                  1000000000,
-                  1000000000,
                   privkey
               );
 
@@ -1501,9 +1502,9 @@ namespace TState {
                   8080,
                   blockchainWrapper1.state.getNativeNonce(me),
                   1000000000000000000,
+                  1000000000,
+                  1000000000,
                   21000,
-                  1000000000,
-                  1000000000,
                   privkey
               );
 
@@ -1874,9 +1875,9 @@ namespace TState {
                   8080,
                   blockchainWrapper1.state.getNativeNonce(owner),
                   0,
-                  21000,
                   1000000000,
                   1000000000,
+                  50000,
                   ownerPrivKey
               );
 
@@ -1896,9 +1897,9 @@ namespace TState {
                   8080,
                   blockchainWrapper1.state.getNativeNonce(owner),
                   0,
-                  21000,
                   1000000000,
                   1000000000,
+                  50000,
                   ownerPrivKey
               );
 
