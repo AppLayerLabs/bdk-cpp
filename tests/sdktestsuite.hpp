@@ -17,6 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/utils/db.h"
 #include "../src/core/blockchain.h"
 #include "../src/utils/utils.h"
+#include "contract/contracthost.h"
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
@@ -279,7 +280,9 @@ class SDKTestSuite {
       callInfoGasPrice = 1000000000;
       callInfoValue = value;
       callInfoFulldata = data;
-      callInfoFunctor = Functor(Utils::create_view_span(callInfoFulldata, 0, 4));
+      if (callInfoFulldata.size() < 4) callInfoFunctor = Functor();
+      else callInfoFunctor = Functor(Utils::create_view_span(callInfoFulldata, 0, 4));
+      if (callInfoFulldata.size() > 4)
       callInfoData = Utils::create_view_span(callInfoFulldata, 4, callInfoFulldata.size() - 4);
 
       auto usedGas = this->state_.estimateGas(callInfo);
@@ -335,6 +338,19 @@ class SDKTestSuite {
     const std::tuple<
       const std::shared_ptr<const TxBlock>, const Hash, const uint64_t, const uint64_t
     > getTx(const Hash& tx) { return this->storage_.getTx(tx); }
+
+    /**
+     * Create a transaction to deploy a given EVM bytecode and advance the chain with it.
+     * Always use the chain owner account to deploy contracts.
+     * @param bytecode EVM bytecode to deploy.
+     * @return Address of the deployed contract.
+     */
+    Address deployBytecode(const Bytes& bytecode) {
+      Address newContractAddress = ContractHost::deriveContractAddress(this->getNativeNonce(this->getChainOwnerAccount().address), this->getChainOwnerAccount().address);
+      auto createTx = this->createNewTx(this->getChainOwnerAccount(), Address(), 0, bytecode);
+      this->advanceChain(0, {createTx});
+      return newContractAddress;
+    }
 
     /**
      * Create a transaction to deploy a new contract and advance the chain with it.
