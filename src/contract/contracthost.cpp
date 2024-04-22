@@ -53,6 +53,7 @@ ContractHost::~ContractHost() {
     // Thirdly, revert all storage changes, erasing them if the key was (0x00)
     for (const auto& [key, value] : this->stack_.getStorage()) {
       if (value == Hash()) {
+        // If the storage key was empty, we must erase it.
         this->vmStorage_.erase(key);
       } else {
         this->vmStorage_[key] = value;
@@ -94,11 +95,11 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce, const Address
   return {Utils::sha3(rlp).view(12)};
 }
 
-void ContractHost::createEVMContract(evmc_message& msg, const Address& contractAddr) {
-// Create a new contract
-  auto result = evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
+void ContractHost::createEVMContract(evmc_message& msg, const Address& contractAddr, const BytesArrView& bytecode) {
+  // Create a new contract
+  auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                  evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-                  nullptr, 0);
+                  bytecode.data(), bytecode.size()));
   this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
   this->leftoverGas_ -= 10000; // We take 10k instead of calculating based on contract size, regardless if we succeed or not
   if (result.status_code) {
@@ -122,71 +123,70 @@ void ContractHost::execute(const ethCallInfo& tx, const ContractType& type) {
   if (value) {
     this->transfer(from, to, value);
   }
-
-  if (to == Address()) {
-    // If the destination address of the transaction is 0x00, it means that we are creating a new contract
-    auto contractAddress = this->deriveContractAddress(this->getNonce(from), from);
-    if (this->accounts_.contains(contractAddress)) {
-      throw DynamicException("ContractHost create/execute: contract already exists");
-    }
-    evmc_message msg;
-    msg.kind = evmc_call_kind::EVMC_CREATE;
-    msg.flags = 0;
-    msg.gas = static_cast<int64_t>(this->leftoverGas_);
-    msg.recipient = contractAddress.toEvmcAddress();
-    msg.sender = from.toEvmcAddress();
-    msg.input_data = fullData.data();
-    msg.input_size = fullData.size();
-    msg.value = Utils::uint256ToEvmcUint256(value);
-    msg.create2_salt = {};
-    msg.depth = 1;
-    msg.code_address = to.toEvmcAddress();
-    this->createEVMContract(msg, contractAddress);
-    return;
-  }
   try {
-    switch (type) {
-      case ContractType::CPP: {
-        auto contractIt = this->contracts_.find(to);
-        if (contractIt == this->contracts_.end()) {
-          throw DynamicException("contract not found");
-        }
-        this->setContractVars(contractIt->second.get(), from, value);
-        contractIt->second->ethCall(tx, this);
-        break;
+    if (to == Address()) {
+      // If the destination address of the transaction is 0x00, it means that we are creating a new contract
+      auto contractAddress = this->deriveContractAddress(this->getNonce(from), from);
+      if (this->accounts_.contains(contractAddress)) {
+        throw DynamicException("ContractHost create/execute: contract already exists");
       }
-      case ContractType::EVM: {
-        // Execute a EVM contract.
-        evmc_message msg;
-        msg.kind = evmc_call_kind::EVMC_CALL;
-        msg.flags = 0;
-        msg.gas = static_cast<int64_t>(this->leftoverGas_);
-        msg.recipient = to.toEvmcAddress();
-        msg.sender = from.toEvmcAddress();
-        msg.input_data = fullData.data();
-        msg.input_size = fullData.size();
-        msg.value = Utils::uint256ToEvmcUint256(value);
-        msg.create2_salt = {};
-        msg.depth = 1;
-        msg.code_address = to.toEvmcAddress();
-        /// TODO: We have a problem here
-        /// as you might know, using unordered_map::operator[] and then insert a new element (e.g. the contract call
-        /// creates another contract, effectively creating a new account on the accounts_ unordered_map)
-        /// it may **invalidate** all the references to the elements of the unordered_map
-        /// that **includes** this->accounts_[to].code.data() and this->accounts_[to].code.size()
-        /// so we must find a way to fix this
-        auto result = evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
-                   evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-                    this->accounts_[to].code.data(), this->accounts_[to].code.size());
-
-        if (result.status_code) {
-          // Set the leftOverGas_ to the gas left after the execution
-          this->leftoverGas_ = result.gas_left;
-          throw DynamicException("Error when executing EVM contract, EVM status code: " +
-            std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
-            Hex::fromBytes(Utils::cArrayToBytes(result.output_data, result.output_size)).get());
+      evmc_message msg;
+      msg.kind = evmc_call_kind::EVMC_CREATE;
+      msg.flags = 0;
+      msg.gas = static_cast<int64_t>(this->leftoverGas_);
+      msg.recipient = contractAddress.toEvmcAddress();
+      msg.sender = from.toEvmcAddress();
+      msg.input_data = nullptr;
+      msg.input_size = 0;
+      msg.value = Utils::uint256ToEvmcUint256(value);
+      msg.create2_salt = {};
+      msg.depth = 1;
+      msg.code_address = {};
+      this->createEVMContract(msg, contractAddress, fullData);
+    } else {
+      switch (type) {
+        case ContractType::CPP: {
+          auto contractIt = this->contracts_.find(to);
+          if (contractIt == this->contracts_.end()) {
+            throw DynamicException("contract not found");
+          }
+          this->setContractVars(contractIt->second.get(), from, value);
+          contractIt->second->ethCall(tx, this);
+          break;
         }
-        break;
+        case ContractType::EVM: {
+          // Execute a EVM contract.
+          evmc_message msg;
+          msg.kind = evmc_call_kind::EVMC_CALL;
+          msg.flags = 0;
+          msg.gas = static_cast<int64_t>(this->leftoverGas_);
+          msg.recipient = to.toEvmcAddress();
+          msg.sender = from.toEvmcAddress();
+          msg.input_data = fullData.data();
+          msg.input_size = fullData.size();
+          msg.value = Utils::uint256ToEvmcUint256(value);
+          msg.create2_salt = {};
+          msg.depth = 1;
+          msg.code_address = to.toEvmcAddress();
+          /// TODO: We have a problem here
+          /// as you might know, using unordered_map::operator[] and then insert a new element (e.g. the contract call
+          /// creates another contract, effectively creating a new account on the accounts_ unordered_map)
+          /// it may **invalidate** all the references to the elements of the unordered_map
+          /// that **includes** this->accounts_[to].code.data() and this->accounts_[to].code.size()
+          /// so we must find a way to fix this
+          auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
+                     evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
+                      this->accounts_[to].code.data(), this->accounts_[to].code.size()));
+
+          if (result.status_code) {
+            // Set the leftOverGas_ to the gas left after the execution
+            this->leftoverGas_ = result.gas_left;
+            throw DynamicException("Error when executing EVM contract, EVM status code: " +
+              std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
+              Hex::fromBytes(Utils::cArrayToBytes(result.output_data, result.output_size)).get());
+          }
+          break;
+        }
       }
     }
   } catch (const std::exception &e) {
@@ -247,7 +247,6 @@ Bytes ContractHost::ethCallView(const ethCallInfo& tx, const ContractType& type)
         auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                    evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                     this->accounts_[to].code.data(), this->accounts_[to].code.size()));
-
         if (result.status_code) {
           // Set the leftOverGas_ to the gas left after the execution
           this->leftoverGas_ = result.gas_left;
@@ -316,8 +315,9 @@ evmc_storage_status ContractHost::set_storage(const evmc::address& addr, const e
   StorageKey storageKey(addr, key);
   try {
     Hash hashValue(value);
-    this->stack_.registerStorageChange(storageKey, hashValue);
-    vmStorage_[storageKey] = hashValue;
+    auto& storageValue = vmStorage_[storageKey];
+    this->stack_.registerStorageChange(storageKey, storageValue);
+    storageValue = hashValue;
     return EVMC_STORAGE_MODIFIED;
   } catch (const std::exception& e) {
     this->evmcThrows_.emplace_back(e.what());
@@ -531,11 +531,15 @@ void ContractHost::registerNewCPPContract(const Address& address) {
 }
 
 void ContractHost::registerNewEVMContract(const Address& address, const uint8_t* code, size_t codeSize) {
-  auto& contractAcc = this->accounts_[address];
+  Account contractAcc;
   contractAcc.contractType = ContractType::EVM;
   contractAcc.nonce = 1;
   contractAcc.code = Bytes(code, code + codeSize);
   contractAcc.codeHash = Utils::sha3(contractAcc.code);
+  auto emplace = this->accounts_.try_emplace(address, contractAcc);
+  if (!emplace.second) {
+    throw DynamicException("ContractHost registerNewCPPContract: account on address already exists");
+  }
   this->stack_.registerContract(address);
 }
 

@@ -700,8 +700,9 @@ class SDKTestSuite {
       auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo, fullData] = callData;
       toInfo = contractAddress;
       functorInfo = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
-      fullData = Bytes();
-      dataInfo = fullData;
+      dataInfo = {};
+      gasInfo = 10000000;
+      Utils::appendBytes(fullData, functorInfo);
       return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
     }
 

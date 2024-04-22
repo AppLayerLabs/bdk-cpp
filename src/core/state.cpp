@@ -433,8 +433,6 @@ int64_t State::estimateGas(const ethCallInfo& callInfo) {
     Hash(),
     leftOverGas
   ).simulate(callInfo, type);
-
-
   return (int64_t(gasLimit) - leftOverGas);
 }
 

@@ -93,7 +93,7 @@ class ContractHost : public evmc::Host {
       }
     }
 
-    void createEVMContract(evmc_message& msg, const Address& contractAddr);
+    void createEVMContract(evmc_message& msg, const Address& contractAddr, const BytesArrView& bytecode);
 
   public:
     ContractHost(evmc_vm* vm,
