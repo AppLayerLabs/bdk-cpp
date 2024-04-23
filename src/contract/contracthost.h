@@ -240,10 +240,6 @@ class ContractHost : public evmc::Host {
       // 100k gas limit for every contract creation!
       this->deduceGas(100000);
       evmc_message callInfo;
-      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract(";
-      // Append args
-      createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
-      createSignature += ")";
       // evmc_message:
       // struct evmc_message
       // {
@@ -259,13 +255,13 @@ class ContractHost : public evmc::Host {
       //   evmc_bytes32 create2_salt;
       //   evmc_address code_address;
       // };
-      auto functorSignatureBytes = Utils::sha3(Utils::create_view_span(createSignature));
       const auto& to = ProtocolContractAddresses.at("ContractManager");
+      const auto& from = caller->getContractAddress();
       callInfo.flags = 0;
       callInfo.depth = 1;
       callInfo.gas = this->leftoverGas_;
       callInfo.recipient = to.toEvmcAddress();
-      callInfo.sender = caller->getContractAddress().toEvmcAddress();
+      callInfo.sender = from.toEvmcAddress();
       callInfo.input_data = fullData.data();
       callInfo.input_size = fullData.size();
       callInfo.value = {};
@@ -273,10 +269,10 @@ class ContractHost : public evmc::Host {
       callInfo.code_address = to.toEvmcAddress();
       // Get the ContractManager from the this->accounts_ map
       ContractManager* contractManager = dynamic_cast<ContractManager*>(this->contracts_.at(to).get());
-      this->setContractVars(contractManager, to, 0);
-      auto callerNonce = this->accounts_[to].nonce;
-      Address newContractAddress = ContractHost::deriveContractAddress(callerNonce, to);
-      this->stack_.registerNonce(caller->getContractAddress(), callerNonce);
+      this->setContractVars(contractManager, from, 0);
+      auto callerNonce = this->accounts_[from].nonce;
+      Address newContractAddress = ContractHost::deriveContractAddress(callerNonce, from);
+      this->stack_.registerNonce(from, callerNonce);
       NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
       contractManager->ethCall(callInfo, this);
       ++callerNonce;
