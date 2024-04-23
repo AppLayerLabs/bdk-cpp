@@ -442,11 +442,22 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   return left;
 }
 
-std::vector<std::pair<std::string, Address>> State::getContracts() const {
+std::vector<std::pair<std::string, Address>> State::getCppContracts() const {
   std::shared_lock lock(this->stateMutex_);
   std::vector<std::pair<std::string, Address>> contracts;
   for (const auto& [address, contract] : this->contracts_) {
     contracts.emplace_back(contract->getContractName(), address);
+  }
+  return contracts;
+}
+
+std::vector<Address> State::getEvmContracts() const {
+  std::shared_lock lock(this->stateMutex_);
+  std::vector<Address> contracts;
+  for (const auto& acc : this->accounts_) {
+    if (acc.second.contractType == ContractType::EVM) {
+      contracts.emplace_back(acc.first);
+    }
   }
   return contracts;
 }

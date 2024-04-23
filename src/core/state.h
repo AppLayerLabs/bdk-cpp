@@ -216,8 +216,11 @@ class State {
      */
     int64_t estimateGas(const evmc_message& callInfo);
 
-    /// Get a list of contract addresses and names.
-    std::vector<std::pair<std::string, Address>> getContracts() const;
+    /// Get a list of the C++ contract addresses and names.
+    std::vector<std::pair<std::string, Address>> getCppContracts() const;
+
+    /// Get a list of Addresss which are EVM contracts.
+    std::vector<Address> getEvmContracts() const;
 
     /**
      * Get all the events emitted under the given inputs.

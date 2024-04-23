@@ -29,12 +29,11 @@ const std::vector<Hash> validatorPrivKeysState {
   Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
 };
 
-evmc_message buildCallInfo(const Address& addressToCall, const Functor& function, Bytes& dataToCall) {
-  Bytes functor;
-  Utils::appendBytes(functor, Utils::uint32ToBytes(function.value));
-  // Append functor to beginning of data
-  dataToCall.insert(dataToCall.begin(), functor.begin(), functor.end());
-  evmc_message callInfo;
+std::pair<evmc_message, Bytes> buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
+  std::pair<evmc_message, Bytes> callInfo;
+  Bytes& messageBytes = std::get<1>(callInfo);
+  Utils::appendBytes(messageBytes, Utils::uint32ToBytes(function.value));
+  Utils::appendBytes(messageBytes, dataToCall);
   auto& [callKind,
     callFlags,
     callDepth,
@@ -45,15 +44,15 @@ evmc_message buildCallInfo(const Address& addressToCall, const Functor& function
     callInputSize,
     callValue,
     callCreate2Salt,
-    callCodeAddress] = callInfo;
+    callCodeAddress] = std::get<0>(callInfo);
   callKind = EVMC_CALL;
   callFlags = 0;
   callDepth = 1;
   callGas = 100000000;
   callRecipient = addressToCall.toEvmcAddress();
   callSender = {};
-  callInputData = dataToCall.data();
-  callInputSize = dataToCall.size();
+  callInputData = messageBytes.data();
+  callInputSize = messageBytes.size();
   callValue = {};
   callCreate2Salt = {};
   callCodeAddress = addressToCall.toEvmcAddress();
@@ -1897,14 +1896,15 @@ namespace TState {
                   0,
                   1000000000,
                   1000000000,
-                  50000,
+                  100000,
                   ownerPrivKey
               );
 
+              blockchainWrapper1.state.estimateGas(createNewERC2OTx.txToMessage());
               block.appendTx(createNewERC2OTx);
 
             } else {
-              const auto ERC20ContractAddress = blockchainWrapper1.state.getContracts()[0].second;
+              const auto ERC20ContractAddress = blockchainWrapper1.state.getCppContracts()[0].second;
 
               Bytes transferEncoder = ABI::Encoder::encodeData(targetOfTransactions, uint256_t(10000000000000000));
               Bytes transferData = Hex::toBytes("0xa9059cbb");
@@ -1922,7 +1922,7 @@ namespace TState {
                   50000,
                   ownerPrivKey
               );
-
+              blockchainWrapper1.state.estimateGas(transferERC20.txToMessage());
               targetExpectedValue += 10000000000000000;
               block.appendTx(transferERC20);
             }
@@ -1969,58 +1969,58 @@ namespace TState {
             REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper7.storage.latest()->hash());
             REQUIRE(blockchainWrapper1.storage.latest()->hash() == blockchainWrapper8.storage.latest()->hash());
 
+            REQUIRE(blockchainWrapper1.state.getCppContracts().size() == 2); /// Its actually the ERC20 + ContractManager
+            REQUIRE(blockchainWrapper2.state.getCppContracts() == blockchainWrapper1.state.getCppContracts());
+            REQUIRE(blockchainWrapper3.state.getCppContracts() == blockchainWrapper1.state.getCppContracts());
+            REQUIRE(blockchainWrapper4.state.getCppContracts() == blockchainWrapper1.state.getCppContracts());
+            REQUIRE(blockchainWrapper5.state.getCppContracts() == blockchainWrapper1.state.getCppContracts());
+            REQUIRE(blockchainWrapper6.state.getCppContracts() == blockchainWrapper1.state.getCppContracts());
+            REQUIRE(blockchainWrapper7.state.getCppContracts() == blockchainWrapper1.state.getCppContracts());
+            REQUIRE(blockchainWrapper8.state.getCppContracts() == blockchainWrapper1.state.getCppContracts());
 
-            const auto contractAddress = blockchainWrapper1.state.getContracts()[0].second;
+            const auto contractAddress = blockchainWrapper1.state.getCppContracts()[0].second;
             Bytes getBalanceMeEncoder = ABI::Encoder::encodeData(targetOfTransactions);
             Functor getBalanceMeFunctor = ABI::FunctorEncoder::encode<Address>("balanceOf");
             Bytes getBalanceMeNode1Result = blockchainWrapper1.state.ethCall(
-                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
-
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder).first);
             auto getBalanceMeNode1Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode1Result);
             REQUIRE(std::get<0>(getBalanceMeNode1Decoder) == targetExpectedValue);
 
-            Bytes getBalanceMeNode2Result = blockchainWrapper2.state.ethCall(
-                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
 
+            Bytes getBalanceMeNode2Result = blockchainWrapper2.state.ethCall(
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder).first);
             auto getBalanceMeNode2Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode2Result);
             REQUIRE(std::get<0>(getBalanceMeNode2Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode3Result = blockchainWrapper3.state.ethCall(
-                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
-
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder).first);
             auto getBalanceMeNode3Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode3Result);
             REQUIRE(std::get<0>(getBalanceMeNode3Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode4Result = blockchainWrapper4.state.ethCall(
-                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
-
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder).first);
             auto getBalanceMeNode4Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode4Result);
             REQUIRE(std::get<0>(getBalanceMeNode4Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode5Result = blockchainWrapper5.state.ethCall(
-                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
-
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder).first);
             auto getBalanceMeNode5Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode5Result);
             REQUIRE(std::get<0>(getBalanceMeNode5Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode6Result = blockchainWrapper6.state.ethCall(
-                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
-
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder).first);
             auto getBalanceMeNode6Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode6Result);
             REQUIRE(std::get<0>(getBalanceMeNode6Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode7Result = blockchainWrapper7.state.ethCall(
-                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
-
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder).first);
             auto getBalanceMeNode7Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode7Result);
             REQUIRE(std::get<0>(getBalanceMeNode7Decoder) == targetExpectedValue);
 
             Bytes getBalanceMeNode8Result = blockchainWrapper8.state.ethCall(
-                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder));
-
+                buildCallInfo(contractAddress, getBalanceMeFunctor, getBalanceMeEncoder).first);
             auto getBalanceMeNode8Decoder = ABI::Decoder::decodeData<uint256_t>(getBalanceMeNode8Result);
             REQUIRE(std::get<0>(getBalanceMeNode8Decoder) == targetExpectedValue);
-
             ++blocks;
             break;
           }

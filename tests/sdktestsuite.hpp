@@ -365,7 +365,7 @@ class SDKTestSuite {
      */
     template <typename TContract> const Address deployContract() {
       TContract::registerContract();
-      auto prevContractList = this->state_.getContracts();
+      auto prevContractList = this->state_.getCppContracts();
       using ContractArgumentTypes = decltype(Utils::removeQualifiers<typename TContract::ConstructorArguments>());
 
       // Encode the functor
@@ -378,7 +378,7 @@ class SDKTestSuite {
       // Create the transaction, advance the chain with it, and get the new contract address.
       TxBlock createContractTx = createNewTx(this->chainOwnerAccount(), ProtocolContractAddresses.at("ContractManager"), 0, data);
       this->advanceChain(0, {createContractTx});
-      auto newContractList = this->state_.getContracts();
+      auto newContractList = this->state_.getCppContracts();
 
       // Filter new contract list to find the new contract.
       // TODO: We are assuming that only one contract of the same type is deployed at a time.
@@ -403,7 +403,7 @@ class SDKTestSuite {
      */
     template <typename TContract, typename ...Args> const Address deployContract(Args&&... args) {
       TContract::registerContract();
-      auto prevContractList = this->state_.getContracts();
+      auto prevContractList = this->state_.getCppContracts();
       using ContractArgumentTypes = decltype(Utils::removeQualifiers<typename TContract::ConstructorArguments>());
       static_assert(std::is_same_v<ContractArgumentTypes, std::tuple<std::decay_t<Args>...>>, "Invalid contract constructor arguments");
 
@@ -422,7 +422,7 @@ class SDKTestSuite {
       // Create the transaction, advance the chain with it, and get the new contract address.
       TxBlock createContractTx = createNewTx(this->chainOwnerAccount(), ProtocolContractAddresses.at("ContractManager"), 0, data);
       this->advanceChain(0, {createContractTx});
-      auto newContractList = this->state_.getContracts();
+      auto newContractList = this->state_.getCppContracts();
 
       // Filter new contract list to find the new contract.
       // TODO: We are assuming that only one contract of the same type is deployed at a time.
