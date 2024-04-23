@@ -83,7 +83,7 @@ TEST_CASE("ABI Namespace", "[contract][abi]") {
         uint256_t("1123444185124184138124378143891242186794252455823414458"),
         uint256_t("215345189442554346421356134551234851234484")});
 
-      auto functor = ABI::FunctorEncoder::encode<std::vector<uint256_t>>("`testUintArr");
+      auto functor = ABI::FunctorEncoder::encode<std::vector<uint256_t>>("testUintArr");
 
       REQUIRE(functor.value == 3517244486);
       REQUIRE(Bytes(eS.begin(), eS.begin() + 32) == Hex::toBytes(
