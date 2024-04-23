@@ -57,7 +57,7 @@ class ContractHost : public evmc::Host {
     mutable ContractStack stack_;
     const evmc_tx_context& currentTxContext_; // MUST be initialized within the constructor.
     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
-    std::unordered_map<Address, Account, SafeHash>& accounts_;
+    std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
     std::unordered_map<StorageKey, Hash, SafeHash>& vmStorage_;
     std::unordered_map<StorageKey, Hash, SafeHash> transientStorage_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
@@ -101,7 +101,7 @@ class ContractHost : public evmc::Host {
                  const Storage& storage,
                  const evmc_tx_context& currentTxContext,
                  std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
-                 std::unordered_map<Address, Account, SafeHash>& accounts,
+                 std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
                  std::unordered_map<StorageKey, Hash, SafeHash>& vmStorage,
                  const Hash& txHash,
                  const uint64_t txIndex,
@@ -270,7 +270,7 @@ class ContractHost : public evmc::Host {
       // Get the ContractManager from the this->accounts_ map
       ContractManager* contractManager = dynamic_cast<ContractManager*>(this->contracts_.at(to).get());
       this->setContractVars(contractManager, from, 0);
-      auto callerNonce = this->accounts_[from].nonce;
+      auto callerNonce = this->accounts_[from]->nonce;
       Address newContractAddress = ContractHost::deriveContractAddress(callerNonce, from);
       this->stack_.registerNonce(from, callerNonce);
       NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);

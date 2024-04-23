@@ -39,7 +39,7 @@ State::State(
   }
 
   for (const auto& dbEntry : accountsFromDB) {
-    this->accounts_.insert({Address(dbEntry.key), Account(dbEntry.value)});
+    this->accounts_.insert({Address(dbEntry.key), dbEntry.value});
   }
   auto latestBlock = this->storage_.latest();
 
@@ -53,8 +53,28 @@ State::State(
   ContractGlobals::blockTimestamp_ = latestBlock->getTimestamp();
   // State sanity check, lets check if all found contracts in the accounts_ map really have code or are C++ contracts
   for (const auto& [addr, acc] : this->accounts_) {
-    switch (acc.contractType) {
-
+    switch (acc->contractType) {
+      case ContractType::CPP: {
+        if (this->contracts_.find(addr) == this->contracts_.end()) {
+          Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
+          throw DynamicException("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
+        }
+        break;
+      }
+      case ContractType::EVM: {
+        if (acc->code.empty()) {
+          Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
+          throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
+        }
+        break;
+      }
+      case ContractType::NOT_A_CONTRACT: {
+        if (!acc->code.empty()) {
+          Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Contract " + addr.hex().get() + " is marked as not a contract but has code");
+          throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
+        }
+        break;
+      }
     }
   }
 }
@@ -72,7 +92,7 @@ State::~State() {
   this->contracts_.erase(ProtocolContractAddresses.at("ContractManager"));
   this->contracts_.clear();
   for (const auto& [address, account] : this->accounts_) {
-    accountsBatch.push_back(address.get(), account.serialize(), DBPrefix::nativeAccounts);
+    accountsBatch.push_back(address.get(), account->serialize(), DBPrefix::nativeAccounts);
   }
   this->db_.putBatch(accountsBatch);
 }
@@ -94,8 +114,8 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
     return TxInvalid::InvalidBalance;
   }
-  const auto& accBalance = accountIt->second.balance;
-  const auto& accNonce = accountIt->second.nonce;
+  const auto& accBalance = accountIt->second->balance;
+  const auto& accNonce = accountIt->second->nonce;
   uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
   if (txWithFees > accBalance) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
@@ -121,8 +141,8 @@ void State::processTransaction(const TxBlock& tx,
   auto accountIt = this->accounts_.find(tx.getFrom());
   const auto& accountTo = this->accounts_[tx.getTo()];
   int64_t leftOverGas = int64_t(tx.getGasLimit());
-  auto& nonce = accountIt->second.nonce;
-  auto& balance = accountIt->second.balance;
+  auto& nonce = accountIt->second->nonce;
+  auto& balance = accountIt->second->balance;
   if (balance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction");
     throw DynamicException("Transaction sender doesn't have balance to send transaction");
@@ -162,7 +182,7 @@ void State::processTransaction(const TxBlock& tx,
       leftOverGas
     );
 
-    host.execute(tx.txToMessage(), accountTo.contractType);
+    host.execute(tx.txToMessage(), accountTo->contractType);
 
   } catch (const std::exception& e) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to execute: " + e.what());
@@ -174,9 +194,9 @@ void State::processTransaction(const TxBlock& tx,
   /// It is most probably that the account iterator is invalidated after the host.execute call.
   /// So we need to find the account again.
   accountIt = this->accounts_.find(tx.getFrom());
-  accountIt->second.nonce++;
+  accountIt->second->nonce++;
   auto usedGas = tx.getGasLimit() - leftOverGas;
-  accountIt->second.balance -= (usedGas * tx.getMaxFeePerGas());
+  accountIt->second->balance -= (usedGas * tx.getMaxFeePerGas());
 }
 
 void State::refreshMempool(const Block& block) {
@@ -207,19 +227,14 @@ uint256_t State::getNativeBalance(const Address &addr) const {
   std::shared_lock lock(this->stateMutex_);
   auto it = this->accounts_.find(addr);
   if (it == this->accounts_.end()) return 0;
-  return it->second.balance;
+  return it->second->balance;
 }
 
 uint64_t State::getNativeNonce(const Address& addr) const {
   std::shared_lock lock(this->stateMutex_);
   auto it = this->accounts_.find(addr);
   if (it == this->accounts_.end()) return 0;
-  return it->second.nonce;
-}
-
-std::unordered_map<Address, Account, SafeHash> State::getAccounts() const {
-  std::shared_lock lock(this->stateMutex_);
-  return this->accounts_;
+  return it->second->nonce;
 }
 
 std::unordered_map<Hash, TxBlock, SafeHash> State::getMempool() const {
@@ -362,7 +377,7 @@ std::unique_ptr<TxBlock> State::getTxFromMempool(const Hash &txHash) const {
 
 void State::addBalance(const Address& addr) {
   std::unique_lock lock(this->stateMutex_);
-  this->accounts_[addr].balance += uint256_t("1000000000000000000000");
+  this->accounts_[addr]->balance += uint256_t("1000000000000000000000");
 }
 
 Bytes State::ethCall(const evmc_message& callInfo) {
@@ -375,7 +390,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     return {};
   }
   const auto& acc = accIt->second;
-  if (acc.isContract()) {
+  if (acc->isContract()) {
     int64_t leftOverGas = callInfo.gas;
     evmc_tx_context txContext;
     txContext.tx_gas_price = {};
@@ -403,7 +418,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
       Hash(),
       leftOverGas
     );
-    return host.ethCallView(callInfo, acc.contractType);
+    return host.ethCallView(callInfo, acc->contractType);
   } else {
     return {};
   }
@@ -417,7 +432,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   ContractType type = ContractType::NOT_A_CONTRACT;
   auto accIt = this->accounts_.find(to);
   if (accIt != this->accounts_.end()) {
-    type = accIt->second.contractType;
+    type = accIt->second->contractType;
   }
 
   int64_t leftOverGas = callInfo.gas;
@@ -427,7 +442,6 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
     this->storage_,
     evmc_tx_context(),
     this->contracts_,
-
     this->accounts_,
     this->vmStorage_,
     Hash(),
@@ -455,7 +469,7 @@ std::vector<Address> State::getEvmContracts() const {
   std::shared_lock lock(this->stateMutex_);
   std::vector<Address> contracts;
   for (const auto& acc : this->accounts_) {
-    if (acc.second.contractType == ContractType::EVM) {
+    if (acc.second->contractType == ContractType::EVM) {
       contracts.emplace_back(acc.first);
     }
   }

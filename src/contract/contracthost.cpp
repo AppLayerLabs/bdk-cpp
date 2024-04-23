@@ -7,8 +7,8 @@ void ContractHost::transfer(const Address& from, const Address& to, const uint25
   // So we can safely take a reference from it and create a reference from the to account.
   auto& fromAccount = accounts_[from];
   auto& toAccount = accounts_[to];
-  auto& fromBalance = fromAccount.balance;
-  auto& toBalance = toAccount.balance;
+  auto& fromBalance = fromAccount->balance;
+  auto& toBalance = toAccount->balance;
   if (fromBalance < value) {
     throw DynamicException("ContractHost transfer: insufficient funds");
   }
@@ -64,7 +64,7 @@ ContractHost::~ContractHost() {
       // Make sure we don't create a new account if it doesn't exist (deleted as it was a newly created contract)
       auto accountIt = this->accounts_.find(address);
       if (accountIt != this->accounts_.end()) {
-        accountIt->second.balance = balance;
+        accountIt->second->balance = balance;
       }
     }
     // Finally, revert nonce changes
@@ -72,7 +72,7 @@ ContractHost::~ContractHost() {
       // Make sure we don't create a new account if it doesn't exist (deleted as it was a newly created contract)
       auto accountIt = this->accounts_.find(address);
       if (accountIt != this->accounts_.end()) {
-        accountIt->second.nonce = nonce;
+        accountIt->second->nonce = nonce;
       }
     }
   }
@@ -159,7 +159,7 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
           /// so we must find a way to fix this
           auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                      evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-                      this->accounts_[to].code.data(), this->accounts_[to].code.size()));
+                      this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
 
           if (result.status_code) {
             // Set the leftOverGas_ to the gas left after the execution
@@ -219,7 +219,7 @@ Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& typ
         /// (I think we could make code be a unique_ptr, where the actual code is stored OUTSIDE the unordered_map)
         auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                    evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-                    this->accounts_[to].code.data(), this->accounts_[to].code.size()));
+                    this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
         if (result.status_code) {
           // Set the leftOverGas_ to the gas left after the execution
           this->leftoverGas_ = result.gas_left;
@@ -303,7 +303,7 @@ evmc::uint256be ContractHost::get_balance(const evmc::address& addr) const noexc
   try {
     auto it = accounts_.find(addr);
     if (it != accounts_.end()) {
-      return Utils::uint256ToEvmcUint256(it->second.balance);
+      return Utils::uint256ToEvmcUint256(it->second->balance);
     }
     return {};
   } catch (const std::exception& e) {
@@ -317,7 +317,7 @@ size_t ContractHost::get_code_size(const evmc::address& addr) const noexcept {
   try {
     auto it = accounts_.find(addr);
     if (it != accounts_.end()) {
-      return it->second.code.size();
+      return it->second->code.size();
     }
     return 0;
   } catch (const std::exception& e) {
@@ -331,7 +331,7 @@ evmc::bytes32 ContractHost::get_code_hash(const evmc::address& addr) const noexc
   try {
     auto it = accounts_.find(addr);
     if (it != accounts_.end()) {
-      return it->second.codeHash.toEvmcBytes32();
+      return it->second->codeHash.toEvmcBytes32();
     }
     return {};
   } catch (const std::exception& e) {
@@ -347,7 +347,7 @@ size_t ContractHost::copy_code(const evmc::address& addr, size_t code_offset, ui
     if (it == this->accounts_.end())
       return 0;
 
-    const auto& code = it->second.code;
+    const auto& code = it->second->code;
 
     if (code_offset >= code.size())
       return 0;
@@ -377,7 +377,7 @@ evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
   // Maybe we should have another map for code where we actively call .reserve() before calling.
   evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
            evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-           accounts_[msg.recipient].code.data(), accounts_[msg.recipient].code.size()));
+           accounts_[msg.recipient]->code.data(), accounts_[msg.recipient]->code.size()));
   return result;
 }
 
@@ -475,7 +475,7 @@ void ContractHost::emitContractEvent(Event&& event) {
 uint256_t ContractHost::getBalanceFromAddress(const Address& address) const {
   auto it = this->accounts_.find(address);
   if (it != this->accounts_.end()) {
-    return it->second.balance;
+    return it->second->balance;
   }
   return 0;
 }
@@ -489,7 +489,7 @@ uint64_t ContractHost::getNonce(const Address& nonce) const {
   if (it == this->accounts_.end()) {
     return 0;
   }
-  return it->second.nonce;
+  return it->second->nonce;
 }
 
 void ContractHost::registerNewCPPContract(const Address& address) {

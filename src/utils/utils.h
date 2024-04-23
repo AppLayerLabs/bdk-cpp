@@ -242,6 +242,46 @@ struct Account {
 };
 
 /**
+ * NonNullUniquePtr is a wrapper around std::unique_ptr that ensures the pointer is never null.
+ */
+template<typename T>
+class NonNullUniquePtr {
+private:
+  std::unique_ptr<T> ptr;
+
+public:
+  // Constructor that initializes the pointer with a new object if none is provided.
+  NonNullUniquePtr() : ptr(std::make_unique<T>()) {}
+
+  // Constructor that calls T<Ts...> with the provided arguments.
+  template<typename... Ts>
+  NonNullUniquePtr(Ts&&... args) : ptr(std::make_unique<T>(std::forward<Ts>(args)...)) {}
+
+  // Move constructor
+  NonNullUniquePtr(NonNullUniquePtr&& other) noexcept : ptr(std::move(other.ptr)) {}
+
+  // Move assignment operator
+  NonNullUniquePtr& operator=(NonNullUniquePtr&& other) noexcept {
+    ptr = std::move(other.ptr);
+    return *this;
+  }
+
+  // Deleted copy constructor and copy assignment operator to prevent copying
+  NonNullUniquePtr(const NonNullUniquePtr&) = delete;
+  NonNullUniquePtr& operator=(const NonNullUniquePtr&) = delete;
+
+  // Dereference operator
+  T& operator*() const { return *ptr; }
+
+  // Member access operator
+  T* operator->() const { return ptr.get(); }
+
+  // Getter for raw pointer (optional, use with care)
+  T* get() const { return ptr.get(); }
+};
+
+
+/**
  * Struct for abstracting a Solidity event parameter.
  * @tparam T The parameter's type.
  * @tparam Index Whether the parameter is indexed or not.

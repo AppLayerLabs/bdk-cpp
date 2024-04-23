@@ -34,7 +34,7 @@ class State {
     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
     std::unordered_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
     EventManager eventManager_; ///< Event manager object. Responsible for storing events emitted in contract calls.
-    std::unordered_map<Address, Account, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
+    std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     std::unordered_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
     mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
 
@@ -116,7 +116,6 @@ class State {
      */
     uint64_t getNativeNonce(const Address& addr) const;
 
-    std::unordered_map<Address, Account, SafeHash> getAccounts() const; ///< Getter for `accounts_`. Returns a copy.
     std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const; ///< Getter for `mempool_`. Returns a copy.
 
     /// Get the mempool's current size.
