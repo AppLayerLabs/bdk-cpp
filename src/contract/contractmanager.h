@@ -54,6 +54,7 @@ private:
   std::unordered_map<Address, std::unique_ptr<DynamicContract>, SafeHash> contracts_;
   State& state_;  ///< Reference to the blockchain state object. Used if the contract is a payable function.
   rdPoS& rdpos_;  ///< Reference to the rdPoS contract.
+  DumpManager &dumpManager_; ///< Reference to the dumpManager.
   const Options& options_;  ///< Reference to the options singleton.
   EventManager eventManager_; ///< Event manager object. Responsible for maintaining events emitted in contract calls.
   mutable std::shared_mutex contractsMutex_;  ///< Mutex that manages read/write access to the contracts.
@@ -143,7 +144,11 @@ public:
    * @param options Reference to the options singleton.
    * @throw DynamicException if contract address doesn't exist in the database.
    */
-  ContractManager(DB& db, State& state, rdPoS& rdpos, const Options& options);
+  ContractManager(DB& db,
+                  State& state,
+                  rdPoS& rdpos,
+                  DumpManager& dumpManager,
+                  const Options& options);
 
   ~ContractManager() override; ///< Destructor. Automatically saves contracts to the database before wiping them.
 

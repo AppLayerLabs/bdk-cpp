@@ -114,9 +114,14 @@ public:
   const std::atomic<bool>& rdposCanCreateBlock() const { return this->rdpos_.canCreateBlock(); }
   void rdposStartWorker() { this->rdpos_.startrdPoSWorker(); }
   void rdposStopWorker() { this->rdpos_.stoprdPoSWorker(); }
+  ///@}
+
+  // ======================================================================
+  // DUMP FUNCTIONS
+  // ======================================================================
   void dumpStartWorker() { this->dumpWorker_.startWorker(); }
   void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
-  ///@}
+  DumpManager& getDumpManager() { return this->dumpManager_; }
 
   // ======================================================================
   // STATE FUNCTIONS

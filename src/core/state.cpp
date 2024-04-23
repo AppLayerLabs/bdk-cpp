@@ -20,7 +20,7 @@ State::State(DB& db,
   dbState_(blockchainPath + "/state"),
   dumpManager_(storage_, options_, stateMutex_),
   dumpWorker_(options_, storage_, dumpManager_),
-  contractManager_(db, *this, rdpos_, options)
+  contractManager_(db, *this, rdpos_, dumpManager_, options)
 {
   std::unique_lock lock(this->stateMutex_);
   dumpManager_.pushBack(this);

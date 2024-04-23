@@ -14,10 +14,15 @@
 #include "../core/state.h"
 #include "../utils/dynamicexception.h"
 
-ContractManager::ContractManager(DB& db, State& state, rdPoS& rdpos, const Options& options)
+ContractManager::ContractManager(DB& db,
+                                 State& state,
+                                 rdPoS& rdpos,
+                                 DumpManager& dumpManager,
+                                 const Options& options)
   : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), 0, db),
     state_(state),
     rdpos_(rdpos),
+    dumpManager_(dumpManager),
     options_(options),
     factory_(std::make_unique<ContractFactory>(*this)),
     interface_(std::make_unique<ContractManagerInterface>(*this)),
@@ -34,6 +39,8 @@ ContractManager::ContractManager(DB& db, State& state, rdPoS& rdpos, const Optio
       throw DynamicException("Unknown contract: " + Utils::bytesToString(contract.value));
     }
   }
+  // DumpManager registration
+  dumpManager_.pushBack(this);
 }
 
 ContractManager::~ContractManager() {}

@@ -126,16 +126,10 @@ DBBatch DEXV2Factory::dump() const
 {
   DBBatch dbBatch;
   uint32_t i = 0;
-  std::unordered_map<std::string,BytesArrView> data {
-    {"feeTo_", this->feeTo_.get().view()},
-    {"feeToSetter_", this->feeToSetter_.get().view()}
-  };
 
-  for (auto it = data.begin(); it != data.end(); ++it) {
-    dbBatch.push_back(Utils::stringToBytes(it->first),
-                      it->second,
-                      this->getDBPrefix());
-  }
+  dbBatch.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
+
   for (const auto& address : this->allPairs_.get()) {
     dbBatch.push_back(Utils::uint32ToBytes(i++),
                       address.view(),

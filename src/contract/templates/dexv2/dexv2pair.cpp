@@ -1,8 +1,8 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+  Copyright (c) [2023-2024] [Sparq Network]
 
-This software is distributed under the MIT License.
-See the LICENSE.txt file in the project root for more information.
+  This software is distributed under the MIT License.
+  See the LICENSE.txt file in the project root for more information.
 */
 
 #include "dexv2pair.h"
@@ -10,9 +10,9 @@ See the LICENSE.txt file in the project root for more information.
 
 DEXV2Pair::DEXV2Pair(
   ContractManagerInterface &interface, const Address& address, DB &db
-) : ERC20(interface, address, db), factory_(this), token0_(this), token1_(this),
-  reserve0_(this), reserve1_(this), blockTimestampLast_(this),
-  price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
+  ) : ERC20(interface, address, db), factory_(this), token0_(this), token1_(this),
+      reserve0_(this), reserve1_(this), blockTimestampLast_(this),
+      price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
   this->factory_ = Address(this->db_.get(std::string("factory_"), this->getDBPrefix()));
   this->token0_ = Address(this->db_.get(std::string("token0_"), this->getDBPrefix()));
@@ -51,9 +51,9 @@ DEXV2Pair::DEXV2Pair(
   ContractManagerInterface& interface,
   const Address& address, const Address& creator, const uint64_t& chainId,
   DB& db
-) : ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, interface, address, creator, chainId, db),
-  factory_(this), token0_(this), token1_(this), reserve0_(this), reserve1_(this),
-  blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
+  ) : ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, interface, address, creator, chainId, db),
+      factory_(this), token0_(this), token1_(this), reserve0_(this), reserve1_(this),
+      blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
   this->factory_ = creator;
 
@@ -204,10 +204,10 @@ std::tuple<uint256_t, uint256_t> DEXV2Pair::burn(const Address& to) {
   ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
   uint256_t balance0 = this->callContractViewFunction(
     this->token0_.get(), &ERC20::balanceOf, this->getContractAddress()
-  );
+    );
   uint256_t balance1 = this->callContractViewFunction(
     this->token1_.get(), &ERC20::balanceOf, this->getContractAddress()
-  );
+    );
   uint256_t liquidity = this->balanceOf(this->getContractAddress());
 
   bool feeOn = this->_mintFee(this->reserve0_.get(), this->reserve1_.get());
@@ -246,11 +246,11 @@ void DEXV2Pair::swap(const uint256_t& amount0Out, const uint256_t& amount1Out, c
 void DEXV2Pair::skim(const Address &to) {
   ReentrancyGuard reentrancyGuard(this->reentrancyLock_);
   this->_safeTransfer(this->token0_.get(), to, this->callContractViewFunction(
-    this->token0_.get(), &ERC20::balanceOf, this->getContractAddress()
-  ) - this->reserve0_.get());
+                        this->token0_.get(), &ERC20::balanceOf, this->getContractAddress()
+                        ) - this->reserve0_.get());
   this->_safeTransfer(this->token1_.get(), to, this->callContractViewFunction(
-    this->token1_.get(), &ERC20::balanceOf, this->getContractAddress()
-  ) - this->reserve1_.get());
+                        this->token1_.get(), &ERC20::balanceOf, this->getContractAddress()
+                        ) - this->reserve1_.get());
 }
 
 void DEXV2Pair::sync() {
@@ -259,29 +259,23 @@ void DEXV2Pair::sync() {
     this->callContractViewFunction(this->token0_.get(), &ERC20::balanceOf, this->getContractAddress()),
     this->callContractViewFunction(this->token1_.get(), &ERC20::balanceOf, this->getContractAddress()),
     this->reserve0_.get(), this->reserve1_.get()
-  );
+    );
 }
 
 DBBatch DEXV2Pair::dump() const
 {
   DBBatch dbBatch;
-  std::unordered_map<std::string, BytesArrView> data {
-    {"factory_", this->factory_.get().view()},
-    {"token0_", this->token0_.get().view()},
-    {"token1_", this->token1_.get().view()},
-    {"reserve0_", Utils::uint112ToBytes(this->reserve0_.get())},
-    {"reserve1_", Utils::uint112ToBytes(this->reserve1_.get())},
-    {"blockTimestampLast_", Utils::uint32ToBytes(this->blockTimestampLast_.get())},
-    {"price0CumulativeLast_", Utils::uint256ToBytes(this->price0CumulativeLast_.get())},
-    {"price1CumulativeLast_", Utils::uint256ToBytes(this->price1CumulativeLast_.get())},
-    {"kLast_", Utils::uint256ToBytes(this->kLast_.get())}
-  };
 
-  for (auto it = data.begin(); it != data.end(); ++it) {
-    dbBatch.push_back(Utils::stringToBytes(it->first),
-                      it->second,
-                      this->getDBPrefix());
-  }
+  dbBatch.push_back(Utils::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("token0_"), this->token0_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("token1_"), this->token1_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("reserve0_"), Utils::uint112ToBytes(this->reserve0_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("reserve1_"), Utils::uint112ToBytes(this->reserve1_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("blockTimestampLast_"), Utils::uint32ToBytes(this->blockTimestampLast_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("price0CumulativeLast_"), Utils::uint256ToBytes(this->price0CumulativeLast_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("price1CumulativeLast_"), Utils::uint256ToBytes(this->price1CumulativeLast_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("kLast_"), Utils::uint256ToBytes(this->kLast_.get()), this->getDBPrefix());
+
   return dbBatch;
 }
 

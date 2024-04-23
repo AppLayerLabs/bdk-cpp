@@ -376,16 +376,10 @@ std::vector<uint256_t> DEXV2Router02::swapNativeForExactTokens(
 DBBatch DEXV2Router02::dump() const
 {
   DBBatch dbBatch;
-  std::unordered_map<std::string, BytesArrView> data {
-    {"factory_", this->factory_.get().view()},
-    {"wrappedNative_", this->wrappedNative_.get().view()}
-  };
 
-  for (auto it = data.cbegin(); it != data.cend(); ++it) {
-    dbBatch.push_back(Utils::stringToBytes(it->first),
-                      it->second,
-                      this->getDBPrefix());
-  }
+  dbBatch.push_back(Utils::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("wrappedNative_"), this->wrappedNative_.get().view(), this->getDBPrefix());
+
   return dbBatch;
 }
 

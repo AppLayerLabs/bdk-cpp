@@ -42,6 +42,7 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db
   this->totalSupply_.enableRegister();
   this->balances_.enableRegister();
   this->allowed_.enableRegister();
+
 }
 
 ERC20::ERC20(
@@ -179,19 +180,12 @@ void ERC20::transferFrom(
 DBBatch ERC20::dump() const
 {
   DBBatch dbBatch;
-  std::unordered_map<std::string, BytesArrView> data {
-    {"name_",  Utils::stringToBytes(name_.get())},
-    {"symbol_", Utils::stringToBytes(symbol_.get())},
-    {"decimals_", Utils::uint8ToBytes(decimals_.get())},
-    {"totalSupply_", Utils::uint256ToBytes(totalSupply_.get())}
-  };
 
   // Name, Symbol, Decimals, Total Supply
-  for (auto it = data.cbegin(); it != data.cend(); ++it) {
-    dbBatch.push_back(Utils::stringToBytes(it->first),
-                      it->second,
-                      this->getDBPrefix());
-  }
+  dbBatch.push_back(Utils::stringToBytes("name_"), Utils::stringToBytes(name_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("symbol_"), Utils::stringToBytes(symbol_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
   // Balances
   for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
     const auto& key = it->first.get();
