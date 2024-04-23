@@ -29,7 +29,6 @@ struct TestBlockchainWrapper {
   State state;            ///< Blockchain state.
   P2P::ManagerNormal p2p; ///< P2P connection manager.
   HTTPServer http;        ///< HTTP server.
-  P2P::NodeConns nodeConns;  ///< Node connection manager.
   Syncer syncer;             ///< Blockchain syncer.
   Consensus consensus;       ///< Block and transaction processing.
 
@@ -45,8 +44,7 @@ struct TestBlockchainWrapper {
     state(db, storage, p2p, options),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
     http(state, storage, p2p, options),
-    nodeConns(p2p),
-    syncer(nodeConns, storage),
+    syncer(p2p, storage, state),
     consensus(state, p2p, storage, options)
     {};
 

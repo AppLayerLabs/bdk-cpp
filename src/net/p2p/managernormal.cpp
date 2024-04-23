@@ -88,6 +88,9 @@ namespace P2P{
       case RequestTxs:
         handleTxRequest(nodeId, message);
         break;
+      case RequestBlock:
+        handleRequestBlockRequest(nodeId, message);
+        break;
       default:
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
                            "Invalid Request Command Type: " + std::to_string(message->command()) +
@@ -116,6 +119,9 @@ namespace P2P{
         break;
       case RequestTxs:
         handleTxAnswer(nodeId, message);
+        break;
+      case RequestBlock:
+        handleRequestBlockAnswer(nodeId, message);
         break;
       default:
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -255,6 +261,19 @@ namespace P2P{
     this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestTxs(*message, this->state_.getMempool())));
   }
 
+  void ManagerNormal::handleRequestBlockRequest(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    uint64_t height = RequestDecoder::requestBlock(*message);
+    if (this->storage_.blockExists(height)) {
+      const auto& requestedBlock = *(this->storage_.getBlock(height));
+      this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestBlock(*message, requestedBlock)));
+    } else {
+      // We don't have it, so send a 0-byte size serialized block back to signal it
+      this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestBlock(*message, {})));
+    }
+  }
+
   void ManagerNormal::handlePingAnswer(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
@@ -316,6 +335,21 @@ namespace P2P{
   }
 
   void ManagerNormal::handleTxAnswer(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    std::unique_lock lock(this->requestsMutex_);
+    if (!requests_.contains(message->id())) {
+      lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Answer to invalid request from " + nodeId.first.to_string() + ":" +
+                         std::to_string(nodeId.second) + " , closing session.");
+      this->disconnectSession(nodeId);
+      return;
+    }
+    requests_[message->id()]->setAnswer(message);
+  }
+
+  void ManagerNormal::handleRequestBlockAnswer(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     std::unique_lock lock(this->requestsMutex_);
@@ -501,6 +535,40 @@ namespace P2P{
     } catch (std::exception &e) {
       Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
         "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
+      );
+      return {};
+    }
+  }
+
+  /**
+   * Request a block to a peer.
+   * @param nodeId The ID of the node to request.
+   * @param height The block height to request.
+   * @return The requested block.
+   */
+  std::optional<Block> ManagerNormal::requestBlock(const NodeID &nodeId, const uint64_t& height) {
+    auto request = std::make_shared<const Message>(RequestEncoder::requestBlock(height));
+    auto requestPtr = sendRequestTo(nodeId, request);
+    if (requestPtr == nullptr) {
+      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
+        "RequestBlock to " + toString(nodeId) + " failed."
+      );
+      return {};
+    }
+    auto answer = requestPtr->answerFuture();
+    auto status = answer.wait_for(std::chrono::seconds(10)); // 10s timeout.
+    if (status == std::future_status::timeout) {
+      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
+        "RequestBlock to " + toString(nodeId) + " timed out."
+      );
+      return {};
+    }
+    try {
+      auto answerPtr = answer.get();
+      return AnswerDecoder::requestBlock(*answerPtr, this->options_.getChainID());
+    } catch (std::exception &e) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+        "RequestBlock to " + toString(nodeId) + " failed with error: " + e.what()
       );
       return {};
     }

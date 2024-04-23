@@ -11,6 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "managerbase.h"
 #include "nodeconns.h"
 
+#include <optional>
+
 // Forward declaration.
 class Storage;
 class State;
@@ -114,6 +116,13 @@ namespace P2P {
       void handleTxRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
+       * Handle a `RequestBlock` request.
+       * @param session The session that sent the request.
+       * @param message The request message to handle.
+       */
+      void handleRequestBlockRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
+      /**
        * Handle a `Ping` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
@@ -147,6 +156,13 @@ namespace P2P {
        * @param message The answer message to handle.
        */
       void handleTxAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
+      /**
+       * Handle a `RequestBlock` answer.
+       * @param session The session that sent the answer.
+       * @param message The answer message to handle.
+       */
+      void handleRequestBlockAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
        * Handle a Validator transaction broadcast message.
@@ -236,6 +252,14 @@ namespace P2P {
        * @return A struct with the node's info.
        */
       NodeInfo requestNodeInfo(const NodeID& nodeId);
+
+      /**
+       * Request a block to a peer.
+       * @param nodeId The ID of the node to request.
+       * @param height The block height to request.
+       * @return The requested block, or an empty optional on error.
+       */
+      std::optional<Block> requestBlock(const NodeID& nodeId, const uint64_t& height);
 
       /**
        * Broadcast a Validator transaction to all connected nodes.

@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "consensus.h"
 #include "storage.h"
+#include "state.h"
 #include "rdpos.h"
 #include "state.h"
 
@@ -27,8 +28,9 @@ class Blockchain; // Forward declaration for Syncer.
  */
 class Syncer {
   private:
-    P2P::NodeConns& nodeConns_;  ///< Reference to the NodeConns object.
-    const Storage& storage_;     ///< Reference to the blockchain storage.
+    P2P::ManagerNormal& p2p_;  ///< Reference to the P2P networking engine.
+    const Storage& storage_;   ///< Reference to the blockchain storage.
+    State& state_;             ///< reference to the blockchain state.
     std::atomic<bool> synced_ = false;  ///< Indicates whether or not the syncer is synced.
 
   public:
@@ -37,10 +39,15 @@ class Syncer {
      * @param nodeConns Reference to the NodeConns object.
      * @param storage Reference to the blockchain storage.
      */
-    explicit Syncer(P2P::NodeConns& nodeConns, const Storage& storage) :
-      nodeConns_(nodeConns), storage_(storage) {}
+    explicit Syncer(P2P::ManagerNormal& p2p, const Storage& storage, State& state) :
+      p2p_(p2p), storage_(storage), state_(state) {}
 
-    void sync(); ///< Do the syncing between nodes.
+    /**
+     * Synchronize this node to the latest known blocks among all connected peers at the time this method is called.
+     * @param tries If zero, try forever, otherwise try block downloads a set number of times.
+     * @return `true` if successfully synced, `false` otherwise.
+     */
+    bool sync(int tries = 0);
 
     ///@{
     /** Getter. */

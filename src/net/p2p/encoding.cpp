@@ -77,6 +77,15 @@ namespace P2P {
     return Message(std::move(message));
   }
 
+  Message RequestEncoder::requestBlock(uint64_t height) {
+    Bytes message = getRequestTypePrefix(Requesting);
+    Utils::appendBytes(message, Utils::randBytes(8));
+    Utils::appendBytes(message, getCommandPrefix(RequestBlock));
+    Utils::appendBytes(message, Utils::uint64ToBytes(height));
+    return Message(std::move(message));
+  }
+
+
   bool RequestDecoder::ping(const Message& message) {
     if (message.size() != 11) { return false; }
     if (message.command() != Ping) { return false; }
@@ -113,6 +122,12 @@ namespace P2P {
     if (message.size() != 11) { return false; }
     if (message.command() != RequestTxs) { return false; }
     return true;
+  }
+
+  uint64_t RequestDecoder::requestBlock(const Message& message) {
+    if (message.size() != 19) { throw DynamicException("Invalid RequestBlock message size."); }
+    if (message.command() != RequestBlock) { throw DynamicException("Invalid RequestBlock message command."); }
+    return Utils::bytesToUint64(message.message().subspan(0, 8));
   }
 
   Message AnswerEncoder::ping(const Message& request) {
@@ -187,6 +202,19 @@ namespace P2P {
       Bytes rlp = tx.rlpSerialize();
       Utils::appendBytes(message, Utils::uint32ToBytes(rlp.size()));
       message.insert(message.end(), rlp.begin(), rlp.end());
+    }
+    return Message(std::move(message));
+  }
+
+  Message AnswerEncoder::requestBlock(const Message& request,
+    const std::optional<Block>& block
+  ) {
+    Bytes message = getRequestTypePrefix(Answering);
+    Utils::appendBytes(message, request.id());
+    Utils::appendBytes(message, getCommandPrefix(RequestBlock));
+    if (block) {
+      Bytes serializedBlock = block->serializeBlock();
+      Utils::appendBytes(message, serializedBlock);
     }
     return Message(std::move(message));
   }
@@ -284,6 +312,16 @@ namespace P2P {
       txs.emplace_back(txData, requiredChainId);
     }
     return txs;
+  }
+
+  std::optional<Block> AnswerDecoder::requestBlock(
+    const Message& message, const uint64_t& requiredChainId
+  ) {
+    if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
+    if (message.command() != RequestBlock) { throw DynamicException("Invalid command."); }
+    BytesArrView data = message.message();
+    if (data.size() == 0) return {};
+    return Block(data, requiredChainId);
   }
 
   Message BroadcastEncoder::broadcastValidatorTx(const TxValidator& tx) {

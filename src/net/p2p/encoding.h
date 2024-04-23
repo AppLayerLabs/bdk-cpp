@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define P2P_ENCODING_H
 
 #include <future>
+#include <optional>
 
 #include "../../utils/utils.h"
 #include "../../utils/safehash.h"
@@ -61,7 +62,8 @@ namespace P2P {
     BroadcastBlock,
     BroadcastInfo, // FIXME/TODO: Remove this message/command if it's not going to be broadcasted (routed)
     RequestTxs,
-    NotifyInfo
+    NotifyInfo,
+    RequestBlock
   };
 
   /**
@@ -92,6 +94,7 @@ namespace P2P {
    * - "0007" = BroadcastInfo
    * - "0008" = RequestTxs
    * - "0009" = NotifyInfo
+   * - "000A" = RequestBlock
    */
   inline extern const std::vector<Bytes> commandPrefixes {
     Bytes{0x00, 0x00}, // Ping
@@ -103,7 +106,8 @@ namespace P2P {
     Bytes{0x00, 0x06}, // BroadcastBlock
     Bytes{0x00, 0x07}, // BroadcastInfo
     Bytes{0x00, 0x08}, // RequestTxs
-    Bytes{0x00, 0x09}  // NotifyInfo
+    Bytes{0x00, 0x09}, // NotifyInfo
+    Bytes{0x00, 0x0A}  // RequestBlock
   };
 
   /**
@@ -265,6 +269,13 @@ namespace P2P {
        * @return The formatted request.
        */
       static Message requestTxs();
+
+      /**
+       * Create a `RequestBlock` request.
+       * @param height The height of the block being requested.
+       * @return The formatted request.
+       */
+      static Message requestBlock(uint64_t height);
   };
 
   /// Helper class used to parse requests.
@@ -305,6 +316,13 @@ namespace P2P {
        * @return `true` if the message is valid, `false` otherwise.
        */
       static bool requestTxs(const Message& message);
+
+      /**
+       * Parse a `RequestBlock` message.
+       * @param message The message to parse.
+       * @return Height of the block being requested.
+       */
+      static uint64_t requestBlock(const Message& message);
   };
 
   /// Helper class used to create answers to requests.
@@ -358,6 +376,16 @@ namespace P2P {
       static Message requestTxs(const Message& request,
         const std::unordered_map<Hash, TxBlock, SafeHash>& txs
       );
+
+      /**
+       * Create a `RequestBlock` answer.
+       * @param request The request message.
+       * @param block An optional containing the requested block, or empty if we don't have it.
+       * @return The formatted answer.
+       */
+      static Message requestBlock(const Message& request,
+        const std::optional<Block>& block
+      );
   };
 
   /// Helper class used to parse answers to requests.
@@ -403,6 +431,16 @@ namespace P2P {
        * @return A list of requested Validator transactions.
        */
       static std::vector<TxBlock> requestTxs(
+        const Message& message, const uint64_t& requiredChainId
+      );
+
+      /**
+       * Parse a `RequestBlock` answer.
+       * @param message The answer to parse.
+       * @param requiredChainId The chain ID to use as reference.
+       * @return The requested block, or an empty optional if the peer did not have it.
+       */
+      static std::optional<Block> requestBlock(
         const Message& message, const uint64_t& requiredChainId
       );
   };
@@ -601,5 +639,9 @@ namespace P2P {
       void setAnswer(const std::shared_ptr<const Message> answer) { answer_.set_value(answer); isAnswered_ = true; };
   };
 };
+
+inline std::string toString(const P2P::NodeID& nodeId) {
+  return nodeId.first.to_string() + ":" + std::to_string(nodeId.second);
+}
 
 #endif  // P2P_ENCODING_H
