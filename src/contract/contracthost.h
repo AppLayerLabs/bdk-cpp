@@ -16,9 +16,8 @@
 #include "contractmanager.h"
 
 
-// TODO: Deprecate EthCallInfo in favor of evmc_message
 // TODO: EVMC Static Mode Handling
-// TODO: Contract creating other contracts
+// TODO: Contract creating other contracts (EVM Factories)
 // TODO: C++ Call EVM. EVM Call C++
 
 /**

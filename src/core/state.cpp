@@ -138,18 +138,18 @@ void State::processTransaction(const TxBlock& tx,
   // Lock is already called by processNextBlock.
   // processNextBlock already calls validateTransaction in every tx,
   // as it calls validateNextBlock as a sanity check.
-  auto accountIt = this->accounts_.find(tx.getFrom());
-  const auto& accountTo = this->accounts_[tx.getTo()];
+  Account& accountFrom = *this->accounts_[tx.getFrom()];
+  Account& accountTo = *this->accounts_[tx.getTo()];
   int64_t leftOverGas = int64_t(tx.getGasLimit());
-  auto& nonce = accountIt->second->nonce;
-  auto& balance = accountIt->second->balance;
-  if (balance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
+  auto& fromNonce = accountFrom.nonce;
+  auto& fromBalance = accountFrom.balance;
+  if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction");
     throw DynamicException("Transaction sender doesn't have balance to send transaction");
     return;
   }
-  if (nonce != tx.getNonce()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(nonce)
+  if (fromNonce != tx.getNonce()) {
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(fromNonce)
                                             + " got: " + tx.getNonce().str());
     throw DynamicException("Transaction nonce mismatch");
     return;
@@ -182,7 +182,7 @@ void State::processTransaction(const TxBlock& tx,
       leftOverGas
     );
 
-    host.execute(tx.txToMessage(), accountTo->contractType);
+    host.execute(tx.txToMessage(), accountTo.contractType);
 
   } catch (const std::exception& e) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to execute: " + e.what());
@@ -191,12 +191,9 @@ void State::processTransaction(const TxBlock& tx,
   if (leftOverGas < 0) {
     leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
   }
-  /// It is most probably that the account iterator is invalidated after the host.execute call.
-  /// So we need to find the account again.
-  accountIt = this->accounts_.find(tx.getFrom());
-  accountIt->second->nonce++;
+  ++fromNonce;
   auto usedGas = tx.getGasLimit() - leftOverGas;
-  accountIt->second->balance -= (usedGas * tx.getMaxFeePerGas());
+  fromBalance -= (usedGas * tx.getMaxFeePerGas());
 }
 
 void State::refreshMempool(const Block& block) {

@@ -151,12 +151,6 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
         }
         case ContractType::EVM: {
           // Execute a EVM contract.
-          /// TODO: We have a problem here
-          /// as you might know, using unordered_map::operator[] and then insert a new element (e.g. the contract call
-          /// creates another contract, effectively creating a new account on the accounts_ unordered_map)
-          /// it may **invalidate** all the references to the elements of the unordered_map
-          /// that **includes** this->accounts_[to].code.data() and this->accounts_[to].code.size()
-          /// so we must find a way to fix this
           auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                      evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                       this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
@@ -210,13 +204,6 @@ Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& typ
       }
       case ContractType::EVM: {
         // Execute a EVM contract.
-        /// TODO: We have a problem here
-        /// as you might know, using unordered_map::operator[] and then insert a new element (e.g. the contract call
-        /// creates another contract, effectively creating a new account on the accounts_ unordered_map)
-        /// it may **invalidate** all the references to the elements of the unordered_map
-        /// that **includes** this->accounts_[to].code.data() and this->accounts_[to].code.size()
-        /// so we must find a way to fix this
-        /// (I think we could make code be a unique_ptr, where the actual code is stored OUTSIDE the unordered_map)
         auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                    evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                     this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
@@ -396,7 +383,6 @@ evmc::bytes32 ContractHost::get_block_hash(int64_t number) const noexcept {
 }
 
 void ContractHost::emit_log(const evmc::address& addr, const uint8_t* data, size_t data_size, const evmc::bytes32 topics[], size_t topics_count) noexcept {
-  // TODO: Implement after integrating with state
   try {
     // We need the following arguments to build a event:
     // (std::string) name The event's name.
