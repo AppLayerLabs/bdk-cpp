@@ -41,6 +41,7 @@ Functor Utils::makeFunctor(const std::string& functionSignature) {
   Hash hash = Utils::sha3(BytesArrView(reinterpret_cast<const uint8_t*>(functionSignature.data()), functionSignature.size()));
   // Copy the first 4 bytes of the hash to the value
   ret.value = Utils::bytesToUint32(hash.view(0,4));
+  return ret;
 }
 
 BytesArrView Utils::getFunctionArgs(const evmc_message& msg) {
