@@ -29,14 +29,34 @@ const std::vector<Hash> validatorPrivKeysState {
   Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
 };
 
-ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall) {
-  ethCallInfoAllocated callInfo;
-  auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = callInfo;
-  to = addressToCall;
-  Utils::appendBytes(fullData, function);
-  Utils::appendBytes(fullData, dataToCall);
-  functor = function;
-  data = BytesArrView(fullData.cbegin() + 4, fullData.cend());
+evmc_message buildCallInfo(const Address& addressToCall, const Functor& function, Bytes& dataToCall) {
+  Bytes functor;
+  Utils::appendBytes(functor, Utils::uint32ToBytes(function.value));
+  // Append functor to beginning of data
+  dataToCall.insert(dataToCall.begin(), functor.begin(), functor.end());
+  evmc_message callInfo;
+  auto& [callKind,
+    callFlags,
+    callDepth,
+    callGas,
+    callRecipient,
+    callSender,
+    callInputData,
+    callInputSize,
+    callValue,
+    callCreate2Salt,
+    callCodeAddress] = callInfo;
+  callKind = EVMC_CALL;
+  callFlags = 0;
+  callDepth = 1;
+  callGas = 100000000;
+  callRecipient = addressToCall.toEvmcAddress();
+  callSender = {};
+  callInputData = dataToCall.data();
+  callInputSize = dataToCall.size();
+  callValue = {};
+  callCreate2Salt = {};
+  callCodeAddress = addressToCall.toEvmcAddress();
   return callInfo;
 }
 

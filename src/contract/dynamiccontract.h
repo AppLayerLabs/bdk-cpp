@@ -24,7 +24,7 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-      Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<void(const evmc_message& callInfo)>, SafeHash
     > publicFunctions_;
 
    /**
@@ -33,7 +33,7 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-      Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<void(const evmc_message& callInfo)>, SafeHash
     > payableFunctions_;
 
    /**
@@ -43,7 +43,7 @@ class DynamicContract : public BaseContract {
     * Function return type is the encoded return value as viewFunctions is only used by eth_call.
     */
     std::unordered_map<
-      Functor, std::function<Bytes(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
     > viewFunctions_;
 
     /**
@@ -53,7 +53,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerFunction(
-      const Functor& functor, const std::function<void(const ethCallInfo& tx)>& f
+      const Functor& functor, const std::function<void(const evmc_message& tx)>& f
     ) {
       publicFunctions_[functor] = f;
     }
@@ -83,21 +83,21 @@ class DynamicContract : public BaseContract {
       std::string functStr = funcSignature + "()";
       switch (methodMutability) {
         case FunctionTypes::View: {
-          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view(0, 4), [instance, memFunc](const ethCallInfo&) -> Bytes {
+          this->registerViewFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> Bytes {
             using ReturnType = decltype((instance->*memFunc)());
             return ABI::Encoder::encodeData<ReturnType>((instance->*memFunc)());
           });
           break;
         }
         case FunctionTypes::NonPayable: {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view(0, 4), [instance, memFunc](const ethCallInfo&) -> void {
+          this->registerFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> void {
             (instance->*memFunc)();
             return;
           });
           break;
         }
         case FunctionTypes::Payable: {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view(0, 4), [instance, memFunc](const ethCallInfo&) -> void {
+          this->registerPayableFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> void {
             (instance->*memFunc)();
             return;
           });
@@ -126,8 +126,8 @@ class DynamicContract : public BaseContract {
         }
         case FunctionTypes::NonPayable: {
           this->registerFunction(
-            Utils::sha3(Utils::create_view_span(functStr)).view(0, 4),
-            [instance, memFunc](const ethCallInfo&) -> void {
+            Utils::makeFunctor(functStr),
+            [instance, memFunc](const evmc_message&) -> void {
               (instance->*memFunc)();
               return;
             }
@@ -136,8 +136,8 @@ class DynamicContract : public BaseContract {
         }
         case FunctionTypes::Payable: {
           this->registerPayableFunction(
-            Utils::sha3(Utils::create_view_span(functStr)).view(0, 4),
-            [instance, memFunc](const ethCallInfo&) -> void {
+            Utils::makeFunctor(functStr),
+            [instance, memFunc](const evmc_message&) -> void {
               (instance->*memFunc)();
               return;
             }
@@ -161,9 +161,9 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(Args...), const FunctionTypes& methodMutability, T* instance
     ) {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
-      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
+      auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(std::get<6>(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
         std::apply([instance, memFunc](auto&&... args) {
             (instance->*memFunc)(std::forward<decltype(args)>(args)...);
         }, decodedData);
@@ -193,10 +193,10 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(Args...) const, const FunctionTypes& methodMutability, T* instance
     ) {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
-      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> Bytes {
+      auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
         using ReturnType = decltype((instance->*memFunc)(std::declval<Args>()...));
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(std::get<6>(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
         // Use std::apply to call the member function and encode its return value
         return std::apply([instance, memFunc](Args... args) -> Bytes {
           // Call the member function and return its encoded result
@@ -222,7 +222,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerPayableFunction(
-      const Functor& functor, const std::function<void(const ethCallInfo& tx)>& f
+      const Functor& functor, const std::function<void(const evmc_message& tx)>& f
     ) {
       payableFunctions_[functor] = f;
     }
@@ -233,7 +233,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerViewFunction(
-      const Functor& functor, const std::function<Bytes(const ethCallInfo& str)>& f
+      const Functor& functor, const std::function<Bytes(const evmc_message& str)>& f
     ) {
       viewFunctions_[functor] = f;
     }
@@ -276,18 +276,21 @@ class DynamicContract : public BaseContract {
      * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
-    void ethCall(const ethCallInfo& callInfo, ContractHost* host) override {
+    void ethCall(const evmc_message& callInfo, ContractHost* host) override {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = std::get<5>(callInfo);
-        const auto& value = std::get<4>(callInfo);
+        Functor funcName = Utils::getFunctor(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->payableFunctions_.find(funcName);
           if (func == this->payableFunctions_.end()) throw DynamicException("Functor not found for payable function");
           func->second(callInfo);
         } else {
-          if (value != 0) throw DynamicException("Cannot send value to non-payable function");
+          // value is a uint8_t[32] C array, we need to check if it's zero in modern C++
+          if (!evmc::is_zero(callInfo.value)) {
+            // If the value is not zero, we need to throw an exception
+            throw DynamicException("Non-payable function called with value");
+          }
           auto func = this->publicFunctions_.find(funcName);
           if (func == this->publicFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
           func->second(callInfo);
@@ -303,11 +306,11 @@ class DynamicContract : public BaseContract {
      * @return The result of the view function.
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
-    Bytes ethCallView(const ethCallInfo& data, ContractHost* host) const override {
+    Bytes ethCallView(const evmc_message& data, ContractHost* host) const override {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = std::get<5>(data);
+        Functor funcName = Utils::getFunctor(data);
         auto func = this->viewFunctions_.find(funcName);
         if (func == this->viewFunctions_.end()) throw DynamicException("Functor not found");
         return func->second(data);
@@ -524,13 +527,17 @@ class DynamicContract : public BaseContract {
       if (this->host_ == nullptr) {
         throw DynamicException("Contracts going haywire! trying to create a contract without a host!");
       }
-      Bytes encoder;
+      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract(";
+      // Append args
+      createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
+      createSignature += ")";
+      Bytes fullData;
+      Utils::appendBytes(fullData, Utils::sha3(Utils::create_view_span(createSignature)));
+      fullData.resize(4); // We only need the first 4 bytes for the function signature
       if constexpr (sizeof...(Args) > 0) {
-        encoder = ABI::Encoder::encodeData(std::forward<Args>(args)...);
-      } else {
-        encoder = Bytes(32, 0);
+        Utils::appendBytes(fullData, ABI::Encoder::encodeData(std::forward<Args>(args)...));
       }
-      return this->host_->callCreateContract<TContract>(this, encoder);
+      return this->host_->callCreateContract<TContract>(this, fullData);
     }
 
     /**

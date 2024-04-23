@@ -313,8 +313,8 @@ const std::atomic<bool>& rdPoS::canCreateBlock() const {
 }
 
 rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) {
-  constexpr Functor randomHashHash(Bytes{0xcf, 0xff, 0xe7, 0x46});
-  constexpr Functor randomSeedHash(Bytes{0x6f, 0xc5, 0xa2, 0xd6});
+  constexpr Functor randomHashHash(3489654598);
+  constexpr Functor randomSeedHash(1875223254);
   if (tx.getData().size() != 36) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator data size is not 36 bytes.");
     // Both RandomHash and RandomSeed are 32 bytes, so if the data size is not 36 bytes, it is invalid.
@@ -326,7 +326,7 @@ rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) 
   } else if (functionABI == randomSeedHash) {
     return TxValidatorFunction::RANDOMSEED;
   } else {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator function ABI is not recognized.");
+    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator function ABI is not recognized: " + std::to_string(functionABI.value) + " tx Data: " + Hex::fromBytes(tx.getData()).get());
     return TxValidatorFunction::INVALID;
   }
 }

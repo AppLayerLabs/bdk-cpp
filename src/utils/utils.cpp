@@ -27,6 +27,27 @@ void Utils::logToFile(std::string_view str) {
   log.close();
 }
 
+Functor Utils::getFunctor(const evmc_message& msg) {
+  Functor ret;
+  if (msg.input_size < 4) return ret;
+  // Memcpy the first 4 bytes from the input data to the function signature
+  ret.value = Utils::bytesToUint32(BytesArrView(msg.input_data, 4));
+  return ret;
+}
+
+Functor Utils::makeFunctor(const std::string& functionSignature) {
+  Functor ret;
+  // Create the hash
+  Hash hash = Utils::sha3(BytesArrView(reinterpret_cast<const uint8_t*>(functionSignature.data()), functionSignature.size()));
+  // Copy the first 4 bytes of the hash to the value
+  ret.value = Utils::bytesToUint32(hash.view(0,4));
+}
+
+BytesArrView Utils::getFunctionArgs(const evmc_message& msg) {
+  if (msg.input_size < 4) return BytesArrView();
+  return BytesArrView(msg.input_data + 4, msg.input_size - 4);
+}
+
 void Utils::safePrint(std::string_view str) {
  // if (!Utils::logToCout) return; // Never print if we are in a test
  // std::lock_guard lock(cout_mutex);
@@ -42,7 +63,7 @@ Hash Utils::sha3(const BytesArrView input) {
 
 uint256_t Utils::evmcUint256ToUint256(const evmc::uint256be& i) {
   // We can use the uint256ToBytes directly as it is std::span and we can create a span from an array
-  return Utils::bytesToUint256(BytesArrView(reinterpret_cast<const uint8_t*>(i.bytes[0]), 32));
+  return Utils::bytesToUint256(BytesArrView(reinterpret_cast<const uint8_t*>(&i.bytes[0]), 32));
 }
 evmc::uint256be Utils::uint256ToEvmcUint256(const uint256_t& i) {
   // Convert the uint256_t to BytesArr<32> then copy it to evmc::uint256be

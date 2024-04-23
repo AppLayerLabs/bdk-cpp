@@ -93,7 +93,7 @@ class ContractHost : public evmc::Host {
       }
     }
 
-    void createEVMContract(evmc_message& msg, const Address& contractAddr, const BytesArrView& bytecode);
+    void createEVMContract(const evmc_message& msg, const Address& contractAddr);
 
   public:
     ContractHost(evmc_vm* vm,
@@ -124,15 +124,15 @@ class ContractHost : public evmc::Host {
     static Address deriveContractAddress(const uint64_t& nonce, const Address& address);
 
     /// Executes a call
-    void execute(const ethCallInfo& tx, const ContractType& type);
+    void execute(const evmc_message& msg, const ContractType& type);
 
     /// Executes a eth_call RPC method (view)
     /// returns the result of the call (if any)
-    Bytes ethCallView(const ethCallInfo& tx, const ContractType& type);
+    Bytes ethCallView(const evmc_message& msg, const ContractType& type);
 
     /// Simulates a call
     /// Return the left over gas
-    void simulate(const ethCallInfo& tx, const ContractType& type);
+    void simulate(const evmc_message& msg, const ContractType& type);
 
     /// EVMC FUNCTIONS
     bool account_exists(const evmc::address& addr) const noexcept final;
@@ -155,7 +155,6 @@ class ContractHost : public evmc::Host {
 
 
     /// CONTRACT INTERFACING FUNCTIONS
-
     /**
      * Call a contract function. Used by DynamicContract to call other contracts.
      * A given DynamicContract will only call another contract if triggered by a transaction.
@@ -236,29 +235,47 @@ class ContractHost : public evmc::Host {
      */
     template <typename TContract> Address callCreateContract(
       BaseContract* caller,
-      const Bytes &encoder
+      const Bytes &fullData
     ) {
       // 100k gas limit for every contract creation!
       this->deduceGas(100000);
-      ethCallInfo callInfo;
+      evmc_message callInfo;
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract(";
       // Append args
       createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
       createSignature += ")";
-      auto& [from, to, gas, gasPrice, value, functor, data, fullData] = callInfo;
-      from = caller->getContractAddress();
-      to = ProtocolContractAddresses.at("ContractManager");
-      gas = this->leftoverGas_;
-      gasPrice = 0; // TODO: Implement proper gasPrice.
-                    // Using from tx context caused a segfault on dexv2 tests
-      value = 0;
-      functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
-      data = encoder;
+      // evmc_message:
+      // struct evmc_message
+      // {
+      //   enum evmc_call_kind kind;
+      //   uint32_t flags;
+      //   int32_t depth;
+      //   int64_t gas;
+      //   evmc_address recipient;
+      //   evmc_address sender;
+      //   const uint8_t* input_data;
+      //   size_t input_size;
+      //   evmc_uint256be value;
+      //   evmc_bytes32 create2_salt;
+      //   evmc_address code_address;
+      // };
+      auto functorSignatureBytes = Utils::sha3(Utils::create_view_span(createSignature));
+      const auto& to = ProtocolContractAddresses.at("ContractManager");
+      callInfo.flags = 0;
+      callInfo.depth = 1;
+      callInfo.gas = this->leftoverGas_;
+      callInfo.recipient = to.toEvmcAddress();
+      callInfo.sender = caller->getContractAddress().toEvmcAddress();
+      callInfo.input_data = fullData.data();
+      callInfo.input_size = fullData.size();
+      callInfo.value = {};
+      callInfo.create2_salt = {};
+      callInfo.code_address = to.toEvmcAddress();
       // Get the ContractManager from the this->accounts_ map
       ContractManager* contractManager = dynamic_cast<ContractManager*>(this->contracts_.at(to).get());
-      this->setContractVars(contractManager, from, 0);
-      auto callerNonce = this->accounts_[from].nonce;
-      Address newContractAddress = ContractHost::deriveContractAddress(callerNonce, from);
+      this->setContractVars(contractManager, to, 0);
+      auto callerNonce = this->accounts_[to].nonce;
+      Address newContractAddress = ContractHost::deriveContractAddress(callerNonce, to);
       this->stack_.registerNonce(caller->getContractAddress(), callerNonce);
       NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
       contractManager->ethCall(callInfo, this);

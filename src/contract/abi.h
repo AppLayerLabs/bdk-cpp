@@ -365,8 +365,11 @@ namespace ABI {
      * @param funcSig The function signature (name).
      */
     template <typename... Args> static Functor encode(const std::string& funcSig) {
+      Functor ret;
       std::string fullSig = funcSig + "(" + listArgumentTypes<Args...>() + ")";
-      return Utils::sha3(Utils::create_view_span(fullSig)).view(0, 4);
+      auto hash = Utils::sha3(Utils::create_view_span(fullSig));
+      ret.value = Utils::bytesToUint32(hash.view(0,4));
+      return ret;
     }
   }; // namespace FunctorEncoder
 

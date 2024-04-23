@@ -26,7 +26,7 @@ See the LICENSE.txt file in the project root for more information.
  * std::unordered_map<
  *       Functor,
  *       std::function<
- *         void(const ethCallInfo&,
+ *         void(const evmc_message&,
  *              const Address&,
  *              std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
  *              const uint64_t&,
@@ -102,12 +102,12 @@ namespace ContractFactory {
      * @throw DynamicException if non contract creator tries to create a contract.
      * @throw DynamicException if contract already exists as either a Dynamic or Protocol contract.
      */
-    template <typename TContract> auto setupNewContractArgs(const ethCallInfo &callInfo) {
+    template <typename TContract> auto setupNewContractArgs(const evmc_message& callInfo) {
       // Setup the contract
       using ConstructorArguments = typename TContract::ConstructorArguments;
       using DecayedArguments = decltype(Utils::removeQualifiers<ConstructorArguments>());
       DecayedArguments arguments = std::apply([&callInfo](auto&&... args) {
-        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(std::get<6>(callInfo));
+        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(Utils::getFunctionArgs(callInfo));
       }, DecayedArguments{});
       return arguments;
     }
@@ -117,7 +117,7 @@ namespace ContractFactory {
      * @param callInfo The call info to process.
      * @throw DynamicException if the call to the ethCall function fails, or if the contract does not exist.
      */
-    template <typename TContract> void createNewContract(const ethCallInfo& callInfo,
+    template <typename TContract> void createNewContract(const evmc_message& callInfo,
                                                          const Address& derivedAddress,
                                                          std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                                                          const uint64_t& chainId,
@@ -132,7 +132,7 @@ namespace ContractFactory {
       // The constructor can set SafeVariable values from the constructor.
       // We need to take account of that and set the variables accordingly.
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
-        std::get<0>(callInfo), derivedAddress, chainId, db, decodedData
+        callInfo.sender, derivedAddress, chainId, db, decodedData
       );
       host->registerNewCPPContract(derivedAddress);
       contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
@@ -145,13 +145,13 @@ namespace ContractFactory {
      */
     template <typename Contract>
     void addContractFuncs(const std::function<
-                       void(const ethCallInfo&,
+                       void(const evmc_message&,
                             const Address&,
                             std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                             const uint64_t&,
                             DB& db,
                             ContractHost* host)>& createFunc
-                      ,std::unordered_map<Functor,std::function<void(const ethCallInfo&,
+                      ,std::unordered_map<Functor,std::function<void(const evmc_message&,
                                                                      const Address&,
                                                                      std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                      const uint64_t&,
@@ -162,7 +162,9 @@ namespace ContractFactory {
       // Append args
       createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
       createSignature += ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
+      auto hash = Utils::sha3(Utils::create_view_span(createSignature));
+      Functor functor;
+      functor.value = Utils::bytesToUint32(hash.view(0,4));
       createContractFuncs[functor] = createFunc;
     }
 
@@ -170,14 +172,14 @@ namespace ContractFactory {
      * Register all contracts in the variadic template.
      * @tparam Contracts The contracts to register.
      */
-    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(std::unordered_map<Functor,std::function<void(const ethCallInfo&,
+    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(std::unordered_map<Functor,std::function<void(const evmc_message&,
                                                                      const Address&,
                                                                      std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                      const uint64_t&,
                                                                      DB& db,
                                                                      ContractHost*)>,SafeHash>& createContractFuncs,
                                                                    std::index_sequence<Is...>) {
-      ((addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const ethCallInfo &callInfo,
+      ((addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const evmc_message &callInfo,
                                                                 const Address &derivedAddress,
                                                                 std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
                                                                 const uint64_t &chainId,
@@ -192,7 +194,7 @@ namespace ContractFactory {
      * @tparam Tuple The tuple of contracts to add.
      */
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value void addAllContractFuncs(
-                                                                   std::unordered_map<Functor,std::function<void(const ethCallInfo&,
+                                                                   std::unordered_map<Functor,std::function<void(const evmc_message&,
                                                                    const Address&,
                                                                    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                    const uint64_t&,

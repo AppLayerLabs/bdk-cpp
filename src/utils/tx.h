@@ -111,11 +111,10 @@ class TxBlock {
     Bytes rlpSerialize(bool includeSig = true) const;
 
     /**
-     * Convert a TxBlock to a ethCallInfo object
-     * @param txBlock The TxBlock to convert.
-     * @return The equivalent ethCallInfo object.
+     * Convert a TxBlock to a evmc_message object.
+     * @return The equivalent evmc_message object.
      */
-    ethCallInfo txToCallInfo() const;
+    evmc_message txToMessage() const;
 
     /// Copy assignment operator.
     TxBlock& operator=(const TxBlock& other) {
@@ -210,7 +209,11 @@ class TxValidator {
     /** Getter. */
     inline const Address& getFrom() const { return this->from_; }
     inline const Bytes& getData() const { return this->data_; }
-    inline Functor getFunctor() const { return Functor(Bytes(this->data_.begin(), this->data_.begin() + 4)); }
+    inline Functor getFunctor() const {
+      Functor ret; if (this->data_.size() < 4) return ret;
+      ret.value = Utils::bytesToUint32(Utils::create_view_span(this->data_, 0, 4));
+      return ret;
+    }
     inline const uint64_t& getChainId() const { return this->chainId_; }
     inline const uint64_t& getNHeight() const { return this->nHeight_; }
     inline const uint256_t& getV() const { return this->v_; }

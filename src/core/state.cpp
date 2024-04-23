@@ -162,13 +162,15 @@ void State::processTransaction(const TxBlock& tx,
       leftOverGas
     );
 
-    host.execute(tx.txToCallInfo(), accountTo.contractType);
+    host.execute(tx.txToMessage(), accountTo.contractType);
 
   } catch (const std::exception& e) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to execute: " + e.what());
     throw DynamicException("Transaction failed to execute: " + std::string(e.what()));
   }
-
+  if (leftOverGas < 0) {
+    leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
+  }
   /// It is most probably that the account iterator is invalidated after the host.execute call.
   /// So we need to find the account again.
   accountIt = this->accounts_.find(tx.getFrom());
@@ -363,24 +365,24 @@ void State::addBalance(const Address& addr) {
   this->accounts_[addr].balance += uint256_t("1000000000000000000000");
 }
 
-Bytes State::ethCall(const ethCallInfo& callInfo) {
+Bytes State::ethCall(const evmc_message& callInfo) {
   // We actually need to lock uniquely here
   // As the contract host will modify (reverting in the end) the state.
   std::unique_lock lock(this->stateMutex_);
-  const auto &address = std::get<1>(callInfo);
-  const auto& accIt = this->accounts_.find(address);
+  const auto recipient(callInfo.recipient);
+  const auto& accIt = this->accounts_.find(recipient);
   if (accIt == this->accounts_.end()) {
     return {};
   }
   const auto& acc = accIt->second;
   if (acc.isContract()) {
-    int64_t leftOverGas = int64_t(std::get<2>(callInfo));
+    int64_t leftOverGas = callInfo.gas;
     evmc_tx_context txContext;
-    txContext.tx_gas_price = Utils::uint256ToEvmcUint256(std::get<3>(callInfo));
-    txContext.tx_origin = std::get<0>(callInfo).toEvmcAddress();
+    txContext.tx_gas_price = {};
+    txContext.tx_origin = callInfo.sender;
     txContext.block_coinbase = ContractGlobals::getCoinbase().toEvmcAddress();
-    txContext.block_number = ContractGlobals::getBlockHeight();
-    txContext.block_timestamp = ContractGlobals::getBlockTimestamp();
+    txContext.block_number = static_cast<int64_t>(ContractGlobals::getBlockHeight());
+    txContext.block_timestamp = static_cast<int64_t>(ContractGlobals::getBlockTimestamp());
     txContext.block_gas_limit = 10000000;
     txContext.block_prev_randao = {};
     txContext.chain_id = Utils::uint256ToEvmcUint256(this->options_.getChainID());
@@ -407,9 +409,9 @@ Bytes State::ethCall(const ethCallInfo& callInfo) {
   }
 }
 
-int64_t State::estimateGas(const ethCallInfo& callInfo) {
+int64_t State::estimateGas(const evmc_message& callInfo) {
   std::unique_lock lock(this->stateMutex_);
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = callInfo;
+  const Address to = callInfo.recipient;
   // ContractHost simulate already do all necessary checks
   // We just need to execute and get the leftOverGas
   ContractType type = ContractType::NOT_A_CONTRACT;
@@ -418,7 +420,7 @@ int64_t State::estimateGas(const ethCallInfo& callInfo) {
     type = accIt->second.contractType;
   }
 
-  int64_t leftOverGas = int64_t(gasLimit);
+  int64_t leftOverGas = callInfo.gas;
   ContractHost(
     this->vm_,
     this->eventManager_,
@@ -433,7 +435,11 @@ int64_t State::estimateGas(const ethCallInfo& callInfo) {
     Hash(),
     leftOverGas
   ).simulate(callInfo, type);
-  return (int64_t(gasLimit) - leftOverGas);
+  auto left = callInfo.gas - leftOverGas;
+  if (left < 0) {
+    left = 0;
+  }
+  return left;
 }
 
 std::vector<std::pair<std::string, Address>> State::getContracts() const {

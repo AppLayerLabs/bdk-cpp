@@ -40,7 +40,7 @@ class ContractManager : public BaseContract {
     std::unordered_map<
           Functor,
           std::function<
-            void(const ethCallInfo&,
+            void(const evmc_message&,
                  const Address&,
                  std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                  const uint64_t&,
@@ -125,7 +125,7 @@ class ContractManager : public BaseContract {
      * @param callInfo The call info to process.
      * @throw DynamicException if the call is not valid.
      */
-    void ethCall(const ethCallInfo& callInfo, ContractHost* host) override;
+    void ethCall(const evmc_message& callInfo, ContractHost* host) override;
 
     /**
      * Override the default contract view function call.
@@ -135,7 +135,7 @@ class ContractManager : public BaseContract {
      * @return A string with the requested info.
      * @throw DynamicException if the call is not valid.
      */
-    Bytes ethCallView(const ethCallInfo& data, ContractHost* host) const override;
+    Bytes ethCallView(const evmc_message& data, ContractHost* host) const override;
 };
 
 #endif // CONTRACTMANAGER_H

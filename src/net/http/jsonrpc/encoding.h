@@ -148,7 +148,7 @@ namespace JsonRPC::Encoding {
    * @param state Pointer to the blockchain's state.
    * @return The encoded JSON response.
    */
-  json eth_call(const ethCallInfoAllocated& callInfo, State& state);
+  json eth_call(const evmc_message& callInfo, State& state);
 
   /**,
    * Encode a `eth_estimateGas` response.
@@ -157,7 +157,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   // TODO: We don't really estimate gas because we don't have a Gas structure, it is fixed to 21000
-  json eth_estimateGas(const ethCallInfoAllocated& callInfo, State& state);
+  json eth_estimateGas(const evmc_message& callInfo, State& state);
 
   /**
    * Encode a `eth_gasPrice` response.

@@ -129,7 +129,7 @@ class BaseContract : public ContractLocals {
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual void ethCall(const ethCallInfo& data, ContractHost* host) {
+    virtual void ethCall(const evmc_message& data, ContractHost* host) {
       throw DynamicException("Derived Class from Contract does not override ethCall()");
     }
 
@@ -140,17 +140,17 @@ class BaseContract : public ContractLocals {
      * @return A string with the answer to the call.
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual Bytes ethCallView(const ethCallInfo &data, ContractHost* host) const {
+    virtual Bytes ethCallView(const evmc_message &data, ContractHost* host) const {
       throw DynamicException("Derived Class from Contract does not override ethCallView()");
     }
 
     ///@{
     /** Getter. */
-    const Address& getContractAddress() const { return this->contractAddress_; }
-    const Address& getContractCreator() const { return this->contractCreator_; }
-    const uint64_t& getContractChainId() const { return this->contractChainId_; }
-    const std::string& getContractName() const { return this->contractName_; }
-    const Bytes& getDBPrefix() const { return this->dbPrefix_; }
+    inline const Address& getContractAddress() const { return this->contractAddress_; }
+    inline const Address& getContractCreator() const { return this->contractCreator_; }
+    inline const uint64_t& getContractChainId() const { return this->contractChainId_; }
+    inline const std::string& getContractName() const { return this->contractName_; }
+    inline const Bytes& getDBPrefix() const { return this->dbPrefix_; }
     ///@}
 
     /**

@@ -189,11 +189,10 @@ class Hash : public FixedBytes<32> {
 };
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash). Inherits FixedBytes<4>.
-class Functor : public FixedBytes<4> {
-  public:
-    using FixedBytes<4>::FixedBytes;
-    using FixedBytes<4>::operator==;
-    using FixedBytes<4>::operator=;
+struct Functor {
+  uint32_t value = 0;
+  // Operator==
+  inline bool operator==(const Functor& other) const { return this->value == other.value; }
 };
 
 /// Abstraction of a 65-byte ECDSA signature. Inherits `FixedBytes<65>`.

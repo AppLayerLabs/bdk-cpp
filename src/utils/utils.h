@@ -180,25 +180,6 @@ using SafeInt256_t = SafeInt_t<256>;
 ///@}
 
 /**
- * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data, fulldata).
- * **NOTE**: Be aware that we are using BytesArrView, so you MUST be sure that
- * the data allocated in BytesArrView is valid during the whole life of the tuple.
- * If you need ethCallInfo to own the data, use ethCallInfoAllocated instead.
- * The discrepancy between data and fullData is due to the fact that data is the
- * tx.data + 4 bytes for the function selector, while fullData is the whole tx.data.\
- * TODO: As we had to integrate the full data into the tuple, we should refactor this
- * to remove Functor/Data and use only the fullData.
- */
-using ethCallInfo = std::tuple<Address,Address,int256_t, uint256_t, uint256_t, Functor, BytesArrView, BytesArrView>;
-
-/**
- * Same as ethCallInfo, but using Bytes instead of BytesArrView, truly
- * allocating and owning the data. Some places need it such as tests.
- * The data is a BytesArrView because it uses the fullData as a reference.
- */
-using ethCallInfoAllocated = std::tuple<Address,Address,int256_t, uint256_t, uint256_t, Functor, BytesArrView, Bytes>;
-
-/**
  * Map with addresses for contracts deployed at protocol level (name -> address).
  * These contracts are deployed at the beginning of the chain and cannot be
  * destroyed or dynamically deployed like other contracts.
@@ -374,6 +355,27 @@ namespace Utils {
    * @param str The string to log.
    */
   void logToFile(std::string_view str);
+
+  /**
+   * Get the functor of a evmc_message
+   * @param msg The evmc_message to get the functor from.
+   * @return The functor of the evmc_message (0 if evmc_message size == 0).
+   */
+  Functor getFunctor(const evmc_message& msg);
+
+  /**
+   * Create a Functor based on a std::string with the function signature (e.g. "functionName(uint256,uint256)").
+   * @param funtionSignature The function signature.
+   * @return The created Functor.
+   */
+  Functor makeFunctor(const std::string& functionSignature);
+
+  /**
+   * Get the BytesArrView representing the function arguments of a given evmc_message.
+   * @param msg The evmc_message to get the function arguments from.
+   * @return The BytesArrView representing the function arguments.
+   */
+  BytesArrView getFunctionArgs(const evmc_message& msg);
 
   /**
    * Print a string to stdout.

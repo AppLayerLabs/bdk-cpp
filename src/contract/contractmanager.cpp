@@ -55,11 +55,11 @@ Bytes ContractManager::getDeployedContracts() const {
   return result;
 }
 
-void ContractManager::ethCall(const ethCallInfo& callInfo, ContractHost* host) {
+void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) {
   this->host_ = host;
   PointerNullifier nullifier(this->host_);
-  const auto& caller = std::get<0>(callInfo);
-  const Functor& functor = std::get<5>(callInfo);
+  const Address caller(callInfo.sender);
+  const Functor functor = Utils::getFunctor(callInfo);
   /// Call the function on this->createContractFuncs_
   auto it = this->createContractFuncs_.find(functor);
   if (it == this->createContractFuncs_.end()) {
@@ -73,9 +73,10 @@ void ContractManager::ethCall(const ethCallInfo& callInfo, ContractHost* host) {
              this->host_);
 }
 
-Bytes ContractManager::ethCallView(const ethCallInfo& callInfo, ContractHost* host) const {
+Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* host) const {
   PointerNullifier nullifier(this->host_);
   // This hash is equivalent to "function getDeployedContracts() public view returns (string[] memory, address[] memory) {}"
-  if (std::get<5>(callInfo) == Hex::toBytes("0xaa9a068f")) return this->getDeployedContracts();
+  // 0xaa9a068f == uint32_t(2862220943);
+  if (Utils::getFunctor(callInfo).value == 2862220943) return this->getDeployedContracts();
   throw DynamicException("Invalid function call");
 }

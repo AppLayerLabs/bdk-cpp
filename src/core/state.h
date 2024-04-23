@@ -206,7 +206,7 @@ class State {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The return of the called function as a data string.
      */
-    Bytes ethCall(const ethCallInfo& callInfo);
+    Bytes ethCall(const evmc_message& callInfo);
 
     /**
      * Estimate gas for callInfo in RPC.
@@ -214,7 +214,7 @@ class State {
      * @param callInfo Tuple with info about the call (from, to, gasLimit, gasPrice, value, data).
      * @return The used gas limit of the transaction.
      */
-    int64_t estimateGas(const ethCallInfo& callInfo);
+    int64_t estimateGas(const evmc_message& callInfo);
 
     /// Get a list of contract addresses and names.
     std::vector<std::pair<std::string, Address>> getContracts() const;

@@ -170,12 +170,10 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_call(const ethCallInfoAllocated& callInfo, State& state) {
+  json eth_call(const evmc_message& callInfo, State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
     try {
-      std::cout << "Calling State...: " << std::endl;
-      std::cout << "callInfo functor: " << std::get<5>(callInfo).hex() << std::endl;
       auto result = Hex::fromBytes(state.ethCall(callInfo), true);
       ret["result"] = result;
     } catch (std::exception& e) {
@@ -185,14 +183,12 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_estimateGas(const ethCallInfoAllocated& callInfo, State& state) {
+  json eth_estimateGas(const evmc_message& callInfo, State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
     try {
-      if (!state.estimateGas(callInfo)) {
-        throw std::runtime_error("Insufficient balance for tx.value() + gas");
-      }
-      ret["result"] = "0x5208"; // Fixed to 21000 for now.
+      auto usedGas = state.estimateGas(callInfo);
+      ret["result"] = Hex::fromBytes(Utils::uintToBytes(static_cast<uint64_t>(usedGas)), true).forRPC();
     } catch (std::exception& e) {
       ret["error"]["code"] = -32000;
       ret["error"]["message"] = "Internal error: " + std::string(e.what());

@@ -92,14 +92,23 @@ std::string parseJsonRpcRequest(
         ret = JsonRPC::Encoding::eth_blockNumber(storage);
         break;
       case JsonRPC::Methods::eth_call:
-        ret = JsonRPC::Encoding::eth_call(
-          JsonRPC::Decoding::eth_call(request, storage), state
-        );
+        {
+          // We actually need to allocate the Bytes object containing the call data
+          // As evmc_message only holds a *pointer* to the data
+          Bytes fullData;
+          ret = JsonRPC::Encoding::eth_call(
+            JsonRPC::Decoding::eth_call(request, storage, fullData), state
+          );
+        }
         break;
       case JsonRPC::Methods::eth_estimateGas:
-        ret = JsonRPC::Encoding::eth_estimateGas(
-          JsonRPC::Decoding::eth_estimateGas(request, storage), state
-        );
+        {
+          // Same as before
+          Bytes fullData;
+          ret = JsonRPC::Encoding::eth_estimateGas(
+            JsonRPC::Decoding::eth_estimateGas(request, storage, fullData), state
+          );
+        }
         break;
       case JsonRPC::Methods::eth_gasPrice:
         JsonRPC::Decoding::eth_gasPrice(request);

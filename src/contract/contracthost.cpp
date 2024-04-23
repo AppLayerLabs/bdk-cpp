@@ -95,11 +95,16 @@ Address ContractHost::deriveContractAddress(const uint64_t& nonce, const Address
   return {Utils::sha3(rlp).view(12)};
 }
 
-void ContractHost::createEVMContract(evmc_message& msg, const Address& contractAddr, const BytesArrView& bytecode) {
+void ContractHost::createEVMContract(const evmc_message& msg, const Address& contractAddr) {
   // Create a new contract
+  auto createMsg = msg;
+  createMsg.recipient = contractAddr.toEvmcAddress();
+  createMsg.kind = evmc_call_kind::EVMC_CREATE;
+  createMsg.input_data = nullptr;
+  createMsg.input_size = 0;
   auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
-                 evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-                  bytecode.data(), bytecode.size()));
+                 evmc_revision::EVMC_LATEST_STABLE_REVISION, &createMsg,
+                 msg.input_data, msg.input_size));
   this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
   this->leftoverGas_ -= 10000; // We take 10k instead of calculating based on contract size, regardless if we succeed or not
   if (result.status_code) {
@@ -116,8 +121,10 @@ void ContractHost::createEVMContract(evmc_message& msg, const Address& contractA
   this->registerNewEVMContract(contractAddr, result.output_data, result.output_size);
 }
 
-void ContractHost::execute(const ethCallInfo& tx, const ContractType& type) {
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = tx;
+void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
+  const Address from(msg.sender);
+  const Address to(msg.recipient);
+  const uint256_t value(Utils::evmcUint256ToUint256(msg.value));
   /// Obligatory = take out 21000 gas from the transaction
   this->deduceGas(21000);
   if (value) {
@@ -130,19 +137,7 @@ void ContractHost::execute(const ethCallInfo& tx, const ContractType& type) {
       if (this->accounts_.contains(contractAddress)) {
         throw DynamicException("ContractHost create/execute: contract already exists");
       }
-      evmc_message msg;
-      msg.kind = evmc_call_kind::EVMC_CREATE;
-      msg.flags = 0;
-      msg.gas = static_cast<int64_t>(this->leftoverGas_);
-      msg.recipient = contractAddress.toEvmcAddress();
-      msg.sender = from.toEvmcAddress();
-      msg.input_data = nullptr;
-      msg.input_size = 0;
-      msg.value = Utils::uint256ToEvmcUint256(value);
-      msg.create2_salt = {};
-      msg.depth = 1;
-      msg.code_address = {};
-      this->createEVMContract(msg, contractAddress, fullData);
+      this->createEVMContract(msg, contractAddress);
     } else {
       switch (type) {
         case ContractType::CPP: {
@@ -151,23 +146,11 @@ void ContractHost::execute(const ethCallInfo& tx, const ContractType& type) {
             throw DynamicException("contract not found");
           }
           this->setContractVars(contractIt->second.get(), from, value);
-          contractIt->second->ethCall(tx, this);
+          contractIt->second->ethCall(msg, this);
           break;
         }
         case ContractType::EVM: {
           // Execute a EVM contract.
-          evmc_message msg;
-          msg.kind = evmc_call_kind::EVMC_CALL;
-          msg.flags = 0;
-          msg.gas = static_cast<int64_t>(this->leftoverGas_);
-          msg.recipient = to.toEvmcAddress();
-          msg.sender = from.toEvmcAddress();
-          msg.input_data = fullData.data();
-          msg.input_size = fullData.size();
-          msg.value = Utils::uint256ToEvmcUint256(value);
-          msg.create2_salt = {};
-          msg.depth = 1;
-          msg.code_address = to.toEvmcAddress();
           /// TODO: We have a problem here
           /// as you might know, using unordered_map::operator[] and then insert a new element (e.g. the contract call
           /// creates another contract, effectively creating a new account on the accounts_ unordered_map)
@@ -210,9 +193,11 @@ void ContractHost::execute(const ethCallInfo& tx, const ContractType& type) {
   this->mustRevert_ = false;
 }
 
-Bytes ContractHost::ethCallView(const ethCallInfo& tx, const ContractType& type) {
+Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& type) {
   Bytes ret;
-  const auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = tx;
+  //const Address from(tx.sender);
+  const Address to(msg.recipient);
+  //const uint256_t value(Utils::evmcUint256ToUint256(tx.value));
   try {
     switch (type) {
       case ContractType::CPP: {
@@ -220,23 +205,11 @@ Bytes ContractHost::ethCallView(const ethCallInfo& tx, const ContractType& type)
         if (contractIt == this->contracts_.end()) {
           throw DynamicException("contract not found");
         }
-        ret = contractIt->second->ethCallView(tx, this);
+        ret = contractIt->second->ethCallView(msg, this);
         break;
       }
       case ContractType::EVM: {
         // Execute a EVM contract.
-        evmc_message msg;
-        msg.kind = evmc_call_kind::EVMC_CALL;
-        msg.flags = 0;
-        msg.gas = static_cast<int64_t>(this->leftoverGas_);
-        msg.recipient = to.toEvmcAddress();
-        msg.sender = from.toEvmcAddress();
-        msg.input_data = fullData.data();
-        msg.input_size = fullData.size();
-        msg.value = Utils::uint256ToEvmcUint256(value);
-        msg.create2_salt = {};
-        msg.depth = 1;
-        msg.code_address = to.toEvmcAddress();
         /// TODO: We have a problem here
         /// as you might know, using unordered_map::operator[] and then insert a new element (e.g. the contract call
         /// creates another contract, effectively creating a new account on the accounts_ unordered_map)
@@ -280,8 +253,8 @@ Bytes ContractHost::ethCallView(const ethCallInfo& tx, const ContractType& type)
 }
 
 
-void ContractHost::simulate(const ethCallInfo& tx, const ContractType& type) {
-  this->execute(tx, type);
+void ContractHost::simulate(const evmc_message& msg, const ContractType& type) {
+  this->execute(msg, type);
   // We should set the revert flag to true, as we are only simulating the execution
   this->mustRevert_ = true;
 }

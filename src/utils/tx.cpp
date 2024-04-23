@@ -380,23 +380,38 @@ Bytes TxBlock::rlpSerialize(bool includeSig) const {
   return ret;
 }
 
-ethCallInfo TxBlock::txToCallInfo() const {
-  // ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, data)
-  ethCallInfo ret;
-  auto& [from, to, gasLimit, gasPrice, value, functor, data, fullData] = ret;
-  from = this->getFrom();
-  to = this->getTo();
-  gasLimit = this->getGasLimit();
-  gasPrice = this->getMaxFeePerGas();
-  value = this->getValue();
-  if (this->data_.size() >= 4) {
-    functor = Utils::create_view_span(this->data_).subspan(0, 4);
-  }
-  if (this->data_.size() > 4) {
-    data = Utils::create_view_span(this->data_).subspan(4);
-  }
-  fullData = this->data_;
-  return ret;
+evmc_message TxBlock::txToMessage() const {
+  // evmc_message:
+  // struct evmc_message
+  // {
+  //   enum evmc_call_kind kind;
+  //   uint32_t flags;
+  //   int32_t depth;
+  //   int64_t gas;
+  //   evmc_address recipient;
+  //   evmc_address sender;
+  //   const uint8_t* input_data;
+  //   size_t input_size;
+  //   evmc_uint256be value;
+  //   evmc_bytes32 create2_salt;
+  //   evmc_address code_address;
+  // };
+  evmc_message msg;
+  if (this->to_ == Address())
+    msg.kind = EVMC_CREATE;
+  else
+    msg.kind = EVMC_CALL;
+  msg.flags = 0;
+  msg.depth = 1;
+  msg.gas = static_cast<int64_t>(this->gasLimit_);
+  msg.recipient = this->to_.toEvmcAddress();
+  msg.sender = this->from_.toEvmcAddress();
+  msg.input_data = (this->data_.empty()) ? nullptr : this->data_.data();
+  msg.input_size = this->data_.size();
+  msg.value = Utils::uint256ToEvmcUint256(this->value_);
+  msg.create2_salt = {};
+  msg.code_address = this->to_.toEvmcAddress();
+  return msg;
 }
 
 TxValidator::TxValidator(const BytesArrView bytes, const uint64_t&) {
