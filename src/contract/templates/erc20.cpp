@@ -167,13 +167,15 @@ uint256_t ERC20::balanceOf(const Address& owner) const {
     ? 0 : it->second;
 }
 
-void ERC20::transfer(const Address &to, const uint256_t &value) {
+bool ERC20::transfer(const Address &to, const uint256_t &value) {
   this->balances_[this->getCaller()] -= value;
   this->balances_[to] += value;
+  return true;
 }
 
-void ERC20::approve(const Address &spender, const uint256_t &value) {
+bool ERC20::approve(const Address &spender, const uint256_t &value) {
   this->allowed_[this->getCaller()][spender] = value;
+  return true;
 }
 
 uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
@@ -190,11 +192,12 @@ uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
   }
 }
 
-void ERC20::transferFrom(
+bool ERC20::transferFrom(
   const Address &from, const Address &to, const uint256_t &value
 ) {
   this->allowed_[from][this->getCaller()] -= value;
   this->balances_[from] -= value;
   this->balances_[to] += value;
+  return true;
 }
 

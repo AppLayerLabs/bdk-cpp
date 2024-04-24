@@ -106,7 +106,7 @@ void ContractHost::createEVMContract(const evmc_message& msg, const Address& con
                  evmc_revision::EVMC_LATEST_STABLE_REVISION, &createMsg,
                  msg.input_data, msg.input_size));
   this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
-  this->leftoverGas_ -= 10000; // We take 10k instead of calculating based on contract size, regardless if we succeed or not
+  this->deduceGas(100000);
   if (result.status_code) {
     // Set the leftOverGas_ to the gas left after the execution
     throw DynamicException("Error when creating EVM contract, EVM status code: " +
@@ -125,8 +125,6 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const Address from(msg.sender);
   const Address to(msg.recipient);
   const uint256_t value(Utils::evmcUint256ToUint256(msg.value));
-  /// Obligatory = take out 21000 gas from the transaction
-  this->deduceGas(21000);
   if (value) {
     this->transfer(from, to, value);
   }
@@ -154,10 +152,9 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
           auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                      evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                       this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
-
+          this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
           if (result.status_code) {
             // Set the leftOverGas_ to the gas left after the execution
-            this->leftoverGas_ = result.gas_left;
             throw DynamicException("Error when executing EVM contract, EVM status code: " +
               std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
               Hex::fromBytes(Utils::cArrayToBytes(result.output_data, result.output_size)).get());
@@ -166,6 +163,8 @@ void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
         }
       }
     }
+    // Take out 21000 gas Limit from the tx
+    this->deduceGas(21000);
   } catch (const std::exception &e) {
     std::string what = std::string("ContractHost execution failed: ") + e.what();
     what += " OTHER INFO: ";
@@ -207,10 +206,10 @@ Bytes ContractHost::ethCallView(const evmc_message& msg, const ContractType& typ
         auto result = evmc::Result(evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
                    evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
                     this->accounts_[to]->code.data(), this->accounts_[to]->code.size()));
+        this->leftoverGas_ = result.gas_left;
         if (result.status_code) {
           // Set the leftOverGas_ to the gas left after the execution
-          this->leftoverGas_ = result.gas_left;
-          throw DynamicException("Error when executing EVM contract, EVM status code: " +
+          throw DynamicException("Error when executing (view) EVM contract, EVM status code: " +
             std::string(evmc_status_code_to_string(result.status_code)) + " bytes: " +
             Hex::fromBytes(Utils::cArrayToBytes(result.output_data, result.output_size)).get());
         }
@@ -358,13 +357,36 @@ bool ContractHost::selfdestruct(const evmc::address& addr, const evmc::address& 
   return false;
 }
 
+// EVM -> EVM calls don't need to use this->leftOverGas_ as the final
+// evmc::Result will have the gas left after the execution
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
-  // TODO: WE NEED TO COPY THE CODE INSTEAD OF TAKING FROM THE MAP!
-  // the VM call might insert new items into the accounts_ map, invalidating the references\
-  // Maybe we should have another map for code where we actively call .reserve() before calling.
+  Address recipient(msg.recipient);
+  auto &recipientAccount = *accounts_[recipient]; // We need to take a reference to the account, not a reference to the pointer.
+  this->leftoverGas_ = msg.gas;
+  /// evmc::Result constructor is: _status_code + _gas_left + _output_data + _output_size
+  if (recipientAccount.contractType == CPP) {
+    // Uh we are an CPP contract, we need to call the contract evmEthCall function and put the result into a evmc::Result
+    try {
+      this->deduceGas(1000); // CPP contract call is 1000 gas
+      auto& contract = contracts_[recipient];
+      if (contract == nullptr) {
+        throw DynamicException("ContractHost call: contract not found");
+      }
+      this->setContractVars(contract.get(), Address(msg.sender), Utils::evmcUint256ToUint256(msg.value));
+      Bytes ret = contract->evmEthCall(msg, this);
+      return evmc::Result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
+    } catch (std::exception& e) {
+      this->evmcThrows_.emplace_back(e.what());
+      this->evmcThrow_ = true;
+      return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
+    }
+  }
   evmc::Result result (evmc_execute(this->vm_, &this->get_interface(), this->to_context(),
            evmc_revision::EVMC_LATEST_STABLE_REVISION, &msg,
-           accounts_[msg.recipient]->code.data(), accounts_[msg.recipient]->code.size()));
+           recipientAccount.code.data(), recipientAccount.code.size()));
+  this->leftoverGas_ = result.gas_left; // gas_left is not linked with leftoverGas_, we need to link it.
+  this->deduceGas(5000); // EVM contract call is 5000 gas
+  result.gas_left = this->leftoverGas_; // We need to set the gas left to the leftoverGas_
   return result;
 }
 

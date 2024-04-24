@@ -18,7 +18,7 @@
 
 // TODO: EVMC Static Mode Handling
 // TODO: Contract creating other contracts (EVM Factories)
-// TODO: C++ Call EVM. EVM Call C++
+// TODO: Proper gas limit tests.
 
 /**
  * The ContractHost class is the class which holds a single line of execution for a contract. (This also includes nested calls)
@@ -31,7 +31,14 @@
  * - Process the commit/revert of the stack during **destructor** call.
  */
 
-
+/**
+ * GasLimit Rules
+ * Any call: 21000
+ * C++ Call: 1000
+ * EVM Call: 5000
+ * Any EVM Contract: 100000
+ * Any CPP Contract: 50000
+ */
 class ContractHost : public evmc::Host {
   private:
     // We need this because nested calls can call the same contract multiple times
@@ -126,11 +133,10 @@ class ContractHost : public evmc::Host {
     void execute(const evmc_message& msg, const ContractType& type);
 
     /// Executes a eth_call RPC method (view)
-    /// returns the result of the call (if any)
+    /// returns the result of the call
     Bytes ethCallView(const evmc_message& msg, const ContractType& type);
 
     /// Simulates a call
-    /// Return the left over gas
     void simulate(const evmc_message& msg, const ContractType& type);
 
     /// EVMC FUNCTIONS
@@ -237,7 +243,7 @@ class ContractHost : public evmc::Host {
       const Bytes &fullData
     ) {
       // 100k gas limit for every contract creation!
-      this->deduceGas(100000);
+      this->deduceGas(50000);
       evmc_message callInfo;
       // evmc_message:
       // struct evmc_message

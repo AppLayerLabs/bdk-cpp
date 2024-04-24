@@ -154,6 +154,7 @@ void State::processTransaction(const TxBlock& tx,
     throw DynamicException("Transaction nonce mismatch");
     return;
   }
+
   try {
     evmc_tx_context txContext;
     txContext.tx_gas_price = Utils::uint256ToEvmcUint256(tx.getMaxFeePerGas());
@@ -183,10 +184,10 @@ void State::processTransaction(const TxBlock& tx,
     );
 
     host.execute(tx.txToMessage(), accountTo.contractType);
-
-  } catch (const std::exception& e) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " failed to execute: " + e.what());
-    throw DynamicException("Transaction failed to execute: " + std::string(e.what()));
+  } catch (std::exception& e) {
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
+      "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
+    );
   }
   if (leftOverGas < 0) {
     leftOverGas = 0; // We don't want to """refund""" gas due to negative gas

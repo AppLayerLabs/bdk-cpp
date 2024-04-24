@@ -149,7 +149,7 @@ class ERC20 : public DynamicContract {
      * @param to The address to transfer to.
      * @param value The amount to be transferred.
      */
-    void transfer(const Address& to, const uint256_t& value);
+    bool transfer(const Address& to, const uint256_t& value);
 
     /**
      * Set the allowance of the specified address to the specified amount of ERC20 tokens.
@@ -157,7 +157,7 @@ class ERC20 : public DynamicContract {
      * @param spender The address to approve.
      * @param value The amount to be approved.
      */
-    void approve(const Address& spender, const uint256_t& value);
+    bool approve(const Address& spender, const uint256_t& value);
 
     /**
      * Get the amount which spender is still allowed to withdraw from owner.
@@ -175,7 +175,7 @@ class ERC20 : public DynamicContract {
      * @param to The address to transfer to.
      * @param value The amount to be transferred.
      */
-    void transferFrom(
+    bool transferFrom(
       const Address& from, const Address& to, const uint256_t& value
     );
 

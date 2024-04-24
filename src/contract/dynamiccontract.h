@@ -47,6 +47,18 @@ class DynamicContract : public BaseContract {
     > viewFunctions_;
 
     /**
+     * Map for all the functions, regardless of mutability (Used by EVM)
+     * The reason for having all these functions in a single mapping is because
+     * EVM expects a contract call to actually return the ABI serialized data
+     * So this map is exactly for that, it is a second representation of all the functions
+     * stored in the previous 3 maps but with the ABI serialized data as the return value
+     * We still check if we are calling a payable if the evmc_message has value.
+     */
+    std::unordered_map<
+      Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
+    > evmFunctions_;
+
+    /**
      * Register a callable function (a function that is called by a transaction),
      * adding it to the callable functions map.
      * @param functor Solidity function signature (first 4 hex bytes of keccak).
@@ -56,6 +68,18 @@ class DynamicContract : public BaseContract {
       const Functor& functor, const std::function<void(const evmc_message& tx)>& f
     ) {
       publicFunctions_[functor] = f;
+    }
+
+    /**
+     * Register a EVM callable function (a function that can be called by another EVM contract),
+     * adding it to the evmFunctions_ map.
+     * @param functor Solidity function signature (first 4 hex bytes of keccak).
+     * @param f Function to be called.
+     */
+    void registerEVMFunction(
+      const Functor& functor, const std::function<Bytes(const evmc_message& tx)>& f
+    ) {
+      evmFunctions_[functor] = f;
     }
 
     /**
@@ -81,11 +105,21 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)() const, const FunctionTypes& methodMutability, T* instance
     ) {
       std::string functStr = funcSignature + "()";
+      auto registerEvmFunction = [this, instance, memFunc](const evmc_message& callInfo) -> Bytes {
+        if constexpr (std::is_same_v<R, void>) {
+          // If the function's return type is void, return an empty Bytes object
+          (instance->*memFunc)(); // Call the member function without capturing its return
+          return Bytes();         // Return an empty Bytes object
+        } else {
+          // If the function's return type is not void, encode and return its result
+          return ABI::Encoder::encodeData<R>((instance->*memFunc)());
+        }
+      };
+      this->registerEVMFunction(Utils::makeFunctor(functStr), registerEvmFunction);
       switch (methodMutability) {
         case FunctionTypes::View: {
           this->registerViewFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> Bytes {
-            using ReturnType = decltype((instance->*memFunc)());
-            return ABI::Encoder::encodeData<ReturnType>((instance->*memFunc)());
+            return ABI::Encoder::encodeData<R>((instance->*memFunc)());
           });
           break;
         }
@@ -120,6 +154,17 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(), const FunctionTypes& methodMutability, T* instance
     ) {
       std::string functStr = funcSignature + "()";
+      auto registerEvmFunction = [this, instance, memFunc](const evmc_message& callInfo) -> Bytes {
+        if constexpr (std::is_same_v<R, void>) {
+          // If the function's return type is void, return an empty Bytes object
+          (instance->*memFunc)(); // Call the member function without capturing its return
+          return Bytes();         // Return an empty Bytes object
+        } else {
+          // If the function's return type is not void, encode and return its result
+          return ABI::Encoder::encodeData<R>((instance->*memFunc)());
+        }
+      };
+      this->registerEVMFunction(Utils::makeFunctor(functStr), registerEvmFunction);
       switch (methodMutability) {
         case FunctionTypes::View: {
           throw DynamicException("View must be const because it does not modify the state.");
@@ -168,6 +213,21 @@ class DynamicContract : public BaseContract {
             (instance->*memFunc)(std::forward<decltype(args)>(args)...);
         }, decodedData);
       };
+      auto registrationFuncEVM = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
+        using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        if constexpr (std::is_same_v<R, void>) {
+          std::apply([instance, memFunc](auto&&... args) {
+              (instance->*memFunc)(std::forward<decltype(args)>(args)...);
+          }, decodedData);
+          return Bytes();
+        } else {
+          return std::apply([instance, memFunc](auto&&... args) -> Bytes {
+            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+          }, decodedData);
+        }
+      };
+      this->registerEVMFunction(functor, registrationFuncEVM);
       switch (methodMutability) {
         case FunctionTypes::View:
           throw DynamicException("View must be const because it does not modify the state.");
@@ -194,7 +254,6 @@ class DynamicContract : public BaseContract {
     ) {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
       auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
-        using ReturnType = decltype((instance->*memFunc)(std::declval<Args>()...));
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
         DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
         // Use std::apply to call the member function and encode its return value
@@ -203,6 +262,23 @@ class DynamicContract : public BaseContract {
           return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
         }, decodedData);
       };
+      auto registrationFuncEVM =  [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
+        using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        if constexpr (std::is_same_v<R, void>) {
+          // If the function's return type is void, call the member function and return an empty Bytes object
+          std::apply([instance, memFunc](Args... args) {
+            (instance->*memFunc)(std::forward<decltype(args)>(args)...);
+          }, decodedData);
+          return Bytes(); // Return an empty Bytes object
+        } else {
+          // If the function's return type is not void, call the member function and return its encoded result
+          return std::apply([instance, memFunc](Args... args) -> Bytes {
+            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+          }, decodedData);
+        }
+      };
+      this->registerEVMFunction(functor, registrationFuncEVM);
       switch (methodMutability) {
         case FunctionTypes::View:
           this->registerViewFunction(functor, registrationFunc);
@@ -276,7 +352,7 @@ class DynamicContract : public BaseContract {
      * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
-    void ethCall(const evmc_message& callInfo, ContractHost* host) override {
+    void ethCall(const evmc_message& callInfo, ContractHost* host) final {
       this->host_ = host;
       PointerNullifier nullifier(this->host_);
       try {
@@ -299,6 +375,30 @@ class DynamicContract : public BaseContract {
         throw DynamicException(e.what());
       }
     };
+
+    Bytes evmEthCall(const evmc_message& callInfo, ContractHost* host) final {
+      this->host_ = host;
+      PointerNullifier nullifier(this->host_);
+      try {
+        Functor funcName = Utils::getFunctor(callInfo);
+        if (this->isPayableFunction(funcName)) {
+          auto func = this->evmFunctions_.find(funcName);
+          if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for payable function");
+          return func->second(callInfo);
+        } else {
+          // value is a uint8_t[32] C array, we need to check if it's zero in modern C++
+          if (!evmc::is_zero(callInfo.value)) {
+            // If the value is not zero, we need to throw an exception
+            throw DynamicException("Non-payable function called with value");
+          }
+          auto func = this->evmFunctions_.find(funcName);
+          if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
+          return func->second(callInfo);
+        }
+      } catch (const std::exception& e) {
+        throw DynamicException(e.what());
+      }
+    }
 
     /**
      * Do a contract call to a view function.
