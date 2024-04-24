@@ -450,17 +450,6 @@ class DynamicContract : public BaseContract {
     }
 
     /**
-     * Try to cast a contract to a specific type.
-     * NOTE: Only const functions can be called on the casted contract.
-     * @tparam T The type to cast to.
-     * @param address The address of the contract to cast.
-     * @return A pointer to the casted contract.
-     */
-    template <typename T> const T* getContract(const Address& address) const {
-      return host_->getContract<T>(address);
-    }
-
-    /**
      * Call a contract view function based on the basic requirements of a contract call.
      * @tparam R The return type of the view function.
      * @tparam C The contract type.
@@ -474,22 +463,30 @@ class DynamicContract : public BaseContract {
     R callContractViewFunction(
       const Address& address, R(C::*func)(const Args&...) const, const Args&... args
     ) const {
-      const C* contract = this->getContract<C>(address);
-      return (contract->*func)(args...);
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractViewFunction(this, address, func, args...);
     }
 
     /**
      * Call a contract view function based on the basic requirements of a contract call.
      * @tparam R The return type of the view function.
      * @tparam C The contract type.
+     * @tparam Args The argument types of the view function.
      * @param address The address of the contract to call.
      * @param func The view function to call.
+     * @param args The arguments to pass to the view function.
      * @return The result of the view function.
      */
     template <typename R, typename C>
-    R callContractViewFunction(const Address& address, R(C::*func)() const) const {
-      const C* contract = this->getContract<C>(address);
-      return (contract->*func)();
+    R callContractViewFunction(
+      const Address& address, R(C::*func)() const
+    ) const {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractViewFunction(this, address, func);
     }
 
     /**
