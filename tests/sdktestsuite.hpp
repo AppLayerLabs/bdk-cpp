@@ -703,6 +703,7 @@ class SDKTestSuite {
     const ReturnType callViewFunction(
       const Address& contractAddress, ReturnType(TContract::*func)() const
     ) {
+      TContract::registerContract();
       evmc_message callData;
       auto& [callKind,
         callFlags,
@@ -715,6 +716,7 @@ class SDKTestSuite {
         callValue,
         callCreate2Salt,
         callCodeAddress] = callData;
+
       auto functor = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
       Bytes fullData;
       Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
