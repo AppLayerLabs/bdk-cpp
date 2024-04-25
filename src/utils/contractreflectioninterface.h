@@ -519,11 +519,15 @@ namespace ContractReflectionInterface {
    */
   template <typename TContract, typename R>
   std::string inline getFunctionName(R(TContract::*func)()) {
-    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+    auto it = pointerNamesMap.find(UniqueFunctionPointerIdentifier(func));
+    if (it == pointerNamesMap.end()) throw DynamicException("Function not registered");
+    return it->second;
   }
   template <typename TContract, typename R>
   std::string inline getFunctionName(R(TContract::*func)() const) {
-    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+    auto it = pointerNamesMap.find(UniqueFunctionPointerIdentifier(func));
+    if (it == pointerNamesMap.end()) throw DynamicException("Function not registered");
+    return it->second;
   }
   ///@}
 
@@ -538,11 +542,15 @@ namespace ContractReflectionInterface {
    */
   template <typename TContract, typename R, typename... Args>
   std::string inline getFunctionName(R(TContract::*func)(Args...)) {
-    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+    auto it = pointerNamesMap.find(UniqueFunctionPointerIdentifier(func));
+    if (it == pointerNamesMap.end()) throw DynamicException("Function not registered");
+    return it->second;
   }
   template<typename TContract, typename R, typename... Args>
   std::string inline getFunctionName(R(TContract::*func)(Args...) const) {
-    return pointerNamesMap[UniqueFunctionPointerIdentifier(func)];
+    auto it = pointerNamesMap.find(UniqueFunctionPointerIdentifier(func));
+    if (it == pointerNamesMap.end()) throw DynamicException("Function not registered");
+    return it->second;
   }
   ///@}
 

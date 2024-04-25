@@ -131,7 +131,6 @@ namespace THTTPJsonRPC{
       /// Reasoning: we don't want to keep opening and closing everything per Section, just initialize once and run.
       std::string testDumpPath = Utils::getTestDumpPath();
       auto blockchainWrapper = initialize(validatorPrivKeysHttpJsonRpc, validatorPrivKeysHttpJsonRpc[0], 8080, true, testDumpPath + "/HTTPjsonRPC");
-      std::cout << "blockchainWrapper coinbase: " << blockchainWrapper.options.getCoinbase().hex() << std::endl;
 
       /// Make random transactions within a given block, we need to include requests for getting txs and blocks
       Address targetOfTransactions = Address(Utils::randBytes(20));
@@ -152,9 +151,9 @@ namespace THTTPJsonRPC{
           8080,
           blockchainWrapper.state.getNativeNonce(me),
           1000000000000000000,
+          1000000000,
+          1000000000,
           21000,
-          1000000000,
-          1000000000,
           privkey
         );
 
@@ -288,13 +287,14 @@ namespace THTTPJsonRPC{
 
       /// TODO: eth_call
       json eth_estimateGasResponse = requestMethod("eth_estimateGas", json::array({json::object({
-        {"from", Address().hex(true)},
-        {"to", Address().hex(true)},
-        {"gas", "0x1"},
+        {"from", blockchainWrapper.options.getChainOwner().hex(true) },
+        {"to", "0xaaA85B2B2bD0bFdF6Bc5D0d61B6192c53818567b"},
+        {"gas", "0xffffff"},
         {"gasPrice", "0x1"},
         {"value", "0x1"},
         {"data", "0x1"},
       }), "latest"}));
+
       REQUIRE(eth_estimateGasResponse["result"] == "0x5208");
 
       json eth_gasPriceResponse = requestMethod("eth_gasPrice", json::array());
@@ -315,9 +315,9 @@ namespace THTTPJsonRPC{
         8080,
         blockchainWrapper.state.getNativeNonce(Secp256k1::toAddress(Secp256k1::toUPub(randomAccounts.begin()->first))),
         1000000000000000000,
+        1000000000,
+        1000000000,
         21000,
-        1000000000,
-        1000000000,
         randomAccounts.begin()->first
       );
 

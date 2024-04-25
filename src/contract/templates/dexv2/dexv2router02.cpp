@@ -11,9 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../nativewrapper.h"
 #include <sys/types.h>
 
-DEXV2Router02::DEXV2Router02(
-  ContractManagerInterface &interface, const Address &address, DB& db
-) : DynamicContract(interface, address, db), factory_(this), wrappedNative_(this)
+DEXV2Router02::DEXV2Router02(const Address &address, DB& db
+) : DynamicContract(address, db), factory_(this), wrappedNative_(this)
 {
   this->factory_ = Address(this->db_.get(Utils::stringToBytes("factory_"), this->getDBPrefix()));
   this->wrappedNative_ = Address(this->db_.get(Utils::stringToBytes("wrappedNative_"), this->getDBPrefix()));
@@ -29,10 +28,9 @@ DEXV2Router02::DEXV2Router02(
 
 DEXV2Router02::DEXV2Router02(
   const Address& factory, const Address& nativeWrapper,
-  ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   DB& db
-) : DynamicContract(interface, "DEXV2Router02", address, creator, chainId, db),
+) : DynamicContract("DEXV2Router02", address, creator, chainId, db),
   factory_(this), wrappedNative_(this)
 {
   this->factory_ = factory;
@@ -180,7 +178,7 @@ std::tuple<uint256_t, uint256_t, uint256_t> DEXV2Router02::addLiquidity(
   auto [amountA, amountB] = this->_addLiquidity(
     tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin
   );
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), tokenA, tokenB);
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), tokenA, tokenB);
   this->callContractFunction(tokenA, &ERC20::transferFrom, this->getCaller(), pair, amountA);
   this->callContractFunction(tokenB, &ERC20::transferFrom, this->getCaller(), pair, amountB);
   auto liquidity = this->callContractFunction(pair, &DEXV2Pair::mint, to);
@@ -200,7 +198,7 @@ std::tuple<uint256_t, uint256_t, uint256_t> DEXV2Router02::addLiquidityNative(
     token, this->wrappedNative_.get(), amountTokenDesired,
     amountNativeMin, amountTokenMin, amountNativeMin
   );
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), token, this->wrappedNative_.get());
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), token, this->wrappedNative_.get());
   this->callContractFunction(token, &ERC20::transferFrom, this->getCaller(), pair, amountToken);
   this->callContractFunction(amountNative, this->wrappedNative_.get(), &NativeWrapper::deposit);
   this->callContractFunction(this->wrappedNative_.get(), &ERC20::transfer, pair, amountNative);
@@ -222,7 +220,7 @@ std::tuple<uint256_t, uint256_t> DEXV2Router02::removeLiquidity(
   const uint256_t& deadline
 ) {
   this->ensure(deadline);
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), tokenA, tokenB);
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), tokenA, tokenB);
   this->callContractFunction(pair, &ERC20::transferFrom, this->getCaller(), pair, liquidity);
   const auto& [amount0, amount1] = this->callContractFunction(pair, &DEXV2Pair::burn, to);
   auto amountA = tokenA == DEXV2Library::sortTokens(tokenA, tokenB).first ? amount0 : amount1;
@@ -259,12 +257,12 @@ std::vector<uint256_t> DEXV2Router02::swapExactTokensForTokens(
   const uint256_t& deadline
 ) {
   this->ensure(deadline);
-  auto amounts = DEXV2Library::getAmountsOut(this->interface_, this->factory_.get(), amountIn, path);
+  auto amounts = DEXV2Library::getAmountsOut(this->host_, this->factory_.get(), amountIn, path);
   auto amountOut = amounts.back();
   if (amountOut < amountOutMin) throw DynamicException(
     "DEXV2Router02::swapExactTokensForTokens: INSUFFICIENT_OUTPUT_AMOUNT"
   );
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), path[0], path[1]);
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), path[0], path[1]);
   this->callContractFunction(path.front(), &ERC20::transferFrom, this->getCaller(), pair, amounts[0]);
   this->_swap(amounts, path, to);
   return amounts;
@@ -278,12 +276,12 @@ std::vector<uint256_t> DEXV2Router02::swapTokensForExactTokens(
   const uint256_t& deadline
 ) {
   this->ensure(deadline);
-  auto amounts = DEXV2Library::getAmountsIn(this->interface_, this->factory_.get(), amountOut, path);
+  auto amounts = DEXV2Library::getAmountsIn(this->host_, this->factory_.get(), amountOut, path);
   auto amountIn = amounts.front();
   if (amountIn > amountInMax) throw DynamicException(
     "DEXV2Router02::swapTokensForExactTokens: EXCESSIVE_INPUT_AMOUNT"
   );
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), path[0], path[1]);
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), path[0], path[1]);
   this->callContractFunction(path.front(), &ERC20::transferFrom, this->getCaller(), pair, amountIn);
   this->_swap(amounts, path, to);
   return amounts;
@@ -299,13 +297,13 @@ std::vector<uint256_t> DEXV2Router02::swapExactNativeForTokens(
   if (path[0] != this->wrappedNative_.get()) throw DynamicException(
     "DEXV2Router02::swapExactNativeForTokens: INVALID_PATH"
   );
-  auto amounts = DEXV2Library::getAmountsOut(this->interface_, this->factory_.get(), this->getValue(), path);
+  auto amounts = DEXV2Library::getAmountsOut(this->host_, this->factory_.get(), this->getValue(), path);
   auto amountOut = amounts.back();
   if (amountOut < amountOutMin) throw DynamicException(
     "DEXV2Router02::swapExactNativeForTokens: INSUFFICIENT_OUTPUT_AMOUNT"
   );
   this->callContractFunction(amounts[0], this->wrappedNative_.get(), &NativeWrapper::deposit);
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), path[0], path[1]);
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), path[0], path[1]);
   this->callContractFunction(this->wrappedNative_.get(), &ERC20::transfer, pair, amounts[0]);
   this->_swap(amounts, path, to);
   return amounts;
@@ -322,12 +320,12 @@ std::vector<uint256_t> DEXV2Router02::swapTokensForExactNative(
   if (path.back() != this->wrappedNative_.get()) throw DynamicException(
     "DEXV2Router02::swapTokensForExactNative: INVALID_PATH"
   );
-  auto amounts = DEXV2Library::getAmountsIn(this->interface_, this->factory_.get(), amountOut, path);
+  auto amounts = DEXV2Library::getAmountsIn(this->host_, this->factory_.get(), amountOut, path);
   auto amountIn = amounts.front();
   if (amountIn > amountInMax) throw DynamicException(
     "DEXV2Router02::swapTokensForExactNative: EXCESSIVE_INPUT_AMOUNT"
   );
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), path[0], path[1]);
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), path[0], path[1]);
   this->callContractFunction(path.front(), &ERC20::transferFrom, this->getCaller(), pair, amountIn);
   this->_swap(amounts, path, this->getContractAddress());
   this->callContractFunction(this->wrappedNative_.get(), &NativeWrapper::withdraw, amountOut);
@@ -346,12 +344,12 @@ std::vector<uint256_t> DEXV2Router02::swapExactTokensForNative(
   if (path.back() != this->wrappedNative_.get()) throw DynamicException(
     "DEXV2Router02::swapExactTokensForNative: INVALID_PATH"
   );
-  auto amounts = DEXV2Library::getAmountsOut(this->interface_, this->factory_.get(), amountIn, path);
+  auto amounts = DEXV2Library::getAmountsOut(this->host_, this->factory_.get(), amountIn, path);
   auto amountOut = amounts.back();
   if (amountOut < amountOutMin) throw DynamicException(
     "DEXV2Router02::swapExactTokensForNative: INSUFFICIENT_OUTPUT_AMOUNT"
   );
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), path[0], path[1]);
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), path[0], path[1]);
   this->callContractFunction(path.front(), &ERC20::transferFrom, this->getCaller(), pair, amounts[0]);
   this->_swap(amounts, path, this->getContractAddress());
   this->callContractFunction(this->wrappedNative_.get(), &NativeWrapper::withdraw, amountOut);
@@ -370,13 +368,13 @@ std::vector<uint256_t> DEXV2Router02::swapNativeForExactTokens(
   if (path[0] != this->wrappedNative_.get()) throw DynamicException(
     "DEXV2Router02::swapNativeForExactTokens: INVALID_PATH"
   );
-  auto amounts = DEXV2Library::getAmountsIn(this->interface_, this->factory_.get(), amountOut, path);
+  auto amounts = DEXV2Library::getAmountsIn(this->host_, this->factory_.get(), amountOut, path);
   auto amountIn = amounts.front();
   if (amountIn > amountInMax) throw DynamicException(
     "DEXV2Router02::swapNativeForExactTokens: EXCESSIVE_INPUT_AMOUNT"
   );
   this->callContractFunction(amounts[0], this->wrappedNative_.get(), &NativeWrapper::deposit);
-  auto pair = DEXV2Library::pairFor(this->interface_, this->factory_.get(), path[0], path[1]);
+  auto pair = DEXV2Library::pairFor(this->host_, this->factory_.get(), path[0], path[1]);
   this->callContractFunction(this->wrappedNative_.get(), &ERC20::transfer, pair, amounts[0]);
   this->_swap(amounts, path, to);
   return amounts;

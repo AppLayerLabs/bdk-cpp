@@ -80,9 +80,7 @@ struct SafeHash {
   }
 
   size_t operator()(const Functor& functor) const {
-    static const uint64_t FIXED_RANDOM = clock::now().time_since_epoch().count();
-    auto data = reinterpret_cast<uint32_t const*>(functor.raw()); // Faster hashing for 4 bytes of data.
-    return splitmix(boost::hash_range(data, data + 1) + FIXED_RANDOM); // 32 / 32 = 1
+    return functor.value;
   }
 
   size_t operator()(const Hash& hash) const {

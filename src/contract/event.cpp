@@ -69,7 +69,6 @@ EventManager::EventManager(
 EventManager::~EventManager() {
   DBBatch batchedOperations;
   {
-    std::unique_lock<std::shared_mutex> lock(this->lock_);
     for (const auto& e : this->events_) {
       // Build the key (block height + tx index + log index + address)
       Bytes key;

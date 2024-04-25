@@ -7,9 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc20wrapper.h"
 
-ERC20Wrapper::ERC20Wrapper(
-  ContractManagerInterface& interface, const Address& contractAddress, DB& db
-) : DynamicContract(interface, contractAddress, db), tokensAndBalances_(this)
+ERC20Wrapper::ERC20Wrapper(const Address& contractAddress, DB& db
+) : DynamicContract(contractAddress, db), tokensAndBalances_(this)
 {
   auto tokensAndBalances = this->db_.getBatch(this->getNewPrefix("tokensAndBalances_"));
   for (const auto& dbEntry : tokensAndBalances) {
@@ -24,9 +23,8 @@ ERC20Wrapper::ERC20Wrapper(
   this->tokensAndBalances_.enableRegister();
 }
 
-ERC20Wrapper::ERC20Wrapper(
-  ContractManagerInterface& interface, const Address& address, const Address& creator, const uint64_t& chainId, DB& db
-) : DynamicContract(interface, "ERC20Wrapper", address, creator, chainId, db), tokensAndBalances_(this)
+ERC20Wrapper::ERC20Wrapper(const Address& address, const Address& creator, const uint64_t& chainId, DB& db
+) : DynamicContract("ERC20Wrapper", address, creator, chainId, db), tokensAndBalances_(this)
 {
   this->tokensAndBalances_.commit();
 

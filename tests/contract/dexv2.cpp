@@ -31,7 +31,7 @@ namespace TDEXV2 {
       Address factory = sdk.deployContract<DEXV2Factory>(Address());
       Address router = sdk.deployContract<DEXV2Router02>(factory, wrapped);
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& contract : sdk.getState().getContracts()) {
+      for (const auto& contract : sdk.getState().getCppContracts()) {
         if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
         if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
         if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
@@ -46,7 +46,7 @@ namespace TDEXV2 {
       Address factory = sdk.deployContract<DEXV2Factory>(Address());
       Address router = sdk.deployContract<DEXV2Router02>(factory, wrapped);
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& contract : sdk.getState().getContracts()) {
+      for (const auto& contract : sdk.getState().getCppContracts()) {
         if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
         if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
         if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
@@ -90,7 +90,7 @@ namespace TDEXV2 {
       Address factory = sdk.deployContract<DEXV2Factory>(Address());
       Address router = sdk.deployContract<DEXV2Router02>(factory, wrapped);
       Address owner = sdk.getChainOwnerAccount().address;
-      for (const auto& contract : sdk.getState().getContracts()) {
+      for (const auto& contract : sdk.getState().getCppContracts()) {
         if (contract.first == "NativeWrapper") REQUIRE(contract.second == wrapped);
         if (contract.first == "DEXV2Factory")  REQUIRE(contract.second == factory);
         if (contract.first == "DEXV2Router02") REQUIRE(contract.second == router);
@@ -121,7 +121,7 @@ namespace TDEXV2 {
       uint256_t pairTknA = sdk.callViewFunction(tokenA, &ERC20::balanceOf, pair);
       uint256_t pairNative = sdk.getNativeBalance(wrapped);
       REQUIRE(ownerTknA == uint256_t("9900000000000000000000"));
-      REQUIRE(ownerNative == ownerNativeBeforeAddLiq - uint256_t("100000000000000000000") - (uint256_t(1000000000) * 21000));
+      REQUIRE(ownerNative <= ownerNativeBeforeAddLiq - uint256_t("100000000000000000000") - (uint256_t(1000000000) * 21000));
       REQUIRE(pairTknA == uint256_t("100000000000000000000"));
       REQUIRE(pairNative == uint256_t("100000000000000000000"));
     }

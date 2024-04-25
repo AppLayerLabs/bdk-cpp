@@ -15,7 +15,18 @@ Hash::Hash(const std::string_view sv) {
   std::copy(sv.begin(), sv.end(), this->data_.begin());
 }
 
+Hash::Hash(const evmc::bytes32& data) {
+  // Copy the data from the evmc::bytes32 struct to this->data_
+  std::copy(data.bytes, data.bytes + 32, this->data_.begin());
+}
+
 uint256_t Hash::toUint256() const { return Utils::bytesToUint256(data_); }
+
+evmc::bytes32 Hash::toEvmcBytes32() const {
+  evmc::bytes32 bytes;
+  std::memcpy(reinterpret_cast<void*>(bytes.bytes), this->data_.data(), 32);
+  return bytes;
+}
 
 uint256_t Signature::r() const { return Utils::bytesToUint256(this->view(0, 32)); }
 
@@ -32,6 +43,22 @@ Address::Address(const std::string_view add, bool inBytes) {
     auto bytes = Hex::toBytes(add);
     std::copy(bytes.begin(), bytes.end(), this->data_.begin());
   }
+}
+
+Address::Address(const evmc::address& data) {
+  // Copy the data from the evmc::address struct to this->data_
+  std::copy(data.bytes, data.bytes + 20, this->data_.begin());
+}
+
+evmc::address Address::toEvmcAddress() const {
+  evmc::address addr;
+  std::copy(this->data_.begin(), this->data_.end(), addr.bytes);
+  return addr;
+}
+
+Address::Address(const evmc_address &data) {
+  // Same as evmc::address
+  std::copy(data.bytes, data.bytes + 20, this->data_.begin());
 }
 
 Hex Address::toChksum() const {
@@ -65,5 +92,40 @@ bool Address::isValid(const std::string_view add, bool inBytes) {
 bool Address::isChksum(const std::string_view add) {
   Address myAdd(add, false);
   return (add == myAdd.toChksum());
+}
+
+StorageKey::StorageKey(const evmc::address& addr, const evmc::bytes32& slot) {
+  // Copy the data from the evmc::address struct to this->data_
+  std::copy_n(addr.bytes, 20, this->data_.begin());
+  // Copy the data from the evmc::bytes32 struct to this->data_
+  std::copy_n(slot.bytes,  32, this->data_.begin() + 20);
+}
+
+StorageKey::StorageKey(const evmc_address& addr, const evmc_bytes32& slot) {
+  // Copy the data from the evmc::address struct to this->data_
+  std::copy_n(addr.bytes, 20, this->data_.begin());
+  // Copy the data from the evmc::bytes32 struct to this->data_
+  std::copy_n(slot.bytes,  32, this->data_.begin() + 20);
+}
+
+StorageKey::StorageKey(const evmc_address& addr, const evmc::bytes32& slot) {
+  // Copy the data from the evmc::address struct to this->data_
+  std::copy_n(addr.bytes, 20, this->data_.begin());
+  // Copy the data from the evmc::bytes32 struct to this->data_
+  std::copy_n(slot.bytes,  32, this->data_.begin() + 20);
+}
+
+StorageKey::StorageKey(const evmc::address& addr, const evmc_bytes32& slot) {
+  // Copy the data from the evmc::address struct to this->data_
+  std::copy_n(addr.bytes, 20, this->data_.begin());
+  // Copy the data from the evmc::bytes32 struct to this->data_
+  std::copy_n(slot.bytes,  32, this->data_.begin() + 20);
+}
+
+StorageKey::StorageKey(const Address& addr, const Hash& slot) {
+  // Copy the data from the evmc::address struct to this->data_
+  std::copy_n(addr.cbegin(), 20, this->data_.begin());
+  // Copy the data from the evmc::bytes32 struct to this->data_
+  std::copy_n(slot.cbegin(),  32, this->data_.begin() + 20);
 }
 

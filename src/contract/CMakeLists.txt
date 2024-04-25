@@ -1,7 +1,8 @@
 set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/abi.h
   ${CMAKE_SOURCE_DIR}/src/contract/contract.h
-  ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contractstack.h
+  ${CMAKE_SOURCE_DIR}/src/contract/contracthost.h
   ${CMAKE_SOURCE_DIR}/src/contract/contractfactory.h
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.h
   ${CMAKE_SOURCE_DIR}/src/contract/customcontracts.h
@@ -39,8 +40,9 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractfactory.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/contractstack.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/contracthost.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/contractmanager.cpp
-  ${CMAKE_SOURCE_DIR}/src/contract/contractcalllogger.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/dynamiccontract.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/event.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/erc20.cpp

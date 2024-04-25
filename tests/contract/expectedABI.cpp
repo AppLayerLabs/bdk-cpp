@@ -19,7 +19,9 @@ namespace EXPECTED {
         { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
       }},
       {"name", "transferFrom"},
-      {"outputs", json::array()},
+      {"outputs", {
+        { {"internalType", "bool"}, {"name", ""}, {"type", "bool"} }
+      }},
       {"stateMutability", "nonpayable"},
       {"type", "function"}
     };
@@ -30,7 +32,9 @@ namespace EXPECTED {
         { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
       }},
       {"name", "approve"},
-      {"outputs", json::array()},
+      {"outputs", {
+        { {"internalType", "bool"}, {"name", ""}, {"type", "bool"} }
+      }},
       {"stateMutability", "nonpayable"},
       {"type", "function"}
     };
@@ -63,7 +67,9 @@ namespace EXPECTED {
         { {"internalType", "uint256"}, {"name", "value"}, {"type", "uint256"} }
       }},
       {"name", "transfer"},
-      {"outputs", json::array()},
+      {"outputs", {
+        { {"internalType", "bool"}, {"name", ""}, {"type", "bool"} }
+      }},
       {"stateMutability", "nonpayable"},
       {"type", "function"}
     };
