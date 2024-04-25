@@ -13,6 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <span>
 #include <algorithm>
 
+#include <evmc/evmc.hpp>
 #include "hex.h"
 
 // TODO: It is possible to implement **fast** operators for some types,
@@ -76,8 +77,11 @@ template <unsigned N> class FixedBytes {
     /// Getter for `data_`, non-const version.
     inline BytesArr<N>& get_non_const() const { return this->data_; }
 
-    /// Getter for `data_`, but returns it as a C-style string.
+    /// Getter for `data_`, but returns it as a const C-style string.
     inline const Byte* raw() const { return this->data_.data(); }
+
+    /// Getter for `data_`, but returns it as a non-const C-style string.
+    inline Byte* raw_non_const() { return this->data_.data(); }
 
     /**
      * Getter for `data_`, but returns it as a hex string.
@@ -166,23 +170,29 @@ class Hash : public FixedBytes<32> {
     Hash(const uint256_t& data);
 
     /**
+     * Constructor using a reference to evmc::bytes32.
+     * @param data The evmc::bytes32 pointer to convert into a hash string.
+     */
+    Hash(const evmc::bytes32& data);
+
+    /**
      * Constructor using string_view.
      * @param sv The string view to convert into a hash string.
      */
     Hash(const std::string_view sv);
 
     uint256_t toUint256() const;  ///< Convert the hash string back to an unsigned 256-bit number.
+    evmc::bytes32 toEvmcBytes32() const;  ///< Convert the hash string back to an evmc::bytes32 pointer.
 
     /// Generate a random 32-byte/256-bit hash.
     inline static Hash random() { Hash h; RAND_bytes(h.data_.data(), 32); return h; }
 };
 
 /// Abstraction of a functor (the first 4 bytes of a function's keccak hash). Inherits FixedBytes<4>.
-class Functor : public FixedBytes<4> {
-  public:
-    using FixedBytes<4>::FixedBytes;
-    using FixedBytes<4>::operator==;
-    using FixedBytes<4>::operator=;
+struct Functor {
+  uint32_t value = 0;
+  // Operator==
+  inline bool operator==(const Functor& other) const { return this->value == other.value; }
 };
 
 /// Abstraction of a 65-byte ECDSA signature. Inherits `FixedBytes<65>`.
@@ -208,6 +218,18 @@ class Address : public FixedBytes<20> {
     inline Address() { this->data_.fill(uint8_t{0x00}); };
 
     /**
+     * Constructor using a reference to evmc::address
+     * @param data The evmc::address pointer to convert into an address.
+     */
+    Address(const evmc::address& data);
+
+    /**
+     * Constructor using a reference to evmc_address
+     * @param data The evmc_address pointer to convert into an address.
+     */
+    Address(const evmc_address& data);
+
+    /**
      * Copy constructor.
      * @param add The address itself.
      * @param inBytes If `true`, treats the input as a raw bytes string.
@@ -231,6 +253,8 @@ class Address : public FixedBytes<20> {
 
     /// Move constructor.
     Address(BytesArr<20>&& add) : FixedBytes<20>(std::move(add)) {}
+
+    evmc::address toEvmcAddress() const;  ///< Convert the address string back to an evmc::address.
 
     /**
      * Convert the address to checksum format, as per [EIP-55](https://eips.ethereum.org/EIPS/eip-55).
@@ -261,5 +285,52 @@ class Address : public FixedBytes<20> {
       return *this;
     }
 };
+
+/// Abstraction of a EVM Storage key (20-bytes address + 32 bytes slot key). Inherits `FixedBytes<52>`.
+class StorageKey : public FixedBytes<52> {
+  public:
+    using FixedBytes<52>::operator==;
+    using FixedBytes<52>::operator<;
+    using FixedBytes<52>::operator<=;
+    using FixedBytes<52>::operator>;
+    using FixedBytes<52>::operator>=;
+    using FixedBytes<52>::operator=;
+
+    /**
+     * Constructor using a reference to evmc::address and a reference to evmc::bytes32.
+     * @param addr The evmc::address pointer to convert into a storage key.
+     * @param slot The evmc::bytes32 pointer to convert into a storage key.
+     */
+    StorageKey(const evmc::address& addr, const evmc::bytes32& slot);
+
+    /**
+     * Constructor using a reference to evmc_address and a reference to evmc_bytes32.
+     * @param addr The evmc_address pointer to convert into a storage key.
+     * @param slot The evmc::bytes32 pointer to convert into a storage key.
+     */
+    StorageKey(const evmc_address& addr, const evmc_bytes32& slot);
+
+    /**
+     * Constructor using a reference to evmc_address and a reference to evmc::bytes32.
+     * @param addr The evmc::address pointer to convert into a storage key.
+     * @param slot The evmc::bytes32 pointer to convert into a storage key.
+     */
+    StorageKey(const evmc_address& addr, const evmc::bytes32& slot);
+
+     /**
+      * Constructor using a reference to evmc::address and a reference to evmc_bytes32.
+      * @param addr The evmc_address pointer to convert into a storage key.
+      * @param slot The evmc::bytes32 pointer to convert into a storage key.
+      */
+    StorageKey(const evmc::address& addr, const evmc_bytes32& slot);
+
+    /**
+     * Constructor using a reference to Address and a reference to Hash.
+     * @param addr The Address pointer to convert into a storage key.
+     * @param slot The Hash pointer to convert into a storage key.
+     */
+    StorageKey(const Address& addr, const Hash& slot);
+};
+
 
 #endif  // STRINGS_H

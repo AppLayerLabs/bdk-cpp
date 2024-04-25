@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "abi.h"
 #include "contract.h"
-#include "contractmanager.h"
+#include "contracthost.h"
 #include "event.h"
 #include "../utils/safehash.h"
 #include "../utils/utils.h"
@@ -24,7 +24,7 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-      Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<void(const evmc_message& callInfo)>, SafeHash
     > publicFunctions_;
 
    /**
@@ -33,7 +33,7 @@ class DynamicContract : public BaseContract {
     * The value is a function that takes a vector of bytes (the arguments) and returns a ReturnType.
     */
     std::unordered_map<
-      Functor, std::function<void(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<void(const evmc_message& callInfo)>, SafeHash
     > payableFunctions_;
 
    /**
@@ -43,8 +43,20 @@ class DynamicContract : public BaseContract {
     * Function return type is the encoded return value as viewFunctions is only used by eth_call.
     */
     std::unordered_map<
-      Functor, std::function<Bytes(const ethCallInfo& callInfo)>, SafeHash
+      Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
     > viewFunctions_;
+
+    /**
+     * Map for all the functions, regardless of mutability (Used by EVM)
+     * The reason for having all these functions in a single mapping is because
+     * EVM expects a contract call to actually return the ABI serialized data
+     * So this map is exactly for that, it is a second representation of all the functions
+     * stored in the previous 3 maps but with the ABI serialized data as the return value
+     * We still check if we are calling a payable if the evmc_message has value.
+     */
+    std::unordered_map<
+      Functor, std::function<Bytes(const evmc_message& callInfo)>, SafeHash
+    > evmFunctions_;
 
     /**
      * Register a callable function (a function that is called by a transaction),
@@ -53,20 +65,35 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerFunction(
-      const Functor& functor, const std::function<void(const ethCallInfo& tx)>& f
+      const Functor& functor, const std::function<void(const evmc_message& tx)>& f
     ) {
       publicFunctions_[functor] = f;
+    }
+
+    /**
+     * Register a EVM callable function (a function that can be called by another EVM contract),
+     * adding it to the evmFunctions_ map.
+     * @param functor Solidity function signature (first 4 hex bytes of keccak).
+     * @param f Function to be called.
+     */
+    void registerEVMFunction(
+      const Functor& functor, const std::function<Bytes(const evmc_message& tx)>& f
+    ) {
+      evmFunctions_[functor] = f;
     }
 
     /**
      * Register a variable that was used by the contract.
      * @param variable Reference to the variable.
      */
-    inline void registerVariableUse(SafeBase& variable) { interface_.registerVariableUse(variable); }
+    inline void registerVariableUse(SafeBase& variable) {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to register variable use without a host_!");
+      }
+      host_->registerVariableUse(variable);
+    }
 
   protected:
-    ContractManagerInterface& interface_; ///< Reference to the contract manager interface.
-
     /**
      * Template for registering a const member function with no arguments.
      * @param funcSignature Solidity function signature.
@@ -78,23 +105,33 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)() const, const FunctionTypes& methodMutability, T* instance
     ) {
       std::string functStr = funcSignature + "()";
+      auto registerEvmFunction = [this, instance, memFunc](const evmc_message& callInfo) -> Bytes {
+        if constexpr (std::is_same_v<R, void>) {
+          // If the function's return type is void, return an empty Bytes object
+          (instance->*memFunc)(); // Call the member function without capturing its return
+          return Bytes();         // Return an empty Bytes object
+        } else {
+          // If the function's return type is not void, encode and return its result
+          return ABI::Encoder::encodeData<R>((instance->*memFunc)());
+        }
+      };
+      this->registerEVMFunction(Utils::makeFunctor(functStr), registerEvmFunction);
       switch (methodMutability) {
         case FunctionTypes::View: {
-          this->registerViewFunction(Utils::sha3(Utils::create_view_span(functStr)).view(0, 4), [instance, memFunc](const ethCallInfo&) -> Bytes {
-            using ReturnType = decltype((instance->*memFunc)());
-            return ABI::Encoder::encodeData<ReturnType>((instance->*memFunc)());
+          this->registerViewFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> Bytes {
+            return ABI::Encoder::encodeData<R>((instance->*memFunc)());
           });
           break;
         }
         case FunctionTypes::NonPayable: {
-          this->registerFunction(Utils::sha3(Utils::create_view_span(functStr)).view(0, 4), [instance, memFunc](const ethCallInfo&) -> void {
+          this->registerFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> void {
             (instance->*memFunc)();
             return;
           });
           break;
         }
         case FunctionTypes::Payable: {
-          this->registerPayableFunction(Utils::sha3(Utils::create_view_span(functStr)).view(0, 4), [instance, memFunc](const ethCallInfo&) -> void {
+          this->registerPayableFunction(Utils::makeFunctor(functStr), [instance, memFunc](const evmc_message&) -> void {
             (instance->*memFunc)();
             return;
           });
@@ -117,14 +154,25 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(), const FunctionTypes& methodMutability, T* instance
     ) {
       std::string functStr = funcSignature + "()";
+      auto registerEvmFunction = [this, instance, memFunc](const evmc_message& callInfo) -> Bytes {
+        if constexpr (std::is_same_v<R, void>) {
+          // If the function's return type is void, return an empty Bytes object
+          (instance->*memFunc)(); // Call the member function without capturing its return
+          return Bytes();         // Return an empty Bytes object
+        } else {
+          // If the function's return type is not void, encode and return its result
+          return ABI::Encoder::encodeData<R>((instance->*memFunc)());
+        }
+      };
+      this->registerEVMFunction(Utils::makeFunctor(functStr), registerEvmFunction);
       switch (methodMutability) {
         case FunctionTypes::View: {
           throw DynamicException("View must be const because it does not modify the state.");
         }
         case FunctionTypes::NonPayable: {
           this->registerFunction(
-            Utils::sha3(Utils::create_view_span(functStr)).view(0, 4),
-            [instance, memFunc](const ethCallInfo&) -> void {
+            Utils::makeFunctor(functStr),
+            [instance, memFunc](const evmc_message&) -> void {
               (instance->*memFunc)();
               return;
             }
@@ -133,8 +181,8 @@ class DynamicContract : public BaseContract {
         }
         case FunctionTypes::Payable: {
           this->registerPayableFunction(
-            Utils::sha3(Utils::create_view_span(functStr)).view(0, 4),
-            [instance, memFunc](const ethCallInfo&) -> void {
+            Utils::makeFunctor(functStr),
+            [instance, memFunc](const evmc_message&) -> void {
               (instance->*memFunc)();
               return;
             }
@@ -158,13 +206,28 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(Args...), const FunctionTypes& methodMutability, T* instance
     ) {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
-      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) {
+      auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(std::get<6>(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
         std::apply([instance, memFunc](auto&&... args) {
             (instance->*memFunc)(std::forward<decltype(args)>(args)...);
         }, decodedData);
       };
+      auto registrationFuncEVM = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
+        using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        if constexpr (std::is_same_v<R, void>) {
+          std::apply([instance, memFunc](auto&&... args) {
+              (instance->*memFunc)(std::forward<decltype(args)>(args)...);
+          }, decodedData);
+          return Bytes();
+        } else {
+          return std::apply([instance, memFunc](auto&&... args) -> Bytes {
+            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+          }, decodedData);
+        }
+      };
+      this->registerEVMFunction(functor, registrationFuncEVM);
       switch (methodMutability) {
         case FunctionTypes::View:
           throw DynamicException("View must be const because it does not modify the state.");
@@ -190,16 +253,32 @@ class DynamicContract : public BaseContract {
       const std::string& funcSignature, R(T::*memFunc)(Args...) const, const FunctionTypes& methodMutability, T* instance
     ) {
       Functor functor = ABI::FunctorEncoder::encode<Args...>(funcSignature);
-      auto registrationFunc = [this, instance, memFunc, funcSignature](const ethCallInfo &callInfo) -> Bytes {
-        using ReturnType = decltype((instance->*memFunc)(std::declval<Args>()...));
+      auto registrationFunc = [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
         using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
-        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(std::get<6>(callInfo));
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
         // Use std::apply to call the member function and encode its return value
         return std::apply([instance, memFunc](Args... args) -> Bytes {
           // Call the member function and return its encoded result
           return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
         }, decodedData);
       };
+      auto registrationFuncEVM =  [this, instance, memFunc, funcSignature](const evmc_message &callInfo) -> Bytes {
+        using DecayedArgsTuple = std::tuple<std::decay_t<Args>...>;
+        DecayedArgsTuple decodedData = ABI::Decoder::decodeData<std::decay_t<Args>...>(Utils::getFunctionArgs(callInfo));
+        if constexpr (std::is_same_v<R, void>) {
+          // If the function's return type is void, call the member function and return an empty Bytes object
+          std::apply([instance, memFunc](Args... args) {
+            (instance->*memFunc)(std::forward<decltype(args)>(args)...);
+          }, decodedData);
+          return Bytes(); // Return an empty Bytes object
+        } else {
+          // If the function's return type is not void, call the member function and return its encoded result
+          return std::apply([instance, memFunc](Args... args) -> Bytes {
+            return ABI::Encoder::encodeData((instance->*memFunc)(std::forward<decltype(args)>(args)...));
+          }, decodedData);
+        }
+      };
+      this->registerEVMFunction(functor, registrationFuncEVM);
       switch (methodMutability) {
         case FunctionTypes::View:
           this->registerViewFunction(functor, registrationFunc);
@@ -219,7 +298,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerPayableFunction(
-      const Functor& functor, const std::function<void(const ethCallInfo& tx)>& f
+      const Functor& functor, const std::function<void(const evmc_message& tx)>& f
     ) {
       payableFunctions_[functor] = f;
     }
@@ -230,7 +309,7 @@ class DynamicContract : public BaseContract {
      * @param f Function to be called.
      */
     void registerViewFunction(
-      const Functor& functor, const std::function<Bytes(const ethCallInfo& str)>& f
+      const Functor& functor, const std::function<Bytes(const evmc_message& str)>& f
     ) {
       viewFunctions_[functor] = f;
     }
@@ -254,10 +333,9 @@ class DynamicContract : public BaseContract {
      * @param chainId The chain where the contract wil be deployed.
      * @param db Reference to the database object.
      */
-    DynamicContract(
-      ContractManagerInterface& interface, const std::string& contractName,
+    DynamicContract(const std::string& contractName,
       const Address& address, const Address& creator, const uint64_t& chainId, DB& db
-    ) : BaseContract(contractName, address, creator, chainId, db), interface_(interface) {}
+    ) : BaseContract(contractName, address, creator, chainId, db) {}
 
     /**
      * Constructor for loading the contract from the database.
@@ -265,9 +343,7 @@ class DynamicContract : public BaseContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    DynamicContract(
-      ContractManagerInterface& interface, const Address& address, DB& db
-    ) : BaseContract(address, db), interface_(interface) {}
+    DynamicContract(const Address& address, DB& db) : BaseContract(address, db) {};
 
     /**
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice, value, data).
@@ -276,14 +352,21 @@ class DynamicContract : public BaseContract {
      * @param callInfo Tuple of (from, to, gasLimit, gasPrice, value, data).
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
-    void ethCall(const ethCallInfo& callInfo) override {
+    void ethCall(const evmc_message& callInfo, ContractHost* host) final {
+      this->host_ = host;
+      PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = std::get<5>(callInfo);
+        Functor funcName = Utils::getFunctor(callInfo);
         if (this->isPayableFunction(funcName)) {
           auto func = this->payableFunctions_.find(funcName);
           if (func == this->payableFunctions_.end()) throw DynamicException("Functor not found for payable function");
           func->second(callInfo);
         } else {
+          // value is a uint8_t[32] C array, we need to check if it's zero in modern C++
+          if (!evmc::is_zero(callInfo.value)) {
+            // If the value is not zero, we need to throw an exception
+            throw DynamicException("Non-payable function called with value");
+          }
           auto func = this->publicFunctions_.find(funcName);
           if (func == this->publicFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
           func->second(callInfo);
@@ -293,15 +376,41 @@ class DynamicContract : public BaseContract {
       }
     };
 
+    Bytes evmEthCall(const evmc_message& callInfo, ContractHost* host) final {
+      this->host_ = host;
+      PointerNullifier nullifier(this->host_);
+      try {
+        Functor funcName = Utils::getFunctor(callInfo);
+        if (this->isPayableFunction(funcName)) {
+          auto func = this->evmFunctions_.find(funcName);
+          if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for payable function");
+          return func->second(callInfo);
+        } else {
+          // value is a uint8_t[32] C array, we need to check if it's zero in modern C++
+          if (!evmc::is_zero(callInfo.value)) {
+            // If the value is not zero, we need to throw an exception
+            throw DynamicException("Non-payable function called with value");
+          }
+          auto func = this->evmFunctions_.find(funcName);
+          if (func == this->evmFunctions_.end()) throw DynamicException("Functor not found for non-payable function");
+          return func->second(callInfo);
+        }
+      } catch (const std::exception& e) {
+        throw DynamicException(e.what());
+      }
+    }
+
     /**
      * Do a contract call to a view function.
      * @param data Tuple of (from, to, gasLimit, gasPrice, value, data).
      * @return The result of the view function.
      * @throw DynamicException if the functor is not found or the function throws an exception.
      */
-    Bytes ethCallView(const ethCallInfo& data) const override {
+    Bytes ethCallView(const evmc_message& data, ContractHost* host) const override {
+      this->host_ = host;
+      PointerNullifier nullifier(this->host_);
       try {
-        Functor funcName = std::get<5>(data);
+        Functor funcName = Utils::getFunctor(data);
         auto func = this->viewFunctions_.find(funcName);
         if (func == this->viewFunctions_.end()) throw DynamicException("Functor not found");
         return func->second(data);
@@ -325,8 +434,10 @@ class DynamicContract : public BaseContract {
       const std::tuple<EventParam<Args, Flags>...>& args = std::make_tuple(),
       bool anonymous = false
     ) const {
-      Event e(name, this->getContractAddress(), args, anonymous);
-      this->interface_.emitContractEvent(e);
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to emit a event without a host!");
+      }
+      this->host_->emitEvent(name, this->getContractAddress(), args, anonymous);
     }
 
     /**
@@ -336,27 +447,6 @@ class DynamicContract : public BaseContract {
      */
     bool isPayableFunction(const Functor& functor) const {
       return this->payableFunctions_.contains(functor);
-    }
-
-    /**
-     * Try to cast a contract to a specific type.
-     * NOTE: Only const functions can be called on the casted contract.
-     * @tparam T The type to cast to.
-     * @param address The address of the contract to cast.
-     * @return A pointer to the casted contract.
-     */
-    template <typename T> const T* getContract(const Address& address) const {
-      return interface_.getContract<T>(address);
-    }
-
-    /**
-     * Try to cast a contract to a specific type (non-const).
-     * @tparam T The type to cast to.
-     * @param address The address of the contract to cast.
-     * @return A pointer to the casted contract.
-     */
-    template <typename T> T* getContract(const Address& address) {
-      return interface_.getContract<T>(address);
     }
 
     /**
@@ -373,22 +463,30 @@ class DynamicContract : public BaseContract {
     R callContractViewFunction(
       const Address& address, R(C::*func)(const Args&...) const, const Args&... args
     ) const {
-      const C* contract = this->getContract<C>(address);
-      return (contract->*func)(args...);
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractViewFunction(this, address, func, args...);
     }
 
     /**
      * Call a contract view function based on the basic requirements of a contract call.
      * @tparam R The return type of the view function.
      * @tparam C The contract type.
+     * @tparam Args The argument types of the view function.
      * @param address The address of the contract to call.
      * @param func The view function to call.
+     * @param args The arguments to pass to the view function.
      * @return The result of the view function.
      */
     template <typename R, typename C>
-    R callContractViewFunction(const Address& address, R(C::*func)() const) const {
-      const C* contract = this->getContract<C>(address);
-      return (contract->*func)();
+    R callContractViewFunction(
+      const Address& address, R(C::*func)() const
+    ) const {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractViewFunction(this, address, func);
     }
 
     /**
@@ -404,9 +502,10 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C, typename... Args> R callContractFunction(
       const Address& targetAddr, R(C::*func)(const Args&...), const Args&... args
     ) {
-      return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(), targetAddr, 0, func, args...
-      );
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractFunction(this, targetAddr, 0, func, args...);
     }
 
     /**
@@ -423,9 +522,10 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C, typename... Args> R callContractFunction(
       const uint256_t& value, const Address& address, R(C::*func)(const Args&...), const Args&... args
     ) {
-      return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(), address, value, func, args...
-      );
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractFunction(this, address, value, func, args...);
     }
 
     /**
@@ -437,9 +537,10 @@ class DynamicContract : public BaseContract {
      * @return The result of the function.
      */
     template <typename R, typename C> R callContractFunction(const Address& targetAddr, R(C::*func)()) {
-      return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(), targetAddr, 0, func
-      );
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to call a contract function without a host!");
+      }
+      return this->host_->callContractFunction(this, targetAddr, 0, func);
     }
 
     /**
@@ -454,9 +555,10 @@ class DynamicContract : public BaseContract {
     template <typename R, typename C> R callContractFunction(
       const uint256_t& value, const Address& address, R(C::*func)()
     ) {
-      return this->interface_.callContractFunction(
-        this->getOrigin(), this->getContractAddress(), address, value, func
-      );
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to create a contract without a host!");
+      }
+      return this->host_->callContractFunction(this, address, value, func);
     }
 
     /**
@@ -469,9 +571,15 @@ class DynamicContract : public BaseContract {
      * @return The result of the function.
      */
     template <typename R, typename C, typename... Args> R callContractFunction(
-      R (C::*func)(const Args&...), const Args&... args
+      ContractHost* contractHost, R (C::*func)(const Args&...), const Args&... args
     ) {
       try {
+        // We don't want to ever overwrite the host_ pointer if it's already set
+        if (this->host_ == nullptr) {
+          this->host_ = contractHost;
+          PointerNullifier nullifier(this->host_);
+          return (static_cast<C*>(this)->*func)(args...);
+        }
         return (static_cast<C*>(this)->*func)(args...);
       } catch (const std::exception& e) {
         throw DynamicException(e.what());
@@ -486,8 +594,14 @@ class DynamicContract : public BaseContract {
      * @param func The function to call.
      * @return The result of the function.
      */
-    template <typename R, typename C> R callContractFunction(R (C::*func)()) {
+    template <typename R, typename C> R callContractFunction(ContractHost* contractHost, R (C::*func)()) {
       try {
+        // We don't want to ever overwrite the host_ pointer if it's already set
+        if (this->host_ == nullptr) {
+          this->host_ = contractHost;
+          PointerNullifier nullifier(this->host_);
+          return (static_cast<C*>(this)->*func)();
+        }
         return (static_cast<C*>(this)->*func)();
       } catch (const std::exception& e) {
         throw DynamicException(e.what());
@@ -505,18 +619,22 @@ class DynamicContract : public BaseContract {
      * @return The address of the created contract.
      */
     template<typename TContract, typename... Args> Address callCreateContract(
-      const uint256_t& gas, const uint256_t& gasPrice, const uint256_t& value, Args&&... args
+      Args&&... args
     ) {
-      Utils::safePrint("CallCreateContract being called...");
-      Bytes encoder;
-      if constexpr (sizeof...(Args) > 0) {
-        encoder = ABI::Encoder::encodeData(std::forward<Args>(args)...);
-      } else {
-        encoder = Bytes(32, 0);
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to create a contract without a host!");
       }
-      return this->interface_.callCreateContract<TContract>(
-        this->getOrigin(), this->getContractAddress(), gas, gasPrice, value, std::move(encoder)
-      );
+      std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract(";
+      // Append args
+      createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<TContract>();
+      createSignature += ")";
+      Bytes fullData;
+      Utils::appendBytes(fullData, Utils::sha3(Utils::create_view_span(createSignature)));
+      fullData.resize(4); // We only need the first 4 bytes for the function signature
+      if constexpr (sizeof...(Args) > 0) {
+        Utils::appendBytes(fullData, ABI::Encoder::encodeData(std::forward<Args>(args)...));
+      }
+      return this->host_->callCreateContract<TContract>(this, fullData);
     }
 
     /**
@@ -524,7 +642,7 @@ class DynamicContract : public BaseContract {
      * @param address The address of the contract.
      * @return The balance of the contract.
      */
-    uint256_t getBalance(const Address& address) const { return interface_.getBalanceFromAddress(address); }
+    uint256_t getBalance(const Address& address) const { return host_->getBalanceFromAddress(address); }
 
     /**
      * Send an amount of tokens from the contract to another address.
@@ -532,7 +650,7 @@ class DynamicContract : public BaseContract {
      * @param amount The amount of tokens to send.
      */
     void sendTokens(const Address& to, const uint256_t& amount) {
-      interface_.sendTokens(this->getContractAddress(), to, amount);
+      host_->sendTokens(this, to, amount);
     }
 
     /**

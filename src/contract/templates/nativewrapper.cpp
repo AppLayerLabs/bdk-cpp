@@ -7,9 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "nativewrapper.h"
 
-NativeWrapper::NativeWrapper(
-  ContractManagerInterface &interface, const Address& address, DB& db
-) : ERC20(interface, address, db)
+NativeWrapper::NativeWrapper(const Address& address, DB& db
+) : ERC20(address, db)
 {
   this->registerContractFunctions();
 }
@@ -17,11 +16,10 @@ NativeWrapper::NativeWrapper(
 NativeWrapper::NativeWrapper(
   const std::string &erc20_name, const std::string &erc20_symbol,
   const uint8_t &erc20_decimals,
-  ContractManagerInterface &interface,
   const Address &address, const Address &creator,
   const uint64_t &chainId, DB& db
 ) : ERC20("NativeWrapper", erc20_name, erc20_symbol, erc20_decimals,
-  0, interface, address, creator, chainId, db
+  0, address, creator, chainId, db
 ) {
   this->registerContractFunctions();
 }

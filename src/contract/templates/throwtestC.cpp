@@ -8,18 +8,16 @@ See the LICENSE.txt file in the project root for more information.
 #include "throwtestC.h"
 
 ThrowTestC::ThrowTestC(
-  ContractManagerInterface &interface,
   const Address& address, const Address& creator,
   const uint64_t& chainId, DB& db
-) : DynamicContract(interface, "ThrowTestC", address, creator, chainId, db) {
+) : DynamicContract("ThrowTestC", address, creator, chainId, db) {
   registerContractFunctions();
 }
 
 ThrowTestC::ThrowTestC(
-  ContractManagerInterface &interface,
   const Address& address,
   DB& db
-) : DynamicContract(interface, address, db) {
+) : DynamicContract(address, db) {
   registerContractFunctions();
 }
 

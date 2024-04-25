@@ -19,18 +19,19 @@ namespace DEXV2Library {
   }
 
   Address pairFor(
-    const ContractManagerInterface& interface, const Address& factory,
+    const ContractHost* host, const Address& factory,
     const Address& tokenA, const Address& tokenB
   ) {
-    return interface.getContract<DEXV2Factory>(factory)->getPair(tokenA, tokenB);
+    return host->getContract<DEXV2Factory>(factory)->getPair(tokenA, tokenB);
   }
 
   std::pair<uint256_t, uint256_t> getReserves(
-    const ContractManagerInterface& interface, const Address& factory,
+    const ContractHost* host, const Address& factory,
     const Address& tokenA, const Address& tokenB
   ) {
-    auto pair = pairFor(interface, factory, tokenA, tokenB);
-    return interface.getContract<DEXV2Pair>(pair)->getReservess();
+    if (host == nullptr) throw DynamicException("DEXV2Library: INVALID_HOST");
+    auto pair = pairFor(host, factory, tokenA, tokenB);
+    return host->getContract<DEXV2Pair>(pair)->getReservess();
   }
 
   uint256_t quote(const uint256_t& amountA, const uint256_t& reserveA, const uint256_t& reserveB) {
@@ -57,28 +58,28 @@ namespace DEXV2Library {
   }
 
   std::vector<uint256_t> getAmountsOut(
-    const ContractManagerInterface& interface, const Address& factory,
+    const ContractHost* host, const Address& factory,
     const uint256_t& amountIn, const std::vector<Address>& path
   ) {
     if (path.size() < 2) throw DynamicException("DEXV2Library: INVALID_PATH");
     std::vector<uint256_t> amounts(path.size());
     amounts[0] = amountIn;
     for (size_t i = 0; i < path.size() - 1; i++) {
-      auto [reservesA, reservesB] = getReserves(interface, factory, path[i], path[i + 1]);
+      auto [reservesA, reservesB] = getReserves(host, factory, path[i], path[i + 1]);
       amounts[i + 1] = getAmountOut(amounts[i], reservesA, reservesB);
     }
     return amounts;
   }
 
   std::vector<uint256_t> getAmountsIn(
-    const ContractManagerInterface& interface, const Address& factory,
+    const ContractHost* host, const Address& factory,
     const uint256_t& amountOut, const std::vector<Address>& path
   ) {
     if (path.size() < 2) throw DynamicException("DEXV2Library: INVALID_PATH");
     std::vector<uint256_t> amounts(path.size());
     amounts[amounts.size() - 1] = amountOut;
     for (size_t i = path.size() - 1; i > 0; i--) {
-      auto [reservesA, reservesB] = getReserves(interface, factory, path[i - 1], path[i]);
+      auto [reservesA, reservesB] = getReserves(host, factory, path[i - 1], path[i]);
       amounts[i - 1] = getAmountIn(amounts[i], reservesA, reservesB);
     }
     return amounts;

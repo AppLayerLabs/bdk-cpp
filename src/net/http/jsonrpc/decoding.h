@@ -140,17 +140,17 @@ namespace JsonRPC::Decoding {
    * Check and parse a given `eth_call` request.
    * @param request The request object.
    * @param storage Pointer to the blockchain's storage.
-   * @return A tuple with the call response data (from, to, gas, gasPrice, value, functor, data).
+   * @return A evmc_message object with the call data.
    */
-  ethCallInfoAllocated eth_call(const json& request, const Storage& storage);
+  evmc_message eth_call(const json& request, const Storage& storage, Bytes& fullData);
 
   /**
    * Check and parse a given `eth_estimateGas` request.
    * @param request The request object.
    * @param storage Reference pointer to the blockchain's storage.
-   * @return A tuple with the call response data (from, to, gas, gasPrice, value, functor, data).
+   * @return A evmc_message object with the call data.
    */
-  ethCallInfoAllocated eth_estimateGas(const json& request, const Storage& storage);
+  evmc_message eth_estimateGas(const json& request, const Storage& storage, Bytes& fullData);
 
   /**
    * Check if `eth_gasPrice` is valid.

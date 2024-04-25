@@ -27,10 +27,32 @@ void Utils::logToFile(std::string_view str) {
   log.close();
 }
 
+Functor Utils::getFunctor(const evmc_message& msg) {
+  Functor ret;
+  if (msg.input_size < 4) return ret;
+  // Memcpy the first 4 bytes from the input data to the function signature
+  ret.value = Utils::bytesToUint32(BytesArrView(msg.input_data, 4));
+  return ret;
+}
+
+Functor Utils::makeFunctor(const std::string& functionSignature) {
+  Functor ret;
+  // Create the hash
+  Hash hash = Utils::sha3(BytesArrView(reinterpret_cast<const uint8_t*>(functionSignature.data()), functionSignature.size()));
+  // Copy the first 4 bytes of the hash to the value
+  ret.value = Utils::bytesToUint32(hash.view(0,4));
+  return ret;
+}
+
+BytesArrView Utils::getFunctionArgs(const evmc_message& msg) {
+  if (msg.input_size < 4) return BytesArrView();
+  return BytesArrView(msg.input_data + 4, msg.input_size - 4);
+}
+
 void Utils::safePrint(std::string_view str) {
-  if (!Utils::logToCout) return; // Never print if we are in a test
-  std::lock_guard lock(cout_mutex);
-  std::cout << str << std::endl;
+ // if (!Utils::logToCout) return; // Never print if we are in a test
+ // std::lock_guard lock(cout_mutex);
+ // std::cout << str << std::endl;
 }
 
 Hash Utils::sha3(const BytesArrView input) {
@@ -38,6 +60,56 @@ Hash Utils::sha3(const BytesArrView input) {
   BytesArr<32> ret;
   std::copy(reinterpret_cast<const Byte*>(h.bytes), reinterpret_cast<const Byte*>(h.bytes + 32), ret.begin());
   return std::move(ret);
+}
+
+uint256_t Utils::evmcUint256ToUint256(const evmc::uint256be& i) {
+  // We can use the uint256ToBytes directly as it is std::span and we can create a span from an array
+  return Utils::bytesToUint256(BytesArrView(reinterpret_cast<const uint8_t*>(&i.bytes[0]), 32));
+}
+evmc::uint256be Utils::uint256ToEvmcUint256(const uint256_t& i) {
+  // Convert the uint256_t to BytesArr<32> then copy it to evmc::uint256be
+  // evmc::uint256be is a struct with a single member, bytes, which holds a uint256 value in *big-endian* order
+  evmc::uint256be ret;
+  BytesArr<32> bytes = Utils::uint256ToBytes(i);
+  std::copy(bytes.begin(), bytes.end(), ret.bytes);
+  return ret;
+}
+BytesArr<32> Utils::evmcUint256ToBytes(const evmc::uint256be& i) {
+  BytesArr<32> ret;
+  std::copy(i.bytes, i.bytes + 32, ret.begin());
+  return ret;
+}
+evmc::uint256be Utils::bytesToEvmcUint256(const BytesArrView b) {
+  evmc::uint256be ret;
+  std::copy(b.begin(), b.end(), ret.bytes);
+  return ret;
+}
+
+Account::Account(const BytesArrView& bytes) {
+  if (bytes.size() < 73) throw DynamicException(std::string(__func__) + ": Invalid bytes size");
+  this->balance = Utils::bytesToUint256(bytes.subspan(0,32));
+  this->nonce = Utils::bytesToUint64(bytes.subspan(32,8));
+  this->codeHash = Hash(bytes.subspan(40,32));
+  if (bytes[72] > 2) throw DynamicException(std::string(__func__) + ": Invalid contract type");
+  this->contractType = ContractType(bytes[72]);
+  if (bytes.size() > 73) this->code = Bytes(bytes.begin() + 73, bytes.end());
+}
+
+Bytes Account::serialize() const {
+  Bytes ret;
+  Utils::appendBytes(ret, Utils::uint256ToBytes(this->balance));
+  Utils::appendBytes(ret, Utils::uint64ToBytes(this->nonce));
+  Utils::appendBytes(ret, this->codeHash);
+  ret.insert(ret.end(), char(this->contractType));
+  Utils::appendBytes(ret, this->code);
+  return ret;
+}
+
+Bytes Utils::cArrayToBytes(const uint8_t* arr, size_t size) {
+  Bytes ret;
+  ret.reserve(size);
+  for (size_t i = 0; i < size; i++) ret.push_back(arr[i]);
+  return ret;
 }
 
 BytesArr<31> Utils::uint248ToBytes(const uint248_t &i) {

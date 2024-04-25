@@ -140,7 +140,8 @@ void Syncer::doValidatorBlock() {
   while (randomHashTxs.size() != this->blockchain_.state_.rdposGetMinValidators()) {
     for (const auto& [txHash, tx] : mempool) {
       if (this->stopSyncer_) return;
-      if (tx.getFrom() == randomList[i] && tx.getFunctor() == Hex::toBytes("0xcfffe746")) {
+      // 0xcfffe746 == 3489654598
+      if (tx.getFrom() == randomList[i] && tx.getFunctor().value == 3489654598) {
         randomHashTxs.emplace_back(tx);
         i++;
         break;
@@ -150,7 +151,8 @@ void Syncer::doValidatorBlock() {
   i = 1;
   while (randomnessTxs.size() != this->blockchain_.state_.rdposGetMinValidators()) {
     for (const auto& [txHash, tx] : mempool) {
-      if (tx.getFrom() == randomList[i] && tx.getFunctor() == Hex::toBytes("0x6fc5a2d6")) {
+      // 0x6fc5a2d6 == 1875223254
+      if (tx.getFrom() == randomList[i] && tx.getFunctor().value == 1875223254) {
         randomnessTxs.emplace_back(tx);
         i++;
         break;

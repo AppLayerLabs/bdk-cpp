@@ -22,6 +22,15 @@ std::unique_ptr<Blockchain> blockchain = nullptr;
 }
 
 int main() {
+  uint256_t valueiiii = uint256_t("10000");
+  auto valueiiiii = Utils::uint256ToEvmcUint256(valueiiii);
+  auto valueiiiiii = Utils::evmcUint256ToUint256(valueiiiii);
+  evmc::uint256be value(10000);
+  uint256_t valuei = Utils::evmcUint256ToUint256(value);
+  evmc::uint256be valueii = {};
+  uint256_t valueiii = Utils::evmcUint256ToUint256(valueii);
+
+  return 0;
   Utils::logToCout = true;
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
   blockchain = std::make_unique<Blockchain>(blockchainPath);

@@ -51,6 +51,7 @@ namespace Log {
   const std::string contractManager = "ContractManager";           ///< String for `ContractManager`.
   const std::string syncer = "Syncer";                             ///< String for `Syncer`.
   const std::string event = "Event";                               ///< String for `Event`.
+  const std::string contractHost = "ContractHost";                 ///< String for `ContractHost`.
 }
 
 /// Class for storing log information.

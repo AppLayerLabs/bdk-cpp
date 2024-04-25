@@ -7,9 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
-ERC721::ERC721(
-  ContractManagerInterface& interface, const Address& address, DB& db
-) : DynamicContract(interface, address, db), name_(this), symbol_(this),
+ERC721::ERC721(const Address& address, DB& db
+) : DynamicContract(address, db), name_(this), symbol_(this),
   owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
   this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
@@ -54,10 +53,9 @@ ERC721::ERC721(
 
 ERC721::ERC721(
   const std::string &erc721name, const std::string &erc721symbol_,
-  ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   DB& db
-) : DynamicContract(interface, "ERC721", address, creator, chainId, db), name_(this, erc721name),
+) : DynamicContract("ERC721", address, creator, chainId, db), name_(this, erc721name),
   symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
   this->name_.commit();
@@ -80,10 +78,9 @@ ERC721::ERC721(
 ERC721::ERC721(
   const std::string &derivedTypeName,
   const std::string &erc721name, const std::string &erc721symbol_,
-  ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   DB& db
-) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db), name_(this, erc721name),
+) : DynamicContract(derivedTypeName, address, creator, chainId, db), name_(this, erc721name),
   symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
   this->name_.commit();
