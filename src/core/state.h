@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/db.h"
 #include "storage.h"
 #include "rdpos.h"
+#include "dump.h"
 #include <evmc/evmc.hpp>
 
 // TODO: We could possibly change the bool functions into an enum function,
@@ -23,10 +24,12 @@ See the LICENSE.txt file in the project root for more information.
 enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
 
 /// Abstraction of the blockchain's current state at the current block.
-class State {
+class State : Dumpable {
   private:
     evmc_vm* vm_;  ///< Pointer to the EVMC VM.
     const Options& options_;  ///< Reference to the options singleton.
+    DumpManager dumpManager_; ///< The Dump Worker object
+    DumpWorker dumpWorker_; ///< Dump Manager object
     DB& db_;  ///< Reference to the database.
     Storage& storage_;  ///< Reference to the blockchain's storage.
     P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
@@ -61,7 +64,7 @@ class State {
      * processing the block itself.
      * @param block The block to use for pruning transactions from the mempool.
      */
-    void refreshMempool(const Block& block);
+    void refreshMempool(const FinalizedBlock& block);
 
   public:
     /**
@@ -89,13 +92,15 @@ class State {
     bool rdposGetIsValidator() const { return this->rdpos_.getIsValidator(); }
     const uint32_t& rdposGetMinValidators() const { return this->rdpos_.getMinValidators(); }
     void rdposClearMempool() { return this->rdpos_.clearMempool(); }
-    bool rdposValidateBlock(const Block& block) const { return this->rdpos_.validateBlock(block); }
-    Hash rdposProcessBlock(const Block& block) { return this->rdpos_.processBlock(block); }
-    void rdposSignBlock(Block& block) { this->rdpos_.signBlock(block); }
+    bool rdposValidateBlock(const FinalizedBlock& block) const { return this->rdpos_.validateBlock(block); }
+    Hash rdposProcessBlock(const FinalizedBlock& block) { return this->rdpos_.processBlock(block); }
+    FinalizedBlock rdposSignBlock(MutableBlock& block) { return this->rdpos_.signBlock(block); }
     bool rdposAddValidatorTx(const TxValidator& tx) { return this->rdpos_.addValidatorTx(tx); }
     const std::atomic<bool>& rdposCanCreateBlock() const { return this->rdpos_.canCreateBlock(); }
     void rdposStartWorker() { this->rdpos_.startrdPoSWorker(); }
     void rdposStopWorker() { this->rdpos_.stoprdPoSWorker(); }
+    void dumpStartWorker() { this->dumpWorker_.startWorker(); }
+    void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
     ///@}
 
     // ======================================================================
@@ -131,7 +136,7 @@ class State {
      * @param block The block to validate.
      * @return `true` if the block is validated successfully, `false` otherwise.
      */
-    bool validateNextBlock(const Block& block) const;
+    bool validateNextBlock(const FinalizedBlock& block) const;
 
     /**
      * Process the next block given current state from the network. DOES update the state.
@@ -139,13 +144,13 @@ class State {
      * @param block The block to process.
      * @throw DynamicException if block is invalid.
      */
-    void processNextBlock(Block&& block);
+    void processNextBlock(FinalizedBlock&& block);
 
     /**
      * Fill a block with all transactions currently in the mempool. DOES NOT FINALIZE THE BLOCK.
      * @param block The block to fill.
      */
-    void fillBlockWithTransactions(Block& block) const;
+    void fillBlockWithTransactions(MutableBlock& block) const;
 
     /**
      * Verify if a transaction can be accepted within the current state.
@@ -248,6 +253,11 @@ class State {
     std::vector<Event> getEvents(
       const Hash& txHash, const uint64_t& blockIndex, const uint64_t& txIndex
     ) const;
+
+    /**
+     * State dumping function
+     */
+    DBBatch dump() const final;
 };
 
 #endif // STATE_H

@@ -29,8 +29,6 @@ const std::vector<Hash> validatorPrivKeysState {
   Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
 };
 
-// Forward declaration from contractmanager.cpp
-ethCallInfoAllocated buildCallInfo(const Address& addressToCall, const Functor& function, const Bytes& dataToCall);
 
 // This creates a valid block given the state within the rdPoS class.
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block

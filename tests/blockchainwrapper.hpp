@@ -38,7 +38,7 @@ struct TestBlockchainWrapper {
     options(options_),
     db(options.getRootPath() + "/db"),
     storage(db, options_),
-    state(db, storage, p2p, options, options.getRootPath()),
+    state(db, storage, p2p, options),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
     http(state, storage, p2p, options) {};
 
