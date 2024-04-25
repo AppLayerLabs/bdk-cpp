@@ -497,6 +497,9 @@ class ContractHost : public evmc::Host {
           + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
         );
       }
+      if (value) {
+        this->sendTokens(caller, targetAddr, value);
+      }
       NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
       switch (recipientAcc.contractType) {
         case ContractType::EVM : {
@@ -573,6 +576,9 @@ class ContractHost : public evmc::Host {
         throw DynamicException(std::string(__func__) + ": Contract does not exist - Type: "
           + Utils::getRealTypeName<C>() + " at address: " + targetAddr.hex().get()
         );
+      }
+      if (value) {
+        this->sendTokens(caller, targetAddr, value);
       }
       NestedCallSafeGuard guard(caller, caller->caller_, caller->value_);
       switch (recipientAcc.contractType) {
