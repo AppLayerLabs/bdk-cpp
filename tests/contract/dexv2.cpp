@@ -119,11 +119,13 @@ namespace TDEXV2 {
       uint256_t ownerTknA = sdk.callViewFunction(tokenA, &ERC20::balanceOf, owner);
       uint256_t ownerNative = sdk.getNativeBalance(owner);
       uint256_t pairTknA = sdk.callViewFunction(tokenA, &ERC20::balanceOf, pair);
-      uint256_t pairNative = sdk.getNativeBalance(wrapped);
+      uint256_t wrappedNative = sdk.getNativeBalance(wrapped);
+      uint256_t pairNativeWrapped = sdk.callViewFunction(wrapped, &ERC20::balanceOf, pair);
       REQUIRE(ownerTknA == uint256_t("9900000000000000000000"));
       REQUIRE(ownerNative <= ownerNativeBeforeAddLiq - uint256_t("100000000000000000000") - (uint256_t(1000000000) * 21000));
       REQUIRE(pairTknA == uint256_t("100000000000000000000"));
-      REQUIRE(pairNative == uint256_t("100000000000000000000"));
+      REQUIRE(wrappedNative == uint256_t("100000000000000000000"));
+      REQUIRE(pairNativeWrapped == uint256_t("100000000000000000000"));
     }
   }
 }
