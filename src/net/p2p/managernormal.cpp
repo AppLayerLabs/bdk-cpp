@@ -336,7 +336,7 @@ namespace P2P{
     try {
       auto block = BroadcastDecoder::broadcastBlock(*message, this->options_.getChainID());
       std::unique_lock lock(this->blockBroadcastMutex_);
-      if (this->storage_.blockExists(block.hash())) {
+      if (this->storage_.blockExists(block.getHash())) {
         // If the block is latest()->getNHeight() - 1, we should still rebroadcast it
         if (this->storage_.latest()->getNHeight() - 1 == block.getNHeight()) rebroadcast = true;
         return;
@@ -456,7 +456,7 @@ namespace P2P{
     return;
   }
 
-  void ManagerNormal::broadcastBlock(const std::shared_ptr<const Block> block) {
+  void ManagerNormal::broadcastBlock(const std::shared_ptr<const FinalizedBlock> block) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastBlock(block));
     this->broadcastMessage(broadcast);
     return;

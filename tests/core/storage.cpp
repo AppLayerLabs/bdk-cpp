@@ -83,11 +83,11 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
   return ret;
 }
 
-Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHeight, Hash prevHash, const uint64_t& requiredChainId) {
+FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHeight, Hash prevHash, const uint64_t& requiredChainId) {
   PrivKey blockValidatorPrivKey = PrivKey::random();
   Hash nPrevBlockHash = prevHash;
   uint64_t timestamp = 230915972837111; // Timestamp doesn't really matter.
-  Block newBlock = Block(nPrevBlockHash, timestamp, nHeight);
+  MutableBlock newBlock(nPrevBlockHash, timestamp, nHeight);
 
   std::vector<TxBlock> txs;
 
@@ -104,9 +104,9 @@ Block createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHei
   for (const auto &tx : txs) newBlock.appendTx(tx);
   for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
   // Sign block with block validator private key.
-  newBlock.finalize(blockValidatorPrivKey, timestamp + 1);
-  REQUIRE(newBlock.getBlockRandomness() == Hash(Utils::sha3(randomSeed)));
-  return newBlock;
+  FinalizedBlock finalBlock = newBlock.finalize(blockValidatorPrivKey, timestamp + 1);
+  REQUIRE(finalBlock.getBlockRandomness() == Hash(Utils::sha3(randomSeed)));
+  return finalBlock;
 }
 
 namespace TStorage {
@@ -128,21 +128,20 @@ namespace TStorage {
       REQUIRE(genesis->getTxs().size() == 0);
       REQUIRE(genesis->getValidatorPubKey() == UPubKey(Hex::toBytes("04eb4c1da10ca5f1e52d1cba87f627931b5a980dba6d910d6aa756db62fc71ea78db1a18a2c364fb348bb28e0b0a3c6563a0522626eecfe32cdab30746365f5747")));
       REQUIRE(Secp256k1::toAddress(genesis->getValidatorPubKey()) == Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")));
-      REQUIRE(genesis->isFinalized() == true);
     }
 
     SECTION("10 Blocks forward with destructor test") {
       // Create 10 Blocks, each with 100 dynamic transactions and 16 validator transactions
-      std::vector<Block> blocks;
+      std::vector<FinalizedBlock> blocks;
       {
         auto blockchainWrapper = initialize(validatorPrivKeysStorage, PrivKey(), 8080, true, "Storage10BlocksForwardDestructor");
 
         // Generate 10 blocks.
         for (uint64_t i = 0; i < 10; ++i) {
           auto latest = blockchainWrapper.storage.latest();
-          Block newBlock = createRandomBlock(100, 16, latest->getNHeight() + 1, latest->hash(), blockchainWrapper.options.getChainID());
+          FinalizedBlock newBlock = createRandomBlock(100, 16, latest->getNHeight() + 1, latest->getHash(), blockchainWrapper.options.getChainID());
           blocks.emplace_back(newBlock);
-          blockchainWrapper.storage.pushBack(Block(newBlock));
+          blockchainWrapper.storage.pushBack(FinalizedBlock(newBlock));
         }
 
         REQUIRE(blockchainWrapper.storage.currentChainSize() == 11);
@@ -161,7 +160,6 @@ namespace TStorage {
           REQUIRE(block->getTxValidators().size() == blocks[i].getTxValidators().size());
           REQUIRE(block->getTxs().size() == blocks[i].getTxs().size());
           REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
-          REQUIRE(block->isFinalized() == blocks[i].isFinalized());
         }
       }
 
@@ -184,13 +182,12 @@ namespace TStorage {
         REQUIRE(block->getTxValidators().size() == blocks[i].getTxValidators().size());
         REQUIRE(block->getTxs().size() == blocks[i].getTxs().size());
         REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
-        REQUIRE(block->isFinalized() == blocks[i].isFinalized());
       }
     }
 
     SECTION("2000 Blocks forward with N (0...16) dynamic normal txs and 32 validator txs, with SaveToDB and Tx Cache test") {
       // Create 2000 Blocks, each with 0 to 16 dynamic transactions and 32 validator transactions
-      std::vector<std::pair<Block,std::vector<TxBlock>>> blocksWithTxs;
+      std::vector<std::pair<FinalizedBlock,std::vector<TxBlock>>> blocksWithTxs;
       {
         auto blockchainWrapper = initialize(validatorPrivKeysStorage, PrivKey(), 8080, true, "Storage2000BlocksForwardSaveToDBTxCache");
 
@@ -198,7 +195,7 @@ namespace TStorage {
         for (uint64_t i = 0; i < 2000; ++i) {
           auto latest = blockchainWrapper.storage.latest();
           uint64_t txCount = uint64_t(uint8_t(Utils::randBytes(1)[0]) % 16);
-          Block newBlock = createRandomBlock(txCount, 16, latest->getNHeight() + 1, latest->hash(), blockchainWrapper.options.getChainID());
+          FinalizedBlock newBlock = createRandomBlock(txCount, 16, latest->getNHeight() + 1, latest->getHash(), blockchainWrapper.options.getChainID());
           std::vector<TxBlock> txs = newBlock.getTxs();
           blocksWithTxs.emplace_back(std::make_pair(newBlock, txs));
           blockchainWrapper.storage.pushBack(std::move(newBlock));
@@ -221,7 +218,6 @@ namespace TStorage {
           REQUIRE(block->getTxValidators().size() == requiredBlock.getTxValidators().size());
           REQUIRE(block->getTxs().size() == requiredBlock.getTxs().size());
           REQUIRE(block->getValidatorPubKey() == requiredBlock.getValidatorPubKey());
-          REQUIRE(block->isFinalized() == requiredBlock.isFinalized());
         }
       }
       // Load DB again...
@@ -245,9 +241,8 @@ namespace TStorage {
         REQUIRE(block->getTxValidators().size() == requiredBlock.getTxValidators().size());
         REQUIRE(block->getTxs().size() == requiredBlock.getTxs().size());
         REQUIRE(block->getValidatorPubKey() == requiredBlock.getValidatorPubKey());
-        REQUIRE(block->isFinalized() == requiredBlock.isFinalized());
 
-        const auto& requiredBlockHash = requiredBlock.hash();
+        const auto& requiredBlockHash = requiredBlock.getHash();
         for (uint64_t ii = 0; ii < requiredTxs.size(); ii++) {
           auto txInfo = blockchainWrapper.storage.getTx(requiredTxs[ii].hash());
           const auto& [tx, blockHash, blockIndex, blockHeight] = txInfo;

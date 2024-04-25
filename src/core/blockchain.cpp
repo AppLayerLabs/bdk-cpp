@@ -162,8 +162,8 @@ void Syncer::doValidatorBlock() {
   if (this->stopSyncer_) return;
 
   // Create the block and append to all chains, we can use any storage for latest block.
-  const std::shared_ptr<const Block> latestBlock = this->blockchain_.storage_.latest();
-  Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
+  const std::shared_ptr<const FinalizedBlock> latestBlock = this->blockchain_.storage_.latest();
+  MutableBlock block(latestBlock->getHash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
 
   // Append transactions towards block.
   for (const auto& tx: randomHashTxs) block.appendTxValidator(tx);
@@ -172,15 +172,15 @@ void Syncer::doValidatorBlock() {
 
   // Add transactions from state, sign, validate and process the block.
   this->blockchain_.state_.fillBlockWithTransactions(block);
-  this->blockchain_.state_.rdposSignBlock(block);
-  if (!this->blockchain_.state_.validateNextBlock(block)) {
+  FinalizedBlock finalizedBlock = this->blockchain_.state_.rdposSignBlock(block);
+  if (!this->blockchain_.state_.validateNextBlock(finalizedBlock)) {
     Logger::logToDebug(LogType::ERROR, Log::syncer, __func__, "Block is not valid!");
     throw DynamicException("Block is not valid!");
   }
   if (this->stopSyncer_) return;
-  Hash latestBlockHash = block.hash();
-  this->blockchain_.state_.processNextBlock(std::move(block));
-  if (this->blockchain_.storage_.latest()->hash() != latestBlockHash) {
+  Hash latestBlockHash = finalizedBlock.getHash();
+  this->blockchain_.state_.processNextBlock(std::move(finalizedBlock));
+  if (this->blockchain_.storage_.latest()->getHash() != latestBlockHash) {
     Logger::logToDebug(LogType::ERROR, Log::syncer, __func__, "Block is not valid!");
     throw DynamicException("Block is not valid!");
   }
@@ -242,6 +242,7 @@ bool Syncer::syncerLoop() {
 
   // Sync the node with the network.
   this->doSync();
+  this->blockchain_.state_.dumpStartWorker(); // Start the dump worker.
   if (this->stopSyncer_) return false;
   Utils::safePrint("Synced with the network, starting the node.");
   if (this->blockchain_.options_.getIsValidator()) {
@@ -261,6 +262,7 @@ void Syncer::start() {
 void Syncer::stop() {
   this->stopSyncer_ = true;
   this->blockchain_.state_.rdposStopWorker(); // Stop the rdPoS worker.
+  this->blockchain_.state_.dumpStopWorker(); // Stop the dump worker.
   if (this->syncerLoopFuture_.valid()) this->syncerLoopFuture_.wait();
 }
 

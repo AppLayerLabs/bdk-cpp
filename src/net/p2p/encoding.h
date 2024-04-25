@@ -13,7 +13,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../utils/utils.h"
 #include "../../utils/safehash.h"
 #include "../../utils/tx.h"
-#include "../../utils/block.h"
+#include "../../utils/mutableblock.h"
 #include "../../utils/options.h"
 
 namespace P2P {
@@ -187,7 +187,7 @@ namespace P2P {
        * @return The formatted request.
        */
       static Message info(
-        const std::shared_ptr<const Block>& latestBlock,
+        const std::shared_ptr<const FinalizedBlock>& latestBlock,
         const Options& options
       );
 
@@ -268,7 +268,7 @@ namespace P2P {
        * @return The formatted answer.
        */
       static Message info(const Message& request,
-        const std::shared_ptr<const Block>& latestBlock,
+        const std::shared_ptr<const FinalizedBlock>& latestBlock,
         const Options& options
       );
 
@@ -372,7 +372,7 @@ namespace P2P {
        * @param block The block to broadcast.
        * @return The formatted message.
        */
-      static Message broadcastBlock(const std::shared_ptr<const Block>& block);
+      static Message broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
   };
 
   /// Helper class used to parse broadcast messages.
@@ -400,7 +400,7 @@ namespace P2P {
        * @param requiredChainId The chain ID to use as reference.
        * @return The build block object.
        */
-      static Block broadcastBlock(const Message& message, const uint64_t& requiredChainId);
+      static FinalizedBlock broadcastBlock(const Message& message, const uint64_t& requiredChainId);
   };
 
   /**

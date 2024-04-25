@@ -98,7 +98,7 @@ const std::vector<Hash> validatorPrivKeysHttpJsonRpc {
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
 // Definition from state.cpp, when linking, the compiler should find the function.
-Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
+FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
 
 // Blockchain wrapper initializer for testing purposes.
 // Defined in rdpos.cpp
@@ -168,7 +168,7 @@ namespace THTTPJsonRPC{
 
       REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
 
-      blockchainWrapper.state.processNextBlock(Block(newBestBlock));
+      blockchainWrapper.state.processNextBlock(FinalizedBlock(newBestBlock));
 
       blockchainWrapper.http.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -197,9 +197,9 @@ namespace THTTPJsonRPC{
 
       REQUIRE(eth_protocolVersionResponse["result"] == "0.2.0");
 
-      json eth_getBlockByHashResponse = requestMethod("eth_getBlockByHash", json::array({newBestBlock.hash().hex(true), true}));
+      json eth_getBlockByHashResponse = requestMethod("eth_getBlockByHash", json::array({newBestBlock.getHash().hex(true), true}));
       REQUIRE(eth_getBlockByHashResponse["result"]["number"] == "0x1");
-      REQUIRE(eth_getBlockByHashResponse["result"]["hash"] == newBestBlock.hash().hex(true));
+      REQUIRE(eth_getBlockByHashResponse["result"]["hash"] == newBestBlock.getHash().hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["parentHash"] == newBestBlock.getPrevBlockHash().hex(true));
       REQUIRE(eth_getBlockByHashResponse["result"]["nonce"] == "0x0000000000000000");
       REQUIRE(eth_getBlockByHashResponse["result"]["sha3Uncles"] == Hash().hex(true));
@@ -234,7 +234,7 @@ namespace THTTPJsonRPC{
 
       json eth_getBlockByNumberResponse = requestMethod("eth_getBlockByNumber", json::array({"0x1", true}));
       REQUIRE(eth_getBlockByNumberResponse["result"]["number"] == "0x1");
-      REQUIRE(eth_getBlockByNumberResponse["result"]["hash"] == newBestBlock.hash().hex(true));
+      REQUIRE(eth_getBlockByNumberResponse["result"]["hash"] == newBestBlock.getHash().hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["parentHash"] == newBestBlock.getPrevBlockHash().hex(true));
       REQUIRE(eth_getBlockByNumberResponse["result"]["nonce"] == "0x0000000000000000");
       REQUIRE(eth_getBlockByNumberResponse["result"]["sha3Uncles"] == Hash().hex(true));
@@ -267,7 +267,7 @@ namespace THTTPJsonRPC{
         REQUIRE(txJson["s"] == Hex::fromBytes(Utils::uintToBytes(tx.getS()),true).forRPC());
       }
 
-      json eth_getBlockTransactionCountByHashResponse = requestMethod("eth_getBlockTransactionCountByHash", json::array({newBestBlock.hash().hex(true)}));
+      json eth_getBlockTransactionCountByHashResponse = requestMethod("eth_getBlockTransactionCountByHash", json::array({newBestBlock.getHash().hex(true)}));
       REQUIRE(eth_getBlockTransactionCountByHashResponse["result"] == Hex::fromBytes(Utils::uintToBytes(uint64_t(transactions.size())),true).forRPC());
 
       json eth_getBlockTransactionCountByNumberResponse = requestMethod("eth_getBlockTransactionCountByNumber", json::array({"0x1"}));
@@ -326,7 +326,7 @@ namespace THTTPJsonRPC{
 
       for (uint64_t i = 0; i < transactions.size(); ++i) {
         json eth_getTransactionByHash = requestMethod("eth_getTransactionByHash", json::array({transactions[i].hash().hex(true)}));
-        REQUIRE(eth_getTransactionByHash["result"]["blockHash"] == newBestBlock.hash().hex(true));
+        REQUIRE(eth_getTransactionByHash["result"]["blockHash"] == newBestBlock.getHash().hex(true));
         REQUIRE(eth_getTransactionByHash["result"]["blockNumber"] == "0x1");
         REQUIRE(eth_getTransactionByHash["result"]["from"] == transactions[i].getFrom().hex(true));
         REQUIRE(eth_getTransactionByHash["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()),true).forRPC());
@@ -343,8 +343,8 @@ namespace THTTPJsonRPC{
       }
 
       for (uint64_t i = 0; i < transactions.size(); ++i) {
-        json eth_getTransactionByBlockHashAndIndex = requestMethod("eth_getTransactionByBlockHashAndIndex", json::array({newBestBlock.hash().hex(true), Hex::fromBytes(Utils::uintToBytes(i),true).forRPC()}));
-        REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["blockHash"] == newBestBlock.hash().hex(true));
+        json eth_getTransactionByBlockHashAndIndex = requestMethod("eth_getTransactionByBlockHashAndIndex", json::array({newBestBlock.getHash().hex(true), Hex::fromBytes(Utils::uintToBytes(i),true).forRPC()}));
+        REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["blockHash"] == newBestBlock.getHash().hex(true));
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["blockNumber"] == "0x1");
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["from"] == transactions[i].getFrom().hex(true));
         REQUIRE(eth_getTransactionByBlockHashAndIndex["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()),true).forRPC());
@@ -362,7 +362,7 @@ namespace THTTPJsonRPC{
 
       for (uint64_t i = 0; i < transactions.size(); ++i) {
         json eth_getTransactionByBlockNumberAndIndexResponse = requestMethod("eth_getTransactionByBlockNumberAndIndex", json::array({"0x1", Hex::fromBytes(Utils::uintToBytes(i),true).forRPC()}));
-        REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["blockHash"] == newBestBlock.hash().hex(true));
+        REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["blockHash"] == newBestBlock.getHash().hex(true));
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["blockNumber"] == "0x1");
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["from"] == transactions[i].getFrom().hex(true));
         REQUIRE(eth_getTransactionByBlockNumberAndIndexResponse["result"]["gas"] == Hex::fromBytes(Utils::uintToBytes(transactions[i].getGasLimit()),true).forRPC());
@@ -382,7 +382,7 @@ namespace THTTPJsonRPC{
         json eth_getTransactionReceiptResponse = requestMethod("eth_getTransactionReceipt", json::array({transactions[i].hash().hex(true)}));
         REQUIRE(eth_getTransactionReceiptResponse["result"]["transactionHash"] == transactions[i].hash().hex(true));
         REQUIRE(eth_getTransactionReceiptResponse["result"]["transactionIndex"] == Hex::fromBytes(Utils::uintToBytes(i),true).forRPC());
-        REQUIRE(eth_getTransactionReceiptResponse["result"]["blockHash"] == newBestBlock.hash().hex(true));
+        REQUIRE(eth_getTransactionReceiptResponse["result"]["blockHash"] == newBestBlock.getHash().hex(true));
         REQUIRE(eth_getTransactionReceiptResponse["result"]["blockNumber"] == "0x1");
         REQUIRE(eth_getTransactionReceiptResponse["result"]["from"] == transactions[i].getFrom().hex(true));
         REQUIRE(eth_getTransactionReceiptResponse["result"]["to"] == transactions[i].getTo().hex(true));
