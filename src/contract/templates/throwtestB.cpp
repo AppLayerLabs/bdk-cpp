@@ -23,6 +23,11 @@ ThrowTestB::ThrowTestB(
 
 ThrowTestB::~ThrowTestB() { return; }
 
+DBBatch ThrowTestB::dump() const
+{
+  return BaseContract::dump();
+}
+
 uint8_t ThrowTestB::getNumB() const { return this->num_.get(); }
 
 [[noreturn]] void ThrowTestB::setNumB(

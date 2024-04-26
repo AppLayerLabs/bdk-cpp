@@ -33,18 +33,7 @@ ERC20Wrapper::ERC20Wrapper(const Address& address, const Address& creator, const
   this->tokensAndBalances_.enableRegister();
 }
 
-ERC20Wrapper::~ERC20Wrapper() {
-  DBBatch tokensAndBalancesBatch;
-  for (auto it = tokensAndBalances_.cbegin(); it != tokensAndBalances_.cend(); ++it) {
-    for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
-      const auto& key = it->first.get();
-      Bytes value = it2->first.asBytes();
-      Utils::appendBytes(value, Utils::uintToBytes(it2->second));
-      tokensAndBalancesBatch.push_back(key, value, this->getNewPrefix("tokensAndBalances_"));
-    }
-  }
-  this->db_.putBatch(tokensAndBalancesBatch);
-}
+ERC20Wrapper::~ERC20Wrapper() {}
 
 uint256_t ERC20Wrapper::getContractBalance(const Address& token) const {
   return this->callContractViewFunction(token, &ERC20::balanceOf, this->getContractAddress());
@@ -96,3 +85,16 @@ void ERC20Wrapper::registerContractFunctions() {
   this->registerMemberFunction("deposit", &ERC20Wrapper::deposit, FunctionTypes::NonPayable, this);
 }
 
+DBBatch ERC20Wrapper::dump () const {
+  DBBatch dbBatch = BaseContract::dump();
+
+  for (auto i = tokensAndBalances_.cbegin(); i != tokensAndBalances_.cend(); ++i) {
+    for (auto j = i->second.cbegin(); j != i->second.cend(); ++j) {
+      const auto& key = i->first.get();
+      Bytes value = j->first.asBytes();
+      Utils::appendBytes(value, Utils::uintToBytes(j->second));
+      dbBatch.push_back(key, value, this->getNewPrefix("tokensAndBalances_"));
+    }
+  }
+  return dbBatch;
+}

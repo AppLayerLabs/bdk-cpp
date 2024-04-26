@@ -26,6 +26,10 @@ NativeWrapper::NativeWrapper(
 
 NativeWrapper::~NativeWrapper() = default;
 
+DBBatch NativeWrapper::dump() const {
+  return BaseContract::dump();
+}
+
 void NativeWrapper::registerContractFunctions() {
   registerContract();
   this->registerMemberFunction("deposit", &NativeWrapper::deposit, FunctionTypes::Payable, this);

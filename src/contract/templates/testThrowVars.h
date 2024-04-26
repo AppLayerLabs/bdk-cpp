@@ -34,6 +34,9 @@ class TestThrowVars : public DynamicContract {
         std::vector<std::string>{"var1_", "var2_", "var3_"}
       );
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif  // TESTTHROWVARS_H

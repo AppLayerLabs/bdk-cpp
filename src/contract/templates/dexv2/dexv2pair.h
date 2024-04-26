@@ -229,6 +229,8 @@ class DEXV2Pair : public ERC20 {
         std::make_tuple("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, std::vector<std::string>{})
       );
     }
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // DEXV2PAIR_H

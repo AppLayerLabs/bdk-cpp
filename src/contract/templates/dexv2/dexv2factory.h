@@ -120,6 +120,8 @@ class DEXV2Factory : public DynamicContract {
         std::make_tuple("setFeeToSetter", &DEXV2Factory::setFeeToSetter, FunctionTypes::NonPayable, std::vector<std::string>{"_feeToSetter"})
       );
     }
+  /// Dump method
+  DBBatch dump() const override;
 };
 
 #endif  // DEXFACTORY_H

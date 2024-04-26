@@ -185,6 +185,9 @@ class SimpleContract : public DynamicContract {
         std::make_tuple("nameAndNumberTupleChanged", false, &SimpleContract::nameAndNumberTupleChanged, std::vector<std::string>{"nameAndNumber"})
       );
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // SIMPLECONTRACT_H

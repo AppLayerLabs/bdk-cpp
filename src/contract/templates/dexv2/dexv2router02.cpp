@@ -45,16 +45,7 @@ DEXV2Router02::DEXV2Router02(
   this->wrappedNative_.enableRegister();
 }
 
-DEXV2Router02::~DEXV2Router02() {
-  DBBatch batchOperations;
-  batchOperations.push_back(
-    Utils::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix()
-  );
-  batchOperations.push_back(
-    Utils::stringToBytes("wrappedNative_"), this->wrappedNative_.get().view(), this->getDBPrefix()
-  );
-  this->db_.putBatch(batchOperations);
-}
+DEXV2Router02::~DEXV2Router02() {};
 
 void DEXV2Router02::registerContractFunctions() {
   registerContract();
@@ -380,3 +371,12 @@ std::vector<uint256_t> DEXV2Router02::swapNativeForExactTokens(
   return amounts;
 }
 
+DBBatch DEXV2Router02::dump() const
+{
+  DBBatch dbBatch = BaseContract::dump();
+
+  dbBatch.push_back(Utils::stringToBytes("factory_"), this->factory_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("wrappedNative_"), this->wrappedNative_.get().view(), this->getDBPrefix());
+
+  return dbBatch;
+}

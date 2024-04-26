@@ -14,6 +14,7 @@
 #include "../core/rdpos.h"
 #include "../utils/contractreflectioninterface.h"
 #include "contractmanager.h"
+#include "../core/dump.h"
 
 
 // TODO: EVMC Static Mode Handling
@@ -58,6 +59,7 @@ class ContractHost : public evmc::Host {
         }
     };
     evmc_vm* vm_;
+    DumpManager& manager_;
     EventManager& eventManager_;
     const Storage& storage_;
     mutable ContractStack stack_;
@@ -103,6 +105,7 @@ class ContractHost : public evmc::Host {
 
   public:
     ContractHost(evmc_vm* vm,
+                 DumpManager& manager,
                  EventManager& eventManager,
                  const Storage& storage,
                  const evmc_tx_context& currentTxContext,
@@ -114,6 +117,7 @@ class ContractHost : public evmc::Host {
                  const Hash& blockHash,
                  int64_t& txGasLimit) :
     vm_(vm),
+    manager_(manager),
     eventManager_(eventManager),
     storage_(storage),
     currentTxContext_(currentTxContext),
@@ -783,7 +787,7 @@ class ContractHost : public evmc::Host {
       this->stack_.registerEvent(std::move(event));
     }
 
-    void registerNewCPPContract(const Address& addr);
+    void registerNewCPPContract(const Address& addr, BaseContract* contract);
     void registerNewEVMContract(const Address& addr, const uint8_t* code, size_t codeSize);
     void registerVariableUse(SafeBase& variable);
     /// END OF CONTRACT INTERFACING FUNCTIONS

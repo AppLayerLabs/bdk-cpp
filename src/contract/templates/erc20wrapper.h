@@ -120,6 +120,9 @@ class ERC20Wrapper : public DynamicContract {
      * @param value The amount of tokens to deposit.
      */
     void deposit(const Address& token, const uint256_t& value);
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // ERC20WRAPPER_H

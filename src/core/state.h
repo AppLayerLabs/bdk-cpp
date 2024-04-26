@@ -101,6 +101,7 @@ class State : Dumpable {
     void rdposStopWorker() { this->rdpos_.stoprdPoSWorker(); }
     void dumpStartWorker() { this->dumpWorker_.startWorker(); }
     void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
+    size_t getDumpManagerSize() const { return this->dumpManager_.size(); }
     ///@}
 
     // ======================================================================

@@ -19,6 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/utils.h"
 #include "../utils/dynamicexception.h"
 #include "variables/safebase.h"
+#include "../core/dump.h"
 
 // Forward declarations.
 class ContractHost;
@@ -64,10 +65,10 @@ class ContractLocals : public ContractGlobals {
 };
 
 /// Base class for all contracts.
-class BaseContract : public ContractLocals {
+class BaseContract : public ContractLocals, public Dumpable {
   private:
     std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
-    Bytes dbPrefix_;           ///< Prefix for the contract DB.
+    const Bytes dbPrefix_;           ///< Prefix for the contract DB.
     Address contractAddress_;  ///< Address where the contract is deployed.
     Address contractCreator_;  ///< Address of the creator of the contract.
     uint64_t contractChainId_; ///< Chain where the contract is deployed.
@@ -90,18 +91,21 @@ class BaseContract : public ContractLocals {
     BaseContract(const std::string& contractName, const Address& address,
       const Address& creator, const uint64_t& chainId, DB& db
     ) : contractName_(contractName), contractAddress_(address),
-      contractCreator_(creator), contractChainId_(chainId), db_(db)
-    {
-      this->dbPrefix_ = [&]() {
-        Bytes prefix = DBPrefix::contracts;
-        prefix.reserve(prefix.size() + contractAddress_.size());
-        prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
-        return prefix;
-      }();
-      db.put(std::string("contractName_"), contractName_, this->getDBPrefix());
-      db.put(std::string("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
-      db.put(std::string("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
-      db.put(std::string("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
+        contractCreator_(creator), contractChainId_(chainId), db_(db), dbPrefix_([&]() {
+                    Bytes prefix = DBPrefix::contracts;
+                    prefix.reserve(prefix.size() + address.size());
+                    prefix.insert(prefix.end(), address.cbegin(), address.cend());
+                    return prefix;
+                  }()) {
+    }
+
+    DBBatch dump() const override {
+      DBBatch batch;
+      batch.push_back(Utils::stringToBytes("contractName_"), Utils::stringToBytes(contractName_), this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
+      return batch;
     }
 
     /**
@@ -109,13 +113,14 @@ class BaseContract : public ContractLocals {
      * @param address The address where the contract will be deployed.
      * @param db Pointer to the DB instance.
      */
-    BaseContract(const Address &address, DB& db) : contractAddress_(address), db_(db) {
-      this->dbPrefix_ = [&]() -> Bytes {
-        Bytes prefix = DBPrefix::contracts;
-        prefix.reserve(prefix.size() + contractAddress_.size());
-        prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
-        return prefix;
-      }();
+    BaseContract(const Address &address, DB& db) : contractAddress_(address), db_(db),
+                 dbPrefix_([&]() -> Bytes {
+                   Bytes prefix = DBPrefix::contracts;
+                   prefix.reserve(prefix.size() + contractAddress_.size());
+                   prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
+                   return prefix;
+                 }())
+    {
       this->contractName_ = Utils::bytesToString(db.get(std::string("contractName_"), this->getDBPrefix()));
       this->contractCreator_ = Address(db.get(std::string("contractCreator_"), this->getDBPrefix()));
       this->contractChainId_ = Utils::bytesToUint64(db.get(std::string("contractChainId_"), this->getDBPrefix()));

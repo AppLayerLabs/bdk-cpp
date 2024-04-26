@@ -134,7 +134,7 @@ namespace ContractFactory {
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
         callInfo.sender, derivedAddress, chainId, db, decodedData
       );
-      host->registerNewCPPContract(derivedAddress);
+      host->registerNewCPPContract(derivedAddress, contract.get());
       contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
     }
 

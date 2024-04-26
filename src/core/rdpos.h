@@ -124,14 +124,13 @@ public:
 };
 
 /// Abstraction of the %rdPoS (Random Deterministic Proof of Stake) consensus algorithm.
-class rdPoS : public BaseContract, public Dumpable {
+class rdPoS : public BaseContract {
 private:
   const Options& options_;  ///< Reference to the options singleton.
   DB& db_;
   const Storage& storage_;  ///< Reference to the blockchain's storage.
   P2P::ManagerNormal& p2p_; ///< Reference to the P2P Manager (for sending/requesting TxValidators from other nodes).
   State& state_;  ///< Reference to the blockchain state.
-  DumpManager &dumpManager_; ///< Reference to the dumpManager.
   rdPoSWorker worker_;  ///< Worker object.
   std::set<Validator> validators_;  ///< Ordered list of rdPoS validators.
   std::vector<Validator> randomList_; ///< Shuffled version of the validator list, used at block creation/signing.

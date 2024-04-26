@@ -104,31 +104,7 @@ ERC20::ERC20(
   this->allowed_.enableRegister();
 }
 
-ERC20::~ERC20() {
-  DBBatch batchOperations;
-  this->db_.put(std::string("name_"), name_.get(), this->getDBPrefix());
-  this->db_.put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
-  this->db_.put(std::string("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
-  this->db_.put(std::string("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
-
-  for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
-    const auto& key = it->first.get();
-    Bytes value = Utils::uintToBytes(it->second);
-    batchOperations.push_back(key, value, this->getNewPrefix("balances_"));
-  }
-
-  // SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>>
-  for (auto it = allowed_.cbegin(); it != allowed_.cend(); ++it) {
-    for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
-      // Key = Address + Address
-      // value = uint256_t
-      auto key = it->first.asBytes();
-      Utils::appendBytes(key, it2->first.asBytes());
-      batchOperations.push_back(key, Utils::uint256ToBytes(it2->second), this->getNewPrefix("allowed_"));
-    }
-  }
-  this->db_.putBatch(batchOperations);
-}
+ERC20::~ERC20() { }
 
 void ERC20::registerContractFunctions() {
   registerContract();
@@ -199,5 +175,34 @@ bool ERC20::transferFrom(
   this->balances_[from] -= value;
   this->balances_[to] += value;
   return true;
+}
+
+DBBatch ERC20::dump() const
+{
+  DBBatch dbBatch = BaseContract::dump();
+
+  // Name, Symbol, Decimals, Total Supply
+  dbBatch.push_back(Utils::stringToBytes("name_"), Utils::stringToBytes(name_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("symbol_"), Utils::stringToBytes(symbol_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
+  // Balances
+  for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
+    const auto& key = it->first.get();
+    Bytes value = Utils::uintToBytes(it->second);
+    dbBatch.push_back(key, value, this->getNewPrefix("balances_"));
+  }
+  // SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>>
+  for (auto i = allowed_.cbegin(); i != allowed_.cend(); ++i) {
+    for (auto j = i->second.cbegin(); j != i->second.cend(); ++j) {
+      // Key = Address + Address, Value = uint256_t
+      auto key = i->first.asBytes();
+      Utils::appendBytes(key, j->first.asBytes());
+      dbBatch.push_back(key,
+                        Utils::uint256ToBytes(j->second),
+                        this->getNewPrefix("allowed_"));
+    }
+  }
+  return dbBatch;
 }
 

@@ -47,7 +47,7 @@ State::State(
 
   // Insert the contract manager into the contracts_ map.
   this->contracts_[ProtocolContractAddresses.at("ContractManager")] = std::make_unique<ContractManager>(
-    db, this->contracts_, this->options_
+    db, this->contracts_, this->dumpManager_ ,this->options_
   );
   ContractGlobals::coinbase_ = Secp256k1::toAddress(latestBlock->getValidatorPubKey());
   ContractGlobals::blockHash_ = latestBlock->getHash();
@@ -79,6 +79,7 @@ State::State(
       }
     }
   }
+  this->dumpManager_.pushBack(this);
 }
 
 State::~State() {
@@ -177,6 +178,7 @@ void State::processTransaction(const TxBlock& tx,
     txContext.blob_hashes_count = 0;
     ContractHost host(
       this->vm_,
+      this->dumpManager_,
       this->eventManager_,
       this->storage_,
       txContext,
@@ -411,6 +413,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.blob_hashes_count = 0;
     ContractHost host(
       this->vm_,
+      this->dumpManager_,
       this->eventManager_,
       this->storage_,
       txContext,
@@ -442,6 +445,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   int64_t leftOverGas = callInfo.gas;
   ContractHost(
     this->vm_,
+    this->dumpManager_,
     this->eventManager_,
     this->storage_,
     evmc_tx_context(),

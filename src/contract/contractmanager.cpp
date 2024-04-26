@@ -16,6 +16,7 @@ See the LICENSE.txt file in the project root for more information.
 
 ContractManager::ContractManager(DB& db,
                                  std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                                 DumpManager& manager,
                                  const Options& options)
 : BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), options.getChainID(), db),
   contracts_(contracts)
@@ -30,6 +31,7 @@ ContractManager::ContractManager(DB& db,
       throw DynamicException("Unknown contract: " + Utils::bytesToString(contract.value));
     }
   }
+  manager.pushBack(this);
 }
 
 ContractManager::~ContractManager() {
@@ -42,6 +44,18 @@ ContractManager::~ContractManager() {
     );
   }
   this->db_.putBatch(contractsBatch);
+}
+
+DBBatch ContractManager::dump() const {
+  DBBatch contractsBatch;
+  for (const auto& [address, contract] : this->contracts_) {
+    contractsBatch.push_back(
+      Bytes(address.asBytes()),
+      Utils::stringToBytes(contract->getContractName()),
+      DBPrefix::contractManager
+    );
+  }
+  return contractsBatch;
 }
 
 Bytes ContractManager::getDeployedContracts() const {

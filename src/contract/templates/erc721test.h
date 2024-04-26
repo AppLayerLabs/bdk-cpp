@@ -104,6 +104,9 @@ class ERC721Test : public ERC721 {
         std::make_tuple("totalSupply", &ERC721Test::totalSupply, FunctionTypes::View, std::vector<std::string>{""})
       );
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 

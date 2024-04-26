@@ -114,6 +114,7 @@ class ContractManager : public BaseContract {
      */
     ContractManager(DB& db,
                     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                    DumpManager& manager,
                     const Options& options);
 
     ~ContractManager() override; ///< Destructor. Automatically saves contracts to the database before wiping them.
@@ -136,6 +137,9 @@ class ContractManager : public BaseContract {
      * @throw DynamicException if the call is not valid.
      */
     Bytes ethCallView(const evmc_message& data, ContractHost* host) const override;
+
+    /// Dump override
+    DBBatch dump() const override;
 };
 
 #endif // CONTRACTMANAGER_H

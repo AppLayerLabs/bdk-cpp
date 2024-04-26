@@ -37,10 +37,14 @@ ERC721Test::ERC721Test(
   this->totalSupply_.enableRegister();
 }
 
-ERC721Test::~ERC721Test() {
-  this->db_.put(std::string("tokenIdCounter_"), Utils::uint64ToBytes(this->tokenIdCounter_.get()), this->getDBPrefix());
-  this->db_.put(std::string("maxTokens_"), Utils::uint64ToBytes(this->maxTokens_.get()), this->getDBPrefix());
-  this->db_.put(std::string("totalSupply_"), Utils::uint64ToBytes(this->totalSupply_.get()), this->getDBPrefix());
+ERC721Test::~ERC721Test() {}
+
+DBBatch ERC721Test::dump() const {
+  DBBatch batch = BaseContract::dump();
+  batch.push_back(Utils::stringToBytes("tokenIdCounter_"), Utils::uint64ToBytes(this->tokenIdCounter_.get()), this->getDBPrefix());
+  batch.push_back(Utils::stringToBytes("maxTokens_"), Utils::uint64ToBytes(this->maxTokens_.get()), this->getDBPrefix());
+  batch.push_back(Utils::stringToBytes("totalSupply_"), Utils::uint64ToBytes(this->totalSupply_.get()), this->getDBPrefix());
+  return batch;
 }
 
 void ERC721Test::registerContractFunctions() {

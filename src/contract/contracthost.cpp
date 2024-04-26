@@ -34,6 +34,13 @@ ContractHost::~ContractHost() {
     for (auto&& event : this->stack_.getEvents()) {
       this->eventManager_.registerEvent(std::move(event));
     }
+
+    for (const auto& contractPair : this->stack_.getContracts()) {
+      const auto& [address, contract] = contractPair;
+      if (contract != nullptr) {
+        this->manager_.pushBack(dynamic_cast<Dumpable*>(contract));
+      }
+    }
   } else {
     // When reverting, we must revert all the changes, that means:
     // - Revert all the SafeBase variables
@@ -46,7 +53,8 @@ ContractHost::~ContractHost() {
       var.get().revert();
     }
     // Then lets clear off newly created contracts
-    for (const auto& address : this->stack_.getContracts()) {
+    for (const auto& contractPair : this->stack_.getContracts()) {
+      const auto& address = std::get<0>(contractPair);
       this->accounts_.erase(address);
       this->contracts_.erase(address);
     }
@@ -500,7 +508,7 @@ uint64_t ContractHost::getNonce(const Address& nonce) const {
   return it->second->nonce;
 }
 
-void ContractHost::registerNewCPPContract(const Address& address) {
+void ContractHost::registerNewCPPContract(const Address& address, BaseContract* contract) {
   Account contractAcc;
   contractAcc.contractType = ContractType::CPP;
   contractAcc.nonce = 1;
@@ -508,7 +516,7 @@ void ContractHost::registerNewCPPContract(const Address& address) {
   if (!emplace.second) {
     throw DynamicException("ContractHost registerNewCPPContract: account on address already exists");
   }
-  this->stack_.registerContract(address);
+  this->stack_.registerContract(address, contract);
 }
 
 void ContractHost::registerNewEVMContract(const Address& address, const uint8_t* code, size_t codeSize) {
@@ -521,7 +529,7 @@ void ContractHost::registerNewEVMContract(const Address& address, const uint8_t*
   if (!emplace.second) {
     throw DynamicException("ContractHost registerNewCPPContract: account on address already exists");
   }
-  this->stack_.registerContract(address);
+  this->stack_.registerContract(address, nullptr);
 }
 
 

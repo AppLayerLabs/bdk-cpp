@@ -57,24 +57,7 @@ DEXV2Factory::DEXV2Factory(
   this->getPair_.enableRegister();
 }
 
-DEXV2Factory::~DEXV2Factory() {
-  DBBatch batchOperations;
-  batchOperations.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
-  batchOperations.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
-  uint32_t index = 0;
-  for (const auto& address : this->allPairs_.get()) batchOperations.push_back(
-    Utils::uint32ToBytes(index), address.view(), this->getNewPrefix("allPairs_")
-  );
-  for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
-    for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
-      const auto& key = tokenA->first.get();
-      Bytes value = tokenB->first.asBytes();
-      Utils::appendBytes(value, tokenB->second.asBytes());
-      batchOperations.push_back(key, value, this->getNewPrefix("getPair_"));
-    }
-  }
-  this->db_.putBatch(batchOperations);
-}
+DEXV2Factory::~DEXV2Factory() {};
 
 void DEXV2Factory::registerContractFunctions() {
   registerContract();
@@ -129,3 +112,26 @@ void DEXV2Factory::setFeeTo(const Address& feeTo) { this->feeTo_ = feeTo; }
 
 void DEXV2Factory::setFeeToSetter(const Address& feeToSetter) { this->feeToSetter_ = feeToSetter; }
 
+DBBatch DEXV2Factory::dump() const
+{
+  DBBatch dbBatch = BaseContract::dump();
+  uint32_t i = 0;
+
+  dbBatch.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
+
+  for (const auto& address : this->allPairs_.get()) {
+    dbBatch.push_back(Utils::uint32ToBytes(i++),
+                      address.view(),
+                      this->getNewPrefix("allPairs_"));
+  }
+  for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
+    for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
+      const auto& key = tokenA->first.get();
+      Bytes value = tokenB->first.asBytes();
+      Utils::appendBytes(value, tokenB->second.asBytes());
+      dbBatch.push_back(key, value, this->getNewPrefix("getPair_"));
+    }
+  }
+  return dbBatch;
+}

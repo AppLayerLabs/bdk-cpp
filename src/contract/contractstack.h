@@ -18,7 +18,7 @@ class ContractStack {
     std::unordered_map<Address, uint64_t, SafeHash> nonce_;
     std::unordered_map<StorageKey, Hash, SafeHash> storage_;
     std::vector<Event> events_;
-    std::vector<Address> contracts_; // Contracts that have been created during the execution of the call, we need to revert them if the call reverts.
+    std::vector<std::pair<Address,BaseContract*>> contracts_; // Contracts that have been created during the execution of the call, we need to revert them if the call reverts.
     std::vector<std::reference_wrapper<SafeBase>> usedVars_;
 
   public:
@@ -42,8 +42,8 @@ class ContractStack {
       this->events_.emplace_back(std::move(event));
     }
 
-    inline void registerContract(const Address& addr) {
-      this->contracts_.push_back(addr);
+    inline void registerContract(const Address& addr, BaseContract* contract) {
+      this->contracts_.emplace_back(addr, contract);
     }
 
     inline void registerVariableUse(SafeBase& var) {
@@ -56,7 +56,7 @@ class ContractStack {
     inline const std::unordered_map<Address, uint64_t, SafeHash>& getNonce() const { return this->nonce_; }
     inline const std::unordered_map<StorageKey, Hash, SafeHash>& getStorage() const { return this->storage_; }
     inline std::vector<Event>& getEvents() { return this->events_; }
-    inline const std::vector<Address>& getContracts() const { return this->contracts_; }
+    inline const std::vector<std::pair<Address,BaseContract*>>& getContracts() const { return this->contracts_; }
     inline const std::vector<std::reference_wrapper<SafeBase>>& getUsedVars() const { return this->usedVars_; }
 };
 

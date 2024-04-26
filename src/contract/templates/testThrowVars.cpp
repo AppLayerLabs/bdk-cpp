@@ -33,6 +33,11 @@ TestThrowVars::~TestThrowVars() {
   // Do nothing
 }
 
+DBBatch TestThrowVars::dump() const
+{
+  return BaseContract::dump();
+}
+
 void TestThrowVars::registerContractFunctions() {
   registerContract();
 }

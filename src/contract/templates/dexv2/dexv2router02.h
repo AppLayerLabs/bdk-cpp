@@ -350,6 +350,9 @@ class DEXV2Router02 : public DynamicContract {
         )
       );
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // DEXV2ROUTER_H

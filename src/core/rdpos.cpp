@@ -20,7 +20,6 @@ rdPoS::rdPoS(DB& db,
     storage_(storage),
     p2p_(p2p),
     state_(state),
-    dumpManager_(dumpManager),
     worker_(*this),
     validatorKey_(options.getValidatorPrivKey()),
     isValidator_((this->validatorKey_) ? true : false),
@@ -55,21 +54,11 @@ rdPoS::rdPoS(DB& db,
   this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());
   randomGen_.shuffle(randomList_);
   // Register itself at dump management
-  dumpManager_.pushBack(this);
+  dumpManager.pushBack(this);
 }
 
 rdPoS::~rdPoS() {
   this->stoprdPoSWorker();
-  std::unique_lock lock(this->mutex_);
-  DBBatch validatorsBatch;
-  Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Descontructing rdPoS, saving to DB.");
-  // Save rdPoS to DB.
-  uint64_t index = 0;
-  for (const auto &validator : this->validators_) {
-    validatorsBatch.push_back(Utils::uint64ToBytes(index), validator.get(), DBPrefix::rdPoS);
-    index++;
-  }
-  this->db_.putBatch(validatorsBatch);
 }
 
 bool rdPoS::validateBlock(const FinalizedBlock& block) const {

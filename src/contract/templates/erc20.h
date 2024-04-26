@@ -199,6 +199,9 @@ class ERC20 : public DynamicContract {
         std::make_tuple("transferFrom", &ERC20::transferFrom, FunctionTypes::NonPayable, std::vector<std::string>{"from", "to", "value"})
       );
     }
+
+  /// Dump method
+  DBBatch dump() const override;
 };
 
 #endif /// ERC20_H

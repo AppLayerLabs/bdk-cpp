@@ -85,6 +85,9 @@ class NativeWrapper : public ERC20 {
         std::make_tuple("withdraw", &NativeWrapper::withdraw, FunctionTypes::Payable, std::vector<std::string>{"value"})
       );
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // NATIVEWRAPPER_H

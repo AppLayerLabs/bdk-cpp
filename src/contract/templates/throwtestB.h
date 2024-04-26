@@ -62,6 +62,9 @@ class ThrowTestB : public DynamicContract {
         std::make_tuple("setNumB", &ThrowTestB::setNumB, FunctionTypes::NonPayable, std::vector<std::string>{"valB", "addC", "valC"})
       );
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif  // THROWTESTB_H
