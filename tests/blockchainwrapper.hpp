@@ -36,14 +36,15 @@ struct TestBlockchainWrapper {
    */
   explicit TestBlockchainWrapper(const Options& options_) :
     options(options_),
-    db(DumpManager::getBestStateDBPatch(options_)),
+    db(std::get<0>(DumpManager::getBestStateDBPath(options))),
     storage(options_),
-    state(db, storage, p2p, options),
+    state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
     http(state, storage, p2p, options) {};
 
   /// Destructor.
   ~TestBlockchainWrapper() {
+    state.dumpStopWorker();
     state.rdposStopWorker();
     p2p.stopDiscovery();
     p2p.stop();

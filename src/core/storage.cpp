@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "storage.h"
 
 Storage::Storage(const Options& options)
-  : db_(options.getRootPath() + "/database/"),
+  : db_(options.getRootPath() + "/blocksDb/"),
     options_(options)
 {
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading blockchain from DB");

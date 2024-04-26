@@ -150,13 +150,12 @@ class DB {
     explicit DB(const std::filesystem::path& path);
 
     /// Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
-    ~DB() { this->close(); }
+    ~DB() { this->close(); delete this->db_; this->db_ = nullptr; }
 
     /**
-     * Close the database (which is really just deleting its object from memory).
-     * @return `true` if the database is closed successfully, `false` otherwise.
+     * Close the database connection.
      */
-    inline bool close() { delete this->db_; this->db_ = nullptr; return (this->db_ == nullptr); }
+    inline bool close() const { this->db_->Close(); return true; }
 
     /**
      * Check if a key exists in the database.

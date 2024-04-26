@@ -10,38 +10,36 @@ See the LICENSE.txt file in the project root for more information.
 #include "../contract/contracthost.h"
 
 State::State(
-  DB& db,
+  const DB& db,
   Storage& storage,
   P2P::ManagerNormal& p2pManager,
+  const uint64_t& snapshotHeight,
   const Options& options
-) : vm_(evmc_create_evmone()), db_(db), storage_(storage), p2pManager_(p2pManager), options_(options),
-    dumpManager_(storage_, options_, this->stateMutex_),
-    dumpWorker_(storage_, dumpManager_),
+) : vm_(evmc_create_evmone()), storage_(storage), p2pManager_(p2pManager), options_(options),
+    dumpManager_(storage, options_, this->stateMutex_),
+    dumpWorker_(storage, dumpManager_),
     rdpos_ (db, dumpManager_, storage, p2pManager, options, *this),
-    eventManager_(db, options_) {
+    eventManager_(options_) {
   std::unique_lock lock(this->stateMutex_);
-  auto accountsFromDB = db_.getBatch(DBPrefix::nativeAccounts);
+  auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
+    if (snapshotHeight != 0) {
+      throw DynamicException("Snapshot height is higher than 0, but no accounts found in DB");
+    }
+
     {
-      DBBatch genesisBatch;
       for (const auto& [addr, balance] : options_.getGenesisBalances()) {
-        // Create a initial account with the balances from the genesis block
-        Account account;
-        account.balance = balance;
-        genesisBatch.push_back(addr.get(), account.serialize(), DBPrefix::nativeAccounts);
+        this->accounts_[addr]->balance = balance;
       }
       // Also append the ContractManager account
-      Account contractManagerAcc;
+      auto& contractManagerAcc = *this->accounts_[ProtocolContractAddresses.at("ContractManager")];
       contractManagerAcc.nonce = 1;
       contractManagerAcc.contractType = ContractType::CPP;
-      genesisBatch.push_back(ProtocolContractAddresses.at("ContractManager").get(), contractManagerAcc.serialize(), DBPrefix::nativeAccounts);
-      this->db_.putBatch(genesisBatch);
     }
-    accountsFromDB = db_.getBatch(DBPrefix::nativeAccounts);
-  }
-
-  for (const auto& dbEntry : accountsFromDB) {
-    this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
+  } else {
+    for (const auto& dbEntry : accountsFromDB) {
+      this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
+    }
   }
   auto latestBlock = this->storage_.latest();
 
@@ -80,6 +78,34 @@ State::State(
     }
   }
   this->dumpManager_.pushBack(this);
+
+  if (snapshotHeight > this->storage_.latest()->getNHeight()) {
+    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Snapshot height is higher than latest block, we can't load State! Crashing the program");
+    throw DynamicException("Snapshot height is higher than latest block, we can't load State!");
+  }
+
+  // For each nHeight from snapshotHeight + 1 to latestBlock->getNHeight()
+  // We need to process the block and update the state
+  // We can't call processNextBlock here, as it will place the block again on the storage
+  for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
+    auto block = this->storage_.getBlock(nHeight);
+    Logger::logToDebug(LogType::INFO, Log::state, __func__, "Processing block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
+    // Update contract globals based on (now) latest block
+    const Hash blockHash = block->getHash();
+    ContractGlobals::coinbase_ = Secp256k1::toAddress(block->getValidatorPubKey());
+    ContractGlobals::blockHash_ = blockHash;
+    ContractGlobals::blockHeight_ = block->getNHeight();
+    ContractGlobals::blockTimestamp_ = block->getTimestamp();
+
+    // Process transactions of the block within the current state
+    uint64_t txIndex = 0;
+    for (auto const& tx : block->getTxs()) {
+      this->processTransaction(tx, blockHash, txIndex);
+      txIndex++;
+    }
+    // Process rdPoS State
+    this->rdpos_.processBlock(*block);
+  }
 }
 
 State::~State() {
@@ -97,7 +123,6 @@ DBBatch State::dump() const {
   // Each key == Address
   // Each Value == Account.serialize()
   DBBatch accountsBatch;
-  std::unique_lock lock(this->stateMutex_);
   for (const auto& [address, account] : this->accounts_) {
     accountsBatch.push_back(address.get(), account->serialize(), DBPrefix::nativeAccounts);
   }

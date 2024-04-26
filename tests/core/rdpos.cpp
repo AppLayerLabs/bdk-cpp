@@ -37,13 +37,12 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
                                  const uint64_t& serverPort,
                                  bool clearDb,
                                  const std::string& folderName) {
-  std::string dbName = folderName + "/db";
   if (clearDb) {
-    if (std::filesystem::exists(dbName)) {
-      std::filesystem::remove_all(dbName);
+    if (std::filesystem::exists(folderName)) {
+      std::filesystem::remove_all(folderName);
     }
-    if(std::filesystem::exists(dbName + "/options.json")) {
-      std::filesystem::remove(dbName + "/options.json");
+    if(std::filesystem::exists(folderName + "/options.json")) {
+      std::filesystem::remove(folderName + "/options.json");
     }
   }
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;

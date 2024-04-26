@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "db.h"
 
 DB::DB(const std::filesystem::path& path) {
-  std::cout << "Opening DB at path: " << path << std::endl;
   this->opts_.create_if_missing = true;
   if (!std::filesystem::exists(path)) { // Ensure the database path can actually be found
     std::filesystem::create_directories(path);

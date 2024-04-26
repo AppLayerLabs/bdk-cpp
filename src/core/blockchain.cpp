@@ -9,13 +9,14 @@ See the LICENSE.txt file in the project root for more information.
 
 Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
-  db_(blockchainPath + "/database"),
-  storage_(db_, options_),
-  state_(db_, storage_, p2p_, options_),
+  db_(std::get<0>(DumpManager::getBestStateDBPath(this->options_))),
+  storage_(options_),
+  state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(this->options_)), options_),
   p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
-  syncer_(*this)
-{}
+  syncer_(*this) {
+  db_.close();
+}
 
 void Blockchain::start() { p2p_.start(); http_.start(); syncer_.start(); }
 

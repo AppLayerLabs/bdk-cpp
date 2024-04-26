@@ -47,26 +47,40 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
 namespace TDumpManager {
   std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("DumpManager Class", "[dumpmanager]") {
-    SECTION("DumpManager Simple Test", "[dumpmanager]") {
+    SECTION("DumpManager Test With DumpWorker") {
+      Hash bestBlockHash = Hash();
+      {
+        auto blockchainWrapper = initialize(validatorPrivKeysState,
+                               validatorPrivKeysState[0],
+                               8080,
+                               true,
+                               testDumpPath + "/dumpManagerSimpleTests");
+        // start the dump worker
+        blockchainWrapper.state.dumpStartWorker();
+        // create 150 blocks
+        for (uint64_t i = 0; i < 150; ++i) {
+          std::cout << "Creating block: " << i << std::endl;
+          auto block = createValidBlock(validatorPrivKeysState,
+                                        blockchainWrapper.state,
+                                        blockchainWrapper.storage);
+          REQUIRE(blockchainWrapper.state.validateNextBlock(block));
+          blockchainWrapper.state.processNextBlock(std::move(block));
+        }
+        // stop the dump worker
+        blockchainWrapper.state.dumpStopWorker();
+        // Verify if the database was created
+        REQUIRE(std::filesystem::exists(testDumpPath + "/dumpManagerSimpleTests"  + "/stateDb"));
+        bestBlockHash = blockchainWrapper.storage.latest()->getHash();
+      }
       auto blockchainWrapper = initialize(validatorPrivKeysState,
                              validatorPrivKeysState[0],
                              8080,
-                             true,
+                             false,
                              testDumpPath + "/dumpManagerSimpleTests");
-      // start the dump worker
-      blockchainWrapper.state.dumpStartWorker();
-      // create 150 blocks
-      for (uint64_t i = 0; i < 150; ++i) {
-        auto block = createValidBlock(validatorPrivKeysState,
-                                      blockchainWrapper.state,
-                                      blockchainWrapper.storage);
-        REQUIRE(blockchainWrapper.state.validateNextBlock(block));
-        blockchainWrapper.state.processNextBlock(std::move(block));
-      }
-      // stop the dump worker
-      blockchainWrapper.state.dumpStopWorker();
-      // Verify if the database was created
-      REQUIRE(std::filesystem::exists(testDumpPath + "/dumpManagerSimpleTests"  + "/stateDb"));
+
+
+      REQUIRE(bestBlockHash == blockchainWrapper.storage.latest()->getHash());
+
     }
   }
 }

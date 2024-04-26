@@ -180,7 +180,7 @@ class EventManager {
   private:
     // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
     EventContainer events_;           ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
-    DB& db_;                          ///< Reference to the database.
+    DB db_;                           ///< EventManager Database.
     const Options& options_;          ///< Reference to the Options singleton.
 
   public:
@@ -189,7 +189,7 @@ class EventManager {
      * @param db The database to use.
      * @param options The Options singleton to use (for event caps).
      */
-    EventManager(DB& db, const Options& options);
+    EventManager(const Options& options);
 
     ~EventManager();  ///< Destructor. Automatically saves events to the database.
 

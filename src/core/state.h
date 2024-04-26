@@ -30,7 +30,6 @@ class State : Dumpable {
     const Options& options_;  ///< Reference to the options singleton.
     DumpManager dumpManager_; ///< The Dump Worker object
     DumpWorker dumpWorker_; ///< Dump Manager object
-    DB& db_;  ///< Reference to the database.
     Storage& storage_;  ///< Reference to the blockchain's storage.
     P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
     rdPoS rdpos_; ///< rdPoS object (consensus).
@@ -75,7 +74,7 @@ class State : Dumpable {
      * @param options Pointer to the options singleton.
      * @throw DynamicException on any database size mismatch.
      */
-    State(DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const Options& options);
+    State(const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const uint64_t& snapshotHeight, const Options& options);
 
     ~State(); ///< Destructor.
 

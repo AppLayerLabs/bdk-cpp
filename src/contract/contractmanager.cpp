@@ -39,6 +39,8 @@ ContractManager::~ContractManager() {}
 DBBatch ContractManager::dump() const {
   DBBatch contractsBatch;
   for (const auto& [address, contract] : this->contracts_) {
+    if (typeid(*contract) == typeid(ContractManager)) continue;
+    if (typeid(*contract) == typeid(rdPoS)) continue;
     contractsBatch.push_back(
       Bytes(address.asBytes()),
       Utils::stringToBytes(contract->getContractName()),
