@@ -16,7 +16,7 @@ State::State(
   const Options& options
 ) : vm_(evmc_create_evmone()), db_(db), storage_(storage), p2pManager_(p2pManager), options_(options),
     dumpManager_(storage_, options_, this->stateMutex_),
-    dumpWorker_(options_, storage_, dumpManager_),
+    dumpWorker_(storage_, dumpManager_),
     rdpos_ (db, dumpManager_, storage, p2pManager, options, *this),
     eventManager_(db, options_) {
   std::unique_lock lock(this->stateMutex_);

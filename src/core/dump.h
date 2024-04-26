@@ -57,15 +57,24 @@ public:
   /**
    * Call dump functions contained in
    * the dumpable_ vector.
+   * @returns A vector of DBBatch objects and the nHeight of the last block.
    */
-  void dumpAll();
+  std::pair<std::vector<DBBatch>, uint64_t> dumpState() const;
+
+  /**
+   * Dumps the state to DB
+   */
+  void dumpToDB() const;
+
+  /**
+   * Getter for the size of this->dumpables_
+   */
+  size_t size() const { return this->dumpables_.size(); }
 };
 
 class DumpWorker {
 private:
-  /// Reference to the Options object
-  const Options& options_;
-  /// Reference to the storage object
+  /// Reference to the Storage object
   const Storage& storage_;
   /// Reference to the DumpManager object
   DumpManager& dumpManager_;
@@ -86,7 +95,7 @@ public:
    * Constructor.
    * Automatically starts the worker thread.
    */
-  DumpWorker(const Options& options, const Storage& storage, DumpManager& dumpManager);
+  DumpWorker(const Storage& storage, DumpManager& dumpManager);
 
   /**
    * Destructor.

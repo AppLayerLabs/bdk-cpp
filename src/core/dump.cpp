@@ -24,12 +24,15 @@ void DumpManager::pushBack(Dumpable* dumpable)
   dumpables_.push_back(dumpable);
 }
 
-void DumpManager::dumpAll()
-{
-  std::vector<DBBatch> batches;
+std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
+  std::pair<std::vector<DBBatch>,uint64_t> ret;
+  auto& [batches, blockHeight] = ret;
   {
     // state mutex lock
     std::unique_lock lock(stateMutex_);
+    // We can only safely get the nHeight that we are dumping after **uniquely locking** the state (making sure that no new blocks
+    // or state changes are happening)
+    blockHeight = storage_.latest()->getNHeight();
     // Emplace DBBatch operations
     Logger::logToDebug(LogType::INFO,
                        Log::dump,
@@ -40,23 +43,22 @@ void DumpManager::dumpAll()
       batches.emplace_back(dumpable->dump());
     }
   }
-  // Logs
-  Logger::logToDebug(LogType::INFO,
-                     Log::dump,
-                     __func__,
-                     "Write to state database.");
-  // Write to the database
-  std::string dbName = options_.getRootPath() + "/stateDb/" + std::to_string(this->storage_.latest()->getNHeight());
+  return ret;
+}
+
+void DumpManager::dumpToDB() const {
+  auto toDump = this->dumpState();
+  const auto& [batches, blockHeight] = toDump;
+  std::string dbName = options_.getRootPath() + "/stateDb/" + std::to_string(blockHeight);
   DB stateDb(dbName);
-  for (const auto& batch: batches) {
+  for (const auto& batch : batches) {
     stateDb.putBatch(batch);
   }
 }
 
-DumpWorker::DumpWorker(const Options& options, const Storage& storage,
+DumpWorker::DumpWorker(const Storage& storage,
                        DumpManager& dumpManager)
-  : options_(options),
-    storage_(storage),
+  : storage_(storage),
     dumpManager_(dumpManager)
 {
   Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpWorker Started.");
@@ -69,15 +71,14 @@ DumpWorker::~DumpWorker()
 
 bool DumpWorker::workerLoop()
 {
-  uint64_t latestBlock = 0;
+  uint64_t latestBlock = this->storage_.currentChainSize();
   while (!this->stopWorker_) {
     if (latestBlock + 100 < this->storage_.currentChainSize()) {
       Logger::logToDebug(LogType::INFO,
                          Log::dump,
                          __func__,
                          "Current size >= 100");
-      latestBlock = this->storage_.currentChainSize();
-      dumpManager_.dumpAll();
+      dumpManager_.dumpToDB();
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
