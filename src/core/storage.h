@@ -29,7 +29,7 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
 class Storage {
   // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.
 private:
-  DB& db_;  ///< Reference to the database that contains the blockchain's entire history.
+  DB db_;  ///< Database object that contains all the blockchain blocks
   const Options& options_;  ///< Reference to the options singleton.
   /**
    * Recent blockchain history, up to the 1000 most recent blocks or 1M transactions, whichever comes first.
@@ -127,7 +127,7 @@ public:
    * @param db Reference to the database.
    * @param options Reference to the options singleton.
    */
-  Storage(DB& db, const Options& options);
+  Storage(const Options& options);
   ~Storage(); ///< Destructor. Automatically saves the chain to the database.
   void pushBack(FinalizedBlock block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
   void pushFront(FinalizedBlock block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.

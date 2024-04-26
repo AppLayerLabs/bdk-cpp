@@ -76,8 +76,8 @@ class SDKTestSuite {
      */
     explicit SDKTestSuite(const Options& options) :
       options_(options),
-      db_(options_.getRootPath() + "/db"),
-      storage_(db_, options_),
+      db_(DumpManager::getBestStateDBPatch(options_)),
+      storage_(options_),
       state_(db_, storage_, p2p_, options_),
       p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)
