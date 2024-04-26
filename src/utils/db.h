@@ -165,7 +165,7 @@ class DB {
      * @param pfx (optional) The prefix to search for. Defaults to none.
      * @return `true` if the key exists, `false` otherwise.
      */
-    template <typename BytesContainer> bool has(const BytesContainer& key, const Bytes& pfx = {}) {
+    template <typename BytesContainer> bool has(const BytesContainer& key, const Bytes& pfx = {}) const {
       std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
@@ -212,7 +212,7 @@ class DB {
      * @return `true` if the insert is successful, `false` otherwise.
      */
     template <typename BytesContainerKey, typename BytesContainerValue>
-    bool put(const BytesContainerKey& key, const BytesContainerValue& value, const Bytes& pfx = {}) const {
+    bool put(const BytesContainerKey& key, const BytesContainerValue& value, const Bytes& pfx = {}) {
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
@@ -233,7 +233,7 @@ class DB {
      * @param pfx (optional) The prefix to delete the key from. Defaults to none.
      * @return `true` if the deletion is successful, `false` otherwise.
      */
-    template <typename BytesContainer> bool del(const BytesContainer& key, const Bytes& pfx = {}) const {
+    template <typename BytesContainer> bool del(const BytesContainer& key, const Bytes& pfx = {}) {
       auto keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
@@ -258,7 +258,7 @@ class DB {
      * @param pfx (optional) The prefix to delete the key from. Defaults to none.
      * @return `true` if the deletion is successful, `false` otherwise.
      */
-    bool del(const char* key, const Bytes& pfx = {}) const { return this->del(std::string(key), pfx); }
+    bool del(const char* key, const Bytes& pfx = {}) { return this->del(std::string(key), pfx); }
 
     /**
      * Do several put and/or delete operations in one go.
@@ -266,7 +266,7 @@ class DB {
      * @param batch The batch object with the put/del operations to be done.
      * @return `true` if all operations were successful, `false` otherwise.
      */
-    bool putBatch(const DBBatch& batch) const;
+    bool putBatch(const DBBatch& batch);
 
     /**
      * Get all entries from a given prefix.
@@ -288,7 +288,7 @@ class DB {
      * @param end (optional) The last key to end searching at. Defaults to none.
      * @return A list of found keys, WITHOUT their prefixes.
      */
-    std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {});
+    std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {}) const;
 
     /**
      * Create a Bytes container from a string.
