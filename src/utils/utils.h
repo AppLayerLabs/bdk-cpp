@@ -250,21 +250,13 @@ private:
   std::unique_ptr<T> ptr;
 
 public:
-  // Constructor that initializes the pointer with a new object if none is provided.
-  NonNullUniquePtr() : ptr(std::make_unique<T>()) {}
-
   // Constructor that calls T<Ts...> with the provided arguments.
   template<typename... Ts>
-  NonNullUniquePtr(Ts&&... args) : ptr(std::make_unique<T>(std::forward<Ts>(args)...)) {}
+  explicit NonNullUniquePtr(Ts&&... args) : ptr(std::make_unique<T>(std::forward<Ts>(args)...)) {}
 
-  // Move constructor
-  NonNullUniquePtr(NonNullUniquePtr&& other) noexcept : ptr(std::move(other.ptr)) {}
-
-  // Move assignment operator
-  NonNullUniquePtr& operator=(NonNullUniquePtr&& other) noexcept {
-    ptr = std::move(other.ptr);
-    return *this;
-  }
+  // Move construction and assignment allowed
+  NonNullUniquePtr(NonNullUniquePtr&& other) = default;
+  NonNullUniquePtr& operator=(NonNullUniquePtr&&) = default;
 
   // Deleted copy constructor and copy assignment operator to prevent copying
   NonNullUniquePtr(const NonNullUniquePtr&) = delete;

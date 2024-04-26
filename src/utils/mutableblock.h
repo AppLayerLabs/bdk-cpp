@@ -92,7 +92,7 @@ class MutableBlock {
     * @param txMerkleRoot The merkle root of the block transactions.
     * @return The serialized mutable header.
     */
-    Bytes serializeMutableHeader(Hash validatorMerkleRoot, Hash txMerkleRoot) const;
+    Bytes serializeMutableHeader(const Hash& validatorMerkleRoot, const Hash& txMerkleRoot) const;
 
     /**
      * Finalize the block, preventing any further modifications.

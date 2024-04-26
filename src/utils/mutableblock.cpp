@@ -150,7 +150,7 @@ bool MutableBlock::appendTxValidator(const TxValidator& tx) {
   return true;
 }
 
-Bytes MutableBlock::serializeMutableHeader(Hash validatorMerkleRoot, Hash txMerkleRoot) const {
+Bytes MutableBlock::serializeMutableHeader(const Hash& validatorMerkleRoot, const Hash& txMerkleRoot) const {
   Bytes ret;
   ret.reserve(144);
   ret.insert(ret.end(), this->prevBlockHash_.cbegin(), this->prevBlockHash_.cend());

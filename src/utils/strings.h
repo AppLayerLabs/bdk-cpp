@@ -156,7 +156,6 @@ template <unsigned N> class FixedBytes {
 class Hash : public FixedBytes<32> {
   public:
     using FixedBytes<32>::FixedBytes;
-    using FixedBytes<32>::operator==;
     using FixedBytes<32>::operator=;
     using FixedBytes<32>::operator>=;
     using FixedBytes<32>::operator<=;
@@ -207,7 +206,6 @@ class Signature : public FixedBytes<65> {
 /// Abstraction for a single 20-byte address (e.g. "1234567890abcdef..."). Inherits `FixedBytes<20>`.
 class Address : public FixedBytes<20> {
   public:
-    using FixedBytes<20>::operator==;
     using FixedBytes<20>::operator<;
     using FixedBytes<20>::operator<=;
     using FixedBytes<20>::operator>;
@@ -289,7 +287,6 @@ class Address : public FixedBytes<20> {
 /// Abstraction of a EVM Storage key (20-bytes address + 32 bytes slot key). Inherits `FixedBytes<52>`.
 class StorageKey : public FixedBytes<52> {
   public:
-    using FixedBytes<52>::operator==;
     using FixedBytes<52>::operator<;
     using FixedBytes<52>::operator<=;
     using FixedBytes<52>::operator>;

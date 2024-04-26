@@ -1550,7 +1550,7 @@ namespace TState {
             blockchainWrapper1.state.processNextBlock(std::move(finalized));
             REQUIRE(blockchainWrapper1.storage.latest()->getHash() == latestBlockHash);
             // Broadcast the Block!
-            blockchainWrapper1.p2p.broadcastBlock(blockchainWrapper1.storage.latest());
+            blockchainWrapper1.p2p.broadcastBlock(*blockchainWrapper1.storage.latest());
 
             auto broadcastBlockFuture = std::async(std::launch::async, [&]() {
               while (blockchainWrapper2.storage.latest()->getHash() != latestBlockHash ||
@@ -1944,7 +1944,7 @@ namespace TState {
             blockchainWrapper1.state.processNextBlock(std::move(finalized));
             REQUIRE(blockchainWrapper1.storage.latest()->getHash() == latestBlockHash);
             // Broadcast the Block!
-            blockchainWrapper1.p2p.broadcastBlock(blockchainWrapper1.storage.latest());
+            blockchainWrapper1.p2p.broadcastBlock(*blockchainWrapper1.storage.latest());
 
             auto broadcastBlockFuture = std::async(std::launch::async, [&]() {
               while (blockchainWrapper2.storage.latest()->getHash() != latestBlockHash ||

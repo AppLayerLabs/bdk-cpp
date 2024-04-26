@@ -72,7 +72,7 @@ private:
    * @param block The block to add.
    * @throw DynamicException on incorrect previous hash or height.
    */
-  void pushBackInternal(FinalizedBlock&& block);
+  void pushBackInternal(FinalizedBlock block);
 
   /**
    * Add a block to the start of the chain.
@@ -80,7 +80,7 @@ private:
    * @param block The block to add.
    * @throw DynamicException on incorrect previous hash or height.
    */
-  void pushFrontInternal(FinalizedBlock&& block);
+  void pushFrontInternal(FinalizedBlock block);
 
   /**
    * Initialize the blockchain the first time the blockchain binary is booted. Called by the constructor.
@@ -129,8 +129,8 @@ public:
    */
   Storage(DB& db, const Options& options);
   ~Storage(); ///< Destructor. Automatically saves the chain to the database.
-  void pushBack(FinalizedBlock&& block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
-  void pushFront(FinalizedBlock&& block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
+  void pushBack(FinalizedBlock block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
+  void pushFront(FinalizedBlock block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
   void popBack(); ///< Remove a block from the end of the chain.
   void popFront();  ///< Remove a block from the start of the chain.
 

@@ -59,23 +59,23 @@ class FinalizedBlock {
      * @param hash Cached hash of the block.
      */
     FinalizedBlock(
-        Signature&& validatorSig,
-        UPubKey&& validatorPubKey,
-        Hash&& prevBlockHash,
-        Hash&& blockRandomness,
-        Hash&& validatorMerkleRoot,
-        Hash&& txMerkleRoot,
-        uint64_t timestamp, // Primitive types like uint64_t can be passed by value
+        const Signature& validatorSig,
+        const UPubKey& validatorPubKey,
+        const Hash& prevBlockHash,
+        const Hash& blockRandomness,
+        const Hash& validatorMerkleRoot,
+        const Hash& txMerkleRoot,
+        uint64_t timestamp, // Primitive types like uint64_t can (and should) be passed by value
         uint64_t nHeight, // Same for nHeight
-        std::vector<TxValidator>&& txValidators,
-        std::vector<TxBlock>&& txs,
-        Hash&& hash,
+        std::vector<TxValidator> txValidators,
+        std::vector<TxBlock> txs,
+        const Hash& hash,
         size_t size
-    ) : validatorSig_(std::move(validatorSig)), validatorPubKey_(std::move(validatorPubKey)),
-        prevBlockHash_(std::move(prevBlockHash)), blockRandomness_(std::move(blockRandomness)),
-        validatorMerkleRoot_(std::move(validatorMerkleRoot)), txMerkleRoot_(std::move(txMerkleRoot)),
+    ) : validatorSig_(validatorSig), validatorPubKey_(validatorPubKey),
+        prevBlockHash_(prevBlockHash), blockRandomness_(blockRandomness),
+        validatorMerkleRoot_(validatorMerkleRoot), txMerkleRoot_(txMerkleRoot),
         timestamp_(timestamp), nHeight_(nHeight),
-        txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash)), size_(size)
+        txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(hash), size_(size)
     {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block created");}
 
     /**

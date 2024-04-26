@@ -41,7 +41,7 @@ State::State(
   }
 
   for (const auto& dbEntry : accountsFromDB) {
-    this->accounts_.insert({Address(dbEntry.key), dbEntry.value});
+    this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
   }
   auto latestBlock = this->storage_.latest();
 

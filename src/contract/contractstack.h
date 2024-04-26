@@ -22,34 +22,23 @@ class ContractStack {
     std::vector<std::reference_wrapper<SafeBase>> usedVars_;
 
   public:
-    ContractStack() = default;
-    ~ContractStack() = default;
-
     inline void registerCode(const Address& addr, const Bytes& code)  {
-      if (!this->code_.contains(addr)) {
-        this->code_[addr] = code;
-      }
+      this->code_.try_emplace(addr, code);
     }
 
     inline void registerBalance(const Address& addr, const uint256_t& balance) {
-      if (!this->balance_.contains(addr)) {
-        this->balance_[addr] = balance;
-      }
+      this->balance_.try_emplace(addr, balance);
     }
 
     inline void registerNonce(const Address& addr, const uint64_t& nonce) {
-      if (!this->nonce_.contains(addr)) {
-        this->nonce_[addr] = nonce;
-      }
+      this->nonce_.try_emplace(addr, nonce);
     }
 
     inline void registerStorageChange(const StorageKey& key, const Hash& value) {
-      if (!this->storage_.contains(key)) {
-        this->storage_[key] = value;
-      }
+      this->storage_.try_emplace(key, value);
     }
 
-    inline void registerEvent(Event&& event) {
+    inline void registerEvent(Event event) {
       this->events_.emplace_back(std::move(event));
     }
 

@@ -163,7 +163,7 @@ StorageStatus Storage::txExistsInternal(const Hash& tx) const {
   }
 }
 
-void Storage::pushBackInternal(FinalizedBlock&& block) {
+void Storage::pushBackInternal(FinalizedBlock block) {
   // Push the new block and get a pointer to it
   if (!this->chain_.empty()) {
     if (this->chain_.back()->getHash() != block.getPrevBlockHash()) {
@@ -193,7 +193,7 @@ void Storage::pushBackInternal(FinalizedBlock&& block) {
   }
 }
 
-void Storage::pushFrontInternal(FinalizedBlock&& block) {
+void Storage::pushFrontInternal(FinalizedBlock block) {
   // Push the new block and get a pointer to it
   if (!this->chain_.empty()) {
     if (this->chain_.front()->getPrevBlockHash() != block.getHash()) {
@@ -223,12 +223,12 @@ void Storage::pushFrontInternal(FinalizedBlock&& block) {
   }
 }
 
-void Storage::pushBack(FinalizedBlock&& block) {
+void Storage::pushBack(FinalizedBlock block) {
   std::unique_lock<std::shared_mutex> lock(this->chainLock_);
   this->pushBackInternal(std::move(block));
 }
 
-void Storage::pushFront(FinalizedBlock&& block) {
+void Storage::pushFront(FinalizedBlock block) {
   std::unique_lock<std::shared_mutex> lock(this->chainLock_);
   this->pushFrontInternal(std::move(block));
 }

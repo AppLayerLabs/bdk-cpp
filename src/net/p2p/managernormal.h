@@ -213,7 +213,7 @@ namespace P2P {
        * Broadcast a block to all connected nodes.
        * @param block The block to broadcast.
        */
-      void broadcastBlock(const std::shared_ptr<const FinalizedBlock> block);
+      void broadcastBlock(const FinalizedBlock& block);
   };
 };
 

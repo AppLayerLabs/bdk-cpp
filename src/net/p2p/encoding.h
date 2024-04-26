@@ -187,7 +187,7 @@ namespace P2P {
        * @return The formatted request.
        */
       static Message info(
-        const std::shared_ptr<const FinalizedBlock>& latestBlock,
+        const FinalizedBlock& latestBlock,
         const Options& options
       );
 
@@ -268,7 +268,7 @@ namespace P2P {
        * @return The formatted answer.
        */
       static Message info(const Message& request,
-        const std::shared_ptr<const FinalizedBlock>& latestBlock,
+        const FinalizedBlock& latestBlock,
         const Options& options
       );
 
@@ -372,7 +372,7 @@ namespace P2P {
        * @param block The block to broadcast.
        * @return The formatted message.
        */
-      static Message broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
+      static Message broadcastBlock(const FinalizedBlock& block);
   };
 
   /// Helper class used to parse broadcast messages.
@@ -485,8 +485,8 @@ namespace P2P {
        */
       Request(
         const CommandType& command, const RequestID& id, const NodeID& nodeId,
-        const std::shared_ptr<const Message>& message
-      ) : command_(command), id_(id), nodeId_(nodeId), message_(message) {};
+        std::shared_ptr<const Message> message
+      ) : command_(command), id_(id), nodeId_(nodeId), message_(std::move(message)) {};
 
       /// Getter for `command_`.
       const CommandType& command() const { return this->command_; };

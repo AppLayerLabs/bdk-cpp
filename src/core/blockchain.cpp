@@ -187,7 +187,7 @@ void Syncer::doValidatorBlock() {
 
   // Broadcast the block through P2P
   if (this->stopSyncer_) return;
-  this->blockchain_.p2p_.broadcastBlock(this->blockchain_.storage_.latest());
+  this->blockchain_.p2p_.broadcastBlock(*this->blockchain_.storage_.latest());
 }
 
 void Syncer::doValidatorTx() const {
