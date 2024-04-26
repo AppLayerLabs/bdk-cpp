@@ -172,7 +172,7 @@ public:
    * @param db Reference to the database object.
    */
   ERC721(const Address &address,
-         DB& db);
+         const DB& db);
 
   /**
    * Constructor to be used when creating a new contract.
@@ -186,8 +186,7 @@ public:
    */
   ERC721(const std::string &erc721name, const std::string &erc721symbol,
          const Address &address,
-         const Address &creator, const uint64_t &chainId,
-         DB& db);
+         const Address &creator, const uint64_t &chainId);
 
   /**
    * Constructor to be used when creating a new contract.

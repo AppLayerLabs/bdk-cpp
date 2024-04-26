@@ -30,10 +30,9 @@ class ThrowTestA : public DynamicContract {
     * @param address The address of the contract.
     * @param creator The address of the creator of the contract.
     * @param chainId The chain ID.
-    * @param db The database to use.
     */
     ThrowTestA(const Address& address,
-      const Address& creator, const uint64_t& chainId, DB& db
+      const Address& creator, const uint64_t& chainId
     );
 
     /**
@@ -42,7 +41,7 @@ class ThrowTestA : public DynamicContract {
     * @param address The address of the contract.
     * @param db The database to use.
     */
-    ThrowTestA(const Address& address, DB& db);
+    ThrowTestA(const Address& address, const DB& db);
 
     ~ThrowTestA() override; ///< Destructor.
 

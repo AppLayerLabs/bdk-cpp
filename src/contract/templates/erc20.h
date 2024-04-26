@@ -70,7 +70,7 @@ class ERC20 : public DynamicContract {
      * @param db Reference to the database object.
     */
     ERC20(
-      const Address& address, DB& db
+      const Address& address, const DB& db
     );
 
     /**
@@ -87,8 +87,7 @@ class ERC20 : public DynamicContract {
     ERC20(
       const std::string &erc20name, const std::string &erc20symbol,
       const uint8_t &erc20decimals, const uint256_t &mintValue,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      DB& db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     /// Constructor for derived types!
@@ -96,8 +95,7 @@ class ERC20 : public DynamicContract {
       const std::string &derivedTypeName,
       const std::string &erc20name, const std::string &erc20symbol,
       const uint8_t &erc20decimals, const uint256_t &mintValue,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      DB& db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     /// Destructor.

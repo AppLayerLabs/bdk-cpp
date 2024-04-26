@@ -11,11 +11,11 @@ See the LICENSE.txt file in the project root for more information.
 #include "../nativewrapper.h"
 #include <sys/types.h>
 
-DEXV2Router02::DEXV2Router02(const Address &address, DB& db
+DEXV2Router02::DEXV2Router02(const Address &address, const DB& db
 ) : DynamicContract(address, db), factory_(this), wrappedNative_(this)
 {
-  this->factory_ = Address(this->db_.get(Utils::stringToBytes("factory_"), this->getDBPrefix()));
-  this->wrappedNative_ = Address(this->db_.get(Utils::stringToBytes("wrappedNative_"), this->getDBPrefix()));
+  this->factory_ = Address(db.get(Utils::stringToBytes("factory_"), this->getDBPrefix()));
+  this->wrappedNative_ = Address(db.get(Utils::stringToBytes("wrappedNative_"), this->getDBPrefix()));
 
   this->factory_.commit();
   this->wrappedNative_.commit();
@@ -28,9 +28,8 @@ DEXV2Router02::DEXV2Router02(const Address &address, DB& db
 
 DEXV2Router02::DEXV2Router02(
   const Address& factory, const Address& nativeWrapper,
-  const Address &address, const Address &creator, const uint64_t &chainId,
-  DB& db
-) : DynamicContract("DEXV2Router02", address, creator, chainId, db),
+  const Address &address, const Address &creator, const uint64_t &chainId
+) : DynamicContract("DEXV2Router02", address, creator, chainId),
   factory_(this), wrappedNative_(this)
 {
   this->factory_ = factory;

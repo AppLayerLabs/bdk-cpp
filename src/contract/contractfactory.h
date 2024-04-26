@@ -30,7 +30,6 @@ See the LICENSE.txt file in the project root for more information.
  *              const Address&,
  *              std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
  *              const uint64_t&,
- *              DB& db,
  *              ContractHost*
  *              )>,
  *       SafeHash
@@ -54,14 +53,13 @@ namespace ContractFactory {
       const Address& creator,
       const Address& derivedContractAddress,
       const uint64_t& chainId,
-      DB& db,
       const TTuple& dataTlp, std::index_sequence<Is...>
     ) {
       try {
         return std::make_unique<TContract>(
           std::get<Is>(dataTlp)...,
           derivedContractAddress, creator,
-          chainId, db
+          chainId
         );
       } catch (const std::exception& ex) {
         // TODO: If the contract constructor throws an exception, the contract is not created.
@@ -86,12 +84,11 @@ namespace ContractFactory {
       const Address& creator,
       const Address& derivedContractAddress,
       const uint64_t& chainId,
-      DB& db,
       const TTuple& dataTpl
     ) {
       constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
       return createContractWithTuple<TContract, TTuple>(
-        creator, derivedContractAddress, chainId, db, dataTpl, std::make_index_sequence<TupleSize>{}
+        creator, derivedContractAddress, chainId, dataTpl, std::make_index_sequence<TupleSize>{}
       );
     }
 
@@ -121,7 +118,6 @@ namespace ContractFactory {
                                                          const Address& derivedAddress,
                                                          std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                                                          const uint64_t& chainId,
-                                                         DB& db,
                                                          ContractHost* host) {
       using ConstructorArguments = typename TContract::ConstructorArguments;
       auto decodedData = setupNewContractArgs<TContract>(callInfo);
@@ -132,7 +128,7 @@ namespace ContractFactory {
       // The constructor can set SafeVariable values from the constructor.
       // We need to take account of that and set the variables accordingly.
       auto contract = createContractWithTuple<TContract, ConstructorArguments>(
-        callInfo.sender, derivedAddress, chainId, db, decodedData
+        callInfo.sender, derivedAddress, chainId, decodedData
       );
       host->registerNewCPPContract(derivedAddress, contract.get());
       contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
@@ -149,13 +145,11 @@ namespace ContractFactory {
                             const Address&,
                             std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                             const uint64_t&,
-                            DB& db,
                             ContractHost* host)>& createFunc
                       ,std::unordered_map<Functor,std::function<void(const evmc_message&,
                                                                      const Address&,
                                                                      std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                      const uint64_t&,
-                                                                     DB& db,
                                                                      ContractHost*)>,SafeHash>& createContractFuncs
     ) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
@@ -176,16 +170,14 @@ namespace ContractFactory {
                                                                      const Address&,
                                                                      std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                      const uint64_t&,
-                                                                     DB& db,
                                                                      ContractHost*)>,SafeHash>& createContractFuncs,
                                                                    std::index_sequence<Is...>) {
       ((addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const evmc_message &callInfo,
                                                                 const Address &derivedAddress,
                                                                 std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
                                                                 const uint64_t &chainId,
-                                                                DB &db,
                                                                 ContractHost* host) {
-        createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo, derivedAddress, contracts, chainId, db, host);
+        createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo, derivedAddress, contracts, chainId, host);
       }, createContractFuncs)), ...);
     }
 
@@ -198,7 +190,6 @@ namespace ContractFactory {
                                                                    const Address&,
                                                                    std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                                                                    const uint64_t&,
-                                                                   DB& db,
                                                                    ContractHost*)>,SafeHash>& createContractFuncs) {
       addAllContractFuncsHelper<Tuple>(createContractFuncs, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
     }

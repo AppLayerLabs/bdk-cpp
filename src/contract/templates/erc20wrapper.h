@@ -43,7 +43,7 @@ class ERC20Wrapper : public DynamicContract {
      * @param db Reference pointer to the database object.
      */
     ERC20Wrapper(
-      const Address& contractAddress, DB& db
+      const Address& contractAddress, const DB& db
     );
 
     /**
@@ -55,7 +55,7 @@ class ERC20Wrapper : public DynamicContract {
      */
     ERC20Wrapper(
       const Address& address, const Address& creator,
-      const uint64_t& chainId, DB& db
+      const uint64_t& chainId
     );
 
     /// Register contract class via ContractReflectionInterface.

@@ -3,8 +3,8 @@
 TestThrowVars::TestThrowVars(
   const std::string& var1, const std::string& var2, const std::string& var3,
   const Address& address,
-  const Address& creator, const uint64_t& chainId, DB& db
-) : DynamicContract("TestThrowVars", address, creator, chainId, db),
+  const Address& creator, const uint64_t& chainId
+) : DynamicContract("TestThrowVars", address, creator, chainId),
   var1_(this), var2_(this), var3_(this)
 {
   this->var1_ = "var1";
@@ -24,7 +24,7 @@ TestThrowVars::TestThrowVars(
   this->var3_.enableRegister();
 }
 
-TestThrowVars::TestThrowVars(const Address& address, DB& db
+TestThrowVars::TestThrowVars(const Address& address, const DB& db
 ) : DynamicContract(address, db), var1_(this), var2_(this), var3_(this) {
   // Do nothing
 }

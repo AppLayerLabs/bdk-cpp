@@ -7,26 +7,26 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
-ERC721::ERC721(const Address& address, DB& db
+ERC721::ERC721(const Address& address, const DB& db
 ) : DynamicContract(address, db), name_(this), symbol_(this),
   owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
-  this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
-  this->symbol_ = Utils::bytesToString(db_.get(std::string("symbol_"), this->getDBPrefix()));
-  auto owners = db_.getBatch(this->getNewPrefix("owners_"));
+  this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
+  auto owners = db.getBatch(this->getNewPrefix("owners_"));
   for (const auto& dbEntry : owners) {
     BytesArrView valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
-  auto balances = db_.getBatch(this->getNewPrefix("balances_"));
+  auto balances = db.getBatch(this->getNewPrefix("balances_"));
   for (const auto& dbEntry : balances) {
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
-  auto approvals = db_.getBatch(this->getNewPrefix("tokenApprovals_"));
+  auto approvals = db.getBatch(this->getNewPrefix("tokenApprovals_"));
   for (const auto& dbEntry : approvals) {
     this->tokenApprovals_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(dbEntry.value);
   }
-  auto operatorAddressApprovals = db_.getBatch(this->getNewPrefix("operatorAddressApprovals_"));
+  auto operatorAddressApprovals = db.getBatch(this->getNewPrefix("operatorAddressApprovals_"));
   for (const auto& dbEntry : operatorAddressApprovals) {
     BytesArrView keyView(dbEntry.key);
     Address owner(keyView.subspan(0, 20));
@@ -53,9 +53,8 @@ ERC721::ERC721(const Address& address, DB& db
 
 ERC721::ERC721(
   const std::string &erc721name, const std::string &erc721symbol_,
-  const Address &address, const Address &creator, const uint64_t &chainId,
-  DB& db
-) : DynamicContract("ERC721", address, creator, chainId, db), name_(this, erc721name),
+  const Address &address, const Address &creator, const uint64_t &chainId
+) : DynamicContract("ERC721", address, creator, chainId), name_(this, erc721name),
   symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
   this->name_.commit();
@@ -80,7 +79,7 @@ ERC721::ERC721(
   const std::string &erc721name, const std::string &erc721symbol_,
   const Address &address, const Address &creator, const uint64_t &chainId,
   DB& db
-) : DynamicContract(derivedTypeName, address, creator, chainId, db), name_(this, erc721name),
+) : DynamicContract(derivedTypeName, address, creator, chainId), name_(this, erc721name),
   symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
   this->name_.commit();

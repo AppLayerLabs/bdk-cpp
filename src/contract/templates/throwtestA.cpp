@@ -9,14 +9,14 @@ See the LICENSE.txt file in the project root for more information.
 
 ThrowTestA::ThrowTestA(
   const Address& address, const Address& creator,
-  const uint64_t& chainId, DB& db
-) : DynamicContract("ThrowTestA", address, creator, chainId, db) {
+  const uint64_t& chainId
+) : DynamicContract("ThrowTestA", address, creator, chainId) {
   registerContractFunctions();
 }
 
 ThrowTestA::ThrowTestA(
   const Address& address,
-  DB& db
+  const DB& db
 ) : DynamicContract(address, db) {
   registerContractFunctions();
 }

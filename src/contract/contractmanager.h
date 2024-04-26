@@ -44,7 +44,6 @@ class ContractManager : public BaseContract {
                  const Address&,
                  std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
                  const uint64_t&,
-                 DB& db,
                  ContractHost*
                  )>,
           SafeHash
@@ -65,8 +64,8 @@ class ContractManager : public BaseContract {
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename Tuple, std::size_t... Is>
-    bool loadFromDBHelper(const auto& contract, const Address& contractAddress, std::index_sequence<Is...>) {
-      return (loadFromDBT<std::tuple_element_t<Is, Tuple>>(contract, contractAddress) || ...);
+    bool loadFromDBHelper(const auto& contract, const Address& contractAddress, const DB& db, std::index_sequence<Is...>) {
+      return (loadFromDBT<std::tuple_element_t<Is, Tuple>>(contract, contractAddress, db) || ...);
     }
 
     /**
@@ -77,12 +76,12 @@ class ContractManager : public BaseContract {
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename T>
-    bool loadFromDBT(const auto& contract, const Address& contractAddress) {
+    bool loadFromDBT(const auto& contract, const Address& contractAddress, const DB& db) {
       // Here we disable this template when T is a tuple
       static_assert(!Utils::is_tuple<T>::value, "Must not be a tuple");
       if (Utils::bytesToString(contract.value) == Utils::getRealTypeName<T>()) {
         this->contracts_.insert(std::make_pair(
-          contractAddress, std::make_unique<T>(contractAddress, this->db_)
+          contractAddress, std::make_unique<T>(contractAddress, db)
         ));
         return true;
       }
@@ -97,10 +96,10 @@ class ContractManager : public BaseContract {
      * @return `true` if the contract exists in the database, `false` otherwise.
      */
     template <typename Tuple> requires Utils::is_tuple<Tuple>::value bool loadFromDB(
-      const auto& contract, const Address& contractAddress
+      const auto& contract, const Address& contractAddress, const DB& db
     ) {
       return loadFromDBHelper<Tuple>(
-        contract, contractAddress, std::make_index_sequence<std::tuple_size<Tuple>::value>{}
+        contract, contractAddress, db, std::make_index_sequence<std::tuple_size<Tuple>::value>{}
       );
     }
 
@@ -112,7 +111,7 @@ class ContractManager : public BaseContract {
      * @param options Reference to the options singleton.
      * @throw DynamicException if contract address doesn't exist in the database.
      */
-    ContractManager(DB& db,
+    ContractManager(const DB& db,
                     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                     DumpManager& manager,
                     const Options& options);

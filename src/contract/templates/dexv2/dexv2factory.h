@@ -48,7 +48,7 @@ class DEXV2Factory : public DynamicContract {
      * @param db Reference to the database object.
      */
     DEXV2Factory(
-      const Address& address, DB& db
+      const Address& address, const DB& db
     );
 
     /**
@@ -61,8 +61,7 @@ class DEXV2Factory : public DynamicContract {
      */
     DEXV2Factory(
       const Address& feeToSetter,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      DB& db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     // Destructor.

@@ -17,11 +17,11 @@ class TestThrowVars : public DynamicContract {
     TestThrowVars(
       const std::string& var1, const std::string& var2, const std::string& var3,
       const Address& address,
-      const Address& creator, const uint64_t& chainId, DB& db
+      const Address& creator, const uint64_t& chainId
     );
 
     TestThrowVars(
-      const Address& address, DB& db
+      const Address& address, const DB& db
     );
 
     ~TestThrowVars() override;

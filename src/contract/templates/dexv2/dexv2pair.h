@@ -94,7 +94,7 @@ class DEXV2Pair : public ERC20 {
      * @param db Reference to the database object.
     */
     DEXV2Pair(
-      const Address& address, DB& db
+      const Address& address, const DB& db
     );
 
     /**
@@ -102,11 +102,9 @@ class DEXV2Pair : public ERC20 {
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
     DEXV2Pair(
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      DB& db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     /// Destructor.

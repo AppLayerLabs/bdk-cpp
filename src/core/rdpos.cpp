@@ -8,14 +8,13 @@ See the LICENSE.txt file in the project root for more information.
 #include "state.h"
 #include "rdpos.h"
 
-rdPoS::rdPoS(DB& db,
+rdPoS::rdPoS(const DB& db,
              DumpManager& dumpManager,
              const Storage& storage,
              P2P::ManagerNormal& p2p,
              const Options& options,
              State& state)
-  : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID(), db),
-    db_(db),
+  : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID()),
     options_(options),
     storage_(storage),
     p2p_(p2p),
@@ -28,24 +27,25 @@ rdPoS::rdPoS(DB& db,
   // Initialize blockchain.
   std::unique_lock lock(this->mutex_);
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Initializing rdPoS.");
-  initializeBlockchain();
-
   /**
    * Load information from DB, stored as following:
    * DBPrefix::rdPoS -> rdPoS mapping (addresses)
    * DBPrefix::rdPoS -> misc: used for randomness currently.
    * Order doesn't matter, Validators are stored in a set (sorted by default).
    */
-  auto validatorsDb = db_.getBatch(DBPrefix::rdPoS);
+  auto validatorsDb = db.getBatch(DBPrefix::rdPoS);
   if (validatorsDb.empty()) {
     // No rdPoS in DB, this should have been initialized by Storage.
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "No rdPoS in DB, cannot proceed.");
-    throw DynamicException("No rdPoS in DB.");
-  }
-  Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
-  // TODO: check if no index is missing from DB.
-  for (const auto& validator : validatorsDb) {
-    this->validators_.insert(Validator(Address(validator.value)));
+    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "No rdPoS in DB, initializing chain with Options.");
+    for (const auto& address : this->options_.getGenesisValidators()) {
+      this->validators_.insert(Validator(address));
+    }
+  } else {
+    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
+    // TODO: check if no index is missing from DB.
+    for (const auto& validator : validatorsDb) {
+      this->validators_.insert(Validator(Address(validator.value)));
+    }
   }
 
   // Load latest randomness from DB, populate and shuffle the random list.
@@ -270,17 +270,6 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
   }
 
   return true;
-}
-
-void rdPoS::initializeBlockchain() const {
-  auto validatorsDb = db_.getBatch(DBPrefix::rdPoS);
-  if (validatorsDb.empty()) {
-    Logger::logToDebug(LogType::INFO, Log::rdPoS,__func__, "No rdPoS in DB, initializing.");
-    // Use the genesis validators from Options, OPTIONS JSON FILE VALIDATOR ARRAY ORDER **MATTERS**
-    for (uint64_t i = 0; i < this->options_.getGenesisValidators().size(); ++i) {
-      this->db_.put(Utils::uint64ToBytes(i), this->options_.getGenesisValidators()[i].get(), DBPrefix::rdPoS);
-    }
-  }
 }
 
 Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {

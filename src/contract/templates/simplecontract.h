@@ -72,8 +72,7 @@ class SimpleContract : public DynamicContract {
       const std::tuple<std::string, uint256_t>& tuple,
       const Address& address,
       const Address& creator,
-      const uint64_t& chainId,
-      DB& db
+      const uint64_t& chainId
     );
 
     /**
@@ -84,7 +83,7 @@ class SimpleContract : public DynamicContract {
      */
     SimpleContract(
       const Address& address,
-      DB& db
+      const DB& db
     );
 
     ~SimpleContract() override; ///< Destructor.

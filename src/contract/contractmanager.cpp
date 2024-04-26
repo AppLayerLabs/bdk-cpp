@@ -14,37 +14,27 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/dynamicexception.h"
 #include "contracthost.h"
 
-ContractManager::ContractManager(DB& db,
+ContractManager::ContractManager(const DB& db,
                                  std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                                  DumpManager& manager,
                                  const Options& options)
-: BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), options.getChainID(), db),
+: BaseContract("ContractManager", ProtocolContractAddresses.at("ContractManager"), options.getChainOwner(), options.getChainID()),
   contracts_(contracts)
 {
   ContractFactory::registerContracts<ContractTypes>();
   ContractFactory::addAllContractFuncs<ContractTypes>(this->createContractFuncs_);
   // Load Contracts from DB
-  std::vector<DBEntry> contractsFromDB = this->db_.getBatch(DBPrefix::contractManager);
+  std::vector<DBEntry> contractsFromDB = db.getBatch(DBPrefix::contractManager);
   for (const DBEntry& contract : contractsFromDB) {
     Address address(contract.key);
-    if (!this->loadFromDB<ContractTypes>(contract, address)) {
+    if (!this->loadFromDB<ContractTypes>(contract, address, db)) {
       throw DynamicException("Unknown contract: " + Utils::bytesToString(contract.value));
     }
   }
   manager.pushBack(this);
 }
 
-ContractManager::~ContractManager() {
-  DBBatch contractsBatch;
-  for (const auto& [address, contract] : this->contracts_) {
-    contractsBatch.push_back(
-      Bytes(address.asBytes()),
-      Utils::stringToBytes(contract->getContractName()),
-      DBPrefix::contractManager
-    );
-  }
-  this->db_.putBatch(contractsBatch);
-}
+ContractManager::~ContractManager() {}
 
 DBBatch ContractManager::dump() const {
   DBBatch contractsBatch;
@@ -83,7 +73,6 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
              ContractHost::deriveContractAddress(this->host_->getNonce(caller), caller),
              this->contracts_,
              this->getContractChainId(),
-             this->db_,
              this->host_);
 }
 

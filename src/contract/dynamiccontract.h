@@ -331,11 +331,10 @@ class DynamicContract : public BaseContract {
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
     DynamicContract(const std::string& contractName,
-      const Address& address, const Address& creator, const uint64_t& chainId, DB& db
-    ) : BaseContract(contractName, address, creator, chainId, db) {}
+      const Address& address, const Address& creator, const uint64_t& chainId
+    ) : BaseContract(contractName, address, creator, chainId) {}
 
     /**
      * Constructor for loading the contract from the database.
@@ -343,7 +342,7 @@ class DynamicContract : public BaseContract {
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
-    DynamicContract(const Address& address, DB& db) : BaseContract(address, db) {};
+    DynamicContract(const Address& address, const DB& db) : BaseContract(address, db) {};
 
     /**
      * Invoke a contract function using a tuple of (from, to, gasLimit, gasPrice, value, data).

@@ -1,12 +1,12 @@
 #include "erc721test.h"
 
 
-ERC721Test::ERC721Test(const Address &address, DB& db)
+ERC721Test::ERC721Test(const Address &address, const DB& db)
 : ERC721(address, db), tokenIdCounter_(this), maxTokens_(this), totalSupply_(this)
 {
-  this->tokenIdCounter_ = Utils::bytesToUint64(db_.get(std::string("tokenIdCounter_"), this->getDBPrefix()));
-  this->maxTokens_ = Utils::bytesToUint64(db_.get(std::string("maxTokens_"), this->getDBPrefix()));
-  this->totalSupply_ = Utils::bytesToUint64(db_.get(std::string("totalSupply_"), this->getDBPrefix()));
+  this->tokenIdCounter_ = Utils::bytesToUint64(db.get(std::string("tokenIdCounter_"), this->getDBPrefix()));
+  this->maxTokens_ = Utils::bytesToUint64(db.get(std::string("maxTokens_"), this->getDBPrefix()));
+  this->totalSupply_ = Utils::bytesToUint64(db.get(std::string("totalSupply_"), this->getDBPrefix()));
 
   this->tokenIdCounter_.commit();
   this->maxTokens_.commit();
@@ -22,8 +22,8 @@ ERC721Test::ERC721Test(const Address &address, DB& db)
 ERC721Test::ERC721Test(
   const std::string &erc721name, const std::string &erc721symbol, const uint64_t& maxTokens,
   const Address &address,
-  const Address &creator, const uint64_t &chainId, DB& db)
-: ERC721(erc721name, erc721symbol, address, creator, chainId, db),
+  const Address &creator, const uint64_t &chainId)
+: ERC721(erc721name, erc721symbol, address, creator, chainId),
   tokenIdCounter_(this, 0), maxTokens_(this, maxTokens), totalSupply_(this, 0)
 {
   this->tokenIdCounter_.commit();

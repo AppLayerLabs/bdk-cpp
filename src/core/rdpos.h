@@ -127,7 +127,6 @@ public:
 class rdPoS : public BaseContract {
 private:
   const Options& options_;  ///< Reference to the options singleton.
-  DB& db_;
   const Storage& storage_;  ///< Reference to the blockchain's storage.
   P2P::ManagerNormal& p2p_; ///< Reference to the P2P Manager (for sending/requesting TxValidators from other nodes).
   State& state_;  ///< Reference to the blockchain state.
@@ -141,12 +140,6 @@ private:
   Hash bestRandomSeed_; ///< Best randomness seed (taken from the last block).
   const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
   mutable std::shared_mutex mutex_; ///< Mutex for managing read/write access to the class members.
-
-  /**
-   * Initializes the blockchain with the default information for rdPoS.
-   * Called by the constructor if no previous blockchain is found.
-   */
-  void initializeBlockchain() const;
 
 public:
   /// Enum for Validator transaction functions.
@@ -165,7 +158,7 @@ public:
    * @param state Reference to the blockchain's state.
    * @throw DynamicException if there are no Validators registered in the database.
    */
-  rdPoS(DB& db,
+  rdPoS(const DB& db,
         DumpManager& dumpManager,
         const Storage& storage,
         P2P::ManagerNormal& p2p,

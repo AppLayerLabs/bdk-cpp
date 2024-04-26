@@ -8,20 +8,20 @@ See the LICENSE.txt file in the project root for more information.
 #include "dexv2pair.h"
 #include "dexv2factory.h"
 
-DEXV2Pair::DEXV2Pair(const Address& address, DB &db
+DEXV2Pair::DEXV2Pair(const Address& address, const DB& db
 ) : ERC20(address, db), factory_(this), token0_(this), token1_(this),
   reserve0_(this), reserve1_(this), blockTimestampLast_(this),
   price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {
-  this->factory_ = Address(this->db_.get(std::string("factory_"), this->getDBPrefix()));
-  this->token0_ = Address(this->db_.get(std::string("token0_"), this->getDBPrefix()));
-  this->token1_ = Address(this->db_.get(std::string("token1_"), this->getDBPrefix()));
-  this->reserve0_ = Utils::bytesToUint112(this->db_.get(std::string("reserve0_"), this->getDBPrefix()));
-  this->reserve1_ = Utils::bytesToUint112(this->db_.get(std::string("reserve1_"), this->getDBPrefix()));
-  this->blockTimestampLast_ = Utils::bytesToUint32(this->db_.get(std::string("blockTimestampLast_"), this->getDBPrefix()));
-  this->price0CumulativeLast_ = Utils::bytesToUint256(this->db_.get(std::string("price0CumulativeLast_"), this->getDBPrefix()));
-  this->price1CumulativeLast_ = Utils::bytesToUint256(this->db_.get(std::string("price1CumulativeLast_"), this->getDBPrefix()));
-  this->kLast_ = Utils::bytesToUint256(this->db_.get(std::string("kLast_"), this->getDBPrefix()));
+  this->factory_ = Address(db.get(std::string("factory_"), this->getDBPrefix()));
+  this->token0_ = Address(db.get(std::string("token0_"), this->getDBPrefix()));
+  this->token1_ = Address(db.get(std::string("token1_"), this->getDBPrefix()));
+  this->reserve0_ = Utils::bytesToUint112(db.get(std::string("reserve0_"), this->getDBPrefix()));
+  this->reserve1_ = Utils::bytesToUint112(db.get(std::string("reserve1_"), this->getDBPrefix()));
+  this->blockTimestampLast_ = Utils::bytesToUint32(db.get(std::string("blockTimestampLast_"), this->getDBPrefix()));
+  this->price0CumulativeLast_ = Utils::bytesToUint256(db.get(std::string("price0CumulativeLast_"), this->getDBPrefix()));
+  this->price1CumulativeLast_ = Utils::bytesToUint256(db.get(std::string("price1CumulativeLast_"), this->getDBPrefix()));
+  this->kLast_ = Utils::bytesToUint256(db.get(std::string("kLast_"), this->getDBPrefix()));
 
   this->factory_.commit();
   this->token0_.commit();
@@ -47,9 +47,8 @@ DEXV2Pair::DEXV2Pair(const Address& address, DB &db
 }
 
 DEXV2Pair::DEXV2Pair(
-  const Address& address, const Address& creator, const uint64_t& chainId,
-  DB& db
-) : ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, address, creator, chainId, db),
+  const Address& address, const Address& creator, const uint64_t& chainId
+) : ERC20("DEXV2Pair", "DEX V2", "DEX-V2", 18, 0, address, creator, chainId),
   factory_(this), token0_(this), token1_(this), reserve0_(this), reserve1_(this),
   blockTimestampLast_(this), price0CumulativeLast_(this), price1CumulativeLast_(this), kLast_(this)
 {

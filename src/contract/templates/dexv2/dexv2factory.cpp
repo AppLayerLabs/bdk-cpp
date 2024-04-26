@@ -8,15 +8,15 @@ See the LICENSE.txt file in the project root for more information.
 #include "dexv2factory.h"
 #include "dexv2pair.h"
 
-DEXV2Factory::DEXV2Factory(const Address &address, DB& db
+DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
 ) : DynamicContract(address, db), feeTo_(this), feeToSetter_(this),
   allPairs_(this), getPair_(this)
 {
-  this->feeTo_ = Address(db_.get(std::string("feeTo_"), this->getDBPrefix()));
-  this->feeToSetter_ = Address(db_.get(std::string("feeToSetter_"), this->getDBPrefix()));
-  std::vector<DBEntry> allPairs = db_.getBatch(this->getNewPrefix("allPairs_"));
+  this->feeTo_ = Address(db.get(std::string("feeTo_"), this->getDBPrefix()));
+  this->feeToSetter_ = Address(db.get(std::string("feeToSetter_"), this->getDBPrefix()));
+  std::vector<DBEntry> allPairs = db.getBatch(this->getNewPrefix("allPairs_"));
   for (const auto& dbEntry : allPairs) this->allPairs_.push_back(Address(dbEntry.value));
-  std::vector<DBEntry> getPairs = db_.getBatch(this->getNewPrefix("getPair_"));
+  std::vector<DBEntry> getPairs = db.getBatch(this->getNewPrefix("getPair_"));
   for (const auto& dbEntry : getPairs) {
     BytesArrView valueView(dbEntry.value);
     this->getPair_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Address(valueView.subspan(20));
@@ -37,9 +37,8 @@ DEXV2Factory::DEXV2Factory(const Address &address, DB& db
 
 DEXV2Factory::DEXV2Factory(
   const Address& feeToSetter,
-  const Address &address, const Address &creator, const uint64_t &chainId,
-  DB& db
-) : DynamicContract("DEXV2Factory", address, creator, chainId, db),
+  const Address &address, const Address &creator, const uint64_t &chainId
+) : DynamicContract("DEXV2Factory", address, creator, chainId),
   feeTo_(this), feeToSetter_(this), allPairs_(this), getPair_(this)
 {
   this->feeToSetter_ = feeToSetter;

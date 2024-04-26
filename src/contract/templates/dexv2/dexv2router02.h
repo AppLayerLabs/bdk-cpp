@@ -83,7 +83,7 @@ class DEXV2Router02 : public DynamicContract {
      * @param db Reference to the database object.
     */
     DEXV2Router02(
-      const Address& address, DB& db
+      const Address& address, const DB& db
     );
 
     /**
@@ -97,8 +97,7 @@ class DEXV2Router02 : public DynamicContract {
      */
     DEXV2Router02(
       const Address& factory, const Address& wrappedNative,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      DB& db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     // Destructor.

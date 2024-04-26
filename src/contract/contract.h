@@ -74,7 +74,6 @@ class BaseContract : public ContractLocals, public Dumpable {
     uint64_t contractChainId_; ///< Chain where the contract is deployed.
 
   protected:
-    DB& db_; ///< Reference to the DB instance.
     mutable ContractHost* host_ = nullptr; ///< Reference to the ContractHost instance.
 
   public:
@@ -86,12 +85,11 @@ class BaseContract : public ContractLocals, public Dumpable {
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract will be deployed.
-     * @param db Pointer to the DB instance.
      */
     BaseContract(const std::string& contractName, const Address& address,
-      const Address& creator, const uint64_t& chainId, DB& db
+      const Address& creator, const uint64_t& chainId
     ) : contractName_(contractName), contractAddress_(address),
-        contractCreator_(creator), contractChainId_(chainId), db_(db), dbPrefix_([&]() {
+        contractCreator_(creator), contractChainId_(chainId), dbPrefix_([&]() {
                     Bytes prefix = DBPrefix::contracts;
                     prefix.reserve(prefix.size() + address.size());
                     prefix.insert(prefix.end(), address.cbegin(), address.cend());
@@ -113,7 +111,7 @@ class BaseContract : public ContractLocals, public Dumpable {
      * @param address The address where the contract will be deployed.
      * @param db Pointer to the DB instance.
      */
-    BaseContract(const Address &address, DB& db) : contractAddress_(address), db_(db),
+    BaseContract(const Address &address, const DB& db) : contractAddress_(address),
                  dbPrefix_([&]() -> Bytes {
                    Bytes prefix = DBPrefix::contracts;
                    prefix.reserve(prefix.size() + contractAddress_.size());
