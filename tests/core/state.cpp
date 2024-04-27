@@ -1450,7 +1450,7 @@ namespace TState {
               21000,
               ownerPrivKey
           );
-          creationHash == createNewERC2OTx.hash();
+          creationHash = createNewERC2OTx.hash();
           txs.push_back(createNewERC2OTx);
           ++nonce;
         } else {
