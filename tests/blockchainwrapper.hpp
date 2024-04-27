@@ -23,29 +23,35 @@ See the LICENSE.txt file in the project root for more information.
  * underlying objects, but does not apply any logic or checks.
  */
 struct TestBlockchainWrapper {
-  const Options options;   ///< Options singleton.
-  DB db;                   ///< Database.
-  Storage storage;         ///< Blockchain storage.
-  State state;             ///< Blockchain state.
-  P2P::ManagerNormal p2p;  ///< P2P connection manager.
-  HTTPServer http;         ///< HTTP server.
+  const Options options;  ///< Options singleton.
+  DB db;                  ///< Database.
+  Storage storage;        ///< Blockchain storage.
+  State state;            ///< Blockchain state.
+  P2P::ManagerNormal p2p; ///< P2P connection manager.
+  HTTPServer http;        ///< HTTP server.
+  Syncer syncer;             ///< Blockchain syncer.
+  Consensus consensus;       ///< Block and transaction processing.
 
   /**
    * Constructor.
    * @param options_ Reference to the Options singleton.
    */
+
   explicit TestBlockchainWrapper(const Options& options_) :
     options(options_),
     db(std::get<0>(DumpManager::getBestStateDBPath(options))),
     storage(options_),
     state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
-    http(state, storage, p2p, options) {};
+    http(state, storage, p2p, options),
+    syncer(p2p, storage, state),
+    consensus(state, p2p, storage, options)
+    {};
 
   /// Destructor.
   ~TestBlockchainWrapper() {
     state.dumpStopWorker();
-    state.rdposStopWorker();
+    consensus.stop();
     p2p.stopDiscovery();
     p2p.stop();
     http.stop();

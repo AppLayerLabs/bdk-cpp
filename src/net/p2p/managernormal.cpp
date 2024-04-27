@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../core/rdpos.h"
 #include "../core/storage.h"
 #include "../core/state.h"
+#include "nodeconns.h"
 
 namespace P2P{
   void ManagerNormal::broadcastMessage(const std::shared_ptr<const Message> message) {
@@ -35,6 +36,14 @@ namespace P2P{
     }
   }
 
+  void ManagerNormal::notifyAllMessage(const std::shared_ptr<const Message> message) {
+    // ManagerNormal::notifyAllMessage doesn't change sessions_ map
+    std::shared_lock sessionsLock(this->sessionsMutex_);
+    for (const auto& [nodeId, session] : this->sessions_) {
+      if (session->hostType() == NodeType::NORMAL_NODE) session->write(message);
+    }
+  }
+
   void ManagerNormal::handleMessage(
     const NodeID &nodeId, const std::shared_ptr<const Message> message
   ) {
@@ -48,6 +57,9 @@ namespace P2P{
         break;
       case Broadcasting:
         handleBroadcast(nodeId, message);
+        break;
+      case Notifying:
+        handleNotification(nodeId, message);
         break;
       default:
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -75,6 +87,9 @@ namespace P2P{
         break;
       case RequestTxs:
         handleTxRequest(nodeId, message);
+        break;
+      case RequestBlock:
+        handleRequestBlockRequest(nodeId, message);
         break;
       default:
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -104,6 +119,9 @@ namespace P2P{
         break;
       case RequestTxs:
         handleTxAnswer(nodeId, message);
+        break;
+      case RequestBlock:
+        handleRequestBlockAnswer(nodeId, message);
         break;
       default:
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
@@ -141,11 +159,31 @@ namespace P2P{
       case BroadcastBlock:
         handleBlockBroadcast(nodeId, message);
         break;
+      case BroadcastInfo:
+        handleInfoBroadcast(nodeId, message);
+        break;
       default:
         Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
                            "Invalid Broadcast Command Type: " + std::to_string(message->command()) +
                            " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
                            " , closing session.");
+        this->disconnectSession(nodeId);
+        break;
+    }
+  }
+
+  void ManagerNormal::handleNotification(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    switch (message->command()) {
+      case NotifyInfo:
+        handleInfoNotification(nodeId, message);
+        break;
+      default:
+        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                           "Invalid Notification Command Type: " + std::to_string(message->command()) +
+                           " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                           ", closing session.");
         this->disconnectSession(nodeId);
         break;
     }
@@ -169,7 +207,7 @@ namespace P2P{
   ) {
     RequestDecoder::info(*message);
     this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::info(
-      *message, *this->storage_.latest(), this->options_
+      *message, this->storage_.latest(), this->options_
     )));
   }
 
@@ -221,6 +259,19 @@ namespace P2P{
       return;
     }
     this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestTxs(*message, this->state_.getMempool())));
+  }
+
+  void ManagerNormal::handleRequestBlockRequest(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    uint64_t height = RequestDecoder::requestBlock(*message);
+    if (this->storage_.blockExists(height)) {
+      const auto& requestedBlock = *(this->storage_.getBlock(height));
+      this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestBlock(*message, requestedBlock)));
+    } else {
+      // We don't have it, so send a 0-byte size serialized block back to signal it
+      this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestBlock(*message, {})));
+    }
   }
 
   void ManagerNormal::handlePingAnswer(
@@ -298,6 +349,21 @@ namespace P2P{
     requests_[message->id()]->setAnswer(message);
   }
 
+  void ManagerNormal::handleRequestBlockAnswer(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    std::unique_lock lock(this->requestsMutex_);
+    if (!requests_.contains(message->id())) {
+      lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Answer to invalid request from " + nodeId.first.to_string() + ":" +
+                         std::to_string(nodeId.second) + " , closing session.");
+      this->disconnectSession(nodeId);
+      return;
+    }
+    requests_[message->id()]->setAnswer(message);
+  }
+
   void ManagerNormal::handleTxValidatorBroadcast(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
@@ -353,6 +419,36 @@ namespace P2P{
       return;
     }
     if (rebroadcast) this->broadcastMessage(message);
+  }
+
+  void ManagerNormal::handleInfoBroadcast(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    try {
+      auto nodeInfo = BroadcastDecoder::broadcastInfo(*message);
+      this->nodeConns_.incomingInfo(nodeId, nodeInfo);
+    } catch (std::exception &e) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid infoBroadcast from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , error: " + e.what() + " closing session.");
+      this->disconnectSession(nodeId);
+      return;
+    }
+  }
+
+  void ManagerNormal::handleInfoNotification(
+    const NodeID &nodeId, const std::shared_ptr<const Message>& message
+  ) {
+    try {
+      auto nodeInfo = NotificationDecoder::notifyInfo(*message);
+      this->nodeConns_.incomingInfo(nodeId, nodeInfo);
+    } catch (std::exception &e) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+                         "Invalid infoNotification from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+                         " , error: " + e.what() + " closing session.");
+      this->disconnectSession(nodeId);
+      return;
+    }
   }
 
   // TODO: Both ping and requestNodes is a blocking call on .wait()
@@ -416,7 +512,7 @@ namespace P2P{
   }
 
   NodeInfo ManagerNormal::requestNodeInfo(const NodeID& nodeId) {
-    auto request = std::make_shared<const Message>(RequestEncoder::info(*this->storage_.latest(), this->options_));
+    auto request = std::make_shared<const Message>(RequestEncoder::info(this->storage_.latest(), this->options_));
     Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
@@ -444,22 +540,63 @@ namespace P2P{
     }
   }
 
+  /**
+   * Request a block to a peer.
+   * @param nodeId The ID of the node to request.
+   * @param height The block height to request.
+   * @return The requested block.
+   */
+  std::optional<FinalizedBlock> ManagerNormal::requestBlock(const NodeID &nodeId, const uint64_t& height) {
+    auto request = std::make_shared<const Message>(RequestEncoder::requestBlock(height));
+    auto requestPtr = sendRequestTo(nodeId, request);
+    if (requestPtr == nullptr) {
+      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
+        "RequestBlock to " + toString(nodeId) + " failed."
+      );
+      return {};
+    }
+    auto answer = requestPtr->answerFuture();
+    auto status = answer.wait_for(std::chrono::seconds(10)); // 10s timeout.
+    if (status == std::future_status::timeout) {
+      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
+        "RequestBlock to " + toString(nodeId) + " timed out."
+      );
+      return {};
+    }
+    try {
+      auto answerPtr = answer.get();
+      return AnswerDecoder::requestBlock(*answerPtr, this->options_.getChainID());
+    } catch (std::exception &e) {
+      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
+        "RequestBlock to " + toString(nodeId) + " failed with error: " + e.what()
+      );
+      return {};
+    }
+  }
+
   void ManagerNormal::broadcastTxValidator(const TxValidator& tx) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastValidatorTx(tx));
     this->broadcastMessage(broadcast);
-    return;
   }
 
   void ManagerNormal::broadcastTxBlock(const TxBlock& txBlock) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastTx(txBlock));
     this->broadcastMessage(broadcast);
-    return;
   }
 
-  void ManagerNormal::broadcastBlock(const FinalizedBlock& block) {
+  void ManagerNormal::broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastBlock(block));
     this->broadcastMessage(broadcast);
-    return;
+  }
+
+  void ManagerNormal::broadcastInfo() {
+    auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastInfo(this->storage_.latest(), this->options_));
+    this->broadcastMessage(broadcast);
+  }
+
+  void ManagerNormal::notifyAllInfo() {
+    auto notifyall = std::make_shared<const Message>(NotificationEncoder::notifyInfo(this->storage_.latest(), this->options_));
+    this->notifyAllMessage(notifyall);
   }
 };
 

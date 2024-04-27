@@ -23,11 +23,11 @@ MutableBlock::MutableBlock(const BytesArrView bytes, const uint64_t& requiredCha
         // Initialization for transaction counts is not required here
         // since they will be calculated during the deserialization process
 
-        Logger::logToDebug(LogType::INFO, Log::mutableblock, __func__, "Deserializing block...");
+        Logger::logToDebug(LogType::INFO, Log::mutableBlock, __func__, "Deserializing block...");
         this->deserialize(bytes, requiredChainId);
         this->hash_ = Utils::sha3(this->serializeMutableHeader(validatorMerkleRoot, txMerkleRoot));
     } catch (const std::exception &e) {
-        Logger::logToDebug(LogType::ERROR, Log::mutableblock, __func__, "Error when deserializing a MutableBlock: " + std::string(e.what()));
+        Logger::logToDebug(LogType::ERROR, Log::mutableBlock, __func__, "Error when deserializing a MutableBlock: " + std::string(e.what()));
         throw std::runtime_error(std::string("Error when deserializing a MutableBlock: ") + e.what());
     }
 }
@@ -120,20 +120,20 @@ void MutableBlock::deserialize(const BytesArrView bytes, const uint64_t& require
       index += 4;
       this->txValidators_.emplace_back(bytes.subspan(index, txSize), requiredChainId);
       if (this->txValidators_.back().getNHeight() != this->nHeight_) {
-        Logger::logToDebug(LogType::ERROR, Log::mutableblock, __func__, "Invalid validator tx height");
+        Logger::logToDebug(LogType::ERROR, Log::mutableBlock, __func__, "Invalid validator tx height");
         throw DynamicException("Invalid validator tx height");
       }
       index += txSize;
     }
 
-    Logger::logToDebug(LogType::INFO, Log::mutableblock, __func__, "Block deserialized successfully");
+    Logger::logToDebug(LogType::INFO, Log::mutableBlock, __func__, "Block deserialized successfully");
     this->isDeserialized_ = true;
 
 }
 
 bool MutableBlock::appendTx(const TxBlock& tx) {
   if (this->isDeserialized_) {
-    Logger::logToDebug(LogType::ERROR, Log::mutableblock, __func__, "Block is already deserialized");
+    Logger::logToDebug(LogType::ERROR, Log::mutableBlock, __func__, "Block is already deserialized");
     return false;
   }
   this->txs_.emplace_back(tx);
@@ -143,7 +143,7 @@ bool MutableBlock::appendTx(const TxBlock& tx) {
 
 bool MutableBlock::appendTxValidator(const TxValidator& tx) {
   if (this->isDeserialized_) {
-    Logger::logToDebug(LogType::ERROR, Log::mutableblock, __func__, "Block is already deserialized");
+    Logger::logToDebug(LogType::ERROR, Log::mutableBlock, __func__, "Block is already deserialized");
     return false;
   }
   this->txValidators_.emplace_back(tx);
@@ -164,7 +164,7 @@ Bytes MutableBlock::serializeMutableHeader(const Hash& validatorMerkleRoot, cons
 
 FinalizedBlock MutableBlock::finalize(const PrivKey& validatorPrivKey, const uint64_t& newTimestamp) {
     if (this->timestamp_ > newTimestamp) {
-    Logger::logToDebug(LogType::ERROR, Log::mutableblock, __func__,
+    Logger::logToDebug(LogType::ERROR, Log::mutableBlock, __func__,
       "Block timestamp not satisfiable, expected higher than " +
       std::to_string(this->timestamp_) + " got " + std::to_string(newTimestamp)
     );
@@ -173,7 +173,7 @@ FinalizedBlock MutableBlock::finalize(const PrivKey& validatorPrivKey, const uin
 
   this->timestamp_ = newTimestamp;
 
-  Logger::logToDebug(LogType::INFO, Log::mutableblock, __func__, "Finalizing block...");
+  Logger::logToDebug(LogType::INFO, Log::mutableBlock, __func__, "Finalizing block...");
   Hash validatorMerkleRoot = Merkle(this->txValidators_).getRoot();
   Hash txMerkleRoot = Merkle(this->txs_).getRoot();
   this->blockRandomness_ = rdPoS::parseTxSeedList(this->txValidators_);

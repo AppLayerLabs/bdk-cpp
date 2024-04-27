@@ -189,9 +189,12 @@ FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKeys, Stat
   return finalized;
 }
 
+
 namespace TRdPoS {
   // Simple rdPoS execution, does not test network functionality neither validator execution (rdPoSWorker)
   TEST_CASE("rdPoS Class", "[core][rdpos]") {
+    PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+    Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("rdPoS class Startup") {
       std::set<Validator> validatorsList;
@@ -252,7 +255,7 @@ namespace TRdPoS {
         PrivKey validatorKey = PrivKey();
         auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, true, testDumpPath + "/rdPoSValidateBlockTenBlocks");
 
-        for (uint64_t i = 0; i < 2; ++i) {
+        for (uint64_t i = 0; i < 10; ++i) {
           // Create a valid block, with the correct rdPoS transactions
           auto block = createValidBlock(validatorPrivKeysRdpos, blockchainWrapper.state, blockchainWrapper.storage);
 
@@ -268,7 +271,7 @@ namespace TRdPoS {
 
         // We expect to have moved 10 blocks forward.
         auto latestBlock = blockchainWrapper.storage.latest();
-        REQUIRE(latestBlock->getNHeight() == 2);
+        REQUIRE(latestBlock->getNHeight() == 10);
         REQUIRE(latestBlock->getBlockRandomness() == blockchainWrapper.state.rdposGetBestRandomSeed());
 
         expectedRandomList = blockchainWrapper.state.rdposGetRandomList();
@@ -285,6 +288,8 @@ namespace TRdPoS {
   }
 
   TEST_CASE("rdPoS Class With Network Functionality", "[core][rdpos][net]") {
+    PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+    Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     SECTION("Two Nodes instances, simple transaction broadcast") {
       // Initialize two different node instances, with different ports and DBs.
       std::string testDumpPath = Utils::getTestDumpPath();
@@ -431,8 +436,8 @@ namespace TRdPoS {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      MutableBlock genesis(Hash(), 0, 0);
-      FinalizedBlock genesisFinal = genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesisMutable(Hash(), 0, 0);
+      FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysRdpos) {
@@ -454,7 +459,7 @@ namespace TRdPoS {
           10000,
           4,
           peers,
-          genesisFinal,
+          genesis,
           genesisTimestamp,
           genesisPrivKey,
           genesisBalances,
@@ -659,6 +664,8 @@ namespace TRdPoS {
   }
 
   TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality, move 10 blocks forward", "[core][rdpos][net][heavy]") {
+    PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
+    Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     // Initialize 8 different node instances, with different ports and DBs.
     std::string testDumpPath = Utils::getTestDumpPath();
     auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[0], 8080, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode1");
@@ -681,8 +688,8 @@ namespace TRdPoS {
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
     PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     uint64_t genesisTimestamp = 1678887538000000;
-    MutableBlock genesis(Hash(), 0, 0);
-    FinalizedBlock genesisFinal = genesis.finalize(genesisPrivKey, genesisTimestamp);
+    MutableBlock genesisMutable(Hash(), 0, 0);
+    FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
     std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
     std::vector<Address> genesisValidators;
     for (const auto& privKey : validatorPrivKeysRdpos) {
@@ -704,7 +711,7 @@ namespace TRdPoS {
       10000,
       4,
       discoveryNodes,
-      genesisFinal,
+      genesis,
       genesisTimestamp,
       genesisPrivKey,
       genesisBalances,
@@ -712,19 +719,19 @@ namespace TRdPoS {
     );
     P2P::ManagerDiscovery p2pDiscovery(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
-    // Vector of references for the states' rdPoS workers
+    // Vector of references for the Consensus Workers
     // (rdPoS is exclusively owned by State and can't be exposed in any way,
     // so we have to pass the whole State object to access rdPoS functionality
     // via wrapper functions from the State)
-    std::vector<std::reference_wrapper<State>> rdPoSreferences;
-    rdPoSreferences.emplace_back(blockchainWrapper1.state);
-    rdPoSreferences.emplace_back(blockchainWrapper2.state);
-    rdPoSreferences.emplace_back(blockchainWrapper3.state);
-    rdPoSreferences.emplace_back(blockchainWrapper4.state);
-    rdPoSreferences.emplace_back(blockchainWrapper5.state);
-    rdPoSreferences.emplace_back(blockchainWrapper6.state);
-    rdPoSreferences.emplace_back(blockchainWrapper7.state);
-    rdPoSreferences.emplace_back(blockchainWrapper8.state);
+    std::vector<std::reference_wrapper<Consensus>> consensusReferences;
+    consensusReferences.emplace_back(blockchainWrapper1.consensus);
+    consensusReferences.emplace_back(blockchainWrapper2.consensus);
+    consensusReferences.emplace_back(blockchainWrapper3.consensus);
+    consensusReferences.emplace_back(blockchainWrapper4.consensus);
+    consensusReferences.emplace_back(blockchainWrapper5.consensus);
+    consensusReferences.emplace_back(blockchainWrapper6.consensus);
+    consensusReferences.emplace_back(blockchainWrapper7.consensus);
+    consensusReferences.emplace_back(blockchainWrapper8.consensus);
 
     // Start servers
     p2pDiscovery.start();
@@ -813,119 +820,48 @@ namespace TRdPoS {
     REQUIRE(blockchainWrapper7.state.rdposGetIsValidator());
     REQUIRE(blockchainWrapper8.state.rdposGetIsValidator());
 
-    blockchainWrapper1.state.rdposStartWorker();
-    blockchainWrapper2.state.rdposStartWorker();
-    blockchainWrapper3.state.rdposStartWorker();
-    blockchainWrapper4.state.rdposStartWorker();
-    blockchainWrapper5.state.rdposStartWorker();
-    blockchainWrapper6.state.rdposStartWorker();
-    blockchainWrapper7.state.rdposStartWorker();
-    blockchainWrapper8.state.rdposStartWorker();
+    blockchainWrapper1.consensus.start();
+    blockchainWrapper2.consensus.start();
+    blockchainWrapper3.consensus.start();
+    blockchainWrapper4.consensus.start();
+    blockchainWrapper5.consensus.start();
+    blockchainWrapper6.consensus.start();
+    blockchainWrapper7.consensus.start();
+    blockchainWrapper8.consensus.start();
 
-    // Loop for block creation.
-    uint64_t blocks = 0;
-    while (blocks < 10) {
-      auto rdPoSmempoolFuture = std::async(std::launch::async, [&]() {
-        while (blockchainWrapper1.state.rdposGetMempool().size() != 8) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-      });
-
-      REQUIRE(rdPoSmempoolFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
-
-      for (auto& blockCreator: rdPoSreferences) {
-        if (blockCreator.get().rdposCanCreateBlock()) {
-          // Create the block.
-          auto mempool = blockCreator.get().rdposGetMempool();
-          auto randomList = blockCreator.get().rdposGetRandomList();
-          // Order the transactions in the proper manner.
-          std::vector<TxValidator> randomHashTxs;
-          std::vector<TxValidator> randomnessTxs;
-          uint64_t i = 1;
-          while (randomHashTxs.size() != blockCreator.get().rdposGetMinValidators()) {
-            for (const auto& [txHash, tx]: mempool) {
-              if (tx.getFrom() == randomList[i]) {
-                if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0xcfffe746")) {
-                  randomHashTxs.emplace_back(tx);
-                  ++i;
-                  break;
-                }
-              }
-            }
-          }
-          i = 1;
-          while (randomnessTxs.size() != blockCreator.get().rdposGetMinValidators()) {
-            for (const auto& [txHash, tx]: mempool) {
-              if (tx.getFrom() == randomList[i]) {
-                if (Bytes(tx.getData().begin(), tx.getData().begin() + 4) == Hex::toBytes("0x6fc5a2d6")) {
-                  randomnessTxs.emplace_back(tx);
-                  ++i;
-                  break;
-                }
-              }
-            }
-          }
-
-          // Create the block and append to all chains, we can use any storage for latestblock
-          auto latestBlock = blockchainWrapper1.storage.latest();
-          MutableBlock block(latestBlock->getHash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
-          // Append transactions towards block.
-          for (const auto &tx: randomHashTxs) {
-            block.appendTxValidator(tx);
-          }
-          for (const auto &tx: randomnessTxs) {
-            block.appendTxValidator(tx);
-          }
-
-          FinalizedBlock finalBlock = blockCreator.get().rdposSignBlock(block);
-
-          // Validate the block.
-          REQUIRE(blockchainWrapper2.state.rdposValidateBlock(finalBlock));
-          REQUIRE(blockchainWrapper3.state.rdposValidateBlock(finalBlock));
-          REQUIRE(blockchainWrapper4.state.rdposValidateBlock(finalBlock));
-          REQUIRE(blockchainWrapper5.state.rdposValidateBlock(finalBlock));
-          REQUIRE(blockchainWrapper1.state.rdposValidateBlock(finalBlock));
-          REQUIRE(blockchainWrapper8.state.rdposValidateBlock(finalBlock));
-          REQUIRE(blockchainWrapper6.state.rdposValidateBlock(finalBlock));
-          REQUIRE(blockchainWrapper7.state.rdposValidateBlock(finalBlock));
-
-          blockchainWrapper1.state.rdposProcessBlock(finalBlock);
-          blockchainWrapper1.storage.pushBack(FinalizedBlock(finalBlock));
-
-          blockchainWrapper2.state.rdposProcessBlock(finalBlock);
-          blockchainWrapper2.storage.pushBack(FinalizedBlock(finalBlock));
-
-          blockchainWrapper3.state.rdposProcessBlock(finalBlock);
-          blockchainWrapper3.storage.pushBack(FinalizedBlock(finalBlock));
-
-          blockchainWrapper4.state.rdposProcessBlock(finalBlock);
-          blockchainWrapper4.storage.pushBack(FinalizedBlock(finalBlock));
-
-          blockchainWrapper5.state.rdposProcessBlock(finalBlock);
-          blockchainWrapper5.storage.pushBack(FinalizedBlock(finalBlock));
-
-          blockchainWrapper6.state.rdposProcessBlock(finalBlock);
-          blockchainWrapper6.storage.pushBack(FinalizedBlock(finalBlock));
-
-          blockchainWrapper7.state.rdposProcessBlock(finalBlock);
-          blockchainWrapper7.storage.pushBack(FinalizedBlock(finalBlock));
-
-          blockchainWrapper8.state.rdposProcessBlock(finalBlock);
-          blockchainWrapper8.storage.pushBack(FinalizedBlock(finalBlock));
-          ++blocks;
-          break;
-        }
+    // When consensus is running, we can just wait for the blocks to be created.
+    auto rdPoSBlockFuture = std::async(std::launch::async, [&]() {
+      while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
+        // otherwise it will sleep forever
+        Address targetOfTransactions(Utils::randBytes(20));
+        TxBlock tx (targetOfTransactions,
+              chainOwnerAddress,
+              Bytes(),
+              8080,
+              blockchainWrapper1.state.getNativeNonce(chainOwnerAddress),
+              1000000000000000000,
+              21000,
+              1000000000,
+              1000000000,
+              chainOwnerPrivKey);
+        blockchainWrapper1.p2p.broadcastTxBlock(tx);
+        blockchainWrapper1.state.addTx(std::move(tx));
       }
-    }
+    });
 
-    blockchainWrapper1.state.rdposStopWorker();
-    blockchainWrapper2.state.rdposStopWorker();
-    blockchainWrapper3.state.rdposStopWorker();
-    blockchainWrapper4.state.rdposStopWorker();
-    blockchainWrapper5.state.rdposStopWorker();
-    blockchainWrapper6.state.rdposStopWorker();
-    blockchainWrapper7.state.rdposStopWorker();
-    blockchainWrapper8.state.rdposStopWorker();
+    REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+
+
+    blockchainWrapper1.consensus.stop();
+    blockchainWrapper2.consensus.stop();
+    blockchainWrapper3.consensus.stop();
+    blockchainWrapper4.consensus.stop();
+    blockchainWrapper5.consensus.stop();
+    blockchainWrapper6.consensus.stop();
+    blockchainWrapper7.consensus.stop();
+    blockchainWrapper8.consensus.stop();
     // Sleep so it can conclude the last operations.
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }

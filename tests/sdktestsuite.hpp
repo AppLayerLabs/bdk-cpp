@@ -70,6 +70,8 @@ class SDKTestSuite {
       };
     };
 
+  // TODO: update tests here because Consensus now exists
+
   public:
     /**
      * Constructor for SDKTestSuite based on a given Options.
@@ -84,7 +86,6 @@ class SDKTestSuite {
     {}
 
     ~SDKTestSuite() {
-      state_.rdposStopWorker();
       p2p_.stopDiscovery();
       p2p_.stop();
       http_.stop();

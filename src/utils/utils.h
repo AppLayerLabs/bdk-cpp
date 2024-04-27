@@ -51,6 +51,42 @@ using Bytes = std::vector<Byte>; ///< Typedef for Bytes.
 template <std::size_t N> using BytesArr = std::array<Byte, N>; ///< Typedef for BytesArr.
 using BytesArrView = std::span<const Byte, std::dynamic_extent>; ///< Typedef for BytesArrView.
 
+// Base case for the recursive helper - now using requires for an empty body function
+template<size_t I = 0, typename... Tp>
+requires (I == sizeof...(Tp))
+void printDurationsHelper(const std::string& id, std::tuple<Tp...>&, const std::array<std::string, sizeof...(Tp)>&) {
+    // Empty body, stopping condition for the recursion
+}
+
+// Recursive helper function to print each duration - with requires
+template<size_t I = 0, typename... Tp>
+requires (I < sizeof...(Tp))
+void printDurationsHelper(const std::string& id, std::tuple<Tp...>& t, const std::array<std::string, sizeof...(Tp)>& names) {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - std::get<I>(t));
+    std::string funcName = names[I]; // Creating a copy to use with std::move
+    Logger::logToDebug(LogType::DEBUG, Log::P2PManager, std::move(funcName),
+      "Timepoint at: " + id + " for " + names[I] + ": " + std::to_string(std::get<I>(t).time_since_epoch().count()) + "ms "
+      + " Duration for " + names[I] + ": " + std::to_string(duration.count()) + "ms, exitted at: " + std::to_string(now.time_since_epoch().count()) + "ms"
+    );
+    // Recursive call for the next element in the tuple
+    printDurationsHelper<I + 1, Tp...>(id, t, names);
+}
+
+template<typename... Tp>
+struct printAtExit {
+    std::tuple<Tp...> timePoints;
+    std::array<std::string, sizeof...(Tp)> names;
+    const std::string id;
+
+    printAtExit(const std::string& id_, const std::array<std::string, sizeof...(Tp)>& names_, Tp&... timePoints_) :
+    timePoints(std::tie(timePoints_...)), names(names_), id(id_) {}
+
+    ~printAtExit() {
+        printDurationsHelper(id, timePoints, names);
+    }
+};
+
 ///@{
 /** Typedef for primitive integer type. */
 using uint24_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<24, 24, boost::multiprecision::unsigned_magnitude, boost::multiprecision::cpp_int_check_type::checked, void>>;
@@ -740,6 +776,13 @@ namespace Utils {
    * @return The converted string as a bytes vector.
    */
   inline Bytes stringToBytes(const std::string& str) { return Bytes(str.cbegin(), str.cend()); }
+
+  /**
+   * Shorthand for obtaining a milliseconds-since-epoch uint64_t timestamp from std::chrono
+   */
+  inline uint64_t getCurrentTimeMillisSinceEpoch() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+  }
 };
 
 #endif  // UTILS_H

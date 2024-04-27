@@ -9,11 +9,12 @@ See the LICENSE.txt file in the project root for more information.
 #define P2P_ENCODING_H
 
 #include <future>
+#include <optional>
 
 #include "../../utils/utils.h"
 #include "../../utils/safehash.h"
 #include "../../utils/tx.h"
-#include "../../utils/mutableblock.h"
+#include "../../utils/finalizedblock.h"
 #include "../../utils/options.h"
 
 namespace P2P {
@@ -22,6 +23,19 @@ namespace P2P {
 
   /// Enum for identifying which type of connection is being made.
   enum ConnectionType { INBOUND, OUTBOUND };
+
+  /**
+   * Messaging concepts:
+   *
+   * Request: a point-to-point message that requires an Answer;
+   * Answer: a message that fulfills a Request;
+   * Broadcast: use only for messages that must be routed to all nodes
+   *   automatically by the networking engine;
+   * Notification: one-way message between two peers.
+   *
+   * "NotifyAll" methods mean sending a notification to all peers
+   *   (this is not routed; the routed version is a Broadcast).
+   */
 
   /**
    * Enum for identifying from which type is a given node.
@@ -35,7 +49,7 @@ namespace P2P {
   enum NodeType { NORMAL_NODE, DISCOVERY_NODE };
 
   /// Enum for identifying the type of a request.
-  enum RequestType { Requesting, Answering, Broadcasting };
+  enum RequestType { Requesting, Answering, Broadcasting, Notifying };
 
   /// Enum for identifying the type of a command.
   enum CommandType {
@@ -46,20 +60,25 @@ namespace P2P {
     BroadcastValidatorTx,
     BroadcastTx,
     BroadcastBlock,
-    RequestTxs
+    BroadcastInfo, // FIXME/TODO: Remove this message/command if it's not going to be broadcasted (routed)
+    RequestTxs,
+    NotifyInfo,
+    RequestBlock
   };
 
   /**
    * List of type prefixes (as per RequestType) for easy conversion.
    * Reference is as follows:
-   * - "00" = %Request
+   * - "00" = Request
    * - "01" = Answer
    * - "02" = Broadcast
+   * - "03" = Notification
    */
   inline extern const std::vector<Bytes> typePrefixes {
     Bytes(1, 0x00), // Request
     Bytes(1, 0x01), // Answer
-    Bytes(1, 0x02)  // Broadcast
+    Bytes(1, 0x02), // Broadcast
+    Bytes(1, 0x03)  // Notification
   };
 
   /**
@@ -72,7 +91,10 @@ namespace P2P {
    * - "0004" = BroadcastValidatorTx
    * - "0005" = BroadcastTx
    * - "0006" = BroadcastBlock
-   * - "0007" = RequestTxs
+   * - "0007" = BroadcastInfo
+   * - "0008" = RequestTxs
+   * - "0009" = NotifyInfo
+   * - "000A" = RequestBlock
    */
   inline extern const std::vector<Bytes> commandPrefixes {
     Bytes{0x00, 0x00}, // Ping
@@ -82,7 +104,10 @@ namespace P2P {
     Bytes{0x00, 0x04}, // BroadcastValidatorTx
     Bytes{0x00, 0x05}, // BroadcastTx
     Bytes{0x00, 0x06}, // BroadcastBlock
-    Bytes{0x00, 0x07}  // RequestTxs
+    Bytes{0x00, 0x07}, // BroadcastInfo
+    Bytes{0x00, 0x08}, // RequestTxs
+    Bytes{0x00, 0x09}, // NotifyInfo
+    Bytes{0x00, 0x0A}  // RequestBlock
   };
 
   /**
@@ -136,39 +161,75 @@ namespace P2P {
   using NodeID = std::pair<boost::asio::ip::address, uint16_t>;
 
   /// Struct with information about a given node.
-  struct NodeInfo {
-    /// Node version.
-    uint64_t nodeVersion = 0;
+  class NodeInfo {
+    private:
+      /// Node version.
+      uint64_t nodeVersion_;
 
-    /// Current epoch timestamp, in microseconds.
-    uint64_t currentTimestamp = 0;
+      /// Current node epoch timestamp, in microseconds.
+      /// This is the timestamp that the node answered us
+      uint64_t currentNodeTimestamp_;
 
-    /// Height of the latest block the node is at.
-    uint64_t latestBlockHeight = 0;
+      /// Current epoch timestamp, in seconds.
+      /// Timestamp for when we parsed the NodeInfo
+      uint64_t currentTimestamp_;
 
-    /// %Hash of the latest block the node is at.
-    Hash latestBlockHash = Hash();
+      /// Difference between the current node timestamp and the current timestamp, in seconds.
+      /// int because the node clock can be ahead or behind our system clock.
+      /// This **does not** determine latency.
+      int64_t timeDifference_;
 
-    /// Equality operator. Checks if all members are the same.
-    bool operator==(const NodeInfo& other) const {
-      return (
-        nodeVersion == other.nodeVersion &&
-        currentTimestamp == other.currentTimestamp &&
-        latestBlockHeight == other.latestBlockHeight &&
-        latestBlockHash == other.latestBlockHash
-      );
-    }
+      /// Height of the latest block the node is at.
+      uint64_t latestBlockHeight_;
 
-    /// Assignment operator.
-    NodeInfo& operator=(const NodeInfo& other) {
-      if (this != &other) {
-        nodeVersion = other.nodeVersion;
-        currentTimestamp = other.currentTimestamp;
-        latestBlockHeight = other.latestBlockHeight;
-        latestBlockHash = other.latestBlockHash;
+      /// %Hash of the latest block the node is at.
+      Hash latestBlockHash_;
+
+    public:
+      NodeInfo() : nodeVersion_(0), currentNodeTimestamp_(0), currentTimestamp_(0),
+        timeDifference_(0), latestBlockHeight_(0), latestBlockHash_(Hash()) {};
+
+      /// Default constructor.
+      NodeInfo(const uint64_t& nodeVersion, const uint64_t& currentNodeTimestamp,
+        const uint64_t& currentTimestamp, const int64_t& timeDifference,
+        const uint64_t& latestBlockHeight, const Hash& latestBlockHash
+      ) : nodeVersion_(nodeVersion), currentNodeTimestamp_(currentNodeTimestamp),
+          currentTimestamp_(currentTimestamp), timeDifference_(timeDifference),
+          latestBlockHeight_(latestBlockHeight), latestBlockHash_(latestBlockHash) {};
+
+      /// Equality operator. Checks if all members are the same.
+      bool operator==(const NodeInfo& other) const {
+        return (
+          this->nodeVersion_ == other.nodeVersion_ &&
+          this->currentNodeTimestamp_ == other.currentNodeTimestamp_ &&
+          this->currentTimestamp_ == other.currentTimestamp_ &&
+          this->timeDifference_ == other.timeDifference_ &&
+          this->latestBlockHeight_ == other.latestBlockHeight_ &&
+          this->latestBlockHash_ == other.latestBlockHash_
+        );
       }
-      return *this;
-    }
+
+      /// Assignment operator.
+      NodeInfo& operator=(const NodeInfo& other) {
+        if (this != &other) {
+          this->nodeVersion_ = other.nodeVersion_;
+          this->currentTimestamp_ = other.currentTimestamp_;
+          this->currentNodeTimestamp_ = other.currentNodeTimestamp_;
+          this->timeDifference_ = other.timeDifference_;
+          this->latestBlockHeight_ = other.latestBlockHeight_;
+          this->latestBlockHash_ = other.latestBlockHash_;
+        }
+        return *this;
+      }
+
+      /// Getter functions
+      const uint64_t& nodeVersion() const { return this->nodeVersion_; }
+      const uint64_t& currentNodeTimestamp() const { return this->currentNodeTimestamp_; }
+      const uint64_t& currentTimestamp() const { return this->currentTimestamp_; }
+      const int64_t& timeDifference() const { return this->timeDifference_; }
+      const uint64_t& latestBlockHeight() const { return this->latestBlockHeight_; }
+      const Hash& latestBlockHash() const { return this->latestBlockHash_; }
+
   };
 
   /// Helper class used to create requests.
@@ -187,7 +248,7 @@ namespace P2P {
        * @return The formatted request.
        */
       static Message info(
-        const FinalizedBlock& latestBlock,
+        const std::shared_ptr<const FinalizedBlock>& latestBlock,
         const Options& options
       );
 
@@ -208,6 +269,13 @@ namespace P2P {
        * @return The formatted request.
        */
       static Message requestTxs();
+
+      /**
+       * Create a `RequestBlock` request.
+       * @param height The height of the block being requested.
+       * @return The formatted request.
+       */
+      static Message requestBlock(uint64_t height);
   };
 
   /// Helper class used to parse requests.
@@ -248,6 +316,13 @@ namespace P2P {
        * @return `true` if the message is valid, `false` otherwise.
        */
       static bool requestTxs(const Message& message);
+
+      /**
+       * Parse a `RequestBlock` message.
+       * @param message The message to parse.
+       * @return Height of the block being requested.
+       */
+      static uint64_t requestBlock(const Message& message);
   };
 
   /// Helper class used to create answers to requests.
@@ -268,7 +343,7 @@ namespace P2P {
        * @return The formatted answer.
        */
       static Message info(const Message& request,
-        const FinalizedBlock& latestBlock,
+        const std::shared_ptr<const FinalizedBlock>& latestBlock,
         const Options& options
       );
 
@@ -300,6 +375,16 @@ namespace P2P {
        */
       static Message requestTxs(const Message& request,
         const std::unordered_map<Hash, TxBlock, SafeHash>& txs
+      );
+
+      /**
+       * Create a `RequestBlock` answer.
+       * @param request The request message.
+       * @param block An optional containing the requested block, or empty if we don't have it.
+       * @return The formatted answer.
+       */
+      static Message requestBlock(const Message& request,
+        const std::optional<FinalizedBlock>& block
       );
   };
 
@@ -348,6 +433,16 @@ namespace P2P {
       static std::vector<TxBlock> requestTxs(
         const Message& message, const uint64_t& requiredChainId
       );
+
+      /**
+       * Parse a `RequestBlock` answer.
+       * @param message The answer to parse.
+       * @param requiredChainId The chain ID to use as reference.
+       * @return The requested block, or an empty optional if the peer did not have it.
+       */
+      static std::optional<FinalizedBlock> requestBlock(
+        const Message& message, const uint64_t& requiredChainId
+      );
   };
 
   /// Helper class used to create broadcast messages.
@@ -372,7 +467,14 @@ namespace P2P {
        * @param block The block to broadcast.
        * @return The formatted message.
        */
-      static Message broadcastBlock(const FinalizedBlock& block);
+      static Message broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
+
+      /**
+       * Create a message to broadcast the node's information.
+       * @param nodeInfo The node's information.
+       * @return The formatted message.
+       */
+      static Message broadcastInfo(const std::shared_ptr<const FinalizedBlock>& latestBlock, const Options& options);
   };
 
   /// Helper class used to parse broadcast messages.
@@ -401,6 +503,35 @@ namespace P2P {
        * @return The build block object.
        */
       static FinalizedBlock broadcastBlock(const Message& message, const uint64_t& requiredChainId);
+
+      /**
+       * Parse a broadcasted message for a node's information.
+       * @param message The message that was broadcast.
+       * @return The node's information.
+       */
+      static NodeInfo broadcastInfo(const Message& message);
+  };
+
+  /// Helper class used to create notification messages.
+  class NotificationEncoder {
+    public:
+      /**
+       * Create a message to notify the node's information.
+       * @param nodeInfo The node's information.
+       * @return The formatted message.
+       */
+      static Message notifyInfo(const std::shared_ptr<const FinalizedBlock>& latestBlock, const Options& options);
+  };
+
+  /// Helper class used to parse notification messages.
+  class NotificationDecoder {
+    public:
+      /**
+       * Parse a notification message for a node's information.
+       * @param message The message that was broadcast.
+       * @return The node's information.
+       */
+      static NodeInfo notifyInfo(const Message& message);
   };
 
   /**
@@ -461,6 +592,7 @@ namespace P2P {
       friend class RequestEncoder;
       friend class AnswerEncoder;
       friend class BroadcastEncoder;
+      friend class NotificationEncoder;
       friend class Session;
       friend class Request;
   };
@@ -481,12 +613,12 @@ namespace P2P {
        * @param command The request's command type.
        * @param id The request's ID.
        * @param nodeId The request's host node ID.
-        * @param message The request's message.
+       * @param message The request's message.
        */
       Request(
         const CommandType& command, const RequestID& id, const NodeID& nodeId,
-        std::shared_ptr<const Message> message
-      ) : command_(command), id_(id), nodeId_(nodeId), message_(std::move(message)) {};
+        const std::shared_ptr<const Message>& message
+      ) : command_(command), id_(id), nodeId_(nodeId), message_(message) {};
 
       /// Getter for `command_`.
       const CommandType& command() const { return this->command_; };
@@ -507,5 +639,9 @@ namespace P2P {
       void setAnswer(const std::shared_ptr<const Message> answer) { answer_.set_value(answer); isAnswered_ = true; };
   };
 };
+
+inline std::string toString(const P2P::NodeID& nodeId) {
+  return nodeId.first.to_string() + ":" + std::to_string(nodeId.second);
+}
 
 #endif  // P2P_ENCODING_H

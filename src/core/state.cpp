@@ -109,12 +109,7 @@ State::State(
 }
 
 State::~State() {
-  std::unique_lock lock(this->stateMutex_);
   evmc_destroy(this->vm_);
-  // We need to explicity delete the CM until the DumpManager is done
-  this->contracts_.erase(ProtocolContractAddresses.at("ContractManager"));
-  // Then clear all the contracts
-  this->contracts_.clear();
 }
 
 DBBatch State::dump() const {
@@ -380,13 +375,13 @@ TxInvalid State::validateTransaction(const TxBlock& tx) const {
 }
 
 TxInvalid State::addTx(TxBlock&& tx) {
-  auto TxInvalid = this->validateTransaction(tx);
-  if (TxInvalid) return TxInvalid;
+  const auto txResult = this->validateTransaction(tx);
+  if (txResult) return txResult;
   std::unique_lock lock(this->stateMutex_);
   auto txHash = tx.hash();
   this->mempool_.insert({txHash, std::move(tx)});
-  Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was added to the mempool");
-  return TxInvalid;
+  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + txHash.hex().get() + " was added to the mempool");
+  return txResult;
 }
 
 bool State::addValidatorTx(const TxValidator& tx) {
