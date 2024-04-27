@@ -207,7 +207,7 @@ namespace P2P{
   ) {
     RequestDecoder::info(*message);
     this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::info(
-      *message, *this->storage_.latest(), this->options_
+      *message, this->storage_.latest(), this->options_
     )));
   }
 
@@ -512,7 +512,7 @@ namespace P2P{
   }
 
   NodeInfo ManagerNormal::requestNodeInfo(const NodeID& nodeId) {
-    auto request = std::make_shared<const Message>(RequestEncoder::info(*this->storage_.latest(), this->options_));
+    auto request = std::make_shared<const Message>(RequestEncoder::info(this->storage_.latest(), this->options_));
     Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
@@ -546,7 +546,7 @@ namespace P2P{
    * @param height The block height to request.
    * @return The requested block.
    */
-  std::optional<Block> ManagerNormal::requestBlock(const NodeID &nodeId, const uint64_t& height) {
+  std::optional<FinalizedBlock> ManagerNormal::requestBlock(const NodeID &nodeId, const uint64_t& height) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestBlock(height));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
@@ -584,7 +584,7 @@ namespace P2P{
     this->broadcastMessage(broadcast);
   }
 
-  void ManagerNormal::broadcastBlock(const FinalizedBlock& block) {
+  void ManagerNormal::broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastBlock(block));
     this->broadcastMessage(broadcast);
   }

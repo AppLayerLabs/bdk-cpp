@@ -29,7 +29,7 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
 // Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
 // And that is not the purpose of network/thread testing.
 // Definition from state.cpp, when linking, the compiler should find the function.
-Block createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
+FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
 
 namespace TP2P {
 
@@ -238,7 +238,7 @@ namespace TP2P {
 
       REQUIRE(p2p2NodeInfo.nodeVersion() == blockchainWrapper2.options.getVersion());
       REQUIRE(p2p2NodeInfo.latestBlockHeight() == blockchainWrapper2.storage.latest()->getNHeight());
-      REQUIRE(p2p2NodeInfo.latestBlockHash() == blockchainWrapper2.storage.latest()->hash());
+      REQUIRE(p2p2NodeInfo.latestBlockHash() == blockchainWrapper2.storage.latest()->getHash());
     }
 
     SECTION("10 P2P::ManagerNormal 1 P2P::ManagerDiscovery") {
@@ -246,8 +246,8 @@ namespace TP2P {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      Block genesis(Hash(), 0, 0);
-      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesisMutable(Hash(), 0, 0);
+      FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysP2P) {

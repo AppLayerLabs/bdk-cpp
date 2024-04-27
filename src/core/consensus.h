@@ -52,7 +52,7 @@ class Consensus {
      * Sign a block using the Validator's private key.
      * @param block The block to sign.
      */
-    void signBlock(Block& block);
+    FinalizedBlock signBlock(MutableBlock& block);
 
   public:
     /**

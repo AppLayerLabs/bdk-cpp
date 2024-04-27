@@ -24,7 +24,8 @@ namespace Log {
   const std::string blockchain = "Blockchain";
   const std::string storage = "Storage";
   const std::string snowmanVM = "SnowmanVM";
-  const std::string block = "Block";
+  const std::string mutableBlock = "MutableBlock";
+  const std::string finalizedBlock = "FinalizedBlock";
   const std::string db = "DB";
   const std::string state = "State";
   const std::string grpcServer = "gRPCServer";
@@ -53,6 +54,8 @@ namespace Log {
   const std::string nodeConns = "P2P::NodeConns";
   const std::string consensus = "Consensus";
   const std::string contractHost = "ContractHost";
+  const std::string dumpWorker = "DumpWorker";
+  const std::string dumpManager = "DumpManager";
   ///@}
 }
 

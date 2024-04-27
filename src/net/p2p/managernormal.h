@@ -259,7 +259,7 @@ namespace P2P {
        * @param height The block height to request.
        * @return The requested block, or an empty optional on error.
        */
-      std::optional<Block> requestBlock(const NodeID& nodeId, const uint64_t& height);
+      std::optional<FinalizedBlock> requestBlock(const NodeID& nodeId, const uint64_t& height);
 
       /**
        * Broadcast a Validator transaction to all connected nodes.
@@ -277,7 +277,7 @@ namespace P2P {
        * Broadcast a block to all connected nodes.
        * @param block The block to broadcast.
        */
-      void broadcastBlock(const std::shared_ptr<const Block> block);
+      void broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
 
       /**
        * Broadcast current node info

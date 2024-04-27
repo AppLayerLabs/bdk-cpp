@@ -9,9 +9,9 @@ See the LICENSE.txt file in the project root for more information.
 
 Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
-  db_(blockchainPath + "/database"),
-  storage_(db_, options_),
-  state_(db_, storage_, p2p_, options_),
+  db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),
+  storage_(options_),
+  state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(options_)), options_),
   p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
   syncer_(p2p_, storage_, state_),
@@ -94,7 +94,7 @@ bool Syncer::sync(int tries) {
     Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Downloading block " + std::to_string(downloadNHeight) + " from " + toString(highestNode.first));
 
     // Request the next block we need from the chosen peer
-    std::optional<Block> result = this->p2p_.requestBlock(highestNode.first, downloadNHeight);
+    std::optional<FinalizedBlock> result = this->p2p_.requestBlock(highestNode.first, downloadNHeight);
 
     // If the request failed, retry it (unless we set a finite number of tries and we've just run out of them)
     if (!result) {
@@ -106,7 +106,7 @@ bool Syncer::sync(int tries) {
 
     // Validate and connect the block
     try {
-      Block& block = result.value();
+      FinalizedBlock& block = result.value();
       if (block.getNHeight() != downloadNHeight) {
         throw DynamicException("Peer sent block with wrong height " + std::to_string(block.getNHeight())
                                 + " instead of " + std::to_string(downloadNHeight));

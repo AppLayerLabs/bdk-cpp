@@ -9,35 +9,43 @@ See the LICENSE.txt file in the project root for more information.
 #include "storage.h"
 #include "state.h"
 #include "../contract/contractmanager.h"
-#include "../utils/block.h"
 
-rdPoS::rdPoS(DB& db, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options, State& state)
-: BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID(), db),
-  options_(options), storage_(storage), p2p_(p2p), state_(state),
-  validatorKey_(options.getValidatorPrivKey()),
-  isValidator_((this->validatorKey_) ? true : false),
-  randomGen_(Hash()), minValidators_(options.getMinValidators())
+rdPoS::rdPoS(const DB& db,
+             DumpManager& dumpManager,
+             const Storage& storage,
+             P2P::ManagerNormal& p2p,
+             const Options& options,
+             State& state)
+  : BaseContract("rdPoS", ProtocolContractAddresses.at("rdPoS"), Address(), options.getChainID()),
+    options_(options),
+    storage_(storage),
+    p2p_(p2p),
+    state_(state),
+    validatorKey_(options.getValidatorPrivKey()),
+    isValidator_((this->validatorKey_) ? true : false),
+    randomGen_(Hash()), minValidators_(options.getMinValidators())
 {
   // Initialize blockchain.
   Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Initializing rdPoS.");
-  initializeBlockchain();
-
   /**
    * Load information from DB, stored as following:
    * DBPrefix::rdPoS -> rdPoS mapping (addresses)
    * DBPrefix::rdPoS -> misc: used for randomness currently.
    * Order doesn't matter, Validators are stored in a set (sorted by default).
    */
-  auto validatorsDb = db_.getBatch(DBPrefix::rdPoS);
+  auto validatorsDb = db.getBatch(DBPrefix::rdPoS);
   if (validatorsDb.empty()) {
     // No rdPoS in DB, this should have been initialized by Storage.
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "No rdPoS in DB, cannot proceed.");
-    throw DynamicException("No rdPoS in DB.");
-  }
-  Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
-  // TODO: check if no index is missing from DB.
-  for (const auto& validator : validatorsDb) {
-    this->validators_.insert(Validator(Address(validator.value)));
+    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "No rdPoS in DB, initializing chain with Options.");
+    for (const auto& address : this->options_.getGenesisValidators()) {
+      this->validators_.insert(Validator(address));
+    }
+  } else {
+    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
+    // TODO: check if no index is missing from DB.
+    for (const auto& validator : validatorsDb) {
+      this->validators_.insert(Validator(Address(validator.value)));
+    }
   }
 
   // Load latest randomness from DB, populate and shuffle the random list.
@@ -45,31 +53,14 @@ rdPoS::rdPoS(DB& db, const Storage& storage, P2P::ManagerNormal& p2p, const Opti
   randomGen_.setSeed(this->bestRandomSeed_);
   this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());
   randomGen_.shuffle(randomList_);
+  // Register itself at dump management
+  dumpManager.pushBack(this);
 }
 
-rdPoS::~rdPoS() {
-  DBBatch validatorsBatch;
-  Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Descontructing rdPoS, saving to DB.");
-  // Save rdPoS to DB.
-  uint64_t index = 0;
-  for (const auto &validator : this->validators_) {
-    validatorsBatch.push_back(Utils::uint64ToBytes(index), validator.get(), DBPrefix::rdPoS);
-    index++;
-  }
-  this->db_.putBatch(validatorsBatch);
-}
+rdPoS::~rdPoS() {}
 
-bool rdPoS::validateBlock(const Block& block) const {
+bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   auto latestBlock = this->storage_.latest();
-  // Check if block signature matches randomList[0]
-  if (!block.isFinalized()) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-      "Block is not finalized, cannot be validated. latest nHeight: "
-      + std::to_string(latestBlock->getNHeight())
-      + " Block nHeight: " + std::to_string(block.getNHeight())
-    );
-    return false;
-  }
 
   if (Secp256k1::toAddress(block.getValidatorPubKey()) != randomList_[0]) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
@@ -206,11 +197,7 @@ bool rdPoS::validateBlock(const Block& block) const {
   return true;
 }
 
-Hash rdPoS::processBlock(const Block& block) {
-  if (!block.isFinalized()) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "Block is not finalized.");
-    throw DynamicException("Block is not finalized.");
-  }
+Hash rdPoS::processBlock(const FinalizedBlock& block) {
   this->validatorMempool_.clear();
   this->randomList_ = std::vector<Validator>(this->validators_.begin(), this->validators_.end());
   this->bestRandomSeed_ = block.getBlockRandomness();
@@ -271,17 +258,6 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
   return true;
 }
 
-void rdPoS::initializeBlockchain() const {
-  auto validatorsDb = db_.getBatch(DBPrefix::rdPoS);
-  if (validatorsDb.empty()) {
-    Logger::logToDebug(LogType::INFO, Log::rdPoS,__func__, "No rdPoS in DB, initializing.");
-    // Use the genesis validators from Options, OPTIONS JSON FILE VALIDATOR ARRAY ORDER **MATTERS**
-    for (uint64_t i = 0; i < this->options_.getGenesisValidators().size(); ++i) {
-      this->db_.put(Utils::uint64ToBytes(i), this->options_.getGenesisValidators()[i].get(), DBPrefix::rdPoS);
-    }
-  }
-}
-
 Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
   if (txs.empty()) return Hash();
   Bytes seed;
@@ -295,8 +271,8 @@ Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {
 }
 
 rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) {
-  constexpr Functor randomHashHash(Bytes{0xcf, 0xff, 0xe7, 0x46});
-  constexpr Functor randomSeedHash(Bytes{0x6f, 0xc5, 0xa2, 0xd6});
+  constexpr Functor randomHashHash(3489654598);
+  constexpr Functor randomSeedHash(1875223254);
   if (tx.getData().size() != 36) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator data size is not 36 bytes.");
     // Both RandomHash and RandomSeed are 32 bytes, so if the data size is not 36 bytes, it is invalid.
@@ -308,8 +284,24 @@ rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) 
   } else if (functionABI == randomSeedHash) {
     return TxValidatorFunction::RANDOMSEED;
   } else {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator function ABI is not recognized.");
+    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator function ABI is not recognized: " + std::to_string(functionABI.value) + " tx Data: " + Hex::fromBytes(tx.getData()).get());
     return TxValidatorFunction::INVALID;
   }
 }
 
+DBBatch rdPoS::dump() const
+{
+  DBBatch dbBatch;
+  Logger::logToDebug(LogType::INFO,
+                     Log::rdPoS,
+                     __func__,
+                     "Create batch operations.");
+  // index
+  uint64_t i = 0;
+  // add batch operations
+  for (const auto &validator : this->validators_) {
+    dbBatch.push_back(Utils::uint64ToBytes(i), validator.get(), DBPrefix::rdPoS);
+    i++;
+  }
+  return dbBatch;
+}

@@ -63,7 +63,7 @@ class Syncer {
 class Blockchain {
   private:
     Options options_;           ///< Options singleton.
-    DB db_;                     ///< Database.
+    const DB db_;                     ///< Database.
     Storage storage_;           ///< Blockchain storage.
     State state_;               ///< Blockchain state.
     P2P::ManagerNormal p2p_;    ///< P2P connection manager.
@@ -84,7 +84,7 @@ class Blockchain {
     ///@{
     /** Getter. */
     Options& getOptions() { return this->options_; }
-    DB& getDB() { return this->db_; }
+    const DB& getDB() { return this->db_; }
     Storage& getStorage() { return this->storage_; }
     State& getState() { return this->state_; }
     P2P::ManagerNormal& getP2P() { return this->p2p_; }

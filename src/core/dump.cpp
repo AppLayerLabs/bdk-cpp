@@ -35,7 +35,7 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
     blockHeight = storage_.latest()->getNHeight();
     // Emplace DBBatch operations
     Logger::logToDebug(LogType::INFO,
-                       Log::dump,
+                       Log::dumpManager,
                        __func__,
                        "Emplace DBBatch operations");
     for (const auto dumpable: dumpables_) {
@@ -61,12 +61,12 @@ DumpWorker::DumpWorker(const Storage& storage,
   : storage_(storage),
     dumpManager_(dumpManager)
 {
-  Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpWorker Started.");
+  Logger::logToDebug(LogType::INFO, Log::dumpWorker, __func__, "DumpWorker Started.");
 }
 
 DumpWorker::~DumpWorker()
 {
-  Logger::logToDebug(LogType::INFO, Log::dump, __func__, "DumpWorker Stopped.");
+  Logger::logToDebug(LogType::INFO, Log::dumpWorker, __func__, "DumpWorker Stopped.");
 }
 
 bool DumpWorker::workerLoop()
@@ -75,7 +75,7 @@ bool DumpWorker::workerLoop()
   while (!this->stopWorker_) {
     if (latestBlock + 100 < this->storage_.currentChainSize()) {
       Logger::logToDebug(LogType::INFO,
-                         Log::dump,
+                         Log::dumpWorker,
                          __func__,
                          "Current size >= 100");
       dumpManager_.dumpToDB();

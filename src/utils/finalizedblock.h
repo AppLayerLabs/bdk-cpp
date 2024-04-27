@@ -76,7 +76,7 @@ class FinalizedBlock {
         validatorMerkleRoot_(validatorMerkleRoot), txMerkleRoot_(txMerkleRoot),
         timestamp_(timestamp), nHeight_(nHeight),
         txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(hash), size_(size)
-    {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block created");}
+    {Logger::logToDebug(LogType::INFO, Log::finalizedBlock, __func__, "Finalized block created");}
 
     /**
      * Move constructor.
@@ -95,7 +95,7 @@ class FinalizedBlock {
       txs_(std::move(block.txs_)),
       hash_(std::move(block.hash_)),
       size_(block.size_)
-    {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block moved");}
+    {Logger::logToDebug(LogType::INFO, Log::finalizedBlock, __func__, "Finalized block moved");}
 
     /**
      * Copy constructor.
@@ -114,7 +114,7 @@ class FinalizedBlock {
       txs_(block.txs_),
       hash_(block.hash_),
       size_(block.size_)
-    {Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Finalized block copied");}
+    {Logger::logToDebug(LogType::INFO, Log::finalizedBlock, __func__, "Finalized block copied");}
 
 
     static FinalizedBlock fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId);

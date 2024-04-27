@@ -23,7 +23,6 @@ See the LICENSE.txt file in the project root for more information.
 // Forward declarations.
 class rdPoS;
 class Storage;
-class Block;
 class State;
 
 // "0x6fc5a2d6" -> Function for random tx
@@ -64,12 +63,6 @@ class rdPoS : public BaseContract {
     Hash bestRandomSeed_; ///< Best randomness seed (taken from the last block).
     const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
 
-    /**
-     * Initializes the blockchain with the default information for rdPoS.
-     * Called by the constructor if no previous blockchain is found.
-     */
-    void initializeBlockchain() const;
-
   public:
     /// Enum for Validator transaction functions.
     enum TxValidatorFunction { INVALID, RANDOMHASH, RANDOMSEED };
@@ -86,18 +79,16 @@ class rdPoS : public BaseContract {
      * @param state Reference to the blockchain's state.
      * @throw DynamicException if there are no Validators registered in the database.
      */
-    rdPoS(DB& db, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options, State& state);
+    rdPoS(const DB& db, DumpManager& manager, const Storage& storage, P2P::ManagerNormal& p2p, const Options& options, State& state);
 
     ~rdPoS() override;  ///< Destructor.
 
     ///@{
     /** Getter. */
-    const std::set<Validator>& getValidators() const { return this->validators_; }
-    const std::vector<Validator>& getRandomList() const { return this->randomList_; }
-    const std::unordered_map<Hash, TxValidator, SafeHash>& getMempool() const {
-      return this->validatorMempool_; // A reference because only State can access it.
-                                      // If someone is accessing thru the State, the State copies it (see State::rdposGetMempool).
-    }
+    const std::set<Validator> getValidators() const { return this->validators_; }
+    const std::vector<Validator> getRandomList() const { return this->randomList_; }
+    const std::unordered_map<Hash, TxValidator, SafeHash> getMempool() const { return this->validatorMempool_; }
+    const size_t getMempoolSize() const { return this->validatorMempool_.size(); }
     const Hash& getBestRandomSeed() const { return this->bestRandomSeed_; }
     bool getIsValidator() const { return this->isValidator_; }
     UPubKey getValidatorUPubKey() const { return Secp256k1::toUPub(this->validatorKey_); }
@@ -116,7 +107,7 @@ class rdPoS : public BaseContract {
      * @param block The block to validate.
      * @return `true` if the block is properly validated, `false` otherwise.
      */
-    bool validateBlock(const Block& block) const;
+    bool validateBlock(const FinalizedBlock& block) const;
 
     /**
      * Process a block. Should be called from State, after a block is validated but before it is added to Storage.
@@ -124,7 +115,7 @@ class rdPoS : public BaseContract {
      * @return The new randomness seed to be used for the next block.
      * @throw DynamicException if block is not finalized.
      */
-    Hash processBlock(const Block& block);
+    Hash processBlock(const FinalizedBlock& block);
 
     /**
      * Add a Validator transaction to the mempool.
@@ -156,6 +147,8 @@ class rdPoS : public BaseContract {
      */
     void clearMempool() { this->validatorMempool_.clear(); }
 
+    /// Dump overriden function.
+    DBBatch dump() const override;
 };
 
 #endif // RDPOS_H

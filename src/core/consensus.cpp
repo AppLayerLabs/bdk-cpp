@@ -12,7 +12,7 @@ void Consensus::validatorLoop() {
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Starting validator loop.");
   Validator me(Secp256k1::toAddress(Secp256k1::toUPub(this->options_.getValidatorPrivKey())));
   while (!this->stop_) {
-    std::shared_ptr<const Block> latestBlock = this->storage_.latest();
+    std::shared_ptr<const FinalizedBlock> latestBlock = this->storage_.latest();
 
     // Check if validator is within the current validator list.
     const auto currentRandomList = this->state_.rdposGetRandomList();
@@ -103,7 +103,8 @@ void Consensus::doValidatorBlock() {
   while (randomHashTxs.size() != this->state_.rdposGetMinValidators()) {
     for (const auto& [txHash, tx] : mempool) {
       if (this->stop_) return;
-      if (tx.getFrom() == randomList[i] && tx.getFunctor() == Hex::toBytes("0xcfffe746")) {
+      // 0xcfffe746 == 3489654598
+      if (tx.getFrom() == randomList[i] && tx.getFunctor().value == 3489654598) {
         randomHashTxs.emplace_back(tx);
         i++;
         break;
@@ -113,7 +114,8 @@ void Consensus::doValidatorBlock() {
   i = 1;
   while (randomnessTxs.size() != this->state_.rdposGetMinValidators()) {
     for (const auto& [txHash, tx] : mempool) {
-      if (tx.getFrom() == randomList[i] && tx.getFunctor() == Hex::toBytes("0x6fc5a2d6")) {
+      // 0x6fc5a2d6 == 1875223254
+      if (tx.getFrom() == randomList[i] && tx.getFunctor().value == 1875223254) {
         randomnessTxs.emplace_back(tx);
         i++;
         break;
@@ -123,26 +125,26 @@ void Consensus::doValidatorBlock() {
   if (this->stop_) return;
 
   // Create the block and append to all chains, we can use any storage for latest block.
-  const std::shared_ptr<const Block> latestBlock = this->storage_.latest();
-  Block block(latestBlock->hash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
+  const std::shared_ptr<const FinalizedBlock> latestBlock = this->storage_.latest();
+  MutableBlock mutableBlock(latestBlock->getHash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
 
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Filling block with transactions.");
   // Append transactions towards block.
-  for (const auto& tx: randomHashTxs) block.appendTxValidator(tx);
-  for (const auto& tx: randomnessTxs) block.appendTxValidator(tx);
+  for (const auto& tx: randomHashTxs) mutableBlock.appendTxValidator(tx);
+  for (const auto& tx: randomnessTxs) mutableBlock.appendTxValidator(tx);
   if (this->stop_) return;
 
   // Add transactions from state, sign, validate and process the block.
-  this->state_.fillBlockWithTransactions(block);
-  this->signBlock(block);
+  this->state_.fillBlockWithTransactions(mutableBlock);
+  auto block = this->signBlock(mutableBlock);
   if (!this->state_.validateNextBlock(block)) {
     Logger::logToDebug(LogType::ERROR, Log::consensus, __func__, "Block is not valid!");
     throw DynamicException("Block is not valid!");
   }
   if (this->stop_) return;
-  Hash latestBlockHash = block.hash();
+  Hash latestBlockHash = block.getHash();
   this->state_.processNextBlock(std::move(block));
-  if (this->storage_.latest()->hash() != latestBlockHash) {
+  if (this->storage_.latest()->getHash() != latestBlockHash) {
     Logger::logToDebug(LogType::ERROR, Log::consensus, __func__, "Block is not valid!");
     throw DynamicException("Block is not valid!");
   }
@@ -232,11 +234,11 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   this->p2p_.broadcastTxValidator(seedTx);
 }
 
-void Consensus::signBlock(Block &block) {
+FinalizedBlock Consensus::signBlock(MutableBlock &block) {
   uint64_t newTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::high_resolution_clock::now().time_since_epoch()
   ).count();
-  block.finalize(this->options_.getValidatorPrivKey(), newTimestamp);
+  return block.finalize(this->options_.getValidatorPrivKey(), newTimestamp);
 }
 
 void Consensus::start() {

@@ -51,7 +51,7 @@ struct TestBlockchainWrapper {
   /// Destructor.
   ~TestBlockchainWrapper() {
     state.dumpStopWorker();
-    state.rdposStopWorker();
+    consensus.stop();
     p2p.stopDiscovery();
     p2p.stop();
     http.stop();

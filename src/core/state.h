@@ -84,23 +84,20 @@ class State : Dumpable {
 
     ///@{
     /** Wrapper for the respective rdPoS function. */
-    const std::set<Validator>& rdposGetValidators() const { return this->rdpos_.getValidators(); }
-    const std::vector<Validator>& rdposGetRandomList() const { return this->rdpos_.getRandomList(); }
-    const std::unordered_map<Hash, TxValidator, SafeHash> rdposGetMempool() const { return this->rdpos_.getMempool(); }
-    const Hash& rdposGetBestRandomSeed() const { return this->rdpos_.getBestRandomSeed(); }
-    bool rdposGetIsValidator() const { return this->rdpos_.getIsValidator(); }
-    const uint32_t& rdposGetMinValidators() const { return this->rdpos_.getMinValidators(); }
-    void rdposClearMempool() { return this->rdpos_.clearMempool(); }
-    bool rdposValidateBlock(const FinalizedBlock& block) const { return this->rdpos_.validateBlock(block); }
-    Hash rdposProcessBlock(const FinalizedBlock& block) { return this->rdpos_.processBlock(block); }
-    FinalizedBlock rdposSignBlock(MutableBlock& block) { return this->rdpos_.signBlock(block); }
-    bool rdposAddValidatorTx(const TxValidator& tx) { return this->rdpos_.addValidatorTx(tx); }
-    const std::atomic<bool>& rdposCanCreateBlock() const { return this->rdpos_.canCreateBlock(); }
-    void rdposStartWorker() { this->rdpos_.startrdPoSWorker(); }
-    void rdposStopWorker() { this->rdpos_.stoprdPoSWorker(); }
+    const std::set<Validator> rdposGetValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getValidators(); }
+    const std::vector<Validator> rdposGetRandomList() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getRandomList(); }
+    const size_t rdposGetMempoolSize() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempoolSize(); }
+    const std::unordered_map<Hash, TxValidator, SafeHash> rdposGetMempool() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMempool(); }
+    const Hash& rdposGetBestRandomSeed() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getBestRandomSeed(); }
+    bool rdposGetIsValidator() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getIsValidator(); }
+    const uint32_t& rdposGetMinValidators() const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.getMinValidators(); }
+    void rdposClearMempool() { std::unique_lock lock(this->stateMutex_); return this->rdpos_.clearMempool(); }
+    bool rdposValidateBlock(const FinalizedBlock& block) const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.validateBlock(block); }
+    Hash rdposProcessBlock(const FinalizedBlock& block) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.processBlock(block); }
+    bool rdposAddValidatorTx(const TxValidator& tx) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.addValidatorTx(tx); }
     void dumpStartWorker() { this->dumpWorker_.startWorker(); }
     void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
-    size_t getDumpManagerSize() const { return this->dumpManager_.size(); }
+    size_t getDumpManagerSize() const { std::shared_lock lock(this->stateMutex_); return this->dumpManager_.size(); }
     void saveToDB() { this->dumpManager_.dumpToDB(); }
     ///@}
 

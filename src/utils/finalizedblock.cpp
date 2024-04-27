@@ -21,7 +21,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
     // Initialization for transaction counts is not required here
     // since they will be calculated during the deserialization process
 
-    Logger::logToDebug(LogType::INFO, Log::finalizedblock, __func__, "Deserializing block...");
+    Logger::logToDebug(LogType::INFO, Log::finalizedBlock, __func__, "Deserializing block...");
     MutableBlock block(bytes, requiredChainId);
 
     Hash hash = Utils::sha3(block.serializeMutableHeader(validatorMerkleRoot, txMerkleRoot));
@@ -41,7 +41,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
         bytes.size()
     );
   } catch (const std::exception &e) {
-    Logger::logToDebug(LogType::ERROR, Log::finalizedblock, __func__, "Error when deserializing a FinalizedBlock: " + std::string(e.what()));
+    Logger::logToDebug(LogType::ERROR, Log::finalizedBlock, __func__, "Error when deserializing a FinalizedBlock: " + std::string(e.what()));
     throw std::runtime_error(std::string("Error when deserializing a FinalizedBlock: ") + e.what());
   }
 }
