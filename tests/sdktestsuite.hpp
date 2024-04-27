@@ -17,6 +17,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/utils/db.h"
 #include "../src/core/blockchain.h"
 #include "../src/utils/utils.h"
+#include "contract/contracthost.h"
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
@@ -77,9 +78,9 @@ class SDKTestSuite {
      */
     explicit SDKTestSuite(const Options& options) :
       options_(options),
-      db_(options_.getRootPath() + "/db"),
-      storage_(db_, options_),
-      state_(db_, storage_, p2p_, options_),
+      db_(std::get<0>(DumpManager::getBestStateDBPath(this->options_))),
+      storage_(options_),
+      state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(this->options_)), options_),
       p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)
     {}
@@ -101,9 +102,7 @@ class SDKTestSuite {
       const std::vector<TestAccount>& accounts = {},
       const Options* const options = nullptr
     ) {
-      // Initialize the DB
-      std::string dbPath = sdkPath + "/db";
-      if (std::filesystem::exists(dbPath)) std::filesystem::remove_all(dbPath);
+      if (std::filesystem::exists(sdkPath)) std::filesystem::remove_all(sdkPath);
 
       // Create a default options if none is provided.
       std::unique_ptr<Options> options_;
@@ -111,8 +110,8 @@ class SDKTestSuite {
         // Create a genesis block with a timestamp of 1678887538000000 (2023-02-12 00:45:38 UTC)
         uint64_t genesisTimestamp = 1678887538000000;
         PrivKey genesisSigner(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8"));
-        Block genesis(Hash(), 0, 0);
-        genesis.finalize(genesisSigner, genesisTimestamp);
+        MutableBlock mutableGenesis(Hash(), 0, 0);
+        FinalizedBlock genesis = mutableGenesis.finalize(genesisSigner, genesisTimestamp);
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::vector<std::pair<Address,uint256_t>> genesisBalances;
         // Add the chain owner account to the genesis balances.
@@ -159,7 +158,7 @@ class SDKTestSuite {
      * @param hash Hash of the block to get.
      * @return A pointer to the block, or nullptr if not found.
      */
-    const std::shared_ptr<const Block> getBlock(const Hash& hash) const {
+    const std::shared_ptr<const FinalizedBlock> getBlock(const Hash& hash) const {
       return this->storage_.getBlock(hash);
     }
 
@@ -168,7 +167,7 @@ class SDKTestSuite {
      * @param height Height of the block to get.
      * @return A pointer to the block, or nullptr if not found.
      */
-    const std::shared_ptr<const Block> getBlock(const uint64_t height) const {
+    const std::shared_ptr<const FinalizedBlock> getBlock(const uint64_t height) const {
       return this->storage_.getBlock(height);
     }
 
@@ -178,7 +177,7 @@ class SDKTestSuite {
      * @param txs (optional) List of transactions to include in the block. Defaults to none (empty vector).
      * @return A pointer to the new block.
      */
-    const std::shared_ptr<const Block> advanceChain(const uint64_t& timestamp = 0, const std::vector<TxBlock>& txs = {}) {
+    const std::shared_ptr<const FinalizedBlock> advanceChain(const uint64_t& timestamp = 0, const std::vector<TxBlock>& txs = {}) {
       auto validators = state_.rdposGetValidators();
       auto randomList = state_.rdposGetRandomList();
       Hash blockSignerPrivKey;           // Private key for the block signer.
@@ -207,8 +206,8 @@ class SDKTestSuite {
       uint64_t newBlockTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::high_resolution_clock::now().time_since_epoch()
       ).count();
-      Hash newBlockPrevHash = this->storage_.latest()->hash();
-      Block newBlock(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
+      Hash newBlockPrevHash = this->storage_.latest()->getHash();
+      MutableBlock newBlock(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
       std::vector<TxValidator> randomHashTxs;
       std::vector<TxValidator> randomTxs;
 
@@ -238,19 +237,24 @@ class SDKTestSuite {
 
       // Finalize the block.
       if (timestamp == 0) {
-        newBlock.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(
+        auto finalizedBlock = newBlock.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::high_resolution_clock::now().time_since_epoch()
         ).count());
+        // After finalization, the block should be valid. If it is, process the next one.
+        if (!this->state_.validateNextBlock(finalizedBlock)) throw DynamicException(
+          "SDKTestSuite::advanceBlock: Block is not valid"
+        );
+        state_.processNextBlock(std::move(finalizedBlock));
+        return this->storage_.latest();
       } else {
-        newBlock.finalize(blockSignerPrivKey, timestamp);
+        auto finelizedBlock = newBlock.finalize(blockSignerPrivKey, timestamp);
+        // After finalization, the block should be valid. If it is, process the next one.
+        if (!this->state_.validateNextBlock(finelizedBlock)) throw DynamicException(
+          "SDKTestSuite::advanceBlock: Block is not valid"
+        );
+        state_.processNextBlock(std::move(finelizedBlock));
+        return this->storage_.latest();
       }
-
-      // After finalization, the block should be valid. If it is, process the next one.
-      if (!this->state_.validateNextBlock(newBlock)) throw DynamicException(
-        "SDKTestSuite::advanceBlock: Block is not valid"
-      );
-      state_.processNextBlock(std::move(newBlock));
-      return this->storage_.latest();
     }
 
     /**
@@ -264,9 +268,40 @@ class SDKTestSuite {
     TxBlock createNewTx(
       const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
     ) {
-      // 1000000000 = 1 GWEI, 21000 = 21000 WEI
+      evmc_message callInfo;
+      auto& [callKind,
+        callFlags,
+        callDepth,
+        callGas,
+        callRecipient,
+        callSender,
+        callInputData,
+        callInputSize,
+        callValue,
+        callCreate2Salt,
+        callCodeAddress] = callInfo;
+
+      callKind = (to == Address()) ? EVMC_CREATE : EVMC_CALL;
+      callFlags = 0;
+      callDepth = 1;
+      callGas = 1000000000;
+      callRecipient = to.toEvmcAddress();
+      callSender = from.address.toEvmcAddress();
+      callInputData = data.data();
+      callInputSize = data.size();
+      callValue = Utils::uint256ToEvmcUint256(value);
+      callCreate2Salt = {};
+      callCodeAddress = {};
+      auto usedGas = this->state_.estimateGas(callInfo);
+      usedGas += 10000; // Add some extra gas for the transaction itself
+      /// Estimate the gas to see how much gaslimit we should give to the tx itself
       return TxBlock(to, from.address, data, this->options_.getChainID(),
-        this->state_.getNativeNonce(from.address), value, 1000000000, 1000000000, 21000, from.privKey
+        this->state_.getNativeNonce(from.address),
+        value,
+        1000000000,
+        1000000000,
+        usedGas,
+        from.privKey
       );
     }
 
@@ -299,7 +334,7 @@ class SDKTestSuite {
      * Get the latest accepted block.
      * @return A pointer to the latest accepted block.
      */
-    inline const std::shared_ptr<const Block> getLatestBlock() const { return this->storage_.latest(); }
+    inline const std::shared_ptr<const FinalizedBlock> getLatestBlock() const { return this->storage_.latest(); }
 
     /**
      * Get a transaction from the chain using a given hash.
@@ -312,6 +347,19 @@ class SDKTestSuite {
     > getTx(const Hash& tx) { return this->storage_.getTx(tx); }
 
     /**
+     * Create a transaction to deploy a given EVM bytecode and advance the chain with it.
+     * Always use the chain owner account to deploy contracts.
+     * @param bytecode EVM bytecode to deploy.
+     * @return Address of the deployed contract.
+     */
+    Address deployBytecode(const Bytes& bytecode) {
+      Address newContractAddress = ContractHost::deriveContractAddress(this->getNativeNonce(this->getChainOwnerAccount().address), this->getChainOwnerAccount().address);
+      auto createTx = this->createNewTx(this->getChainOwnerAccount(), Address(), 0, bytecode);
+      this->advanceChain(0, {createTx});
+      return newContractAddress;
+    }
+
+    /**
      * Create a transaction to deploy a new contract and advance the chain with it.
      * Always use the chain owner account to deploy contracts.
      * Specialization with no args.
@@ -321,20 +369,20 @@ class SDKTestSuite {
      */
     template <typename TContract> const Address deployContract() {
       TContract::registerContract();
-      auto prevContractList = this->state_.getContracts();
+      auto prevContractList = this->state_.getCppContracts();
       using ContractArgumentTypes = decltype(Utils::removeQualifiers<typename TContract::ConstructorArguments>());
 
       // Encode the functor
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract("
         + ContractReflectionInterface::getConstructorArgumentTypesString<TContract>() + ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
-      Bytes data(functor.cbegin(), functor.cend());
+      Bytes data;
+      Utils::appendBytes(data, Utils::sha3(Utils::create_view_span(createSignature)));
+      data.resize(4); // We only need the first 4 bytes for the function signature
 
       // Create the transaction, advance the chain with it, and get the new contract address.
       TxBlock createContractTx = createNewTx(this->chainOwnerAccount(), ProtocolContractAddresses.at("ContractManager"), 0, data);
-      this->state_.estimateGas(createContractTx.txToCallInfo());
       this->advanceChain(0, {createContractTx});
-      auto newContractList = this->state_.getContracts();
+      auto newContractList = this->state_.getCppContracts();
 
       // Filter new contract list to find the new contract.
       // TODO: We are assuming that only one contract of the same type is deployed at a time.
@@ -359,15 +407,16 @@ class SDKTestSuite {
      */
     template <typename TContract, typename ...Args> const Address deployContract(Args&&... args) {
       TContract::registerContract();
-      auto prevContractList = this->state_.getContracts();
+      auto prevContractList = this->state_.getCppContracts();
       using ContractArgumentTypes = decltype(Utils::removeQualifiers<typename TContract::ConstructorArguments>());
       static_assert(std::is_same_v<ContractArgumentTypes, std::tuple<std::decay_t<Args>...>>, "Invalid contract constructor arguments");
 
       // Encode the functor
       std::string createSignature = "createNew" + Utils::getRealTypeName<TContract>() + "Contract("
         + ContractReflectionInterface::getConstructorArgumentTypesString<TContract>() + ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
-      Bytes data(functor.cbegin(), functor.cend());
+      Bytes data;
+      Utils::appendBytes(data, Utils::sha3(Utils::create_view_span(createSignature)));
+      data.resize(4); // We only need the first 4 bytes for the function signature
 
       // Encode the arguments
       if (sizeof...(args) > 0) Utils::appendBytes(
@@ -376,9 +425,8 @@ class SDKTestSuite {
 
       // Create the transaction, advance the chain with it, and get the new contract address.
       TxBlock createContractTx = createNewTx(this->chainOwnerAccount(), ProtocolContractAddresses.at("ContractManager"), 0, data);
-      this->state_.estimateGas(createContractTx.txToCallInfo());
       this->advanceChain(0, {createContractTx});
-      auto newContractList = this->state_.getContracts();
+      auto newContractList = this->state_.getCppContracts();
 
       // Filter new contract list to find the new contract.
       // TODO: We are assuming that only one contract of the same type is deployed at a time.
@@ -417,7 +465,8 @@ class SDKTestSuite {
       Functor txFunctor = ABI::FunctorEncoder::encode<>(
         ContractReflectionInterface::getFunctionName(func)
       );
-      Bytes txData(txFunctor.cbegin(), txFunctor.cend());
+      Bytes txData;
+      Utils::appendBytes(txData, Utils::uint32ToBytes(txFunctor.value));
       // Use the chain owner account if no account is provided
       TxBlock tx = this->createNewTx(
         ((!testAccount) ? this->getChainOwnerAccount() : testAccount),
@@ -425,7 +474,6 @@ class SDKTestSuite {
       );
       ret = tx.hash();
       // Check if the execution is not going to be reverted/throw
-      this->state_.estimateGas(tx.txToCallInfo());
       this->advanceChain(timestamp, {tx});
       return ret;
     }
@@ -459,7 +507,8 @@ class SDKTestSuite {
       Functor txFunctor = ABI::FunctorEncoder::encode<Args...>(
         ContractReflectionInterface::getFunctionName(func)
       );
-      Bytes txData(txFunctor.cbegin(), txFunctor.cend());
+      Bytes txData;
+      Utils::appendBytes(txData, Utils::uint32ToBytes(txFunctor.value));
       Utils::appendBytes(
         txData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...)
       );
@@ -470,7 +519,6 @@ class SDKTestSuite {
       );
       ret = tx.hash();
       // Check if the execution is not going to be reverted/throw
-      this->state_.estimateGas(tx.txToCallInfo());
       this->advanceChain(timestamp, {tx});
       return ret;
     }
@@ -659,11 +707,35 @@ class SDKTestSuite {
     const ReturnType callViewFunction(
       const Address& contractAddress, ReturnType(TContract::*func)() const
     ) {
-      ethCallInfoAllocated callData;
-      auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo] = callData;
-      toInfo = contractAddress;
-      functorInfo = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
-      dataInfo = Bytes();
+      TContract::registerContract();
+      evmc_message callData;
+      auto& [callKind,
+        callFlags,
+        callDepth,
+        callGas,
+        callRecipient,
+        callSender,
+        callInputData,
+        callInputSize,
+        callValue,
+        callCreate2Salt,
+        callCodeAddress] = callData;
+
+      auto functor = ABI::FunctorEncoder::encode<>(ContractReflectionInterface::getFunctionName(func));
+      Bytes fullData;
+      Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
+
+      callKind = EVMC_CALL;
+      callFlags = 0;
+      callDepth = 1;
+      callGas = 10000000;
+      callRecipient = contractAddress.toEvmcAddress();
+      callSender = this->getChainOwnerAccount().address.toEvmcAddress();
+      callInputData = fullData.data();
+      callInputSize = fullData.size();
+      callValue = Utils::uint256ToEvmcUint256(0);
+      callCreate2Salt = {};
+      callCodeAddress = contractAddress.toEvmcAddress();
       return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
     }
 
@@ -682,15 +754,40 @@ class SDKTestSuite {
       const Address& contractAddress,
       ReturnType(TContract::*func)(const Args&...) const,
       const Args&... args
-    ) {
+      ) {
       TContract::registerContract();
-      ethCallInfoAllocated callData;
-      auto& [fromInfo, toInfo, gasInfo, gasPriceInfo, valueInfo, functorInfo, dataInfo] = callData;
-      toInfo = contractAddress;
-      functorInfo = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
-      dataInfo = ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...);
+      evmc_message callData;
+      auto& [callKind,
+        callFlags,
+        callDepth,
+        callGas,
+        callRecipient,
+        callSender,
+        callInputData,
+        callInputSize,
+        callValue,
+        callCreate2Salt,
+        callCodeAddress] = callData;
+      auto functor = ABI::FunctorEncoder::encode<Args...>(ContractReflectionInterface::getFunctionName(func));
+      Bytes fullData;
+      Utils::appendBytes(fullData, Utils::uint32ToBytes(functor.value));
+      Utils::appendBytes(fullData, ABI::Encoder::encodeData<Args...>(std::forward<decltype(args)>(args)...));
+
+      callKind = EVMC_CALL;
+      callFlags = 0;
+      callDepth = 1;
+      callGas = 10000000;
+      callRecipient = contractAddress.toEvmcAddress();
+      callSender = this->getChainOwnerAccount().address.toEvmcAddress();
+      callInputData = fullData.data();
+      callInputSize = fullData.size();
+      callValue = Utils::uint256ToEvmcUint256(0);
+      callCreate2Salt = {};
+      callCodeAddress = {};
+
       return std::get<0>(ABI::Decoder::decodeData<ReturnType>(this->state_.ethCall(callData)));
     }
+
 
     /**
      * Get all the events emitted under the given inputs.

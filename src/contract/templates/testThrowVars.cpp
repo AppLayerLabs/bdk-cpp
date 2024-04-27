@@ -2,9 +2,9 @@
 
 TestThrowVars::TestThrowVars(
   const std::string& var1, const std::string& var2, const std::string& var3,
-  ContractManagerInterface &interface, const Address& address,
-  const Address& creator, const uint64_t& chainId, DB& db
-) : DynamicContract(interface, "TestThrowVars", address, creator, chainId, db),
+  const Address& address,
+  const Address& creator, const uint64_t& chainId
+) : DynamicContract("TestThrowVars", address, creator, chainId),
   var1_(this), var2_(this), var3_(this)
 {
   this->var1_ = "var1";
@@ -24,14 +24,18 @@ TestThrowVars::TestThrowVars(
   this->var3_.enableRegister();
 }
 
-TestThrowVars::TestThrowVars(
-  ContractManagerInterface &interface, const Address& address, DB& db
-) : DynamicContract(interface, address, db), var1_(this), var2_(this), var3_(this) {
+TestThrowVars::TestThrowVars(const Address& address, const DB& db
+) : DynamicContract(address, db), var1_(this), var2_(this), var3_(this) {
   // Do nothing
 }
 
 TestThrowVars::~TestThrowVars() {
   // Do nothing
+}
+
+DBBatch TestThrowVars::dump() const
+{
+  return BaseContract::dump();
 }
 
 void TestThrowVars::registerContractFunctions() {

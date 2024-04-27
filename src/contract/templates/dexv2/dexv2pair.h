@@ -10,7 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 
-#include "../../../utils/contractreflectioninterface.h"
 #include "../../../utils/db.h"
 #include "../../../utils/utils.h"
 #include "../../abi.h"
@@ -91,27 +90,21 @@ class DEXV2Pair : public ERC20 {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
     */
     DEXV2Pair(
-      ContractManagerInterface& interface,
-      const Address& address, DB& db
+      const Address& address, const DB& db
     );
 
     /**
      * Constructor to be used when creating a new contract.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
-     * @param db Reference to the database object.
      */
     DEXV2Pair(
-      ContractManagerInterface &interface,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      DB& db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     /// Destructor.
@@ -214,7 +207,7 @@ class DEXV2Pair : public ERC20 {
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        DEXV2Pair, ContractManagerInterface &,
+        DEXV2Pair,
         const Address &, const Address &, const uint64_t &,
         DB&
       >(
@@ -234,6 +227,8 @@ class DEXV2Pair : public ERC20 {
         std::make_tuple("sync", &DEXV2Pair::sync, FunctionTypes::NonPayable, std::vector<std::string>{})
       );
     }
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // DEXV2PAIR_H

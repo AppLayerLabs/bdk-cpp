@@ -19,6 +19,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <span>
 #include <cxxabi.h>
 #include <variant>
+#include <evmc/evmc.hpp>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -36,7 +37,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/contract/variables/safeint.h"
 
 /// @file utils.h
-
 // Forward declaration.
 class Hash;
 
@@ -216,18 +216,15 @@ using SafeInt256_t = SafeInt_t<256>;
 ///@}
 
 /**
- * ethCallInfo: tuple of (from, to, gasLimit, gasPrice, value, functor, data).
- * **NOTE**: Be aware that we are using BytesArrView, so you MUST be sure that
- * the data allocated in BytesArrView is valid during the whole life of the tuple.
- * If you need ethCallInfo to own the data, use ethCallInfoAllocated instead.
+ * Map with addresses for contracts deployed at protocol level (name -> address).
+ * These contracts are deployed at the beginning of the chain and cannot be
+ * destroyed or dynamically deployed like other contracts.
+ * Instead, they are deployed in the constructor of State.
  */
-using ethCallInfo = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, BytesArrView>;
-
-/**
- * Same as ethCallInfo, but using Bytes instead of BytesArrView, truly
- * allocating and owning the data. Some places need it such as tests.
- */
-using ethCallInfoAllocated = std::tuple<Address,Address,uint256_t, uint256_t, uint256_t, Functor, Bytes>;
+const std::unordered_map<std::string, Address> ProtocolContractAddresses = {
+  {"rdPoS", Address(Hex::toBytes("0xb23aa52dbeda59277ab8a962c69f5971f22904cf"))},           // Sha3("randomDeterministicProofOfStake").substr(0,20)
+  {"ContractManager", Address(Hex::toBytes("0x0001cb47ea6d8b55fe44fdd6b1bdb579efb43e61"))}  // Sha3("ContractManager").substr(0,20)
+};
 
 /**
 * Fail a function with a given message.
@@ -244,14 +241,22 @@ enum Networks { Mainnet, Testnet, LocalTestnet };
 /// Enum for FunctionType
 enum FunctionTypes { View, NonPayable, Payable };
 
+/// Enum for the type of the contract.
+enum ContractType { NOT_A_CONTRACT, EVM, CPP };
+
 /**
  * Abstraction of balance and nonce for a single account.
  * Used with Address on State in an unordered_map to track native accounts.
+ * We store both the code and code hash here, but the EVM Storage (map<address,map<bytes32,bytes32>) is
+ * directly implemented in the State as map<StorageKey,Hash> to avoid nested maps.
  * @see State
  */
 struct Account {
-  uint256_t balance = 0;  ///< Account balance.
-  uint64_t nonce = 0;     ///< Account nonce.
+  uint256_t balance = 0;                       ///< Account balance.
+  uint64_t nonce = 0;                          ///< Account nonce.
+  Hash codeHash = Hash();                      ///< Account code hash (if any)
+  Bytes code = Bytes();                        ///< Account code (if any)
+  ContractType contractType = ContractType::NOT_A_CONTRACT; ///< Account contract type.
 
   /// Default constructor.
   Account() = default;
@@ -261,7 +266,48 @@ struct Account {
 
   /// Move constructor.
   Account(uint256_t&& balance, uint64_t&& nonce) : balance(std::move(balance)), nonce(std::move(nonce)) {}
+
+  /// Deserialize constructor.
+  Account(const BytesArrView& bytes);
+
+  /// Serialize the account.
+  /// We serialize as balance + nonce + codeHash + contractType + code (if any)
+  /// 32 bytes + 8 bytes + 32 bytes + 1 byte + N (0 or more bytes) = 73 + N bytes
+  Bytes serialize() const;
+  bool isContract() const { return contractType != ContractType::NOT_A_CONTRACT; }
 };
+
+/**
+ * NonNullUniquePtr is a wrapper around std::unique_ptr that ensures the pointer is never null.
+ */
+template<typename T>
+class NonNullUniquePtr {
+private:
+  std::unique_ptr<T> ptr;
+
+public:
+  // Constructor that calls T<Ts...> with the provided arguments.
+  template<typename... Ts>
+  explicit NonNullUniquePtr(Ts&&... args) : ptr(std::make_unique<T>(std::forward<Ts>(args)...)) {}
+
+  // Move construction and assignment allowed
+  NonNullUniquePtr(NonNullUniquePtr&& other) = default;
+  NonNullUniquePtr& operator=(NonNullUniquePtr&&) = default;
+
+  // Deleted copy constructor and copy assignment operator to prevent copying
+  NonNullUniquePtr(const NonNullUniquePtr&) = delete;
+  NonNullUniquePtr& operator=(const NonNullUniquePtr&) = delete;
+
+  // Dereference operator
+  T& operator*() const { return *ptr; }
+
+  // Member access operator
+  T* operator->() const { return ptr.get(); }
+
+  // Getter for raw pointer (optional, use with care)
+  T* get() const { return ptr.get(); }
+};
+
 
 /**
  * Struct for abstracting a Solidity event parameter.
@@ -273,6 +319,17 @@ template<typename T, bool Index> struct EventParam {
   const T& value; ///< Event param value.
   static constexpr bool isIndexed = Index;  ///< Indexed status.
   EventParam(const T& value) : value(value) {}  ///< Constructor.
+};
+
+template<typename T>
+class PointerNullifier {
+private:
+  T*& ptr;
+
+public:
+  PointerNullifier(T*& item) : ptr(item) {}
+  ~PointerNullifier() { ptr = nullptr; }
+
 };
 
 /// Namespace for utility functions.
@@ -368,6 +425,27 @@ namespace Utils {
   void logToFile(std::string_view str);
 
   /**
+   * Get the functor of a evmc_message
+   * @param msg The evmc_message to get the functor from.
+   * @return The functor of the evmc_message (0 if evmc_message size == 0).
+   */
+  Functor getFunctor(const evmc_message& msg);
+
+  /**
+   * Create a Functor based on a std::string with the function signature (e.g. "functionName(uint256,uint256)").
+   * @param funtionSignature The function signature.
+   * @return The created Functor.
+   */
+  Functor makeFunctor(const std::string& functionSignature);
+
+  /**
+   * Get the BytesArrView representing the function arguments of a given evmc_message.
+   * @param msg The evmc_message to get the function arguments from.
+   * @return The BytesArrView representing the function arguments.
+   */
+  BytesArrView getFunctionArgs(const evmc_message& msg);
+
+  /**
    * Print a string to stdout.
    * @param str The string to print.
    */
@@ -386,6 +464,16 @@ namespace Utils {
    * @return The generated bytes string.
    */
   Bytes randBytes(const int& size);
+
+  /**
+   * Special functions to convert to evmc_uint256be types.
+   */
+  uint256_t evmcUint256ToUint256(const evmc::uint256be& i);
+  evmc::uint256be uint256ToEvmcUint256(const uint256_t& i);
+  BytesArr<32> evmcUint256ToBytes(const evmc::uint256be& i);
+  evmc::uint256be bytesToEvmcUint256(const BytesArrView b);
+
+  evmc::address ecrecover(evmc::bytes32 hash, evmc::bytes32 v, evmc::bytes32 r, evmc::bytes32 s);
 
   ///@{
   /**
@@ -468,6 +556,9 @@ namespace Utils {
   uint16_t bytesToUint16(const BytesArrView b);
   uint8_t bytesToUint8(const BytesArrView b);
   int256_t bytesToInt256(const BytesArrView b);
+
+
+  Bytes cArrayToBytes(const uint8_t* arr, size_t size);
 
   /**
    * Add padding to the left of a byte vector.

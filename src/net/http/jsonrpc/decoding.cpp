@@ -256,9 +256,10 @@ namespace JsonRPC::Decoding {
     }
   }
 
-  ethCallInfoAllocated eth_call(const json& request, const Storage& storage) {
-    ethCallInfoAllocated result;
-    auto& [from, to, gas, gasPrice, value, functor, data] = result;
+  evmc_message eth_call(const json& request, const Storage& storage, Bytes& fullData) {
+    evmc_message result;
+    auto& [kind, flags, depth, gasLimit, recipient, sender, input_data, input_size, value, create2_salt, code_address] = result;
+    kind = EVMC_CALL;
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -287,41 +288,38 @@ namespace JsonRPC::Decoding {
       if (txObj.contains("from") && !txObj["from"].is_null()) {
         std::string fromAdd = txObj["from"].get<std::string>();
         if (!std::regex_match(fromAdd, addFilter)) throw DynamicException("Invalid from address hex");
-        from = Address(Hex::toBytes(fromAdd));
+        sender = Address(Hex::toBytes(fromAdd)).toEvmcAddress();
       }
       // Check to address
       std::string toAdd = txObj["to"].get<std::string>();
       if (!std::regex_match(toAdd, addFilter)) throw DynamicException("Invalid to address hex");
-      to = Address(Hex::toBytes(toAdd));
+      recipient = Address(Hex::toBytes(toAdd)).toEvmcAddress();
+      if (evmc::is_zero(recipient)) kind = EVMC_CREATE;
       // Optional: Check gas
       if (txObj.contains("gas") && !txObj["gas"].is_null()) {
         std::string gasHex = txObj["gas"].get<std::string>();
         if (!std::regex_match(gasHex, numFilter)) throw DynamicException("Invalid gas hex");
-        gas = uint64_t(Hex(gasHex).getUint());
+        gasLimit = uint64_t(Hex(gasHex).getUint());
       }
       // Optional: Check gasPrice
       if (txObj.contains("gasPrice") && !txObj["gasPrice"].is_null()) {
         std::string gasPriceHex = txObj["gasPrice"].get<std::string>();
         if (!std::regex_match(gasPriceHex, numFilter)) throw DynamicException("Invalid gasPrice hex");
-        gasPrice = uint256_t(Hex(gasPriceHex).getUint());
+        // We actually don't give a damn about the gas price, chain is fixed at 1 GWEI
       }
       // Optional: Check value
       if (txObj.contains("value") && !txObj["value"].is_null()) {
         std::string valueHex = txObj["value"].get<std::string>();
         if (!std::regex_match(valueHex, numFilter)) throw DynamicException("Invalid value hex");
-        value = uint256_t(Hex(valueHex).getUint());
+        value = Utils::uint256ToEvmcUint256(uint256_t(Hex(valueHex).getUint()));
       }
       // Optional: Check data
       if (txObj.contains("data") && !txObj["data"].is_null()) {
         std::string dataHex = txObj["data"].get<std::string>();
         if (!Hex::isValid(dataHex, true)) throw DynamicException("Invalid data hex");
-        auto dataBytes = Hex::toBytes(dataHex);
-        if (dataBytes.size() >= 4) {
-          functor = Functor(Utils::create_view_span(dataBytes, 0, 4));
-        }
-        if (dataBytes.size() > 4) {
-          data = Bytes(dataBytes.begin() + 4, dataBytes.end());
-        }
+        fullData = Hex::toBytes(dataHex);
+        input_data = fullData.data();
+        input_size = fullData.size();
       }
       return result;
     } catch (std::exception& e) {
@@ -332,9 +330,9 @@ namespace JsonRPC::Decoding {
     }
   }
 
-  ethCallInfoAllocated eth_estimateGas(const json& request, const Storage& storage) {
-    ethCallInfoAllocated result;
-    auto& [from, to, gas, gasPrice, value, functor, data] = result;
+  evmc_message eth_estimateGas(const json& request, const Storage& storage, Bytes& fullData) {
+    evmc_message result;
+    auto& [kind, flags, depth, gasLimit, recipient, sender, input_data, input_size, value, create2_salt, code_address] = result;
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -363,46 +361,44 @@ namespace JsonRPC::Decoding {
       if (txObj.contains("from") && !txObj["from"].is_null()) {
         std::string fromAdd = txObj["from"].get<std::string>();
         if (!std::regex_match(fromAdd, addFilter)) throw DynamicException("Invalid from address hex");
-        from = Address(Hex::toBytes(fromAdd));
+        sender = Address(Hex::toBytes(fromAdd)).toEvmcAddress();
       }
       // Optional: Check to address
       if (txObj.contains("to") && !txObj["to"].is_null()) {
         std::string toAdd = txObj["to"].get<std::string>();
         if (!std::regex_match(toAdd, addFilter)) throw DynamicException("Invalid to address hex");
-        to = Address(Hex::toBytes(toAdd));
+        recipient = Address(Hex::toBytes(toAdd)).toEvmcAddress();
       }
+
+      if (evmc::is_zero(recipient)) kind = EVMC_CREATE;
+
       // Optional: Check gas
       if (txObj.contains("gas") && !txObj["gas"].is_null()) {
         std::string gasHex = txObj["gas"].get<std::string>();
         if (!std::regex_match(gasHex, numFilter)) throw DynamicException("Invalid gas hex");
-        gas = uint64_t(Hex(gasHex).getUint());
+        gasLimit = uint64_t(Hex(gasHex).getUint());
       } else { // eth_estimateGas set gas to max if not specified
-        // TODO: Change this if we ever change gas dynamics with the chain
-        gas = std::numeric_limits<uint64_t>::max();
+        gasLimit = 100000000;
       }
       // Optional: Check gasPrice
       if (txObj.contains("gasPrice") && !txObj["gasPrice"].is_null()) {
         std::string gasPriceHex = txObj["gasPrice"].get<std::string>();
         if (!std::regex_match(gasPriceHex, numFilter)) throw DynamicException("Invalid gasPrice hex");
-        gasPrice = uint256_t(Hex(gasPriceHex).getUint());
+        // We actually don't give a damn about the gas price, chain is fixed at 1 GWEI
       }
       // Optional: Check value
       if (txObj.contains("value") && !txObj["value"].is_null()) {
         std::string valueHex = txObj["value"].get<std::string>();
         if (!std::regex_match(valueHex, numFilter)) throw DynamicException("Invalid value hex");
-        value = uint256_t(Hex(valueHex).getUint());
+        value = Utils::uint256ToEvmcUint256(uint256_t(Hex(valueHex).getUint()));
       }
       // Optional: Check data
       if (txObj.contains("data") && !txObj["data"].is_null()) {
         std::string dataHex = txObj["data"].get<std::string>();
         if (!Hex::isValid(dataHex, true)) throw DynamicException("Invalid data hex");
-        auto dataBytes = Hex::toBytes(dataHex);
-        if (dataBytes.size() >= 4) {
-          functor = Functor(Utils::create_view_span(dataBytes, 0, 4));
-        }
-        if (dataBytes.size() > 4) {
-          data = Bytes(dataBytes.begin() + 4, dataBytes.end());
-        }
+        fullData = Hex::toBytes(dataHex);
+        input_data = fullData.data();
+        input_size = fullData.size();
       }
       return result;
     } catch (std::exception& e) {
@@ -440,7 +436,7 @@ namespace JsonRPC::Decoding {
       if (logsObject.contains("blockHash")) {
         std::string blockHashHex = logsObject["blockHash"].get<std::string>();
         if (!std::regex_match(blockHashHex, hashFilter)) throw DynamicException("Invalid block hash hex");
-        const std::shared_ptr<const Block> block = storage.getBlock(Hash(Hex::toBytes(blockHashHex)));
+        const std::shared_ptr<const FinalizedBlock> block = storage.getBlock(Hash(Hex::toBytes(blockHashHex)));
         fromBlock = toBlock = block->getNHeight();
       } else {
         if (logsObject.contains("fromBlock")) {
@@ -628,7 +624,7 @@ namespace JsonRPC::Decoding {
       std::string blockNum = request["params"].at(0).get<std::string>();
       std::string index = request["params"].at(1).get<std::string>();
       if (!std::regex_match(index, numFilter)) throw DynamicException("Invalid index hex");
-      if (blockNum == "latest") return std::make_pair<uint64_t,uint64_t>(
+      if (blockNum == "latest") return std::make_pair(
         storage.latest()->getNHeight(), uint64_t(Hex(index).getUint())
       );
       if (!std::regex_match(blockNum, numFilter)) throw DynamicException("Invalid blockNumber hex");

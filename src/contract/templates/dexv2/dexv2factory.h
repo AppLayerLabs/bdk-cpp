@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef DEXFACTORY_H
 #define DEXFACTORY_H
 
-#include "../../../utils/contractreflectioninterface.h"
 #include "../../../utils/db.h"
 #include "../../abi.h"
 #include "../../dynamiccontract.h"
@@ -45,19 +44,16 @@ class DEXV2Factory : public DynamicContract {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
      */
     DEXV2Factory(
-      ContractManagerInterface& interface,
-      const Address& address, DB& db
+      const Address& address, const DB& db
     );
 
     /**
      * Constructor to be used when creating a new contract.
      * @param feeToSetter The address of the feeToSetter.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
@@ -65,9 +61,7 @@ class DEXV2Factory : public DynamicContract {
      */
     DEXV2Factory(
       const Address& feeToSetter,
-      ContractManagerInterface &interface,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      DB& db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     // Destructor.
@@ -109,7 +103,7 @@ class DEXV2Factory : public DynamicContract {
     /// Register the contract functions to the ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        DEXV2Factory, const Address&, ContractManagerInterface &,
+        DEXV2Factory, const Address&,
         const Address &, const Address &, const uint64_t &,
         DB &
       >(
@@ -125,6 +119,8 @@ class DEXV2Factory : public DynamicContract {
         std::make_tuple("setFeeToSetter", &DEXV2Factory::setFeeToSetter, FunctionTypes::NonPayable, std::vector<std::string>{"_feeToSetter"})
       );
     }
+  /// Dump method
+  DBBatch dump() const override;
 };
 
 #endif  // DEXFACTORY_H

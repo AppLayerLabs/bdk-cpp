@@ -8,16 +8,15 @@ See the LICENSE.txt file in the project root for more information.
 #include "dexv2factory.h"
 #include "dexv2pair.h"
 
-DEXV2Factory::DEXV2Factory(
-  ContractManagerInterface &interface, const Address &address, DB& db
-) : DynamicContract(interface, address, db), feeTo_(this), feeToSetter_(this),
+DEXV2Factory::DEXV2Factory(const Address &address, const DB& db
+) : DynamicContract(address, db), feeTo_(this), feeToSetter_(this),
   allPairs_(this), getPair_(this)
 {
-  this->feeTo_ = Address(db_.get(std::string("feeTo_"), this->getDBPrefix()));
-  this->feeToSetter_ = Address(db_.get(std::string("feeToSetter_"), this->getDBPrefix()));
-  std::vector<DBEntry> allPairs = db_.getBatch(this->getNewPrefix("allPairs_"));
+  this->feeTo_ = Address(db.get(std::string("feeTo_"), this->getDBPrefix()));
+  this->feeToSetter_ = Address(db.get(std::string("feeToSetter_"), this->getDBPrefix()));
+  std::vector<DBEntry> allPairs = db.getBatch(this->getNewPrefix("allPairs_"));
   for (const auto& dbEntry : allPairs) this->allPairs_.push_back(Address(dbEntry.value));
-  std::vector<DBEntry> getPairs = db_.getBatch(this->getNewPrefix("getPair_"));
+  std::vector<DBEntry> getPairs = db.getBatch(this->getNewPrefix("getPair_"));
   for (const auto& dbEntry : getPairs) {
     BytesArrView valueView(dbEntry.value);
     this->getPair_[Address(dbEntry.key)][Address(valueView.subspan(0, 20))] = Address(valueView.subspan(20));
@@ -38,10 +37,8 @@ DEXV2Factory::DEXV2Factory(
 
 DEXV2Factory::DEXV2Factory(
   const Address& feeToSetter,
-  ContractManagerInterface &interface,
-  const Address &address, const Address &creator, const uint64_t &chainId,
-  DB& db
-) : DynamicContract(interface, "DEXV2Factory", address, creator, chainId, db),
+  const Address &address, const Address &creator, const uint64_t &chainId
+) : DynamicContract("DEXV2Factory", address, creator, chainId),
   feeTo_(this), feeToSetter_(this), allPairs_(this), getPair_(this)
 {
   this->feeToSetter_ = feeToSetter;
@@ -59,24 +56,7 @@ DEXV2Factory::DEXV2Factory(
   this->getPair_.enableRegister();
 }
 
-DEXV2Factory::~DEXV2Factory() {
-  DBBatch batchOperations;
-  batchOperations.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
-  batchOperations.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
-  uint32_t index = 0;
-  for (const auto& address : this->allPairs_.get()) batchOperations.push_back(
-    Utils::uint32ToBytes(index), address.view(), this->getNewPrefix("allPairs_")
-  );
-  for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
-    for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
-      const auto& key = tokenA->first.get();
-      Bytes value = tokenB->first.asBytes();
-      Utils::appendBytes(value, tokenB->second.asBytes());
-      batchOperations.push_back(key, value, this->getNewPrefix("getPair_"));
-    }
-  }
-  this->db_.putBatch(batchOperations);
-}
+DEXV2Factory::~DEXV2Factory() {};
 
 void DEXV2Factory::registerContractFunctions() {
   registerContract();
@@ -119,9 +99,7 @@ Address DEXV2Factory::createPair(const Address& tokenA, const Address& tokenB) {
   auto& token1 = (tokenA < tokenB) ? tokenB : tokenA;
   if (token0 == Address()) throw DynamicException("DEXV2Factory::createPair: ZERO_ADDRESS");
   if (this->getPair(token0, token1) != Address()) throw DynamicException("DEXV2Factory::createPair: PAIR_EXISTS");
-  Utils::safePrint("DEXV2Factory: creating pair...");
-  auto pair = this->callCreateContract<DEXV2Pair>(0, 0, 0);
-  Utils::safePrint("DEXV2Factory: pair created...");
+  auto pair = this->callCreateContract<DEXV2Pair>();
   this->callContractFunction(pair, &DEXV2Pair::initialize, token0, token1);
   getPair_[token0][token1] = pair;
   getPair_[token1][token0] = pair;
@@ -133,3 +111,26 @@ void DEXV2Factory::setFeeTo(const Address& feeTo) { this->feeTo_ = feeTo; }
 
 void DEXV2Factory::setFeeToSetter(const Address& feeToSetter) { this->feeToSetter_ = feeToSetter; }
 
+DBBatch DEXV2Factory::dump() const
+{
+  DBBatch dbBatch = BaseContract::dump();
+  uint32_t i = 0;
+
+  dbBatch.push_back(Utils::stringToBytes("feeTo_"), this->feeTo_.get().view(), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("feeToSetter_"), this->feeToSetter_.get().view(), this->getDBPrefix());
+
+  for (const auto& address : this->allPairs_.get()) {
+    dbBatch.push_back(Utils::uint32ToBytes(i++),
+                      address.view(),
+                      this->getNewPrefix("allPairs_"));
+  }
+  for (auto tokenA = this->getPair_.cbegin(); tokenA != this->getPair_.cend(); tokenA++) {
+    for (auto tokenB = tokenA->second.cbegin(); tokenB != tokenA->second.cend(); tokenB++) {
+      const auto& key = tokenA->first.get();
+      Bytes value = tokenB->first.asBytes();
+      Utils::appendBytes(value, tokenB->second.asBytes());
+      dbBatch.push_back(key, value, this->getNewPrefix("getPair_"));
+    }
+  }
+  return dbBatch;
+}

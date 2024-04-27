@@ -7,19 +7,19 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc20.h"
 
-ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db)
-: DynamicContract(interface, address, db), name_(this), symbol_(this), decimals_(this),
+ERC20::ERC20(const Address& address, const DB& db)
+: DynamicContract(address, db), name_(this), symbol_(this), decimals_(this),
   totalSupply_(this), balances_(this), allowed_(this)
 {
-  this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
-  this->symbol_ = Utils::bytesToString(db_.get(std::string("symbol_"), this->getDBPrefix()));
-  this->decimals_ = Utils::bytesToUint8(db_.get(std::string("decimals_"), this->getDBPrefix()));
-  this->totalSupply_ = Utils::bytesToUint256(db_.get(std::string("totalSupply_"), this->getDBPrefix()));
-  auto balances = db_.getBatch(this->getNewPrefix("balances_"));
+  this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
+  this->decimals_ = Utils::bytesToUint8(db.get(std::string("decimals_"), this->getDBPrefix()));
+  this->totalSupply_ = Utils::bytesToUint256(db.get(std::string("totalSupply_"), this->getDBPrefix()));
+  auto balances = db.getBatch(this->getNewPrefix("balances_"));
   for (const auto& dbEntry : balances) {
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
-  auto allowances = db_.getBatch(this->getNewPrefix("allowed_"));
+  auto allowances = db.getBatch(this->getNewPrefix("allowed_"));
   for (const auto& dbEntry : allowances) {
     BytesArrView key(dbEntry.key);
     Address owner(key.subspan(0,20));
@@ -47,10 +47,8 @@ ERC20::ERC20(ContractManagerInterface &interface, const Address& address, DB& db
 ERC20::ERC20(
   const std::string& erc20name_, const std::string& erc20symbol_,
   const uint8_t& erc20decimals_, const uint256_t& mintValue,
-  ContractManagerInterface& interface,
-  const Address& address, const Address& creator, const uint64_t& chainId,
-  DB& db
-) : DynamicContract(interface, "ERC20", address, creator, chainId, db),
+  const Address& address, const Address& creator, const uint64_t& chainId
+) : DynamicContract("ERC20", address, creator, chainId),
   name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
   this->name_ = erc20name_;
@@ -78,10 +76,8 @@ ERC20::ERC20(
 ERC20::ERC20(
   const std::string &derivedTypeName, const std::string& erc20name_, const std::string& erc20symbol_,
   const uint8_t& erc20decimals_, const uint256_t& mintValue,
-  ContractManagerInterface& interface,
-  const Address& address, const Address& creator, const uint64_t& chainId,
-  DB& db
-) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db),
+  const Address& address, const Address& creator, const uint64_t& chainId
+) : DynamicContract(derivedTypeName, address, creator, chainId),
     name_(this), symbol_(this), decimals_(this), totalSupply_(this), balances_(this), allowed_(this)
 {
   this->name_ = erc20name_;
@@ -106,31 +102,7 @@ ERC20::ERC20(
   this->allowed_.enableRegister();
 }
 
-ERC20::~ERC20() {
-  DBBatch batchOperations;
-  this->db_.put(std::string("name_"), name_.get(), this->getDBPrefix());
-  this->db_.put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
-  this->db_.put(std::string("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
-  this->db_.put(std::string("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
-
-  for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
-    const auto& key = it->first.get();
-    Bytes value = Utils::uintToBytes(it->second);
-    batchOperations.push_back(key, value, this->getNewPrefix("balances_"));
-  }
-
-  // SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>>
-  for (auto it = allowed_.cbegin(); it != allowed_.cend(); ++it) {
-    for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
-      // Key = Address + Address
-      // value = uint256_t
-      auto key = it->first.asBytes();
-      Utils::appendBytes(key, it2->first.asBytes());
-      batchOperations.push_back(key, Utils::uint256ToBytes(it2->second), this->getNewPrefix("allowed_"));
-    }
-  }
-  this->db_.putBatch(batchOperations);
-}
+ERC20::~ERC20() { }
 
 void ERC20::registerContractFunctions() {
   registerContract();
@@ -169,13 +141,15 @@ uint256_t ERC20::balanceOf(const Address& owner) const {
     ? 0 : it->second;
 }
 
-void ERC20::transfer(const Address &to, const uint256_t &value) {
+bool ERC20::transfer(const Address &to, const uint256_t &value) {
   this->balances_[this->getCaller()] -= value;
   this->balances_[to] += value;
+  return true;
 }
 
-void ERC20::approve(const Address &spender, const uint256_t &value) {
+bool ERC20::approve(const Address &spender, const uint256_t &value) {
   this->allowed_[this->getCaller()][spender] = value;
+  return true;
 }
 
 uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
@@ -192,11 +166,41 @@ uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
   }
 }
 
-void ERC20::transferFrom(
+bool ERC20::transferFrom(
   const Address &from, const Address &to, const uint256_t &value
 ) {
   this->allowed_[from][this->getCaller()] -= value;
   this->balances_[from] -= value;
   this->balances_[to] += value;
+  return true;
+}
+
+DBBatch ERC20::dump() const
+{
+  DBBatch dbBatch = BaseContract::dump();
+
+  // Name, Symbol, Decimals, Total Supply
+  dbBatch.push_back(Utils::stringToBytes("name_"), Utils::stringToBytes(name_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("symbol_"), Utils::stringToBytes(symbol_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("decimals_"), Utils::uint8ToBytes(decimals_.get()), this->getDBPrefix());
+  dbBatch.push_back(Utils::stringToBytes("totalSupply_"), Utils::uint256ToBytes(totalSupply_.get()), this->getDBPrefix());
+  // Balances
+  for (auto it = balances_.cbegin(); it != balances_.cend(); ++it) {
+    const auto& key = it->first.get();
+    Bytes value = Utils::uintToBytes(it->second);
+    dbBatch.push_back(key, value, this->getNewPrefix("balances_"));
+  }
+  // SafeUnorderedMap<Address, std::unordered_map<Address, uint256_t, SafeHash>>
+  for (auto i = allowed_.cbegin(); i != allowed_.cend(); ++i) {
+    for (auto j = i->second.cbegin(); j != i->second.cend(); ++j) {
+      // Key = Address + Address, Value = uint256_t
+      auto key = i->first.asBytes();
+      Utils::appendBytes(key, j->first.asBytes());
+      dbBatch.push_back(key,
+                        Utils::uint256ToBytes(j->second),
+                        this->getNewPrefix("allowed_"));
+    }
+  }
+  return dbBatch;
 }
 

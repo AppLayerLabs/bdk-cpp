@@ -29,8 +29,8 @@ namespace TOptions {
       }
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      Block genesis(Hash(), 0, 0);
-      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesis(Hash(), 0, 0);
+      FinalizedBlock genesisFinal = genesis.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeys_) {
@@ -52,7 +52,7 @@ namespace TOptions {
         10000,
         4,
         {},
-        genesis,
+        genesisFinal,
         genesisTimestamp,
         genesisPrivKey,
         genesisBalances,

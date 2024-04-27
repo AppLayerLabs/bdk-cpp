@@ -7,12 +7,13 @@ set(UTILS_HEADERS
   ${CMAKE_SOURCE_DIR}/src/utils/ecdsa.h
   ${CMAKE_SOURCE_DIR}/src/utils/randomgen.h
   ${CMAKE_SOURCE_DIR}/src/utils/tx.h
-  ${CMAKE_SOURCE_DIR}/src/utils/block.h
   ${CMAKE_SOURCE_DIR}/src/utils/options.h
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.h
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.h
   ${CMAKE_SOURCE_DIR}/src/utils/logger.h
   ${CMAKE_SOURCE_DIR}/src/utils/dynamicexception.h
+  ${CMAKE_SOURCE_DIR}/src/utils/mutableblock.h
+  ${CMAKE_SOURCE_DIR}/src/utils/finalizedblock.h
   PARENT_SCOPE
 )
 
@@ -25,10 +26,11 @@ set(UTILS_SOURCES
   ${CMAKE_SOURCE_DIR}/src/utils/ecdsa.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/randomgen.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/tx.cpp
-  ${CMAKE_SOURCE_DIR}/src/utils/block.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/options.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/optionsdefaults.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/contractreflectioninterface.cpp
   ${CMAKE_SOURCE_DIR}/src/utils/jsonabi.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/mutableblock.cpp
+  ${CMAKE_SOURCE_DIR}/src/utils/finalizedblock.cpp
   PARENT_SCOPE
 )

@@ -52,6 +52,7 @@ namespace Log {
   const std::string event = "Event";
   const std::string nodeConns = "P2P::NodeConns";
   const std::string consensus = "Consensus";
+  const std::string contractHost = "ContractHost";
   ///@}
 }
 

@@ -32,8 +32,8 @@ class ThrowTestB : public DynamicContract {
     * @param chainId The chain ID.
     * @param db The database to use.
     */
-    ThrowTestB(ContractManagerInterface &interface, const Address& address,
-      const Address& creator, const uint64_t& chainId, DB& db
+    ThrowTestB(const Address& address,
+      const Address& creator, const uint64_t& chainId
     );
 
     /**
@@ -42,7 +42,7 @@ class ThrowTestB : public DynamicContract {
     * @param address The address of the contract.
     * @param db The database to use.
     */
-    ThrowTestB(ContractManagerInterface &interface, const Address& address, DB& db);
+    ThrowTestB(const Address& address, const DB& db);
 
     ~ThrowTestB() override; ///< Destructor.
 
@@ -55,13 +55,16 @@ class ThrowTestB : public DynamicContract {
     */
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        ThrowTestB, ContractManagerInterface&, const Address&, const Address&, const uint64_t&, DB&
+        ThrowTestB, const Address&, const Address&, const uint64_t&, DB&
       >(
         std::vector<std::string>{},
         std::make_tuple("getNumB", &ThrowTestB::getNumB, FunctionTypes::View, std::vector<std::string>{}),
         std::make_tuple("setNumB", &ThrowTestB::setNumB, FunctionTypes::NonPayable, std::vector<std::string>{"valB", "addC", "valC"})
       );
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif  // THROWTESTB_H

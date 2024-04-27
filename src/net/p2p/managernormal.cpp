@@ -207,7 +207,7 @@ namespace P2P{
   ) {
     RequestDecoder::info(*message);
     this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::info(
-      *message, this->storage_.latest(), this->options_
+      *message, *this->storage_.latest(), this->options_
     )));
   }
 
@@ -402,7 +402,7 @@ namespace P2P{
     try {
       auto block = BroadcastDecoder::broadcastBlock(*message, this->options_.getChainID());
       std::unique_lock lock(this->blockBroadcastMutex_);
-      if (this->storage_.blockExists(block.hash())) {
+      if (this->storage_.blockExists(block.getHash())) {
         // If the block is latest()->getNHeight() - 1, we should still rebroadcast it
         if (this->storage_.latest()->getNHeight() - 1 == block.getNHeight()) rebroadcast = true;
         return;
@@ -512,7 +512,7 @@ namespace P2P{
   }
 
   NodeInfo ManagerNormal::requestNodeInfo(const NodeID& nodeId) {
-    auto request = std::make_shared<const Message>(RequestEncoder::info(this->storage_.latest(), this->options_));
+    auto request = std::make_shared<const Message>(RequestEncoder::info(*this->storage_.latest(), this->options_));
     Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
@@ -579,12 +579,12 @@ namespace P2P{
     this->broadcastMessage(broadcast);
   }
 
-  void ManagerNormal::broadcastTxBlock(const TxBlock &txBlock) {
+  void ManagerNormal::broadcastTxBlock(const TxBlock& txBlock) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastTx(txBlock));
     this->broadcastMessage(broadcast);
   }
 
-  void ManagerNormal::broadcastBlock(const std::shared_ptr<const Block> block) {
+  void ManagerNormal::broadcastBlock(const FinalizedBlock& block) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastBlock(block));
     this->broadcastMessage(broadcast);
   }

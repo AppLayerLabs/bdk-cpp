@@ -12,7 +12,7 @@ on:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
 
     container:
       image: debian:bookworm
@@ -35,7 +35,7 @@ jobs:
 
   build_test_and_analyse:
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
 
     container: 
       image: debian:bookworm
@@ -79,7 +79,7 @@ jobs:
           sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}" --define sonar.coverageReportPaths=coverage.xml
   documentation:
     needs: build_test_and_analyse
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
 
     container: 
       image: debian:bookworm

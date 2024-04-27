@@ -30,6 +30,7 @@ namespace DBPrefix {
   const Bytes contracts =       { 0x00, 0x06 }; ///< "contracts" = "0006"
   const Bytes contractManager = { 0x00, 0x07 }; ///< "contractManager" = "0007"
   const Bytes events =          { 0x00, 0x08 }; ///< "events" = "0008"
+  const Bytes evmHost =         { 0x00, 0x09 }; ///< "evmHost" = "0009"
 };
 
 /// Struct for a database connection/endpoint.
@@ -149,13 +150,12 @@ class DB {
     explicit DB(const std::filesystem::path& path);
 
     /// Destructor. Automatically closes the database so it doesn't leave a LOCK file behind.
-    ~DB() { this->close(); }
+    ~DB() { this->close(); delete this->db_; this->db_ = nullptr; }
 
     /**
-     * Close the database (which is really just deleting its object from memory).
-     * @return `true` if the database is closed successfully, `false` otherwise.
+     * Close the database connection.
      */
-    inline bool close() { delete this->db_; this->db_ = nullptr; return (this->db_ == nullptr); }
+    inline bool close() const { this->db_->Close(); return true; }
 
     /**
      * Check if a key exists in the database.
@@ -164,7 +164,7 @@ class DB {
      * @param pfx (optional) The prefix to search for. Defaults to none.
      * @return `true` if the key exists, `false` otherwise.
      */
-    template <typename BytesContainer> bool has(const BytesContainer& key, const Bytes& pfx = {}) {
+    template <typename BytesContainer> bool has(const BytesContainer& key, const Bytes& pfx = {}) const {
       std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
@@ -211,7 +211,7 @@ class DB {
      * @return `true` if the insert is successful, `false` otherwise.
      */
     template <typename BytesContainerKey, typename BytesContainerValue>
-    bool put(const BytesContainerKey& key, const BytesContainerValue& value, const Bytes& pfx = {}) const {
+    bool put(const BytesContainerKey& key, const BytesContainerValue& value, const Bytes& pfx = {}) {
       Bytes keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
@@ -232,7 +232,7 @@ class DB {
      * @param pfx (optional) The prefix to delete the key from. Defaults to none.
      * @return `true` if the deletion is successful, `false` otherwise.
      */
-    template <typename BytesContainer> bool del(const BytesContainer& key, const Bytes& pfx = {}) const {
+    template <typename BytesContainer> bool del(const BytesContainer& key, const Bytes& pfx = {}) {
       auto keyTmp = pfx;
       keyTmp.reserve(pfx.size() + key.size());
       keyTmp.insert(keyTmp.end(), key.begin(), key.end());
@@ -245,13 +245,19 @@ class DB {
       return true;
     }
 
+    static Bytes makeNewPrefix(Bytes prefix, const std::string& newPrefix) {
+      prefix.reserve(prefix.size() + newPrefix.size());
+      prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
+      return prefix;
+    }
+
     /**
      * Delete an entry from the database (overload for C-style strings).
      * @param key The key to delete.
      * @param pfx (optional) The prefix to delete the key from. Defaults to none.
      * @return `true` if the deletion is successful, `false` otherwise.
      */
-    bool del(const char* key, const Bytes& pfx = {}) const { return this->del(std::string(key), pfx); }
+    bool del(const char* key, const Bytes& pfx = {}) { return this->del(std::string(key), pfx); }
 
     /**
      * Do several put and/or delete operations in one go.
@@ -259,7 +265,7 @@ class DB {
      * @param batch The batch object with the put/del operations to be done.
      * @return `true` if all operations were successful, `false` otherwise.
      */
-    bool putBatch(const DBBatch& batch) const;
+    bool putBatch(const DBBatch& batch);
 
     /**
      * Get all entries from a given prefix.
@@ -281,7 +287,7 @@ class DB {
      * @param end (optional) The last key to end searching at. Defaults to none.
      * @return A list of found keys, WITHOUT their prefixes.
      */
-    std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {});
+    std::vector<Bytes> getKeys(const Bytes& pfx, const Bytes& start = {}, const Bytes& end = {}) const;
 
     /**
      * Create a Bytes container from a string.

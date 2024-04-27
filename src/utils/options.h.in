@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "utils.h"
 #include "ecdsa.h"
-#include "block.h"
+#include "mutableblock.h"
 
 #include <filesystem>
 #include <boost/asio/ip/address.hpp>
@@ -78,7 +78,7 @@ class Options {
     const Address coinbase_;  ///< Coinbase address (if found), used by rdPoS.
     const bool isValidator_;  ///< Indicates whether the node is a Validator, set by constructor or if found on file.
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes_; ///< List of known Discovery nodes.
-    const Block genesisBlock_;  ///< Genesis block.
+    const FinalizedBlock genesisBlock_;  ///< Genesis block.
     const std::vector<std::pair<Address, uint256_t>> genesisBalances_;  ///< List of addresses and their respective initial balances.
     const std::vector<Address> genesisValidators_;  ///< List of genesis validators.
 
@@ -116,7 +116,7 @@ class Options {
       const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
       const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
       const std::vector<Address>& genesisValidators
     );
@@ -155,7 +155,7 @@ class Options {
       const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
       const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-      const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+      const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
       const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
       const std::vector<Address>& genesisValidators,
       const PrivKey& privKey
@@ -210,7 +210,7 @@ class Options {
     const Address& getCoinbase() const { return this->coinbase_; }
     const bool& getIsValidator() const { return this->isValidator_; }
     const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& getDiscoveryNodes() const { return this->discoveryNodes_; }
-    const Block& getGenesisBlock() const { return this->genesisBlock_; }
+    const FinalizedBlock& getGenesisBlock() const { return this->genesisBlock_; }
     const std::vector<std::pair<Address, uint256_t>>& getGenesisBalances() const { return this->genesisBalances_; }
     const std::vector<Address>& getGenesisValidators() const { return this->genesisValidators_; }
     ///@}

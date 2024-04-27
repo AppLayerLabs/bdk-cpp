@@ -50,7 +50,27 @@ class Event {
 
   public:
     /**
-     * Constructor. Only sets data partially, setStateData() should be called
+     * Constructor for EVM events.
+     * @param name The event's name.
+     * @param logIndex The event's position on the block.
+     * @param txHash The hash of the transaction that emitted the event.
+     * @param txIndex The position of the transaction in the block.
+     * @param blockHash The hash of the block that emitted the event.
+     * @param blockIndex The height of the block.
+     * @param address The address that emitted the event.
+     * @param data The event's arguments.
+     * @param topics The event's indexed arguments.
+     * @param anonymous Whether the event is anonymous or not.
+     */
+    Event(const std::string& name, uint64_t logIndex, const Hash& txHash, uint64_t txIndex,
+          const Hash& blockHash, uint64_t blockIndex, Address address, const Bytes& data,
+          const std::vector<Hash>& topics, bool anonymous) :
+          name_(name), logIndex_(logIndex), txHash_(txHash), txIndex_(txIndex),
+          blockHash_(blockHash), blockIndex_(blockIndex), address_(address),
+          data_(data), topics_(topics), anonymous_(anonymous) {}
+
+    /**
+     * Constructor for C++ events.
      * after creating a new Event so the rest of the data can be set.
      * @tparam Args The types of the event's arguments.
      * @param name The event's name.
@@ -59,10 +79,12 @@ class Event {
      * @param anonymous Whether the event is anonymous or not. Defaults to false.
      */
     template <typename... Args, bool... Flags> Event(
-      const std::string& name, Address address,
+      const std::string& name, uint64_t logIndex, const Hash& txHash, uint64_t txIndex,
+      const Hash& blockHash, uint64_t blockIndex, Address address,
       const std::tuple<EventParam<Args, Flags>...>& params,
       bool anonymous = false
-    ) : name_(name), address_(address), anonymous_(anonymous) {
+    ) : name_(name), logIndex_(logIndex), txHash_(txHash), txIndex_(txIndex),
+        blockHash_(blockHash), blockIndex_(blockIndex), address_(address), anonymous_(anonymous) {
       // Get the event's signature
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(name);
       std::vector<Hash> topics;
@@ -96,29 +118,16 @@ class Event {
       }
     }
 
+    // Copy constructor
+    Event(const Event&) = default;
+    // Move constructor
+    Event(Event&&) = default;
+
     /**
      * Constructor from deserialization.
      * @param jsonstr The JSON string to deserialize.
      */
     explicit Event(const std::string& jsonstr);
-
-    /**
-     * Set data from the block and transaction that is supposed to emit the event.
-     * @param logIndex The event's position on the block.
-     * @param txHash The hash of the transaction that emitted the event.
-     * @param txIndex The position of the transaction in the block.
-     * @param blockHash The hash of the block that emitted the event.
-     * @param blockIndex The height of the block.
-     */
-    void setStateData(
-      uint64_t logIndex, const Hash& txHash, uint64_t txIndex, const Hash& blockHash, uint64_t blockIndex
-    ) {
-      this->logIndex_ = logIndex;
-      this->txHash_ = txHash;
-      this->txIndex_ = txIndex;
-      this->blockHash_ = blockHash;
-      this->blockIndex_ = blockIndex;
-    }
 
     ///@{
     /** Getter. */
@@ -171,10 +180,8 @@ class EventManager {
   private:
     // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
     EventContainer events_;           ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
-    EventContainer tempEvents_;       ///< List of temporary events waiting to be commited or reverted.
-    DB& db_;                          ///< Reference to the database.
+    DB db_;                           ///< EventManager Database.
     const Options& options_;          ///< Reference to the Options singleton.
-    mutable std::shared_mutex lock_;  ///< Mutex for managing read/write access to the permanent events vector.
 
   public:
     /**
@@ -182,7 +189,7 @@ class EventManager {
      * @param db The database to use.
      * @param options The Options singleton to use (for event caps).
      */
-    EventManager(DB& db, const Options& options);
+    EventManager(const Options& options);
 
     ~EventManager();  ///< Destructor. Automatically saves events to the database.
 
@@ -253,34 +260,10 @@ class EventManager {
     bool matchTopics(const Event& event, const std::vector<Hash>& topics = {}) const;
 
     /**
-     * Register the event in the temporary list.
-     * Keep in mind the original Event object is MOVED to the list.
-     * @param event The event to register.
+     * Register the event.
      */
-    void registerEvent(Event&& event) { this->tempEvents_.insert(std::move(event)); }
+    void registerEvent(Event&& event) { this->events_.insert(std::move(event)); }
 
-    /**
-     * Actually register events in the permanent list.
-     * @param txHash The hash of the transaction that emitted the events.
-     * @param txIndex The index of the transaction inside the block that emitted the events.
-     */
-    void commitEvents(const Hash& txHash, const uint64_t txIndex) {
-      uint64_t logIndex = 0;
-      auto it = tempEvents_.begin(); // Use iterators to loop through the MultiIndex container
-      while (it != tempEvents_.end()) {
-        // Since we can't modify the element directly because iterators are const...
-        Event e = *it;                // ...we make a copy...
-        e.setStateData(logIndex, txHash, txIndex,
-          ContractGlobals::getBlockHash(), ContractGlobals::getBlockHeight()
-        );                            // ...modify it...
-        events_.insert(std::move(e)); // ...move it to the permanent container...
-        it = tempEvents_.erase(it);   // ...erase the original from the temp...
-        logIndex++;                   // ...and move on to the next
-      }
-    }
-
-    /// Discard events in the temporary list.
-    void revertEvents() { this->tempEvents_.clear(); }
 };
 
 #endif  // EVENT_H

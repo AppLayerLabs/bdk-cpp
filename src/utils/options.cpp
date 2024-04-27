@@ -16,7 +16,7 @@ Options::Options(
   const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
   const uint32_t& minValidators,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-  const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+  const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const std::vector<Address>& genesisValidators
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
@@ -80,7 +80,7 @@ Options::Options(
   const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
   const uint32_t& minValidators,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
-  const Block& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
+  const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const std::vector<Address>& genesisValidators,
   const PrivKey& privKey
@@ -171,8 +171,8 @@ Options Options::fromFile(const std::string& rootPath) {
     }
 
     const PrivKey genesisSigner(Hex::toBytes(options["genesis"]["signer"].get<std::string>()));
-    Block genesis(Hash(), 0, 0);
-    genesis.finalize(genesisSigner, options["genesis"]["timestamp"].get<uint64_t>());
+    MutableBlock genesis(Hash(), 0, 0);
+    FinalizedBlock genesisFinal = genesis.finalize(genesisSigner, options["genesis"]["timestamp"].get<uint64_t>());
 
     std::vector<Address> genesisValidators;
     for (const auto& validator : options["genesis"]["validators"]) {
@@ -204,7 +204,7 @@ Options Options::fromFile(const std::string& rootPath) {
         options["eventLogCap"].get<uint64_t>(),
         options["minValidators"].get<uint32_t>(),
         discoveryNodes,
-        genesis,
+        genesisFinal,
         options["genesis"]["timestamp"].get<uint64_t>(),
         genesisSigner,
         genesisBalances,
@@ -229,7 +229,7 @@ Options Options::fromFile(const std::string& rootPath) {
       options["eventLogCap"].get<uint64_t>(),
       options["minValidators"].get<uint32_t>(),
       discoveryNodes,
-      genesis,
+      genesisFinal,
       options["genesis"]["timestamp"].get<uint64_t>(),
       genesisSigner,
       genesisBalances,

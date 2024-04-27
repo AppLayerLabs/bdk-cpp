@@ -10,7 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <memory>
 
-#include "../../../utils/contractreflectioninterface.h"
 #include "../../../utils/db.h"
 #include "../../dynamiccontract.h"
 #include "../../variables/safeaddress.h"
@@ -80,20 +79,17 @@ class DEXV2Router02 : public DynamicContract {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param db Reference to the database object.
     */
     DEXV2Router02(
-      ContractManagerInterface& interface,
-      const Address& address, DB& db
+      const Address& address, const DB& db
     );
 
     /**
      * Constructor to be used when creating a new contract.
      * @param factory The address of the factory contract.
      * @param wrappedNative The address of the wrapped native token.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract wil be deployed.
@@ -101,9 +97,7 @@ class DEXV2Router02 : public DynamicContract {
      */
     DEXV2Router02(
       const Address& factory, const Address& wrappedNative,
-      ContractManagerInterface &interface,
-      const Address &address, const Address &creator, const uint64_t &chainId,
-      DB& db
+      const Address &address, const Address &creator, const uint64_t &chainId
     );
 
     // Destructor.
@@ -316,7 +310,7 @@ class DEXV2Router02 : public DynamicContract {
     /// Register the contract functions to the ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        DEXV2Router02, const Address &, const Address &, ContractManagerInterface &,
+        DEXV2Router02, const Address &, const Address &,
         const Address &, const Address &, const uint64_t &,
         const DB&
       >(
@@ -355,6 +349,9 @@ class DEXV2Router02 : public DynamicContract {
         )
       );
     }
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // DEXV2ROUTER_H
