@@ -109,12 +109,7 @@ State::State(
 }
 
 State::~State() {
-  std::unique_lock lock(this->stateMutex_);
   evmc_destroy(this->vm_);
-  // We need to explicity delete the CM until the DumpManager is done
-  this->contracts_.erase(ProtocolContractAddresses.at("ContractManager"));
-  // Then clear all the contracts
-  this->contracts_.clear();
 }
 
 DBBatch State::dump() const {

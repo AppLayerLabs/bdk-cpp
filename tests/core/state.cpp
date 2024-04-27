@@ -112,6 +112,13 @@ namespace TState {
           REQUIRE(blockchainWrapper.state.getNativeBalance(address) == expectedBalance);
           REQUIRE(blockchainWrapper.state.getNativeNonce(address) == 0);
         }
+        // We actually need to process the next block otherwise saveToDB() will use "0" as the latest block height
+        // to save the state to the DB.
+        // "0" is specifically used to say there is no state to load from.
+        auto newBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage);
+        REQUIRE(blockchainWrapper.state.validateNextBlock(newBlock));
+        blockchainWrapper.state.processNextBlock(std::move(newBlock));
+        blockchainWrapper.state.saveToDB();
       }
       // Wait until destructors are called.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -132,6 +139,7 @@ namespace TState {
         REQUIRE(blockchainWrapper.state.validateNextBlock(newBlock));
         blockchainWrapper.state.processNextBlock(std::move(newBlock));
         latestBlock = std::make_unique<FinalizedBlock>(*blockchainWrapper.storage.latest().get());
+        blockchainWrapper.state.saveToDB();
       }
       auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, false, testDumpPath + "/stateSimpleBlockTest");
 
@@ -161,9 +169,9 @@ namespace TState {
               8080,
               blockchainWrapper.state.getNativeNonce(me),
               1000000000000000000,
+              1000000000,
+              1000000000,
               21000,
-              1000000000,
-              1000000000,
               privkey
           );
 
@@ -212,9 +220,9 @@ namespace TState {
               8080,
               blockchainWrapper.state.getNativeNonce(me),
               1000000000000000000,
+              1000000000,
+              1000000000,
               21000,
-              1000000000,
-              1000000000,
               privkey
           );
 
@@ -273,9 +281,9 @@ namespace TState {
               8080,
               blockchainWrapper.state.getNativeNonce(me),
               1000000000000000000,
+              1000000000,
+              1000000000,
               21000,
-              1000000000,
-              1000000000,
               privkey
           );
 
@@ -344,9 +352,9 @@ namespace TState {
                 8080,
                 blockchainWrapper.state.getNativeNonce(me),
                 1000000000000000000,
+                1000000000,
+                1000000000,
                 21000,
-                1000000000,
-                1000000000,
                 privkey
             );
             /// Take note of expected balance and nonce
@@ -370,6 +378,7 @@ namespace TState {
         }
 
         latestBlock = std::make_unique<FinalizedBlock>(*blockchainWrapper.storage.latest().get());
+        blockchainWrapper.state.saveToDB();
       }
       auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, false, testDumpPath + "/state10BlocksTest");
 
@@ -589,9 +598,9 @@ namespace TState {
             8080,
             blockchainWrapper1.state.getNativeNonce(me),
             1000000000000000000,
+            1000000000,
+            1000000000,
             21000,
-            1000000000,
-            1000000000,
             privkey
         );
         blockchainWrapper1.state.addTx(TxBlock(tx));
@@ -832,9 +841,9 @@ namespace TState {
                 8080,
                 blockchainWrapper1.state.getNativeNonce(chainOwnerAddress),
                 1000000000000000000,
+                1000000000,
+                1000000000,
                 21000,
-                1000000000,
-                1000000000,
                 chainOwnerPrivKey);
           blockchainWrapper1.p2p.broadcastTxBlock(tx);
           blockchainWrapper1.state.addTx(std::move(tx));
@@ -1028,7 +1037,7 @@ namespace TState {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Wait for nodes to connect.
-      // Wait for nodes to connect.
+      std::cout << "Waiting for conns" << std::endl;
       auto connectionsFuture = std::async(std::launch::async, [&]() {
         while (p2pDiscovery.getSessionsIDs().size() != 8 ||
                blockchainWrapper1.p2p.getSessionsIDs().size() != 8 ||
@@ -1077,6 +1086,7 @@ namespace TState {
       REQUIRE(blockchainWrapper7.state.rdposGetIsValidator());
       REQUIRE(blockchainWrapper8.state.rdposGetIsValidator());
 
+      std::cout << "Starting consensus" << std::endl;
       blockchainWrapper1.consensus.start();
       blockchainWrapper2.consensus.start();
       blockchainWrapper3.consensus.start();
@@ -1085,6 +1095,7 @@ namespace TState {
       blockchainWrapper6.consensus.start();
       blockchainWrapper7.consensus.start();
       blockchainWrapper8.consensus.start();
+      std::cout << "Consensus started" << std::endl;
 
       // For this test we have to create 10x 100 transactions
       // But as the consensus worker is running, we dont actually need to create the blocks
@@ -1104,9 +1115,9 @@ namespace TState {
               8080,
               i,
               1000000000000000000,
+              1000000000,
+              1000000000,
               21000,
-              1000000000,
-              1000000000,
               privkey
           );
 
@@ -1120,6 +1131,7 @@ namespace TState {
 
       /// For each set of transactions, broadcast them and wait for them to be confirmed
       for (const auto &txSet: txs) {
+        std::cout << "Broadcasting txs" << std::endl;
         for (const auto &tx: txSet) {
           auto txInvalid = blockchainWrapper1.state.addTx(TxBlock(tx));
           REQUIRE(!txInvalid);
@@ -1175,15 +1187,24 @@ namespace TState {
       }
 
       /// TODO: This is done for the same reason as stopDiscovery.
+      std::cout << "Stopping consensus for wrapper 1" << std::endl;
       blockchainWrapper1.consensus.stop();
+      std::cout << "Stopping consensus for wrapper 2" << std::endl;
       blockchainWrapper2.consensus.stop();
+      std::cout << "Stopping consensus for wrapper 3" << std::endl;
       blockchainWrapper3.consensus.stop();
+      std::cout << "Stopping consensus for wrapper 4" << std::endl;
       blockchainWrapper4.consensus.stop();
+      std::cout << "Stopping consensus for wrapper 5" << std::endl;
       blockchainWrapper5.consensus.stop();
+      std::cout << "Stopping consensus for wrapper 6" << std::endl;
       blockchainWrapper6.consensus.stop();
+      std::cout << "Stopping consensus for wrapper 7" << std::endl;
       blockchainWrapper7.consensus.stop();
+      std::cout << "Stopping consensus for wrapper 8" << std::endl;
       blockchainWrapper8.consensus.stop();
       // Sleep so it can conclude the last operations.
+      std::cout << "Everything should have succesfully stopped..." << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
@@ -1424,9 +1445,9 @@ namespace TState {
               8080,
               nonce,
               0,
+              1000000000,
+              1000000000,
               21000,
-              1000000000,
-              1000000000,
               ownerPrivKey
           );
           creationHash == createNewERC2OTx.hash();
