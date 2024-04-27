@@ -101,9 +101,7 @@ class SDKTestSuite {
       const std::vector<TestAccount>& accounts = {},
       const Options* const options = nullptr
     ) {
-      // Initialize the DB
-      std::string dbPath = sdkPath + "/db";
-      if (std::filesystem::exists(dbPath)) std::filesystem::remove_all(dbPath);
+      if (std::filesystem::exists(sdkPath)) std::filesystem::remove_all(sdkPath);
 
       // Create a default options if none is provided.
       std::unique_ptr<Options> options_;

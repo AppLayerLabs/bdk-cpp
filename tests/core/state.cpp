@@ -107,6 +107,14 @@ namespace TState {
           REQUIRE(blockchainWrapper.state.getNativeBalance(address) == expectedBalance);
           REQUIRE(blockchainWrapper.state.getNativeNonce(address) == 0);
         }
+
+        // We actually need to process the next block otherwise saveToDB() will use "0" as the latest block height
+        // to save the state to the DB.
+        // "0" is specifically used to say there is no state to load from.
+        auto newBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage);
+        REQUIRE(blockchainWrapper.state.validateNextBlock(newBlock));
+        blockchainWrapper.state.processNextBlock(std::move(newBlock));
+        blockchainWrapper.state.saveToDB();
       }
       // Wait until destructors are called.
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -127,6 +135,7 @@ namespace TState {
         REQUIRE(blockchainWrapper.state.validateNextBlock(newBlock));
         blockchainWrapper.state.processNextBlock(std::move(newBlock));
         latestBlock = std::make_unique<FinalizedBlock>(*blockchainWrapper.storage.latest().get());
+        blockchainWrapper.state.saveToDB();
       }
       auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, false, testDumpPath + "/stateSimpleBlockTest");
 
@@ -366,6 +375,7 @@ namespace TState {
         }
 
         latestBlock = std::make_unique<FinalizedBlock>(*blockchainWrapper.storage.latest().get());
+        blockchainWrapper.state.saveToDB();
       }
       auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, false, testDumpPath + "/state10BlocksTest");
 

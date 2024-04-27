@@ -161,6 +161,11 @@ namespace TStorage {
           REQUIRE(block->getTxs().size() == blocks[i].getTxs().size());
           REQUIRE(block->getValidatorPubKey() == blocks[i].getValidatorPubKey());
         }
+        /// We actually need to dump the state otherwise it WILL try to process the added blocks
+        /// in the constructor of the State class.
+        /// Dumping the state will say to the State class that there is no missing blocks and it will
+        /// not try to process the blocks in the constructor.
+        blockchainWrapper.state.saveToDB();
       }
 
       // Load DB again...
@@ -219,6 +224,8 @@ namespace TStorage {
           REQUIRE(block->getTxs().size() == requiredBlock.getTxs().size());
           REQUIRE(block->getValidatorPubKey() == requiredBlock.getValidatorPubKey());
         }
+        /// Same as before, we need to dump the state to avoid processing the blocks in the constructor.
+        blockchainWrapper.state.saveToDB();
       }
       // Load DB again...
       auto blockchainWrapper = initialize(validatorPrivKeysStorage, PrivKey(), 8080, false, "Storage2000BlocksForwardSaveToDBTxCache");

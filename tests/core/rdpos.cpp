@@ -41,9 +41,6 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
     if (std::filesystem::exists(folderName)) {
       std::filesystem::remove_all(folderName);
     }
-    if(std::filesystem::exists(folderName + "/options.json")) {
-      std::filesystem::remove(folderName + "/options.json");
-    }
   }
   std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
   PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
