@@ -65,7 +65,7 @@ Storage::~Storage() {
       batchedOperations.push_back(block->getHash().get(), block->serializeBlock(), DBPrefix::blocks);
       batchedOperations.push_back(Utils::uint64ToBytes(block->getNHeight()), block->getHash().get(), DBPrefix::blockHeightMaps);
       // Batch txs to be saved to the database and delete them from the mappings
-      auto Txs = block->getTxs();
+      const auto& Txs = block->getTxs();
       for (uint32_t i = 0; i < Txs.size(); i++) {
         const auto TxHash = Txs[i].hash();
         Bytes value = block->getHash().asBytes();
@@ -83,6 +83,29 @@ Storage::~Storage() {
   // Batch save to database
   this->db_.putBatch(batchedOperations);
   this->db_.put(std::string("latest"), latest->serializeBlock(), DBPrefix::blocks);
+}
+
+void Storage::saveLatest(const std::shared_ptr<const FinalizedBlock> block) {
+  // Should follow the same logic as ~Storage() function
+  // But applied for a single block
+  // This function might be able to save any block, but it specifically used by Storage::pushBack
+  // As it also makes that block be the "latest" block
+  // We **only save to DB**, we do NOT clear the cache or the chain
+  DBBatch batchedOperations;
+  batchedOperations.push_back(block->getHash().get(), block->serializeBlock(), DBPrefix::blocks);
+  batchedOperations.push_back(Utils::uint64ToBytes(block->getNHeight()), block->getHash().get(), DBPrefix::blockHeightMaps);
+  const auto& Txs = block->getTxs();
+  for (uint32_t i = 0; i < Txs.size(); i++) {
+    const auto TxHash = Txs[i].hash();
+    Bytes value = block->getHash().asBytes();
+    value.reserve(value.size() + 4 + 8);
+    Utils::appendBytes(value, Utils::uint32ToBytes(i));
+    Utils::appendBytes(value, Utils::uint64ToBytes(block->getNHeight()));
+    batchedOperations.push_back(TxHash.get(), value, DBPrefix::txToBlocks);
+  }
+
+  this->db_.putBatch(batchedOperations);
+  this->db_.put(std::string("latest"), block->serializeBlock(), DBPrefix::blocks);
 }
 
 void Storage::initializeBlockchain() {
@@ -182,6 +205,11 @@ void Storage::pushBackInternal(FinalizedBlock block) {
   }
   this->chain_.emplace_back(std::make_shared<FinalizedBlock>(std::move(block)));
   std::shared_ptr<const FinalizedBlock> newBlock = this->chain_.back();
+  // Launch a saveLatest thread
+  std::thread saveLatestThread([this, newBlock] {
+    this->saveLatest(newBlock);
+  });
+  saveLatestThread.detach();
 
   // Add block and txs to mappings
   this->blockByHash_.insert({newBlock->getHash(), newBlock});

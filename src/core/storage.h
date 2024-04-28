@@ -120,6 +120,12 @@ private:
    */
   StorageStatus txExistsInternal(const Hash& tx) const;
 
+  /**
+   * Save the latest block to the database.
+   * @param block The block to save.
+   */
+  void saveLatest(const std::shared_ptr<const FinalizedBlock> block);
+
 public:
   /**
    * Constructor. Automatically loads the chain from the database
