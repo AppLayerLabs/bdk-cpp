@@ -1,4 +1,5 @@
 #include "src/networksimulator.h"
+#include <boost/algorithm/string.hpp>
 
 /**
  *  OrbiterSDK Network Simulator
