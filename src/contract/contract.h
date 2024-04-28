@@ -67,11 +67,11 @@ class ContractLocals : public ContractGlobals {
 /// Base class for all contracts.
 class BaseContract : public ContractLocals, public Dumpable {
   private:
-    std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
-    const Bytes dbPrefix_;           ///< Prefix for the contract DB.
-    Address contractAddress_;  ///< Address where the contract is deployed.
-    Address contractCreator_;  ///< Address of the creator of the contract.
-    uint64_t contractChainId_; ///< Chain where the contract is deployed.
+    const Address contractAddress_;  ///< Address where the contract is deployed.
+    const Bytes dbPrefix_;     ///< Prefix for the contract DB.
+    const std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
+    const Address contractCreator_;  ///< Address of the creator of the contract.
+    const uint64_t contractChainId_; ///< Chain where the contract is deployed.
 
   protected:
     mutable ContractHost* host_ = nullptr; ///< Reference to the ContractHost instance.
@@ -88,13 +88,14 @@ class BaseContract : public ContractLocals, public Dumpable {
      */
     BaseContract(const std::string& contractName, const Address& address,
       const Address& creator, const uint64_t& chainId
-    ) : contractName_(contractName), contractAddress_(address),
-        contractCreator_(creator), contractChainId_(chainId), dbPrefix_([&]() {
-                    Bytes prefix = DBPrefix::contracts;
-                    prefix.reserve(prefix.size() + address.size());
-                    prefix.insert(prefix.end(), address.cbegin(), address.cend());
-                    return prefix;
-                  }()) {
+    ) : contractAddress_(address),
+        dbPrefix_([&]() {
+              Bytes prefix = DBPrefix::contracts;
+              prefix.reserve(prefix.size() + address.size());
+              prefix.insert(prefix.end(), address.cbegin(), address.cend());
+              return prefix;
+            }()),
+        contractName_(contractName), contractCreator_(creator), contractChainId_(chainId) {
     }
 
     DBBatch dump() const override {
@@ -112,18 +113,23 @@ class BaseContract : public ContractLocals, public Dumpable {
      * @param db Pointer to the DB instance.
      */
     BaseContract(const Address &address, const DB& db) :
+                 contractAddress_(address),
                  dbPrefix_([&]() -> Bytes {
                    Bytes prefix = DBPrefix::contracts;
                    prefix.reserve(prefix.size() + address.size());
                    prefix.insert(prefix.end(), address.cbegin(), address.cend());
                    return prefix;
                  }()),
-                 contractAddress_(address)
-    {
-      this->contractName_ = Utils::bytesToString(db.get(std::string("contractName_"), this->getDBPrefix()));
-      this->contractCreator_ = Address(db.get(std::string("contractCreator_"), this->getDBPrefix()));
-      this->contractChainId_ = Utils::bytesToUint64(db.get(std::string("contractChainId_"), this->getDBPrefix()));
-    }
+                 contractName_([&]() -> std::string {
+                   return Utils::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
+                 }()),
+                 contractCreator_([&]() -> Address {
+                   return Address(db.get(std::string("contractCreator_"), dbPrefix_));
+                 }()),
+                 contractChainId_([&]() -> uint64_t {
+                   return Utils::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
+                 }())
+    {}
 
     virtual ~BaseContract() = default;  ///< Destructor. All derived classes should override it in order to call DB functions.
 
