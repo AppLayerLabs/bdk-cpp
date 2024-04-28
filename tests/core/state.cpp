@@ -1207,12 +1207,8 @@ namespace TState {
       std::cout << "Everything should have succesfully stopped..." << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-  }
 
-  TEST_CASE("State Fail", "[statefail]") {
-    SECTION(
-        "State test with networking capabilities, 8 nodes, rdPoS fully active, 1 ERC20 transactions per block, broadcast blocks.")
-    {
+    SECTION("State test with networking capabilities, 8 nodes, rdPoS fully active, 1 ERC20 transactions per block, broadcast blocks.") {
       // Create random accounts for the transactions.
       PrivKey ownerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       Address owner = Secp256k1::toAddress(Secp256k1::toUPub(ownerPrivKey));
