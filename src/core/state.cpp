@@ -41,6 +41,13 @@ State::State(
       this->accounts_.emplace(Address(dbEntry.key), dbEntry.value);
     }
   }
+
+  /// Load all the EVM Storage Slot/keys from the DB
+  auto vmStorageFromDB = db.getBatch(DBPrefix::vmStorage);
+  for (const auto& dbEntry : vmStorageFromDB) {
+    this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
+  }
+
   auto latestBlock = this->storage_.latest();
 
   // Insert the contract manager into the contracts_ map.
@@ -77,7 +84,6 @@ State::State(
       }
     }
   }
-  this->dumpManager_.pushBack(this);
 
   if (snapshotHeight > this->storage_.latest()->getNHeight()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Snapshot height is higher than latest block, we can't load State! Crashing the program");
@@ -106,6 +112,7 @@ State::State(
     // Process rdPoS State
     this->rdpos_.processBlock(*block);
   }
+  this->dumpManager_.pushBack(this);
 }
 
 State::~State() {
@@ -117,11 +124,15 @@ DBBatch State::dump() const {
   // Under the DBPrefix::nativeAccounts
   // Each key == Address
   // Each Value == Account.serialize()
-  DBBatch accountsBatch;
+  DBBatch stateBatch;
   for (const auto& [address, account] : this->accounts_) {
-    accountsBatch.push_back(address.get(), account->serialize(), DBPrefix::nativeAccounts);
+    stateBatch.push_back(address.get(), account->serialize(), DBPrefix::nativeAccounts);
   }
-  return accountsBatch;
+  // There is also the need to dump the vmStorage_ map
+  for (const auto& [storageKey, storageValue] : this->vmStorage_) {
+    stateBatch.push_back(storageKey.get(), storageValue.get(), DBPrefix::vmStorage);
+  }
+  return stateBatch;
 }
 
 TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {

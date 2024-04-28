@@ -30,7 +30,7 @@ namespace DBPrefix {
   const Bytes contracts =       { 0x00, 0x06 }; ///< "contracts" = "0006"
   const Bytes contractManager = { 0x00, 0x07 }; ///< "contractManager" = "0007"
   const Bytes events =          { 0x00, 0x08 }; ///< "events" = "0008"
-  const Bytes evmHost =         { 0x00, 0x09 }; ///< "evmHost" = "0009"
+  const Bytes vmStorage =         { 0x00, 0x09 }; ///< "evmHost" = "0009"
 };
 
 /// Struct for a database connection/endpoint.

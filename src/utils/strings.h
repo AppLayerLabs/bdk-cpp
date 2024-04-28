@@ -294,6 +294,15 @@ class StorageKey : public FixedBytes<52> {
     using FixedBytes<52>::operator=;
 
     /**
+     * Constructor using a BytesArrView
+     * @param data The BytesArrView pointer to convert into a storage key.
+     */
+    StorageKey(const BytesArrView& data) {
+      if (data.size() != 52) throw std::invalid_argument("Invalid StorageKey size.");
+      std::copy(data.begin(), data.end(), this->data_.begin());
+    }
+
+    /**
      * Constructor using a reference to evmc::address and a reference to evmc::bytes32.
      * @param addr The evmc::address pointer to convert into a storage key.
      * @param slot The evmc::bytes32 pointer to convert into a storage key.
