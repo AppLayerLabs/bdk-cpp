@@ -84,7 +84,6 @@ find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(Scrypt REQUIRED)
 
 # Add external modules
-include(cmake/ProjectBoostCertify.cmake)  # Boost Certify
 include(cmake/ProjectEthash.cmake)        # Ethash
 include(cmake/ProjectSecp256k1.cmake)     # Bitcoin core fast implementation
 include(cmake/ProjectSpeedb.cmake)        # Speedb (Level/RocksDB drop-in replacement)
