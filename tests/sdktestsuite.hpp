@@ -86,6 +86,7 @@ class SDKTestSuite {
     {}
 
     ~SDKTestSuite() {
+      state_.dumpStopWorker();
       p2p_.stopDiscovery();
       p2p_.stop();
       http_.stop();
