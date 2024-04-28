@@ -111,13 +111,14 @@ class BaseContract : public ContractLocals, public Dumpable {
      * @param address The address where the contract will be deployed.
      * @param db Pointer to the DB instance.
      */
-    BaseContract(const Address &address, const DB& db) : contractAddress_(address),
+    BaseContract(const Address &address, const DB& db) :
                  dbPrefix_([&]() -> Bytes {
                    Bytes prefix = DBPrefix::contracts;
-                   prefix.reserve(prefix.size() + contractAddress_.size());
-                   prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
+                   prefix.reserve(prefix.size() + address.size());
+                   prefix.insert(prefix.end(), address.cbegin(), address.cend());
                    return prefix;
-                 }())
+                 }()),
+                 contractAddress_(address)
     {
       this->contractName_ = Utils::bytesToString(db.get(std::string("contractName_"), this->getDBPrefix()));
       this->contractCreator_ = Address(db.get(std::string("contractCreator_"), this->getDBPrefix()));
