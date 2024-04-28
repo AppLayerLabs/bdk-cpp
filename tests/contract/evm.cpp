@@ -100,105 +100,181 @@ namespace TERC721 {
 
   Bytes erc20WrapperBytes = Hex::toBytes("0x6080604052348015600e575f80fd5b506105cd8061001c5f395ff3fe608060405234801561000f575f80fd5b506004361061004a575f3560e01c806347e7ef241461004e578063c53b770214610063578063f3fef3a314610088578063f7888aec1461009b575b5f80fd5b61006161005c3660046104ae565b6100d1565b005b6100766100713660046104d6565b610251565b60405190815260200160405180910390f35b6100616100963660046104ae565b6102bf565b6100766100a93660046104f6565b6001600160a01b039182165f9081526020818152604080832093909416825291909152205490565b5f81116101255760405162461bcd60e51b815260206004820181905260248201527f416d6f756e74206d7573742062652067726561746572207468616e207a65726f60448201526064015b60405180910390fd5b6040516323b872dd60e01b8152336004820152306024820152604481018290526001600160a01b038316906323b872dd906064016020604051808303815f875af1158015610175573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906101999190610527565b6101d75760405162461bcd60e51b815260206004820152600f60248201526e151c985b9cd9995c8819985a5b1959608a1b604482015260640161011c565b335f908152602081815260408083206001600160a01b03861684529091528120805483929061020790849061055a565b90915550506040518181526001600160a01b0383169033907f5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62906020015b60405180910390a35050565b6040516370a0823160e01b81523060048201525f906001600160a01b038316906370a0823190602401602060405180830381865afa158015610295573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906102b9919061056d565b92915050565b5f811161030e5760405162461bcd60e51b815260206004820181905260248201527f416d6f756e74206d7573742062652067726561746572207468616e207a65726f604482015260640161011c565b335f908152602081815260408083206001600160a01b03861684529091529020548111156103755760405162461bcd60e51b8152602060048201526014602482015273496e73756666696369656e742062616c616e636560601b604482015260640161011c565b335f908152602081815260408083206001600160a01b0386168452909152812080548392906103a5908490610584565b909155505060405163a9059cbb60e01b8152336004820152602481018290526001600160a01b0383169063a9059cbb906044016020604051808303815f875af11580156103f4573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906104189190610527565b6104565760405162461bcd60e51b815260206004820152600f60248201526e151c985b9cd9995c8819985a5b1959608a1b604482015260640161011c565b6040518181526001600160a01b0383169033907f2717ead6b9200dd235aad468c9809ea400fe33ac69b5bfaa6d3e90fc922b639890602001610245565b80356001600160a01b03811681146104a9575f80fd5b919050565b5f80604083850312156104bf575f80fd5b6104c883610493565b946020939093013593505050565b5f602082840312156104e6575f80fd5b6104ef82610493565b9392505050565b5f8060408385031215610507575f80fd5b61051083610493565b915061051e60208401610493565b90509250929050565b5f60208284031215610537575f80fd5b815180151581146104ef575f80fd5b634e487b7160e01b5f52601160045260245ffd5b808201808211156102b9576102b9610546565b5f6020828403121561057d575f80fd5b5051919050565b818103818111156102b9576102b961054656fea2646970667358221220a682d87f949af3271670e7b8a26e66a974e4f99da4daccd6eeee9f51c980d6bb64736f6c63430008190033");
   TEST_CASE("EVM ERC20 Tests", "[contract][evm]") {
-    SECTION("ERC20 Creation") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CreationEVM");
-      // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
-      auto erc20Address = sdk.deployBytecode(erc20bytecode);
-      // Now for the funny part, we are NOT a C++ contract, but we can
-      // definitely take advantage of the templated ABI to interact with it
-      // as the encoding is the same
+    SECTION("ERC20 Creation + load from DB.") {
+      std::unique_ptr<Options> options = nullptr;
+      Address erc20Address = Address();
+      {
+        SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CreationEVM");
+        // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
+        erc20Address = sdk.deployBytecode(erc20bytecode);
+        // Now for the funny part, we are NOT a C++ contract, but we can
+        // definitely take advantage of the templated ABI to interact with it
+        // as the encoding is the same
+
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::symbol) == "TST");
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::decimals) == 18);
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
+
+        // Make a copy of the current options
+        options = std::make_unique<Options>(sdk.getOptions());
+        // Dump the state
+        sdk.getState().saveToDB();
+      }
+
+      /// SDKTestSuite should automatically load the state from the DB if we
+      /// Construct it with a options object
+      /// (The createNewEnvironment DELETES the DB if any is found)
+      SDKTestSuite sdk(*options);
 
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::symbol) == "TST");
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::decimals) == 18);
       REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
     }
 
-    SECTION("ERC20 transfer") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20TransferEVM");
-      // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
-      auto erc20Address = sdk.deployBytecode(erc20bytecode);
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::symbol) == "TST");
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::decimals) == 18);
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
-      Address owner = sdk.getChainOwnerAccount().address;
+    SECTION("ERC20 transfer + load from DB.") {
+      std::unique_ptr<Options> options = nullptr;
+      Address erc20Address = Address();
       Address to(Utils::randBytes(20));
+      {
+        SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20TransferEVM");
+        // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
+        erc20Address = sdk.deployBytecode(erc20bytecode);
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::symbol) == "TST");
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::decimals) == 18);
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
+        Address owner = sdk.getChainOwnerAccount().address;
 
-      uint256_t balanceMe = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, owner);
-      uint256_t balanceTo = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, to);
-      REQUIRE(balanceMe == uint256_t("10000000000000000000000")); // 10000 TST
-      REQUIRE(balanceTo == 0);
+        uint256_t balanceMe = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, owner);
+        uint256_t balanceTo = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, to);
+        REQUIRE(balanceMe == uint256_t("10000000000000000000000")); // 10000 TST
+        REQUIRE(balanceTo == 0);
 
-      Hash transferTx = sdk.callFunction(erc20Address, &ERC20::transfer, to, uint256_t("5000000000000000000000")); // 5000 TST
-      balanceMe = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, owner);
-      balanceTo = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, to);
-      REQUIRE(balanceMe == uint256_t("5000000000000000000000"));
-      REQUIRE(balanceTo == uint256_t("5000000000000000000000"));
+        Hash transferTx = sdk.callFunction(erc20Address, &ERC20::transfer, to, uint256_t("5000000000000000000000")); // 5000 TST
+        balanceMe = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, owner);
+        balanceTo = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, to);
+        REQUIRE(balanceMe == uint256_t("5000000000000000000000"));
+        REQUIRE(balanceTo == uint256_t("5000000000000000000000"));
 
-      // "owner" doesn't have enough balance, this should throw and balances should stay intact
-      REQUIRE_THROWS(sdk.callFunction(erc20Address, &ERC20::transfer, to, uint256_t("5000000000000000000001")));
+        // "owner" doesn't have enough balance, this should throw and balances should stay intact
+        REQUIRE_THROWS(sdk.callFunction(erc20Address, &ERC20::transfer, to, uint256_t("5000000000000000000001")));
 
-      balanceMe = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, owner);
-      balanceTo = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, to);
-      REQUIRE(balanceMe == uint256_t("5000000000000000000000"));
-      REQUIRE(balanceTo == uint256_t("5000000000000000000000"));
-    }
-    SECTION("EVM -> CPP Calls (EVM ERC20Wrapper)") {
-      SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testEVMtoCPPcalls");
-      auto erc20Address = sdk.deployContract<ERC20>(std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("10000000000000000000000"));
-      auto erc20WrapperAddress = sdk.deployBytecode(erc20WrapperBytes);
+        balanceMe = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, owner);
+        balanceTo = sdk.callViewFunction(erc20Address, &ERC20::balanceOf, to);
+        REQUIRE(balanceMe == uint256_t("5000000000000000000000"));
+        REQUIRE(balanceTo == uint256_t("5000000000000000000000"));
+        // Copy the SDK options
+        options = std::make_unique<Options>(sdk.getOptions());
+        sdk.getState().saveToDB();
+      }
 
-      sdk.callFunction(erc20Address, &ERC20::approve, erc20WrapperAddress, uint256_t("10000000000000000000000"));
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::allowance, sdk.getChainOwnerAccount().address, erc20WrapperAddress) == uint256_t("10000000000000000000000"));
+      SDKTestSuite sdk(*options);
 
-      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::balanceOf, sdk.getChainOwnerAccount().address, erc20Address) == uint256_t("0"));
-      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::contractBalance, erc20Address) == uint256_t("0"));
-      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
-      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("0"));
-
-      auto deposit = sdk.callFunction(erc20WrapperAddress, &SolERC20Wrapper::deposit, erc20Address, uint256_t("10000000000000000000000"));
-      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::balanceOf, sdk.getChainOwnerAccount().address, erc20Address) == uint256_t("10000000000000000000000"));
-      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::contractBalance, erc20Address) == uint256_t("10000000000000000000000"));
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("0"));
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("10000000000000000000000"));
-
-      // Withdraw the 1/3 of what we have deposited
-      auto withdraw = sdk.callFunction(erc20WrapperAddress, &SolERC20Wrapper::withdraw, erc20Address, uint256_t("3333333333333333333333"));
-      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::balanceOf, sdk.getChainOwnerAccount().address, erc20Address) == uint256_t("6666666666666666666667"));
-      REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::contractBalance, erc20Address) == uint256_t("6666666666666666666667"));
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("3333333333333333333333"));
-      REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("6666666666666666666667"));
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::symbol) == "TST");
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::decimals) == 18);
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("5000000000000000000000"));
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, to) == uint256_t("5000000000000000000000"));
     }
 
-    SECTION("CPP -> EVM Calls (CPP ERC20Wrapper)") {
-      auto sdk = SDKTestSuite::createNewEnvironment("testCPPtoEVMcalls");
-      auto erc20Address = sdk.deployBytecode(erc20bytecode);
-      auto erc20WrapperAddress = sdk.deployContract<ERC20Wrapper>();
+    SECTION("EVM -> CPP Calls (EVM ERC20Wrapper) + load from DB.") {
+      std::unique_ptr<Options> options = nullptr;
+      Address erc20Address = Address();
+      Address erc20WrapperAddress = Address();
+      {
+        SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testEVMtoCPPcalls");
+        erc20Address = sdk.deployContract<ERC20>(std::string("TestToken"), std::string("TST"), uint8_t(18), uint256_t("10000000000000000000000"));
+        erc20WrapperAddress = sdk.deployBytecode(erc20WrapperBytes);
 
-      sdk.callFunction(erc20Address, &ERC20::approve, erc20WrapperAddress, uint256_t("10000000000000000000000"));
-      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::allowance, sdk.getChainOwnerAccount().address, erc20WrapperAddress) == uint256_t("10000000000000000000000"));
+        sdk.callFunction(erc20Address, &ERC20::approve, erc20WrapperAddress, uint256_t("10000000000000000000000"));
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::allowance, sdk.getChainOwnerAccount().address, erc20WrapperAddress) == uint256_t("10000000000000000000000"));
 
-      REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getUserBalance, erc20Address, sdk.getChainOwnerAccount().address) == uint256_t("0"));
-      REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getContractBalance, erc20Address) == uint256_t("0"));
-      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
-      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("0"));
+        REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::balanceOf, sdk.getChainOwnerAccount().address, erc20Address) == uint256_t("0"));
+        REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::contractBalance, erc20Address) == uint256_t("0"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("0"));
 
-      auto deposit = sdk.callFunction(erc20WrapperAddress, &ERC20Wrapper::deposit, erc20Address, uint256_t("10000000000000000000000"));
-      REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getUserBalance, erc20Address, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
-      REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getContractBalance, erc20Address) == uint256_t("10000000000000000000000"));
-      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("0"));
-      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("10000000000000000000000"));
+        auto deposit = sdk.callFunction(erc20WrapperAddress, &SolERC20Wrapper::deposit, erc20Address, uint256_t("10000000000000000000000"));
+        REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::balanceOf, sdk.getChainOwnerAccount().address, erc20Address) == uint256_t("10000000000000000000000"));
+        REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::contractBalance, erc20Address) == uint256_t("10000000000000000000000"));
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("0"));
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("10000000000000000000000"));
 
-      // Withdraw the 1/3 of what we have deposited
-      auto withdraw = sdk.callFunction(erc20WrapperAddress, &ERC20Wrapper::withdraw, erc20Address, uint256_t("3333333333333333333333"));
+        // Withdraw the 1/3 of what we have deposited
+        auto withdraw = sdk.callFunction(erc20WrapperAddress, &SolERC20Wrapper::withdraw, erc20Address, uint256_t("3333333333333333333333"));
+        REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::balanceOf, sdk.getChainOwnerAccount().address, erc20Address) == uint256_t("6666666666666666666667"));
+        REQUIRE(sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::contractBalance, erc20Address) == uint256_t("6666666666666666666667"));
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("3333333333333333333333"));
+        REQUIRE(sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("6666666666666666666667"));
+
+        options = std::make_unique<Options>(sdk.getOptions());
+        sdk.getState().saveToDB();
+      }
+
+      SDKTestSuite sdk(*options);
+
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::symbol) == "TST");
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::decimals) == 18);
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
+
+      REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::balanceOf, sdk.getChainOwnerAccount().address, erc20Address) == uint256_t("6666666666666666666667"));
+      REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &SolERC20Wrapper::contractBalance, erc20Address) == uint256_t("6666666666666666666667"));
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("3333333333333333333333"));
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("6666666666666666666667"));
+
+    }
+
+    SECTION("CPP -> EVM Calls (CPP ERC20Wrapper) + load from DB.") {
+      std::unique_ptr<Options> options = nullptr;
+      Address erc20Address = Address();
+      Address erc20WrapperAddress = Address();
+      {
+        auto sdk = SDKTestSuite::createNewEnvironment("testCPPtoEVMcalls");
+        erc20Address = sdk.deployBytecode(erc20bytecode);
+        erc20WrapperAddress = sdk.deployContract<ERC20Wrapper>();
+
+        sdk.callFunction(erc20Address, &ERC20::approve, erc20WrapperAddress, uint256_t("10000000000000000000000"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::allowance, sdk.getChainOwnerAccount().address, erc20WrapperAddress) == uint256_t("10000000000000000000000"));
+
+        REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getUserBalance, erc20Address, sdk.getChainOwnerAccount().address) == uint256_t("0"));
+        REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getContractBalance, erc20Address) == uint256_t("0"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("0"));
+
+        auto deposit = sdk.callFunction(erc20WrapperAddress, &ERC20Wrapper::deposit, erc20Address, uint256_t("10000000000000000000000"));
+        REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getUserBalance, erc20Address, sdk.getChainOwnerAccount().address) == uint256_t("10000000000000000000000"));
+        REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getContractBalance, erc20Address) == uint256_t("10000000000000000000000"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("0"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("10000000000000000000000"));
+
+        // Withdraw the 1/3 of what we have deposited
+        auto withdraw = sdk.callFunction(erc20WrapperAddress, &ERC20Wrapper::withdraw, erc20Address, uint256_t("3333333333333333333333"));
+        REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getUserBalance, erc20Address, sdk.getChainOwnerAccount().address) == uint256_t("6666666666666666666667"));
+        REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getContractBalance, erc20Address) == uint256_t("6666666666666666666667"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("3333333333333333333333"));
+        REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("6666666666666666666667"));
+
+        options = std::make_unique<Options>(sdk.getOptions());
+        sdk.getState().saveToDB();
+      }
+
+      SDKTestSuite sdk(*options);
+
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::name) == "TestToken");
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::symbol) == "TST");
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::decimals) == 18);
+      REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::totalSupply) == uint256_t("10000000000000000000000"));
+
       REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getUserBalance, erc20Address, sdk.getChainOwnerAccount().address) == uint256_t("6666666666666666666667"));
       REQUIRE (sdk.callViewFunction(erc20WrapperAddress, &ERC20Wrapper::getContractBalance, erc20Address) == uint256_t("6666666666666666666667"));
       REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, sdk.getChainOwnerAccount().address) == uint256_t("3333333333333333333333"));
       REQUIRE (sdk.callViewFunction(erc20Address, &ERC20::balanceOf, erc20WrapperAddress) == uint256_t("6666666666666666666667"));
-
     }
   }
 }
