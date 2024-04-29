@@ -23,7 +23,7 @@ See the LICENSE.txt file in the project root for more information.
 #ifdef BUILD_TESTNET
 /// Typedef for the blockchain's registered contracts in TESTNET mode.
 using ContractTypes = std::tuple<
-  ERC20, NativeWrapper, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721, ERC721Test
+  ERC20, NativeWrapper, DEXV2Pair, DEXV2Factory, DEXV2Router02, ERC721
 >;
 #else
 /// Typedef for the blockchain's registered contracts in normal mode.
