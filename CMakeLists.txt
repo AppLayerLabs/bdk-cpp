@@ -32,7 +32,6 @@ endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # Always look for static libraries - "ZLIB_USE_STATIC_LIBS" was added in 3.24
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
-
 # Set project version inside the code (forcefully so changes in the .in file are always reflected correctly to the compiler)
 # if (EXISTS ${CMAKE_SOURCE_DIR}/src/utils/options.h)
 #   file(REMOVE ${CMAKE_SOURCE_DIR}/src/utils/options.h)
@@ -48,9 +47,14 @@ set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
 set(BUILD_DISCOVERY ON CACHE BOOL "Build helper discovery node program")
 set(BUILD_AVALANCHEGO OFF CACHE BOOL "Build with AvalancheGo wrapping")
 set(BUILD_TOOLS OFF CACHE BOOL "Build tools related to subnet")
+set(BUILD_TESTNET OFF CACHE BOOL "Build the project for testnet")
 set(USE_LINT OFF CACHE BOOL "Run linter on compile (clang-tidy)")
 if(USE_LINT)
   set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-checks=-*,abseil-*,boost-*,bugprone-*,cert-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*")
+endif()
+
+if(BUILD_TESTNET)
+  add_definitions(-DBUILD_TESTNET)
 endif()
 
 # Echo CMake vars during config
