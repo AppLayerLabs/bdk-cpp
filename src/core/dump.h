@@ -27,6 +27,9 @@ public:
   virtual DBBatch dump() const = 0;
 };
 
+// Forward declaration
+class EventManager;
+
 /**
  * Dumpable management.
  * Used to store dumpable objects in memory.
@@ -41,12 +44,14 @@ private:
   std::shared_mutex& stateMutex_;
   /// Dumpable objects.
   std::vector<Dumpable*> dumpables_;
+  /// EventManager object
+  EventManager& eventManager_;
 public:
   /**
    * Constructor.
    * @param db Pointer to state database.
    */
-  DumpManager(const Storage& storage, const Options& options, std::shared_mutex& stateMutex);
+  DumpManager(const Storage& storage, const Options& options, EventManager& eventManager, std::shared_mutex& stateMutex);
 
   /**
    * Function that will register dumpable objects.

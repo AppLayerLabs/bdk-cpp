@@ -65,7 +65,7 @@ EventManager::EventManager(const Options& options
   }
 }
 
-EventManager::~EventManager() {
+void EventManager::dump() {
   DBBatch batchedOperations;
   {
     for (const auto& e : this->events_) {

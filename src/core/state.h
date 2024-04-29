@@ -26,19 +26,19 @@ enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
 /// Abstraction of the blockchain's current state at the current block.
 class State : Dumpable {
   private:
+    mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
     evmc_vm* vm_;  ///< Pointer to the EVMC VM.
     const Options& options_;  ///< Reference to the options singleton.
+    Storage& storage_;  ///< Reference to the blockchain's storage.
+    EventManager eventManager_; ///< Event manager object. Responsible for storing events emitted in contract calls.
     DumpManager dumpManager_; ///< The Dump Worker object
     DumpWorker dumpWorker_; ///< Dump Manager object
-    Storage& storage_;  ///< Reference to the blockchain's storage.
     P2P::ManagerNormal& p2pManager_;  ///< Reference to the P2P connection manager.
     rdPoS rdpos_; ///< rdPoS object (consensus).
     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash> contracts_; ///< Map with information about blockchain contracts (Address -> Contract).
     std::unordered_map<StorageKey, Hash, SafeHash> vmStorage_; ///< Map with the storage of the EVM.
-    EventManager eventManager_; ///< Event manager object. Responsible for storing events emitted in contract calls.
     std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash> accounts_; ///< Map with information about blockchain accounts (Address -> Account).
     std::unordered_map<Hash, TxBlock, SafeHash> mempool_; ///< TxBlock mempool.
-    mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
 
     /**
      * Verify if a transaction can be accepted within the current state.

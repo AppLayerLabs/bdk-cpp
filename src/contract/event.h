@@ -180,7 +180,10 @@ class EventManager {
   private:
     // TODO: keep up to 1000 (maybe 10000? 100000? 1M seems too much) events in memory, dump older ones to DB (this includes checking save/load - maybe this should be a deque?)
     EventContainer events_;           ///< List of all emitted events in memory. Older ones FIRST, newer ones LAST.
-    DB db_;                           ///< EventManager Database.
+    /// Uhhh mutable is needed because we used to dump stuff through the construction
+    /// now we do through the dump() method, so we need to mark it as mutable.
+    /// but dump() should be const, so we need to mark it as mutable.
+    mutable DB db_;                           ///< EventManager Database.
     const Options& options_;          ///< Reference to the Options singleton.
 
   public:
@@ -191,7 +194,7 @@ class EventManager {
      */
     EventManager(const Options& options);
 
-    ~EventManager();  ///< Destructor. Automatically saves events to the database.
+    ~EventManager() = default;  ///< Destructor.
 
     // TODO: maybe a periodicSaveToDB() just like on Storage?
 
@@ -264,6 +267,12 @@ class EventManager {
      */
     void registerEvent(Event&& event) { this->events_.insert(std::move(event)); }
 
+    /**
+     * Dump function.
+     * Actually triggers the saving of events to the database.
+     * It is NOT const because it clear the events_ list after dumping.
+     */
+    void dump();
 };
 
 #endif  // EVENT_H

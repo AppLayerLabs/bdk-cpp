@@ -6,11 +6,13 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "dump.h"
+#include "../contract/event.h"
 
-DumpManager::DumpManager(const Storage& storage, const Options& options, std::shared_mutex& stateMutex)
+DumpManager::DumpManager(const Storage& storage, const Options& options, EventManager& eventManager, std::shared_mutex& stateMutex)
   : storage_(storage),
     options_(options),
-    stateMutex_(stateMutex)
+    stateMutex_(stateMutex),
+    eventManager_(eventManager)
 {
 }
 
@@ -42,6 +44,11 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
       // call dump functions and put the operations ate the database
       batches.emplace_back(dumpable->dump());
     }
+    // Also dump the events
+    // EventManager has its own database.
+    // We just need to make sure that its data is dumped
+    // At the same block height as the state data
+    this->eventManager_.dump();
   }
   return ret;
 }

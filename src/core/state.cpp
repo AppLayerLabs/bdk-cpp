@@ -15,11 +15,14 @@ State::State(
   P2P::ManagerNormal& p2pManager,
   const uint64_t& snapshotHeight,
   const Options& options
-) : vm_(evmc_create_evmone()), storage_(storage), p2pManager_(p2pManager), options_(options),
-    dumpManager_(storage, options_, this->stateMutex_),
-    dumpWorker_(storage, dumpManager_),
-    rdpos_ (db, dumpManager_, storage, p2pManager, options, *this),
-    eventManager_(options_) {
+) : vm_(evmc_create_evmone()),
+    options_(options),
+    storage_(storage),
+    eventManager_(options_),
+    dumpManager_(storage_, options_, this->eventManager_, this->stateMutex_),
+    dumpWorker_(storage_, dumpManager_),
+    p2pManager_(p2pManager),
+    rdpos_ (db, dumpManager_, storage, p2pManager, options, *this) {
   std::unique_lock lock(this->stateMutex_);
   auto accountsFromDB = db.getBatch(DBPrefix::nativeAccounts);
   if (accountsFromDB.empty()) {
