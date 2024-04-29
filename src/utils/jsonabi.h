@@ -219,12 +219,33 @@ namespace JsonAbi {
       {"inputs", json::array()},
       {"name", "getDeployedContracts"},
       {"outputs", {
-        {{"internalType", "string[]"}, {"name", ""}, {"type", "string[]"}},
-        {{"internalType", "address[]"}, {"name", ""}, {"type", "address[]"}}
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "address"}, {"type", "address"} }
+          } }, {"type", "tuple[]"}
+        }
       }},
       {"stateMutability", "view"},
       {"type", "function"}
     });
+    managerABI.push_back({
+        {"inputs", {
+              { {"internalType", "address"}, {"name", "creator"}, {"type", "address"} }
+        }},
+      {"name", "getDeployedContractsForCreator"},
+      {"outputs", {
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "address"}, {"type", "address"} }
+          } }, {"type", "tuple[]"}
+        }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    });
+
     std::ofstream jsonFile("ABI/ContractManager.json");
     jsonFile << std::setw(2) << managerABI << std::endl;
   }

@@ -50,10 +50,17 @@ class ContractManager : public BaseContract {
         > createContractFuncs_;
 
     /**
-     * Get a serialized string with the deployed contracts. Solidity counterpart:
-     * function getDeployedContracts() public view returns (string[] memory, address[] memory) {}
+     * Get all deployed contracts.
+     * struct Contract { string name; address addr; }
+     * function getDeployedContracts() public view returns (Contract[] memory) {
      */
-    Bytes getDeployedContracts() const;
+    std::vector<std::tuple<std::string, Address>> getDeployedContracts() const;
+
+    /**
+     * Get all deployed contracts from a specific creator address.
+     * function getDeployedContractsForCreator(Address creator) public view returns (Contract[] memory) {
+     */
+    std::vector<std::tuple<std::string, Address>> getDeployedContractsForCreator(const Address& creator) const;
 
     /**
      * Helper function to load all contracts from the database.

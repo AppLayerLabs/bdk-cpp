@@ -82,7 +82,7 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     json j;
     std::ifstream i("ABI/ContractManager.json");
     i >> j;
-    REQUIRE(j.size() == std::tuple_size<ContractTypes>() + 1);
+    REQUIRE(j.size() == std::tuple_size<ContractTypes>() + 2); // (2 extra functions, getDeployedContracts and getDeployedContractsForCreator)
 
     auto findCreateNewERC20Contract = std::find(j.begin(), j.end(), EXPECTED::ContractManager::createNewERC20Contract);
     REQUIRE(findCreateNewERC20Contract != j.end());
@@ -108,6 +108,8 @@ TEST_CASE("ContractABIGenerator helper", "[contract][contractabigenerator]") {
     REQUIRE(findCreateNewThrowTestCContract != j.end());
     auto findGetDeployedContracts = std::find(j.begin(), j.end(), EXPECTED::ContractManager::getDeployedContracts);
     REQUIRE(findGetDeployedContracts != j.end());
+    auto findGetDeployedContractsForCreator = std::find(j.begin(), j.end(), EXPECTED::ContractManager::getDeployedContractsForCreator);
+    REQUIRE(findGetDeployedContractsForCreator != j.end());
   }
 
   SECTION("ContractABIGenerator check file content SimpleContract") {

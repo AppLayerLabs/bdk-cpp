@@ -318,8 +318,29 @@ namespace EXPECTED {
       {"inputs", json::array()},
       {"name", "getDeployedContracts"},
       {"outputs", {
-        { {"internalType", "string[]"}, {"name", ""}, {"type", "string[]"} },
-        { {"internalType", "address[]"}, {"name", ""}, {"type", "address[]"} }
+        {
+          {"components", {
+            { {"internalType", "string"}, {"type", "string"} },
+            { {"internalType", "address"}, {"type", "address"} }
+          } }, {"type", "tuple[]"}
+        }
+      }},
+      {"stateMutability", "view"},
+      {"type", "function"}
+    };
+
+    json getDeployedContractsForCreator = {
+      {"inputs", {
+            { {"internalType", "address"}, {"name", "creator"}, {"type", "address"} }
+      }},
+      {"name", "getDeployedContractsForCreator"},
+      {"outputs", {
+          {
+            {"components", {
+              { {"internalType", "string"}, {"type", "string"} },
+              { {"internalType", "address"}, {"type", "address"} }
+            } }, {"type", "tuple[]"}
+          }
       }},
       {"stateMutability", "view"},
       {"type", "function"}

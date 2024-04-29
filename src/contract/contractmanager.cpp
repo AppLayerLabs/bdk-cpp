@@ -50,15 +50,24 @@ DBBatch ContractManager::dump() const {
   return contractsBatch;
 }
 
-Bytes ContractManager::getDeployedContracts() const {
-  std::vector<std::string> names;
-  std::vector<Address> addresses;
+std::vector<std::tuple<std::string, Address>> ContractManager::getDeployedContracts() const {
+  std::vector<std::tuple<std::string, Address>> contracts;
   for (const auto& [address, contract] : this->contracts_) {
-    names.push_back(contract->getContractName());
-    addresses.push_back(address);
+    std::tuple contractTuple(contract->getContractName(), address);
+    contracts.push_back(contractTuple);
   }
-  Bytes result = ABI::Encoder::encodeData(names, addresses);
-  return result;
+  return contracts;
+}
+
+std::vector<std::tuple<std::string, Address>> ContractManager::getDeployedContractsForCreator(const Address& creator) const {
+  std::vector<std::tuple<std::string, Address>> contracts;
+  for (const auto& [address, contract] : this->contracts_) {
+    if (contract->getContractCreator() == creator) {
+      std::tuple contractTuple(contract->getContractName(), address);
+      contracts.push_back(contractTuple);
+    }
+  }
+  return contracts;
 }
 
 void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) {
@@ -80,8 +89,16 @@ void ContractManager::ethCall(const evmc_message& callInfo, ContractHost* host) 
 
 Bytes ContractManager::ethCallView(const evmc_message& callInfo, ContractHost* host) const {
   PointerNullifier nullifier(this->host_);
-  // This hash is equivalent to "function getDeployedContracts() public view returns (string[] memory, address[] memory) {}"
+  // This hash is equivalent to "function getDeployedContracts() public view returns (Contract[] memory) {}"
   // 0xaa9a068f == uint32_t(2862220943);
-  if (Utils::getFunctor(callInfo).value == 2862220943) return this->getDeployedContracts();
+  auto functor = Utils::getFunctor(callInfo);
+  if (functor.value == 2862220943) return ABI::Encoder::encodeData(this->getDeployedContracts());
+  // This hash is equivalent to "function getDeployedContractsForCreator(address creator) public view returns (Contract[] memory) {}"
+  // 0x73474f5a == uint32_t(1934053210)
+  if (functor.value == 1934053210) {
+    auto args = Utils::getFunctionArgs(callInfo);
+    auto addr = ABI::Decoder::decodeData<Address>(args);
+    return ABI::Encoder::encodeData(this->getDeployedContractsForCreator(std::get<0>(addr)));
+  }
   throw DynamicException("Invalid function call");
 }
