@@ -15,97 +15,27 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "abi.h"
 #include "contract.h"
+#include "contracthost.h"
 #include "contractmanager.h"
 
-/// Factory class that does the setup, creation and registration of contracts to the blockchain.
-class ContractFactory {
-  private:
-    ContractManager& manager_; ///< Reference to the contract manager.
-
-    std::unordered_map<
-      Bytes, std::function<void(const ethCallInfo&)>, SafeHash
-    > createContractFuncs_; ///< Map of contract functors and create functions, used to create contracts.
-
-    std::unordered_set<Address, SafeHash> recentContracts_; ///< Set of recently created contracts.
-
-  public:
-    /**
-     * Constructor.
-     * @param manager Reference to the contract manager.
-     */
-    explicit ContractFactory(ContractManager& manager) : manager_(manager) {}
-    std::unordered_set<Address, SafeHash> getRecentContracts() const; ///< Getter for `recentContracts_`.
-    void clearRecentContracts();  ///< Clear the `recentContracts_` set.
-
-    /**
-     * Get the createNewContract function of a given contract.
-     * @param func The functor to search for.
-     * @return The respective functor's creation function, or an empty function if not found.
-     */
-    std::function<void(const ethCallInfo&)> getCreateContractFunc(Functor func) const;
-
-    /**
-     * Setup data for a new contract before creating/validating it.
-     * @param callInfo The call info to process.
-     * @return A pair containing the contract address and the ABI decoder.
-     * @throw DynamicException if non contract creator tries to create a contract.
-     * @throw DynamicException if contract already exists as either a Dynamic or Protocol contract.
-     */
-    template <typename TContract> auto setupNewContract(const ethCallInfo &callInfo) {
-      // Check if caller is creator
-      // TODO: Check if caller is creator of the contract, not the creator of the transaction
-      // Allow contracts to create other contracts though.
-      if (this->manager_.getOrigin() != this->manager_.getContractCreator()) {
-        throw DynamicException("Only contract creator can create new contracts");
-      }
-
-      // Check if contract address already exists on the Dynamic Contract list
-      const Address derivedAddress = this->manager_.deriveContractAddress();
-      if (this->manager_.contracts_.contains(derivedAddress)) {
-        throw DynamicException("Contract already exists as a Dynamic Contract");
-      }
-
-      // Check if contract address already exists on the Protocol Contract list
-      for (const auto &[name, address] : ProtocolContractAddresses) {
-        if (address == derivedAddress) {
-          throw DynamicException("Contract already exists as a Protocol Contract");
-        }
-      }
-
-      // Setup the contract
-      using ConstructorArguments = typename TContract::ConstructorArguments;
-      using DecayedArguments = decltype(Utils::removeQualifiers<ConstructorArguments>());
-
-      DecayedArguments arguments = std::apply([&callInfo](auto&&... args) {
-        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(std::get<6>(callInfo));
-      }, DecayedArguments{});
-      return std::make_pair(derivedAddress, arguments);
-    }
-
-    /**
-     * Create a new contract from a given call info.
-     * @param callInfo The call info to process.
-     * @throw DynamicException if the call to the ethCall function fails, or if the contract does not exist.
-     */
-    template <typename TContract> void createNewContract(const ethCallInfo& callInfo) {
-      using ConstructorArguments = typename TContract::ConstructorArguments;
-      auto setupResult = this->setupNewContract<TContract>(callInfo);
-      if (!ContractReflectionInterface::isContractFunctionsRegistered<TContract>()) {
-        throw DynamicException("Contract " + Utils::getRealTypeName<TContract>() + " is not registered");
-      }
-
-      Address derivedAddress = setupResult.first;
-      const auto& decodedData = setupResult.second;
-
-      // Update the inner variables of the contract.
-      // The constructor can set SafeVariable values from the constructor.
-      // We need to take account of that and set the variables accordingly.
-      auto contract = createContractWithTuple<TContract, ConstructorArguments>(
-        std::get<0>(callInfo), derivedAddress, decodedData
-      );
-      this->recentContracts_.insert(derivedAddress);
-      this->manager_.contracts_.insert(std::make_pair(derivedAddress, std::move(contract)));
-    }
+/// Factory **namespace** that does the setup, creation and registration of contracts to the blockchain.
+/// As it is a namespace, it must take the required arguments (such as current contract list, etc.) as parameters.
+/**
+ *
+ * The main argument used through the program is the following:
+ * std::unordered_map<
+ *       Functor,
+ *       std::function<
+ *         void(const evmc_message&,
+ *              const Address&,
+ *              std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+ *              const uint64_t&,
+ *              ContractHost*
+ *              )>,
+ *       SafeHash
+ *     > createContractFuncs_;
+ */
+namespace ContractFactory {
 
     /**
      * Helper function to create a new contract from a given call info.
@@ -120,13 +50,16 @@ class ContractFactory {
      */
     template <typename TContract, typename TTuple, std::size_t... Is>
     std::unique_ptr<TContract> createContractWithTuple(
-      const Address& creator, const Address& derivedContractAddress, const TTuple& dataTlp, std::index_sequence<Is...>
+      const Address& creator,
+      const Address& derivedContractAddress,
+      const uint64_t& chainId,
+      const TTuple& dataTlp, std::index_sequence<Is...>
     ) {
       try {
         return std::make_unique<TContract>(
           std::get<Is>(dataTlp)...,
-          *this->manager_.interface_, derivedContractAddress, creator,
-          this->manager_.options_.getChainID(), this->manager_.db_
+          derivedContractAddress, creator,
+          chainId
         );
       } catch (const std::exception& ex) {
         // TODO: If the contract constructor throws an exception, the contract is not created.
@@ -148,12 +81,57 @@ class ContractFactory {
      */
     template <typename TContract, typename TTuple>
     std::unique_ptr<TContract> createContractWithTuple(
-      const Address& creator, const Address& derivedContractAddress, const TTuple& dataTpl
+      const Address& creator,
+      const Address& derivedContractAddress,
+      const uint64_t& chainId,
+      const TTuple& dataTpl
     ) {
       constexpr std::size_t TupleSize = std::tuple_size<TTuple>::value;
-      return this->createContractWithTuple<TContract, TTuple>(
-        creator, derivedContractAddress, dataTpl, std::make_index_sequence<TupleSize>{}
+      return createContractWithTuple<TContract, TTuple>(
+        creator, derivedContractAddress, chainId, dataTpl, std::make_index_sequence<TupleSize>{}
       );
+    }
+
+    /**
+     * Setup data for a new contract before creating/validating it.
+     * @param callInfo The call info to process.
+     * @return A pair containing the contract address and the ABI decoder.
+     * @throw DynamicException if non contract creator tries to create a contract.
+     * @throw DynamicException if contract already exists as either a Dynamic or Protocol contract.
+     */
+    template <typename TContract> auto setupNewContractArgs(const evmc_message& callInfo) {
+      // Setup the contract
+      using ConstructorArguments = typename TContract::ConstructorArguments;
+      using DecayedArguments = decltype(Utils::removeQualifiers<ConstructorArguments>());
+      DecayedArguments arguments = std::apply([&callInfo](auto&&... args) {
+        return ABI::Decoder::decodeData<std::decay_t<decltype(args)>...>(Utils::getFunctionArgs(callInfo));
+      }, DecayedArguments{});
+      return arguments;
+    }
+
+    /**
+     * Create a new contract from a given call info.
+     * @param callInfo The call info to process.
+     * @throw DynamicException if the call to the ethCall function fails, or if the contract does not exist.
+     */
+    template <typename TContract> void createNewContract(const evmc_message& callInfo,
+                                                         const Address& derivedAddress,
+                                                         std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
+                                                         const uint64_t& chainId,
+                                                         ContractHost* host) {
+      using ConstructorArguments = typename TContract::ConstructorArguments;
+      auto decodedData = setupNewContractArgs<TContract>(callInfo);
+      if (!ContractReflectionInterface::isContractFunctionsRegistered<TContract>()) {
+        throw DynamicException("Contract " + Utils::getRealTypeName<TContract>() + " is not registered");
+      }
+      // Update the inner variables of the contract.
+      // The constructor can set SafeVariable values from the constructor.
+      // We need to take account of that and set the variables accordingly.
+      auto contract = createContractWithTuple<TContract, ConstructorArguments>(
+        callInfo.sender, derivedAddress, chainId, decodedData
+      );
+      host->registerNewCPPContract(derivedAddress, contract.get());
+      contracts.insert(std::make_pair(derivedAddress, std::move(contract)));
     }
 
     /**
@@ -162,31 +140,58 @@ class ContractFactory {
      * @param createFunc Function to create a new contract
      */
     template <typename Contract>
-    void addContractFuncs(const std::function<void(const ethCallInfo &)>& createFunc) {
+    void addContractFuncs(const std::function<
+                       void(const evmc_message&,
+                            const Address&,
+                            std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                            const uint64_t&,
+                            ContractHost* host)>& createFunc
+                      ,std::unordered_map<Functor,std::function<void(const evmc_message&,
+                                                                     const Address&,
+                                                                     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                     const uint64_t&,
+                                                                     ContractHost*)>,SafeHash>& createContractFuncs
+    ) {
       std::string createSignature = "createNew" + Utils::getRealTypeName<Contract>() + "Contract(";
       // Append args
       createSignature += ContractReflectionInterface::getConstructorArgumentTypesString<Contract>();
       createSignature += ")";
-      Functor functor = Utils::sha3(Utils::create_view_span(createSignature)).view(0, 4);
-      this->createContractFuncs_[functor.asBytes()] = createFunc;
+      auto hash = Utils::sha3(Utils::create_view_span(createSignature));
+      Functor functor;
+      functor.value = Utils::bytesToUint32(hash.view(0,4));
+      createContractFuncs[functor] = createFunc;
     }
 
     /**
      * Register all contracts in the variadic template.
      * @tparam Contracts The contracts to register.
      */
-    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(std::index_sequence<Is...>) {
-      ((this->addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const ethCallInfo &callInfo) {
-        this->createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo);
-      })), ...);
+    template <typename Tuple, std::size_t... Is> void addAllContractFuncsHelper(std::unordered_map<Functor,std::function<void(const evmc_message&,
+                                                                     const Address&,
+                                                                     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                     const uint64_t&,
+                                                                     ContractHost*)>,SafeHash>& createContractFuncs,
+                                                                   std::index_sequence<Is...>) {
+      ((addContractFuncs<std::tuple_element_t<Is, Tuple>>( [&](const evmc_message &callInfo,
+                                                                const Address &derivedAddress,
+                                                                std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash> &contracts,
+                                                                const uint64_t &chainId,
+                                                                ContractHost* host) {
+        createNewContract<std::tuple_element_t<Is, Tuple>>(callInfo, derivedAddress, contracts, chainId, host);
+      }, createContractFuncs)), ...);
     }
 
     /**
      * Add all contract functions to the respective maps using the helper function.
      * @tparam Tuple The tuple of contracts to add.
      */
-    template <typename Tuple> requires Utils::is_tuple<Tuple>::value void addAllContractFuncs() {
-      addAllContractFuncsHelper<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
+    template <typename Tuple> requires Utils::is_tuple<Tuple>::value void addAllContractFuncs(
+                                                                   std::unordered_map<Functor,std::function<void(const evmc_message&,
+                                                                   const Address&,
+                                                                   std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_,
+                                                                   const uint64_t&,
+                                                                   ContractHost*)>,SafeHash>& createContractFuncs) {
+      addAllContractFuncsHelper<Tuple>(createContractFuncs, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
     }
 
     /**
@@ -200,7 +205,7 @@ class ContractFactory {
      * @tparam Tuple The tuple of contracts to register.
      * @tparam Is The indices of the tuple.
      */
-    template <typename Tuple, std::size_t... Is> void registerContractsHelper(std::index_sequence<Is...>) const {
+    template <typename Tuple, std::size_t... Is> void registerContractsHelper(std::index_sequence<Is...>) {
       (RegisterContract<std::tuple_element_t<Is, Tuple>>(), ...);
     }
 

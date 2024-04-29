@@ -9,12 +9,16 @@ See the LICENSE.txt file in the project root for more information.
 #define P2P_MANAGER_NORMAL_H
 
 #include "managerbase.h"
+#include "nodeconns.h"
+
+#include <optional>
 
 // Forward declaration.
 class Storage;
 class State;
 
 namespace P2P {
+
   /// Manager focused exclusively at Normal nodes.
   class ManagerNormal : public ManagerBase {
     protected:
@@ -39,7 +43,16 @@ namespace P2P {
        */
       void handleBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
+      /**
+       * Handle a notification from a node.
+       * @param session The session that sent the notification.
+       * @param message The notification message to handle.
+       */
+      void handleNotification(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
     private:
+      P2P::NodeConns nodeConns_; ///< P2P engine's logical peer connection tracking & keepalive component.
+
       const Storage& storage_; ///< Reference to the blockchain's storage.
       State& state_; ///< Reference to the blockchain's state.
 
@@ -60,6 +73,12 @@ namespace P2P {
        * @param message The message to broadcast.
        */
       void broadcastMessage(const std::shared_ptr<const Message> message);
+
+      /**
+       * Send a notification message to all connected nodes.
+       * @param message The message to notify all connected nodes.
+       */
+      void notifyAllMessage(const std::shared_ptr<const Message> message);
 
       /**
        * Handle a `Ping` request.
@@ -97,6 +116,13 @@ namespace P2P {
       void handleTxRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
+       * Handle a `RequestBlock` request.
+       * @param session The session that sent the request.
+       * @param message The request message to handle.
+       */
+      void handleRequestBlockRequest(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
+      /**
        * Handle a `Ping` answer.
        * @param session The session that sent the answer.
        * @param message The answer message to handle.
@@ -132,6 +158,13 @@ namespace P2P {
       void handleTxAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
+       * Handle a `RequestBlock` answer.
+       * @param session The session that sent the answer.
+       * @param message The answer message to handle.
+       */
+      void handleRequestBlockAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
+      /**
        * Handle a Validator transaction broadcast message.
        * @param session The node that sent the broadcast.
        * @param message The message that was broadcast.
@@ -152,6 +185,20 @@ namespace P2P {
        */
       void handleBlockBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
+      /**
+       * Handle a info broadcast message.
+       * @param session The node that sent the broadcast.
+       * @param message The message that was broadcast.
+       */
+      void handleInfoBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
+      /**
+       * Handle a info notification message.
+       * @param session The node that sent the notification.
+       * @param message The notification message to handle.
+       */
+      void handleInfoNotification(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
+
     public:
       /**
        * Constructor.
@@ -163,11 +210,20 @@ namespace P2P {
       ManagerNormal(
         const boost::asio::ip::address& hostIp, const Options& options, const Storage& storage, State& state
       ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, options, options.getMinNormalConns(), options.getMaxNormalConns()),
-        storage_(storage), state_(state)
+        storage_(storage), state_(state), nodeConns_(*this)
       {}
 
       /// Destructor. Automatically stops the manager.
       ~ManagerNormal() { this->stop(); }
+
+      /// Get a reference to the NodeConns component.
+      P2P::NodeConns& getNodeConns() { return this->nodeConns_; }
+
+      /// Start the P2P engine
+      virtual void start() { ManagerBase::start(); nodeConns_.start(); }
+
+      /// Stop the P2P engine
+      virtual void stop() { nodeConns_.stop(); ManagerBase::stop(); }
 
       /**
        * Handle a message from a session. Entry point for all the other handlers.
@@ -198,6 +254,14 @@ namespace P2P {
       NodeInfo requestNodeInfo(const NodeID& nodeId);
 
       /**
+       * Request a block to a peer.
+       * @param nodeId The ID of the node to request.
+       * @param height The block height to request.
+       * @return The requested block, or an empty optional on error.
+       */
+      std::optional<FinalizedBlock> requestBlock(const NodeID& nodeId, const uint64_t& height);
+
+      /**
        * Broadcast a Validator transaction to all connected nodes.
        * @param tx The transaction to broadcast.
        */
@@ -213,7 +277,17 @@ namespace P2P {
        * Broadcast a block to all connected nodes.
        * @param block The block to broadcast.
        */
-      void broadcastBlock(const std::shared_ptr<const Block> block);
+      void broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
+
+      /**
+       * Broadcast current node info
+       */
+      void broadcastInfo();
+
+      /**
+       * Notify all connected peers of our current node info
+       */
+      void notifyAllInfo();
   };
 };
 

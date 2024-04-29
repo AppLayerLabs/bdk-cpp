@@ -9,7 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define JSONRPC_ENCODING_H
 
 #include "../../../utils/utils.h"
-#include "../../../utils/block.h"
+#include "../../../utils/mutableblock.h"
 #include "../../../utils/tx.h"
 #include "../../../utils/options.h"
 #include "../../p2p/managernormal.h"
@@ -30,7 +30,7 @@ namespace JsonRPC::Encoding {
    * @param includeTransactions If `true`, includes the block's transactions in the JSON response.
    * @return The block's contents as a JSON object.
    */
-  json getBlockJson(const std::shared_ptr<const Block>& block, bool includeTransactions);
+  json getBlockJson(const std::shared_ptr<const FinalizedBlock>& block, bool includeTransactions);
 
   /**
    * Encode a `web3_clientVersion` response.
@@ -148,7 +148,7 @@ namespace JsonRPC::Encoding {
    * @param state Pointer to the blockchain's state.
    * @return The encoded JSON response.
    */
-  json eth_call(const ethCallInfoAllocated& callInfo, const State& state);
+  json eth_call(const evmc_message& callInfo, State& state);
 
   /**,
    * Encode a `eth_estimateGas` response.
@@ -157,7 +157,7 @@ namespace JsonRPC::Encoding {
    * @return The encoded JSON response.
    */
   // TODO: We don't really estimate gas because we don't have a Gas structure, it is fixed to 21000
-  json eth_estimateGas(const ethCallInfoAllocated& callInfo, State& state);
+  json eth_estimateGas(const evmc_message& callInfo, State& state);
 
   /**
    * Encode a `eth_gasPrice` response.

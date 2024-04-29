@@ -22,13 +22,13 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/utils/dynamicexception.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/abi.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20.cpp
-  ${CMAKE_SOURCE_DIR}/tests/contract/contractmanager.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc20wrapper.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/erc721.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/nativewrapper.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/contractabigenerator.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/dexv2.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/simplecontract.cpp
+  ${CMAKE_SOURCE_DIR}/tests/contract/evm.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_c++.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeint_t_c++.cpp
   ${CMAKE_SOURCE_DIR}/tests/contract/variables/safeuint_t_boost.cpp
@@ -43,6 +43,7 @@ set (TESTS_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/core/rdpos.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/storage.cpp
   ${CMAKE_SOURCE_DIR}/tests/core/state.cpp
+  ${CMAKE_SOURCE_DIR}/tests/core/dumpmanager.cpp
   # ${CMAKE_SOURCE_DIR}/tests/core/blockchain.cpp # TODO: Blockchain is failing due to rdPoSWorker.
   ${CMAKE_SOURCE_DIR}/tests/net/p2p/p2p.cpp
   ${CMAKE_SOURCE_DIR}/tests/net/http/httpjsonrpc.cpp

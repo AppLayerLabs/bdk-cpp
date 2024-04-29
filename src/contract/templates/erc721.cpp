@@ -7,27 +7,26 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "erc721.h"
 
-ERC721::ERC721(
-  ContractManagerInterface& interface, const Address& address, DB& db
-) : DynamicContract(interface, address, db), name_(this), symbol_(this),
+ERC721::ERC721(const Address& address, const DB& db
+) : DynamicContract(address, db), name_(this), symbol_(this),
   owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
-  this->name_ = Utils::bytesToString(db_.get(std::string("name_"), this->getDBPrefix()));
-  this->symbol_ = Utils::bytesToString(db_.get(std::string("symbol_"), this->getDBPrefix()));
-  auto owners = db_.getBatch(this->getNewPrefix("owners_"));
+  this->name_ = Utils::bytesToString(db.get(std::string("name_"), this->getDBPrefix()));
+  this->symbol_ = Utils::bytesToString(db.get(std::string("symbol_"), this->getDBPrefix()));
+  auto owners = db.getBatch(this->getNewPrefix("owners_"));
   for (const auto& dbEntry : owners) {
     BytesArrView valueView(dbEntry.value);
     this->owners_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(valueView.subspan(0, 20));
   }
-  auto balances = db_.getBatch(this->getNewPrefix("balances_"));
+  auto balances = db.getBatch(this->getNewPrefix("balances_"));
   for (const auto& dbEntry : balances) {
     this->balances_[Address(dbEntry.key)] = Utils::fromBigEndian<uint256_t>(dbEntry.value);
   }
-  auto approvals = db_.getBatch(this->getNewPrefix("tokenApprovals_"));
+  auto approvals = db.getBatch(this->getNewPrefix("tokenApprovals_"));
   for (const auto& dbEntry : approvals) {
     this->tokenApprovals_[Utils::fromBigEndian<uint256_t>(dbEntry.key)] = Address(dbEntry.value);
   }
-  auto operatorAddressApprovals = db_.getBatch(this->getNewPrefix("operatorAddressApprovals_"));
+  auto operatorAddressApprovals = db.getBatch(this->getNewPrefix("operatorAddressApprovals_"));
   for (const auto& dbEntry : operatorAddressApprovals) {
     BytesArrView keyView(dbEntry.key);
     Address owner(keyView.subspan(0, 20));
@@ -54,10 +53,8 @@ ERC721::ERC721(
 
 ERC721::ERC721(
   const std::string &erc721name, const std::string &erc721symbol_,
-  ContractManagerInterface &interface,
-  const Address &address, const Address &creator, const uint64_t &chainId,
-  DB& db
-) : DynamicContract(interface, "ERC721", address, creator, chainId, db), name_(this, erc721name),
+  const Address &address, const Address &creator, const uint64_t &chainId
+) : DynamicContract("ERC721", address, creator, chainId), name_(this, erc721name),
   symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
   this->name_.commit();
@@ -80,10 +77,9 @@ ERC721::ERC721(
 ERC721::ERC721(
   const std::string &derivedTypeName,
   const std::string &erc721name, const std::string &erc721symbol_,
-  ContractManagerInterface &interface,
   const Address &address, const Address &creator, const uint64_t &chainId,
   DB& db
-) : DynamicContract(interface, derivedTypeName, address, creator, chainId, db), name_(this, erc721name),
+) : DynamicContract(derivedTypeName, address, creator, chainId), name_(this, erc721name),
   symbol_(this, erc721symbol_), owners_(this), balances_(this), tokenApprovals_(this), operatorAddressApprovals_(this)
 {
   this->name_.commit();
@@ -103,38 +99,7 @@ ERC721::ERC721(
   this->operatorAddressApprovals_.enableRegister();
 }
 
-ERC721::~ERC721() {
-  DBBatch batchedOperations;
-
-  this->db_.put(std::string("name_"), name_.get(), this->getDBPrefix());
-  this->db_.put(std::string("symbol_"), symbol_.get(), this->getDBPrefix());
-
-  for (auto it = owners_.cbegin(), end = owners_.cend(); it != end; ++it) {
-    // key: uint -> value: Address
-    batchedOperations.push_back(Utils::uintToBytes(it->first), it->second.get(), this->getNewPrefix("owners_"));
-  }
-
-  for (auto it = balances_.cbegin(), end = balances_.cend(); it != end; ++it) {
-    // key: Address -> value: uint
-    batchedOperations.push_back(it->first.get(), Utils::uintToBytes(it->second), this->getNewPrefix("balances_"));
-  }
-
-  for (auto it = tokenApprovals_.cbegin(), end = tokenApprovals_.cend(); it != end; ++it) {
-    // key: uint -> value: Address
-    batchedOperations.push_back(Utils::uintToBytes(it->first), it->second.get(), this->getNewPrefix("tokenApprovals_"));
-  }
-
-  for (auto it = operatorAddressApprovals_.cbegin(); it != operatorAddressApprovals_.cend(); ++it) {
-    for (auto it2 = it->second.cbegin(); it2 != it->second.cend(); ++it2) {
-      // key: address + address -> bool
-      Bytes key = it->first.asBytes();
-      Utils::appendBytes(key, it2->first.asBytes());
-      Bytes value = {uint8_t(it2->second)};
-    }
-  }
-
-  this->db_.putBatch(batchedOperations);
-}
+ERC721::~ERC721() {}
 
 void ERC721::registerContractFunctions() {
   this->registerContract();
@@ -313,4 +278,45 @@ void ERC721::transferFrom(const Address& from, const Address& to, const uint256_
   } else if (prevOwner != from) {
     throw DynamicException("ERC721::transferFrom: incorrect owner");
   }
+}
+
+DBBatch ERC721::dump() const {
+  DBBatch dbBatch = BaseContract::dump();
+  std::unordered_map<std::string, BytesArrView> data {
+      {"name_",  Utils::stringToBytes(name_.get())},
+      {"symbol_", Utils::stringToBytes(symbol_.get())}
+  };
+
+  for (auto it = data.cbegin(); it != data.cend(); ++it) {
+    dbBatch.push_back(Utils::stringToBytes(it->first),
+                      it->second,
+                      this->getDBPrefix());
+  }
+  for (auto it = owners_.cbegin(), end = owners_.cend(); it != end; ++it) {
+    // key: uint -> value: Address
+    dbBatch.push_back(Utils::uintToBytes(it->first),
+                      it->second.get(),
+                      this->getNewPrefix("owners_"));
+  }
+  for (auto it = balances_.cbegin(), end = balances_.cend(); it != end; ++it) {
+    // key: Address -> value: uint
+    dbBatch.push_back(it->first.get(),
+                      Utils::uintToBytes(it->second),
+                      this->getNewPrefix("balances_"));
+  }
+  for (auto it = tokenApprovals_.cbegin(), end = tokenApprovals_.cend(); it != end; ++it) {
+    // key: uint -> value: Address
+    dbBatch.push_back(Utils::uintToBytes(it->first),
+                      it->second.get(),
+                      this->getNewPrefix("tokenApprovals_"));
+  }
+  for (auto i = operatorAddressApprovals_.cbegin(); i != operatorAddressApprovals_.cend(); ++i) {
+    for (auto j = i->second.cbegin(); j != i->second.cend(); ++j) {
+      // key: address + address -> bool
+      Bytes key = i->first.asBytes();
+      Utils::appendBytes(key, j->first.asBytes());
+      Bytes value = {uint8_t(j->second)};
+    }
+  }
+  return dbBatch;
 }

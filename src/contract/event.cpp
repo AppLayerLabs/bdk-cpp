@@ -56,9 +56,8 @@ std::string Event::serializeForRPC() const {
   return obj.dump();
 }
 
-EventManager::EventManager(
-  DB& db, const Options& options
-) : db_(db), options_(options) {
+EventManager::EventManager(const Options& options
+) : db_(options.getRootPath() + "/eventsDb/"), options_(options) {
   std::vector<DBEntry> allEvents = this->db_.getBatch(DBPrefix::events);
   for (const DBEntry& event : allEvents) {
     Event e(Utils::bytesToString(event.value)); // Create a new Event object by deserializing
@@ -69,7 +68,6 @@ EventManager::EventManager(
 EventManager::~EventManager() {
   DBBatch batchedOperations;
   {
-    std::unique_lock<std::shared_mutex> lock(this->lock_);
     for (const auto& e : this->events_) {
       // Build the key (block height + tx index + log index + address)
       Bytes key;

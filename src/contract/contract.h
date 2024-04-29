@@ -19,9 +19,10 @@ See the LICENSE.txt file in the project root for more information.
 #include "../utils/utils.h"
 #include "../utils/dynamicexception.h"
 #include "variables/safebase.h"
+#include "../core/dump.h"
 
 // Forward declarations.
-class ContractCallLogger;
+class ContractHost;
 class State;
 
 /// Class that maintains global variables for contracts.
@@ -41,40 +42,39 @@ class ContractGlobals {
     static const uint64_t& getBlockTimestamp() { return ContractGlobals::blockTimestamp_; }
     ///@}
 
-    /// ContractManager can update private global vars (e.g. before ethCall() with a TxBlock, State calls CM->updateContractGlobals(...)).
-    friend class ContractManager;
+    /// State can update private global vars (e.g. before starting transaction execution).
+    friend class State;
 };
 
 /// Class that maintains local variables for contracts.
 class ContractLocals : public ContractGlobals {
   private:
-    mutable Address origin_;  ///< Who called the contract.
+    // TODO: DONT RELY ON ContractLocals, INSTEAD, USE CONTRACTHOST TO STORE LOCALS
     mutable Address caller_;  ///< Who sent the transaction.
     mutable uint256_t value_; ///< Value sent within the transaction.
 
   protected:
     ///@{
     /** Getter. */
-    const Address& getOrigin() const { return this->origin_; }
     const Address& getCaller() const { return this->caller_; }
     const uint256_t& getValue() const { return this->value_; }
     ///@}
 
     /// ContractCallLogger can update private local vars (e.g. before ethCall() within a contract).
-    friend class ContractCallLogger;
+    friend class ContractHost;
 };
 
 /// Base class for all contracts.
-class BaseContract : public ContractLocals {
+class BaseContract : public ContractLocals, public Dumpable {
   private:
-    std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
-    Bytes dbPrefix_;           ///< Prefix for the contract DB.
-    Address contractAddress_;  ///< Address where the contract is deployed.
-    Address contractCreator_;  ///< Address of the creator of the contract.
-    uint64_t contractChainId_; ///< Chain where the contract is deployed.
+    const Address contractAddress_;  ///< Address where the contract is deployed.
+    const Bytes dbPrefix_;     ///< Prefix for the contract DB.
+    const std::string contractName_; ///< Name of the contract, used to identify the Contract Class.
+    const Address contractCreator_;  ///< Address of the creator of the contract.
+    const uint64_t contractChainId_; ///< Chain where the contract is deployed.
 
   protected:
-    DB& db_; ///< Reference to the DB instance.
+    mutable ContractHost* host_ = nullptr; ///< Reference to the ContractHost instance.
 
   public:
     bool reentrancyLock_ = false; ///< Lock (for reentrancy).
@@ -85,23 +85,26 @@ class BaseContract : public ContractLocals {
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain where the contract will be deployed.
-     * @param db Pointer to the DB instance.
      */
     BaseContract(const std::string& contractName, const Address& address,
-      const Address& creator, const uint64_t& chainId, DB& db
-    ) : contractName_(contractName), contractAddress_(address),
-      contractCreator_(creator), contractChainId_(chainId), db_(db)
-    {
-      this->dbPrefix_ = [&]() {
-        Bytes prefix = DBPrefix::contracts;
-        prefix.reserve(prefix.size() + contractAddress_.size());
-        prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
-        return prefix;
-      }();
-      db.put(std::string("contractName_"), contractName_, this->getDBPrefix());
-      db.put(std::string("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
-      db.put(std::string("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
-      db.put(std::string("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
+      const Address& creator, const uint64_t& chainId
+    ) : contractAddress_(address),
+        dbPrefix_([&]() {
+              Bytes prefix = DBPrefix::contracts;
+              prefix.reserve(prefix.size() + address.size());
+              prefix.insert(prefix.end(), address.cbegin(), address.cend());
+              return prefix;
+            }()),
+        contractName_(contractName), contractCreator_(creator), contractChainId_(chainId) {
+    }
+
+    DBBatch dump() const override {
+      DBBatch batch;
+      batch.push_back(Utils::stringToBytes("contractName_"), Utils::stringToBytes(contractName_), this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractAddress_"), contractAddress_.get(), this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractCreator_"), contractCreator_.get(), this->getDBPrefix());
+      batch.push_back(Utils::stringToBytes("contractChainId_"), Utils::uint64ToBytes(contractChainId_), this->getDBPrefix());
+      return batch;
     }
 
     /**
@@ -109,17 +112,24 @@ class BaseContract : public ContractLocals {
      * @param address The address where the contract will be deployed.
      * @param db Pointer to the DB instance.
      */
-    BaseContract(const Address &address, DB& db) : contractAddress_(address), db_(db) {
-      this->dbPrefix_ = [&]() -> Bytes {
-        Bytes prefix = DBPrefix::contracts;
-        prefix.reserve(prefix.size() + contractAddress_.size());
-        prefix.insert(prefix.end(), contractAddress_.cbegin(), contractAddress_.cend());
-        return prefix;
-      }();
-      this->contractName_ = Utils::bytesToString(db.get(std::string("contractName_"), this->getDBPrefix()));
-      this->contractCreator_ = Address(db.get(std::string("contractCreator_"), this->getDBPrefix()));
-      this->contractChainId_ = Utils::bytesToUint64(db.get(std::string("contractChainId_"), this->getDBPrefix()));
-    }
+    BaseContract(const Address &address, const DB& db) :
+                 contractAddress_(address),
+                 dbPrefix_([&]() -> Bytes {
+                   Bytes prefix = DBPrefix::contracts;
+                   prefix.reserve(prefix.size() + address.size());
+                   prefix.insert(prefix.end(), address.cbegin(), address.cend());
+                   return prefix;
+                 }()),
+                 contractName_([&]() -> std::string {
+                   return Utils::bytesToString(db.get(std::string("contractName_"), dbPrefix_));
+                 }()),
+                 contractCreator_([&]() -> Address {
+                   return Address(db.get(std::string("contractCreator_"), dbPrefix_));
+                 }()),
+                 contractChainId_([&]() -> uint64_t {
+                   return Utils::bytesToUint64(db.get(std::string("contractChainId_"), dbPrefix_));
+                 }())
+    {}
 
     virtual ~BaseContract() = default;  ///< Destructor. All derived classes should override it in order to call DB functions.
 
@@ -129,7 +139,18 @@ class BaseContract : public ContractLocals {
      * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual void ethCall(const ethCallInfo& data) {
+    virtual void ethCall(const evmc_message& data, ContractHost* host) {
+      throw DynamicException("Derived Class from Contract does not override ethCall()");
+    }
+
+    /**
+     * Invoke a contract function and returns the ABI serialized output.
+     * To be used by EVM -> CPP calls.
+     * @param data The tuple of (from, to, gasLimit, gasPrice, value, data).
+     * @throw DynamicException if the derived class does not override this.
+     * @returns The ABI serialized output.
+     */
+    virtual Bytes evmEthCall(const evmc_message& data, ContractHost* host) {
       throw DynamicException("Derived Class from Contract does not override ethCall()");
     }
 
@@ -140,17 +161,17 @@ class BaseContract : public ContractLocals {
      * @return A string with the answer to the call.
      * @throw DynamicException if the derived class does not override this.
      */
-    virtual Bytes ethCallView(const ethCallInfo &data) const {
+    virtual Bytes ethCallView(const evmc_message &data, ContractHost* host) const {
       throw DynamicException("Derived Class from Contract does not override ethCallView()");
     }
 
     ///@{
     /** Getter. */
-    const Address& getContractAddress() const { return this->contractAddress_; }
-    const Address& getContractCreator() const { return this->contractCreator_; }
-    const uint64_t& getContractChainId() const { return this->contractChainId_; }
-    const std::string& getContractName() const { return this->contractName_; }
-    const Bytes& getDBPrefix() const { return this->dbPrefix_; }
+    inline const Address& getContractAddress() const { return this->contractAddress_; }
+    inline const Address& getContractCreator() const { return this->contractCreator_; }
+    inline const uint64_t& getContractChainId() const { return this->contractChainId_; }
+    inline const std::string& getContractName() const { return this->contractName_; }
+    inline const Bytes& getDBPrefix() const { return this->dbPrefix_; }
     ///@}
 
     /**
@@ -164,6 +185,9 @@ class BaseContract : public ContractLocals {
       prefix.insert(prefix.end(), newPrefix.cbegin(), newPrefix.cend());
       return prefix;
     }
+
+    Address getOrigin() const; ///< Get the origin of the transaction.
+    uint64_t getNonce(const Address& address) const; ///< Get the nonce of an address.
 };
 
 #endif // CONTRACT_H

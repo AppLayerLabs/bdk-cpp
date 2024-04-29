@@ -111,8 +111,8 @@ namespace P2P {
 
       /// Destructor. Automatically stops the manager.
       ~ManagerBase() { this->stopDiscovery(); this->stop(); };
-      void start(); ///< Start P2P::Server and P2P::ClientFactory.
-      void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.
+      virtual void start(); ///< Start P2P::Server and P2P::ClientFactory.
+      virtual void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.
 
       /// Start the discovery thread.
       void startDiscovery() { this->discoveryWorker_.start(); };

@@ -25,6 +25,12 @@ TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
                                  bool clearDb,
                                  const std::string& folderName);
 
+// This creates a valid block given the state within the rdPoS class.
+// Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
+// And that is not the purpose of network/thread testing.
+// Definition from state.cpp, when linking, the compiler should find the function.
+FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
+
 namespace TP2P {
 
   const std::vector<Hash> validatorPrivKeysP2P {
@@ -41,6 +47,34 @@ namespace TP2P {
   std::string testDumpPath = Utils::getTestDumpPath();
 
   TEST_CASE("P2P Manager", "[p2p]") {
+
+    SECTION("2 Node Network, Syncer") {
+
+      /// Make blockchainWrapper be 10 blocks ahead
+      auto blockchainWrapper = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 8080, true, testDumpPath + "/p2pRequestBlockNode1");
+      for (uint64_t index = 0; index < 10; ++index) {
+        std::vector<TxBlock> txs;
+        auto newBestBlock = createValidBlock(validatorPrivKeysP2P, blockchainWrapper.state, blockchainWrapper.storage, txs);
+        REQUIRE_NOTHROW(blockchainWrapper.state.processNextBlock(std::move(newBestBlock))); // Throws if block is invalid
+      }
+      REQUIRE(blockchainWrapper.storage.latest()->getNHeight() == 10);
+
+      /// Create a blockchaiNWrapper2 with zero blocks
+      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/p2pRequestBlockNode2");
+
+      /// Start the servers and connect them
+      blockchainWrapper.p2p.start();
+      blockchainWrapper2.p2p.start();
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      blockchainWrapper.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      REQUIRE(blockchainWrapper.p2p.getSessionsIDs().size() == 1);
+
+      /// Run blockchainWrapper2's Syncer
+      REQUIRE(blockchainWrapper2.syncer.sync(1)); // Abort on first download failure (which should never happen normally)
+      REQUIRE(blockchainWrapper2.storage.latest()->getNHeight() == 10);
+    }
+
     SECTION ("P2P::Manager Simple 3 node network") {
 
       auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), 8080, true, testDumpPath + "/testP2PManagerSimpleNetworkNode1");
@@ -183,7 +217,7 @@ namespace TP2P {
 
     SECTION("2 Node Network, request info") {
       auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), 8080, true, testDumpPath + "/p2pRequestInfoNode1");
-      
+
       auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/p2pRequestInfoNode2");
 
       /// Start the servers
@@ -202,9 +236,9 @@ namespace TP2P {
 
       auto p2p2NodeInfo = blockchainWrapper1.p2p.requestNodeInfo(p2p2NodeId);
 
-      REQUIRE(p2p2NodeInfo.nodeVersion == blockchainWrapper2.options.getVersion());
-      REQUIRE(p2p2NodeInfo.latestBlockHeight == blockchainWrapper2.storage.latest()->getNHeight());
-      REQUIRE(p2p2NodeInfo.latestBlockHash == blockchainWrapper2.storage.latest()->hash());
+      REQUIRE(p2p2NodeInfo.nodeVersion() == blockchainWrapper2.options.getVersion());
+      REQUIRE(p2p2NodeInfo.latestBlockHeight() == blockchainWrapper2.storage.latest()->getNHeight());
+      REQUIRE(p2p2NodeInfo.latestBlockHash() == blockchainWrapper2.storage.latest()->getHash());
     }
 
     SECTION("10 P2P::ManagerNormal 1 P2P::ManagerDiscovery") {
@@ -212,8 +246,8 @@ namespace TP2P {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      Block genesis(Hash(), 0, 0);
-      genesis.finalize(genesisPrivKey, genesisTimestamp);
+      MutableBlock genesisMutable(Hash(), 0, 0);
+      FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysP2P) {
@@ -265,7 +299,7 @@ namespace TP2P {
       blockchainWrapper8.p2p.start();
       blockchainWrapper9.p2p.start();
       blockchainWrapper10.p2p.start();
-      
+
       blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
       blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
       blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);

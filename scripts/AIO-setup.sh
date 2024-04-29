@@ -28,7 +28,7 @@ tmux kill-session -t local_testnet_discovery
 CLEAN=false # Clean the build folder
 DEPLOY=true # Deploy the executables to the local_testnet folder
 ONLY_DEPLOY=false # Only deploy, do not build
-DEBUG=ON # Build the project in debug mode
+DEBUG=OFF # Build the project in debug mode
 CORES=$(grep -c ^processor /proc/cpuinfo) # Number of cores for parallel build
 
 for arg in "$@"
@@ -104,7 +104,7 @@ if [ "$ONLY_DEPLOY" = false ]; then
   ## Build the project
   cd build_local_testnet
   cmake -DDEBUG=$DEBUG ..
-  cmake --build . --target orbitersdkd orbitersdkd-discovery -- -j${CORES}
+  make -j${CORES}
 fi
 
 if [ "$DEPLOY" = true ]; then

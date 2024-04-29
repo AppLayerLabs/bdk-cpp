@@ -23,7 +23,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 SET(DEBUG ON CACHE BOOL "Debug mode")
 if(DEBUG)
-  set(CMAKE_CXX_FLAGS "-O0 -g -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector -Werror=unused-variable") # Provides faster compile time.
+  set(CMAKE_CXX_FLAGS "-O0 -g -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector") # Provides faster compile time.
 elseif(SONARQUBE_ANALYSIS)
   set(CMAKE_CXX_FLAGS "-O0 -g --coverage")
 else()
@@ -34,9 +34,9 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # Always look for static libraries - "ZLIB
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
 
 # Set project version inside the code (forcefully so changes in the .in file are always reflected correctly to the compiler)
-if (EXISTS ${CMAKE_SOURCE_DIR}/src/utils/options.h)
-  file(REMOVE ${CMAKE_SOURCE_DIR}/src/utils/options.h)
-endif()
+# if (EXISTS ${CMAKE_SOURCE_DIR}/src/utils/options.h)
+#   file(REMOVE ${CMAKE_SOURCE_DIR}/src/utils/options.h)
+# endif()
 configure_file(
   ${CMAKE_SOURCE_DIR}/src/utils/options.h.in
   ${CMAKE_SOURCE_DIR}/src/utils/options.h
@@ -84,10 +84,11 @@ find_package(CryptoPP 8.2.0 REQUIRED)
 find_package(Scrypt REQUIRED)
 
 # Add external modules
-include(cmake/ProjectBoostCertify.cmake)  # Boost Certify
 include(cmake/ProjectEthash.cmake)        # Ethash
 include(cmake/ProjectSecp256k1.cmake)     # Bitcoin core fast implementation
 include(cmake/ProjectSpeedb.cmake)        # Speedb (Level/RocksDB drop-in replacement)
+include(cmake/ProjectEVMOne.cmake)        # EVMOne (EVMOne + EVMC)
+
 
 # Add catch2 as a library
 add_library(catch2
@@ -382,7 +383,7 @@ if(BUILD_AVALANCHEGO)
     ${NET_SOURCES}
   )
 
-  add_dependencies(orbitersdk_lib gen-grpc ProtoFiles)
+  add_dependencies(orbitersdk_lib gen-grpc ProtoFiles Evmc)
 
   target_include_directories(orbitersdk_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
@@ -408,7 +409,7 @@ else()
 
   target_include_directories(orbitersdk_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
-  target_link_libraries(orbitersdk_lib PRIVATE
+  target_link_libraries(orbitersdk_lib PRIVATE EvmcInstructions EvmcLoader EvmcTooling Evmone
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
     Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )

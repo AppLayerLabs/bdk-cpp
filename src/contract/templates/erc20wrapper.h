@@ -39,33 +39,29 @@ class ERC20Wrapper : public DynamicContract {
 
     /**
      * Constructor for loading contract from DB.
-     * @param interface Reference to the contract manager interface.
      * @param contractAddress The address where the contract will be deployed.
      * @param db Reference pointer to the database object.
      */
     ERC20Wrapper(
-      ContractManagerInterface& interface,
-      const Address& contractAddress, DB& db
+      const Address& contractAddress, const DB& db
     );
 
     /**
      * Constructor for building a new contract from scratch.
-     * @param interface Reference to the contract manager interface.
      * @param address The address where the contract will be deployed.
      * @param creator The address of the creator of the contract.
      * @param chainId The chain id of the contract.
      * @param db Reference pointer to the database object.
      */
     ERC20Wrapper(
-      ContractManagerInterface& interface,
       const Address& address, const Address& creator,
-      const uint64_t& chainId, DB& db
+      const uint64_t& chainId
     );
 
     /// Register contract class via ContractReflectionInterface.
     static void registerContract() {
       ContractReflectionInterface::registerContractMethods<
-        ERC20Wrapper, ContractManagerInterface&,
+        ERC20Wrapper,
         const Address&, const Address&, const uint64_t&,
         DB&
       >(
@@ -124,6 +120,9 @@ class ERC20Wrapper : public DynamicContract {
      * @param value The amount of tokens to deposit.
      */
     void deposit(const Address& token, const uint256_t& value);
+
+    /// Dump method
+    DBBatch dump() const override;
 };
 
 #endif // ERC20WRAPPER_H

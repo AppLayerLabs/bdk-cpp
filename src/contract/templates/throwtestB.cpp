@@ -8,22 +8,25 @@ See the LICENSE.txt file in the project root for more information.
 #include "throwtestB.h"
 
 ThrowTestB::ThrowTestB(
-  ContractManagerInterface &interface,
   const Address& address, const Address& creator,
-  const uint64_t& chainId, DB& db
-) : DynamicContract(interface, "ThrowTestB", address, creator, chainId, db) {
+  const uint64_t& chainId
+) : DynamicContract("ThrowTestB", address, creator, chainId) {
   registerContractFunctions();
 }
 
 ThrowTestB::ThrowTestB(
-  ContractManagerInterface &interface,
   const Address& address,
-  DB& db
-) : DynamicContract(interface, address, db) {
+  const DB& db
+) : DynamicContract(address, db) {
   registerContractFunctions();
 }
 
 ThrowTestB::~ThrowTestB() { return; }
+
+DBBatch ThrowTestB::dump() const
+{
+  return BaseContract::dump();
+}
 
 uint8_t ThrowTestB::getNumB() const { return this->num_.get(); }
 

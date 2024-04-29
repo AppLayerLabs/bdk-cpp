@@ -365,8 +365,11 @@ namespace ABI {
      * @param funcSig The function signature (name).
      */
     template <typename... Args> static Functor encode(const std::string& funcSig) {
+      Functor ret;
       std::string fullSig = funcSig + "(" + listArgumentTypes<Args...>() + ")";
-      return Utils::sha3(Utils::create_view_span(fullSig)).view(0, 4);
+      auto hash = Utils::sha3(Utils::create_view_span(fullSig));
+      ret.value = Utils::bytesToUint32(hash.view(0,4));
+      return ret;
     }
   }; // namespace FunctorEncoder
 
@@ -581,7 +584,7 @@ namespace ABI {
     template<typename T, typename Enable = void>
     struct TypeEncoder {
       static Bytes encode(const T&) {
-        static_assert(always_false<T>, "TypeName specialization for this type is not defined");
+        static_assert(std::is_same_v<T, void>, "TypeName specialization for this type is not defined");
         return Bytes();
       }
     };
