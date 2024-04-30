@@ -113,6 +113,8 @@ public:
 
 class DumpWorker {
 private:
+  /// Reference to the options object
+  const Options& options_;
   /// Reference to the Storage object
   const Storage& storage_;
   /// Reference to the DumpManager object
@@ -134,7 +136,7 @@ public:
    * Constructor.
    * Automatically starts the worker thread.
    */
-  DumpWorker(const Storage& storage, DumpManager& dumpManager);
+  DumpWorker(const Options& options, const Storage& storage, DumpManager& dumpManager);
 
   /**
    * Destructor.

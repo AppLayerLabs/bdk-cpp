@@ -20,7 +20,7 @@ State::State(
     storage_(storage),
     eventManager_(options_),
     dumpManager_(storage_, options_, this->eventManager_, this->stateMutex_),
-    dumpWorker_(storage_, dumpManager_),
+    dumpWorker_(options_, storage_, dumpManager_),
     p2pManager_(p2pManager),
     rdpos_ (db, dumpManager_, storage, p2pManager, options, *this) {
   std::unique_lock lock(this->stateMutex_);

@@ -146,6 +146,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "privKey": "0000000000000000000000000000000000000000000000000000000000000000",
     "genesis" : {
@@ -179,6 +180,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "privKey": "0xba5e6e9dd9cbd263969b94ee385d885c2d303dfc181db2a09f6bf19a7ba26759",
     "genesis" : {
@@ -217,6 +219,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "privKey": "0xfd84d99aa18b474bf383e10925d82194f1b0ca268e7a339032679d6e3a201ad4",
     "genesis" : {
@@ -255,6 +258,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "privKey": "0x66ce71abe0b8acd92cfd3965d6f9d80122aed9b0e9bdd3dbe018230bafde5751",
     "genesis" : {
@@ -293,6 +297,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "privKey": "0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7",
     "genesis" : {
@@ -331,6 +336,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "privKey": "0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6",
     "genesis" : {
@@ -370,6 +376,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "genesis" : {
       "validators": [
@@ -407,6 +414,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "genesis" : {
       "validators": [
@@ -444,6 +452,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "genesis" : {
       "validators": [
@@ -481,6 +490,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "genesis" : {
       "validators": [
@@ -518,6 +528,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "genesis" : {
       "validators": [
@@ -555,6 +566,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "genesis" : {
       "validators": [
@@ -592,6 +604,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "genesis" : {
       "validators": [
@@ -629,6 +642,7 @@ if [ "$DEPLOY" = true ]; then
     "maxNormalConns": 50,
     "eventBlockCap": 2000,
     "eventLogCap": 10000,
+    "stateDumpTrigger" : 1000,
     "minValidators": 4,
     "genesis" : {
       "validators": [

@@ -14,6 +14,7 @@ Options::Options(
   const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
   const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
   const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+  const uint64_t& stateDumpTrigger,
   const uint32_t& minValidators,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
@@ -24,6 +25,7 @@ Options::Options(
   minDiscoveryConns_(minDiscoveryConns), minNormalConns_(minNormalConns),
   maxDiscoveryConns_(maxDiscoveryConns), maxNormalConns_(maxNormalConns),
   eventBlockCap_(eventBlockCap), eventLogCap_(eventLogCap),
+  stateDumpTrigger_(stateDumpTrigger),
   minValidators_(minValidators),
   coinbase_(Address()), isValidator_(false), discoveryNodes_(discoveryNodes),
   genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators)
@@ -43,6 +45,7 @@ Options::Options(
   options["maxNormalConns"] = maxNormalConns;
   options["eventBlockCap"] = eventBlockCap;
   options["eventLogCap"] = eventLogCap;
+  options["stateDumpTrigger"] = stateDumpTrigger;
   options["minValidators"] = minValidators;
   options["discoveryNodes"] = json::array();
   for (const auto& [address, port] : discoveryNodes) {
@@ -78,6 +81,7 @@ Options::Options(
   const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
   const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
   const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+  const uint64_t& stateDumpTrigger,
   const uint32_t& minValidators,
   const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
   const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
@@ -89,6 +93,7 @@ Options::Options(
   minDiscoveryConns_(minDiscoveryConns), minNormalConns_(minNormalConns),
   maxDiscoveryConns_(maxDiscoveryConns), maxNormalConns_(maxNormalConns),
   eventBlockCap_(eventBlockCap), eventLogCap_(eventLogCap),
+  stateDumpTrigger_(stateDumpTrigger),
   minValidators_(minValidators),
   discoveryNodes_(discoveryNodes), coinbase_(Secp256k1::toAddress(Secp256k1::toUPub(privKey))),
   isValidator_(true), genesisBlock_(genesisBlock), genesisBalances_(genesisBalances), genesisValidators_(genesisValidators)
@@ -108,6 +113,7 @@ Options::Options(
   options["maxNormalConns"] = maxNormalConns;
   options["eventBlockCap"] = eventBlockCap;
   options["eventLogCap"] = eventLogCap;
+  options["stateDumpTrigger"] = stateDumpTrigger;
   options["minValidators"] = minValidators;
   options["discoveryNodes"] = json::array();
   for (const auto& [address, port] : discoveryNodes) {
@@ -202,6 +208,7 @@ Options Options::fromFile(const std::string& rootPath) {
         options["maxNormalConns"].get<uint16_t>(),
         options["eventBlockCap"].get<uint64_t>(),
         options["eventLogCap"].get<uint64_t>(),
+        options["stateDumpTrigger"].get<uint64_t>(),
         options["minValidators"].get<uint32_t>(),
         discoveryNodes,
         genesisFinal,
@@ -227,6 +234,7 @@ Options Options::fromFile(const std::string& rootPath) {
       options["maxNormalConns"].get<uint16_t>(),
       options["eventBlockCap"].get<uint64_t>(),
       options["eventLogCap"].get<uint64_t>(),
+      options["stateDumpTrigger"].get<uint64_t>(),
       options["minValidators"].get<uint32_t>(),
       discoveryNodes,
       genesisFinal,

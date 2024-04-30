@@ -31,6 +31,7 @@ See the LICENSE.txt file in the project root for more information.
  *   "maxNormalConns": 50,
  *   "eventBlockCap": 2000,
  *   "eventLogCap": 10000,
+ *   "stateDumpTrigger" : 1000,
  *   "minValidators": 4,
  *   "genesis" : {
  *      "validators": [
@@ -73,6 +74,7 @@ class Options {
     const uint16_t maxNormalConns_; ///< Maximum allowed simultaneous connections for Normal nodes.
     const uint64_t eventBlockCap_;  ///< Maximum block range for querying contract events.
     const uint64_t eventLogCap_;  ///< Maximum number of contract events that can be queried at once.
+    const uint64_t stateDumpTrigger_;  ///< Block number at which to dump the state. (Every X blocks dump the state)
     const uint32_t minValidators_; ///< Minimum required number of Validators for creating and signing blocks.
     const Address chainOwner_;  ///< Chain owner address (used by ContractManager for deploying contracts).
     const Address coinbase_;  ///< Coinbase address (if found), used by rdPoS.
@@ -99,6 +101,7 @@ class Options {
      * @param maxNormalConns Maximum allowed simultaneous connections for Normal nodes.
      * @param eventBlockCap Block range limit for querying events.
      * @param eventLogCap Maximum number of events that can be queried.
+     * @param stateDumpTrigger Block number at which to dump the state.
      * @param minValidators Minimum required number of Validators for creating and signing blocks.
      * @param discoveryNodes List of known Discovery nodes.
      * @param genesisBlock Genesis block.
@@ -114,6 +117,7 @@ class Options {
       const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
       const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
       const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const uint64_t& stateDumpTrigger,
       const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
@@ -137,6 +141,7 @@ class Options {
      * @param maxNormalConns Maximum allowed simultaneous connections for Normal nodes.
      * @param eventBlockCap Block range limit for querying events.
      * @param eventLogCap Maximum number of events that can be queried.
+     * @param stateDumpTrigger Block number at which to dump the state.
      * @param minValidators Minimum required number of Validators for creating and signing blocks.
      * @param discoveryNodes List of known Discovery nodes.
      * @param genesisBlock Genesis block.
@@ -153,6 +158,7 @@ class Options {
       const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
       const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
       const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
+      const uint64_t& stateDumpTrigger,
       const uint32_t& minValidators,
       const std::vector<std::pair<boost::asio::ip::address, uint64_t>>& discoveryNodes,
       const FinalizedBlock& genesisBlock, const uint64_t genesisTimestamp, const PrivKey& genesisSigner,
@@ -179,6 +185,7 @@ class Options {
       maxNormalConns_(other.maxNormalConns_),
       eventBlockCap_(other.eventBlockCap_),
       eventLogCap_(other.eventLogCap_),
+      stateDumpTrigger_(other.stateDumpTrigger_),
       minValidators_(other.minValidators_),
       coinbase_(other.coinbase_),
       isValidator_(other.isValidator_),
@@ -206,6 +213,7 @@ class Options {
     const uint16_t& getMaxNormalConns() const { return this->maxNormalConns_; }
     const uint64_t& getEventBlockCap() const { return this->eventBlockCap_; }
     const uint64_t& getEventLogCap() const { return this->eventLogCap_; }
+    const uint64_t& getStateDumpTrigger() const { return this->stateDumpTrigger_; }
     const uint32_t& getMinValidators() const { return this->minValidators_; }
     const Address& getCoinbase() const { return this->coinbase_; }
     const bool& getIsValidator() const { return this->isValidator_; }

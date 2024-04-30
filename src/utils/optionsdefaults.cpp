@@ -58,6 +58,7 @@ Options Options::binaryDefaultOptions(const std::string& rootPath) {
     50,
     2000,
     10000,
+    1000,
     4,
     {},
     genesisFinal,

@@ -140,6 +140,7 @@ class SDKTestSuite {
           50,
           2000,
           10000,
+          1000,
           4,
           discoveryNodes,
           genesis,

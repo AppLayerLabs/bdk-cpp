@@ -50,6 +50,7 @@ namespace TOptions {
         50,
         2000,
         10000,
+        1000,
         4,
         {},
         genesisFinal,
@@ -61,20 +62,31 @@ namespace TOptions {
       );
 
       Options optionsFromFileWithPrivKey(Options::fromFile(testDumpPath + "/optionClassFromFileWithPrivKey"));
-
       REQUIRE(optionsFromFileWithPrivKey.getRootPath() == optionsWithPrivKey.getRootPath());
-      REQUIRE(optionsFromFileWithPrivKey.getSDKVersion() == optionsWithPrivKey.getSDKVersion());
+      REQUIRE(optionsFromFileWithPrivKey.getMajorSDKVersion() == optionsWithPrivKey.getMajorSDKVersion());
+      REQUIRE(optionsFromFileWithPrivKey.getMinorSDKVersion() == optionsWithPrivKey.getMinorSDKVersion());
+      REQUIRE(optionsFromFileWithPrivKey.getPatchSDKVersion() == optionsWithPrivKey.getPatchSDKVersion());
       REQUIRE(optionsFromFileWithPrivKey.getWeb3ClientVersion() == optionsWithPrivKey.getWeb3ClientVersion());
       REQUIRE(optionsFromFileWithPrivKey.getVersion() == optionsWithPrivKey.getVersion());
       REQUIRE(optionsFromFileWithPrivKey.getChainOwner() == optionsWithPrivKey.getChainOwner());
       REQUIRE(optionsFromFileWithPrivKey.getChainID() == optionsWithPrivKey.getChainID());
       REQUIRE(optionsFromFileWithPrivKey.getP2PPort() == optionsWithPrivKey.getP2PPort());
       REQUIRE(optionsFromFileWithPrivKey.getHttpPort() == optionsWithPrivKey.getHttpPort());
+      REQUIRE(optionsFromFileWithPrivKey.getMinDiscoveryConns() == optionsWithPrivKey.getMinDiscoveryConns());
+      REQUIRE(optionsFromFileWithPrivKey.getMinNormalConns() == optionsWithPrivKey.getMinNormalConns());
+      REQUIRE(optionsFromFileWithPrivKey.getMaxDiscoveryConns() == optionsWithPrivKey.getMaxDiscoveryConns());
+      REQUIRE(optionsFromFileWithPrivKey.getMaxNormalConns() == optionsWithPrivKey.getMaxNormalConns());
+      REQUIRE(optionsFromFileWithPrivKey.getEventBlockCap() == optionsWithPrivKey.getEventBlockCap());
+      REQUIRE(optionsFromFileWithPrivKey.getEventLogCap() == optionsWithPrivKey.getEventLogCap());
+      REQUIRE(optionsFromFileWithPrivKey.getStateDumpTrigger() == optionsWithPrivKey.getStateDumpTrigger());
+      REQUIRE(optionsFromFileWithPrivKey.getMinValidators() == optionsWithPrivKey.getMinValidators());
       REQUIRE(optionsFromFileWithPrivKey.getCoinbase() == optionsWithPrivKey.getCoinbase());
-      REQUIRE(optionsFromFileWithPrivKey.getValidatorPrivKey() == optionsWithPrivKey.getValidatorPrivKey());
+      REQUIRE(optionsFromFileWithPrivKey.getIsValidator() == optionsWithPrivKey.getIsValidator());
+      REQUIRE(optionsFromFileWithPrivKey.getDiscoveryNodes() == optionsWithPrivKey.getDiscoveryNodes());
       REQUIRE(optionsFromFileWithPrivKey.getGenesisBlock() == optionsWithPrivKey.getGenesisBlock());
       REQUIRE(optionsFromFileWithPrivKey.getGenesisBalances() == optionsWithPrivKey.getGenesisBalances());
       REQUIRE(optionsFromFileWithPrivKey.getGenesisValidators() == optionsWithPrivKey.getGenesisValidators());
+
     }
   }
 }

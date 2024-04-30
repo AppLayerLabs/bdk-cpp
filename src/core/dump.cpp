@@ -63,9 +63,11 @@ void DumpManager::dumpToDB() const {
   }
 }
 
-DumpWorker::DumpWorker(const Storage& storage,
+DumpWorker::DumpWorker(const Options& options,
+                       const Storage& storage,
                        DumpManager& dumpManager)
-  : storage_(storage),
+  : options_(options),
+    storage_(storage),
     dumpManager_(dumpManager)
 {
   Logger::logToDebug(LogType::INFO, Log::dumpWorker, __func__, "DumpWorker Started.");
@@ -80,7 +82,7 @@ bool DumpWorker::workerLoop()
 {
   uint64_t latestBlock = this->storage_.currentChainSize();
   while (!this->stopWorker_) {
-    if (latestBlock + 100 < this->storage_.currentChainSize()) {
+    if (latestBlock + this->options_.getStateDumpTrigger() < this->storage_.currentChainSize()) {
       Logger::logToDebug(LogType::INFO,
                          Log::dumpWorker,
                          __func__,
