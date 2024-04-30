@@ -23,7 +23,7 @@ See the LICENSE.txt file in the project root for more information.
  *   "version": 1,
  *   "chainID": 808080,
  *   "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
- *   "wsPort": 8086,
+ *   "p2pPort": 8086,
  *   "httpPort": 8095,
  *   "minDiscoveryConns": 11,
  *   "minNormalConns": 11,
@@ -66,7 +66,7 @@ class Options {
     const std::string web3clientVersion_; ///< String for displaying the client version (for Web3).
     const uint64_t version_;  ///< Blockchain version.
     const uint64_t chainID_;  ///< Blockchain chain ID.
-    const uint16_t wsPort_; ///< Websocket server port.
+    const uint16_t p2pPort_; ///< Websocket server port.
     const uint16_t httpPort_; ///< HTTP server port.
     const uint16_t minDiscoveryConns_; ///< Minimum required simultaneous connections for Discovery nodes.
     const uint16_t minNormalConns_; ///< Minimum required simultaneous connections for Normal nodes.
@@ -93,7 +93,7 @@ class Options {
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
      * @param chainOwner Chain owner address.
-     * @param wsPort Websocket server port.
+     * @param p2pPort Websocket server port.
      * @param httpPort HTTP server port.
      * @param minDiscoveryConns Minimum required simultaneous connections for Discovery nodes.
      * @param minNormalConns Minimum required simultaneous connections for Normal nodes.
@@ -113,7 +113,7 @@ class Options {
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-      const uint16_t& wsPort, const uint16_t& httpPort,
+      const uint16_t& p2pPort, const uint16_t& httpPort,
       const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
       const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
       const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
@@ -133,7 +133,7 @@ class Options {
      * @param version Version of the chain.
      * @param chainID Chain ID of the chain.
      * @param chainOwner Chain owner address.
-     * @param wsPort Websocket server port.
+     * @param p2pPort Websocket server port.
      * @param httpPort HTTP server port.
      * @param minDiscoveryConns Minimum required simultaneous connections for Discovery nodes.
      * @param minNormalConns Minimum required simultaneous connections for Normal nodes.
@@ -154,7 +154,7 @@ class Options {
     Options(
       const std::string& rootPath, const std::string& web3clientVersion,
       const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-      const uint16_t& wsPort, const uint16_t& httpPort,
+      const uint16_t& p2pPort, const uint16_t& httpPort,
       const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
       const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
       const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
@@ -177,7 +177,7 @@ class Options {
       version_(other.version_),
       chainID_(other.chainID_),
       chainOwner_(other.chainOwner_),
-      wsPort_(other.wsPort_),
+      p2pPort_(other.p2pPort_),
       httpPort_(other.httpPort_),
       minDiscoveryConns_(other.minDiscoveryConns_),
       minNormalConns_(other.minNormalConns_),
@@ -205,7 +205,7 @@ class Options {
     const uint64_t& getVersion() const { return this->version_; }
     const Address& getChainOwner() const { return this->chainOwner_; }
     const uint64_t& getChainID() const { return this->chainID_; }
-    const uint16_t& getP2PPort() const { return this->wsPort_; }
+    const uint16_t& getP2PPort() const { return this->p2pPort_; }
     const uint16_t& getHttpPort() const { return this->httpPort_; }
     const uint16_t& getMinDiscoveryConns() const { return this->minDiscoveryConns_; }
     const uint16_t& getMinNormalConns() const { return this->minNormalConns_; }
