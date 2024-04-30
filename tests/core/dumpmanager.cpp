@@ -57,8 +57,8 @@ namespace TDumpManager {
                                testDumpPath + "/dumpManagerSimpleTests");
         // start the dump worker
         blockchainWrapper.state.dumpStartWorker();
-        // create 150 blocks
-        for (uint64_t i = 0; i < 150; ++i) {
+        // create 1001 blocks
+        for (uint64_t i = 0; i < 1001; ++i) {
           std::cout << "Creating block: " << i << std::endl;
           auto block = createValidBlock(validatorPrivKeysState,
                                         blockchainWrapper.state,
