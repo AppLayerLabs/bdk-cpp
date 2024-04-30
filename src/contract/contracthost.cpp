@@ -135,7 +135,6 @@ void ContractHost::createEVMContract(const evmc_message& msg, const Address& con
 void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const Address from(msg.sender);
   const Address to(msg.recipient);
-  std::cout << "ContractHost::execute: from: " << from.hex().get() << " to: " << to.hex().get() << std::endl;
   const uint256_t value(Utils::evmcUint256ToUint256(msg.value));
   if (value) {
     this->transfer(from, to, value);
