@@ -102,7 +102,10 @@ State::State(
   // For each nHeight from snapshotHeight + 1 to latestBlock->getNHeight()
   // We need to process the block and update the state
   // We can't call processNextBlock here, as it will place the block again on the storage
+  Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
+  Utils::safePrint("Got latest block height: " + std::to_string(latestBlock->getNHeight()));
   for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
+    Utils::safePrint("Processing block " + std::to_string(nHeight) + " from Storage");
     auto block = this->storage_.getBlock(nHeight);
     Logger::logToDebug(LogType::INFO, Log::state, __func__, "Processing block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
     // Update contract globals based on (now) latest block
