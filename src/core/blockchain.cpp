@@ -12,7 +12,7 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
   db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),
   storage_(options_),
   state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(options_)), options_),
-  p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
+  p2p_(options_.getP2PIp(), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
   syncer_(p2p_, storage_, state_),
   consensus_(state_, p2p_, storage_, options_)

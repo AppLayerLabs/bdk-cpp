@@ -42,6 +42,7 @@ namespace TOptions {
         1,
         8080,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
+        boost::asio::ip::address::from_string("127.0.0.1"),
         8080,
         8081,
         11,
@@ -70,6 +71,7 @@ namespace TOptions {
       REQUIRE(optionsFromFileWithPrivKey.getVersion() == optionsWithPrivKey.getVersion());
       REQUIRE(optionsFromFileWithPrivKey.getChainOwner() == optionsWithPrivKey.getChainOwner());
       REQUIRE(optionsFromFileWithPrivKey.getChainID() == optionsWithPrivKey.getChainID());
+      REQUIRE(optionsFromFileWithPrivKey.getP2PIp() == optionsWithPrivKey.getP2PIp());
       REQUIRE(optionsFromFileWithPrivKey.getP2PPort() == optionsWithPrivKey.getP2PPort());
       REQUIRE(optionsFromFileWithPrivKey.getHttpPort() == optionsWithPrivKey.getHttpPort());
       REQUIRE(optionsFromFileWithPrivKey.getMinDiscoveryConns() == optionsWithPrivKey.getMinDiscoveryConns());

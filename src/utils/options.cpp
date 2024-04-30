@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-  const uint16_t& p2pPort, const uint16_t& httpPort,
+  const boost::asio::ip::address& p2pIp, const uint16_t& p2pPort, const uint16_t& httpPort,
   const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
   const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
   const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
@@ -21,7 +21,8 @@ Options::Options(
   const std::vector<std::pair<Address, uint256_t>>& genesisBalances,
   const std::vector<Address>& genesisValidators
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
-  version_(version), chainID_(chainID), chainOwner_(chainOwner), p2pPort_(p2pPort), httpPort_(httpPort),
+  version_(version), chainID_(chainID), chainOwner_(chainOwner), p2pPort_(p2pPort),
+  p2pIp_(p2pIp), httpPort_(httpPort),
   minDiscoveryConns_(minDiscoveryConns), minNormalConns_(minNormalConns),
   maxDiscoveryConns_(maxDiscoveryConns), maxNormalConns_(maxNormalConns),
   eventBlockCap_(eventBlockCap), eventLogCap_(eventLogCap),
@@ -37,6 +38,7 @@ Options::Options(
   options["version"] = version;
   options["chainID"] = chainID;
   options["chainOwner"] = chainOwner.hex(true);
+  options["p2pIp"] = p2pIp.to_string();
   options["p2pPort"] = p2pPort;
   options["httpPort"] = httpPort;
   options["minDiscoveryConns"] = minDiscoveryConns;
@@ -77,7 +79,7 @@ Options::Options(
 Options::Options(
   const std::string& rootPath, const std::string& web3clientVersion,
   const uint64_t& version, const uint64_t& chainID, const Address& chainOwner,
-  const uint16_t& p2pPort, const uint16_t& httpPort,
+  const boost::asio::ip::address& p2pIp, const uint16_t& p2pPort, const uint16_t& httpPort,
   const uint16_t& minDiscoveryConns, const uint16_t& minNormalConns,
   const uint16_t& maxDiscoveryConns, const uint16_t& maxNormalConns,
   const uint64_t& eventBlockCap, const uint64_t& eventLogCap,
@@ -89,7 +91,8 @@ Options::Options(
   const std::vector<Address>& genesisValidators,
   const PrivKey& privKey
 ) : rootPath_(rootPath), web3clientVersion_(web3clientVersion),
-  version_(version), chainID_(chainID), chainOwner_(chainOwner), p2pPort_(p2pPort), httpPort_(httpPort),
+  version_(version), chainID_(chainID), chainOwner_(chainOwner),
+  p2pIp_(p2pIp), p2pPort_(p2pPort), httpPort_(httpPort),
   minDiscoveryConns_(minDiscoveryConns), minNormalConns_(minNormalConns),
   maxDiscoveryConns_(maxDiscoveryConns), maxNormalConns_(maxNormalConns),
   eventBlockCap_(eventBlockCap), eventLogCap_(eventLogCap),
@@ -105,6 +108,7 @@ Options::Options(
   options["version"] = version;
   options["chainID"] = chainID;
   options["chainOwner"] = chainOwner.hex(true);
+  options["p2pIp"] = p2pIp.to_string();
   options["p2pPort"] = p2pPort;
   options["httpPort"] = httpPort;
   options["minDiscoveryConns"] = minDiscoveryConns;
@@ -200,6 +204,7 @@ Options Options::fromFile(const std::string& rootPath) {
         options["version"].get<uint64_t>(),
         options["chainID"].get<uint64_t>(),
         Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
+        boost::asio::ip::address::from_string(options["p2pIp"].get<std::string>()),
         options["p2pPort"].get<uint64_t>(),
         options["httpPort"].get<uint64_t>(),
         options["minDiscoveryConns"].get<uint16_t>(),
@@ -226,6 +231,7 @@ Options Options::fromFile(const std::string& rootPath) {
       options["version"].get<uint64_t>(),
       options["chainID"].get<uint64_t>(),
       Address(Hex::toBytes(options["chainOwner"].get<std::string>())),
+      boost::asio::ip::address::from_string(options["p2pIp"].get<std::string>()),
       options["p2pPort"].get<uint64_t>(),
       options["httpPort"].get<uint64_t>(),
       options["minDiscoveryConns"].get<uint16_t>(),
