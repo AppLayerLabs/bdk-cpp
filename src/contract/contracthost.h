@@ -67,6 +67,7 @@ class ContractHost : public evmc::Host {
     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
     std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
     std::unordered_map<StorageKey, Hash, SafeHash>& vmStorage_;
+    std::unordered_map<Hash, Address, SafeHash>& txToAddr_;
     std::unordered_map<StorageKey, Hash, SafeHash> transientStorage_;
     bool mustRevert_ = true; // We always assume that we must revert until proven otherwise.
     mutable bool evmcThrow_ = false; // Did the EVMC throw an exception?
@@ -112,6 +113,7 @@ class ContractHost : public evmc::Host {
                  std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                  std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
                  std::unordered_map<StorageKey, Hash, SafeHash>& vmStorage,
+                 std::unordered_map<Hash, Address, SafeHash>& txToAddr,
                  const Hash& txHash,
                  const uint64_t txIndex,
                  const Hash& blockHash,
@@ -124,6 +126,7 @@ class ContractHost : public evmc::Host {
     contracts_(contracts),
     accounts_(accounts),
     vmStorage_(vmStorage),
+    txToAddr_(txToAddr),
     txHash_(txHash),
     txIndex_(txIndex),
     blockHash_(blockHash),

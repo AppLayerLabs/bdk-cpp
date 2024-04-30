@@ -104,6 +104,7 @@ namespace TERC721 {
       std::unique_ptr<Options> options = nullptr;
       Address erc20Address = Address();
       {
+        Utils::logToCout = true;
         SDKTestSuite sdk = SDKTestSuite::createNewEnvironment("testERC20CreationEVM");
         // const TestAccount& from, const Address& to, const uint256_t& value, Bytes data = Bytes()
         erc20Address = sdk.deployBytecode(erc20bytecode);

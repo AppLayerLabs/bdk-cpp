@@ -131,7 +131,7 @@ std::string parseJsonRpcRequest(
         break;
       case JsonRPC::Methods::eth_getCode:
         ret = JsonRPC::Encoding::eth_getCode(
-          JsonRPC::Decoding::eth_getCode(request, storage)
+          JsonRPC::Decoding::eth_getCode(request, storage), state
         );
         break;
       case JsonRPC::Methods::eth_sendRawTransaction:
@@ -167,7 +167,6 @@ std::string parseJsonRpcRequest(
         ret["error"]["message"] = "Method not found";
         break;
     }
-    Utils::safePrint("HTTP Response: " + ret.dump());
     if (request["id"].is_string()) {
       ret["id"] = request["id"].get<std::string>();
     } else if (request["id"].is_number()) {
@@ -185,6 +184,7 @@ std::string parseJsonRpcRequest(
     error["error"]["message"] = "Internal error: " + std::string(e.what());
     return error.dump();
   }
+  Utils::safePrint("HTTP Response: " + ret.dump());
   Utils::safePrint("Properly returning...");
   // Set back to the original id
   return ret.dump();

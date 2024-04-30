@@ -260,6 +260,9 @@ namespace JsonRPC::Decoding {
     evmc_message result;
     auto& [kind, flags, depth, gasLimit, recipient, sender, input_data, input_size, value, create2_salt, code_address] = result;
     kind = EVMC_CALL;
+    flags = 0;
+    depth = 0;
+
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
@@ -289,6 +292,8 @@ namespace JsonRPC::Decoding {
         std::string fromAdd = txObj["from"].get<std::string>();
         if (!std::regex_match(fromAdd, addFilter)) throw DynamicException("Invalid from address hex");
         sender = Address(Hex::toBytes(fromAdd)).toEvmcAddress();
+      } else {
+        sender = {};
       }
       // Check to address
       std::string toAdd = txObj["to"].get<std::string>();
@@ -299,7 +304,9 @@ namespace JsonRPC::Decoding {
       if (txObj.contains("gas") && !txObj["gas"].is_null()) {
         std::string gasHex = txObj["gas"].get<std::string>();
         if (!std::regex_match(gasHex, numFilter)) throw DynamicException("Invalid gas hex");
-        gasLimit = uint64_t(Hex(gasHex).getUint());
+        gasLimit = int64_t(Hex(gasHex).getUint());
+      } else {
+        gasLimit = 10000000;
       }
       // Optional: Check gasPrice
       if (txObj.contains("gasPrice") && !txObj["gasPrice"].is_null()) {
@@ -312,6 +319,8 @@ namespace JsonRPC::Decoding {
         std::string valueHex = txObj["value"].get<std::string>();
         if (!std::regex_match(valueHex, numFilter)) throw DynamicException("Invalid value hex");
         value = Utils::uint256ToEvmcUint256(uint256_t(Hex(valueHex).getUint()));
+      } else {
+        value = {};
       }
       // Optional: Check data
       if (txObj.contains("data") && !txObj["data"].is_null()) {
@@ -320,6 +329,9 @@ namespace JsonRPC::Decoding {
         fullData = Hex::toBytes(dataHex);
         input_data = fullData.data();
         input_size = fullData.size();
+      } else {
+        input_data == nullptr;
+        input_size = 0;
       }
       return result;
     } catch (std::exception& e) {
@@ -335,6 +347,8 @@ namespace JsonRPC::Decoding {
     auto& [kind, flags, depth, gasLimit, recipient, sender, input_data, input_size, value, create2_salt, code_address] = result;
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
+    flags = 0;
+    depth = 0;
     try {
       json txObj;
       if (request["params"].is_array()) {
@@ -362,12 +376,16 @@ namespace JsonRPC::Decoding {
         std::string fromAdd = txObj["from"].get<std::string>();
         if (!std::regex_match(fromAdd, addFilter)) throw DynamicException("Invalid from address hex");
         sender = Address(Hex::toBytes(fromAdd)).toEvmcAddress();
+      } else {
+        sender = {};
       }
       // Optional: Check to address
       if (txObj.contains("to") && !txObj["to"].is_null()) {
         std::string toAdd = txObj["to"].get<std::string>();
         if (!std::regex_match(toAdd, addFilter)) throw DynamicException("Invalid to address hex");
         recipient = Address(Hex::toBytes(toAdd)).toEvmcAddress();
+      } else {
+        recipient = {};
       }
 
       if (evmc::is_zero(recipient)) kind = EVMC_CREATE;
@@ -391,6 +409,8 @@ namespace JsonRPC::Decoding {
         std::string valueHex = txObj["value"].get<std::string>();
         if (!std::regex_match(valueHex, numFilter)) throw DynamicException("Invalid value hex");
         value = Utils::uint256ToEvmcUint256(uint256_t(Hex(valueHex).getUint()));
+      } else {
+        value = {};
       }
       // Optional: Check data
       if (txObj.contains("data") && !txObj["data"].is_null()) {
@@ -399,6 +419,9 @@ namespace JsonRPC::Decoding {
         fullData = Hex::toBytes(dataHex);
         input_data = fullData.data();
         input_size = fullData.size();
+      } else {
+        input_data = nullptr;
+        input_size = 0;
       }
       return result;
     } catch (std::exception& e) {

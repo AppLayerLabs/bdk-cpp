@@ -236,10 +236,10 @@ namespace JsonRPC::Encoding {
     return ret;
   }
 
-  json eth_getCode(const Address&) {
+  json eth_getCode(const Address& address, const State& state) {
     json ret;
     ret["jsonrpc"] = "2.0";
-    ret["result"] = "0x";
+    ret["result"] = Hex::fromBytes(state.getContractCode(address), true).forRPC();
     return ret;
   }
 
@@ -388,7 +388,11 @@ namespace JsonRPC::Encoding {
       ret["result"]["effectiveGasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
       ret["result"]["effectiveGasPrice"] = Hex::fromBytes(Utils::uintToBytes(tx->getMaxFeePerGas()),true).forRPC();
       ret["result"]["gasUsed"] = Hex::fromBytes(Utils::uintToBytes(tx->getGasLimit()), true).forRPC();
-      ret["result"]["contractAddress"] = json::value_t::null; // TODO: CHANGE THIS WHEN CREATING CONTRACTS!
+      if (tx->getTo() == Address()) {
+        ret["result"]["contractAddress"] = state.getAddressForTx(txHash).hex(true);
+      } else {
+        ret["result"]["contractAddress"] = json::value_t::null;
+      }
       ret["result"]["logs"] = json::array();
       ret["result"]["logsBloom"] = Hash().hex(true);
       ret["result"]["type"] = "0x00";

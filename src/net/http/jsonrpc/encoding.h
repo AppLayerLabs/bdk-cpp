@@ -198,7 +198,7 @@ namespace JsonRPC::Encoding {
    * @param address The address to get the code from.
    * @return The encoded JSON response.
    */
-  json eth_getCode(const Address& address);
+  json eth_getCode(const Address& address, const State& state);
 
   /**
    * Encode a `eth_sendRawTransaction` response. Adds the transaction to the mempool.

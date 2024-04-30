@@ -22,6 +22,7 @@ std::unique_ptr<Blockchain> blockchain = nullptr;
 }
 
 int main() {
+
   Utils::logToCout = true;
   std::string blockchainPath = std::filesystem::current_path().string() + std::string("/blockchain");
   blockchain = std::make_unique<Blockchain>(blockchainPath);

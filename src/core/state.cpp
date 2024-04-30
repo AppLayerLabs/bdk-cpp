@@ -51,6 +51,12 @@ State::State(
     this->vmStorage_.emplace(StorageKey(dbEntry.key), dbEntry.value);
   }
 
+  /// Load all the txToAddr_ map from the DB
+  auto txToAddrFromDB = db.getBatch(DBPrefix::txToAddr);
+  for (const auto& dbEntry : txToAddrFromDB) {
+    this->txToAddr_.emplace(Hash(dbEntry.key), Address(dbEntry.value));
+  }
+
   auto latestBlock = this->storage_.latest();
 
   // Insert the contract manager into the contracts_ map.
@@ -134,6 +140,10 @@ DBBatch State::dump() const {
   // There is also the need to dump the vmStorage_ map
   for (const auto& [storageKey, storageValue] : this->vmStorage_) {
     stateBatch.push_back(storageKey.get(), storageValue.get(), DBPrefix::vmStorage);
+  }
+
+  for (const auto& [txHash, contractAddr] : this->txToAddr_) {
+    stateBatch.push_back(txHash.get(), contractAddr.get(), DBPrefix::txToAddr);
   }
   return stateBatch;
 }
@@ -219,6 +229,7 @@ void State::processTransaction(const TxBlock& tx,
       this->contracts_,
       this->accounts_,
       this->vmStorage_,
+      this->txToAddr_,
       tx.hash(),
       txIndex,
       blockHash,
@@ -227,6 +238,7 @@ void State::processTransaction(const TxBlock& tx,
 
     host.execute(tx.txToMessage(), accountTo.contractType);
   } catch (std::exception& e) {
+    Utils::safePrint("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
     );
@@ -454,6 +466,7 @@ Bytes State::ethCall(const evmc_message& callInfo) {
       this->contracts_,
       this->accounts_,
       this->vmStorage_,
+      this->txToAddr_,
       Hash(),
       0,
       Hash(),
@@ -486,6 +499,7 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
     this->contracts_,
     this->accounts_,
     this->vmStorage_,
+    this->txToAddr_,
     Hash(),
     0,
     Hash(),
@@ -531,5 +545,25 @@ std::vector<Event> State::getEvents(
 ) const {
   std::shared_lock lock(this->stateMutex_);
   return this->eventManager_.getEvents(txHash, blockIndex, txIndex);
+}
+
+
+Address State::getAddressForTx(const Hash& txHash) const {
+  std::shared_lock lock(this->stateMutex_);
+  auto it = this->txToAddr_.find(txHash);
+  Utils::safePrint("Trying to find txToAddr_ for tx: " + txHash.hex().get());
+  if (it == this->txToAddr_.end()) {
+    throw DynamicException("Transaction not found in txToAddr_ map");
+  }
+  return it->second;
+}
+
+Bytes State::getContractCode(const Address &addr) const {
+  std::shared_lock lock(this->stateMutex_);
+  auto it = this->accounts_.find(addr);
+  if (it == this->accounts_.end()) {
+    return {};
+  }
+  return it->second->code;
 }
 
