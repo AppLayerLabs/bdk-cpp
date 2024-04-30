@@ -20,29 +20,29 @@ else()
 
       )
 
-      target_include_directories(rollup_faucet_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} orbitersdk_lib)
+      target_include_directories(rollup_faucet_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} bdk_lib)
 
-      target_link_libraries(rollup_faucet_lib PRIVATE orbitersdk_lib
+      target_link_libraries(rollup_faucet_lib PRIVATE bdk_lib
               ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-              Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} orbitersdk_lib
+              Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} bdk_lib
       )
 
       # Compile and link the faucet-api executable
       add_executable(faucet-api "main.cpp")
 
-      add_dependencies(faucet-api orbitersdk_lib rollup_faucet_lib)
-      target_include_directories(faucet-api PRIVATE orbitersdk_lib rollup_faucet_lib ${OPENSSL_INCLUDE_DIR})
+      add_dependencies(faucet-api bdk_lib rollup_faucet_lib)
+      target_include_directories(faucet-api PRIVATE bdk_lib rollup_faucet_lib ${OPENSSL_INCLUDE_DIR})
       target_link_libraries(faucet-api
-              orbitersdk_lib rollup_faucet_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
+              bdk_lib rollup_faucet_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
       )
 
       # Compile and link the faucet-api executable
       add_executable(faucet-tester "main-tester.cpp")
 
-      add_dependencies(faucet-tester orbitersdk_lib rollup_faucet_lib)
-      target_include_directories(faucet-tester PRIVATE orbitersdk_lib rollup_faucet_lib ${OPENSSL_INCLUDE_DIR})
+      add_dependencies(faucet-tester bdk_lib rollup_faucet_lib)
+      target_include_directories(faucet-tester PRIVATE bdk_lib rollup_faucet_lib ${OPENSSL_INCLUDE_DIR})
       target_link_libraries(faucet-tester
-              orbitersdk_lib rollup_faucet_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
+              bdk_lib rollup_faucet_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
       )
     endif()
 endif()

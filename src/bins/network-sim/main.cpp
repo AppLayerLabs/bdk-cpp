@@ -2,9 +2,9 @@
 #include <boost/algorithm/string.hpp>
 
 /**
- *  OrbiterSDK Network Simulator
- *  Built to stress and test the capabilities of the OrbiterSDK network
- *  It requires a running instance OrbiterSDK network to connect to (AIO-setup.sh is recommended for local instances)
+ *  BDK Network Simulator
+ *  Built to stress and test the capabilities of the BDK network
+ *  It requires a running instance BDK network to connect to (AIO-setup.sh is recommended for local instances)
  *  It works as following:
  *  1. The simulator will setup a given number of accounts (Packet size * Worker size)
  *     with a given amount of native tokens using the chain owner private key.
@@ -45,8 +45,8 @@ int main() {
   uint64_t workerThreads = 1;
   std::vector<std::pair<net::ip::address_v4, uint16_t>> httpEndpoints {  };
 
-  std::cout << "Welcome to the OrbiterSDK Network Simulator" << std::endl;
-  std::cout << "This simulator is designed to test and stress the live network capabilities of OrbiterSDK" << std::endl;
+  std::cout << "Welcome to the BDK Network Simulator" << std::endl;
+  std::cout << "This simulator is designed to test and stress the live network capabilities of BDK" << std::endl;
   std::cout << "Please see the source code comments for more information on how configure and use this simulator" << std::endl;
 
   std::cout << "Please type the chain owner private key, nothing for default: " << std::endl;;
@@ -189,7 +189,7 @@ int main() {
 
 
   std::cout << std::endl << std::endl << std::endl;
-  std::cout << "Starting the OrbiterSDK Network Simulator" << std::endl;
+  std::cout << "Starting the BDK Network Simulator" << std::endl;
   std::cout << "Chain owner private key: " << chainOwnerPrivKey.hex(true) << std::endl;
   std::cout << "Chain ID: " << chainId << std::endl;
   std::cout << "Packet size: " << packetSize << std::endl;

@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -19,7 +19,7 @@ See the LICENSE.txt file in the project root for more information.
  * Example options.json file:
  * {
  *   "rootPath": "blockchain",
- *   "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+ *   "web3clientVersion": "BDK/cpp/linux_x86-64/0.2.0",
  *   "version": 1,
  *   "chainID": 808080,
  *   "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -59,9 +59,9 @@ See the LICENSE.txt file in the project root for more information.
 class Options {
   private:
     const std::string rootPath_; ///< Path to data root folder.
-    const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;  ///< Major version of OrbiterSDK.
-    const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;  ///< Minor version of OrbiterSDK.
-    const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;  ///< Patch version of OrbiterSDK.
+    const uint64_t majorSDKVersion_ = @CMAKE_PROJECT_VERSION_MAJOR@;  ///< Major version of BDK.
+    const uint64_t minorSDKVersion_ = @CMAKE_PROJECT_VERSION_MINOR@;  ///< Minor version of BDK.
+    const uint64_t patchSDKVersion_ = @CMAKE_PROJECT_VERSION_PATCH@;  ///< Patch version of BDK.
     const std::string web3clientVersion_; ///< String for displaying the client version (for Web3).
     const uint64_t version_;  ///< Blockchain version.
     const uint64_t chainID_;  ///< Blockchain chain ID.
@@ -237,7 +237,7 @@ class Options {
     /**
      * Load the default options defined within the optionsdefaults.cpp file
      * Used by fromFile to generate a default options.json file if not found.
-     * Defaults to Options(rootPath, "OrbiterSDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081)
+     * Defaults to Options(rootPath, "BDK/cpp/linux_x86-64/<project-version>", 2, 8080, 8080, 8081)
      * @return The constructed options object.
      */
     static Options binaryDefaultOptions(const std::string& rootPath);

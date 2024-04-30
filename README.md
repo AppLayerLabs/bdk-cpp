@@ -1,13 +1,13 @@
-# orbitersdk
+# Blockchain Development Kit (BDK)
 
 </p>
 <p align="center">
-    <a href="https://github.com/SparqNet/orbitersdk-cpp/graphs/contributors" alt="Contributors">
-        <img src="https://img.shields.io/github/contributors/SparqNet/orbitersdk-cpp" /></a>
-    <a href="https://github.com/SparqNet/orbitersdk-cpp/pulse" alt="Activity">
-        <img src="https://img.shields.io/github/commit-activity/m/SparqNet/orbitersdk-cpp" /></a>
-    <a href="https://github.com/SparqNet/orbitersdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main">
-        <img src="https://github.com/SparqNet/orbitersdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main" alt="build status"></a>
+    <a href="https://github.com/AppLayer/bdk-cpp/graphs/contributors" alt="Contributors">
+        <img src="https://img.shields.io/github/contributors/AppLayer/bdk-cpp" /></a>
+    <a href="https://github.com/AppLayer/bdk-cpp/pulse" alt="Activity">
+        <img src="https://img.shields.io/github/commit-activity/m/AppLayer/bdk-cpp" /></a>
+    <a href="https://github.com/AppLayer/bdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main">
+        <img src="https://github.com/AppLayer/bdk-cpp/actions/workflows/c-cpp.yml/badge.svg?branch=main" alt="build status"></a>
     <a href="https://discord.com/channels/1072297918897340506/1085807995595788378">
         <img src="https://img.shields.io/discord/308323056592486420?logo=discord"
             alt="chat on Discord"></a>
@@ -20,7 +20,7 @@
             alt="chat on Telegram"></a>
 </p>
 
-Sparq subnet source code. [See the docs](https://github.com/SparqNet/sparq-docs) for a more thorough look at the project.
+Sparq subnet source code. [See the docs](https://github.com/AppLayer/sparq-docs) for a more thorough look at the project.
 
 If you are a developer, fill this form out for free support and additional incentives: https://forms.gle/m83ceG3XoJY3fpwU9
 
@@ -32,11 +32,11 @@ The project has a Dockerfile at the root of the repository that will build the p
   * [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
   * [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
   * [Docker for Linux](https://docs.docker.com/desktop/install/linux-install/)
-* Build the image locally with `docker build -t orbitersdk-cpp-dev:latest .` (if using Linux or Mac, run as `sudo`)
-  * This will build the image and tag it as `orbitersdk-cpp-dev:latest` - you can change the tag to whatever you want, but remember to change it on the next step
+* Build the image locally with `docker build -t bdk-cpp-dev:latest .` (if using Linux or Mac, run as `sudo`)
+  * This will build the image and tag it as `bdk-cpp-dev:latest` - you can change the tag to whatever you want, but remember to change it on the next step
 * Run the container (you will be logged in as root):
-  * **For Linux/Mac**: `sudo docker run -it -v $(pwd):/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
-  * **For Windows**: `docker run -it -v %cd%:/orbitersdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 orbitersdk-cpp-dev:latest`
+  * **For Linux/Mac**: `sudo docker run -it -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
+  * **For Windows**: `docker run -it -v %cd%:/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
 
 Remember that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
 
@@ -74,13 +74,13 @@ We use [Doxygen](https://www.doxygen.nl/index.html) to generate documentation ov
 
 You should do this after running `cmake ..` in the build directory, as some header files need to be generated first.
 
-For a more detailed explanation of the project's structure, check the [docs](https://github.com/SparqNet/sparq-docs/tree/main/Sparq_en-US) repository.
+For a more detailed explanation of the project's structure, check the [docs](https://github.com/AppLayer/sparq-docs/tree/main/Sparq_en-US) repository.
 
 ## Compiling
 
-* Clone the project: `git clone https://github.com/SparqNet/orbitersdk-cpp
+* Clone the project: `git clone https://github.com/AppLayer/bdk-cpp
 * Go to the project's root folder, create a "build" folder and change to it:
-  * `cd orbitersdk-cpp && mkdir build && cd build`
+  * `cd bdk-cpp && mkdir build && cd build`
 * Run `cmake` inside the build folder: `cmake ..`
   * Use `-DCMAKE_BUILD_TYPE={Debug,RelWithDebInfo,Release}` to set the respective debug/release builds (Debug by default)
   * Use `-DDEBUG=OFF` to build without debug flags (ON by default)

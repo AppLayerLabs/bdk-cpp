@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -28,7 +28,7 @@ namespace DEXV2Library {
   /**
    * Returns the pair address for the given tokens.
    * Differently from solidity, we don't calculate the address, we ask the factory.
-   * The way addresses are derived within OrbiterSDK are completely different.
+   * Because we don't use CREATE2 Derivation method.
    * @param host The contract host.
    * @param factory The factory address.
    * @param tokenA The address of tokenA.

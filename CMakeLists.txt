@@ -17,7 +17,7 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
 endif()
 
 # Project data
-project(orbitersdk VERSION 0.2.0 DESCRIPTION "Sparq subnet")
+project(bdk VERSION 0.2.0 DESCRIPTION "AppLayer Blockchain Development Kit")
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -70,7 +70,7 @@ message("Building AvalancheGo support: ${BUILD_AVALANCHEGO}")
 message("Building tools: ${BUILD_TOOLS}")
 message("Using lint: ${USE_LINT}")
 
-cable_add_buildinfo_library(PROJECT_NAME orbitersdk)
+cable_add_buildinfo_library(PROJECT_NAME bdk)
 
 # System package configs (built-in)
 set(Boost_USE_STATIC_LIBS ON)
@@ -129,7 +129,7 @@ link_directories(
   "${CMAKE_SOURCE_DIR}/build/deps/lib"
 )
 
-# Organize, compile and link orbitersdk libs
+# Organize, compile and link bdk libs
 add_subdirectory(src/contract)
 add_subdirectory(src/core)
 add_subdirectory(src/net)
@@ -376,7 +376,7 @@ if(BUILD_AVALANCHEGO)
 
   target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags)
 
-  add_library(orbitersdk_lib STATIC
+  add_library(bdk_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
@@ -387,20 +387,20 @@ if(BUILD_AVALANCHEGO)
     ${NET_SOURCES}
   )
 
-  add_dependencies(orbitersdk_lib gen-grpc ProtoFiles Evmc)
+  add_dependencies(bdk_lib gen-grpc ProtoFiles Evmc)
 
-  target_include_directories(orbitersdk_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
+  target_include_directories(bdk_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
-  target_link_libraries(orbitersdk_lib PRIVATE
+  target_link_libraries(bdk_lib PRIVATE
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS} ${Protobuf_LIBRARIES}
     ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags
     Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
-  set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
+  set_target_properties(bdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
 
 else()
-  add_library(orbitersdk_lib STATIC
+  add_library(bdk_lib STATIC
     ${UTILS_HEADERS}
     ${UTILS_SOURCES}
     ${CONTRACT_HEADERS}
@@ -411,14 +411,14 @@ else()
     ${NET_SOURCES}
   )
 
-  target_include_directories(orbitersdk_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
+  target_include_directories(bdk_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
-  target_link_libraries(orbitersdk_lib PRIVATE EvmcInstructions EvmcLoader EvmcTooling Evmone
+  target_link_libraries(bdk_lib PRIVATE EvmcInstructions EvmcLoader EvmcTooling Evmone
     ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
     Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
   )
 
-  set_target_properties(orbitersdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
+  set_target_properties(bdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
 endif()
 
 add_subdirectory(src/bins)

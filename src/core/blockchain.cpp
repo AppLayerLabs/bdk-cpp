@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -20,8 +20,8 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
 
 void Blockchain::start() {
   // Initialize necessary modules
-  Utils::safePrint("Starting OrbiterSDK Node...");
-  Logger::logToDebug(LogType::INFO, Log::blockchain, __func__, "Starting OrbiterSDK Node...");
+  Utils::safePrint("Starting BDK Node...");
+  Logger::logToDebug(LogType::INFO, Log::blockchain, __func__, "Starting BDK Node...");
   this->p2p_.start();
   this->http_.start();
 

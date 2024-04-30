@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -35,7 +35,7 @@ namespace JsonRPC {
    * net_version =============================== DONE (RETURNS APPCHAIN VERSION)
    * net_listening ============================= TODO: WAITING FOR BLOCKCHAIN
    * net_peerCount ============================= DONE
-   * eth_protocolVersion ======================= DONE (RETURNS ORBITERSDK VERSION)
+   * eth_protocolVersion ======================= DONE (RETURNS BDK VERSION)
    * eth_getBlockByHash ======================== DONE
    * eth_getBlockByNumber ====================== DONE
    * eth_getBlockTransactionCountByHash ======== DONE
@@ -70,7 +70,7 @@ namespace JsonRPC {
    * eth_getBalance ============================ DONE
    * eth_getStorageAt ========================== NOT IMPLEMENTED: WE DON'T SUPPORT STORAGE BECAUSE WE ARE NOT AN EVM
    * eth_getTransactionCount =================== DONE
-   * eth_getCode =============================== HALF DONE: ALWAYS ANSWER WITH "0x" AS WE DON'T STORE ANY BYTECODE
+   * eth_getCode =============================== DONE
    * eth_getProof ============================== NOT IMPLEMENTED: WE DON'T HAVE MERKLE PROOFS FOR ACCOUNTS, ONLY FOR TXS
    * eth_sendTransaction ======================= NOT IMPLEMENTED: NODE IS NOT A WALLET
    * eth_sendRawTransaction ==================== DONE

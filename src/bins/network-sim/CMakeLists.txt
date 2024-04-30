@@ -15,7 +15,7 @@ else()
 
     target_include_directories(network_sim_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
-    target_link_libraries(network_sim_lib PRIVATE orbitersdk_lib
+    target_link_libraries(network_sim_lib PRIVATE bdk_lib
         ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
         Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
     )
@@ -23,10 +23,10 @@ else()
       # Compile and link the ABI generator executable
     add_executable(network-sim "main.cpp")
 
-    add_dependencies(network-sim orbitersdk_lib network_sim_lib)
-    target_include_directories(network-sim PRIVATE orbitersdk_lib network_sim_lib ${OPENSSL_INCLUDE_DIR})
+    add_dependencies(network-sim bdk_lib network_sim_lib)
+    target_include_directories(network-sim PRIVATE bdk_lib network_sim_lib ${OPENSSL_INCLUDE_DIR})
     target_link_libraries(network-sim
-        orbitersdk_lib network_sim_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
+        bdk_lib network_sim_lib Speedb ${SNAPPY_LIBRARY} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
     )
   endif()
 endif()

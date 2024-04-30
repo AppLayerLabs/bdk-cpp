@@ -1,4 +1,4 @@
-# Copyright (c) [2023-2024] [Sparq Network]
+# Copyright (c) [2023-2024] [AppLayer Developers]
 # This software is distributed under the MIT License.
 # See the LICENSE.txt file in the project root for more information.
 
@@ -111,30 +111,30 @@ if [ "$DEPLOY" = true ]; then
   if [ "$ONLY_DEPLOY" = true ]; then
     cd build_local_testnet
   fi
-  ## Copy the orbitersdkd and orbitersdk-discovery executables to the local_testnet directory
-  cp src/bins/orbitersdkd/orbitersdkd ../local_testnet
-  cp src/bins/orbitersdkd-discovery/orbitersdkd-discovery ../local_testnet
+  ## Copy the bdkd and bdkd-discovery executables to the local_testnet directory
+  cp src/bins/bdkd/bdkd ../local_testnet
+  cp src/bins/bdkd-discovery/bdkd-discovery ../local_testnet
 
   # Create the directories for the Validators and Discovery Node and copy the executables
   cd ../local_testnet
   for i in $(seq 1 5); do
     mkdir local_testnet_validator$i
     mkdir local_testnet_validator$i/blockchain
-    cp orbitersdkd local_testnet_validator$i
+    cp bdkd local_testnet_validator$i
   done
   for i in $(seq 1 6); do
     mkdir local_testnet_normal$i
     mkdir local_testnet_normal$i/blockchain
-    cp orbitersdkd local_testnet_normal$i
+    cp bdkd local_testnet_normal$i
   done
   mkdir local_testnet_discovery
   mkdir local_testnet_discovery/discoveryNode
-  cp orbitersdkd-discovery local_testnet_discovery
+  cp bdkd-discovery local_testnet_discovery
 
   # Create the JSON files for the Discovery Node, Validators and Normal Nodes
   echo '{
     "rootPath": "discoveryNode",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -167,7 +167,7 @@ if [ "$DEPLOY" = true ]; then
   # Create the JSON file for the Validators
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -205,7 +205,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -243,7 +243,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -281,7 +281,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -319,7 +319,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -358,7 +358,7 @@ if [ "$DEPLOY" = true ]; then
   # Create the json file for the Normal Nodes
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -395,7 +395,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -432,7 +432,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -469,7 +469,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -506,7 +506,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -543,7 +543,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -580,7 +580,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -617,7 +617,7 @@ if [ "$DEPLOY" = true ]; then
 
   echo '{
     "rootPath": "blockchain",
-    "web3clientVersion": "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+    "web3clientVersion": "bdk/cpp/linux_x86-64/0.2.0",
     "version": 1,
     "chainID": 808080,
     "chainOwner": "0x00dead00665771855a34155f5e7405489df2c3c6",
@@ -655,54 +655,54 @@ if [ "$DEPLOY" = true ]; then
   # Launch the Discovery Node through tmux
   echo "Launching Discovery Node"
   cd local_testnet_discovery
-  tmux new-session -d -s local_testnet_discovery './orbitersdkd-discovery || bash && bash'
+  tmux new-session -d -s local_testnet_discovery './bdkd-discovery || bash && bash'
   sleep 1
 
   # Launch the Validators through tmux, don't exit the tmux session when closing the terminal
   echo "Launching Validator 1"
   cd ../local_testnet_validator1
-  tmux new-session -d -s local_testnet_validator1 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_validator1 './bdkd || bash && bash'
 
   echo "Launching Validator 2"
   cd ../local_testnet_validator2
-  tmux new-session -d -s local_testnet_validator2 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_validator2 './bdkd || bash && bash'
 
   echo "Launching Validator 3"
   cd ../local_testnet_validator3
-  tmux new-session -d -s local_testnet_validator3 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_validator3 './bdkd || bash && bash'
 
   echo "Launching Validator 4"
   cd ../local_testnet_validator4
-  tmux new-session -d -s local_testnet_validator4 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_validator4 './bdkd || bash && bash'
 
   echo "Launching Validator 5"
   cd ../local_testnet_validator5
-  tmux new-session -d -s local_testnet_validator5 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_validator5 './bdkd || bash && bash'
 
   # Launch the Normal Nodes through tmux, don't exit the tmux session when closing the terminal
   echo "Launching Normal Node 1"
   cd ../local_testnet_normal1
-  tmux new-session -d -s local_testnet_normal1 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_normal1 './bdkd || bash && bash'
 
   echo "Launching Normal Node 2"
   cd ../local_testnet_normal2
-  tmux new-session -d -s local_testnet_normal2 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_normal2 './bdkd || bash && bash'
 
   echo "Launching Normal Node 3"
   cd ../local_testnet_normal3
-  tmux new-session -d -s local_testnet_normal3 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_normal3 './bdkd || bash && bash'
 
   echo "Launching Normal Node 4"
   cd ../local_testnet_normal4
-  tmux new-session -d -s local_testnet_normal4 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_normal4 './bdkd || bash && bash'
 
   echo "Launching Normal Node 5"
   cd ../local_testnet_normal5
-  tmux new-session -d -s local_testnet_normal5 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_normal5 './bdkd || bash && bash'
 
   echo "Launching Normal Node 6"
   cd ../local_testnet_normal6
-  tmux new-session -d -s local_testnet_normal6 './orbitersdkd || bash && bash'
+  tmux new-session -d -s local_testnet_normal6 './bdkd || bash && bash'
 
   # Finish deploying
   GREEN=$'\e[0;32m'

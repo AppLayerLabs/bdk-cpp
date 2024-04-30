@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -12,7 +12,7 @@ namespace P2P {
   /**
    * ClientFactory
    * Creates and manages multiple Client Sessions
-   * Previously, OrbiterSDK was creating a new std::thread and io_context for each client session.
+   * Previously, BDK was creating a new std::thread and io_context for each client session.
    * This is not very efficient, as it creates a lot of overhead.
    * The ClientFactory uses a single io_context and multiple threads to handle multiple sessions.
    * Instead of creating a new std::thread for each connection, a new "connection" task is posted to the io_context.

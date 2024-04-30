@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -449,7 +449,7 @@ namespace TState {
       }
       Options discoveryOptions = Options(
           testDumpPath + "/stateDiscoveryNodeNetworkCapabilities",
-          "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+          "BDK/cpp/linux_x86-64/0.2.0",
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -675,7 +675,7 @@ namespace TState {
       }
       Options discoveryOptions(
           testDumpPath + "/stateDiscoveryNodeNetworkCapabilities",
-          "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+          "BDK/cpp/linux_x86-64/0.2.0",
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -929,7 +929,7 @@ namespace TState {
       }
       Options discoveryOptions(
           testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTx",
-          "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+          "BDK/cpp/linux_x86-64/0.2.0",
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
@@ -1255,7 +1255,7 @@ namespace TState {
       }
       Options discoveryOptions(
           testDumpPath + "/statedDiscoveryNodeNetworkCapabilitiesWithTxBlockBroadcast",
-          "OrbiterSDK/cpp/linux_x86-64/0.2.0",
+          "BDK/cpp/linux_x86-64/0.2.0",
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),

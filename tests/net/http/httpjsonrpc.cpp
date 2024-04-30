@@ -1,5 +1,5 @@
 /*
-Copyright (c) [2023-2024] [Sparq Network]
+Copyright (c) [2023-2024] [AppLayer Developers]
 
 This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
@@ -175,7 +175,7 @@ namespace THTTPJsonRPC{
 
       json web3_clientVersionResponse = requestMethod("web3_clientVersion", json::array());
 
-      REQUIRE(web3_clientVersionResponse["result"] == "OrbiterSDK/cpp/linux_x86-64/0.2.0");
+      REQUIRE(web3_clientVersionResponse["result"] == "BDK/cpp/linux_x86-64/0.2.0");
 
       json web3_sha3Response = requestMethod("web3_sha3", json::array({"0x68656c6c6f20776f726c64"}));
 

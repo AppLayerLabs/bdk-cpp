@@ -1,4 +1,4 @@
-# Copyright (c) [2023-2024] [Sparq Network]
+# Copyright (c) [2023-2024] [AppLayer Developers]
 # This software is distributed under the MIT License.
 # See the LICENSE.txt file in the project root for more information.
 
@@ -12,19 +12,19 @@ RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc nano vim unison git
 
 # Set the working directory in the Docker container
-WORKDIR /orbitersdk-cpp
+WORKDIR /bdk-cpp
 
 # Copy the local folder to the container
-COPY . /orbitersdk-cpp
+COPY . /bdk-cpp
 
 # Create the synchronized directory
-RUN mkdir /orbitersdk-volume
+RUN mkdir /bdk-volume
 
 # Copy Unison configuration file
 COPY sync.prf /root/.unison/sync.prf
 
 # Start Unison in the background, ignoring files that should not be synced
-CMD nohup unison -repeat 1 /orbitersdk-volume /orbitersdk-cpp -auto -batch \
+CMD nohup unison -repeat 1 /bdk-volume /bdk-cpp -auto -batch \
     -ignore 'Name {build}' \
     -ignore 'Name {build_local_testnet}' \
     -ignore 'Name {.vscode}' \
