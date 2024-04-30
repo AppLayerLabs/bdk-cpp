@@ -88,6 +88,7 @@ bool DumpWorker::workerLoop()
                          __func__,
                          "Current size >= 100");
       dumpManager_.dumpToDB();
+      latestBlock = this->storage_.currentChainSize();
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
