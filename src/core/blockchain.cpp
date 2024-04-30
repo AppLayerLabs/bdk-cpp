@@ -35,6 +35,8 @@ void Blockchain::start() {
   // Do initial sync
   // TODO: This may fail to bring the node up to date if we have poor connectivity at this point.
   this->syncer_.sync();
+  // After Syncing, start the DumpWorker.
+  this->state_.dumpStartWorker();
 
   // if node is a Validator, start the consensus loop
   this->consensus_.start();
