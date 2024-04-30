@@ -45,6 +45,40 @@ class FinalizedBlock {
 
   public:
     /**
+     * Move Constructor.
+     * @param validatorSig Validator signature for the block.
+     * @param validatorPubKey Public key of the Validator that signed the block.
+     * @param prevBlockHash Hash of the previous block.
+     * @param blockRandomness Current block randomness based on rdPoS.
+     * @param validatorMerkleRoot Merkle root for the Validator transactions.
+     * @param txMerkleRoot Merkle root for the block transactions.
+     * @param timestamp Epoch timestamp of the block, in microseconds.
+     * @param nHeight Height of the block in chain.
+     * @param txValidators Lost of Validator transactions.
+     * @param txs List of block transactions.
+     * @param hash Cached hash of the block.
+     */
+    FinalizedBlock(
+        Signature&& validatorSig,
+        UPubKey&& validatorPubKey,
+        Hash&& prevBlockHash,
+        Hash&& blockRandomness,
+        Hash&& validatorMerkleRoot,
+        Hash&& txMerkleRoot,
+        uint64_t timestamp, // Primitive types like uint64_t can (and should) be passed by value
+        uint64_t nHeight, // Same for nHeight
+        std::vector<TxValidator>&& txValidators,
+        std::vector<TxBlock>&& txs,
+        Hash&& hash,
+        size_t size
+    ) : validatorSig_(std::move(validatorSig)), validatorPubKey_(std::move(validatorPubKey)),
+        prevBlockHash_(std::move(prevBlockHash)), blockRandomness_(std::move(blockRandomness)),
+        validatorMerkleRoot_(std::move(validatorMerkleRoot)), txMerkleRoot_(std::move(txMerkleRoot)),
+        timestamp_(timestamp), nHeight_(nHeight),
+        txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash)), size_(size)
+    {Logger::logToDebug(LogType::INFO, Log::finalizedBlock, __func__, "Finalized block created");}
+
+    /**
      * Constructor.
      * @param validatorSig Validator signature for the block.
      * @param validatorPubKey Public key of the Validator that signed the block.

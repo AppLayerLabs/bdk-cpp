@@ -109,7 +109,7 @@ void MutableBlock::deserialize(const BytesArrView bytes, const uint64_t& require
       // Wait for asyncs and fill the block tx vector
       for (int i = 0; i < f.size(); i++) {
         f[i].wait();
-        for (TxBlock tx : f[i].get()) this->txs_.emplace_back(tx);
+        for (const TxBlock& tx : f[i].get()) this->txs_.emplace_back(tx);
       }
     }
 
