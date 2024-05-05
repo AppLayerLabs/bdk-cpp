@@ -86,7 +86,7 @@ namespace JsonRPC::Encoding {
   json net_version(const Options& options) {
     json ret;
     ret["jsonrpc"] = 2.0;
-    ret["result"] = std::to_string(options.getVersion());
+    ret["result"] = std::to_string(options.getChainID());
     return ret;
   }
 
