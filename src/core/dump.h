@@ -9,6 +9,9 @@ See the LICENSE.txt file in the project root for more information.
 #define DUMP_H
 
 #include <vector>
+#include <thread>
+#include <future>
+#include <chrono>
 #include <functional>
 #include <shared_mutex>
 
@@ -46,7 +49,19 @@ private:
   std::vector<Dumpable*> dumpables_;
   /// EventManager object
   EventManager& eventManager_;
+
+  /**
+   * Auxiliary function that will be used by async call
+   * and will process a little slice of dumps in a thread.
+   *
+   * @param threadOffset starting dumpaples_ index
+   * @param threadItems how many items to dump
+   * @return vector of DBBatch dump operations
+   */
+  std::vector<DBBatch> dumpToBatch(unsigned int threadOffset,
+                                   unsigned int threadItems) const;
 public:
+
   /**
    * Constructor.
    * @param db Pointer to state database.
