@@ -12,8 +12,8 @@ std::string makeRequestMethod(const std::string& method, const T& params) {
 
 namespace Faucet {
   bool FaucetWorker::run() {
+    bool log = true;
     while(!this->stop_) {
-      bool log = true;
       try {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         std::unique_ptr<std::vector<Address>> dripQueue;
@@ -26,6 +26,7 @@ namespace Faucet {
             }
             continue;
           }
+          log = true;
           dripQueue = std::move(this->manager_.dripQueue_);
           // If the dripQueue is bigger than the number of accounts
           // We can only process the amount of accounts available in the Manager::faucetWorkers_.size()

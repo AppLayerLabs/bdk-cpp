@@ -83,9 +83,11 @@ namespace JsonRPC::Decoding {
   void net_version(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException(
-        "net_version does not need params"
-      );
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "net_version does not need params"
+        );
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding net_version: ") + e.what()
