@@ -71,7 +71,7 @@ namespace TP2P {
       REQUIRE(blockchainWrapper.p2p.getSessionsIDs().size() == 1);
 
       /// Run blockchainWrapper2's Syncer
-      REQUIRE(blockchainWrapper2.syncer.sync(1)); // Abort on first download failure (which should never happen normally)
+      REQUIRE(blockchainWrapper2.syncer.sync(0, 1)); // Don't wait for connections & abort on first download failure (which should never happen normally)
       REQUIRE(blockchainWrapper2.storage.latest()->getNHeight() == 10);
     }
 

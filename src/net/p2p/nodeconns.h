@@ -57,6 +57,20 @@ namespace P2P {
       /// Get a copy of the nodeInfo_ map.
       std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> getConnected();
 
+      /// Get a NodeID --> NodeType map version of NodeInfo_.
+      /// FIXME/REVIEW: Probably, the remote node's NodeInfo should have the information
+      ///   of which type the node is (discovery or regular node).
+      /// Here we are just hardcoding that the node is a normal node, since there's no
+      ///   apparent way to detect that it's something else from its NodeInfo.
+      std::unordered_map<P2P::NodeID, P2P::NodeType, SafeHash> getConnectedWithNodeType();
+
+      /**
+       * Get the NodeInfo for a specific connected peer
+       * @param nodeId The ID of the node to get the latest known NodeInfo from.
+       * @return Latest known NodeInfo from the connected peer, otherwise an empty optional.
+       */
+      std::optional<P2P::NodeInfo> getNodeInfo(const P2P::NodeID& nodeId);
+
       void forceRefresh(); ///< Caller synchronously forces a refresh of the nodeInfos of all currently connected nodes.
 
       void loop(); ///< Nodeconns loop (sends nodeinfo to peers and times out remote peer nodeinfo as needed).

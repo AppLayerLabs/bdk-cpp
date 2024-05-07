@@ -44,10 +44,11 @@ class Syncer {
 
     /**
      * Synchronize this node to the latest known blocks among all connected peers at the time this method is called.
+     * @param waitForPeersSecs Seconds to wait for at least one connection to be established (cumulative).
      * @param tries If zero, try forever, otherwise try block downloads a set number of times.
      * @return `true` if successfully synced, `false` otherwise.
      */
-    bool sync(int tries = 0);
+    bool sync(int waitForPeersSecs = 15, int tries = 0);
 
     ///@{
     /** Getter. */

@@ -68,46 +68,29 @@ namespace P2P {
 
   /**
    * List of type prefixes (as per RequestType) for easy conversion.
-   * Reference is as follows:
-   * - "00" = Request
-   * - "01" = Answer
-   * - "02" = Broadcast
-   * - "03" = Notification
    */
   inline extern const std::vector<Bytes> typePrefixes {
-    Bytes(1, 0x00), // Request
-    Bytes(1, 0x01), // Answer
-    Bytes(1, 0x02), // Broadcast
-    Bytes(1, 0x03)  // Notification
+    Bytes(1, 0x00), // 00 Request
+    Bytes(1, 0x01), // 01 Answer
+    Bytes(1, 0x02), // 02 Broadcast
+    Bytes(1, 0x03)  // 03 Notification
   };
 
   /**
    * List of command prefixes (as per CommandType) for easy conversion.
-   * Reference is as follows:
-   * - "0000" = Ping
-   * - "0001" = Info
-   * - "0002" = RequestNodes
-   * - "0003" = RequestValidatorTxs
-   * - "0004" = BroadcastValidatorTx
-   * - "0005" = BroadcastTx
-   * - "0006" = BroadcastBlock
-   * - "0007" = BroadcastInfo
-   * - "0008" = RequestTxs
-   * - "0009" = NotifyInfo
-   * - "000A" = RequestBlock
    */
   inline extern const std::vector<Bytes> commandPrefixes {
-    Bytes{0x00, 0x00}, // Ping
-    Bytes{0x00, 0x01}, // Info
-    Bytes{0x00, 0x02}, // RequestNodes
-    Bytes{0x00, 0x03}, // RequestValidatorTxs
-    Bytes{0x00, 0x04}, // BroadcastValidatorTx
-    Bytes{0x00, 0x05}, // BroadcastTx
-    Bytes{0x00, 0x06}, // BroadcastBlock
-    Bytes{0x00, 0x07}, // BroadcastInfo
-    Bytes{0x00, 0x08}, // RequestTxs
-    Bytes{0x00, 0x09}, // NotifyInfo
-    Bytes{0x00, 0x0A}  // RequestBlock
+    Bytes{0x00, 0x00}, // 0000 Ping
+    Bytes{0x00, 0x01}, // 0001 Info
+    Bytes{0x00, 0x02}, // 0002 RequestNodes
+    Bytes{0x00, 0x03}, // 0003 RequestValidatorTxs
+    Bytes{0x00, 0x04}, // 0004 BroadcastValidatorTx
+    Bytes{0x00, 0x05}, // 0005 BroadcastTx
+    Bytes{0x00, 0x06}, // 0006 BroadcastBlock
+    Bytes{0x00, 0x07}, // 0007 BroadcastInfo
+    Bytes{0x00, 0x08}, // 0008 RequestTxs
+    Bytes{0x00, 0x09}, // 0009 NotifyInfo
+    Bytes{0x00, 0x0A}  // 000A RequestBlock
   };
 
   /**
@@ -185,6 +168,10 @@ namespace P2P {
       /// %Hash of the latest block the node is at.
       Hash latestBlockHash_;
 
+      /// Latest set of peers connected to this node. TODO: since we are using TCP, this can
+      /// be later optimized with connectivity deltas to reduce bandwidth usage.
+      std::vector<NodeID> peers_;
+
     public:
       NodeInfo() : nodeVersion_(0), currentNodeTimestamp_(0), currentTimestamp_(0),
         timeDifference_(0), latestBlockHeight_(0), latestBlockHash_(Hash()) {};
@@ -192,10 +179,28 @@ namespace P2P {
       /// Default constructor.
       NodeInfo(const uint64_t& nodeVersion, const uint64_t& currentNodeTimestamp,
         const uint64_t& currentTimestamp, const int64_t& timeDifference,
-        const uint64_t& latestBlockHeight, const Hash& latestBlockHash
+        const uint64_t& latestBlockHeight, const Hash& latestBlockHash,
+        const std::vector<NodeID>& peers
       ) : nodeVersion_(nodeVersion), currentNodeTimestamp_(currentNodeTimestamp),
           currentTimestamp_(currentTimestamp), timeDifference_(timeDifference),
-          latestBlockHeight_(latestBlockHeight), latestBlockHash_(latestBlockHash) {};
+          latestBlockHeight_(latestBlockHeight), latestBlockHash_(latestBlockHash),
+          peers_(peers) {};
+
+      /// Template constructor accepting any map with NodeID as key type
+      template<typename M>
+      NodeInfo(const uint64_t& nodeVersion, const uint64_t& currentNodeTimestamp,
+             const uint64_t& currentTimestamp, const int64_t& timeDifference,
+             const uint64_t& latestBlockHeight, const Hash& latestBlockHash,
+             const M& mapWithPeersAsKeys
+      ) : nodeVersion_(nodeVersion), currentNodeTimestamp_(currentNodeTimestamp),
+          currentTimestamp_(currentTimestamp), timeDifference_(timeDifference),
+          latestBlockHeight_(latestBlockHeight), latestBlockHash_(latestBlockHash)
+      {
+        peers_.reserve(mapWithPeersAsKeys.size());
+        for (const auto& [nodeIdKey, value] : mapWithPeersAsKeys) {
+            peers_.push_back(nodeIdKey);
+        }
+      }
 
       /// Equality operator. Checks if all members are the same.
       bool operator==(const NodeInfo& other) const {
@@ -205,7 +210,8 @@ namespace P2P {
           this->currentTimestamp_ == other.currentTimestamp_ &&
           this->timeDifference_ == other.timeDifference_ &&
           this->latestBlockHeight_ == other.latestBlockHeight_ &&
-          this->latestBlockHash_ == other.latestBlockHash_
+          this->latestBlockHash_ == other.latestBlockHash_ &&
+          this->peers_ == other.peers_
         );
       }
 
@@ -218,6 +224,7 @@ namespace P2P {
           this->timeDifference_ = other.timeDifference_;
           this->latestBlockHeight_ = other.latestBlockHeight_;
           this->latestBlockHash_ = other.latestBlockHash_;
+          this->peers_ = other.peers_;
         }
         return *this;
       }
@@ -229,7 +236,7 @@ namespace P2P {
       const int64_t& timeDifference() const { return this->timeDifference_; }
       const uint64_t& latestBlockHeight() const { return this->latestBlockHeight_; }
       const Hash& latestBlockHash() const { return this->latestBlockHash_; }
-
+      const std::vector<NodeID>& peers() const { return this->peers_; }
   };
 
   /// Helper class used to create requests.
@@ -244,11 +251,13 @@ namespace P2P {
       /**
        * Create a `Info` request.
        * @param latestBlock Pointer to the node's latest block.
+       * @param nodes Connected nodes.
        * @param options Pointer to the node's options singleton.
        * @return The formatted request.
        */
       static Message info(
         const std::shared_ptr<const FinalizedBlock>& latestBlock,
+        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
         const Options& options
       );
 
@@ -339,11 +348,14 @@ namespace P2P {
        * Create a `Info` answer.
        * @param request The request message.
        * @param latestBlock Pointer to the node's latest block.
+       * @param nodes Connected nodes.
        * @param options Pointer to the node's options singleton.
        * @return The formatted answer.
        */
-      static Message info(const Message& request,
+      static Message info(
+        const Message& request,
         const std::shared_ptr<const FinalizedBlock>& latestBlock,
+        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
         const Options& options
       );
 
@@ -471,10 +483,16 @@ namespace P2P {
 
       /**
        * Create a message to broadcast the node's information.
-       * @param nodeInfo The node's information.
-       * @return The formatted message.
+       * @param latestBlock Pointer to the node's latest block.
+       * @param nodes Connected nodes.
+       * @param options Pointer to the node's options singleton.
+       * @return The formatted answer.
        */
-      static Message broadcastInfo(const std::shared_ptr<const FinalizedBlock>& latestBlock, const Options& options);
+      static Message broadcastInfo(
+        const std::shared_ptr<const FinalizedBlock>& latestBlock,
+        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
+        const Options& options
+      );
   };
 
   /// Helper class used to parse broadcast messages.
@@ -517,10 +535,16 @@ namespace P2P {
     public:
       /**
        * Create a message to notify the node's information.
-       * @param nodeInfo The node's information.
-       * @return The formatted message.
+       * @param latestBlock Pointer to the node's latest block.
+       * @param nodes Connected nodes.
+       * @param options Pointer to the node's options singleton.
+       * @return The formatted answer.
        */
-      static Message notifyInfo(const std::shared_ptr<const FinalizedBlock>& latestBlock, const Options& options);
+      static Message notifyInfo(
+        const std::shared_ptr<const FinalizedBlock>& latestBlock,
+        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
+        const Options& options
+      );
   };
 
   /// Helper class used to parse notification messages.

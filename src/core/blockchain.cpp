@@ -48,7 +48,7 @@ void Blockchain::stop() {
   this->p2p_.stop();
 }
 
-bool Syncer::sync(int tries) {
+bool Syncer::sync(int waitForPeersSecs, int tries) {
   // NOTE: This is a synchronous operation that's (currently) run during note boot only, in the caller (main) thread.
   // TODO: Detect out-of-sync after the intial synchronization on node boot and resynchronize.
 
@@ -66,7 +66,17 @@ bool Syncer::sync(int tries) {
     // Get the node with the highest block height available for download.
     auto connected = this->p2p_.getNodeConns().getConnected();
     if (connected.size() == 0) {
-      // No one to download blocks from. For now, this means synchronization is complete by definition.
+      // No one to download blocks from.
+
+      // While we don't exhaust the waiting-for-a-connection timeout, sleep and try again later.
+      if (waitForPeersSecs-- > 0) {
+        Utils::safePrint("Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
+        Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        continue;
+      }
+
+      // We have timed out waiting for peers, so synchronization is complete.
       Utils::safePrint("Syncer quitting due to no peer connections.");
       Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Syncer quitting due to no peer connections.");
       break;

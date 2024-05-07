@@ -20,35 +20,43 @@ void P2P::NodeConns::forceRefresh() {
   // Get the list of currently connected nodes
   std::vector<P2P::NodeID> connectedNodes = this->manager_.getSessionsIDs();
 
-  std::scoped_lock lock(this->stateMutex_);
+  // Synchronous requests are made outside the lock, so these helpers are needed
+  std::vector<P2P::NodeID> nodesToCheck;
+  std::map<P2P::NodeID, P2P::NodeInfo> updatedNodeInfo;
 
-  // Update information of already connected nodes
-  auto it = this->nodeInfo_.begin();
-  while (it != this->nodeInfo_.end()) {
-    const auto& nodeId = it->first;
-    if (std::find(connectedNodes.begin(), connectedNodes.end(), nodeId) == connectedNodes.end()) {
-      it = this->nodeInfo_.erase(it); // Node not connected, remove it from list
-      nodeInfoTime_.erase(nodeId);
-    } else {
-      auto newNodeInfo = this->manager_.requestNodeInfo(nodeId);
-      if (newNodeInfo == P2P::NodeInfo()) {
-        it = this->nodeInfo_.erase(it); // Node not responding to info request, remove it from list
+  {
+    std::scoped_lock lock(this->stateMutex_);
+    auto it = this->nodeInfo_.begin();
+    while (it != this->nodeInfo_.end()) {
+      const auto& nodeId = it->first;
+      if (std::find(connectedNodes.begin(), connectedNodes.end(), nodeId) == connectedNodes.end()) {
+        it = this->nodeInfo_.erase(it);
         nodeInfoTime_.erase(nodeId);
       } else {
-        it->second = newNodeInfo; // Save node response to info request and iterate to next
-        nodeInfoTime_[nodeId] = Utils::getCurrentTimeMillisSinceEpoch();
-        it++;
+        nodesToCheck.push_back(nodeId);
+        ++it;
+      }
+    }
+    for (const auto& nodeId : connectedNodes) {
+      if (!this->nodeInfo_.contains(nodeId)) {
+        nodesToCheck.push_back(nodeId);
       }
     }
   }
 
-  // Add new nodes to the list
-  for (const auto& nodeId : connectedNodes) {
-    if (!this->nodeInfo_.contains(nodeId)) {
-      auto newNodeInfo = this->manager_.requestNodeInfo(nodeId);
-      if (newNodeInfo != P2P::NodeInfo()) {
+  for (const auto& nodeId : nodesToCheck) {
+    updatedNodeInfo[nodeId] = this->manager_.requestNodeInfo(nodeId); // Will return P2P::NodeInfo() on failure
+  }
+
+  {
+    std::scoped_lock lock(this->stateMutex_);
+    for (const auto& [nodeId, newNodeInfo] : updatedNodeInfo) {
+      if (newNodeInfo == P2P::NodeInfo()) {
+        this->nodeInfo_.erase(nodeId);
+        this->nodeInfoTime_.erase(nodeId);
+      } else {
         this->nodeInfo_[nodeId] = newNodeInfo;
-        this->nodeInfoTime_[nodeId] = Utils::getCurrentTimeMillisSinceEpoch();
+        this->nodeInfoTime_[nodeId] = Utils::getCurrentTimeMillisSinceEpoch(); // Good enough; postpones some timeouts
       }
     }
   }
@@ -63,6 +71,22 @@ void P2P::NodeConns::incomingInfo(const P2P::NodeID& sender, const P2P::NodeInfo
 std::unordered_map<P2P::NodeID, P2P::NodeInfo, SafeHash> P2P::NodeConns::getConnected() {
   std::scoped_lock lock(this->stateMutex_);
   return this->nodeInfo_;
+}
+
+std::unordered_map<P2P::NodeID, P2P::NodeType, SafeHash> P2P::NodeConns::getConnectedWithNodeType() {
+  std::unordered_map<NodeID, NodeType, SafeHash> nodesToNodeType;
+  std::scoped_lock lock(this->stateMutex_);
+  for (const auto& node : nodeInfo_) {
+    nodesToNodeType[node.first] = P2P::NodeType::NORMAL_NODE; // FIXME/REVIEW: are we dealing here exclusively with full nodes?
+  }
+  return nodesToNodeType;
+}
+
+std::optional<P2P::NodeInfo> P2P::NodeConns::getNodeInfo(const P2P::NodeID& nodeId) {
+  std::scoped_lock lock(this->stateMutex_);
+  auto it = this->nodeInfo_.find(nodeId);
+  if (it == this->nodeInfo_.end()) return {};
+  return it->second;
 }
 
 void P2P::NodeConns::loop() {

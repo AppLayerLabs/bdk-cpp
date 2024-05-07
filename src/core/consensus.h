@@ -5,8 +5,8 @@ This software is distributed under the MIT License.
 See the LICENSE.txt file in the project root for more information.
 */
 
-#ifndef BROADCASTER_H
-#define BROADCASTER_H
+#ifndef CONSENSUS_H
+#define CONSENSUS_H
 
 #include <thread>
 
@@ -76,4 +76,4 @@ class Consensus {
     void stop();  ///< Stop the consensus loop.
 };
 
-#endif  // BROADCASTER_H
+#endif  // CONSENSUS_H
