@@ -7,6 +7,8 @@
 
 #include <ranges>
 
+static inline constexpr std::string_view FIXED_BASE_FEE_PER_GAS = "0x9502f900"; // Fixed to 2.5 GWei
+
 namespace jsonrpc {
 
 static std::optional<uint64_t> getBlockNumber(const Storage& storage, const Hash& hash) {
@@ -51,7 +53,7 @@ static json getBlockJson(const FinalizedBlock *block, bool includeTransactions) 
   ret["mixHash"] = Hash().hex(true); // No mixHash.
   ret["nonce"] = "0x0000000000000000";
   ret["totalDifficulty"] = "0x1";
-  ret["baseFeePerGas"] = "0x9502f900";
+  ret["baseFeePerGas"] = FIXED_BASE_FEE_PER_GAS;
   ret["withdrawRoot"] = Hash().hex(true); // No withdrawRoot.
   // TODO: to get a block you have to serialize it entirely, this can be expensive.
   ret["size"] = Hex::fromBytes(Utils::uintToBytes(block->serializeBlock().size()),true).forRPC();
@@ -226,7 +228,47 @@ json eth_estimateGas(const json& request, const Storage& storage, State& state) 
 
 json eth_gasPrice(const json& request) {
   forbidParams(request);
-  return "0x9502f900"; // Fixed to 2.5 GWei
+  return FIXED_BASE_FEE_PER_GAS;
+}
+
+json eth_feeHistory(const json& request, const Storage& storage) {
+  json ret;
+  auto [blockCount, newestBlock, optionalRewardPercentiles] = parseAllParams<
+    uint64_t, BlockTagOrNumber, std::optional<std::vector<float>>>(request);
+
+  uint64_t blockNumber = newestBlock.number(storage);
+  const std::vector<float> percentiles = std::move(optionalRewardPercentiles).value_or(std::vector<float>{});
+
+  // no more than 1024 block can be requested
+  blockCount = std::min(blockCount, static_cast<uint64_t>(1024));
+
+  ret["baseFeePerGas"] = json::array();
+  ret["gasUsedRatio"] = json::array();
+
+  // The feeHistory output includes the next block after the newest too
+  std::shared_ptr<const FinalizedBlock> oneAfterLastBlock = storage.getBlock(blockNumber + 1);
+  if (oneAfterLastBlock)
+    ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS);
+  
+  uint64_t oldestBlock;
+  while (blockCount--) {
+    std::shared_ptr<const FinalizedBlock> block = storage.getBlock(blockNumber);
+
+    if (!block)
+      break;
+
+    ret["baseFeePerGas"].push_back(FIXED_BASE_FEE_PER_GAS); // TODO: fill with proper value once available
+    ret["gasUsedRatio"].push_back(1.0f); // TODO: calculate as gasUsed / gasLimit
+
+    oldestBlock = blockNumber--;
+  }
+
+  if (ret["baseFeePerGas"].empty())
+    throw Error::executionError("Requested block not found");
+
+  ret["oldestBlock"] = Hex::fromBytes(Utils::uintToBytes(oldestBlock), true).forRPC();
+
+  return ret;
 }
 
 json eth_getLogs(const json& request, const Storage& storage, const State& state) {

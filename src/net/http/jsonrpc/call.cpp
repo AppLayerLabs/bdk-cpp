@@ -54,6 +54,8 @@ json call(const json& request, State& state, const Storage& storage,
       result = jsonrpc::eth_estimateGas(request, storage, state);
     else if (method == "eth_gasPrice")
       result = jsonrpc::eth_gasPrice(request);
+    else if (method == "eth_feeHistory")
+      result = jsonrpc::eth_feeHistory(request, storage);
     else if (method == "eth_getLogs")
       result = jsonrpc::eth_getLogs(request, storage, state);
     else if (method == "eth_getBalance")

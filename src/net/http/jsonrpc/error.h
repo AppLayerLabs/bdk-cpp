@@ -3,7 +3,6 @@
 
 #include <string_view>
 #include <stdexcept>
-#include <format>
 
 namespace jsonrpc {
 
@@ -31,13 +30,13 @@ public:
   /// @brief constructs a "invalid type" parsing error
   /// @return the error object with a user friendly message
   static Error invalidType(std::string_view exp, std::string_view got) {
-    return Error(-32601, std::format("Parsing error: invalid type, exp '{}' - got '{}'", exp, got));
+    return Error(-32601, "Parsing error: invalid type, exp '" + std::string(exp) + "' - got '" + std::string(got) + "'");
   }
 
   /// @brief constructs a "invalid format" parsing error
   /// @return the error object with a user friendly message
   static Error invalidFormat(std::string_view wrong) {
-    return Error(-32601, std::format("Parsing error: '{}' is in invalid format", wrong));
+    return Error(-32601, "Parsing error: '" + std::string(wrong) + "' is in invalid format");
   }
 
   /// @brief constructs a "insufficient values" parsing error for arrays
@@ -48,7 +47,7 @@ public:
 
   /// @brief constructs a generic interal exection error
   /// @return the error object with a user friendly message
-  static Error exectionError(std::string_view cause) {
+  static Error executionError(std::string_view cause) {
     return Error(-32603, std::string("Execution error: ") + cause.data());
   }
 };

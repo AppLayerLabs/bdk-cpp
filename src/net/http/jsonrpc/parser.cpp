@@ -50,6 +50,13 @@ bool Parser<bool>::operator()(const json& data) const {
   return data.get<bool>();
 }
 
+float Parser<float>::operator()(const json& data) const {
+  if (!data.is_number())
+    throw Error::invalidType("number", data.type_name());
+
+  return data.get<float>();
+}
+
 uint64_t Parser<uint64_t>::operator()(const json& data) const {
   if (data.is_number_unsigned())
     return data.get<uint64_t>();
