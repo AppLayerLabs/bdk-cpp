@@ -281,10 +281,12 @@ namespace P2P {
 
       /**
        * Create a `RequestBlock` request.
-       * @param height The height of the block being requested.
+       * @param height The height of the first block being requested.
+       * @param heightEnd The height of the last block being requested.
+       * @param bytesLimit Block data byte size limit for the answer.
        * @return The formatted request.
        */
-      static Message requestBlock(uint64_t height);
+      static Message requestBlock(uint64_t height, uint64_t heightEnd, uint64_t bytesLimit);
   };
 
   /// Helper class used to parse requests.
@@ -329,9 +331,11 @@ namespace P2P {
       /**
        * Parse a `RequestBlock` message.
        * @param message The message to parse.
-       * @return Height of the block being requested.
+       * @param height Height of the first block being requested.
+       * @param heightEnd The height of the last block being requested.
+       * @param bytesLimit Block data byte size limit for the answer.
        */
-      static uint64_t requestBlock(const Message& message);
+      static void requestBlock(const Message& message, uint64_t& height, uint64_t& heightEnd, uint64_t& bytesLimit);
   };
 
   /// Helper class used to create answers to requests.
@@ -392,11 +396,11 @@ namespace P2P {
       /**
        * Create a `RequestBlock` answer.
        * @param request The request message.
-       * @param block An optional containing the requested block, or empty if we don't have it.
+       * @param blocks A vector of answered blocks, with zero or more blocks.
        * @return The formatted answer.
        */
       static Message requestBlock(const Message& request,
-        const std::optional<FinalizedBlock>& block
+        const std::vector<std::shared_ptr<const FinalizedBlock>>& blocks
       );
   };
 
@@ -450,9 +454,9 @@ namespace P2P {
        * Parse a `RequestBlock` answer.
        * @param message The answer to parse.
        * @param requiredChainId The chain ID to use as reference.
-       * @return The requested block, or an empty optional if the peer did not have it.
+       * @return Zero or more of the requested block height range.
        */
-      static std::optional<FinalizedBlock> requestBlock(
+      static std::vector<FinalizedBlock> requestBlock(
         const Message& message, const uint64_t& requiredChainId
       );
   };

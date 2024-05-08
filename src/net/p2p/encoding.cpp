@@ -114,19 +114,25 @@ namespace P2P {
       message.insert(message.end(), rlp.begin(), rlp.end());
     }
   }
-
-  std::optional<FinalizedBlock> optionalBlockFromMessage(const BytesArrView& data, const uint64_t& requiredChainId) {
-    // NOTE: The block format is not appending the block size.
-    //       That is because the block is (currently) encoded at the end of messages so it isn't strictly needed.
-    if (data.size() == 0) return {};
-    return FinalizedBlock::fromBytes(data, requiredChainId);
+  std::vector<FinalizedBlock> blocksFromMessage(const BytesArrView& data, const uint64_t& requiredChainId) {
+    std::vector<FinalizedBlock> blocks;
+    size_t index = 0;
+    while (index < data.size()) {
+      if (data.size() < 8) { throw DynamicException("Invalid data size."); }
+      uint64_t blockSize = Utils::bytesToUint64(data.subspan(index, 8));
+      index += 8;
+      if (data.size() < blockSize) { throw DynamicException("Invalid data size."); }
+      BytesArrView blockData = data.subspan(index, blockSize);
+      index += blockSize;
+      blocks.emplace_back(FinalizedBlock::fromBytes(blockData, requiredChainId));
+    }
+    return blocks;
   }
 
-  void optionalBlockToMessage(Bytes& message, const std::optional<FinalizedBlock>& block) {
-    // NOTE: The block format is not appending the block size.
-    //       That is because the block is (currently) encoded at the end of messages so it isn't strictly needed.
-    if (block) {
+  void blocksToMessage(Bytes& message, const std::vector<std::shared_ptr<const FinalizedBlock>>& blocks) {
+    for (const auto& block : blocks) {
       Bytes serializedBlock = block->serializeBlock();
+      Utils::appendBytes(message, Utils::uint64ToBytes(serializedBlock.size()));
       Utils::appendBytes(message, serializedBlock);
     }
   }
@@ -201,11 +207,13 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message RequestEncoder::requestBlock(uint64_t height) {
+  Message RequestEncoder::requestBlock(uint64_t height, uint64_t heightEnd, uint64_t bytesLimit) {
     Bytes message = getRequestTypePrefix(Requesting);
     Utils::appendBytes(message, Utils::randBytes(8));
     Utils::appendBytes(message, getCommandPrefix(RequestBlock));
     Utils::appendBytes(message, Utils::uint64ToBytes(height));
+    Utils::appendBytes(message, Utils::uint64ToBytes(heightEnd));
+    Utils::appendBytes(message, Utils::uint64ToBytes(bytesLimit));
     return Message(std::move(message));
   }
 
@@ -239,10 +247,12 @@ namespace P2P {
     return true;
   }
 
-  uint64_t RequestDecoder::requestBlock(const Message& message) {
-    if (message.size() != 19) { throw DynamicException("Invalid RequestBlock message size."); }
+  void RequestDecoder::requestBlock(const Message& message, uint64_t& height, uint64_t& heightEnd, uint64_t& bytesLimit) {
+    if (message.size() != 35) { throw DynamicException("Invalid RequestBlock message size."); }
     if (message.command() != RequestBlock) { throw DynamicException("Invalid RequestBlock message command."); }
-    return Utils::bytesToUint64(message.message().subspan(0, 8));
+    height = Utils::bytesToUint64(message.message().subspan(0, 8));
+    heightEnd = Utils::bytesToUint64(message.message().subspan(8, 8));
+    bytesLimit = Utils::bytesToUint64(message.message().subspan(16, 8));
   }
 
   Message AnswerEncoder::ping(const Message& request) {
@@ -292,23 +302,16 @@ namespace P2P {
     Utils::appendBytes(message, request.id());
     Utils::appendBytes(message, getCommandPrefix(RequestTxs));
     txsToMessage<TxBlock>(message, txs);
-    /*
-    for (const auto& [txHash, tx] : txs) {
-      Bytes rlp = tx.rlpSerialize();
-      Utils::appendBytes(message, Utils::uint32ToBytes(rlp.size()));
-      message.insert(message.end(), rlp.begin(), rlp.end());
-    }
-    */
     return Message(std::move(message));
   }
 
   Message AnswerEncoder::requestBlock(const Message& request,
-    const std::optional<FinalizedBlock>& block
+    const std::vector<std::shared_ptr<const FinalizedBlock>>& blocks
   ) {
     Bytes message = getRequestTypePrefix(Answering);
     Utils::appendBytes(message, request.id());
     Utils::appendBytes(message, getCommandPrefix(RequestBlock));
-    optionalBlockToMessage(message, block);
+    blocksToMessage(message, blocks);
     return Message(std::move(message));
   }
 
@@ -347,12 +350,12 @@ namespace P2P {
     return txsFromMessage<TxBlock>(message.message(), requiredChainId);
   }
 
-  std::optional<FinalizedBlock> AnswerDecoder::requestBlock(
+  std::vector<FinalizedBlock> AnswerDecoder::requestBlock(
     const Message& message, const uint64_t& requiredChainId
   ) {
     if (message.type() != Answering) { throw DynamicException("Invalid message type."); }
     if (message.command() != RequestBlock) { throw DynamicException("Invalid command."); }
-    return optionalBlockFromMessage(message.message(), requiredChainId);
+    return blocksFromMessage(message.message(), requiredChainId);
   }
 
   Message BroadcastEncoder::broadcastValidatorTx(const TxValidator& tx) {

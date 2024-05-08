@@ -208,14 +208,20 @@ namespace P2P{
   void ManagerNormal::handleRequestBlockRequest(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    uint64_t height = RequestDecoder::requestBlock(*message);
-    if (this->storage_.blockExists(height)) {
-      const auto& requestedBlock = *(this->storage_.getBlock(height));
-      this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestBlock(*message, requestedBlock)));
-    } else {
-      // We don't have it, so send a 0-byte size serialized block back to signal it
-      this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestBlock(*message, {})));
+    uint64_t height = 0, heightEnd = 0, bytesLimit = 0;
+    RequestDecoder::requestBlock(*message, height, heightEnd, bytesLimit);
+    std::vector<std::shared_ptr<const FinalizedBlock>> requestedBlocks;
+    uint64_t bytesSpent = 0;
+    for (uint64_t heightToAdd = height; heightToAdd <= heightEnd; ++heightToAdd) {
+      if (!this->storage_.blockExists(heightToAdd)) break; // Stop at first block in the requested range that we don't have.
+      requestedBlocks.push_back(this->storage_.getBlock(heightToAdd));
+      bytesSpent += requestedBlocks.back()->getSize();
+      Logger::logToDebug(LogType::DEBUG, Log::P2PParser, __func__,
+                         "Uploading block " + std::to_string(heightToAdd) + " to " + toString(nodeId)
+                         + " (" + std::to_string(bytesSpent) + "/" + std::to_string(bytesLimit) + " bytes)");
+      if (bytesSpent >= bytesLimit) break; // bytesLimit reached so stop appending blocks to the answer
     }
+    this->answerSession(nodeId, std::make_shared<const Message>(AnswerEncoder::requestBlock(*message, requestedBlocks)));
   }
 
   void ManagerNormal::handlePingAnswer(
@@ -412,14 +418,10 @@ namespace P2P{
     }
   }
 
-  /**
-   * Request a block to a peer.
-   * @param nodeId The ID of the node to request.
-   * @param height The block height to request.
-   * @return The requested block.
-   */
-  std::optional<FinalizedBlock> ManagerNormal::requestBlock(const NodeID &nodeId, const uint64_t& height) {
-    auto request = std::make_shared<const Message>(RequestEncoder::requestBlock(height));
+  std::vector<FinalizedBlock> ManagerNormal::requestBlock(
+    const NodeID &nodeId, const uint64_t& height, const uint64_t& heightEnd, const uint64_t& bytesLimit
+  ) {
+    auto request = std::make_shared<const Message>(RequestEncoder::requestBlock(height, heightEnd, bytesLimit));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
@@ -428,7 +430,7 @@ namespace P2P{
       return {};
     }
     auto answer = requestPtr->answerFuture();
-    auto status = answer.wait_for(std::chrono::seconds(10)); // 10s timeout.
+    auto status = answer.wait_for(std::chrono::seconds(60)); // 60s timeout.
     if (status == std::future_status::timeout) {
       Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
         "RequestBlock to " + toString(nodeId) + " timed out."

@@ -208,12 +208,14 @@ namespace P2P {
       NodeInfo requestNodeInfo(const NodeID& nodeId);
 
       /**
-       * Request a block to a peer.
+       * Request blocks to a peer.
        * @param nodeId The ID of the node to request.
-       * @param height The block height to request.
+       * @param height The start block height to request.
+       * @param heightEnd The end block height to request.
+       * @param bytesLimit The maximum amount of bytes to return in block data (minimum: 1 block).
        * @return The requested block, or an empty optional on error.
        */
-      std::optional<FinalizedBlock> requestBlock(const NodeID& nodeId, const uint64_t& height);
+      std::vector<FinalizedBlock> requestBlock(const NodeID& nodeId, const uint64_t& height, const uint64_t& heightEnd, const uint64_t& bytesLimit);
 
       /**
        * Broadcast a Validator transaction to all connected nodes.
