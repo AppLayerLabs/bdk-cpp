@@ -193,12 +193,12 @@ namespace P2P {
   }
 
   Message AnswerEncoder::requestTxs(const Message& request,
-    const std::unordered_map<Hash, TxBlock, SafeHash>& txs
+    const std::vector<TxBlock>& txs
   ) {
     Bytes message = getRequestTypePrefix(Answering);
     Utils::appendBytes(message, request.id());
     Utils::appendBytes(message, getCommandPrefix(RequestTxs));
-    for (const auto& [txHash, tx] : txs) {
+    for (const auto& tx : txs) {
       Bytes rlp = tx.rlpSerialize();
       Utils::appendBytes(message, Utils::uint32ToBytes(rlp.size()));
       message.insert(message.end(), rlp.begin(), rlp.end());

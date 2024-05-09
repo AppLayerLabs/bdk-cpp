@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "utils.h"
 #include "ecdsa.h"
-#include "mutableblock.h"
+#include "finalizedblock.h"
 
 #include <filesystem>
 #include <boost/asio/ip/address.hpp>

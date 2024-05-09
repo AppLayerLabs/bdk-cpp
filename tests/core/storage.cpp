@@ -85,9 +85,7 @@ std::pair<std::vector<TxValidator>, Bytes> createRandomTxValidatorList(uint64_t 
 
 FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint64_t nHeight, Hash prevHash, const uint64_t& requiredChainId) {
   PrivKey blockValidatorPrivKey = PrivKey::random();
-  Hash nPrevBlockHash = prevHash;
   uint64_t timestamp = 230915972837111; // Timestamp doesn't really matter.
-  MutableBlock newBlock(nPrevBlockHash, timestamp, nHeight);
 
   std::vector<TxBlock> txs;
 
@@ -100,11 +98,13 @@ FinalizedBlock createRandomBlock(uint64_t txCount, uint64_t validatorCount, uint
   Bytes randomSeed = randomnessResult.second;
   std::vector<TxValidator> txValidators = randomnessResult.first;
 
-  // Append transactions to block.
-  for (const auto &tx : txs) newBlock.appendTx(tx);
-  for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
-  // Sign block with block validator private key.
-  FinalizedBlock finalBlock = newBlock.finalize(blockValidatorPrivKey, timestamp + 1);
+  // Create a new block with the transactions.
+  FinalizedBlock finalBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
+                                                                  std::move(txValidators),
+                                                                  prevHash,
+                                                                  timestamp,
+                                                                  nHeight,
+                                                                  blockValidatorPrivKey);
   REQUIRE(finalBlock.getBlockRandomness() == Hash(Utils::sha3(randomSeed)));
   return finalBlock;
 }

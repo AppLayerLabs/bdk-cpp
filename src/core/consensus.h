@@ -48,12 +48,6 @@ class Consensus {
      */
     void doValidatorTx(const uint64_t& nHeight, const Validator& me);
 
-    /**
-     * Sign a block using the Validator's private key.
-     * @param block The block to sign.
-     */
-    FinalizedBlock signBlock(MutableBlock& block);
-
   public:
     /**
      * Constructor.

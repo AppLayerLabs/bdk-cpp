@@ -29,21 +29,6 @@ const std::vector<Hash> validatorPrivKeysState {
   Hash(Hex::toBytes("0x426dc06373b694d8804d634a0fd133be18e4e9bcbdde099fce0ccf3cb965492f"))
 };
 
-
-// This creates a valid block given the state within the rdPoS class.
-// Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
-// And that is not the purpose of network/thread testing.
-// Definition from state.cpp, when linking, the compiler should find the function.
-FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
-
-// Blockchain wrapper initializer for testing purposes.
-// Defined in rdpos.cpp
-TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
-                                 const PrivKey& validatorKey,
-                                 const uint64_t& serverPort,
-                                 bool clearDb,
-                                 const std::string& folderName);
-
 namespace TDumpManager {
   std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("DumpManager Class", "[dumpmanager]") {

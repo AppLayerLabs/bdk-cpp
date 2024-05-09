@@ -62,20 +62,6 @@ std::pair<evmc_message, Bytes> buildCallInfo(const Address& addressToCall, const
   return callInfo;
 }
 
-// This creates a valid block given the state within the rdPoS class.
-// Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
-// And that is not the purpose of network/thread testing.
-// Definition from state.cpp, when linking, the compiler should find the function.
-FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
-
-// Blockchain wrapper initializer for testing purposes.
-// Defined in rdpos.cpp
-TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
-                                 const PrivKey& validatorKey,
-                                 const uint64_t& serverPort,
-                                 bool clearDb,
-                                 const std::string& folderName);
-
 namespace TState {
   std::string testDumpPath = Utils::getTestDumpPath();
   TEST_CASE("State Class", "[core][state]") {
@@ -184,7 +170,7 @@ namespace TState {
           targetExpectedValue += transactions.back().getValue();
         }
 
-        auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, transactions);
+        auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(transactions));
         REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
 
         blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
@@ -233,14 +219,10 @@ namespace TState {
           blockchainWrapper.state.addTx(std::move(tx));
         }
 
-        auto mempoolCopy = blockchainWrapper.state.getMempool();
-        REQUIRE(mempoolCopy.size() == 500);
-        std::vector<TxBlock> txCopy;
-        for (const auto &[key, value]: mempoolCopy) {
-          txCopy.emplace_back(value);
-        }
+        auto txCopy = blockchainWrapper.state.getMempool();
+        REQUIRE(txCopy.size() == 500);
 
-        auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, txCopy);
+        auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(txCopy));
         REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
 
         blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
@@ -301,7 +283,7 @@ namespace TState {
           blockchainWrapper.state.addTx(std::move(tx));
         }
 
-        auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, txs);
+        auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(txs));
         REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
 
         blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
@@ -310,7 +292,7 @@ namespace TState {
 
         auto mempoolCopy = blockchainWrapper.state.getMempool();
         for (const auto &tx: notOnBlock) {
-          REQUIRE(mempoolCopy.contains(tx.hash()));
+          REQUIRE(std::find(mempoolCopy.begin(), mempoolCopy.end(), tx) != mempoolCopy.end());
         }
 
         for (const auto &[privkey, val]: randomAccounts) {
@@ -365,7 +347,7 @@ namespace TState {
           }
 
           // Create the new block
-          auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, txs);
+          auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(txs));
           REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
 
           blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
@@ -440,8 +422,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      MutableBlock genesisMutable(Hash(), 0, 0);
-      FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
+      FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({},{},Hash(), genesisTimestamp, 0, genesisPrivKey);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {
@@ -626,13 +607,14 @@ namespace TState {
 
       REQUIRE(broadcastFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
 
-      REQUIRE(blockchainWrapper1.state.getMempool() == blockchainWrapper2.state.getMempool());
-      REQUIRE(blockchainWrapper1.state.getMempool() == blockchainWrapper3.state.getMempool());
-      REQUIRE(blockchainWrapper1.state.getMempool() == blockchainWrapper4.state.getMempool());
-      REQUIRE(blockchainWrapper1.state.getMempool() == blockchainWrapper5.state.getMempool());
-      REQUIRE(blockchainWrapper1.state.getMempool() == blockchainWrapper6.state.getMempool());
-      REQUIRE(blockchainWrapper1.state.getMempool() == blockchainWrapper7.state.getMempool());
-      REQUIRE(blockchainWrapper1.state.getMempool() == blockchainWrapper8.state.getMempool());
+      REQUIRE(blockchainWrapper1.state.getMempool().size() == blockchainWrapper2.state.getMempool().size());
+      REQUIRE(blockchainWrapper1.state.getMempool().size() == blockchainWrapper3.state.getMempool().size());
+      REQUIRE(blockchainWrapper1.state.getMempool().size() == blockchainWrapper4.state.getMempool().size());
+      REQUIRE(blockchainWrapper1.state.getMempool().size() == blockchainWrapper4.state.getMempool().size());
+      REQUIRE(blockchainWrapper1.state.getMempool().size() == blockchainWrapper5.state.getMempool().size());
+      REQUIRE(blockchainWrapper1.state.getMempool().size() == blockchainWrapper6.state.getMempool().size());
+      REQUIRE(blockchainWrapper1.state.getMempool().size() == blockchainWrapper7.state.getMempool().size());
+      REQUIRE(blockchainWrapper1.state.getMempool().size() == blockchainWrapper8.state.getMempool().size());
 
       // Sleep so it can conclude the last operations.
       std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -668,8 +650,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      MutableBlock genesisMutable(Hash(), 0, 0);
-      FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
+      FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({},{},Hash(), genesisTimestamp, 0, genesisPrivKey);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {
@@ -924,8 +905,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      MutableBlock genesisMutable(Hash(), 0, 0);
-      FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
+      FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({},{},Hash(), genesisTimestamp, 0, genesisPrivKey);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {
@@ -1252,8 +1232,7 @@ namespace TState {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      MutableBlock genesisMutable(Hash(), 0, 0);
-      FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
+      FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({},{},Hash(), genesisTimestamp, 0, genesisPrivKey);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysState) {

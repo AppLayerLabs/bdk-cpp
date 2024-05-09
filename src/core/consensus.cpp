@@ -126,17 +126,26 @@ void Consensus::doValidatorBlock() {
 
   // Create the block and append to all chains, we can use any storage for latest block.
   const std::shared_ptr<const FinalizedBlock> latestBlock = this->storage_.latest();
-  MutableBlock mutableBlock(latestBlock->getHash(), latestBlock->getTimestamp(), latestBlock->getNHeight() + 1);
 
-  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Filling block with transactions.");
-  // Append transactions towards block.
-  for (const auto& tx: randomHashTxs) mutableBlock.appendTxValidator(tx);
-  for (const auto& tx: randomnessTxs) mutableBlock.appendTxValidator(tx);
+  // Append all validator transactions to a single vector (Will be moved to the new block)
+  std::vector<TxValidator> validatorTxs;
+  for (const auto& tx: randomHashTxs) validatorTxs.emplace_back(tx);
+  for (const auto& tx: randomnessTxs) validatorTxs.emplace_back(tx);
   if (this->stop_) return;
 
-  // Add transactions from state, sign, validate and process the block.
-  this->state_.fillBlockWithTransactions(mutableBlock);
-  auto block = this->signBlock(mutableBlock);
+  // Get a copy of the mempool and current timestamp
+  auto chainTxs = this->state_.getMempool();
+  auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
+    std::chrono::system_clock::now().time_since_epoch()
+  ).count();
+  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Create a new valid block.");
+  auto block = FinalizedBlock::createNewValidBlock(std::move(chainTxs),
+                                                   std::move(validatorTxs),
+                                                   latestBlock->getHash(),
+                                                   timestamp,
+                                                   latestBlock->getNHeight() + 1,
+                                                   this->options_.getValidatorPrivKey());
+  Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Block created, validating.");
   if (!this->state_.validateNextBlock(block)) {
     Logger::logToDebug(LogType::ERROR, Log::consensus, __func__, "Block is not valid!");
     throw DynamicException("Block is not valid!");
@@ -155,10 +164,10 @@ void Consensus::doValidatorBlock() {
   if (this->stop_) return;
   this->p2p_.broadcastBlock(this->storage_.latest());
   auto end = std::chrono::high_resolution_clock::now();
-  double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-  double timeToConsensus = std::chrono::duration_cast<std::chrono::milliseconds>(waitForTxs - start).count();
-  double timeToTxs = std::chrono::duration_cast<std::chrono::milliseconds>(creatingBlock - waitForTxs).count();
-  double timeToBlock = std::chrono::duration_cast<std::chrono::milliseconds>(end - creatingBlock).count();
+  long double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  long double timeToConsensus = std::chrono::duration_cast<std::chrono::milliseconds>(waitForTxs - start).count();
+  long double timeToTxs = std::chrono::duration_cast<std::chrono::milliseconds>(creatingBlock - waitForTxs).count();
+  long double timeToBlock = std::chrono::duration_cast<std::chrono::milliseconds>(end - creatingBlock).count();
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__,
     "Block created in: " + std::to_string(duration) + "ms, " +
     "Time to consensus: " + std::to_string(timeToConsensus) + "ms, " +
@@ -232,13 +241,6 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   // TODO: this should be in Broadcaster?
   this->state_.addValidatorTx(seedTx);
   this->p2p_.broadcastTxValidator(seedTx);
-}
-
-FinalizedBlock Consensus::signBlock(MutableBlock &block) {
-  uint64_t newTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(
-    std::chrono::high_resolution_clock::now().time_since_epoch()
-  ).count();
-  return block.finalize(this->options_.getValidatorPrivKey(), newTimestamp);
 }
 
 void Consensus::start() {

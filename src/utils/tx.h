@@ -104,9 +104,20 @@ class TxBlock {
     inline uint256_t recoverId() const { return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35))); }
 
     /**
+     * Calculates the size of the transaction in bytes.
+     * Uses the same methods as rlpSerialize() to calculate the size.
+     * But without actually serializing the transaction.
+     * Does NOT have a option without signature, as the signature is always included in the serialized size.
+     * Serialization without the signature only happens **internally**
+     * @return The size of the serialized transaction.
+     */
+    uint64_t rlpSize() const;
+
+    /**
      * Serialize the transaction to a string in RLP format. [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.
      * @param includeSig (optional) If `true`, includes the transaction signature (v/r/s). Defaults to `true`.
      * @return The serialized transaction string.
+     * TODO: Serialization without signatures only happens INSIDE the constructor, perhaps we should make a private method for that.
      */
     Bytes rlpSerialize(bool includeSig = true) const;
 
@@ -226,6 +237,16 @@ class TxValidator {
     inline uint256_t recoverId() const {
       return uint256_t(uint8_t(this->v_ - (uint256_t(this->chainId_) * 2 + 35)));
     }
+
+    /**
+     * Calculates the size of the transaction in bytes.
+     * Uses the same methods as rlpSerialize() to calculate the size.
+     * But without actually serializing the transaction.
+     * Does NOT have a option without signature, as the signature is always included in the serialized size.
+     * Serialization without the signature only happens **internally**
+     * @return The size of the serialized transaction.
+     */
+    uint64_t rlpSize() const;
 
     /**
      * Serialize the transaction to a string in RLP format. [EIP-155](https://eips.ethereum.org/EIPS/eip-155) compatible.

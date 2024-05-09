@@ -292,9 +292,14 @@ uint64_t State::getNativeNonce(const Address& addr) const {
   return it->second->nonce;
 }
 
-std::unordered_map<Hash, TxBlock, SafeHash> State::getMempool() const {
+std::vector<TxBlock> State::getMempool() const {
   std::shared_lock lock(this->stateMutex_);
-  return this->mempool_;
+  std::vector<TxBlock> mempoolCopy;
+  mempoolCopy.reserve(this->mempool_.size());
+  for (const auto& [hash, tx] : this->mempool_) {
+    mempoolCopy.emplace_back(tx);
+  }
+  return mempoolCopy;
 }
 
 bool State::validateNextBlock(const FinalizedBlock& block) const {
@@ -309,6 +314,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
    */
   auto latestBlock = this->storage_.latest();
   if (block.getNHeight() != latestBlock->getNHeight() + 1) {
+    std::cout << "Block nHeight doesn't match, expected " << latestBlock->getNHeight() + 1 << " got " << block.getNHeight() << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
       + " got " + std::to_string(block.getNHeight())
@@ -317,6 +323,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   }
 
   if (block.getPrevBlockHash() != latestBlock->getHash()) {
+    std::cout << "Block prevBlockHash doesn't match, expected " << latestBlock->getHash().hex().get() << " got: " << block.getPrevBlockHash().hex().get() << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
       + " got: " + block.getPrevBlockHash().hex().get()
@@ -325,6 +332,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   }
 
   if (latestBlock->getTimestamp() > block.getTimestamp()) {
+    std::cout << "Block timestamp is lower than latest block, expected higher than " << latestBlock->getTimestamp() << " got " << block.getTimestamp() << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Block timestamp is lower than latest block, expected higher than "
       + std::to_string(latestBlock->getTimestamp()) + " got " + std::to_string(block.getTimestamp())
@@ -333,6 +341,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   }
 
   if (!this->rdpos_.validateBlock(block)) {
+    std::cout << "Invalid rdPoS in block" << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Invalid rdPoS in block");
     return false;
   }
@@ -340,6 +349,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   std::shared_lock verifyingBlockTxs(this->stateMutex_);
   for (const auto& tx : block.getTxs()) {
     if (this->validateTransactionInternal(tx)) {
+      std::cout << "Transaction " << tx.hash().hex().get() << " within block is invalid" << std::endl;
       Logger::logToDebug(LogType::ERROR, Log::state, __func__,
         "Transaction " + tx.hash().hex().get() + " within block is invalid"
       );
@@ -391,11 +401,6 @@ void State::processNextBlock(FinalizedBlock&& block) {
 
   // Move block to storage
   this->storage_.pushBack(std::move(block));
-}
-
-void State::fillBlockWithTransactions(MutableBlock& block) const {
-  std::shared_lock lock(this->stateMutex_);
-  for (const auto& [hash, tx] : this->mempool_) block.appendTx(tx);
 }
 
 TxInvalid State::validateTransaction(const TxBlock& tx) const {

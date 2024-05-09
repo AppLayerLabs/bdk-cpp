@@ -19,7 +19,7 @@ Storage::Storage(const Options& options)
   // Get the latest block from the database
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading latest block");
   auto blockBytes = this->db_.get(Utils::stringToBytes("latest"), DBPrefix::blocks);
-  MutableBlock latest(blockBytes, this->options_.getChainID());
+  FinalizedBlock latest = FinalizedBlock::fromBytes(blockBytes, this->options_.getChainID());
   uint64_t depth = latest.getNHeight();
 
   std::unique_lock<std::shared_mutex> lock(this->chainLock_);

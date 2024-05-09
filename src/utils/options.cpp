@@ -181,8 +181,7 @@ Options Options::fromFile(const std::string& rootPath) {
     }
 
     const PrivKey genesisSigner(Hex::toBytes(options["genesis"]["signer"].get<std::string>()));
-    MutableBlock genesis(Hash(), 0, 0);
-    FinalizedBlock genesisFinal = genesis.finalize(genesisSigner, options["genesis"]["timestamp"].get<uint64_t>());
+    FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({},{}, Hash(), options["genesis"]["timestamp"].get<uint64_t>(), 0, genesisSigner);
 
     std::vector<Address> genesisValidators;
     for (const auto& validator : options["genesis"]["validators"]) {
@@ -216,7 +215,7 @@ Options Options::fromFile(const std::string& rootPath) {
         options["stateDumpTrigger"].get<uint64_t>(),
         options["minValidators"].get<uint32_t>(),
         discoveryNodes,
-        genesisFinal,
+        genesis,
         options["genesis"]["timestamp"].get<uint64_t>(),
         genesisSigner,
         genesisBalances,
@@ -243,7 +242,7 @@ Options Options::fromFile(const std::string& rootPath) {
       options["stateDumpTrigger"].get<uint64_t>(),
       options["minValidators"].get<uint32_t>(),
       discoveryNodes,
-      genesisFinal,
+      genesis,
       options["genesis"]["timestamp"].get<uint64_t>(),
       genesisSigner,
       genesisBalances,

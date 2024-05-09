@@ -237,6 +237,42 @@ TxBlock::TxBlock(
   this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
 }
 
+uint64_t TxBlock::rlpSize() const {
+  uint64_t total_size = 0;
+  uint64_t reqBytesChainId = Utils::bytesRequired(this->chainId_);
+  uint64_t reqBytesNonce = Utils::bytesRequired(this->nonce_);
+  uint64_t reqBytesMaxPriorityFeePerGas = Utils::bytesRequired(this->maxPriorityFeePerGas_);
+  uint64_t reqBytesMaxFeePerGas = Utils::bytesRequired(this->maxFeePerGas_);
+  uint64_t reqBytesGasLimit = Utils::bytesRequired(this->gasLimit_);
+  uint64_t reqBytesValue = Utils::bytesRequired(this->value_);
+  uint64_t reqBytesData = this->data_.size();
+  uint64_t reqBytesR = Utils::bytesRequired(this->r_);
+  uint64_t reqBytesS = Utils::bytesRequired(this->s_);
+
+  // Calculate total sizes
+  total_size += (this->chainId_ < 0x80) ? 1 : 1 + reqBytesChainId;
+  total_size += (this->nonce_ < 0x80) ? 1 : 1 + reqBytesNonce;
+  total_size += (this->maxPriorityFeePerGas_ < 0x80) ? 1 : 1 + reqBytesMaxPriorityFeePerGas;
+  total_size += (this->maxFeePerGas_ < 0x80) ? 1 : 1 + reqBytesMaxFeePerGas;
+  total_size += (this->gasLimit_ < 0x80) ? 1 : 1 + reqBytesGasLimit;
+  total_size += (this->to_ == Address()) ? 1 : 1 + 20;
+  total_size += (this->value_ < 0x80) ? 1 : 1 + reqBytesValue;
+  total_size += 1; // Access List
+
+  if (this->data_.size() == 0) {
+    total_size += 1;
+  } else if (reqBytesData <= 55) {
+    total_size += 1 + reqBytesData;
+  } else {
+    total_size += 1 + Utils::bytesRequired(reqBytesData) + reqBytesData;
+  }
+
+  total_size += 1; // V
+  total_size += 1 + reqBytesR;
+  total_size += 1 + reqBytesS;
+  return total_size;
+}
+
 Bytes TxBlock::rlpSerialize(bool includeSig) const {
   Bytes ret = { 0x02 };
   uint64_t total_size = 0;
@@ -556,6 +592,30 @@ TxValidator::TxValidator(
     throw DynamicException("Invalid transaction signature, signature derived key doens't match public key");
   }
   this->hash_ = Utils::sha3(this->rlpSerialize(true)); // Include signature
+}
+
+uint64_t TxValidator::rlpSize() const {
+  uint64_t total_size = 0;
+  uint64_t reqBytesData = this->data_.size();
+  uint64_t reqBytesnHeight = Utils::bytesRequired(this->nHeight_);
+  uint64_t reqBytesV = Utils::bytesRequired(this->v_);
+  uint64_t reqBytesR = Utils::bytesRequired(this->r_);
+  uint64_t reqBytesS = Utils::bytesRequired(this->s_);
+
+  // Calculate total sizes
+  if (this->data_.size() == 0) {
+    total_size += 1;
+  } else if (reqBytesData <= 55) {
+    total_size += 1 + reqBytesData;
+  } else {
+    total_size += 1 + Utils::bytesRequired(reqBytesData) + reqBytesData;
+  }
+
+  total_size += (this->nHeight_ < 0x80) ? 1 : 1 + reqBytesnHeight;
+  total_size += (this->v_ < 0x80) ? 1 : 1 + reqBytesV;
+  total_size += 1 + reqBytesR;
+  total_size += 1 + reqBytesS;
+  return total_size;
 }
 
 Bytes TxValidator::rlpSerialize(bool includeSig) const {
