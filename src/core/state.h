@@ -55,7 +55,7 @@ class State : Dumpable {
      * @param blockHash The hash of the block being processed.
      * @param txIndex The index of the transaction inside the block that is being processed.
      */
-    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex);
+    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash);
 
     /**
      * Update the mempool, remove transactions that are in the given block, and leave only valid transactions in it.

@@ -118,7 +118,7 @@ State::State(
     // Process transactions of the block within the current state
     uint64_t txIndex = 0;
     for (auto const& tx : block->getTxs()) {
-      this->processTransaction(tx, blockHash, txIndex);
+      this->processTransaction(tx, blockHash, txIndex, block->getBlockRandomness());
       txIndex++;
     }
     // Process rdPoS State
@@ -188,7 +188,8 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
 
 void State::processTransaction(const TxBlock& tx,
                                const Hash& blockHash,
-                               const uint64_t& txIndex) {
+                               const uint64_t& txIndex,
+                               const Hash& randomnessHash) {
   // Lock is already called by processNextBlock.
   // processNextBlock already calls validateTransaction in every tx,
   // as it calls validateNextBlock as a sanity check.
@@ -208,7 +209,6 @@ void State::processTransaction(const TxBlock& tx,
     throw DynamicException("Transaction nonce mismatch");
     return;
   }
-
   try {
     evmc_tx_context txContext;
     txContext.tx_gas_price = Utils::uint256ToEvmcUint256(tx.getMaxFeePerGas());
@@ -223,11 +223,13 @@ void State::processTransaction(const TxBlock& tx,
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
+    auto randomSeed = Utils::uint256ToBytes((randomnessHash.toUint256() + txIndex));
     ContractHost host(
       this->vm_,
       this->dumpManager_,
       this->eventManager_,
       this->storage_,
+      randomSeed,
       txContext,
       this->contracts_,
       this->accounts_,
@@ -384,7 +386,7 @@ void State::processNextBlock(FinalizedBlock&& block) {
   // Process transactions of the block within the current state
   uint64_t txIndex = 0;
   for (auto const& tx : block.getTxs()) {
-    this->processTransaction(tx, blockHash, txIndex);
+    this->processTransaction(tx, blockHash, txIndex, block.getBlockRandomness());
     txIndex++;
   }
 
@@ -465,11 +467,14 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
+    // As we are simulating, the randomSeed can be anything
+    Hash randomSeed = Hash::random();
     ContractHost host(
       this->vm_,
       this->dumpManager_,
       this->eventManager_,
       this->storage_,
+      randomSeed,
       txContext,
       this->contracts_,
       this->accounts_,
@@ -498,11 +503,13 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   }
 
   int64_t leftOverGas = callInfo.gas;
+  Hash randomSeed = Hash::random();
   ContractHost(
     this->vm_,
     this->dumpManager_,
     this->eventManager_,
     this->storage_,
+    randomSeed,
     evmc_tx_context(),
     this->contracts_,
     this->accounts_,

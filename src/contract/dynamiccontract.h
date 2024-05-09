@@ -573,7 +573,7 @@ class DynamicContract : public BaseContract {
       ContractHost* contractHost, R (C::*func)(const Args&...), const Args&... args
     ) {
       try {
-        // We don't want to ever overwrite the host_ pointer if it's already set
+        // We don't want to ever overwrite the host_ pointer if it's already set (nested calls)
         if (this->host_ == nullptr) {
           this->host_ = contractHost;
           PointerNullifier nullifier(this->host_);
@@ -595,7 +595,7 @@ class DynamicContract : public BaseContract {
      */
     template <typename R, typename C> R callContractFunction(ContractHost* contractHost, R (C::*func)()) {
       try {
-        // We don't want to ever overwrite the host_ pointer if it's already set
+        // We don't want to ever overwrite the host_ pointer if it's already set (nested calls)
         if (this->host_ == nullptr) {
           this->host_ = contractHost;
           PointerNullifier nullifier(this->host_);
@@ -641,7 +641,12 @@ class DynamicContract : public BaseContract {
      * @param address The address of the contract.
      * @return The balance of the contract.
      */
-    uint256_t getBalance(const Address& address) const { return host_->getBalanceFromAddress(address); }
+    uint256_t getBalance(const Address& address) const {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to get balance without a host!");
+      }
+      return host_->getBalanceFromAddress(address);
+    }
 
     /**
      * Send an amount of tokens from the contract to another address.
@@ -649,7 +654,21 @@ class DynamicContract : public BaseContract {
      * @param amount The amount of tokens to send.
      */
     void sendTokens(const Address& to, const uint256_t& amount) {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to send tokens without a host!");
+      }
       host_->sendTokens(this, to, amount);
+    }
+
+    /**
+     * Get the cryptographically secure random number.
+     * @return The random number.
+     */
+    uint256_t getRandom() const {
+      if (this->host_ == nullptr) {
+        throw DynamicException("Contracts going haywire! trying to get random number without a host!");
+      }
+      return host_->getRandomValue();
     }
 
     /**

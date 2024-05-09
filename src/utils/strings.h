@@ -183,7 +183,7 @@ class Hash : public FixedBytes<32> {
     uint256_t toUint256() const;  ///< Convert the hash string back to an unsigned 256-bit number.
     evmc::bytes32 toEvmcBytes32() const;  ///< Convert the hash string back to an evmc::bytes32 pointer.
 
-    /// Generate a random 32-byte/256-bit hash.
+    /// Generate a CRYPTOGRAPHICALLY SECURE random 32-byte/256-bit hash.
     inline static Hash random() { Hash h; RAND_bytes(h.data_.data(), 32); return h; }
 };
 
