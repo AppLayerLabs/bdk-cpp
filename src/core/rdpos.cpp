@@ -206,10 +206,10 @@ Hash rdPoS::processBlock(const FinalizedBlock& block) {
   return this->bestRandomSeed_;
 }
 
-bool rdPoS::addValidatorTx(const TxValidator& tx) {
+TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
   if (this->validatorMempool_.contains(tx.hash())) {
     Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "TxValidator already exists in mempool.");
-    return true;
+    return TxStatus::ValidExisting;
   }
 
   if (tx.getNHeight() != this->storage_.latest()->getNHeight() + 1) {
@@ -218,7 +218,7 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
       + std::to_string(this->storage_.latest()->getNHeight() + 1)
       + " Got: " + std::to_string(tx.getNHeight())
     );
-    return false;
+    return TxStatus::InvalidUnexpected;
   }
 
   // Check if sender is a validator and can participate in this rdPoS round (check from existance in randomList)
@@ -233,7 +233,7 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
       "TxValidator sender is not a validator or is not participating in this rdPoS round."
     );
-    return false;
+    return TxStatus::InvalidUnexpected;
   }
 
   // Do not allow duplicate transactions for the same function, we only have two functions (2 TxValidator per validator per block)
@@ -241,21 +241,24 @@ bool rdPoS::addValidatorTx(const TxValidator& tx) {
   for (auto const& [key, value] : this->validatorMempool_) {
     if (value.getFrom() == tx.getFrom()) txs.push_back(value);
   }
+
   if (txs.empty()) { // No transactions from this sender yet, add it.
     this->validatorMempool_.emplace(tx.hash(), tx);
-    return true;
-  } else if (txs.size() == 1) { // We already have one transaction from this sender, check if it is the same function.
-    if (txs[0].getFunctor() == tx.getFunctor()) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator sender already has a transaction for this function.");
-      return false;
-    }
-    this->validatorMempool_.emplace(tx.hash(), tx);
-  } else { // We already have two transactions from this sender, it is the max we can have per validator.
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator sender already has two transactions.");
-    return false;
+    return TxStatus::ValidNew;
   }
 
-  return true;
+  if (txs.size() == 1) { // We already have one transaction from this sender, check if it is the same function.
+    if (txs[0].getFunctor() == tx.getFunctor()) {
+      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator sender already has a transaction for this function.");
+      return TxStatus::InvalidRedundant;
+    }
+    this->validatorMempool_.emplace(tx.hash(), tx);
+    return TxStatus::ValidNew;
+  }
+
+  // We already have two transactions from this sender, it is the max we can have per validator.
+  Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator sender already has two transactions.");
+  return TxStatus::InvalidRedundant;
 }
 
 Hash rdPoS::parseTxSeedList(const std::vector<TxValidator>& txs) {

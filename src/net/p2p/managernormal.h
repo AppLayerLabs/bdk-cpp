@@ -164,9 +164,6 @@ namespace P2P {
         storage_(storage), state_(state), nodeConns_(*this), broadcaster_(*this, storage, state)
       {}
 
-      /// Destructor. Automatically stops the manager.
-      ~ManagerNormal() { this->stop(); }
-
       /// Get a reference to the NodeConns component.
       P2P::NodeConns& getNodeConns() { return this->nodeConns_; }
 
@@ -174,10 +171,16 @@ namespace P2P {
       P2P::Broadcaster& getBroadcaster() { return this->broadcaster_; }
 
       /// Start the P2P engine
-      virtual void start() { ManagerBase::start(); nodeConns_.start(); }
+      virtual void start() override {
+        ManagerBase::start();
+        nodeConns_.start();
+      }
 
       /// Stop the P2P engine
-      virtual void stop() { nodeConns_.stop(); ManagerBase::stop(); }
+      virtual void stop() override {
+        nodeConns_.stop();
+        ManagerBase::stop();
+      }
 
       /**
        * Handle a message from a session. Entry point for all the other handlers.
@@ -234,11 +237,6 @@ namespace P2P {
        * @param block The block to broadcast.
        */
       void broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
-
-      /**
-       * Broadcast current node info
-       */
-      void broadcastInfo();
 
       /**
        * Notify all connected peers of our current node info

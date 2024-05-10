@@ -9,12 +9,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "managernormal.h"
 #include "../../core/blockchain.h"
 
-// FIXME/TODO: check which ones are redundant
-#include "../core/rdpos.h"
-#include "../core/storage.h"
-#include "../core/state.h"
-#include "nodeconns.h"
-
 namespace P2P {
 
   const Options& Broadcaster::getOptions() { return manager_.getOptions(); }
@@ -26,14 +20,12 @@ namespace P2P {
   void Broadcaster::handleTxValidatorBroadcast(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    // FIXME/REVIEW: This has a rebroadcasting condition. We need to ensure this
-    //   condition is sufficient to detect "duplicate broadcasts". If it is, then
-    //   so far we won't be needing a rebroadcast detection mechanism that's internal
-    //   to the Broadcaster which is based on message IDs.
-
     try {
       auto tx = BroadcastDecoder::broadcastValidatorTx(*message, getOptions().getChainID());
-      if (this->state_.addValidatorTx(tx)) this->broadcastMessage(message, nodeId);
+      // Rebroadcast only when the validator transaction was relevant to this node, i.e. absorbed into our data model.
+      if (this->state_.addValidatorTx(tx) == TxStatus::ValidNew) {
+        this->broadcastMessage(message, nodeId);
+      }
     } catch (std::exception const& ex) {
       throw DynamicException("Invalid txValidatorBroadcast (" + std::string(ex.what()) + ")");
     }
@@ -42,14 +34,12 @@ namespace P2P {
   void Broadcaster::handleTxBroadcast(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-    // FIXME/REVIEW: This has a rebroadcasting condition. We need to ensure this
-    //   condition is sufficient to detect "duplicate broadcasts". If it is, then
-    //   so far we won't be needing a rebroadcast detection mechanism that's internal
-    //   to the Broadcaster which is based on message IDs.
-
     try {
       auto tx = BroadcastDecoder::broadcastTx(*message, getOptions().getChainID());
-      if (!this->state_.addTx(std::move(tx))) this->broadcastMessage(message, nodeId);
+      // Rebroadcast only when the transaction was relevant to this node, i.e. absorbed into our data model.
+      if (this->state_.addTx(std::move(tx)) == TxStatus::ValidNew) {
+        this->broadcastMessage(message, nodeId);
+      }
     } catch (std::exception const& ex) {
       throw DynamicException("Invalid txBroadcast (" + std::string(ex.what()) + ")");
     }
@@ -95,24 +85,6 @@ namespace P2P {
     if (rebroadcast) this->broadcastMessage(message, nodeId);
   }
 
-  void Broadcaster::handleInfoBroadcast(
-    const NodeID &nodeId, const std::shared_ptr<const Message>& message
-  ) {
-    try {
-      auto nodeInfo = BroadcastDecoder::broadcastInfo(*message);
-      manager_.getNodeConns().incomingInfo(nodeId, nodeInfo);
-    } catch (std::exception const& ex) {
-      throw DynamicException("Invalid infoBroadcast (" + std::string(ex.what()) + ")");
-    }
-    // FIXME: If this message (Info + Broadcast) is not going to just be deleted, then it 
-    //        is because it makes sense to rebroadcast it sometimes, which needs to be done here.
-    //        Otherwise, this should be deleted, since we have the new NotifyInfo / NodeConns.
-    //
-    //        Also, if and when we do rebroadcast, need to ensure either this message type
-    //        has its own duplicate detection mechanism or that we add a generic mechanism
-    //        to the Broadcaster.
-  }
-
   void Broadcaster::handleBroadcast(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
@@ -125,9 +97,6 @@ namespace P2P {
         break;
       case BroadcastBlock:
         handleBlockBroadcast(nodeId, message);
-        break;
-      case BroadcastInfo:
-        handleInfoBroadcast(nodeId, message);
         break;
       default:
         throw DynamicException("Invalid Broadcast Command Type: " + std::to_string(message->command()));
@@ -147,17 +116,6 @@ namespace P2P {
 
   void Broadcaster::broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block) {
     auto broadcast = std::make_shared<const Message>(BroadcastEncoder::broadcastBlock(block));
-    this->broadcastMessage(broadcast, {});
-  }
-
-  void Broadcaster::broadcastInfo() {
-    auto broadcast = std::make_shared<const Message>(
-      BroadcastEncoder::broadcastInfo(
-        this->storage_.latest(),
-        this->manager_.getNodeConns().getConnectedWithNodeType(),
-        this->getOptions()
-      )
-    );
     this->broadcastMessage(broadcast, {});
   }
 

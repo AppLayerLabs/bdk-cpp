@@ -248,22 +248,22 @@ namespace JsonRPC::Encoding {
     ret["jsonrpc"] = "2.0";
     const auto& txHash = tx.hash();
     // We can't move as we need to broadcast the tx (see below)
-    auto TxInvalid = state.addTx(TxBlock(tx));
-    if (!TxInvalid) {
+    auto txStatus = state.addTx(TxBlock(tx));
+    if (isTxStatusValid(txStatus)) {
       ret["result"] = txHash.hex(true);
       // TODO: Make this use threadpool instead of blocking
       // TODO: Make tx broadcasting better, the current solution is **not good**.
       p2p.broadcastTxBlock(tx);
     } else {
       ret["error"]["code"] = -32000;
-      switch (TxInvalid) {
-        case TxInvalid::InvalidNonce:
+      switch (txStatus) {
+        case TxStatus::InvalidNonce:
           ret["error"]["message"] = "Invalid nonce";
           break;
-        case TxInvalid::InvalidBalance:
+        case TxStatus::InvalidBalance:
           ret["error"]["message"] = "Invalid balance";
           break;
-        case TxInvalid::NotInvalid:
+        default:
           break;
       }
     }

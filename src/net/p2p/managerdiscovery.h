@@ -71,9 +71,6 @@ namespace P2P {
       ) : ManagerBase(hostIp, NodeType::DISCOVERY_NODE, options, options.getMinDiscoveryConns(), options.getMaxDiscoveryConns())
       {}
 
-      /// Destructor. Automatically stops the manager.
-      ~ManagerDiscovery() { this->stop(); }
-
       /**
        * Handle a message from a session. Entry point for all the other handlers.
        * @param session The session that sent the message.

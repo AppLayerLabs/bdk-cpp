@@ -151,7 +151,7 @@ DBBatch State::dump() const {
   return stateBatch;
 }
 
-TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
+TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
   /**
    * Rules for a transaction to be accepted within the current state:
    * Transaction value + txFee (gas * gasPrice) needs to be lower than account balance
@@ -161,12 +161,12 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
   // Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
   if (this->mempool_.contains(tx.hash())) {
     Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
-    return TxInvalid::NotInvalid;
+    return TxStatus::ValidExisting;
   }
   auto accountIt = this->accounts_.find(tx.getFrom());
   if (accountIt == this->accounts_.end()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
-    return TxInvalid::InvalidBalance;
+    return TxStatus::InvalidBalance;
   }
   const auto& accBalance = accountIt->second->balance;
   const auto& accNonce = accountIt->second->nonce;
@@ -175,15 +175,15 @@ TxInvalid State::validateTransactionInternal(const TxBlock& tx) const {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
                       "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
                       + " expected: " + txWithFees.str() + " has: " + accBalance.str());
-    return TxInvalid::InvalidBalance;
+    return TxStatus::InvalidBalance;
   }
   // TODO: The blockchain is able to store higher nonce transactions until they are valid. Handle this case.
   if (accNonce != tx.getNonce()) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
                                             + " got: " + tx.getNonce().str());
-    return TxInvalid::InvalidNonce;
+    return TxStatus::InvalidNonce;
   }
-  return TxInvalid::NotInvalid;
+  return TxStatus::ValidNew;
 }
 
 void State::processTransaction(const TxBlock& tx,
@@ -272,7 +272,7 @@ void State::refreshMempool(const FinalizedBlock& block) {
   // not added to the block are valid given the current state
   for (const auto& [hash, tx] : mempoolCopy) {
     // Calls internal function which doesn't lock mutex.
-    if (!this->validateTransactionInternal(tx)) {
+    if (isTxStatusValid(this->validateTransactionInternal(tx))) {
       this->mempool_.insert({hash, tx});
     }
   }
@@ -339,7 +339,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
 
   std::shared_lock verifyingBlockTxs(this->stateMutex_);
   for (const auto& tx : block.getTxs()) {
-    if (this->validateTransactionInternal(tx)) {
+    if (!isTxStatusValid(this->validateTransactionInternal(tx))) {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__,
         "Transaction " + tx.hash().hex().get() + " within block is invalid"
       );
@@ -398,22 +398,22 @@ void State::fillBlockWithTransactions(MutableBlock& block) const {
   for (const auto& [hash, tx] : this->mempool_) block.appendTx(tx);
 }
 
-TxInvalid State::validateTransaction(const TxBlock& tx) const {
+TxStatus State::validateTransaction(const TxBlock& tx) const {
   std::shared_lock lock(this->stateMutex_);
   return this->validateTransactionInternal(tx);
 }
 
-TxInvalid State::addTx(TxBlock&& tx) {
+TxStatus State::addTx(TxBlock&& tx) {
   const auto txResult = this->validateTransaction(tx);
-  if (txResult) return txResult;
+  if (txResult != TxStatus::ValidNew) return txResult;
   std::unique_lock lock(this->stateMutex_);
   auto txHash = tx.hash();
   this->mempool_.insert({txHash, std::move(tx)});
   Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + txHash.hex().get() + " was added to the mempool");
-  return txResult;
+  return txResult; // should be TxStatus::ValidNew
 }
 
-bool State::addValidatorTx(const TxValidator& tx) {
+TxStatus State::addValidatorTx(const TxValidator& tx) {
   std::unique_lock lock(this->stateMutex_);
   return this->rdpos_.addValidatorTx(tx);
 }

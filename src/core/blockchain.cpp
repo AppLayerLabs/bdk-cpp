@@ -119,8 +119,13 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
     // If the request failed, retry it (unless we set a finite number of tries and we've just run out of them)
     if (result.size() == 0) {
       if (tries > 0) {
-        if (--tries == 0) return false;
+        --tries;
+        Utils::safePrint("Blocks request failed (" + std::to_string(tries) + " tries left)");
+        Logger::logToDebug(LogType::WARNING, Log::syncer, __func__, "Blocks request failed (" + std::to_string(tries) + " tries left)");
+        if (tries == 0) return false;
       }
+      Utils::safePrint("Blocks request failed, restarting sync");
+      Logger::logToDebug(LogType::WARNING, Log::syncer, __func__, "Blocks request failed, restarting sync");
       continue;
     }
 

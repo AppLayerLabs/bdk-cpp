@@ -389,18 +389,6 @@ namespace P2P {
     return Message(std::move(message));
   }
 
-  Message BroadcastEncoder::broadcastInfo(
-    const std::shared_ptr<const FinalizedBlock>& latestBlock,
-    const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
-    const Options& options)
-  {
-    Bytes message = getRequestTypePrefix(Broadcasting);
-    Utils::appendBytes(message, Utils::randBytes(8));
-    Utils::appendBytes(message, getCommandPrefix(BroadcastInfo));
-    nodeInfoToMessage(message, latestBlock, nodes, options);
-    return Message(std::move(message));
-  }
-
   TxValidator BroadcastDecoder::broadcastValidatorTx(const Message& message, const uint64_t& requiredChainId) {
     if (message.type() != Broadcasting) { throw DynamicException("Invalid message type."); }
     if (message.id().toUint64() != FNVHash()(message.message())) { throw DynamicException("Invalid message id."); }
@@ -421,13 +409,6 @@ namespace P2P {
     if (message.command() != BroadcastBlock) { throw DynamicException("Invalid command."); }
     FinalizedBlock block = FinalizedBlock::fromBytes(message.message(), requiredChainId);
     return block;
-  }
-
-  NodeInfo BroadcastDecoder::broadcastInfo(const Message& message) {
-    // Basically the same decoding as AnswerDecoder::info
-    if (message.type() != Broadcasting) { throw DynamicException("Invalid message type."); }
-    if (message.command() != BroadcastInfo) { throw DynamicException("Invalid command."); }
-   return nodeInfoFromMessage(message.message());
   }
 
   Message NotificationEncoder::notifyInfo(

@@ -367,7 +367,7 @@ namespace TRdPoS {
       }
       // Append the transactions to the block.
       for (const auto& tx : txValidators) {
-        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
+        REQUIRE(isTxStatusValid(blockchainWrapper1.state.rdposAddValidatorTx(tx)));
       }
 
       // Broadcast the transactions
@@ -395,7 +395,7 @@ namespace TRdPoS {
 
       // Append transactions back to node 1 mempool.
       for (const auto& tx : transactionList) {
-        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
+        REQUIRE(isTxStatusValid(blockchainWrapper1.state.rdposAddValidatorTx(tx)));
       }
 
       // Check that the mempool is the same as before.
@@ -618,7 +618,7 @@ namespace TRdPoS {
       }
       // Append the transactions to the block.
       for (const auto& tx : txValidators) {
-        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
+        REQUIRE(isTxStatusValid(blockchainWrapper1.state.rdposAddValidatorTx(tx)));
       }
 
       // Broadcast transactions to all nodes.

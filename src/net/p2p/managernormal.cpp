@@ -16,6 +16,7 @@ namespace P2P{
   void ManagerNormal::sendMessageToAll(const std::shared_ptr<const Message> message, const std::optional<NodeID>& originalSender) {
     std::unordered_set<NodeID, SafeHash> peerMap;
     if (originalSender) {
+      peerMap.emplace(originalSender.value());
       std::optional<NodeInfo> optionalNodeInfo = this->nodeConns_.getNodeInfo(originalSender.value());
       if (optionalNodeInfo) for (const auto& nodeId : optionalNodeInfo.value().peers()) peerMap.emplace(nodeId);
     }
@@ -39,6 +40,7 @@ namespace P2P{
           break;
         case Broadcasting:
           this->broadcaster_.handleBroadcast(nodeId, message);
+          break;
         case Notifying:
           handleNotification(nodeId, message);
           break;
@@ -318,8 +320,22 @@ namespace P2P{
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     try {
+      NodeType nodeType;
+      {
+        std::shared_lock sessionsLock(this->sessionsMutex_);
+        auto it = sessions_.find(nodeId);
+        if (it != sessions_.end()) {
+          nodeType = it->second->hostType();
+        } else {
+          // This actually does happen: since this message is posted to a thread pool for processing after receipt, the
+          //   session with the nodeId may be gone at this point. If so, we won't have the nodeType to append to the
+          //   node connection's data record at NodeConns and, anyway, if we no longer have a connection to it, then
+          //   that node is no longer relevant. So we don't need to refresh it.
+          return;
+        }
+      }
       auto nodeInfo = NotificationDecoder::notifyInfo(*message);
-      this->nodeConns_.incomingInfo(nodeId, nodeInfo);
+      this->nodeConns_.incomingInfo(nodeId, nodeInfo, nodeType);
     } catch (std::exception &e) {
       Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
                          "Invalid infoNotification from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
@@ -453,8 +469,6 @@ namespace P2P{
   void ManagerNormal::broadcastTxBlock(const TxBlock& txBlock) { this->broadcaster_.broadcastTxBlock(txBlock); }
 
   void ManagerNormal::broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block) { this->broadcaster_.broadcastBlock(block); }
-
-  void ManagerNormal::broadcastInfo() { this->broadcaster_.broadcastInfo(); }
 
   void ManagerNormal::notifyAllInfo() {
     auto notifyall = std::make_shared<const Message>(

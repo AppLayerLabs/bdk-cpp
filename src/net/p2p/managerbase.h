@@ -110,9 +110,9 @@ namespace P2P {
       {};
 
       /// Destructor. Automatically stops the manager.
-      ~ManagerBase() { this->stopDiscovery(); this->stop(); };
+      virtual ~ManagerBase() { this->stopDiscovery(); this->stop(); };
 
-      const Options& getOptions() { return options_; } ///< Get a reference to the Options object given to the P2P engine.
+      const Options& getOptions() { return this->options_; } ///< Get a reference to the Options object given to the P2P engine.
 
       virtual void start(); ///< Start P2P::Server and P2P::ClientFactory.
       virtual void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.

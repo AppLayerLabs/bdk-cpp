@@ -1139,8 +1139,8 @@ namespace TState {
       for (const auto &txSet: txs) {
         std::cout << "Broadcasting txs" << std::endl;
         for (const auto &tx: txSet) {
-          auto txInvalid = blockchainWrapper1.state.addTx(TxBlock(tx));
-          REQUIRE(!txInvalid);
+          auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
+          REQUIRE(isTxStatusValid(txStatus));
           blockchainWrapper1.p2p.broadcastTxBlock(tx);
           targetExpectedValue += tx.getValue();
         }
@@ -1484,8 +1484,8 @@ namespace TState {
         if (tx.hash() != creationHash) {
           targetExpectedValue += 10000000000000000;
         }
-        auto txInvalid = blockchainWrapper1.state.addTx(TxBlock(tx));
-        REQUIRE(!txInvalid);
+        auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
+        REQUIRE(isTxStatusValid(txStatus));
         blockchainWrapper1.p2p.broadcastTxBlock(tx);
         /// Wait for the transactions to be confirmed.
         ///

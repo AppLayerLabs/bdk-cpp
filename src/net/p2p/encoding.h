@@ -51,6 +51,17 @@ namespace P2P {
   /// Enum for identifying the type of a request.
   enum RequestType { Requesting, Answering, Broadcasting, Notifying };
 
+  /**
+   * List of type prefixes (as per RequestType) for easy conversion.
+   * NOTE: These MUST be contiguous to match the RequestType enum.
+   */
+  inline extern const std::vector<Bytes> typePrefixes {
+    Bytes(1, 0x00), // 00 Request
+    Bytes(1, 0x01), // 01 Answer
+    Bytes(1, 0x02), // 02 Broadcast
+    Bytes(1, 0x03)  // 03 Notification
+  };
+
   /// Enum for identifying the type of a command.
   enum CommandType {
     Ping,
@@ -60,24 +71,14 @@ namespace P2P {
     BroadcastValidatorTx,
     BroadcastTx,
     BroadcastBlock,
-    BroadcastInfo, // FIXME/TODO: Remove this message/command if it's not going to be broadcasted (routed)
     RequestTxs,
     NotifyInfo,
     RequestBlock
   };
 
   /**
-   * List of type prefixes (as per RequestType) for easy conversion.
-   */
-  inline extern const std::vector<Bytes> typePrefixes {
-    Bytes(1, 0x00), // 00 Request
-    Bytes(1, 0x01), // 01 Answer
-    Bytes(1, 0x02), // 02 Broadcast
-    Bytes(1, 0x03)  // 03 Notification
-  };
-
-  /**
    * List of command prefixes (as per CommandType) for easy conversion.
+   * NOTE: These MUST be contiguous to match the CommandType enum.
    */
   inline extern const std::vector<Bytes> commandPrefixes {
     Bytes{0x00, 0x00}, // 0000 Ping
@@ -87,10 +88,9 @@ namespace P2P {
     Bytes{0x00, 0x04}, // 0004 BroadcastValidatorTx
     Bytes{0x00, 0x05}, // 0005 BroadcastTx
     Bytes{0x00, 0x06}, // 0006 BroadcastBlock
-    Bytes{0x00, 0x07}, // 0007 BroadcastInfo
-    Bytes{0x00, 0x08}, // 0008 RequestTxs
-    Bytes{0x00, 0x09}, // 0009 NotifyInfo
-    Bytes{0x00, 0x0A}  // 000A RequestBlock
+    Bytes{0x00, 0x07}, // 0007 RequestTxs
+    Bytes{0x00, 0x08}, // 0008 NotifyInfo
+    Bytes{0x00, 0x09}  // 0009 RequestBlock
   };
 
   /**
@@ -484,19 +484,6 @@ namespace P2P {
        * @return The formatted message.
        */
       static Message broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
-
-      /**
-       * Create a message to broadcast the node's information.
-       * @param latestBlock Pointer to the node's latest block.
-       * @param nodes Connected nodes.
-       * @param options Pointer to the node's options singleton.
-       * @return The formatted answer.
-       */
-      static Message broadcastInfo(
-        const std::shared_ptr<const FinalizedBlock>& latestBlock,
-        const std::unordered_map<NodeID, NodeType, SafeHash>& nodes,
-        const Options& options
-      );
   };
 
   /// Helper class used to parse broadcast messages.
@@ -525,13 +512,6 @@ namespace P2P {
        * @return The build block object.
        */
       static FinalizedBlock broadcastBlock(const Message& message, const uint64_t& requiredChainId);
-
-      /**
-       * Parse a broadcasted message for a node's information.
-       * @param message The message that was broadcast.
-       * @return The node's information.
-       */
-      static NodeInfo broadcastInfo(const Message& message);
   };
 
   /// Helper class used to create notification messages.
