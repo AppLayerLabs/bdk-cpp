@@ -111,8 +111,7 @@ class SDKTestSuite {
         // Create a genesis block with a timestamp of 1678887538000000 (2023-02-12 00:45:38 UTC)
         uint64_t genesisTimestamp = 1678887538000000;
         PrivKey genesisSigner(Hex::toBytes("0x0a0415d68a5ec2df57aab65efc2a7231b59b029bae7ff1bd2e40df9af96418c8"));
-        MutableBlock mutableGenesis(Hash(), 0, 0);
-        FinalizedBlock genesis = mutableGenesis.finalize(genesisSigner, genesisTimestamp);
+        FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({}, {}, Hash(), genesisTimestamp, 0, genesisSigner);
         std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
         std::vector<std::pair<Address,uint256_t>> genesisBalances;
         // Add the chain owner account to the genesis balances.
@@ -180,7 +179,8 @@ class SDKTestSuite {
      * @param txs (optional) List of transactions to include in the block. Defaults to none (empty vector).
      * @return A pointer to the new block.
      */
-    const std::shared_ptr<const FinalizedBlock> advanceChain(const uint64_t& timestamp = 0, const std::vector<TxBlock>& txs = {}) {
+    const std::shared_ptr<const FinalizedBlock> advanceChain(const uint64_t& timestamp = 0,
+                                                             std::vector<TxBlock>&& txs = {}) {
       auto validators = state_.rdposGetValidators();
       auto randomList = state_.rdposGetRandomList();
       Hash blockSignerPrivKey;           // Private key for the block signer.
@@ -210,7 +210,6 @@ class SDKTestSuite {
         std::chrono::high_resolution_clock::now().time_since_epoch()
       ).count();
       Hash newBlockPrevHash = this->storage_.latest()->getHash();
-      MutableBlock newBlock(newBlockPrevHash, newBlockTimestamp, newBlocknHeight);
       std::vector<TxValidator> randomHashTxs;
       std::vector<TxValidator> randomTxs;
 
@@ -230,19 +229,22 @@ class SDKTestSuite {
       }
 
       // Append the transactions to the block.
+      std::vector<TxValidator> txsValidator;
       for (const auto& tx : randomHashTxs) {
-        this->state_.rdposAddValidatorTx(tx); newBlock.appendTxValidator(tx);
+        this->state_.rdposAddValidatorTx(tx); txsValidator.emplace_back(tx);
       }
       for (const auto& tx : randomTxs) {
-        this->state_.rdposAddValidatorTx(tx); newBlock.appendTxValidator(tx);
+        this->state_.rdposAddValidatorTx(tx); txsValidator.emplace_back(tx);
       }
-      for (const auto& tx : txs) newBlock.appendTx(tx);
 
       // Finalize the block.
       if (timestamp == 0) {
-        auto finalizedBlock = newBlock.finalize(blockSignerPrivKey, std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::high_resolution_clock::now().time_since_epoch()
-        ).count());
+        auto finalizedBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
+                                                                  std::move(txsValidator),
+                                                                  newBlockPrevHash,
+                                                                  newBlockTimestamp,
+                                                                  newBlocknHeight,
+                                                                  blockSignerPrivKey);
         // After finalization, the block should be valid. If it is, process the next one.
         if (!this->state_.validateNextBlock(finalizedBlock)) throw DynamicException(
           "SDKTestSuite::advanceBlock: Block is not valid"
@@ -250,7 +252,12 @@ class SDKTestSuite {
         state_.processNextBlock(std::move(finalizedBlock));
         return this->storage_.latest();
       } else {
-        auto finelizedBlock = newBlock.finalize(blockSignerPrivKey, timestamp);
+        auto finelizedBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
+                                                                  std::move(txsValidator),
+                                                                  newBlockPrevHash,
+                                                                  newBlockTimestamp,
+                                                                  newBlocknHeight,
+                                                                  blockSignerPrivKey);
         // After finalization, the block should be valid. If it is, process the next one.
         if (!this->state_.validateNextBlock(finelizedBlock)) throw DynamicException(
           "SDKTestSuite::advanceBlock: Block is not valid"

@@ -8,7 +8,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/utils/utils.h"
 #include "../../src/utils/tx.h"
-#include "../../src/utils/mutableblock.h"
+#include "../../src/utils/finalizedblock.h"
 
 using Catch::Matchers::Equals;
 
@@ -17,10 +17,11 @@ namespace TBlock {
     SECTION("Block creation with no transactions") {
       PrivKey validatorPrivKey(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750d"));
       Hash nPrevBlockHash(Hex::toBytes("22143e16db549af9ccfd3b746ea4a74421847fa0fe7e0e278626a4e7307ac0f6"));
-      uint64_t timestamp = 1678400201858;
+      uint64_t timestamp = 1678400201859;
       uint64_t nHeight = 92137812;
-      MutableBlock newBlock = MutableBlock(nPrevBlockHash, timestamp, nHeight);
-      FinalizedBlock finalizedNewBlock = newBlock.finalize(validatorPrivKey, timestamp+1);
+      FinalizedBlock finalizedNewBlock = FinalizedBlock::createNewValidBlock({},{}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
+
+
       // Checking within finalized block
       REQUIRE(finalizedNewBlock.getValidatorSig() == Signature(Hex::toBytes("18395ff0c8ee38a250b9e7aeb5733c437fed8d6ca2135fa634367bb288a3830a3c624e33401a1798ce09f049fb6507adc52b085d0a83dacc43adfa519c1228e701")));
       REQUIRE(Secp256k1::verifySig(finalizedNewBlock.getValidatorSig().r(), finalizedNewBlock.getValidatorSig().s(), finalizedNewBlock.getValidatorSig().v()));
@@ -33,21 +34,18 @@ namespace TBlock {
       REQUIRE(finalizedNewBlock.getTxValidators().size() == 0);
       REQUIRE(finalizedNewBlock.getTxs().size() == 0);
       REQUIRE(finalizedNewBlock.getValidatorPubKey() == UPubKey(Hex::toBytes("046ab1f056c30ae181f92e97d0cbb73f4a8778e926c35f10f0c4d1626d8dfd51672366413809a48589aa103e1865e08bd6ddfd0559e095841eb1bd3021d9cc5e62")));
-
-
     }
 
     SECTION("Block creation with 10 transactions") {
       PrivKey validatorPrivKey(Hex::toBytes("0x4d5db4107d237df6a3d58ee5f70ae63d73d765d8a1214214d8a13340d0f2750d"));
       Hash nPrevBlockHash(Hex::toBytes("97a5ebd9bbb5e330b0b3c74b9816d595ffb7a04d4a29fb117ea93f8a333b43be"));
-      uint64_t timestamp = 1678400843315;
+      uint64_t timestamp = 1678400843316;
       uint64_t nHeight = 100;
-      MutableBlock newBlock = MutableBlock(nPrevBlockHash, timestamp, nHeight);
       TxBlock tx(Hex::toBytes("0x02f874821f9080849502f900849502f900825208942e951aa58c8b9b504a97f597bbb2765c011a8802880de0b6b3a764000080c001a0f56fe87778b4420d3b0f8eba91d28093abfdbea281a188b8516dd8411dc223d7a05c2d2d71ad3473571ff637907d72e6ac399fe4804641dbd9e2d863586c57717d"), 1);
 
-      for (uint64_t i = 0; i < 10; i++) newBlock.appendTx(tx);
-
-      FinalizedBlock finalizedNewBlock = newBlock.finalize(validatorPrivKey, timestamp+1);
+      std::vector<TxBlock> txs;
+      for (uint64_t i = 0; i < 10; i++) txs.emplace_back(tx);
+      FinalizedBlock finalizedNewBlock = FinalizedBlock::createNewValidBlock(std::move(txs), {}, nPrevBlockHash, timestamp, nHeight, validatorPrivKey);
 
       // Check within finalized block
       REQUIRE(finalizedNewBlock.getValidatorSig() == Signature(Hex::toBytes("7932f2e62d9b7f81ae7d2673d88d9c7ca3aa101c3cd22d76c8ca9063de9126db350c0aa08470cf1a65652bfe1e16f8210af0ecef4f36fe3e01c93b71e75cabd501")));
@@ -72,13 +70,13 @@ namespace TBlock {
       PrivKey blockValidatorPrivKey(Hex::toBytes("0x77ec0f8f28012de474dcd0b0a2317df22e188cec0a4cb0c9b760c845a23c9699"));
       PrivKey txValidatorPrivKey(Hex::toBytes("53f3b164248c7aa5fe610208c0f785063e398fcb329a32ab4fbc9bd4d29b42db"));
       Hash nPrevBlockHash(Hex::toBytes("0x7c9efc59d7bec8e79499a49915e0a655a3fff1d0609644d98791893afc67e64b"));
-      uint64_t timestamp = 1678464099412509;
+      uint64_t timestamp = 1678464099412510;
       uint64_t nHeight = 331653115;
-      MutableBlock newBlock = MutableBlock(nPrevBlockHash, timestamp, nHeight);
 
       TxBlock tx(Hex::toBytes("0x02f874821f9080849502f900849502f900825208942e951aa58c8b9b504a97f597bbb2765c011a8802880de0b6b3a764000080c001a0f56fe87778b4420d3b0f8eba91d28093abfdbea281a188b8516dd8411dc223d7a05c2d2d71ad3473571ff637907d72e6ac399fe4804641dbd9e2d863586c57717d"), 1);
 
-      for (uint64_t i = 0; i < 64; i++) newBlock.appendTx(tx);
+      std::vector<TxBlock> txs;
+      for (uint64_t i = 0; i < 64; i++) txs.emplace_back(tx);
 
       // Create and append 8
       std::vector<Hash> randomSeeds(8, Hash::random());
@@ -114,17 +112,20 @@ namespace TBlock {
         );
       }
 
-      // Append transactions to block.
-      for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
-
-      // Sign block with block validator private key.
-      FinalizedBlock finalizedNewBlock = newBlock.finalize(blockValidatorPrivKey, timestamp+1);
+      // We need to calculate the merkle root BEFORE creating the block
+      // because we MOVE the transactions to the block.
+      Hash txMerkleRoot = Merkle(txs).getRoot();
+      Hash validatorMerkleRoot = Merkle(txValidators).getRoot();
+      // Also make a copy of the txValidators for later comparison
+      std::vector<TxValidator> txValidatorsCopy = txValidators;
+      // Create finalized block
+      FinalizedBlock finalizedNewBlock = FinalizedBlock::createNewValidBlock(std::move(txs), std::move(txValidators), nPrevBlockHash, timestamp, nHeight, blockValidatorPrivKey);
 
       // Check within finalized block
       REQUIRE(finalizedNewBlock.getPrevBlockHash() == Hash(Hex::toBytes("7c9efc59d7bec8e79499a49915e0a655a3fff1d0609644d98791893afc67e64b")));
       REQUIRE(finalizedNewBlock.getBlockRandomness() == Utils::sha3(randomSeed));
-      REQUIRE(finalizedNewBlock.getValidatorMerkleRoot() == Merkle(txValidators).getRoot());
-      REQUIRE(finalizedNewBlock.getTxMerkleRoot() == Hash(Hex::toBytes("39ba30dc64127c507fe30e2310890667cfbc9fd247ddd8841e5e0573d8dcca9e")));
+      REQUIRE(finalizedNewBlock.getValidatorMerkleRoot() == validatorMerkleRoot);
+      REQUIRE(finalizedNewBlock.getTxMerkleRoot() == txMerkleRoot);
       REQUIRE(finalizedNewBlock.getTimestamp() == uint64_t(1678464099412510));
       REQUIRE(finalizedNewBlock.getNHeight() == uint64_t(331653115));
       REQUIRE(finalizedNewBlock.getTxValidators().size() == 16);
@@ -133,7 +134,7 @@ namespace TBlock {
 
       // Compare transactions
       for (uint64_t i = 0; i < 64; ++i) REQUIRE(finalizedNewBlock.getTxs()[i] == tx);
-      for (uint64_t i = 0; i < 16; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidators[i]);
+      for (uint64_t i = 0; i < 16; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidatorsCopy[i]);
 
     }
 
@@ -141,9 +142,8 @@ namespace TBlock {
       // There is 16 TxValidator transactions, but only 8 of them are used for block randomness.
       PrivKey blockValidatorPrivKey = PrivKey::random();
       Hash nPrevBlockHash = Hash::random();
-      uint64_t timestamp = 64545214243;
+      uint64_t timestamp = 64545214244;
       uint64_t nHeight = 6414363551;
-      MutableBlock newBlock = MutableBlock(nPrevBlockHash, timestamp, nHeight);
 
       std::vector<TxBlock> txs;
 
@@ -201,19 +201,22 @@ namespace TBlock {
           txValidatorPrivKey
         );
       }
+      // We need to calculate the merkle root BEFORE creating the block
+      // because we MOVE the transactions to the block.
+      Hash txMerkleRoot = Merkle(txs).getRoot();
+      Hash validatorMerkleRoot = Merkle(txValidators).getRoot();
+      // Also make a copy of txValidators and txs for later comparison
+      std::vector<TxValidator> txValidatorsCopy = txValidators;
+      std::vector<TxBlock> txsCopy = txs;
 
-      // Append transactions to block.
-      for (const auto &tx : txs) newBlock.appendTx(tx);
-      for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
-
-      // Sign block with block validator private key.
-      FinalizedBlock finalizedNewBlock = newBlock.finalize(blockValidatorPrivKey, timestamp+1);
+      // Create new block
+      FinalizedBlock finalizedNewBlock = FinalizedBlock::createNewValidBlock(std::move(txs), std::move(txValidators), nPrevBlockHash, timestamp, nHeight, blockValidatorPrivKey);
 
       // Check within finalized block
       REQUIRE(finalizedNewBlock.getPrevBlockHash() == nPrevBlockHash);
       REQUIRE(finalizedNewBlock.getBlockRandomness() == Utils::sha3(randomSeed));
-      REQUIRE(finalizedNewBlock.getValidatorMerkleRoot() == Merkle(txValidators).getRoot());
-      REQUIRE(finalizedNewBlock.getTxMerkleRoot() == Merkle(txs).getRoot());
+      REQUIRE(finalizedNewBlock.getValidatorMerkleRoot() == validatorMerkleRoot);
+      REQUIRE(finalizedNewBlock.getTxMerkleRoot() == txMerkleRoot);
       REQUIRE(finalizedNewBlock.getTimestamp() == uint64_t(64545214244));
       REQUIRE(finalizedNewBlock.getNHeight() == uint64_t(6414363551));
       REQUIRE(finalizedNewBlock.getTxValidators().size() == 64);
@@ -221,8 +224,8 @@ namespace TBlock {
 
 
       // Compare transactions
-      for (uint64_t i = 0; i < 500; ++i) REQUIRE(finalizedNewBlock.getTxs()[i] == txs[i]);
-      for (uint64_t i = 0; i < 64; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidators[i]);
+      for (uint64_t i = 0; i < 500; ++i) REQUIRE(finalizedNewBlock.getTxs()[i] == txsCopy[i]);
+      for (uint64_t i = 0; i < 64; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidatorsCopy[i]);
 
     }
 
@@ -230,9 +233,8 @@ namespace TBlock {
       // There is 16 TxValidator transactions, but only 8 of them are used for block randomness.
       PrivKey blockValidatorPrivKey = PrivKey::random();
       Hash nPrevBlockHash = Hash::random();
-      uint64_t timestamp = 230915972837111;
+      uint64_t timestamp = 230915972837112;
       uint64_t nHeight = 239178513;
-      MutableBlock newBlock = MutableBlock(nPrevBlockHash, timestamp, nHeight);
 
       std::vector<TxBlock> txs;
 
@@ -308,19 +310,22 @@ namespace TBlock {
           txValidatorPrivKey
         );
       }
+      // We need to calculate the merkle root BEFORE creating the block
+      // because we MOVE the transactions to the block.
+      Hash txMerkleRoot = Merkle(txs).getRoot();
+      Hash validatorMerkleRoot = Merkle(txValidators).getRoot();
+      // Also make a copy of txValidators and txs for later comparison
+      std::vector<TxValidator> txValidatorsCopy = txValidators;
+      std::vector<TxBlock> txsCopy = txs;
 
-      // Append transactions to block.
-      for (const auto &tx : txs) newBlock.appendTx(tx);
-      for (const auto &txValidator : txValidators) newBlock.appendTxValidator(txValidator);
-
-      // Sign block with block validator private key.
-      FinalizedBlock finalizedNewBlock = newBlock.finalize(blockValidatorPrivKey, timestamp+1);
+      // Create new block
+      FinalizedBlock finalizedNewBlock = FinalizedBlock::createNewValidBlock(std::move(txs), std::move(txValidators), nPrevBlockHash, timestamp, nHeight, blockValidatorPrivKey);
 
       // Check within finalized block
       REQUIRE(finalizedNewBlock.getPrevBlockHash() == nPrevBlockHash);
       REQUIRE(finalizedNewBlock.getBlockRandomness() == Utils::sha3(randomSeed));
-      REQUIRE(finalizedNewBlock.getValidatorMerkleRoot() == Merkle(txValidators).getRoot());
-      REQUIRE(finalizedNewBlock.getTxMerkleRoot() == Merkle(txs).getRoot());
+      REQUIRE(finalizedNewBlock.getValidatorMerkleRoot() == validatorMerkleRoot);
+      REQUIRE(finalizedNewBlock.getTxMerkleRoot() == txMerkleRoot);
       REQUIRE(finalizedNewBlock.getTimestamp() == uint64_t(230915972837112));
       REQUIRE(finalizedNewBlock.getNHeight() == uint64_t(239178513));
       REQUIRE(finalizedNewBlock.getTxValidators().size() == 256);
@@ -328,8 +333,8 @@ namespace TBlock {
 
 
       // Compare transactions
-      for (uint64_t i = 0; i < 40000; ++i) REQUIRE(finalizedNewBlock.getTxs()[i] == txs[i]);
-      for (uint64_t i = 0; i < 256; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidators[i]);
+      for (uint64_t i = 0; i < 40000; ++i) REQUIRE(finalizedNewBlock.getTxs()[i] == txsCopy[i]);
+      for (uint64_t i = 0; i < 256; ++i) REQUIRE(finalizedNewBlock.getTxValidators()[i] == txValidatorsCopy[i]);
     }
   }
 }

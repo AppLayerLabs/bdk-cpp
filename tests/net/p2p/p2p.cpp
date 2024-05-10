@@ -16,21 +16,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../blockchainwrapper.hpp"
 
 using Catch::Matchers::Equals;
-
-// Blockchain wrapper initializer for testing purposes.
-// Defined in rdpos.cpp
-TestBlockchainWrapper initialize(const std::vector<Hash>& validatorPrivKeys,
-                                 const PrivKey& validatorKey,
-                                 const uint64_t& serverPort,
-                                 bool clearDb,
-                                 const std::string& folderName);
-
-// This creates a valid block given the state within the rdPoS class.
-// Should not be used during network/thread testing, as it will automatically sign all TxValidator transactions within the block
-// And that is not the purpose of network/thread testing.
-// Definition from state.cpp, when linking, the compiler should find the function.
-FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKeys, State& state, Storage& storage, const std::vector<TxBlock>& txs = {});
-
 namespace TP2P {
 
   const std::vector<Hash> validatorPrivKeysP2P {
@@ -54,7 +39,7 @@ namespace TP2P {
       auto blockchainWrapper = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 8080, true, testDumpPath + "/p2pRequestBlockNode1");
       for (uint64_t index = 0; index < 10; ++index) {
         std::vector<TxBlock> txs;
-        auto newBestBlock = createValidBlock(validatorPrivKeysP2P, blockchainWrapper.state, blockchainWrapper.storage, txs);
+        auto newBestBlock = createValidBlock(validatorPrivKeysP2P, blockchainWrapper.state, blockchainWrapper.storage, std::move(txs));
         REQUIRE_NOTHROW(blockchainWrapper.state.processNextBlock(std::move(newBestBlock))); // Throws if block is invalid
       }
       REQUIRE(blockchainWrapper.storage.latest()->getNHeight() == 10);
@@ -252,8 +237,7 @@ namespace TP2P {
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
       PrivKey genesisPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
       uint64_t genesisTimestamp = 1678887538000000;
-      MutableBlock genesisMutable(Hash(), 0, 0);
-      FinalizedBlock genesis = genesisMutable.finalize(genesisPrivKey, genesisTimestamp);
+      FinalizedBlock genesis = FinalizedBlock::createNewValidBlock({},{}, Hash(), genesisTimestamp, 0, genesisPrivKey);
       std::vector<std::pair<Address,uint256_t>> genesisBalances = {{Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")), uint256_t("1000000000000000000000")}};
       std::vector<Address> genesisValidators;
       for (const auto& privKey : validatorPrivKeysP2P) {

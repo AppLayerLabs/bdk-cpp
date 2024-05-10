@@ -132,6 +132,32 @@ void ContractHost::createEVMContract(const evmc_message& msg, const Address& con
   this->registerNewEVMContract(contractAddr, result.output_data, result.output_size);
 }
 
+evmc::Result ContractHost::processBDKPrecompile(const evmc_message& msg) const {
+  /**
+  *  interface BDKPrecompile {
+  *    function getRandom() external view returns (uint256);
+  *  }
+  */
+  try {
+    if (msg.input_size < 4) {
+      throw DynamicException("ContractHost processBDKPrecompile: invalid input size");
+    }
+    Functor f = Utils::getFunctor(msg);
+    // We only have one function on the BDKD precompile
+    // getRandom() == 0xaacc5a17 == 2865519127
+    if (f.value == 2865519127) {
+      auto random = this->randomGen_.operator()();
+      auto ret = Utils::uint256ToBytes(random);
+      return evmc::Result(EVMC_SUCCESS, this->leftoverGas_, 0, ret.data(), ret.size());
+    }
+    throw DynamicException("ContractHost processBDKPrecompile: invalid function selector");
+  } catch (std::exception &e) {
+    this->evmcThrows_.emplace_back(e.what());
+    this->evmcThrow_ = true;
+    return evmc::Result(EVMC_PRECOMPILE_FAILURE, this->leftoverGas_, 0, nullptr, 0);
+  }
+}
+
 void ContractHost::execute(const evmc_message& msg, const ContractType& type) {
   const Address from(msg.sender);
   const Address to(msg.recipient);
@@ -371,9 +397,15 @@ bool ContractHost::selfdestruct(const evmc::address& addr, const evmc::address& 
 // EVM -> EVM calls don't need to use this->leftOverGas_ as the final
 // evmc::Result will have the gas left after the execution
 evmc::Result ContractHost::call(const evmc_message& msg) noexcept {
+  // Check against bdk static precompiles
+  this->leftoverGas_ = msg.gas;
+  if (msg.recipient == BDK_PRECOMPILE) {
+    this->deduceGas(1000); // CPP contract call is 1000 gas
+    return this->processBDKPrecompile(msg);
+  }
+
   Address recipient(msg.recipient);
   auto &recipientAccount = *accounts_[recipient]; // We need to take a reference to the account, not a reference to the pointer.
-  this->leftoverGas_ = msg.gas;
   /// evmc::Result constructor is: _status_code + _gas_left + _output_data + _output_size
   if (recipientAccount.contractType == CPP) {
     // Uh we are an CPP contract, we need to call the contract evmEthCall function and put the result into a evmc::Result

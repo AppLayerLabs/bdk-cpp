@@ -9,7 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define JSONRPC_ENCODING_H
 
 #include "../../../utils/utils.h"
-#include "../../../utils/mutableblock.h"
+#include "../../../utils/finalizedblock.h"
 #include "../../../utils/tx.h"
 #include "../../../utils/options.h"
 #include "../../p2p/managernormal.h"

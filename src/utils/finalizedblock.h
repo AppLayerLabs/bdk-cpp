@@ -21,6 +21,7 @@ See the LICENSE.txt file in the project root for more information.
  * Abstraction of a finalized block. Generated directly from a MutableBlock.
  * Members are const in purpose due to the immutable nature of the structure.
  */
+
 class FinalizedBlock {
   private:
     const Signature validatorSig_;                ///< Validator signature for the block.
@@ -57,6 +58,8 @@ class FinalizedBlock {
      * @param txValidators Lost of Validator transactions.
      * @param txs List of block transactions.
      * @param hash Cached hash of the block.
+     * Only the move constructor is declared, simply because there is no reason
+     * within BDKD to copy the arguments when creating a new block.
      */
     FinalizedBlock(
         Signature&& validatorSig,
@@ -65,7 +68,7 @@ class FinalizedBlock {
         Hash&& blockRandomness,
         Hash&& validatorMerkleRoot,
         Hash&& txMerkleRoot,
-        uint64_t timestamp, // Primitive types like uint64_t can (and should) be passed by value
+        uint64_t timestamp, // Primitive types like uint64_t can (and should) be passed by value, no &&
         uint64_t nHeight, // Same for nHeight
         std::vector<TxValidator>&& txValidators,
         std::vector<TxBlock>&& txs,
@@ -76,41 +79,7 @@ class FinalizedBlock {
         validatorMerkleRoot_(std::move(validatorMerkleRoot)), txMerkleRoot_(std::move(txMerkleRoot)),
         timestamp_(timestamp), nHeight_(nHeight),
         txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash)), size_(size)
-    {Logger::logToDebug(LogType::INFO, Log::finalizedBlock, __func__, "Finalized block created");}
-
-    /**
-     * Constructor.
-     * @param validatorSig Validator signature for the block.
-     * @param validatorPubKey Public key of the Validator that signed the block.
-     * @param prevBlockHash Hash of the previous block.
-     * @param blockRandomness Current block randomness based on rdPoS.
-     * @param validatorMerkleRoot Merkle root for the Validator transactions.
-     * @param txMerkleRoot Merkle root for the block transactions.
-     * @param timestamp Epoch timestamp of the block, in microseconds.
-     * @param nHeight Height of the block in chain.
-     * @param txValidators Lost of Validator transactions.
-     * @param txs List of block transactions.
-     * @param hash Cached hash of the block.
-     */
-    FinalizedBlock(
-        const Signature& validatorSig,
-        const UPubKey& validatorPubKey,
-        const Hash& prevBlockHash,
-        const Hash& blockRandomness,
-        const Hash& validatorMerkleRoot,
-        const Hash& txMerkleRoot,
-        uint64_t timestamp, // Primitive types like uint64_t can (and should) be passed by value
-        uint64_t nHeight, // Same for nHeight
-        std::vector<TxValidator> txValidators,
-        std::vector<TxBlock> txs,
-        const Hash& hash,
-        size_t size
-    ) : validatorSig_(validatorSig), validatorPubKey_(validatorPubKey),
-        prevBlockHash_(prevBlockHash), blockRandomness_(blockRandomness),
-        validatorMerkleRoot_(validatorMerkleRoot), txMerkleRoot_(txMerkleRoot),
-        timestamp_(timestamp), nHeight_(nHeight),
-        txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(hash), size_(size)
-    {Logger::logToDebug(LogType::INFO, Log::finalizedBlock, __func__, "Finalized block created");}
+    {Logger::logToDebug(LogType::INFO, Log::finalizedBlock, __func__, "Finalized block moved");}
 
     /**
      * Move constructor.
@@ -155,6 +124,27 @@ class FinalizedBlock {
 
     Bytes serializeBlock() const;
 
+    /*
+     * Create a new valid block given the arguments.
+     * @param txs List of block transactions.
+     * @param txValidators List of Validator transactions.
+     * @param prevBlockHash Hash of the previous block.
+     * @param timestamp Epoch timestamp of the block, in microseconds.
+     * @param nHeight Height of the block in chain.
+     * @param validatorPrivKey Private key of the Validator to sign the block.
+     * @return The new valid block.
+     * You MUST use std::move() when passing the txs and txValidators vectors.
+     * The function will automatically derive the block randomness, validator merkle root, tx merkle root and block hash.
+     * Besides also signing the block with the provided private key.
+     */
+    static FinalizedBlock createNewValidBlock(
+        std::vector<TxBlock>&& txs,
+        std::vector<TxValidator>&& txValidators,
+        Hash prevBlockHash,
+        const uint64_t& timestamp,
+        const uint64_t& nHeight,
+        const PrivKey& validatorPrivKey
+    );
     ///@{
     /** Getter. */
     const Signature& getValidatorSig() const { return this->validatorSig_; }

@@ -118,7 +118,7 @@ State::State(
     // Process transactions of the block within the current state
     uint64_t txIndex = 0;
     for (auto const& tx : block->getTxs()) {
-      this->processTransaction(tx, blockHash, txIndex);
+      this->processTransaction(tx, blockHash, txIndex, block->getBlockRandomness());
       txIndex++;
     }
     // Process rdPoS State
@@ -188,7 +188,8 @@ TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
 
 void State::processTransaction(const TxBlock& tx,
                                const Hash& blockHash,
-                               const uint64_t& txIndex) {
+                               const uint64_t& txIndex,
+                               const Hash& randomnessHash) {
   // Lock is already called by processNextBlock.
   // processNextBlock already calls validateTransaction in every tx,
   // as it calls validateNextBlock as a sanity check.
@@ -208,7 +209,6 @@ void State::processTransaction(const TxBlock& tx,
     throw DynamicException("Transaction nonce mismatch");
     return;
   }
-
   try {
     evmc_tx_context txContext;
     txContext.tx_gas_price = Utils::uint256ToEvmcUint256(tx.getMaxFeePerGas());
@@ -223,11 +223,13 @@ void State::processTransaction(const TxBlock& tx,
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
+    auto randomSeed = Utils::uint256ToBytes((randomnessHash.toUint256() + txIndex));
     ContractHost host(
       this->vm_,
       this->dumpManager_,
       this->eventManager_,
       this->storage_,
+      randomSeed,
       txContext,
       this->contracts_,
       this->accounts_,
@@ -292,9 +294,14 @@ uint64_t State::getNativeNonce(const Address& addr) const {
   return it->second->nonce;
 }
 
-std::unordered_map<Hash, TxBlock, SafeHash> State::getMempool() const {
+std::vector<TxBlock> State::getMempool() const {
   std::shared_lock lock(this->stateMutex_);
-  return this->mempool_;
+  std::vector<TxBlock> mempoolCopy;
+  mempoolCopy.reserve(this->mempool_.size());
+  for (const auto& [hash, tx] : this->mempool_) {
+    mempoolCopy.emplace_back(tx);
+  }
+  return mempoolCopy;
 }
 
 bool State::validateNextBlock(const FinalizedBlock& block) const {
@@ -309,6 +316,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
    */
   auto latestBlock = this->storage_.latest();
   if (block.getNHeight() != latestBlock->getNHeight() + 1) {
+    std::cout << "Block nHeight doesn't match, expected " << latestBlock->getNHeight() + 1 << " got " << block.getNHeight() << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
       + " got " + std::to_string(block.getNHeight())
@@ -317,6 +325,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   }
 
   if (block.getPrevBlockHash() != latestBlock->getHash()) {
+    std::cout << "Block prevBlockHash doesn't match, expected " << latestBlock->getHash().hex().get() << " got: " << block.getPrevBlockHash().hex().get() << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
       + " got: " + block.getPrevBlockHash().hex().get()
@@ -325,6 +334,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   }
 
   if (latestBlock->getTimestamp() > block.getTimestamp()) {
+    std::cout << "Block timestamp is lower than latest block, expected higher than " << latestBlock->getTimestamp() << " got " << block.getTimestamp() << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Block timestamp is lower than latest block, expected higher than "
       + std::to_string(latestBlock->getTimestamp()) + " got " + std::to_string(block.getTimestamp())
@@ -333,6 +343,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   }
 
   if (!this->rdpos_.validateBlock(block)) {
+    std::cout << "Invalid rdPoS in block" << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Invalid rdPoS in block");
     return false;
   }
@@ -340,6 +351,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   std::shared_lock verifyingBlockTxs(this->stateMutex_);
   for (const auto& tx : block.getTxs()) {
     if (!isTxStatusValid(this->validateTransactionInternal(tx))) {
+      std::cout << "Transaction " << tx.hash().hex().get() << " within block is invalid" << std::endl;
       Logger::logToDebug(LogType::ERROR, Log::state, __func__,
         "Transaction " + tx.hash().hex().get() + " within block is invalid"
       );
@@ -374,7 +386,7 @@ void State::processNextBlock(FinalizedBlock&& block) {
   // Process transactions of the block within the current state
   uint64_t txIndex = 0;
   for (auto const& tx : block.getTxs()) {
-    this->processTransaction(tx, blockHash, txIndex);
+    this->processTransaction(tx, blockHash, txIndex, block.getBlockRandomness());
     txIndex++;
   }
 
@@ -391,11 +403,6 @@ void State::processNextBlock(FinalizedBlock&& block) {
 
   // Move block to storage
   this->storage_.pushBack(std::move(block));
-}
-
-void State::fillBlockWithTransactions(MutableBlock& block) const {
-  std::shared_lock lock(this->stateMutex_);
-  for (const auto& [hash, tx] : this->mempool_) block.appendTx(tx);
 }
 
 TxStatus State::validateTransaction(const TxBlock& tx) const {
@@ -460,11 +467,14 @@ Bytes State::ethCall(const evmc_message& callInfo) {
     txContext.blob_base_fee = {};
     txContext.blob_hashes = nullptr;
     txContext.blob_hashes_count = 0;
+    // As we are simulating, the randomSeed can be anything
+    Hash randomSeed = Hash::random();
     ContractHost host(
       this->vm_,
       this->dumpManager_,
       this->eventManager_,
       this->storage_,
+      randomSeed,
       txContext,
       this->contracts_,
       this->accounts_,
@@ -493,11 +503,13 @@ int64_t State::estimateGas(const evmc_message& callInfo) {
   }
 
   int64_t leftOverGas = callInfo.gas;
+  Hash randomSeed = Hash::random();
   ContractHost(
     this->vm_,
     this->dumpManager_,
     this->eventManager_,
     this->storage_,
+    randomSeed,
     evmc_tx_context(),
     this->contracts_,
     this->accounts_,

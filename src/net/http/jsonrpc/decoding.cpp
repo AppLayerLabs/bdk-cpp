@@ -50,9 +50,11 @@ namespace JsonRPC::Decoding {
   void web3_clientVersion(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException(
-        "web3_clientVersion does not need params"
-      );
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "web3_clientversion does not need params"
+        );
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding web3_clientVersion: ") + e.what()
@@ -66,6 +68,7 @@ namespace JsonRPC::Decoding {
   Bytes web3_sha3(const json& request) {
     try {
       // Data to hash will always be at index 0.
+      if (!request.contains("params")) throw DynamicException("web3_sha3 require params");
       if (request["params"].size() != 1) throw DynamicException(
         "web3_sha3 needs 1 param"
       );
@@ -99,9 +102,11 @@ namespace JsonRPC::Decoding {
   void net_listening(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException(
-        "net_listening does not need params"
-      );
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "net_listening does not need params"
+        );
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding net_listening: ") + e.what()
@@ -113,9 +118,11 @@ namespace JsonRPC::Decoding {
   void net_peerCount(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException(
-        "net_peerCount does not need params"
-      );
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "net_peerCount does not need params"
+        );
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding net_peerCount: ") + e.what()
@@ -127,9 +134,11 @@ namespace JsonRPC::Decoding {
   void eth_protocolVersion(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException(
-        "eth_protocolVersion does not need params"
-      );
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "eth_protocolVersion does not need params"
+        );
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_protocolVersion: ") + e.what()
@@ -141,6 +150,7 @@ namespace JsonRPC::Decoding {
   std::pair<Hash,bool> eth_getBlockByHash(const json& request) {
     static const std::regex hashFilter("^0x[0-9a-f]{64}$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getBlockByHash require params");
       bool includeTxs = (request["params"].size() == 2) ? request["params"].at(1).get<bool>() : false;
       std::string blockHash = request["params"].at(0).get<std::string>();
       if (!std::regex_match(blockHash, hashFilter)) throw DynamicException("Invalid block hash hex");
@@ -158,6 +168,7 @@ namespace JsonRPC::Decoding {
   ) {
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getBlockByNumber require params");
       bool includeTxs = (request["params"].size() == 2) ? request["params"].at(1).get<bool>() : false;
       // eth_getBlockByNumber has flags for its params instead of hex numbers.
       std::string blockNum = request["params"].at(0).get<std::string>();
@@ -178,6 +189,7 @@ namespace JsonRPC::Decoding {
     static const std::regex hashFilter("^0x[0-9a-f]{64}$");
     try {
       // Check block hash.
+      if (!request.contains("params")) throw DynamicException("eth_getBlockTransactionCountByHash require params");
       std::string blockHash = request["params"].at(0).get<std::string>();
       if (!std::regex_match(blockHash, hashFilter)) throw DynamicException("Invalid block hash hex");
       return Hash(Hex::toBytes(blockHash));
@@ -195,6 +207,7 @@ namespace JsonRPC::Decoding {
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
       // eth_getBlockTransactionCountByNumber has flags for its params instead of hex numbers.
+      if (!request.contains("params")) throw DynamicException("eth_getBlockTransactionCountByNumber require params");
       std::string blockNum = request["params"].at(0).get<std::string>();
       if (blockNum == "latest") return storage.latest()->getNHeight();
       if (blockNum == "earliest") return 0;
@@ -214,7 +227,11 @@ namespace JsonRPC::Decoding {
   void eth_chainId(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException("eth_chainId does not need params");
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "eth_chainId does not need params"
+        );
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__, std::string("Error while decoding eth_chainId: ") + e.what());
       throw DynamicException("Error while decoding eth_chainId: " + std::string(e.what()));
@@ -224,7 +241,11 @@ namespace JsonRPC::Decoding {
   void eth_syncing(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException("eth_syncing does not need params");
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "eth_syncing does not need params"
+        );
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_syncing: ") + e.what()
@@ -236,7 +257,11 @@ namespace JsonRPC::Decoding {
   void eth_coinbase(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException("eth_coinbase does not need params");
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "eth_coinbase does not need params"
+        );
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_coinbase: ") + e.what()
@@ -248,7 +273,11 @@ namespace JsonRPC::Decoding {
   void eth_blockNumber(const json& request) {
     try {
       // No params are needed.
-      if (!request["params"].empty()) throw DynamicException("eth_blockNumber does not need params");
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException(
+          "eth_blockNumber does not need params"
+        );
+      }
       return;
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
@@ -269,6 +298,7 @@ namespace JsonRPC::Decoding {
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
       json txObj;
+      if (!request.contains("params")) throw DynamicException("eth_call require params");
       if (request["params"].is_array()) {
         txObj = request["params"].at(0);
         if (request["params"].size() > 1) {
@@ -353,6 +383,7 @@ namespace JsonRPC::Decoding {
     depth = 0;
     try {
       json txObj;
+      if (!request.contains("params")) throw DynamicException("eth_estimateGas require params");
       if (request["params"].is_array()) {
         txObj = request["params"].at(0);
         if (request["params"].size() > 1) {
@@ -436,7 +467,10 @@ namespace JsonRPC::Decoding {
 
   void eth_gasPrice(const json& request) {
     try {
-      if (!request["params"].empty()) throw DynamicException("eth_gasPrice does not need params");
+      // No params are needed.
+      if (request.contains("params")) {
+        if (!request["params"].empty()) throw DynamicException("eth_gasPrice does not need params");
+      }
     } catch (std::exception& e) {
       Logger::logToDebug(LogType::ERROR, Log::JsonRPCDecoding, __func__,
         std::string("Error while decoding eth_gasPrice: ") + e.what()
@@ -456,6 +490,7 @@ namespace JsonRPC::Decoding {
       uint64_t toBlock = ContractGlobals::getBlockHeight(); // "latest" by default
       auto address = Address();  // Empty by default
       std::vector<Hash> topics = {}; // Empty by default
+      if (!request.contains("params")) throw DynamicException("eth_getLogs require params");
       json logsObject = request["params"].at(0);
 
       if (logsObject.contains("blockHash")) {
@@ -524,6 +559,7 @@ namespace JsonRPC::Decoding {
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getBalance require params");
       const auto address = request["params"].at(0).get<std::string>();
       const auto block = request["params"].at(1).get<std::string>();
       if (block != "latest") {
@@ -549,6 +585,7 @@ namespace JsonRPC::Decoding {
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getTransactionCount require params");
       const auto address = request["params"].at(0).get<std::string>();
       const auto block = request["params"].at(1).get<std::string>();
       if (block != "latest") {
@@ -574,6 +611,7 @@ namespace JsonRPC::Decoding {
     static const std::regex addFilter("^0x[0-9,a-f,A-F]{40}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getCode require params");
       const auto address = request["params"].at(0).get<std::string>();
       const auto block = request["params"].at(1).get<std::string>();
       if (block != "latest") {
@@ -597,6 +635,7 @@ namespace JsonRPC::Decoding {
 
   TxBlock eth_sendRawTransaction(const json& request, const uint64_t& requiredChainId) {
     try {
+      if (!request.contains("params")) throw DynamicException("eth_sendRawTransaction require params");
       const auto txHex = request["params"].at(0).get<std::string>();
       if (!Hex::isValid(txHex, true)) throw DynamicException("Invalid transaction hex");
       return TxBlock(Hex::toBytes(txHex), requiredChainId);
@@ -611,6 +650,7 @@ namespace JsonRPC::Decoding {
   Hash eth_getTransactionByHash(const json& request) {
     static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getTransactionByHash require params");
       const auto hash = request["params"].at(0).get<std::string>();
       if (!std::regex_match(hash, hashFilter)) throw DynamicException("Invalid hash hex");
       return Hash(Hex::toBytes(hash));
@@ -626,6 +666,7 @@ namespace JsonRPC::Decoding {
     static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getTransactionByBlockHashAndIndex require params");
       std::string blockHash = request["params"].at(0).get<std::string>();
       std::string index = request["params"].at(1).get<std::string>();
       if (!std::regex_match(blockHash, hashFilter)) throw DynamicException("Invalid blockHash hex");
@@ -646,6 +687,7 @@ namespace JsonRPC::Decoding {
   ) {
     static const std::regex numFilter("^0x([1-9a-f]+[0-9a-f]*|0)$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getTransactionByBlockNumberAndIndex require params");
       std::string blockNum = request["params"].at(0).get<std::string>();
       std::string index = request["params"].at(1).get<std::string>();
       if (!std::regex_match(index, numFilter)) throw DynamicException("Invalid index hex");
@@ -669,6 +711,7 @@ namespace JsonRPC::Decoding {
   Hash eth_getTransactionReceipt(const json& request) {
     static const std::regex hashFilter("^0x[0-9,a-f,A-F]{64}$");
     try {
+      if (!request.contains("params")) throw DynamicException("eth_getTransactionReceipt require params");
       std::string txHash = request["params"].at(0).get<std::string>();
       if (!std::regex_match(txHash, hashFilter)) throw DynamicException("Invalid Hex: " + txHash);
       return Hash(Hex::toBytes(txHash));

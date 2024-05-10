@@ -52,7 +52,7 @@ class State : Dumpable {
      * @param blockHash The hash of the block being processed.
      * @param txIndex The index of the transaction inside the block that is being processed.
      */
-    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex);
+    void processTransaction(const TxBlock& tx, const Hash& blockHash, const uint64_t& txIndex, const Hash& randomnessHash);
 
     /**
      * Update the mempool, remove transactions that are in the given block, and leave only valid transactions in it.
@@ -117,7 +117,11 @@ class State : Dumpable {
      */
     uint64_t getNativeNonce(const Address& addr) const;
 
-    std::unordered_map<Hash, TxBlock, SafeHash> getMempool() const; ///< Getter for `mempool_`. Returns a copy.
+    /**
+     * Get a copy of the mempool (as a vector).
+     * @return A vector with all transactions in the mempool.
+     */
+    std::vector<TxBlock> getMempool() const;
 
     /// Get the mempool's current size.
     inline size_t getMempoolSize() const {
@@ -141,12 +145,6 @@ class State : Dumpable {
      * @throw DynamicException if block is invalid.
      */
     void processNextBlock(FinalizedBlock&& block);
-
-    /**
-     * Fill a block with all transactions currently in the mempool. DOES NOT FINALIZE THE BLOCK.
-     * @param block The block to fill.
-     */
-    void fillBlockWithTransactions(MutableBlock& block) const;
 
     /**
      * Verify if a transaction can be accepted within the current state.

@@ -106,6 +106,7 @@ namespace P2P {
     return txs;
   }
 
+  // FIXME/TODO: This duplication is pointless; Make it into one template or get rid of it.
   template<typename TxType>
   void txsToMessage(Bytes& message, const std::unordered_map<Hash, TxType, SafeHash>& txs) {
     for (const auto& [txHash, tx] : txs) {
@@ -114,6 +115,15 @@ namespace P2P {
       message.insert(message.end(), rlp.begin(), rlp.end());
     }
   }
+  template<typename TxType>
+  void txsToMessage(Bytes& message, const std::vector<TxType>& txs) {
+    for (const auto& tx : txs) {
+      Bytes rlp = tx.rlpSerialize();
+      Utils::appendBytes(message, Utils::uint32ToBytes(rlp.size()));
+      message.insert(message.end(), rlp.begin(), rlp.end());
+    }
+  }
+
   std::vector<FinalizedBlock> blocksFromMessage(const BytesArrView& data, const uint64_t& requiredChainId) {
     std::vector<FinalizedBlock> blocks;
     size_t index = 0;
@@ -296,7 +306,7 @@ namespace P2P {
   }
 
   Message AnswerEncoder::requestTxs(const Message& request,
-    const std::unordered_map<Hash, TxBlock, SafeHash>& txs
+    const std::vector<TxBlock>& txs
   ) {
     Bytes message = getRequestTypePrefix(Answering);
     Utils::appendBytes(message, request.id());

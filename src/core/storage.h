@@ -10,7 +10,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include <shared_mutex>
 
-#include "../utils/mutableblock.h"
 #include "../utils/db.h"
 #include "../utils/ecdsa.h"
 #include "../utils/randomgen.h"

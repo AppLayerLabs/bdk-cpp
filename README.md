@@ -20,7 +20,7 @@
             alt="chat on Telegram"></a>
 </p>
 
-Sparq subnet source code. [See the docs](https://github.com/AppLayer/sparq-docs) for a more thorough look at the project.
+AppLayer's BDK source code. [See the docs](https://github.com/AppLayer/sparq-docs) for a more thorough look at the project.
 
 If you are a developer, fill this form out for free support and additional incentives: https://forms.gle/m83ceG3XoJY3fpwU9
 
@@ -38,7 +38,7 @@ The project has a Dockerfile at the root of the repository that will build the p
   * **For Linux/Mac**: `sudo docker run -it -v $(pwd):/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
   * **For Windows**: `docker run -it -v %cd%:/bdk-volume -p 8080-8099:8080-8099 -p 8110-8111:8110-8111 bdk-cpp-dev:latest`
 
-Remember that we are using our local SDK repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
+Remember that we are using our local repo as a volume, so every change in the local folder will be reflected to the container in real time, and vice-versa.
 
 Also, you can integrate the container with your favorite IDE or editor, e.g. [VSCode + Docker extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker).
 
@@ -48,25 +48,32 @@ Install the following dependencies on your system:
 
 * **GCC** with support for **C++23** or higher
 * **CMake 3.19.0** or higher
-* **Boost 1.74** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
+* **Boost 1.83** or higher (components: *chrono, filesystem, program-options, system, thread, nowide*)
 * **OpenSSL 1.1.1**
 * **CryptoPP 8.2.0** or higher
 * **libscrypt**
 * **zlib**
 * **libsnappy** for database compression
 * (optional) **clang-tidy** for linting
+* (optional) **mold** for faster/better linking
 
-If building with AvalancheGo support, you'll also need:
+The versions of those dependencies should suffice out-of-the-box for at least the following distros (or greater, including their derivatives):
 
-* **Abseil (absl)**
-* **libc-ares**
-* **Protobuf 3.12** or higher
-* **gRPC**
+* **Debian 13 (Trixie)**
+* **Ubuntu 24.04 LTS (Noble Numbat)**
+* **Linux Mint 22 (Wilma)**
+* **Fedora 40**
+* Any rolling release distro from around **May 2024** onwards (check their repos to be sure)
 
-### One-liners
+For older distros, you may need to compile some dependencies from source (specifically CMake and Boost). Make sure to uninstall them from the system first to prevent any version conflicts.
 
-For **Debian 12 Bookworm or newer**:
-* `sudo apt install build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libboost-all-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev libscrypt-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc`
+#### One-liners
+
+* For APT-based distros:
+
+```bash
+sudo apt install git build-essential cmake mold tmux clang-tidy autoconf libtool pkg-config libboost-all-dev libcrypto++-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl
+```
 
 ## Documentation
 
@@ -133,8 +140,9 @@ Nodes are all deployed on the same machine, under the following ports and tmux s
 | local_testnet_validator4 | Validator | 8084     | 8093      | 0x856aeb3b9c20a80d1520a2406875f405d336e09475f43c478eb4f0dafb765fe7 |
 | local_testnet_validator5 | Validator | 8085     | 8094      | 0x81f288dd776f4edfe256d34af1f7d719f511559f19115af3e3d692e741faadc6 |
 | local_testnet_normal1    | Normal    | 8086     | 8095      | XXXX                                                               |
-| local_testnet_normal2    | Normal | 8087     | 8096      | XXXX |
-| local_testnet_normal3    | Normal | 8088     | 8097      | XXXX |
-| local_testnet_normal4    | Normal | 8089     | 8098      | XXXX |
-| local_testnet_normal5    | Normal | 8110     | 8099      | XXXX |
-| local_testnet_normal6    | Normal | 8111     | 8100      | XXXX |
+| local_testnet_normal2    | Normal    | 8087     | 8096      | XXXX                                                               |
+| local_testnet_normal3    | Normal    | 8088     | 8097      | XXXX                                                               |
+| local_testnet_normal4    | Normal    | 8089     | 8098      | XXXX                                                               |
+| local_testnet_normal5    | Normal    | 8110     | 8099      | XXXX                                                               |
+| local_testnet_normal6    | Normal    | 8111     | 8100      | XXXX                                                               |
+

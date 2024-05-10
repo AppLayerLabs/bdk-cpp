@@ -22,6 +22,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 SET(DEBUG ON CACHE BOOL "Debug mode")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # Always look for static libraries - "ZLIB_USE_STATIC_LIBS" was added in 3.24
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
+
+# Set compiler flags
 if(DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -g -fsanitize=address -fno-inline -fno-eliminate-unused-debug-types -fstack-protector") # Provides faster compile time.
 elseif(SONARQUBE_ANALYSIS)
@@ -29,9 +34,11 @@ elseif(SONARQUBE_ANALYSIS)
 else()
   set(CMAKE_CXX_FLAGS "-O2 -Werror=unused-variable")
 endif()
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # Always look for static libraries - "ZLIB_USE_STATIC_LIBS" was added in 3.24
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # For clang-tidy
+find_program(MOLD "mold") # Use mold by default if it is installed
+if(MOLD)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=mold")
+endif()
+
 # Set project version inside the code (forcefully so changes in the .in file are always reflected correctly to the compiler)
 # if (EXISTS ${CMAKE_SOURCE_DIR}/src/utils/options.h)
 #   file(REMOVE ${CMAKE_SOURCE_DIR}/src/utils/options.h)

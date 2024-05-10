@@ -33,6 +33,7 @@ set(CONTRACT_HEADERS
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.h
   ${CMAKE_SOURCE_DIR}/src/contract/templates/testThrowVars.h
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/randomnesstest.h
   PARENT_SCOPE
 )
 
@@ -59,6 +60,7 @@ set(CONTRACT_SOURCES
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestB.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/throwtestC.cpp
   ${CMAKE_SOURCE_DIR}/src/contract/templates/testThrowVars.cpp
+  ${CMAKE_SOURCE_DIR}/src/contract/templates/randomnesstest.cpp
   PARENT_SCOPE
 )
 

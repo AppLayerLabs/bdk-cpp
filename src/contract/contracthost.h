@@ -40,6 +40,11 @@
  * Any EVM Contract: 100000
  * Any CPP Contract: 50000
  */
+
+// Address for static BDKD precompile contracts.
+using namespace evmc::literals;
+const auto BDK_PRECOMPILE = 0x1000000000000000000000000000100000000001_address;
+
 class ContractHost : public evmc::Host {
   private:
     // We need this because nested calls can call the same contract multiple times
@@ -63,6 +68,7 @@ class ContractHost : public evmc::Host {
     EventManager& eventManager_;
     const Storage& storage_;
     mutable ContractStack stack_;
+    mutable RandomGen randomGen_; // Random generator for the contract.
     const evmc_tx_context& currentTxContext_; // MUST be initialized within the constructor.
     std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts_;
     std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts_;
@@ -104,11 +110,15 @@ class ContractHost : public evmc::Host {
 
     void createEVMContract(const evmc_message& msg, const Address& contractAddr);
 
+
+    evmc::Result processBDKPrecompile(const evmc_message& msg) const;
+
   public:
     ContractHost(evmc_vm* vm,
                  DumpManager& manager,
                  EventManager& eventManager,
                  const Storage& storage,
+                 const Hash& randomnessSeed,
                  const evmc_tx_context& currentTxContext,
                  std::unordered_map<Address, std::unique_ptr<BaseContract>, SafeHash>& contracts,
                  std::unordered_map<Address, NonNullUniquePtr<Account>, SafeHash>& accounts,
@@ -122,6 +132,7 @@ class ContractHost : public evmc::Host {
     manager_(manager),
     eventManager_(eventManager),
     storage_(storage),
+    randomGen_(randomnessSeed),
     currentTxContext_(currentTxContext),
     contracts_(contracts),
     accounts_(accounts),
@@ -793,6 +804,10 @@ class ContractHost : public evmc::Host {
     void registerNewCPPContract(const Address& addr, BaseContract* contract);
     void registerNewEVMContract(const Address& addr, const uint8_t* code, size_t codeSize);
     void registerVariableUse(SafeBase& variable);
+
+    uint256_t getRandomValue() const {
+      return this->randomGen_.operator()();
+    }
     /// END OF CONTRACT INTERFACING FUNCTIONS
 
 };

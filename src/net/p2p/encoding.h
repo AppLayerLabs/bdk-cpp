@@ -390,7 +390,7 @@ namespace P2P {
        * @return The formatted answer.
        */
       static Message requestTxs(const Message& request,
-        const std::unordered_map<Hash, TxBlock, SafeHash>& txs
+        const std::vector<TxBlock>& txs
       );
 
       /**
