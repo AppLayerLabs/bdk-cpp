@@ -22,15 +22,16 @@ See the LICENSE.txt file in the project root for more information.
 
 /// Namespace for accessing database prefixes.
 namespace DBPrefix {
-const Bytes blocks =          { 0x00, 0x01 }; ///< "blocks" = "0001"
-const Bytes blockHeightMaps = { 0x00, 0x02 }; ///< "blockHeightMaps" = "0002"
-const Bytes nativeAccounts =  { 0x00, 0x03 }; ///< "nativeAccounts" = "0003"
-const Bytes txToBlocks =      { 0x00, 0x04 }; ///< "txToBlocks" = "0004"
-const Bytes rdPoS =           { 0x00, 0x05 }; ///< "rdPoS" = "0005"
-const Bytes contracts =       { 0x00, 0x06 }; ///< "contracts" = "0006"
-const Bytes contractManager = { 0x00, 0x07 }; ///< "contractManager" = "0007"
-const Bytes events =          { 0x00, 0x08 }; ///< "events" = "0008"
-const Bytes vmStorage =         { 0x00, 0x09 }; ///< "evmHost" = "0009"
+  const Bytes blocks =          { 0x00, 0x01 }; ///< "blocks" = "0001"
+  const Bytes blockHeightMaps = { 0x00, 0x02 }; ///< "blockHeightMaps" = "0002"
+  const Bytes nativeAccounts =  { 0x00, 0x03 }; ///< "nativeAccounts" = "0003"
+  const Bytes txToBlocks =      { 0x00, 0x04 }; ///< "txToBlocks" = "0004"
+  const Bytes rdPoS =           { 0x00, 0x05 }; ///< "rdPoS" = "0005"
+  const Bytes contracts =       { 0x00, 0x06 }; ///< "contracts" = "0006"
+  const Bytes contractManager = { 0x00, 0x07 }; ///< "contractManager" = "0007"
+  const Bytes events =          { 0x00, 0x08 }; ///< "events" = "0008"
+  const Bytes vmStorage =       { 0x00, 0x09 }; ///< "evmHost" = "0009"
+  const Bytes txToAddr =        { 0x00, 0x0A }; ///< "txToAddr" = "000A"
 };
 
 /// Struct for a database connection/endpoint.
