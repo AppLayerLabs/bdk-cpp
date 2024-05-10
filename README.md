@@ -55,6 +55,7 @@ Install the following dependencies on your system:
 * **zlib**
 * **libsnappy** for database compression
 * (optional) **clang-tidy** for linting
+* (optional) **mold** for faster/better linking
 
 The versions of those dependencies should suffice out-of-the-box for at least the following distros (or greater, including their derivatives):
 
@@ -71,7 +72,7 @@ For older distros, you may need to compile some dependencies from source (specif
 * For APT-based distros:
 
 ```bash
-sudo apt install git build-essential cmake tmux clang-tidy autoconf libtool pkg-config libboost-all-dev libcrypto++-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl
+sudo apt install git build-essential cmake mold tmux clang-tidy autoconf libtool pkg-config libboost-all-dev libcrypto++-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl
 ```
 
 ## Documentation
