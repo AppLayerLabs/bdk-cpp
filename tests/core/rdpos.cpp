@@ -672,8 +672,13 @@ namespace TRdPoS {
 
     // When consensus is running, we can just wait for the blocks to be created.
     auto rdPoSBlockFuture = std::async(std::launch::async, [&]() {
+      uint64_t targetLatestHeight = 1;
       while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        // TODO: There needs to be a big sleep here to make this test work across most machines (the slower the
+        //       machine, the bigger the sleep has to be here).
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
         // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
         // otherwise it will sleep forever
         Address targetOfTransactions(Utils::randBytes(20));
@@ -689,11 +694,40 @@ namespace TRdPoS {
               chainOwnerPrivKey);
         blockchainWrapper1.p2p.broadcastTxBlock(tx);
         blockchainWrapper1.state.addTx(std::move(tx));
+
+        /* This is not sufficient to remove the sleep() above, unfortunately.
+        // Block height has to advance in lockstep across all nodes before issuing the next transaction.
+        while
+        (
+          blockchainWrapper1.storage.latest()->getNHeight() != targetLatestHeight &&
+          blockchainWrapper2.storage.latest()->getNHeight() != targetLatestHeight &&
+          blockchainWrapper3.storage.latest()->getNHeight() != targetLatestHeight &&
+          blockchainWrapper4.storage.latest()->getNHeight() != targetLatestHeight &&
+          blockchainWrapper5.storage.latest()->getNHeight() != targetLatestHeight &&
+          blockchainWrapper6.storage.latest()->getNHeight() != targetLatestHeight &&
+          blockchainWrapper7.storage.latest()->getNHeight() != targetLatestHeight &&
+          blockchainWrapper8.storage.latest()->getNHeight() != targetLatestHeight
+        )
+        {
+          std::cout
+          << targetLatestHeight
+          << blockchainWrapper1.storage.latest()->getNHeight()
+          << blockchainWrapper2.storage.latest()->getNHeight()
+          << blockchainWrapper3.storage.latest()->getNHeight()
+          << blockchainWrapper4.storage.latest()->getNHeight()
+          << blockchainWrapper5.storage.latest()->getNHeight()
+          << blockchainWrapper6.storage.latest()->getNHeight()
+          << blockchainWrapper7.storage.latest()->getNHeight()
+          << blockchainWrapper8.storage.latest()->getNHeight()
+          << std::endl;
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        ++targetLatestHeight;
+        */
       }
     });
 
-    REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
-
+    REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(60)) != std::future_status::timeout);
 
     blockchainWrapper1.consensus.stop();
     blockchainWrapper2.consensus.stop();
