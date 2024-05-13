@@ -6,6 +6,7 @@ See the LICENSE.txt file in the project root for more information.
 */
 
 #include "client.h"
+#include "managerbase.h"
 
 namespace P2P {
   void ClientFactory::createClientSession(const boost::asio::ip::address &address, const unsigned short &port) {

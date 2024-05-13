@@ -101,16 +101,20 @@ namespace P2P {
   void ManagerBase::start() {
     std::scoped_lock lock(this->stateMutex_);
     if (this->started_) return;
-    this->started_ = true;
     this->threadPool_ = std::make_unique<BS::thread_pool_light>(std::thread::hardware_concurrency() * 4);
     this->server_.start();
     this->clientfactory_.start();
+    this->started_ = true;
   }
 
   void ManagerBase::stop() {
-    std::scoped_lock lock(this->stateMutex_);
-    if (! this->started_) return;
-    this->started_ = false;
+    // Only stop if started
+    {
+      std::scoped_lock lock(this->stateMutex_);
+      if (!this->started_ || this->stopping_) return;
+      this->stopping_ = true;
+    }
+    // Close all our peer connections
     {
       std::unique_lock lock(this->sessionsMutex_);
       for (auto it = sessions_.begin(); it != sessions_.end();) {
@@ -119,9 +123,28 @@ namespace P2P {
         if (auto sessionPtr = session.lock()) sessionPtr->close();
       }
     }
-    this->server_.stop();
-    this->clientfactory_.stop();
-    this->threadPool_.reset();
+    // We can't call any server/client stop() method while holding a write lock to the stateMutex_,
+    //   since the stateMutex_ is locked by the network/session threads to do ManagerBase::asyncHandleMessage()
+    //   which also does lock it (to access the threadPool_). If those threads are locked out due to a write
+    //   lock, we can't join() them here.
+    // The stopping_ flag will protect against multiple threads calling this method for whatever reason.
+    // NOTE: The shared_lock here may be unnecessary.
+    {
+      std::shared_lock lock(this->stateMutex_);
+      this->server_.stop();
+      this->clientfactory_.stop();
+    }
+    // Finally, collect the threadpool and mark the P2P engine as fully stopped
+    {
+      std::scoped_lock lock (this->stateMutex_);
+
+      // This needs to be inside the write lock. NOTE: It may be a better idea to have an extra mutex
+      //   that is exclusive to threadPool_.
+      this->threadPool_.reset();
+
+      this->started_ = false;
+      this->stopping_ = false;
+    }
   }
 
   void ManagerBase::asyncHandleMessage(const NodeID &nodeId, const std::shared_ptr<const Message> message) {

@@ -55,6 +55,11 @@ void Utils::safePrint(std::string_view str) {
   std::cout << str << std::endl;
 }
 
+void Utils::safePrintTest(std::string_view str) {
+  std::lock_guard lock(cout_mutex);
+  std::cout << str << std::endl;
+}
+
 Hash Utils::sha3(const BytesArrView input) {
   ethash_hash256 h = ethash_keccak256(input.data(), input.size());
   BytesArr<32> ret;
