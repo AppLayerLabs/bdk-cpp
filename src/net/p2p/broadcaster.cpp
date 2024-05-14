@@ -48,41 +48,23 @@ namespace P2P {
   void Broadcaster::handleBlockBroadcast(
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
-
-    // FIXME/TODO: This is not optimal. Concurrency control should be (ideally) e.g. encapsulated
-    //             in a new class that should contain a State and a Storage,
-    //             and expose an interface for both components that will handle concurrency
-    //             control internally. That will also avoid passing around both State and 
-    //             Storage objects separately to every object that needs to interact with them.
-    //
-    // We require a lock here because validateNextBlock **throws** if the block is invalid.
-    // The reason for locking because for that a processNextBlock race condition can occur,
-    // making the same block be accepted, and then rejected, disconnecting the node.
-
-    // Note that block broadcasts already have an implicit "duplicate detection" mechanism:
-    //   we are not forwarding, to the network, blocks that we already have in storage.
-
-    bool rebroadcast = false;
     try {
       auto block = BroadcastDecoder::broadcastBlock(*message, getOptions().getChainID());
-      std::unique_lock lock(this->blockBroadcastMutex_);
-      // Assuming that if the block has been seen, then it is completely irrelevant to us
-      if (! this->storage_.blockExists(block.getHash())) {
-        const auto expectedHeight = this->storage_.latest()->getNHeight() + 1;
-        // process and connect the block if it is the expected one 
-        if (block.getNHeight() == expectedHeight) {
-          // This first validates the block and throws if it is invalid.
+      // If we already have the block, then this message is guaranteed irrelevant
+      if (!this->storage_.blockExists(block.getHash())) {
+        // We don't have it, so check if there's a chance it will connect to our blockchain (current height + 1)
+        if (block.getNHeight() == this->storage_.latest()->getNHeight() + 1) {
+          // processNextBlock() might fail to validate the block if there is a race condition in incoming
+          //  block broadcasts, but that's fine. In that case, the block won't be broadcast and we will get
+          //  a "wrong block height" exception from State::ValidateNextBlockInternal() logged, which is
+          //  harmless. The winning thread will pass the processNextBlock() call and broadcast the block.
           this->state_.processNextBlock(std::move(block));
-          rebroadcast = true;
-        } else if (block.getNHeight() >= expectedHeight - 2) {
-          // If the block is at least latest()->getNHeight() - 1, then we should still rebroadcast it
-          rebroadcast = true;
+          this->broadcastMessage(message, nodeId);
         }
       }
     } catch (std::exception const& ex) {
       throw DynamicException("Invalid blockBroadcast (" + std::string(ex.what()) + ")");
     }
-    if (rebroadcast) this->broadcastMessage(message, nodeId);
   }
 
   void Broadcaster::handleBroadcast(

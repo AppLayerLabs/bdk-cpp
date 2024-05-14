@@ -37,17 +37,9 @@ namespace P2P {
    */
   class Broadcaster {
     private:
-      ManagerNormal& manager_;  ///< Reference to the P2P engine object that owns this.
-
+      ManagerNormal& manager_; ///< Reference to the P2P engine object that owns this.
       const Storage& storage_; ///< Reference to the blockchain's storage.
       State& state_; ///< Reference to the blockchain's state.
-
-      /// Mutex for managing read/write access to block broadcasts.
-      /// FIXME: this needs to be removed; concurrency control should be isolated in e.g. a 
-      ///        State/Storage combined concept.
-      std::mutex blockBroadcastMutex_;
-
-      mutable std::shared_mutex stateMutex_; ///< Mutex for serializing all inner state and requests to it.
 
       const Options& getOptions(); ///< Get the Options object from the P2P engine that owns this Broadcaster.
 

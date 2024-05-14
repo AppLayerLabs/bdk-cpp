@@ -304,7 +304,7 @@ std::vector<TxBlock> State::getMempool() const {
   return mempoolCopy;
 }
 
-bool State::validateNextBlock(const FinalizedBlock& block) const {
+bool State::validateNextBlockInternal(const FinalizedBlock& block) const {
   /**
    * Rules for a block to be accepted within the current state
    * Block nHeight must match latest nHeight + 1
@@ -348,7 +348,6 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
     return false;
   }
 
-  std::shared_lock verifyingBlockTxs(this->stateMutex_);
   for (const auto& tx : block.getTxs()) {
     if (!isTxStatusValid(this->validateTransactionInternal(tx))) {
       std::cout << "Transaction " << tx.hash().hex().get() << " within block is invalid" << std::endl;
@@ -365,16 +364,21 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
   return true;
 }
 
+bool State::validateNextBlock(const FinalizedBlock& block) const {
+  std::shared_lock lock(this->stateMutex_);
+  return validateNextBlockInternal(block);
+}
+
 void State::processNextBlock(FinalizedBlock&& block) {
+  std::unique_lock lock(this->stateMutex_);
+
   // Sanity check - if it passes, the block is valid and will be processed
-  if (!this->validateNextBlock(block)) {
+  if (!this->validateNextBlockInternal(block)) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Sanity check failed - blockchain is trying to append a invalid block, throwing"
     );
     throw DynamicException("Invalid block detected during processNextBlock sanity check");
   }
-
-  std::unique_lock lock(this->stateMutex_);
 
   // Update contract globals based on (now) latest block
   const Hash blockHash = block.getHash();

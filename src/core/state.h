@@ -46,6 +46,16 @@ class State : Dumpable {
     TxStatus validateTransactionInternal(const TxBlock& tx) const;
 
     /**
+     * Validate the next block given the current state and its transactions. Does NOT update the state.
+     * The block will be rejected if there are invalid transactions in it
+     * (e.g. invalid signature, insufficient balance, etc.).
+     * NOTE: This method does not perform synchronization.
+     * @param block The block to validate.
+     * @return `true` if the block is validated successfully, `false` otherwise.
+     */
+    bool validateNextBlockInternal(const FinalizedBlock& block) const;
+
+    /**
      * Process a transaction within a block. Called by processNextBlock().
      * If the process fails, any state change that this transaction would cause has to be reverted.
      * @param tx The transaction to process.
