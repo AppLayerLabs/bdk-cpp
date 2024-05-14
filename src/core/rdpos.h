@@ -28,6 +28,18 @@ class State;
 // "0x6fc5a2d6" -> Function for random tx
 // "0xcfffe746" -> Function for random hash tx
 
+/// Enum for labeling transaction status.
+enum TxStatus {
+  ValidNew,
+  ValidExisting,
+  InvalidNonce,       // Tx only
+  InvalidBalance,     // Tx only
+  InvalidUnexpected,  // ValidatorTx only
+  InvalidDuplicate,   // ValidatorTx only
+  InvalidRedundant    // ValidatorTx only
+};
+inline bool isTxStatusValid(const TxStatus& txStatus) { return txStatus <= TxStatus::ValidExisting; }
+
 /**
  * Abstraction of a validator, same as Address but different type.
  * Responsible for creating/signing/validating blocks.
@@ -124,7 +136,7 @@ class rdPoS : public BaseContract {
      * @param tx The transaction to add.
      * @return `true` if the transaction was added, `false` if invalid otherwise.
      */
-    bool addValidatorTx(const TxValidator& tx);
+    TxStatus addValidatorTx(const TxValidator& tx);
 
     /**
      * Parse a Validator transaction list.

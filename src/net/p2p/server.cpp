@@ -70,7 +70,6 @@ namespace P2P {
       Logger::logToDebug(LogType::DEBUG, Log::P2PServer, __func__, "Starting " + std::to_string(this->threadCount_) + " threads.");
       for (auto i = this->threadCount_ - 1; i > 0; --i) { v.emplace_back([this] { this->io_context_.run(); }); }
       io_context_.run();
-
       for (auto &t: v) t.join(); // Wait for all threads to exit
       Logger::logToDebug(LogType::DEBUG, Log::P2PServer, __func__, "All threads stopped.");
     } catch ( std::exception &e ) {

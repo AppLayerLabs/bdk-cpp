@@ -10,6 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "managerbase.h"
 #include "nodeconns.h"
+#include "broadcaster.h"
 
 #include <optional>
 
@@ -37,13 +38,6 @@ namespace P2P {
       void handleAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message) override;
 
       /**
-       * Handle a broadcast from a node.
-       * @param session The session that sent the broadcast.
-       * @param message The broadcast message to handle.
-       */
-      void handleBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
-
-      /**
        * Handle a notification from a node.
        * @param session The session that sent the notification.
        * @param message The notification message to handle.
@@ -53,32 +47,17 @@ namespace P2P {
     private:
       P2P::NodeConns nodeConns_; ///< P2P engine's logical peer connection tracking & keepalive component.
 
+      P2P::Broadcaster broadcaster_; ///< P2P engine's multihop networking component.
+
       const Storage& storage_; ///< Reference to the blockchain's storage.
       State& state_; ///< Reference to the blockchain's state.
 
       /**
-       * Map with broadcasted messages and a counter of how many times they were broadcast.
-       * Used to avoid broadcasting the same message multiple times.
+       * Send a message to all connected nodes.
+       * @param message The message to send to all connected nodes (P2P sessions).
+       * @param originalSender Node whose latest known peers won't receive the message from us (optional).
        */
-      std::unordered_map <uint64_t, unsigned int, SafeHash> broadcastedMessages_;
-
-      /// Mutex for managing read/write access to broadcasted messages.
-      std::shared_mutex broadcastMutex_;
-
-      /// Mutex for managing read/write access to block broadcasts.
-      std::mutex blockBroadcastMutex_;
-
-      /**
-       * Broadcast a message to all connected nodes.
-       * @param message The message to broadcast.
-       */
-      void broadcastMessage(const std::shared_ptr<const Message> message);
-
-      /**
-       * Send a notification message to all connected nodes.
-       * @param message The message to notify all connected nodes.
-       */
-      void notifyAllMessage(const std::shared_ptr<const Message> message);
+      void sendMessageToAll(const std::shared_ptr<const Message> message, const std::optional<NodeID>& originalSender);
 
       /**
        * Handle a `Ping` request.
@@ -165,34 +144,6 @@ namespace P2P {
       void handleRequestBlockAnswer(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
 
       /**
-       * Handle a Validator transaction broadcast message.
-       * @param session The node that sent the broadcast.
-       * @param message The message that was broadcast.
-       */
-      void handleTxValidatorBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
-
-      /**
-       * Handle a block transaction broadcast message.
-       * @param session The node that sent the broadcast.
-       * @param message The message that was broadcast.
-       */
-      void handleTxBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
-
-      /**
-       * Handle a block broadcast message.
-       * @param session The node that sent the broadcast.
-       * @param message The message that was broadcast.
-       */
-      void handleBlockBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
-
-      /**
-       * Handle a info broadcast message.
-       * @param session The node that sent the broadcast.
-       * @param message The message that was broadcast.
-       */
-      void handleInfoBroadcast(const NodeID &nodeId, const std::shared_ptr<const Message>& message);
-
-      /**
        * Handle a info notification message.
        * @param session The node that sent the notification.
        * @param message The notification message to handle.
@@ -210,20 +161,26 @@ namespace P2P {
       ManagerNormal(
         const boost::asio::ip::address& hostIp, const Options& options, const Storage& storage, State& state
       ) : ManagerBase(hostIp, NodeType::NORMAL_NODE, options, options.getMinNormalConns(), options.getMaxNormalConns()),
-        storage_(storage), state_(state), nodeConns_(*this)
+        storage_(storage), state_(state), nodeConns_(*this), broadcaster_(*this, storage, state)
       {}
-
-      /// Destructor. Automatically stops the manager.
-      ~ManagerNormal() { this->stop(); }
 
       /// Get a reference to the NodeConns component.
       P2P::NodeConns& getNodeConns() { return this->nodeConns_; }
 
+      /// Get a reference to the Broadcaster component.
+      P2P::Broadcaster& getBroadcaster() { return this->broadcaster_; }
+
       /// Start the P2P engine
-      virtual void start() { ManagerBase::start(); nodeConns_.start(); }
+      virtual void start() override {
+        ManagerBase::start();
+        nodeConns_.start();
+      }
 
       /// Stop the P2P engine
-      virtual void stop() { nodeConns_.stop(); ManagerBase::stop(); }
+      virtual void stop() override {
+        nodeConns_.stop();
+        ManagerBase::stop();
+      }
 
       /**
        * Handle a message from a session. Entry point for all the other handlers.
@@ -254,12 +211,14 @@ namespace P2P {
       NodeInfo requestNodeInfo(const NodeID& nodeId);
 
       /**
-       * Request a block to a peer.
+       * Request blocks to a peer.
        * @param nodeId The ID of the node to request.
-       * @param height The block height to request.
+       * @param height The start block height to request.
+       * @param heightEnd The end block height to request.
+       * @param bytesLimit The maximum amount of bytes to return in block data (minimum: 1 block).
        * @return The requested block, or an empty optional on error.
        */
-      std::optional<FinalizedBlock> requestBlock(const NodeID& nodeId, const uint64_t& height);
+      std::vector<FinalizedBlock> requestBlock(const NodeID& nodeId, const uint64_t& height, const uint64_t& heightEnd, const uint64_t& bytesLimit);
 
       /**
        * Broadcast a Validator transaction to all connected nodes.
@@ -280,14 +239,11 @@ namespace P2P {
       void broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
 
       /**
-       * Broadcast current node info
-       */
-      void broadcastInfo();
-
-      /**
        * Notify all connected peers of our current node info
        */
       void notifyAllInfo();
+
+      friend class Broadcaster;
   };
 };
 

@@ -28,7 +28,7 @@ namespace P2P {
       const unsigned int minConnections_; ///< Minimum number of simultaneous connections. @see DiscoveryWorker
       const unsigned int maxConnections_; ///< Maximum number of simultaneous connections.
       std::atomic<bool> started_ = false; ///< Check if manager is in the start() state (stop() not called yet).
-      std::atomic<bool> closed_ = true; ///< Indicates whether the manager is closed to new connections.
+      std::atomic<bool> stopping_ = false; ///< Indicates whether the manager is in the process of stopping.
       std::unique_ptr<BS::thread_pool_light> threadPool_; ///< Pointer to the thread pool.
       const Options& options_; /// Reference to the options singleton.
       mutable std::shared_mutex stateMutex_; ///< Mutex for serializing start(), stop(), and threadPool_.
@@ -110,7 +110,10 @@ namespace P2P {
       {};
 
       /// Destructor. Automatically stops the manager.
-      ~ManagerBase() { this->stopDiscovery(); this->stop(); };
+      virtual ~ManagerBase() { this->stopDiscovery(); this->stop(); };
+
+      const Options& getOptions() { return this->options_; } ///< Get a reference to the Options object given to the P2P engine.
+
       virtual void start(); ///< Start P2P::Server and P2P::ClientFactory.
       virtual void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.
 
@@ -132,7 +135,6 @@ namespace P2P {
       const NodeType& nodeType() const { return this->nodeType_; }
       unsigned int maxConnections() const { return this->maxConnections_; }
       unsigned int minConnections() const { return this->minConnections_; }
-      const std::atomic<bool>& isClosed() const { return this->closed_; }
       ///@}
 
       /// Get the size of the session list.

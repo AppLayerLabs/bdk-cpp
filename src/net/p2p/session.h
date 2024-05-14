@@ -80,9 +80,6 @@ namespace P2P {
       /// Handshake flag
       std::atomic<bool> doneHandshake_ = false;
 
-      /// Flag for whether the session is closed.
-      std::atomic<bool> closed_ = false;
-
       /// CLIENT SPECIFIC FUNCTIONS (CONNECTING TO A SERVER)
       /// Connect to a specific endpoint.
       void do_connect();

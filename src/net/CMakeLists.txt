@@ -17,6 +17,7 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/src/net/p2p/managernormal.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/nodeconns.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/broadcaster.h
     PARENT_SCOPE
   )
 
@@ -37,6 +38,7 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/src/net/p2p/managernormal.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/nodeconns.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/broadcaster.cpp
     PARENT_SCOPE
   )
 else()
@@ -58,6 +60,7 @@ else()
     ${CMAKE_SOURCE_DIR}/src/net/p2p/managernormal.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/nodeconns.h
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/broadcaster.h
     PARENT_SCOPE
   )
 
@@ -78,6 +81,7 @@ else()
     ${CMAKE_SOURCE_DIR}/src/net/p2p/managernormal.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/discovery.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/nodeconns.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/p2p/broadcaster.cpp
     PARENT_SCOPE
   )
 endif()

@@ -33,8 +33,8 @@ void Blockchain::start() {
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   // Do initial sync
-  // TODO: This may fail to bring the node up to date if we have poor connectivity at this point.
-  this->syncer_.sync();
+  this->syncer_.sync(100, 20000000); // up to 100 blocks per request, 20MB limit, default connection timeout & retry count
+
   // After Syncing, start the DumpWorker.
   this->state_.dumpStartWorker();
 
@@ -48,7 +48,11 @@ void Blockchain::stop() {
   this->p2p_.stop();
 }
 
-bool Syncer::sync(int tries) {
+bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int waitForPeersSecs, int tries) {
+
+  // Make sure we are requesting at least one block per request.
+  if (blocksPerRequest == 0) blocksPerRequest = 1;
+
   // NOTE: This is a synchronous operation that's (currently) run during note boot only, in the caller (main) thread.
   // TODO: Detect out-of-sync after the intial synchronization on node boot and resynchronize.
 
@@ -66,7 +70,17 @@ bool Syncer::sync(int tries) {
     // Get the node with the highest block height available for download.
     auto connected = this->p2p_.getNodeConns().getConnected();
     if (connected.size() == 0) {
-      // No one to download blocks from. For now, this means synchronization is complete by definition.
+      // No one to download blocks from.
+
+      // While we don't exhaust the waiting-for-a-connection timeout, sleep and try again later.
+      if (waitForPeersSecs-- > 0) {
+        Utils::safePrint("Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
+        Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        continue;
+      }
+
+      // We have timed out waiting for peers, so synchronization is complete.
       Utils::safePrint("Syncer quitting due to no peer connections.");
       Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Syncer quitting due to no peer connections.");
       break;
@@ -85,38 +99,52 @@ bool Syncer::sync(int tries) {
     }
 
     auto downloadNHeight = currentNHeight + 1;
+    auto downloadNHeightEnd = downloadNHeight + blocksPerRequest - 1;
 
     // NOTE: Possible optimizatons:
-    // - Parallel download of different blocks from multiple nodes
+    // - Parallel download of different blocks or block ranges from multiple nodes
     // - Retry slow/failed downloads
     // - Deprioritize download from slow/failed nodes
 
-    // Currently, fetch the next block from a node that is the best node (has the highest block height)
-    Utils::safePrint("Downloading block " + std::to_string(downloadNHeight) + " from " + toString(highestNode.first));
-    Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Downloading block " + std::to_string(downloadNHeight) + " from " + toString(highestNode.first));
+    // Currently, fetch the next batch of block froms a node that is the best node (has the highest block height)
+    std::string dlMsg("Requesting blocks [" + std::to_string(downloadNHeight) + ","  + std::to_string(downloadNHeightEnd)
+                      + "] (" + std::to_string(bytesPerRequestLimit) + " bytes limit) from " + toString(highestNode.first));
+    Utils::safePrint(dlMsg);
+    Logger::logToDebug(LogType::INFO, Log::syncer, __func__, std::move(dlMsg));
 
     // Request the next block we need from the chosen peer
-    std::optional<FinalizedBlock> result = this->p2p_.requestBlock(highestNode.first, downloadNHeight);
+    std::vector<FinalizedBlock> result = this->p2p_.requestBlock(
+      highestNode.first, downloadNHeight, downloadNHeightEnd, bytesPerRequestLimit);
 
     // If the request failed, retry it (unless we set a finite number of tries and we've just run out of them)
-    if (!result) {
+    if (result.size() == 0) {
       if (tries > 0) {
-        if (--tries == 0) return false;
+        --tries;
+        Utils::safePrint("Blocks request failed (" + std::to_string(tries) + " tries left)");
+        Logger::logToDebug(LogType::WARNING, Log::syncer, __func__, "Blocks request failed (" + std::to_string(tries) + " tries left)");
+        if (tries == 0) return false;
       }
+      Utils::safePrint("Blocks request failed, restarting sync");
+      Logger::logToDebug(LogType::WARNING, Log::syncer, __func__, "Blocks request failed, restarting sync");
       continue;
     }
 
-    // Validate and connect the block
+    // Validate and connect the blocks
     try {
-      FinalizedBlock& block = result.value();
-      if (block.getNHeight() != downloadNHeight) {
-        throw DynamicException("Peer sent block with wrong height " + std::to_string(block.getNHeight())
-                                + " instead of " + std::to_string(downloadNHeight));
+      for (auto& block : result) {
+        // Blocks in the response must be all a contiguous range
+        if (block.getNHeight() != downloadNHeight) {
+          throw DynamicException("Peer sent block with wrong height " + std::to_string(block.getNHeight())
+                                  + " instead of " + std::to_string(downloadNHeight));
+        }
+        // This call validates the block first (throws exception if the block invalid).
+        // Note that the "result" vector's element data is being consumed (moved) by this call.
+        this->state_.processNextBlock(std::move(block));
+        std::string procMsg("Processed block " + std::to_string(downloadNHeight) + " from " + toString(highestNode.first));
+        Utils::safePrint(procMsg);
+        Logger::logToDebug(LogType::INFO, Log::syncer, __func__, std::move(procMsg));
+        ++downloadNHeight;
       }
-      this->state_.processNextBlock(std::move(block)); // This call validates the block first (throws exception if the block invalid)
-      Utils::safePrint("Processed block " + std::to_string(downloadNHeight) + " from " + toString(highestNode.first));
-      Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Processed block " + std::to_string(downloadNHeight)
-                          + " from " + toString(highestNode.first));
     } catch (std::exception &e) {
       Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
                          "Invalid RequestBlock Answer from " + toString(highestNode.first) +

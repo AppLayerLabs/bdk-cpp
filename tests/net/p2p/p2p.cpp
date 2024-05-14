@@ -56,7 +56,13 @@ namespace TP2P {
       REQUIRE(blockchainWrapper.p2p.getSessionsIDs().size() == 1);
 
       /// Run blockchainWrapper2's Syncer
-      REQUIRE(blockchainWrapper2.syncer.sync(1)); // Abort on first download failure (which should never happen normally)
+      // - At most "3" blocks per block range request answer
+      // - Limit to "300" bytes per block range request answer
+      // - Don't wait for connections ("0")
+      // - Abort on first download failure (which should never happen normally) ("1")
+      // Since the dummy blocks are (at the time of this writing) 152 bytes long, the "300" limit will kick in
+      //   and blocks will appear in the debug log in batches of 2, not 3 (this is not tested here).
+      REQUIRE(blockchainWrapper2.syncer.sync(3, 300, 0, 1));
       REQUIRE(blockchainWrapper2.storage.latest()->getNHeight() == 10);
     }
 

@@ -7,6 +7,8 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "session.h"
 
+#ifndef CLIENT_H
+#define CLIENT_H
 
 namespace P2P {
   /**
@@ -73,3 +75,5 @@ namespace P2P {
 
   };
 }
+
+#endif

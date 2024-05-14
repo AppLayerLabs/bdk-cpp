@@ -202,7 +202,7 @@ namespace TRdPoS {
       }
       // Append the transactions to the block.
       for (const auto& tx : txValidators) {
-        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
+        REQUIRE(isTxStatusValid(blockchainWrapper1.state.rdposAddValidatorTx(tx)));
       }
 
       // Broadcast the transactions
@@ -230,7 +230,7 @@ namespace TRdPoS {
 
       // Append transactions back to node 1 mempool.
       for (const auto& tx : transactionList) {
-        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
+        REQUIRE(isTxStatusValid(blockchainWrapper1.state.rdposAddValidatorTx(tx)));
       }
 
       // Check that the mempool is the same as before.
@@ -452,7 +452,7 @@ namespace TRdPoS {
       }
       // Append the transactions to the block.
       for (const auto& tx : txValidators) {
-        REQUIRE(blockchainWrapper1.state.rdposAddValidatorTx(tx));
+        REQUIRE(isTxStatusValid(blockchainWrapper1.state.rdposAddValidatorTx(tx)));
       }
 
       // Broadcast transactions to all nodes.
@@ -560,20 +560,6 @@ namespace TRdPoS {
     );
     P2P::ManagerDiscovery p2pDiscovery(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
 
-    // Vector of references for the Consensus Workers
-    // (rdPoS is exclusively owned by State and can't be exposed in any way,
-    // so we have to pass the whole State object to access rdPoS functionality
-    // via wrapper functions from the State)
-    std::vector<std::reference_wrapper<Consensus>> consensusReferences;
-    consensusReferences.emplace_back(blockchainWrapper1.consensus);
-    consensusReferences.emplace_back(blockchainWrapper2.consensus);
-    consensusReferences.emplace_back(blockchainWrapper3.consensus);
-    consensusReferences.emplace_back(blockchainWrapper4.consensus);
-    consensusReferences.emplace_back(blockchainWrapper5.consensus);
-    consensusReferences.emplace_back(blockchainWrapper6.consensus);
-    consensusReferences.emplace_back(blockchainWrapper7.consensus);
-    consensusReferences.emplace_back(blockchainWrapper8.consensus);
-
     // Start servers
     p2pDiscovery.start();
     blockchainWrapper1.p2p.start();
@@ -621,7 +607,6 @@ namespace TRdPoS {
     blockchainWrapper6.p2p.startDiscovery();
     blockchainWrapper7.p2p.startDiscovery();
     blockchainWrapper8.p2p.startDiscovery();
-
 
     auto connectionFuture = std::async(std::launch::async, [&]() {
       while(p2pDiscovery.getSessionsIDs().size() != 8 ||
@@ -672,8 +657,8 @@ namespace TRdPoS {
 
     // When consensus is running, we can just wait for the blocks to be created.
     auto rdPoSBlockFuture = std::async(std::launch::async, [&]() {
+      uint64_t targetLatestHeight = 1;
       while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
         // otherwise it will sleep forever
         Address targetOfTransactions(Utils::randBytes(20));
@@ -687,23 +672,28 @@ namespace TRdPoS {
               1000000000,
               1000000000,
               chainOwnerPrivKey);
+        TxStatus txStatus = blockchainWrapper1.state.addTx(std::move(tx));
+        REQUIRE(isTxStatusValid(txStatus));
         blockchainWrapper1.p2p.broadcastTxBlock(tx);
-        blockchainWrapper1.state.addTx(std::move(tx));
+        // Block height has to advance in lockstep across all nodes before issuing the next transaction.
+        while
+        (
+          blockchainWrapper1.storage.latest()->getNHeight() != targetLatestHeight ||
+          blockchainWrapper2.storage.latest()->getNHeight() != targetLatestHeight ||
+          blockchainWrapper3.storage.latest()->getNHeight() != targetLatestHeight ||
+          blockchainWrapper4.storage.latest()->getNHeight() != targetLatestHeight ||
+          blockchainWrapper5.storage.latest()->getNHeight() != targetLatestHeight ||
+          blockchainWrapper6.storage.latest()->getNHeight() != targetLatestHeight ||
+          blockchainWrapper7.storage.latest()->getNHeight() != targetLatestHeight ||
+          blockchainWrapper8.storage.latest()->getNHeight() != targetLatestHeight
+        )
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        ++targetLatestHeight;
       }
     });
 
-    REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
-
-
-    blockchainWrapper1.consensus.stop();
-    blockchainWrapper2.consensus.stop();
-    blockchainWrapper3.consensus.stop();
-    blockchainWrapper4.consensus.stop();
-    blockchainWrapper5.consensus.stop();
-    blockchainWrapper6.consensus.stop();
-    blockchainWrapper7.consensus.stop();
-    blockchainWrapper8.consensus.stop();
-    // Sleep so it can conclude the last operations.
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(60)) != std::future_status::timeout);
   }
 };

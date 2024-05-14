@@ -174,6 +174,7 @@ class Logger {
      * @param infoToLog The data to log.
      */
     static inline void logToDebug(LogInfo&& infoToLog) noexcept {
+      // TODO: This is commented out because we are generating a large log file.
       //getInstance().postLogTask(std::move(infoToLog));
     }
 
@@ -187,6 +188,7 @@ class Logger {
     static inline void logToDebug(
       LogType type, const std::string& logSrc, std::string&& func, std::string&& message
     ) noexcept {
+      // TODO: This is commented out because we are generating a large log file.
       //auto log = LogInfo(type, logSrc, std::move(func), std::move(message));
       //getInstance().postLogTask(std::move(log));
     }

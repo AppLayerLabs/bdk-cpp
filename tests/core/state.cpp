@@ -815,8 +815,8 @@ namespace TState {
       // The Consensus class should be able to deal with the block creation.
 
       auto stateBlockFuture = std::async(std::launch::async, [&]() {
+        uint64_t targetLatestHeight = 1;
         while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
           // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
           // otherwise it will sleep forever
           Address targetOfTransactions(Utils::randBytes(20));
@@ -830,12 +830,29 @@ namespace TState {
                 1000000000,
                 21000,
                 chainOwnerPrivKey);
+          TxStatus txStatus = blockchainWrapper1.state.addTx(std::move(tx));
+          REQUIRE(isTxStatusValid(txStatus));
           blockchainWrapper1.p2p.broadcastTxBlock(tx);
-          blockchainWrapper1.state.addTx(std::move(tx));
+          // Block height has to advance in lockstep across all nodes before issuing the next transaction.
+          while
+          (
+            blockchainWrapper1.storage.latest()->getNHeight() != targetLatestHeight ||
+            blockchainWrapper2.storage.latest()->getNHeight() != targetLatestHeight ||
+            blockchainWrapper3.storage.latest()->getNHeight() != targetLatestHeight ||
+            blockchainWrapper4.storage.latest()->getNHeight() != targetLatestHeight ||
+            blockchainWrapper5.storage.latest()->getNHeight() != targetLatestHeight ||
+            blockchainWrapper6.storage.latest()->getNHeight() != targetLatestHeight ||
+            blockchainWrapper7.storage.latest()->getNHeight() != targetLatestHeight ||
+            blockchainWrapper8.storage.latest()->getNHeight() != targetLatestHeight
+          )
+          {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+          ++targetLatestHeight;
         }
       });
 
-      REQUIRE(stateBlockFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+      REQUIRE(stateBlockFuture.wait_for(std::chrono::seconds(60)) != std::future_status::timeout);
 
 
       // Sanity check: blocks
@@ -1119,8 +1136,8 @@ namespace TState {
       for (const auto &txSet: txs) {
         std::cout << "Broadcasting txs" << std::endl;
         for (const auto &tx: txSet) {
-          auto txInvalid = blockchainWrapper1.state.addTx(TxBlock(tx));
-          REQUIRE(!txInvalid);
+          auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
+          REQUIRE(isTxStatusValid(txStatus));
           blockchainWrapper1.p2p.broadcastTxBlock(tx);
           targetExpectedValue += tx.getValue();
         }
@@ -1463,8 +1480,8 @@ namespace TState {
         if (tx.hash() != creationHash) {
           targetExpectedValue += 10000000000000000;
         }
-        auto txInvalid = blockchainWrapper1.state.addTx(TxBlock(tx));
-        REQUIRE(!txInvalid);
+        auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
+        REQUIRE(isTxStatusValid(txStatus));
         blockchainWrapper1.p2p.broadcastTxBlock(tx);
         /// Wait for the transactions to be confirmed.
         ///

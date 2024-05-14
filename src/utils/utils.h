@@ -446,10 +446,16 @@ namespace Utils {
   BytesArrView getFunctionArgs(const evmc_message& msg);
 
   /**
-   * Print a string to stdout.
+   * Print a string to stdout. Does not print if in a test.
    * @param str The string to print.
    */
   void safePrint(std::string_view str);
+
+  /**
+   * Print a string to stdout, including if it is in a test.
+   * @param str The string to print.
+   */
+  void safePrintTest(std::string_view str);
 
   /**
    * %Hash a given input using SHA3.

@@ -20,9 +20,6 @@ See the LICENSE.txt file in the project root for more information.
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
 
-/// Enum for labeling transaction validity.
-enum TxInvalid { NotInvalid, InvalidNonce, InvalidBalance };
-
 /// Abstraction of the blockchain's current state at the current block.
 class State : Dumpable {
   private:
@@ -46,7 +43,7 @@ class State : Dumpable {
      * @param tx The transaction to check.
      * @return An enum telling if the block is invalid or not.
      */
-    TxInvalid validateTransactionInternal(const TxBlock& tx) const;
+    TxStatus validateTransactionInternal(const TxBlock& tx) const;
 
     /**
      * Process a transaction within a block. Called by processNextBlock().
@@ -95,7 +92,7 @@ class State : Dumpable {
     void rdposClearMempool() { std::unique_lock lock(this->stateMutex_); return this->rdpos_.clearMempool(); }
     bool rdposValidateBlock(const FinalizedBlock& block) const { std::shared_lock lock(this->stateMutex_); return this->rdpos_.validateBlock(block); }
     Hash rdposProcessBlock(const FinalizedBlock& block) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.processBlock(block); }
-    bool rdposAddValidatorTx(const TxValidator& tx) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.addValidatorTx(tx); }
+    TxStatus rdposAddValidatorTx(const TxValidator& tx) { std::shared_lock lock(this->stateMutex_); return this->rdpos_.addValidatorTx(tx); }
     void dumpStartWorker() { this->dumpWorker_.startWorker(); }
     void dumpStopWorker() { this->dumpWorker_.stopWorker(); }
     size_t getDumpManagerSize() const { std::shared_lock lock(this->stateMutex_); return this->dumpManager_.size(); }
@@ -155,21 +152,21 @@ class State : Dumpable {
      * @param tx The transaction to verify.
      * @return An enum telling if the transaction is valid or not.
      */
-    TxInvalid validateTransaction(const TxBlock& tx) const;
+    TxStatus validateTransaction(const TxBlock& tx) const;
 
     /**
      * Add a transaction to the mempool, if valid.
      * @param tx The transaction to add.
      * @return An enum telling if the transaction is valid or not.
      */
-    TxInvalid addTx(TxBlock&& tx);
+    TxStatus addTx(TxBlock&& tx);
 
     /**
      * Add a Validator transaction to the rdPoS mempool, if valid.
      * @param tx The transaction to add.
      * @return `true` if transaction is valid, `false` otherwise.
      */
-    bool addValidatorTx(const TxValidator& tx);
+    TxStatus addValidatorTx(const TxValidator& tx);
 
     /**
      * Check if a transaction is in the mempool.
