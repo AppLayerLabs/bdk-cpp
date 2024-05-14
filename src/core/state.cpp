@@ -304,7 +304,7 @@ std::vector<TxBlock> State::getMempool() const {
   return mempoolCopy;
 }
 
-bool State::validateNextBlockInternal(const FinalizedBlock& block) const {
+BlockValidationStatus State::validateNextBlockInternal(const FinalizedBlock& block) const {
   /**
    * Rules for a block to be accepted within the current state
    * Block nHeight must match latest nHeight + 1
@@ -321,7 +321,7 @@ bool State::validateNextBlockInternal(const FinalizedBlock& block) const {
       "Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
       + " got " + std::to_string(block.getNHeight())
     );
-    return false;
+    return BlockValidationStatus::invalidWrongHeight;
   }
 
   if (block.getPrevBlockHash() != latestBlock->getHash()) {
@@ -330,7 +330,7 @@ bool State::validateNextBlockInternal(const FinalizedBlock& block) const {
       "Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
       + " got: " + block.getPrevBlockHash().hex().get()
     );
-    return false;
+    return BlockValidationStatus::invalidErroneous;
   }
 
   if (latestBlock->getTimestamp() > block.getTimestamp()) {
@@ -339,13 +339,13 @@ bool State::validateNextBlockInternal(const FinalizedBlock& block) const {
       "Block timestamp is lower than latest block, expected higher than "
       + std::to_string(latestBlock->getTimestamp()) + " got " + std::to_string(block.getTimestamp())
     );
-    return false;
+    return BlockValidationStatus::invalidErroneous;
   }
 
   if (!this->rdpos_.validateBlock(block)) {
     std::cout << "Invalid rdPoS in block" << std::endl;
     Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Invalid rdPoS in block");
-    return false;
+    return BlockValidationStatus::invalidErroneous;
   }
 
   for (const auto& tx : block.getTxs()) {
@@ -354,30 +354,37 @@ bool State::validateNextBlockInternal(const FinalizedBlock& block) const {
       Logger::logToDebug(LogType::ERROR, Log::state, __func__,
         "Transaction " + tx.hash().hex().get() + " within block is invalid"
       );
-      return false;
+      return BlockValidationStatus::invalidErroneous;
     }
   }
 
   Logger::logToDebug(LogType::INFO, Log::state, __func__,
     "Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)"
   );
-  return true;
+  return BlockValidationStatus::valid;
 }
 
 bool State::validateNextBlock(const FinalizedBlock& block) const {
   std::shared_lock lock(this->stateMutex_);
-  return validateNextBlockInternal(block);
+  return validateNextBlockInternal(block) == BlockValidationStatus::valid;
 }
 
 void State::processNextBlock(FinalizedBlock&& block) {
-  std::unique_lock lock(this->stateMutex_);
-
-  // Sanity check - if it passes, the block is valid and will be processed
-  if (!this->validateNextBlockInternal(block)) {
+  if (tryProcessNextBlock(std::move(block)) != BlockValidationStatus::valid) {
     Logger::logToDebug(LogType::ERROR, Log::state, __func__,
       "Sanity check failed - blockchain is trying to append a invalid block, throwing"
     );
     throw DynamicException("Invalid block detected during processNextBlock sanity check");
+  }
+}
+
+BlockValidationStatus State::tryProcessNextBlock(FinalizedBlock&& block) {
+  std::unique_lock lock(this->stateMutex_);
+
+  // Sanity check - if it passes, the block is valid and will be processed
+  BlockValidationStatus vStatus = this->validateNextBlockInternal(block);
+  if (vStatus != BlockValidationStatus::valid) {
+    return vStatus;
   }
 
   // Update contract globals based on (now) latest block
@@ -407,6 +414,7 @@ void State::processNextBlock(FinalizedBlock&& block) {
 
   // Move block to storage
   this->storage_.pushBack(std::move(block));
+  return vStatus; // BlockValidationStatus::valid
 }
 
 TxStatus State::validateTransaction(const TxBlock& tx) const {

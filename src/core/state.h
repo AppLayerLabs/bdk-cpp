@@ -20,6 +20,9 @@ See the LICENSE.txt file in the project root for more information.
 // TODO: We could possibly change the bool functions into an enum function,
 // to be able to properly return each error case. We need this in order to slash invalid rdPoS blocks.
 
+/// Next-block validation status codes.
+enum BlockValidationStatus { valid, invalidWrongHeight, invalidErroneous };
+
 /// Abstraction of the blockchain's current state at the current block.
 class State : Dumpable {
   private:
@@ -51,9 +54,9 @@ class State : Dumpable {
      * (e.g. invalid signature, insufficient balance, etc.).
      * NOTE: This method does not perform synchronization.
      * @param block The block to validate.
-     * @return `true` if the block is validated successfully, `false` otherwise.
+     * @return A status code from BlockValidationStatus.
      */
-    bool validateNextBlockInternal(const FinalizedBlock& block) const;
+    BlockValidationStatus validateNextBlockInternal(const FinalizedBlock& block) const;
 
     /**
      * Process a transaction within a block. Called by processNextBlock().
@@ -155,6 +158,15 @@ class State : Dumpable {
      * @throw DynamicException if block is invalid.
      */
     void processNextBlock(FinalizedBlock&& block);
+
+    /**
+     * Process the next block given current state from the network. DOES update the state.
+     * Appends block to Storage after processing.
+     * Does not throw an exception in case of block validation error.
+     * @param block The block to process.
+     * @return A status code from BlockValidationStatus.
+     */
+    BlockValidationStatus tryProcessNextBlock(FinalizedBlock&& block);
 
     /**
      * Verify if a transaction can be accepted within the current state.
