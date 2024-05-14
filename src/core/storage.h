@@ -65,6 +65,11 @@ private:
   uint64_t periodicSaveCooldown_ = 15;  ///< Cooldown for the periodic save thread, in seconds.
   bool stopPeriodicSave_ = false; ///< Flag for stopping the periodic save thread, if required.
 
+  // Temporary fix for SaveLatest threads
+  std::atomic<int> slThreads_;
+  std::mutex slMutex_;
+  std::condition_variable slCond_;
+
   /**
    * Add a block to the end of the chain.
    * Only call this function directly if absolutely sure that `chainLock_` is locked.

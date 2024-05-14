@@ -9,7 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 
 Storage::Storage(const Options& options)
   : db_(options.getRootPath() + "/blocksDb/"),
-    options_(options)
+    options_(options),
+    slThreads_(0)
 {
   Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading blockchain from DB");
 
@@ -53,6 +54,13 @@ Storage::Storage(const Options& options)
 }
 
 Storage::~Storage() {
+
+  // Wait until all SaveLatest threads are gone before we destroy this
+  {
+    std::unique_lock<std::mutex> lock(slMutex_);
+    slCond_.wait(lock, [this] { return slThreads_ == 0; });
+  }
+
   DBBatch batchedOperations;
   std::shared_ptr<const FinalizedBlock> latest;
   {
@@ -206,8 +214,11 @@ void Storage::pushBackInternal(FinalizedBlock block) {
   this->chain_.emplace_back(std::make_shared<FinalizedBlock>(std::move(block)));
   std::shared_ptr<const FinalizedBlock> newBlock = this->chain_.back();
   // Launch a saveLatest thread
+  ++slThreads_;
   std::thread saveLatestThread([this, newBlock] {
     this->saveLatest(newBlock);
+    --slThreads_;
+    slCond_.notify_one();
   });
   saveLatestThread.detach();
 
