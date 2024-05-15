@@ -59,6 +59,15 @@ rdPoS::rdPoS(const DB& db,
 
 rdPoS::~rdPoS() {}
 
+bool rdPoS::isValidatorParticipating(const Address& validatorAddr) {
+  for (uint64_t i = 1; i < this->minValidators_ + 1; i++) {
+    if (Validator(validatorAddr) == this->randomList_[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   auto latestBlock = this->storage_.latest();
 
@@ -203,33 +212,65 @@ Hash rdPoS::processBlock(const FinalizedBlock& block) {
   this->bestRandomSeed_ = block.getBlockRandomness();
   this->randomGen_.setSeed(this->bestRandomSeed_);
   this->randomGen_.shuffle(this->randomList_);
+
+  // When advancing to the next block height, check which transactions from the OOO validator mempool
+  //   can be moved to the current validator mempool (or discarded, if they are not from a validator
+  //   that is going to participate in this round).
+  auto it = oooValidatorMempool_.begin();
+  while (it != oooValidatorMempool_.end()) {
+    const auto& hash = it->first;
+    const auto& txValidator = it->second;
+    if (txValidator.getNHeight() == block.getNHeight() + 1) {
+      if (isValidatorParticipating(txValidator.getFrom())) {
+        validatorMempool_.emplace(hash, txValidator);
+      }
+      it = oooValidatorMempool_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+
   return this->bestRandomSeed_;
 }
 
 TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
+
+  // NOTE: We have to assume validator transactions are relevant (unless we can prove otherwise, e.g. height is in the past
+  //       or it is signed by a node that is out of the registered validator set that is kept in consensus.
+  //       If they are potentially valid but not for this round, we need to save them (in oooValidatorMempool_).
+
+  if (tx.getNHeight() < this->storage_.latest()->getNHeight() + 1) {
+    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
+      "TxValidator is for a past block. Expected: "
+      + std::to_string(this->storage_.latest()->getNHeight() + 1)
+      + " Got: " + std::to_string(tx.getNHeight())
+    );
+    return TxStatus::InvalidRedundant;
+  }
+
+  if (tx.getNHeight() > this->storage_.latest()->getNHeight() + 1) {
+
+    if (this->oooValidatorMempool_.contains(tx.hash())) {
+      Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "TxValidator already exists in OOO mempool.");
+      return TxStatus::ValidExisting;
+    }
+
+    if (this->validators_.count(tx.getFrom()) == 0) {
+      Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "TxValidator sender is not a validator.");
+      return TxStatus::InvalidUnexpected;
+    }
+
+    this->oooValidatorMempool_.emplace(tx.hash(), tx);
+    return TxStatus::ValidNew;
+  }
+
   if (this->validatorMempool_.contains(tx.hash())) {
     Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "TxValidator already exists in mempool.");
     return TxStatus::ValidExisting;
   }
 
-  if (tx.getNHeight() != this->storage_.latest()->getNHeight() + 1) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-      "TxValidator is not for the next block. Expected: "
-      + std::to_string(this->storage_.latest()->getNHeight() + 1)
-      + " Got: " + std::to_string(tx.getNHeight())
-    );
-    return TxStatus::InvalidUnexpected;
-  }
-
   // Check if sender is a validator and can participate in this rdPoS round (check from existance in randomList)
-  bool participates = false;
-  for (uint64_t i = 1; i < this->minValidators_ + 1; i++) {
-    if (Validator(tx.getFrom()) == this->randomList_[i]) {
-      participates = true;
-      break;
-    }
-  }
-  if (!participates) {
+  if (!isValidatorParticipating(tx.getFrom())) {
     Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
       "TxValidator sender is not a validator or is not participating in this rdPoS round."
     );

@@ -52,6 +52,12 @@ void Consensus::doValidatorBlock() {
       );
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
+    /*
+      // TODO/REMOVE: There is no need for validator[0] to reach out for validatorTxs
+      //   as those should be proactively broadcasted by the nodes that must produce them.
+      //   As long as we don't discard the validatorTxs because they are out of order,
+      //   trying to download them here should be unnecessary.
+
     // Try to get more transactions from other nodes within the network
     auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     for (auto const& nodeId : connectedNodesList) {
@@ -59,9 +65,29 @@ void Consensus::doValidatorBlock() {
       if (this->stop_) return;
       for (auto const& tx : txList) this->state_.addValidatorTx(tx);
     }
+    */
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Validator ready to create a block");
+
+  // ----------------------------------------------------------------------------------------------------------
+  // ----------------------------------------------------------------------------------------------------------
+  // TODO/REVIEW: This entire block of code should probably be deleted.
+  //
+  // The block proposer for the round (validator[0]) will not risk getting timed out/punished, so, people
+  //   who run validators will simply attach a client to propose a dummy transaction that transfers 0.0001 coin
+  //   between two accounts, instead of risk being timed-out by the other validators during transaction set
+  //   synchronization and voting (or, more likely, fork the node software to generate a dummy transaction here
+  //   and stuff it in the block)
+  // Empty blocks are as valid as any block. All this does is create a liveness obstacle, which can ripple
+  //   into network security and stability problems. A block should be produced when it is (real, wall-clock,
+  //   network) time to produce a block.
+  // This violates the Principle of Least Astonishment, where people are staring at a block explorer and
+  //   wondering why the block height counter is stuck.
+  // Also, a chain with empty blocks is economically dead; it has bigger problems than saving disk space
+  //   by avoiding empty blocks.
+  // ----------------------------------------------------------------------------------------------------------
+  // ----------------------------------------------------------------------------------------------------------
 
   // Wait until we have all required transactions to create the block.
   auto waitForTxs = std::chrono::high_resolution_clock::now();
@@ -72,6 +98,14 @@ void Consensus::doValidatorBlock() {
       Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Waiting for at least one transaction in the mempool.");
     }
     if (this->stop_) return;
+    /*
+      // TODO/REVIEW: Removed code.
+      // User transactions ("Block" Tx / normal TX / non-validator Tx) should be naturally flowing through the
+      // network. If validator[0] does not have any, all it has to do is wait here for whatever transaction dissemination
+      // mechanism is running in the protocol to get a transaction to appear in the mempool.
+      // If a combination of node & test code is failing to provide user transactions for this loop to unblock itself, that
+      // is a problem in the node and/or the test. Under no circumstance would we be pulling user transactions here. In that
+      // case, looping forever here is the correct behavior as far as the Consensus component is concerned.
 
     // Try to get transactions from the network.
     auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
@@ -85,14 +119,17 @@ void Consensus::doValidatorBlock() {
         this->state_.addTx(std::move(txBlock));
       }
     }
+    */
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
+  // ----------------------------------------------------------------------------------------------------------
+  // ----------------------------------------------------------------------------------------------------------
 
-  auto creatingBlock = std::chrono::high_resolution_clock::now();
+  if (this->stop_) return;
 
   // Create the block.
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Ordering transactions and creating block");
-  if (this->stop_) return;
+  auto creatingBlock = std::chrono::high_resolution_clock::now();
   auto mempool = this->state_.rdposGetMempool();
   auto randomList = this->state_.rdposGetRandomList();
 
@@ -224,6 +261,12 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
       );
     }
     validatorMempoolSize = this->state_.rdposGetMempoolSize();
+    /*
+      // TODO/REMOVE: There is no need for validator[0] to reach out for validatorTxs
+      //   as those should be proactively broadcasted by the nodes that must produce them.
+      //   As long as we don't discard the validatorTxs because they are out of order,
+      //   trying to download them here should be unnecessary.
+
     // Try to get more transactions from other nodes within the network
     auto connectedNodesList = this->p2p_.getSessionsIDs(P2P::NodeType::NORMAL_NODE);
     for (auto const& nodeId : connectedNodesList) {
@@ -231,6 +274,7 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
       auto txList = this->p2p_.requestValidatorTxs(nodeId);
       for (auto const& tx : txList) this->state_.addValidatorTx(tx);
     }
+    */
     std::this_thread::sleep_for(std::chrono::microseconds(10));
   }
 

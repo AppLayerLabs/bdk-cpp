@@ -695,5 +695,8 @@ namespace TRdPoS {
     });
 
     REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(60)) != std::future_status::timeout);
+
+    // FIXME: There is a hard-to-reproduce crash happening after this test ends, probably due to
+    //        incorrect lifetime management of ASIO callbacks/strands/handlers
   }
 };

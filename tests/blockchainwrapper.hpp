@@ -197,11 +197,11 @@ inline FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKey
   // Append the transactions to the block.
   std::vector<TxValidator> txsValidator;
   for (const auto& tx : randomHashTxs) {
-    state.rdposAddValidatorTx(tx);
+    REQUIRE(isTxStatusValid(state.rdposAddValidatorTx(tx)));
     txsValidator.emplace_back(tx);
   }
   for (const auto& tx : randomTxs) {
-    state.rdposAddValidatorTx(tx);
+    REQUIRE(isTxStatusValid(state.rdposAddValidatorTx(tx)));
     txsValidator.emplace_back(tx);
   }
 

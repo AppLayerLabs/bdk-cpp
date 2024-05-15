@@ -68,6 +68,7 @@ class rdPoS : public BaseContract {
     State& state_;  ///< Reference to the blockchain state.
     std::set<Validator> validators_;  ///< Ordered list of rdPoS validators.
     std::vector<Validator> randomList_; ///< Shuffled version of the validator list, used at block creation/signing.
+    std::unordered_map<Hash, TxValidator, SafeHash> oooValidatorMempool_;  ///< Out-of-order mempool for validator transactions.
     std::unordered_map<Hash, TxValidator, SafeHash> validatorMempool_;  ///< Mempool for validator transactions.
     const PrivKey validatorKey_;  ///< Private key for operating a validator.
     const bool isValidator_ = false;  ///< Indicates whether node is a Validator.
@@ -115,6 +116,13 @@ class rdPoS : public BaseContract {
     bool isValidatorAddress(const Address& add) const { return validators_.contains(Validator(add)); }
 
     /**
+     * Check if a given Validator is participating in this round.
+     * @param validatorAddr Address of the Validator to check.
+     * @return `true` if the Validator is participating, `false` otherwise.
+     */
+    bool isValidatorParticipating(const Address& validatorAddr);
+
+    /**
      * Validate a block.
      * @param block The block to validate.
      * @return `true` if the block is properly validated, `false` otherwise.
@@ -157,7 +165,7 @@ class rdPoS : public BaseContract {
      * Clear the mempool
      * Used by tests
      */
-    void clearMempool() { this->validatorMempool_.clear(); }
+    void clearMempool() { this->validatorMempool_.clear(); this->oooValidatorMempool_.clear(); }
 
     /// Dump overriden function.
     DBBatch dump() const override;
