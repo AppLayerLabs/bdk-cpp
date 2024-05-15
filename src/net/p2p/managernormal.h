@@ -221,24 +221,6 @@ namespace P2P {
       std::vector<FinalizedBlock> requestBlock(const NodeID& nodeId, const uint64_t& height, const uint64_t& heightEnd, const uint64_t& bytesLimit);
 
       /**
-       * Broadcast a Validator transaction to all connected nodes.
-       * @param tx The transaction to broadcast.
-       */
-      void broadcastTxValidator(const TxValidator& tx);
-
-      /**
-       * Broadcast a block transaction to all connected nodes.
-       * @param txBlock The transaction to broadcast.
-       */
-      void broadcastTxBlock(const TxBlock& txBlock);
-
-      /**
-       * Broadcast a block to all connected nodes.
-       * @param block The block to broadcast.
-       */
-      void broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block);
-
-      /**
        * Notify all connected peers of our current node info
        */
       void notifyAllInfo();

@@ -159,10 +159,9 @@ void Consensus::doValidatorBlock() {
   }
 
   // Broadcast the block through P2P
-  // TODO: this should go to its own class (Broadcaster)
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Broadcasting block.");
   if (this->stop_) return;
-  this->p2p_.broadcastBlock(this->storage_.latest());
+  this->p2p_.getBroadcaster().broadcastBlock(this->storage_.latest());
   auto end = std::chrono::high_resolution_clock::now();
   long double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
   long double timeToConsensus = std::chrono::duration_cast<std::chrono::milliseconds>(waitForTxs - start).count();
@@ -209,10 +208,9 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
   }
 
   // Append to mempool and broadcast the transaction across all nodes.
-  // TODO: this should be in Broadcaster?
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Broadcasting randomHash transaction");
   this->state_.rdposAddValidatorTx(randomHashTx);
-  this->p2p_.broadcastTxValidator(randomHashTx);
+  this->p2p_.getBroadcaster().broadcastTxValidator(randomHashTx);
 
   // Wait until we received all randomHash transactions to broadcast the randomness transaction
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Waiting for randomHash transactions to be broadcasted");
@@ -238,9 +236,8 @@ void Consensus::doValidatorTx(const uint64_t& nHeight, const Validator& me) {
 
   Logger::logToDebug(LogType::INFO, Log::consensus, __func__, "Broadcasting random transaction");
   // Append and broadcast the randomness transaction.
-  // TODO: this should be in Broadcaster?
   this->state_.addValidatorTx(seedTx);
-  this->p2p_.broadcastTxValidator(seedTx);
+  this->p2p_.getBroadcaster().broadcastTxValidator(seedTx);
 }
 
 void Consensus::start() {

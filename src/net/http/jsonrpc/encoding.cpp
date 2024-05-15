@@ -253,7 +253,7 @@ namespace JsonRPC::Encoding {
       ret["result"] = txHash.hex(true);
       // TODO: Make this use threadpool instead of blocking
       // TODO: Make tx broadcasting better, the current solution is **not good**.
-      p2p.broadcastTxBlock(tx);
+      p2p.getBroadcaster().broadcastTxBlock(tx);
     } else {
       ret["error"]["code"] = -32000;
       switch (txStatus) {

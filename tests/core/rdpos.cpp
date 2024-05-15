@@ -207,7 +207,7 @@ namespace TRdPoS {
 
       // Broadcast the transactions
       for (const auto& tx : txValidators) {
-        blockchainWrapper1.p2p.broadcastTxValidator(tx);
+        blockchainWrapper1.p2p.getBroadcaster().broadcastTxValidator(tx);
       }
 
       std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -457,7 +457,7 @@ namespace TRdPoS {
 
       // Broadcast transactions to all nodes.
       for (const auto& tx : txValidators) {
-        blockchainWrapper1.p2p.broadcastTxValidator(tx);
+        blockchainWrapper1.p2p.getBroadcaster().broadcastTxValidator(tx);
       }
 
       /// Wait till transactions are broadcasted
@@ -674,7 +674,7 @@ namespace TRdPoS {
               chainOwnerPrivKey);
         TxStatus txStatus = blockchainWrapper1.state.addTx(std::move(tx));
         REQUIRE(isTxStatusValid(txStatus));
-        blockchainWrapper1.p2p.broadcastTxBlock(tx);
+        blockchainWrapper1.p2p.getBroadcaster().broadcastTxBlock(tx);
         // Block height has to advance in lockstep across all nodes before issuing the next transaction.
         while
         (

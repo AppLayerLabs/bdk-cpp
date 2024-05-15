@@ -587,7 +587,7 @@ namespace TState {
             privkey
         );
         blockchainWrapper1.state.addTx(TxBlock(tx));
-        blockchainWrapper1.p2p.broadcastTxBlock(tx);
+        blockchainWrapper1.p2p.getBroadcaster().broadcastTxBlock(tx);
       }
 
       REQUIRE(blockchainWrapper1.state.getMempool().size() == 100);
@@ -832,7 +832,7 @@ namespace TState {
                 chainOwnerPrivKey);
           TxStatus txStatus = blockchainWrapper1.state.addTx(std::move(tx));
           REQUIRE(isTxStatusValid(txStatus));
-          blockchainWrapper1.p2p.broadcastTxBlock(tx);
+          blockchainWrapper1.p2p.getBroadcaster().broadcastTxBlock(tx);
           // Block height has to advance in lockstep across all nodes before issuing the next transaction.
           while
           (
@@ -1138,7 +1138,7 @@ namespace TState {
         for (const auto &tx: txSet) {
           auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
           REQUIRE(isTxStatusValid(txStatus));
-          blockchainWrapper1.p2p.broadcastTxBlock(tx);
+          blockchainWrapper1.p2p.getBroadcaster().broadcastTxBlock(tx);
           targetExpectedValue += tx.getValue();
         }
 
@@ -1482,7 +1482,7 @@ namespace TState {
         }
         auto txStatus = blockchainWrapper1.state.addTx(TxBlock(tx));
         REQUIRE(isTxStatusValid(txStatus));
-        blockchainWrapper1.p2p.broadcastTxBlock(tx);
+        blockchainWrapper1.p2p.getBroadcaster().broadcastTxBlock(tx);
         /// Wait for the transactions to be confirmed.
         ///
         auto confirmFuture = std::async(std::launch::async, [&]() {

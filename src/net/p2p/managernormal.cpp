@@ -464,12 +464,6 @@ namespace P2P{
     }
   }
 
-  void ManagerNormal::broadcastTxValidator(const TxValidator& tx) { this->broadcaster_.broadcastTxValidator(tx); }
-
-  void ManagerNormal::broadcastTxBlock(const TxBlock& txBlock) { this->broadcaster_.broadcastTxBlock(txBlock); }
-
-  void ManagerNormal::broadcastBlock(const std::shared_ptr<const FinalizedBlock>& block) { this->broadcaster_.broadcastBlock(block); }
-
   void ManagerNormal::notifyAllInfo() {
     auto notifyall = std::make_shared<const Message>(
       NotificationEncoder::notifyInfo(
