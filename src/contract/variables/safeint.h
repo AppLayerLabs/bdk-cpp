@@ -9,7 +9,9 @@ See the LICENSE.txt file in the project root for more information.
 #define SAFEINT_T_H
 
 #include <memory>
+
 #include <boost/multiprecision/cpp_int.hpp>
+
 #include "safebase.h"
 
 /**
@@ -50,13 +52,13 @@ template <> struct IntType<64> {
 template <int Size> class SafeInt_t : public SafeBase {
   private:
     using int_t = typename IntType<Size>::type; ///< The type of the int.
-    int_t value_; ///< The value of the int.
-    mutable std::unique_ptr<int_t> valuePtr_; ///< The pointer to the value of the int.
+    int_t value_; ///< Current ("original") value.
+    std::unique_ptr<int_t> copy_; ///< Previous ("temporary") value.
 
-    /// Check if the value is registered_ and if not, register it.
-    inline void check() const override {
-      if (valuePtr_ == nullptr) valuePtr_ = std::make_unique<int_t>(value_);
-    };
+    /// Check if values are initialized (and initialize them if not).
+    //inline void check() override {
+    //  if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+    //}
 
   public:
     static_assert(Size >= 8 && Size <= 256 && Size % 8 == 0, "Size must be between 8 and 256 and a multiple of 8.");
@@ -65,35 +67,20 @@ template <int Size> class SafeInt_t : public SafeBase {
      * Constructor.
      * @param value The initial value of the variable. Defaults to 0.
      */
-    explicit SafeInt_t(const int_t& value = 0)
-      : SafeBase(nullptr), value_(0), valuePtr_(std::make_unique<int_t>(value))
-    {};
+    explicit SafeInt_t(const int_t& value = 0) : SafeBase(nullptr), value_(value), copy_(nullptr) {}
 
     /**
      * Constructor with owner.
      * @param owner The DynamicContract that owns this variable.
      * @param value The initial value of the variable. Defaults to 0.
      */
-    SafeInt_t(DynamicContract* owner, const int_t& value = 0)
-      : SafeBase(owner), value_(0), valuePtr_(std::make_unique<int_t>(value))
-    {};
+    SafeInt_t(DynamicContract* owner, const int_t& value = 0) : SafeBase(owner), value_(value), copy_(nullptr) {}
 
-    /**
-     * Copy constructor.
-     * @param other The SafeInt_t to copy.
-     */
-    SafeInt_t(const SafeInt_t<Size>& other) : SafeBase(nullptr) {
-      other.check(); value_ = 0; valuePtr_ = std::make_unique<int_t>(*other.valuePtr_);
-    };
+    /// Copy constructor. Only copies the CURRENT value.
+    SafeInt_t(const SafeInt_t<Size>& other) : SafeBase(nullptr), value_(other.value_), copy_(nullptr) {}
 
     /// Getter for the temporary value.
-    inline int_t get() const { check(); return *valuePtr_; };
-
-    /// Commit the value.
-    inline void commit() override { check(); value_ = *valuePtr_; valuePtr_ = nullptr; registered_ = false; };
-
-    /// Revert the value.
-    inline void revert() const override { valuePtr_ = nullptr; registered_ = false; };
+    inline const int_t& get() const { return this->value_; }
 
     ///@{
     /**
@@ -103,25 +90,23 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @throw std::underflow_error if an underflow happens.
      * @return A new SafeInt_t with the result of the addition.
      */
-    inline SafeInt_t<Size> operator+(const SafeInt_t<Size>& other) const {
-      check();
-      if ((other.get() > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other.get())) {
-        throw std::overflow_error("Overflow in addition operation.");
-      }
-      if ((other.get() < 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() - other.get())) {
-        throw std::underflow_error("Underflow in addition operation.");
-      }
-      return SafeInt_t<Size>(*valuePtr_ + other.get());
-    }
     inline SafeInt_t<Size> operator+(const int_t& other) const {
-      check();
-      if ((other > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other)) {
+      if ((other > 0) && (this->value_ > std::numeric_limits<int_t>::max() - other)) {
         throw std::overflow_error("Overflow in addition operation.");
       }
-      if ((other < 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() - other)) {
+      if ((other < 0) && (this->value_ < std::numeric_limits<int_t>::min() - other)) {
         throw std::underflow_error("Underflow in addition operation.");
       }
-      return SafeInt_t<Size>(*valuePtr_ + other);
+      return SafeInt_t<Size>(this->value_ + other);
+    }
+    inline SafeInt_t<Size> operator+(const SafeInt_t<Size>& other) const {
+      if ((other.get() > 0) && (this->value_ > std::numeric_limits<int_t>::max() - other.get())) {
+        throw std::overflow_error("Overflow in addition operation.");
+      }
+      if ((other.get() < 0) && (this->value_ < std::numeric_limits<int_t>::min() - other.get())) {
+        throw std::underflow_error("Underflow in addition operation.");
+      }
+      return SafeInt_t<Size>(this->value_ + other.get());
     }
     ///@}
 
@@ -133,25 +118,23 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @throw std::underflow_error if an underflow happens.
      * @return A new SafeInt_t with the result of the subtraction.
      */
-    inline SafeInt_t<Size> operator-(const SafeInt_t<Size>& other) const {
-      check();
-      if ((other.get() < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other.get())) {
-        throw std::overflow_error("Overflow in subtraction operation.");
-      }
-      if ((other.get() > 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() + other.get())) {
-        throw std::underflow_error("Underflow in subtraction operation.");
-      }
-      return SafeInt_t<Size>(*valuePtr_ - other.get());
-    }
     inline SafeInt_t<Size> operator-(const int_t& other) const {
-      check();
-      if ((other < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other)) {
+      if ((other < 0) && (this->value_ > std::numeric_limits<int_t>::max() + other)) {
         throw std::overflow_error("Overflow in subtraction operation.");
       }
-      if ((other > 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() + other)) {
+      if ((other > 0) && (this->value_ < std::numeric_limits<int_t>::min() + other)) {
         throw std::underflow_error("Underflow in subtraction operation.");
       }
-      return SafeInt_t<Size>(*valuePtr_ - other);
+      return SafeInt_t<Size>(this->value_ - other);
+    }
+    inline SafeInt_t<Size> operator-(const SafeInt_t<Size>& other) const {
+      if ((other.get() < 0) && (this->value_ > std::numeric_limits<int_t>::max() + other.get())) {
+        throw std::overflow_error("Overflow in subtraction operation.");
+      }
+      if ((other.get() > 0) && (this->value_ < std::numeric_limits<int_t>::min() + other.get())) {
+        throw std::underflow_error("Underflow in subtraction operation.");
+      }
+      return SafeInt_t<Size>(this->value_ - other.get());
     }
     ///@}
 
@@ -164,31 +147,29 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @throw std::domain_error if multiplying by 0.
      * @return A new SafeInt_t with the result of the multiplication.
      */
-    inline SafeInt_t<Size> operator*(const SafeInt_t<Size>& other) const {
-      check();
-      if (*valuePtr_ == 0 || other.get() == 0) {
-        throw std::domain_error("Multiplication by zero.");
-      }
-      if (*valuePtr_ > std::numeric_limits<int_t>::max() / other.get()) {
-        throw std::overflow_error("Overflow in multiplication operation.");
-      }
-      if (*valuePtr_ < std::numeric_limits<int_t>::min() / other.get()) {
-        throw std::underflow_error("Underflow in multiplication operation.");
-      }
-      return SafeInt_t<Size>(*valuePtr_ * other.get());
-    }
     inline SafeInt_t<Size> operator*(const int_t& other) const {
-      check();
-      if (*valuePtr_ == 0 || other == 0) {
+      if (this->value_ == 0 || other == 0) {
         throw std::domain_error("Multiplication by zero.");
       }
-      if (*valuePtr_ > std::numeric_limits<int_t>::max() / other) {
+      if (this->value_ > std::numeric_limits<int_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication operation.");
       }
-      if (*valuePtr_ < std::numeric_limits<int_t>::min() / other) {
+      if (this->value_ < std::numeric_limits<int_t>::min() / other) {
         throw std::underflow_error("Underflow in multiplication operation.");
       }
-      return SafeInt_t<Size>(*valuePtr_ * other);
+      return SafeInt_t<Size>(this->value_ * other);
+    }
+    inline SafeInt_t<Size> operator*(const SafeInt_t<Size>& other) const {
+      if (this->value_ == 0 || other.get() == 0) {
+        throw std::domain_error("Multiplication by zero.");
+      }
+      if (this->value_ > std::numeric_limits<int_t>::max() / other.get()) {
+        throw std::overflow_error("Overflow in multiplication operation.");
+      }
+      if (this->value_ < std::numeric_limits<int_t>::min() / other.get()) {
+        throw std::underflow_error("Underflow in multiplication operation.");
+      }
+      return SafeInt_t<Size>(this->value_ * other.get());
     }
     ///@}
 
@@ -200,23 +181,21 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @throw std::overflow_error if division results in overflow.
      * @return A new SafeInt_t with the result of the division.
      */
-    inline SafeInt_t<Size> operator/(const SafeInt_t<Size>& other) const {
-      check();
-      if (other.get() == 0) throw std::domain_error("Division by zero");
-      // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-      if (*valuePtr_ == std::numeric_limits<int_t>::min() && other.get() == -1) {
-        throw std::overflow_error("Overflow in division operation.");
-      }
-      return SafeInt_t<Size>(*valuePtr_ / other.get());
-    }
     inline SafeInt_t<Size> operator/(const int_t& other) const {
-      check();
       if (other == 0) throw std::domain_error("Division by zero");
-      // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-      if (*valuePtr_ == std::numeric_limits<int_t>::min() && other == -1) {
+      // Edge case - dividing the smallest negative number by -1 causes overflow
+      if (this->value_ == std::numeric_limits<int_t>::min() && other == -1) {
         throw std::overflow_error("Overflow in division operation.");
       }
-      return SafeInt_t<Size>(*valuePtr_ / other);
+      return SafeInt_t<Size>(this->value_ / other);
+    }
+    inline SafeInt_t<Size> operator/(const SafeInt_t<Size>& other) const {
+      if (other.get() == 0) throw std::domain_error("Division by zero");
+      // Edge case - dividing the smallest negative number by -1 causes overflow
+      if (this->value_ == std::numeric_limits<int_t>::min() && other.get() == -1) {
+        throw std::overflow_error("Overflow in division operation.");
+      }
+      return SafeInt_t<Size>(this->value_ / other.get());
     }
     ///@}
 
@@ -227,15 +206,13 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @throw std::domain_error if the other value is zero.
      * @return A new SafeInt_t with the result of the modulus.
      */
-    inline SafeInt_t<Size> operator%(const SafeInt_t<Size>& other) const {
-      check();
-      if (other.get() == 0) throw std::domain_error("Modulus by zero");
-      return SafeInt_t<Size>(*valuePtr_ % other.get());
-    }
     inline SafeInt_t<Size> operator%(const int_t& other) const {
-      check();
       if (other == 0) throw std::domain_error("Modulus by zero");
-      return SafeInt_t<Size>(*valuePtr_ % other);
+      return SafeInt_t<Size>(this->value_ % other);
+    }
+    inline SafeInt_t<Size> operator%(const SafeInt_t<Size>& other) const {
+      if (other.get() == 0) throw std::domain_error("Modulus by zero");
+      return SafeInt_t<Size>(this->value_ % other.get());
     }
     ///@}
 
@@ -245,11 +222,11 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to apply AND.
      * @return A new SafeInt_t with the result of the AND.
      */
-    inline SafeInt_t<Size> operator&(const SafeInt_t<Size>& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ & other.get());
-    }
     inline SafeInt_t<Size> operator&(const int_t& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ & other);
+      return SafeInt_t<Size>(this->value_ & other);
+    }
+    inline SafeInt_t<Size> operator&(const SafeInt_t<Size>& other) const {
+      return SafeInt_t<Size>(this->value_ & other.get());
     }
     ///@}
 
@@ -259,11 +236,11 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to apply OR.
      * @return A new SafeInt_t with the result of the OR.
      */
-    inline SafeInt_t<Size> operator|(const SafeInt_t<Size>& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ | other.get());
-    }
     inline SafeInt_t<Size> operator|(const int_t& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ | other);
+      return SafeInt_t<Size>(this->value_ | other);
+    }
+    inline SafeInt_t<Size> operator|(const SafeInt_t<Size>& other) const {
+      return SafeInt_t<Size>(this->value_ | other.get());
     }
     ///@}
 
@@ -273,11 +250,11 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to apply XOR.
      * @return A new SafeInt_t with the result of the XOR.
      */
-    inline SafeInt_t<Size> operator^(const SafeInt_t<Size>& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ ^ other.get());
-    }
     inline SafeInt_t<Size> operator^(const int_t& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ ^ other);
+      return SafeInt_t<Size>(this->value_ ^ other);
+    }
+    inline SafeInt_t<Size> operator^(const SafeInt_t<Size>& other) const {
+      return SafeInt_t<Size>(this->value_ ^ other.get());
     }
     ///@}
 
@@ -287,11 +264,11 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer indicating the number of positions to shift.
      * @return A new SafeInt_t with the result of the shift.
      */
-    inline SafeInt_t<Size> operator<<(const SafeInt_t<Size>& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ << other.get());
-    }
     inline SafeInt_t<Size> operator<<(const int_t& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ << other);
+      return SafeInt_t<Size>(this->value_ << other);
+    }
+    inline SafeInt_t<Size> operator<<(const SafeInt_t<Size>& other) const {
+      return SafeInt_t<Size>(this->value_ << other.get());
     }
     ///@}
 
@@ -301,11 +278,11 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer indicating the number of positions to shift.
      * @return A new SafeInt_t with the result of the shift.
      */
-    inline SafeInt_t<Size> operator>>(const SafeInt_t<Size>& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ >> other.get());
-    }
     inline SafeInt_t<Size> operator>>(const int_t& other) const {
-      check(); return SafeInt_t<Size>(*valuePtr_ >> other);
+      return SafeInt_t<Size>(this->value_ >> other);
+    }
+    inline SafeInt_t<Size> operator>>(const SafeInt_t<Size>& other) const {
+      return SafeInt_t<Size>(this->value_ >> other.get());
     }
     ///@}
 
@@ -313,7 +290,7 @@ template <int Size> class SafeInt_t : public SafeBase {
      * Logical NOT operator.
      * @return `true` if the value is zero, `false` otherwise.
      */
-    inline bool operator!() const { check(); return (!*valuePtr_); }
+    inline bool operator!() const { return (!this->value_); }
 
     ///@{
     /**
@@ -321,8 +298,8 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to apply AND.
      * @return `true` if both values are non-zero, `false` otherwise.
      */
-    inline bool operator&&(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ && other.get()); }
-    inline bool operator&&(const int_t& other) const { check(); return (*valuePtr_ && other); }
+    inline bool operator&&(const int_t& other) const { return (this->value_ && other); }
+    inline bool operator&&(const SafeInt_t<Size>& other) const { return (this->value_ && other.get()); }
     ///@}
 
     ///@{
@@ -331,8 +308,8 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to apply OR.
      * @return `true` if either value is non-zero, `false` otherwise.
      */
-    inline bool operator||(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ || other.get()); }
-    inline bool operator||(const int_t& other) const { check(); return (*valuePtr_ || other); }
+    inline bool operator||(const int_t& other) const { return (this->value_ || other); }
+    inline bool operator||(const SafeInt_t<Size>& other) const { return (this->value_ || other.get()); }
     ///@}
 
     ///@{
@@ -341,8 +318,8 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the values are equal, `false` otherwise.
      */
-    inline bool operator==(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ == other.get()); }
-    inline bool operator==(const int_t& other) const { check(); return (*valuePtr_ == other); }
+    inline bool operator==(const int_t& other) const { return (this->value_ == other); }
+    inline bool operator==(const SafeInt_t<Size>& other) const { return (this->value_ == other.get()); }
     ///@}
 
     ///@{
@@ -351,8 +328,8 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the value is less than the other value, `false` otherwise.
      */
-    inline bool operator<(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ < other.get()); }
-    inline bool operator<(const int_t& other) const { check(); return (*valuePtr_ < other); }
+    inline bool operator<(const int_t& other) const { return (this->value_ < other); }
+    inline bool operator<(const SafeInt_t<Size>& other) const { return (this->value_ < other.get()); }
     ///@}
 
     ///@{
@@ -361,8 +338,8 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the value is less than or equal to the other value, `false` otherwise.
      */
-    inline bool operator<=(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ <= other.get()); }
-    inline bool operator<=(const int_t& other) const { check(); return (*valuePtr_ <= other); }
+    inline bool operator<=(const int_t& other) const { return (this->value_ <= other); }
+    inline bool operator<=(const SafeInt_t<Size>& other) const { return (this->value_ <= other.get()); }
     ///@}
 
     ///@{
@@ -371,8 +348,8 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the value is greater than the other value, `false` otherwise.
      */
-    inline bool operator>(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ > other.get()); }
-    inline bool operator>(const int_t& other) const { check(); return (*valuePtr_ > other); }
+    inline bool operator>(const int_t& other) const { return (this->value_ > other); }
+    inline bool operator>(const SafeInt_t<Size>& other) const { return (this->value_ > other.get()); }
     ///@}
 
     ///@{
@@ -381,8 +358,8 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to compare.
      * @return `true` if the value is greater than or equal to the other value, `false` otherwise.
      */
-    inline bool operator>=(const SafeInt_t<Size>& other) const { check(); return (*valuePtr_ >= other.get()); }
-    inline bool operator>=(const int_t& other) const { check(); return (*valuePtr_ >= other); }
+    inline bool operator>=(const int_t& other) const { return (this->value_ >= other); }
+    inline bool operator>=(const SafeInt_t<Size>& other) const { return (this->value_ >= other.get()); }
     ///@}
 
     ///@{
@@ -391,11 +368,13 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to assign.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator=(const SafeInt_t<Size>& other) {
-      check(); markAsUsed(); *valuePtr_ = other.get(); return *this;
-    }
     inline SafeInt_t<Size>& operator=(const int_t& other) {
-      check(); markAsUsed(); *valuePtr_ = other; return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ = other; return *this;
+    }
+    inline SafeInt_t<Size>& operator=(const SafeInt_t<Size>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ = other.get(); return *this;
     }
     ///@}
 
@@ -405,29 +384,25 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to add.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator+=(const SafeInt_t<Size>& other) {
-      check();
-      if ((other.get() > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other.get())) {
-        throw std::overflow_error("Overflow in addition assignment operation.");
-      }
-      if ((other.get() < 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() - other.get())) {
-        throw std::underflow_error("Underflow in addition assignment operation.");
-      }
-      markAsUsed();
-      *valuePtr_ += other.get();
-      return *this;
-    }
     inline SafeInt_t<Size>& operator+=(const int_t& other) {
-      check();
-      if ((other > 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() - other)) {
+      if ((other > 0) && (this->value_ > std::numeric_limits<int_t>::max() - other)) {
         throw std::overflow_error("Overflow in addition assignment operation.");
       }
-      if ((other < 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() - other)) {
+      if ((other < 0) && (this->value_ < std::numeric_limits<int_t>::min() - other)) {
         throw std::underflow_error("Underflow in addition assignment operation.");
       }
-      markAsUsed();
-      *valuePtr_ += other;
-      return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ += other; return *this;
+    }
+    inline SafeInt_t<Size>& operator+=(const SafeInt_t<Size>& other) {
+      if ((other.get() > 0) && (this->value_ > std::numeric_limits<int_t>::max() - other.get())) {
+        throw std::overflow_error("Overflow in addition assignment operation.");
+      }
+      if ((other.get() < 0) && (this->value_ < std::numeric_limits<int_t>::min() - other.get())) {
+        throw std::underflow_error("Underflow in addition assignment operation.");
+      }
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ += other.get(); return *this;
     }
     ///@}
 
@@ -437,29 +412,25 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to subtract.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator-=(const SafeInt_t<Size>& other) {
-      check();
-      if ((other.get() < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other.get())) {
-        throw std::overflow_error("Overflow in subtraction assignment operation.");
-      }
-      if ((other.get() > 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() + other.get())) {
-        throw std::underflow_error("Underflow in subtraction assignment operation.");
-      }
-      markAsUsed();
-      *valuePtr_ -= other.get();
-      return *this;
-    }
     inline SafeInt_t<Size>& operator-=(const int_t& other) {
-      check();
-      if ((other < 0) && (*valuePtr_ > std::numeric_limits<int_t>::max() + other)) {
+      if ((other < 0) && (this->value_ > std::numeric_limits<int_t>::max() + other)) {
         throw std::overflow_error("Overflow in subtraction assignment operation.");
       }
-      if ((other > 0) && (*valuePtr_ < std::numeric_limits<int_t>::min() + other)) {
+      if ((other > 0) && (this->value_ < std::numeric_limits<int_t>::min() + other)) {
         throw std::underflow_error("Underflow in subtraction assignment operation.");
       }
-      markAsUsed();
-      *valuePtr_ -= other;
-      return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ -= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator-=(const SafeInt_t<Size>& other) {
+      if ((other.get() < 0) && (this->value_ > std::numeric_limits<int_t>::max() + other.get())) {
+        throw std::overflow_error("Overflow in subtraction assignment operation.");
+      }
+      if ((other.get() > 0) && (this->value_ < std::numeric_limits<int_t>::min() + other.get())) {
+        throw std::underflow_error("Underflow in subtraction assignment operation.");
+      }
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ -= other.get(); return *this;
     }
     ///@}
 
@@ -469,29 +440,25 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to multiply.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator*=(const SafeInt_t<Size>& other) {
-      check();
-      if (*valuePtr_ > std::numeric_limits<int_t>::max() / other.get()) {
-        throw std::overflow_error("Overflow in multiplication assignment operation.");
-      }
-      if (*valuePtr_ < std::numeric_limits<int_t>::min() / other.get()) {
-        throw std::underflow_error("Underflow in multiplication assignment operation.");
-      }
-      markAsUsed();
-      *valuePtr_ *= other.get();
-      return *this;
-    }
     inline SafeInt_t<Size>& operator*=(const int_t& other) {
-      check();
-      if (*valuePtr_ > std::numeric_limits<int_t>::max() / other) {
+      if (this->value_ > std::numeric_limits<int_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication assignment operation.");
       }
-      if (*valuePtr_ < std::numeric_limits<int_t>::min() / other) {
+      if (this->value_ < std::numeric_limits<int_t>::min() / other) {
         throw std::underflow_error("Underflow in multiplication assignment operation.");
       }
-      markAsUsed();
-      *valuePtr_ *= other;
-      return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ *= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator*=(const SafeInt_t<Size>& other) {
+      if (this->value_ > std::numeric_limits<int_t>::max() / other.get()) {
+        throw std::overflow_error("Overflow in multiplication assignment operation.");
+      }
+      if (this->value_ < std::numeric_limits<int_t>::min() / other.get()) {
+        throw std::underflow_error("Underflow in multiplication assignment operation.");
+      }
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ *= other.get(); return *this;
     }
     ///@}
 
@@ -501,27 +468,23 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to divide.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator/=(const SafeInt_t<Size>& other) {
-      check();
-      if (other.get() == 0) throw std::domain_error("Division assignment by zero.");
-      // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-      if (*valuePtr_ == std::numeric_limits<int_t>::min() && other.get() == -1) {
-        throw std::overflow_error("Overflow in division assignment operation.");
-      }
-      markAsUsed();
-      *valuePtr_ /= other.get();
-      return *this;
-    }
     inline SafeInt_t<Size>& operator/=(const int_t& other) {
-      check();
       if (other == 0) throw std::domain_error("Division assignment by zero.");
       // Handling the edge case where dividing the smallest negative number by -1 causes overflow
-      if (*valuePtr_ == std::numeric_limits<int_t>::min() && other == -1) {
+      if (this->value_ == std::numeric_limits<int_t>::min() && other == -1) {
         throw std::overflow_error("Overflow in division assignment operation.");
       }
-      markAsUsed();
-      *valuePtr_ /= other;
-      return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ /= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator/=(const SafeInt_t<Size>& other) {
+      if (other.get() == 0) throw std::domain_error("Division assignment by zero.");
+      // Handling the edge case where dividing the smallest negative number by -1 causes overflow
+      if (this->value_ == std::numeric_limits<int_t>::min() && other.get() == -1) {
+        throw std::overflow_error("Overflow in division assignment operation.");
+      }
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ /= other.get(); return *this;
     }
     ///@}
 
@@ -531,19 +494,15 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The SafeInt_t to take the modulus by.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator%=(const SafeInt_t<Size>& other) {
-      check();
-      if (other.get() == 0) throw std::domain_error("Modulus assignment by zero.");
-      markAsUsed();
-      *valuePtr_ %= other.get();
-      return *this;
-    }
     inline SafeInt_t<Size>& operator%=(const int_t& other) {
-      check();
       if (other == 0) throw std::domain_error("Modulus assignment by zero.");
-      markAsUsed();
-      *valuePtr_ %= other;
-      return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ %= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator%=(const SafeInt_t<Size>& other) {
+      if (other.get() == 0) throw std::domain_error("Modulus assignment by zero.");
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ %= other.get(); return *this;
     }
     ///@}
 
@@ -553,11 +512,13 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to apply AND.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator&=(const SafeInt_t<Size>& other) {
-      check(); markAsUsed(); *valuePtr_ &= other.get(); return *this;
-    }
     inline SafeInt_t<Size>& operator&=(const int_t& other) {
-      check(); markAsUsed(); *valuePtr_ &= other; return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ &= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator&=(const SafeInt_t<Size>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ &= other.get(); return *this;
     }
     ///@}
 
@@ -567,11 +528,13 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to apply OR.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator|=(const SafeInt_t<Size>& other) {
-      check(); markAsUsed(); *valuePtr_ |= other.get(); return *this;
-    }
     inline SafeInt_t<Size>& operator|=(const int_t& other) {
-      check(); markAsUsed(); *valuePtr_ |= other; return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ |= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator|=(const SafeInt_t<Size>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ |= other.get(); return *this;
     }
     ///@}
 
@@ -581,11 +544,13 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer to apply XOR.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator^=(const SafeInt_t<Size>& other) {
-      check(); markAsUsed(); *valuePtr_ ^= other.get(); return *this;
-    }
     inline SafeInt_t<Size>& operator^=(const int_t& other) {
-      check(); markAsUsed(); *valuePtr_ ^= other; return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ ^= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator^=(const SafeInt_t<Size>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ ^= other.get(); return *this;
     }
     ///@}
 
@@ -595,11 +560,13 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer indicating the number of positions to shift.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator<<=(const SafeInt_t<Size>& other) {
-      check(); markAsUsed(); *valuePtr_ <<= other.get(); return *this;
-    }
     inline SafeInt_t<Size>& operator<<=(const int_t& other) {
-      check(); markAsUsed(); *valuePtr_ <<= other; return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ <<= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator<<=(const SafeInt_t<Size>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ <<= other.get(); return *this;
     }
     ///@}
 
@@ -609,11 +576,13 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @param other The integer indicating the number of positions to shift.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator>>=(const SafeInt_t<Size>& other) {
-      check(); markAsUsed(); *valuePtr_ >>= other.get(); return *this;
-    }
     inline SafeInt_t<Size>& operator>>=(const int_t& other) {
-      check(); markAsUsed(); *valuePtr_ >>= other; return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ >>= other; return *this;
+    }
+    inline SafeInt_t<Size>& operator>>=(const SafeInt_t<Size>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); this->value_ >>= other.get(); return *this;
     }
     ///@}
 
@@ -622,13 +591,11 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator++() {
-      check();
-      if (*valuePtr_ == std::numeric_limits<int_t>::max()) {
+      if (this->value_ == std::numeric_limits<int_t>::max()) {
         throw std::overflow_error("Overflow in prefix increment operation.");
       }
-      markAsUsed();
-      ++(*valuePtr_);
-      return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); ++(this->value_); return *this;
     }
 
     /**
@@ -636,14 +603,11 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @return A new SafeInt_t with the value of this SafeInt_t before the increment.
      */
     inline SafeInt_t<Size> operator++(int) {
-      check();
-      if (*valuePtr_ == std::numeric_limits<int_t>::max()) {
+      if (this->value_ == std::numeric_limits<int_t>::max()) {
         throw std::overflow_error("Overflow in postfix increment operation.");
       }
-      markAsUsed();
-      SafeInt_t<Size> temp(*valuePtr_);
-      ++(*valuePtr_);
-      return temp;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); SafeInt_t<Size> temp(this->value_); ++(this->value_); return temp;
     }
 
     /**
@@ -651,13 +615,11 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator--() {
-      check();
-      if (*valuePtr_ == std::numeric_limits<int_t>::min()) {
+      if (this->value_ == std::numeric_limits<int_t>::min()) {
         throw std::underflow_error("Underflow in prefix decrement operation.");
       }
-      markAsUsed();
-      --(*valuePtr_);
-      return *this;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); --(this->value_); return *this;
     }
 
     /**
@@ -665,15 +627,18 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @return A new SafeInt_t with the value of this SafeInt_t before the decrement.
      */
     inline SafeInt_t<Size> operator--(int) {
-      check();
-      if (*valuePtr_ == std::numeric_limits<int_t>::min()) {
+      if (this->value_ == std::numeric_limits<int_t>::min()) {
         throw std::underflow_error("Underflow in postfix decrement operation.");
       }
-      markAsUsed();
-      SafeInt_t<Size> temp(*valuePtr_);
-      --(*valuePtr_);
-      return temp;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
+      markAsUsed(); SafeInt_t<Size> temp(this->value_); --(this->value_); return temp;
     }
-}; // class SafeInt_t
+
+    /// Commit the value.
+    inline void commit() override { this->copy_ = nullptr; this->registered_ = false; };
+
+    /// Revert the value.
+    inline void revert() override { this->value_ = *this->copy_; this->copy_ = nullptr; this->registered_ = false; };
+};
 
 #endif // SAFEINT_T_H
