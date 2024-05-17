@@ -44,9 +44,6 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "../utils/utils.h"
 #include "../utils/options.h"
-#include "jsonrpc/methods.h"
-#include "jsonrpc/encoding.h"
-#include "jsonrpc/decoding.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>

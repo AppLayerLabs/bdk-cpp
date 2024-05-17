@@ -6,8 +6,6 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.h
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.h
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.h
-    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.h
-    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/encoding.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/session.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/client.h
@@ -27,8 +25,10 @@ if(BUILD_AVALANCHEGO)
     ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/call.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/blocktag.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/encoding.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/session.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/client.cpp
@@ -49,8 +49,6 @@ else()
     ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.h
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.h
     ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.h
-    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.h
-    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/encoding.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/session.h
     ${CMAKE_SOURCE_DIR}/src/net/p2p/client.h
@@ -70,8 +68,10 @@ else()
     ${CMAKE_SOURCE_DIR}/src/net/http/httpsession.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httplistener.cpp
     ${CMAKE_SOURCE_DIR}/src/net/http/httpserver.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/encoding.cpp
-    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/decoding.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/call.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/parser.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/blocktag.cpp
+    ${CMAKE_SOURCE_DIR}/src/net/http/jsonrpc/methods.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/encoding.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/session.cpp
     ${CMAKE_SOURCE_DIR}/src/net/p2p/client.cpp
