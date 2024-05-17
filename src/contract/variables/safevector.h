@@ -8,8 +8,12 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEVECTOR_H
 #define SAFEVECTOR_H
 
+#include <array>
+#include <iterator>
+#include <stack>
+#include <tuple>
 #include <vector>
-#include <map>
+
 #include "safebase.h"
 
 /**
@@ -28,64 +32,78 @@ See the LICENSE.txt file in the project root for more information.
  */
 template <typename T> class SafeVector : public SafeBase {
   private:
-    std::vector<T> vector_; ///< The original vector.
-    mutable std::unique_ptr<std::map<uint64_t, T>> tmp_; ///< The temporary map.
-    mutable uint64_t maxIndex_ = 0; ///< The maximum index of the vector.
-    mutable bool clear_ = false; ///< Whether the vector should be cleared.
+    /**
+     * Enum for partial vector modifying operations, used by the undo structure.
+     * Full operations are not included since doing any of them disables the
+     * use of the undo stack from that point until commit/revert.
+     * NOTE: RESIZE can be either partial or total - resize(0) = clear(), every other size (for now) is considered partial
+     */
+    enum VectorOp {
+      AT, OPERATOR[], FRONT, BACK, INSERT, EMPLACE, ERASE,
+      PUSH_BACK, EMPLACE_BACK, POP_BACK, RESIZE_MORE, RESIZE_LESS
+    };
 
-    /// Check the tmp_ variables.
-    inline void check() const {
-      if (tmp_ == nullptr) {
-        tmp_ = std::make_unique<std::map<uint64_t, T>>();
-        maxIndex_ = vector_.size();
+    /// Helper alias for the undo operation structure (operation made, in which index or quantity, and one or more old values).
+    using UndoOp = std::tuple<VectorOp, std::size_t, std::vector<T>>;
+
+    std::vector<T> value_; ///< Current ("original") value.
+    std::unique_ptr<std::vector<T>> copy_; ///< Full copy of the current value.
+    std::unique_ptr<std::stack<UndoOp, std::vector<UndoOp>>> undo_; ///< Undo stack of the current value.
+
+    /// Undo all changes in the undo stack on top of the current value.
+    void processUndoStack() {
+      while (!this->undo_.empty()) {
+        UndoOp op = this->undo_.top();
+        switch (std::get<0>(op)) {
+          case AT: this->value_.at(std::get<1>(op)) = std::get<2>(op)[0]; break;
+          case OPERATOR[]: (*this->value_)[std::get<1>(op)] = std::get<2>(op)[0]; break;
+          case FRONT: this->value_.at(0) = std::get<2>(op)[0]; break;
+          case BACK: this->value_.at(N-1) = std::get<2>(op)[0]; break;
+          case INSERT:
+          case EMPLACE: this->value_.erase(std::get<1>(op)); break;
+          case ERASE: this->value_.insert(std::get<1>(op), std::get<2>(op)[0]); break;
+          case PUSH_BACK:
+          case EMPLACE_BACK: this->value_.pop_back(); break;
+          case POP_BACK: this->value_.push_back(std::get<2>(op)[0]); break;
+          // For resize(), treat index as quantity
+          case RESIZE_MORE:
+            for (std::size_t i = 0; i < std::get<1>(op); i++) this->value_.pop_back(); break;
+          case RESIZE_LESS:
+            for (std::size_t i = 0; i < std::get<1>(op); i++) this->value_.push_back(std::get<2>(op)[i]); break;
+            break;
+        }
+        this->undo_.pop();
       }
     }
 
-    /**
-     * Check a specific index and copy it if necessary.
-     * @param index The index to check.
-     * @throw std::out_of_range if index goes beyond the vector's range.
-     */
-    inline void checkIndexAndCopy(const uint64_t& index) const {
-      this->check();
-      if (index >= maxIndex_) throw std::out_of_range("Index out of range");
-      if (tmp_->contains(index)) return;
-      tmp_->emplace(index, vector_[index]);
-    }
-
   public:
-    SafeVector() : SafeBase(nullptr) {};  ///< Default constructor.
-
     /**
      * Constructor with owner.
      * @param owner The owner of the variable.
+     * @param vec (optional) A vector of T to use during construction. Defaults to an empty vector.
      */
-    explicit SafeVector(DynamicContract* owner) : SafeBase(owner) {};
+    explicit SafeVector(DynamicContract* owner, std::vector<T> vec = {})
+      : SafeBase(owner), value_(vec), copy_(nullptr), undo_(nullptr) {}
+
+    /**
+     * Empty constructor.
+     * @param vec (optional) A vector of T to use during construction. Defaults to an empty vector.
+     */
+    SafeVector(std::vector<T> vec = {}) : SafeBase(nullptr), value_(vec), copy_(nullptr), undo_(nullptr) {}
 
     /**
      * Constructor with repeating value.
      * @param count The number of copies to make.
      * @param value The value to copy.
      */
-    SafeVector(std::size_t count, const T& value) {
-      check();
-      for (std::size_t i = 0; i < count; i++) {
-        tmp_->emplace(i, value);
-        maxIndex_++;
-      }
-    }
+    SafeVector(std::size_t count, const T& value) :
+      SafeBase(nullptr), value_(count, value), copy_(nullptr), undo_(nullptr) {}
 
     /**
      * Constructor with empty repeating value.
      * @param count The number of empty values to make.
      */
-    explicit SafeVector(std::size_t count) {
-      check();
-      for (std::size_t i = 0; i < count; i++) {
-        tmp_->emplace(i, T());
-        maxIndex_++;
-      }
-    }
+    explicit SafeVector(std::size_t count) : SafeBase(nullptr), value_(count), copy_(nullptr), undo_(nullptr) {}
 
     /**
      * Constructor with iterators.
@@ -93,39 +111,30 @@ template <typename T> class SafeVector : public SafeBase {
      * @param first An iterator to the first value.
      * @param last An iterator to the last value.
      */
-    template<class InputIt> SafeVector(InputIt first, InputIt last) {
-      check();
-      uint64_t i = 0;
-      for (auto it = first; it != last; it++, i++) {
-        tmp_->emplace(i, *it);
-        maxIndex_++;
-      }
-    }
+    template<class InputIt> SafeVector(InputIt first, InputIt last)
+      : SafeBase(nullptr), value_(first, last), copy_(nullptr), undo_(nullptr) {}
 
     /**
      * Constructor with initializer list.
      * @param init The initializer list to use.
      */
-    explicit SafeVector(std::initializer_list<T> init) {
-      check(); for (const auto& val : init) { tmp_->emplace(maxIndex_, val); maxIndex_++; }
-    }
+    explicit SafeVector(std::initializer_list<T> init)
+      : SafeBase(nullptr), value_(init), copy_(nullptr), undo_(nullptr) {}
 
-    /// Copy constructor.
-    SafeVector(const SafeVector& other) {
-      check(); other.check(); *tmp_ = *(other.tmp_); maxIndex_ = other.maxIndex_;
-    }
+    /// Copy constructor. Only copies the CURRENT value.
+    SafeVector(const SafeVector& other) : SafeBase(nullptr), value_(other.value_), copy_(nullptr), undo_(nullptr) {}
+
+    /// Get the inner vector (for const functions).
+    inline const std::vector<T>& get() const { return this->value_; }
 
     /**
-     * Replace the contents of the temporary vector with copies of a value.
+     * Replace the contents of the vector with copies of a value.
      * @param count The number of copies to make.
      * @param value The value to copy.
      */
     inline void assign(std::size_t count, const T& value) {
-      check();
-      tmp_->clear();
-      for (std::size_t i = 0; i < count; i++) tmp_->emplace(i, value);
-      maxIndex_ = count;
-      clear_ = true;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_.assign(count, value);
     }
 
     /**
@@ -135,12 +144,8 @@ template <typename T> class SafeVector : public SafeBase {
      * @param last An iterator to the last element.
      */
     template<class InputIt> inline void assign(InputIt first, InputIt last) {
-      check();
-      tmp_->clear();
-      uint64_t i = 0;
-      for (auto it = first; it != last; it++, i++) tmp_->emplace(i, *it);
-      maxIndex_ = i;
-      clear_ = true;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_.assign(first, last);
     }
 
     /**
@@ -148,147 +153,142 @@ template <typename T> class SafeVector : public SafeBase {
      * @param ilist The initializer list to use.
      */
     inline void assign(std::initializer_list<T> ilist) {
-      check();
-      tmp_->clear();
-      uint64_t i = 0;
-      for (const auto& val : ilist) { tmp_->emplace(i, val); i++; }
-      maxIndex_ = i;
-      clear_ = true;
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_.assign(ilist);
     }
 
     ///@{
     /**
-     * Access a specified element with bounds checking.
-     * @param pos The position of the element.
+     * Access a specified element of the vector.
+     * at() HAS bounds checking, operator[] HAS NOT.
+     * @param pos The position of the index to access.
+     * @return The element at the given index.
      */
     inline T& at(std::size_t pos) {
-      checkIndexAndCopy(pos); markAsUsed(); return tmp_->at(pos);
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::AT, pos, {this->value_.at(pos)}));
+      }
+      markAsUsed(); return this->value_->at(pos);
     }
-    const T& at(std::size_t pos) const {
-      checkIndexAndCopy(pos); return tmp_->at(pos);
+    inline const T& at(std::size_t pos) const { return this->value_->at(pos); }
+    inline T& operator[](std::size_t pos) {
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::OPERATOR[], pos, {(*this->value_)[pos]}));
+      }
+      markAsUsed(); return (*this->value_)[pos];
     }
+    inline const T& operator[](std::size_t pos) const { return (*this->value_)[pos]; }
     ///@}
 
     ///@{
-    /**
-     * Access a specified element without bounds checking.
-     * @param pos The position of the element.
-     */
-    inline T& operator[](std::size_t pos) {
-      checkIndexAndCopy(pos); markAsUsed(); return (*tmp_)[pos];
+    /** Access the first element of the vector. */
+    inline T& front() {
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::FRONT, 0, {this->value_.at(0)}));
+      }
+      markAsUsed(); return this->value_.front();
     }
-    inline const T& operator[](std::size_t pos) const {
-      checkIndexAndCopy(pos); return (*tmp_)[pos];
-    }
+    inline const T& front() const { return this->value_.front(); }
     ///@}
 
-    /// Return the ORIGINAL vector const begin()
-    inline std::vector<T>::const_iterator cbegin() const { return vector_.cbegin(); }
+    ///@{
+    /** Access the last element of the vector. */
+    inline T& back() {
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::BACK, this->value_.size() - 1, {this->value_.at(this->value_.size() - 1)}));
+      }
+      markAsUsed(); return this->value_.back();
+    }
+    inline const T& back() const { return this->value_.back(); }
+    ///@}
 
-    /// Return the ORIGINAL vector const end()
-    inline std::vector<T>::const_iterator cend() const { return vector_.cend(); }
+    /// Get a pointer to the underlying array serving as element storage.
+    inline const T* data() const { return this->value_.data(); }
 
-    /// Return the ORIGINAL vector const crbegin()
-    inline std::vector<T>::const_reverse_iterator crbegin() const { return vector_.crbegin(); }
+    /// Get an iterator to the beginning of the vector.
+    inline std::vector<T>::const_iterator cbegin() const { return this->value_.cbegin(); }
 
-    /// Return the ORIGINAL vector const crend()
-    inline std::vector<T>::const_reverse_iterator crend() const { return vector_.crend(); }
+    /// Get an iterator to the end of the vector.
+    inline std::vector<T>::const_iterator cend() const { return this->value_.cend(); }
 
-    /// Check if vector is empty.
-    inline bool empty() const { return (maxIndex_ == 0); }
+    /// Get a reverse iterator to the beginning of the vector.
+    inline std::vector<T>::const_reverse_iterator crbegin() const { return this->value_.crbegin(); }
 
-    /// Get the vector's size.
-    inline std::size_t size() const { check(); return maxIndex_; }
+    /// Get a reverse iterator to the end of the vector.
+    inline std::vector<T>::const_reverse_iterator crend() const { return this->value_.crend(); }
+
+    /// Check if the vector is empty.
+    inline bool empty() const { return this->value_.empty(); }
+
+    /// Get the vector's current size.
+    inline std::size_t size() const { return this->value_.size(); }
 
     /// Get the vector's maximum size.
-    inline std::size_t max_size() const { return std::numeric_limits<size_t>::max() - 1; }
+    inline std::size_t max_size() const { return this->value_.max_size(); }
+
+    /**
+     * Reserve space for a new cap of items in the vector, if the new cap is
+     * greater than current capacity.
+     * Does NOT change the vector's size or contents, therefore we don't
+     * consider it for a copy or undo operation.
+     * @param new_cap The new cap for the vector.
+     */
+    inline void reserve(std::size_t new_cap) { markAsUsed(); this->value_.reserve(new_cap); }
+
+    /// Get the number of items the vector has currently allocated space for.
+    inline std::size_t capacity() const { return this->value_.capacity(); }
 
     /// Clear the vector.
-    inline void clear() { check(); markAsUsed(); tmp_->clear(); maxIndex_ = 0; clear_ = true; }
+    inline void clear() {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_.clear();
+    }
+
+    // TODO: insert() and erase() only have one impl each for now - check later if other impls are needed
 
     /**
      * Insert an element into the vector.
-     * This is not 1:1 - we use a uint64_t as the index of the inserted element,
-     * because the temporary map can't return a std::vector<T>::iterator (because it is a map).
      * @param pos The position to insert.
-     * @param value The value to insert.
+     * @param value The element to insert.
      * @return The index of the element that was inserted.
-     * @throw std::out_of_range if the insertion is done beyond the vector's range.
      */
-    uint64_t insert(const uint64_t& pos, const T& value) {
-      check();
-      markAsUsed();
-      if (pos == maxIndex_) {
-        tmp_->insert_or_assign(pos, value);
-        maxIndex_++;
-        return pos;
-      } else if (pos < maxIndex_) {
-        /// Move all elements from pos to maxIndex_ one position to the right.
-        /// So we can fit the new element at pos.
-        for (uint64_t i = maxIndex_; i > pos; --i) {
-          auto iter = tmp_->find(i - 1);
-          if (iter != tmp_->end()) {
-            tmp_->insert_or_assign(i, iter->second); // shift the element,
-          } else {
-            tmp_->insert_or_assign(i, vector_[i - 1]); // copy and shift the element from the original vector
-          }
-        }
-        tmp_->insert_or_assign(pos, value);
-        maxIndex_++;
-        return pos;
-      } else {
-        throw std::out_of_range("pos out of range");
+    std::vector<T>::const_iterator insert(std::vector<T>::const_iterator pos, const T& value) {
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::INSERT, std::distance(this->value_.begin(), pos), {}));
       }
+      markAsUsed(); return this->value_.insert(pos, args);
+    }
+
+    /**
+     * Emplace (construct in-place) an element into the vector.
+     * @param pos The position to emplace.
+     * @param args The element to emplace.
+     * @return The index of the element that was emplaced.
+     */
+    std::vector<T>::const_iterator emplace(std::vector<T>::const_iterator pos, T&&... args) {
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::EMPLACE, std::distance(this->value_.begin(), pos), {}));
+      }
+      markAsUsed(); return this->value_.emplace(pos, args);
     }
 
     /**
      * Erase an element from the vector.
      * @param pos The index of the element to erase.
-     * @return The index of the first element following the erased element.
      */
-    std::size_t erase(std::size_t pos) {
-      checkIndexAndCopy(pos);
-      markAsUsed();
-      // Shift elements from the right of pos to fill the gap.
-      for (std::size_t i = pos; i < maxIndex_ - 1; ++i) {
-        auto iter = tmp_->find(i + 1);
-        if (iter != tmp_->end()) {
-          tmp_->insert_or_assign(i, iter->second); // Shift the element.
-        } else {
-          tmp_->insert_or_assign(i, vector_[i + 1]); // Copy and shift the element from the original vector.
-        }
+    std::vector<T>::const_iterator erase(std::vector<T>::const_iterator pos) {
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        std::size_t index = std::distance(this->value_.begin(), pos);
+        this->undo_->emplace(std::make_tuple(VectorOp::ERASE, diff, {this->value_.at(index)}));
       }
-      // Remove the last element.
-      tmp_->erase(maxIndex_ - 1);
-      maxIndex_--;
-      return pos;
-    }
-
-    /**
-     * Erase a range of elements from the vector.
-     * @param first The index of the first element to remove.
-     * @param last The index of the last element to remove.
-     * @return The index of the first element following the erased element range.
-     * @throw std::out_of_range if the erasing is done beyond the vector's range.
-     */
-    std::size_t erase(std::size_t first, std::size_t last) {
-      check();
-      markAsUsed();
-      if (first > last || last > maxIndex_) throw std::out_of_range("Indices out of range");
-      std::size_t numToRemove = last - first; // Compute the number of elements to be removed.
-      // Shift elements from the right of last to fill the gap.
-      for (std::size_t i = first; i < maxIndex_ - numToRemove; ++i) {
-        auto iter = tmp_->find(i + numToRemove);
-        if (iter != tmp_->end()) {
-          tmp_->insert_or_assign(i, iter->second); // Shift the element
-        } else {
-          tmp_->insert_or_assign(i, vector_[i + numToRemove]); // Copy and shift the element from the original vector
-        }
-      }
-      // Remove the last numToRemove elements.
-      for (std::size_t i = 0; i < numToRemove; i++) tmp_->erase(maxIndex_ - 1 - i);
-      maxIndex_ -= numToRemove;
-      return first;
+      markAsUsed(); return this->value_.erase(pos);
     }
 
     /**
@@ -296,7 +296,11 @@ template <typename T> class SafeVector : public SafeBase {
      * @param value The value to append.
      */
     void push_back(const T& value) {
-      check(); markAsUsed(); tmp_->emplace(maxIndex_, value); maxIndex_++;
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::PUSH_BACK, 0, {}));
+      }
+      markAsUsed(); this->value_->push_back(value);
     }
 
     /**
@@ -304,12 +308,20 @@ template <typename T> class SafeVector : public SafeBase {
      * @param value The value to emplace.
      */
     void emplace_back(T&& value) {
-      check(); markAsUsed(); tmp_->emplace(maxIndex_, std::move(value)); maxIndex_++;
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::EMPLACE_BACK, 0, {}));
+      }
+      markAsUsed(); this->value_.emplace_back(value);
     }
 
     /// Erase the element at the end of the vector.
     void pop_back() {
-      check(); markAsUsed(); tmp_->erase(maxIndex_ - 1); maxIndex_--;
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::POP_BACK, 0, {this->value_.back()}));
+      }
+      markAsUsed(); this->value_.pop_back();
     }
 
     /**
@@ -318,14 +330,26 @@ template <typename T> class SafeVector : public SafeBase {
      * @param count The number of items for the new size.
      */
     void resize(std::size_t count) {
-      check();
-      if (count < maxIndex_) {
-        for (std::size_t i = count; i < maxIndex_; i++) tmp_->erase(i);
-      } else if (count > maxIndex_) {
-        for (std::size_t i = maxIndex_; i < count; i++) tmp_->emplace(i, T());
+      if (this->copy_ == nullptr) {
+        if (count == 0) { // Treat as full operation if resize(0), otherwise treat as partial
+          this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+        } else if (count != this->value_.size()) { // Only consider undo if size will actually change
+          if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+          VectorOp vecOp; // RESIZE_MORE (will be bigger) or RESIZE_LESS (will be smaller)
+          std::size_t diff = 0; // Size difference between old and new vector
+          std::vector<T> vals = {}; // Old values from before the operation
+          if (count > this->value_.size()) {
+            vecOp = VectorOp::RESIZE_MORE;
+            diff = (this->value_.size() + count) - this->value_.size();
+          } else if (count < this->value_.size()) {
+            vecOp = VectorOp::RESIZE_LESS;
+            diff = this->value_size() - count;
+            vals = std::vector<T>(this->value_.end() - diff, this->value_.end());
+          }
+          this->undo_->emplace(std::make_tuple(vecOp, diff, vals));
+        }
       }
-      maxIndex_ = count;
-      markAsUsed();
+      markAsUsed(); this->value_.resize(count);
     }
 
     /**
@@ -335,37 +359,61 @@ template <typename T> class SafeVector : public SafeBase {
      * @param value The value to append and initialize.
      */
     void resize(std::size_t count, const T& value) {
-      check();
-      if (count < maxIndex_) {
-        for (std::size_t i = count; i < maxIndex_; i++) tmp_->erase(i);
-      } else if (count > maxIndex_) {
-        for (std::size_t i = maxIndex_; i < count; i++) tmp_->emplace(i, value);
-      }
-      maxIndex_ = count;
-      markAsUsed();
-    }
-
-    /// Commit function.
-    void commit() override {
-      check();
-      if (clear_) { vector_.clear(); clear_ = false; }
-      // Erase difference in size.
-      if (vector_.size() > maxIndex_) vector_.erase(vector_.begin() + maxIndex_, vector_.end());
-      for (auto& it : *tmp_) {
-        if (it.first < vector_.size()) {
-          vector_[it.first] = it.second;
-        } else {
-          vector_.emplace_back(it.second);
+      if (this->copy_ == nullptr) {
+        if (count == 0) { // Treat as full operation if resize(0), otherwise treat as partial
+          this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+        } else if (count != this->value_.size()) { // Only consider undo if size will actually change
+          if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+          VectorOp vecOp; // RESIZE_MORE (will be bigger) or RESIZE_LESS (will be smaller)
+          std::size_t diff = 0; // Size difference between old and new vector
+          std::vector<T> vals = {}; // Old values from before the operation
+          if (count > this->value_.size()) {
+            vecOp = VectorOp::RESIZE_MORE;
+            diff = (this->value_.size() + count) - this->value_.size();
+          } else if (count < this->value_.size()) {
+            vecOp = VectorOp::RESIZE_LESS;
+            diff = this->value_size() - count;
+            vals = std::vector<T>(this->value_.end() - diff, this->value_.end());
+          }
+          this->undo_->emplace(std::make_tuple(vecOp, diff, vals));
         }
       }
-      maxIndex_ = vector_.size();
+      markAsUsed(); this->value_.resize(count, value);
     }
 
-    /// Rollback function.
-    void revert() const override { tmp_ = nullptr; clear_ = false; maxIndex_ = vector_.size(); }
+    ///@{
+    /** Swap the contents of two vectors. Swaps only the CURRENT value. */
+    inline void swap(std::vector<T> other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_.swap(other);
+    }
+    inline void swap(SafeVector<T> other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
+    }
+    ///@}
 
-    /// Get the inner vector (for const functions).
-    inline const std::vector<T>& get() const { return this->vector_; }
+    ///@{
+    /** Equality operator. Checks only the CURRENT value. */
+    inline bool operator==(const std::vector<T>& other) const { return (this->value_ == other); }
+    inline bool operator==(const SafeVector<T>& other) const { return (this->value_ == other.get()); }
+    ///@}
+
+    ///@{
+    /** Three-way comparison operator. Checks only the CURRENT value. */
+    inline bool operator<=>(const std::vector<T>& other) const { return (this->value_ <=> other); }
+    inline bool operator<=>(const SafeVector<T>& other) const { return (this->value_ <=> other.get()); }
+    ///@}
+
+    /// Commit the value.
+    void commit() override { this->copy_ = nullptr; this->undo_ = nullptr; this->registered_ = false; }
+
+    /// Revert the value.
+    void revert() override {
+      if (this->copy_ != nullptr) this->value_ = *this->copy_;
+      if (!this->undo_.empty()) this->processUndoStack();
+      this->copy_ = nullptr; this->undo_ = nullptr; this->registered_ = false;
+    }
 };
 
 #endif /// SAFEVECTOR_H
