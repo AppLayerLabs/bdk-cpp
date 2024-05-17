@@ -242,6 +242,13 @@ template <typename T> class SafeVector : public SafeBase {
     /// Get the number of items the vector has currently allocated space for.
     inline std::size_t capacity() const { return this->value_.capacity(); }
 
+    /**
+     * Reduce unused capacity on the vector to fit the current size.
+     * Does NOT change the vector's size or contents, therefore we don't
+     * consider it for a copy or undo operation.
+     */
+    inline void shrink_to_fit() { markAsUsed(); this->value_.shrink_to_fit(); }
+
     /// Clear the vector.
     inline void clear() {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
@@ -304,9 +311,22 @@ template <typename T> class SafeVector : public SafeBase {
     }
 
     /**
+     * Append an element to the end of the vector, using move.
+     * @param value The value to append.
+     */
+    void push_back(T&& value) {
+      if (this->copy_ == nullptr) {
+        if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
+        this->undo_->emplace(std::make_tuple(VectorOp::PUSH_BACK, 0, {}));
+      }
+      markAsUsed(); this->value_->push_back(std::move(value));
+    }
+
+    /**
      * Emplace an element at the end of the vector.
      * @param value The value to emplace.
      */
+    // TODO: check if this should return void or reference or both (see cppreference)
     void emplace_back(T&& value) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
@@ -390,6 +410,18 @@ template <typename T> class SafeVector : public SafeBase {
     inline void swap(SafeVector<T> other) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
       markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
+    }
+    ///@}
+
+    ///@{
+    /** Assignment operator. Assigns only the CURRENT value. */
+    inline SafeVector& operator=(const std::vector<T>& vec) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_ = vec; return *this;
+    }
+    inline SafeVector& operator=(const SafeVector<T>& other) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
+      markAsUsed(); this->value_ = other.get(); return *this;
     }
     ///@}
 

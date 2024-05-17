@@ -49,14 +49,23 @@ class SafeString : public SafeBase {
     inline const std::string& get() const { return this->value_; }
 
     /**
-     * Assign a new value from a number of chars.
-     * @param count The number of characters to assign.
-     * @param ch The character to fill the string with.
+     * Assign a new value from another string.
+     * @param str The string to assign.
      * @return The new value.
      */
-    inline SafeString& assign(size_t count, char ch) {
+    inline SafeString& assign(const std::string& str) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
-      markAsUsed(); this->value_.assign(count, ch); return *this;
+      markAsUsed(); this->value_.assign(str); return *this;
+    }
+
+    /**
+     * Assign a new value from another string, using move
+     * @param str The string to assign.
+     * @return The new value.
+     */
+    inline SafeString& assign(std::string&& str) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      markAsUsed(); this->value_.assign(std::move(str)); return *this;
     }
 
     /**
@@ -67,6 +76,20 @@ class SafeString : public SafeBase {
     inline SafeString& assign(const SafeString& str) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
       markAsUsed(); this->value_.assign(str.get()); return *this;
+    }
+
+    /**
+     * Assign a new value from another substring.
+     * @param str The string to use for replacement.
+     * @param pos The position of the first character to be assigned.
+     * @param count The number of characters of the substring to use.
+     *              If the string itself is shorter, it will use as many
+     *              characters as possible. Defaults to the end of the string.
+     * @return The new value.
+     */
+    inline SafeString& assign(const std::string& str, size_t pos, size_t count = std::string::npos) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      markAsUsed(); this->value_.assign(str, pos, count); return *this;
     }
 
     /**
@@ -81,6 +104,17 @@ class SafeString : public SafeBase {
     inline SafeString& assign(const SafeString& str, size_t pos, size_t count = std::string::npos) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
       markAsUsed(); this->value_.assign(str.get(), pos, count); return *this;
+    }
+
+    /**
+     * Assign a new value from a number of chars.
+     * @param count The number of characters to assign.
+     * @param ch The character to fill the string with.
+     * @return The new value.
+     */
+    inline SafeString& assign(size_t count, char ch) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      markAsUsed(); this->value_.assign(count, ch); return *this;
     }
 
     /**
@@ -859,6 +893,50 @@ class SafeString : public SafeBase {
     }
 
     /**
+     * Replace part of this string with a string view.
+     * @param pos The index of the first character of this string to replace.
+     * @param count The number of characters in this string to replace.
+     * @param sv The string view to use as a replacement.
+     * @return The new value.
+     */
+    inline SafeString& replace(
+      size_t pos, size_t count, const std::string_view& sv
+    ) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      markAsUsed(); this->value_.replace(pos, count, sv); return *this;
+    }
+
+    /**
+     * Replace part of this string with a string view, using iterators.
+     * @param first An iterator to the first character of this string to replace.
+     * @param last An iterator to the last character of this string to replace.
+     * @param sv The string view to use as a replacement.
+     * @return The new value.
+     */
+    inline SafeString& replace(
+      std::string::const_iterator first, std::string::const_iterator last, const std::string_view& sv
+    ) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      markAsUsed(); this->value_.replace(first, last, sv); return *this;
+    }
+
+    /**
+     * Replace part of this string with a string view.
+     * @param pos The index of the first character of this string to replace.
+     * @param count The number of characters in this string to replace.
+     * @param sv The string view to use as a replacement.
+     * @param pos2 The index of the first character of the string view to use as a replacement.
+     * @param count2 The number of characters of the string view to use as a replacement.
+     * @return The new value.
+     */
+    inline SafeString& replace(
+      size_t pos, size_t count, const std::string_view& sv, size_t pos2, size_t count2 = std::string::npos
+    ) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      markAsUsed(); this->value_.replace(pos, count, sv, pos2, count2); return *this;
+    }
+
+    /**
      * Get a substring of the string.
      * @param pos The index of the first character of the substring.
      * @param count The number of characters of the substring.
@@ -899,13 +977,21 @@ class SafeString : public SafeBase {
     }
 
     /**
+     * Swap the contents of this string with another string.
+     * @param str The string to swap with.
+     */
+    inline void swap(std::string& str) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      markAsUsed(); this->value_.swap(other.value_);
+    }
+
+    /**
      * Swap the contents of this string with another SafeString.
      * @param other The string to swap with.
      */
     inline void swap(SafeString& other) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
-      markAsUsed(); other.markAsUsed();
-      this->value_.swap(other.value_);
+      markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
     }
 
     ///@{
