@@ -91,11 +91,23 @@ struct VariadicParser<T, std::optional<U>> {
   }
 };
 
+/// @brief parses the json array or object to a tuple of the given types
+/// @tparam ...Ts the target types
+/// @param data the json array or object
+/// @return a tuple containing the parsed json elements
+/// @throws Error if the parsing of any element throws an exception
+/// @throws Error if the json array does not have sufficient values
+/// @note ideally, the number of elements in the json matches the number of template parameters,
+///       but the json can contain more elements which will be ignored
+/// @note the last template parameter can be a std::optional type which will only be parsed
+///       if the json array contain enough elements, otherwise an empty optional will be returned
 template<typename... Ts>
 inline std::tuple<Ts...> parseAll(const json& data) {
   return VariadicParser<Ts...>{}(data);
 }
 
+/// @brief utility function for the common task of parsing the "params" field that
+///        contains an array of values to be parsed
 template<typename... Ts>
 inline std::tuple<Ts...> parseAllParams(const json& target) {
   if (!target.contains("params"))
