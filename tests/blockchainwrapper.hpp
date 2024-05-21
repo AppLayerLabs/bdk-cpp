@@ -225,4 +225,34 @@ inline FinalizedBlock createValidBlock(const std::vector<Hash>& validatorPrivKey
   return finalized;
 }
 
+/**
+ * Soft time limit check that can be placed inside test macros like REQUIRE().
+ * TEST_CHECK_TIME: prints only if the limit is exceeded.
+ * TEST_CHECK_TIME_VERBOSE: always prints the time elapsed.
+ */
+template<typename Func>
+bool testCheckTime(const char* file, int line, Func&& func, int timeLimitSeconds, bool printInfo) {
+  std::filesystem::path filePath(file);
+  std::string fileName = filePath.filename().string();
+  auto start = std::chrono::high_resolution_clock::now();
+  bool result = func();
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  auto timeLimit = std::chrono::milliseconds(timeLimitSeconds * 1000);
+  bool warn = duration > timeLimit;
+  if (printInfo || warn) {
+    std::string msg = warn ? "WARNING" : "INFO";
+    msg += " [TIME]: " + std::to_string(duration.count()) + "/" + std::to_string(timeLimit.count())
+           + " ms (" + fileName + ":" + std::to_string(line) + ")";
+    Utils::safePrintTest(msg);
+  }
+  return result;
+}
+
+#define TEST_CHECK_TIME(func, timeLimitSeconds) \
+    testCheckTime(__FILE__, __LINE__, [&]() { return (func); }, timeLimitSeconds, false)
+
+#define TEST_CHECK_TIME_VERBOSE(func, timeLimitSeconds) \
+    testCheckTime(__FILE__, __LINE__, [&]() { return (func); }, timeLimitSeconds, true)
+
 #endif // BLOCKCHAINWRAPPER_H
