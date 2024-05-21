@@ -165,10 +165,12 @@ class SafeString : public SafeBase {
      * Get a character from a specified position.
      * @param pos The position of the character.
      * @return The requsted character.
+     * @throws std::out_of_range if pos is bigger than the string's size.
      */
     inline char& at(size_t pos) {
+      char& ret = this->value_.at(pos);
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
-      markAsUsed(); return this->value_.at(pos);
+      markAsUsed(); return ret;
     }
     inline const char& at(size_t pos) const { return this->value_.at(pos); }
     ///@}

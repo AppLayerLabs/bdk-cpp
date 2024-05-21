@@ -71,26 +71,34 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     ///@{
     /**
      * Access a specified element of the array.
-     * at() HAS bounds checking, operator[] HAS NOT.
      * @param pos The position of the index to access.
      * @return The element at the given index.
+     * @throws std::out_of_range if pos is bigger than the array's size.
      */
     inline T& at(std::size_t pos) {
+      T& ret = this->value_.at(pos);
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         this->undo_->emplace(std::make_tuple(ArrayOp::AT, pos, this->value_.at(pos)));
       }
-      markAsUsed(); return this->value_.at(pos);
+      markAsUsed(); return ret;
     }
     inline const T& at(std::size_t pos) const { return this->value_.at(pos); }
+    ///@}
+
+    /**
+     * Access a specified element of the array (without bounds checking).
+     * @param pos The position of the index to access.
+     * @return The element at the given index.
+     */
     inline T& operator[](std::size_t pos) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(ArrayOp::OPERATOR[], pos, (*this->value_)[pos]));
+        this->undo_->emplace(std::make_tuple(ArrayOp::OPERATOR[], pos, this->value_[pos]));
       }
       markAsUsed(); return (*this->value_)[pos];
     }
-    inline const T& operator[](std::size_t pos) const { return (*this->value_)[pos]; }
+    inline const T& operator[](std::size_t pos) const { return this->value_[pos]; }
     ///@}
 
     ///@{
@@ -155,11 +163,11 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
 
     ///@{
     /** Swap the contents of two arrays. Swaps only the CURRENT value. */
-    inline void swap(std::array<T,N> other) {
+    inline void swap(std::array<T,N>& other) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::array<T,N>>(this->value_);
       markAsUsed(); this->value_.swap(other);
     }
-    inline void swap(SafeArray<T,N> other) {
+    inline void swap(SafeArray<T,N>& other) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::array<T,N>>(this->value_);
       markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
     }
