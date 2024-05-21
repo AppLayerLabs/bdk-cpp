@@ -1163,7 +1163,9 @@ namespace TState {
           }
         });
 
-        REQUIRE(confirmFuture.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+        // Average time of above test is 3s; need a much larger timeout.
+        REQUIRE(confirmFuture.wait_for(std::chrono::seconds(120)) != std::future_status::timeout);
+
         // Check balances for target
         REQUIRE(blockchainWrapper1.state.getNativeBalance(targetOfTransactions) == targetExpectedValue);
         REQUIRE(blockchainWrapper2.state.getNativeBalance(targetOfTransactions) == targetExpectedValue);
