@@ -30,6 +30,9 @@ template<> struct Parser<Bytes> { Bytes operator()(const json& data) const; };
 /// @brief parses a json boolean to a bool type if valid
 template<> struct Parser<bool> { bool operator()(const json& data) const; };
 
+/// @brief parses a json number to a float type if valid
+template<> struct Parser<float> { float operator()(const json& data) const; };
+
 /// @brief parses a hexadecimal encoded json string to an unsigned integer
 template<> struct Parser<uint64_t> { uint64_t operator()(const json& data) const; };
 
@@ -75,6 +78,24 @@ struct Parser<std::variant<T, Ts...>> {
 
       return res;
     }
+  }
+};
+
+template<typename T>
+struct Parser<std::vector<T>> {
+  std::vector<T> operator()(const json& data) const {
+    std::vector<T> res;
+
+    if (data.is_array()) {
+      res.reserve(data.size());
+      std::ranges::transform(data, std::back_inserter(res), [] (const json& elem) { return Parser<T>{}(elem); });
+    } else if (data.is_object()) {
+      res.emplace_back(Parser<T>{}(data));
+    } else {
+      throw Error::invalidType("array or object", data.type_name());
+    }
+
+    return res;
   }
 };
 
