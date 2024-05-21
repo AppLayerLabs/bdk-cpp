@@ -26,8 +26,20 @@ void DumpManager::pushBack(Dumpable* dumpable)
   dumpables_.push_back(dumpable);
 }
 
-std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
-  std::pair<std::vector<DBBatch>,uint64_t> ret;
+std::vector<DBBatch> DumpManager::dumpToBatch(unsigned int threadOffset,
+                                              unsigned int threadItems) const
+{
+  std::vector<DBBatch> ret;
+
+  for (auto i = threadOffset; i < (threadOffset + threadItems); ++i)
+    ret.emplace_back(this->dumpables_[i]->dump());
+
+  return ret;
+}
+
+std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const
+{
+  std::pair<std::vector<DBBatch>, uint64_t> ret;
   auto& [batches, blockHeight] = ret;
   {
     // state mutex lock
@@ -40,10 +52,33 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const {
                        Log::dumpManager,
                        __func__,
                        "Emplace DBBatch operations");
-    for (const auto dumpable: dumpables_) {
-      // call dump functions and put the operations ate the database
-      batches.emplace_back(dumpable->dump());
+
+    const auto nThreads = std::thread::hardware_concurrency();
+    auto requiredOffset = this->dumpables_.size() / nThreads;
+    auto remaining = (this->dumpables_.size() - (requiredOffset * nThreads));
+    auto currentOffset = 0;
+    std::vector<std::future<std::vector<DBBatch>>> futures(nThreads);
+    std::vector<std::vector<DBBatch>> outputs(nThreads);
+
+    for (decltype(futures)::size_type i = 0; i < nThreads; ++i) {
+      auto nItems = requiredOffset;
+      if (remaining != 0) {
+        /// Add a extra job if the division was not perfect and we have remainings
+        ++nItems;
+        --remaining;
+      }
+      futures[i] = std::async(&DumpManager::dumpToBatch, this, currentOffset, nItems);
+      currentOffset += nItems;
     }
+    // get futures output (wait thread, implicit)
+    for (auto i = 0; i < nThreads; ++i)
+      outputs[i] = futures[i].get();
+
+    // emplace futures return into batches
+    for (auto i = 0; i < nThreads; ++i)
+      for (auto j = 0; j < outputs[i].size(); ++j)
+        batches.emplace_back(outputs[i][j]);
+
     // Also dump the events
     // EventManager has its own database.
     // We just need to make sure that its data is dumped

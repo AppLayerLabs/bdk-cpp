@@ -22,15 +22,18 @@ DB::DB(const std::filesystem::path& path) {
 bool DB::putBatch(const DBBatch& batch) {
   std::lock_guard lock(this->batchLock_);
   rocksdb::WriteBatch wb;
-  for (const rocksdb::Slice& dels : batch.getDelsSlices()) { wb.Delete(dels); }
-  for (const auto& [key, value] : batch.getPutsSlices()) wb.Put(key, value);
+  for (const auto& dels : batch.getDels())
+    wb.Delete(rocksdb::Slice(reinterpret_cast<const char*>(dels.data()), dels.size()));
+  for (const auto& puts : batch.getPuts())
+    wb.Put(rocksdb::Slice(reinterpret_cast<const char*>(puts.key.data()), puts.key.size()),
+           rocksdb::Slice(reinterpret_cast<const char*>(puts.value.data()), puts.value.size()));
   rocksdb::Status s = this->db_->Write(rocksdb::WriteOptions(), &wb);
   return s.ok();
 }
 
 std::vector<DBEntry> DB::getBatch(
   const Bytes& bytesPfx, const std::vector<Bytes>& keys
-) const {
+  ) const {
   std::lock_guard lock(this->batchLock_);
   std::vector<DBEntry> ret;
   std::unique_ptr<rocksdb::Iterator> it(this->db_->NewIterator(rocksdb::ReadOptions()));
