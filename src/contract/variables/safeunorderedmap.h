@@ -8,11 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #ifndef SAFEUNORDEREDMAP_H
 #define SAFEUNORDEREDMAP_H
 
-#include <memory>
-#include <stack>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include "../../utils/safehash.h"
 
@@ -28,7 +25,7 @@ See the LICENSE.txt file in the project root for more information.
 template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
   private:
     std::unordered_map<Key, T, SafeHash> value_; ///< Current ("original") value.
-    std::unordered_map<Key, std::unique_ptr<T>, SafeHash>> copy_; ///< Previous ("temporary") value. Stores changed keys only.
+    std::unordered_map<Key, std::optional<T>, SafeHash> copy_; ///< Previous ("temporary") value. Stores changed keys only.
 
   public:
     /**
@@ -74,10 +71,10 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     inline bool contains(const Key &key) const { return this->value_.contains(key); }
 
     /// Get an iterator to the start of the original map value.
-    inline std::unordered_map<Key, T>::const_iterator cbegin() const noexcept { return this->value_.cbegin(); }
+    inline typename std::unordered_map<Key, T>::const_iterator cbegin() const noexcept { return this->value_.cbegin(); }
 
     /// Get an iterator to the end of the original map value.
-    inline std::unordered_map<Key, T>::const_iterator cend() const noexcept { return this->value_.cend(); }
+    inline typename std::unordered_map<Key, T>::const_iterator cend() const noexcept { return this->value_.cend(); }
 
     /**
      * Check if the map is empty (has no values).
@@ -93,8 +90,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
 
     /// Clear the map.
     inline void clear() {
-      for (std::pair<Key, T> val : this->value_) {
-        if (!this->copy_.contains(val.first)) this->copy_[val.first] = std::make_unique<T>(val.second);
+      for (const auto& [key, value] : this->value_) {
+        // try_emplace will only insert if the key doesn't exist.
+        this->copy_.try_emplace(key, std::in_place, value);
       }
       markAsUsed(); this->value_.clear();
     }
@@ -108,10 +106,14 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool> insert(
       const typename std::unordered_map<Key, T, SafeHash>::value_type& value
     ) {
-      if (!this->value_.contains(value.first) && !this->copy_.contains(value.first)) {
-        this->copy_[value.first] = nullptr;
+      auto ret = this->value_.insert(value);
+      // Only register as changed if insert was successful.
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.insert(value);
+      return ret;
     }
 
     ///@{
@@ -124,17 +126,26 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool> insert(
       typename std::unordered_map<Key, T, SafeHash>::value_type&& value
     ) {
-      if (!this->value_.contains(value.first) && !this->copy_.contains(value.first)) {
-        this->copy_[value.first] = nullptr;
+      auto ret = this->value_.insert(std::move(value));
+      // Only register as changed if insert was successful.
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.insert(std::move(value));
+      return ret;
     }
+
     template <typename P> requires std::is_same_v<P, std::pair<Key, T>>
     std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool> insert(P&& value) {
-      if (!this->value_.contains(value.first) && !this->copy_.contains(value.first)) {
-        this->copy_[value.first] = nullptr;
+      auto ret = this->value_.insert(std::move(value));
+      // Only register as changed if insert was successful.
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.insert(std::move(value));
+      return ret;
     }
     ///@}
 
@@ -148,10 +159,14 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
       const typename std::unordered_map<Key, T, SafeHash>::value_type& value
     ) {
-      if (!this->value_.contains(value.first) && !this->copy_.contains(value.first)) {
-        this->copy_[value.first] = nullptr;
+      auto ret = this->value_.insert(hint, value);
+      // Only register as changed if insert was successful.
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      copyKeyIfNotChanged(value.first, true); markAsUsed(); return this->value_.insert(hint, value);
+      return ret;
     }
 
     ///@{
@@ -165,18 +180,26 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
       typename std::unordered_map<Key, T, SafeHash>::value_type&& value
     ) {
-      if (!this->value_.contains(value.first) && !this->copy_.contains(value.first)) {
-        this->copy_[value.first] = nullptr;
+      auto ret = this->value_.insert(hint, std::move(value));
+      // Only register as changed if insert was successful.
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.insert(hint, std::move(value));
+      return ret;
     }
     template <class P> typename std::unordered_map<Key, T, SafeHash>::const_iterator insert(
       typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, P&& value
     ) {
-      if (!this->value_.contains(value.first) && !this->copy_.contains(value.first)) {
-        this->copy_[value.first] = nullptr;
+      auto ret = this->value_.insert(hint, std::move(value));
+      // Only register as changed if insert was successful.
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.insert(hint, std::move(value));
+      return ret;
     }
     ///@}
 
@@ -187,9 +210,14 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @param last An iterator to the last value of the range.
      */
     template <class InputIt> void insert(InputIt first, InputIt last) {
-      for (auto it = first; it < last; it++) {
-        if (!this->value_.contains((*it).first) && !this->copy_.contains((*it).first)) {
-          this->copy_[(*it).first] = nullptr;
+      // On this insert, we copy everything because we cannot check the insert
+      // return to see what keys were insertted.
+      for (auto it = first; it < last; ++it) {
+        auto valueIt = this->value_.find(it.first);
+        if (valueIt != this->value_.end()) {
+          this->copy_.try_emplace(it.first, std::in_place, valueIt.second);
+        } else {
+          this->copy_.try_emplace(it.first, std::nullopt);
         }
       }
       markAsUsed(); this->value_.insert(first, last);
@@ -202,9 +230,14 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     void insert(std::initializer_list<
       typename std::unordered_map<Key, T, SafeHash>::value_type
     > ilist) {
-      for (std::pair<Key, T> item : ilist) {
-        if (!this->value_.contains(item.first) && !this->copy_.contains(item.first)) {
-          this->copy_[item.first] = nullptr;
+      for (const std::pair<Key, T>& item : ilist) {
+        auto valueIt = this->value_.find(item.first);
+        if (valueIt != this->value_.end()) {
+          // Try to make a original copy of the value.
+          this->copy_.try_emplace(item.first, std::in_place, valueIt.second);
+        } else {
+          // No value found, insert a empty optional.
+          this->copy_.try_emplace(item.first, std::nullopt);
         }
       }
       markAsUsed(); this->value_.insert(ilist);
@@ -218,10 +251,14 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      */
     typename std::unordered_map<Key, T, SafeHash>::insert_return_type
     insert(typename std::unordered_map<Key, T, SafeHash>::node_type&& nh) {
-      if (!this->value_.contains(nh.key()) && !this->copy_.contains(nh.key())) {
-        this->copy_[nh.key()] = nullptr;
+      auto ret = this->value_.insert(std::move(nh));
+      // Only register as changed if insert was successful.
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.insert(std::move(nh));
+      return ret;
     }
 
     /**
@@ -234,10 +271,14 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
       typename std::unordered_map<Key, T, SafeHash>::node_type&& nh
     ) {
-      if (!this->value_.contains(nh.key()) && !this->copy_.contains(nh.key())) {
-        this->copy_[nh.key()] = nullptr;
+      auto ret = this->value_.insert(hint, std::move(nh));
+      // Only register as changed if insert was successful.
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.insert(hint, std::move(nh));
+      return ret;
     }
 
     /**
@@ -249,8 +290,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      */
     std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool>
     insert_or_assign(const Key& k, const T& obj) {
-      if (!this->copy_.contains(k)) {
-        this->copy_[k] = (this->value_.contains(k)) ? std::make_unique<T>(this->value_[k]) : nullptr;
+      auto valueIt = this->value_.find(k);
+      if (valueIt != this->value_.end()) {
+        this->copy_.try_emplace(k, std::in_place, valueIt.second);
+      } else {
+        this->copy_.try_emplace(k, std::nullopt);
       }
       markAsUsed(); return this->value_.insert_or_assign(k, obj);
     }
@@ -263,8 +307,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      *         boolean indicating whether the insertion was successful.
      */
     std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool> insert_or_assign(Key&& k, T&& obj) {
-      if (!this->copy_.contains(k)) {
-        this->copy_[k] = (this->value_.contains(k)) ? std::make_unique<T>(this->value_[k]) : nullptr;
+      auto valueIt = this->value_.find(k);
+      if (valueIt != this->value_.end()) {
+        this->copy_.try_emplace(k, std::in_place, valueIt.second);
+      } else {
+        this->copy_.try_emplace(k, std::nullopt);
       }
       markAsUsed(); return this->value_.insert_or_assign(std::move(k), std::move(obj));
     }
@@ -281,8 +328,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
       const Key& k, const T& obj
     ) {
-      if (!this->copy_.contains(k)) {
-        this->copy_[k] = (this->value_.contains(k)) ? std::make_unique<T>(this->value_[k]) : nullptr;
+      auto valueIt = this->value_.find(k);
+      if (valueIt != this->value_.end()) {
+        this->copy_.try_emplace(k, std::in_place, valueIt.second);
+      } else {
+        this->copy_.try_emplace(k, std::nullopt);
       }
       markAsUsed(); return this->value_.insert_or_assign(hint, k, obj);
     }
@@ -299,8 +349,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       typename std::unordered_map<Key, T, SafeHash>::const_iterator hint,
       Key&& k, T&& obj
     ) {
-      if (!this->copy_.contains(k)) {
-        this->copy_[k] = (this->value_.contains(k)) ? std::make_unique<T>(this->value_[k]) : nullptr;
+      auto valueIt = this->value_.find(k);
+      if (valueIt != this->value_.end()) {
+        this->copy_.try_emplace(k, std::in_place, valueIt.second);
+      } else {
+        this->copy_.try_emplace(k, std::nullopt);
       }
       markAsUsed(); return this->value_.insert_or_assign(hint, std::move(k), std::move(obj));
     }
@@ -314,10 +367,15 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     template <typename... Args> std::pair<
       typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool
     > emplace(Args&&... args) {
-      if (!this->value_.contains(args.first) && !this->copy_.contains(args.first)) {
-        this->copy_[args.first] = nullptr;
+      // emplace is the same as insert, it doesn`t replace the value if it already exists.
+      // So as there is no "copy" is the
+      auto ret = this->value_.emplace(std::forward<Args>(args)...);
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.emplace(std::forward<Args>(args)...);
+      markAsUsed(); return ret;
     }
 
     /**
@@ -329,10 +387,13 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     template <typename... Args> typename std::unordered_map<Key, T, SafeHash>::const_iterator emplace_hint(
       typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, Args&&... args
     ) {
-      if (!this->value_.contains(args.first) && !this->copy_.contains(args.first)) {
-        this->copy_[args.first] = nullptr;
+      auto ret = this->value_.emplace_hint(hint, std::forward<Args>(args)...);
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(ret.first.first, std::nullopt);
       }
-      markAsUsed(); return this->value_.emplace(hint, std::forward<Args>(args)...);
+      return ret;
     }
 
     /**
@@ -345,10 +406,13 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     template <typename... Args> std::pair<
       typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool
     > try_emplace(const Key& key, Args&&... args) {
-      if (!this->value_.contains(args.first) && !this->copy_.contains(args.first)) {
-        this->copy_[args.first] = nullptr;
+      auto ret = this->value_.try_emplace(key, std::forward<Args>(args)...);
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(key, std::nullopt);
       }
-      markAsUsed(); return this->value_.try_emplace(key, std::forward<Args>(args)...);
+      return ret;
     }
 
     /**
@@ -361,10 +425,13 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     template <typename... Args> std::pair<
       typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool
     > try_emplace(Key&& key, Args&&... args) {
-      if (!this->value_.contains(args.first) && !this->copy_.contains(args.first)) {
-        this->copy_[args.first] = nullptr;
+      auto ret = this->value_.try_emplace(std::move(key), std::forward<Args>(args)...);
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(key, std::nullopt);
       }
-      markAsUsed(); return this->value_.try_emplace(std::move(key), std::forward<Args>(args)...);
+      return ret;
     }
 
     /**
@@ -376,11 +443,14 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      *         boolean indicating whether the emplace was successful.
      */
     template <typename... Args> std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool>
-    try_emplace(std::unordered_map<Key, T, SafeHash>::const_iterator hint, const Key& key, Args&&... args) {
-      if (!this->value_.contains(args.first) && !this->copy_.contains(args.first)) {
-        this->copy_[args.first] = nullptr;
+    try_emplace(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, const Key& key, Args&&... args) {
+      auto ret = this->value_.try_emplace(hint, key, std::forward<Args>(args)...);
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(key, std::nullopt);
       }
-      markAsUsed(); return this->value_.try_emplace(hint, key, std::forward<Args>(args)...);
+      return ret;
     }
 
     /**
@@ -392,11 +462,14 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      *         boolean indicating whether the emplace was successful.
      */
     template <typename... Args> std::pair<typename std::unordered_map<Key, T, SafeHash>::const_iterator, bool>
-    try_emplace(std::unordered_map<Key, T, SafeHash>::const_iterator hint, Key&& key, Args&&... args) {
-      if (!this->value_.contains(args.first) && !this->copy_.contains(args.first)) {
-        this->copy_[args.first] = nullptr;
+    try_emplace(typename std::unordered_map<Key, T, SafeHash>::const_iterator hint, Key&& key, Args&&... args) {
+      auto ret = this->value_.try_emplace(hint, std::move(key), std::forward<Args>(args)...);
+      if (ret.second) {
+        markAsUsed();
+        // We must use try_emplace here because the key might already exist in copy_ (and we NEVER overwrite copy_).
+        this->copy_.try_emplace(key, std::nullopt);
       }
-      markAsUsed(); return this->value_.try_emplace(hint, std::move(key), std::forward<Args>(args)...);
+      return ret;
     }
 
     /**
@@ -407,8 +480,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     typename std::unordered_map<Key, T, SafeHash>::const_iterator erase(
       typename std::unordered_map<Key, T, SafeHash>::const_iterator pos
     ) {
-      if (this->value_.contains((*pos).first) && !this->copy_.contains((*pos).first)) {
-        this->copy_[(*pos).first] = std::make_unique<T>(this->value_[(*pos).first]);
+      auto itValue = this->value_.find((*pos).first);
+      if (itValue != this->value_.end()) {
+        this->copy_.try_emplace(itValue.first, std::in_place, itValue.second);
+      } else {
+        this->copy_.try_emplace(itValue.first, std::nullopt);
       }
       markAsUsed(); return this->value_.erase(pos);
     }
@@ -423,9 +499,12 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       typename std::unordered_map<Key, T, SafeHash>::const_iterator first,
       typename std::unordered_map<Key, T, SafeHash>::const_iterator last
     ) {
-      for (auto it = first; it < last; it++) {
-        if (this->value_.contains((*it).first) && !this->copy_.contains((*it).first)) {
-          this->copy_[(*it).first] = std::make_unique<T>(this->value_[(*it).first]);
+      for (auto it = first; it < last; ++it) {
+        auto itValue = this->value_.find((*it).first);
+        if (itValue != this->value_.end()) {
+          this->copy_.try_emplace(itValue.first, std::in_place, itValue.second);
+        } else {
+          this->copy_.try_emplace(itValue.first, std::nullopt);
         }
       }
       markAsUsed(); return this->value_.erase(first, last);
@@ -437,8 +516,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return The number of values erased.
      */
     typename std::unordered_map<Key, T, SafeHash>::size_type erase(const Key& key) {
-      if (this->value_.contains(key) && !this->copy_.contains(key) {
-        this->copy_[key] = std::make_unique<T>(this->value_[key]);
+      auto itValue = this->value_.find(key);
+      if (itValue != this->value_.end()) {
+        this->copy_.try_emplace(itValue.first, std::in_place, itValue.second);
+      } else {
+        this->copy_.try_emplace(itValue.first, std::nullopt);
       }
       markAsUsed(); return this->value_.erase(key);
     }
@@ -449,8 +531,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @return The number of values erased.
      */
     template <class K> typename std::unordered_map<Key, T, SafeHash>::size_type erase(K&& key) {
-      if (this->value_.contains(key) && !this->copy_.contains(key) {
-        this->copy_[key] = std::make_unique<T>(this->value_[key]);
+      auto itValue = this->value_.find(key);
+      if (itValue != this->value_.end()) {
+        this->copy_.try_emplace(itValue.first, std::in_place, itValue.second);
+      } else {
+        this->copy_.try_emplace(itValue.first, std::nullopt);
       }
       markAsUsed(); return this->value_.erase(std::forward<K>(key));
     }
@@ -458,14 +543,18 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     ///@{
     /** Swap the contents of two maps. Swaps only the CURRENT value. */
     inline void swap(std::unordered_map<Key, T, SafeHash>& other) {
-      for (std::pair<Key, T> val : this->value_) {
-        if (!this->copy_.contains(val.first)) this->copy_[val.first] = std::make_unique<T>(val.second);
+      for (const auto& [key, value] : this->value_) {
+        this->copy_.try_emplace(key, std::in_place, value);
       }
       markAsUsed(); this->value_.swap(other);
     }
-    inline void swap(SafeUnorderedMap<Key, T, SafeHash>& other) {
-      for (std::pair<Key, T> val : this->value_) {
-        if (!this->copy_.contains(val.first)) this->copy_[val.first] = std::make_unique<T>(val.second);
+    inline void swap(SafeUnorderedMap<Key, T>& other) noexcept {
+      for (const auto& [key, value] : this->value_) {
+        this->copy_.try_emplace(key, std::in_place, value);
+      }
+      // We also need to copy the other map's copy_!
+      for (const auto& [key, value] : other->value_) {
+        other.copy_.try_emplace(key, std::in_place, value);
       }
       markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
     }
@@ -479,8 +568,11 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      * @throws std::out_of_range if key does not exist in the map.
      */
     inline T& at(const Key& key) {
-      if (!this->copy_.contains(key)) {
-        if (this->value_.contains(key)) this->copy_[key] = std::make_unique<T>(this->value_[key]);
+      auto valueIt = this->value_.find(key);
+      if (valueIt != this->value_.end()) {
+        this->copy_.try_emplace(key, std::in_place, valueIt.second);
+      } else {
+        this->copy_.try_emplace(key, std::nullopt);
       }
       markAsUsed(); return this->value_.at(key);
     }
@@ -490,14 +582,20 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     ///@{
     /** Subscript/indexing operator. Creates the key if it doesn't exist. */
     T& operator[](const Key& key) {
-      if (!this->copy_.contains(key)) {
-        this->copy_[key] = (this->value_.contains(key)) ? std::make_unique<T>(this->value_[key]) : nullptr;
+      auto valueIt = this->value_.find(key);
+      if (valueIt != this->value_.end()) {
+        this->copy_.try_emplace(key, std::in_place, valueIt.second);
+      } else {
+        this->copy_.try_emplace(key, std::nullopt);
       }
       markAsUsed(); return this->value_[key];
     }
     T& operator[](Key&& key) {
-      if (!this->copy_.contains(key)) {
-        this->copy_[key] = (this->value_.contains(key)) ? std::make_unique<T>(this->value_[key]) : nullptr;
+      auto valueIt = this->value_.find(key);
+      if (valueIt != this->value_.end()) {
+        this->copy_.try_emplace(key, std::in_place, valueIt.second);
+      } else {
+        this->copy_.try_emplace(key, std::nullopt);
       }
       markAsUsed(); return this->value_[std::move(key)];
     }
@@ -506,16 +604,20 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     ///@{
     /** Assignment operator. Assigns only the CURRENT value. */
     SafeUnorderedMap& operator=(const std::unordered_map<Key, T, SafeHash>& map) {
-      for (std::pair<Key, T> val : this->value_) {
-        if (!this->copy_.contains(val.first)) this->copy_[val.first] = std::make_unique<T>(val.second);
+      for (const auto& [key, value] : this->value_) {
+        this->copy_.try_emplace(key, std::in_place, value);
       }
       markAsUsed(); this->value_ = map; return *this;
     }
     SafeUnorderedMap& operator=(const SafeUnorderedMap& other) {
-      for (std::pair<Key, T> val : this->value_) {
-        if (!this->copy_.contains(val.first)) this->copy_[val.first] = std::make_unique<T>(val.second);
+      for (const auto& [key, value] : this->value_) {
+        this->copy_.try_emplace(key, std::in_place, value);
       }
-      markAsUsed(); this->value_ = other.get(); return *this;
+      // Same rule as swap applies.
+      for (const auto& [key, value] : other->value_) {
+        other.copy_.try_emplace(key, std::in_place, value);
+      }
+      markAsUsed(); this->value_ = other.value_; return *this;
     }
     ///@}
 
@@ -523,16 +625,19 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     void commit() override { this->copy_.clear(); this->registered_ = false; }
 
     /// Revert the value.
-    void revert() const override {
-      for (std::pair<Key, T> val : this->copy_) {
-        if (val.second == nullptr) {
-          this->value_.erase(val.first);
+    void revert() override {
+      for (const auto& [key, value] : this->copy_) {
+        if (value == std::nullopt) {
+          this->value_.erase(key);
         } else {
-          this->value_.insert_or_assign(val.first, *val.second);
+          this->value_.insert_or_assign(key, value.value());
         }
       }
       this->copy_.clear(); this->registered_ = false;
     }
+
+    /// Get the current value.
+    std::unordered_map<Key, T, SafeHash> get() const { return this->value_; }
 };
 
 #endif // SAFEUNORDEREDMAP_H
