@@ -656,9 +656,13 @@ namespace TRdPoS {
     blockchainWrapper8.consensus.start();
 
     // When consensus is running, we can just wait for the blocks to be created.
+    int timeoutSecs = 60;
     auto rdPoSBlockFuture = std::async(std::launch::async, [&]() {
+      auto start = Utils::getCurrentTimeMillisSinceEpoch();
+      int timeoutFutureThreadMillis = (timeoutSecs + 5) * 1000; // +5s than main test thread to make sure
       uint64_t targetLatestHeight = 1;
       while (blockchainWrapper1.storage.latest()->getNHeight() != 10) {
+        if (Utils::getCurrentTimeMillisSinceEpoch() - start > timeoutFutureThreadMillis) { Utils::safePrintTest("Future thread timeout."); return; }
         // We need to forcefully make a transaction and broadcast in the network so the consensus can create a block
         // otherwise it will sleep forever
         Address targetOfTransactions(Utils::randBytes(20));
@@ -689,11 +693,12 @@ namespace TRdPoS {
         )
         {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          if (Utils::getCurrentTimeMillisSinceEpoch() - start > timeoutFutureThreadMillis) { Utils::safePrintTest("Future thread timeout."); return; }
         }
         ++targetLatestHeight;
       }
     });
 
-    REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(60)) != std::future_status::timeout);
+    REQUIRE(rdPoSBlockFuture.wait_for(std::chrono::seconds(timeoutSecs)) != std::future_status::timeout);
   }
 };
