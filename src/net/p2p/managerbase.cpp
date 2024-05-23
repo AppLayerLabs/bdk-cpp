@@ -76,7 +76,7 @@ namespace P2P {
       (message->command() == CommandType::Info || message->command() == CommandType::RequestValidatorTxs)
     ) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__, "Session is discovery, cannot send message");
+      Logger::logToDebug(LogType::DEBUG, Log::P2PManager, __func__, "Session is discovery, cannot send message");
       return nullptr;
     }
     std::unique_lock lockRequests(this->requestsMutex_);
@@ -192,7 +192,8 @@ namespace P2P {
 
   void ManagerBase::ping(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::ping());
-    Utils::logToFile("Pinging " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
+                       "Pinging " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) throw DynamicException(
       "Failed to send ping to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second)
@@ -204,7 +205,8 @@ namespace P2P {
   // Somehow change to wait_for.
   std::unordered_map<NodeID, NodeType, SafeHash> ManagerBase::requestNodes(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestNodes());
-    Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
+                       "Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__, "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed.");

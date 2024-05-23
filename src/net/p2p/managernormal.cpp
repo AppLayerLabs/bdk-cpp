@@ -349,7 +349,8 @@ namespace P2P{
   // Somehow change to wait_for.
   std::vector<TxValidator> ManagerNormal::requestValidatorTxs(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestValidatorTxs());
-    Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
+                       "Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
@@ -378,7 +379,8 @@ namespace P2P{
 
   std::vector<TxBlock> ManagerNormal::requestTxs(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestTxs());
-    Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
+                       "Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
@@ -407,7 +409,8 @@ namespace P2P{
 
   NodeInfo ManagerNormal::requestNodeInfo(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::info(this->storage_.latest(), this->nodeConns_.getConnectedWithNodeType(), this->options_));
-    Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
+                       "Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
       Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,

@@ -504,6 +504,8 @@ namespace TRdPoS {
   }
 
   TEST_CASE("rdPoS class with Network and rdPoSWorker Functionality, move 10 blocks forward", "[core][rdpos][net][heavy]") {
+    TempLogLevel tll(LogType::TRACE);
+
     PrivKey chainOwnerPrivKey(Hex::toBytes("0xe89ef6409c467285bcae9f80ab1cfeb3487cfe61ab28fb7d36443e1daa0c2867"));
     Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     // Initialize 8 different node instances, with different ports and DBs.

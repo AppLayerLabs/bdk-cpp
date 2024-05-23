@@ -340,7 +340,7 @@ std::shared_ptr<const FinalizedBlock> Storage::getBlock(const uint64_t& height) 
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
   StorageStatus blockStatus = this->blockExistsInternal(height);
   if (blockStatus == StorageStatus::NotFound) return nullptr;
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "height: " + std::to_string(height));
+  Logger::logToDebug(LogType::TRACE, Log::storage, __func__, "height: " + std::to_string(height));
   switch (blockStatus) {
     case StorageStatus::NotFound: {
       return nullptr;

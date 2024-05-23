@@ -255,4 +255,19 @@ bool testCheckTime(const char* file, int line, Func&& func, int timeLimitSeconds
 #define TEST_CHECK_TIME_VERBOSE(func, timeLimitSeconds) \
     testCheckTime(__FILE__, __LINE__, [&]() { return (func); }, timeLimitSeconds, true)
 
+/**
+ * Helper class for temporarily changing the log level in the scope of unit tests.
+ */
+class TempLogLevel {
+  LogType old_;
+public:
+  TempLogLevel(LogType tmp) {
+    old_ = Logger::getLogLevel();
+    Logger::setLogLevel(tmp);
+  }
+  ~TempLogLevel() {
+    Logger::setLogLevel(old_);
+  }
+};
+
 #endif // BLOCKCHAINWRAPPER_H

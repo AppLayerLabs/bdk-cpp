@@ -246,23 +246,24 @@ class SDKTestSuite {
                                                                   newBlocknHeight,
                                                                   blockSignerPrivKey);
         // After finalization, the block should be valid. If it is, process the next one.
-        if (!this->state_.validateNextBlock(finalizedBlock)) throw DynamicException(
-          "SDKTestSuite::advanceBlock: Block is not valid"
-        );
-        state_.processNextBlock(std::move(finalizedBlock));
+        BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(finalizedBlock));
+        if (bvs != BlockValidationStatus::valid) {
+          throw DynamicException("SDKTestSuite::advanceBlock: Block is not valid");
+        }
         return this->storage_.latest();
       } else {
-        auto finelizedBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
+        //TODO/REVIEW: These branches are identical?
+        auto finalizedBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
                                                                   std::move(txsValidator),
                                                                   newBlockPrevHash,
                                                                   newBlockTimestamp,
                                                                   newBlocknHeight,
                                                                   blockSignerPrivKey);
         // After finalization, the block should be valid. If it is, process the next one.
-        if (!this->state_.validateNextBlock(finelizedBlock)) throw DynamicException(
-          "SDKTestSuite::advanceBlock: Block is not valid"
-        );
-        state_.processNextBlock(std::move(finelizedBlock));
+        BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(finalizedBlock));
+        if (bvs != BlockValidationStatus::valid) {
+          throw DynamicException("SDKTestSuite::advanceBlock: Block is not valid");
+        }
         return this->storage_.latest();
       }
     }
