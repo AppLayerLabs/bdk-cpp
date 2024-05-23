@@ -40,7 +40,7 @@ struct ProcessOptions {
  * are valid, only the expected argument count/type format.
  * @param argc Forwarded argc from main().
  * @param argv Forwarded argv from main().
- * @param nodeType Which tool is taking args; can be used to determine which args are available.
+ * @param tool Which tool is taking args; can be used to determine which args are available.
  * @return A ProcessOptions struct with the result of argument parsing.
  */
 ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
