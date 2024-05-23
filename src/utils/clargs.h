@@ -52,7 +52,7 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
         ("help,h", 
           "Print help message and exit")
         ("loglevel,l", boost::program_options::value<std::string>(), 
-          "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]NONE)")
+          "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)")
         ("loglinelimit", boost::program_options::value<int>(), 
           "Set the log line limit for rotating the log file")
         ("logfilelimit", boost::program_options::value<int>(), 
