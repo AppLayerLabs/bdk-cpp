@@ -13,11 +13,12 @@ See the LICENSE.txt file in the project root for more information.
 #include <queue>
 #include <condition_variable>
 #include <future>
+#include <mutex>
 
 /// Enum for the log message types.
 enum class LogType { TRACE, DEBUG, INFO, WARNING, ERROR, NONE };
 
-/// Namespace with string prefixes for each blockchain module, for printing log/debug messages.
+/// Namespace with logging utilities
 namespace Log {
   ///@{
   /** String for the given module. */
@@ -59,6 +60,18 @@ namespace Log {
   const std::string logger = "Logger";
   const std::string sdkTestSuite = "SDKTestSuite";
   ///@}
+
+  // Mutex for Log::safePrint
+  inline std::mutex __safePrintMutex;
+
+  /**
+   * Print a string to stdout.
+   * @param str The string to print.
+   */
+  inline void safePrint(std::string_view str) {
+    std::lock_guard lock(__safePrintMutex);
+    std::cout << str << std::endl;
+  };
 }
 
 /// Class for storing log information.
@@ -154,8 +167,8 @@ class Logger {
                 std::filesystem::copy(activeLogFileName_, archiveLogFileName,
                                       std::filesystem::copy_options::overwrite_existing);
               } catch (const std::filesystem::filesystem_error& e) {
-                std::cout << "ERROR: Failed to copy rotating log file " << activeLogFileName_
-                          << " to " << archiveLogFileName << "(" << e.what() << ")" << std::endl;
+                Log::safePrint("ERROR: Failed to copy rotating log file " + activeLogFileName_
+                               + " to " + archiveLogFileName + "(" + e.what() + ")");
               }
               // Handle log file limit (only guaranteed to work if you don't change the limit after boot)
               if (logFileLimit_ > 0) {
@@ -165,8 +178,8 @@ class Logger {
                   try {
                     std::filesystem::remove(oldLogFileName);
                   } catch (const std::filesystem::filesystem_error& e) {
-                    std::cout << "ERROR: Failed to remove old log file " << oldLogFileName
-                              << "(" << e.what() << ")" << std::endl;
+                    Log::safePrint("ERROR: Failed to remove old log file " + oldLogFileName
+                                   + "(" + e.what() + ")");
                   }
                 }
               }

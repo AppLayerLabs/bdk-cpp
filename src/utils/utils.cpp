@@ -11,7 +11,6 @@ See the LICENSE.txt file in the project root for more information.
 
 std::mutex log_lock;
 std::mutex debug_mutex;
-std::mutex cout_mutex;
 
 std::atomic<bool> Utils::logToCout = false;
 
@@ -53,13 +52,11 @@ BytesArrView Utils::getFunctionArgs(const evmc_message& msg) {
 
 void Utils::safePrint(std::string_view str) {
   if (!Utils::logToCout) return; // Never print if we are in a test
-  std::lock_guard lock(cout_mutex);
-  std::cout << str << std::endl;
+  Log::safePrint(str);
 }
 
 void Utils::safePrintTest(std::string_view str) {
-  std::lock_guard lock(cout_mutex);
-  std::cout << str << std::endl;
+  Log::safePrint(str);
 }
 
 Hash Utils::sha3(const BytesArrView input) {

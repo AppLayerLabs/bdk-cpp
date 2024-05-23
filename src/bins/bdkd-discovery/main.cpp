@@ -20,7 +20,7 @@ int signalCaught = 0;
 void signalHandler(int signum) {
   {
     std::unique_lock<std::mutex> lk(cv_m);
-    std::cout << std::endl << "Signal caught: " << Utils::getSignalName(signum) << std::endl;
+    Utils::safePrint("Signal caught: " + Utils::getSignalName(signum));
     signalCaught = signum;
   }
   cv.notify_one();
