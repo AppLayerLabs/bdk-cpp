@@ -48,8 +48,7 @@ namespace TDumpManager {
           auto block = createValidBlock(validatorPrivKeysState,
                                         blockchainWrapper.state,
                                         blockchainWrapper.storage);
-          REQUIRE(blockchainWrapper.state.validateNextBlock(block));
-          blockchainWrapper.state.processNextBlock(std::move(block));
+          REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(block)) == BlockValidationStatus::valid);
         }
         // stop the dump worker
         blockchainWrapper.state.dumpStopWorker();

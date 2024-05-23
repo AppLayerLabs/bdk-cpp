@@ -785,10 +785,18 @@ namespace Utils {
 
   /**
    * Shorthand for obtaining a milliseconds-since-epoch uint64_t timestamp from std::chrono
+   * @return Milliseconds elapsed since epoch.
    */
   inline uint64_t getCurrentTimeMillisSinceEpoch() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
   }
+
+  /**
+   * Given an UNIX signal number, return the name followed by the number in parenthesis.
+   * @param signum The signal number.
+   * @return A string containing the signal name (or "Unknown signal") and number.
+   */
+  std::string getSignalName(int signum);
 };
 
 #endif  // UTILS_H

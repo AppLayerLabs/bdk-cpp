@@ -208,7 +208,7 @@ Hash rdPoS::processBlock(const FinalizedBlock& block) {
 
 TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
   if (this->validatorMempool_.contains(tx.hash())) {
-    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "TxValidator already exists in mempool.");
+    Logger::logToDebug(LogType::TRACE, Log::rdPoS, __func__, "TxValidator already exists in mempool.");
     return TxStatus::ValidExisting;
   }
 
@@ -295,7 +295,7 @@ rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) 
 DBBatch rdPoS::dump() const
 {
   DBBatch dbBatch;
-  Logger::logToDebug(LogType::INFO,
+  Logger::logToDebug(LogType::DEBUG,
                      Log::rdPoS,
                      __func__,
                      "Create batch operations.");

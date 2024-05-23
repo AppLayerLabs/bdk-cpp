@@ -160,7 +160,7 @@ TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
 
   // Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
   if (this->mempool_.contains(tx.hash())) {
-    Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
+    Logger::logToDebug(LogType::TRACE, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
     return TxStatus::ValidExisting;
   }
   auto accountIt = this->accounts_.find(tx.getFrom());
@@ -358,7 +358,7 @@ BlockValidationStatus State::validateNextBlockInternal(const FinalizedBlock& blo
     }
   }
 
-  Logger::logToDebug(LogType::INFO, Log::state, __func__,
+  Logger::logToDebug(LogType::TRACE, Log::state, __func__,
     "Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)"
   );
   return BlockValidationStatus::valid;
@@ -428,7 +428,7 @@ TxStatus State::addTx(TxBlock&& tx) {
   std::unique_lock lock(this->stateMutex_);
   auto txHash = tx.hash();
   this->mempool_.insert({txHash, std::move(tx)});
-  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Transaction: " + txHash.hex().get() + " was added to the mempool");
+  Logger::logToDebug(LogType::TRACE, Log::state, __func__, "Transaction: " + txHash.hex().get() + " was added to the mempool");
   return txResult; // should be TxStatus::ValidNew
 }
 
