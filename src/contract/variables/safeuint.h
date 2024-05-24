@@ -70,7 +70,7 @@ template <int Size> class SafeUint_t : public SafeBase {
     SafeUint_t(DynamicContract* owner, const uint_t& value = 0) : SafeBase(owner), value_(value), copy_(nullptr) {}
 
     /// Copy constructor. Only copies the CURRENT value.
-    SafeUint_t(const SafeUint_t<Size>& other) : SafeBase(nullptr) : value_(other.value_), copy_(nullptr) {}
+    SafeUint_t(const SafeUint_t<Size>& other) : SafeBase(nullptr), value_(other.value_), copy_(nullptr) {}
 
     /// Getter for the temporary value.
     inline const uint_t& get() const { return this->value_; }

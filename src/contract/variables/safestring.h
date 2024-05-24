@@ -984,7 +984,7 @@ class SafeString : public SafeBase {
      */
     inline void swap(std::string& str) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
-      markAsUsed(); this->value_.swap(other.value_);
+      markAsUsed(); this->value_.swap(str);
     }
 
     /**

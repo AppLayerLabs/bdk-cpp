@@ -116,13 +116,13 @@ void ERC721::registerContractFunctions() {
 
 Address ERC721::ownerOf_(const uint256_t& tokenId) const {
   auto it = this->owners_.find(tokenId);
-  if (it == this->owners_.end()) return Address();
+  if (it == this->owners_.cend()) return Address();
   return it->second;
 }
 
 Address ERC721::getApproved_(const uint256_t& tokenId) const {
   auto it = this->tokenApprovals_.find(tokenId);
-  if (it == this->tokenApprovals_.end()) return Address();
+  if (it == this->tokenApprovals_.cend()) return Address();
   return it->second;
 }
 
@@ -207,21 +207,15 @@ std::string ERC721::symbol() const {
 }
 
 uint256_t ERC721::balanceOf(const Address& owner) const {
-  if (owner == Address()) {
-    throw DynamicException("ERC721::balanceOf: zero address");
-  }
+  if (owner == Address()) throw DynamicException("ERC721::balanceOf: zero address");
   auto it = this->balances_.find(owner);
-  if (it == this->balances_.end()) {
-    return 0;
-  }
+  if (it == this->balances_.cend()) return 0;
   return it->second;
 }
 
 Address ERC721::ownerOf(const uint256_t& tokenId) const {
   Address owner = this->ownerOf_(tokenId);
-  if (owner == Address()) {
-    throw DynamicException("ERC721::ownerOf: inexistent token");
-  }
+  if (owner == Address()) throw DynamicException("ERC721::ownerOf: inexistent token");
   return owner;
 }
 
@@ -258,13 +252,9 @@ void ERC721::requireMinted_(const uint256_t& tokenId) const {
 
 bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddress) const {
   auto it = this->operatorAddressApprovals_.find(owner);
-  if (it == this->operatorAddressApprovals_.end()) {
-    return false;
-  }
+  if (it == this->operatorAddressApprovals_.cend()) return false;
   auto it2 = it->second.find(operatorAddress);
-  if (it2 == it->second.end()) {
-    return false;
-  }
+  if (it2 == it->second.end()) return false;
   return it2->second;
 }
 

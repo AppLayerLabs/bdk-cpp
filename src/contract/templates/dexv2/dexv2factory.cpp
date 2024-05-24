@@ -81,9 +81,9 @@ uint64_t DEXV2Factory::allPairsLength() const { return this->allPairs_.size(); }
 
 Address DEXV2Factory::getPair(const Address& tokenA, const Address& tokenB) const {
   auto it = this->getPair_.find(tokenA);
-  if (it != this->getPair_.end()) {
+  if (it != this->getPair_.cend()) {
     auto itt = it->second.find(tokenB);
-    if (itt != it->second.end()) return itt->second;
+    if (itt != it->second.cend()) return itt->second;
   }
   return Address();
 }

@@ -28,7 +28,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
      * Full operations are not included since doing any of them disables the
      * use of the undo stack from that point until commit/revert.
      */
-    enum ArrayOp { AT, OPERATOR[], FRONT, BACK }; // Technically everything can be AT here, but discernment is important
+    enum ArrayOp { AT, OPERATOR_BRACKETS, FRONT, BACK }; // Technically everything can be AT here, but discernment is important
 
     /// Helper alias for the undo operation structure (operation made, in which index, and the old value).
     using UndoOp = std::tuple<ArrayOp, std::size_t, T>;
@@ -43,7 +43,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
         UndoOp op = this->undo_.top();
         switch (std::get<0>(op)) {
           case AT: this->value_.at(std::get<1>(op)) = std::get<2>(op); break;
-          case OPERATOR[]: (*this->value_)[std::get<1>(op)] = std::get<2>(op); break;
+          case OPERATOR_BRACKETS: (*this->value_)[std::get<1>(op)] = std::get<2>(op); break;
           case FRONT: this->value_.at(0) = std::get<2>(op); break;
           case BACK: this->value_.at(N-1) = std::get<2>(op); break;
           // at(0)/(N-1) are hardcoded on purpose - std::get<1>(op) is not really
@@ -94,7 +94,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     inline T& operator[](std::size_t pos) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(ArrayOp::OPERATOR[], pos, this->value_[pos]));
+        this->undo_->emplace(std::make_tuple(ArrayOp::OPERATOR_BRACKETS, pos, this->value_[pos]));
       }
       markAsUsed(); return (*this->value_)[pos];
     }

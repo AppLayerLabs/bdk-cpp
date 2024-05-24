@@ -137,8 +137,7 @@ uint256_t ERC20::totalSupply() const { return this->totalSupply_.get(); }
 
 uint256_t ERC20::balanceOf(const Address& owner) const {
   const auto& it = std::as_const(this->balances_).find(owner);
-  return (it == this->balances_.end())
-    ? 0 : it->second;
+  return (it == this->balances_.cend()) ? 0 : it->second;
 }
 
 bool ERC20::transfer(const Address &to, const uint256_t &value) {
@@ -153,17 +152,13 @@ bool ERC20::approve(const Address &spender, const uint256_t &value) {
 }
 
 uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
+  uint256_t ret = 0;
   const auto& it = std::as_const(this->allowed_).find(owner);
-  if (it == this->allowed_.end()) {
-    return 0;
-  } else {
+  if (it != this->allowed_.cend()) {
     const auto& it2 = it->second.find(spender);
-    if (it2 == it->second.end()) {
-      return 0;
-    } else {
-      return it2->second;
-    }
+    if (it2 != it->second.end()) ret = it2->second;
   }
+  return ret;
 }
 
 bool ERC20::transferFrom(

@@ -35,17 +35,17 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      */
     SafeUnorderedMap(
       DynamicContract* owner, const std::unordered_map<Key, T, SafeHash>& map = {}
-    ) : SafeBase(owner), value_(map), copy_(map) {}
+    ) : SafeBase(owner), value_(map), copy_() {}
 
     /**
      * Empty constructor.
      * @param map The initial value. Defaults to an empty map.
      */
     explicit SafeUnorderedMap(const std::unordered_map<Key, T, SafeHash>& map = {})
-      : SafeBase(nullptr), value_(map), copy_(map) {}
+      : SafeBase(nullptr), value_(map), copy_() {}
 
-    /// Copy constructor.
-    SafeUnorderedMap(const SafeUnorderedMap& other) : SafeBase(nullptr), value_(other.value_), copy_(other.value_) {}
+    /// Copy constructor. Copies only the CURRENT value.
+    SafeUnorderedMap(const SafeUnorderedMap& other) : SafeBase(nullptr), value_(other.value_), copy_() {}
 
     /**
      * Get the number of values with the given key.
@@ -55,7 +55,18 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     inline size_t count(const Key &key) const { return this->value_.count(key); }
 
     /**
-     * Find a given key.
+     * Find a given key (non-const).
+     * @param key The key to find.
+     * @return An iterator to the found key and its value.
+     */
+    typename std::unordered_map<Key, T, SafeHash>::iterator find(const Key& key) {
+      auto it = this->value_.find(key);
+      if (it != this->value_.end()) this->copy_.try_emplace((*it).first, std::in_place, (*it).second);
+      return it;
+    }
+
+    /**
+     * Find a given key (const).
      * @param key The key to find.
      * @return An iterator to the found key and its value.
      */
@@ -70,10 +81,26 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
      */
     inline bool contains(const Key &key) const { return this->value_.contains(key); }
 
-    /// Get an iterator to the start of the original map value.
+    /// Get an iterator to the start of the original map value (non-const).
+    inline typename std::unordered_map<Key, T>::iterator begin() noexcept {
+      // begin() points to *the* first element (if it exists), so a copy is required
+      auto itValue = this->value_.find((*this->value_.begin()).first);
+      if (itValue != this->value_.end()) {
+        this->copy_.try_emplace(itValue.first, std::in_place, itValue.second);
+      }
+      markAsUsed(); return this->value_.begin();
+    }
+
+    /// Get an iterator to the end of the original map value (non-const).
+    inline typename std::unordered_map<Key, T>::iterator end() noexcept {
+      // end() points to *past* the last element (not *the* last one), so no copy is required
+      markAsUsed(); return this->value_.end();
+    }
+
+    /// Get an iterator to the start of the original map value (const).
     inline typename std::unordered_map<Key, T>::const_iterator cbegin() const noexcept { return this->value_.cbegin(); }
 
-    /// Get an iterator to the end of the original map value.
+    /// Get an iterator to the end of the original map value (const).
     inline typename std::unordered_map<Key, T>::const_iterator cend() const noexcept { return this->value_.cend(); }
 
     /**
@@ -584,7 +611,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     T& operator[](const Key& key) {
       auto valueIt = this->value_.find(key);
       if (valueIt != this->value_.end()) {
-        this->copy_.try_emplace(key, std::in_place, valueIt.second);
+        this->copy_.try_emplace(key, std::in_place, valueIt->second);
       } else {
         this->copy_.try_emplace(key, std::nullopt);
       }
@@ -593,7 +620,7 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     T& operator[](Key&& key) {
       auto valueIt = this->value_.find(key);
       if (valueIt != this->value_.end()) {
-        this->copy_.try_emplace(key, std::in_place, valueIt.second);
+        this->copy_.try_emplace(key, std::in_place, valueIt->second);
       } else {
         this->copy_.try_emplace(key, std::nullopt);
       }
