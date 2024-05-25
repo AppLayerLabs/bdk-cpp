@@ -16,7 +16,7 @@ namespace P2P {
    * This class has the purpose of opening a tcp socket and listening for incoming connections.
    * Creating a new ServerSession for each connection.
    */
-  class ServerListener : public std::enable_shared_from_this<ServerListener> {
+  class ServerListener : public std::enable_shared_from_this<ServerListener>, public Log::LogicalLocationProvider {
     private:
       /// Reference to server io_context.
       net::io_context& io_context_;
@@ -43,14 +43,16 @@ namespace P2P {
         manager_(manager) {
          boost::system::error_code ec;
          acceptor_.open(endpoint.protocol(), ec); // Open the acceptor
-         if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Open Acceptor: " + ec.message()); return; }
+         if (ec) { LOGERROR("Open Acceptor: " + ec.message()); return; }
          acceptor_.set_option(net::socket_base::reuse_address(true), ec); // Allow address reuse
-         if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Set Option: " + ec.message()); return; }
+         if (ec) { LOGERROR("Set Option: " + ec.message()); return; }
          acceptor_.bind(endpoint, ec); // Bind to the server address
-         if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Bind Acceptor: " + ec.message()); return; }
+         if (ec) { LOGERROR("Bind Acceptor: " + ec.message()); return; }
          acceptor_.listen(net::socket_base::max_listen_connections, ec); // Start listening
-         if (ec) { Logger::logToDebug(LogType::ERROR, Log::P2PServerListener, __func__, "Listen Acceptor: " + ec.message()); return; }
+         if (ec) { LOGERROR("Listen Acceptor: " + ec.message()); return; }
       }
+
+      virtual std::string getLogicalLocation() const; ///< Log instance from P2P
 
       void run();   ///< Start accepting incoming connections.
       void stop();  ///< Stop accepting incoming connections.
@@ -61,7 +63,7 @@ namespace P2P {
   * This class has the purpose of opening a tcp socket and listening for incoming connections.
   * Creating a new ServerSession for each connection.
   */
-  class Server {
+  class Server : public Log::LogicalLocationProvider {
     private:
       /// io_context for the server.
       net::io_context io_context_;
@@ -100,6 +102,8 @@ namespace P2P {
         threadCount_(threadCount),
         manager_(manager)
         {}
+
+      virtual std::string getLogicalLocation() const; ///< Log instance from P2P
 
       /// Start the Server.
       bool start();

@@ -28,40 +28,33 @@ public:
 
   // Called when a test run is starting
   void testRunStarting(Catch::TestRunInfo const& testRunInfo) override {
-    Logger::logToDebug(LogType::INFO, Log::sdkTestSuite, __func__,
-      "Starting test run: " + testRunInfo.name);
+    GLOGINFO("Starting test run: " + testRunInfo.name);
   }
 
   // Called when a test case is starting
   void testCaseStarting(Catch::TestCaseInfo const& testInfo) override {
-    Logger::logToDebug(LogType::INFO, Log::sdkTestSuite, __func__,
-      "Starting TEST_CASE: " + testInfo.name);
+    GLOGINFO("Starting TEST_CASE: " + testInfo.name);
     testCaseName = testInfo.name;
   }
 
   // Called when a section is starting
   void sectionStarting(Catch::SectionInfo const& sectionInfo) override {
-    Logger::logToDebug(LogType::INFO, Log::sdkTestSuite, __func__,
-      "[" + testCaseName + "]: Starting SECTION: " + sectionInfo.name);
+    GLOGINFO("[" + testCaseName + "]: Starting SECTION: " + sectionInfo.name);
   }
 
   void sectionEnded(Catch::SectionStats const& sectionStats) override {
-    Logger::logToDebug(LogType::INFO, Log::sdkTestSuite, __func__,
-      "[" + testCaseName + "]: Finished SECTION: " + sectionStats.sectionInfo.name);
+    GLOGINFO("[" + testCaseName + "]: Finished SECTION: " + sectionStats.sectionInfo.name);
   }
 
   // Called when a test case has ended
   void testCaseEnded(Catch::TestCaseStats const& testCaseStats) override {
-    Logger::logToDebug(LogType::INFO, Log::sdkTestSuite, __func__,
-      "Finished TEST_CASE: " + testCaseStats.testInfo->name);
+    GLOGINFO("Finished TEST_CASE: " + testCaseStats.testInfo->name);
     testCaseName = "NONE";
   }
 
   // Called when a test run has ended
   void testRunEnded(Catch::TestRunStats const& testRunStats) override {
-    Logger::logToDebug(LogType::INFO, Log::sdkTestSuite, __func__,
-      "Finished test run: " + std::to_string(testRunStats.totals.testCases.total())
-      + " test cases run.");
+    GLOGINFO("Finished test run: " + std::to_string(testRunStats.totals.testCases.total()) + " test cases run.");
   }
 };
 

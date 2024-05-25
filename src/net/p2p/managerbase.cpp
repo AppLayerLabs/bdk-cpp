@@ -9,6 +9,8 @@ See the LICENSE.txt file in the project root for more information.
 
 namespace P2P {
 
+  std::atomic<int> ManagerBase::instanceIdGen_(0);
+
   bool ManagerBase::registerSessionInternal(const std::shared_ptr<Session>& session) {
     std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::registerSessionInternal can change sessions_ map.
     if (!this->started_) {
@@ -20,12 +22,10 @@ namespace P2P {
     // The other endpoint will also see that we already have a connection and will close the new one.
     if (sessions_.contains(session->hostNodeId())) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session already exists at " +
-                        session->hostNodeId().first.to_string() + ":" + std::to_string(session->hostNodeId().second));
+      LOGERROR("Session already exists at " + toString(session->hostNodeId()));
       return false;
     }
-    Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__, "Registering session at " +
-                      session->hostNodeId().first.to_string() + ":" + std::to_string(session->hostNodeId().second));
+    LOGINFO("Registering session at " + toString(session->hostNodeId()));
     sessions_.insert({session->hostNodeId(), session});
     return true;
   }
@@ -37,8 +37,7 @@ namespace P2P {
     }
     if (!sessions_.contains(session->hostNodeId())) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " +
-                        session->hostNodeId().first.to_string() + ":" + std::to_string(session->hostNodeId().second));
+      LOGERROR("Session does not exist at " + toString(session->hostNodeId()));
       return false;
     }
     sessions_.erase(session->hostNodeId());
@@ -52,10 +51,10 @@ namespace P2P {
     }
     if (!sessions_.contains(nodeId)) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+      LOGERROR("Session does not exist at " + toString(nodeId));
       return false;
     }
-    Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__, "Disconnecting session at " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGINFO("Disconnecting session at " + toString(nodeId));
     // Get a copy of the pointer
     sessions_[nodeId]->close();
     sessions_.erase(nodeId);
@@ -67,7 +66,7 @@ namespace P2P {
     std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_); // ManagerBase::sendRequestTo doesn't change sessions_ map.
     if(!sessions_.contains(nodeId)) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+      LOGERROR("Session does not exist at " + toString(nodeId));
       return nullptr;
     }
     auto session = sessions_[nodeId];
@@ -76,7 +75,7 @@ namespace P2P {
       (message->command() == CommandType::Info || message->command() == CommandType::RequestValidatorTxs)
     ) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::DEBUG, Log::P2PManager, __func__, "Session is discovery, cannot send message");
+      LOGDEBUG("Session is discovery, cannot send message");
       return nullptr;
     }
     std::unique_lock lockRequests(this->requestsMutex_);
@@ -92,7 +91,7 @@ namespace P2P {
     if (!this->started_) return;
     auto it = sessions_.find(nodeId);
     if (it == sessions_.end()) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Cannot find session for " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+      LOGERROR("Cannot find session for " + toString(nodeId));
       return;
     }
     it->second->write(message);
@@ -192,11 +191,10 @@ namespace P2P {
 
   void ManagerBase::ping(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::ping());
-    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
-                       "Pinging " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGTRACE("Pinging " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) throw DynamicException(
-      "Failed to send ping to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second)
+      "Failed to send ping to " + toString(nodeId)
     );
     requestPtr->answerFuture().wait();
   }
@@ -205,26 +203,23 @@ namespace P2P {
   // Somehow change to wait_for.
   std::unordered_map<NodeID, NodeType, SafeHash> ManagerBase::requestNodes(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestNodes());
-    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
-                       "Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__, "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed.");
+      LOGERROR("Request to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(2));
     if (status == std::future_status::timeout) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__, "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " timed out.");
+      LOGERROR("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestNodes(*answerPtr);
     } catch (std::exception &e) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
-      );
+      LOGERROR("Request to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }

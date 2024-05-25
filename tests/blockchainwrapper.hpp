@@ -24,10 +24,10 @@ See the LICENSE.txt file in the project root for more information.
  */
 struct TestBlockchainWrapper {
   const Options options;  ///< Options singleton.
+  P2P::ManagerNormal p2p; ///< P2P connection manager. NOTE: p2p needs to be constructed first due to getLogicalLocation().
   DB db;                  ///< Database.
   Storage storage;        ///< Blockchain storage.
   State state;            ///< Blockchain state.
-  P2P::ManagerNormal p2p; ///< P2P connection manager.
   HTTPServer http;        ///< HTTP server.
   Syncer syncer;             ///< Blockchain syncer.
   Consensus consensus;       ///< Block and transaction processing.
@@ -39,10 +39,10 @@ struct TestBlockchainWrapper {
 
   explicit TestBlockchainWrapper(const Options& options_) :
     options(options_),
-    db(std::get<0>(DumpManager::getBestStateDBPath(options))),
-    storage(options_),
-    state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
     p2p(boost::asio::ip::address::from_string("127.0.0.1"), options, storage, state),
+    db(std::get<0>(DumpManager::getBestStateDBPath(options))),
+    storage(p2p.getLogicalLocation(), options_),
+    state(db, storage, p2p, std::get<1>(DumpManager::getBestStateDBPath(options)), options),
     http(state, storage, p2p, options),
     syncer(p2p, storage, state),
     consensus(state, p2p, storage, options)
@@ -268,6 +268,15 @@ public:
   ~TempLogLevel() {
     Logger::setLogLevel(old_);
   }
+};
+
+/**
+ * Helper class for temporarily enabling echoing to stdout in the scope of unit tests.
+ */
+class TempEchoToCout {
+public:
+  TempEchoToCout() { Logger::setEchoToCout(true); }
+  ~TempEchoToCout() { Logger::setEchoToCout(false); }
 };
 
 #endif // BLOCKCHAINWRAPPER_H

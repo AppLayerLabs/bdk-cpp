@@ -12,8 +12,6 @@ See the LICENSE.txt file in the project root for more information.
 std::mutex log_lock;
 std::mutex debug_mutex;
 
-std::atomic<bool> Utils::logToCout = false;
-
 void fail(const std::string& cl, std::string&& func, boost::beast::error_code ec, const char* what) {
   Logger::logToDebug(LogType::ERROR, cl, std::move(func), std::string("HTTP Fail ") + what + " : " + ec.message());
 }
@@ -51,12 +49,11 @@ BytesArrView Utils::getFunctionArgs(const evmc_message& msg) {
 }
 
 void Utils::safePrint(std::string_view str) {
-  if (!Utils::logToCout) return; // Never print if we are in a test
   Log::safePrint(str);
 }
 
 void Utils::safePrintTest(std::string_view str) {
-  Log::safePrint(str);
+  Log::safePrintTest(str);
 }
 
 Hash Utils::sha3(const BytesArrView input) {
@@ -796,7 +793,7 @@ Bytes Utils::padRightBytes(const BytesArrView bytes, unsigned int charAmount, ui
 
 json Utils::readConfigFile() {
   if (!std::filesystem::exists("config.json")) {
-    Logger::logToDebug(LogType::INFO, Log::utils, __func__, "No config file found, generating default");
+    SLOGINFO("No config file found, generating default");
     json config;
     config["rpcport"] = 8080;
     config["p2pport"] = 8081;

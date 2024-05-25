@@ -14,64 +14,166 @@ See the LICENSE.txt file in the project root for more information.
 #include <condition_variable>
 #include <future>
 #include <mutex>
+#include <typeinfo>
+#include <type_traits>
+#include <sstream>
+#include <source_location>
+#include <boost/core/demangle.hpp>
 
 /// Enum for the log message types.
 enum class LogType { TRACE, DEBUG, INFO, WARNING, ERROR, NONE };
+
+///@{
+/// Internal helper macros for logging
+#define GET_LOGICAL_LOCATION Log::getLogicalLocationIfAvailable(this, \
+          std::is_base_of<Log::LogicalLocationProvider, \
+          std::decay<decltype(*this)>::type>{})
+#define INSTANCE_LOG_BASE(type, message) Logger::logToDebug(type, GET_LOGICAL_LOCATION, \
+          Log::getMethodName<std::remove_pointer_t<decltype(this)>>(__func__), message);
+#define GET_FILE_NAME_FROM_PATH (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define STATIC_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, __func__, message);
+#define GEN_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, "L" + std::to_string(__LINE__), message);
+///@}
+
+///@{
+/// Logging macros to be used with a `this` (non-static context)
+#define LOGTRACE(message)   INSTANCE_LOG_BASE(LogType::TRACE, message);
+#define LOGDEBUG(message)   INSTANCE_LOG_BASE(LogType::DEBUG, message);
+#define LOGINFO(message)    INSTANCE_LOG_BASE(LogType::INFO, message);
+#define LOGWARNING(message) INSTANCE_LOG_BASE(LogType::WARNING, message);
+#define LOGERROR(message)   INSTANCE_LOG_BASE(LogType::ERROR, message);
+///@}
+
+///@{
+/// Logging macros to be used with a `this` (non-static context) and that also Log::safePrint() the message.
+#define LOGTRACEP(message)   { INSTANCE_LOG_BASE(LogType::TRACE, message); Log::safePrint(message); }
+#define LOGDEBUGP(message)   { INSTANCE_LOG_BASE(LogType::DEBUG, message); Log::safePrint(message); }
+#define LOGINFOP(message)    { INSTANCE_LOG_BASE(LogType::INFO, message); Log::safePrint(message); }
+#define LOGWARNINGP(message) { INSTANCE_LOG_BASE(LogType::WARNING, message); Log::safePrint(message); }
+#define LOGERRORP(message)   { INSTANCE_LOG_BASE(LogType::ERROR, message); Log::safePrint(message); }
+///@}
+
+///@{
+/// Logging macros to be used in a static context (does not log class name, even if available)
+#define SLOGTRACE(message)   STATIC_LOG_BASE(LogType::TRACE, message);
+#define SLOGDEBUG(message)   STATIC_LOG_BASE(LogType::DEBUG, message);
+#define SLOGINFO(message)    STATIC_LOG_BASE(LogType::INFO, message);
+#define SLOGWARNING(message) STATIC_LOG_BASE(LogType::WARNING, message);
+#define SLOGERROR(message)   STATIC_LOG_BASE(LogType::ERROR, message);
+///@}
+
+///@{
+/// Logging macros to be used in a static context (does not log class name, even if available) and that also Log::safePrint() the message.
+#define SLOGTRACEP(message)   { STATIC_LOG_BASE(LogType::TRACE, message); Log::safePrint(message); }
+#define SLOGDEBUGP(message)   { STATIC_LOG_BASE(LogType::DEBUG, message); Log::safePrint(message); }
+#define SLOGINFOP(message)    { STATIC_LOG_BASE(LogType::INFO, message); Log::safePrint(message); }
+#define SLOGWARNINGP(message) { STATIC_LOG_BASE(LogType::WARNING, message); Log::safePrint(message); }
+#define SLOGERRORP(message)   { STATIC_LOG_BASE(LogType::ERROR, message); Log::safePrint(message); }
+///@}
+
+///@{
+/// Logging macros that omit the function name (to be used in generated functions)
+#define GLOGTRACE(message)   GEN_LOG_BASE(LogType::TRACE, message);
+#define GLOGDEBUG(message)   GEN_LOG_BASE(LogType::DEBUG, message);
+#define GLOGINFO(message)    GEN_LOG_BASE(LogType::INFO, message);
+#define GLOGWARNING(message) GEN_LOG_BASE(LogType::WARNING, message);
+#define GLOGERROR(message)   GEN_LOG_BASE(LogType::ERROR, message);
+///@}
+
+///@{
+/// Logging macros that omit the function name (to be used in generated functions) and that also Log::safePrint() the message.
+#define GLOGTRACEP(message)   { GEN_LOG_BASE(LogType::TRACE, message); Log::safePrint(message); }
+#define GLOGDEBUGP(message)   { GEN_LOG_BASE(LogType::DEBUG, message); Log::safePrint(message); }
+#define GLOGINFOP(message)    { GEN_LOG_BASE(LogType::INFO, message); Log::safePrint(message); }
+#define GLOGWARNINGP(message) { GEN_LOG_BASE(LogType::WARNING, message); Log::safePrint(message); }
+#define GLOGERRORP(message)   { GEN_LOG_BASE(LogType::ERROR, message); Log::safePrint(message); }
+///@}
 
 /// Namespace with logging utilities
 namespace Log {
   ///@{
   /** String for the given module. */
-  const std::string blockchain = "Blockchain";
-  const std::string storage = "Storage";
   const std::string snowmanVM = "SnowmanVM";
-  const std::string mutableBlock = "MutableBlock";
-  const std::string finalizedBlock = "FinalizedBlock";
-  const std::string db = "DB";
-  const std::string state = "State";
-  const std::string grpcServer = "gRPCServer";
-  const std::string grpcClient = "gRPCClient";
-  const std::string utils = "Utils";
-  const std::string httpServer = "HTTPServer";
-  const std::string JsonRPCEncoding = "JsonRPC::Encoding";
-  const std::string JsonRPCDecoding = "JsonRPC::Decoding";
-  const std::string rdPoS = "rdPoS";
-  const std::string ABI = "ABI";
-  const std::string P2PSession = "P2P::Session";
-  const std::string P2PClientFactory = "P2P::ClientFactory";
-  const std::string P2PServer = "P2P::Server";
-  const std::string P2PServerListener = "P2P::ServerListener";
   const std::string P2PManager = "P2P::Manager";
-  const std::string P2PParser = "P2P::Parser";
-  const std::string P2PRequestEncoder = "P2P::RequestEncoder";
-  const std::string P2PRequestDecoder = "P2P::RequestDecoder";
-  const std::string P2PResponseEncoder = "P2P::AnswerDecoder";
-  const std::string P2PResponseDecoder = "P2P::AnswerEncoder";
-  const std::string P2PBroadcastEncoder = "P2P::BroadcastEncoder";
-  const std::string P2PDiscoveryWorker = "P2P::DiscoveryWorker";
-  const std::string contractManager = "ContractManager";
-  const std::string syncer = "Syncer";
-  const std::string event = "Event";
-  const std::string nodeConns = "P2P::NodeConns";
-  const std::string consensus = "Consensus";
-  const std::string contractHost = "ContractHost";
-  const std::string dumpWorker = "DumpWorker";
-  const std::string dumpManager = "DumpManager";
   const std::string logger = "Logger";
-  const std::string sdkTestSuite = "SDKTestSuite";
   ///@}
 
-  // Mutex for Log::safePrint
-  inline std::mutex __safePrintMutex;
+  inline std::mutex __safePrintMutex; ///< Mutex for Log::safePrint
+
+  inline std::atomic<bool> logToCout = false; ///< Indicates whether logging to stdout is allowed (for safePrint()).
 
   /**
-   * Print a string to stdout.
+   * Print a string to stdout if logToCout is enabled (e.g. not in a test).
    * @param str The string to print.
    */
   inline void safePrint(std::string_view str) {
+    if (!logToCout) return;
     std::lock_guard lock(__safePrintMutex);
     std::cout << str << std::endl;
   };
+
+  /**
+   * Print a string to stdout, even if logToCout is disabled (e.g. even in a test).
+   * @param str The string to print.
+   */
+  inline void safePrintTest(std::string_view str) {
+    std::lock_guard lock(__safePrintMutex);
+    std::cout << str << std::endl;
+  };
+
+  /**
+   * Interface implemented by any object that wishes to provide a custom
+   * logical logging location (socket address, peer ID, etc.) to the
+   * `logSrc_` argument of `LogInfo`, as generated by the LOGxxx macros.
+   */
+  class LogicalLocationProvider {
+  public:
+    /**
+     * Method that should be overriden by subclasses in order to provide
+     * a custom `logSrc_` for their LOGxxx log messages.
+     * @return A custom logical location string.
+     */
+    virtual std::string getLogicalLocation() const = 0;
+  };
+
+  /**
+   * Get the address of the given pointer as an hex string.
+   * @param ptr Pointer to return the address of.
+   * @return The address of ptr as an hex string.
+   */
+  inline std::string pointerToHexString(const void* ptr) {
+    std::ostringstream oss;
+    oss << std::hex << ptr;
+    return oss.str();
+  }
+
+  /**
+   * Get the ID of the current thread as a string.
+   * @return The ID of the current thread as a string.
+   */
+  inline std::string getThreadIdAsString() {
+    std::ostringstream oss;
+    oss << std::this_thread::get_id();
+    return oss.str();
+  }
+
+  /// LOG macro provider of logical location when the class of `this` extends `LogicalLocationProvider`.
+  template <typename T>
+  std::string getLogicalLocationIfAvailable(T* obj, std::true_type) {
+    return obj->getLogicalLocation();
+  }
+
+  /// LOG macro provider of a default logical location (thread ID + value of `this` pointer).
+  template <typename T>
+  std::string getLogicalLocationIfAvailable(T* obj, std::false_type) {
+    return "{" + getThreadIdAsString() + "," + pointerToHexString(obj) + "}";
+  }
+
+  /// Get a pretty "ClassName::MethodName" for the current `this` object.
+  template<typename T>
+  std::string getMethodName(const char* func) {
+    return boost::core::demangle(typeid(T).name()) + "::" + std::string(func);
+  }
 }
 
 /// Class for storing log information.
@@ -149,6 +251,7 @@ class Logger {
     LogInfo curTask_;                       ///< Current task being executed.
     std::atomic<bool> stopWorker_ = false;  ///< Flag for stopping the thread.
     std::future<void> logThreadFuture_;     ///< Future object used to wait for the log thread to finish.
+    std::atomic<bool> echoToCout_ = false;  ///< Flag for echoing all logging to stdout as well.
 
     /// Function for the future object.
     void logger() {
@@ -214,17 +317,42 @@ class Logger {
     void logFileInternal() {
       std::string logType = "";
       switch (curTask_.getType()) {
-        case LogType::TRACE: logType = "TRACE"; break;
-        case LogType::DEBUG: logType = "DEBUG"; break;
-        case LogType::INFO: logType = "INFO"; break;
-        case LogType::WARNING: logType = "WARNING"; break;
-        case LogType::ERROR: logType = "ERROR"; break;
-        case LogType::NONE: logType = "NONE"; break;
-        default: logType = "INVALID_LOG_TYPE"; break;
+        case LogType::TRACE:   logType = "TRA"; break;
+        case LogType::DEBUG:   logType = "DBG"; break;
+        case LogType::INFO:    logType = "INF"; break;
+        case LogType::WARNING: logType = "WAR"; break;
+        case LogType::ERROR:   logType = "ERR"; break;
+        case LogType::NONE:    logType = "SYS"; break;
+        default:               logType = "BAD"; break;
       }
-      this->logFile_ << "[" << getCurrentTimestamp() << " " << logType << "] "
-        << curTask_.getLogSrc() << "::" << curTask_.getFunc()
-        << " - " << curTask_.getMessage() << std::endl;
+      this->logFile_
+        << "["
+        << getCurrentTimestamp()
+        << " "
+        << logType
+        << " "
+        << curTask_.getLogSrc()
+        << " "
+        << curTask_.getFunc()
+        << "] "
+        << curTask_.getMessage()
+        << std::endl;
+      if (this->echoToCout_) {
+        // This is only enabled during specific debugging scenarios, so don't
+        //   affect the (faster) streaming directly to the logFile_ above.
+        Log::safePrintTest(
+            "["
+          + getCurrentTimestamp()
+          + " "
+          + logType
+          + " "
+          + curTask_.getLogSrc()
+          + " "
+          + curTask_.getFunc()
+          + "] "
+          + curTask_.getMessage()
+        );
+      }
     };
 
     /// Post a task to the queue.
@@ -268,6 +396,14 @@ class Logger {
      */
     static inline void setLogFileLimit(int logFileLimit) {
       getInstance().logFileLimit_ = logFileLimit;
+    }
+
+    /**
+     * Toggle echoing to stdout.
+     * @param echoToCout `true` to enable echoing to stdout, `false` to disable.
+     */
+    static inline void setEchoToCout(bool echoToCout) {
+      getInstance().echoToCout_ = echoToCout;
     }
 
     /**

@@ -14,7 +14,7 @@ DB::DB(const std::filesystem::path& path) {
   }
   auto status = rocksdb::DB::Open(this->opts_, path, &this->db_);
   if (!status.ok()) {
-    Logger::logToDebug(LogType::ERROR, Log::db, __func__, "Failed to open DB: " + status.ToString());
+    LOGERROR("Failed to open DB: " + status.ToString());
     throw DynamicException("Failed to open DB: " + status.ToString());
   }
 }
