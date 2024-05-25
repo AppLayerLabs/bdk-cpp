@@ -66,7 +66,7 @@ struct SafeUintTester {
             REQUIRE(revertedValue.get() == UnderlyingType(17));
             REQUIRE(overflow);
         }
-        
+
         SECTION(std::string("SafeUint_t<") + std::to_string(Size) + "> operator-") {
             SafeUint commitedValue(UnderlyingType(17));
             commitedValue.commit();

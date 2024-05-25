@@ -635,10 +635,13 @@ template <int Size> class SafeInt_t : public SafeBase {
     }
 
     /// Commit the value.
-    inline void commit() override { this->copy_ = nullptr; this->registered_ = false; };
+    inline void commit() override { this->copy_ = nullptr; this->registered_ = false; }
 
     /// Revert the value.
-    inline void revert() override { this->value_ = *this->copy_; this->copy_ = nullptr; this->registered_ = false; };
+    inline void revert() override {
+      if (this->copy_ != nullptr) this->value_ = *this->copy_;
+      this->copy_ = nullptr; this->registered_ = false;
+    }
 };
 
 #endif // SAFEINT_T_H

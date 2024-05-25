@@ -47,6 +47,9 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
     /// Copy constructor. Copies only the CURRENT value.
     SafeUnorderedMap(const SafeUnorderedMap& other) : SafeBase(nullptr), value_(other.value_), copy_() {}
 
+    /// Get the current value.
+    std::unordered_map<Key, T, SafeHash> get() const { return this->value_; }
+
     /**
      * Get the number of values with the given key.
      * @param key The key of the values to count.
@@ -643,9 +646,6 @@ template <typename Key, typename T> class SafeUnorderedMap : public SafeBase {
       }
       this->copy_.clear(); this->registered_ = false;
     }
-
-    /// Get the current value.
-    std::unordered_map<Key, T, SafeHash> get() const { return this->value_; }
 };
 
 #endif // SAFEUNORDEREDMAP_H

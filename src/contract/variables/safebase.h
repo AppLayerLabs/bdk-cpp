@@ -82,7 +82,7 @@ class SafeBase {
      */
     inline virtual void commit() {
       throw DynamicException("Derived Class from SafeBase does not override commit()");
-    };
+    }
 
     /**
      * Revert a structure value. Should always be overridden by the child class.
@@ -92,7 +92,7 @@ class SafeBase {
      */
     inline virtual void revert() {
       throw DynamicException("Derived Class from SafeBase does not override revert()");
-    };
+    }
 };
 
 #endif // SAFEBASE_H
