@@ -38,9 +38,9 @@ class SafeString : public SafeBase {
 
     /**
      * Non-owning constructor.
-     * @param str The initial value. Defaults to an empty string.
+     * @param str The initial value.
      */
-    explicit SafeString(const std::string& str = std::string()) : SafeBase(nullptr), value_(str), copy_(nullptr) {}
+    explicit SafeString(const std::string& str) : SafeBase(nullptr), value_(str), copy_(nullptr) {}
 
     /// Copy constructor. Only copies the CURRENT value.
     SafeString(const SafeString& other) : SafeBase(nullptr), value_(other.value_), copy_(nullptr) {}

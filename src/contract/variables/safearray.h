@@ -39,17 +39,17 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
 
     /// Undo all changes in the undo stack on top of the current value.
     void processUndoStack() {
-      while (!this->undo_.empty()) {
-        UndoOp op = this->undo_.top();
+      while (!this->undo_->empty()) {
+        UndoOp op = this->undo_->top();
         switch (std::get<0>(op)) {
           case AT: this->value_.at(std::get<1>(op)) = std::get<2>(op); break;
-          case OPERATOR_BRACKETS: (*this->value_)[std::get<1>(op)] = std::get<2>(op); break;
+          case OPERATOR_BRACKETS: this->value_[std::get<1>(op)] = std::get<2>(op); break;
           case FRONT: this->value_.at(0) = std::get<2>(op); break;
           case BACK: this->value_.at(N-1) = std::get<2>(op); break;
           // at(0)/(N-1) are hardcoded on purpose - std::get<1>(op) is not really
           // needed for FRONT and BACK, but it could be used as well
         }
-        this->undo_.pop();
+        this->undo_->pop();
       }
     }
 
@@ -96,7 +96,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
         this->undo_->emplace(std::make_tuple(ArrayOp::OPERATOR_BRACKETS, pos, this->value_[pos]));
       }
-      markAsUsed(); return (*this->value_)[pos];
+      markAsUsed(); return this->value_[pos];
     }
     inline const T& operator[](std::size_t pos) const { return this->value_[pos]; }
     ///@}
@@ -191,7 +191,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     /// Revert the value.
     void revert() override {
       if (this->copy_ != nullptr) this->value_ = *this->copy_;
-      if (!this->undo_.empty()) this->processUndoStack();
+      if (!this->undo_->empty()) this->processUndoStack();
       this->copy_ = nullptr; this->undo_ = nullptr; this->registered_ = false;
     }
 };
