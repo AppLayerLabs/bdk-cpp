@@ -8,6 +8,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "managerbase.h"
 
 namespace P2P {
+  std::string DiscoveryWorker::getLogicalLocation() const { return this->manager_.getLogicalLocation(); }
+
   void DiscoveryWorker::refreshRequestedNodes() {
     std::unique_lock lock(this->requestedNodesMutex_);
     for (auto it = this->requestedNodes_.begin(); it != this->requestedNodes_.end();) {
@@ -51,7 +53,7 @@ namespace P2P {
 
   bool DiscoveryWorker::discoverLoop() {
     bool discoveryPass = false;
-    Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Discovery thread started minConnections: "
+    LOGINFO("Discovery thread started minConnections: "
                         + std::to_string(this->manager_.minConnections()) + " maxConnections: " + std::to_string(this->manager_.maxConnections()));
     uint64_t lastLogged = 0;
     while (!this->stopWorker_) {
@@ -63,13 +65,13 @@ namespace P2P {
       }
 
       if (lastLogged != sessionSize) {
-        Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "DiscoveryWorker current sessionSize: " + std::to_string(sessionSize));
+        LOGINFO("DiscoveryWorker current sessionSize: " + std::to_string(sessionSize));
         lastLogged = sessionSize;
       }
 
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       if (sessionSize >= this->manager_.maxConnections()) {
-         Logger::logToDebug(LogType::INFO, Log::P2PDiscoveryWorker, __func__, "Max connections reached, sleeping...");
+         LOGINFO("Max connections reached, sleeping...");
          std::this_thread::sleep_for(std::chrono::seconds(10));
          continue;
       }

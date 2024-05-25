@@ -416,8 +416,6 @@ namespace Utils {
     using type = typename makeTupleTypeHelper<std::tuple<>, EventParam<Args, Flags>...>::type;  ///< Typedef.
   };
 
-  extern std::atomic<bool> logToCout; ///< Indicates whether logging to stdout is allowed (for safePrint()).
-
   /**
    * %Log a string to a file called `log.txt`.
    * @param str The string to log.

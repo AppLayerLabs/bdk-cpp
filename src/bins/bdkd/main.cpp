@@ -30,7 +30,7 @@ void signalHandler(int signum) {
 }
 
 int main(int argc, char* argv[]) {
-  Utils::logToCout = true;
+  Log::logToCout = true;
   Utils::safePrint("bdkd: Blockchain Development Kit full node daemon");
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
   Utils::safePrint("Main thread stopping due to interrupt signal [" + Utils::getSignalName(exitCode) + "], shutting down node...");
 
   // Shut down the node
-  Logger::logToDebug(LogType::INFO, "MAIN", "MAIN", "Received signal " + std::to_string(exitCode));
+  SLOGINFO("Received signal " + std::to_string(exitCode));
   Utils::safePrint("Main thread stopping node...");
   blockchain->stop();
   Utils::safePrint("Main thread shutting down...");

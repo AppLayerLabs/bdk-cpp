@@ -22,7 +22,7 @@ namespace P2P {
    * ClientFactory doesn't necesarily "own" the client session, it only creates them in a shared manner.
    * Registration/Unregistration is responsibility of the Manager.
    */
-  class ClientFactory {
+  class ClientFactory : public Log::LogicalLocationProvider {
     private:
       /// io_context for the factory.
       net::io_context io_context_;
@@ -60,6 +60,8 @@ namespace P2P {
         connectorStrand_(io_context_.get_executor()),
         threadCount_(threadCount),
         manager_(manager) {}
+
+      virtual std::string getLogicalLocation() const; ///< Log instance from P2P
 
       /// Start the Factory.
       bool start();

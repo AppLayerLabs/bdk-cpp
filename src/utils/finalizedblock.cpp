@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 
 FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId) {
   try {
-    Logger::logToDebug(LogType::TRACE, Log::finalizedBlock, __func__, "Deserializing block...");
+    SLOGTRACE("Deserializing block...");
     // Verify minimum size for a valid block
     if (bytes.size() < 217) throw std::runtime_error("Invalid block size - too short");
     // Parsing fixed-size fields
@@ -23,7 +23,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
     uint64_t nHeight = Utils::bytesToUint64(bytes.subspan(201, 8));
     uint64_t txValidatorStart = Utils::bytesToUint64(bytes.subspan(209, 8));
 
-    Logger::logToDebug(LogType::TRACE, Log::finalizedBlock, __func__, "Deserializing transactions...");
+    SLOGTRACE("Deserializing transactions...");
 
     std::vector<TxBlock> txs;
     std::vector<TxValidator> txValidators;
@@ -112,7 +112,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
       index += 4;
       txValidators.emplace_back(bytes.subspan(index, txSize), requiredChainId);
       if (txValidators.back().getNHeight() != nHeight) {
-        Logger::logToDebug(LogType::ERROR, Log::mutableBlock, __func__, "Invalid validator tx height");
+        SLOGERROR("Invalid validator tx height");
         throw DynamicException("Invalid validator tx height");
       }
       index += txSize;
@@ -151,7 +151,7 @@ FinalizedBlock FinalizedBlock::fromBytes(const BytesArrView bytes, const uint64_
         bytes.size()
     };
   } catch (const std::exception &e) {
-    Logger::logToDebug(LogType::ERROR, Log::finalizedBlock, __func__, "Error when deserializing a FinalizedBlock: " + std::string(e.what()));
+    SLOGERROR("Error when deserializing a FinalizedBlock: " + std::string(e.what()));
     throw std::runtime_error(std::string("Error when deserializing a FinalizedBlock: ") + e.what());
   }
 }

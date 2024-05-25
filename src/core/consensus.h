@@ -22,7 +22,7 @@ class Blockchain; // Forward declaration.
 // TODO: tests for Consensus (if necessary)
 
 /// Class responsible for processing blocks and transactions.
-class Consensus {
+class Consensus : public Log::LogicalLocationProvider {
   private:
     State& state_; ///< Reference to the State object.
     P2P::ManagerNormal& p2p_; ///< Reference to the P2P connection manager.
@@ -58,6 +58,8 @@ class Consensus {
      */
     explicit Consensus(State& state, P2P::ManagerNormal& p2p, const Storage& storage, const Options& options) :
       state_(state), p2p_(p2p), storage_(storage), options_(options) {}
+
+    virtual std::string getLogicalLocation() const { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
 
     /**
      * Entry function for the worker thread (runs the workerLoop() function).

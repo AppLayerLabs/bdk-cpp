@@ -49,7 +49,7 @@ namespace P2P{
           break;
       }
     } catch (std::exception const& ex) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__, "Closing session to " + toString(nodeId) + ": " + ex.what());
+      LOGERROR("Closing session to " + toString(nodeId) + ": " + ex.what());
       this->disconnectSession(nodeId);
     }
   }
@@ -77,9 +77,8 @@ namespace P2P{
         handleRequestBlockRequest(nodeId, message);
         break;
       default:
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                           "Invalid Request Command Type: " + std::to_string(message->command()) +
-                           " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+        LOGERROR("Invalid Request Command Type: " + std::to_string(message->command()) +
+                           " from: " + toString(nodeId) +
                            ", closing session.");
         this->disconnectSession(nodeId);
         break;
@@ -109,9 +108,8 @@ namespace P2P{
         handleRequestBlockAnswer(nodeId, message);
         break;
       default:
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                           "Invalid Answer Command Type: " + std::to_string(message->command()) +
-                           " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+        LOGERROR("Invalid Answer Command Type: " + std::to_string(message->command()) +
+                           " from: " + toString(nodeId) +
                            " , closing session.");
         this->disconnectSession(nodeId);
         break;
@@ -126,9 +124,8 @@ namespace P2P{
         handleInfoNotification(nodeId, message);
         break;
       default:
-        Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                           "Invalid Notification Command Type: " + std::to_string(message->command()) +
-                           " from: " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+        LOGERROR("Invalid Notification Command Type: " + std::to_string(message->command()) +
+                           " from: " + toString(nodeId) +
                            ", closing session.");
         this->disconnectSession(nodeId);
         break;
@@ -139,8 +136,7 @@ namespace P2P{
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::ping(*message)) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Invalid ping request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Invalid ping request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -161,8 +157,7 @@ namespace P2P{
       const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::requestNodes(*message)) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Invalid requestNodes request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Invalid requestNodes request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -185,8 +180,7 @@ namespace P2P{
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::requestValidatorTxs(*message)) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Invalid requestValidatorTxs request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Invalid requestValidatorTxs request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -198,8 +192,7 @@ namespace P2P{
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::requestTxs(*message)) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Invalid requestTxs request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Invalid requestTxs request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -218,8 +211,7 @@ namespace P2P{
       if (!this->storage_.blockExists(heightToAdd)) break; // Stop at first block in the requested range that we don't have.
       requestedBlocks.push_back(this->storage_.getBlock(heightToAdd));
       bytesSpent += requestedBlocks.back()->getSize();
-      Logger::logToDebug(LogType::DEBUG, Log::P2PParser, __func__,
-                         "Uploading block " + std::to_string(heightToAdd) + " to " + toString(nodeId)
+      LOGDEBUG("Uploading block " + std::to_string(heightToAdd) + " to " + toString(nodeId)
                          + " (" + std::to_string(bytesSpent) + "/" + std::to_string(bytesLimit) + " bytes)");
       if (bytesSpent >= bytesLimit) break; // bytesLimit reached so stop appending blocks to the answer
     }
@@ -232,8 +224,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before doing anything else to avoid waiting for other locks.
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Answer to invalid request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -247,8 +238,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Answer to invalid request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -262,8 +252,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Answer to invalid request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -277,8 +266,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Answer to invalid request from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Answer to invalid request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -292,8 +280,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Answer to invalid request from " + nodeId.first.to_string() + ":" +
+      LOGERROR("Answer to invalid request from " + nodeId.first.to_string() + ":" +
                          std::to_string(nodeId.second) + " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -307,8 +294,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Answer to invalid request from " + nodeId.first.to_string() + ":" +
+      LOGERROR("Answer to invalid request from " + nodeId.first.to_string() + ":" +
                          std::to_string(nodeId.second) + " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -337,8 +323,7 @@ namespace P2P{
       auto nodeInfo = NotificationDecoder::notifyInfo(*message);
       this->nodeConns_.incomingInfo(nodeId, nodeInfo, nodeType);
     } catch (std::exception &e) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Invalid infoNotification from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) +
+      LOGERROR("Invalid infoNotification from " + toString(nodeId) +
                          " , error: " + e.what() + " closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -349,90 +334,69 @@ namespace P2P{
   // Somehow change to wait_for.
   std::vector<TxValidator> ManagerNormal::requestValidatorTxs(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestValidatorTxs());
-    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
-                       "Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed."
-      );
+      LOGWARNING("Request to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
     if (status == std::future_status::timeout) {
-      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " timed out."
-      );
+      LOGWARNING("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestValidatorTxs(*answerPtr, this->options_.getChainID());
     } catch (std::exception &e) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
-      );
+      LOGERROR("Request to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }
 
   std::vector<TxBlock> ManagerNormal::requestTxs(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestTxs());
-    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
-                       "Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed."
-      );
+      LOGWARNING("Request to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
     if (status == std::future_status::timeout) {
-      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " timed out."
-      );
+      LOGWARNING("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestTxs(*answerPtr, this->options_.getChainID());
     } catch (std::exception &e) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
-      );
+      LOGERROR("Request to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }
 
   NodeInfo ManagerNormal::requestNodeInfo(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::info(this->storage_.latest(), this->nodeConns_.getConnectedWithNodeType(), this->options_));
-    Logger::logToDebug(LogType::TRACE, Log::P2PParser, __func__,
-                       "Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed."
-      );
+      LOGWARNING("Request to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
     if (status == std::future_status::timeout) {
-      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " timed out."
-      );
+      LOGWARNING("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::info(*answerPtr);
     } catch (std::exception &e) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
-      );
+      LOGERROR("Request to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }
@@ -443,26 +407,20 @@ namespace P2P{
     auto request = std::make_shared<const Message>(RequestEncoder::requestBlock(height, heightEnd, bytesLimit));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
-        "RequestBlock to " + toString(nodeId) + " failed."
-      );
+      LOGWARNING("RequestBlock to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(60)); // 60s timeout.
     if (status == std::future_status::timeout) {
-      Logger::logToDebug(LogType::WARNING, Log::P2PParser, __func__,
-        "RequestBlock to " + toString(nodeId) + " timed out."
-      );
+      LOGWARNING("RequestBlock to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestBlock(*answerPtr, this->options_.getChainID());
     } catch (std::exception &e) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-        "RequestBlock to " + toString(nodeId) + " failed with error: " + e.what()
-      );
+      LOGERROR("RequestBlock to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }

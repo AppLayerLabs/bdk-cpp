@@ -9,6 +9,9 @@ See the LICENSE.txt file in the project root for more information.
 #include "managerbase.h"
 
 namespace P2P {
+
+  std::string ClientFactory::getLogicalLocation() const { return manager_.getLogicalLocation(); }
+
   void ClientFactory::createClientSession(const boost::asio::ip::address &address, const unsigned short &port) {
     tcp::socket socket(io_context_);
     auto session = std::make_shared<Session>(std::move(socket), ConnectionType::OUTBOUND, manager_, address, port);
@@ -16,9 +19,7 @@ namespace P2P {
   }
 
   bool ClientFactory::run() {
-    Logger::logToDebug(LogType::INFO, Log::P2PClientFactory, __func__,
-                      "Starting P2P Client Factory "
-    );
+    LOGINFO("Starting P2P Client Factory ");
 
     // Restart is needed to .run() the ioc again, otherwise it returns instantly.
     io_context_.restart();
@@ -34,7 +35,7 @@ namespace P2P {
 
   bool ClientFactory::start() {
     if (this->executor_.valid()) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PClientFactory, __func__, "P2P Client Factory already started.");
+      LOGERROR("P2P Client Factory already started.");
       return false;
     }
     this->executor_ = std::async(std::launch::async, &ClientFactory::run, this);
@@ -43,7 +44,7 @@ namespace P2P {
 
   bool ClientFactory::stop() {
     if (!this->executor_.valid()) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PClientFactory, __func__, "P2P Client Factory not started.");
+      LOGERROR("P2P Client Factory not started.");
       return false;
     }
     this->io_context_.stop();

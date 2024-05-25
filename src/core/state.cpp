@@ -72,21 +72,21 @@ State::State(
     switch (acc->contractType) {
       case ContractType::CPP: {
         if (this->contracts_.find(addr) == this->contracts_.end()) {
-          Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
+          LOGERROR("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
           throw DynamicException("Contract " + addr.hex().get() + " is marked as C++ contract but doesn't have code");
         }
         break;
       }
       case ContractType::EVM: {
         if (acc->code.empty()) {
-          Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
+          LOGERROR("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
           throw DynamicException("Contract " + addr.hex().get() + " is marked as EVM contract but doesn't have code");
         }
         break;
       }
       case ContractType::NOT_A_CONTRACT: {
         if (!acc->code.empty()) {
-          Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Contract " + addr.hex().get() + " is marked as not a contract but has code");
+          LOGERROR("Contract " + addr.hex().get() + " is marked as not a contract but has code");
           throw DynamicException("Contract " + addr.hex().get() + " is marked as not a contract but has code");
         }
         break;
@@ -95,7 +95,7 @@ State::State(
   }
 
   if (snapshotHeight > this->storage_.latest()->getNHeight()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Snapshot height is higher than latest block, we can't load State! Crashing the program");
+    LOGERROR("Snapshot height is higher than latest block, we can't load State! Crashing the program");
     throw DynamicException("Snapshot height is higher than latest block, we can't load State!");
   }
 
@@ -105,9 +105,8 @@ State::State(
   Utils::safePrint("Loading state from snapshot height: " + std::to_string(snapshotHeight));
   Utils::safePrint("Got latest block height: " + std::to_string(latestBlock->getNHeight()));
   for (uint64_t nHeight = snapshotHeight + 1; nHeight <= latestBlock->getNHeight(); nHeight++) {
-    Utils::safePrint("Processing block " + std::to_string(nHeight) + " from Storage");
     auto block = this->storage_.getBlock(nHeight);
-    Logger::logToDebug(LogType::INFO, Log::state, __func__, "Processing block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
+    LOGINFOP("Processing block " + block->getHash().hex().get() + " at height " + std::to_string(nHeight));
     // Update contract globals based on (now) latest block
     const Hash blockHash = block->getHash();
     ContractGlobals::coinbase_ = Secp256k1::toAddress(block->getValidatorPubKey());
@@ -160,26 +159,25 @@ TxStatus State::validateTransactionInternal(const TxBlock& tx) const {
 
   // Verify if transaction already exists within the mempool, if on mempool, it has been validated previously.
   if (this->mempool_.contains(tx.hash())) {
-    Logger::logToDebug(LogType::TRACE, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " already in mempool");
+    LOGTRACE("Transaction: " + tx.hash().hex().get() + " already in mempool");
     return TxStatus::ValidExisting;
   }
   auto accountIt = this->accounts_.find(tx.getFrom());
   if (accountIt == this->accounts_.end()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Account doesn't exist (0 balance and 0 nonce)");
+    LOGERROR("Account doesn't exist (0 balance and 0 nonce)");
     return TxStatus::InvalidBalance;
   }
   const auto& accBalance = accountIt->second->balance;
   const auto& accNonce = accountIt->second->nonce;
   uint256_t txWithFees = tx.getValue() + (tx.getGasLimit() * tx.getMaxFeePerGas());
   if (txWithFees > accBalance) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-                      "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
+    LOGERROR("Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction"
                       + " expected: " + txWithFees.str() + " has: " + accBalance.str());
     return TxStatus::InvalidBalance;
   }
   // TODO: The blockchain is able to store higher nonce transactions until they are valid. Handle this case.
   if (accNonce != tx.getNonce()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
+    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(accNonce)
                                             + " got: " + tx.getNonce().str());
     return TxStatus::InvalidNonce;
   }
@@ -199,12 +197,12 @@ void State::processTransaction(const TxBlock& tx,
   auto& fromNonce = accountFrom.nonce;
   auto& fromBalance = accountFrom.balance;
   if (fromBalance < (tx.getValue() + tx.getGasLimit() * tx.getMaxFeePerGas())) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction");
+    LOGERROR("Transaction sender: " + tx.getFrom().hex().get() + " doesn't have balance to send transaction");
     throw DynamicException("Transaction sender doesn't have balance to send transaction");
     return;
   }
   if (fromNonce != tx.getNonce()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(fromNonce)
+    LOGERROR("Transaction: " + tx.hash().hex().get() + " nonce mismatch, expected: " + std::to_string(fromNonce)
                                             + " got: " + tx.getNonce().str());
     throw DynamicException("Transaction nonce mismatch");
     return;
@@ -243,10 +241,7 @@ void State::processTransaction(const TxBlock& tx,
 
     host.execute(tx.txToMessage(), accountTo.contractType);
   } catch (std::exception& e) {
-    Utils::safePrint("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what()
-    );
+    LOGERRORP("Transaction: " + tx.hash().hex().get() + " failed to process, reason: " + e.what());
   }
   if (leftOverGas < 0) {
     leftOverGas = 0; // We don't want to """refund""" gas due to negative gas
@@ -316,46 +311,39 @@ BlockValidationStatus State::validateNextBlockInternal(const FinalizedBlock& blo
    */
   auto latestBlock = this->storage_.latest();
   if (block.getNHeight() != latestBlock->getNHeight() + 1) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
+    LOGERROR("Block nHeight doesn't match, expected " + std::to_string(latestBlock->getNHeight() + 1)
       + " got " + std::to_string(block.getNHeight())
     );
     return BlockValidationStatus::invalidWrongHeight;
   }
 
   if (block.getPrevBlockHash() != latestBlock->getHash()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
+    LOGERROR("Block prevBlockHash doesn't match, expected " + latestBlock->getHash().hex().get()
       + " got: " + block.getPrevBlockHash().hex().get()
     );
     return BlockValidationStatus::invalidErroneous;
   }
 
   if (latestBlock->getTimestamp() > block.getTimestamp()) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Block timestamp is lower than latest block, expected higher than "
+    LOGERROR("Block timestamp is lower than latest block, expected higher than "
       + std::to_string(latestBlock->getTimestamp()) + " got " + std::to_string(block.getTimestamp())
     );
     return BlockValidationStatus::invalidErroneous;
   }
 
   if (!this->rdpos_.validateBlock(block)) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__, "Invalid rdPoS in block");
+    LOGERROR("Invalid rdPoS in block");
     return BlockValidationStatus::invalidErroneous;
   }
 
   for (const auto& tx : block.getTxs()) {
     if (!isTxStatusValid(this->validateTransactionInternal(tx))) {
-      Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-        "Transaction " + tx.hash().hex().get() + " within block is invalid"
-      );
+      LOGERROR("Transaction " + tx.hash().hex().get() + " within block is invalid");
       return BlockValidationStatus::invalidErroneous;
     }
   }
 
-  Logger::logToDebug(LogType::TRACE, Log::state, __func__,
-    "Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)"
-  );
+  LOGTRACE("Block " + block.getHash().hex().get() + " is valid. (Sanity Check Passed)");
   return BlockValidationStatus::valid;
 }
 
@@ -366,9 +354,7 @@ bool State::validateNextBlock(const FinalizedBlock& block) const {
 
 void State::processNextBlock(FinalizedBlock&& block) {
   if (tryProcessNextBlock(std::move(block)) != BlockValidationStatus::valid) {
-    Logger::logToDebug(LogType::ERROR, Log::state, __func__,
-      "Sanity check failed - blockchain is trying to append a invalid block, throwing"
-    );
+    LOGERROR("Sanity check failed - blockchain is trying to append a invalid block, throwing");
     throw DynamicException("Invalid block detected during processNextBlock sanity check");
   }
 }
@@ -401,7 +387,7 @@ BlockValidationStatus State::tryProcessNextBlock(FinalizedBlock&& block) {
 
   // Refresh the mempool based on the block transactions
   this->refreshMempool(block);
-  Logger::logToDebug(LogType::INFO, Log::state, __func__, "Block " + block.getHash().hex().get() + " processed successfully.");
+  LOGINFO("Block " + block.getHash().hex().get() + " processed successfully.");
   Utils::safePrint("Block: " + block.getHash().hex().get() + " height: " + std::to_string(block.getNHeight()) + " was added to the blockchain");
   for (const auto& tx : block.getTxs()) {
     Utils::safePrint("Transaction: " + tx.hash().hex().get() + " was accepted in the blockchain");
@@ -423,7 +409,7 @@ TxStatus State::addTx(TxBlock&& tx) {
   std::unique_lock lock(this->stateMutex_);
   auto txHash = tx.hash();
   this->mempool_.insert({txHash, std::move(tx)});
-  Logger::logToDebug(LogType::TRACE, Log::state, __func__, "Transaction: " + txHash.hex().get() + " was added to the mempool");
+  LOGTRACE("Transaction: " + txHash.hex().get() + " was added to the mempool");
   return txResult; // should be TxStatus::ValidNew
 }
 

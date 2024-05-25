@@ -33,7 +33,7 @@ namespace P2P {
   * It contains the basic functionality for reading and writing messages to the
   * socket.
   */
-  class Session : public std::enable_shared_from_this<Session> {
+  class Session : public std::enable_shared_from_this<Session>, public Log::LogicalLocationProvider {
     protected:
       /// The socket used to communicate with the client.
       net::ip::tcp::socket socket_;
@@ -167,6 +167,8 @@ namespace P2P {
           throw DynamicException("Session: Invalid connection type.");
         }
       }
+
+      virtual std::string getLogicalLocation() const; ///< Log instance from P2P
 
       /// Max message size
       const uint64_t maxMessageSize_ = 1024 * 1024 * 128; // (128 MB)
