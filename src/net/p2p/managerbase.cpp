@@ -7,9 +7,56 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "managerbase.h"
 
+// NOTE (Threading): A relatively low net worker thread count is something you want, in general:
+// - It encourages writing good network messaging handlers;
+// - It encourages writing dedicated thread pools elsewhere in the stack to do heavy processing of
+//   messages *after* they are received (you should never have to do heavy computation in io threads);
+// - It avoids having networked unit tests with a massive number of threads to debug;
+// - Even debugging a single node (with e.g. gdb: thread info, bt, ...) is now much simpler;
+// - Having less threads in general reduces the probability that we need to worry about having
+//   thread scheduling & context switching bottlenecks of any sort;
+// - Having multiple threads helps to hide some kinds of bugs, making them harder to reproduce.
+// But if you want to experiment with larger thread counts, it's just a matter of tweaking the constants below.
+
+/// Concurrency in processing incoming connection requests in the TCP listen socket, with handshake for session.
+/// All operations are async and light-weight, so there's no hard requirement to have more than one thread.
+/// It is also not a performance bottleneck to have many threads here, as they're all waiting most of the time.
+/// If anything, having only one thread makes thread debugging simpler.
+#define P2P_LISTEN_SOCKET_THREADS 1
+
+/// Concurrency in processing accepted connections in the TCP client socket, with handshake for session.
+/// All operations are async and light-weight, so there's no hard requirement to have more than one thread.
+/// It is also not a performance bottleneck to have many threads here, as they're all waiting most of the time.
+/// If anything, having only one thread makes thread debugging simpler.
+#define P2P_CLIENT_SOCKET_THREADS 1
+
+/// Size of the P2P engine's thread pool which processes actual network messages.
+/// hardware_concurrency() counts Intel Hyperthreading (and disregards whatever other threads we may have in
+///   the system) so that is already a quite elevated number. Hardcoded numbers like 2, 3 or 4 would already
+///   be sufficient, probably.
+#define P2P_NET_THREADS_DEFAULT (std::min(4u, std::thread::hardware_concurrency()))
+
 namespace P2P {
 
   std::atomic<int> ManagerBase::instanceIdGen_(0);
+
+  std::atomic<int> ManagerBase::netThreads_(P2P_NET_THREADS_DEFAULT);
+
+  void ManagerBase::setNetThreads(int netThreads) {
+    SLOGINFO("P2P_NET_THREADS set to " + std::to_string(netThreads) + " (was " + std::to_string(netThreads_) + ")");
+    netThreads_ = netThreads;
+  }
+
+  ManagerBase::ManagerBase(
+    const net::ip::address& hostIp, NodeType nodeType, const Options& options,
+    const unsigned int& minConnections, const unsigned int& maxConnections
+  ) : serverPort_(options.getP2PPort()), nodeType_(nodeType), options_(options),
+    minConnections_(minConnections), maxConnections_(maxConnections),
+    server_(hostIp, options.getP2PPort(), P2P_LISTEN_SOCKET_THREADS, *this),
+    clientfactory_(*this, P2P_CLIENT_SOCKET_THREADS),
+    discoveryWorker_(*this),
+    instanceIdStr_("#" + std::to_string(instanceIdGen_++))
+  {};
 
   bool ManagerBase::registerSessionInternal(const std::shared_ptr<Session>& session) {
     std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::registerSessionInternal can change sessions_ map.
@@ -100,7 +147,9 @@ namespace P2P {
   void ManagerBase::start() {
     std::scoped_lock lock(this->stateMutex_);
     if (this->started_) return;
-    this->threadPool_ = std::make_unique<BS::thread_pool_light>(std::thread::hardware_concurrency() * 4);
+    LOGINFO("Starting " + std::to_string(ManagerBase::netThreads_) + " P2P worker threads; default: " +
+            std::to_string(P2P_NET_THREADS_DEFAULT) + "; CPU: " + std::to_string(std::thread::hardware_concurrency()));
+    this->threadPool_ = std::make_unique<BS::thread_pool_light>(ManagerBase::netThreads_);
     this->server_.start();
     this->clientfactory_.start();
     this->started_ = true;

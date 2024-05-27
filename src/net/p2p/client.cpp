@@ -19,23 +19,30 @@ namespace P2P {
   }
 
   bool ClientFactory::run() {
-    LOGINFO("Starting P2P Client Factory ");
+    try {
+      LOGTRACE("Starting P2P ClientFactory");
 
-    // Restart is needed to .run() the ioc again, otherwise it returns instantly.
-    io_context_.restart();
-    std::vector<std::thread> v;
-    v.reserve(this->threadCount_ - 1);
+      // Restart is needed to .run() the ioc again, otherwise it returns instantly.
+      io_context_.restart();
 
-    for (auto i = this->threadCount_ - 1; i > 0; --i) { v.emplace_back([this] { this->io_context_.run(); }); }
-    io_context_.run();
+      LOGTRACE("Starting " + std::to_string(this->threadCount_) + " threads");
+      std::vector<std::thread> v;
+      v.reserve(this->threadCount_ - 1);
+      for (auto i = this->threadCount_ - 1; i > 0; --i) { v.emplace_back([this] { this->io_context_.run(); }); }
+      io_context_.run();
+      for (auto &t: v) t.join(); // Wait for all threads to exit
+      LOGTRACE("All threads stopped");
 
-    for (auto &t: v) t.join(); // Wait for all threads to exit
+    } catch ( std::exception &e ) {
+      LOGERROR("Exception: " + std::string(e.what()));
+      return false;
+    }
     return true;
   }
 
   bool ClientFactory::start() {
     if (this->executor_.valid()) {
-      LOGERROR("P2P Client Factory already started.");
+      LOGERROR("P2P ClientFactory already started");
       return false;
     }
     this->executor_ = std::async(std::launch::async, &ClientFactory::run, this);
@@ -44,7 +51,7 @@ namespace P2P {
 
   bool ClientFactory::stop() {
     if (!this->executor_.valid()) {
-      LOGERROR("P2P Client Factory not started.");
+      LOGERROR("P2P ClientFactory not started");
       return false;
     }
     this->io_context_.stop();

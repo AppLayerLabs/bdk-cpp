@@ -23,6 +23,9 @@ namespace P2P {
    */
   class ManagerBase : public Log::LogicalLocationProvider {
     protected:
+      static std::atomic<int> instanceIdGen_; ///< Instance ID generator.
+      static std::atomic<int> netThreads_; ///< Size of the IO thread pool (this is read and used in start()).
+
       const unsigned short serverPort_; ///< The manager's port.
       const NodeType nodeType_; ///< The manager's node type.
       const unsigned int minConnections_; ///< Minimum number of simultaneous connections. @see DiscoveryWorker
@@ -38,7 +41,6 @@ namespace P2P {
       ClientFactory clientfactory_; ///< ClientFactory object.
       DiscoveryWorker discoveryWorker_; ///< DiscoveryWorker object.
       const std::string instanceIdStr_; ///< Instance ID for LOGxxx().
-      static std::atomic<int> instanceIdGen_; ///< Instance ID generator.
 
       /// List of currently active sessions.
       std::unordered_map<NodeID, std::shared_ptr<Session>, SafeHash> sessions_;
@@ -104,18 +106,14 @@ namespace P2P {
       ManagerBase(
         const net::ip::address& hostIp, NodeType nodeType, const Options& options,
         const unsigned int& minConnections, const unsigned int& maxConnections
-      ) : serverPort_(options.getP2PPort()), nodeType_(nodeType), options_(options),
-        minConnections_(minConnections), maxConnections_(maxConnections),
-        server_(hostIp, options.getP2PPort(), 4, *this),
-        clientfactory_(*this, 4),
-        discoveryWorker_(*this),
-        instanceIdStr_("#" + std::to_string(instanceIdGen_++))
-      {};
+      );
 
       /// Destructor. Automatically stops the manager.
       virtual ~ManagerBase() { this->stopDiscovery(); this->stop(); }
 
       virtual std::string getLogicalLocation() const { return this->instanceIdStr_; }
+
+      static void setNetThreads(int netThreads);
 
       const Options& getOptions() { return this->options_; } ///< Get a reference to the Options object given to the P2P engine.
 

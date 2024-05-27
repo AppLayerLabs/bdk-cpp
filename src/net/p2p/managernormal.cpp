@@ -13,6 +13,16 @@ See the LICENSE.txt file in the project root for more information.
 
 namespace P2P{
 
+  void ManagerNormal::start() {
+    ManagerBase::start();
+    nodeConns_.start();
+  }
+
+  void ManagerNormal::stop() {
+    nodeConns_.stop();
+    ManagerBase::stop();
+  }
+
   void ManagerNormal::sendMessageToAll(const std::shared_ptr<const Message> message, const std::optional<NodeID>& originalSender) {
     std::unordered_set<NodeID, SafeHash> peerMap;
     if (originalSender) {

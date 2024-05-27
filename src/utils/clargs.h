@@ -11,6 +11,8 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include "src/net/p2p/managerbase.h"
+
 #include "src/utils/logger.h"
 
 /**
@@ -32,6 +34,7 @@ struct ProcessOptions {
   std::string logLevel;    ///< Desired log level name
   int logLineLimit = -1;   ///< Desired log line count limit for the rotating logger log file
   int logFileLimit = -1;   ///< Desired log file hard limit (erases older log files past this count)
+  int netThreads = -1;     ///< Desired IO thread count for P2P message processing
 };
 
 /**
@@ -49,14 +52,16 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
 
     boost::program_options::options_description desc("Allowed options");
     desc.add_options()
-        ("help,h", 
+        ("help,h",
           "Print help message and exit")
-        ("loglevel,l", boost::program_options::value<std::string>(), 
+        ("loglevel,l", boost::program_options::value<std::string>(),
           "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)")
-        ("loglinelimit", boost::program_options::value<int>(), 
+        ("loglinelimit", boost::program_options::value<int>(),
           "Set the log line limit for rotating the log file")
-        ("logfilelimit", boost::program_options::value<int>(), 
+        ("logfilelimit", boost::program_options::value<int>(),
           "Set the log file limit (erases older log files); 0 = no limit")
+        ("netthreads", boost::program_options::value<int>(),
+          "Set ManagerBase::netThreads_ (main IO thread count)")
         ;
 
     boost::program_options::variables_map vm;
@@ -88,6 +93,14 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
       }
     }
 
+    if (vm.count("netthreads")) {
+      opt.netThreads = vm["netthreads"].as<int>();
+      if (opt.netThreads < 1) {
+        std::cerr << "ERROR: --netthreads must be >= 1\n";
+        return {};
+      }
+    }
+
   } catch (std::exception& e) {
       std::cout << "ERROR: parseCommandLineArgs(): " << e.what() << "\n";
       return {};
@@ -108,7 +121,7 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
 bool applyProcessOptions(ProcessOptions& opt) {
 
   if (!opt.valid) {
-    std::cout << "ERROR: Invalid command-line arguments." << std::endl;
+    std::cout << "ERROR: Invalid command-line arguments" << std::endl;
     return false;
   }
 
@@ -145,6 +158,11 @@ bool applyProcessOptions(ProcessOptions& opt) {
   if (opt.logFileLimit >= 0) {
     Logger::setLogFileLimit(opt.logFileLimit);
     std::cout << "Log file limit set to " << opt.logFileLimit << std::endl;
+  }
+
+  if (opt.netThreads >= 0) { // negative number signals unset; 0 is invalid, but somehow it was set to that value
+    P2P::ManagerBase::setNetThreads(opt.netThreads);
+    std::cout << "ManagerBase::netThreads_ set to " << opt.netThreads << std::endl;
   }
 
   return true;

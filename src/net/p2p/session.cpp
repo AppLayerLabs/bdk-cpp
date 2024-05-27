@@ -15,7 +15,7 @@ namespace P2P {
 
   bool Session::handle_error(const std::string& func, const boost::system::error_code& ec) {
     /// TODO: return true/false depending on err code is necessary?
-    LOGERROR("Client Error Code: " + std::to_string(ec.value()) + " message: " + ec.message());
+    LOGDEBUG("Client Error Code: " + std::to_string(ec.value()) + " message: " + ec.message());
     if (ec != boost::system::errc::operation_canceled) {
       /// operation_canceled == close() was already called, we cannot close or deregister again.
       if (this->doneHandshake_) {
@@ -95,7 +95,7 @@ namespace P2P {
     uint64_t messageSize = Utils::bytesToUint64(this->inboundHeader_);
     if (messageSize > this->maxMessageSize_) {
       LOGWARNING("Message size too large: " + std::to_string(messageSize)
-        + " max: " + std::to_string(this->maxMessageSize_) + " closing session..."
+        + " max: " + std::to_string(this->maxMessageSize_) + " closing session"
       );
       this->close();
       return;
@@ -157,10 +157,10 @@ namespace P2P {
 
   void Session::run() {
     if (this->connectionType_ == ConnectionType::INBOUND) {
-      LOGINFO("Starting new inbound session");
+      LOGTRACE("Starting new inbound session");
       boost::asio::dispatch(this->socket_.get_executor(), std::bind(&Session::write_handshake, shared_from_this()));
     } else {
-      LOGINFO("Starting new outbound session");
+      LOGTRACE("Starting new outbound session");
       boost::asio::dispatch(this->socket_.get_executor(), std::bind(&Session::do_connect, shared_from_this()));
     }
   }
@@ -174,19 +174,19 @@ namespace P2P {
     // Cancel all pending operations.
     this->socket_.cancel(ec);
     if (ec) {
-      LOGERROR("Failed to cancel socket operations: " + ec.message());
+      LOGDEBUG("Failed to cancel socket operations: " + ec.message());
       return;
     }
     // Shutdown the socket;
     this->socket_.shutdown(net::socket_base::shutdown_both, ec);
     if (ec) {
-      LOGERROR("Failed to shutdown socket: " + ec.message());
+      LOGDEBUG("Failed to shutdown socket: " + ec.message());
       return;
     }
     // Close the socket.
     this->socket_.close(ec);
     if (ec) {
-      LOGERROR("Failed to close socket: " + ec.message());
+      LOGDEBUG("Failed to close socket: " + ec.message());
       return;
     }
   }

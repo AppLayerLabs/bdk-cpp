@@ -93,6 +93,12 @@ int main(int argc, char* argv[]) {
   Utils::safePrintTest("Processing BDK args and defaults...");
   ProcessOptions opt = parseCommandLineArgs(bdkArgs.size(), bdkArgs.data(), BDKTool::UNIT_TEST_SUITE);
   if (opt.logLevel == "") opt.logLevel = "DEBUG";
+  if (opt.netThreads == -1) {
+    // The default P2P IO worker thread count for unit tests is 1, which facilitates debugging of
+    //   networked unit tests with multiple P2P engines in the same process, and reduces threading
+    //   overhead on the test machine.
+    opt.netThreads = 1;
+  }
   if (!applyProcessOptions(opt)) return 1;
 
   Utils::safePrintTest("Running Catch2...");
