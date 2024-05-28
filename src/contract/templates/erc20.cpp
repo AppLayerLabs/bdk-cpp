@@ -156,7 +156,7 @@ uint256_t ERC20::allowance(const Address& owner, const Address& spender) const {
   const auto& it = std::as_const(this->allowed_).find(owner);
   if (it != this->allowed_.cend()) {
     const auto& it2 = it->second.find(spender);
-    if (it2 != it->second.end()) ret = it2->second;
+    if (it2 != it->second.cend()) ret = it2->second;
   }
   return ret;
 }

@@ -254,7 +254,7 @@ bool ERC721::isApprovedForAll(const Address& owner, const Address& operatorAddre
   auto it = this->operatorAddressApprovals_.find(owner);
   if (it == this->operatorAddressApprovals_.cend()) return false;
   auto it2 = it->second.find(operatorAddress);
-  if (it2 == it->second.end()) return false;
+  if (it2 == it->second.cend()) return false;
   return it2->second;
 }
 
