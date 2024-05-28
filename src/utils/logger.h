@@ -119,7 +119,7 @@ namespace Log {
   inline void safePrintTest(std::string_view str) {
     std::lock_guard lock(__safePrintMutex);
     std::cout << str << std::endl;
-  };
+  }
 
   /**
    * Interface implemented by any object that wishes to provide a custom
@@ -196,7 +196,8 @@ class LogInfo {
      * @param message The message to log.
      */
     LogInfo(LogType type, const std::string& logSrc, std::string&& func, std::string&& message) :
-      type_(type), logSrc_(logSrc), func_(std::move(func)), message_(std::move(message)) {};
+      type_(type), logSrc_(logSrc.length() > 0 ? " " + logSrc : logSrc), func_(std::move(func)), message_(std::move(message))
+    {}
 
     ~LogInfo() = default; ///< Default destructor.
 
@@ -204,7 +205,7 @@ class LogInfo {
     LogInfo(LogInfo&& other) noexcept :
       type_(other.type_), func_(std::move(other.func_)),
       logSrc_(std::move(other.logSrc_)), message_(std::move(other.message_))
-    {};
+    {}
 
     /// Move assign operator
     LogInfo& operator=(LogInfo&& other) noexcept {
@@ -308,7 +309,7 @@ class Logger {
         logFileInternal();
         ++logLineCount;
       }
-    };
+    }
 
     /**
      * Log something to the debug file.
@@ -330,7 +331,7 @@ class Logger {
         << getCurrentTimestamp()
         << " "
         << logType
-        << " "
+        //<< " " // logSrc has to include its own left padding because it can be ommitted ("")
         << curTask_.getLogSrc()
         << " "
         << curTask_.getFunc()
@@ -345,7 +346,7 @@ class Logger {
           + getCurrentTimestamp()
           + " "
           + logType
-          + " "
+          //+ " "  // logSrc has to include its own left padding because it can be ommitted ("")
           + curTask_.getLogSrc()
           + " "
           + curTask_.getFunc()
@@ -362,7 +363,7 @@ class Logger {
         logQueue_.emplace(std::move(infoToLog));
       }
       cv_.notify_one();
-    };
+    }
 
   public:
 

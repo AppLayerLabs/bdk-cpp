@@ -303,9 +303,6 @@ namespace TP2P {
       blockchainWrapper9.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
       blockchainWrapper10.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
 
-      // Wait until all peers are connected to the discovery node.
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
       // Start discovery
       p2pDiscoveryNode.startDiscovery();
       blockchainWrapper1.p2p.startDiscovery();

@@ -35,7 +35,7 @@ bool HTTPServer::run() {
 
 void HTTPServer::start() {
   if (this->runFuture_.valid()) {
-    LOGERROR("HTTP Server is already running");
+    LOGTRACE("HTTP Server is already running");
     return;
   }
   this->runFuture_ = std::async(std::launch::async, &HTTPServer::run, this);
@@ -43,7 +43,7 @@ void HTTPServer::start() {
 
 void HTTPServer::stop() {
   if (!this->runFuture_.valid()) {
-    LOGERROR("HTTP Server is not running");
+    LOGTRACE("HTTP Server is not running");
     return;
   }
   this->ioc_.stop();

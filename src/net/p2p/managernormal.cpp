@@ -59,7 +59,7 @@ namespace P2P{
           break;
       }
     } catch (std::exception const& ex) {
-      LOGERROR("Closing session to " + toString(nodeId) + ": " + ex.what());
+      LOGDEBUG("Closing session to " + toString(nodeId) + ": " + ex.what());
       this->disconnectSession(nodeId);
     }
   }
@@ -87,7 +87,7 @@ namespace P2P{
         handleRequestBlockRequest(nodeId, message);
         break;
       default:
-        LOGERROR("Invalid Request Command Type: " + std::to_string(message->command()) +
+        LOGDEBUG("Invalid Request Command Type: " + std::to_string(message->command()) +
                            " from: " + toString(nodeId) +
                            ", closing session.");
         this->disconnectSession(nodeId);
@@ -118,7 +118,7 @@ namespace P2P{
         handleRequestBlockAnswer(nodeId, message);
         break;
       default:
-        LOGERROR("Invalid Answer Command Type: " + std::to_string(message->command()) +
+        LOGDEBUG("Invalid Answer Command Type: " + std::to_string(message->command()) +
                            " from: " + toString(nodeId) +
                            " , closing session.");
         this->disconnectSession(nodeId);
@@ -134,7 +134,7 @@ namespace P2P{
         handleInfoNotification(nodeId, message);
         break;
       default:
-        LOGERROR("Invalid Notification Command Type: " + std::to_string(message->command()) +
+        LOGDEBUG("Invalid Notification Command Type: " + std::to_string(message->command()) +
                            " from: " + toString(nodeId) +
                            ", closing session.");
         this->disconnectSession(nodeId);
@@ -146,7 +146,7 @@ namespace P2P{
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::ping(*message)) {
-      LOGERROR("Invalid ping request from " + toString(nodeId) +
+      LOGDEBUG("Invalid ping request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -167,7 +167,7 @@ namespace P2P{
       const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::requestNodes(*message)) {
-      LOGERROR("Invalid requestNodes request from " + toString(nodeId) +
+      LOGDEBUG("Invalid requestNodes request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -190,7 +190,7 @@ namespace P2P{
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::requestValidatorTxs(*message)) {
-      LOGERROR("Invalid requestValidatorTxs request from " + toString(nodeId) +
+      LOGDEBUG("Invalid requestValidatorTxs request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -202,7 +202,7 @@ namespace P2P{
     const NodeID &nodeId, const std::shared_ptr<const Message>& message
   ) {
     if (!RequestDecoder::requestTxs(*message)) {
-      LOGERROR("Invalid requestTxs request from " + toString(nodeId) +
+      LOGDEBUG("Invalid requestTxs request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -234,7 +234,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before doing anything else to avoid waiting for other locks.
-      LOGERROR("Answer to invalid request from " + toString(nodeId) +
+      LOGDEBUG("Answer to invalid request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -248,7 +248,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGERROR("Answer to invalid request from " + toString(nodeId) +
+      LOGDEBUG("Answer to invalid request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -262,7 +262,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGERROR("Answer to invalid request from " + toString(nodeId) +
+      LOGDEBUG("Answer to invalid request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -276,7 +276,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGERROR("Answer to invalid request from " + toString(nodeId) +
+      LOGDEBUG("Answer to invalid request from " + toString(nodeId) +
                          " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -290,7 +290,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGERROR("Answer to invalid request from " + nodeId.first.to_string() + ":" +
+      LOGDEBUG("Answer to invalid request from " + nodeId.first.to_string() + ":" +
                          std::to_string(nodeId.second) + " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -304,7 +304,7 @@ namespace P2P{
     std::unique_lock lock(this->requestsMutex_);
     if (!requests_.contains(message->id())) {
       lock.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      LOGERROR("Answer to invalid request from " + nodeId.first.to_string() + ":" +
+      LOGDEBUG("Answer to invalid request from " + nodeId.first.to_string() + ":" +
                          std::to_string(nodeId.second) + " , closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -333,7 +333,7 @@ namespace P2P{
       auto nodeInfo = NotificationDecoder::notifyInfo(*message);
       this->nodeConns_.incomingInfo(nodeId, nodeInfo, nodeType);
     } catch (std::exception &e) {
-      LOGERROR("Invalid infoNotification from " + toString(nodeId) +
+      LOGDEBUG("Invalid infoNotification from " + toString(nodeId) +
                          " , error: " + e.what() + " closing session.");
       this->disconnectSession(nodeId);
       return;
@@ -347,20 +347,20 @@ namespace P2P{
     LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      LOGWARNING("Request to " + toString(nodeId) + " failed.");
+      LOGDEBUG("Request to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
     if (status == std::future_status::timeout) {
-      LOGWARNING("Request to " + toString(nodeId) + " timed out.");
+      LOGDEBUG("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestValidatorTxs(*answerPtr, this->options_.getChainID());
     } catch (std::exception &e) {
-      LOGERROR("Request to " + toString(nodeId) + " failed with error: " + e.what());
+      LOGDEBUG("Request to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }
@@ -370,20 +370,20 @@ namespace P2P{
     LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = this->sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      LOGWARNING("Request to " + toString(nodeId) + " failed.");
+      LOGDEBUG("Request to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
     if (status == std::future_status::timeout) {
-      LOGWARNING("Request to " + toString(nodeId) + " timed out.");
+      LOGDEBUG("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestTxs(*answerPtr, this->options_.getChainID());
     } catch (std::exception &e) {
-      LOGERROR("Request to " + toString(nodeId) + " failed with error: " + e.what());
+      LOGDEBUG("Request to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }
@@ -393,20 +393,20 @@ namespace P2P{
     LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      LOGWARNING("Request to " + toString(nodeId) + " failed.");
+      LOGDEBUG("Request to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(2)); // 2000ms timeout.
     if (status == std::future_status::timeout) {
-      LOGWARNING("Request to " + toString(nodeId) + " timed out.");
+      LOGDEBUG("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::info(*answerPtr);
     } catch (std::exception &e) {
-      LOGERROR("Request to " + toString(nodeId) + " failed with error: " + e.what());
+      LOGDEBUG("Request to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }
@@ -417,20 +417,20 @@ namespace P2P{
     auto request = std::make_shared<const Message>(RequestEncoder::requestBlock(height, heightEnd, bytesLimit));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      LOGWARNING("RequestBlock to " + toString(nodeId) + " failed.");
+      LOGDEBUG("RequestBlock to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(60)); // 60s timeout.
     if (status == std::future_status::timeout) {
-      LOGWARNING("RequestBlock to " + toString(nodeId) + " timed out.");
+      LOGDEBUG("RequestBlock to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestBlock(*answerPtr, this->options_.getChainID());
     } catch (std::exception &e) {
-      LOGERROR("RequestBlock to " + toString(nodeId) + " failed with error: " + e.what());
+      LOGDEBUG("RequestBlock to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }

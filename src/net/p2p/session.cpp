@@ -13,18 +13,26 @@ namespace P2P {
 
   std::string Session::getLogicalLocation() const { return manager_.getLogicalLocation(); }
 
-  bool Session::handle_error(const std::string& func, const boost::system::error_code& ec) {
-    /// TODO: return true/false depending on err code is necessary?
-    LOGDEBUG("Client Error Code: " + std::to_string(ec.value()) + " message: " + ec.message());
-    if (ec != boost::system::errc::operation_canceled) {
-      /// operation_canceled == close() was already called, we cannot close or deregister again.
-      if (this->doneHandshake_) {
-        this->manager_.unregisterSession(shared_from_this());
+  void Session::handle_error(const std::string& func, const boost::system::error_code& ec) {
+    // No need to discriminate on the error code here; it is harmless to try to deregister
+    //   sessions or close sockets when either of those has already been done.
+    if (this->doneHandshake_) {
+      // handshake was completed, so nodeId_ is valid
+      if (!closed_) {
+        // Avoid logging errors if the socket is tagged as being explicitly closed from our end
+        LOGDEBUG("Peer connection " + toString(this->nodeId_) + " error (" +
+                 func + ", " + std::to_string(ec.value()) + "): " + ec.message());
+      }
+      this->manager_.disconnectSession(this->nodeId_);
+    } else {
+      // Ensure the session/socket is going to be closed
+      if (!closed_) {
+        // Avoid logging errors if the socket is tagged as being explicitly closed from our end
+        LOGDEBUG("Non-handshaked peer connection (" + this->addressAndPortStr() + ") error (" +
+                 func + ", " + std::to_string(ec.value()) + "): " + ec.message());
       }
       this->close();
     }
-    /// TODO: Automatically close on error.
-    return true;
   }
 
   void Session::do_connect() {
@@ -66,7 +74,7 @@ namespace P2P {
   void Session::finish_handshake(boost::system::error_code ec, std::size_t) {
     if (ec) { this->handle_error(__func__, ec); return; }
     if (this->inboundHandshake_.size() != 3) {
-      LOGERROR("Invalid handshake size");
+      LOGERROR("Invalid handshake size from " + this->addressAndPortStr());
       this->close();
       return;
     }
@@ -94,9 +102,8 @@ namespace P2P {
     if (ec) { this->handle_error(__func__, ec); return; }
     uint64_t messageSize = Utils::bytesToUint64(this->inboundHeader_);
     if (messageSize > this->maxMessageSize_) {
-      LOGWARNING("Message size too large: " + std::to_string(messageSize)
-        + " max: " + std::to_string(this->maxMessageSize_) + " closing session"
-      );
+      LOGWARNING("Peer " + toString(nodeId_) + " message too large: " + std::to_string(messageSize) +
+                 ", max: " + std::to_string(this->maxMessageSize_) + ", closing session");
       this->close();
       return;
     }
@@ -114,7 +121,7 @@ namespace P2P {
 
   void Session::on_read_message(boost::system::error_code ec, std::size_t) {
     if (ec) { this->handle_error(__func__, ec); return; }
-    this->manager_.asyncHandleMessage(this->nodeId_, this->inboundMessage_);
+    this->manager_.handleMessage(this->nodeId_, this->inboundMessage_);
     this->inboundMessage_ = nullptr;
     this->do_read_header();
   }
@@ -157,10 +164,10 @@ namespace P2P {
 
   void Session::run() {
     if (this->connectionType_ == ConnectionType::INBOUND) {
-      LOGTRACE("Starting new inbound session");
+      LOGTRACE("Connecting to " + this->addressAndPortStr() + " (inbound)");
       boost::asio::dispatch(this->socket_.get_executor(), std::bind(&Session::write_handshake, shared_from_this()));
     } else {
-      LOGTRACE("Starting new outbound session");
+      LOGTRACE("Connecting to " + this->addressAndPortStr() + " (outbound)");
       boost::asio::dispatch(this->socket_.get_executor(), std::bind(&Session::do_connect, shared_from_this()));
     }
   }
@@ -170,25 +177,35 @@ namespace P2P {
   }
 
   void Session::do_close() {
+    std::string peerStr;
+    if (this->doneHandshake_) {
+      peerStr = toString(nodeId_);
+    } else {
+      peerStr = this->addressAndPortStr() + " (non-handshaked)";
+    }
+
+    if (closed_) {
+      LOGTRACE("Peer connection already closed: " + peerStr);
+      return;
+    }
+
+    this->closed_ = true;
+
+    LOGTRACE("Closing peer connection: " + peerStr);
+
     boost::system::error_code ec;
-    // Cancel all pending operations.
+
+    // Attempt to cancel all pending operations.
     this->socket_.cancel(ec);
-    if (ec) {
-      LOGDEBUG("Failed to cancel socket operations: " + ec.message());
-      return;
-    }
-    // Shutdown the socket;
+    if (ec) LOGTRACE("Failed to cancel socket operations [" + peerStr + "]: " + ec.message());
+
+    // Attempt to shutdown the socket.
     this->socket_.shutdown(net::socket_base::shutdown_both, ec);
-    if (ec) {
-      LOGDEBUG("Failed to shutdown socket: " + ec.message());
-      return;
-    }
-    // Close the socket.
+    if (ec) LOGTRACE("Failed to shutdown socket [" + peerStr + "]: " + ec.message());
+
+    // Attempt to close the socket.
     this->socket_.close(ec);
-    if (ec) {
-      LOGDEBUG("Failed to close socket: " + ec.message());
-      return;
-    }
+    if (ec) LOGTRACE("Failed to close socket [" + peerStr + "]: " + ec.message());
   }
 
   void Session::write(const std::shared_ptr<const Message>& message) {
