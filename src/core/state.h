@@ -25,7 +25,7 @@ enum BlockValidationStatus { valid, invalidWrongHeight, invalidErroneous };
 
 /// Abstraction of the blockchain's current state at the current block.
 class State : Dumpable, public Log::LogicalLocationProvider {
-  private:
+  protected:
     mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
     evmc_vm* vm_;  ///< Pointer to the EVMC VM.
     const Options& options_;  ///< Reference to the options singleton.
