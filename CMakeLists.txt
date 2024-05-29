@@ -54,7 +54,6 @@ configure_file(
 # External project data
 set(BUILD_TESTS ON CACHE BOOL "Build helper unit testing program")
 set(BUILD_DISCOVERY ON CACHE BOOL "Build helper discovery node program")
-set(BUILD_AVALANCHEGO OFF CACHE BOOL "Build with AvalancheGo wrapping")
 set(BUILD_TOOLS OFF CACHE BOOL "Build tools related to subnet")
 set(BUILD_TESTNET OFF CACHE BOOL "Build the project for testnet")
 set(BUILD_BENCHMARK OFF CACHE BOOL "Build with the benchmark tests")
@@ -76,7 +75,6 @@ message(STATUS "Using PIC: ${CMAKE_POSITION_INDEPENDENT_CODE}")
 message(STATUS "Find libs with suffix: ${CMAKE_FIND_LIBRARY_SUFFIXES}")
 message("Building tests: ${BUILD_TESTS}")
 message("Building Discovery Node: ${BUILD_DISCOVERY}")
-message("Building AvalancheGo support: ${BUILD_AVALANCHEGO}")
 message("Building tools: ${BUILD_TOOLS}")
 message("Using lint: ${USE_LINT}")
 
@@ -115,14 +113,6 @@ target_compile_definitions(catch2 PRIVATE CATCH_AMALGAMATED_CUSTOM_MAIN)
 # Check compiler variable sizes
 include(cmake/CheckSizes.cmake)
 
-# Add AvalancheGo wrapper dependencies if compiling it
-if(BUILD_AVALANCHEGO)
-  find_package(Absl REQUIRED) # Built-in is hardcoded to SHARED, this one to STATIC
-  find_package(Cares REQUIRED)
-  find_package(Protobuf 3.12 REQUIRED)
-  find_package(GRPC REQUIRED)
-endif()
-
 # Include directories for headers and libs
 include_directories(
   "${CMAKE_SOURCE_DIR}"
@@ -147,290 +137,22 @@ add_subdirectory(src/net)
 add_subdirectory(src/utils)
 add_subdirectory(tests)
 
-# Generate gRPC files if building with support for AvalancheGo.
-# Headers/sources are always cleaned at configure so they can be regenerated at build
-if(BUILD_AVALANCHEGO)
-  file(REMOVE
-    "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/appsender.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/keystore.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/vm.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/appsender.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/keystore.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/messenger.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/vm.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/appsender.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/keystore.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/messenger.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
-  )
+add_library(bdk_lib STATIC
+  ${UTILS_HEADERS}
+  ${UTILS_SOURCES}
+  ${CONTRACT_HEADERS}
+  ${CONTRACT_SOURCES}
+  ${CORE_HEADERS}
+  ${CORE_SOURCES}
+  ${NET_HEADERS}
+  ${NET_SOURCES}
+)
 
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
-    COMMAND "protoc"
-    ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/aliasreader.proto"
-  )
+target_include_directories(bdk_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
 
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/appsender.grpc.pb.h"
-    COMMAND "protoc"
-    ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/appsender.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/keystore.grpc.pb.h"
-    COMMAND "protoc"
-    ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/keystore.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.h"
-    COMMAND "protoc"
-    ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/messenger.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/metrics.grpc.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/metrics.grpc.pb.h"
-    COMMAND "protoc"
-    ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/metrics.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
-    COMMAND "protoc"
-    ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/sharedmemory.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
-    COMMAND "protoc"
-    ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/rpcdb.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.h"
-    COMMAND "protoc"
-    ARGS --grpc_out="${CMAKE_SOURCE_DIR}/proto"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN}"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         --experimental_allow_proto3_optional
-         "${CMAKE_SOURCE_DIR}/proto/vm.proto"
-  )
-
-  # Protobuf PROTOBUF_GENERATE_CPP does NOT work with --experimental_allow_proto3_optional
-  # requiring us to go over protobuf files with add_custom_command
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/aliasreader.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/appsender.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/appsender.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/appsender.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/keystore.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/keystore.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/keystore.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/messenger.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/messenger.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/messenger.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/metrics.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/metrics.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/sharedmemory.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/rpcdb.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/metrics.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         "${CMAKE_SOURCE_DIR}/proto/metrics.proto"
-  )
-
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/proto/vm.pb.cc"
-           "${CMAKE_SOURCE_DIR}/proto/vm.pb.h"
-    COMMAND "protoc"
-    ARGS --cpp_out="${CMAKE_SOURCE_DIR}/proto"
-         --proto_path="${CMAKE_SOURCE_DIR}/proto"
-         --experimental_allow_proto3_optional
-         "${CMAKE_SOURCE_DIR}/proto/vm.proto"
-  )
-
-  add_library(ProtoFiles
-    "${CMAKE_SOURCE_DIR}/proto/vm.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/appsender.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/keystore.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/messenger.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/metrics.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/vm.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/aliasreader.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/appsender.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/keystore.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/messenger.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/sharedmemory.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/rpcdb.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/metrics.pb.h"
-  )
-
-  # You HAVE to set the file names
-  add_library (gen-grpc
-    "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/appsender.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/keystore.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.cc"
-    "${CMAKE_SOURCE_DIR}/proto/vm.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/aliasreader.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/appsender.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/keystore.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/messenger.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/sharedmemory.grpc.pb.h"
-    "${CMAKE_SOURCE_DIR}/proto/rpcdb.grpc.pb.h"
-    ${ProtoFiles}
-  )
-
-  target_link_libraries(gen-grpc PUBLIC ${Protobuf_LIBRARIES} ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags)
-
-  add_library(bdk_lib STATIC
-    ${UTILS_HEADERS}
-    ${UTILS_SOURCES}
-    ${CONTRACT_HEADERS}
-    ${CONTRACT_SOURCES}
-    ${CORE_HEADERS}
-    ${CORE_SOURCES}
-    ${NET_HEADERS}
-    ${NET_SOURCES}
-  )
-
-  add_dependencies(bdk_lib gen-grpc ProtoFiles Evmc)
-
-  target_include_directories(bdk_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
-
-  target_link_libraries(bdk_lib PRIVATE
-    ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS} ${Protobuf_LIBRARIES}
-    ${GRPC_LIBRARIES} ${CARES_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} absl::flags
-    Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
-  )
-
-  set_target_properties(bdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=1")
-
-else()
-  add_library(bdk_lib STATIC
-    ${UTILS_HEADERS}
-    ${UTILS_SOURCES}
-    ${CONTRACT_HEADERS}
-    ${CONTRACT_SOURCES}
-    ${CORE_HEADERS}
-    ${CORE_SOURCES}
-    ${NET_HEADERS}
-    ${NET_SOURCES}
-  )
-
-  target_include_directories(bdk_lib PRIVATE ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR})
-
-  target_link_libraries(bdk_lib PRIVATE EvmcInstructions EvmcLoader EvmcTooling Evmone
-    ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
-    Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
-  )
-
-  set_target_properties(bdk_lib PROPERTIES COMPILE_FLAGS "-DAVALANCHEGO_COMPATIBLE=0")
-endif()
+target_link_libraries(bdk_lib PRIVATE EvmcInstructions EvmcLoader EvmcTooling Evmone
+  ${CRYPTOPP_LIBRARIES} ${SCRYPT_LIBRARY} Secp256k1 Ethash ${ETHASH_BYPRODUCTS}
+  Speedb ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
 
 add_subdirectory(src/bins)
 
