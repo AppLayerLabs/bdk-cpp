@@ -18,6 +18,8 @@ See the LICENSE.txt file in the project root for more information.
 #include "../src/core/blockchain.h"
 #include "../src/utils/utils.h"
 #include "contract/contracthost.h"
+#include "statetest.hpp"
+
 
 /// Wrapper struct for accounts used within the SDKTestSuite.
 struct TestAccount {
@@ -48,7 +50,7 @@ class SDKTestSuite {
     P2P::ManagerNormal p2p_;     ///< P2P connection manager. NOTE: p2p_ has to be constructed first due to getLogicalLocation()
     DB db_;                      ///< Database.
     Storage storage_;            ///< Blockchain storage.
-    State state_;                ///< Blockchain state.
+    StateTest state_;                ///< Blockchain state.
     HTTPServer http_;            ///< HTTP server.
 
     /// Owner of the chain (0x00dead00...).
@@ -1088,7 +1090,7 @@ class SDKTestSuite {
     Storage& getStorage() { return this->storage_; };
 
     /// Getter for `state_`.
-    State& getState() { return this->state_; };
+    StateTest& getState() { return this->state_; };
 
     /// Getter for `p2p_`.
     P2P::ManagerNormal& getP2P() { return this->p2p_; };
