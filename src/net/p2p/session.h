@@ -57,7 +57,7 @@ namespace P2P {
       const ConnectionType connectionType_;
 
       /// True if the associated socket was already closed.
-      std::atomic<bool> closed_;
+      std::atomic<bool> closed_ = false;
 
       /// Reference back to the Manager object.
       ManagerBase& manager_;
@@ -137,13 +137,12 @@ namespace P2P {
                        ConnectionType connectionType,
                        ManagerBase& manager)
           : socket_(std::move(socket)),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor()),
-            manager_(manager),
             address_(socket_.remote_endpoint().address()),
             port_(socket_.remote_endpoint().port()),
+            manager_(manager),
             connectionType_(connectionType),
-            closed_(false)
+            readStrand_(socket_.get_executor()),
+            writeStrand_(socket_.get_executor())
             {
               if (connectionType == ConnectionType::OUTBOUND) {
                 /// Not a server, it will not call do_connect().
@@ -159,13 +158,12 @@ namespace P2P {
                        unsigned short port
                        )
           : socket_(std::move(socket)),
-            readStrand_(socket_.get_executor()),
-            writeStrand_(socket_.get_executor()),
-            manager_(manager),
             address_(address),
             port_(port),
+            manager_(manager),
             connectionType_(connectionType),
-            closed_(false)
+            readStrand_(socket_.get_executor()),
+            writeStrand_(socket_.get_executor())
       {
         if (connectionType == ConnectionType::INBOUND) {
           /// Not a client, it will try to write handshake without connecting.
@@ -173,7 +171,7 @@ namespace P2P {
         }
       }
 
-      virtual std::string getLogicalLocation() const; ///< Log instance from P2P
+      std::string getLogicalLocation() const override; ///< Log instance from P2P
 
       /// Max message size
       const uint64_t maxMessageSize_ = 1024 * 1024 * 128; // (128 MB)

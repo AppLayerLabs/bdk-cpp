@@ -37,11 +37,11 @@ enum class LogType { TRACE, DEBUG, INFO, WARNING, ERROR, NONE };
 
 ///@{
 /// Logging macros to be used with a `this` (non-static context)
-#define LOGTRACE(message)   INSTANCE_LOG_BASE(LogType::TRACE, message);
-#define LOGDEBUG(message)   INSTANCE_LOG_BASE(LogType::DEBUG, message);
-#define LOGINFO(message)    INSTANCE_LOG_BASE(LogType::INFO, message);
-#define LOGWARNING(message) INSTANCE_LOG_BASE(LogType::WARNING, message);
-#define LOGERROR(message)   INSTANCE_LOG_BASE(LogType::ERROR, message);
+#define LOGTRACE(message)   INSTANCE_LOG_BASE(LogType::TRACE, message)
+#define LOGDEBUG(message)   INSTANCE_LOG_BASE(LogType::DEBUG, message)
+#define LOGINFO(message)    INSTANCE_LOG_BASE(LogType::INFO, message)
+#define LOGWARNING(message) INSTANCE_LOG_BASE(LogType::WARNING, message)
+#define LOGERROR(message)   INSTANCE_LOG_BASE(LogType::ERROR, message)
 ///@}
 
 ///@{
@@ -55,11 +55,11 @@ enum class LogType { TRACE, DEBUG, INFO, WARNING, ERROR, NONE };
 
 ///@{
 /// Logging macros to be used in a static context (does not log class name, even if available)
-#define SLOGTRACE(message)   STATIC_LOG_BASE(LogType::TRACE, message);
-#define SLOGDEBUG(message)   STATIC_LOG_BASE(LogType::DEBUG, message);
-#define SLOGINFO(message)    STATIC_LOG_BASE(LogType::INFO, message);
-#define SLOGWARNING(message) STATIC_LOG_BASE(LogType::WARNING, message);
-#define SLOGERROR(message)   STATIC_LOG_BASE(LogType::ERROR, message);
+#define SLOGTRACE(message)   STATIC_LOG_BASE(LogType::TRACE, message)
+#define SLOGDEBUG(message)   STATIC_LOG_BASE(LogType::DEBUG, message)
+#define SLOGINFO(message)    STATIC_LOG_BASE(LogType::INFO, message)
+#define SLOGWARNING(message) STATIC_LOG_BASE(LogType::WARNING, message)
+#define SLOGERROR(message)   STATIC_LOG_BASE(LogType::ERROR, message)
 ///@}
 
 ///@{
@@ -73,11 +73,11 @@ enum class LogType { TRACE, DEBUG, INFO, WARNING, ERROR, NONE };
 
 ///@{
 /// Logging macros that omit the function name (to be used in generated functions)
-#define GLOGTRACE(message)   GEN_LOG_BASE(LogType::TRACE, message);
-#define GLOGDEBUG(message)   GEN_LOG_BASE(LogType::DEBUG, message);
-#define GLOGINFO(message)    GEN_LOG_BASE(LogType::INFO, message);
-#define GLOGWARNING(message) GEN_LOG_BASE(LogType::WARNING, message);
-#define GLOGERROR(message)   GEN_LOG_BASE(LogType::ERROR, message);
+#define GLOGTRACE(message)   GEN_LOG_BASE(LogType::TRACE, message)
+#define GLOGDEBUG(message)   GEN_LOG_BASE(LogType::DEBUG, message)
+#define GLOGINFO(message)    GEN_LOG_BASE(LogType::INFO, message)
+#define GLOGWARNING(message) GEN_LOG_BASE(LogType::WARNING, message)
+#define GLOGERROR(message)   GEN_LOG_BASE(LogType::ERROR, message)
 ///@}
 
 ///@{

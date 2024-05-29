@@ -40,7 +40,7 @@ class Syncer : public Log::LogicalLocationProvider {
     explicit Syncer(P2P::ManagerNormal& p2p, const Storage& storage, State& state) :
       p2p_(p2p), storage_(storage), state_(state) {}
 
-    virtual std::string getLogicalLocation() const { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
+    std::string getLogicalLocation() const override { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
 
     /**
      * Synchronize this node to the latest known blocks among all connected peers at the time this method is called.
@@ -81,7 +81,7 @@ class Blockchain : public Log::LogicalLocationProvider {
      */
     explicit Blockchain(const std::string& blockchainPath);
     ~Blockchain() = default;  ///< Default destructor.
-    virtual std::string getLogicalLocation() const { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
+    std::string getLogicalLocation() const override { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
     void start(); ///< Start the blockchain. Initializes P2P, HTTP and Syncer, in this order.
     void stop();  ///< Stop/shutdown the blockchain. Stops Syncer, HTTP and P2P, in this order (reverse order of start()).
 

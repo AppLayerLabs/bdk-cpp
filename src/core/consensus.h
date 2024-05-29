@@ -59,7 +59,7 @@ class Consensus : public Log::LogicalLocationProvider {
     explicit Consensus(State& state, P2P::ManagerNormal& p2p, const Storage& storage, const Options& options) :
       state_(state), p2p_(p2p), storage_(storage), options_(options) {}
 
-    virtual std::string getLogicalLocation() const { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
+    std::string getLogicalLocation() const override { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
 
     /**
      * Entry function for the worker thread (runs the workerLoop() function).

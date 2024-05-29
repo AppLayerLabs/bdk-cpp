@@ -25,7 +25,6 @@ namespace P2P {
 
   ManagerBase::Net::Net(ManagerBase &manager, int netThreads)
   : manager_(manager),
-    io_context_(),
     work_guard_(boost::asio::make_work_guard(io_context_)),
     threadPool_(netThreads),
     connectorStrand_(io_context_.get_executor()),
@@ -56,7 +55,7 @@ namespace P2P {
   }
 
   void ManagerBase::Net::connect(const boost::asio::ip::address& address, uint16_t port) {
-    boost::asio::post(this->connectorStrand_, std::bind(&ManagerBase::Net::handleOutbound, this, address, port));
+    boost::asio::post(this->connectorStrand_, std::bind_front(&ManagerBase::Net::handleOutbound, this, address, port));
   }
 
   void ManagerBase::Net::doAccept() {
@@ -221,7 +220,7 @@ namespace P2P {
         return false;
       }
       // Register the session (peer socket connection)
-      sessions_.insert({session->hostNodeId(), session});
+      sessions_.try_emplace(session->hostNodeId(), session);
     }
     LOGINFO("Connected peer: " + toString(session->hostNodeId()));
     return true;

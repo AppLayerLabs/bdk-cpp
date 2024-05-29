@@ -37,7 +37,7 @@ namespace P2P {
         void handleInbound(boost::system::error_code ec, net::ip::tcp::socket socket); ///< Complete TCP connection
         void doAccept(); ///< Wait for the next inbound TCP connection request
       public:
-        virtual std::string getLogicalLocation() const { return manager_.getLogicalLocation(); }
+        std::string getLogicalLocation() const override { return manager_.getLogicalLocation(); }
         Net(ManagerBase& manager, int netThreads); ///< Start net engine with netThreads threads, can throw DynamicException
         ~Net(); ///< Stop net engine
         void connect(const boost::asio::ip::address& address, uint16_t port); ///< Request connection to a peer
@@ -50,10 +50,10 @@ namespace P2P {
       const net::ip::address serverLocalAddress_; ///< The manager's local IP address.
       const unsigned short serverPort_; ///< The manager's port.
       const NodeType nodeType_; ///< The manager's node type.
+      const Options& options_; /// Reference to the options singleton.
       const unsigned int minConnections_; ///< Minimum number of simultaneous connections. @see DiscoveryWorker
       const unsigned int maxConnections_; ///< Maximum number of simultaneous connections.
       std::atomic<bool> started_ = false; ///< Check if manager is in the start() state (stop() not called yet).
-      const Options& options_; /// Reference to the options singleton.
       mutable std::shared_mutex stateMutex_; ///< Mutex for serializing start(), stop(), and threadPool_.
       mutable std::shared_mutex sessionsMutex_; ///< Mutex for managing read/write access to the sessions list.
       mutable std::shared_mutex requestsMutex_; ///< Mutex for managing read/write access to the requests list.
@@ -120,7 +120,7 @@ namespace P2P {
       /// Destructor. Automatically stops the manager.
       virtual ~ManagerBase() { this->stopDiscovery(); this->stop(); }
 
-      virtual std::string getLogicalLocation() const { return this->instanceIdStr_; }
+      std::string getLogicalLocation() const override { return this->instanceIdStr_; }
 
       static void setNetThreads(int netThreads);
 

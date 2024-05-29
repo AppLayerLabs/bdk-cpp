@@ -95,7 +95,7 @@ class rdPoS : public BaseContract, public Log::LogicalLocationProvider {
 
     ~rdPoS() override;  ///< Destructor.
 
-    virtual std::string getLogicalLocation() const { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
+    std::string getLogicalLocation() const override { return p2p_.getLogicalLocation(); } ///< Log instance from P2P
 
     ///@{
     /** Getter. */

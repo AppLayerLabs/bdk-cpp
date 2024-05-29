@@ -140,7 +140,7 @@ public:
    */
   Storage(const std::string& instanceIdStr, const Options& options);
   ~Storage(); ///< Destructor. Automatically saves the chain to the database.
-  virtual std::string getLogicalLocation() const { return instanceIdStr_; } ///< Log instance (provided in ctor)
+  std::string getLogicalLocation() const override { return instanceIdStr_; } ///< Log instance (provided in ctor)
   void pushBack(FinalizedBlock block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
   void pushFront(FinalizedBlock block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
   void popBack(); ///< Remove a block from the end of the chain.

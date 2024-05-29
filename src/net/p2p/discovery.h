@@ -97,7 +97,7 @@ namespace P2P {
     /// Destructor. Automatically stops the worker thread.
     ~DiscoveryWorker() { this->stop(); }
 
-    virtual std::string getLogicalLocation() const; ///< Log instance from P2P
+    std::string getLogicalLocation() const override; ///< Log instance from P2P
 
     /// Start the discovery thread.
     void start();
