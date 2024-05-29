@@ -36,7 +36,9 @@ else()
 endif()
 find_program(MOLD "mold") # Use mold by default if it is installed
 if(MOLD)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=mold")
+  message(STATUS "Using mold as linker")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=mold")
 endif()
 
 # Set project version inside the code (forcefully so changes in the .in file are always reflected correctly to the compiler)
