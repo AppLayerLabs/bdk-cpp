@@ -101,10 +101,6 @@ int main(int argc, char* argv[]) {
   }
   if (!applyProcessOptions(opt)) return 1;
 
-  // Check for stderr output capture (in e.g. github actions logs)
-  Utils::safePrintTest("Testing stderr output...");
-  std::cerr << "(This is a test of stderr output)" << std::endl;
-
   Utils::safePrintTest("Running Catch2...");
   int result = Catch::Session().run(catchArgs.size(), catchArgs.data());
   return result;

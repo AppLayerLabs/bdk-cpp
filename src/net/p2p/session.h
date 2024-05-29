@@ -139,8 +139,8 @@ namespace P2P {
           : socket_(std::move(socket)),
             address_(socket_.remote_endpoint().address()),
             port_(socket_.remote_endpoint().port()),
-            manager_(manager),
             connectionType_(connectionType),
+            manager_(manager),
             readStrand_(socket_.get_executor()),
             writeStrand_(socket_.get_executor())
             {
@@ -160,8 +160,8 @@ namespace P2P {
           : socket_(std::move(socket)),
             address_(address),
             port_(port),
-            manager_(manager),
             connectionType_(connectionType),
+            manager_(manager),
             readStrand_(socket_.get_executor()),
             writeStrand_(socket_.get_executor())
       {

@@ -39,7 +39,7 @@ namespace P2P {
       public:
         std::string getLogicalLocation() const override { return manager_.getLogicalLocation(); }
         Net(ManagerBase& manager, int netThreads); ///< Start net engine with netThreads threads, can throw DynamicException
-        ~Net(); ///< Stop net engine
+        virtual ~Net(); ///< Stop net engine
         void connect(const boost::asio::ip::address& address, uint16_t port); ///< Request connection to a peer
       };
 

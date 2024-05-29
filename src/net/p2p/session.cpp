@@ -197,15 +197,15 @@ namespace P2P {
 
     // Attempt to cancel all pending operations.
     this->socket_.cancel(ec);
-    if (ec) LOGTRACE("Failed to cancel socket operations [" + peerStr + "]: " + ec.message());
+    if (ec) { LOGTRACE("Failed to cancel socket operations [" + peerStr + "]: " + ec.message()); }
 
     // Attempt to shutdown the socket.
     this->socket_.shutdown(net::socket_base::shutdown_both, ec);
-    if (ec) LOGTRACE("Failed to shutdown socket [" + peerStr + "]: " + ec.message());
+    if (ec) { LOGTRACE("Failed to shutdown socket [" + peerStr + "]: " + ec.message()); }
 
     // Attempt to close the socket.
     this->socket_.close(ec);
-    if (ec) LOGTRACE("Failed to close socket [" + peerStr + "]: " + ec.message());
+    if (ec) { LOGTRACE("Failed to close socket [" + peerStr + "]: " + ec.message()); }
   }
 
   void Session::write(const std::shared_ptr<const Message>& message) {

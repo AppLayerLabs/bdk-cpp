@@ -29,10 +29,10 @@ enum class LogType { TRACE, DEBUG, INFO, WARNING, ERROR, NONE };
           std::is_base_of<Log::LogicalLocationProvider, \
           std::decay<decltype(*this)>::type>{})
 #define INSTANCE_LOG_BASE(type, message) Logger::logToDebug(type, GET_LOGICAL_LOCATION, \
-          Log::getMethodName<std::remove_pointer_t<decltype(this)>>(__func__), message);
+          Log::getMethodName<std::remove_pointer_t<decltype(this)>>(__func__), message)
 #define GET_FILE_NAME_FROM_PATH (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#define STATIC_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, __func__, message);
-#define GEN_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, "L" + std::to_string(__LINE__), message);
+#define STATIC_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, __func__, message)
+#define GEN_LOG_BASE(type, message) Logger::logToDebug(type, GET_FILE_NAME_FROM_PATH, "L" + std::to_string(__LINE__), message)
 ///@}
 
 ///@{
