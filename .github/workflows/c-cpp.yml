@@ -27,10 +27,7 @@ jobs:
         run: apt-get update
 
       - name: Install project dependencies
-        run: DEBIAN_FRONTEND=noninteractive apt-get install -y wget build-essential cmake tmux clang-tidy autoconf libtool pkg-config libabsl-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git curl unzip gcovr
-
-      - name: Build and install boost
-        run: wget -qO- https://boostorg.jfrog.io/artifactory/main/release/1.85.0/source/boost_1_85_0.tar.gz | tar xz && cd boost_1_85_0 && ./bootstrap.sh && ./b2 -j$(nproc) install 
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y wget build-essential cmake tmux clang-tidy autoconf libtool pkg-config libboost-all-dev libabsl-dev libc-ares-dev libcrypto++-dev libgrpc-dev libgrpc++-dev librocksdb-dev libscrypt-dev libsnappy-dev libssl-dev zlib1g-dev openssl protobuf-compiler protobuf-compiler-grpc libprotobuf-dev git curl unzip gcovr
 
       - name: Print GCC version
         run: gcc --version
