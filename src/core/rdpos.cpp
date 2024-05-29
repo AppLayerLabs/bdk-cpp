@@ -26,7 +26,7 @@ rdPoS::rdPoS(const DB& db,
     randomGen_(Hash()), minValidators_(options.getMinValidators())
 {
   // Initialize blockchain.
-  Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Initializing rdPoS.");
+  LOGINFO("Initializing rdPoS.");
   /**
    * Load information from DB, stored as following:
    * DBPrefix::rdPoS -> rdPoS mapping (addresses)
@@ -36,12 +36,12 @@ rdPoS::rdPoS(const DB& db,
   auto validatorsDb = db.getBatch(DBPrefix::rdPoS);
   if (validatorsDb.empty()) {
     // No rdPoS in DB, this should have been initialized by Storage.
-    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "No rdPoS in DB, initializing chain with Options.");
+    LOGINFO("No rdPoS in DB, initializing chain with Options.");
     for (const auto& address : this->options_.getGenesisValidators()) {
       this->validators_.insert(Validator(address));
     }
   } else {
-    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
+    LOGINFO("Found " + std::to_string(validatorsDb.size()) + " rdPoS in DB");
     // TODO: check if no index is missing from DB.
     for (const auto& validator : validatorsDb) {
       this->validators_.insert(Validator(Address(validator.value)));
@@ -63,8 +63,7 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   auto latestBlock = this->storage_.latest();
 
   if (Secp256k1::toAddress(block.getValidatorPubKey()) != randomList_[0]) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-      "Block signature does not match randomList[0]. latest nHeight: "
+    LOGERROR("Block signature does not match randomList[0]. latest nHeight: "
       + std::to_string(latestBlock->getNHeight())
       + " Block nHeight: " + std::to_string(block.getNHeight())
     );
@@ -72,8 +71,7 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   }
 
   if (block.getTxValidators().size() != this->minValidators_ * 2) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-      "Block contains invalid number of TxValidator transactions. latest nHeight: "
+    LOGERROR("Block contains invalid number of TxValidator transactions. latest nHeight: "
       + std::to_string(latestBlock->getNHeight())
       + " Block nHeight: " + std::to_string(block.getNHeight())
     );
@@ -83,8 +81,7 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   // Check if all transactions are of the same block height
   for (const auto& tx : block.getTxValidators()) {
     if (tx.getNHeight() != block.getNHeight()) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        "TxValidator transaction is not of the same block height. tx nHeight: "
+      LOGERROR("TxValidator transaction is not of the same block height. tx nHeight: "
         + std::to_string(tx.getNHeight())
         + " Block nHeight: " + std::to_string(block.getNHeight()));
       return false;
@@ -103,16 +100,14 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   std::unordered_map<TxValidator,TxValidator, SafeHash> txHashToSeedMap; // Tx randomHash -> Tx random
   for (uint64_t i = 0; i < this->minValidators_; i++) {
     if (Validator(block.getTxValidators()[i].getFrom()) != randomList_[i+1]) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        "TxValidator randomHash " + std::to_string(i) + " is not ordered correctly."
+      LOGERROR("TxValidator randomHash " + std::to_string(i) + " is not ordered correctly."
         + "Expected: " + randomList_[i+1].hex().get()
         + " Got: " + block.getTxValidators()[i].getFrom().hex().get()
       );
       return false;
     }
     if (Validator(block.getTxValidators()[i + this->minValidators_].getFrom()) != randomList_[i+1]) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        "TxValidator random " + std::to_string(i) + " is not ordered correctly."
+      LOGERROR("TxValidator random " + std::to_string(i) + " is not ordered correctly."
         + "Expected: " + randomList_[i+1].hex().get()
         + " Got: " + block.getTxValidators()[i].getFrom().hex().get()
       );
@@ -122,7 +117,7 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
   }
 
   if (txHashToSeedMap.size() != this->minValidators_) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "txHashToSeedMap doesn't match minValidator size.");
+    LOGERROR("txHashToSeedMap doesn't match minValidator size.");
     return false;
   }
 
@@ -132,37 +127,28 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
     TxValidatorFunction seedTxFunction = rdPoS::getTxValidatorFunction(seedTx);
     // Check if hash tx is invalid by itself.
     if (hashTxFunction == TxValidatorFunction::INVALID) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        std::string("TxValidator ") + hashTx.hash().hex().get()  + " is invalid."
-      );
+      LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get()  + " is invalid.");
       return false;
     }
     if (seedTxFunction == TxValidatorFunction::INVALID) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        std::string("TxValidator ") + seedTx.hash().hex().get()  + " is invalid."
-      );
+      LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get()  + " is invalid.");
       return false;
     }
     // Check if senders match.
     if (hashTx.getFrom() != seedTx.getFrom()) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        std::string("TxValidator sender ") + seedTx.hash().hex().get()
+      LOGERROR(std::string("TxValidator sender ") + seedTx.hash().hex().get()
         + " does not match TxValidator sender " + hashTx.hash().hex().get()
       );
       return false;
     }
     // Check if the left sided transaction is a randomHash transaction.
     if (hashTxFunction != TxValidatorFunction::RANDOMHASH) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        std::string("TxValidator ") + hashTx.hash().hex().get() + " is not a randomHash transaction."
-      );
+      LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get() + " is not a randomHash transaction.");
       return false;
     }
     // Check if the right sided transaction is a random transaction.
     if (seedTxFunction != TxValidatorFunction::RANDOMSEED) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        std::string("TxValidator ") + seedTx.hash().hex().get() + " is not a random transaction."
-      );
+      LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get() + " is not a random transaction.");
       return false;
     }
     // Check if the randomHash transaction matches the random transaction.
@@ -173,22 +159,17 @@ bool rdPoS::validateBlock(const FinalizedBlock& block) const {
 
     // Size sanity check, should be 32 bytes.
     if (hash.size() != 32) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        std::string("TxValidator ") + hashTx.hash().hex().get() + " (hash) is not 32 bytes."
-      );
+      LOGERROR(std::string("TxValidator ") + hashTx.hash().hex().get() + " (hash) is not 32 bytes.");
       return false;
     }
 
     if (random.size() != 32) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        std::string("TxValidator ") + seedTx.hash().hex().get() + " (random) is not 32 bytes."
-      );
+      LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get() + " (random) is not 32 bytes.");
       return false;
     }
 
     if (Utils::sha3(random) != hash) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-        std::string("TxValidator ") + seedTx.hash().hex().get()
+      LOGERROR(std::string("TxValidator ") + seedTx.hash().hex().get()
         + " does not match TxValidator " + hashTx.hash().hex().get() + " randomness"
       );
       return false;
@@ -208,13 +189,12 @@ Hash rdPoS::processBlock(const FinalizedBlock& block) {
 
 TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
   if (this->validatorMempool_.contains(tx.hash())) {
-    Logger::logToDebug(LogType::INFO, Log::rdPoS, __func__, "TxValidator already exists in mempool.");
+    LOGTRACE("TxValidator already exists in mempool.");
     return TxStatus::ValidExisting;
   }
 
   if (tx.getNHeight() != this->storage_.latest()->getNHeight() + 1) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-      "TxValidator is not for the next block. Expected: "
+    LOGERROR("TxValidator is not for the next block. Expected: "
       + std::to_string(this->storage_.latest()->getNHeight() + 1)
       + " Got: " + std::to_string(tx.getNHeight())
     );
@@ -230,9 +210,7 @@ TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
     }
   }
   if (!participates) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__,
-      "TxValidator sender is not a validator or is not participating in this rdPoS round."
-    );
+    LOGERROR("TxValidator sender is not a validator or is not participating in this rdPoS round.");
     return TxStatus::InvalidUnexpected;
   }
 
@@ -249,7 +227,7 @@ TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
 
   if (txs.size() == 1) { // We already have one transaction from this sender, check if it is the same function.
     if (txs[0].getFunctor() == tx.getFunctor()) {
-      Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator sender already has a transaction for this function.");
+      LOGERROR("TxValidator sender already has a transaction for this function.");
       return TxStatus::InvalidRedundant;
     }
     this->validatorMempool_.emplace(tx.hash(), tx);
@@ -257,7 +235,7 @@ TxStatus rdPoS::addValidatorTx(const TxValidator& tx) {
   }
 
   // We already have two transactions from this sender, it is the max we can have per validator.
-  Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator sender already has two transactions.");
+  LOGERROR("TxValidator sender already has two transactions.");
   return TxStatus::InvalidRedundant;
 }
 
@@ -277,7 +255,7 @@ rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) 
   constexpr Functor randomHashHash(3489654598);
   constexpr Functor randomSeedHash(1875223254);
   if (tx.getData().size() != 36) {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator data size is not 36 bytes.");
+    SLOGERROR("TxValidator data size is not 36 bytes.");
     // Both RandomHash and RandomSeed are 32 bytes, so if the data size is not 36 bytes, it is invalid.
     return TxValidatorFunction::INVALID;
   }
@@ -287,7 +265,7 @@ rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) 
   } else if (functionABI == randomSeedHash) {
     return TxValidatorFunction::RANDOMSEED;
   } else {
-    Logger::logToDebug(LogType::ERROR, Log::rdPoS, __func__, "TxValidator function ABI is not recognized: " + std::to_string(functionABI.value) + " tx Data: " + Hex::fromBytes(tx.getData()).get());
+    SLOGERROR("TxValidator function ABI is not recognized: " + std::to_string(functionABI.value) + " tx Data: " + Hex::fromBytes(tx.getData()).get());
     return TxValidatorFunction::INVALID;
   }
 }
@@ -295,10 +273,7 @@ rdPoS::TxValidatorFunction rdPoS::getTxValidatorFunction(const TxValidator &tx) 
 DBBatch rdPoS::dump() const
 {
   DBBatch dbBatch;
-  Logger::logToDebug(LogType::INFO,
-                     Log::rdPoS,
-                     __func__,
-                     "Create batch operations.");
+  LOGDEBUG("Create batch operations.");
   // index
   uint64_t i = 0;
   // add batch operations

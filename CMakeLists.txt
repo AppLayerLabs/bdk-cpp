@@ -107,6 +107,7 @@ add_library(catch2
   ${CMAKE_SOURCE_DIR}/src/libs/catch2/catch_amalgamated.cpp
 )
 target_include_directories(catch2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/catch2)
+target_compile_definitions(catch2 PRIVATE CATCH_AMALGAMATED_CUSTOM_MAIN)
 
 # Check compiler variable sizes
 include(cmake/CheckSizes.cmake)

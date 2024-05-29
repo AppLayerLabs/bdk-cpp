@@ -44,12 +44,11 @@ namespace TDumpManager {
         blockchainWrapper.state.dumpStartWorker();
         // create 1001 blocks
         for (uint64_t i = 0; i < 1001; ++i) {
-          std::cout << "Creating block: " << i << std::endl;
+          GLOGTRACE("Creating block: " + std::to_string(i));
           auto block = createValidBlock(validatorPrivKeysState,
                                         blockchainWrapper.state,
                                         blockchainWrapper.storage);
-          REQUIRE(blockchainWrapper.state.validateNextBlock(block));
-          blockchainWrapper.state.processNextBlock(std::move(block));
+          REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(block)) == BlockValidationStatus::valid);
         }
         // stop the dump worker
         blockchainWrapper.state.dumpStopWorker();

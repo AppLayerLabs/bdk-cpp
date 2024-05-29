@@ -48,10 +48,7 @@ std::pair<std::vector<DBBatch>, uint64_t> DumpManager::dumpState() const
     // or state changes are happening)
     blockHeight = storage_.latest()->getNHeight();
     // Emplace DBBatch operations
-    Logger::logToDebug(LogType::INFO,
-                       Log::dumpManager,
-                       __func__,
-                       "Emplace DBBatch operations");
+    LOGDEBUG("Emplace DBBatch operations");
 
     const auto nThreads = std::thread::hardware_concurrency();
     auto requiredOffset = this->dumpables_.size() / nThreads;
@@ -105,12 +102,13 @@ DumpWorker::DumpWorker(const Options& options,
     storage_(storage),
     dumpManager_(dumpManager)
 {
-  Logger::logToDebug(LogType::INFO, Log::dumpWorker, __func__, "DumpWorker Started.");
+  LOGINFO("DumpWorker Started.");
 }
 
 DumpWorker::~DumpWorker()
 {
-  Logger::logToDebug(LogType::INFO, Log::dumpWorker, __func__, "DumpWorker Stopped.");
+  stopWorker();
+  LOGINFO("DumpWorker Stopped.");
 }
 
 bool DumpWorker::workerLoop()
@@ -118,10 +116,7 @@ bool DumpWorker::workerLoop()
   uint64_t latestBlock = this->storage_.currentChainSize();
   while (!this->stopWorker_) {
     if (latestBlock + this->options_.getStateDumpTrigger() < this->storage_.currentChainSize()) {
-      Logger::logToDebug(LogType::INFO,
-                         Log::dumpWorker,
-                         __func__,
-                         "Current size >= 100");
+      LOGDEBUG("Current size >= 100");
       dumpManager_.dumpToDB();
       latestBlock = this->storage_.currentChainSize();
     }

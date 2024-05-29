@@ -24,7 +24,7 @@ See the LICENSE.txt file in the project root for more information.
 enum BlockValidationStatus { valid, invalidWrongHeight, invalidErroneous };
 
 /// Abstraction of the blockchain's current state at the current block.
-class State : Dumpable {
+class State : Dumpable, public Log::LogicalLocationProvider {
   private:
     mutable std::shared_mutex stateMutex_;  ///< Mutex for managing read/write access to the state object.
     evmc_vm* vm_;  ///< Pointer to the EVMC VM.
@@ -88,6 +88,8 @@ class State : Dumpable {
     State(const DB& db, Storage& storage, P2P::ManagerNormal& p2pManager, const uint64_t& snapshotHeight, const Options& options);
 
     ~State(); ///< Destructor.
+
+    virtual std::string getLogicalLocation() const { return p2pManager_.getLogicalLocation(); } ///< Log instance from P2P
 
     // ======================================================================
     // RDPOS WRAPPER FUNCTIONS

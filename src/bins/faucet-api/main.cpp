@@ -11,7 +11,7 @@
 // The HTTP endpoint (for HTTP client) (IP:PORT)
 // The port for the server
 int main() {
-  Utils::logToCout = true;
+  Log::logToCout = true;
   std::vector<WorkerAccount> faucetWorkers;
   uint64_t chainId;
   std::pair<net::ip::address_v4, uint16_t> httpEndpoint;

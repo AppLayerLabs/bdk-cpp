@@ -13,7 +13,7 @@
 #include "../../src/core/rdpos.h"
 #include "../sdktestsuite.hpp"
 
-namespace TERC721 {
+namespace TEVM {
   /*
    *
    * ERC20:

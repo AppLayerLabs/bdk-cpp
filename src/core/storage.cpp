@@ -7,18 +7,19 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "storage.h"
 
-Storage::Storage(const Options& options)
-  : db_(options.getRootPath() + "/blocksDb/"),
+Storage::Storage(const std::string& instanceIdStr, const Options& options)
+  : instanceIdStr_(instanceIdStr),
+    db_(options.getRootPath() + "/blocksDb/"),
     options_(options),
     slThreads_(0)
 {
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading blockchain from DB");
+  LOGINFO("Loading blockchain from DB");
 
   // Initialize the blockchain if latest block doesn't exist.
   initializeBlockchain();
 
   // Get the latest block from the database
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Loading latest block");
+  LOGINFO("Loading latest block");
   auto blockBytes = this->db_.get(Utils::stringToBytes("latest"), DBPrefix::blocks);
   FinalizedBlock latest = FinalizedBlock::fromBytes(blockBytes, this->options_.getChainID());
   uint64_t depth = latest.getNHeight();
@@ -26,12 +27,12 @@ Storage::Storage(const Options& options)
   std::unique_lock<std::shared_mutex> lock(this->chainLock_);
 
   // Parse block mappings (hash -> height / height -> hash) from DB
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Parsing block mappings");
+  LOGINFO("Parsing block mappings");
   std::vector<DBEntry> maps = this->db_.getBatch(DBPrefix::blockHeightMaps);
   for (DBEntry& map : maps) {
     // TODO: Check if a block is missing.
     // Might be interesting to change DB::getBatch to return a map instead of a vector
-    Logger::logToDebug(LogType::DEBUG, Log::storage, __func__, std::string(": ")
+    LOGDEBUG(std::string(": ")
       + std::to_string(Utils::bytesToUint64(map.key))
       + std::string(", hash ") + Hash(map.value).hex().get()
     );
@@ -40,9 +41,9 @@ Storage::Storage(const Options& options)
   }
 
   // Append up to 500 most recent blocks from DB to chain
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Appending recent blocks");
+  LOGINFO("Appending recent blocks");
   for (uint64_t i = 0; i <= 500 && i <= depth; i++) {
-    Logger::logToDebug(LogType::DEBUG, Log::storage, __func__, std::string("Height: ")
+    LOGDEBUG(std::string("Height: ")
       + std::to_string(depth - i)
       + ", Hash: "
       + this->blockHashByHeight_[depth - i].hex().get()
@@ -50,7 +51,7 @@ Storage::Storage(const Options& options)
     FinalizedBlock finalBlock = FinalizedBlock::fromBytes(this->db_.get(this->blockHashByHeight_[depth - i].get(), DBPrefix::blocks), this->options_.getChainID());
     this->pushFrontInternal(std::move(finalBlock));
   }
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "Blockchain successfully loaded");
+  LOGINFO("Blockchain successfully loaded");
 }
 
 Storage::~Storage()
@@ -95,16 +96,14 @@ void Storage::initializeBlockchain() {
     this->db_.put(std::string("latest"), genesis.serializeBlock(), DBPrefix::blocks);
     this->db_.put(Utils::uint64ToBytes(genesis.getNHeight()), genesis.getHash().get(), DBPrefix::blockHeightMaps);
     this->db_.put(genesis.getHash().get(), genesis.serializeBlock(), DBPrefix::blocks);
-    Logger::logToDebug(LogType::INFO, Log::storage, __func__,
-      std::string("Created genesis block: ") + Hex::fromBytes(genesis.getHash().get()).get()
-    );
+    LOGINFO(std::string("Created genesis block: ") + Hex::fromBytes(genesis.getHash().get()).get());
   }
   // Sanity check for genesis block. (check if genesis in DB matches genesis in Options)
   const auto genesis = this->options_.getGenesisBlock();
   const auto genesisInDBHash = Hash(this->db_.get(Utils::uint64ToBytes(0), DBPrefix::blockHeightMaps));
   const auto genesisInDB = FinalizedBlock::fromBytes(this->db_.get(genesisInDBHash, DBPrefix::blocks), this->options_.getChainID());
   if (genesis != genesisInDB) {
-    Logger::logToDebug(LogType::ERROR, Log::storage, __func__, "Sanity Check! Genesis block in DB does not match genesis block in Options");
+    LOGERROR("Sanity Check! Genesis block in DB does not match genesis block in Options");
     throw DynamicException("Sanity Check! Genesis block in DB does not match genesis block in Options");
   }
 }
@@ -309,7 +308,7 @@ std::shared_ptr<const FinalizedBlock> Storage::getBlock(const uint64_t& height) 
   std::shared_lock<std::shared_mutex> lockCache(this->cacheLock_);
   StorageStatus blockStatus = this->blockExistsInternal(height);
   if (blockStatus == StorageStatus::NotFound) return nullptr;
-  Logger::logToDebug(LogType::INFO, Log::storage, __func__, "height: " + std::to_string(height));
+  LOGTRACE("height: " + std::to_string(height));
   switch (blockStatus) {
     case StorageStatus::NotFound: {
       return nullptr;

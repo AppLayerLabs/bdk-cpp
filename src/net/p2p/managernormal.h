@@ -171,16 +171,10 @@ namespace P2P {
       P2P::Broadcaster& getBroadcaster() { return this->broadcaster_; }
 
       /// Start the P2P engine
-      virtual void start() override {
-        ManagerBase::start();
-        nodeConns_.start();
-      }
+      virtual void start() override;
 
       /// Stop the P2P engine
-      virtual void stop() override {
-        nodeConns_.stop();
-        ManagerBase::stop();
-      }
+      virtual void stop() override;
 
       /**
        * Handle a message from a session. Entry point for all the other handlers.

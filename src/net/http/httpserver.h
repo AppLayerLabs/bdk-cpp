@@ -12,7 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "httplistener.h"
 
 /// Abstraction of an HTTP server.
-class HTTPServer {
+class HTTPServer : public Log::LogicalLocationProvider {
   private:
     /// Reference pointer to the blockchain's state.
     State& state_;
@@ -54,6 +54,8 @@ class HTTPServer {
       P2P::ManagerNormal& p2p, const Options& options
     ) : state_(state), storage_(storage), p2p_(p2p), options_(options), port_(options.getHttpPort())
     {}
+
+    std::string getLogicalLocation() const; ///< Get log location from the P2P engine
 
     /**
      * Destructor.

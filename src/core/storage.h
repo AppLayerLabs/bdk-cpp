@@ -25,11 +25,12 @@ enum StorageStatus { NotFound, OnChain, OnCache, OnDB };
  * Used to store blocks in memory and on disk, and helps the State process
  * new blocks, transactions and RPC queries.
  */
-class Storage {
+class Storage : public Log::LogicalLocationProvider {
   // TODO: possibly replace `std::shared_ptr<const Block>` with a better solution.
 private:
   DB db_;  ///< Database object that contains all the blockchain blocks
   const Options& options_;  ///< Reference to the options singleton.
+  const std::string instanceIdStr_; ///< Identifier for logging
   /**
    * Recent blockchain history, up to the 1000 most recent blocks or 1M transactions, whichever comes first.
    * This limit is required because it would be too expensive to keep every single transaction in memory
@@ -131,11 +132,12 @@ public:
   /**
    * Constructor. Automatically loads the chain from the database
    * and starts the periodic save thread.
-   * @param db Reference to the database.
+   * @param instanceIdStr Instance ID string to use for logging.
    * @param options Reference to the options singleton.
    */
   Storage(const Options& options);
   ~Storage() noexcept; ///< Destructor. Automatically saves the chain to the database.
+  virtual std::string getLogicalLocation() const { return instanceIdStr_; } ///< Log instance (provided in ctor)
   void pushBack(FinalizedBlock block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
   void pushFront(FinalizedBlock block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
   void popBack(); ///< Remove a block from the end of the chain.

@@ -37,7 +37,7 @@ class EventManager;
  * Dumpable management.
  * Used to store dumpable objects in memory.
  */
-class DumpManager {
+class DumpManager : public Log::LogicalLocationProvider {
 private:
   /// Reference to the options object
   const Options& options_;
@@ -67,6 +67,8 @@ public:
    * @param db Pointer to state database.
    */
   DumpManager(const Storage& storage, const Options& options, EventManager& eventManager, std::shared_mutex& stateMutex);
+
+  virtual std::string getLogicalLocation() const { return storage_.getLogicalLocation(); } ///< Log instance from Storage
 
   /**
    * Function that will register dumpable objects.
@@ -126,7 +128,7 @@ public:
   }
 };
 
-class DumpWorker {
+class DumpWorker : public Log::LogicalLocationProvider {
 private:
   /// Reference to the options object
   const Options& options_;
@@ -158,6 +160,8 @@ public:
    * Automatically stops the worker thread if it's still running.
    */
   ~DumpWorker();
+
+  virtual std::string getLogicalLocation() const { return storage_.getLogicalLocation(); } ///< Log instance from Storage
 
   ///< Start `workerFuture_` and `workerLoop()`.
   void startWorker();

@@ -20,14 +20,12 @@ namespace Faucet {
     std::vector<std::thread> v;
     v.reserve(4 - 1);
     for (int i = 4 - 1; i > 0; i--) v.emplace_back([&]{ this->ioc_.run(); });
-    Logger::logToDebug(LogType::INFO, Log::httpServer, __func__,
-      std::string("HTTP Server Started at port: ") + std::to_string(port_)
-    );
+    LOGINFO(std::string("HTTP Server Started at port: ") + std::to_string(port_));
     this->ioc_.run();
 
     // If we get here, it means we got a SIGINT or SIGTERM. Block until all the threads exit
     for (std::thread& t : v) t.join();
-    Logger::logToDebug(LogType::INFO, Log::httpServer, __func__, "HTTP Server Stopped");
+    LOGINFO("HTTP Server Stopped");
     return true;
   }
 

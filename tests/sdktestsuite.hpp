@@ -45,10 +45,10 @@ struct TestAccount {
 class SDKTestSuite {
   private:
     const Options options_;      ///< Options singleton.
+    P2P::ManagerNormal p2p_;     ///< P2P connection manager. NOTE: p2p_ has to be constructed first due to getLogicalLocation()
     DB db_;                      ///< Database.
     Storage storage_;            ///< Blockchain storage.
     State state_;                ///< Blockchain state.
-    P2P::ManagerNormal p2p_;     ///< P2P connection manager.
     HTTPServer http_;            ///< HTTP server.
 
     /// Owner of the chain (0x00dead00...).
@@ -79,7 +79,7 @@ class SDKTestSuite {
     explicit SDKTestSuite(const Options& options) :
       options_(options),
       db_(std::get<0>(DumpManager::getBestStateDBPath(this->options_))),
-      storage_(options_),
+      storage_(p2p_.getLogicalLocation(),options_),
       state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(this->options_)), options_),
       p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)
@@ -246,23 +246,24 @@ class SDKTestSuite {
                                                                   newBlocknHeight,
                                                                   blockSignerPrivKey);
         // After finalization, the block should be valid. If it is, process the next one.
-        if (!this->state_.validateNextBlock(finalizedBlock)) throw DynamicException(
-          "SDKTestSuite::advanceBlock: Block is not valid"
-        );
-        state_.processNextBlock(std::move(finalizedBlock));
+        BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(finalizedBlock));
+        if (bvs != BlockValidationStatus::valid) {
+          throw DynamicException("SDKTestSuite::advanceBlock: Block is not valid");
+        }
         return this->storage_.latest();
       } else {
-        auto finelizedBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
+        //TODO/REVIEW: These branches are identical?
+        auto finalizedBlock = FinalizedBlock::createNewValidBlock(std::move(txs),
                                                                   std::move(txsValidator),
                                                                   newBlockPrevHash,
                                                                   newBlockTimestamp,
                                                                   newBlocknHeight,
                                                                   blockSignerPrivKey);
         // After finalization, the block should be valid. If it is, process the next one.
-        if (!this->state_.validateNextBlock(finelizedBlock)) throw DynamicException(
-          "SDKTestSuite::advanceBlock: Block is not valid"
-        );
-        state_.processNextBlock(std::move(finelizedBlock));
+        BlockValidationStatus bvs = state_.tryProcessNextBlock(std::move(finalizedBlock));
+        if (bvs != BlockValidationStatus::valid) {
+          throw DynamicException("SDKTestSuite::advanceBlock: Block is not valid");
+        }
         return this->storage_.latest();
       }
     }

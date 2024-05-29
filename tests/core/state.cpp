@@ -102,8 +102,7 @@ namespace TState {
         // to save the state to the DB.
         // "0" is specifically used to say there is no state to load from.
         auto newBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage);
-        REQUIRE(blockchainWrapper.state.validateNextBlock(newBlock));
-        blockchainWrapper.state.processNextBlock(std::move(newBlock));
+        REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBlock)) == BlockValidationStatus::valid);
         blockchainWrapper.state.saveToDB();
       }
       // Wait until destructors are called.
@@ -122,8 +121,7 @@ namespace TState {
         auto blockchainWrapper = initialize(validatorPrivKeysState, validatorPrivKeysState[0], 8080, true, testDumpPath + "/stateSimpleBlockTest");
 
         auto newBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage);
-        REQUIRE(blockchainWrapper.state.validateNextBlock(newBlock));
-        blockchainWrapper.state.processNextBlock(std::move(newBlock));
+        REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBlock)) == BlockValidationStatus::valid);
         latestBlock = std::make_unique<FinalizedBlock>(*blockchainWrapper.storage.latest().get());
         blockchainWrapper.state.saveToDB();
       }
@@ -171,9 +169,7 @@ namespace TState {
         }
 
         auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(transactions));
-        REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
-
-        blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
+        REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBestBlock)) == BlockValidationStatus::valid);
 
         for (const auto &[privkey, val]: randomAccounts) {
           auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
@@ -223,9 +219,7 @@ namespace TState {
         REQUIRE(txCopy.size() == 500);
 
         auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(txCopy));
-        REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
-
-        blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
+        REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBestBlock)) == BlockValidationStatus::valid);
 
         for (const auto &[privkey, val]: randomAccounts) {
           auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
@@ -284,9 +278,7 @@ namespace TState {
         }
 
         auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(txs));
-        REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
-
-        blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
+        REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBestBlock)) == BlockValidationStatus::valid);
 
         REQUIRE(blockchainWrapper.state.getMempool().size() == notOnBlock.size());
 
@@ -348,9 +340,7 @@ namespace TState {
 
           // Create the new block
           auto newBestBlock = createValidBlock(validatorPrivKeysState, blockchainWrapper.state, blockchainWrapper.storage, std::move(txs));
-          REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
-
-          blockchainWrapper.state.processNextBlock(std::move(newBestBlock));
+          REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBestBlock)) == BlockValidationStatus::valid);
           for (const auto &[privkey, val]: randomAccounts) {
             auto me = Secp256k1::toAddress(Secp256k1::toUPub(privkey));
             REQUIRE(blockchainWrapper.state.getNativeBalance(me) == val.first);

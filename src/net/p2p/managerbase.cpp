@@ -7,7 +7,56 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "managerbase.h"
 
+// NOTE (Threading): A relatively low net worker thread count is something you want, in general:
+// - It encourages writing good network messaging handlers;
+// - It encourages writing dedicated thread pools elsewhere in the stack to do heavy processing of
+//   messages *after* they are received (you should never have to do heavy computation in io threads);
+// - It avoids having networked unit tests with a massive number of threads to debug;
+// - Even debugging a single node (with e.g. gdb: thread info, bt, ...) is now much simpler;
+// - Having less threads in general reduces the probability that we need to worry about having
+//   thread scheduling & context switching bottlenecks of any sort;
+// - Having multiple threads helps to hide some kinds of bugs, making them harder to reproduce.
+// But if you want to experiment with larger thread counts, it's just a matter of tweaking the constants below.
+
+/// Concurrency in processing incoming connection requests in the TCP listen socket, with handshake for session.
+/// All operations are async and light-weight, so there's no hard requirement to have more than one thread.
+/// It is also not a performance bottleneck to have many threads here, as they're all waiting most of the time.
+/// If anything, having only one thread makes thread debugging simpler.
+#define P2P_LISTEN_SOCKET_THREADS 1
+
+/// Concurrency in processing accepted connections in the TCP client socket, with handshake for session.
+/// All operations are async and light-weight, so there's no hard requirement to have more than one thread.
+/// It is also not a performance bottleneck to have many threads here, as they're all waiting most of the time.
+/// If anything, having only one thread makes thread debugging simpler.
+#define P2P_CLIENT_SOCKET_THREADS 1
+
+/// Size of the P2P engine's thread pool which processes actual network messages.
+/// hardware_concurrency() counts Intel Hyperthreading (and disregards whatever other threads we may have in
+///   the system) so that is already a quite elevated number. Hardcoded numbers like 2, 3 or 4 would already
+///   be sufficient, probably.
+#define P2P_NET_THREADS_DEFAULT (std::min(4u, std::thread::hardware_concurrency()))
+
 namespace P2P {
+
+  std::atomic<int> ManagerBase::instanceIdGen_(0);
+
+  std::atomic<int> ManagerBase::netThreads_(P2P_NET_THREADS_DEFAULT);
+
+  void ManagerBase::setNetThreads(int netThreads) {
+    SLOGINFO("P2P_NET_THREADS set to " + std::to_string(netThreads) + " (was " + std::to_string(netThreads_) + ")");
+    netThreads_ = netThreads;
+  }
+
+  ManagerBase::ManagerBase(
+    const net::ip::address& hostIp, NodeType nodeType, const Options& options,
+    const unsigned int& minConnections, const unsigned int& maxConnections
+  ) : serverPort_(options.getP2PPort()), nodeType_(nodeType), options_(options),
+    minConnections_(minConnections), maxConnections_(maxConnections),
+    server_(hostIp, options.getP2PPort(), P2P_LISTEN_SOCKET_THREADS, *this),
+    clientfactory_(*this, P2P_CLIENT_SOCKET_THREADS),
+    discoveryWorker_(*this),
+    instanceIdStr_("#" + std::to_string(instanceIdGen_++))
+  {};
 
   bool ManagerBase::registerSessionInternal(const std::shared_ptr<Session>& session) {
     std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::registerSessionInternal can change sessions_ map.
@@ -20,12 +69,10 @@ namespace P2P {
     // The other endpoint will also see that we already have a connection and will close the new one.
     if (sessions_.contains(session->hostNodeId())) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session already exists at " +
-                        session->hostNodeId().first.to_string() + ":" + std::to_string(session->hostNodeId().second));
+      LOGERROR("Session already exists at " + toString(session->hostNodeId()));
       return false;
     }
-    Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__, "Registering session at " +
-                      session->hostNodeId().first.to_string() + ":" + std::to_string(session->hostNodeId().second));
+    LOGINFO("Registering session at " + toString(session->hostNodeId()));
     sessions_.insert({session->hostNodeId(), session});
     return true;
   }
@@ -37,8 +84,7 @@ namespace P2P {
     }
     if (!sessions_.contains(session->hostNodeId())) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " +
-                        session->hostNodeId().first.to_string() + ":" + std::to_string(session->hostNodeId().second));
+      LOGERROR("Session does not exist at " + toString(session->hostNodeId()));
       return false;
     }
     sessions_.erase(session->hostNodeId());
@@ -52,10 +98,10 @@ namespace P2P {
     }
     if (!sessions_.contains(nodeId)) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+      LOGERROR("Session does not exist at " + toString(nodeId));
       return false;
     }
-    Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__, "Disconnecting session at " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGINFO("Disconnecting session at " + toString(nodeId));
     // Get a copy of the pointer
     sessions_[nodeId]->close();
     sessions_.erase(nodeId);
@@ -67,7 +113,7 @@ namespace P2P {
     std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_); // ManagerBase::sendRequestTo doesn't change sessions_ map.
     if(!sessions_.contains(nodeId)) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Session does not exist at " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+      LOGERROR("Session does not exist at " + toString(nodeId));
       return nullptr;
     }
     auto session = sessions_[nodeId];
@@ -76,7 +122,7 @@ namespace P2P {
       (message->command() == CommandType::Info || message->command() == CommandType::RequestValidatorTxs)
     ) {
       lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-      Logger::logToDebug(LogType::INFO, Log::P2PManager, __func__, "Session is discovery, cannot send message");
+      LOGDEBUG("Session is discovery, cannot send message");
       return nullptr;
     }
     std::unique_lock lockRequests(this->requestsMutex_);
@@ -92,7 +138,7 @@ namespace P2P {
     if (!this->started_) return;
     auto it = sessions_.find(nodeId);
     if (it == sessions_.end()) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PManager, __func__, "Cannot find session for " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+      LOGERROR("Cannot find session for " + toString(nodeId));
       return;
     }
     it->second->write(message);
@@ -101,7 +147,9 @@ namespace P2P {
   void ManagerBase::start() {
     std::scoped_lock lock(this->stateMutex_);
     if (this->started_) return;
-    this->threadPool_ = std::make_unique<BS::thread_pool_light>(std::thread::hardware_concurrency() * 4);
+    LOGINFO("Starting " + std::to_string(ManagerBase::netThreads_) + " P2P worker threads; default: " +
+            std::to_string(P2P_NET_THREADS_DEFAULT) + "; CPU: " + std::to_string(std::thread::hardware_concurrency()));
+    this->threadPool_ = std::make_unique<BS::thread_pool_light>(ManagerBase::netThreads_);
     this->server_.start();
     this->clientfactory_.start();
     this->started_ = true;
@@ -192,10 +240,10 @@ namespace P2P {
 
   void ManagerBase::ping(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::ping());
-    Utils::logToFile("Pinging " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGTRACE("Pinging " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) throw DynamicException(
-      "Failed to send ping to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second)
+      "Failed to send ping to " + toString(nodeId)
     );
     requestPtr->answerFuture().wait();
   }
@@ -204,25 +252,23 @@ namespace P2P {
   // Somehow change to wait_for.
   std::unordered_map<NodeID, NodeType, SafeHash> ManagerBase::requestNodes(const NodeID& nodeId) {
     auto request = std::make_shared<const Message>(RequestEncoder::requestNodes());
-    Utils::logToFile("Requesting nodes from " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second));
+    LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
     if (requestPtr == nullptr) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__, "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed.");
+      LOGERROR("Request to " + toString(nodeId) + " failed.");
       return {};
     }
     auto answer = requestPtr->answerFuture();
     auto status = answer.wait_for(std::chrono::seconds(2));
     if (status == std::future_status::timeout) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__, "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " timed out.");
+      LOGERROR("Request to " + toString(nodeId) + " timed out.");
       return {};
     }
     try {
       auto answerPtr = answer.get();
       return AnswerDecoder::requestNodes(*answerPtr);
     } catch (std::exception &e) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-        "Request to " + nodeId.first.to_string() + ":" + std::to_string(nodeId.second) + " failed with error: " + e.what()
-      );
+      LOGERROR("Request to " + toString(nodeId) + " failed with error: " + e.what());
       return {};
     }
   }

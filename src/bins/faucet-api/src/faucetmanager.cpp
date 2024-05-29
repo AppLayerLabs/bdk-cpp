@@ -86,10 +86,7 @@ namespace Faucet {
         }
         // Update nonce
       } catch (std::exception& e) {
-        Utils::safePrint("Error while processing dripToAddress: " + std::string(e.what()));
-        Logger::logToDebug(LogType::ERROR, "FaucetManager", __func__,
-          std::string("Error while processing dripToAddress: ") + e.what()
-        );
+        LOGERRORP(std::string("Error while processing dripToAddress: ") + e.what());
       }
     }
     return true;

@@ -205,7 +205,7 @@ public:
     rocksdb::Slice valueSlice(reinterpret_cast<const char*>(value.data()), value.size());
     auto status = this->db_->Put(rocksdb::WriteOptions(), keySlice, valueSlice);
     if (!status.ok()) {
-      Logger::logToDebug(LogType::ERROR, Log::db, __func__, "Failed to put key: " + Hex::fromBytes(keyTmp).get());
+      LOGERROR("Failed to put key: " + Hex::fromBytes(keyTmp).get());
       return false;
     }
     return true;
@@ -225,7 +225,7 @@ public:
     rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyTmp.data()), keyTmp.size());
     auto status = this->db_->Delete(rocksdb::WriteOptions(), keySlice);
     if (!status.ok()) {
-      Logger::logToDebug(LogType::ERROR, Log::db, __func__, "Failed to delete key: " + Hex::fromBytes(keyTmp).get());
+      LOGERROR("Failed to delete key: " + Hex::fromBytes(keyTmp).get());
       return false;
     }
     return true;

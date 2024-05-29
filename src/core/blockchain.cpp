@@ -10,7 +10,7 @@ See the LICENSE.txt file in the project root for more information.
 Blockchain::Blockchain(const std::string& blockchainPath) :
   options_(Options::fromFile(blockchainPath)),
   db_(std::get<0>(DumpManager::getBestStateDBPath(options_))),
-  storage_(options_),
+  storage_(p2p_.getLogicalLocation(), options_),
   state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(options_)), options_),
   p2p_(options_.getP2PIp(), options_, storage_, state_),
   http_(state_, storage_, p2p_, options_),
@@ -20,8 +20,7 @@ Blockchain::Blockchain(const std::string& blockchainPath) :
 
 void Blockchain::start() {
   // Initialize necessary modules
-  Utils::safePrint("Starting BDK Node...");
-  Logger::logToDebug(LogType::INFO, Log::blockchain, __func__, "Starting BDK Node...");
+  LOGINFOP("Starting BDK Node...");
   this->p2p_.start();
   this->http_.start();
 
@@ -56,8 +55,7 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
   // NOTE: This is a synchronous operation that's (currently) run during note boot only, in the caller (main) thread.
   // TODO: Detect out-of-sync after the intial synchronization on node boot and resynchronize.
 
-  Utils::safePrint("Syncing with other nodes in the network...");
-  Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Syncing with other nodes in the network...");
+  LOGINFOP("Syncing with other nodes in the network...");
 
   // Synchronously get the first list of currently connected nodes and their current height
   this->p2p_.getNodeConns().forceRefresh();
@@ -74,22 +72,19 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
 
       // While we don't exhaust the waiting-for-a-connection timeout, sleep and try again later.
       if (waitForPeersSecs-- > 0) {
-        Utils::safePrint("Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
-        Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
+        LOGINFOP("Syncer waiting for peer connections (" + std::to_string(waitForPeersSecs) + "s left) ...");
         std::this_thread::sleep_for(std::chrono::seconds(1));
         continue;
       }
 
       // We have timed out waiting for peers, so synchronization is complete.
-      Utils::safePrint("Syncer quitting due to no peer connections.");
-      Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Syncer quitting due to no peer connections.");
+      LOGINFOP("Syncer quitting due to no peer connections.");
       break;
     }
     for (auto& [nodeId, nodeInfo] : connected) {
       if (nodeInfo.latestBlockHeight() > highestNode.second) highestNode = {nodeId, nodeInfo.latestBlockHeight()};
     }
-    Utils::safePrint("Latest known block height is " + std::to_string(highestNode.second));
-    Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Latest known block height is " + std::to_string(highestNode.second));
+    LOGINFOP("Latest known block height is " + std::to_string(highestNode.second));
 
     auto currentNHeight = this->storage_.latest()->getNHeight();
 
@@ -107,10 +102,8 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
     // - Deprioritize download from slow/failed nodes
 
     // Currently, fetch the next batch of block froms a node that is the best node (has the highest block height)
-    std::string dlMsg("Requesting blocks [" + std::to_string(downloadNHeight) + ","  + std::to_string(downloadNHeightEnd)
-                      + "] (" + std::to_string(bytesPerRequestLimit) + " bytes limit) from " + toString(highestNode.first));
-    Utils::safePrint(dlMsg);
-    Logger::logToDebug(LogType::INFO, Log::syncer, __func__, std::move(dlMsg));
+    LOGINFOP("Requesting blocks [" + std::to_string(downloadNHeight) + ","  + std::to_string(downloadNHeightEnd)
+              + "] (" + std::to_string(bytesPerRequestLimit) + " bytes limit) from " + toString(highestNode.first));
 
     // Request the next block we need from the chosen peer
     std::vector<FinalizedBlock> result = this->p2p_.requestBlock(
@@ -120,12 +113,10 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
     if (result.size() == 0) {
       if (tries > 0) {
         --tries;
-        Utils::safePrint("Blocks request failed (" + std::to_string(tries) + " tries left)");
-        Logger::logToDebug(LogType::WARNING, Log::syncer, __func__, "Blocks request failed (" + std::to_string(tries) + " tries left)");
+        LOGWARNINGP("Blocks request failed (" + std::to_string(tries) + " tries left)");
         if (tries == 0) return false;
       }
-      Utils::safePrint("Blocks request failed, restarting sync");
-      Logger::logToDebug(LogType::WARNING, Log::syncer, __func__, "Blocks request failed, restarting sync");
+      LOGWARNINGP("Blocks request failed, restarting sync");
       continue;
     }
 
@@ -140,22 +131,18 @@ bool Syncer::sync(uint64_t blocksPerRequest, uint64_t bytesPerRequestLimit, int 
         // This call validates the block first (throws exception if the block invalid).
         // Note that the "result" vector's element data is being consumed (moved) by this call.
         this->state_.processNextBlock(std::move(block));
-        std::string procMsg("Processed block " + std::to_string(downloadNHeight) + " from " + toString(highestNode.first));
-        Utils::safePrint(procMsg);
-        Logger::logToDebug(LogType::INFO, Log::syncer, __func__, std::move(procMsg));
+        LOGINFOP("Processed block " + std::to_string(downloadNHeight) + " from " + toString(highestNode.first));
         ++downloadNHeight;
       }
     } catch (std::exception &e) {
-      Logger::logToDebug(LogType::ERROR, Log::P2PParser, __func__,
-                         "Invalid RequestBlock Answer from " + toString(highestNode.first) +
+      LOGERROR("Invalid RequestBlock Answer from " + toString(highestNode.first) +
                          " , error: " + e.what() + " closing session.");
       this->p2p_.disconnectSession(highestNode.first);
     }
   }
 
   this->synced_ = true;
-  Utils::safePrint("Synced with the network; my latest block height: " + std::to_string(this->storage_.latest()->getNHeight()));
-  Logger::logToDebug(LogType::INFO, Log::syncer, __func__, "Synced with the network; my latest block height: " + std::to_string(this->storage_.latest()->getNHeight()));
+  LOGINFOP("Synced with the network; my latest block height: " + std::to_string(this->storage_.latest()->getNHeight()));
   return true;
 }
 

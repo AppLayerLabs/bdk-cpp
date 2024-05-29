@@ -155,9 +155,7 @@ namespace THTTPJsonRPC{
 
       auto newBestBlock = createValidBlock(validatorPrivKeysHttpJsonRpc, blockchainWrapper.state, blockchainWrapper.storage, std::move(transactionsCopy));
 
-      REQUIRE(blockchainWrapper.state.validateNextBlock(newBestBlock));
-
-      blockchainWrapper.state.processNextBlock(FinalizedBlock(newBestBlock));
+      REQUIRE(blockchainWrapper.state.tryProcessNextBlock(std::move(newBestBlock)) == BlockValidationStatus::valid);
 
       blockchainWrapper.http.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
