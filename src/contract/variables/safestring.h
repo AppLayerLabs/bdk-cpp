@@ -255,7 +255,10 @@ class SafeString : public SafeBase {
      * @param newcap The new string capacity.
      */
     inline void reserve(size_t newcap) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      if (this->copy_ == nullptr) {
+        this->copy_ = std::make_unique<std::string>(this->value_);
+        this->copy_->reserve(this->value_.capacity());
+      }
       markAsUsed(); this->value_.reserve(newcap);
     }
 
@@ -264,7 +267,10 @@ class SafeString : public SafeBase {
 
     /// Shrink the string to remove unused capacity.
     inline void shrink_to_fit() {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      if (this->copy_ == nullptr) {
+        this->copy_ = std::make_unique<std::string>(this->value_);
+        this->copy_->reserve(this->value_.capacity());
+      }
       markAsUsed(); this->value_.shrink_to_fit();
     }
 
@@ -566,7 +572,7 @@ class SafeString : public SafeBase {
 
     ///@{
     /**
-     * Compare the string to another SafeString.
+     * Compare the string to another string.
      * @param str The string to compare to.
      * @return An integer less than, equal to, or greater than zero if the string
      * is less than, equal to, or greater than the compared string, respectively.
@@ -656,7 +662,7 @@ class SafeString : public SafeBase {
      * @param sv The substring to check for.
      * @return `true` if there's a match, `false` otherwise.
      */
-    inline bool starts_with(const std::string& sv) const { return this->value_.starts_with(sv); }
+    inline bool starts_with(std::string_view sv) const { return this->value_.starts_with(sv); }
 
     /**
      * Check if the string starts with a given character.
@@ -677,7 +683,7 @@ class SafeString : public SafeBase {
      * @param sv The substring to check for.
      * @return `true` if there's a match, `false` otherwise.
      */
-    inline bool ends_with(const std::string& sv) const { return this->value_.ends_with(sv); }
+    inline bool ends_with(std::string_view sv) const { return this->value_.ends_with(sv); }
 
     /**
      * Check if the string ends with a given character.
@@ -993,6 +999,7 @@ class SafeString : public SafeBase {
      */
     inline void swap(SafeString& other) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      if (other.copy_ == nullptr) other.copy_ = std::make_unique<std::string>(other.value_);
       markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
     }
 
@@ -1296,13 +1303,13 @@ class SafeString : public SafeBase {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
       markAsUsed(); this->value_.operator+=(str); return *this;
     }
-    inline SafeString& operator+=(char ch) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
-      markAsUsed(); this->value_.operator+=(ch); return *this;
-    }
     inline SafeString& operator+=(const char* s) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
       markAsUsed(); this->value_.operator+=(s); return *this;
+    }
+    inline SafeString& operator+=(char ch) {
+      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
+      markAsUsed(); this->value_.operator+=(ch); return *this;
     }
     inline SafeString& operator+=(std::initializer_list<char> ilist) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::string>(this->value_);
@@ -1334,8 +1341,12 @@ class SafeString : public SafeBase {
     inline bool operator==(const char* rhs) const { return this->value_ == rhs; };
     ///@}
 
-    /// Inequality operator.
+    ///@{
+    /** Inequality operator. */
+    inline bool operator!=(const SafeString& rhs) const { return this->value_ != rhs.get(); };
+    inline bool operator!=(const std::string& rhs) const { return this->value_ != rhs; };
     inline bool operator!=(const char* rhs) const { return this->value_ != rhs; };
+    ///@}
 
     ///@{
     /** Lesser comparison operator. */
@@ -1370,7 +1381,20 @@ class SafeString : public SafeBase {
 
     /// Revert the value.
     inline void revert() override {
-      if (this->copy_ != nullptr) this->value_ = *this->copy_;
+      if (this->copy_ != nullptr) {
+        // Copying a string doesn't copy its capacity, we have to do it manually.
+        // Same goes for reserve() and shrink_to_fit().
+        // See https://stackoverflow.com/a/24399554 and https://stackoverflow.com/a/38785417
+        if (this->copy_->capacity() > this->value_.capacity()) {
+          this->value_.reserve(this->copy_->capacity());
+          this->value_ = *this->copy_;
+        } else if (this->copy_->capacity() < this->value_.capacity()) {
+          this->value_ = *this->copy_;
+          this->value_.shrink_to_fit();
+        } else {
+          this->value_ = *this->copy_;
+        }
+      }
       this->copy_ = nullptr; this->registered_ = false;
     }
 };

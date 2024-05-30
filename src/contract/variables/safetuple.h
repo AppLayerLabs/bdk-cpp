@@ -200,18 +200,6 @@ template<typename... Types> class SafeTuple : public SafeBase {
     SafeTuple(SafeTuple&& other) noexcept : value_(std::move(other.value_)), copy_() {}
 
     /**
-     * Variadic constructor.
-     * @tparam U The argument types.
-     * @param args The arguments to construct the tuple with.
-     */
-    template<typename... U> requires (
-      !(... && std::is_base_of_v<SafeTuple, std::decay_t<U>>) &&
-      !std::conjunction_v<std::is_same<std::pair<typename std::decay<U>::type...>, U>...>
-    ) SafeTuple(U&&... args) : value_(std::forward<U>(args)...), copy_() {
-      static_assert(sizeof...(U) == sizeof...(Types), "Number of arguments must match tuple size.");
-    }
-
-    /**
      * From pair constructor.
      * @tparam U The first type of the pair.
      * @tparam V The second type of the pair.
@@ -277,7 +265,8 @@ template<typename... Types> class SafeTuple : public SafeBase {
      * @param other The other SafeTuple to swap with.
      */
     void swap(SafeTuple& other) noexcept {
-      copyAll(this->value_, this->copy_); markAsUsed(); other.markAsUsed();
+      copyAll(this->value_, this->copy_); markAsUsed();
+      copyAll(other.value_, other.copy_); other.markAsUsed();
       std::swap(this->value_, other.value_);
     }
 

@@ -327,7 +327,7 @@ template <typename T> class SafeVector : public SafeBase {
      * @param last An iterator to the last value.
      * @return An iterator to the first element that was inserted.
      */
-    template<class InputIt> std::vector<T>::const_iterator insert(
+    template<class InputIt> requires std::input_iterator<InputIt> std::vector<T>::const_iterator insert(
       std::vector<T>::const_iterator pos, InputIt first, InputIt last
     ) {
       if (this->copy_ == nullptr) {
@@ -363,7 +363,7 @@ template <typename T> class SafeVector : public SafeBase {
     template <class... Args> std::vector<T>::const_iterator emplace(std::vector<T>::const_iterator pos, Args&&... args) {
       if (this->copy_ == nullptr) {
         if (this->undo_ == nullptr) this->undo_ = std::make_unique<std::stack<UndoOp, std::vector<UndoOp>>>();
-        this->undo_->emplace(std::make_tuple(VectorOp::EMPLACE, std::distance(this->value_.begin(), pos), 1, std::vector<T>()));
+        this->undo_->emplace(std::make_tuple(VectorOp::EMPLACE, std::distance(this->value_.cbegin(), pos), 1, std::vector<T>()));
       }
       markAsUsed(); return this->value_.emplace(pos, args...);
     }
@@ -462,7 +462,7 @@ template <typename T> class SafeVector : public SafeBase {
           std::vector<T> vals = {}; // Old values from before the operation
           if (count > this->value_.size()) {
             vecOp = VectorOp::RESIZE_MORE;
-            diff = (this->value_.size() + count) - this->value_.size();
+            diff = count - this->value_.size();
           } else if (count < this->value_.size()) {
             vecOp = VectorOp::RESIZE_LESS;
             diff = this->value_.size() - count;
@@ -491,7 +491,7 @@ template <typename T> class SafeVector : public SafeBase {
           std::vector<T> vals = {}; // Old values from before the operation
           if (count > this->value_.size()) {
             vecOp = VectorOp::RESIZE_MORE;
-            diff = (this->value_.size() + count) - this->value_.size();
+            diff = count - this->value_.size();
           } else if (count < this->value_.size()) {
             vecOp = VectorOp::RESIZE_LESS;
             diff = this->value_.size() - count;
@@ -504,39 +504,9 @@ template <typename T> class SafeVector : public SafeBase {
     }
 
     ///@{
-    /** Swap the contents of two vectors. Swaps only the CURRENT value. */
-    inline void swap(std::vector<T>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
-      markAsUsed(); this->value_.swap(other);
-    }
-    inline void swap(SafeVector<T>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
-      markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
-    }
-    ///@}
-
-    ///@{
-    /** Assignment operator. Assigns only the CURRENT value. */
-    inline SafeVector& operator=(const std::vector<T>& vec) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
-      markAsUsed(); this->value_ = vec; return *this;
-    }
-    inline SafeVector& operator=(const SafeVector<T>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::vector<T>>(this->value_);
-      markAsUsed(); this->value_ = other.get(); return *this;
-    }
-    ///@}
-
-    ///@{
     /** Equality operator. Checks only the CURRENT value. */
     inline bool operator==(const std::vector<T>& other) const { return (this->value_ == other); }
     inline bool operator==(const SafeVector<T>& other) const { return (this->value_ == other.get()); }
-    ///@}
-
-    ///@{
-    /** Three-way comparison operator. Checks only the CURRENT value. */
-    inline bool operator<=>(const std::vector<T>& other) const { return (this->value_ <=> other); }
-    inline bool operator<=>(const SafeVector<T>& other) const { return (this->value_ <=> other.get()); }
     ///@}
 
     /// Commit the value.
@@ -545,7 +515,7 @@ template <typename T> class SafeVector : public SafeBase {
     /// Revert the value.
     void revert() override {
       if (this->copy_ != nullptr) this->value_ = *this->copy_;
-      if (!this->undo_->empty()) this->processUndoStack();
+      if (this->undo_ != nullptr && !this->undo_->empty()) this->processUndoStack();
       this->copy_ = nullptr; this->undo_ = nullptr; this->registered_ = false;
     }
 };

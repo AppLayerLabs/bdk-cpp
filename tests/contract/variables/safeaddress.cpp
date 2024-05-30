@@ -8,7 +8,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include "../../src/contract/variables/safeaddress.h"
 #include "../../src/utils/utils.h"
-#include <iostream>
 
 namespace TSafeAddress {
   TEST_CASE("SafeAddress Class", "[contract][variables][safeaddress]") {

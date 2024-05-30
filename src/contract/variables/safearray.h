@@ -12,6 +12,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <stack>
 #include <tuple>
 #include <vector>
+#include <iostream>
 
 #include "safebase.h"
 
@@ -162,27 +163,9 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     }
 
     ///@{
-    /** Swap the contents of two arrays. Swaps only the CURRENT value. */
-    inline void swap(std::array<T,N>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::array<T,N>>(this->value_);
-      markAsUsed(); this->value_.swap(other);
-    }
-    inline void swap(SafeArray<T,N>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<std::array<T,N>>(this->value_);
-      markAsUsed(); other.markAsUsed(); this->value_.swap(other.value_);
-    }
-    ///@}
-
-    ///@{
     /** Equality operator. Checks only the CURRENT value. */
     inline bool operator==(const std::array<T,N>& other) const { return (this->value_ == other); }
-    inline bool operator==(const SafeArray<T,N>& other) const { return (this->value_ == other.get()); }
-    ///@}
-
-    ///@{
-    /** Three-way comparison operator. Checks only the CURRENT value. */
-    inline bool operator<=>(const std::array<T,N>& other) const { return (this->value_ <=> other); }
-    inline bool operator<=>(const SafeArray<T,N>& other) const { return (this->value_ <=> other.get()); }
+    inline bool operator==(const SafeArray<T,N>& other) const { return (this->value_ == other.value_); }
     ///@}
 
     /// Commit the value.
@@ -191,7 +174,7 @@ template <typename T, unsigned N> class SafeArray : public SafeBase {
     /// Revert the value.
     void revert() override {
       if (this->copy_ != nullptr) this->value_ = *this->copy_;
-      if (!this->undo_->empty()) this->processUndoStack();
+      if (this->undo_ != nullptr && !this->undo_->empty()) this->processUndoStack();
       this->copy_ = nullptr; this->undo_ = nullptr; this->registered_ = false;
     }
 };
