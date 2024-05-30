@@ -263,7 +263,7 @@ class EventManager {
     /**
      * Register the event.
      */
-    void registerEvent(Event&& event) { this->events_.insert(std::move(event)); }
+    void registerEvent(Event&& event) noexcept { this->events_.insert(std::move(event)); }
 
     /**
      * Dump function.

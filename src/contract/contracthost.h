@@ -143,7 +143,7 @@ class ContractHost : public evmc::Host {
     blockHash_(blockHash),
     leftoverGas_(txGasLimit) {}
 
-    ~ContractHost() override;
+    ~ContractHost() noexcept override;
 
     static Address deriveContractAddress(const uint64_t& nonce, const Address& address);
 
