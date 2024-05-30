@@ -9,6 +9,7 @@ See the LICENSE.txt file in the project root for more information.
 #define SAFEBASE_H
 
 #include <memory>
+#include <cassert>
 #include "../utils/dynamicexception.h"
 
 // Forward declarations.
@@ -80,23 +81,17 @@ class SafeBase {
 
     void enableRegister() { this->shouldRegister_ = true; } ///< Enable variable registration.
 
-    /**
-     * Commit a structure value to the contract. Should always be overridden by the child class.
-     * Child class should always do `this->registered = false;` at the end of commit().
-     * @throw DynamicException if not overridden by the child class.
-     */
-    inline virtual void commit() {
-      throw DynamicException("Derived Class from SafeBase does not override commit()");
-    };
+   /**
+    * Commit a structure value to the contract. Should always be overridden by the child class.
+    * Child class should always do `this->registered = false;` at the end of commit().
+    */
+    inline virtual void commit() { assert(false); }
 
-    /**
-     * Revert a structure value (nullify). Should always be overridden by the child class.
-     * Child class should always do `this->registered = false;` at the end of revert().
-     * @throw DynamicException if not overridden by the child class.
-     */
-    inline virtual void revert() const {
-      throw DynamicException("Derived Class from SafeBase does not override revert()");
-    };
+   /**
+    * Revert a structure value (nullify). Should always be overridden by the child class.
+    * Child class should always do `this->registered = false;` at the end of revert().
+    */
+    inline virtual void revert() const { assert(false); }
 };
 
 #endif // SAFEBASE_H
