@@ -26,11 +26,30 @@ namespace P2P {
   ManagerBase::Net::Net(ManagerBase &manager, int netThreads)
   : manager_(manager),
     work_guard_(boost::asio::make_work_guard(io_context_)),
+    netThreads_(netThreads),
     threadPool_(netThreads),
     connectorStrand_(io_context_.get_executor()),
     acceptorStrand_(io_context_.get_executor()),
     acceptor_(acceptorStrand_)
   {
+    // Keep all startup logic in start()
+  }
+
+  ManagerBase::Net::~Net() {
+    // This can be redundant or irrelevant; since this is class instance is
+    // always managed by a shared_ptr, you don't want stopping to be controlled
+    // by the shared_ptr. You want to be sure it is stopped even if there are
+    // handlers somehow active. This stop() here is just for completeness.
+    stop();
+  }
+
+  // This *needs* to be done after the constructor since we use shared_from_this during startup
+  void ManagerBase::Net::start() {
+    std::unique_lock lock(this->stoppedMutex_);
+    if (stopped_) { throw DynamicException("ManagerBase::Net reuse not allowed"); }
+
+    LOGTRACE("Net engine starting");
+
     auto endpoint = tcp::endpoint{manager_.serverLocalAddress_, manager_.serverPort_};
     try {
       this->acceptor_.open(endpoint.protocol()); // Open the acceptor
@@ -38,46 +57,89 @@ namespace P2P {
       this->acceptor_.bind(endpoint); // Bind to the server address
       this->acceptor_.listen(net::socket_base::max_listen_connections); // Start listening
     } catch (const std::exception& e) {
-      throw DynamicException(std::string("Error opening listen socket: ") + e.what());
+      LOGERROR(std::string("Error setting up TCP listen socket:") + e.what());
+      throw DynamicException(std::string("Error setting up TCP listen socket: ") + e.what());
     }
 
     doAccept(); // enqueue first TCP inbound connection request handler
 
-    for (int i = 0; i < netThreads; ++i) { // put the thread pool to work
-      boost::asio::post(this->threadPool_, [this] { this->io_context_.run(); });
+    std::string logSrc = this->getLogicalLocation();
+    for (int i = 0; i < netThreads_; ++i) { // put the thread pool to work
+      boost::asio::post(this->threadPool_, [this, logSrc, i] {
+        GLOGTRACE("Net starting P2P worker thread " + std::to_string(i) + " at instance " + logSrc);
+        this->io_context_.run();
+        GLOGTRACE("Net stopping P2P worker thread " + std::to_string(i) + " at instance " + logSrc);
+      });
     }
+
+    LOGTRACE("Net engine started");
   }
 
-  ManagerBase::Net::~Net() {
+  void ManagerBase::Net::stop() {
+    std::unique_lock lock(this->stoppedMutex_);
+    if (stopped_) return;
+    // This stopped_ = true has to be here, as this flag is read by the handlers that
+    //   are going to blow up due to us closing everything below.
+    stopped_ = true;
+    lock.unlock();
+
+    LOGTRACE("Net engine stopping");
+
+    // Cancel is not available under Windows systems
+    boost::system::error_code ec;
+    acceptor_.cancel(ec); // Cancel the acceptor.
+    if (ec) { LOGDEBUG("Failed to cancel acceptor operations: " + ec.message()); }
+    acceptor_.close(ec); // Close the acceptor.
+    if (ec) { LOGDEBUG("Failed to close acceptor: " + ec.message()); }
     work_guard_.reset();
     io_context_.stop();
     threadPool_.join();
+
+    LOGTRACE("Net engine stopped");
   }
 
   void ManagerBase::Net::connect(const boost::asio::ip::address& address, uint16_t port) {
-    boost::asio::post(this->connectorStrand_, std::bind_front(&ManagerBase::Net::handleOutbound, this, address, port));
+    auto self = weak_from_this(); // Weak ensures queued handlers will never hold up the Net object
+    boost::asio::post(
+      this->connectorStrand_,
+      [self, address, port]() {
+        if (auto spt = self.lock()) {
+          spt->handleOutbound(address, port);
+        }
+      }
+    );
   }
 
   void ManagerBase::Net::doAccept() {
+    auto self = weak_from_this(); // Weak ensures queued handlers will never hold up the Net object
     this->acceptor_.async_accept(
       net::bind_executor(
         this->acceptorStrand_,
-        boost::beast::bind_front_handler(&ManagerBase::Net::handleInbound, this)
+        [self](boost::system::error_code ec, net::ip::tcp::socket socket) {
+          if (auto spt = self.lock()) {
+            spt->handleInbound(ec, std::move(socket));
+          }
+        }
       )
     );
   }
 
   void ManagerBase::Net::handleInbound(boost::system::error_code ec, net::ip::tcp::socket socket) {
+    std::unique_lock lock(this->stoppedMutex_); // prevent stop() while handler is active
+    if (stopped_) return;
     if (ec) {
-      // Make sure doAccept() is called again so we keep accepting connections.
       LOGDEBUG("Error accepting new connection: " + ec.message());
+      // Make sure doAccept() is called again so we keep accepting connections...
     } else {
       std::make_shared<Session>(std::move(socket), ConnectionType::INBOUND, manager_)->run();
     }
+    // invoked within stoppedMutex_, so will first queue the accept, then allow acceptor being cancelled
     this->doAccept();
   }
 
   void ManagerBase::Net::handleOutbound(const boost::asio::ip::address &address, const unsigned short &port) {
+    std::unique_lock lock(this->stoppedMutex_); // prevent stop() while handler is active
+    if (stopped_) return;
     // async_connect() is actually done inside the Session object
     tcp::socket socket(this->io_context_);
     auto session = std::make_shared<Session>(std::move(socket), ConnectionType::OUTBOUND, manager_, address, port);
@@ -154,12 +216,20 @@ namespace P2P {
   void ManagerBase::start() {
     std::scoped_lock lock(this->stateMutex_);
     if (this->started_) return;
-    LOGINFO("Starting " + std::to_string(ManagerBase::netThreads_) + " P2P worker threads; default: " +
+
+    LOGINFO("Net creating " + std::to_string(ManagerBase::netThreads_) + " P2P worker threads; default: " +
             std::to_string(P2P_NET_THREADS_DEFAULT) + "; CPU: " + std::to_string(std::thread::hardware_concurrency()));
 
     // Attempt to start the network engine.
     // Can throw a DynamicException on error (e.g. error opening TCP listen port).
-    this->net_ = std::make_unique<Net>(*this, ManagerBase::netThreads_);
+    // Not using make_shared to avoid tying the reference count memory to object memory
+    this->net_ = std::shared_ptr<Net>(new Net(*this, ManagerBase::netThreads_));
+
+    LOGDEBUG("Net starting");
+
+    this->net_->start();
+
+    LOGDEBUG("Net started");
 
     this->started_ = true;
   }
@@ -167,6 +237,8 @@ namespace P2P {
   void ManagerBase::stop() {
     std::scoped_lock lock(this->stateMutex_);
     if (!this->started_) return;
+
+    LOGDEBUG("Closing all sessions");
 
     // Ensure all peer sockets are closed and unregister all peer connections
     {
@@ -178,8 +250,28 @@ namespace P2P {
       }
     }
 
-    // Completely stop and destroy the network engine
+    LOGDEBUG("Net stopping");
+
+    // Attempt to completely stop and destroy the network engine
+    this->net_->stop();
+
+    LOGDEBUG("Net stopped");
+
+    // Get rid of the shared_ptr (it is conceivable that there can be handlers
+    // active or other objects keeping the net_ instance alive after reset()).
+    // This is not strictly necessary, but it is nice to show that we either
+    // don't have IO handlers running, or that when they try to promote to
+    // shared_ptr, they will likely fail.
+    std::weak_ptr<Net> wpt = this->net_;
     this->net_.reset();
+    while (true) { // Wait until there are not strong references left
+      auto spt = wpt.lock();
+      if (!spt) break;
+      LOGDEBUG("Waiting for Net object to be destroyed; shared_ptr count: " + std::to_string(spt.use_count()));
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    LOGDEBUG("Net destroyed");
 
     this->started_ = false;
   }

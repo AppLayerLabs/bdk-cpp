@@ -24,15 +24,18 @@ namespace P2P {
     protected:
 
       /// Helper class that encapsulates our ASIO-based networking engine
-      class Net : public Log::LogicalLocationProvider {
+      class Net : public Log::LogicalLocationProvider, public std::enable_shared_from_this<Net> {
       private:
         ManagerBase& manager_;
-        net::io_context io_context_; ///< io_context for the P2P engine.
-        net::executor_work_guard<net::io_context::executor_type> work_guard_; ///< Work guard for the io_context.
+        net::io_context io_context_; ///< io_context for the P2P engine
+        net::executor_work_guard<net::io_context::executor_type> work_guard_; ///< Work guard for the io_context
+        int netThreads_; ///< Size of thread pool
         boost::asio::thread_pool threadPool_; ///< thread pool that runs the P2P engine
         net::strand<net::io_context::executor_type> connectorStrand_; ///< strand for outbound connections
         net::strand<net::io_context::executor_type> acceptorStrand_; ///< strand for inbound connections
         net::ip::tcp::acceptor acceptor_; ///< listen socket
+        bool stopped_ = false; ///< Set to true as soon as stop() starts
+        std::mutex stoppedMutex_; ///< Mutex to control stopping
         void handleOutbound(const boost::asio::ip::address &address, const unsigned short &port); ///< Complete TCP connection
         void handleInbound(boost::system::error_code ec, net::ip::tcp::socket socket); ///< Complete TCP connection
         void doAccept(); ///< Wait for the next inbound TCP connection request
@@ -40,13 +43,15 @@ namespace P2P {
         std::string getLogicalLocation() const override { return manager_.getLogicalLocation(); }
         Net(ManagerBase& manager, int netThreads); ///< Start net engine with netThreads threads, can throw DynamicException
         virtual ~Net(); ///< Stop net engine
+        void start(); ///< Initialize the engine
+        void stop(); ///< Stop the engine
         void connect(const boost::asio::ip::address& address, uint16_t port); ///< Request connection to a peer
       };
 
       static std::atomic<int> instanceIdGen_; ///< Instance ID generator.
       static std::atomic<int> netThreads_; ///< Size of the IO thread pool (this is read and used in start()).
 
-      std::unique_ptr<Net> net_; ///< Core P2P networking components instantiated when the P2P Manager is running (started)
+      std::shared_ptr<Net> net_; ///< Core P2P networking components instantiated when the P2P Manager is running (started)
       const net::ip::address serverLocalAddress_; ///< The manager's local IP address.
       const unsigned short serverPort_; ///< The manager's port.
       const NodeType nodeType_; ///< The manager's node type.
