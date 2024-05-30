@@ -62,9 +62,6 @@ private:
 
   mutable std::shared_mutex chainLock_; ///< Mutex for managing read/write access to the blockchain.
   mutable std::shared_mutex cacheLock_; ///< Mutex to manage read/write access to the cache.
-  std::thread periodicSaveThread_;  ///< Thread that periodically saves the blockchain history to the database.
-  uint64_t periodicSaveCooldown_ = 15;  ///< Cooldown for the periodic save thread, in seconds.
-  bool stopPeriodicSave_ = false; ///< Flag for stopping the periodic save thread, if required.
 
   // Temporary fix for SaveLatest threads
   std::atomic<int> slThreads_;
@@ -139,7 +136,7 @@ public:
    * @param options Reference to the options singleton.
    */
   Storage(const std::string& instanceIdStr, const Options& options);
-  ~Storage(); ///< Destructor. Automatically saves the chain to the database.
+  ~Storage() noexcept; ///< Destructor. Automatically saves the chain to the database.
   virtual std::string getLogicalLocation() const { return instanceIdStr_; } ///< Log instance (provided in ctor)
   void pushBack(FinalizedBlock block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
   void pushFront(FinalizedBlock block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
@@ -218,14 +215,6 @@ public:
 
   /// Get the number of blocks currently in the chain (nHeight of latest block + 1).
   uint64_t currentChainSize() const;
-
-  // TODO: both functions below should be called by the ctor/dtor respectively.
-
-  /// Start the periodic save thread.
-  void periodicSaveToDB();
-
-  /// Stop the periodic save thread.
-  void stopPeriodicSaveToDB() { this->stopPeriodicSave_ = true; }
 };
 
 #endif  // STORAGE_H
