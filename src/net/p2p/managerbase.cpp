@@ -238,6 +238,9 @@ namespace P2P {
     std::scoped_lock lock(this->stateMutex_);
     if (!this->started_) return;
 
+    // This is here to stop more work being sent to net_
+    this->started_ = false;
+
     LOGDEBUG("Closing all sessions");
 
     // Ensure all peer sockets are closed and unregister all peer connections
@@ -257,23 +260,30 @@ namespace P2P {
 
     LOGDEBUG("Net stopped");
 
+    // Get a weak ptr (see below) then reset the net_ shared_ptr
+    std::weak_ptr<Net> wpt = this->net_;
+    this->net_.reset();
+
     // Get rid of the shared_ptr (it is conceivable that there can be handlers
     // active or other objects keeping the net_ instance alive after reset()).
     // This is not strictly necessary, but it is nice to show that we either
     // don't have IO handlers running, or that when they try to promote to
     // shared_ptr, they will likely fail.
-    std::weak_ptr<Net> wpt = this->net_;
-    this->net_.reset();
-    while (true) { // Wait until there are not strong references left
+    int tries = 50; // 5s
+    while (true) {
       auto spt = wpt.lock();
       if (!spt) break;
-      LOGDEBUG("Waiting for Net object to be destroyed; shared_ptr count: " + std::to_string(spt.use_count()));
+      if (--tries <= 0) {
+        LOGERROR("Timeout waiting for Net object to be destroyed.");
+        break;
+      }
+      LOGDEBUG("Waiting for Net object to be destroyed (tries left: " + std::to_string(tries) +
+               "); shared_ptr count: " + std::to_string(spt.use_count()));
+      spt.reset();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     LOGDEBUG("Net destroyed");
-
-    this->started_ = false;
   }
 
   std::vector<NodeID> ManagerBase::getSessionsIDs() const {

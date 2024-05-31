@@ -57,9 +57,9 @@ ProcessOptions parseCommandLineArgs(int argc, char* argv[], BDKTool tool) {
         ("loglevel,l", boost::program_options::value<std::string>(),
           "Set the log level ([T]RACE, [D]EBUG, [I]NFO, [W]ARNING, [E]RROR, [N]ONE)")
         ("loglinelimit", boost::program_options::value<int>(),
-          "Set the log line limit for rotating the log file")
+          "Set the log line limit (# of lines per file); 0 = no limit")
         ("logfilelimit", boost::program_options::value<int>(),
-          "Set the log file limit (erases older log files); 0 = no limit")
+          "Set the log file limit (# of files); 0 = no limit")
         ("netthreads", boost::program_options::value<int>(),
           "Set ManagerBase::netThreads_ (main IO thread count)")
         ;

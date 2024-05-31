@@ -34,7 +34,7 @@ namespace P2P {
   * socket.
   */
   class Session : public std::enable_shared_from_this<Session>, public Log::LogicalLocationProvider {
-    protected:
+    private:
       /// The socket used to communicate with the client.
       net::ip::tcp::socket socket_;
 

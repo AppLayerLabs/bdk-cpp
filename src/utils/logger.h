@@ -231,7 +231,7 @@ class Logger {
     /// Private constructor as it is a singleton.
     Logger() : activeLogFileName_("bdk.log") {
       logLevel_ = LogType::NONE; // The logger component does not log anything by default
-      logLineLimit_ = 100000;
+      logLineLimit_ = 500000;
       logFileLimit_ = 0; // No limit to the number of log files by default
       logThreadFuture_ = std::async(std::launch::async, &Logger::logger, this);
     }
@@ -259,7 +259,8 @@ class Logger {
       int logFileNum = -1;
       int logLineCount = INT_MAX;
       while (true) {
-        if (logLineCount > logLineLimit_) {
+        // logLineLimit == 0 means the limit is disabled
+        if ((logLineLimit_ != 0 && logLineCount > logLineLimit_) || logFileNum < 0) {
           if (logFileNum >= 0) {
             std::string archiveLogFileName = activeLogFileName_ + "." + std::to_string(logFileNum);
             curTask_ = LogInfo(LogType::NONE, Log::logger, __func__,
