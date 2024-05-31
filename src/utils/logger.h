@@ -229,24 +229,17 @@ class LogInfo {
 class Logger {
   private:
     /// Private constructor as it is a singleton.
-    Logger() :
-      activeLogFileName_("bdk.log"),
-      logLevel_ (LogType::NONE), // The logger component does not log anything by default
-      logLineLimit_(500000),
-      logFileLimit_(0) // No limit to the number of log files by default
-    {
-      logThreadFuture_ = std::async(std::launch::async, &Logger::logger, this);
-    }
+    Logger() { logThreadFuture_ = std::async(std::launch::async, &Logger::logger, this); }
     Logger(const Logger&) = delete;             ///< Make it non-copyable
     Logger& operator=(const Logger&) = delete;  ///< Make it non-assignable.
 
     /// Get the instance.
     static Logger& getInstance() { static Logger instance; return instance; }
 
-    const std::string activeLogFileName_;   ///< Base name for log files
-    std::atomic<LogType> logLevel_;         ///< Current log level (doesn't log anything less than this).
-    std::atomic<int> logLineLimit_;         ///< Number of log lines until the log rotates.
-    std::atomic<int> logFileLimit_;         ///< Number of log files to keep before deleting older ones.
+    const std::string activeLogFileName_= "bdk.log"; ///< Base name for log files
+    std::atomic<LogType> logLevel_ = LogType::NONE; ///< Current log level (doesn't log anything less than this).
+    std::atomic<int> logLineLimit_ = 500000; ///< Number of log lines until the log rotates.
+    std::atomic<int> logFileLimit_ = 0;     ///< Number of log files to keep before deleting older ones (0 = none)
     std::ofstream logFile_;                 ///< The file stream.
     std::mutex logQueueMutex_;              ///< Mutex for protecting access to the log queue.
     std::condition_variable cv_;            ///< Conditional variable to wait for new tasks.
