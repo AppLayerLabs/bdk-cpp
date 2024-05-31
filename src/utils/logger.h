@@ -229,10 +229,12 @@ class LogInfo {
 class Logger {
   private:
     /// Private constructor as it is a singleton.
-    Logger() : activeLogFileName_("bdk.log") {
-      logLevel_ = LogType::NONE; // The logger component does not log anything by default
-      logLineLimit_ = 500000;
-      logFileLimit_ = 0; // No limit to the number of log files by default
+    Logger() :
+      activeLogFileName_("bdk.log"),
+      logLevel_ (LogType::NONE), // The logger component does not log anything by default
+      logLineLimit_(500000),
+      logFileLimit_(0) // No limit to the number of log files by default
+    {
       logThreadFuture_ = std::async(std::launch::async, &Logger::logger, this);
     }
     Logger(const Logger&) = delete;             ///< Make it non-copyable
