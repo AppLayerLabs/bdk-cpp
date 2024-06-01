@@ -9,7 +9,6 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/libs/catch2/catch_amalgamated.hpp"
 #include <string>
 #include <cctype>
-#include <iostream>
 
 namespace TSafeString {
   TEST_CASE("SafeString class", "[contract][variables][safestring]") {

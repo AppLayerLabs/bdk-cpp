@@ -55,11 +55,6 @@ template <int Size> class SafeInt_t : public SafeBase {
     int_t value_; ///< Current ("original") value.
     std::unique_ptr<int_t> copy_; ///< Previous ("temporary") value.
 
-    /// Check if values are initialized (and initialize them if not).
-    //inline void check() override {
-    //  if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
-    //}
-
   public:
     static_assert(Size >= 8 && Size <= 256 && Size % 8 == 0, "Size must be between 8 and 256 and a multiple of 8.");
 
@@ -258,33 +253,28 @@ template <int Size> class SafeInt_t : public SafeBase {
     }
     ///@}
 
-    ///@{
+    // NOTE: Boost types (anything that's not 8, 16, 32 or 64) do not support
+    // bit shifting with their own types (e.g. `i >> int256_t(2)`).
+    // Because of that, uint8_t is forcibly used instead for all types, given
+    // anything bigger than `i >> 31` yields a compiler warning (= "undefined behaviour").
+
     /**
      * Left shift operator.
      * @param other The integer indicating the number of positions to shift.
      * @return A new SafeInt_t with the result of the shift.
      */
-    inline SafeInt_t<Size> operator<<(const int_t& other) const {
+    inline SafeInt_t<Size> operator<<(const uint8_t& other) const {
       return SafeInt_t<Size>(this->value_ << other);
     }
-    inline SafeInt_t<Size> operator<<(const SafeInt_t<Size>& other) const {
-      return SafeInt_t<Size>(this->value_ << other.get());
-    }
-    ///@}
 
-    ///@{
     /**
      * Right shift operator.
      * @param other The integer indicating the number of positions to shift.
      * @return A new SafeInt_t with the result of the shift.
      */
-    inline SafeInt_t<Size> operator>>(const int_t& other) const {
+    inline SafeInt_t<Size> operator>>(const uint8_t& other) const {
       return SafeInt_t<Size>(this->value_ >> other);
     }
-    inline SafeInt_t<Size> operator>>(const SafeInt_t<Size>& other) const {
-      return SafeInt_t<Size>(this->value_ >> other.get());
-    }
-    ///@}
 
     /**
      * Logical NOT operator.
@@ -320,6 +310,16 @@ template <int Size> class SafeInt_t : public SafeBase {
      */
     inline bool operator==(const int_t& other) const { return (this->value_ == other); }
     inline bool operator==(const SafeInt_t<Size>& other) const { return (this->value_ == other.get()); }
+    ///@}
+
+    ///@{
+    /**
+     * Inequality operator.
+     * @param other The integer to compare.
+     * @return `true` if the values are not equal, `false` otherwise.
+     */
+    inline bool operator!=(const int_t& other) const { return (this->value_ != other); }
+    inline bool operator!=(const SafeInt_t<Size>& other) const { return (this->value_ != other.get()); }
     ///@}
 
     ///@{
@@ -441,6 +441,9 @@ template <int Size> class SafeInt_t : public SafeBase {
      * @return A reference to this SafeInt_t.
      */
     inline SafeInt_t<Size>& operator*=(const int_t& other) {
+      if (this->value_ == 0 || other == 0) {
+        throw std::domain_error("Multiplication by zero.");
+      }
       if (this->value_ > std::numeric_limits<int_t>::max() / other) {
         throw std::overflow_error("Overflow in multiplication assignment operation.");
       }
@@ -451,6 +454,9 @@ template <int Size> class SafeInt_t : public SafeBase {
       markAsUsed(); this->value_ *= other; return *this;
     }
     inline SafeInt_t<Size>& operator*=(const SafeInt_t<Size>& other) {
+      if (this->value_ == 0 || other.get() == 0) {
+        throw std::domain_error("Multiplication by zero.");
+      }
       if (this->value_ > std::numeric_limits<int_t>::max() / other.get()) {
         throw std::overflow_error("Overflow in multiplication assignment operation.");
       }
@@ -554,37 +560,25 @@ template <int Size> class SafeInt_t : public SafeBase {
     }
     ///@}
 
-    ///@{
     /**
      * Left shift assignment operator.
      * @param other The integer indicating the number of positions to shift.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator<<=(const int_t& other) {
+    inline SafeInt_t<Size>& operator<<=(const uint8_t& other) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
       markAsUsed(); this->value_ <<= other; return *this;
     }
-    inline SafeInt_t<Size>& operator<<=(const SafeInt_t<Size>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
-      markAsUsed(); this->value_ <<= other.get(); return *this;
-    }
-    ///@}
 
-    ///@{
     /**
      * Right shift assignment operator.
      * @param other The integer indicating the number of positions to shift.
      * @return A reference to this SafeInt_t.
      */
-    inline SafeInt_t<Size>& operator>>=(const int_t& other) {
+    inline SafeInt_t<Size>& operator>>=(const uint8_t& other) {
       if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
       markAsUsed(); this->value_ >>= other; return *this;
     }
-    inline SafeInt_t<Size>& operator>>=(const SafeInt_t<Size>& other) {
-      if (this->copy_ == nullptr) this->copy_ = std::make_unique<int_t>(this->value_);
-      markAsUsed(); this->value_ >>= other.get(); return *this;
-    }
-    ///@}
 
     /**
      * Prefix increment operator.
