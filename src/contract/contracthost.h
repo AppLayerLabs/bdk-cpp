@@ -143,6 +143,11 @@ class ContractHost : public evmc::Host {
     blockHash_(blockHash),
     leftoverGas_(txGasLimit) {}
 
+    // Rule of five, no copy/move allowed.
+    ContractHost(const ContractHost&) = delete;
+    ContractHost(ContractHost&&) = delete;
+    ContractHost& operator=(const ContractHost&) = delete;
+    ContractHost& operator=(ContractHost&&) = delete;
     ~ContractHost() noexcept override;
 
     static Address deriveContractAddress(const uint64_t& nonce, const Address& address);

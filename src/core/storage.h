@@ -136,7 +136,12 @@ public:
    * @param options Reference to the options singleton.
    */
   Storage(const std::string& instanceIdStr, const Options& options);
-  ~Storage() noexcept; ///< Destructor. Automatically saves the chain to the database.
+  // Rule of 5, no copy/move allowed.
+  Storage(const Storage&) = delete; ///< No copy constructor allowed.
+  Storage& operator=(const Storage&) = delete; ///< No copy assignment allowed.
+  Storage(Storage&&) = delete; ///< No move constructor allowed.
+  Storage& operator=(Storage&&) = delete; ///< No move assignment allowed.
+  virtual ~Storage() noexcept; ///< Destructor. Automatically saves the chain to the database.
   virtual std::string getLogicalLocation() const { return instanceIdStr_; } ///< Log instance (provided in ctor)
   void pushBack(FinalizedBlock block); ///< Wrapper for `pushBackInternal()`. Use this as it properly locks `chainLock_`.
   void pushFront(FinalizedBlock block);  ///< Wrapper for `pushFrontInternal()`. Use this as it properly locks `chainLock_`.
