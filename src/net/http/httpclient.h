@@ -1,14 +1,12 @@
 #ifndef HTTPCLIENT_H
 #define HTTPCLIENT_H
 
-
 #include <string>
-#include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/websocket.hpp>
-
+#include <boost/asio/buffers_iterator.hpp>
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -26,7 +24,7 @@ class HTTPSyncClient {
 
   public:
     HTTPSyncClient(const std::string& host, const std::string& port);
-    ~HTTPSyncClient();
+    ~HTTPSyncClient() noexcept;
     HTTPSyncClient(const HTTPSyncClient&) = delete;
     HTTPSyncClient& operator=(const HTTPSyncClient&) = delete;
     HTTPSyncClient(HTTPSyncClient&&) = delete;
@@ -38,12 +36,5 @@ class HTTPSyncClient {
 
     std::string makeHTTPRequest(const std::string& reqBody);
 };
-
-
-
-
-
-
-
 
 #endif // HTTPCLIENT_H
