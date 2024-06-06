@@ -522,7 +522,7 @@ namespace P2P {
        * @param latestBlock Pointer to the node's latest block.
        * @param nodes Connected nodes.
        * @param options Pointer to the node's options singleton.
-       * @return The formatted answer.
+       * @return The formatted message.
        */
       static Message notifyInfo(
         const std::shared_ptr<const FinalizedBlock>& latestBlock,

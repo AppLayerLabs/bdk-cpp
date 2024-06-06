@@ -7,6 +7,33 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "managerbase.h"
 
+// NOTE (Socket options & socket shutdown):
+// The current implementation is designed to completely avoid the TIME_WAIT TCP socket state by:
+// - Setting the SO_LINGER option to ON on all sockets, with a timeout of zero.
+// - NOT issuing a shutdown() to the socket when closing it and just calling close() straight up.
+// The idea here is that:
+// - Once we decide to kill a connection from one side, then it should be completely dead from
+//   that point on, EVEN if it has pending I/O data somewhere in the local networking stack.
+// - A blockchain node is by definition tolerant to any kind of network failure -- even if it is
+//   self-inflicted. It has to work *regardless* of lost or even maliciously corrupted net data.
+// - If we have a need to guarantee data send/receive before planned (app-explicit, orderly)
+//   shutdown, these acknowledgements should be done by our protocol before we tell the
+//   P2P TCP connection at either end to be closed. We should not depend on the TCP stack to do
+//   any work for us post closing a connection/session. In other words, when the code decides
+//   to close a connection, it should also be the moment where it knows any data that positively
+//   must be acknowledged has been acknowledged by virtue of in-band, application-level (i.e.
+//   above the TCP socket impl) traffic.
+// And besides: if the goal is to, for example, write a server that fulfills a request then
+//   closes the connection, it is probably simpler to combine the client closing the connection
+//   when it receives the data with a timer on the server that closes the connection afer some
+//   time elapsed after the last packet of data is sent. That would be simpler than trying to
+//   orchestrate shutdown() and close(), which you would need to do anyay, and achieve the same
+//   result in practice, which is a very low exercising of retries due to closing while data
+//   is still pending (provided the simple timeout is larger enough, and that most clients are
+//   well-behaved anyway and will close the connection before the timeout).
+// This frees the application from having to deal with SO_REUSEADDR for the TCP listen socket,
+//   and it can just refuse to run if there's a local address/port conflict.
+
 // NOTE (Threading): A relatively low net worker thread count is something you want, in general:
 // - It encourages writing good network messaging handlers;
 // - It encourages writing dedicated thread pools elsewhere in the stack to do heavy processing of
@@ -40,7 +67,9 @@ namespace P2P {
     // always managed by a shared_ptr, you don't want stopping to be controlled
     // by the shared_ptr. You want to be sure it is stopped even if there are
     // handlers somehow active. This stop() here is just for completeness.
+    LOGTRACE("Net destructor calling stop()");
     stop();
+    LOGTRACE("Net destructor done");
   }
 
   // This *needs* to be done after the constructor since we use shared_from_this during startup
@@ -50,19 +79,9 @@ namespace P2P {
 
     LOGTRACE("Net engine starting");
 
-    auto endpoint = tcp::endpoint{manager_.serverLocalAddress_, manager_.serverPort_};
-    try {
-      this->acceptor_.open(endpoint.protocol()); // Open the acceptor
-      this->acceptor_.set_option(net::socket_base::reuse_address(true)); // Allow address reuse
-      this->acceptor_.bind(endpoint); // Bind to the server address
-      this->acceptor_.listen(net::socket_base::max_listen_connections); // Start listening
-    } catch (const std::exception& e) {
-      LOGERROR(std::string("Error setting up TCP listen socket:") + e.what());
-      throw DynamicException(std::string("Error setting up TCP listen socket: ") + e.what());
-    }
-
-    doAccept(); // enqueue first TCP inbound connection request handler
-
+    // First, run all threads. We need to be doing io_context.run() already in case something
+    //   goes wrong and we need to run posted handlers (e.g. a shutdown task that is posted
+    //   to the e.g. acceptor strand).
     std::string logSrc = this->getLogicalLocation();
     for (int i = 0; i < netThreads_; ++i) { // put the thread pool to work
       boost::asio::post(this->threadPool_, [this, logSrc, i] {
@@ -71,6 +90,28 @@ namespace P2P {
         GLOGTRACE("Net stopping P2P worker thread " + std::to_string(i) + " at instance " + logSrc);
       });
     }
+
+    // Second, start the TCP listen socket in the server's listen port.
+    auto endpoint = tcp::endpoint{manager_.serverLocalAddress_, manager_.serverPort_};
+    LOGDEBUGP("Listen socket server endpoint to bind: " + manager_.serverLocalAddress_.to_string() + ":" + std::to_string(manager_.serverPort_));
+    try {
+      this->acceptor_.open(endpoint.protocol()); // Open the acceptor
+
+      // We want to avoid address reuse because it could (theoretically/rarely) cause problems.
+      //
+      // Enable address reuse when trying to bind to the server listen TCP endpoint.
+      //this->acceptor_.set_option(net::socket_base::reuse_address(true)); // Allow address reuse
+
+      this->acceptor_.set_option(net::socket_base::linger(true, 0)); // Make sockets go away immediately when closed.
+      this->acceptor_.bind(endpoint); // Bind to the server address
+      this->acceptor_.listen(net::socket_base::max_listen_connections); // Start listening
+    } catch (const std::exception& e) {
+      LOGERROR(std::string("Error setting up TCP listen socket:") + e.what());
+      throw DynamicException(std::string("Error setting up TCP listen socket: ") + e.what());
+    }
+
+    // Finally, enqueue first TCP inbound connection request handler
+    doAccept();
 
     LOGTRACE("Net engine started");
   }
@@ -85,12 +126,29 @@ namespace P2P {
 
     LOGTRACE("Net engine stopping");
 
-    // Cancel is not available under Windows systems
-    boost::system::error_code ec;
-    acceptor_.cancel(ec); // Cancel the acceptor.
-    if (ec) { LOGDEBUG("Failed to cancel acceptor operations: " + ec.message()); }
-    acceptor_.close(ec); // Close the acceptor.
-    if (ec) { LOGDEBUG("Failed to close acceptor: " + ec.message()); }
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    boost::asio::post(
+      this->acceptorStrand_,
+      [this, &promise]() {
+        // Cancel is not available under Windows systems
+        boost::system::error_code ec;
+        LOGTRACE("Listen TCP socket strand shutdown starting, port: " + std::to_string(this->manager_.serverPort_));
+        acceptor_.cancel(ec); // Cancel the acceptor.
+        if (ec) { LOGTRACE("Failed to cancel acceptor operations: " + ec.message()); }
+        acceptor_.close(ec); // Close the acceptor.
+        if (ec) { LOGTRACE("Failed to close acceptor: " + ec.message()); }
+        LOGTRACE("Listen TCP socket strand shutdown complete, port: " + std::to_string(this->manager_.serverPort_));
+        promise.set_value(); // Signal completion of the task
+      }
+    );
+    LOGTRACE("Listen TCP socket strand shutdown lambda joining...; port: " + std::to_string(this->manager_.serverPort_));
+    future.wait(); // Wait for the posted task to complete
+    LOGTRACE("Listen TCP socket strand shutdown lambda joined; port: " + std::to_string(this->manager_.serverPort_));
+
+    // Stop the IO context, which should error out anything that it is still doing, then join with the threadpool,
+    //   which will ensure the io_context object has completely stopped, even if it would still be managing any
+    //   kind of resource.
     work_guard_.reset();
     io_context_.stop();
     threadPool_.join();
@@ -117,6 +175,21 @@ namespace P2P {
         this->acceptorStrand_,
         [self](boost::system::error_code ec, net::ip::tcp::socket socket) {
           if (auto spt = self.lock()) {
+
+            // Make sockets go away immediately when closed.
+            std::unique_lock lock(spt->stoppedMutex_);
+            if (spt->stopped_) {
+              lock.unlock();
+            } else {
+              lock.unlock();
+              boost::system::error_code opt_ec;
+              socket.set_option(net::socket_base::linger(true, 0), opt_ec);
+              if (opt_ec) {
+                GLOGERROR("Error tring to set up SO_LINGER for a P2P server socket: " + opt_ec.message());
+                return;
+              }
+            }
+
             spt->handleInbound(ec, std::move(socket));
           }
         }
@@ -169,15 +242,17 @@ namespace P2P {
     )
   {};
 
+  void ManagerBase::setTesting() { if (instanceIdGen_ == 0) instanceIdGen_ = 1; }
+
   std::shared_ptr<Request> ManagerBase::sendRequestTo(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
-    if (!this->started_) return nullptr;
+    if (!this->isActive()) return nullptr;
     std::shared_ptr<Session> session;
     {
       std::shared_lock<std::shared_mutex> lockSession(this->sessionsMutex_); // ManagerBase::sendRequestTo doesn't change sessions_ map.
       auto it = sessions_.find(nodeId);
       if (it == sessions_.end()) {
         lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-        LOGDEBUG("Peer not connected: " + toString(nodeId));
+        LOGTRACE("Peer not connected: " + toString(nodeId));
         return nullptr;
       }
       session = it->second;
@@ -198,7 +273,7 @@ namespace P2P {
   // ManagerBase::answerSession doesn't change sessions_ map, but we still need to
   // be sure that the session io_context doesn't get deleted while we are using it.
   void ManagerBase::answerSession(const NodeID &nodeId, const std::shared_ptr<const Message>& message) {
-    if (!this->started_) return;
+    if (!this->isActive()) return;
     std::shared_ptr<Session> session;
     {
       std::shared_lock lockSession(this->sessionsMutex_);
@@ -222,8 +297,7 @@ namespace P2P {
 
     // Attempt to start the network engine.
     // Can throw a DynamicException on error (e.g. error opening TCP listen port).
-    // Not using make_shared to avoid tying the reference count memory to object memory
-    this->net_ = std::shared_ptr<Net>(new Net(*this, ManagerBase::netThreads_));
+    this->net_ = std::make_shared<Net>(*this, ManagerBase::netThreads_);
 
     LOGDEBUG("Net starting");
 
@@ -241,9 +315,7 @@ namespace P2P {
     // This is here to stop more work being sent to net_
     this->started_ = false;
 
-    LOGDEBUG("Closing all sessions");
-
-    // Ensure all peer sockets are closed and unregister all peer connections
+    // Ensure all remaining peer sockets are closed and unregister all peer connections
     {
       std::unique_lock lock(this->sessionsMutex_);
       for (auto it = sessions_.begin(); it != sessions_.end();) {
@@ -303,13 +375,13 @@ namespace P2P {
   // NOTE: Lifetime of a P2P connection:
   // - socket connection (encapsulated in a not-yet-handshaked Session object)
   // - handshake process
-  // - registerSessionInternal: Session (useful, handshaked BDK peer socket connection) registration
-  // - disconnectSessionInternal: socket disconnection + Session deregistration (simultaneous)
+  // - registerSession: Session (useful, handshaked BDK peer socket connection) registration
+  // - disconnectSession: socket disconnection + Session deregistration (simultaneous)
 
   bool ManagerBase::registerSession(const std::shared_ptr<Session> &session) {
     {
       std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::registerSessionInternal can change sessions_ map.
-      if (!this->started_) {
+      if (!this->isActive()) {
         return false;
       }
       // The NodeID of a session is made by the host IP and his server port.
@@ -329,12 +401,12 @@ namespace P2P {
   }
 
   bool ManagerBase::disconnectSession(const NodeID& nodeId) {
-    if (!this->started_) {
+    if (!this->isActive()) {
       return false;
     }
     std::shared_ptr<Session> session;
     {
-      std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::disconnectSessionInternal can change sessions_ map.
+      std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::disconnectSession can change sessions_ map.
       auto it = sessions_.find(nodeId);
       if (it == sessions_.end()) {
         lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
@@ -344,14 +416,22 @@ namespace P2P {
       session = it->second;
     }
     // Ensure Session (socket) is closed (caller is counting on this)
+    //
+    // The only alternative to this is to create a special interface between ManagerBase and Session which allows
+    //   only the Session class to call something like ManagerBase::unregisterSession(). If there is such a
+    //   method, it cannot be public -- it cannot be exposed to any class other than Session.
+    // Since we don't know whether disconnectSession() is being called from e.g. Session::close() to unregister
+    //   or if it is being called from external code (e.g. a test), we have to call session->close() here. This
+    //   will not loop because when ManagerBase::disconnectSession() is called from Session::close() itself, this
+    //   recursive call to session->close() here will be a NO-OP, because Session::closed_ is already set to true.
     try {
       session->close();
     } catch ( const std::exception& e ) {
-      LOGTRACE("Exception attempting to close socket to " + toString(nodeId) + ": " + e.what());
+      LOGTRACE("Error attempting to close session to " + toString(nodeId) + ": " + e.what());
     }
     // Unregister the Session (peer socket connection)
     {
-      std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::disconnectSessionInternal can change sessions_ map.
+      std::unique_lock lockSession(this->sessionsMutex_); // ManagerBase::disconnectSession can change sessions_ map.
       sessions_.erase(nodeId);
     }
     LOGINFO("Disconnected peer: " + toString(nodeId));
@@ -359,7 +439,7 @@ namespace P2P {
   }
 
   void ManagerBase::connectToServer(const boost::asio::ip::address& address, uint16_t port) {
-    if (!this->started_) return;
+    if (!this->isActive()) return;
     if (address == this->serverLocalAddress_ && port == this->serverPort_) return; /// Cannot connect to itself.
     {
       std::shared_lock<std::shared_mutex> lock(this->sessionsMutex_);
@@ -369,6 +449,10 @@ namespace P2P {
   }
 
   void ManagerBase::ping(const NodeID& nodeId) {
+    if (!this->isActive()) {
+      LOGTRACE("Skipping ping to " + toString(nodeId) + ": Net engine not active.");
+      return;
+    }
     auto request = std::make_shared<const Message>(RequestEncoder::ping());
     LOGTRACE("Pinging " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);
@@ -381,6 +465,10 @@ namespace P2P {
   // TODO: Both ping and requestNodes is a blocking call on .wait()
   // Somehow change to wait_for.
   std::unordered_map<NodeID, NodeType, SafeHash> ManagerBase::requestNodes(const NodeID& nodeId) {
+    if (!this->isActive()) {
+      LOGTRACE("Skipping request to " + toString(nodeId) + ": Net engine not active.");
+      return {};
+    }
     auto request = std::make_shared<const Message>(RequestEncoder::requestNodes());
     LOGTRACE("Requesting nodes from " + toString(nodeId));
     auto requestPtr = sendRequestTo(nodeId, request);

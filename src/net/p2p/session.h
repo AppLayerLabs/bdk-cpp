@@ -83,6 +83,9 @@ namespace P2P {
       /// Handshake flag
       std::atomic<bool> doneHandshake_ = false;
 
+      /// Set when the Session is successfully registered with the manager (after handshake is done)
+      std::atomic<bool> registered_ = false;
+
       /// CLIENT SPECIFIC FUNCTIONS (CONNECTING TO A SERVER)
       /// Connect to a specific endpoint.
       void do_connect();

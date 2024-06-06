@@ -79,7 +79,9 @@ class FinalizedBlock {
         validatorMerkleRoot_(std::move(validatorMerkleRoot)), txMerkleRoot_(std::move(txMerkleRoot)),
         timestamp_(timestamp), nHeight_(nHeight),
         txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash)), size_(size)
-    {LOGTRACE("Finalized block moved");}
+    {
+      //LOGTRACE("Finalized block moved");
+    }
 
     /**
      * Move constructor.
@@ -98,7 +100,9 @@ class FinalizedBlock {
       txs_(std::move(block.txs_)),
       hash_(std::move(block.hash_)),
       size_(block.size_)
-    {LOGTRACE("Finalized block moved");}
+    {
+      //LOGTRACE("Finalized block moved");
+    }
 
     /**
      * Copy constructor.
@@ -117,7 +121,9 @@ class FinalizedBlock {
       txs_(block.txs_),
       hash_(block.hash_),
       size_(block.size_)
-    {LOGTRACE("Finalized block copied");}
+    {
+      //LOGTRACE("Finalized block copied");
+    }
 
 
     static FinalizedBlock fromBytes(const BytesArrView bytes, const uint64_t& requiredChainId);

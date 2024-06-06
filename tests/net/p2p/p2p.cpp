@@ -32,11 +32,25 @@ namespace TP2P {
   std::string testDumpPath = Utils::getTestDumpPath();
 
   TEST_CASE("P2P Manager", "[p2p]") {
+    SECTION("Reopen TCP listen socket") {
+      for (int i=1; i<=2; ++i)
+      {
+        GLOGDEBUGP("Opening (" + std::to_string(i) + ") blockchain wrappers");
+        auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 23450, true, testDumpPath + "/p2pReopenNode1");
+        auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 23451, true, testDumpPath + "/p2pReopenNode2");
+        blockchainWrapper1.p2p.start();
+        blockchainWrapper2.p2p.start();
+        blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 23451);
+        //GLOGDEBUGP("Waiting before Closing (" + std::to_string(i) + ") blockchain wrappers");
+        //std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Not needed; just for log ordering.
+        GLOGDEBUGP("Closing (" + std::to_string(i) + ") blockchain wrappers");
+      }
+    }
 
     SECTION("2 Node Network, Syncer") {
 
       /// Make blockchainWrapper be 10 blocks ahead
-      auto blockchainWrapper = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 8080, true, testDumpPath + "/p2pRequestBlockNode1");
+      auto blockchainWrapper = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 8080, true, testDumpPath + "/p2pSyncerNode1");
       for (uint64_t index = 0; index < 10; ++index) {
         std::vector<TxBlock> txs;
         auto newBestBlock = createValidBlock(validatorPrivKeysP2P, blockchainWrapper.state, blockchainWrapper.storage, std::move(txs));
@@ -45,7 +59,7 @@ namespace TP2P {
       REQUIRE(blockchainWrapper.storage.latest()->getNHeight() == 10);
 
       /// Create a blockchaiNWrapper2 with zero blocks
-      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/p2pRequestBlockNode2");
+      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/p2pSyncerNode2");
 
       /// Start the servers and connect them
       blockchainWrapper.p2p.start();
@@ -57,12 +71,13 @@ namespace TP2P {
 
       /// Run blockchainWrapper2's Syncer
       // - At most "3" blocks per block range request answer
-      // - Limit to "300" bytes per block range request answer
+      // - Limit to "2000" bytes per block range request answer
       // - Don't wait for connections ("0")
       // - Abort on first download failure (which should never happen normally) ("1")
-      // Since the dummy blocks are (at the time of this writing) 152 bytes long, the "300" limit will kick in
+      // Since the dummy blocks are (at the time of this writing) 1105 bytes long, the "2000" limit will kick in
       //   and blocks will appear in the debug log in batches of 2, not 3 (this is not tested here).
-      REQUIRE(blockchainWrapper2.syncer.sync(3, 300, 0, 1));
+      //   (The test should always pass, regardless of what the block range fetch settings are).
+      REQUIRE(blockchainWrapper2.syncer.sync(3, 2000, 0, 1));
       REQUIRE(blockchainWrapper2.storage.latest()->getNHeight() == 10);
     }
 
@@ -120,8 +135,8 @@ namespace TP2P {
       blockchainWrapper1.p2p.stopDiscovery();
       blockchainWrapper2.p2p.stopDiscovery();
       blockchainWrapper3.p2p.stopDiscovery();
+      GLOGDEBUG("Test is disconnecting session: " + toString(node2Id));
       blockchainWrapper1.p2p.disconnectSession(node2Id);
-
 
       auto futureSessionNode1 = std::async(std::launch::async, [&]() {
         while (blockchainWrapper1.p2p.getSessionsIDs().size() != 1) {

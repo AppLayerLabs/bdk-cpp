@@ -127,12 +127,17 @@ namespace P2P {
 
       std::string getLogicalLocation() const override { return this->instanceIdStr_; }
 
+      /// Ensures the logging ID is not zero, which would generate instanceIdStr_ == "" (for production logs)
+      static void setTesting();
+
       static void setNetThreads(int netThreads);
 
       const Options& getOptions() { return this->options_; } ///< Get a reference to the Options object given to the P2P engine.
 
       virtual void start(); ///< Start P2P::Server and P2P::ClientFactory.
       virtual void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.
+
+      bool isActive() { return this->started_; }
 
       /// Start the discovery thread.
       void startDiscovery() { this->discoveryWorker_.start(); }

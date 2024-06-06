@@ -17,9 +17,6 @@ See the LICENSE.txt file in the project root for more information.
 /**
  * Custom logging listener for Catch2
  */
-/*
-  REMOVED to check if this is what's crashing the github actions regressions
-
 class LoggingListener : public Catch::EventListenerBase {
 public:
   using EventListenerBase::EventListenerBase;
@@ -59,7 +56,6 @@ public:
 };
 
 CATCH_REGISTER_LISTENER(LoggingListener)
-*/
 
 /**
  * Custom main function for Catch2.
@@ -100,6 +96,11 @@ int main(int argc, char* argv[]) {
     opt.netThreads = 1;
   }
   if (!applyProcessOptions(opt)) return 1;
+
+  // Avoid ManagerBase::instanceIdGen_ == 0, which produces log logical location string ""
+  //   (for production nodes that only instantiate one ManagerBase, ever, and don't need
+  //    the logical location consuming space in the log file)
+  P2P::ManagerBase::setTesting();
 
   Utils::safePrintTest("Running Catch2...");
   int result = Catch::Session().run(catchArgs.size(), catchArgs.data());

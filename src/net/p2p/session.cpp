@@ -25,19 +25,37 @@ namespace P2P {
       }
       this->manager_.disconnectSession(this->nodeId_);
     } else {
-      // Ensure the session/socket is going to be closed
+      // Ensure the session/socket is going to be closed.
+      // If closed_ is set, don't need to call close() since that would be a NOP.
       if (!closed_) {
         // Avoid logging errors if the socket is tagged as being explicitly closed from our end
         LOGDEBUG("Non-handshaked peer connection (" + this->addressAndPortStr() + ") error (" +
                  func + ", " + std::to_string(ec.value()) + "): " + ec.message());
+        this->close();
       }
-      this->close();
     }
   }
 
   void Session::do_connect() {
     boost::asio::ip::tcp::resolver resolver(this->socket_.get_executor());
     auto endpoints = resolver.resolve({this->address_, this->port_});
+
+    // Make sockets go away immediately when closed.
+    boost::system::error_code open_ec;
+    this->socket_.open(endpoints->endpoint().protocol(), open_ec);
+    if (open_ec) {
+      GLOGERROR("Error opening client P2P TCP socket: " + open_ec.message());
+      this->close();
+      return;
+    }
+    boost::system::error_code opt_ec;
+    this->socket_.set_option(net::socket_base::linger(true, 0), opt_ec);
+    if (opt_ec) {
+      GLOGERROR("Error tring to set up SO_LINGER for a P2P client socket: " + opt_ec.message());
+      this->close();
+      return;
+    }
+
     net::async_connect(this->socket_, endpoints, net::bind_executor(
       this->writeStrand_, std::bind(
         &Session::on_connect, shared_from_this(), std::placeholders::_1, std::placeholders::_2
@@ -85,7 +103,14 @@ namespace P2P {
     boost::system::error_code nec;
     this->socket_.set_option(boost::asio::ip::tcp::no_delay(true), nec);
     if (nec) { this->handle_error(__func__, nec); this->close(); return; }
-    if (!this->manager_.registerSession(shared_from_this())) { this->close(); return; }
+    if (!this->manager_.registerSession(shared_from_this())) {
+      // registered_ is false here, so this close() will not try to deregister the session (which would
+      //   be catastrophic for when two peers simultaneously connect to each other, as the handshaked
+      //   Node ID is the same for both, and this would close the *other*, registered session).
+      this->close();
+      return;
+    }
+    this->registered_ = true;
     this->do_read_header(); // Start reading messages.
   }
 
@@ -177,19 +202,16 @@ namespace P2P {
   }
 
   void Session::do_close() {
+    // This can only be called once per Session object
+    if (closed_) return;
+    this->closed_ = true;
+
     std::string peerStr;
     if (this->doneHandshake_) {
       peerStr = toString(nodeId_);
     } else {
       peerStr = this->addressAndPortStr() + " (non-handshaked)";
     }
-
-    if (closed_) {
-      LOGTRACE("Peer connection already closed: " + peerStr);
-      return;
-    }
-
-    this->closed_ = true;
 
     LOGTRACE("Closing peer connection: " + peerStr);
 
@@ -199,13 +221,30 @@ namespace P2P {
     this->socket_.cancel(ec);
     if (ec) { LOGTRACE("Failed to cancel socket operations [" + peerStr + "]: " + ec.message()); }
 
+    // This causes TIME_WAIT even with SO_LINGER enabled (l_onoff = 1) with a timeout of zero.
+    // If we want to close a socket, then we just close it: at that point, it means we do not
+    //   care about pending data. If we want useful pending data to be acknowledged, then our
+    //   node protocol should ensure it in-band with its own shutdown/flush negotiation, and
+    //   not rely on the TCP shutdown sequence to do it.
+    //
     // Attempt to shutdown the socket.
-    this->socket_.shutdown(net::socket_base::shutdown_both, ec);
-    if (ec) { LOGTRACE("Failed to shutdown socket [" + peerStr + "]: " + ec.message()); }
+    //this->socket_.shutdown(net::socket_base::shutdown_both, ec);
+    //if (ec) { LOGTRACE("Failed to shutdown socket [" + peerStr + "]: " + ec.message()); }
 
     // Attempt to close the socket.
     this->socket_.close(ec);
     if (ec) { LOGTRACE("Failed to close socket [" + peerStr + "]: " + ec.message()); }
+
+    // We have to ensure the manager is going to unregister the socket as a result of closing,
+    //   since the connection is guaranteed dead at this point.
+    // This is almost a recursive call, since disconnectSession() calls close() which calls do_close().
+    // However, that recursive call will do nothing because we already set closed_ = true above.
+    //
+    // Also, this deregistration is only performed if this session has registered itself. If it is
+    //   not registered, then only the socket closing above is relevant; there's nothing left to do.
+    if (this->registered_) {
+      this->manager_.disconnectSession(this->nodeId_);
+    }
   }
 
   void Session::write(const std::shared_ptr<const Message>& message) {
