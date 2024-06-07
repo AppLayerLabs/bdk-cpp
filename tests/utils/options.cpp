@@ -41,7 +41,7 @@ namespace TOptions {
         1,
         8080,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-        boost::asio::ip::address::from_string("127.0.0.1"),
+        LOCALHOST,
         8080,
         8081,
         11,

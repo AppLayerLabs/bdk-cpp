@@ -46,12 +46,19 @@ struct TestAccount {
  */
 class SDKTestSuite {
   private:
-    const Options options_;      ///< Options singleton.
-    P2P::ManagerNormal p2p_;     ///< P2P connection manager. NOTE: p2p_ has to be constructed first due to getLogicalLocation()
-    DB db_;                      ///< Database.
-    Storage storage_;            ///< Blockchain storage.
-    StateTest state_;                ///< Blockchain state.
-    HTTPServer http_;            ///< HTTP server.
+    const Options options_;  ///< Options singleton.
+    P2P::ManagerNormal p2p_; ///< P2P connection manager. NOTE: p2p_ has to be constructed first due to getLogicalLocation()
+    DB db_;                  ///< Database.
+    Storage storage_;        ///< Blockchain storage.
+    StateTest state_;        ///< Blockchain state.
+    HTTPServer http_;        ///< HTTP server.
+
+    // Test listen P2P port number generator needs to be in SDKTestSuite due to createNewEnvironment(),
+    //   which selects the port for the caller.
+    // This should be used by all tests that open a node listen port, not only SDKTestSuite tests.
+    static int p2pListenPortMin_;
+    static int p2pListenPortMax_;
+    static int p2pListenPortGen_;
 
     /// Owner of the chain (0x00dead00...).
     static TestAccount chainOwnerAccount() {
@@ -75,6 +82,34 @@ class SDKTestSuite {
   // TODO: update tests here because Consensus now exists
 
   public:
+
+    /// Get next P2P listen port to use in unit tests.
+    static int getTestPort() {
+      int tries = 1000;
+      boost::asio::io_context io_context;
+      while (true) {
+        if (p2pListenPortGen_ > p2pListenPortMax_) {
+          p2pListenPortGen_ = p2pListenPortMin_;
+        } else {
+          ++p2pListenPortGen_;
+        }
+        boost::asio::ip::tcp::acceptor acceptor(io_context);
+        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::tcp::v4(), p2pListenPortGen_);
+        boost::system::error_code ec, ec2;
+        acceptor.open(endpoint.protocol(), ec);
+        if (!ec) {
+          acceptor.bind(endpoint, ec);
+          acceptor.close(ec2);
+          if (!ec) {
+            return p2pListenPortGen_;
+          }
+        }
+        if (--tries <= 0) {
+          SLOGFATAL_THROW("Exhausted tries while searching for a free port number");
+        }
+      }
+    }
+
     /**
      * Constructor for SDKTestSuite based on a given Options.
      */
@@ -83,7 +118,7 @@ class SDKTestSuite {
       db_(std::get<0>(DumpManager::getBestStateDBPath(this->options_))),
       storage_(p2p_.getLogicalLocation(),options_),
       state_(db_, storage_, p2p_, std::get<1>(DumpManager::getBestStateDBPath(this->options_)), options_),
-      p2p_(boost::asio::ip::address::from_string("127.0.0.1"), options_, storage_, state_),
+      p2p_(LOCALHOST, options_, storage_, state_),
       http_(state_, storage_, p2p_, options_)
     {}
 
@@ -133,8 +168,8 @@ class SDKTestSuite {
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          boost::asio::ip::address::from_string("127.0.0.1"),
-          8080,
+          LOCALHOST,
+          SDKTestSuite::getTestPort(),
           9999,
           11,
           11,

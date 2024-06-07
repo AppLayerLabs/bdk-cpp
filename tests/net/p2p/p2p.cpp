@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/core/state.h"
 #include "../../src/utils/db.h"
 #include "../../blockchainwrapper.hpp"
+#include "../../sdktestsuite.hpp"
 
 using Catch::Matchers::Equals;
 namespace TP2P {
@@ -36,13 +37,13 @@ namespace TP2P {
       for (int i=1; i<=2; ++i)
       {
         GLOGDEBUGP("Opening (" + std::to_string(i) + ") blockchain wrappers");
-        auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 23450, true, testDumpPath + "/p2pReopenNode1");
-        auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 23451, true, testDumpPath + "/p2pReopenNode2");
+        auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pReopenNode1");
+        auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pReopenNode2");
         blockchainWrapper1.p2p.start();
         blockchainWrapper2.p2p.start();
-        blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 23451);
-        //GLOGDEBUGP("Waiting before Closing (" + std::to_string(i) + ") blockchain wrappers");
-        //std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Not needed; just for log ordering.
+        blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
+        GLOGDEBUGP("Waiting before Closing (" + std::to_string(i) + ") blockchain wrappers");
+        std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Not really needed; mostly for log ordering.
         GLOGDEBUGP("Closing (" + std::to_string(i) + ") blockchain wrappers");
       }
     }
@@ -50,7 +51,7 @@ namespace TP2P {
     SECTION("2 Node Network, Syncer") {
 
       /// Make blockchainWrapper be 10 blocks ahead
-      auto blockchainWrapper = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], 8080, true, testDumpPath + "/p2pSyncerNode1");
+      auto blockchainWrapper = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pSyncerNode1");
       for (uint64_t index = 0; index < 10; ++index) {
         std::vector<TxBlock> txs;
         auto newBestBlock = createValidBlock(validatorPrivKeysP2P, blockchainWrapper.state, blockchainWrapper.storage, std::move(txs));
@@ -59,13 +60,13 @@ namespace TP2P {
       REQUIRE(blockchainWrapper.storage.latest()->getNHeight() == 10);
 
       /// Create a blockchaiNWrapper2 with zero blocks
-      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/p2pSyncerNode2");
+      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pSyncerNode2");
 
       /// Start the servers and connect them
       blockchainWrapper.p2p.start();
       blockchainWrapper2.p2p.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      blockchainWrapper.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
+      blockchainWrapper.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       REQUIRE(blockchainWrapper.p2p.getSessionsIDs().size() == 1);
 
@@ -83,13 +84,13 @@ namespace TP2P {
 
     SECTION ("P2P::Manager Simple 3 node network") {
 
-      auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), 8080, true, testDumpPath + "/testP2PManagerSimpleNetworkNode1");
-      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/testP2PManagerSimpleNetworkNode2");
-      auto blockchainWrapper3 = initialize(validatorPrivKeysP2P, PrivKey(), 8082, true, testDumpPath + "/testP2PManagerSimpleNetworkNode3");
+      auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerSimpleNetworkNode1");
+      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerSimpleNetworkNode2");
+      auto blockchainWrapper3 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerSimpleNetworkNode3");
 
-      P2P::NodeID node1Id = { boost::asio::ip::address::from_string("127.0.0.1"), 8080 };
-      P2P::NodeID node2Id = { boost::asio::ip::address::from_string("127.0.0.1"), 8081 };
-      P2P::NodeID node3Id = { boost::asio::ip::address::from_string("127.0.0.1"), 8082 };
+      P2P::NodeID node1Id = { LOCALHOST, blockchainWrapper1.p2p.serverPort() };
+      P2P::NodeID node2Id = { LOCALHOST, blockchainWrapper2.p2p.serverPort() };
+      P2P::NodeID node3Id = { LOCALHOST, blockchainWrapper3.p2p.serverPort() };
 
       blockchainWrapper1.p2p.start();
       blockchainWrapper2.p2p.start();
@@ -100,9 +101,9 @@ namespace TP2P {
       REQUIRE(blockchainWrapper2.p2p.isServerRunning() == true);
       REQUIRE(blockchainWrapper3.p2p.isServerRunning() == true);
 
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8082);
-      blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8082);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper3.p2p.serverPort());
+      blockchainWrapper2.p2p.connectToServer(LOCALHOST, blockchainWrapper3.p2p.serverPort());
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       // Start discovery
@@ -222,9 +223,9 @@ namespace TP2P {
     }
 
     SECTION("2 Node Network, request info") {
-      auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), 8080, true, testDumpPath + "/p2pRequestInfoNode1");
+      auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pRequestInfoNode1");
 
-      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/p2pRequestInfoNode2");
+      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pRequestInfoNode2");
 
       /// Start the servers
       blockchainWrapper1.p2p.start();
@@ -233,7 +234,7 @@ namespace TP2P {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       /// Connect to each other
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       REQUIRE(blockchainWrapper1.p2p.getSessionsIDs().size() == 1);
@@ -264,8 +265,8 @@ namespace TP2P {
         1,
         8080,
         Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-        boost::asio::ip::address::from_string("127.0.0.1"),
-        8090,
+        LOCALHOST,
+        SDKTestSuite::getTestPort(),
         9999,
         11,
         11,
@@ -283,17 +284,17 @@ namespace TP2P {
         genesisValidators
       );
 
-      P2P::ManagerDiscovery p2pDiscoveryNode(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
-      auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), 8080, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode1");
-      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), 8081, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode2");
-      auto blockchainWrapper3 = initialize(validatorPrivKeysP2P, PrivKey(), 8082, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode3");
-      auto blockchainWrapper4 = initialize(validatorPrivKeysP2P, PrivKey(), 8083, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode4");
-      auto blockchainWrapper5 = initialize(validatorPrivKeysP2P, PrivKey(), 8084, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode5");
-      auto blockchainWrapper6 = initialize(validatorPrivKeysP2P, PrivKey(), 8085, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode6");
-      auto blockchainWrapper7 = initialize(validatorPrivKeysP2P, PrivKey(), 8086, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode7");
-      auto blockchainWrapper8 = initialize(validatorPrivKeysP2P, PrivKey(), 8087, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode8");
-      auto blockchainWrapper9 = initialize(validatorPrivKeysP2P, PrivKey(), 8088, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode9");
-      auto blockchainWrapper10 = initialize(validatorPrivKeysP2P, PrivKey(), 8089, true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode10");
+      P2P::ManagerDiscovery p2pDiscoveryNode(LOCALHOST, discoveryOptions);
+      auto blockchainWrapper1 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode1");
+      auto blockchainWrapper2 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode2");
+      auto blockchainWrapper3 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode3");
+      auto blockchainWrapper4 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode4");
+      auto blockchainWrapper5 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode5");
+      auto blockchainWrapper6 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode6");
+      auto blockchainWrapper7 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode7");
+      auto blockchainWrapper8 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode8");
+      auto blockchainWrapper9 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode9");
+      auto blockchainWrapper10 = initialize(validatorPrivKeysP2P, PrivKey(), SDKTestSuite::getTestPort(), true, testDumpPath + "/testP2PManagerDiscoveryNetworkNode10");
 
       p2pDiscoveryNode.start();
       blockchainWrapper1.p2p.start();
@@ -307,16 +308,16 @@ namespace TP2P {
       blockchainWrapper9.p2p.start();
       blockchainWrapper10.p2p.start();
 
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper4.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper5.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper6.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper7.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper8.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper9.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper10.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper2.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper3.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper4.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper5.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper6.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper7.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper8.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper9.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
+      blockchainWrapper10.p2p.connectToServer(LOCALHOST, p2pDiscoveryNode.serverPort());
 
       // Start discovery
       p2pDiscoveryNode.startDiscovery();

@@ -72,7 +72,7 @@ namespace TBlockchain {
             discoveryNodes
         );
         std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-            boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+            LOCALHOST, discoveryOptions);
 
         /// Initialize multiple blockchain nodes.
         std::unique_ptr<Blockchain> blockchain1;
@@ -161,7 +161,7 @@ namespace TBlockchain {
             discoveryNodes
         );
         std::unique_ptr<P2P::ManagerDiscovery> p2pDiscovery = std::make_unique<P2P::ManagerDiscovery>(
-            boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+            LOCALHOST, discoveryOptions);
 
         /// Create the validator nodes (5 in total)
         std::unique_ptr<Blockchain> blockchainValidator1;

@@ -14,6 +14,7 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/net/p2p/managernormal.h"
 #include "../../src/net/p2p/managerdiscovery.h"
 #include "../blockchainwrapper.hpp"
+#include "../sdktestsuite.hpp"
 
 #include <filesystem>
 #include <utility>
@@ -37,9 +38,11 @@ namespace TRdPoS {
     std::string testDumpPath = Utils::getTestDumpPath();
     SECTION("rdPoS class Startup") {
       std::set<Validator> validatorsList;
+
+      int p2pServerPort = SDKTestSuite::getTestPort();
       {
         PrivKey validatorKey = PrivKey();
-        auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, true, testDumpPath + "/rdPoSStartup");
+        auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, p2pServerPort, true, testDumpPath + "/rdPoSStartup");
 
         auto validators = blockchainWrapper.state.rdposGetValidators();
         REQUIRE(blockchainWrapper.state.rdposGetValidators().size() == 8);
@@ -72,7 +75,7 @@ namespace TRdPoS {
       }
 
       PrivKey validatorKey = PrivKey();
-      auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, false, testDumpPath + "/rdPoSStartup");
+      auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, p2pServerPort, false, testDumpPath + "/rdPoSStartup");
 
       auto validators = blockchainWrapper.state.rdposGetValidators();
       REQUIRE(validators == validatorsList);
@@ -80,7 +83,7 @@ namespace TRdPoS {
 
     SECTION ("rdPoS validateBlock(), one block from genesis") {
       PrivKey validatorKey = PrivKey();
-      auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, true, testDumpPath + "/rdPoSValidateBlockOneBlock");
+      auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSValidateBlockOneBlock");
 
       auto block = createValidBlock(validatorPrivKeysRdpos, blockchainWrapper.state, blockchainWrapper.storage);
       // Validate the block on rdPoS
@@ -90,9 +93,10 @@ namespace TRdPoS {
     SECTION ("rdPoS validateBlock(), ten block from genesis") {
       Hash expectedRandomnessFromBestBlock;
       std::vector<Validator> expectedRandomList;
+      int p2pServerPort = SDKTestSuite::getTestPort();
       {
         PrivKey validatorKey = PrivKey();
-        auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, true, testDumpPath + "/rdPoSValidateBlockTenBlocks");
+        auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, p2pServerPort, true, testDumpPath + "/rdPoSValidateBlockTenBlocks");
 
         for (uint64_t i = 0; i < 10; ++i) {
           // Create a valid block, with the correct rdPoS transactions
@@ -119,7 +123,7 @@ namespace TRdPoS {
 
       PrivKey validatorKey = PrivKey();
       // Initialize same DB and storage as before.
-      auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, 8080, false, testDumpPath + "/rdPoSValidateBlockTenBlocks");
+      auto blockchainWrapper = initialize(validatorPrivKeysRdpos, validatorKey, p2pServerPort, false, testDumpPath + "/rdPoSValidateBlockTenBlocks");
 
       REQUIRE(blockchainWrapper.state.rdposGetBestRandomSeed() == expectedRandomnessFromBestBlock);
       REQUIRE(blockchainWrapper.state.rdposGetRandomList() == expectedRandomList);
@@ -133,17 +137,17 @@ namespace TRdPoS {
       // Initialize two different node instances, with different ports and DBs.
       std::string testDumpPath = Utils::getTestDumpPath();
       PrivKey validatorKey1 = PrivKey();
-      auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorKey1, 8080, true, testDumpPath + "/rdPosBasicNetworkNode1");
+      auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorKey1, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPosBasicNetworkNode1");
 
       PrivKey validatorKey2 = PrivKey();
-      auto blockchainWrapper2 = initialize(validatorPrivKeysRdpos, validatorKey2, 8081, true, testDumpPath + "/rdPosBasicNetworkNode2");
+      auto blockchainWrapper2 = initialize(validatorPrivKeysRdpos, validatorKey2, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPosBasicNetworkNode2");
 
 
       // Start respective p2p servers, and connect each other.
       blockchainWrapper1.p2p.start();
       blockchainWrapper2.p2p.start();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8081);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, blockchainWrapper2.p2p.serverPort());
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       REQUIRE(blockchainWrapper1.p2p.getSessionsIDs().size() == 1);
 
@@ -242,34 +246,34 @@ namespace TRdPoS {
       // Initialize ten different node instances, with different ports and DBs.
       std::string testDumpPath = Utils::getTestDumpPath();
       PrivKey validatorKey1 = PrivKey();
-      auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorKey1, 8080, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode1");
+      auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorKey1, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode1");
 
       PrivKey validatorKey2 = PrivKey();
-      auto blockchainWrapper2 = initialize(validatorPrivKeysRdpos, validatorKey2, 8081, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode2");
+      auto blockchainWrapper2 = initialize(validatorPrivKeysRdpos, validatorKey2, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode2");
 
       PrivKey validatorKey3 = PrivKey();
-      auto blockchainWrapper3 = initialize(validatorPrivKeysRdpos, validatorKey3, 8082, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode3");
+      auto blockchainWrapper3 = initialize(validatorPrivKeysRdpos, validatorKey3, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode3");
 
       PrivKey validatorKey4 = PrivKey();
-      auto blockchainWrapper4 = initialize(validatorPrivKeysRdpos, validatorKey4, 8083, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode4");
+      auto blockchainWrapper4 = initialize(validatorPrivKeysRdpos, validatorKey4, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode4");
 
       PrivKey validatorKey5 = PrivKey();
-      auto blockchainWrapper5 = initialize(validatorPrivKeysRdpos, validatorKey5, 8084, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode5");
+      auto blockchainWrapper5 = initialize(validatorPrivKeysRdpos, validatorKey5, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode5");
 
       PrivKey validatorKey6 = PrivKey();
-      auto blockchainWrapper6 = initialize(validatorPrivKeysRdpos, validatorKey6, 8085, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode6");
+      auto blockchainWrapper6 = initialize(validatorPrivKeysRdpos, validatorKey6, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode6");
 
       PrivKey validatorKey7 = PrivKey();
-      auto blockchainWrapper7 = initialize(validatorPrivKeysRdpos, validatorKey7, 8086, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode7");
+      auto blockchainWrapper7 = initialize(validatorPrivKeysRdpos, validatorKey7, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode7");
 
       PrivKey validatorKey8 = PrivKey();
-      auto blockchainWrapper8 = initialize(validatorPrivKeysRdpos, validatorKey8, 8087, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode8");
+      auto blockchainWrapper8 = initialize(validatorPrivKeysRdpos, validatorKey8, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode8");
 
       PrivKey validatorKey9 = PrivKey();
-      auto blockchainWrapper9 = initialize(validatorPrivKeysRdpos, validatorKey9, 8088, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode9");
+      auto blockchainWrapper9 = initialize(validatorPrivKeysRdpos, validatorKey9, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode9");
 
       PrivKey validatorKey10 = PrivKey();
-      auto blockchainWrapper10 = initialize(validatorPrivKeysRdpos, validatorKey10, 8089, true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode10");
+      auto blockchainWrapper10 = initialize(validatorPrivKeysRdpos, validatorKey10, SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestBroadcastNode10");
 
       // Initialize the discovery node.
       std::vector<std::pair<boost::asio::ip::address, uint64_t>> peers;
@@ -287,8 +291,8 @@ namespace TRdPoS {
           1,
           8080,
           Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-          boost::asio::ip::address::from_string("127.0.0.1"),
-          8090,
+          LOCALHOST,
+          SDKTestSuite::getTestPort(),
           9999,
           11,
           11,
@@ -305,7 +309,7 @@ namespace TRdPoS {
           genesisBalances,
           genesisValidators
         );
-      P2P::ManagerDiscovery p2pDiscovery(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+      P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
       // Start servers
       p2pDiscovery.start();
@@ -321,16 +325,16 @@ namespace TRdPoS {
       blockchainWrapper10.p2p.start();
 
       // Connect nodes to the discovery node.
-      blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper4.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper5.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper6.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper7.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper8.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper9.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-      blockchainWrapper10.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+      blockchainWrapper1.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper2.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper3.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper4.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper5.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper6.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper7.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper8.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper9.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+      blockchainWrapper10.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
 
       // Wait for connection towards discovery node.
       auto discoveryFuture = std::async (std::launch::async, [&] {
@@ -508,21 +512,21 @@ namespace TRdPoS {
     Address chainOwnerAddress = Secp256k1::toAddress(Secp256k1::toUPub(chainOwnerPrivKey));
     // Initialize 8 different node instances, with different ports and DBs.
     std::string testDumpPath = Utils::getTestDumpPath();
-    auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[0], 8080, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode1");
+    auto blockchainWrapper1 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode1");
 
-    auto blockchainWrapper2 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[1], 8081, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode2");
+    auto blockchainWrapper2 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[1], SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode2");
 
-    auto blockchainWrapper3 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[2], 8082, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode3");
+    auto blockchainWrapper3 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[2], SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode3");
 
-    auto blockchainWrapper4 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[3], 8083, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode4");
+    auto blockchainWrapper4 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[3], SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode4");
 
-    auto blockchainWrapper5 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[4], 8084, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode5");
+    auto blockchainWrapper5 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[4], SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode5");
 
-    auto blockchainWrapper6 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[5], 8085, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode6");
+    auto blockchainWrapper6 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[5], SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode6");
 
-    auto blockchainWrapper7 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[6], 8086, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode7");
+    auto blockchainWrapper7 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[6], SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode7");
 
-    auto blockchainWrapper8 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[7], 8087, true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode8");
+    auto blockchainWrapper8 = initialize(validatorPrivKeysRdpos, validatorPrivKeysRdpos[7], SDKTestSuite::getTestPort(), true, testDumpPath + "/rdPoSdiscoveryNodeTestMove10BlocksNode8");
 
     // Initialize the discovery node.
     std::vector<std::pair<boost::asio::ip::address, uint64_t>> discoveryNodes;
@@ -540,8 +544,8 @@ namespace TRdPoS {
       1,
       8080,
       Address(Hex::toBytes("0x00dead00665771855a34155f5e7405489df2c3c6")),
-      boost::asio::ip::address::from_string("127.0.0.1"),
-      8090,
+      LOCALHOST,
+      SDKTestSuite::getTestPort(),
       9999,
       11,
       11,
@@ -558,7 +562,7 @@ namespace TRdPoS {
       genesisBalances,
       genesisValidators
     );
-    P2P::ManagerDiscovery p2pDiscovery(boost::asio::ip::address::from_string("127.0.0.1"), discoveryOptions);
+    P2P::ManagerDiscovery p2pDiscovery(LOCALHOST, discoveryOptions);
 
     // Start servers
     p2pDiscovery.start();
@@ -572,14 +576,14 @@ namespace TRdPoS {
     blockchainWrapper8.p2p.start();
 
     // Connect nodes to the discovery node.
-    blockchainWrapper1.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-    blockchainWrapper2.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-    blockchainWrapper3.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-    blockchainWrapper4.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-    blockchainWrapper5.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-    blockchainWrapper6.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-    blockchainWrapper7.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
-    blockchainWrapper8.p2p.connectToServer(boost::asio::ip::address::from_string("127.0.0.1"), 8090);
+    blockchainWrapper1.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+    blockchainWrapper2.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+    blockchainWrapper3.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+    blockchainWrapper4.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+    blockchainWrapper5.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+    blockchainWrapper6.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+    blockchainWrapper7.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
+    blockchainWrapper8.p2p.connectToServer(LOCALHOST, p2pDiscovery.serverPort());
 
     // Wait for connection towards discovery node.
     auto discoveryFuture = std::async(std::launch::async, [&]() {

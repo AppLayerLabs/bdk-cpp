@@ -14,6 +14,11 @@ See the LICENSE.txt file in the project root for more information.
 #include "../../src/utils/clargs.h"
 #include <tuple>
 
+// Initialize static listen port generator parameters
+int SDKTestSuite::p2pListenPortMin_ = 20000;
+int SDKTestSuite::p2pListenPortMax_ = 29999;
+int SDKTestSuite::p2pListenPortGen_ = SDKTestSuite::p2pListenPortMin_;
+
 /**
  * Custom logging listener for Catch2
  */

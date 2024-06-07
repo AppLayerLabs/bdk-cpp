@@ -25,6 +25,7 @@ See the LICENSE.txt file in the project root for more information.
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/beast/core/error.hpp>
+#include <boost/asio/ip/address.hpp>
 
 #include <ethash/keccak.h>
 #include <openssl/rand.h>
@@ -35,6 +36,9 @@ See the LICENSE.txt file in the project root for more information.
 #include "src/libs/json.hpp"
 #include "src/contract/variables/safeuint.h"
 #include "src/contract/variables/safeint.h"
+
+/// Localhost IPv4 address constant
+inline const boost::asio::ip::address LOCALHOST = boost::asio::ip::address::from_string("127.0.0.1");
 
 /// @file utils.h
 // Forward declaration.
