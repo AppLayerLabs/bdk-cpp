@@ -80,7 +80,7 @@ class FinalizedBlock {
         timestamp_(timestamp), nHeight_(nHeight),
         txValidators_(std::move(txValidators)), txs_(std::move(txs)), hash_(std::move(hash)), size_(size)
     {
-      //LOGTRACE("Finalized block moved");
+      LOGXTRACE("Finalized block moved");
     }
 
     /**
@@ -101,7 +101,7 @@ class FinalizedBlock {
       hash_(std::move(block.hash_)),
       size_(block.size_)
     {
-      //LOGTRACE("Finalized block moved");
+      LOGXTRACE("Finalized block moved");
     }
 
     /**
@@ -122,7 +122,7 @@ class FinalizedBlock {
       hash_(block.hash_),
       size_(block.size_)
     {
-      //LOGTRACE("Finalized block copied");
+      LOGXTRACE("Finalized block copied");
     }
 
 

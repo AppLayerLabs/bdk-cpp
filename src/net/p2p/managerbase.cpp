@@ -7,45 +7,7 @@ See the LICENSE.txt file in the project root for more information.
 
 #include "managerbase.h"
 
-// NOTE (Socket options & socket shutdown):
-// The current implementation is designed to completely avoid the TIME_WAIT TCP socket state by:
-// - Setting the SO_LINGER option to ON on all sockets, with a timeout of zero.
-// - NOT issuing a shutdown() to the socket when closing it and just calling close() straight up.
-// The idea here is that:
-// - Once we decide to kill a connection from one side, then it should be completely dead from
-//   that point on, EVEN if it has pending I/O data somewhere in the local networking stack.
-// - A blockchain node is by definition tolerant to any kind of network failure -- even if it is
-//   self-inflicted. It has to work *regardless* of lost or even maliciously corrupted net data.
-// - If we have a need to guarantee data send/receive before planned (app-explicit, orderly)
-//   shutdown, these acknowledgements should be done by our protocol before we tell the
-//   P2P TCP connection at either end to be closed. We should not depend on the TCP stack to do
-//   any work for us post closing a connection/session. In other words, when the code decides
-//   to close a connection, it should also be the moment where it knows any data that positively
-//   must be acknowledged has been acknowledged by virtue of in-band, application-level (i.e.
-//   above the TCP socket impl) traffic.
-// And besides: if the goal is to, for example, write a server that fulfills a request then
-//   closes the connection, it is probably simpler to combine the client closing the connection
-//   when it receives the data with a timer on the server that closes the connection afer some
-//   time elapsed after the last packet of data is sent. That would be simpler than trying to
-//   orchestrate shutdown() and close(), which you would need to do anyay, and achieve the same
-//   result in practice, which is a very low exercising of retries due to closing while data
-//   is still pending (provided the simple timeout is larger enough, and that most clients are
-//   well-behaved anyway and will close the connection before the timeout).
-// This frees the application from having to deal with SO_REUSEADDR for the TCP listen socket,
-//   and it can just refuse to run if there's a local address/port conflict.
-
-// NOTE (Threading): A relatively low net worker thread count is something you want, in general:
-// - It encourages writing good network messaging handlers;
-// - It encourages writing dedicated thread pools elsewhere in the stack to do heavy processing of
-//   messages *after* they are received (you should never have to do heavy computation in io threads);
-// - It avoids having networked unit tests with a massive number of threads to debug;
-// - Even debugging a single node (with e.g. gdb: thread info, bt, ...) is now much simpler;
-// - Having less threads in general reduces the probability that we need to worry about having
-//   thread scheduling & context switching bottlenecks of any sort;
-// - Having multiple threads helps to hide some kinds of bugs, making them harder to reproduce.
-// But if you want to experiment with larger thread counts, it's just a matter of tweaking the constant below.
-
-/// Size of the P2P engine's thread pool
+/// Default size of the P2P engine's thread pool
 #define P2P_NET_THREADS_DEFAULT (std::min(4u, std::thread::hardware_concurrency()))
 
 namespace P2P {
@@ -67,9 +29,9 @@ namespace P2P {
     // always managed by a shared_ptr, you don't want stopping to be controlled
     // by the shared_ptr. You want to be sure it is stopped even if there are
     // handlers somehow active. This stop() here is just for completeness.
-    LOGTRACE("Net destructor calling stop()");
+    LOGXTRACE("Net destructor calling stop()");
     stop();
-    LOGTRACE("Net destructor done");
+    LOGXTRACE("Net destructor done");
   }
 
   // This *needs* to be done after the constructor since we use shared_from_this during startup
@@ -85,15 +47,15 @@ namespace P2P {
     std::string logSrc = this->getLogicalLocation();
     for (int i = 0; i < netThreads_; ++i) { // put the thread pool to work
       boost::asio::post(this->threadPool_, [this, logSrc, i] {
-        GLOGTRACE("Net starting P2P worker thread " + std::to_string(i) + " at instance " + logSrc);
+        GLOGXTRACE("Net starting P2P worker thread " + std::to_string(i) + " at instance " + logSrc);
         this->io_context_.run();
-        GLOGTRACE("Net stopping P2P worker thread " + std::to_string(i) + " at instance " + logSrc);
+        GLOGXTRACE("Net stopping P2P worker thread " + std::to_string(i) + " at instance " + logSrc);
       });
     }
 
     // Second, start the TCP listen socket in the server's listen port.
     auto endpoint = tcp::endpoint{manager_.serverLocalAddress_, manager_.serverPort_};
-    LOGDEBUGP("Listen socket server endpoint to bind: " + manager_.serverLocalAddress_.to_string() + ":" + std::to_string(manager_.serverPort_));
+    LOGDEBUG("Listen socket server endpoint to bind: " + manager_.serverLocalAddress_.to_string() + ":" + std::to_string(manager_.serverPort_));
     try {
       this->acceptor_.open(endpoint.protocol()); // Open the acceptor
 
@@ -106,8 +68,11 @@ namespace P2P {
       this->acceptor_.bind(endpoint); // Bind to the server address
       this->acceptor_.listen(net::socket_base::max_listen_connections); // Start listening
     } catch (const std::exception& e) {
-      LOGERROR(std::string("Error setting up TCP listen socket:") + e.what());
-      throw DynamicException(std::string("Error setting up TCP listen socket: ") + e.what());
+      LOGFATALP_THROW(
+        std::string("Error setting up TCP listen socket at [") +
+        manager_.serverLocalAddress_.to_string() + ":" + std::to_string(manager_.serverPort_) +
+        "]: " + e.what()
+      );
     }
 
     // Finally, enqueue first TCP inbound connection request handler
@@ -133,18 +98,18 @@ namespace P2P {
       [this, &promise]() {
         // Cancel is not available under Windows systems
         boost::system::error_code ec;
-        LOGTRACE("Listen TCP socket strand shutdown starting, port: " + std::to_string(this->manager_.serverPort_));
+        LOGXTRACE("Listen TCP socket strand shutdown starting, port: " + std::to_string(this->manager_.serverPort_));
         acceptor_.cancel(ec); // Cancel the acceptor.
         if (ec) { LOGTRACE("Failed to cancel acceptor operations: " + ec.message()); }
         acceptor_.close(ec); // Close the acceptor.
         if (ec) { LOGTRACE("Failed to close acceptor: " + ec.message()); }
-        LOGTRACE("Listen TCP socket strand shutdown complete, port: " + std::to_string(this->manager_.serverPort_));
+        LOGXTRACE("Listen TCP socket strand shutdown complete, port: " + std::to_string(this->manager_.serverPort_));
         promise.set_value(); // Signal completion of the task
       }
     );
-    LOGTRACE("Listen TCP socket strand shutdown lambda joining...; port: " + std::to_string(this->manager_.serverPort_));
+    LOGXTRACE("Listen TCP socket strand shutdown lambda joining...; port: " + std::to_string(this->manager_.serverPort_));
     future.wait(); // Wait for the posted task to complete
-    LOGTRACE("Listen TCP socket strand shutdown lambda joined; port: " + std::to_string(this->manager_.serverPort_));
+    LOGXTRACE("Listen TCP socket strand shutdown lambda joined; port: " + std::to_string(this->manager_.serverPort_));
 
     // Stop the IO context, which should error out anything that it is still doing, then join with the threadpool,
     //   which will ensure the io_context object has completely stopped, even if it would still be managing any
@@ -252,7 +217,7 @@ namespace P2P {
       auto it = sessions_.find(nodeId);
       if (it == sessions_.end()) {
         lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-        LOGTRACE("Peer not connected: " + toString(nodeId));
+        LOGXTRACE("Peer not connected: " + toString(nodeId));
         return nullptr;
       }
       session = it->second;
@@ -390,7 +355,7 @@ namespace P2P {
       // The other endpoint will also see that we already have a connection and will close the new one.
       if (sessions_.contains(session->hostNodeId())) {
         lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-        LOGTRACE("Peer already connected: " + toString(session->hostNodeId()));
+        LOGXTRACE("Peer already connected: " + toString(session->hostNodeId()));
         return false;
       }
       // Register the session (peer socket connection)
@@ -410,7 +375,7 @@ namespace P2P {
       auto it = sessions_.find(nodeId);
       if (it == sessions_.end()) {
         lockSession.unlock(); // Unlock before calling logToDebug to avoid waiting for the lock in the logToDebug function.
-        LOGTRACE("Peer not connected: " + toString(nodeId));
+        LOGXTRACE("Peer not connected: " + toString(nodeId));
         return false;
       }
       session = it->second;

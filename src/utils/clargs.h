@@ -127,19 +127,23 @@ bool applyProcessOptions(ProcessOptions& opt) {
 
   boost::to_upper(opt.logLevel);
 
-  if (opt.logLevel == "T") { opt.logLevel = "TRACE"; }
+  if (opt.logLevel == "X") { opt.logLevel = "XTRACE"; }
+  else if (opt.logLevel == "T") { opt.logLevel = "TRACE"; }
   else if (opt.logLevel == "D") { opt.logLevel = "DEBUG"; }
   else if (opt.logLevel == "I") { opt.logLevel = "INFO"; }
   else if (opt.logLevel == "W") { opt.logLevel = "WARNING"; }
   else if (opt.logLevel == "E") { opt.logLevel = "ERROR"; }
+  else if (opt.logLevel == "F") { opt.logLevel = "FATAL"; }
   else if (opt.logLevel == "N") { opt.logLevel = "NONE"; }
 
   if (opt.logLevel == "") { }
+  else if (opt.logLevel == "XTRACE")  { Logger::setLogLevel(LogType::XTRACE); }
   else if (opt.logLevel == "TRACE")   { Logger::setLogLevel(LogType::TRACE); }
   else if (opt.logLevel == "DEBUG")   { Logger::setLogLevel(LogType::DEBUG); }
   else if (opt.logLevel == "INFO")    { Logger::setLogLevel(LogType::INFO); }
   else if (opt.logLevel == "WARNING") { Logger::setLogLevel(LogType::WARNING); }
   else if (opt.logLevel == "ERROR")   { Logger::setLogLevel(LogType::ERROR); }
+  else if (opt.logLevel == "FATAL")   { Logger::setLogLevel(LogType::FATAL); }
   else if (opt.logLevel == "NONE")    { Logger::setLogLevel(LogType::NONE); }
   else {
     std::cout << "ERROR: Invalid log level requested: " << opt.logLevel << std::endl;
