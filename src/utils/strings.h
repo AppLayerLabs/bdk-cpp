@@ -130,7 +130,6 @@ template <unsigned N> class FixedBytes {
 
     /// Copy assignment operator.
     inline FixedBytes& operator=(const FixedBytes& other) {
-      if (other.size() != this->size()) { throw std::invalid_argument("Invalid size."); }
       if (&other != this) this->data_ = other.data_;
       return *this;
     }

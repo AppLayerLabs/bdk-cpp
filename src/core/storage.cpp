@@ -54,44 +54,13 @@ Storage::Storage(const std::string& instanceIdStr, const Options& options)
   LOGINFO("Blockchain successfully loaded");
 }
 
-Storage::~Storage() {
-
+Storage::~Storage()
+{
   // Wait until all SaveLatest threads are gone before we destroy this
   {
     std::unique_lock<std::mutex> lock(slMutex_);
     slCond_.wait(lock, [this] { return slThreads_ == 0; });
   }
-
-  DBBatch batchedOperations;
-  std::shared_ptr<const FinalizedBlock> latest;
-  {
-    std::unique_lock<std::shared_mutex> lock(this->chainLock_);
-    latest = this->chain_.back();
-    while (!this->chain_.empty()) {
-      // Batch block to be saved to the database.
-      // We can't call this->popBack() because of the mutex
-      std::shared_ptr<const FinalizedBlock> block = this->chain_.front();
-      batchedOperations.push_back(block->getHash().get(), block->serializeBlock(), DBPrefix::blocks);
-      batchedOperations.push_back(Utils::uint64ToBytes(block->getNHeight()), block->getHash().get(), DBPrefix::blockHeightMaps);
-      // Batch txs to be saved to the database and delete them from the mappings
-      const auto& Txs = block->getTxs();
-      for (uint32_t i = 0; i < Txs.size(); i++) {
-        const auto TxHash = Txs[i].hash();
-        Bytes value = block->getHash().asBytes();
-        value.reserve(value.size() + 4 + 8);
-        Utils::appendBytes(value, Utils::uint32ToBytes(i));
-        Utils::appendBytes(value, Utils::uint64ToBytes(block->getNHeight()));
-        batchedOperations.push_back(TxHash.get(), value, DBPrefix::txToBlocks);
-        this->txByHash_.erase(TxHash);
-      }
-      // Delete block from internal mappings and the chain
-      this->blockByHash_.erase(block->getHash());
-      this->chain_.pop_front();
-    }
-  }
-  // Batch save to database
-  this->db_.putBatch(batchedOperations);
-  this->db_.put(std::string("latest"), latest->serializeBlock(), DBPrefix::blocks);
 }
 
 void Storage::saveLatest(const std::shared_ptr<const FinalizedBlock> block) {
@@ -488,23 +457,4 @@ std::shared_ptr<const FinalizedBlock> Storage::latest() const {
 uint64_t Storage::currentChainSize() const {
   std::shared_lock<std::shared_mutex> lock(this->chainLock_);
   return this->latest()->getNHeight() + 1;
-}
-
-void Storage::periodicSaveToDB() {
-  while (!this->stopPeriodicSave_) {
-    std::this_thread::sleep_for(std::chrono::seconds(this->periodicSaveCooldown_));
-    if (!this->stopPeriodicSave_ &&
-        (this->cachedBlocks_.size() > 1000 || this->cachedTxs_.size() > 1000000)) {
-      // TODO: Properly implement periodic save to DB, saveToDB() function saves **everything** to DB.
-      // Requirements:
-      // 1. Save up to 50% of current block list size to DB (e.g. 500 blocks if there are 1000 blocks).
-      // 2. Save all tx references existing on these blocks to DB.
-      // 3. Check if block is **unique** to Storage class (use shared_ptr::use_count()), if it is, save it to DB.
-      // 4. Take max 1 second, Storage::periodicSaveToDB() should never lock this->chainLock_ for too long, otherwise chain might stall.
-      // use_count() of blocks inside Storage would be 2 if on chain (this->chain + this->blockByHash_) and not being used anywhere else on the program.
-      // or 1 if on cache (cachedBlocks).
-      // if ct > 3 (or 1), we have to wait until whoever is using the block
-      // to stop using it so we can save it.
-    }
-  }
 }
