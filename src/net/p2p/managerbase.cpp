@@ -30,7 +30,12 @@ namespace P2P {
     // by the shared_ptr. You want to be sure it is stopped even if there are
     // handlers somehow active. This stop() here is just for completeness.
     LOGXTRACE("Net destructor calling stop()");
-    stop();
+    try {
+      this->stop();
+    } catch (const std::exception& ex) {
+      // This should never trigger, because we should not be destroying Net without calling stop() in the first place.
+      LOGERROR(std::string("Unexpected exception thrown by stop() in Net destructor: ") + ex.what());
+    }
     LOGXTRACE("Net destructor done");
   }
 

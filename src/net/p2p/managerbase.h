@@ -137,7 +137,7 @@ namespace P2P {
       virtual void start(); ///< Start P2P::Server and P2P::ClientFactory.
       virtual void stop(); ///< Stop the P2P::Server and P2P::ClientFactory.
 
-      bool isActive() { return this->started_; }
+      bool isActive() const { return this->started_; }
 
       /// Start the discovery thread.
       void startDiscovery() { this->discoveryWorker_.start(); }
