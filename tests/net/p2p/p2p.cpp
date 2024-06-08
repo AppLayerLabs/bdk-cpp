@@ -463,5 +463,26 @@ namespace TP2P {
       REQUIRE(blockchainWrapper9.p2p.isServerRunning() == false);
       REQUIRE(blockchainWrapper10.p2p.isServerRunning() == false);
     }
+
+    SECTION("Code coverage") {
+      {
+        // Cover ManagerNormal::handleMessage() "invalid message type" handler
+        auto node1 = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pSonarqubeCoverageNode1");
+        auto node2 = initialize(validatorPrivKeysP2P, validatorPrivKeysP2P[0], SDKTestSuite::getTestPort(), true, testDumpPath + "/p2pSonarqubeCoverageNode2");
+        P2P::NodeID node2Id = { LOCALHOST, node2.p2p.serverPort() };
+        node1.p2p.start();
+        node2.p2p.start();
+        node1.p2p.connectToServer(LOCALHOST, node2.p2p.serverPort());
+        auto futureSessionNode1 = std::async(std::launch::async, [&]() {
+          while (node1.p2p.getSessionsIDs().size() != 1) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          }
+        });
+        REQUIRE(futureSessionNode1.wait_for(std::chrono::seconds(5)) != std::future_status::timeout);
+        auto invalidMessage = std::make_shared<P2P::Message>(Bytes(P2P::Message::minValidMessageSize, 0xFF));
+        node1.p2p.handleMessage(node2Id, invalidMessage);
+        REQUIRE(node1.p2p.getSessionsIDs().size() == 0);
+      }
+    }
   }
 };

@@ -559,17 +559,15 @@ namespace P2P {
       /// As it can use the vector for its buffer.
       Bytes rawMessage_;
 
-      /// Raw string move constructor. Throws on invalid size.
-      explicit Message(Bytes&& raw) : rawMessage_(std::move(raw)) {
-        if (rawMessage_.size() < 11) throw DynamicException("Invalid message size.");
-      }
-
       /// Assignment operator.
       Message& operator=(const Message& message) {
         this->rawMessage_ = message.rawMessage_; return *this;
       }
 
     public:
+      /// Minimum size that a valid message must have.
+      static constexpr size_t minValidMessageSize = 11;
+
       /// Default constructor.
       Message() = default;
 
@@ -578,6 +576,11 @@ namespace P2P {
 
       /// Move constructor.
       Message(Message&& message) { this->rawMessage_ = std::move(message.rawMessage_); }
+
+      /// Raw string move constructor.
+      explicit Message(Bytes&& raw) : rawMessage_(std::move(raw)) {
+        if (rawMessage_.size() < minValidMessageSize) throw DynamicException("Invalid message size.");
+      }
 
       /// Get the request type of the message.
       RequestType type() const { return getRequestType(BytesArrView(rawMessage_).subspan(0,1)); }
@@ -597,12 +600,8 @@ namespace P2P {
       /// Get the message's size.
       size_t size() const { return this->rawMessage_.size(); }
 
-      friend class RequestEncoder;
-      friend class AnswerEncoder;
-      friend class BroadcastEncoder;
-      friend class NotificationEncoder;
+      // rawMessage_ access
       friend class Session;
-      friend class Request;
   };
 
   /// Abstraction of a %P2P request, passed through the network.
