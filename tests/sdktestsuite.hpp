@@ -867,13 +867,7 @@ class SDKTestSuite {
      * @param txHash The hash of the transaction to look for events.
      */
     std::vector<Event> getEvents(const Hash& txHash) {
-      printf("before get transaction\n");
       auto tx = this->storage_.getTx(txHash);
-      printf("after get transaction\n");
-
-      if (std::get<0>(tx) == nullptr)
-        printf("transaction is null!\n");
-
       return this->state_.getEvents(std::get<0>(tx)->hash(), std::get<3>(tx), std::get<2>(tx));
     }
 
@@ -1048,18 +1042,14 @@ class SDKTestSuite {
       void(TContract::*func)(const EventParam<Args, Flags>&...),
       bool anonymous = false
     ) {
-      printf("begin\n");
       // Get all the events emitted by the transaction.
       auto eventSignature = ABI::EventEncoder::encodeSignature<Args...>(
         ContractReflectionInterface::getFunctionName(func)
       );
-      printf("second\n");
       std::vector<Hash> topicsToFilter;
       if (!anonymous) topicsToFilter.push_back(eventSignature);
       std::vector<Event> filteredEvents;
-      printf("before shit happens\n");
       auto allEvents = this->getEvents(txHash);
-      printf("third\n");
 
       // Filter the events by the topics
       for (const auto& event : allEvents) {
@@ -1074,8 +1064,6 @@ class SDKTestSuite {
           if (match) filteredEvents.push_back(event);
         }
       }
-
-      printf("forth\n");
       return filteredEvents;
     }
 

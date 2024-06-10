@@ -352,8 +352,6 @@ namespace Utils {
   }
 
   constexpr Bytes makeBytes(bytes::SizedInitializer auto&& initializer) {
-    printf("ALFACE: making bytes\n");
-    printf("ALFACE: initializer size: %d\n", int(initializer.size()));
     Bytes res(initializer.size());
     initializer(res);
     return res;

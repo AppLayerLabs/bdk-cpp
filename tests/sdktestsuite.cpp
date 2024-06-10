@@ -181,37 +181,29 @@ namespace TSDKTestSuite {
     }
 
     SECTION("SDK Test Suite SimpleContract Get Events") {
-      printf("1\n");
       SDKTestSuite sdkTestSuite = SDKTestSuite::createNewEnvironment("testSuiteSimpleContractGetEvents");
       auto simpleContractAddress = sdkTestSuite.deployContract<SimpleContract>(
         std::string("Hello World!"), uint256_t(10), std::make_tuple(std::string("From Inside"), uint256_t(5000))
       );
-      printf("2\n");
       auto changeNameTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setName, std::string("Hello World 2!"));
-      printf("2.5\n");
       auto events = sdkTestSuite.getEventsEmittedByTx(changeNameTx, &SimpleContract::nameChanged);
       REQUIRE(events.size() == 1);
-      printf("3\n");
       auto filteredEvents = sdkTestSuite.getEventsEmittedByTx(
         changeNameTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!"))
       );
       REQUIRE(filteredEvents.size() == 1);
-      printf("4\n");
       auto filteredEvents2 = sdkTestSuite.getEventsEmittedByTx(
         changeNameTx, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 3!"))
       );
       REQUIRE(filteredEvents2.size() == 0);
-      printf("5\n");
       auto filteredEvents3 = sdkTestSuite.getEventsEmittedByAddress(
         simpleContractAddress, &SimpleContract::nameChanged, std::make_tuple(EventParam<std::string, true>("Hello World 2!"))
       );
       REQUIRE(filteredEvents3.size() == 1);
-      printf("6\n");
 
       auto changeNumberTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setNumber, uint256_t(20));
       auto tupleVec = sdkTestSuite.getEventsEmittedByTxTup(changeNumberTx, &SimpleContract::numberChanged);
       REQUIRE(tupleVec.size() == 1);
-      printf("7\n");
       for (auto& tuple : tupleVec) REQUIRE(std::get<0>(tuple) == uint256_t(20));
 
       auto changeTupleTx = sdkTestSuite.callFunction(simpleContractAddress, &SimpleContract::setTuple,
@@ -219,7 +211,6 @@ namespace TSDKTestSuite {
       );
       std::vector<Event> tupleRet = sdkTestSuite.getEventsEmittedByTx(changeTupleTx, &SimpleContract::tupleChanged);
       REQUIRE(tupleRet.size() == 1);
-      printf("8\n");
     }
   }
 }
